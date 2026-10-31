@@ -216,19 +216,24 @@ bringing in dances they already have.
 ## Bring in dances you already have
 
 If you already keep dances in another tool or have them from a community source,
-you can **Import** them instead of retyping. From **Collection**, choose
-**Import** (or run an import from **Settings → General**).
+you can import them instead of retyping. From **Collection**, choose **Import
+dances** (or run an import from **Settings → General → Import…**).
 
 Caller's Compendium can bring in dances from community sources such as **The
-Caller's Box** and **ContraDB**, and from a **Caller's Compendium** file that you
-or another caller exported. You can also turn on online search right from the
+Caller's Box** and **ContraDB**, from a **Caller's Compendium** file that you
+or another caller exported, and your whole library from **Caller's Companion**
+(its exported `.USR` file). You can also turn on online search right from the
 collection to find and pull in individual dances from The Caller's Box.
 
-Whatever the source, every import lands in a **review queue** first. You get a
-side-by-side look at the original and how the app understood it, and nothing
-touches your collection until you approve it — so an import can never quietly
-overwrite your work. The [Imports & migration guide](./imports.md) walks through
-each source step by step.
+Importing a file, link or pasted list opens a **review screen** first, and
+nothing touches your collection until you commit there — so an import can never
+quietly overwrite your work. The review lists every dance it found, with its
+author, formation, source, how much of it was read as structured figures, and
+any notes about it; you decide for each one whether to bring it in or skip it.
+It does not show the original text or the figures. Where a row offers **Import
+and edit** (not for a shared file, or for a pasted title that matched more than
+one dance), it imports that one dance right away and opens it in the editor. The [Imports & migration guide](./imports.md) walks
+through each source step by step.
 
 ## Calling in your own words
 

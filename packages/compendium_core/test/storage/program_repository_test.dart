@@ -539,6 +539,117 @@ void main() {
       expect(loaded.updatedAt, beforeRollback.updatedAt);
       expect(loaded.slots.single.performedAt, actionAt);
     });
+
+    group('restoreStatus (GIG-12)', () {
+      final actionAt = DateTime.utc(2026, 1, 1, 20);
+      final undoneAt = DateTime.utc(2026, 1, 1, 21);
+
+      Future<Program> markedAll({required ProgramStatus status}) async {
+        final program = sampleProgram(
+          slots: [
+            ProgramSlot(
+              id: 's1',
+              position: 0,
+              text: 'Marked by the action',
+              performedAt: actionAt,
+            ),
+          ],
+        ).copyWith(status: status);
+        await repo.create(program);
+        return program;
+      }
+
+      test('puts the status back with the marks', () async {
+        final program = await markedAll(status: ProgramStatus.performed);
+
+        expect(
+          await repo.clearPerformedAtIfMatches(
+            programId: program.id,
+            slotIds: ['s1'],
+            performedAt: actionAt,
+            updatedAt: undoneAt,
+            restoreStatus: ProgramStatus.finalized,
+          ),
+          1,
+        );
+
+        final loaded = await repo.getById(program.id);
+        expect(loaded!.status, ProgramStatus.finalized);
+        expect(loaded.slots.single.performedAt, isNull);
+        expect(loaded.updatedAt, undoneAt);
+      });
+
+      test('puts the status back when there was nothing to clear', () async {
+        final program = await markedAll(status: ProgramStatus.performed);
+
+        expect(
+          await repo.clearPerformedAtIfMatches(
+            programId: program.id,
+            slotIds: const [],
+            performedAt: actionAt,
+            updatedAt: undoneAt,
+            restoreStatus: ProgramStatus.draft,
+          ),
+          0,
+        );
+
+        final loaded = await repo.getById(program.id);
+        expect(loaded!.status, ProgramStatus.draft);
+        expect(loaded.slots.single.performedAt, actionAt);
+        expect(loaded.updatedAt, undoneAt);
+      });
+
+      test('keeps a status changed since the action', () async {
+        final program = await markedAll(status: ProgramStatus.finalized);
+
+        expect(
+          await repo.clearPerformedAtIfMatches(
+            programId: program.id,
+            slotIds: ['s1'],
+            performedAt: actionAt,
+            updatedAt: undoneAt,
+            restoreStatus: ProgramStatus.draft,
+          ),
+          1,
+        );
+
+        final loaded = await repo.getById(program.id);
+        expect(loaded!.status, ProgramStatus.finalized);
+        expect(loaded.slots.single.performedAt, isNull);
+      });
+
+      test('leaves the status alone without restoreStatus', () async {
+        final program = await markedAll(status: ProgramStatus.performed);
+
+        await repo.clearPerformedAtIfMatches(
+          programId: program.id,
+          slotIds: ['s1'],
+          performedAt: actionAt,
+          updatedAt: undoneAt,
+        );
+
+        expect(
+          (await repo.getById(program.id))!.status,
+          ProgramStatus.performed,
+        );
+      });
+
+      test('does not touch a soft-deleted program', () async {
+        final program = await markedAll(status: ProgramStatus.performed);
+        await repo.softDelete(program.id, at: DateTime.utc(2026, 1, 1, 20, 30));
+
+        await repo.clearPerformedAtIfMatches(
+          programId: program.id,
+          slotIds: const [],
+          performedAt: actionAt,
+          updatedAt: undoneAt,
+          restoreStatus: ProgramStatus.draft,
+        );
+
+        final loaded = await repo.getById(program.id, includeDeleted: true);
+        expect(loaded!.status, ProgramStatus.performed);
+      });
+    });
   });
 
   group('updateAndReadBack / replaceIfUnchanged (flows-1)', () {

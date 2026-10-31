@@ -14,6 +14,8 @@ void main() {
     String walkthrough = '  Everyone forms a big circle.\n',
     List<String> tunes = const ['Tune One', ' ', 'Tune Two'],
     DanceStatus status = DanceStatus.broken,
+    String hook = '  The role1s open with a swing.  ',
+    List<SourceCitation> sourceCitations = const [],
   }) => Dance(
     id: 'd1',
     title: '  Rory O\'More ',
@@ -24,6 +26,8 @@ void main() {
     callingNotes: callingNotes,
     walkthrough: walkthrough,
     tunes: tunes,
+    hook: hook,
+    sourceCitations: sourceCitations,
     figures: [
       Figure(move: 'swing', params: {'who': 'partners', 'beats': 16}),
     ],
@@ -36,6 +40,7 @@ void main() {
     Set<DanceShareField> fields, {
     Dialect? dialect,
     bool canonicalize = false,
+    List<String> sourceLines = const [],
   }) => DanceCardContent.build(
     d,
     dialect: dialect ?? Dialect.larksRobins,
@@ -46,6 +51,7 @@ void main() {
     labels: labels,
     canonicalizeDiscouragedTerms: canonicalize,
     fields: fields,
+    sourceLines: sourceLines,
   );
 
   String text(
@@ -53,6 +59,7 @@ void main() {
     Set<DanceShareField> fields, {
     Dialect? dialect,
     bool canonicalize = false,
+    List<String> sourceLines = const [],
   }) => danceToPlainText(
     d,
     dialect: dialect ?? Dialect.larksRobins,
@@ -63,6 +70,7 @@ void main() {
     labels: labels,
     canonicalizeDiscouragedTerms: canonicalize,
     fields: fields,
+    sourceLines: sourceLines,
   );
 
   List<Set<DanceShareField>> allSubsets() {
@@ -94,12 +102,14 @@ void main() {
                 fields,
                 dialect: dialect,
                 canonicalize: canonicalize,
+                sourceLines: const ['Give-and-Take (p. 12)'],
               );
               final rendered = text(
                 d,
                 fields,
                 dialect: dialect,
                 canonicalize: canonicalize,
+                sourceLines: const ['Give-and-Take (p. 12)'],
               );
               final lines = rendered.split('\n');
               final reason =
@@ -126,6 +136,16 @@ void main() {
               expect(
                 lines.contains('${labels.tunes}:'),
                 content.tuneNames.isNotEmpty,
+                reason: reason,
+              );
+              expect(
+                lines.contains('${labels.hook}: ${content.hook}'),
+                content.hook != null,
+                reason: reason,
+              );
+              expect(
+                lines.contains('${labels.sources}:'),
+                content.sourceLines.isNotEmpty,
                 reason: reason,
               );
               expect(
@@ -171,5 +191,92 @@ void main() {
     expect(deselected.tuneNames, ['Tune One', 'Tune Two']);
     // Figures are not gated by the picker.
     expect(deselected.figures, hasLength(1));
+  });
+
+  group('hook and sources (OUT-6)', () {
+    const sources = ['Give-and-Take — A. Author, 1990 (p. 12)', '  '];
+
+    test('are off in the default set and on in all', () {
+      for (final f in [DanceShareField.hook, DanceShareField.sources]) {
+        expect(DanceShareField.allExceptTunes, isNot(contains(f)));
+        expect(DanceShareField.all, contains(f));
+        expect(DanceShareField.fromJson(f.toJson()), f);
+      }
+      final content = DanceCardContent.build(
+        dance(),
+        dialect: Dialect.larksRobins,
+        authorNames: authorNames,
+        formationLabel: 'Becket',
+        statusLabel: 'Broken',
+        sourceLines: sources,
+      );
+      expect(content.hook, isNull);
+      expect(content.sourceLines, isEmpty);
+    });
+
+    test('hook is trimmed, dialect-rendered and gated', () {
+      final larks = build(dance(), const {DanceShareField.hook});
+      final canonical = build(dance(), const {
+        DanceShareField.hook,
+      }, dialect: Dialect.canonical);
+      expect(larks.hook, 'The larks open with a swing.');
+      expect(canonical.hook, 'The role1s open with a swing.');
+      expect(build(dance(hook: '  '), DanceShareField.all).hook, isNull);
+      expect(
+        text(dance(), const {DanceShareField.hook}).split('\n'),
+        contains('Hook: The larks open with a swing.'),
+      );
+    });
+
+    test('sources drop blank lines, gate on the field and get a heading', () {
+      final content = build(dance(), const {
+        DanceShareField.sources,
+      }, sourceLines: sources);
+      expect(content.sourceLines, [sources.first]);
+      expect(
+        text(dance(), const {
+          DanceShareField.sources,
+        }, sourceLines: sources).split('\n'),
+        containsAllInOrder(['Sources:', sources.first]),
+      );
+      expect(
+        text(dance(), const {DanceShareField.hook}, sourceLines: sources),
+        isNot(contains('Sources:')),
+      );
+    });
+
+    test('count as a card body, so a set-list appends a card for them', () {
+      Dance bare({String hook = '', List<SourceCitation>? cites}) => Dance(
+        id: 'b',
+        title: 'Bare',
+        formation: const Formation(FormationShape.dupleImproper),
+        hook: hook,
+        sourceCitations: cites ?? const [],
+        createdAt: now,
+        updatedAt: now,
+      );
+      final cited = bare(
+        cites: [SourceCitation(sourceId: 's1', page: '12')],
+      );
+      expect(DanceCardContent.hasBody(bare(), DanceShareField.all), isFalse);
+      expect(
+        DanceCardContent.hasBody(bare(hook: 'x'), const {DanceShareField.hook}),
+        isTrue,
+      );
+      expect(
+        DanceCardContent.hasBody(bare(hook: 'x'), const {
+          DanceShareField.tunes,
+        }),
+        isFalse,
+      );
+      expect(
+        DanceCardContent.hasBody(cited, const {DanceShareField.sources}),
+        isTrue,
+      );
+      expect(
+        DanceCardContent.hasBody(cited, const {DanceShareField.hook}),
+        isFalse,
+      );
+    });
   });
 }

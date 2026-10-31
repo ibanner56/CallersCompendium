@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/l10n/app_localizations_en.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
+import 'package:compendium_app/src/data/mark_all_sets_status_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/perform_program_screen.dart';
@@ -59,8 +60,9 @@ int _perfSeconds(String display) {
 
 Future<void> _pumpWide(
   WidgetTester tester,
-  CompendiumRepositories repos,
-) async {
+  CompendiumRepositories repos, {
+  bool markAllSetsStatus = true,
+}) async {
   tester.view.physicalSize = const Size(1400, 900);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(() {
@@ -75,7 +77,10 @@ Future<void> _pumpWide(
         repositories: repos,
         child: ActiveDialectScope(
           notifier: ValueNotifier<Dialect>(Dialect.canonical),
-          child: child!,
+          child: MarkAllSetsStatusScope(
+            notifier: ValueNotifier<bool>(markAllSetsStatus),
+            child: child!,
+          ),
         ),
       ),
       home: const ProgramsShell(),
@@ -671,7 +676,12 @@ void main() {
 
       // Feedback is announced and the change is written through immediately —
       // the summary shows a saved program, not a draft.
-      expect(find.text('Marked all dances performed.'), findsOneWidget);
+      expect(
+        find.text(
+          'Marked all dances performed and set the status to Performed.',
+        ),
+        findsOneWidget,
+      );
       final saved = await repos.programs.getById('p1');
       expect(saved!.slots.single.performedAt, isNotNull);
     },
@@ -705,8 +715,8 @@ void main() {
 
     expect(
       find.text(
-        'Marked all dances performed except alternates. '
-        'Mark an alternate yourself if you called it.',
+        'Marked all dances performed except alternates, and set the status '
+        'to Performed. Mark an alternate yourself if you called it.',
       ),
       findsOneWidget,
     );
@@ -741,7 +751,9 @@ void main() {
       ),
     );
 
-    await _pumpWide(tester, repos);
+    // With the status left alone (GIG-12's setting off) there is nothing at
+    // all to do; the status-setting case is covered by the GIG-12 group.
+    await _pumpWide(tester, repos, markAllSetsStatus: false);
     await tester.tap(find.text('Barn Dance'));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
@@ -817,6 +829,120 @@ void main() {
       expect(saved.slots[2].performedAt, isNull);
     },
   );
+
+  // GIG-12 (maintainer decision 2026-10-29, with the note): Mark all
+  // performed also sets the status, behind a setting that is on by default,
+  // and Undo puts the marks and the status back together.
+  group('summary mark-all and the program status (GIG-12)', () {
+    Future<CompendiumRepositories> seed({
+      required ProgramStatus status,
+      DateTime? performedAt,
+    }) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+      await repos.programs.create(
+        Program(
+          id: 'p1',
+          title: 'Barn Dance',
+          status: status,
+          slots: [
+            ProgramSlot(
+              id: 's0',
+              position: 0,
+              danceId: 'd1',
+              performedAt: performedAt,
+            ),
+          ],
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+      );
+      return repos;
+    }
+
+    Future<void> markAll(WidgetTester tester) async {
+      await tester.tap(find.text('Barn Dance'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('sets Performed, and Undo puts the status back', (
+      tester,
+    ) async {
+      final repos = await seed(status: ProgramStatus.finalized);
+      await _pumpWide(tester, repos);
+      await markAll(tester);
+
+      expect(
+        find.text(
+          'Marked all dances performed and set the status to Performed.',
+        ),
+        findsOneWidget,
+      );
+      final marked = (await repos.programs.getById('p1'))!;
+      expect(marked.status, ProgramStatus.performed);
+      expect(marked.slots.single.performedAt, isNotNull);
+
+      await tester.tap(find.text('Undo'));
+      await tester.pumpAndSettle();
+
+      final undone = (await repos.programs.getById('p1'))!;
+      expect(undone.status, ProgramStatus.finalized);
+      expect(undone.slots.single.performedAt, isNull);
+    });
+
+    testWidgets('sets Performed when every dance was already marked', (
+      tester,
+    ) async {
+      final called = DateTime.utc(2025, 12, 31, 20);
+      final repos = await seed(
+        status: ProgramStatus.draft,
+        performedAt: called,
+      );
+      await _pumpWide(tester, repos);
+      await markAll(tester);
+
+      final marked = (await repos.programs.getById('p1'))!;
+      expect(marked.status, ProgramStatus.performed);
+      expect(marked.slots.single.performedAt, called);
+
+      await tester.tap(find.text('Undo'));
+      await tester.pumpAndSettle();
+
+      final undone = (await repos.programs.getById('p1'))!;
+      expect(undone.status, ProgramStatus.draft);
+      expect(undone.slots.single.performedAt, called);
+    });
+
+    testWidgets('Undo keeps a status changed since', (tester) async {
+      final repos = await seed(status: ProgramStatus.draft);
+      await _pumpWide(tester, repos);
+      await markAll(tester);
+
+      final marked = (await repos.programs.getById('p1'))!;
+      await repos.programs.update(
+        marked.copyWith(status: ProgramStatus.finalized),
+      );
+      await tester.tap(find.text('Undo'));
+      await tester.pumpAndSettle();
+
+      final undone = (await repos.programs.getById('p1'))!;
+      expect(undone.status, ProgramStatus.finalized);
+      expect(undone.slots.single.performedAt, isNull);
+    });
+
+    testWidgets('leaves the status alone with the setting off', (tester) async {
+      final repos = await seed(status: ProgramStatus.draft);
+      await _pumpWide(tester, repos, markAllSetsStatus: false);
+      await markAll(tester);
+
+      expect(find.text('Marked all dances performed.'), findsOneWidget);
+      final marked = (await repos.programs.getById('p1'))!;
+      expect(marked.status, ProgramStatus.draft);
+      expect(marked.slots.single.performedAt, isNotNull);
+    });
+  });
 
   testWidgets('summary navigation invalidates the bulk Undo action', (
     tester,

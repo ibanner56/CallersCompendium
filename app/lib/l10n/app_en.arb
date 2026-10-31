@@ -307,6 +307,30 @@
       }
     }
   },
+  "confirmDeleteDancesBody": "{count, plural, =1{1 dance will be deleted. You can undo this.} other{{count} dances will be deleted. You can undo this.}}",
+  "@confirmDeleteDancesBody": {
+    "description": "Body of the confirm-before-delete dialog when several selected dances are deleted at once from Collection's selection mode (shown only when the 'Confirm before delete' setting is on). {count} includes selected dances the current search hides.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "12"
+      }
+    }
+  },
+  "confirmDeleteDancesNotShownBody": "{count, plural, =1{1 dance will be deleted. Your search hides it. You can undo this.} other{{count} dances will be deleted, {notShown} of them hidden by your search. You can undo this.}}",
+  "@confirmDeleteDancesNotShownBody": {
+    "description": "Body of the confirm-before-delete dialog for a batch delete from Collection's selection mode when some selected dances are hidden by the current search or filters. {count} is every selected dance; {notShown} (at least 1) is how many of them the list does not show.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "12"
+      },
+      "notShown": {
+        "type": "int",
+        "example": "9"
+      }
+    }
+  },
   "colorEditHexLabel": "Hex",
   "@colorEditHexLabel": {
     "description": "Field label for the hexadecimal colour input in the shared colour-picker dialog."
@@ -2944,7 +2968,7 @@
   "@settingsAppearanceSetListColorTitle": {
     "description": "Toggle title: tint set-list rows by formation family."
   },
-  "settingsAppearanceSetListColorSubtitle": "Tint each dance row by its formation family (contra, mixer, square, …) — dances marked as mixers always get the mixer tint, regardless of formation. The formation is always shown as text too, so rows stay readable without colour.",
+  "settingsAppearanceSetListColorSubtitle": "Tint each dance row by its formation family (contra, mixer, square, …) — unless you have given that formation its own colour, which wins. Dances marked as mixers always get the mixer tint, regardless of formation. The formation is always shown as text too, so rows stay readable without colour.",
   "@settingsAppearanceSetListColorSubtitle": {
     "description": "Explanation for the set-list colour-coding toggle."
   },
@@ -2952,7 +2976,7 @@
   "@settingsAppearanceFormationColoursTitle": {
     "description": "List-tile title opening the formation-colour customisation screen."
   },
-  "settingsAppearanceFormationColoursSubtitle": "Highlight individual formations in your own colours — e.g. Becket (CW) in yellow, Becket (CCW) in pink — on dance cards, dance detail, and the Perform header.",
+  "settingsAppearanceFormationColoursSubtitle": "Highlight individual formations in your own colours — e.g. Becket (CW) in yellow, Becket (CCW) in pink — on dance cards, dance detail, the Perform header, and set-list rows.",
   "@settingsAppearanceFormationColoursSubtitle": {
     "description": "Explanation for the formation-colour customisation entry."
   },
@@ -3225,7 +3249,15 @@
   },
   "settingsDefaultsShareFieldsTunes": "Tunes",
   "@settingsDefaultsShareFieldsTunes": {
-    "description": "Label for the Tunes share-field toggle (#1434). Unlike every other field here this defaults off, since no renderer emitted tunes before this preference existed."
+    "description": "Label for the Tunes share-field toggle (#1434). Defaults off, like Hook and Sources: no renderer emitted tunes before this preference existed."
+  },
+  "settingsDefaultsShareFieldsHook": "Hook",
+  "@settingsDefaultsShareFieldsHook": {
+    "description": "Label for the Hook share-field toggle (OUT-6). Defaults off, like Tunes: no export carried the hook before this option existed."
+  },
+  "settingsDefaultsShareFieldsSources": "Sources",
+  "@settingsDefaultsShareFieldsSources": {
+    "description": "Label for the published-sources share-field toggle (OUT-6). Defaults off, like Tunes: no export carried source citations before this option existed."
   },
   "settingsDefaultsCollectionFiltersHeader": "Collection filters",
   "@settingsDefaultsCollectionFiltersHeader": {
@@ -3364,7 +3396,7 @@
   "@settingsFormationColoursTitle": {
     "description": "App-bar title of the per-formation label-colour settings screen."
   },
-  "settingsFormationColoursIntro": "Give a formation its own colour to highlight its label on dance cards, dance detail, and the Perform header. Only the formations you customise are highlighted; the rest show their label as usual. The formation is always shown as text too, so labels stay readable without colour.",
+  "settingsFormationColoursIntro": "Give a formation its own colour to highlight its label on dance cards, dance detail, and the Perform header, and to colour its set-list rows (mixers keep the mixer colour). Only the formations you customise are highlighted; the rest show their label as usual. The formation is always shown as text too, so labels stay readable without colour.",
   "@settingsFormationColoursIntro": {
     "description": "Intro paragraph explaining per-formation label colours."
   },
@@ -3402,39 +3434,9 @@
   "@settingsAppearanceTagColoursSubtitle": {
     "description": "Explanation for the tag-colour customisation entry."
   },
-  "settingsTagColoursTitle": "Tag colours",
-  "@settingsTagColoursTitle": {
-    "description": "App-bar title of the per-tag colour settings screen."
-  },
-  "settingsTagColoursIntro": "Give a tag its own colour to make it stand out wherever it appears. Only the tags you colour change; the rest look exactly as they do now. The tag's name is always shown too, so tags stay readable without colour.",
-  "@settingsTagColoursIntro": {
-    "description": "Intro paragraph explaining per-tag colours."
-  },
-  "settingsTagColoursListHeader": "Tags",
-  "@settingsTagColoursListHeader": {
-    "description": "Section header above the list of tags."
-  },
   "settingsTagColoursEmpty": "You haven't created any tags yet. Add a tag to a dance and it will appear here.",
   "@settingsTagColoursEmpty": {
     "description": "Shown on the tag-colour screen when the collection has no tags."
-  },
-  "settingsTagColoursCustom": "Custom colour",
-  "@settingsTagColoursCustom": {
-    "description": "Subtitle shown when a tag has a custom colour set."
-  },
-  "settingsTagColoursNoColour": "No colour",
-  "@settingsTagColoursNoColour": {
-    "description": "Subtitle shown when a tag has no colour assigned."
-  },
-  "settingsTagColoursResetTooltip": "Remove {label}'s colour",
-  "@settingsTagColoursResetTooltip": {
-    "description": "Tooltip on the button that clears one tag's colour.",
-    "placeholders": {
-      "label": {
-        "type": "String",
-        "example": "chestnut"
-      }
-    }
   },
   "settingsTagColoursSaveError": "Couldn't save that colour. Please try again.",
   "@settingsTagColoursSaveError": {
@@ -3443,6 +3445,350 @@
   "settingsTagColoursLoadError": "Couldn't load your tags.",
   "@settingsTagColoursLoadError": {
     "description": "Shown on the tag-colour screen when the tag list fails to load."
+  },
+  "tagManagerTitle": "Tags",
+  "@tagManagerTitle": {
+    "description": "App-bar title of the Tags manager, where tags are renamed, merged, coloured and deleted."
+  },
+  "tagManagerSearchHint": "Search tags",
+  "@tagManagerSearchHint": {
+    "description": "Hint in the Tags manager's search field."
+  },
+  "tagManagerNameLabel": "Tag name",
+  "@tagManagerNameLabel": {
+    "description": "Label of the name field in the Tags manager's rename dialog."
+  },
+  "tagManagerColour": "Colour…",
+  "@tagManagerColour": {
+    "description": "Tags manager action: opens the colour picker for a tag."
+  },
+  "tagManagerRemoveColour": "Remove colour",
+  "@tagManagerRemoveColour": {
+    "description": "Tags manager action, offered only for a tag with a colour: removes the colour."
+  },
+  "tagManagerDeletedSnack": "{count, plural, =0{Deleted “{name}”} =1{Deleted “{name}” from 1 dance} other{Deleted “{name}” from {count} dances}}",
+  "@tagManagerDeletedSnack": {
+    "description": "Snackbar after deleting a tag in the Tags manager, with an Undo action. The count is the dances in the collection that lost the tag; dances in Recently deleted are not counted.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Bouncey"
+      },
+      "count": {
+        "type": "int",
+        "example": "12"
+      }
+    }
+  },
+  "tagManagerRenamedSnack": "Renamed “{from}” to “{to}”",
+  "@tagManagerRenamedSnack": {
+    "description": "Snackbar after renaming a tag in the Tags manager, with an Undo action.",
+    "placeholders": {
+      "from": {
+        "type": "String",
+        "example": "Flowing"
+      },
+      "to": {
+        "type": "String",
+        "example": "Flowy"
+      }
+    }
+  },
+  "tagManagerMergedSnack": "Merged “{from}” into “{into}”",
+  "@tagManagerMergedSnack": {
+    "description": "Snackbar after merging one tag into another in the Tags manager, with an Undo action.",
+    "placeholders": {
+      "from": {
+        "type": "String",
+        "example": "Flowing"
+      },
+      "into": {
+        "type": "String",
+        "example": "Flowy"
+      }
+    }
+  },
+  "tagManagerMergedSeveralSnack": "Combined {count} tags into “{into}”",
+  "@tagManagerMergedSeveralSnack": {
+    "description": "Snackbar after a rename merged three or more tags into one (case variants of the same name), with an Undo action. The count includes the tag merged into.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      },
+      "into": {
+        "type": "String",
+        "example": "Flowy"
+      }
+    }
+  },
+  "authorManagerTitle": "Authors",
+  "@authorManagerTitle": {
+    "description": "App-bar title of the Authors manager, where the authors credited on dances are renamed, merged, edited and deleted. User-facing text says “author”, never “choreographer” (decision D-3)."
+  },
+  "authorManagerSearchHint": "Search authors",
+  "@authorManagerSearchHint": {
+    "description": "Hint in the Authors manager's search field."
+  },
+  "authorManagerNameLabel": "Author name",
+  "@authorManagerNameLabel": {
+    "description": "Label of the name field in the Authors manager's rename dialog."
+  },
+  "authorManagerEmpty": "No authors yet. Authors you credit on a dance appear here.",
+  "@authorManagerEmpty": {
+    "description": "Shown in the Authors manager when there are no authors."
+  },
+  "authorManagerLoadError": "Couldn't load your authors.",
+  "@authorManagerLoadError": {
+    "description": "Shown in the Authors manager when the author list fails to load."
+  },
+  "authorManagerMergedSeveralSnack": "Combined {count} authors into “{into}”",
+  "@authorManagerMergedSeveralSnack": {
+    "description": "Snackbar after a rename merged three or more authors into one (case variants of the same name), with an Undo action. The count includes the author merged into.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      },
+      "into": {
+        "type": "String",
+        "example": "Gene Hubert"
+      }
+    }
+  },
+  "sourceManagerTitle": "Sources",
+  "@sourceManagerTitle": {
+    "description": "App-bar title of the Sources manager, where the published sources dances cite (books, websites) are renamed, merged, edited and deleted."
+  },
+  "sourceManagerSearchHint": "Search sources",
+  "@sourceManagerSearchHint": {
+    "description": "Hint in the Sources manager's search field."
+  },
+  "sourceManagerTitleLabel": "Source title",
+  "@sourceManagerTitleLabel": {
+    "description": "Label of the title field in the Sources manager's rename dialog."
+  },
+  "sourceManagerEmpty": "No sources yet. Books and websites you cite on a dance appear here.",
+  "@sourceManagerEmpty": {
+    "description": "Shown in the Sources manager when there are no sources."
+  },
+  "sourceManagerLoadError": "Couldn't load your sources.",
+  "@sourceManagerLoadError": {
+    "description": "Shown in the Sources manager when the source list fails to load."
+  },
+  "libraryManagerClearSearch": "Clear search",
+  "@libraryManagerClearSearch": {
+    "description": "Tooltip of the button that clears the search field in the Tags, Authors and Sources managers."
+  },
+  "libraryManagerNotUsed": "Not used",
+  "@libraryManagerNotUsed": {
+    "description": "Filter chip in the Tags, Authors and Sources managers: shows only entries no dance uses."
+  },
+  "libraryManagerSortTooltip": "Sort",
+  "@libraryManagerSortTooltip": {
+    "description": "Tooltip of the sort menu in the Tags, Authors and Sources managers."
+  },
+  "libraryManagerSortByName": "Name",
+  "@libraryManagerSortByName": {
+    "description": "Sort choice in the Tags, Authors and Sources managers: alphabetical."
+  },
+  "libraryManagerSortByDanceCount": "Number of dances",
+  "@libraryManagerSortByDanceCount": {
+    "description": "Sort choice in the Tags, Authors and Sources managers: most-used first."
+  },
+  "libraryManagerNoMatches": "Nothing matches your search.",
+  "@libraryManagerNoMatches": {
+    "description": "Shown in the Tags, Authors and Sources managers when the search or filter leaves no entries."
+  },
+  "libraryManagerDanceCount": "{count, plural, =0{Not used} =1{1 dance} other{{count} dances}}",
+  "@libraryManagerDanceCount": {
+    "description": "Row subtitle in the Tags, Authors and Sources managers: how many dances in the collection use the entry. Dances in Recently deleted are not counted.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "12"
+      }
+    }
+  },
+  "libraryManagerActionsTooltip": "Actions for {name}",
+  "@libraryManagerActionsTooltip": {
+    "description": "Tooltip of the ⋮ menu on a row of the Tags, Authors and Sources managers.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Flowy"
+      }
+    }
+  },
+  "libraryManagerRename": "Rename",
+  "@libraryManagerRename": {
+    "description": "Action and dialog button in the Tags, Authors and Sources managers: renames the entry."
+  },
+  "libraryManagerRenameTitle": "Rename “{name}”",
+  "@libraryManagerRenameTitle": {
+    "description": "Title of the rename dialog in the Tags, Authors and Sources managers.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Flowing"
+      }
+    }
+  },
+  "libraryManagerMergeInto": "Merge into…",
+  "@libraryManagerMergeInto": {
+    "description": "Action in the Tags, Authors and Sources managers: opens a picker of the entry to merge this one into."
+  },
+  "libraryManagerMergePickerTitle": "Merge “{name}” into…",
+  "@libraryManagerMergePickerTitle": {
+    "description": "Title of the picker that chooses which entry to merge this one into.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Flowing"
+      }
+    }
+  },
+  "libraryManagerMergeOfferTitle": "Name already in use",
+  "@libraryManagerMergeOfferTitle": {
+    "description": "Title of the dialog shown when a rename in the Tags, Authors or Sources manager picks a name another entry already has."
+  },
+  "libraryManagerMergeOfferOne": "“{existing}” already exists. Merge “{from}” into it?",
+  "@libraryManagerMergeOfferOne": {
+    "description": "Body of the dialog shown when a rename picks a name another entry already has. Merging keeps one entry; it can be undone.",
+    "placeholders": {
+      "existing": {
+        "type": "String",
+        "example": "Flowy"
+      },
+      "from": {
+        "type": "String",
+        "example": "Flowing"
+      }
+    }
+  },
+  "libraryManagerMergeOfferOneRenamed": "“{existing}” already exists. Merge “{from}” into it and call it “{name}”?",
+  "@libraryManagerMergeOfferOneRenamed": {
+    "description": "Body of the dialog shown when a rename picks a name another entry already has with different capitals. Merging keeps one entry, under the name typed; it can be undone.",
+    "placeholders": {
+      "existing": {
+        "type": "String",
+        "example": "Flowy"
+      },
+      "from": {
+        "type": "String",
+        "example": "Flowing"
+      },
+      "name": {
+        "type": "String",
+        "example": "flowy"
+      }
+    }
+  },
+  "libraryManagerMergeOfferSeveral": "More than one entry is already called “{name}”. Choose the one to merge “{from}” into; the others are merged into it too.",
+  "@libraryManagerMergeOfferSeveral": {
+    "description": "Body of the dialog shown when a rename picks a name that several entries already have (they differ only in capitals). A list of them follows.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Flowy"
+      },
+      "from": {
+        "type": "String",
+        "example": "Flowing"
+      }
+    }
+  },
+  "libraryManagerMerge": "Merge",
+  "@libraryManagerMerge": {
+    "description": "Primary button of the merge dialog in the Tags, Authors and Sources managers."
+  },
+  "libraryManagerUndoConflict": "Couldn’t undo: “{name}” is now used by another entry.",
+  "@libraryManagerUndoConflict": {
+    "description": "Snackbar when Undo of a rename, merge or delete in the Tags, Authors or Sources manager cannot give a name back, because another entry has taken it since.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Flowy"
+      }
+    }
+  },
+  "libraryManagerEditFailed": "Couldn’t save that change. Please try again.",
+  "@libraryManagerEditFailed": {
+    "description": "Snackbar when a rename, merge or delete in the Tags, Authors or Sources manager fails."
+  },
+  "libraryManagerEditDetails": "Edit details…",
+  "@libraryManagerEditDetails": {
+    "description": "Authors and Sources manager action: opens the entry's details (website, notes and so on) for editing."
+  },
+  "libraryManagerRenamedSnack": "Renamed “{from}” to “{to}”",
+  "@libraryManagerRenamedSnack": {
+    "description": "Snackbar after renaming an author or a source in its manager, with an Undo action.",
+    "placeholders": {
+      "from": {
+        "type": "String",
+        "example": "Gene Hurbert"
+      },
+      "to": {
+        "type": "String",
+        "example": "Gene Hubert"
+      }
+    }
+  },
+  "libraryManagerMergedSnack": "Merged “{from}” into “{into}”",
+  "@libraryManagerMergedSnack": {
+    "description": "Snackbar after merging one author or source into another, with an Undo action.",
+    "placeholders": {
+      "from": {
+        "type": "String",
+        "example": "Gene Hurbert"
+      },
+      "into": {
+        "type": "String",
+        "example": "Gene Hubert"
+      }
+    }
+  },
+  "libraryManagerDeletedSnack": "Deleted “{name}”",
+  "@libraryManagerDeletedSnack": {
+    "description": "Snackbar after deleting an author or source no dance uses, with an Undo action. An entry a dance uses cannot be deleted, only merged.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Gene Hurbert"
+      }
+    }
+  },
+  "libraryManagerMergeConfirmTitle": "Merge “{from}” into “{into}”?",
+  "@libraryManagerMergeConfirmTitle": {
+    "description": "Title of the dialog asking before a merge that will drop details, because both entries hold different values for them. Its body lists the dropped details.",
+    "placeholders": {
+      "from": {
+        "type": "String",
+        "example": "Gene Hurbert"
+      },
+      "into": {
+        "type": "String",
+        "example": "Gene Hubert"
+      }
+    }
+  },
+  "libraryManagerMergeDropsHeading": "These details differ. The merged entry keeps its own, and these are dropped:",
+  "@libraryManagerMergeDropsHeading": {
+    "description": "Heading of the list, in a merge dialog, of the details the merge discards. Empty details are filled from the other entry instead; only conflicting values are dropped."
+  },
+  "libraryManagerMergeDroppedLine": "{field}: {value}",
+  "@libraryManagerMergeDroppedLine": {
+    "description": "One line of the list of details a merge drops: the field's label, then the dropped value.",
+    "placeholders": {
+      "field": {
+        "type": "String",
+        "example": "Website"
+      },
+      "value": {
+        "type": "String",
+        "example": "gene.example"
+      }
+    }
   },
   "settingsGeneralLibraryHeader": "Library",
   "@settingsGeneralLibraryHeader": {
@@ -3718,6 +4064,14 @@
   "@settingsGeneralShowPerformedTogglesSubtitle": {
     "description": "Subtitle explaining the show mark-performed toggles setting."
   },
+  "settingsGeneralMarkAllSetsStatusTitle": "Mark all performed sets the status",
+  "@settingsGeneralMarkAllSetsStatusTitle": {
+    "description": "Title of the setting that makes Mark all performed also set the program status to Performed."
+  },
+  "settingsGeneralMarkAllSetsStatusSubtitle": "When on, Mark all performed also sets the program status to Performed, and Undo puts both back. When off, the status stays as it was.",
+  "@settingsGeneralMarkAllSetsStatusSubtitle": {
+    "description": "Subtitle explaining the Mark all performed sets the status setting."
+  },
   "settingsGeneralRequireEventDateForHistoryTitle": "Require an event date for calling history",
   "@settingsGeneralRequireEventDateForHistoryTitle": {
     "description": "Title of the calling-history settings toggle that leaves programs with no event date out of calling history."
@@ -3753,6 +4107,30 @@
   "settingsGeneralCapitalizeFiguresSubtitle": "When on, each figure in the dance view, Perform mode and the figure editor starts with a capital letter (“Neighbors allemande left”). When off, figures are shown as written; built-in figures start in lower case, as in ContraDB. Only how figures look in those places changes; exports, search, sync comparisons and screen-reader wording are unaffected.",
   "@settingsGeneralCapitalizeFiguresSubtitle": {
     "description": "Subtitle explaining the capitalize figures toggle. ContraDB is a product name and stays untranslated."
+  },
+  "settingsGeneralLibraryTagsTitle": "Tags",
+  "@settingsGeneralLibraryTagsTitle": {
+    "description": "Settings › General › Library entry that opens the Tags manager."
+  },
+  "settingsGeneralLibraryTagsSubtitle": "Rename, merge, colour and delete your tags.",
+  "@settingsGeneralLibraryTagsSubtitle": {
+    "description": "Subtitle of the Settings › General › Library entry that opens the Tags manager."
+  },
+  "settingsGeneralLibraryAuthorsTitle": "Authors",
+  "@settingsGeneralLibraryAuthorsTitle": {
+    "description": "Title of the Settings › General › Library entry that opens the Authors manager."
+  },
+  "settingsGeneralLibraryAuthorsSubtitle": "Rename, merge and delete authors, and edit their details.",
+  "@settingsGeneralLibraryAuthorsSubtitle": {
+    "description": "Subtitle of the Settings › General › Library entry that opens the Authors manager."
+  },
+  "settingsGeneralLibrarySourcesTitle": "Sources",
+  "@settingsGeneralLibrarySourcesTitle": {
+    "description": "Title of the Settings › General › Library entry that opens the Sources manager."
+  },
+  "settingsGeneralLibrarySourcesSubtitle": "Rename, merge and delete sources, and edit their details.",
+  "@settingsGeneralLibrarySourcesSubtitle": {
+    "description": "Subtitle of the Settings › General › Library entry that opens the Sources manager."
   },
   "settingsGeneralAccessibilityHeader": "Accessibility",
   "@settingsGeneralAccessibilityHeader": {
@@ -4760,6 +5138,24 @@
       }
     }
   },
+  "collectionGroupSectionSelectedSemantics": "{label}, {count, plural, =1{1 dance} other{{count} dances}}, {selected} selected",
+  "@collectionGroupSectionSelectedSemantics": {
+    "description": "Accessibility label announced for a category section header while selecting dances; it names the checkbox that selects the section's rows. {label} is the section name, {count} the number of dances in it and {selected} how many of them are selected.",
+    "placeholders": {
+      "label": {
+        "type": "String",
+        "example": "Bouncy"
+      },
+      "count": {
+        "type": "int",
+        "example": "4"
+      },
+      "selected": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
   "collectionExitSelectionTooltip": "Exit selection",
   "@collectionExitSelectionTooltip": {
     "description": "Tooltip for the button that leaves multi-select (batch) mode."
@@ -5006,6 +5402,10 @@
   "@collectionSetRating": {
     "description": "Batch action (menu item and dialog title) for setting the star rating on the selected dances."
   },
+  "collectionSetStatus": "Set status",
+  "@collectionSetStatus": {
+    "description": "Batch action (menu item and dialog title) for setting the lifecycle status (active, deprecated, broken, draft, variation) on the selected dances."
+  },
   "collectionAddTunes": "Add tunes",
   "@collectionAddTunes": {
     "description": "Batch action (menu item and dialog title) for adding tunes to the selected dances (additive; never removes)."
@@ -5031,6 +5431,16 @@
   "collectionBatchRatingCleared": "{count, plural, =1{Cleared rating on 1 dance} other{Cleared rating on {count} dances}}",
   "@collectionBatchRatingCleared": {
     "description": "Announcement/snackbar confirming the rating was cleared on the given number of dances.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "collectionBatchStatusSet": "{count, plural, =1{Set status on 1 dance} other{Set status on {count} dances}}",
+  "@collectionBatchStatusSet": {
+    "description": "Announcement/snackbar confirming a status was set on the given number of dances.",
     "placeholders": {
       "count": {
         "type": "int",
@@ -5075,6 +5485,26 @@
       "count": {
         "type": "int",
         "example": "5"
+      }
+    }
+  },
+  "collectionBatchDeleted": "{count, plural, =1{Deleted 1 dance} other{Deleted {count} dances}}",
+  "@collectionBatchDeleted": {
+    "description": "Snackbar confirming the selected dances were moved to Recently Deleted by Collection's batch Delete; it carries an Undo action.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "12"
+      }
+    }
+  },
+  "collectionBatchDeletedAnnouncement": "{count, plural, =1{Deleted 1 dance. Restore it from Recently Deleted.} other{Deleted {count} dances. Restore them from Recently Deleted.}}",
+  "@collectionBatchDeletedAnnouncement": {
+    "description": "Screen-reader announcement after Collection's batch Delete. Names Recently Deleted (the screen's title, recentlyDeletedTitle) so the way back outlasts the timed Undo snackbar.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "12"
       }
     }
   },
@@ -5654,6 +6084,10 @@
   "@collectionBatchRatingConfirm": {
     "description": "Confirm button of the batch set-rating dialog."
   },
+  "collectionBatchStatusConfirm": "Set",
+  "@collectionBatchStatusConfirm": {
+    "description": "Confirm button of the batch set-status dialog."
+  },
   "collectionBatchTunesFieldLabel": "Add a tune",
   "@collectionBatchTunesFieldLabel": {
     "description": "Label of the text field for typing a tune to add in the batch add-tunes dialog."
@@ -6098,6 +6532,28 @@
   "@programsAddAgain": {
     "description": "Primary button of the add-to-program sheet's already-in-this-program dialog: adds the dance a second time."
   },
+  "programsAddToProgramSearchHint": "Search programs",
+  "@programsAddToProgramSearchHint": {
+    "description": "Hint of the search field in the add-to-program sheet, shown when there are many programs. Matches a program's title or venue."
+  },
+  "programsAddToProgramSearchClear": "Clear search",
+  "@programsAddToProgramSearchClear": {
+    "description": "Tooltip of the button that empties the add-to-program sheet's search field."
+  },
+  "programsAddToProgramNoMatches": "No programs match your search.",
+  "@programsAddToProgramNoMatches": {
+    "description": "Shown in the add-to-program sheet when a search matches no program."
+  },
+  "programsAddToProgramPerformedGroup": "Performed ({count})",
+  "@programsAddToProgramPerformedGroup": {
+    "description": "Row in the add-to-program sheet that expands the programs already marked Performed, which are collapsed beneath the open ones. The count is the number of Performed programs.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "4"
+      }
+    }
+  },
   "programsAddedToProgramSnack": "Added \"{danceTitle}\" to {programTitle}.",
   "@programsAddedToProgramSnack": {
     "description": "Confirmation snackbar after appending a dance to an existing program.",
@@ -6197,6 +6653,14 @@
   "programsMarkedAllPerformedExceptAlternates": "Marked all dances performed except alternates. Mark an alternate yourself if you called it.",
   "@programsMarkedAllPerformedExceptAlternates": {
     "description": "Confirmation (snackbar and screen-reader announcement) after Mark all performed, shown instead of programsMarkedAllPerformed when the program has an alternate dance that was left unmarked. Mark all performed never marks alternates, because an alternate counts as called only once the caller marks it."
+  },
+  "programsMarkedAllPerformedSetStatus": "Marked all dances performed and set the status to Performed.",
+  "@programsMarkedAllPerformedSetStatus": {
+    "description": "Confirmation (snackbar and screen-reader announcement) after Mark all performed marked every dance and also set the program status to Performed."
+  },
+  "programsMarkedAllPerformedExceptAlternatesSetStatus": "Marked all dances performed except alternates, and set the status to Performed. Mark an alternate yourself if you called it.",
+  "@programsMarkedAllPerformedExceptAlternatesSetStatus": {
+    "description": "Confirmation after Mark all performed marked every dance except alternates and also set the program status to Performed."
   },
   "programsSavedSnack": "\"{title}\" saved.",
   "@programsSavedSnack": {
@@ -6460,6 +6924,14 @@
   "programsStatusFieldLabel": "Status",
   "@programsStatusFieldLabel": {
     "description": "Field label for the program status dropdown in the editor."
+  },
+  "programsStatusHelper": "Saving a change to Performed marks every unmarked dance performed, except alternates. Changing the status back keeps the marks.",
+  "@programsStatusHelper": {
+    "description": "Helper text under the program status dropdown when Mark all performed does not set the status."
+  },
+  "programsStatusHelperMarkAllSetsStatus": "Saving a change to Performed marks every unmarked dance performed, except alternates, and Mark all performed sets this status. Changing the status back keeps the marks.",
+  "@programsStatusHelperMarkAllSetsStatus": {
+    "description": "Helper text under the program status dropdown when the Mark all performed sets the status setting is on."
   },
   "programsHideAlternatesTitle": "Hide alternates in set list",
   "@programsHideAlternatesTitle": {
@@ -7629,6 +8101,10 @@
   "@performShowWalkthrough": {
     "description": "Tooltip, overflow-menu label and accessible name for the perform-mode toggle that shows/hides the dedicated walkthrough overlay (issue #370)."
   },
+  "performFullScreen": "Full screen",
+  "@performFullScreen": {
+    "description": "Tooltip, overflow-menu label and accessible name for the desktop Perform toggle that takes the window full screen and back (PLAT-9). Shown as selected while the window is full screen. The keyboard shortcut is F11, or Ctrl-Cmd-F on macOS."
+  },
   "performWalkthroughEmpty": "No walkthrough for this dance.",
   "@performWalkthroughEmpty": {
     "description": "Empty-state text shown in the perform-mode walkthrough overlay when the current dance has no walkthrough written."
@@ -7938,6 +8414,14 @@
   "exportLabelTunes": "Tunes",
   "@exportLabelTunes": {
     "description": "Section heading for the suggested tune list on an exported dance card (plain text and PDF), issue #1434."
+  },
+  "exportLabelHook": "Hook",
+  "@exportLabelHook": {
+    "description": "Label before the hook text on an exported dance card (plain text and PDF), shown only when the Hook share field is on (OUT-6)."
+  },
+  "exportLabelSources": "Sources",
+  "@exportLabelSources": {
+    "description": "Section heading for the published-source citations on an exported dance card (plain text and PDF), shown only when the Sources share field is on (OUT-6)."
   },
   "exportSlotAuthorSuffix": "by {names}",
   "@exportSlotAuthorSuffix": {
@@ -8270,9 +8754,9 @@
   "@onlineImportVariationDialogActionLink": {
     "description": "Button label in the issue #797 resolution dialog: treat the incoming dance as the same dance and overwrite the existing record."
   },
-  "onlineImportVariationDialogLinkWarning": "Your version of \"{existingTitle}\" will be replaced by the online record — including its title, figures, notes, tags, and rating. It keeps your custom fields, its place in your programs, and its calling history.",
+  "onlineImportVariationDialogLinkWarning": "Your version of \"{existingTitle}\" will be replaced by the online record — including its title, figures, notes, and tags. It keeps your rating, custom fields, its place in your programs, and its calling history.",
   "@onlineImportVariationDialogLinkWarning": {
-    "description": "Secondary text warning that 'Same dance (link)' is a wholesale replacement. _rebuildWithIdentity (import_pipeline.dart) preserves id and createdAt from the existing dance, and keeps its custom-field values for every field the incoming draft does not carry (#1890; online drafts carry none, so all are kept). Every other field — title, figures, callingNotes, tagIds, rating, tunes, links, sourceCitations, hook, form, authorIds, provenance — comes from the incoming draft. Note: authorIds is resolved from the incoming record's author names and provenance is the incoming record's provenance (that is the point of linking); neither survives from the existing dance. The dance id is preserved, so ProgramSlot.danceId references stay intact — programs and calling history survive. Used in both the #797 variation dialog (figures DIFFER — the field callers care most about) and the #811 cross-source dialog (figures canonically identical, so replacement is less consequential). existingTitle is an untrusted local value rendered as plain text.",
+    "description": "Secondary text warning that 'Same dance (link)' is a wholesale replacement. _rebuildWithIdentity (import_pipeline.dart) preserves id and createdAt from the existing dance, and keeps its custom-field values for every field the incoming draft does not carry (#1890; online drafts carry none, so all are kept). Likewise its rating is kept whenever the incoming draft carries none (online drafts carry none). Every other field — title, figures, callingNotes, tagIds, tunes, links, sourceCitations, hook, form, authorIds, provenance — comes from the incoming draft. Note: authorIds is resolved from the incoming record's author names and provenance is the incoming record's provenance (that is the point of linking); neither survives from the existing dance. The dance id is preserved, so ProgramSlot.danceId references stay intact — programs and calling history survive. Used in both the #797 variation dialog (figures DIFFER — the field callers care most about) and the #811 cross-source dialog (figures canonically identical, so replacement is less consequential). existingTitle is an untrusted local value rendered as plain text.",
     "placeholders": {
       "existingTitle": {
         "type": "String",
@@ -8312,7 +8796,7 @@
       }
     }
   },
-  "onlineImportPossibleMatchDialogLinkWarning": "The dance you choose will be replaced by the online record — including its title, figures, notes, tags, and rating. It keeps your custom fields, its place in your programs, and its calling history.",
+  "onlineImportPossibleMatchDialogLinkWarning": "The dance you choose will be replaced by the online record — including its title, figures, notes, and tags. It keeps your rating, custom fields, its place in your programs, and its calling history.",
   "@onlineImportPossibleMatchDialogLinkWarning": {
     "description": "Secondary text in the possible-match dialog (issue #1907): choosing an existing dance replaces it as onlineImportVariationDialogLinkWarning describes for a single named dance. The title is named first because here it is certain to change: the two titles are written differently."
   },
@@ -10734,6 +11218,10 @@
   "@danceEditorRedoLabel": {
     "description": "Semantics label for the redo action."
   },
+  "editorDraftNotSaved": "Draft not saved — your latest changes are not being kept yet",
+  "@editorDraftNotSaved": {
+    "description": "Tooltip and screen-reader label for the marker in the dance and program editor bars when the editor cannot write its autosave draft (for example, the disk is full). Clears itself once a draft write succeeds."
+  },
   "danceEditorUndoShortcutTooltip": "{platform, select, apple{Undo (⌘Z)} other{Undo (Ctrl+Z)}}",
   "@danceEditorUndoShortcutTooltip": {
     "description": "Tooltip for the undo app-bar action including its keyboard shortcut.",
@@ -12986,6 +13474,46 @@
   "venueManagerNoMatches": "No venues match your search.",
   "@venueManagerNoMatches": {
     "description": "Shown in the venue manager when a search yields no matching venues."
+  },
+  "venueLinkOfferTitle": "Link earlier programs?",
+  "@venueLinkOfferTitle": {
+    "description": "Title of the dialog offering to link programs that have a venue typed in as text to a venue record with the same name (GIG-7)."
+  },
+  "venueLinkOfferBody": "Some programs have a venue typed in as text that matches a venue record. Linking them makes calling history count them as one venue. The typed text is kept.",
+  "@venueLinkOfferBody": {
+    "description": "Body of the dialog offering to link typed-venue programs to a venue record (GIG-7). One line per venue follows it."
+  },
+  "venueLinkOfferRow": "“{name}”: {count, plural, =1{1 program} other{{count} programs}}",
+  "@venueLinkOfferRow": {
+    "description": "One line of the link-programs-to-venue offer: the venue record's name and how many programs would be linked to it.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Grange Hall"
+      },
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "venueLinkOfferConfirm": "Link",
+  "@venueLinkOfferConfirm": {
+    "description": "Button that links the offered programs to their venue records."
+  },
+  "venueLinkOfferDecline": "Not now",
+  "@venueLinkOfferDecline": {
+    "description": "Button that declines the link-programs-to-venue offer. The answer is not remembered."
+  },
+  "venueLinkOfferDone": "{count, plural, =1{Linked 1 program.} other{Linked {count} programs.}}",
+  "@venueLinkOfferDone": {
+    "description": "Snackbar after programs were linked to their venue records.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
   },
   "venueManagerDeleteTitle": "Delete venue?",
   "@venueManagerDeleteTitle": {

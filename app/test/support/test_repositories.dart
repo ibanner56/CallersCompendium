@@ -319,6 +319,7 @@ class DelayedProgramRepository extends ProgramRepository {
     required Iterable<String> slotIds,
     required DateTime performedAt,
     required DateTime updatedAt,
+    ProgramStatus? restoreStatus,
   }) {
     conditionalRollbackCalls++;
     if (failConditionalRollback) {
@@ -335,6 +336,7 @@ class DelayedProgramRepository extends ProgramRepository {
           slotIds: slotIds,
           performedAt: performedAt,
           updatedAt: updatedAt,
+          restoreStatus: restoreStatus,
         ),
       );
     }
@@ -343,6 +345,7 @@ class DelayedProgramRepository extends ProgramRepository {
       slotIds: slotIds,
       performedAt: performedAt,
       updatedAt: updatedAt,
+      restoreStatus: restoreStatus,
     );
   }
 

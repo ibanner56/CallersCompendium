@@ -13,8 +13,8 @@ import '../../l10n/app_localizations.dart';
 /// * `true` — the user chose "Set list and figures". Append full dance cards.
 ///
 /// The dialog is shown only when at least one referenced dance has a card to
-/// append: figures, or selected calling notes or a walkthrough
-/// (`DanceCardContent.hasBody`). Otherwise the caller skips this dialog
+/// append: figures, or a selected calling notes, walkthrough, hook
+/// or sources field (`DanceCardContent.hasBody`). Otherwise the caller skips this dialog
 /// entirely and proceeds as "set list only" — there is nothing to offer.
 class ProgramFiguresPromptDialog extends StatefulWidget {
   const ProgramFiguresPromptDialog({super.key});

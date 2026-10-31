@@ -232,6 +232,14 @@
   "@confirmDeleteBody": {
     "x-sourceSha256": "d08275cc446047e0a6a2578efa594ce7ff3d9b39f2db83a4ebd6e13f57861eb8"
   },
+  "confirmDeleteDancesBody": "{count, plural, =1{1 Tanz wird gelöscht. Sie können dies rückgängig machen.} other{{count} Tänze werden gelöscht. Sie können dies rückgängig machen.}}",
+  "@confirmDeleteDancesBody": {
+    "x-sourceSha256": "5bf4789578375243769bbeaa1a924d2dfe8584634cac8e15d22e0a36e5aa0519"
+  },
+  "confirmDeleteDancesNotShownBody": "{count, plural, =1{1 Tanz wird gelöscht. Ihre Suche blendet ihn aus. Sie können dies rückgängig machen.} other{{count} Tänze werden gelöscht, davon {notShown} durch Ihre Suche ausgeblendet. Sie können dies rückgängig machen.}}",
+  "@confirmDeleteDancesNotShownBody": {
+    "x-sourceSha256": "5eec5a5f7dd5f0845c6736bb763c8017983643cfaf238442db0a9c103f98044f"
+  },
   "colorEditHexLabel": "Hex",
   "@colorEditHexLabel": {
     "x-sourceSha256": "69493e6f1a6957cad7e3ece5267a57e8a8ed035b5ea5fd7e360ce9eb2405c30b"
@@ -2300,17 +2308,17 @@
   "@settingsAppearanceSetListColorTitle": {
     "x-sourceSha256": "7e01df33d94b5e6e118e6fea4b925e84f23ab5cc48edcce8d4ae3975a1c940f6"
   },
-  "settingsAppearanceSetListColorSubtitle": "Jede Tanzzeile nach Formationsfamilie (Contra, Mixer, Square, …) einfärben — Tänze, die als Mixer markiert sind, erhalten stets die Mixer-Farbe, unabhängig von der Formation. Die Formation wird immer als Text angezeigt, sodass Zeilen auch ohne Farbe lesbar bleiben.",
+  "settingsAppearanceSetListColorSubtitle": "Jede Tanzzeile nach Formationsfamilie (Contra, Mixer, Square, …) einfärben – es sei denn, du hast dieser Formation eine eigene Farbe gegeben; sie hat Vorrang. Tänze, die als Mixer markiert sind, erhalten stets die Mixer-Farbe, unabhängig von der Formation. Die Formation wird immer als Text angezeigt, sodass Zeilen auch ohne Farbe lesbar bleiben.",
   "@settingsAppearanceSetListColorSubtitle": {
-    "x-sourceSha256": "c20369b0d136fc3f39266e67024966f1e20c80b5f5b716ce98a1531c87faef5d"
+    "x-sourceSha256": "232f4627ed9e2f518689fc74c581702696c4699041bd904500c86630a2da1ca3"
   },
   "settingsAppearanceFormationColoursTitle": "Farben der Formationsbezeichnungen",
   "@settingsAppearanceFormationColoursTitle": {
     "x-sourceSha256": "79f6f85c15a24218dbe046fac396504b123ad5b6a7779091924f0b884a142676"
   },
-  "settingsAppearanceFormationColoursSubtitle": "Einzelne Formationen in eigenen Farben hervorheben – z. B. Becket (CW) in Gelb, Becket (CCW) in Pink – auf Tanzkarten, in den Tanzdetails und im Perform-Header.",
+  "settingsAppearanceFormationColoursSubtitle": "Einzelne Formationen in eigenen Farben hervorheben – z. B. Becket (CW) in Gelb, Becket (CCW) in Pink – auf Tanzkarten, in den Tanzdetails, im Perform-Header und in den Zeilen der Tanzfolge.",
   "@settingsAppearanceFormationColoursSubtitle": {
-    "x-sourceSha256": "9c2468624ba508b9206d3fe38bf4e701a3c050e3093473eabba1c9d77adce030"
+    "x-sourceSha256": "eec836f8e8c66b85321f7b6e69a83ede9c3e3cda62b45529773a1d8a77635619"
   },
   "settingsAppearanceSelectedBadge": "Ausgewählt",
   "@settingsAppearanceSelectedBadge": {
@@ -2548,6 +2556,14 @@
   "@settingsDefaultsShareFieldsTunes": {
     "x-sourceSha256": "4b5c504ca989a4a17e54b974db8a6d4aa156fa63da39902c66ecec59f5e46412"
   },
+  "settingsDefaultsShareFieldsHook": "Hook",
+  "@settingsDefaultsShareFieldsHook": {
+    "x-sourceSha256": "536ff5051d2541c9be5975c589b2b2bfecd85c1eb316522080db20c2bf27ccee"
+  },
+  "settingsDefaultsShareFieldsSources": "Quellen",
+  "@settingsDefaultsShareFieldsSources": {
+    "x-sourceSha256": "caf85b0888d78f1f83771a07b25c3d30fa1210242f2fae6e5ae5d9a686602800"
+  },
   "settingsDefaultsCollectionFiltersHeader": "Sammlungsfilter",
   "@settingsDefaultsCollectionFiltersHeader": {
     "x-sourceSha256": "06981cabadd70feb8e1965e99b8ed513b175f6e2a6969fd306738c7408177797"
@@ -2680,9 +2696,9 @@
   "@settingsFormationColoursTitle": {
     "x-sourceSha256": "a104f2d03f3e233ef1d22dc19c2c5a24cbf68ff9293b471fdcefe9020f953d33"
   },
-  "settingsFormationColoursIntro": "Einer Formation eine eigene Farbe geben, um ihre Bezeichnung auf Tanzkarten, in Tanzdetails und im Perform-Header hervorzuheben. Nur die angepassten Formationen werden hervorgehoben; die übrigen zeigen ihre Bezeichnung wie gewöhnlich. Die Formation wird immer als Text angezeigt, sodass Bezeichnungen auch ohne Farbe lesbar bleiben.",
+  "settingsFormationColoursIntro": "Einer Formation eine eigene Farbe geben, um ihre Bezeichnung auf Tanzkarten, in Tanzdetails und im Perform-Header hervorzuheben und ihre Zeilen in der Tanzfolge einzufärben (Mixer behalten die Mixer-Farbe). Nur die angepassten Formationen werden hervorgehoben; die übrigen zeigen ihre Bezeichnung wie gewöhnlich. Die Formation wird immer als Text angezeigt, sodass Bezeichnungen auch ohne Farbe lesbar bleiben.",
   "@settingsFormationColoursIntro": {
-    "x-sourceSha256": "b2526e3c480c39a881769a827fd2a82d81bdc6bf5d0b200c3553c4e857283592"
+    "x-sourceSha256": "908f4e23f32c266ded3e6fdccea065468f9a4daaeccacfea004031804037595b"
   },
   "settingsFormationColoursListHeader": "Formationen",
   "@settingsFormationColoursListHeader": {
@@ -2712,33 +2728,9 @@
   "@settingsAppearanceTagColoursSubtitle": {
     "x-sourceSha256": "4c98c4517bcd592a6c7522fb07487df7d70670c89570c2b87a2adf2c3268ba18"
   },
-  "settingsTagColoursTitle": "Tag-Farben",
-  "@settingsTagColoursTitle": {
-    "x-sourceSha256": "2c44c93ab04a5cd53fbd631003d71d65a1e9605920885591a0197069b91b5cdc"
-  },
-  "settingsTagColoursIntro": "Geben Sie einem Tag eine eigene Farbe, damit es überall hervorsticht, wo es erscheint. Nur die Tags, die Sie einfärben, ändern sich; alle anderen sehen genau so aus wie bisher. Der Name des Tags wird immer mit angezeigt, sodass Tags auch ohne Farbe lesbar bleiben.",
-  "@settingsTagColoursIntro": {
-    "x-sourceSha256": "6c5feb1800120d1ece382c757e787ce2ef25b4f5f4f855bdef027ea1dcfcdb71"
-  },
-  "settingsTagColoursListHeader": "Tags",
-  "@settingsTagColoursListHeader": {
-    "x-sourceSha256": "1331275bc537b4c2bf1e46f7275677967515342e30b572e6852fa6f51b831fe8"
-  },
   "settingsTagColoursEmpty": "Sie haben noch keine Tags erstellt. Fügen Sie einem Tanz ein Tag hinzu, dann erscheint es hier.",
   "@settingsTagColoursEmpty": {
     "x-sourceSha256": "c7febc58f1c97ff80948a88429355a4030c37a0f3e9aba3f65b312652d0d2c61"
-  },
-  "settingsTagColoursCustom": "Benutzerdefinierte Farbe",
-  "@settingsTagColoursCustom": {
-    "x-sourceSha256": "c31a3f15ca973a50a1f52e8b27deba26fa108c6926eb6299b044e62f0090214c"
-  },
-  "settingsTagColoursNoColour": "Keine Farbe",
-  "@settingsTagColoursNoColour": {
-    "x-sourceSha256": "b3bd22700cab79adef1584040ca4f238e80127ae5bbf74538edf0bc139a2d4f9"
-  },
-  "settingsTagColoursResetTooltip": "Farbe von {label} entfernen",
-  "@settingsTagColoursResetTooltip": {
-    "x-sourceSha256": "0203f6121a8fe31d7287d0677e74de0b365b870c5d4a395b8d84d212eab52525"
   },
   "settingsTagColoursSaveError": "Die Farbe konnte nicht gespeichert werden. Bitte versuchen Sie es erneut.",
   "@settingsTagColoursSaveError": {
@@ -2747,6 +2739,190 @@
   "settingsTagColoursLoadError": "Ihre Tags konnten nicht geladen werden.",
   "@settingsTagColoursLoadError": {
     "x-sourceSha256": "ef22e123e47d8e10a6a827e3024ae46618929552e50f6ab19d4dfcfb3fa4d38f"
+  },
+  "tagManagerTitle": "Tags",
+  "@tagManagerTitle": {
+    "x-sourceSha256": "1331275bc537b4c2bf1e46f7275677967515342e30b572e6852fa6f51b831fe8"
+  },
+  "tagManagerSearchHint": "Tags durchsuchen",
+  "@tagManagerSearchHint": {
+    "x-sourceSha256": "93bc41f4de1b16edf9e7340329acec9deebb6c9c227fe3d4c73cbb1f4d41f975"
+  },
+  "tagManagerNameLabel": "Tag-Name",
+  "@tagManagerNameLabel": {
+    "x-sourceSha256": "1ace926bc7cdee5323e297d439d2d268286749252b1c7f5e332d5003681d092d"
+  },
+  "tagManagerColour": "Farbe…",
+  "@tagManagerColour": {
+    "x-sourceSha256": "76ad1a213c7631daa53659cec4db7bf56f7cccad19737299b926d0087b499ae2"
+  },
+  "tagManagerRemoveColour": "Farbe entfernen",
+  "@tagManagerRemoveColour": {
+    "x-sourceSha256": "6a1a1f8cf536206cb54092d10f535f8cc078419e0ece015643b01243bab2bdb7"
+  },
+  "tagManagerDeletedSnack": "{count, plural, =0{„{name}“ gelöscht} =1{„{name}“ aus 1 Tanz gelöscht} other{„{name}“ aus {count} Tänzen gelöscht}}",
+  "@tagManagerDeletedSnack": {
+    "x-sourceSha256": "7fe3ea285baeb3b2a2d98ae8620afc2e593f2715b4fde50758de534359a3b680"
+  },
+  "tagManagerRenamedSnack": "„{from}“ in „{to}“ umbenannt",
+  "@tagManagerRenamedSnack": {
+    "x-sourceSha256": "5e97d0d1296f39ceb9230f70ad16cc0d613613aa726d0b96524b7ba899315bed"
+  },
+  "tagManagerMergedSnack": "„{from}“ mit „{into}“ zusammengeführt",
+  "@tagManagerMergedSnack": {
+    "x-sourceSha256": "30e0db7e6b76090c883a36fb5d54a3c129e065769ad3c7ffd0b4e0a00ab7f01c"
+  },
+  "tagManagerMergedSeveralSnack": "{count} Tags zu „{into}“ zusammengeführt",
+  "@tagManagerMergedSeveralSnack": {
+    "x-sourceSha256": "cacbce18bf0b7e9f1ebbf63bd0314e913760eb09f8c6a84c35823cffd21c7cc6"
+  },
+  "authorManagerTitle": "Autoren",
+  "@authorManagerTitle": {
+    "x-sourceSha256": "2c00c9aaa72c717ad6d901a09c4d698a68b2e9740be3769e0af7d6bd85d72d5d"
+  },
+  "authorManagerSearchHint": "Autoren durchsuchen",
+  "@authorManagerSearchHint": {
+    "x-sourceSha256": "0452ff51d1276a1c8614a4c6fea6778adc0602fd684e9cd0b28ddaa37fcecd73"
+  },
+  "authorManagerNameLabel": "Name des Autors",
+  "@authorManagerNameLabel": {
+    "x-sourceSha256": "d685a2cb040ed21b08f567b677691f66b65360a21c726a75769adfc5003f5b11"
+  },
+  "authorManagerEmpty": "Noch keine Autoren. Autoren, die Sie bei einem Tanz angeben, erscheinen hier.",
+  "@authorManagerEmpty": {
+    "x-sourceSha256": "f63be5621924387162fcb2f2337ab644b7e7a7513be0d62d84e67eb1850d91d7"
+  },
+  "authorManagerLoadError": "Ihre Autoren konnten nicht geladen werden.",
+  "@authorManagerLoadError": {
+    "x-sourceSha256": "1e98ba428f3769746bb32817bcde3de923f11bae8285366daa0d6ab340ceb1d6"
+  },
+  "authorManagerMergedSeveralSnack": "{count} Autoren zu „{into}“ zusammengeführt",
+  "@authorManagerMergedSeveralSnack": {
+    "x-sourceSha256": "4ed1779f0ab50c35824ff5fc36d4da9be5a0b9c3a19d6d32fd1205bd46aaf141"
+  },
+  "sourceManagerTitle": "Quellen",
+  "@sourceManagerTitle": {
+    "x-sourceSha256": "caf85b0888d78f1f83771a07b25c3d30fa1210242f2fae6e5ae5d9a686602800"
+  },
+  "sourceManagerSearchHint": "Quellen durchsuchen",
+  "@sourceManagerSearchHint": {
+    "x-sourceSha256": "cad97f05bed4d408bcffdc0557f7c76c72b66a6f879127ba664e555f0b8c16dd"
+  },
+  "sourceManagerTitleLabel": "Titel der Quelle",
+  "@sourceManagerTitleLabel": {
+    "x-sourceSha256": "458fcd13ab87c5b272319876028d19b1f95c5b0ce0d741b4682b56b4b1073f9f"
+  },
+  "sourceManagerEmpty": "Noch keine Quellen. Bücher und Websites, die Sie bei einem Tanz angeben, erscheinen hier.",
+  "@sourceManagerEmpty": {
+    "x-sourceSha256": "9a021b4606fe11125d54e533c8a0aa2558721897d2bf7677301767245b78071f"
+  },
+  "sourceManagerLoadError": "Ihre Quellen konnten nicht geladen werden.",
+  "@sourceManagerLoadError": {
+    "x-sourceSha256": "6939e6571d35bdefa461f9a6b6e94502e9680892f13eafb46f394b4b44a71ad2"
+  },
+  "libraryManagerClearSearch": "Suche löschen",
+  "@libraryManagerClearSearch": {
+    "x-sourceSha256": "3b7ea51793e9d906afa06afb86252abb48e1125cc96a7f5efabcfd8597ea183a"
+  },
+  "libraryManagerNotUsed": "Nicht verwendet",
+  "@libraryManagerNotUsed": {
+    "x-sourceSha256": "dccafe55abe3dd9828919e60e5d9eb7c4a5a166a3232f05476feb51671d40cb1"
+  },
+  "libraryManagerSortTooltip": "Sortieren",
+  "@libraryManagerSortTooltip": {
+    "x-sourceSha256": "bec69036aa27e7fab7d44cad3909477b76631c39ba46fd7841ea71aae7e5a735"
+  },
+  "libraryManagerSortByName": "Name",
+  "@libraryManagerSortByName": {
+    "x-sourceSha256": "dcd1d5223f73b3a965c07e3ff5dbee3eedcfedb806686a05b9b3868a2c3d6d50"
+  },
+  "libraryManagerSortByDanceCount": "Anzahl der Tänze",
+  "@libraryManagerSortByDanceCount": {
+    "x-sourceSha256": "19061832d72037a6a8ab06f44ed0433c00c8abad911a629f9939860bb7fe84ae"
+  },
+  "libraryManagerNoMatches": "Nichts passt zu Ihrer Suche.",
+  "@libraryManagerNoMatches": {
+    "x-sourceSha256": "6701dfede769d7ad8e1c50718e3147d14d959b7c1838040c8e976b6a494170a9"
+  },
+  "libraryManagerDanceCount": "{count, plural, =0{Nicht verwendet} =1{1 Tanz} other{{count} Tänze}}",
+  "@libraryManagerDanceCount": {
+    "x-sourceSha256": "94f7b7eeb5558009b4a228f2a66c045ecb5366689e8b965443f0a78a4e83d5ab"
+  },
+  "libraryManagerActionsTooltip": "Aktionen für {name}",
+  "@libraryManagerActionsTooltip": {
+    "x-sourceSha256": "aac6defa1846338bb822f6a929e67cacd9a3fb2018b0af746592e77d5afb0625"
+  },
+  "libraryManagerRename": "Umbenennen",
+  "@libraryManagerRename": {
+    "x-sourceSha256": "3064d79a295cefe4b384b8fe5cb29fd6b06d7eb1ad94b8895f4148039d06b330"
+  },
+  "libraryManagerRenameTitle": "„{name}“ umbenennen",
+  "@libraryManagerRenameTitle": {
+    "x-sourceSha256": "c710117e61420175c8c4be25544fb52a6b1cc7cbddc986c8238c327739080d35"
+  },
+  "libraryManagerMergeInto": "Zusammenführen mit…",
+  "@libraryManagerMergeInto": {
+    "x-sourceSha256": "2eb1fd03bbe336faa22866bc42606cc26624bd002a04109ba201081c1e95a7c2"
+  },
+  "libraryManagerMergePickerTitle": "„{name}“ zusammenführen mit…",
+  "@libraryManagerMergePickerTitle": {
+    "x-sourceSha256": "1c9210eb6f342caf12de302c702772a57f769dcb8fb3c463276974d1644a9102"
+  },
+  "libraryManagerMergeOfferTitle": "Name bereits vergeben",
+  "@libraryManagerMergeOfferTitle": {
+    "x-sourceSha256": "a022ad9098ecabad09dd5285449adebdf2eeefc9a2ef6dc3a454ca74adfb6d04"
+  },
+  "libraryManagerMergeOfferOne": "„{existing}“ gibt es bereits. „{from}“ damit zusammenführen?",
+  "@libraryManagerMergeOfferOne": {
+    "x-sourceSha256": "ade1b4b0efe9e588983277e0a74acb22cdd5059f15b4253d06369e77f87736b8"
+  },
+  "libraryManagerMergeOfferOneRenamed": "„{existing}“ gibt es bereits. „{from}“ damit zusammenführen und „{name}“ nennen?",
+  "@libraryManagerMergeOfferOneRenamed": {
+    "x-sourceSha256": "8c406476ccba0ed47f90b2adea8b3eef052521a8fe61bd775c93d0b945976947"
+  },
+  "libraryManagerMergeOfferSeveral": "Mehrere Einträge heißen bereits „{name}“. Wählen Sie den, mit dem „{from}“ zusammengeführt wird; die anderen werden ebenfalls damit zusammengeführt.",
+  "@libraryManagerMergeOfferSeveral": {
+    "x-sourceSha256": "c512216514abd37359da61a98a255c09ff859b79dc5e0a3bdbce21a041c977ef"
+  },
+  "libraryManagerMerge": "Zusammenführen",
+  "@libraryManagerMerge": {
+    "x-sourceSha256": "8851aaa7d08ca1ae7e5d63278037532f3222a8b746e7abdd8af3fb06d6d4f993"
+  },
+  "libraryManagerUndoConflict": "Rückgängig nicht möglich: „{name}“ wird jetzt von einem anderen Eintrag verwendet.",
+  "@libraryManagerUndoConflict": {
+    "x-sourceSha256": "809d9c18ac9b04443bfbf9db194f9d785663625547377cd22b11e652f3f315f6"
+  },
+  "libraryManagerEditFailed": "Die Änderung konnte nicht gespeichert werden. Bitte versuchen Sie es erneut.",
+  "@libraryManagerEditFailed": {
+    "x-sourceSha256": "a42fb6a8c1dff3745489ee1813b6fd4ec4d0ecbb6f3b805bb5630e1a9f41809f"
+  },
+  "libraryManagerEditDetails": "Details bearbeiten…",
+  "@libraryManagerEditDetails": {
+    "x-sourceSha256": "7be509848535577585d4849652192e5e6e0fee6e8155e411bbd4cdb0551ea4e8"
+  },
+  "libraryManagerRenamedSnack": "„{from}“ in „{to}“ umbenannt",
+  "@libraryManagerRenamedSnack": {
+    "x-sourceSha256": "5e97d0d1296f39ceb9230f70ad16cc0d613613aa726d0b96524b7ba899315bed"
+  },
+  "libraryManagerMergedSnack": "„{from}“ mit „{into}“ zusammengeführt",
+  "@libraryManagerMergedSnack": {
+    "x-sourceSha256": "30e0db7e6b76090c883a36fb5d54a3c129e065769ad3c7ffd0b4e0a00ab7f01c"
+  },
+  "libraryManagerDeletedSnack": "„{name}“ gelöscht",
+  "@libraryManagerDeletedSnack": {
+    "x-sourceSha256": "0c82d7f9acbbb899931e8e3827d38f139e9d0c176c0ca021a853096b632b47fb"
+  },
+  "libraryManagerMergeConfirmTitle": "„{from}“ mit „{into}“ zusammenführen?",
+  "@libraryManagerMergeConfirmTitle": {
+    "x-sourceSha256": "aa13d07fa5314e706136c4a008cf535629d2c59a6b6ca05918992c262b7de998"
+  },
+  "libraryManagerMergeDropsHeading": "Diese Details unterscheiden sich. Der zusammengeführte Eintrag behält seine eigenen, diese werden verworfen:",
+  "@libraryManagerMergeDropsHeading": {
+    "x-sourceSha256": "7c61de6d866ccfdca2c08023452ecc4bd947ca567452215dfbb133f7fbf0a0c6"
+  },
+  "libraryManagerMergeDroppedLine": "{field}: {value}",
+  "@libraryManagerMergeDroppedLine": {
+    "x-sourceSha256": "d3ba5ccd5a5fb39ef6e9fff0582fbef871d2952d1fa9e1e2b454753407c5e043"
   },
   "settingsGeneralLibraryHeader": "Bibliothek",
   "@settingsGeneralLibraryHeader": {
@@ -3016,6 +3192,14 @@
   "@settingsGeneralShowPerformedTogglesSubtitle": {
     "x-sourceSha256": "c72198d2bb64ea770c17a1f45239591d056d391a276ee7c416ddba46d5e53c48"
   },
+  "settingsGeneralMarkAllSetsStatusTitle": "Alle als aufgeführt markieren setzt den Status",
+  "@settingsGeneralMarkAllSetsStatusTitle": {
+    "x-sourceSha256": "53147c7a4cf23b7008fac77293870b25247cb606e0f385422ff0826732577c8e"
+  },
+  "settingsGeneralMarkAllSetsStatusSubtitle": "Wenn aktiviert, setzt „Alle als aufgeführt markieren“ auch den Programmstatus auf Aufgeführt, und Rückgängig stellt beides wieder her. Wenn deaktiviert, bleibt der Status unverändert.",
+  "@settingsGeneralMarkAllSetsStatusSubtitle": {
+    "x-sourceSha256": "da417909311921606b25fd52ae79bfbf8808d642ecdcb4601651ef092379141a"
+  },
   "settingsGeneralRequireEventDateForHistoryTitle": "Veranstaltungsdatum für Calling-Verlauf erfordern",
   "@settingsGeneralRequireEventDateForHistoryTitle": {
     "x-sourceSha256": "f62790f3e48e6bd9f8b81f3fee8782bbeba76923cdb1d175e50df7d053afe6a2"
@@ -3051,6 +3235,30 @@
   "settingsGeneralCapitalizeFiguresSubtitle": "Wenn aktiviert, beginnt jede Figur in der Tanzansicht, im Perform-Modus und im Figureneditor mit einem Großbuchstaben („Neighbors allemande left“). Wenn deaktiviert, werden Figuren so angezeigt, wie sie geschrieben sind; eingebaute Figuren beginnen wie in ContraDB mit einem Kleinbuchstaben. Nur die Darstellung der Figuren an diesen Stellen ändert sich; Exporte, Suche, Sync-Vergleiche und Screenreader-Wortlaut bleiben unverändert.",
   "@settingsGeneralCapitalizeFiguresSubtitle": {
     "x-sourceSha256": "7f240fb961d598881097268169b7eafcb32a2e8b4698331673904b34b1f95a09"
+  },
+  "settingsGeneralLibraryTagsTitle": "Tags",
+  "@settingsGeneralLibraryTagsTitle": {
+    "x-sourceSha256": "1331275bc537b4c2bf1e46f7275677967515342e30b572e6852fa6f51b831fe8"
+  },
+  "settingsGeneralLibraryTagsSubtitle": "Tags umbenennen, zusammenführen, einfärben und löschen.",
+  "@settingsGeneralLibraryTagsSubtitle": {
+    "x-sourceSha256": "c140368a6b9ec7faa4b2244f3cd0e1189e1efb5cb19ad558be423dd4fdec46bc"
+  },
+  "settingsGeneralLibraryAuthorsTitle": "Autoren",
+  "@settingsGeneralLibraryAuthorsTitle": {
+    "x-sourceSha256": "2c00c9aaa72c717ad6d901a09c4d698a68b2e9740be3769e0af7d6bd85d72d5d"
+  },
+  "settingsGeneralLibraryAuthorsSubtitle": "Autoren umbenennen, zusammenführen und löschen und ihre Details bearbeiten.",
+  "@settingsGeneralLibraryAuthorsSubtitle": {
+    "x-sourceSha256": "521332210b6feedb6498f3fa63a52dee7b74bc33f6c2445d95fb34d46043db5c"
+  },
+  "settingsGeneralLibrarySourcesTitle": "Quellen",
+  "@settingsGeneralLibrarySourcesTitle": {
+    "x-sourceSha256": "caf85b0888d78f1f83771a07b25c3d30fa1210242f2fae6e5ae5d9a686602800"
+  },
+  "settingsGeneralLibrarySourcesSubtitle": "Quellen umbenennen, zusammenführen und löschen und ihre Details bearbeiten.",
+  "@settingsGeneralLibrarySourcesSubtitle": {
+    "x-sourceSha256": "2551a818f4caacf179f85d90ed9ce7452d5522045b3d63ded39743b83a57d2fa"
   },
   "settingsGeneralAccessibilityHeader": "Barrierefreiheit",
   "@settingsGeneralAccessibilityHeader": {
@@ -3904,6 +4112,10 @@
   "@collectionGroupSectionSemantics": {
     "x-sourceSha256": "93af04a8f9319ec6cd414c9b5059eee420b4f991ee2c13c6ac74a455c63cdf06"
   },
+  "collectionGroupSectionSelectedSemantics": "{label}, {count, plural, =1{1 Tanz} other{{count} Tänze}}, {selected} ausgewählt",
+  "@collectionGroupSectionSelectedSemantics": {
+    "x-sourceSha256": "a7b4ef10339716e07567ba3b5c66bc77e65bff16373e886fac11540ba76f45f3"
+  },
   "collectionExitSelectionTooltip": "Auswahl beenden",
   "@collectionExitSelectionTooltip": {
     "x-sourceSha256": "22206bc678060c0d32cf2b53b314202f3803e2acb21ed6b123343f16889bf0c4"
@@ -4064,6 +4276,10 @@
   "@collectionSetRating": {
     "x-sourceSha256": "13610b1e24c15ccbbb44242ea1d83abed7ce9777d349ec2284012ed95691658d"
   },
+  "collectionSetStatus": "Status festlegen",
+  "@collectionSetStatus": {
+    "x-sourceSha256": "4457cb1806768e48f9b407f4417efc69e0daf348146c3f4f1d433b3ae359820a"
+  },
   "collectionAddTunes": "Melodien hinzufügen",
   "@collectionAddTunes": {
     "x-sourceSha256": "61291ca01149b29ad3e9a6e804d58db3536758ce3dd2a78e425c353b30eb324e"
@@ -4084,6 +4300,10 @@
   "@collectionBatchRatingCleared": {
     "x-sourceSha256": "1431305adfa65f4bfff1262d0dbeb4340cc38ddc8e6e2d06fa4a076b5f0e7318"
   },
+  "collectionBatchStatusSet": "{count, plural, =1{Status bei 1 Tanz gesetzt} other{Status bei {count} Tänzen gesetzt}}",
+  "@collectionBatchStatusSet": {
+    "x-sourceSha256": "94b316f760fe4c3e4fa0ed3b94162b7572848ef749e321ffcc5ec16c63a773b8"
+  },
   "collectionBatchTunesAdded": "{count, plural, =1{Melodien zu 1 Tanz hinzugefügt} other{Melodien zu {count} Tänzen hinzugefügt}}",
   "@collectionBatchTunesAdded": {
     "x-sourceSha256": "531998608282232b5aee10290b6d08465b2d7fb390d3fcb7eb13ab5863128c34"
@@ -4099,6 +4319,14 @@
   "collectionBatchCustomFieldCleared": "{count, plural, =1{Feld bei 1 Tanz geleert} other{Feld bei {count} Tänzen geleert}}",
   "@collectionBatchCustomFieldCleared": {
     "x-sourceSha256": "8dc201ced3074421cced8200ab8a82fa8cbb079ad5f865a63a949d65d9f403e1"
+  },
+  "collectionBatchDeleted": "{count, plural, =1{1 Tanz gelöscht} other{{count} Tänze gelöscht}}",
+  "@collectionBatchDeleted": {
+    "x-sourceSha256": "1ef3b9ba3ecc644ac4da51df5ae5d330a6675b78d8f8784637904fd357bb96e5"
+  },
+  "collectionBatchDeletedAnnouncement": "{count, plural, =1{1 Tanz gelöscht. Unter „Zuletzt gelöscht“ wiederherstellen.} other{{count} Tänze gelöscht. Unter „Zuletzt gelöscht“ wiederherstellen.}}",
+  "@collectionBatchDeletedAnnouncement": {
+    "x-sourceSha256": "2e8f5004a5ed7f87b40bfe951987617b35a3d584eb828b0dba0a9150a6e25b87"
   },
   "collectionSelectDanceLabel": "{title} auswählen",
   "@collectionSelectDanceLabel": {
@@ -4548,6 +4776,10 @@
   "@collectionBatchRatingConfirm": {
     "x-sourceSha256": "b6f6f3ad07b3c05fa0bbbbf2e3d257ff1e3e31a83efbe2c9369cd008594f94e0"
   },
+  "collectionBatchStatusConfirm": "Festlegen",
+  "@collectionBatchStatusConfirm": {
+    "x-sourceSha256": "b6f6f3ad07b3c05fa0bbbbf2e3d257ff1e3e31a83efbe2c9369cd008594f94e0"
+  },
   "collectionBatchTunesFieldLabel": "Melodie hinzufügen",
   "@collectionBatchTunesFieldLabel": {
     "x-sourceSha256": "5d73db8a1aeca18c62bd054e8f736047a36ea54a6a78e28472316f5a4a7627d4"
@@ -4844,6 +5076,22 @@
   "@programsAddAgain": {
     "x-sourceSha256": "7cfbee3aafa052fb0bd1adaa3e07514abc389966d5adec7e1a88ce02e15e9b25"
   },
+  "programsAddToProgramSearchHint": "Programme durchsuchen",
+  "@programsAddToProgramSearchHint": {
+    "x-sourceSha256": "23e28334e250895890d982583ab65c644fafa5634d066af9952a9ef9bedbad91"
+  },
+  "programsAddToProgramSearchClear": "Suche löschen",
+  "@programsAddToProgramSearchClear": {
+    "x-sourceSha256": "3b7ea51793e9d906afa06afb86252abb48e1125cc96a7f5efabcfd8597ea183a"
+  },
+  "programsAddToProgramNoMatches": "Kein Programm passt zu deiner Suche.",
+  "@programsAddToProgramNoMatches": {
+    "x-sourceSha256": "935917d0868371be37563465ab1b0779b38115d3dfe5b4a87e2e558da10f758d"
+  },
+  "programsAddToProgramPerformedGroup": "Aufgeführt ({count})",
+  "@programsAddToProgramPerformedGroup": {
+    "x-sourceSha256": "1fa78b360729025ab36169a0c35ab76c8eaed635633c47f9dafefb43e11d227f"
+  },
   "programsAddedToProgramSnack": "„{danceTitle}“ zu {programTitle} hinzugefügt.",
   "@programsAddedToProgramSnack": {
     "x-sourceSha256": "80a71e4a1d5d7d8f1858dc54e752818e283b20a13edb4ab07ae108a42ea6d946"
@@ -4911,6 +5159,14 @@
   "programsMarkedAllPerformedExceptAlternates": "Alle Tänze außer Alternativen als aufgeführt markiert. Markieren Sie eine Alternative selbst, wenn Sie sie aufgerufen haben.",
   "@programsMarkedAllPerformedExceptAlternates": {
     "x-sourceSha256": "08a8256620a4cffa6d30dd9cab22983d46fe20c5f9d9024d3780368cb60d0017"
+  },
+  "programsMarkedAllPerformedSetStatus": "Alle Tänze als aufgeführt markiert und den Status auf Aufgeführt gesetzt.",
+  "@programsMarkedAllPerformedSetStatus": {
+    "x-sourceSha256": "1ebf7244ed74255d35173bc284d75f422d7ed311ed7e882a776c1648c694dce2"
+  },
+  "programsMarkedAllPerformedExceptAlternatesSetStatus": "Alle Tänze außer Alternativen als aufgeführt markiert und den Status auf Aufgeführt gesetzt. Markieren Sie eine Alternative selbst, wenn Sie sie aufgerufen haben.",
+  "@programsMarkedAllPerformedExceptAlternatesSetStatus": {
+    "x-sourceSha256": "24986b5a297d93c532027de52734b64b2972c2aab6abe1514b245dcec4077a86"
   },
   "programsSavedSnack": "„{title}“ gespeichert.",
   "@programsSavedSnack": {
@@ -5143,6 +5399,14 @@
   "programsStatusFieldLabel": "Status",
   "@programsStatusFieldLabel": {
     "x-sourceSha256": "920e413c7d411b61ef3e8c63b1cb6ad058d5f95f8b481dbafe60248387d8c355"
+  },
+  "programsStatusHelper": "Wenn Sie eine Änderung zu Aufgeführt speichern, werden alle nicht markierten Tänze außer Alternativen als aufgeführt markiert. Wenn Sie den Status zurücksetzen, bleiben die Markierungen erhalten.",
+  "@programsStatusHelper": {
+    "x-sourceSha256": "13c213fc0bb92d21e225a5bd47a860397774df1e549a8472cac026618c228027"
+  },
+  "programsStatusHelperMarkAllSetsStatus": "Wenn Sie eine Änderung zu Aufgeführt speichern, werden alle nicht markierten Tänze außer Alternativen als aufgeführt markiert, und „Alle als aufgeführt markieren“ setzt diesen Status. Wenn Sie den Status zurücksetzen, bleiben die Markierungen erhalten.",
+  "@programsStatusHelperMarkAllSetsStatus": {
+    "x-sourceSha256": "fc80bbf8e47a656eb66ce43ecdea30aa25cc819b5d5b6c4020ed1d6ca2954dac"
   },
   "programsHideAlternatesTitle": "Alternativen in Setliste ausblenden",
   "@programsHideAlternatesTitle": {
@@ -5858,6 +6122,10 @@
   "@performShowWalkthrough": {
     "x-sourceSha256": "64f01c3e30adb389ccdd0650799fed8a51beeb4a3137e888f5f49cfd3970c1c0"
   },
+  "performFullScreen": "Vollbild",
+  "@performFullScreen": {
+    "x-sourceSha256": "674fe2acd0d5f47b46180dd66e26e349cd9c9db215046f5e86ea2f5728d18117"
+  },
   "performWalkthroughEmpty": "Kein Ablauf für diesen Tanz.",
   "@performWalkthroughEmpty": {
     "x-sourceSha256": "4a06a15c574a27546aefaab25f6251d757d4685f97a8b3da52f8ad67104848b1"
@@ -6122,6 +6390,14 @@
   "@exportLabelTunes": {
     "x-sourceSha256": "4b5c504ca989a4a17e54b974db8a6d4aa156fa63da39902c66ecec59f5e46412"
   },
+  "exportLabelHook": "Hook",
+  "@exportLabelHook": {
+    "x-sourceSha256": "536ff5051d2541c9be5975c589b2b2bfecd85c1eb316522080db20c2bf27ccee"
+  },
+  "exportLabelSources": "Quellen",
+  "@exportLabelSources": {
+    "x-sourceSha256": "caf85b0888d78f1f83771a07b25c3d30fa1210242f2fae6e5ae5d9a686602800"
+  },
   "exportSlotAuthorSuffix": "von {names}",
   "@exportSlotAuthorSuffix": {
     "x-sourceSha256": "79ac564bb32e62bcab69cdf18ff4753eae39a6616fe7569f062ab5795c484347"
@@ -6342,9 +6618,9 @@
   "@onlineImportVariationDialogActionLink": {
     "x-sourceSha256": "7a89241607bf07561ac5217d1fead66bc5c4636e6f94a7608108da241cd65443"
   },
-  "onlineImportVariationDialogLinkWarning": "Ihre Version von „{existingTitle}“ wird durch den Online-Eintrag ersetzt — einschließlich ihres Titels, ihrer Figuren, Notizen, Tags und Bewertung. Sie behält Ihre benutzerdefinierten Felder, ihren Platz in Ihren Programmen und ihren Calling-Verlauf.",
+  "onlineImportVariationDialogLinkWarning": "Ihre Version von „{existingTitle}“ wird durch den Online-Eintrag ersetzt — einschließlich ihres Titels, ihrer Figuren, Notizen und Tags. Sie behält Ihre Bewertung, Ihre benutzerdefinierten Felder, ihren Platz in Ihren Programmen und ihren Calling-Verlauf.",
   "@onlineImportVariationDialogLinkWarning": {
-    "x-sourceSha256": "f8b05d49958fd3a68177f47b9cdf78f0821e4e29e64d76d33e6cf33875d047f1"
+    "x-sourceSha256": "1056677505f70fcc93e4c1e610f1c824a31479de32f29cacbe8fbec1213fcb8c"
   },
   "onlineImportCrossSourceDuplicateDialogTitle": "Sie haben diesen Tanz bereits",
   "@onlineImportCrossSourceDuplicateDialogTitle": {
@@ -6366,9 +6642,9 @@
   "@onlineImportPossibleMatchDialogBody": {
     "x-sourceSha256": "c23d4f0bdd76d65aa431c58419d8a497eca0ed5d84d68e16e2ebee368fc2b303"
   },
-  "onlineImportPossibleMatchDialogLinkWarning": "Der Tanz, den Sie auswählen, wird durch den Online-Eintrag ersetzt — einschließlich seines Titels, seiner Figuren, Notizen, Tags und Bewertung. Er behält Ihre benutzerdefinierten Felder, seinen Platz in Ihren Programmen und seinen Calling-Verlauf.",
+  "onlineImportPossibleMatchDialogLinkWarning": "Der Tanz, den Sie auswählen, wird durch den Online-Eintrag ersetzt — einschließlich seines Titels, seiner Figuren, Notizen und Tags. Er behält Ihre Bewertung, Ihre benutzerdefinierten Felder, seinen Platz in Ihren Programmen und seinen Calling-Verlauf.",
   "@onlineImportPossibleMatchDialogLinkWarning": {
-    "x-sourceSha256": "9b22e3103e98010d7b6aba8a40c733936cc6f1e851bc9e3aaa08595f804d5720"
+    "x-sourceSha256": "198184a9f1d632e4877e2a250b04522e9893cd1161387dea8599a936ec044ef6"
   },
   "importFigurelessCannotReplace": "Dieser Datensatz enthält keine Figuren und kann daher keinen deiner Tänze ersetzen. Er kann aber weiterhin als neuer Tanz importiert werden.",
   "@importFigurelessCannotReplace": {
@@ -8150,6 +8426,10 @@
   "@danceEditorRedoLabel": {
     "x-sourceSha256": "74273989b0966e2369b6d01aadb23af4ad6a9e724643fa88f2bde99202a36708"
   },
+  "editorDraftNotSaved": "Entwurf nicht gespeichert – deine letzten Änderungen werden noch nicht gesichert",
+  "@editorDraftNotSaved": {
+    "x-sourceSha256": "e7b0e357b6454d0285f6a3b3a4c516654f94c0fbec49dd7555eab4278e523dbe"
+  },
   "danceEditorUndoShortcutTooltip": "{platform, select, apple{Rückgängig (⌘Z)} other{Rückgängig (Strg+Z)}}",
   "@danceEditorUndoShortcutTooltip": {
     "x-sourceSha256": "70c5caddd837408dbb753994191f5f964172e998aef3087ad2e7d5cfc9b36528"
@@ -9653,6 +9933,30 @@
   "venueManagerNoMatches": "Keine Veranstaltungsorte entsprechen Ihrer Suche.",
   "@venueManagerNoMatches": {
     "x-sourceSha256": "e940556921b9a433f18671d65cec482b884d67d4c9898e9c44dd3db74ba67d9c"
+  },
+  "venueLinkOfferTitle": "Frühere Programme verknüpfen?",
+  "@venueLinkOfferTitle": {
+    "x-sourceSha256": "86afa285ba0117e339f6459d01613537807434f2ba87823f515bb8ce85a63cfd"
+  },
+  "venueLinkOfferBody": "Bei einigen Programmen ist ein Veranstaltungsort als Text eingetragen, der zu einem Veranstaltungsort-Eintrag passt. Wenn Sie sie verknüpfen, zählt die Ansageliste sie als einen Ort. Der eingetragene Text bleibt erhalten.",
+  "@venueLinkOfferBody": {
+    "x-sourceSha256": "51f75c042050f5a79ba5f14516a49da5b3bf3d2f11225d81acffb37a5b7b00f8"
+  },
+  "venueLinkOfferRow": "„{name}“: {count, plural, =1{1 Programm} other{{count} Programme}}",
+  "@venueLinkOfferRow": {
+    "x-sourceSha256": "29c5f6c84b2376bb00998dfb55aa02c8033077b3e1f66526466ef41bc660f3b4"
+  },
+  "venueLinkOfferConfirm": "Verknüpfen",
+  "@venueLinkOfferConfirm": {
+    "x-sourceSha256": "a6a32dbc5618ea39f6df5b0f9808e3588b19e00d5f6f96c69492e40386e5aeab"
+  },
+  "venueLinkOfferDecline": "Nicht jetzt",
+  "@venueLinkOfferDecline": {
+    "x-sourceSha256": "a0e63d7c7125d29af84d6919af5550529be77c327324940c98c4b2cb13a99c8c"
+  },
+  "venueLinkOfferDone": "{count, plural, =1{1 Programm verknüpft.} other{{count} Programme verknüpft.}}",
+  "@venueLinkOfferDone": {
+    "x-sourceSha256": "431a1aa3f4e20271f7a7aece28cd1fb67ebe75cda7f2b539844ec62712c7a0bb"
   },
   "venueManagerDeleteTitle": "Veranstaltungsort löschen?",
   "@venueManagerDeleteTitle": {

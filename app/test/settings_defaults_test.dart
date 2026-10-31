@@ -15,6 +15,7 @@ import 'package:compendium_app/src/data/collection_facets_scope.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/custom_themes_scope.dart';
 import 'package:compendium_app/src/data/default_program_caller_scope.dart';
+import 'package:compendium_app/src/data/dance_share_fields_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/shorthand_mappings_controller.dart';
@@ -153,6 +154,7 @@ Future<void> _pumpDefaults(
   // rows (issue #1841) pushed the move-defaults editor past the old 4500.
   Size surface = const Size(1200, 6400),
   double textScale = 1,
+  ValueNotifier<Set<DanceShareField>>? shareFields,
 }) async {
   await setScreenSize(tester, surface);
 
@@ -206,7 +208,12 @@ Future<void> _pumpDefaults(
                         notifier: facetsNotifier,
                         child: DefaultProgramCallerScope(
                           notifier: defaultCaller,
-                          child: scaled ?? child!,
+                          child: shareFields == null
+                              ? scaled ?? child!
+                              : DanceShareFieldsScope(
+                                  notifier: shareFields,
+                                  child: scaled ?? child!,
+                                ),
                         ),
                       ),
                     ),
@@ -431,6 +438,33 @@ void main() {
       expect(stored.last.text, 'Guest caller');
     },
   );
+
+  testWidgets('the dance-card picker offers Hook and Sources, off by default, '
+      'and persists them under the existing key (OUT-6)', (tester) async {
+    final repos = openTestRepositories();
+    final fields = ValueNotifier<Set<DanceShareField>>(
+      DanceShareField.allExceptTunes,
+    );
+    addTearDown(fields.dispose);
+    await _pumpDefaults(tester, repos, shareFields: fields);
+
+    for (final name in ['hook', 'sources']) {
+      final key = ValueKey('defaults-share-field-$name');
+      await _scrollTo(tester, key);
+      expect(tester.widget<CheckboxListTile>(find.byKey(key)).value, isFalse);
+      await tester.tap(find.byKey(key));
+      await tester.pumpAndSettle();
+    }
+
+    expect(
+      fields.value,
+      containsAll([DanceShareField.hook, DanceShareField.sources]),
+    );
+    expect(
+      (await repos.settings.get(kProgramDanceShareFieldsKey) as List),
+      containsAll(['hook', 'sources']),
+    );
+  });
 
   group('default import tags (#1476)', () {
     Future<void> openImportGroup(WidgetTester tester) async {
@@ -2077,6 +2111,75 @@ void main() {
         ),
         {
           'box_the_gnat': {'who': 'partners'},
+        },
+      );
+    });
+
+    testWidgets('ticking balance on form short waves saves its 4 beats', (
+      tester,
+    ) async {
+      // Its beats follow its balance (#1975) though it seeds none: saving
+      // `balance: true` alone would seed a balanced figure with 0 beats.
+      final repos = openTestRepositories();
+      await repos.settings.set(
+        kDefaultMoveParamOverridesKey,
+        encodeMoveParamOverrides({
+          'form_short_waves': {'axis': 'rightDiagonal'},
+        }),
+      );
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
+      await tester.pumpAndSettle();
+      final balanceSwitch = find.byWidgetPredicate(
+        (w) =>
+            w is Switch &&
+            w.key == const ValueKey('move-default-form_short_waves-balance'),
+      );
+
+      await tester.tap(balanceSwitch);
+      await tester.pumpAndSettle();
+      expect(
+        moveParamOverridesFromStored(
+          await repos.settings.get(kDefaultMoveParamOverridesKey),
+        ),
+        {
+          'form_short_waves': {
+            'axis': 'rightDiagonal',
+            'balance': true,
+            'beats': 4,
+          },
+        },
+      );
+    });
+
+    testWidgets('unticking balance on a Rory O\'More saves its 4 beats', (
+      tester,
+    ) async {
+      // Its beats follow its balance (8 with, 4 without) though it seeds none.
+      final repos = openTestRepositories();
+      await repos.settings.set(
+        kDefaultMoveParamOverridesKey,
+        encodeMoveParamOverrides({
+          'rory_o_more': {'slide': 'left'},
+        }),
+      );
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byWidgetPredicate(
+          (w) =>
+              w is Switch &&
+              w.key == const ValueKey('move-default-rory_o_more-balance'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        moveParamOverridesFromStored(
+          await repos.settings.get(kDefaultMoveParamOverridesKey),
+        ),
+        {
+          'rory_o_more': {'slide': 'left', 'balance': false, 'beats': 4},
         },
       );
     });

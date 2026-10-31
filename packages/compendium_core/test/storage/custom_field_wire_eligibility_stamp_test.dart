@@ -167,7 +167,12 @@ void main() {
       await device.seed(shareable: true);
       await device.repositories.dances.softDelete('d1', at: _t1);
       await device.defs.delete('f1', at: _t2);
-      await device.repositories.dances.restore('d1', at: _t3);
+      // Without the revival, so the definition is still tombstoned here.
+      await device.repositories.dances.restore(
+        'd1',
+        at: _t3,
+        reviveReferences: false,
+      );
 
       await device.defs.restore('f1', at: _t4);
 

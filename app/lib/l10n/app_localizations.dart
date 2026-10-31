@@ -458,6 +458,18 @@ abstract class AppLocalizations {
   /// **'“{itemLabel}” will be deleted. You can undo this.'**
   String confirmDeleteBody(String itemLabel);
 
+  /// Body of the confirm-before-delete dialog when several selected dances are deleted at once from Collection's selection mode (shown only when the 'Confirm before delete' setting is on). {count} includes selected dances the current search hides.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 dance will be deleted. You can undo this.} other{{count} dances will be deleted. You can undo this.}}'**
+  String confirmDeleteDancesBody(int count);
+
+  /// Body of the confirm-before-delete dialog for a batch delete from Collection's selection mode when some selected dances are hidden by the current search or filters. {count} is every selected dance; {notShown} (at least 1) is how many of them the list does not show.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 dance will be deleted. Your search hides it. You can undo this.} other{{count} dances will be deleted, {notShown} of them hidden by your search. You can undo this.}}'**
+  String confirmDeleteDancesNotShownBody(int count, int notShown);
+
   /// Field label for the hexadecimal colour input in the shared colour-picker dialog.
   ///
   /// In en, this message translates to:
@@ -3568,7 +3580,7 @@ abstract class AppLocalizations {
   /// Explanation for the set-list colour-coding toggle.
   ///
   /// In en, this message translates to:
-  /// **'Tint each dance row by its formation family (contra, mixer, square, …) — dances marked as mixers always get the mixer tint, regardless of formation. The formation is always shown as text too, so rows stay readable without colour.'**
+  /// **'Tint each dance row by its formation family (contra, mixer, square, …) — unless you have given that formation its own colour, which wins. Dances marked as mixers always get the mixer tint, regardless of formation. The formation is always shown as text too, so rows stay readable without colour.'**
   String get settingsAppearanceSetListColorSubtitle;
 
   /// List-tile title opening the formation-colour customisation screen.
@@ -3580,7 +3592,7 @@ abstract class AppLocalizations {
   /// Explanation for the formation-colour customisation entry.
   ///
   /// In en, this message translates to:
-  /// **'Highlight individual formations in your own colours — e.g. Becket (CW) in yellow, Becket (CCW) in pink — on dance cards, dance detail, and the Perform header.'**
+  /// **'Highlight individual formations in your own colours — e.g. Becket (CW) in yellow, Becket (CCW) in pink — on dance cards, dance detail, the Perform header, and set-list rows.'**
   String get settingsAppearanceFormationColoursSubtitle;
 
   /// Label shown on the currently-selected theme card in the gallery.
@@ -3931,11 +3943,23 @@ abstract class AppLocalizations {
   /// **'Walkthrough'**
   String get settingsDefaultsShareFieldsWalkthrough;
 
-  /// Label for the Tunes share-field toggle (#1434). Unlike every other field here this defaults off, since no renderer emitted tunes before this preference existed.
+  /// Label for the Tunes share-field toggle (#1434). Defaults off, like Hook and Sources: no renderer emitted tunes before this preference existed.
   ///
   /// In en, this message translates to:
   /// **'Tunes'**
   String get settingsDefaultsShareFieldsTunes;
+
+  /// Label for the Hook share-field toggle (OUT-6). Defaults off, like Tunes: no export carried the hook before this option existed.
+  ///
+  /// In en, this message translates to:
+  /// **'Hook'**
+  String get settingsDefaultsShareFieldsHook;
+
+  /// Label for the published-sources share-field toggle (OUT-6). Defaults off, like Tunes: no export carried source citations before this option existed.
+  ///
+  /// In en, this message translates to:
+  /// **'Sources'**
+  String get settingsDefaultsShareFieldsSources;
 
   /// Section header for the preference that chooses which filters appear in the Collection page's Filters panel and the dance picker (#1419).
   ///
@@ -4138,7 +4162,7 @@ abstract class AppLocalizations {
   /// Intro paragraph explaining per-formation label colours.
   ///
   /// In en, this message translates to:
-  /// **'Give a formation its own colour to highlight its label on dance cards, dance detail, and the Perform header. Only the formations you customise are highlighted; the rest show their label as usual. The formation is always shown as text too, so labels stay readable without colour.'**
+  /// **'Give a formation its own colour to highlight its label on dance cards, dance detail, and the Perform header, and to colour its set-list rows (mixers keep the mixer colour). Only the formations you customise are highlighted; the rest show their label as usual. The formation is always shown as text too, so labels stay readable without colour.'**
   String get settingsFormationColoursIntro;
 
   /// Section header above the list of formation shapes.
@@ -4183,47 +4207,11 @@ abstract class AppLocalizations {
   /// **'Give a tag its own colour to make it stand out on dance cards and dance detail. The tag\'s name is always shown too, so tags stay readable without colour.'**
   String get settingsAppearanceTagColoursSubtitle;
 
-  /// App-bar title of the per-tag colour settings screen.
-  ///
-  /// In en, this message translates to:
-  /// **'Tag colours'**
-  String get settingsTagColoursTitle;
-
-  /// Intro paragraph explaining per-tag colours.
-  ///
-  /// In en, this message translates to:
-  /// **'Give a tag its own colour to make it stand out wherever it appears. Only the tags you colour change; the rest look exactly as they do now. The tag\'s name is always shown too, so tags stay readable without colour.'**
-  String get settingsTagColoursIntro;
-
-  /// Section header above the list of tags.
-  ///
-  /// In en, this message translates to:
-  /// **'Tags'**
-  String get settingsTagColoursListHeader;
-
   /// Shown on the tag-colour screen when the collection has no tags.
   ///
   /// In en, this message translates to:
   /// **'You haven\'t created any tags yet. Add a tag to a dance and it will appear here.'**
   String get settingsTagColoursEmpty;
-
-  /// Subtitle shown when a tag has a custom colour set.
-  ///
-  /// In en, this message translates to:
-  /// **'Custom colour'**
-  String get settingsTagColoursCustom;
-
-  /// Subtitle shown when a tag has no colour assigned.
-  ///
-  /// In en, this message translates to:
-  /// **'No colour'**
-  String get settingsTagColoursNoColour;
-
-  /// Tooltip on the button that clears one tag's colour.
-  ///
-  /// In en, this message translates to:
-  /// **'Remove {label}\'s colour'**
-  String settingsTagColoursResetTooltip(String label);
 
   /// Snack-bar message shown when saving or clearing a tag colour fails.
   ///
@@ -4236,6 +4224,286 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t load your tags.'**
   String get settingsTagColoursLoadError;
+
+  /// App-bar title of the Tags manager, where tags are renamed, merged, coloured and deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags'**
+  String get tagManagerTitle;
+
+  /// Hint in the Tags manager's search field.
+  ///
+  /// In en, this message translates to:
+  /// **'Search tags'**
+  String get tagManagerSearchHint;
+
+  /// Label of the name field in the Tags manager's rename dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag name'**
+  String get tagManagerNameLabel;
+
+  /// Tags manager action: opens the colour picker for a tag.
+  ///
+  /// In en, this message translates to:
+  /// **'Colour…'**
+  String get tagManagerColour;
+
+  /// Tags manager action, offered only for a tag with a colour: removes the colour.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove colour'**
+  String get tagManagerRemoveColour;
+
+  /// Snackbar after deleting a tag in the Tags manager, with an Undo action. The count is the dances in the collection that lost the tag; dances in Recently deleted are not counted.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{Deleted “{name}”} =1{Deleted “{name}” from 1 dance} other{Deleted “{name}” from {count} dances}}'**
+  String tagManagerDeletedSnack(String name, int count);
+
+  /// Snackbar after renaming a tag in the Tags manager, with an Undo action.
+  ///
+  /// In en, this message translates to:
+  /// **'Renamed “{from}” to “{to}”'**
+  String tagManagerRenamedSnack(String from, String to);
+
+  /// Snackbar after merging one tag into another in the Tags manager, with an Undo action.
+  ///
+  /// In en, this message translates to:
+  /// **'Merged “{from}” into “{into}”'**
+  String tagManagerMergedSnack(String from, String into);
+
+  /// Snackbar after a rename merged three or more tags into one (case variants of the same name), with an Undo action. The count includes the tag merged into.
+  ///
+  /// In en, this message translates to:
+  /// **'Combined {count} tags into “{into}”'**
+  String tagManagerMergedSeveralSnack(int count, String into);
+
+  /// App-bar title of the Authors manager, where the authors credited on dances are renamed, merged, edited and deleted. User-facing text says “author”, never “choreographer” (decision D-3).
+  ///
+  /// In en, this message translates to:
+  /// **'Authors'**
+  String get authorManagerTitle;
+
+  /// Hint in the Authors manager's search field.
+  ///
+  /// In en, this message translates to:
+  /// **'Search authors'**
+  String get authorManagerSearchHint;
+
+  /// Label of the name field in the Authors manager's rename dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Author name'**
+  String get authorManagerNameLabel;
+
+  /// Shown in the Authors manager when there are no authors.
+  ///
+  /// In en, this message translates to:
+  /// **'No authors yet. Authors you credit on a dance appear here.'**
+  String get authorManagerEmpty;
+
+  /// Shown in the Authors manager when the author list fails to load.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your authors.'**
+  String get authorManagerLoadError;
+
+  /// Snackbar after a rename merged three or more authors into one (case variants of the same name), with an Undo action. The count includes the author merged into.
+  ///
+  /// In en, this message translates to:
+  /// **'Combined {count} authors into “{into}”'**
+  String authorManagerMergedSeveralSnack(int count, String into);
+
+  /// App-bar title of the Sources manager, where the published sources dances cite (books, websites) are renamed, merged, edited and deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Sources'**
+  String get sourceManagerTitle;
+
+  /// Hint in the Sources manager's search field.
+  ///
+  /// In en, this message translates to:
+  /// **'Search sources'**
+  String get sourceManagerSearchHint;
+
+  /// Label of the title field in the Sources manager's rename dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Source title'**
+  String get sourceManagerTitleLabel;
+
+  /// Shown in the Sources manager when there are no sources.
+  ///
+  /// In en, this message translates to:
+  /// **'No sources yet. Books and websites you cite on a dance appear here.'**
+  String get sourceManagerEmpty;
+
+  /// Shown in the Sources manager when the source list fails to load.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your sources.'**
+  String get sourceManagerLoadError;
+
+  /// Tooltip of the button that clears the search field in the Tags, Authors and Sources managers.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get libraryManagerClearSearch;
+
+  /// Filter chip in the Tags, Authors and Sources managers: shows only entries no dance uses.
+  ///
+  /// In en, this message translates to:
+  /// **'Not used'**
+  String get libraryManagerNotUsed;
+
+  /// Tooltip of the sort menu in the Tags, Authors and Sources managers.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort'**
+  String get libraryManagerSortTooltip;
+
+  /// Sort choice in the Tags, Authors and Sources managers: alphabetical.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get libraryManagerSortByName;
+
+  /// Sort choice in the Tags, Authors and Sources managers: most-used first.
+  ///
+  /// In en, this message translates to:
+  /// **'Number of dances'**
+  String get libraryManagerSortByDanceCount;
+
+  /// Shown in the Tags, Authors and Sources managers when the search or filter leaves no entries.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing matches your search.'**
+  String get libraryManagerNoMatches;
+
+  /// Row subtitle in the Tags, Authors and Sources managers: how many dances in the collection use the entry. Dances in Recently deleted are not counted.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{Not used} =1{1 dance} other{{count} dances}}'**
+  String libraryManagerDanceCount(int count);
+
+  /// Tooltip of the ⋮ menu on a row of the Tags, Authors and Sources managers.
+  ///
+  /// In en, this message translates to:
+  /// **'Actions for {name}'**
+  String libraryManagerActionsTooltip(String name);
+
+  /// Action and dialog button in the Tags, Authors and Sources managers: renames the entry.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get libraryManagerRename;
+
+  /// Title of the rename dialog in the Tags, Authors and Sources managers.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename “{name}”'**
+  String libraryManagerRenameTitle(String name);
+
+  /// Action in the Tags, Authors and Sources managers: opens a picker of the entry to merge this one into.
+  ///
+  /// In en, this message translates to:
+  /// **'Merge into…'**
+  String get libraryManagerMergeInto;
+
+  /// Title of the picker that chooses which entry to merge this one into.
+  ///
+  /// In en, this message translates to:
+  /// **'Merge “{name}” into…'**
+  String libraryManagerMergePickerTitle(String name);
+
+  /// Title of the dialog shown when a rename in the Tags, Authors or Sources manager picks a name another entry already has.
+  ///
+  /// In en, this message translates to:
+  /// **'Name already in use'**
+  String get libraryManagerMergeOfferTitle;
+
+  /// Body of the dialog shown when a rename picks a name another entry already has. Merging keeps one entry; it can be undone.
+  ///
+  /// In en, this message translates to:
+  /// **'“{existing}” already exists. Merge “{from}” into it?'**
+  String libraryManagerMergeOfferOne(String existing, String from);
+
+  /// Body of the dialog shown when a rename picks a name another entry already has with different capitals. Merging keeps one entry, under the name typed; it can be undone.
+  ///
+  /// In en, this message translates to:
+  /// **'“{existing}” already exists. Merge “{from}” into it and call it “{name}”?'**
+  String libraryManagerMergeOfferOneRenamed(
+    String existing,
+    String from,
+    String name,
+  );
+
+  /// Body of the dialog shown when a rename picks a name that several entries already have (they differ only in capitals). A list of them follows.
+  ///
+  /// In en, this message translates to:
+  /// **'More than one entry is already called “{name}”. Choose the one to merge “{from}” into; the others are merged into it too.'**
+  String libraryManagerMergeOfferSeveral(String name, String from);
+
+  /// Primary button of the merge dialog in the Tags, Authors and Sources managers.
+  ///
+  /// In en, this message translates to:
+  /// **'Merge'**
+  String get libraryManagerMerge;
+
+  /// Snackbar when Undo of a rename, merge or delete in the Tags, Authors or Sources manager cannot give a name back, because another entry has taken it since.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn’t undo: “{name}” is now used by another entry.'**
+  String libraryManagerUndoConflict(String name);
+
+  /// Snackbar when a rename, merge or delete in the Tags, Authors or Sources manager fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn’t save that change. Please try again.'**
+  String get libraryManagerEditFailed;
+
+  /// Authors and Sources manager action: opens the entry's details (website, notes and so on) for editing.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit details…'**
+  String get libraryManagerEditDetails;
+
+  /// Snackbar after renaming an author or a source in its manager, with an Undo action.
+  ///
+  /// In en, this message translates to:
+  /// **'Renamed “{from}” to “{to}”'**
+  String libraryManagerRenamedSnack(String from, String to);
+
+  /// Snackbar after merging one author or source into another, with an Undo action.
+  ///
+  /// In en, this message translates to:
+  /// **'Merged “{from}” into “{into}”'**
+  String libraryManagerMergedSnack(String from, String into);
+
+  /// Snackbar after deleting an author or source no dance uses, with an Undo action. An entry a dance uses cannot be deleted, only merged.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted “{name}”'**
+  String libraryManagerDeletedSnack(String name);
+
+  /// Title of the dialog asking before a merge that will drop details, because both entries hold different values for them. Its body lists the dropped details.
+  ///
+  /// In en, this message translates to:
+  /// **'Merge “{from}” into “{into}”?'**
+  String libraryManagerMergeConfirmTitle(String from, String into);
+
+  /// Heading of the list, in a merge dialog, of the details the merge discards. Empty details are filled from the other entry instead; only conflicting values are dropped.
+  ///
+  /// In en, this message translates to:
+  /// **'These details differ. The merged entry keeps its own, and these are dropped:'**
+  String get libraryManagerMergeDropsHeading;
+
+  /// One line of the list of details a merge drops: the field's label, then the dropped value.
+  ///
+  /// In en, this message translates to:
+  /// **'{field}: {value}'**
+  String libraryManagerMergeDroppedLine(String field, String value);
 
   /// General settings section header for collection-library preferences.
   ///
@@ -4639,6 +4907,18 @@ abstract class AppLocalizations {
   /// **'When on, each dance in a program’s view has a toggle to mark it performed or not, without opening the editor. When off, rows only show whether a dance was performed.'**
   String get settingsGeneralShowPerformedTogglesSubtitle;
 
+  /// Title of the setting that makes Mark all performed also set the program status to Performed.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark all performed sets the status'**
+  String get settingsGeneralMarkAllSetsStatusTitle;
+
+  /// Subtitle explaining the Mark all performed sets the status setting.
+  ///
+  /// In en, this message translates to:
+  /// **'When on, Mark all performed also sets the program status to Performed, and Undo puts both back. When off, the status stays as it was.'**
+  String get settingsGeneralMarkAllSetsStatusSubtitle;
+
   /// Title of the calling-history settings toggle that leaves programs with no event date out of calling history.
   ///
   /// In en, this message translates to:
@@ -4692,6 +4972,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'When on, each figure in the dance view, Perform mode and the figure editor starts with a capital letter (“Neighbors allemande left”). When off, figures are shown as written; built-in figures start in lower case, as in ContraDB. Only how figures look in those places changes; exports, search, sync comparisons and screen-reader wording are unaffected.'**
   String get settingsGeneralCapitalizeFiguresSubtitle;
+
+  /// Settings › General › Library entry that opens the Tags manager.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags'**
+  String get settingsGeneralLibraryTagsTitle;
+
+  /// Subtitle of the Settings › General › Library entry that opens the Tags manager.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename, merge, colour and delete your tags.'**
+  String get settingsGeneralLibraryTagsSubtitle;
+
+  /// Title of the Settings › General › Library entry that opens the Authors manager.
+  ///
+  /// In en, this message translates to:
+  /// **'Authors'**
+  String get settingsGeneralLibraryAuthorsTitle;
+
+  /// Subtitle of the Settings › General › Library entry that opens the Authors manager.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename, merge and delete authors, and edit their details.'**
+  String get settingsGeneralLibraryAuthorsSubtitle;
+
+  /// Title of the Settings › General › Library entry that opens the Sources manager.
+  ///
+  /// In en, this message translates to:
+  /// **'Sources'**
+  String get settingsGeneralLibrarySourcesTitle;
+
+  /// Subtitle of the Settings › General › Library entry that opens the Sources manager.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename, merge and delete sources, and edit their details.'**
+  String get settingsGeneralLibrarySourcesSubtitle;
 
   /// General settings section header for accessibility preferences.
   ///
@@ -5971,6 +6287,16 @@ abstract class AppLocalizations {
   /// **'{label}, {count, plural, =1{1 dance} other{{count} dances}}'**
   String collectionGroupSectionSemantics(String label, int count);
 
+  /// Accessibility label announced for a category section header while selecting dances; it names the checkbox that selects the section's rows. {label} is the section name, {count} the number of dances in it and {selected} how many of them are selected.
+  ///
+  /// In en, this message translates to:
+  /// **'{label}, {count, plural, =1{1 dance} other{{count} dances}}, {selected} selected'**
+  String collectionGroupSectionSelectedSemantics(
+    String label,
+    int count,
+    int selected,
+  );
+
   /// Tooltip for the button that leaves multi-select (batch) mode.
   ///
   /// In en, this message translates to:
@@ -6211,6 +6537,12 @@ abstract class AppLocalizations {
   /// **'Set rating'**
   String get collectionSetRating;
 
+  /// Batch action (menu item and dialog title) for setting the lifecycle status (active, deprecated, broken, draft, variation) on the selected dances.
+  ///
+  /// In en, this message translates to:
+  /// **'Set status'**
+  String get collectionSetStatus;
+
   /// Batch action (menu item and dialog title) for adding tunes to the selected dances (additive; never removes).
   ///
   /// In en, this message translates to:
@@ -6241,6 +6573,12 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{Cleared rating on 1 dance} other{Cleared rating on {count} dances}}'**
   String collectionBatchRatingCleared(int count);
 
+  /// Announcement/snackbar confirming a status was set on the given number of dances.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Set status on 1 dance} other{Set status on {count} dances}}'**
+  String collectionBatchStatusSet(int count);
+
   /// Announcement/snackbar confirming tunes were added to the given number of dances.
   ///
   /// In en, this message translates to:
@@ -6264,6 +6602,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{Cleared field on 1 dance} other{Cleared field on {count} dances}}'**
   String collectionBatchCustomFieldCleared(int count);
+
+  /// Snackbar confirming the selected dances were moved to Recently Deleted by Collection's batch Delete; it carries an Undo action.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Deleted 1 dance} other{Deleted {count} dances}}'**
+  String collectionBatchDeleted(int count);
+
+  /// Screen-reader announcement after Collection's batch Delete. Names Recently Deleted (the screen's title, recentlyDeletedTitle) so the way back outlasts the timed Undo snackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Deleted 1 dance. Restore it from Recently Deleted.} other{Deleted {count} dances. Restore them from Recently Deleted.}}'**
+  String collectionBatchDeletedAnnouncement(int count);
 
   /// Accessible label for the per-row selection checkbox in batch mode.
   ///
@@ -6937,6 +7287,12 @@ abstract class AppLocalizations {
   /// **'Set'**
   String get collectionBatchRatingConfirm;
 
+  /// Confirm button of the batch set-status dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Set'**
+  String get collectionBatchStatusConfirm;
+
   /// Label of the text field for typing a tune to add in the batch add-tunes dialog.
   ///
   /// In en, this message translates to:
@@ -7389,6 +7745,30 @@ abstract class AppLocalizations {
   /// **'Add again'**
   String get programsAddAgain;
 
+  /// Hint of the search field in the add-to-program sheet, shown when there are many programs. Matches a program's title or venue.
+  ///
+  /// In en, this message translates to:
+  /// **'Search programs'**
+  String get programsAddToProgramSearchHint;
+
+  /// Tooltip of the button that empties the add-to-program sheet's search field.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get programsAddToProgramSearchClear;
+
+  /// Shown in the add-to-program sheet when a search matches no program.
+  ///
+  /// In en, this message translates to:
+  /// **'No programs match your search.'**
+  String get programsAddToProgramNoMatches;
+
+  /// Row in the add-to-program sheet that expands the programs already marked Performed, which are collapsed beneath the open ones. The count is the number of Performed programs.
+  ///
+  /// In en, this message translates to:
+  /// **'Performed ({count})'**
+  String programsAddToProgramPerformedGroup(int count);
+
   /// Confirmation snackbar after appending a dance to an existing program.
   ///
   /// In en, this message translates to:
@@ -7490,6 +7870,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Marked all dances performed except alternates. Mark an alternate yourself if you called it.'**
   String get programsMarkedAllPerformedExceptAlternates;
+
+  /// Confirmation (snackbar and screen-reader announcement) after Mark all performed marked every dance and also set the program status to Performed.
+  ///
+  /// In en, this message translates to:
+  /// **'Marked all dances performed and set the status to Performed.'**
+  String get programsMarkedAllPerformedSetStatus;
+
+  /// Confirmation after Mark all performed marked every dance except alternates and also set the program status to Performed.
+  ///
+  /// In en, this message translates to:
+  /// **'Marked all dances performed except alternates, and set the status to Performed. Mark an alternate yourself if you called it.'**
+  String get programsMarkedAllPerformedExceptAlternatesSetStatus;
 
   /// Snackbar confirming the program was saved, quoting its title.
   ///
@@ -7838,6 +8230,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Status'**
   String get programsStatusFieldLabel;
+
+  /// Helper text under the program status dropdown when Mark all performed does not set the status.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving a change to Performed marks every unmarked dance performed, except alternates. Changing the status back keeps the marks.'**
+  String get programsStatusHelper;
+
+  /// Helper text under the program status dropdown when the Mark all performed sets the status setting is on.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving a change to Performed marks every unmarked dance performed, except alternates, and Mark all performed sets this status. Changing the status back keeps the marks.'**
+  String get programsStatusHelperMarkAllSetsStatus;
 
   /// Title of the toggle that hides alternate (ALT) slots from the exported set list.
   ///
@@ -8929,6 +9333,12 @@ abstract class AppLocalizations {
   /// **'Show walkthrough'**
   String get performShowWalkthrough;
 
+  /// Tooltip, overflow-menu label and accessible name for the desktop Perform toggle that takes the window full screen and back (PLAT-9). Shown as selected while the window is full screen. The keyboard shortcut is F11, or Ctrl-Cmd-F on macOS.
+  ///
+  /// In en, this message translates to:
+  /// **'Full screen'**
+  String get performFullScreen;
+
   /// Empty-state text shown in the perform-mode walkthrough overlay when the current dance has no walkthrough written.
   ///
   /// In en, this message translates to:
@@ -9333,6 +9743,18 @@ abstract class AppLocalizations {
   /// **'Tunes'**
   String get exportLabelTunes;
 
+  /// Label before the hook text on an exported dance card (plain text and PDF), shown only when the Hook share field is on (OUT-6).
+  ///
+  /// In en, this message translates to:
+  /// **'Hook'**
+  String get exportLabelHook;
+
+  /// Section heading for the published-source citations on an exported dance card (plain text and PDF), shown only when the Sources share field is on (OUT-6).
+  ///
+  /// In en, this message translates to:
+  /// **'Sources'**
+  String get exportLabelSources;
+
   /// Author-names suffix appended to a numbered set-list slot line, e.g. "1. Waltz Quadrille — by Jane Smith" (issue #1434).
   ///
   /// In en, this message translates to:
@@ -9663,10 +10085,10 @@ abstract class AppLocalizations {
   /// **'Same dance (update existing)'**
   String get onlineImportVariationDialogActionLink;
 
-  /// Secondary text warning that 'Same dance (link)' is a wholesale replacement. _rebuildWithIdentity (import_pipeline.dart) preserves id and createdAt from the existing dance, and keeps its custom-field values for every field the incoming draft does not carry (#1890; online drafts carry none, so all are kept). Every other field — title, figures, callingNotes, tagIds, rating, tunes, links, sourceCitations, hook, form, authorIds, provenance — comes from the incoming draft. Note: authorIds is resolved from the incoming record's author names and provenance is the incoming record's provenance (that is the point of linking); neither survives from the existing dance. The dance id is preserved, so ProgramSlot.danceId references stay intact — programs and calling history survive. Used in both the #797 variation dialog (figures DIFFER — the field callers care most about) and the #811 cross-source dialog (figures canonically identical, so replacement is less consequential). existingTitle is an untrusted local value rendered as plain text.
+  /// Secondary text warning that 'Same dance (link)' is a wholesale replacement. _rebuildWithIdentity (import_pipeline.dart) preserves id and createdAt from the existing dance, and keeps its custom-field values for every field the incoming draft does not carry (#1890; online drafts carry none, so all are kept). Likewise its rating is kept whenever the incoming draft carries none (online drafts carry none). Every other field — title, figures, callingNotes, tagIds, tunes, links, sourceCitations, hook, form, authorIds, provenance — comes from the incoming draft. Note: authorIds is resolved from the incoming record's author names and provenance is the incoming record's provenance (that is the point of linking); neither survives from the existing dance. The dance id is preserved, so ProgramSlot.danceId references stay intact — programs and calling history survive. Used in both the #797 variation dialog (figures DIFFER — the field callers care most about) and the #811 cross-source dialog (figures canonically identical, so replacement is less consequential). existingTitle is an untrusted local value rendered as plain text.
   ///
   /// In en, this message translates to:
-  /// **'Your version of \"{existingTitle}\" will be replaced by the online record — including its title, figures, notes, tags, and rating. It keeps your custom fields, its place in your programs, and its calling history.'**
+  /// **'Your version of \"{existingTitle}\" will be replaced by the online record — including its title, figures, notes, and tags. It keeps your rating, custom fields, its place in your programs, and its calling history.'**
   String onlineImportVariationDialogLinkWarning(String existingTitle);
 
   /// Title of the resolution dialog shown during a single-dance online import when a confident title+author match with identical figures is already in the collection, from a different source (issue #811) or entered by hand (INTAKE-5).
@@ -9702,7 +10124,7 @@ abstract class AppLocalizations {
   /// Secondary text in the possible-match dialog (issue #1907): choosing an existing dance replaces it as onlineImportVariationDialogLinkWarning describes for a single named dance. The title is named first because here it is certain to change: the two titles are written differently.
   ///
   /// In en, this message translates to:
-  /// **'The dance you choose will be replaced by the online record — including its title, figures, notes, tags, and rating. It keeps your custom fields, its place in your programs, and its calling history.'**
+  /// **'The dance you choose will be replaced by the online record — including its title, figures, notes, and tags. It keeps your rating, custom fields, its place in your programs, and its calling history.'**
   String get onlineImportPossibleMatchDialogLinkWarning;
 
   /// Note shown where an import would otherwise offer to replace an existing dance (the single-dance online import dialogs and the import review rows) when the incoming record carries no figures, for example a Caller's Box dance whose choreographer has not allowed its figures to be shared. Replacing would erase the dance's saved figures, so only importing it as a new dance (or, where offered, a variation) is available.
@@ -12379,6 +12801,12 @@ abstract class AppLocalizations {
   /// **'Redo'**
   String get danceEditorRedoLabel;
 
+  /// Tooltip and screen-reader label for the marker in the dance and program editor bars when the editor cannot write its autosave draft (for example, the disk is full). Clears itself once a draft write succeeds.
+  ///
+  /// In en, this message translates to:
+  /// **'Draft not saved — your latest changes are not being kept yet'**
+  String get editorDraftNotSaved;
+
   /// Tooltip for the undo app-bar action including its keyboard shortcut.
   ///
   /// In en, this message translates to:
@@ -14645,6 +15073,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No venues match your search.'**
   String get venueManagerNoMatches;
+
+  /// Title of the dialog offering to link programs that have a venue typed in as text to a venue record with the same name (GIG-7).
+  ///
+  /// In en, this message translates to:
+  /// **'Link earlier programs?'**
+  String get venueLinkOfferTitle;
+
+  /// Body of the dialog offering to link typed-venue programs to a venue record (GIG-7). One line per venue follows it.
+  ///
+  /// In en, this message translates to:
+  /// **'Some programs have a venue typed in as text that matches a venue record. Linking them makes calling history count them as one venue. The typed text is kept.'**
+  String get venueLinkOfferBody;
+
+  /// One line of the link-programs-to-venue offer: the venue record's name and how many programs would be linked to it.
+  ///
+  /// In en, this message translates to:
+  /// **'“{name}”: {count, plural, =1{1 program} other{{count} programs}}'**
+  String venueLinkOfferRow(String name, int count);
+
+  /// Button that links the offered programs to their venue records.
+  ///
+  /// In en, this message translates to:
+  /// **'Link'**
+  String get venueLinkOfferConfirm;
+
+  /// Button that declines the link-programs-to-venue offer. The answer is not remembered.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get venueLinkOfferDecline;
+
+  /// Snackbar after programs were linked to their venue records.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Linked 1 program.} other{Linked {count} programs.}}'**
+  String venueLinkOfferDone(int count);
 
   /// Title of the confirmation dialog for permanently deleting a venue.
   ///

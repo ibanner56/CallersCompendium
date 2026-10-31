@@ -62,6 +62,7 @@ String? syncSettingLabel(AppLocalizations l10n, String key) => switch (key) {
   'last_used_program_sort' => l10n.syncSettingLastProgramSort,
   'last_used_program_sort_direction' =>
     l10n.syncSettingLastProgramSortDirection,
+  'mark_all_sets_status' => l10n.settingsGeneralMarkAllSetsStatusTitle,
   'matrix_exact_beat_collision' =>
     l10n.settingsGeneralMatrixExactCollisionTitle,
   'perform_canonical_view' => l10n.performShowCanonicalTerms,

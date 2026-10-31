@@ -2795,7 +2795,10 @@ FROM seq
       await customFieldDefs.delete('f', at: t0);
       await choreographers.delete('c1', at: t0);
       await sources.delete('s1', at: t0);
-      await dances.restore('a', at: t1);
+      // Without the revival a trash restore now does (B9), so the dance is
+      // live under tombstoned parents, as an archive merge or a peer can
+      // still leave it.
+      await dances.restore('a', at: t1, reviveReferences: false);
       return def;
     }
 

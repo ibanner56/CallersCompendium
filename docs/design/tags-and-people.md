@@ -5,7 +5,7 @@ against `origin/main` at `acacb05`, and re-checked after merging `main` at
 `296b594`. Every `file:line` below is for `296b594` unless it names another
 branch. Of the files cited, only `ux.md` moved between the two.*
 
-**Status: decided, not built.** The maintainer asked for this note (below), and
+**Status: decided; T1–T4 built 2026-10-30.** The maintainer asked for this note (below), and
 on 2026-10-29/30 answered all seven of its questions, each as the note
 recommended (N2-1 … N2-7 in `maintainer-decisions-2026-10-30.md` on
 `claude/app-audit-categories-k2pdon`; this note's D-N2-*n* is the file's
@@ -155,6 +155,8 @@ already handles normalisation and sync stamping (`tag_repository.dart:89-212`,
   counterpart for the index's `sources` column (`database.dart:25-31`). I did
   not check whether another path rebuilds that column after a source edit.
   The source branch must check, and fix it if the column goes stale.
+  *T1 checked (2026-10-30):* nothing did, so any edit of a source's title or
+  author left the citing dances' search text stale. T1 refreshes it.
 
 ### Merge
 
@@ -249,9 +251,10 @@ The steps run in one transaction:
      this device files the tag under the survivor, bumps the dance and
      re-uploads it. The peer then drops its last citation, and its pending
      deletion of the loser lands.
-   - A peer's edit *of the loser itself* lands on the survivor too. After the
-     merge they are one entry, so that is the intended reading, but the §6.6
-     amendment must say so.
+   - A peer's edit *of the loser itself* was expected to land on the
+     survivor too. *T1 found otherwise (2026-10-30):* the loser's tombstone
+     wins it, as a deletion wins an earlier edit, and only the peer's
+     citations follow the alias. The §6.6 amendment says so (rule 5).
 7. **Rewrite `default_import_tag_names`** (tags only). The loser's name is
    replaced by the chosen name, then de-duplicated. See
    [The import-tags setting](#the-import-tags-setting).
@@ -348,6 +351,32 @@ the spec. I did not run them.
   as a limit if T1 cannot close it.
 - A peer whose advertised tombstone of the loser is rewritten onto the
   survivor by the alias: that must never tombstone the survivor.
+
+**What T1 found (2026-10-30).** T1 ran these cases on two real databases
+syncing through an in-memory store
+(`app/test/sync/sync_user_merge_two_device_test.dart`). Its fixes are T1's own
+choices, not maintainer decisions. The dated §6.6 amendment ("User merges")
+states each one with the alternative it rejected.
+
+- **The open risk was worse than traced above.** The merging device resolved
+  its own tombstone of the loser onto the survivor through the alias, so it
+  never published it. Peers kept the loser live, and the survivor's rename
+  collided on every pass. The fix: a tombstone whose id still has a row here
+  keeps that id (rule 4).
+- **The held peer**, once the tombstone travels, behaved as traced: held,
+  queued, and then left a stale review row after the hold landed. The fix:
+  step 1 waits without queueing while the holder is leaving the name (rule 6).
+  Rejected: renaming the held row from its tombstone, and ordering
+  tombstones first.
+- **A peer that deleted the loser itself** holds a tombstone under the old
+  name that wins everywhere. The fix: at step 1 a tombstone gives up a tag's or
+  author's name (rule 7).
+- **Opposite merges, rename versus merge, Undo on a held peer, a rename that
+  frees a held tombstone's name, and a multi-match merge** converge with no
+  review row. A multi-match merge's case variants exist only on the merging
+  device, because sync folds case and reconciles them on a peer.
+- **Three-way merges, and a citation arriving after its alias has gone,** do
+  not converge. The amendment states both as limits.
 
 ### Delete
 
@@ -488,6 +517,9 @@ wire change.
     an empty `page` or `number` on that citation takes the loser's. Rejected
     alternative: drop the loser's citation whole, which is what
     `_rewriteLocalReferences` does today (`sync_storage.dart:5291-5318`).
+    *As built by T3 (2026-10-30):* the citation kept takes the page and number
+    of the merged-into source's citation, filled from the others' when empty;
+    see "What T3 built" under [The manager screens](#the-manager-screens).
 - **Delete** only when unused, as above.
 - **Not proposed:** a "possible duplicates" hint by folded title. It is close
   to the dropped FIND-9, and the maintainer can ask for it separately.
@@ -535,7 +567,83 @@ retired. The manager lists live tags through `TagRepository.watchAll`
 **Not proposed here:** a "show these dances" action. It would open Collection
 filtered to the row, and B15 is changing how an external tag filter behaves
 (`dance_list_screen.dart:503-530`). Add it after B15 lands, using whatever
-rule B15 settles.
+rule B15 settles. *B15 had merged by the time T2 was built; T2 still leaves
+the action out, as its scope says, and names it as a follow-up.*
+
+**What T2 built (2026-10-30).** The shared list is `LibraryManagerList`
+(`app/lib/src/screens/settings/library_manager_list.dart`), with the dialogs
+T3 reuses beside it: `showLibraryRenameDialog`, `showLibraryMergePicker` and
+`showLibraryMergeOffer`. The screen around the list owns the data and every
+write; the list owns only its session state. The counts come from one grouped
+query, `ReferenceEditRepository.watchLiveDanceCounts`, which re-runs when a
+dance changes, so a dance moved to Recently deleted stops counting at once.
+These choices are T2's own, not maintainer decisions:
+
+- Tapping a row opens the actions as a bottom sheet at every width, not only
+  on a phone. Rejected: a popup menu on wide screens, which would be a second
+  way to reach the same actions with no gain over the row's ⋮.
+- The merge offer's buttons are **Keep editing** (text) and **Merge**
+  (filled), as the add-to-program sheet's **Cancel** / **Add again**, which
+  reads D-1's pattern the same way for a question that has an Undo.
+- **Keep editing** in the merge offer re-opens the rename dialog with the
+  typed name, and when the one match differs from the typed name only in
+  case, the offer says the result takes the typed name ("Merge 'Flowing' into
+  it and call it 'flowy'?"), since the merge writes it.
+- Undo puts the import-tags setting back only while it still holds what the
+  edit wrote. Rejected: restoring it unconditionally, which would undo a
+  change made in Settings, or by a sync pass, between the edit and the
+  Undo.
+
+**What T3 built (2026-10-30).** The Authors and Sources managers are one
+screen, `ReferenceManagerScreen` (`app/lib/src/screens/reference_manager_screen.dart`),
+on T2's list, listing through new `watchAll` streams on the two repositories.
+The author flows the manager and the dance editor share are in
+`app/lib/src/widgets/author_details_flow.dart`. Core gained
+`ReferenceEditRepository.deleteUnused`, the citation fill, and
+`authorMergeConflicts` / `sourceMergeConflicts`, which list what a merge drops
+by the same rule the merge applies. These choices are T3's own, not maintainer
+decisions:
+
+- **Merge into…** asks first only when the merge drops a value; otherwise it
+  runs at once, with Undo, as a tag merge does. The question is
+  "Merge 'X' into 'Y'?" over the list of dropped values. Rejected: asking
+  before every merge, which `ux.md`'s rule (confirm only what Undo cannot
+  reverse) argues against; D-N2-2's "longer dialog on conflict" is met by
+  asking only then.
+- **Delete** is a new core operation rather than the repositories' guarded
+  delete. It keeps the guard, stamps the tombstone past the row's own
+  `updated_at`, and bumps each dance in Recently deleted that still cites the
+  entry, whose serialised authors or citations no longer list it (§6.5 I1).
+  Undo revives the row with its fields. Rejected: the repository delete,
+  which does neither, and has no Undo.
+- **The citation fill** is the user merge's only. The shared
+  `rewriteLocalReferences` still keeps the survivor's citation as it stands,
+  so sync's reconciliation is unchanged. The kept citation takes the page and
+  number of the merged-into source's citation, as the merged entry takes that
+  source's fields, and each empty one from the others in id order. A locator
+  the two disagree on is dropped without being listed: listing it would mean
+  one line per dance. Undo puts the locator back only while it still reads as
+  the merge left it. Rejected: the survivor id's citation winning, which
+  would keep the merged-away source's page when it held the smaller id.
+- **A rename typed in the details dialog** that collides offers the merge with
+  the dialog's other values taking part: they are saved under the old name
+  first, in the merge's transaction, so the merge fills from them and an Undo
+  of the merge leaves them saved. **Keep editing** re-opens the dialog with
+  what was typed. Rejected: dropping the typed details, which the user saved.
+- **The dance editor follows a merge.** Its draft, and every step of its undo
+  history, credit the survivor in place of a merged-away author, and Undo of
+  the merge puts the draft's credit back. Rejected: leaving the draft as it
+  was, which would save a credit to a tombstone, and the dance would show no
+  author.
+- **A source's row shows its author and year,** because titles are not unique
+  and duplicates are the thing being merged. Rejected: the title alone, which
+  makes "Zesty Contras" and "Zesty Contras" indistinguishable in the picker.
+- **Edit details…** saves as the dance editor does, with no Undo.
+
+T3 kept the "Choreographer details" title the details dialog has had. D-3 says
+"people are 'author'", and renaming existing strings is U4's (see
+[What is already decided](#what-is-already-decided)); T3's new strings say
+"author".
 
 ## The purge GC (LIFE-5 option c)
 
@@ -597,6 +705,11 @@ should drop the name.
 - **Sync.** The setting is `shareable` and travels as an ordinary settings
   record, so peers take the rewrite by last-writer-wins. Its registry entry
   does not change.
+- **Built by T2** in `app/lib/src/data/tag_edits.dart`. Names are matched
+  exactly, as the import matches them (`resolveDefaultImportTagIds`), and the
+  rewrite is skipped when the stored value is unreadable, which import treats
+  as empty. A tag deleted by any other path, such as a peer's delete applied
+  by sync, still leaves its name behind; import skips it, as before.
 
 ## Privacy registry
 

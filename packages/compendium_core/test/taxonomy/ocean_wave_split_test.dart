@@ -5,7 +5,9 @@ import 'package:compendium_core/testing.dart';
 /// Issue #290 — split the overloaded `form_an_ocean_wave` into a default
 /// short-wave `form_short_waves` ("form a wave") and a distinct
 /// `pass_the_ocean` ("pass the ocean"). Both inherit the legacy move's sourced
-/// params MINUS `passThru`; neither invents a beat count. As of taxonomy v14 the
+/// params MINUS `passThru`. Taxonomy v38 (#1975) gives `form_short_waves` beats
+/// that follow its balance, 4 with one and 0 without (maintainer decision);
+/// `pass_the_ocean` still encodes none. As of taxonomy v14 the
 /// legacy `form_an_ocean_wave` MoveDef is REMOVED; stored figures that reference
 /// it are rewritten onto the split moves by the schema-v12 migration (see
 /// database.dart / migration_test.dart). This file asserts the split moves and
@@ -60,8 +62,10 @@ void main() {
       test('$id keeps the intended split-move defaults', () {
         final shortWave = tax.resolve('form_short_waves')!.params;
         final passTheOcean = tax.resolve('pass_the_ocean')!.params;
+        // `beats` differs since v38: form short waves without a balance is a
+        // zero-count formation (#1975).
         for (final key in sharedInheritedParams.where(
-          (key) => key != 'centerHand',
+          (key) => key != 'centerHand' && key != 'beats',
         )) {
           expect(
             shortWave[key]!.defaultValue,
@@ -76,17 +80,36 @@ void main() {
         );
       });
 
-      test(
-        '$id accepts any beats (param-dependent, unencoded like legacy)',
-        () {
-          expect(tax.resolve(id)!.goodBeats, anyOf(isNull, isEmpty));
-          expect(
-            tax.validateFigure(testFigure(move: id, params: {'beats': 8})),
-            isEmpty,
-          );
-        },
-      );
+      if (id == 'pass_the_ocean') {
+        test(
+          '$id accepts any beats (param-dependent, unencoded like legacy)',
+          () {
+            expect(tax.resolve(id)!.goodBeats, anyOf(isNull, isEmpty));
+            expect(
+              tax.validateFigure(testFigure(move: id, params: {'beats': 8})),
+              isEmpty,
+            );
+          },
+        );
+      }
     }
+  });
+
+  test('form_short_waves beats follow its balance (v38, #1975)', () {
+    // Maintainer decision: without a balance it is a zero-count figure.
+    final def = tax.resolve('form_short_waves')!;
+    expect(def.params['balance']!.defaultValue, isFalse);
+    expect(def.goodBeats, [0, 4, 8]);
+    expect(
+      tax.effectiveParams(testFigure(move: 'form_short_waves'))['beats'],
+      0,
+    );
+    expect(
+      tax.effectiveParams(
+        testFigure(move: 'form_short_waves', params: {'balance': true}),
+      )['beats'],
+      4,
+    );
   });
 
   group('canonical rendering (golden)', () {

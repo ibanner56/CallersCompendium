@@ -17,7 +17,11 @@ New to the app? Start with the [Getting started guide](./getting-started.md).
 ## Enter Perform mode
 
 Perform mode is not a navigation tab — you step into it when it is time to call,
-and step back out deliberately when you are done. It fills the whole screen.
+and step back out deliberately when you are done. On a phone or tablet it
+fills the whole screen: the status bar, and on Android the navigation bar, hide
+while you perform and come back when you exit. On Android, swipe in from the
+edge to see them for a moment. On a computer, Perform opens in the app window, and **Full screen**
+takes it over the whole display (see [Set the stage](#set-the-stage)).
 
 - To call a **single dance**, open it from your
   [collection](./collection.md#what-you-can-do-with-a-dance) and choose
@@ -46,8 +50,8 @@ large type.
 
 Your [dialect](./dialects.md) is applied — or the program's own dialect, if you
 gave it one (see [Programs](./programs.md)) — so the card speaks in your words.
-For a quick look at the shared wording, choose **Canonical** under **Switch
-dialect** below. Figure
+To see the shared wording, choose **Canonical** under **Switch dialect** below
+(that section says how long the change lasts). Figure
 detail you recorded shows here too: when a swing ends facing somewhere other
 than the usual "in"/across — up or down the hall, or out of the set — the card
 notes that ending so you can cue it.
@@ -62,9 +66,11 @@ same thing, and every toggle says which state it is in rather than relying on
 how it looks.
 
 **Switch dialect.** Changes your active dialect for the whole app — handy when
-tonight's hall uses different role names. **Canonical** is one of the choices,
-for when a dancer or another caller asks what a figure is in the shared wording;
-switch back the same way. If the program has its own dialect, the switch changes
+tonight's hall uses different role names. The change stays after you leave
+Perform: later screens, PDFs and shared text use that dialect too, and it syncs to
+your other devices. **Canonical** is one of the choices, for when a dancer or
+another caller asks what a figure is in the shared wording; switch back the same
+way when you are done. If the program has its own dialect, the switch changes
 the wording for this time in Perform only: your active dialect stays as it was,
 and the program's dialect is back the next time you open Perform. See
 [Dialect](./dialects.md#switch-dialect-on-the-fly).
@@ -94,6 +100,14 @@ target to see the tempo in beats per minute and a pulse you can follow or show
 the band. **Show walkthrough** — which appears when the dance has a
 walkthrough written — lays it over the card until you close it.
 
+**Full screen.** On a computer, this takes the window over the whole display,
+covering the taskbar or Dock, and back again. The keyboard does the same:
+**F11** on Windows and Linux, **Ctrl-Cmd-F** on macOS. **Esc** also leaves full
+screen. It never leaves Perform, which always asks first. When you exit Perform,
+the window goes back to how it was when you came in. If you close the app while
+it is full screen, it opens in its usual window next time. Phones and tablets
+have no button for this, because Perform is always full screen there.
+
 **Caller notes.** When you perform a program, a slot's caller note appears above
 the dance title, labelled *Caller note*. To hide these, turn off **Show caller
 notes in program Perform** in
@@ -115,7 +129,16 @@ control suits you and your setup:
 - the **Previous slot** and **Next slot** buttons at the bottom of the screen;
 - the **giant edge hit zones** — tap the left edge to go back, the right edge
   to go forward — easy to hit without looking; or
-- the **arrow keys** or **Page Up** / **Page Down** on a keyboard.
+- the **arrow keys** or **Page Up** / **Page Down** on a keyboard, or a
+  page-turner pedal that sends them.
+
+When a card is too long to fit, **down** and **Page Down** scroll it first, and
+move to the next slot only once you can see the end of the card. **Up** and
+**Page Up** scroll back to the top before they go back a slot. Each press moves
+most of a screen, so a pedal reads through a long card in a few presses. The
+**left** and **right** keys always change slot straight away. A new slot always
+opens at its top. A card that fits needs no scrolling, so every key changes slot
+at once.
 
 While the walkthrough overlay is open, none of these change your slot: taps on
 the card are absorbed, the **up**, **down**, **Page Up** and **Page Down** keys

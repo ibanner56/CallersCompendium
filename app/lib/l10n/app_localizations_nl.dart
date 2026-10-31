@@ -242,6 +242,30 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String confirmDeleteDancesBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dansen worden verwijderd. Je kunt dit ongedaan maken.',
+      one: '1 dans wordt verwijderd. Je kunt dit ongedaan maken.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String confirmDeleteDancesNotShownBody(int count, int notShown) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count dansen worden verwijderd, waarvan $notShown verborgen door je zoekopdracht. Je kunt dit ongedaan maken.',
+      one:
+          '1 dans wordt verwijderd. Je zoekopdracht verbergt hem. Je kunt dit ongedaan maken.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get colorEditHexLabel => 'Hex';
 
   @override
@@ -2384,14 +2408,14 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsAppearanceSetListColorSubtitle =>
-      'Kleur elke dansrij op basis van diens formatiefamilie (contra, mixer, square, …) — dansen die als mixer zijn gemarkeerd krijgen altijd de mixerkleur, ongeacht de formatie. De formatie wordt ook altijd als tekst weergegeven, zodat rijen leesbaar blijven zonder kleur.';
+      'Kleur elke dansrij op basis van diens formatiefamilie (contra, mixer, square, …) — tenzij je die formatie een eigen kleur hebt gegeven; die gaat voor. Dansen die als mixer zijn gemarkeerd krijgen altijd de mixerkleur, ongeacht de formatie. De formatie wordt ook altijd als tekst weergegeven, zodat rijen leesbaar blijven zonder kleur.';
 
   @override
   String get settingsAppearanceFormationColoursTitle => 'Formatielabelkleuren';
 
   @override
   String get settingsAppearanceFormationColoursSubtitle =>
-      'Markeer individuele formaties in je eigen kleuren — bijv. Becket (CW) in geel, Becket (CCW) in roze — op danskaarten, dansdetails en de uitvoerheader.';
+      'Markeer individuele formaties in je eigen kleuren — bijv. Becket (CW) in geel, Becket (CCW) in roze — op danskaarten, dansdetails, de uitvoerheader en rijen in de dansvolgorde.';
 
   @override
   String get settingsAppearanceSelectedBadge => 'Geselecteerd';
@@ -2604,6 +2628,12 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsDefaultsShareFieldsTunes => 'Deuntjes';
 
   @override
+  String get settingsDefaultsShareFieldsHook => 'Hook';
+
+  @override
+  String get settingsDefaultsShareFieldsSources => 'Bronnen';
+
+  @override
   String get settingsDefaultsCollectionFiltersHeader => 'Collectiefilters';
 
   @override
@@ -2730,7 +2760,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsFormationColoursIntro =>
-      'Geef een formatie een eigen kleur om het label te markeren op danskaarten, dansdetails en de uitvoerheader. Alleen de formaties die je aanpast worden gemarkeerd; de overige tonen hun label zoals gewoonlijk. De formatie wordt ook altijd als tekst weergegeven, zodat labels leesbaar blijven zonder kleur.';
+      'Geef een formatie een eigen kleur om het label te markeren op danskaarten, dansdetails en de uitvoerheader, en om de rijen in de dansvolgorde te kleuren (mixers houden de mixerkleur). Alleen de formaties die je aanpast worden gemarkeerd; de overige tonen hun label zoals gewoonlijk. De formatie wordt ook altijd als tekst weergegeven, zodat labels leesbaar blijven zonder kleur.';
 
   @override
   String get settingsFormationColoursListHeader => 'Formaties';
@@ -2757,29 +2787,8 @@ class AppLocalizationsNl extends AppLocalizations {
       'Geef een tag een eigen kleur zodat die opvalt op danskaarten en in de dansdetails. De naam van de tag wordt altijd ook getoond, dus tags blijven leesbaar zonder kleur.';
 
   @override
-  String get settingsTagColoursTitle => 'Tagkleuren';
-
-  @override
-  String get settingsTagColoursIntro =>
-      'Geef een tag een eigen kleur zodat die overal opvalt waar hij verschijnt. Alleen de tags die je kleurt veranderen; de rest ziet er precies zo uit als nu. De naam van de tag wordt altijd ook getoond, dus tags blijven leesbaar zonder kleur.';
-
-  @override
-  String get settingsTagColoursListHeader => 'Tags';
-
-  @override
   String get settingsTagColoursEmpty =>
       'Je hebt nog geen tags aangemaakt. Voeg een tag toe aan een dans en die verschijnt hier.';
-
-  @override
-  String get settingsTagColoursCustom => 'Aangepaste kleur';
-
-  @override
-  String get settingsTagColoursNoColour => 'Geen kleur';
-
-  @override
-  String settingsTagColoursResetTooltip(String label) {
-    return 'Kleur van $label verwijderen';
-  }
 
   @override
   String get settingsTagColoursSaveError =>
@@ -2787,6 +2796,203 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsTagColoursLoadError => 'Kon je tags niet laden.';
+
+  @override
+  String get tagManagerTitle => 'Tags';
+
+  @override
+  String get tagManagerSearchHint => 'Tags zoeken';
+
+  @override
+  String get tagManagerNameLabel => 'Tagnaam';
+
+  @override
+  String get tagManagerColour => 'Kleur…';
+
+  @override
+  String get tagManagerRemoveColour => 'Kleur verwijderen';
+
+  @override
+  String tagManagerDeletedSnack(String name, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '“$name” verwijderd uit $count dansen',
+      one: '“$name” verwijderd uit 1 dans',
+      zero: '“$name” verwijderd',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String tagManagerRenamedSnack(String from, String to) {
+    return '“$from” hernoemd naar “$to”';
+  }
+
+  @override
+  String tagManagerMergedSnack(String from, String into) {
+    return '“$from” samengevoegd met “$into”';
+  }
+
+  @override
+  String tagManagerMergedSeveralSnack(int count, String into) {
+    return '$count tags samengevoegd tot “$into”';
+  }
+
+  @override
+  String get authorManagerTitle => 'Auteurs';
+
+  @override
+  String get authorManagerSearchHint => 'Auteurs zoeken';
+
+  @override
+  String get authorManagerNameLabel => 'Naam van de auteur';
+
+  @override
+  String get authorManagerEmpty =>
+      'Nog geen auteurs. Auteurs die je bij een dans vermeldt, verschijnen hier.';
+
+  @override
+  String get authorManagerLoadError => 'Kon je auteurs niet laden.';
+
+  @override
+  String authorManagerMergedSeveralSnack(int count, String into) {
+    return '$count auteurs samengevoegd tot “$into”';
+  }
+
+  @override
+  String get sourceManagerTitle => 'Bronnen';
+
+  @override
+  String get sourceManagerSearchHint => 'Bronnen zoeken';
+
+  @override
+  String get sourceManagerTitleLabel => 'Titel van de bron';
+
+  @override
+  String get sourceManagerEmpty =>
+      'Nog geen bronnen. Boeken en websites die je bij een dans vermeldt, verschijnen hier.';
+
+  @override
+  String get sourceManagerLoadError => 'Kon je bronnen niet laden.';
+
+  @override
+  String get libraryManagerClearSearch => 'Zoekopdracht wissen';
+
+  @override
+  String get libraryManagerNotUsed => 'Niet gebruikt';
+
+  @override
+  String get libraryManagerSortTooltip => 'Sorteren';
+
+  @override
+  String get libraryManagerSortByName => 'Naam';
+
+  @override
+  String get libraryManagerSortByDanceCount => 'Aantal dansen';
+
+  @override
+  String get libraryManagerNoMatches =>
+      'Niets komt overeen met je zoekopdracht.';
+
+  @override
+  String libraryManagerDanceCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dansen',
+      one: '1 dans',
+      zero: 'Niet gebruikt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String libraryManagerActionsTooltip(String name) {
+    return 'Acties voor $name';
+  }
+
+  @override
+  String get libraryManagerRename => 'Hernoemen';
+
+  @override
+  String libraryManagerRenameTitle(String name) {
+    return '“$name” hernoemen';
+  }
+
+  @override
+  String get libraryManagerMergeInto => 'Samenvoegen met…';
+
+  @override
+  String libraryManagerMergePickerTitle(String name) {
+    return '“$name” samenvoegen met…';
+  }
+
+  @override
+  String get libraryManagerMergeOfferTitle => 'Naam al in gebruik';
+
+  @override
+  String libraryManagerMergeOfferOne(String existing, String from) {
+    return '“$existing” bestaat al. “$from” ermee samenvoegen?';
+  }
+
+  @override
+  String libraryManagerMergeOfferOneRenamed(
+    String existing,
+    String from,
+    String name,
+  ) {
+    return '“$existing” bestaat al. “$from” ermee samenvoegen en “$name” noemen?';
+  }
+
+  @override
+  String libraryManagerMergeOfferSeveral(String name, String from) {
+    return 'Meer dan één item heet al “$name”. Kies het item waarmee “$from” wordt samengevoegd; de andere worden er ook mee samengevoegd.';
+  }
+
+  @override
+  String get libraryManagerMerge => 'Samenvoegen';
+
+  @override
+  String libraryManagerUndoConflict(String name) {
+    return 'Ongedaan maken lukt niet: “$name” wordt nu door een ander item gebruikt.';
+  }
+
+  @override
+  String get libraryManagerEditFailed =>
+      'Die wijziging kon niet worden opgeslagen. Probeer het opnieuw.';
+
+  @override
+  String get libraryManagerEditDetails => 'Details bewerken…';
+
+  @override
+  String libraryManagerRenamedSnack(String from, String to) {
+    return '“$from” hernoemd naar “$to”';
+  }
+
+  @override
+  String libraryManagerMergedSnack(String from, String into) {
+    return '“$from” samengevoegd met “$into”';
+  }
+
+  @override
+  String libraryManagerDeletedSnack(String name) {
+    return '“$name” verwijderd';
+  }
+
+  @override
+  String libraryManagerMergeConfirmTitle(String from, String into) {
+    return '“$from” samenvoegen met “$into”?';
+  }
+
+  @override
+  String get libraryManagerMergeDropsHeading =>
+      'Deze details verschillen. Het samengevoegde item houdt zijn eigen details, en deze vervallen:';
+
+  @override
+  String libraryManagerMergeDroppedLine(String field, String value) {
+    return '$field: $value';
+  }
 
   @override
   String get settingsGeneralLibraryHeader => 'Bibliotheek';
@@ -3034,6 +3240,14 @@ class AppLocalizationsNl extends AppLocalizations {
       'Als ingeschakeld, heeft elke dans in de programmaweergave een schakelaar om die als uitgevoerd te markeren of niet, zonder de editor te openen. Als uitgeschakeld, tonen de rijen alleen of een dans is uitgevoerd.';
 
   @override
+  String get settingsGeneralMarkAllSetsStatusTitle =>
+      'Alles markeren als uitgevoerd zet de status';
+
+  @override
+  String get settingsGeneralMarkAllSetsStatusSubtitle =>
+      'Als ingeschakeld, zet Alles markeren als uitgevoerd ook de programmastatus op Uitgevoerd, en Ongedaan maken zet beide terug. Als uitgeschakeld, blijft de status zoals hij was.';
+
+  @override
   String get settingsGeneralRequireEventDateForHistoryTitle =>
       'Eventdatum vereisen voor callerhistorie';
 
@@ -3076,6 +3290,27 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get settingsGeneralCapitalizeFiguresSubtitle =>
       'Als ingeschakeld, begint elke figuur in de dansweergave, de Perform-modus en de figuureditor met een hoofdletter (“Neighbors allemande left”). Als uitgeschakeld, worden figuren getoond zoals ze zijn geschreven; ingebouwde figuren beginnen met een kleine letter, zoals in ContraDB. Alleen het uiterlijk van figuren op die plekken verandert; exports, zoeken, synchronisatievergelijkingen en de tekst voor schermlezers blijven ongewijzigd.';
+
+  @override
+  String get settingsGeneralLibraryTagsTitle => 'Tags';
+
+  @override
+  String get settingsGeneralLibraryTagsSubtitle =>
+      'Je tags hernoemen, samenvoegen, kleuren en verwijderen.';
+
+  @override
+  String get settingsGeneralLibraryAuthorsTitle => 'Auteurs';
+
+  @override
+  String get settingsGeneralLibraryAuthorsSubtitle =>
+      'Auteurs hernoemen, samenvoegen en verwijderen, en hun details bewerken.';
+
+  @override
+  String get settingsGeneralLibrarySourcesTitle => 'Bronnen';
+
+  @override
+  String get settingsGeneralLibrarySourcesSubtitle =>
+      'Bronnen hernoemen, samenvoegen en verwijderen, en hun details bewerken.';
 
   @override
   String get settingsGeneralAccessibilityHeader => 'Toegankelijkheid';
@@ -3837,6 +4072,21 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String collectionGroupSectionSelectedSemantics(
+    String label,
+    int count,
+    int selected,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dansen',
+      one: '1 dans',
+    );
+    return '$label, $_temp0, $selected geselecteerd';
+  }
+
+  @override
   String get collectionExitSelectionTooltip => 'Selectie verlaten';
 
   @override
@@ -4018,6 +4268,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get collectionSetRating => 'Beoordeling instellen';
 
   @override
+  String get collectionSetStatus => 'Status instellen';
+
+  @override
   String get collectionAddTunes => 'Deuntjes toevoegen';
 
   @override
@@ -4044,6 +4297,17 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other: 'Beoordeling gewist van $count dansen',
       one: 'Beoordeling gewist van 1 dans',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionBatchStatusSet(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Status ingesteld voor $count dansen',
+      one: 'Status ingesteld voor 1 dans',
     );
     return '$_temp0';
   }
@@ -4088,6 +4352,28 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other: 'Veld gewist van $count dansen',
       one: 'Veld gewist van 1 dans',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionBatchDeleted(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dansen verwijderd',
+      one: '1 dans verwijderd',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionBatchDeletedAnnouncement(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dansen verwijderd. Herstel ze via Onlangs verwijderd.',
+      one: '1 dans verwijderd. Herstel hem via Onlangs verwijderd.',
     );
     return '$_temp0';
   }
@@ -4502,6 +4788,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get collectionBatchRatingConfirm => 'Instellen';
 
   @override
+  String get collectionBatchStatusConfirm => 'Instellen';
+
+  @override
   String get collectionBatchTunesFieldLabel => 'Een deuntje toevoegen';
 
   @override
@@ -4826,6 +5115,21 @@ class AppLocalizationsNl extends AppLocalizations {
   String get programsAddAgain => 'Opnieuw toevoegen';
 
   @override
+  String get programsAddToProgramSearchHint => 'Programma\'s zoeken';
+
+  @override
+  String get programsAddToProgramSearchClear => 'Zoekopdracht wissen';
+
+  @override
+  String get programsAddToProgramNoMatches =>
+      'Geen programma\'s komen overeen met je zoekopdracht.';
+
+  @override
+  String programsAddToProgramPerformedGroup(int count) {
+    return 'Uitgevoerd ($count)';
+  }
+
+  @override
   String programsAddedToProgramSnack(String danceTitle, String programTitle) {
     return '“$danceTitle” toegevoegd aan $programTitle.';
   }
@@ -4885,6 +5189,14 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get programsMarkedAllPerformedExceptAlternates =>
       'Alle dansen behalve alternatieven gemarkeerd als uitgevoerd. Markeer een alternatief zelf als je het hebt gecalld.';
+
+  @override
+  String get programsMarkedAllPerformedSetStatus =>
+      'Alle dansen gemarkeerd als uitgevoerd en de status op Uitgevoerd gezet.';
+
+  @override
+  String get programsMarkedAllPerformedExceptAlternatesSetStatus =>
+      'Alle dansen behalve alternatieven gemarkeerd als uitgevoerd en de status op Uitgevoerd gezet. Markeer een alternatief zelf als je het hebt gecalld.';
 
   @override
   String programsSavedSnack(String title) {
@@ -5077,6 +5389,14 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get programsStatusFieldLabel => 'Status';
+
+  @override
+  String get programsStatusHelper =>
+      'Sla je een wijziging naar Uitgevoerd op, dan wordt elke ongemarkeerde dans behalve alternatieven gemarkeerd als uitgevoerd. Zet je de status terug, dan blijven de markeringen staan.';
+
+  @override
+  String get programsStatusHelperMarkAllSetsStatus =>
+      'Sla je een wijziging naar Uitgevoerd op, dan wordt elke ongemarkeerde dans behalve alternatieven gemarkeerd als uitgevoerd, en Alles markeren als uitgevoerd zet deze status. Zet je de status terug, dan blijven de markeringen staan.';
 
   @override
   String get programsHideAlternatesTitle =>
@@ -5916,6 +6236,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get performShowWalkthrough => 'Doorloop tonen';
 
   @override
+  String get performFullScreen => 'Volledig scherm';
+
+  @override
   String get performWalkthroughEmpty => 'Geen doorloop voor deze dans.';
 
   @override
@@ -6155,6 +6478,12 @@ class AppLocalizationsNl extends AppLocalizations {
   String get exportLabelTunes => 'Deuntjes';
 
   @override
+  String get exportLabelHook => 'Hook';
+
+  @override
+  String get exportLabelSources => 'Bronnen';
+
+  @override
   String exportSlotAuthorSuffix(String names) {
     return 'door $names';
   }
@@ -6386,7 +6715,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String onlineImportVariationDialogLinkWarning(String existingTitle) {
-    return 'Jouw versie van “$existingTitle” wordt vervangen door het online record — inclusief de titel, figuren, callnotities, tags en beoordeling. De dans behoudt je aangepaste velden, zijn plaats in je programma’s en zijn callerhistorie.';
+    return 'Jouw versie van “$existingTitle” wordt vervangen door het online record — inclusief de titel, figuren, callnotities en tags. De dans behoudt je beoordeling, je aangepaste velden, zijn plaats in je programma’s en zijn callerhistorie.';
   }
 
   @override
@@ -6412,7 +6741,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get onlineImportPossibleMatchDialogLinkWarning =>
-      'De dans die je kiest wordt vervangen door het online record — inclusief de titel, figuren, callnotities, tags en beoordeling. De dans behoudt je aangepaste velden, zijn plaats in je programma’s en zijn callerhistorie.';
+      'De dans die je kiest wordt vervangen door het online record — inclusief de titel, figuren, callnotities en tags. De dans behoudt je beoordeling, je aangepaste velden, zijn plaats in je programma’s en zijn callerhistorie.';
 
   @override
   String get importFigurelessCannotReplace =>
@@ -8319,6 +8648,10 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorRedoLabel => 'Opnieuw uitvoeren';
 
   @override
+  String get editorDraftNotSaved =>
+      'Concept niet opgeslagen – je laatste wijzigingen worden nog niet bewaard';
+
+  @override
   String danceEditorUndoShortcutTooltip(String platform) {
     String _temp0 = intl.Intl.selectLogic(platform, {
       'apple': 'Ongedaan maken (⌘Z)',
@@ -10035,6 +10368,41 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get venueManagerNoMatches =>
       'Geen locaties komen overeen met je zoekopdracht.';
+
+  @override
+  String get venueLinkOfferTitle => 'Eerdere programma\'s koppelen?';
+
+  @override
+  String get venueLinkOfferBody =>
+      'Bij sommige programma\'s is een locatie als tekst ingevoerd die overeenkomt met een locatiegegeven. Door ze te koppelen telt de oproephistorie ze als één locatie. De ingevoerde tekst blijft bewaard.';
+
+  @override
+  String venueLinkOfferRow(String name, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count programma\'s',
+      one: '1 programma',
+    );
+    return '“$name”: $_temp0';
+  }
+
+  @override
+  String get venueLinkOfferConfirm => 'Koppelen';
+
+  @override
+  String get venueLinkOfferDecline => 'Niet nu';
+
+  @override
+  String venueLinkOfferDone(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count programma\'s gekoppeld.',
+      one: '1 programma gekoppeld.',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get venueManagerDeleteTitle => 'Locatie verwijderen?';

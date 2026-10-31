@@ -37,6 +37,7 @@ import '../shareable_text.dart';
 import '../tables.dart';
 import '../utc_datetime.dart';
 import 'custom_field_repository.dart';
+import 'difficulty_level_repository.dart';
 import 'sync_local_repository.dart';
 import '../../taxonomy/user_figure_use.dart';
 import '../../taxonomy/user_figure_switch.dart';
@@ -100,8 +101,8 @@ final RegExp _legacyCallersBoxRollAwayClauseRe = RegExp(
 /// `docs/design/storage.md` — the derived tables are never the source of
 /// truth and are always safe to drop and recompute (see [rebuildAllDerived]).
 ///
-/// Some writes skip the rebuild. The batch level, rating and tune setters
-/// change none of the rebuild's inputs and pass `rebuildDerived: false` for
+/// Some writes skip the rebuild. The batch level, status, rating and tune
+/// setters change none of the rebuild's inputs and pass `rebuildDerived: false` for
 /// speed (see [_updateMany]). Sync writes can pass it too: the phased inbound
 /// writes ([writeFromSyncParent], [writeFromSyncRelations]) do not rebuild, and
 /// the sync apply reindexes the dances its batch affected itself afterwards
@@ -1909,6 +1910,42 @@ class DanceRepository {
   Future<void> softDelete(String id, {required DateTime at}) =>
       _stampExistence(id, at: at, deleted: true);
 
+  /// Soft-deletes every live dance in [ids] at [at], in one transaction, for
+  /// the Collection multi-select Delete (N4-S3). Each dance goes through
+  /// [softDelete], so a bulk delete is exactly N single deletes; the
+  /// transaction only makes them all-or-nothing, so a failure part-way leaves
+  /// every dance live.
+  ///
+  /// Skips ids that are unknown or already in Recently deleted, and returns
+  /// the ids it deleted, in [ids]' order. That list is what Undo passes to
+  /// [restoreMany]: a dance that was already in the trash must not come back
+  /// with the ones this call put there.
+  Future<List<String>> softDeleteMany(
+    Iterable<String> ids, {
+    required DateTime at,
+  }) {
+    assertUtc(at, 'at');
+    final list = ids.toSet().toList();
+    if (list.isEmpty) return Future.value(const []);
+    return _db.transaction(() async {
+      final live = <String>{};
+      for (final chunk in _chunkIds(list)) {
+        final query = _db.selectOnly(_db.dances)
+          ..addColumns([_db.dances.id])
+          ..where(_db.dances.id.isIn(chunk) & _db.dances.deletedAt.isNull());
+        live.addAll(await query.map((r) => r.read(_db.dances.id)!).get());
+      }
+      final deleted = [
+        for (final id in list)
+          if (live.contains(id)) id,
+      ];
+      for (final id in deleted) {
+        await softDelete(id, at: at);
+      }
+      return deleted;
+    });
+  }
+
   /// Revives the dance, stamping `existence_at` causally (schema v25, issue
   /// #898). A revival is an existence transition, so it must advance
   /// `existence_at`: leaving it at the tombstone's value would tie, and a tie
@@ -1930,7 +1967,7 @@ class DanceRepository {
   /// tombstoned would save two FTS delete-by-scans on a single-dance user
   /// action, at the cost of a second code path that can drift from this one.
   ///
-  /// [getById] hydrates, so this decodes `figures_json`. That used to make
+  /// The rebuild hydrates the dance, so this decodes `figures_json`. That used to make
   /// restore throw for a row whose stored text cannot be decoded, and this
   /// comment used to say so and call failing loudly deliberate "in the
   /// meantime", pending #1347. #1347 has landed: the load path is total for
@@ -1938,25 +1975,176 @@ class DanceRepository {
   /// [UnreadableTunes], and restore completes and leaves the stored text
   /// exactly as it was. Asserted, not assumed — `unreadable_figures_test.dart`,
   /// "soft delete and restore work on an undecodable row".
+  ///
+  /// With [reviveReferences] (the default; every restore the user asks for),
+  /// it also revives, in this transaction, the tombstoned difficulty level and
+  /// custom-field definitions the dance still names. The trash does not
+  /// protect what its records use (the maintainer's trash-policy decision,
+  /// 2026-10-29, option b), so either may have been deleted while the dance
+  /// was in Recently deleted; without the revival the restored dance would hide
+  /// its field values, and its next save would fail on the tombstoned level.
+  /// Each revival is that record's own `restore`, so it stamps `existence_at`
+  /// and syncs, unless a peer's held tombstone still covers the record (see
+  /// [_reviveReferences]). A reference that is gone outright needs nothing: both are
+  /// foreign keys, so an erased level cannot be named and an erased field takes
+  /// its values with it. A permanently deleted dance ([isPermanentlyDeleted])
+  /// is not in Recently deleted, so this path neither restores it nor revives
+  /// anything for it.
+  ///
+  /// Pass `reviveReferences: false` only from a caller that overwrites the
+  /// dance straight after reviving it (the archive merge), so its stale
+  /// references must not come back with it.
   Future<void> restore(
     String id, {
     required DateTime at,
     bool clearPending = true,
+    bool reviveReferences = true,
+  }) => _restoreAll(
+    [id],
+    at: at,
+    clearPending: clearPending,
+    reviveReferences: reviveReferences,
+  );
+
+  /// Restores every dance in [ids] that is in Recently deleted, at [at], in
+  /// one transaction: the Undo of [softDeleteMany]. It runs [restore]'s own
+  /// body with its defaults ([_restoreAll]), never a second path, so a bulk Undo
+  /// revives the level and custom fields each dance names and clears its
+  /// pending sync deletion exactly as a single restore does. A failure
+  /// part-way leaves every dance in the trash.
+  ///
+  /// Skips ids that are unknown, live or permanently deleted, so a dance
+  /// restored from Recently deleted in the meantime is not stamped with a second revival. Returns how
+  /// many dances it restored.
+  Future<int> restoreMany(Iterable<String> ids, {required DateTime at}) {
+    assertUtc(at, 'at');
+    final list = ids.toSet().toList();
+    if (list.isEmpty) return Future.value(0);
+    return _db.transaction(() async {
+      final trashed = <String>{};
+      for (final chunk in _chunkIds(list)) {
+        final query = _db.selectOnly(_db.dances)
+          ..addColumns([_db.dances.id, _db.dances.deletedAt])
+          ..where(_db.dances.id.isIn(chunk) & _db.dances.deletedAt.isNotNull());
+        for (final row in await query.get()) {
+          // A permanently deleted dance is not in Recently deleted; [restore]
+          // would skip it, so it is not counted either.
+          if (isPermanentlyDeleted(row.read(_db.dances.deletedAt))) continue;
+          trashed.add(row.read(_db.dances.id)!);
+        }
+      }
+      final restoring = [
+        for (final id in list)
+          if (trashed.contains(id)) id,
+      ];
+      await _restoreAll(restoring, at: at);
+      return restoring.length;
+    });
+  }
+
+  /// The body of [restore], for one dance or many, so [restoreMany] is
+  /// [restore] and never a second path beside it. Each step runs for every
+  /// dance before the next: the revivals, then the existence stamps, then the
+  /// rebuild of the derived rows, then the pending sync deletions. The order
+  /// matters only in that a revival precedes the rebuild, so the index sees
+  /// the revived parents. Many dances are rebuilt together ([_reindexDerived]):
+  /// rebuilding each one scans both FTS tables, which made a 5,000-dance Undo
+  /// take about 25 s (N4-S3, in-memory database).
+  Future<void> _restoreAll(
+    List<String> ids, {
+    required DateTime at,
+    bool clearPending = true,
+    bool reviveReferences = true,
   }) => _db.transaction(() async {
-    await _stampExistence(id, at: at, deleted: false);
-    final restored = await getById(id, includeDeleted: true);
-    if (restored != null) await _rebuildDerived(restored);
+    var restoring = ids;
+    if (reviveReferences) {
+      restoring = [];
+      for (final chunk in _chunkIds(ids)) {
+        final rows = {
+          for (final row in await (_db.select(
+            _db.dances,
+          )..where((t) => t.id.isIn(chunk))).get())
+            row.id: row,
+        };
+        for (final id in chunk) {
+          final row = rows[id];
+          if (row == null || isPermanentlyDeleted(row.deletedAt)) continue;
+          await _reviveReferences(row, at: at);
+          restoring.add(id);
+        }
+      }
+    }
+    if (restoring.isEmpty) return;
+    for (final id in restoring) {
+      await _stampExistence(id, at: at, deleted: false);
+    }
+    // One dance keeps the per-dance rebuild: [_reindexDerived] reads its
+    // lookups from whole tables, which costs more than two FTS scans when one
+    // dance is restored at a time (the archive merge restores per dance).
+    if (restoring.length == 1) {
+      final restored = await getById(restoring.single, includeDeleted: true);
+      if (restored != null) await _rebuildDerived(restored);
+    } else {
+      await _reindexDerived(restoring);
+    }
     if (clearPending) {
-      await clearPendingSyncDeletionForRestore(
-        _db,
-        kind: SyncRecordKind.dance,
-        recordId: id,
-        table: _db.dances,
-        keyColumn: 'id',
-        at: at,
-      );
+      for (final id in restoring) {
+        await clearPendingSyncDeletionForRestore(
+          _db,
+          kind: SyncRecordKind.dance,
+          recordId: id,
+          table: _db.dances,
+          keyColumn: 'id',
+          at: at,
+        );
+      }
     }
   });
+
+  /// Revives the tombstoned level and custom-field definitions [row] names;
+  /// see [restore]. A revival derived from another record's restore must not
+  /// cancel a pending peer tombstone (sync-spec §6.8), hence
+  /// `clearPending: false`. A tombstoned record can still carry one: holds are
+  /// revalidated lazily, so a peer's held tombstone survives a local delete
+  /// made after its last live citer was trashed. Such a record is revived here
+  /// but stays advertised as a tombstone, and peers keep it deleted, until the
+  /// hold resolves under §6.8.
+  Future<void> _reviveReferences(DanceRow row, {required DateTime at}) async {
+    final levelId = row.levelId;
+    if (levelId != null &&
+        await (_db.selectOnly(_db.difficultyLevels)
+                  ..addColumns([_db.difficultyLevels.id])
+                  ..where(
+                    _db.difficultyLevels.id.equals(levelId) &
+                        _db.difficultyLevels.deletedAt.isNotNull(),
+                  ))
+                .getSingleOrNull() !=
+            null) {
+      await DifficultyLevelRepository(
+        _db,
+      ).restore(levelId, at: at, clearPending: false);
+    }
+    final values = _db.customFieldValues;
+    final tombstonedFieldIds =
+        await (_db.selectOnly(values, distinct: true)
+              ..addColumns([values.fieldId])
+              ..join([
+                // sync-invariant-exception: soft-delete-join reads only tombstoned definitions, the ones a restore revives.
+                innerJoin(
+                  _db.customFieldDefs,
+                  _db.customFieldDefs.id.equalsExp(values.fieldId) &
+                      _db.customFieldDefs.deletedAt.isNotNull(),
+                  useColumns: false,
+                ),
+              ])
+              ..where(values.danceId.equals(row.id)))
+            .map((r) => r.read(values.fieldId)!)
+            .get();
+    final fields = CustomFieldDefRepository(_db);
+    for (final fieldId in tombstonedFieldIds) {
+      await fields.restore(fieldId, at: at, clearPending: false);
+    }
+  }
 
   /// Shared live<->deleted transition: one statement that writes
   /// `max(at, current + 1 tick)` while reading the pre-update
@@ -2855,7 +3043,7 @@ class DanceRepository {
   /// `false` only for an edit that changes none of the inputs to
   /// [_insertDerivedRows]: id, title, resolved authors, hook, calling notes, the
   /// figures (their rows and canonical text), custom-field values and source
-  /// texts. Difficulty level, rating and tunes are none of those, so the three
+  /// texts. Difficulty level, status, rating and tunes are none of those, so the
   /// batch methods over them skip the rebuild — it deletes by scanning both FTS
   /// tables, which dominates a large batch. A custom-field edit changes
   /// `custom_values`, so those pass `true`. **Adding a column to the FTS insert
@@ -2954,6 +3142,31 @@ class DanceRepository {
         clearDifficultyLevel: target == null,
         updatedAt: now,
       );
+    }, rebuildDerived: false);
+  }
+
+  /// Sets the lifecycle [status] on many dances at once, in a single
+  /// transaction, for the Collection multi-select "batch status" flow.
+  /// Direct analogue of [setLevelForMany], minus the clear option: a status is
+  /// never null.
+  ///
+  /// Skips unknown ids and dances already at [status] (idempotent), and stamps
+  /// [now] as `updatedAt` only on dances that actually change. Returns the
+  /// number of dances changed. An empty [ids] is a no-op returning `0`. Because
+  /// the whole batch runs in one transaction, an error leaves the collection
+  /// untouched rather than half-updated. Status is no input to the derived
+  /// figure/FTS rows, so the rebuild is skipped (see [_updateMany]).
+  Future<int> setStatusForMany(
+    Iterable<String> ids, {
+    required DanceStatus status,
+    required DateTime now,
+  }) {
+    assertUtc(now, 'now');
+    final list = ids.toList();
+    if (list.isEmpty) return Future.value(0);
+    return _updateMany(list, (dance) {
+      if (dance.status == status) return null;
+      return dance.copyWith(status: status, updatedAt: now);
     }, rebuildDerived: false);
   }
 

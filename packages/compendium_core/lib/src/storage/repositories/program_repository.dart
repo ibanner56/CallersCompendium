@@ -533,16 +533,24 @@ class ProgramRepository {
   /// operation: a later edit to one of the slots, or an edit to another part of
   /// the program, is preserved instead of being overwritten by a stale
   /// [Program] snapshot.
+  ///
+  /// When the action also set the program's status to Performed (GIG-12), pass
+  /// the status it replaced as [restoreStatus]. In the same transaction, the
+  /// status goes back to it only while it is still Performed: a status someone
+  /// changed since is theirs, and stays. Writing the status directly never
+  /// stamps, like any move away from Performed. Returns how many slots were
+  /// cleared; a status put back with no slot to clear still returns 0.
   Future<int> clearPerformedAtIfMatches({
     required String programId,
     required Iterable<String> slotIds,
     required DateTime performedAt,
     required DateTime updatedAt,
+    ProgramStatus? restoreStatus,
   }) async {
     assertUtc(performedAt, 'performedAt');
     assertUtc(updatedAt, 'updatedAt');
     final ids = slotIds.toSet();
-    if (ids.isEmpty) return 0;
+    if (ids.isEmpty && restoreStatus == null) return 0;
 
     return _db.transaction(() async {
       var cleared = 0;
@@ -561,12 +569,16 @@ class ProgramRepository {
                 ))
                 .write(const ProgramSlotsCompanion(performedAt: Value(null)));
       }
-      if (cleared == 0) return 0;
       final liveProgram =
           await (_db.select(_db.programs)
                 ..where((t) => t.id.equals(programId) & t.deletedAt.isNull()))
               .getSingleOrNull();
       if (liveProgram == null) return 0;
+      final revertStatus =
+          restoreStatus != null &&
+          restoreStatus != ProgramStatus.performed &&
+          liveProgram.status == ProgramStatus.performed;
+      if (cleared == 0 && !revertStatus) return 0;
       final rollbackUpdatedAt = nextStoredTimestamp(
         now: updatedAt.isAfter(liveProgram.updatedAt)
             ? updatedAt
@@ -578,6 +590,7 @@ class ProgramRepository {
       )..where((t) => t.id.equals(programId) & t.deletedAt.isNull())).write(
         ProgramsCompanion(
           title: Value(normalizeShareableText(liveProgram.title)),
+          status: revertStatus ? Value(restoreStatus) : const Value.absent(),
           updatedAt: Value(rollbackUpdatedAt),
         ),
       );
@@ -629,6 +642,103 @@ class ProgramRepository {
         renamed++;
       }
       return renamed;
+    });
+  }
+
+  // --- Linking typed venues to a venue record (GIG-7 = (b)) ---------------
+
+  /// The live programs that carry [name] as typed venue text and no linked
+  /// record, matched by [VenueKey] (the same folding the repeated-venues list
+  /// and the venue filter use). Empty for a blank [name].
+  ///
+  /// Trashed programs are not matched: a trashed program keeps its typed
+  /// venue, so restoring it brings back the text it was trashed with.
+  Future<List<ProgramRow>> _typedVenueMatches(
+    String name, {
+    String? excludeProgramId,
+  }) async {
+    if (callingHistoryVenueText(name) == null) return const [];
+    final key = VenueKey.typed(name);
+    final rows =
+        await (_db.select(_db.programs)..where(
+              (t) =>
+                  t.deletedAt.isNull() &
+                  t.venueId.isNull() &
+                  t.venue.isNotNull() &
+                  (excludeProgramId == null
+                      ? const Constant(true)
+                      : t.id.equals(excludeProgramId).not()),
+            ))
+            .get();
+    return [
+      for (final row in rows)
+        if (VenueKey.forProgram(venue: row.venue) == key) row,
+    ];
+  }
+
+  /// How many live programs [linkTypedVenues] would link for [name]: the
+  /// programs with that typed venue and no linked record, other than
+  /// [excludeProgramId].
+  Future<int> countTypedVenuePrograms(
+    String name, {
+    String? excludeProgramId,
+  }) async => (await _typedVenueMatches(
+    name,
+    excludeProgramId: excludeProgramId,
+  )).length;
+
+  /// Links every live program whose typed venue matches [name] (by
+  /// [VenueKey]) and has no linked record to the venue record [venueId], and
+  /// returns how many it linked.
+  ///
+  /// Lossless: the typed `venue` text is kept, so unlinking later shows what
+  /// was typed. Each linked program gets a stamp after its current one (at or
+  /// after [updatedAt]), so the link travels in Device Sync as an ordinary
+  /// newer program record. Programs already linked to any record, trashed
+  /// programs, and [excludeProgramId] (the program an open editor is about to
+  /// save with its own link) are left alone. Throws [StateError] when [venueId] is not a
+  /// live venue record.
+  Future<int> linkTypedVenues({
+    required String venueId,
+    required String name,
+    required DateTime updatedAt,
+    String? excludeProgramId,
+  }) {
+    assertUtc(updatedAt, 'updatedAt');
+    return _db.transaction(() async {
+      final venue =
+          await (_db.select(_db.venues)
+                ..where((t) => t.id.equals(venueId) & t.deletedAt.isNull())
+                ..limit(1))
+              .getSingleOrNull();
+      if (venue == null) {
+        throw StateError(
+          'cannot link programs to venue "$venueId": it does not exist or is '
+          'soft-deleted',
+        );
+      }
+      final matches = await _typedVenueMatches(
+        name,
+        excludeProgramId: excludeProgramId,
+      );
+      for (final row in matches) {
+        await (_db.update(
+          _db.programs,
+        )..where((t) => t.id.equals(row.id))).write(
+          ProgramsCompanion(
+            venueId: Value(venueId),
+            updatedAt: Value(
+              nextStoredTimestamp(
+                now: updatedAt.isAfter(row.updatedAt)
+                    ? updatedAt
+                    : row.updatedAt.add(storedTimestampTick),
+                current: [row.updatedAt],
+              ),
+            ),
+          ),
+        );
+      }
+      return matches.length;
     });
   }
 
@@ -1671,6 +1781,15 @@ class ProgramRepository {
   /// Duplicates the program identified by [id] under [newId] via
   /// [Program.duplicate] (fresh identity everywhere, draft status, performance
   /// history cleared) and persists it. [newSlotId] mints an id per copied slot.
+  ///
+  /// A `venueId` that names no live venue is not copied (LIFE-4). The source
+  /// may keep one: a venue can be deleted while a program naming it is in
+  /// Recently deleted, or a peer's program can arrive before its venue. The
+  /// copy is a new program, and [create] refuses to link a new program to a
+  /// venue it cannot find, so copying the id made Duplicate fail. The copy
+  /// keeps the free-text venue, which is what the source shows in that case
+  /// (`resolveVenueLabel`). Duplicating does not revive the venue: it is not a
+  /// request to undo the venue's deletion, as restoring the program is.
   Future<Program> duplicate({
     required String id,
     required String newId,
@@ -1679,19 +1798,32 @@ class ProgramRepository {
     String? newTitle,
   }) async {
     assertUtc(now, 'now');
-    final source = await getById(id, includeDeleted: true);
-    if (source == null) {
-      throw ArgumentError.value(id, 'id', 'no such program');
-    }
-    final copy = source.duplicate(
-      newId: newId,
-      newSlotId: newSlotId,
-      now: now,
-      newTitle: newTitle,
-    );
-    await create(copy);
-    return copy;
+    return _db.transaction(() async {
+      final source = await getById(id, includeDeleted: true);
+      if (source == null) {
+        throw ArgumentError.value(id, 'id', 'no such program');
+      }
+      final copy = source.duplicate(
+        newId: newId,
+        newSlotId: newSlotId,
+        now: now,
+        newTitle: newTitle,
+      );
+      final venueId = copy.venueId;
+      final stored = venueId == null || await _isLiveVenue(venueId)
+          ? copy
+          : copy.copyWith(clearVenueId: true);
+      await create(stored);
+      return stored;
+    });
   }
+
+  Future<bool> _isLiveVenue(String id) async =>
+      await (_db.selectOnly(_db.venues)
+            ..addColumns([_db.venues.id])
+            ..where(_db.venues.id.equals(id) & _db.venues.deletedAt.isNull()))
+          .getSingleOrNull() !=
+      null;
 
   /// Tombstones the program, stamping `existence_at` causally (schema v25,
   /// issue #898). One shared [at] goes into both `deletedAt` and `updatedAt`
@@ -1704,11 +1836,55 @@ class ProgramRepository {
   /// #898). A revival is an existence transition, so it must advance
   /// `existence_at` or a peer holding the tombstone would win the comparison
   /// and delete it straight back.
+  ///
+  /// With [reviveReferences] (the default; every restore the user asks for),
+  /// it also revives, in this transaction, the tombstoned venue the program
+  /// links to. The trash does not protect what its records use (the
+  /// maintainer's trash-policy decision, 2026-10-29, option b), so the venue
+  /// may have been deleted while the program was in Recently deleted; without
+  /// the revival the restored program would lose its venue (LIFE-4, GIG-17).
+  /// The revival is [VenueRepository.restore], so it stamps `existence_at` and
+  /// syncs, unless a peer's held tombstone still covers the venue (see
+  /// `DanceRepository._reviveReferences`). A venue that is gone outright is left as it is: the program shows
+  /// its free-text venue, or none (`resolveVenueLabel`), an unchanged
+  /// `venueId` does not block a save (see [_upsert]), and [duplicate] drops
+  /// it. Clearing the id here was rejected: a peer's program can name a venue
+  /// that has not arrived yet, and clearing it would sync the loss. A
+  /// permanently deleted program ([isPermanentlyDeleted]) is not in Recently
+  /// deleted, so this path neither restores it nor revives anything for it.
+  ///
+  /// Pass `reviveReferences: false` only from a caller that must not bring
+  /// the venue back: the archive merge, which overwrites the program straight
+  /// after reviving it, and the Caller's Companion re-import, whose undo would
+  /// not re-tombstone a revived venue.
   Future<void> restore(
     String id, {
     required DateTime at,
     bool clearPending = true,
+    bool reviveReferences = true,
   }) => _db.transaction(() async {
+    if (reviveReferences) {
+      final row = await (_db.select(
+        _db.programs,
+      )..where((t) => t.id.equals(id))).getSingleOrNull();
+      if (row == null || isPermanentlyDeleted(row.deletedAt)) return;
+      final venueId = row.venueId;
+      if (venueId != null &&
+          await (_db.selectOnly(_db.venues)
+                    ..addColumns([_db.venues.id])
+                    ..where(
+                      _db.venues.id.equals(venueId) &
+                          _db.venues.deletedAt.isNotNull(),
+                    ))
+                  .getSingleOrNull() !=
+              null) {
+        // A derived revival must not cancel a hold; see
+        // `DanceRepository._reviveReferences`.
+        await VenueRepository(
+          _db,
+        ).restore(venueId, at: at, clearPending: false);
+      }
+    }
     await _stampExistence(id, at: at, deleted: false);
     if (clearPending) {
       await clearPendingSyncDeletionForRestore(

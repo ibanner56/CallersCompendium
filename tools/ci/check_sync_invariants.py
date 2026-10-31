@@ -213,6 +213,15 @@ ALTERNATE_TITLE_EXEMPTIONS: dict[str, frozenset[str]] = {
     "packages/compendium_core/lib/src/imports/dedupe.dart": frozenset(
         {"dedupeCoreTitleKey"}
     ),
+    # Rewrites an imported title filed library-style ("Baby Rose, The" ->
+    # "The Baby Rose", #1976) before it is stored. Import dedupe also keys a
+    # title on `normalizeTitle` of its output (`dedupeTitleKeys`), beside the
+    # plain `normalizeTitle`; that is an import-only key that only widens which
+    # titles match, never a sync, merge or identity key, and sync never calls
+    # it.
+    "packages/compendium_core/lib/src/imports/title_article.dart": frozenset(
+        {"frontTrailingArticle"}
+    ),
     # In-memory display matching for the Ctrl/Cmd-K palette: lowercases and
     # drops combining marks so typing `ecole` finds `École`, as the Collection's
     # FTS index does. It only ranks and filters what is shown. It is never a

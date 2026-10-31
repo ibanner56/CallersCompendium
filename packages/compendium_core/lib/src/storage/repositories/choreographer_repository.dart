@@ -238,6 +238,17 @@ class ChoreographerRepository {
     return rows.map(_toModel).toList();
   }
 
+  /// [listAll]'s live choreographers as a stream, re-emitted after every write
+  /// to `choreographers`: a rename, a details edit, a merge or a delete, made
+  /// here or by a sync pass. The Authors manager lists through it. A single
+  /// `select`, so drift infers the whole read set (see `TagRepository.watchAll`).
+  Stream<List<Choreographer>> watchAll() =>
+      (_db.select(_db.choreographers)
+            ..where((t) => t.deletedAt.isNull())
+            ..orderBy([(t) => OrderingTerm(expression: t.name)]))
+          .watch()
+          .map((rows) => rows.map(_toModel).toList());
+
   /// Throws if [id] is still referenced by any `dance_authors` row — callers
   /// should reassign or remove authorship first (deleting a choreographer
   /// silently orphaning credited dances would be a silent data loss bug). The

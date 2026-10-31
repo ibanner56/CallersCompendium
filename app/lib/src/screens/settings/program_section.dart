@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../../../l10n/app_localizations.dart';
 import 'matrix_column_editor_screen.dart';
 import 'settings_keys.dart';
+import '../../data/mark_all_sets_status_scope.dart';
 import '../../data/matrix_collision_mode_scope.dart';
 import '../../data/program_auto_commit_scope.dart';
 import '../../data/persisted_preference.dart';
@@ -17,6 +18,7 @@ import '../../data/track_history_for_all_callers_scope.dart';
 import '../../data/venue_call_count_scope.dart';
 import '../../data/venue_entity_mode_scope.dart';
 import '../../theme/keyboard_dismiss.dart';
+import '../../widgets/link_typed_venues_offer.dart';
 import '../../widgets/readable_width.dart';
 import '../../widgets/section_header.dart';
 import '../../widgets/settings_dropdown_row.dart';
@@ -174,6 +176,13 @@ class _ProgramSectionState extends State<ProgramSection> {
     VenueEntityModeScope.notifierOf(context).value = value;
     final repos = RepositoriesScope.of(context);
     await persistSetting(repos.settings, kVenueEntityModeKey, value);
+    // GIG-7 = (b): when records are turned on, offer to link older programs
+    // whose typed venue matches an existing record. Turning it off offers
+    // nothing: the typed text was never cleared.
+    if (!value || !mounted) return;
+    final venues = await repos.venues.listAll();
+    if (!mounted) return;
+    await offerToLinkTypedVenues(context, venues: venues);
   }
 
   Future<void> _onMatrixExactBeatCollisionChanged(bool value) async {
@@ -200,6 +209,14 @@ class _ProgramSectionState extends State<ProgramSection> {
     ShowPerformedTogglesScope.notifierOf(context).value = value;
     final repos = RepositoriesScope.of(context);
     await persistSetting(repos.settings, kShowPerformedTogglesKey, value);
+  }
+
+  Future<void> _onMarkAllSetsStatusChanged(bool value) async {
+    // Same instant-notifier-then-persist pattern: an open program editor's
+    // status helper text follows the flip immediately, then persist.
+    MarkAllSetsStatusScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await persistSetting(repos.settings, kMarkAllSetsStatusKey, value);
   }
 
   Future<void> _onRequireEventDateForHistoryChanged(bool value) async {
@@ -249,6 +266,8 @@ class _ProgramSectionState extends State<ProgramSection> {
       onRequirePerformedForHistoryChanged: _onRequirePerformedForHistoryChanged,
       showPerformedToggles: ShowPerformedTogglesScope.of(context),
       onShowPerformedTogglesChanged: _onShowPerformedTogglesChanged,
+      markAllSetsStatus: MarkAllSetsStatusScope.of(context),
+      onMarkAllSetsStatusChanged: _onMarkAllSetsStatusChanged,
       requireEventDateForHistory: RequireEventDateForHistoryScope.of(context),
       onRequireEventDateForHistoryChanged: _onRequireEventDateForHistoryChanged,
       trackHistoryForAllCallers: TrackHistoryForAllCallersScope.of(context),
@@ -282,6 +301,8 @@ class _ProgramView extends StatelessWidget {
     required this.onRequirePerformedForHistoryChanged,
     required this.showPerformedToggles,
     required this.onShowPerformedTogglesChanged,
+    required this.markAllSetsStatus,
+    required this.onMarkAllSetsStatusChanged,
     required this.requireEventDateForHistory,
     required this.onRequireEventDateForHistoryChanged,
     required this.trackHistoryForAllCallers,
@@ -317,6 +338,11 @@ class _ProgramView extends StatelessWidget {
   final ValueChanged<bool> onRequirePerformedForHistoryChanged;
   final bool showPerformedToggles;
   final ValueChanged<bool> onShowPerformedTogglesChanged;
+
+  /// Whether Mark all performed also sets the program's status (GIG-12). On
+  /// by default.
+  final bool markAllSetsStatus;
+  final ValueChanged<bool> onMarkAllSetsStatusChanged;
   final bool requireEventDateForHistory;
   final ValueChanged<bool> onRequireEventDateForHistoryChanged;
   final bool trackHistoryForAllCallers;
@@ -411,6 +437,14 @@ class _ProgramView extends StatelessWidget {
           onChanged: onShowPerformedTogglesChanged,
           title: Text(l10n.settingsGeneralShowPerformedTogglesTitle),
           subtitle: Text(l10n.settingsGeneralShowPerformedTogglesSubtitle),
+          isThreeLine: true,
+        ),
+        SwitchListTile(
+          key: const ValueKey('general-mark-all-sets-status'),
+          value: markAllSetsStatus,
+          onChanged: onMarkAllSetsStatusChanged,
+          title: Text(l10n.settingsGeneralMarkAllSetsStatusTitle),
+          subtitle: Text(l10n.settingsGeneralMarkAllSetsStatusSubtitle),
           isThreeLine: true,
         ),
         SwitchListTile(

@@ -547,6 +547,32 @@ void main() {
       );
     });
 
+    testWidgets('a failing draft write shows the Draft not saved marker, '
+        'then clears it once a write succeeds', (tester) async {
+      final failing = openTestRepositoriesWithFailingSettings();
+      failing.settings.failWrites = false;
+      await _pumpEditor(tester, failing.repos);
+      expect(find.byKey(const ValueKey('draft-not-saved')), findsNothing);
+
+      failing.settings.failWrites = true;
+      await tester.enterText(
+        find.byKey(const ValueKey('title-field')),
+        'First',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pump();
+      expect(find.byKey(const ValueKey('draft-not-saved')), findsOneWidget);
+
+      failing.settings.failWrites = false;
+      await tester.enterText(
+        find.byKey(const ValueKey('title-field')),
+        'Second',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pump();
+      expect(find.byKey(const ValueKey('draft-not-saved')), findsNothing);
+    });
+
     testWidgets('undo enabled after debounced text edit', (tester) async {
       final repos = openTestRepositories();
       await _pumpEditor(tester, repos);

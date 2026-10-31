@@ -1,0 +1,9 @@
+{
+  "id": "selection-keeps-groups",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "Group by category now stays on while you select dances, so the list keeps its sections instead of flattening. Each section header has a checkbox that selects or clears that section's dances in the list; it shows a dash when only some are selected, and it leaves any selected dance that a search is hiding alone. Screen readers announce each header with how many of its dances are selected."
+    ]
+  }
+}
