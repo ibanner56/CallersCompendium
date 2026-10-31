@@ -72,6 +72,7 @@ def test_normaliser_rewrites_values_only() -> None:
         greet=f"Caller{RSQ}s {LDQ}{{name}}{RDQ}",
         **{f"key{RSQ}s": "keys are never touched"},
     )
+    arb["@@author"] = f"O{RSQ}Neil"  # a string-valued global: still not a message
     arb["@greet"] = {"description": f"A {LDQ}description{RDQ}", "placeholders": {"name": {"type": "String"}}}
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
@@ -82,6 +83,7 @@ def test_normaliser_rewrites_values_only() -> None:
         check("value normalised", out["greet"] == "Caller's \"{name}\"", out["greet"])
         check("key with a curly char is not renamed", f"key{RSQ}s" in out)
         check("@ metadata left alone", out["@greet"]["description"] == f"A {LDQ}description{RDQ}")
+        check("string-valued @@ global left alone", out["@@author"] == f"O{RSQ}Neil", out["@@author"])
         check("key order preserved", list(out) == list(arb))
         before = read_arb(root)
         rc, msg = quiet(style.run, root, False)

@@ -60,6 +60,11 @@ CASES = {
 }
 
 
+# Independent of arb_quote_style's own table, so a wrong mapping there cannot
+# make this test agree with itself.
+EXPECT = str.maketrans({"\u201c": '"', "\u201d": '"', "\u2018": "'", "\u2019": "'"})
+
+
 def arb_for(messages: dict[str, str]) -> dict:
     arb: dict = {"@@locale": "en"}
     for key, (_, placeholders) in CASES.items():
@@ -106,7 +111,7 @@ def main() -> int:
         src_curly = generate(arb_for(curly), Path(a), l10n_yaml)
         src_straight = generate(arb_for(straight), Path(b), l10n_yaml)
     for key in CASES:
-        want_curly = [style.normalize_value(s) for s in dart_literals(src_curly, key)]
+        want_curly = [s.translate(EXPECT) for s in dart_literals(src_curly, key)]
         got = dart_literals(src_straight, key)
         ok = got == want_curly and "'" in "".join(got)
         print(f"  {'ok  ' if ok else 'FAIL'} {key}: rendered text == curly original, straightened")
