@@ -434,17 +434,24 @@ void main() {
       expect(_settingsShowing(tester), isFalse);
     });
 
-    testWidgets('Ctrl-N and Ctrl-, do nothing in Perform', (tester) async {
+    testWidgets('Ctrl-N, Ctrl-F and Ctrl-, do nothing in Perform', (
+      tester,
+    ) async {
       await _pump(tester);
       await _openPerform(tester);
 
-      for (final key in [LogicalKeyboardKey.keyN, LogicalKeyboardKey.comma]) {
+      for (final key in [
+        LogicalKeyboardKey.keyN,
+        LogicalKeyboardKey.keyF,
+        LogicalKeyboardKey.comma,
+      ]) {
         await _press(tester, key, modifier: LogicalKeyboardKey.controlLeft);
       }
 
       expect(find.byType(PerformProgramScreen), findsOneWidget);
       expect(find.byKey(const ValueKey('perform-exit-dialog')), findsNothing);
       expect(find.byType(DanceEditorScreen), findsNothing);
+      expect(find.byKey(_palette), findsNothing);
     });
 
     testWidgets('Ctrl-F focuses the Collection search box', (tester) async {

@@ -157,13 +157,14 @@ make the row announce twice or read the beats digits an extra time.
 
 ### 6. Right-click
 
-B29 (`feat/desktop-shortcuts-and-mac-menu`, the work plan's B29 entry, see "Sources" below) makes
-right-click on a dance row and a program row open the ⋮ menu
-(`widgets/dance_list_tile.dart:352`, `widgets/program_list_tile.dart:100`; both
-are the `PopupMenuButton` construction). Selection's context menu (Copy, Select
-all) opens on a secondary tap inside a `SelectionArea`.
+B29 (`feat/desktop-shortcuts-and-mac-menu`, the work plan's B29 entry, see
+"Sources" below) made right-click on a dance row and a program row open the ⋮
+menu: `widgets/right_click_menu.dart` wraps the row in `dance_list_tile.dart`
+and `program_list_tile.dart` and opens the row's own `PopupMenuButton`.
+Selection's context menu (Copy, Select all) opens on a secondary tap inside a
+`SelectionArea`.
 
-The two never meet in the planned layout. B29's handlers sit on list rows in
+The two never meet in the layout. B29's handlers sit on list rows in
 the Collection and Programs lists. The selectable regions are the detail and
 summary panes (and on desktop those are the right-hand pane of the split
 view). Neither area contains the other.
@@ -177,11 +178,12 @@ view). Neither area contains the other.
 3. **Any later secondary-tap handler goes outside the region** or on an
    element wrapped in `SelectionContainer.disabled`.
 
-B29 should add a widget test that a secondary tap on detail text shows the
-selection toolbar, and one that a secondary tap on a list row shows the ⋮ menu.
+Each half has a widget test: a secondary tap on detail text shows the
+selection toolbar (`test/selectable_detail_text_test.dart`), and one on a
+Collection or Programs row shows the ⋮ menu (`test/desktop_shortcuts_test.dart`).
 
-**A coordination point with PLAT-8.** B29 replaces the macOS menu with a
-`PlatformMenuBar` that has no Edit menu (the work plan's B29 entry).
+**A coordination point with PLAT-8.** B29 replaced the macOS menu with a
+`PlatformMenuBar` (`widgets/app_menu_bar.dart`) that has no Edit menu.
 Cmd-C and Cmd-A still work, because `SelectableRegion` binds them itself. But a
 Mac caller loses the menu item for them, so the right-click toolbar is the only
 visible Copy. That is one more reason rule 1 should hold.
@@ -267,7 +269,7 @@ branch's `design-work-plan.md` these are N5-S1 … N5-S3.
 | --- | --- | --- | --- | --- | --- |
 | S1 | `feat/selectable-detail-text` | new `widgets/selectable_content.dart`; `dance_detail_screen.dart`; `widgets/figure_table.dart`; tests; the `ux.md`, `accessibility.md` and user-doc lines; a changelog fragment | M (~250) | Sonnet | None. N5-1, N5-3 and N5-5 are decided. |
 | S2 | `feat/selectable-summary-text` | `program_summary_screen.dart`; tests | S (~100) | Sonnet | S1 (the widget). N5-2 is decided. After F11 (#2040), and after B4 → B5 and B22, which edit the same file (the work plan's hot-files table). |
-| S3 | `test/selectable-right-click-rule` | one test file in B29's branch | S (~50) | Sonnet | B29 and S1. Folded into B29 if B29 lands later. N5-4 is decided. |
+| S3 | `test/selectable-right-click-rule` | one test file in B29's branch | S (~50) | Sonnet | B29 and S1. Folded into B29, which landed after S1: the row half is in `test/desktop_shortcuts_test.dart`, the text half was already in S1's tests. N5-4 is decided. |
 
 S1 and S2 share no file, but S2 reuses S1's widget, so S2 follows S1. Neither
 edits a privacy or storage path, so neither joins the registry serialisation
@@ -279,9 +281,9 @@ The B29 facts and the branch sizing come from the 2026-10 behavior audit's
 `decided-work-plan.md` (the "B29" entry, the "Design notes" section and the
 hot-files table), which lives at
 `docs/dev/audits/2026-10-behavior/decided-work-plan.md` on branch
-`claude/app-audit-categories-k2pdon` and is not on `main` yet. Until it
-lands, treat B29's right-click handlers and its menu-bar replacement as
-planned work, not shipped behaviour. The audit finding is PLAT-17 in
+`claude/app-audit-categories-k2pdon` and is not on `main` yet. B29's
+right-click handlers and its menu-bar replacement have since shipped (see §6).
+The audit finding is PLAT-17 in
 `reports/PLAT.md` on the same branch.
 
 ## Implementation note (N5-S1, 2026-10-30)
