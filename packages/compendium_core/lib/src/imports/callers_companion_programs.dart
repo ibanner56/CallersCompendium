@@ -263,10 +263,10 @@ bool _namesSeveralPeople(String caller) {
 }
 
 /// The set caller's words from the given name on: a leading dotted title or
-/// initial ("Dr. Michael Smith", "J. Michael Smith") is skipped while two
-/// words other than trailing name suffixes remain, so an initial never leaves
-/// just a surname ("J. Smith, Jr."). The suffix itself is kept, so a slot
-/// naming "Michael Smith Jr" still matches "Michael Smith, Jr.".
+/// initial ("Dr. Michael Smith", "J. Michael Smith") is skipped provided two
+/// words other than trailing name suffixes still remain, so an initial never
+/// leaves just a surname ("J. Smith, Jr."). The suffix itself is kept, so a
+/// slot naming "Michael Smith Jr" still matches "Michael Smith, Jr.".
 List<String> _setCallerWords(String caller) {
   final raw = caller
       .replaceAll(',', ' ')
