@@ -35,6 +35,7 @@ import '../data/venue_entity_mode_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../search/facet_labels.dart';
 import '../utils/undo_snack_bar.dart';
+import '../widgets/confirm_discard_changes.dart';
 import '../widgets/figure_diff_view.dart';
 import '../widgets/notice_card.dart';
 import 'dance_editor_screen.dart';
@@ -2535,6 +2536,36 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     }
   }
 
+  /// Asks before the review is thrown away. True when the user chose to leave.
+  /// Reuses [confirmDiscardChanges] with this screen's own wording.
+  Future<bool> _confirmLeaveReview() async {
+    final l10n = AppLocalizations.of(context);
+    final choice = await confirmDiscardChanges(
+      context,
+      title: l10n.importReviewDiscardTitle,
+      message: l10n.importReviewDiscardBody,
+      keepEditingLabel: l10n.importReviewKeepReviewing,
+      dialogKey: const ValueKey('import-leave-dialog'),
+    );
+    return choice == DiscardChangesChoice.discard;
+  }
+
+  /// Pops this route once the user confirms discarding the review.
+  Future<void> _leaveReview() async {
+    if (!await _confirmLeaveReview() || !mounted) return;
+    Navigator.of(context).pop();
+  }
+
+  /// The embedded Close button. It calls [ImportReviewScreen.onClose] directly,
+  /// which `PopScope` does not intercept, so it asks for itself during review.
+  Future<void> _closeEmbedded() async {
+    final onClose = widget.onClose;
+    if (onClose == null) return;
+    if (_phase == _Phase.review && !await _confirmLeaveReview()) return;
+    if (!mounted) return;
+    onClose();
+  }
+
   Widget _summaryLine(String keyLabel, String text) =>
       Text(text, key: ValueKey('import-summary-$keyLabel'));
 
@@ -2545,8 +2576,16 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     // mid-commit would let the write finish with the screen unmounted, stranding
     // freshly-imported data without its result and Undo (issue #432). The
     // imperative pop the post-commit flow performs is unaffected by PopScope.
+    //
+    // Leaving mid-review would throw away the planned list (and the choices
+    // made on it) silently, so a user-initiated back asks first; see
+    // [_confirmLeaveReview]. The input and planning phases hold nothing worth
+    // a prompt.
     return PopScope(
-      canPop: _phase != _Phase.committing,
+      canPop: _phase != _Phase.committing && _phase != _Phase.review,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _phase == _Phase.review) unawaited(_leaveReview());
+      },
       child: Scaffold(
         appBar: AppBar(
           title: Text(l10n.importDances),
@@ -2565,7 +2604,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                   // its Undo/refresh (issue #432).
                   onPressed: _phase == _Phase.committing
                       ? null
-                      : widget.onClose,
+                      : _closeEmbedded,
                 ),
         ),
         body: switch (_phase) {

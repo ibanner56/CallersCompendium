@@ -60,8 +60,8 @@ through first.
 
 Your collection starts with one sample dance, "The Baby Rose" by David Kaynor,
 so there is something to look at straight away. While it is the only dance
-there, a **Bring your dances in** card above it offers **Import dances** and
-**New dance**. This is your starting point: from here you can build your
+there, a **Bring your dances in** card above it offers **Import dances**, **New dance**
+and **Browse published collections**. This is your starting point: from here you can build your
 library by hand, bring in dances you already have, or pull dances from an online
 source. Delete the sample whenever you like; it is not added back, and if you
 delete it the Collection shows the same two buttons on an empty page.

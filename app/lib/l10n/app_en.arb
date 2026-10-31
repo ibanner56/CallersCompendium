@@ -5332,6 +5332,10 @@
   "@collectionImportCardBody": {
     "description": "Body of the card shown while the sample dance is the only dance in the Collection; points at Import dances and New dance."
   },
+  "collectionBrowsePublishedCollections": "Browse published collections",
+  "@collectionBrowsePublishedCollections": {
+    "description": "Button on the card shown while the sample dance is the only dance in the Collection; opens the catalog of signed published collections."
+  },
   "collectionFiltersTitle": "Filters",
   "@collectionFiltersTitle": {
     "description": "Title of the facet filters panel when no filters are active."
@@ -8766,6 +8770,16 @@
       }
     }
   },
+  "onlineImportUpdated": "Updated \"{title}\" with the online version.",
+  "@onlineImportUpdated": {
+    "description": "Snackbar confirming an online import was written over a dance the user already had, after they chose Same dance (update existing). Nothing new was added, so it does not say Imported. The title is an untrusted external value rendered as plain text.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Money Musk"
+      }
+    }
+  },
   "onlineImportUndoKeptChanged": "\"{title}\" has changed since you imported it, so Undo left it as it is.",
   "@onlineImportUndoKeptChanged": {
     "description": "Snackbar shown when the user taps Undo on an online import, but the dance was edited after the import, so undoing would throw those edits away and nothing was undone (INTAKE-5). The title is the dance's title, an untrusted value rendered as plain text.",
@@ -9179,6 +9193,18 @@
   "importReviewClose": "Close import",
   "@importReviewClose": {
     "description": "Tooltip on the close button of the embedded import review screen."
+  },
+  "importReviewDiscardTitle": "Discard this import?",
+  "@importReviewDiscardTitle": {
+    "description": "Title of the dialog shown when the user leaves the import review screen before importing."
+  },
+  "importReviewDiscardBody": "Nothing has been added to your collection yet. If you leave now, the list you are reviewing is discarded.",
+  "@importReviewDiscardBody": {
+    "description": "Body of the dialog shown when the user leaves the import review screen before importing; the list is the planned import, with the choices made on it."
+  },
+  "importReviewKeepReviewing": "Keep reviewing",
+  "@importReviewKeepReviewing": {
+    "description": "Button that stays on the import review screen instead of discarding the list."
   },
   "importReviewSourceLabel": "Source",
   "@importReviewSourceLabel": {

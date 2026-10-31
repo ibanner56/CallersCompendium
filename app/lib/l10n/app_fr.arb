@@ -4248,6 +4248,10 @@
   "@collectionImportCardBody": {
     "x-sourceSha256": "649231300ea8176cd514a89b53a1a09c17b3841fc09ce91fe4957c980d954fdf"
   },
+  "collectionBrowsePublishedCollections": "Parcourir les collections publiées",
+  "@collectionBrowsePublishedCollections": {
+    "x-sourceSha256": "de2131156af7b5526d4655c893773a09f6dc28193698fac3b6e55656c2c9260c"
+  },
   "collectionFiltersTitle": "Filtres",
   "@collectionFiltersTitle": {
     "x-sourceSha256": "546ebb8eb993ea561029d9febd84c363bdb09010bb2cb915a8287762b76b9a64"
@@ -6638,6 +6642,10 @@
   "@onlineImportCreated": {
     "x-sourceSha256": "1046761c322aaa709ab5d48f7544427071384167ee4923d9931081d708542d03"
   },
+  "onlineImportUpdated": "« {title} » mis à jour avec la version en ligne.",
+  "@onlineImportUpdated": {
+    "x-sourceSha256": "95d1ad3b168bac6e5a73e94849818740f7b163226997623d0928eb8fce6cc9a5"
+  },
   "onlineImportUndoKeptChanged": "« {title} » a été modifiée depuis son importation, donc Annuler l’a laissée telle quelle.",
   "@onlineImportUndoKeptChanged": {
     "x-sourceSha256": "8d822645712cbee80a667a24f960d58f9f8cb59aef3ed465d37e68d423ed30d4"
@@ -6941,6 +6949,18 @@
   "importReviewClose": "Fermer l’import",
   "@importReviewClose": {
     "x-sourceSha256": "e68710b4e3102fc3b72a90c0fe12ce9773330793c9d1d96b9be04c72df44c344"
+  },
+  "importReviewDiscardTitle": "Abandonner cet import ?",
+  "@importReviewDiscardTitle": {
+    "x-sourceSha256": "f3ecc8986e997b4fbfc389fb2dad1d5dbae5efdbef5e4e5128a745930eb70414"
+  },
+  "importReviewDiscardBody": "Rien n’a encore été ajouté à votre collection. Si vous quittez maintenant, la liste en cours de vérification sera abandonnée.",
+  "@importReviewDiscardBody": {
+    "x-sourceSha256": "cd0fbdc7e66d51843e5e2b5e20814e247eaf7814b03fc1caf8bd39c3549cb6ed"
+  },
+  "importReviewKeepReviewing": "Continuer la vérification",
+  "@importReviewKeepReviewing": {
+    "x-sourceSha256": "34411a1bde474b8b970fa70e63207be862a681492556993d0fb99031dcc78b0b"
   },
   "importReviewSourceLabel": "Source",
   "@importReviewSourceLabel": {

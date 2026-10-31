@@ -135,6 +135,11 @@ and Linux and **Cmd** on a Mac:
 - **Ctrl-N** (**Cmd-N**) starts a new dance.
 - **Ctrl-F** (**Cmd-F**) puts the cursor in the **Collection**'s search box and
   selects what's already there. Anywhere else it opens Quick search.
+- **Ctrl-A** (**Cmd-A**) selects every dance in the **Collection**'s current
+  results and starts selecting if you weren't. It works while the keyboard focus
+  is in the list of dances; in the search box it selects the text, as usual.
+  Dances your filters hide are not selected. Pressing it again leaves everything
+  selected.
 - **Ctrl-,** (**Cmd-,**) opens **Settings**.
 - **Esc**, or **Ctrl-W** (**Cmd-W**), goes back. If a menu, a list of
   suggestions, or a dialog you could close by clicking outside it is open, it
@@ -173,6 +178,8 @@ move between [slots](./glossary.md#slot) with the arrow keys, or with **Page Up*
 and **Page Down**. When a card is too long to fit, **down** and **Page Down**
 scroll it to the end before moving on, and **up** and **Page Up** scroll back to
 the top before going back. The **left** and **right** keys always change slot.
+When you are performing a single dance there is no slot to move to, so those
+keys only scroll a long card.
 These work alongside the on-screen next and previous controls and the large edge
 zones, so you can use whichever suits you. On a computer, **F11** (**Ctrl-Cmd-F**
 on macOS) takes Perform full screen and back, and **Esc** leaves full screen

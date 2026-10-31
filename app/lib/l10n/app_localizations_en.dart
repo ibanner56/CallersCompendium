@@ -4147,6 +4147,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Import dances you already have, or write your first one. \"The Baby Rose\" is here as a sample to look around with.';
 
   @override
+  String get collectionBrowsePublishedCollections =>
+      'Browse published collections';
+
+  @override
   String get collectionFiltersTitle => 'Filters';
 
   @override
@@ -6650,6 +6654,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String onlineImportUpdated(String title) {
+    return 'Updated \"$title\" with the online version.';
+  }
+
+  @override
   String onlineImportUndoKeptChanged(String title) {
     return '\"$title\" has changed since you imported it, so Undo left it as it is.';
   }
@@ -7002,6 +7011,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importReviewClose => 'Close import';
+
+  @override
+  String get importReviewDiscardTitle => 'Discard this import?';
+
+  @override
+  String get importReviewDiscardBody =>
+      'Nothing has been added to your collection yet. If you leave now, the list you are reviewing is discarded.';
+
+  @override
+  String get importReviewKeepReviewing => 'Keep reviewing';
 
   @override
   String get importReviewSourceLabel => 'Source';

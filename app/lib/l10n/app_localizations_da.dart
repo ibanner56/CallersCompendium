@@ -4178,6 +4178,10 @@ class AppLocalizationsDa extends AppLocalizations {
       'Importér danse, du allerede har, eller skriv din første. „The Baby Rose“ er med som eksempel, så du kan se dig om.';
 
   @override
+  String get collectionBrowsePublishedCollections =>
+      'Gennemse udgivne samlinger';
+
+  @override
   String get collectionFiltersTitle => 'Filtre';
 
   @override
@@ -6685,6 +6689,11 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String onlineImportUpdated(String title) {
+    return 'Opdaterede „$title“ med onlineversionen.';
+  }
+
+  @override
   String onlineImportUndoKeptChanged(String title) {
     return '„$title“ er ændret, siden du importerede den, så Fortryd lod den være som den er.';
   }
@@ -7038,6 +7047,16 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importReviewClose => 'Luk import';
+
+  @override
+  String get importReviewDiscardTitle => 'Kassér denne import?';
+
+  @override
+  String get importReviewDiscardBody =>
+      'Intet er føjet til din samling endnu. Hvis du forlader siden nu, kasseres den liste, du gennemgår.';
+
+  @override
+  String get importReviewKeepReviewing => 'Fortsæt gennemgang';
 
   @override
   String get importReviewSourceLabel => 'Kilde';

@@ -4857,6 +4857,84 @@ void main() {
         expect(closed, 1);
       },
     );
+
+    testWidgets('Back during review asks first; Keep reviewing stays', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await pumpShared(tester, repos, bundleFor(danceProgramVenueArchive()));
+      expect(
+        find.byKey(const ValueKey('import-commit-button')),
+        findsOneWidget,
+      );
+
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('import-leave-dialog')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('discard-cancel')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('import-leave-dialog')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('import-commit-button')),
+        findsOneWidget,
+      );
+      expect(await repos.dances.listAll(), isEmpty);
+    });
+
+    testWidgets('Back during review, then Discard, leaves with nothing '
+        'imported', (tester) async {
+      final repos = openTestRepositories();
+      await pumpShared(tester, repos, bundleFor(danceProgramVenueArchive()));
+
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('discard-confirm')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ImportReviewScreen), findsNothing);
+      expect(await repos.dances.listAll(), isEmpty);
+    });
+
+    testWidgets('embedded Close during review asks first', (tester) async {
+      final repos = openTestRepositories();
+      var closed = 0;
+      await tester.binding.setSurfaceSize(const Size(1000, 1600));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: RepositoriesScope(
+            repositories: repos,
+            child: ImportReviewScreen(
+              sources: [
+                ImportSource(
+                  kind: ImportSourceKind.genericJson,
+                  adapterFactory: GenericJsonAdapter.new,
+                ),
+              ],
+              sharedBundle: bundleFor(danceProgramVenueArchive()),
+              onClose: () => closed++,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('import-close')));
+      await tester.pumpAndSettle();
+      expect(closed, 0);
+      await tester.tap(find.byKey(const ValueKey('discard-cancel')));
+      await tester.pumpAndSettle();
+      expect(closed, 0);
+
+      await tester.tap(find.byKey(const ValueKey('import-close')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('discard-confirm')));
+      await tester.pumpAndSettle();
+      expect(closed, 1);
+    });
   });
 
   // ──────────────────────────────────────────────────────────────────────────

@@ -6495,6 +6495,12 @@ abstract class AppLocalizations {
   /// **'Import dances you already have, or write your first one. \"The Baby Rose\" is here as a sample to look around with.'**
   String get collectionImportCardBody;
 
+  /// Button on the card shown while the sample dance is the only dance in the Collection; opens the catalog of signed published collections.
+  ///
+  /// In en, this message translates to:
+  /// **'Browse published collections'**
+  String get collectionBrowsePublishedCollections;
+
   /// Title of the facet filters panel when no filters are active.
   ///
   /// In en, this message translates to:
@@ -10115,6 +10121,12 @@ abstract class AppLocalizations {
   /// **'Imported \"{title}\".'**
   String onlineImportCreated(String title);
 
+  /// Snackbar confirming an online import was written over a dance the user already had, after they chose Same dance (update existing). Nothing new was added, so it does not say Imported. The title is an untrusted external value rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated \"{title}\" with the online version.'**
+  String onlineImportUpdated(String title);
+
   /// Snackbar shown when the user taps Undo on an online import, but the dance was edited after the import, so undoing would throw those edits away and nothing was undone (INTAKE-5). The title is the dance's title, an untrusted value rendered as plain text.
   ///
   /// In en, this message translates to:
@@ -10570,6 +10582,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Close import'**
   String get importReviewClose;
+
+  /// Title of the dialog shown when the user leaves the import review screen before importing.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard this import?'**
+  String get importReviewDiscardTitle;
+
+  /// Body of the dialog shown when the user leaves the import review screen before importing; the list is the planned import, with the choices made on it.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing has been added to your collection yet. If you leave now, the list you are reviewing is discarded.'**
+  String get importReviewDiscardBody;
+
+  /// Button that stays on the import review screen instead of discarding the list.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep reviewing'**
+  String get importReviewKeepReviewing;
 
   /// Label above the import-source dropdown when more than one source is available.
   ///

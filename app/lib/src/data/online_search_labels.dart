@@ -29,10 +29,22 @@ String onlineSourceAttribution(AppLocalizations l10n, OnlineSource source) =>
 /// enforced by the [StateError]s below; a call site that forgets to intercept
 /// will fail loudly rather than silently showing "imported" when nothing was
 /// written.
+bool _replacedExistingDance(OnlineImportResult result) {
+  final id = result.danceId;
+  final session = result.session;
+  return id != null &&
+      session != null &&
+      !session.insertedDanceIds.contains(id);
+}
+
 String onlineImportMessage(AppLocalizations l10n, OnlineImportResult result) =>
     switch (result.kind) {
       OnlineImportKind.alreadyInCollection =>
         l10n.onlineImportAlreadyInCollection(result.title),
+      // "Same dance": the import was written over an existing dance under its
+      // own id, so nothing new was imported (B16).
+      OnlineImportKind.created when _replacedExistingDance(result) =>
+        l10n.onlineImportUpdated(result.title),
       OnlineImportKind.created => l10n.onlineImportCreated(result.title),
       OnlineImportKind.needsConfirmation => throw StateError(
         'onlineImportMessage reached with needsConfirmation for '

@@ -4240,6 +4240,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Importez les danses que vous avez déjà, ou écrivez la première. « The Baby Rose » est là comme exemple pour vous repérer.';
 
   @override
+  String get collectionBrowsePublishedCollections =>
+      'Parcourir les collections publiées';
+
+  @override
   String get collectionFiltersTitle => 'Filtres';
 
   @override
@@ -6772,6 +6776,11 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String onlineImportUpdated(String title) {
+    return '« $title » mis à jour avec la version en ligne.';
+  }
+
+  @override
   String onlineImportUndoKeptChanged(String title) {
     return '« $title » a été modifiée depuis son importation, donc Annuler l’a laissée telle quelle.';
   }
@@ -7133,6 +7142,16 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get importReviewClose => 'Fermer l’import';
+
+  @override
+  String get importReviewDiscardTitle => 'Abandonner cet import ?';
+
+  @override
+  String get importReviewDiscardBody =>
+      'Rien n’a encore été ajouté à votre collection. Si vous quittez maintenant, la liste en cours de vérification sera abandonnée.';
+
+  @override
+  String get importReviewKeepReviewing => 'Continuer la vérification';
 
   @override
   String get importReviewSourceLabel => 'Source';

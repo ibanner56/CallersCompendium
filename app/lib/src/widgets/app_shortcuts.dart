@@ -4,7 +4,8 @@
 /// The root `MaterialApp` binds the keys in [appShortcuts] and supplies the
 /// app-wide actions. A screen that owns a command adds its own action nearer
 /// the focus: the dance and program editors handle [SaveIntent], and nothing
-/// else does, so Ctrl/Cmd-S does nothing outside an editor. The macOS menu bar
+/// else does, so Ctrl/Cmd-S does nothing outside an editor. Ctrl/Cmd-A works
+/// the same way: only the Collection's list handles it. The macOS menu bar
 /// (`AppMenuBar`) invokes the same intents, so a menu item and its key always
 /// do the same thing.
 library;
@@ -31,6 +32,14 @@ class ImportDancesIntent extends Intent {
 /// opens global search everywhere else.
 class FocusSearchIntent extends Intent {
   const FocusSearchIntent();
+}
+
+/// Selects every dance in the Collection's current results (N4, `FIND-8`;
+/// `docs/design/bulk-selection.md` Q1). Bound here, but handled only by the
+/// Collection's result list: the key does nothing when focus is anywhere else,
+/// and never reaches a text field, where Ctrl/Cmd-A keeps selecting text.
+class SelectAllDancesIntent extends Intent {
+  const SelectAllDancesIntent();
 }
 
 /// Shows Settings.
@@ -72,6 +81,9 @@ const Map<ShortcutActivator, Intent> appShortcuts = {
   SingleActivator(LogicalKeyboardKey.keyN, meta: true): NewDanceIntent(),
   SingleActivator(LogicalKeyboardKey.keyF, control: true): FocusSearchIntent(),
   SingleActivator(LogicalKeyboardKey.keyF, meta: true): FocusSearchIntent(),
+  SingleActivator(LogicalKeyboardKey.keyA, control: true):
+      SelectAllDancesIntent(),
+  SingleActivator(LogicalKeyboardKey.keyA, meta: true): SelectAllDancesIntent(),
   SingleActivator(LogicalKeyboardKey.comma, control: true):
       OpenSettingsIntent(),
   SingleActivator(LogicalKeyboardKey.comma, meta: true): OpenSettingsIntent(),

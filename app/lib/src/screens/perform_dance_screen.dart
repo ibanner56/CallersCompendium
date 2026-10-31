@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../data/active_dialect_scope.dart';
 import '../data/repositories_scope.dart';
@@ -114,6 +115,29 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
     setState(() => _showWalkthrough = !_showWalkthrough);
   }
 
+  /// Scroll position of the card when it overflows (auto-size off, or a dance
+  /// too long to fit even at the smallest auto-size), driven by the arrow and
+  /// Page keys. Unlike program Perform, there is no next slot to move on to,
+  /// so the keys only scroll (PLAT-10).
+  final ScrollController _cardScroll = ScrollController(
+    keepScrollOffset: false,
+  );
+
+  /// The open walkthrough overlay's scroll position, for the same keys while
+  /// it is showing.
+  final ScrollController _walkthroughScroll = ScrollController();
+
+  /// ↓/↑ and Page Down/Page Up. With the walkthrough open they read it
+  /// (arrows a short step, Page keys most of a viewport); otherwise they
+  /// scroll the card. Both stop at the ends.
+  void _scrollKey(int direction, {bool page = false}) {
+    if (_showWalkthrough && _hasWalkthrough) {
+      scrollPerformBy(_walkthroughScroll, direction, step: page ? null : 64.0);
+    } else {
+      scrollPerformBy(_cardScroll, direction);
+    }
+  }
+
   /// Whether the current dance has a non-empty walkthrough to show. The toggle
   /// and overlay are suppressed entirely when it is empty, so the caller never
   /// sees a dead control.
@@ -201,6 +225,8 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
   void dispose() {
     _timer?.cancel();
     _elapsed?.dispose();
+    _cardScroll.dispose();
+    _walkthroughScroll.dispose();
     super.dispose();
   }
 
@@ -517,33 +543,54 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
             // Holds focus inside the view, so its keys (full screen and
             // Escape, from [buildPerformFullScreenShortcuts]) work before the
             // caller has clicked anything.
-            body: Focus(
-              autofocus: true,
-              child: SafeArea(
-                child: Stack(
-                  children: [
-                    PerformCard(
-                      dance: widget.dance,
-                      renderer: widget.renderer,
-                      dialect: dialect,
-                      textScale: _textScale,
-                      autoSize: _autoSize,
-                      authorNames: widget.authorNames,
-                      difficultyLevel: widget.difficultyLevel,
-                    ),
-                    // The walkthrough overlay is a sibling of the card — never a
-                    // child routed through its `_FitToHeight` measurement — so
-                    // showing it can't shrink or compete with the notation (#370).
-                    if (_showWalkthrough && _hasWalkthrough)
-                      Positioned.fill(
-                        child: PerformWalkthroughOverlay(
-                          walkthrough: widget.dance.walkthrough,
-                          renderer: widget.renderer,
-                          dialect: dialect,
-                          onClose: _toggleWalkthrough,
-                        ),
+            // The arrow and Page keys scroll the card, or the walkthrough while
+            // it is open. ←/→ are consumed then, as in program Perform, so the
+            // framework's default scroll action never meets two scroll views.
+            body: CallbackShortcuts(
+              bindings: <ShortcutActivator, VoidCallback>{
+                const SingleActivator(LogicalKeyboardKey.arrowDown): () =>
+                    _scrollKey(1),
+                const SingleActivator(LogicalKeyboardKey.arrowUp): () =>
+                    _scrollKey(-1),
+                const SingleActivator(LogicalKeyboardKey.pageDown): () =>
+                    _scrollKey(1, page: true),
+                const SingleActivator(LogicalKeyboardKey.pageUp): () =>
+                    _scrollKey(-1, page: true),
+                if (_showWalkthrough && _hasWalkthrough) ...{
+                  const SingleActivator(LogicalKeyboardKey.arrowRight): () {},
+                  const SingleActivator(LogicalKeyboardKey.arrowLeft): () {},
+                },
+              },
+              child: Focus(
+                autofocus: true,
+                child: SafeArea(
+                  child: Stack(
+                    children: [
+                      PerformCard(
+                        dance: widget.dance,
+                        renderer: widget.renderer,
+                        dialect: dialect,
+                        textScale: _textScale,
+                        autoSize: _autoSize,
+                        authorNames: widget.authorNames,
+                        difficultyLevel: widget.difficultyLevel,
+                        scrollController: _cardScroll,
                       ),
-                  ],
+                      // The walkthrough overlay is a sibling of the card — never a
+                      // child routed through its `_FitToHeight` measurement — so
+                      // showing it can't shrink or compete with the notation (#370).
+                      if (_showWalkthrough && _hasWalkthrough)
+                        Positioned.fill(
+                          child: PerformWalkthroughOverlay(
+                            walkthrough: widget.dance.walkthrough,
+                            renderer: widget.renderer,
+                            dialect: dialect,
+                            onClose: _toggleWalkthrough,
+                            scrollController: _walkthroughScroll,
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),

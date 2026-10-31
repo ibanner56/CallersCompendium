@@ -26,7 +26,9 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   Command alike (in a macOS text field Ctrl-F and Ctrl-N keep moving the
   cursor): Ctrl/Cmd-S saves the open dance or program editor,
   Ctrl/Cmd-N opens a new dance, Ctrl/Cmd-F focuses the Collection's search box
-  (global search anywhere else), Ctrl/Cmd-, opens Settings, and Esc or
+  (global search anywhere else), Ctrl/Cmd-A selects every dance in the
+  Collection's current results (only while focus is in the list, never in a
+  text field, and it never deselects), Ctrl/Cmd-, opens Settings, and Esc or
   Ctrl/Cmd-W goes back. A mouse's Back button goes back too, and a right-click
   on a Collection or Programs row opens that row's ⋮ menu. "Back" closes
   whatever a tap outside would close first (a menu, a sheet, a text field's
@@ -237,7 +239,9 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   one tap to swap.
   ↓/Page Down scroll an overflowing card to its end before advancing, and
   ↑/Page Up scroll to its top before going back; ←/→ always change slot, and a
-  new slot opens at its top (PLAT-10).
+  new slot opens at its top (PLAT-10). A single dance's Perform view has no
+  slot to advance to, so those four keys only scroll its card (or its
+  walkthrough while that is open), stopping at the ends.
 - Zero destructive actions reachable; exit via deliberate gesture/button with
   confirm. Optional: per-slot timer/clock display.
 - On-the-fly: reorder remaining slots, insert from quick-search, add ad-hoc

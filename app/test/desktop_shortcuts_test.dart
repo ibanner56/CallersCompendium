@@ -515,6 +515,76 @@ void main() {
     });
   });
 
+  group('Ctrl/Cmd-A selects the Collection\'s results', () {
+    Future<void> focusFirstRow(WidgetTester tester) async {
+      Focus.of(tester.element(find.text('Petronella'))).requestFocus();
+      await tester.pump();
+    }
+
+    testWidgets('while focus is in the list, with either modifier', (
+      tester,
+    ) async {
+      final appData = await _pump(tester);
+      final stamp = DateTime.utc(2026, 1, 1);
+      await appData.repositories.dances.create(
+        Dance(id: 'd2', title: 'Rory', createdAt: stamp, updatedAt: stamp),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Rory'), findsOneWidget);
+      for (final modifier in [
+        LogicalKeyboardKey.controlLeft,
+        LogicalKeyboardKey.metaLeft,
+      ]) {
+        await focusFirstRow(tester);
+        expect(find.byKey(const ValueKey('batch-exit')), findsNothing);
+
+        await _press(tester, LogicalKeyboardKey.keyA, modifier: modifier);
+
+        expect(find.text('2 selected'), findsOneWidget, reason: '$modifier');
+        // A second press keeps everything selected; it is not a toggle.
+        await _press(tester, LogicalKeyboardKey.keyA, modifier: modifier);
+        expect(find.text('2 selected'), findsOneWidget, reason: '$modifier');
+        await tester.tap(find.byKey(const ValueKey('batch-exit')));
+        await tester.pumpAndSettle();
+      }
+    });
+
+    testWidgets('not in the search box, where it selects the text', (
+      tester,
+    ) async {
+      await _pump(tester);
+      await tester.enterText(find.byKey(_searchField), 'Pet');
+      await tester.pump();
+
+      await _press(
+        tester,
+        LogicalKeyboardKey.keyA,
+        modifier: LogicalKeyboardKey.controlLeft,
+      );
+
+      expect(find.byKey(const ValueKey('batch-exit')), findsNothing);
+      final field = tester.widget<TextField>(find.byKey(_searchField));
+      expect(
+        field.controller?.selection,
+        const TextSelection(baseOffset: 0, extentOffset: 3),
+      );
+    });
+
+    testWidgets('not when focus is outside the list', (tester) async {
+      await _pump(tester);
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pump();
+
+      await _press(
+        tester,
+        LogicalKeyboardKey.keyA,
+        modifier: LogicalKeyboardKey.controlLeft,
+      );
+
+      expect(find.byKey(const ValueKey('batch-exit')), findsNothing);
+    });
+  });
+
   testWidgets(
     'Import over an import embedded across a breakpoint opens no second one',
     (tester) async {

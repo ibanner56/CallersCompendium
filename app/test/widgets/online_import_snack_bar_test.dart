@@ -131,6 +131,12 @@ void main() {
     );
 
     final removed = await _show(tester, repos, result);
+    // Nothing new was added, so it does not say "Imported" (B16).
+    expect(
+      find.text('Updated "Money Musk" with the online version.'),
+      findsOneWidget,
+    );
+    expect(find.text('Imported "Money Musk".'), findsNothing);
     await _tapUndo(tester);
     await tester.pumpAndSettle();
 

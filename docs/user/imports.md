@@ -83,7 +83,8 @@ keep.
 6. If it is the one you want, choose **Import** to add it to your collection.
    The message that confirms it offers **Undo** while it is showing. Undo takes
    the dance back out, or, if you chose **Same dance (update existing)** for a
-   dance you already had, puts your own version back. A dance you have since
+   dance you already had, puts your own version back. In that case the message
+   says **Updated** rather than **Imported**, because nothing new was added. A dance you have since
    added to a program, or changed, is kept as it is.
 
 **Caller's Box results only include dances whose figures it will share.** Not
@@ -169,8 +170,9 @@ trusted Compendium Analect catalog. They are signed and checked before the app
 offers them for import, and the app records their source and version so you can
 see where the dances came from.
 
-1. Open **Collection** and choose **Import dances**, or open **Settings** →
-   **General** → **Import…**.
+1. Open **Collection** and choose **Import dances**, choose **Browse published
+   collections** on the card that shows while the sample dance is your only
+   dance, or open **Settings** → **General** → **Import…**.
 2. Under the source selector, choose a published collection to review its
    title, version, dance count, and availability. You can also browse the same
    catalog from **Settings** → **General** → **Published collections**.
@@ -612,6 +614,10 @@ source you pick:
    If something is wrong with the **whole file** — an incomplete `.USR`, or a
    file from a newer version of the app — a warning at the top of the list says
    so, and what to do about it.
+   If you go back or close the screen while you are still deciding, the app asks
+   whether to **Discard** the import or **Keep reviewing**, because leaving
+   throws away the list and your choices on it. Nothing has been added at that
+   point.
 4. **Commit** — only now are the dances you accepted written to your collection.
 5. **Undo** — right after committing, the summary offers **Undo**, which removes
    everything the **Import** button added; dances brought in with **Import and
