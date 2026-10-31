@@ -13,6 +13,7 @@ import 'package:printing/printing.dart' show LayoutCallback;
 
 import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
+import 'package:compendium_app/src/data/confirm_before_delete_scope.dart';
 import 'package:compendium_app/src/data/mark_all_sets_status_scope.dart';
 import 'package:compendium_app/src/data/dialect_library_controller.dart';
 import 'package:compendium_app/src/data/dialect_library_scope.dart';
@@ -324,18 +325,24 @@ Future<void> _pump(
   VoidCallback? onDeleted,
   void Function(String)? onNavigateTo,
   DialectLibraryController? dialectLibrary,
+  bool confirmBeforeDelete = false,
 }) async {
   await tester.binding.setSurfaceSize(const Size(800, 1400));
   addTearDown(() => tester.binding.setSurfaceSize(null));
+  final confirm = ValueNotifier<bool>(confirmBeforeDelete);
+  addTearDown(confirm.dispose);
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
       builder: (context, child) => RepositoriesScope(
         repositories: repos,
-        child: dialectLibrary == null
-            ? child!
-            : DialectLibraryScope(controller: dialectLibrary, child: child!),
+        child: ConfirmBeforeDeleteScope(
+          notifier: confirm,
+          child: dialectLibrary == null
+              ? child!
+              : DialectLibraryScope(controller: dialectLibrary, child: child!),
+        ),
       ),
       home: ProgramEditorScreen(
         programId: programId,
@@ -1130,6 +1137,38 @@ void main() {
     final all = await repos.programs.listAll();
     expect(all, hasLength(2));
     expect(all.map((p) => p.title), contains('Original (copy)'));
+  });
+
+  testWidgets('delete with confirm ON names the dances that lose their calling '
+      'history (LIFE-6)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Chorus Jig'));
+    await repos.dances.create(_dance(id: 'd2', title: 'Hulls Victory'));
+    await repos.programs.create(
+      Program(
+        id: 'p1',
+        title: 'Doomed',
+        status: ProgramStatus.draft,
+        slots: [
+          ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+          ProgramSlot(id: 's2', position: 1, danceId: 'd2'),
+        ],
+        createdAt: _now,
+        updatedAt: _now,
+      ),
+    );
+    await _pump(tester, repos, programId: 'p1', confirmBeforeDelete: true);
+
+    await tester.tap(find.byKey(const ValueKey('delete-program')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('2 dances will lose this program'),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const ValueKey('confirm-delete-cancel')));
+    await tester.pumpAndSettle();
+    expect(await repos.programs.listAll(), hasLength(1));
   });
 
   testWidgets('delete soft-deletes and calls onDeleted', (tester) async {
