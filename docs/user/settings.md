@@ -108,7 +108,9 @@ The **General** section gathers everyday behavior into small groups.
   printed and exported cards: PDFs, shared text and set-list cards always write
   turns as fractions.
 - **Confirm before delete** — adds a prompt before you delete a dance or program.
-  Deletes are still undoable either way.
+  Deletes are still undoable either way. When you delete a program, the prompt
+  also says how many dances lose it from their calling history. Swiping a row
+  in the programs list skips the prompt.
 
 These are the highlights; the [Accessibility guide](./accessibility.md) gives you
 the full picture.

@@ -61,6 +61,14 @@ direction the list opens with, see
   restore, or bring back with **Undo**, is the one you were editing. If you
   cleared the title, it keeps its saved title.
 
+  Deleting a program also takes it out of the
+  [calling history](#track-what-you-have-called) of every dance in it, and
+  restoring it puts it back. With **Confirm before delete** on in
+  [Settings](./settings.md), the prompt says how many dances lose the program
+  from their history, counted under your current calling-history settings. The
+  warning appears only if you turned that setting on, and swiping a row to
+  delete skips the prompt. The Undo message does not repeat the number.
+
 ### Build from a list of titles
 
 Already have your set list written out somewhere — a text file, an email, a note
@@ -578,6 +586,11 @@ sort, and the repeated-venues and half summaries.
 
 The same settings section can also limit calling history to programs you called
 yourself, and control the repeated-venues summary.
+
+A program in **Recently deleted** is in no one's history, so deleting a program
+removes it from the history of each dance it holds, and restoring it brings
+those entries back. After the retention window the program is gone for good and
+so is that history.
 
 ## Where to go next
 
