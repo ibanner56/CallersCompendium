@@ -350,7 +350,7 @@ void main() {
       expect(result.programs, hasLength(1));
       final loaded = await programs.getById(result.programs.single.id);
       expect(loaded, isNotNull);
-      expect(loaded!.title, 'Grange Hall');
+      expect(loaded!.title, '2020/03/14 - Grange Hall');
       expect(loaded.eventDate, DateTime.utc(2020, 3, 14));
       expect(loaded.slots, hasLength(4));
 
