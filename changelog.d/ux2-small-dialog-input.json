@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "A stray tap outside, Escape or Back no longer throws away what you typed in the small edit dialogs: adding a difficulty level, editing a walkthrough snippet, a figure's notes in the Glossary, a choreographer's details, and renaming a matrix column. Once the text has changed they stay open; Cancel and Save still close them.",
+      "A stray tap outside, Escape or Back no longer throws away what you typed in the small edit dialogs: adding a difficulty level, editing a walkthrough snippet, a figure's notes in the Glossary, an author's details, and renaming a matrix column. Once the text has changed they stay open; Cancel and Save still close them.",
       "A problem with a figure shorthand's token now shows on the token field, and a problem with its figures shows beside the figure list and scrolls into view, instead of appearing in a line at the top of a page you have scrolled down."
     ],
     "added": [
