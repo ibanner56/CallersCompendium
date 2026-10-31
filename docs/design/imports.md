@@ -1987,8 +1987,8 @@ has to be judged in its own context.
   - `Box circulate, balance the wave` stays text. A box circulate's balance
     can only come first, and a line's 8 beats would turn it on. The fan-out
     has no reading for a box circulate whose note holds a balance, at its
-    start or after a comma, `and` or `then` (`_balanceAfterCirculate`), for
-    imports and typed figures alike.
+    start or after a comma, `;`, dash, `and` or `then`
+    (`_balanceAfterCirculate`), for imports and typed figures alike.
 
   The author's calls:
   - The rule covers any balance written after it (`balance the ring`,
