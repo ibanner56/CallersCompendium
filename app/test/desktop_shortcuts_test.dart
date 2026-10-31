@@ -36,6 +36,7 @@ Future<AppData> _pump(
   final appData = openTestAppData();
   final repos = appData.repositories;
   final stamp = DateTime.utc(2026, 1, 1);
+  // ignore: unused_result
   await repos.choreographers.upsert(
     Choreographer(id: 'c1', name: 'Gene Hubert'),
   );

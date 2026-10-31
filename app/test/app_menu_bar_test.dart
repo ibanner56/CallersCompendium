@@ -4,7 +4,6 @@
 // these tests answer themselves.
 import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/main.dart';
-import 'package:compendium_app/src/data/app_database.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/dance_editor_screen.dart';
 import 'package:compendium_app/src/screens/import_review_screen.dart';

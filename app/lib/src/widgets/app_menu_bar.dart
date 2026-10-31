@@ -13,10 +13,10 @@ import 'app_shortcuts.dart';
 /// including doing nothing in Perform.
 ///
 /// Installing a [PlatformMenuBar] replaces the whole menu the app starts with
-/// (`MainMenu.xib`). Flutter offers no system Edit items, so **there is no Edit
-/// menu**: cut, copy, paste, undo and select all keep working from the
-/// keyboard, and a right-click on selectable text offers Copy and Select all,
-/// but the menu bar no longer lists them. The system items (About, Services,
+/// (`app/macos/Runner/Base.lproj/MainMenu.xib`). Flutter offers no system Edit
+/// items, so **there is no Edit menu**: cut, copy, paste, undo and select all
+/// keep working from the keyboard, and a right-click on selectable text offers
+/// Copy and Select all, but the menu bar no longer lists them. The system items (About, Services,
 /// Hide, Quit, Enter Full Screen, Minimize, Zoom) are titled by macOS and the
 /// Flutter engine, not by the app's language setting.
 ///
