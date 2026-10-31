@@ -94,6 +94,41 @@ example, "shoulder round," not the older gendered term) and let [App terms](./gl
 the history. Never bake gendered role names into examples; use Larks/Robins as the
 default and mention that any wording is configurable in your dialect.
 
+## App strings: spelling and case
+
+This section is the rule for the text inside the app itself, the English
+strings in `app/lib/l10n/app_en.arb`. It was decided by the maintainer as D-4
+(option c) in the October 2026 behavior audit. The guides in this folder are
+covered by it only where they quote an on-screen label: the guide has to match
+the screen.
+
+- **US spelling.** *color*, *canceled*, *recognize*, *customize*, *gray*,
+  *neighbor*. The app already said "neighbor" and "License"; this makes the
+  rest agree.
+- **Sentence case.** Capitalize the first word and proper names, and nothing
+  else, in titles, headers, buttons, menu items inside the app, settings rows
+  and hints: "Developer options", "Back up + reset", "Recently deleted".
+  Acronyms keep their capitals (JSON, USR, CCW).
+- **Feature and product names stay capitalized** wherever they appear:
+  Caller's Compendium, Device Sync, Custom Figures, Perform, Collection,
+  Programs, Glossary, The Caller's Box, ContraDB. A label that merely
+  *mentions* one ("Turn on Device Sync", "Show glossary") is still sentence
+  case.
+- **Exception: the macOS menu bar.** Menu-bar items follow the platform's Title
+  Case convention ("New Dance", "Import Dances…"). In the ARB these are the
+  `menu*` keys. Sentence case there would look out of place beside every other
+  Mac app's menus.
+- **Text the user types keeps its spelling.** Shorthand tokens, search syntax
+  and identifiers (settings keys, ARB keys, code names such as
+  `ColourDanceTheme`) are not app strings and are not renamed.
+- **English only.** Danish, Dutch, French, German and Japanese keep their own
+  conventions.
+- **Quotes are not covered here.** Straight versus curly quotes is a separate,
+  later decision.
+
+`app/test/l10n/us_spelling_sentence_case_test.dart` enforces the spelling and
+case rules on the English ARB.
+
 ## Writing accessibly
 
 These docs are read by people using screen readers, high-contrast displays, and
@@ -106,7 +141,7 @@ text zoom — the same audience the app itself is built for. Model good practice
   ("see the [import guide](./imports.md)"), never "click here"
   or a bare URL.
 - **Don't rely on color or symbols alone.** Wherever a guide describes an icon or
-  a coloured marker, name it in words too — "a star, labelled *Introduced here*"
+  a colored marker, name it in words too — "a star, labeled *Introduced here*"
   — so the meaning survives for a reader who cannot see it.
 - **Spell out abbreviations** on first use.
 - **Keep tables simple** with a header row; avoid merged cells and layout tables.

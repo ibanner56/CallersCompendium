@@ -10424,7 +10424,7 @@ abstract class AppLocalizations {
   /// Hint for the multi-line dance-titles field.
   ///
   /// In en, this message translates to:
-  /// **'Paste one dance title per line.\nUnrecognised lines are kept as notes.'**
+  /// **'Paste one dance title per line.\nUnrecognized lines are kept as notes.'**
   String get importTitleListDancesHint;
 
   /// Prompt shown before any dance titles have been pasted.
@@ -14909,7 +14909,7 @@ abstract class AppLocalizations {
   /// App-bar title for the recently-deleted (trash) screen.
   ///
   /// In en, this message translates to:
-  /// **'Recently Deleted'**
+  /// **'Recently deleted'**
   String get recentlyDeletedTitle;
 
   /// Shown on the recently-deleted screen when loading the deleted dances or programs fails, above a Retry button. Reassures the user that a failed load does not mean their deleted items are gone.

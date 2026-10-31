@@ -53,7 +53,6 @@ const _names = <String>[
   'ContraDB',
   'Device Sync',
   'Custom Figures',
-  'Recently deleted',
   'Perform',
   'Collection',
   'Programs',

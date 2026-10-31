@@ -9042,7 +9042,7 @@
   "@importTitleListDancesLabel": {
     "description": "Label for the multi-line field where the user pastes dance titles."
   },
-  "importTitleListDancesHint": "Paste one dance title per line.\nUnrecognised lines are kept as notes.",
+  "importTitleListDancesHint": "Paste one dance title per line.\nUnrecognized lines are kept as notes.",
   "@importTitleListDancesHint": {
     "description": "Hint for the multi-line dance-titles field."
   },
@@ -13323,7 +13323,7 @@
   "@dialectEditorPreviewHelp": {
     "description": "Helper text for the dialect live-preview section."
   },
-  "recentlyDeletedTitle": "Recently Deleted",
+  "recentlyDeletedTitle": "Recently deleted",
   "@recentlyDeletedTitle": {
     "description": "App-bar title for the recently-deleted (trash) screen."
   },

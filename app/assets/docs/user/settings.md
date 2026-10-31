@@ -309,28 +309,28 @@ There's a **High contrast** theme for maximum legibility — see the
 
 ### Easter eggs
 
-- **Colour-named dances tint the theme** (off by default) — a playful surprise:
+- **Color-named dances tint the theme** (off by default) — a playful surprise:
   open a dance whose title names a colour, like *Baby Rose* or *Blue Boy*, and its
   view is tinted that colour. It steps aside when a high-contrast theme is active,
   so readability always wins.
 
 ### Set lists
 
-- **Colour-code set-list rows** — tints each dance row in a program's set list
+- **Color-code set-list rows** — tints each dance row in a program's set list
   (both the read-only summary and the builder) by its
   [formation](./glossary.md#formation) family — contras, triplets, mixers,
   circles, and squares each get their own accent, so you can read the *shape* of a program at a
   glance. Dances marked as [mixers](./glossary.md#mixer) always get the mixer
   accent regardless of their formation, so a mixer-flagged Improper reads as
   a mixer rather than a contra, even if you have given that formation its own
-  colour (see [Formation colours](#formation-colours) below). The formation (and "Mixer" when applicable) is
+  colour (see [Formation colors](#formation-colors) below). The formation (and "Mixer" when applicable) is
   always shown as text on the row too, so rows stay fully readable without relying
   on colour, and the family tints adapt to the High contrast theme. On by default;
   turn it off to hide the tints (your own formation colours are hidden with them).
 
-### Formation colours
+### Formation colors
 
-- **Formation label colours** — highlight individual formations in your own
+- **Formation label colors** — highlight individual formations in your own
   colours (for example Becket clockwise in yellow and Becket counter-clockwise in
   pink). Your choices show on dance cards, in dance detail, in the Perform
   header, and on set-list rows in a program's summary and builder. On a set-list
@@ -338,18 +338,18 @@ There's a **High contrast** theme for maximum legibility — see the
   formation you haven't coloured keeps its family tint, and a dance marked as a
   mixer keeps the mixer accent. Your colour is used as you chose it in every
   theme, High contrast included, because on a row it only paints the edge of the
-  row, never text. With **Colour-code set-list rows** off, set-list rows show no
+  row, never text. With **Color-code set-list rows** off, set-list rows show no
   colour at all.
 
-### Tag colours
+### Tag colors
 
-- **Tag colours** — give a tag its own colour so it stands out wherever it
+- **Tag colors** — give a tag its own colour so it stands out wherever it
   appears, on dance cards and in dance detail. Only the tags you colour change;
   every other tag looks exactly as it does now. The tag's name is always shown
   beside the colour, so tags stay readable without relying on colour, and the
   app picks a black or white label automatically so your colour stays legible in
   every theme. This opens the Tags manager (also under **General → Library →
-  Tags**): choose **Colour…** in a tag's menu to pick one, or **Remove colour**.
+  Tags**): choose **Color…** in a tag's menu to pick one, or **Remove color**.
 
 ## Dialect
 
@@ -716,15 +716,15 @@ useful thing you can send.
 ## Experimental
 
 The **Experimental** section holds features that are still in development —
-today, that's the **Glossary**, **Device Sync** and **Developer Options**. Anything here can change
+today, that's the **Glossary**, **Device Sync** and **Developer options**. Anything here can change
 before it becomes a regular setting. Each feature sits in its own section: select its heading to
 open or close it.
 
 ### Glossary and Custom Figures
 
-**Show Glossary** adds a **Glossary** destination to the navigation, between
+**Show glossary** adds a **Glossary** destination to the navigation, between
 **Programs** and **Settings**. It is **off by default**, and the section starts
-closed while both Show Glossary and Custom Figures are off.
+closed while both Show glossary and Custom Figures are off.
 
 The Glossary is a reference to the figures built into the app. Search it by a
 figure's name, an older name for it, or a word from its definition. Select a
@@ -750,12 +750,12 @@ button sits beside **+** in the Glossary toolbar, the same as on Collection and
 Programs, so your terms and notes can be pulled from another device.
 
 **Your terms** are words you define yourself, with no figure: a name and a
-definition (both required), **More Details** (optional), other names they can be found by,
+definition (both required), **More details** (optional), other names they can be found by,
 notes, and the **Dance form** they're for. They are listed in the Glossary
 alongside the built-in figures, marked **Custom**, and found the same way.
 Choose **+** in the Glossary to add one (with Custom Figures on, choose
 **Term** under **What it is**); select one to **Edit** or **Delete** it. Terms
-need only Show Glossary, not Custom Figures. A name already taken can't be
+need only Show glossary, not Custom Figures. A name already taken can't be
 saved, as for your figures below; one of your own figures keeps its name even
 while Custom Figures is off and it isn't shown, and saving says so. Terms can
 also come from a Caller's Companion file (see [Bring your glossary terms
@@ -763,7 +763,7 @@ across](./imports.md#bring-your-glossary-terms-across)); such a term's page show
 its **Source** as the file had it.
 
 **Custom Figures** lets you make your own figures and use them in dances. It
-is **off by default**, and it doesn't need Show Glossary: with the Glossary
+is **off by default**, and it doesn't need Show glossary: with the Glossary
 hidden you can still turn it on, and use your figures everywhere. If you turned
 it on in version 0.8.0-beta or before and later turned the Glossary off, it was
 greyed out but kept its setting. It now takes effect, and your figures
@@ -774,7 +774,7 @@ is greyed out while Custom Figures is off.
 The Glossary lists them too, when it is shown. While it is on:
 
 - Choose **+**, on that screen or in the Glossary, to add a figure of your own: a name and a
-  definition (both required), **More Details** (optional), other names it can be found by,
+  definition (both required), **More details** (optional), other names it can be found by,
   notes, and the **Dance form** it's for.
 - Under **What it is**, choose a **Combination**, which becomes figures that
   come with the app when you save a dance, a **New figure**, which stays
@@ -787,7 +787,7 @@ The Glossary lists them too, when it is shown. While it is on:
 - To start from a figure that comes with the app, open it in the Glossary and
   choose **Copy as your own figure**. The editor opens on a new figure named
   after it with **(copy)** (numbered if you already have one), with its
-  definition and More Details, its beats, its wording, and the parameters that
+  definition and More details, its beats, its wording, and the parameters that
   wording uses, with their defaults (a variant, such as *pull by neighbors*,
   starts from its own). The wording is the figure's plain one where the app
   words it in a way of its own, so read it through before you save. Its
@@ -883,7 +883,7 @@ store has this version of the app or a later one. Until then changes to them
 aren't sent to your other devices, and Device Sync shows a note naming the
 device that is holding them back (see [New kinds of data wait for every
 device](#new-kinds-of-data-wait-for-every-device)). One exception, while the app
-is in beta: a figure or term saved with **More Details** left blank, or an edit
+is in beta: a figure or term saved with **More details** left blank, or an edit
 that clears it, isn't picked up by a device on an older version of the app,
 which keeps what it had until it is updated.
 
@@ -1367,7 +1367,7 @@ are.
   you choose between the versions instead — see
   [Choosing which version to keep](#choosing-which-version-to-keep).
 
-### Developer Options
+### Developer options
 
 This section is closed until you open it. Today it holds one action.
 

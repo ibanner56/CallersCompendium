@@ -170,7 +170,7 @@ void main() {
 
       expect(find.text('Light'), findsNothing);
       expect(find.text('High contrast'), findsNothing);
-      expect(find.text('Soft Dark'), findsNothing);
+      expect(find.text('Soft dark'), findsNothing);
       expect(find.text(de.appThemeGroupLight), findsWidgets);
       expect(find.text(de.appThemeGroupDark), findsWidgets);
       expect(find.text(de.appThemeLabelHighContrast), findsOneWidget);
