@@ -261,16 +261,16 @@ bool _namesSeveralPeople(String caller) {
       1;
 }
 
-/// The set caller's words from the given name on: a name suffix after a comma
-/// is dropped, and a leading dotted title or initial ("Dr. Michael Smith",
-/// "J. Michael Smith") is skipped while two words remain.
+/// The set caller's words from the given name on: a leading dotted title or
+/// initial ("Dr. Michael Smith", "J. Michael Smith") is skipped while two
+/// words remain. A trailing suffix ("Michael Smith, Jr.") is kept, as it
+/// cannot affect whether a slot name begins the caller's.
 List<String> _setCallerWords(String caller) {
-  final named = [
-    for (final part in caller.split(','))
-      if (_words(part) case final words when words.isNotEmpty)
-        if (!(words.length == 1 && _nameSuffixes.contains(words.single))) part,
-  ].join(' ');
-  final raw = named.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+  final raw = caller
+      .replaceAll(',', ' ')
+      .split(RegExp(r'\s+'))
+      .where((w) => w.isNotEmpty)
+      .toList();
   var first = 0;
   while (raw.length - first > 2 && raw[first].endsWith('.')) {
     first++;
