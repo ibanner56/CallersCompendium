@@ -248,6 +248,8 @@ Guidelines:
    ```
 3. Use it in a widget: `AppLocalizations.of(context).yourKey`. For a string with
    a placeholder, it's a method: `AppLocalizations.of(context).yourKey(value)`.
+   Write quotes and apostrophes straight (`"`, `'`); the quote-style ratchet
+   rejects curly ones in English.
 4. Commit the updated `app_en.arb` **and** the regenerated
    `app/lib/l10n/app_localizations*.dart`.
 
@@ -556,6 +558,17 @@ of stale excuses.
 Both limitations are asserted as tests in
 `tools/ci/test_check_arb_translation_coverage.py`, so they stay documented
 properties rather than becoming surprises.
+
+### The quote-style ratchet: straight quotes in English
+
+`app_en.arb` values use straight `"` and `'` (maintainer decision, 2026-10-31).
+`tools/ci/check_arb_quote_style.py` fails any new or edited English value with a
+curly quote or apostrophe; `python3 tools/ci/arb_quote_style.py` is the
+idempotent normaliser that fixes them. Values only, English only; the rule, the
+exemptions and the reasons are in the module docstrings and in the
+[style guide](../user/style-guide.md#app-strings-straight-quotes). Today's
+strings are on `tools/ci/arb_quote_allowlist.json` until the sweep empties it;
+`--regenerate` is for seeding and re-seeding that list, never for going green.
 
 ### The `arb-translate` Copilot extension
 

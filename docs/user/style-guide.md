@@ -194,6 +194,28 @@ so that a reader on any platform feels the docs are for them.
 - **Avoid platform-loaded verbs** like "force-quit" or OS-specific menu names
   unless the guide is specifically about that platform.
 
+## App strings: straight quotes
+
+The English strings in `app/lib/l10n/app_en.arb` use **straight** quotes and
+apostrophes: `"` and `'`, never the curly “ ” ‘ ’. The maintainer chose this on
+2026-10-31 (conflict 10, option "Straight everywhere") over the typographic
+alternative: straight marks are the easiest to type and to search for.
+
+- **Values only.** Keys and the `@key` metadata (developer descriptions) are not
+  user-visible and are not checked.
+- **English only.** Danish, Dutch, French, German and Japanese keep their own
+  quote conventions.
+- **Text the user types is exempt from rewriting.** If a curly character is part
+  of syntax the user types, list its key under `literal` in
+  `tools/ci/arb_quote_allowlist.json` with a reason. None exist today.
+- **How it is enforced.** `python3 tools/ci/arb_quote_style.py` rewrites
+  `app_en.arb` to the rule and is safe to re-run (it refuses to run if
+  `use-escaping` is ever enabled in `l10n.yaml`, because `'` would then stop
+  being a plain character). `tools/ci/check_arb_quote_style.py` fails any new or
+  edited string that has a curly mark. Today's strings sit on an allow-list
+  that the sweep (U5b-2) empties. The fix for a failure is the rewrite, not
+  `--regenerate`.
+
 ## Markdown conventions
 
 - One H1 (`#`) per file, matching the guide's title. **The in-app reader uses
