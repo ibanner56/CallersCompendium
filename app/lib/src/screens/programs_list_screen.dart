@@ -761,7 +761,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
                   // Row action menu (⋮): non-swipe access for mouse/keyboard/AT
                   // users. Unlike the Slidable swipe above, which deletes
                   // without a prompt, this path honours "Confirm before
-                  // delete" (confirmDeleteIfEnabled) before the shared
+                  // delete" (confirmDeleteProgramIfEnabled) before the shared
                   // soft-delete + undo flow.
                   onDelete: () async {
                     if (await confirmDeleteProgramIfEnabled(
