@@ -9,8 +9,9 @@
   },
   "core": {
     "added": [
-      "`CcUsrArchive.danceRecordIds` lists the file's `zk_Dance_ID`s, or is `null` when the file is cut short or has no `Dance` table.",
-      "`buildCcPrograms` takes `danceTitleByCcRowId` and `failedCcRowIds`, and raises `cc_program_deleted_dance` for a slot naming a dance not in the file."
+      "`CcUsrArchive.danceRecordIds` lists the file's `zk_Dance_ID`s, or is `null` when the file is cut short or damaged, has no `Dance` table, or has a `Dance` row without a `zk_Dance_ID`.",
+      "`buildCcPrograms` takes `danceTitleByCcRowId` and `failedCcRowIds`, and raises `cc_program_deleted_dance` for a slot naming a dance not in the file; a deleted dance's first alternate takes its place.",
+      "`CallersCompanionUsrImporter.commit` takes `danceTitleByCcRowId` for planned rows left out of the batch it commits."
     ]
   }
 }

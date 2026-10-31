@@ -74,8 +74,9 @@ class CcUsrArchive {
   final List<String> warnings;
 
   /// Every `zk_Dance_ID` in the file's `Dance` table, or `null` when that is
-  /// not known: the file is cut short, has no `Dance` table, or has a `Dance`
-  /// row without a `zk_Dance_ID` (the column is missing or a value blank). A `SetItem`
+  /// not known: the file is cut short or the reader warned about damage, it has
+  /// no `Dance` table, or a `Dance` row has no `zk_Dance_ID` (the column is
+  /// missing or a value blank). A `SetItem`
   /// naming an id outside a known set names a dance deleted in Caller's
   /// Companion (#1976), which `buildCcPrograms` leaves out.
   final Set<String>? danceRecordIds;
@@ -400,10 +401,12 @@ CcUsrArchive extractCcUsrArchive(
     relatedDancePairs: relatedDancePairs,
     warnings: warnings.messages,
     warningCodes: warnings.codes,
-    // A cut-short file is missing its later dances, which are not deleted;
-    // and a row with no `zk_Dance_ID` is a dance no `SetItem` id can match.
+    // A cut-short or damaged file (one the reader warned about) may be missing
+    // dances, which are not deleted; and a row with no `zk_Dance_ID` is a
+    // dance no `SetItem` id can match.
     danceRecordIds:
         db.truncated ||
+            db.warnings.isNotEmpty ||
             _findTable(db, _danceTableNames) == null ||
             dances.any((d) => d.idIsFallback)
         ? null

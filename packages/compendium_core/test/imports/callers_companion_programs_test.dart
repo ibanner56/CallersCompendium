@@ -441,6 +441,65 @@ void main() {
       ]);
     });
 
+    test('a deleted dance that took a deleted dance\'s place passes it on', () {
+      final result = build(
+        setOf(
+          [
+            CcSetItem(order: 0, danceRecordId: '4'),
+            CcSetItem(order: 1, danceRecordId: '98'),
+            CcSetItem(order: 2, danceRecordId: '99', isAlt: true),
+            CcSetItem(order: 3, danceRecordId: '7', isAlt: true),
+            CcSetItem(order: 4, danceRecordId: '9'),
+          ],
+          known: {'4', '7', '9'},
+        ),
+        danceIds: {'4': 'd4', '7': 'd7', '9': 'd9'},
+      );
+      expect(result.programs.single.slots.map((s) => (s.danceId, s.isAlt)), [
+        ('d4', false),
+        ('d7', false),
+        ('d9', false),
+      ]);
+    });
+
+    test('an empty alternate does not use up the promotion', () {
+      final result = build(
+        setOf(
+          [
+            CcSetItem(order: 0, danceRecordId: '4'),
+            CcSetItem(order: 1, danceRecordId: '98'),
+            CcSetItem(order: 2, isAlt: true),
+            CcSetItem(order: 3, danceRecordId: '7', isAlt: true),
+          ],
+          known: {'4', '7'},
+        ),
+        danceIds: {'4': 'd4', '7': 'd7'},
+      );
+      expect(result.programs.single.slots.map((s) => (s.danceId, s.isAlt)), [
+        ('d4', false),
+        ('d7', false),
+      ]);
+    });
+
+    test('a deleted dance\'s break after another break is not doubled', () {
+      final result = build(
+        setOf(
+          [
+            CcSetItem(order: 0, danceRecordId: '4', breakAfter: true),
+            CcSetItem(order: 1, danceRecordId: '98', breakAfter: true),
+            CcSetItem(order: 2, danceRecordId: '9'),
+          ],
+          known: {'4', '9'},
+        ),
+        danceIds: {'4': 'd4', '9': 'd9'},
+      );
+      expect(result.programs.single.slots.map((s) => s.danceId ?? s.text), [
+        'd4',
+        Program.breakSlotText,
+        'd9',
+      ]);
+    });
+
     test('a deleted alternate is just left out', () {
       final result = build(
         setOf(

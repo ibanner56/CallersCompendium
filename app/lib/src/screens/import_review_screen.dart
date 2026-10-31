@@ -1466,7 +1466,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// which Skip leaves as it is (INTAKE-1). The program-carrying importers
   /// link a slot through this map when the batch commit did not write that
   /// slot's dance, so a skipped re-import no longer turns the dance's slots
-  /// into "not imported" placeholders. A row the commit did write wins over
+  /// into text (a "not imported" placeholder in a shared program, the
+  /// dance's title from a `.USR`). A row the commit did write wins over
   /// this map in the importer, and so does a `.USR` row committed through Edit
   /// (`earlierDanceIds`).
   Map<String, String> _slotDanceIdsOutsideCommit() => {
@@ -1724,14 +1725,10 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           earlierDanceIds: Map.of(_editCommittedCcDanceIds),
           earlierReimportedCcIds: Set.of(_editReimportedCcDanceIds),
           // The commit batch holds only the rows acted on; a Skip row's slot
-          // still shows its title, and a row that failed to plan says so
-          // (#1976).
+          // still shows its title (#1976).
           danceTitleByCcRowId: {
             for (final plan in _batch!.records)
               ?plan.draft.raw.externalId: plan.draft.dance.title,
-          },
-          failedCcRowIds: {
-            for (final error in _batch!.errors) ?error.externalId,
           },
         );
         if (!mounted) return;

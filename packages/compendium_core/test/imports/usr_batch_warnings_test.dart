@@ -320,6 +320,25 @@ void main() {
       expect(archive.danceRecordIds, isNull);
     });
 
+    test(
+      'a file the reader warned about does not claim to know its dances',
+      () {
+        final archive = extractCcUsrArchive(
+          FmpDatabase(
+            versionNum: 12,
+            creator: 'Pro 12.0',
+            tables: [
+              _dance([
+                FmpRecord(1, {1: '4'}),
+              ]),
+            ],
+            warnings: const ['Unrecognised chunk op-code 0x7 at offset 9.'],
+          ),
+        );
+        expect(archive.danceRecordIds, isNull);
+      },
+    );
+
     test('a file with no Dance table does not claim to know its dances', () {
       final archive = extractCcUsrArchive(_db(const []));
       expect(archive.danceRecordIds, isNull);

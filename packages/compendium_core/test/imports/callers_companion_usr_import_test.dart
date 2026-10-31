@@ -527,10 +527,10 @@ void main() {
       expect(program.slots[2].danceId, byExternal['13']);
     });
 
-    test('a row left out of the commit batch takes its title and failure '
-        'from the caller (#1976)', () async {
-      // The review screen commits only the rows it acts on; the titles and
-      // plan errors of the rest arrive beside the batch.
+    test('a row left out of the commit batch takes its title from the '
+        'caller (#1976)', () async {
+      // The review screen commits only the rows it acts on; the titles of the
+      // rest arrive beside the batch.
       final adapter = FakeSourceAdapter([
         {'id': '4', 'title': 'Simplicity Swing'},
       ]);
@@ -557,15 +557,15 @@ void main() {
         now: now,
         venueEntityMode: false,
         newId: nextId,
-        danceTitleByCcRowId: {'7': 'Petronella', '13': 'Chorus Jig'},
-        failedCcRowIds: {'13'},
+        danceTitleByCcRowId: {'7': 'Petronella'},
       );
 
       final slots = result.programs.single.slots;
       expect(slots[1].text, 'Petronella');
+      // No title for #13: the marker alone.
       expect(
         slots[2].text,
-        "Chorus Jig\n\nDance not imported (Caller's Companion dance #13)",
+        "Dance not imported (Caller's Companion dance #13)",
       );
     });
 

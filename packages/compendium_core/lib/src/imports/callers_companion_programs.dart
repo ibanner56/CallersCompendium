@@ -83,6 +83,13 @@ CcProgramsResult buildCcPrograms(
     // (#1974), so the slot waits for the next item that is not an alternate.
     var breakPending = false;
     void addBreak() {
+      // A deleted dance's break right after another break adds nothing.
+      if (slots.isNotEmpty &&
+          slots.last.danceId == null &&
+          slots.last.text == Program.breakSlotText) {
+        breakPending = false;
+        return;
+      }
       slots.add(
         ProgramSlot(
           id: mintSlotId(),
@@ -99,7 +106,8 @@ CcProgramsResult buildCcPrograms(
     for (final item in set.items) {
       String? danceId;
       String? text;
-      final isAlt = item.isAlt && !promoteAlt;
+      final promoting = promoteAlt;
+      final isAlt = item.isAlt && !promoting;
       promoteAlt = false;
       final cleanBreakText = _cleanNote(item.breakText);
       if (breakPending && !item.isAlt) {
@@ -130,7 +138,8 @@ CcProgramsResult buildCcPrograms(
             ),
           );
           if (item.breakAfter) breakPending = true;
-          promoteAlt = !item.isAlt;
+          // A deleted dance that was itself promoted passes it on.
+          promoteAlt = !isAlt;
           continue;
         }
         if (danceId == null) {
@@ -174,6 +183,8 @@ CcProgramsResult buildCcPrograms(
             message: 'Skipped an empty slot in set "$title".',
           ),
         );
+        // An empty alternate cannot take a deleted dance's place.
+        if (promoting && item.isAlt) promoteAlt = true;
         continue;
       }
 

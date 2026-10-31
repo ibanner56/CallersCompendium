@@ -699,12 +699,12 @@ declines the collapse.
   `cc_program_deleted_dance` info issue, its `Break` flag still placing the
   break and its first alternate taking its place. `CallersCompanionUsrImporter.
   commit` takes the titles from the batch's drafts and the failures from the
-  session's failed records and the batch's errors; the review screen commits
-  only the rows it acts on, so it also passes every planned row's title
-  (`danceTitleByCcRowId`) and plan error (`failedCcRowIds`). `danceRecordIds`
-  is `null` for a cut-short file, one with no `Dance` table, or one with a
-  `Dance` row lacking a `zk_Dance_ID`, whose slots keep the marker instead of
-  being dropped.
+  session's failed records; the review screen commits only the rows it acts
+  on, so it also passes every planned row's title (`danceTitleByCcRowId`).
+  `danceRecordIds` is `null` for a cut-short file or one the reader warned
+  about, one with no `Dance` table, or one with a `Dance` row lacking a
+  `zk_Dance_ID`, whose slots keep the marker instead of being dropped. (A
+  sector chain the reader stops walking without a warning is not caught.)
 - **Per-row Edit.** The review's **Import and edit** commits one `.USR` dance
   before the rest through `CallersCompanionUsrImporter.commitDances`, which runs
   the same definition, published-source and difficulty-level steps as `commit`
