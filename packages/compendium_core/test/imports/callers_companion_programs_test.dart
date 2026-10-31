@@ -265,7 +265,7 @@ void main() {
       expect(slotCallers('Mary Kate Olsen', ['Mary Kate']), [null]);
       expect(slotCallers('Mary-Kate Olsen', ['Mary-Kate']), [null]);
       expect(slotCallers('Michaela Smith', ['Michael']), ['Michael']);
-      expect(slotCallers('Michael', ['Michael Smith']), [null]);
+      expect(slotCallers('Michael Smith, Jr.', ['Michael']), [null]);
       expect(slotCallers('Michael\u00A0Smith', ['Michael']), [null]);
     });
 
@@ -280,6 +280,42 @@ void main() {
         null,
         null,
       ]);
+    });
+
+    test('a longer name than the set caller may be someone else', () {
+      expect(slotCallers('Mary', ['Mary Kate', 'Mary Lou']), [
+        'Mary Kate',
+        'Mary Lou',
+      ]);
+      expect(slotCallers('Michael', ['Michael Smith']), ['Michael Smith']);
+    });
+
+    test('initials never reduce a name to its surname', () {
+      expect(slotCallers('B. Smith', ['A. Smith', 'A. Smith']), [
+        'A. Smith',
+        'A. Smith',
+      ]);
+      expect(slotCallers('J. R. Smith', ['Smith']), ['Smith']);
+      expect(slotCallers('A Lisa', ['Lisa']), ['Lisa']);
+    });
+
+    test('a slot name of only punctuation names nobody', () {
+      expect(slotCallers('Michael Smith', ['Michael', '.']), [null, null]);
+    });
+
+    test('a set called by several people keeps its slot callers', () {
+      for (final caller in [
+        'Michael & Lisa Smith',
+        'Michael and Lisa',
+        'Michael/Lisa',
+        'Michael + Lisa',
+        'Michael Smith, Lisa Greenleaf',
+      ]) {
+        expect(slotCallers(caller, ['Michael', 'Michael']), [
+          'Michael',
+          'Michael',
+        ], reason: caller);
+      }
     });
 
     test('a co-called set keeps the other caller', () {

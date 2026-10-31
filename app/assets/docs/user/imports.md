@@ -387,12 +387,14 @@ sets works when you already have all its dances.
 Each program is named the way Caller's Companion names the set, by its date and
 location: "2024/04/20 - NEFFA Contra Party". A set with no location is named by
 its date alone, and one with no date, or a date the app cannot read, by its
-location. Importing a set again
-renames its program the same way. A slot keeps the name of the caller
-Caller's Companion recorded for it only when the set's slots name more than
-one caller, or a caller other than the one named on the set itself; on a set
-you called yourself throughout, with your name on the set, the repeated name is
-left out.
+location; with neither, it is named "Caller's Companion set" and the date as
+written. Importing a set again renames its program the same way.
+
+A slot keeps the name of the caller Caller's Companion recorded for it only
+when the set's slots name more than one caller, when a slot names someone other
+than the set's own caller, or when the set is called by several people
+("Michael Smith & Lisa Greenleaf"). On a set you called yourself throughout,
+with your name on the set, the repeated name is left out.
 
 Your **figures come across too**. Caller's Companion keeps the actual
 choreography separately from the dance record, so earlier versions of the app
