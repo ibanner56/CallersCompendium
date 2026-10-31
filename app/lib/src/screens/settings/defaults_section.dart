@@ -832,10 +832,15 @@ class _DefaultsSectionState extends State<DefaultsSection> {
         }
       }
 
-      final balanceSpec = contraTaxonomy.resolve(moveId)?.params['balance'];
+      final def = contraTaxonomy.resolve(moveId);
+      final balanceSpec = def?.params['balance'];
+      // The beats go with the balance on a move that seeds one, and on a move
+      // whose beats follow it (form short waves, #1975; Rory O'More;
+      // petronella).
       if (paramKey == 'balance' &&
           value is bool &&
-          balanceSpec?.entryDefault != null) {
+          (balanceSpec?.entryDefault != null ||
+              def?.paramBeats?.param == 'balance')) {
         final params = {...entry, ...inner};
         applyParamChange(
           contraTaxonomy,
