@@ -19,10 +19,12 @@ import 'while_container.dart' show whileModifierMoves;
 /// ([noteSwallowsPieces]).
 ///
 /// The maintainer's decisions on #1975:
-/// * **Beats.** Every figure but the last keeps its default beats and the last
-///   takes the rest (`Slide Left, Circle Left 3/4` in 8 is 2 + 6). When
-///   nothing is left for the last, the line does not split: it is not read as
-///   figures danced at the same time.
+/// * **Beats.** Every figure that takes beats keeps its default, a 0-beat
+///   figure (form short waves without its balance) takes none, and the last
+///   figure that takes beats takes the rest (`Slide Left, Circle Left 3/4` in 8
+///   is 2 + 6; `Circle Left 3/4, make short waves` is 8 + 0). When nothing is
+///   left for it, the line does not split: it is not read as figures danced at
+///   the same time.
 /// * **A balance before a move that carries one** folds into it
 ///   ([balanceFoldMoves]): `Partner R-hand balance, box the gnat` is one box
 ///   the gnat with its balance, `who` the pair that balances and `hand` its

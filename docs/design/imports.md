@@ -1874,7 +1874,8 @@ has to be judged in its own context.
   by Right, Robins allemande Left 1.0` read as a pull by noting the rest. The
   maintainer's decisions on #1975 (decision 9 and the comment of 2026-10-30):
   - **Beats:** every figure but the last keeps its default beats and the last
-    takes the rest, so `(8) Slide Left, Circle Left 3/4` is 2 + 6. When
+    takes the rest (a figure whose default is 0 beats takes none, below), so
+    `(8) Slide Left, Circle Left 3/4` is 2 + 6. When
     nothing is left for the last, the line stays text rather than becoming
     figures danced at the same time: `(8) Larks allemande Left 1.5, Robins
     Orbit CW 0.5`. The rule can leave the last figure an odd count: `(16)
