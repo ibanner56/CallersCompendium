@@ -148,7 +148,9 @@ still overlaps across sources on the named authors.
   no surviving dance still references (the repository's referenced-guard is
   respected). Pre-existing choreographers are never touched.
 - **`callingNotes` behavior change.** Author names are **no longer folded** into
-  `Dance.callingNotes`, and the old per-name `*_unresolved` info issues are removed;
+  `Dance.callingNotes` (except the Caller's Companion `Choreography: … and
+  others` line, above, which records a credit no choreographer row can hold;
+  #1976), and the old per-name `*_unresolved` info issues are removed;
   authorship now lives in `Dance.authorIds`. The per-record resolution outcome
   (matched vs created, per name) is surfaced structurally on
   `CommittedRecord.authorResolutions` for the review step.

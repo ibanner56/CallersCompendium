@@ -36,6 +36,12 @@ void main() {
         'Rick Mohr',
       ]);
       expect(peelUnnamedOthers(['Rick Mohr, Others']).fields, ['Rick Mohr']);
+      for (final sep in ['with', ';', '/', '+']) {
+        expect(peelUnnamedOthers(['Rick Mohr $sep others']).fields, [
+          'Rick Mohr',
+        ], reason: sep);
+      }
+      expect(peelUnnamedOthers(['Bob Withothers']).hadOthers, isFalse);
     });
 
     test('leaves other credits alone', () {

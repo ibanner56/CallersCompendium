@@ -244,14 +244,22 @@ const List<String> _unnamedOthers = [
       if (!lower.endsWith(credit)) continue;
       final before = lower.substring(0, lower.length - credit.length);
       // "And others" follows a name after a space; a bare "others" only after
-      // a comma or `(`, so `Bob Others` stays a name.
+      // a separator [splitAuthorNames] splits on (`,` `(` `;` `/` `+` `&` or
+      // the word "with"), so `Bob Others` stays a name.
+      final trimmed = before.trimRight();
       final follows = credit == 'others'
-          ? before.trimRight().endsWith(',') || before.trimRight().endsWith('(')
+          ? RegExp(r'[,(;/+&]$').hasMatch(trimmed) ||
+                (before.endsWith(' ') &&
+                    (trimmed == 'with' || trimmed.endsWith(' with')))
           : before.endsWith(' ') ||
                 before.endsWith(',') ||
                 before.endsWith('(');
       if (before.isEmpty || before == '(' || follows) {
         cut = field.length - credit.length;
+        // "with" is the separator, not part of the name before it.
+        if (credit == 'others' && trimmed.endsWith('with')) {
+          cut = trimmed.length - 'with'.length;
+        }
         break;
       }
     }
@@ -260,7 +268,7 @@ const List<String> _unnamedOthers = [
       continue;
     }
     hadOthers = true;
-    while (cut! > 0 && ' ,('.contains(field[cut - 1])) {
+    while (cut! > 0 && ' ,(;/+&'.contains(field[cut - 1])) {
       cut--;
     }
     if (cut > 0) fields.add(field.substring(0, cut));
