@@ -2453,7 +2453,7 @@ void main() {
     expect(find.byKey(const ValueKey('add-to-program-close')), findsNothing);
   });
 
-  // ── Recently Deleted navigation ────────────────────────────────────────────
+  // ── Recently deleted navigation ────────────────────────────────────────────
 
   testWidgets(
     'recently-deleted button navigates to the RecentlyDeletedScreen',

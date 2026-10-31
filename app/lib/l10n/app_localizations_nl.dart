@@ -5954,18 +5954,18 @@ class AppLocalizationsNl extends AppLocalizations {
   String get performTitle => 'Uitvoeren';
 
   @override
-  String get performExitTooltip => 'Uitvoerweergave verlaten';
+  String get performExitTooltip => 'Uitvoeren verlaten';
 
   @override
   String get performExitTitle => 'Uitvoeren verlaten?';
 
   @override
   String get performExitBody =>
-      'De uitvoerweergave verlaten? Je plek en de lopende klok worden bewaard, zodat je kunt hervatten waar je gebleven was.';
+      'Uitvoeren verlaten? Je plek en de lopende klok worden bewaard, zodat je kunt hervatten waar je gebleven was.';
 
   @override
   String get performDanceExitBody =>
-      'De uitvoerweergave verlaten? Bij het uitvoeren van één dans wordt je plek niet bewaard, dus de volgende keer begin je opnieuw.';
+      'Uitvoeren verlaten? Bij het uitvoeren van één dans wordt je plek niet bewaard, dus de volgende keer begin je opnieuw.';
 
   @override
   String get performExitCancel => 'Doorgaan met uitvoeren';

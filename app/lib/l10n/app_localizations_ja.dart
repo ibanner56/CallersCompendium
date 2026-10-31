@@ -5672,18 +5672,18 @@ class AppLocalizationsJa extends AppLocalizations {
   String get performTitle => 'パフォーム';
 
   @override
-  String get performExitTooltip => 'パフォームビューを終了';
+  String get performExitTooltip => 'パフォームを終了';
 
   @override
   String get performExitTitle => 'パフォームを終了しますか？';
 
   @override
   String get performExitBody =>
-      'パフォームビューを終了しますか？位置と実行中のタイマーは保持されるため、中断した場所から再開できます。';
+      'パフォームを終了しますか？位置と実行中のタイマーは保持されるため、中断した場所から再開できます。';
 
   @override
   String get performDanceExitBody =>
-      'パフォームビューを終了しますか？単一のダンスのパフォームでは位置は保持されないため、次回は最初から始まります。';
+      'パフォームを終了しますか？単一のダンスのパフォームでは位置は保持されないため、次回は最初から始まります。';
 
   @override
   String get performExitCancel => 'パフォームを続ける';

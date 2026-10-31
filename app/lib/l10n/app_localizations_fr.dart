@@ -5995,18 +5995,18 @@ class AppLocalizationsFr extends AppLocalizations {
   String get performTitle => 'Perform';
 
   @override
-  String get performExitTooltip => 'Quitter la vue Perform';
+  String get performExitTooltip => 'Quitter Perform';
 
   @override
   String get performExitTitle => 'Quitter Perform ?';
 
   @override
   String get performExitBody =>
-      'Quitter la vue Perform ? Votre position et le chrono en cours sont conservés, vous pouvez reprendre là où vous en étiez.';
+      'Quitter Perform ? Votre position et le chrono en cours sont conservés, vous pouvez reprendre là où vous en étiez.';
 
   @override
   String get performDanceExitBody =>
-      'Quitter la vue Perform ? La présentation d’une seule danse ne conserve pas votre position ; la prochaine fois, elle repartira de zéro.';
+      'Quitter Perform ? La présentation d’une seule danse ne conserve pas votre position ; la prochaine fois, elle repartira de zéro.';
 
   @override
   String get performExitCancel => 'Continuer';

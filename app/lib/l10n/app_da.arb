@@ -5878,7 +5878,7 @@
   "@performTitle": {
     "x-sourceSha256": "6adb770a21ae7200bfac6d1e694fc76b3e8b8166c788022362ed1e66055ab88a"
   },
-  "performExitTooltip": "Afslut fremførelsesvisning",
+  "performExitTooltip": "Afslut Fremfør",
   "@performExitTooltip": {
     "x-sourceSha256": "f32f8eabfc151cc0fc5bf23346dbf4fae98e4651180e24e9bc2db782acf161fb"
   },
@@ -5886,11 +5886,11 @@
   "@performExitTitle": {
     "x-sourceSha256": "05f34c2fcc32861d8d4f88635e026ddb3e728884f72be8249bb370eadf3338dd"
   },
-  "performExitBody": "Forlad fremførelsesvisningen? Din placering og det kørende ur bevares, så du kan genoptage når som helst.",
+  "performExitBody": "Forlad Fremfør? Din placering og det kørende ur bevares, så du kan genoptage når som helst.",
   "@performExitBody": {
     "x-sourceSha256": "432007a3c48d257c1346100918b110e8c22e660455d2a3f58c466cea7f8162c4"
   },
-  "performDanceExitBody": "Forlad fremførelsesvisningen? Når du fremfører en enkelt dans, gemmes din placering ikke, så næste gang starter forfra.",
+  "performDanceExitBody": "Forlad Fremfør? Når du fremfører en enkelt dans, gemmes din placering ikke, så næste gang starter forfra.",
   "@performDanceExitBody": {
     "x-sourceSha256": "b6ff050aa1203d57274da113489f60011a83823c770fecebb5acf6c6413ff667"
   },

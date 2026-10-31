@@ -1666,7 +1666,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
     );
   }
 
-  /// Moves the selected dances to Recently Deleted in one transaction
+  /// Moves the selected dances to Recently deleted in one transaction
   /// ([DanceRepository.softDeleteMany]), behind the same *Confirm before
   /// delete* gate as the row menu (N4-4 = a). Undo restores exactly the dances
   /// this call deleted, through [DanceRepository.restoreMany], so it revives

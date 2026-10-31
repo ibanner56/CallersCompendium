@@ -5976,18 +5976,18 @@ class AppLocalizationsDe extends AppLocalizations {
   String get performTitle => 'Perform';
 
   @override
-  String get performExitTooltip => 'Perform-Ansicht verlassen';
+  String get performExitTooltip => 'Perform verlassen';
 
   @override
   String get performExitTitle => 'Perform verlassen?';
 
   @override
   String get performExitBody =>
-      'Perform-Ansicht verlassen? Ihr Platz und die laufende Uhr werden gespeichert, sodass Sie dort weitermachen können, wo Sie aufgehört haben.';
+      'Perform verlassen? Ihr Platz und die laufende Uhr werden gespeichert, sodass Sie dort weitermachen können, wo Sie aufgehört haben.';
 
   @override
   String get performDanceExitBody =>
-      'Perform-Ansicht verlassen? Beim Perform eines einzelnen Tanzes wird Ihr Platz nicht gespeichert, daher beginnt es beim nächsten Mal von vorn.';
+      'Perform verlassen? Beim Perform eines einzelnen Tanzes wird Ihr Platz nicht gespeichert, daher beginnt es beim nächsten Mal von vorn.';
 
   @override
   String get performExitCancel => 'Weitermachen';

@@ -5915,18 +5915,18 @@ class AppLocalizationsDa extends AppLocalizations {
   String get performTitle => 'Fremfør';
 
   @override
-  String get performExitTooltip => 'Afslut fremførelsesvisning';
+  String get performExitTooltip => 'Afslut Fremfør';
 
   @override
   String get performExitTitle => 'Afslut Fremfør?';
 
   @override
   String get performExitBody =>
-      'Forlad fremførelsesvisningen? Din placering og det kørende ur bevares, så du kan genoptage når som helst.';
+      'Forlad Fremfør? Din placering og det kørende ur bevares, så du kan genoptage når som helst.';
 
   @override
   String get performDanceExitBody =>
-      'Forlad fremførelsesvisningen? Når du fremfører en enkelt dans, gemmes din placering ikke, så næste gang starter forfra.';
+      'Forlad Fremfør? Når du fremfører en enkelt dans, gemmes din placering ikke, så næste gang starter forfra.';
 
   @override
   String get performExitCancel => 'Fortsæt fremførelse';
