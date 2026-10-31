@@ -252,9 +252,10 @@ core method or a dialog that does not exist yet.
 
 The two field writes (status, source) are `_updateMany` calls. That gives them the transaction and the `localUserEdit` stamp the
 existing handlers use. **Delete is the exception.** It is an existence
-transition (`_stampExistence`, `dance_repository.dart:1881-1882`), not a content
+transition (`_stampExistence` in `dance_repository.dart`), not a content
 edit, so `softDeleteMany` and `restoreMany` loop over `softDelete` and `restore`
-inside one transaction. They cannot use `_updateMany`, which only selects live
+inside one transaction (as built, `restoreMany` runs `restore`'s own body over
+all of them at once; see *Built in S3*). They cannot use `_updateMany`, which only selects live
 rows (`deletedAt.isNull()`, `:2424-2458`) and would skip every dance a restore
 has to revive. Add to program writes programs, not dances. `Dance.copyWith`
 already carries `status` and `sourceCitations`
@@ -268,7 +269,7 @@ Undo (F14's pattern: `_undoBatchLevel`, `:1627`). The trash holds them for the
 retention window (30 days by default; `docs/user/collection.md:377-382`).
 
 **Why a core method, not a loop in the screen.** `restore` also rebuilds the
-dance's derived rows and clears a pending sync deletion (`:1914-1932`). B9 is
+dance's derived rows and clears a pending sync deletion (`restore`). B9 is
 about to add reference revival to that same method (`decided-work-plan.md`, B9).
 `restoreMany` must therefore **call the same single-dance logic inside one
 transaction**, never a second SQL path, so B9's revival applies to bulk Undo
@@ -327,6 +328,45 @@ delete does not copy it.
   and survive the delete, so whether any dance tombstone is held back is **not
   verified here**; S3 checks it against §6.8 before it ships. The cost of a very large delete (every dance in a 5,000-row
   collection) has **not been measured** and is a risk named below.
+
+*Built in S3* (2026-10-30). `softDeleteMany` runs `softDelete` for each live
+selected dance in one transaction and returns the ids it deleted; Undo passes
+exactly those to `restoreMany`, so a dance that was already in the trash stays
+there. `restoreMany` skips a dance that is live again or permanently deleted.
+The confirmation is `confirmDeleteDancesIfEnabled`, the row menu's dialog with a
+body that gives the count and, as Q1 asks, how many of them a search hides. The rows leave and return through the `dances` stream: the widget
+test needs neither `_results` editing nor `_boot()`, which settles the open
+point above. Implementer's calls, not maintainer decisions:
+
+- `restore` and `restoreMany` share one private body, `_restoreAll`, with
+  `restore` as its one-dance case. Each step runs for every dance before the
+  next (revivals, existence stamps, the index rebuild, pending deletions).
+  Many dances are rebuilt together by `_reindexDerived`; one dance keeps the
+  per-dance rebuild, because `_reindexDerived` reads its lookups from whole
+  tables and the archive merge restores one dance at a time.
+  Looping `restore` rebuilt the search index one dance at a time, scanning both
+  FTS tables each time, so a 5,000-dance Undo took about 25 s. Rejected: a loop
+  over `restore`, as this note first said, for that cost; and a separate bulk
+  SQL path, which this note rules out. A single restore does what it did
+  before.
+- The screen-reader announcement is the longer "Deleted 12 dances. Restore them
+  from Recently Deleted."; the snackbar shows "Deleted 12 dances".
+
+**§6.8, checked.** A peer holds an inbound dance tombstone pending only while a
+live program slot or a live dance's link still cites the dance
+(`sync_storage.dart`, `_hasCitation`). It keeps that dance live there and
+advertises it as deleted until the citation goes. That is per dance, so N bulk
+tombstones behave as N single deletes, and this device holds nothing back for
+its own deletes. Undo runs `restore`'s own body with its defaults, so a revived
+reference behaves exactly as in a single restore, including B9's open question
+on a revival under a peer's held tombstone. Nothing here changes the spec.
+
+**Measured** (in-memory database, desktop-class container; no device claim):
+on 5,000 dances `softDeleteMany` took 60–104 ms and `restoreMany` 1.3 s (it
+was 25 s with a `restore` per dance). A local sync snapshot (`snapshot()`, the
+scan that builds the next pass, without network or encryption) took about
+4.1–4.8 s before and after the delete, so the 5,000 tombstones cost the scan
+nothing extra.
 
 ### Status
 
@@ -449,8 +489,8 @@ or a settings key, so **§6.15 (capability gate, `:4417`) and §6.6 (id aliases,
 with `localUserEdit: true`, the provenance §6.8 (`:3722`) counts as a deliberate
 local edit. Delete and its Undo are not content edits: they are existence
 transitions stamped by `_stampExistence`, which §6.8 handles separately.
-`restoreMany` goes through `restore`, which clears a pending deletion itself
-(`:1914-1932`). If a later
+`restoreMany` runs `restore`'s own body, which clears a pending deletion itself
+(`_restoreAll`). If a later
 decision adds a new kind (for example, a persisted saved selection), that goes
 through §6.6 and §6.15 first. Nothing here should.
 
@@ -478,7 +518,7 @@ them.
 Undo and a failure path. The new handlers copy `_batchSetLevel` and
 `_undoBatchLevel` (`:1545`, `:1627`) and `_finishBatch` (`:1646`).
 
-**B8 and B9.** Covered under Delete. `restoreMany` calls the single `restore`
+**B8 and B9.** Covered under Delete. `restoreMany` runs the single `restore`'s body
 inside one transaction.
 
 **B14 (picker parity).** B14 extracts Collection's private search controls into
@@ -589,6 +629,9 @@ list; for S3, a failure mid-batch must leave every dance live.
   (in-memory database, no device claim): the handler took about 5.6–6.1 s with a
   `getById` per dance and about 3.2–3.5 s with one `getByIds`; `setStatusForMany`
   itself takes about 0.9 s of that (core harness). The level, rating, tunes and
-  custom-field handlers still read per dance.
-- **Sync after a mass delete.** 5,000 tombstones in the next pass is untested.
-- **Menu length** at 320 × 568 with the grouped menu (up to 9 entries and three dividers): S4 checks the menu as built (five entries and one divider after Select all) at 320 × 568 and 2× text in `test/screens/batch_status_test.dart`; it scrolls rather than overflowing. Re-check as S3, S5 and the Add source branch add entries.
+  custom-field handlers still read per dance. S3's Delete reads no priors; its
+  figures are under Delete.
+- **Sync after a mass delete.** S3 timed the local snapshot scan with 5,000
+  tombstones (see Delete); a full pass to a server, with encryption and upload,
+  is still untimed.
+- **Menu length** at 320 × 568 with the grouped menu (up to 9 entries and three dividers): S4 checks the menu as built (five entries and one divider after Select all) at 320 × 568 and 2× text in `test/screens/batch_status_test.dart`; it scrolls rather than overflowing. Re-check as S3, S5 and the Add source branch add entries. S3 re-checked it with Delete last (six entries, two dividers): the menu scrolls to Delete and it works (`test/screens/batch_delete_test.dart`).

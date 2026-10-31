@@ -458,6 +458,18 @@ abstract class AppLocalizations {
   /// **'“{itemLabel}” will be deleted. You can undo this.'**
   String confirmDeleteBody(String itemLabel);
 
+  /// Body of the confirm-before-delete dialog when several selected dances are deleted at once from Collection's selection mode (shown only when the 'Confirm before delete' setting is on). {count} includes selected dances the current search hides.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 dance will be deleted. You can undo this.} other{{count} dances will be deleted. You can undo this.}}'**
+  String confirmDeleteDancesBody(int count);
+
+  /// Body of the confirm-before-delete dialog for a batch delete from Collection's selection mode when some selected dances are hidden by the current search or filters. {count} is every selected dance; {notShown} (at least 1) is how many of them the list does not show.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 dance will be deleted. Your search hides it. You can undo this.} other{{count} dances will be deleted, {notShown} of them hidden by your search. You can undo this.}}'**
+  String confirmDeleteDancesNotShownBody(int count, int notShown);
+
   /// Field label for the hexadecimal colour input in the shared colour-picker dialog.
   ///
   /// In en, this message translates to:
@@ -6434,6 +6446,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{Cleared field on 1 dance} other{Cleared field on {count} dances}}'**
   String collectionBatchCustomFieldCleared(int count);
+
+  /// Snackbar confirming the selected dances were moved to Recently Deleted by Collection's batch Delete; it carries an Undo action.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Deleted 1 dance} other{Deleted {count} dances}}'**
+  String collectionBatchDeleted(int count);
+
+  /// Screen-reader announcement after Collection's batch Delete. Names Recently Deleted (the screen's title, recentlyDeletedTitle) so the way back outlasts the timed Undo snackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Deleted 1 dance. Restore it from Recently Deleted.} other{Deleted {count} dances. Restore them from Recently Deleted.}}'**
+  String collectionBatchDeletedAnnouncement(int count);
 
   /// Accessible label for the per-row selection checkbox in batch mode.
   ///

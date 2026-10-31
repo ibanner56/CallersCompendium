@@ -242,6 +242,30 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String confirmDeleteDancesBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dansen worden verwijderd. Je kunt dit ongedaan maken.',
+      one: '1 dans wordt verwijderd. Je kunt dit ongedaan maken.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String confirmDeleteDancesNotShownBody(int count, int notShown) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count dansen worden verwijderd, waarvan $notShown verborgen door je zoekopdracht. Je kunt dit ongedaan maken.',
+      one:
+          '1 dans wordt verwijderd. Je zoekopdracht verbergt hem. Je kunt dit ongedaan maken.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get colorEditHexLabel => 'Hex';
 
   @override
@@ -4231,6 +4255,28 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other: 'Veld gewist van $count dansen',
       one: 'Veld gewist van 1 dans',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionBatchDeleted(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dansen verwijderd',
+      one: '1 dans verwijderd',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionBatchDeletedAnnouncement(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dansen verwijderd. Herstel ze via Onlangs verwijderd.',
+      one: '1 dans verwijderd. Herstel hem via Onlangs verwijderd.',
     );
     return '$_temp0';
   }
