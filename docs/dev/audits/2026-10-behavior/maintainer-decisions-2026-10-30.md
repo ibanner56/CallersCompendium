@@ -523,6 +523,13 @@ The orchestrating session reads this as follows:
 
 Q-1 to Q-5 and Q-7 in `followups-triage.md` are still open.
 
+### Conflict 10, quote style for U5b (2026-10-31 ~16:55 UTC)
+**Question:** U5b-1 builds the quote normaliser and its CI guard for the English app text (about 318 strings). Which style should it enforce?
+
+**Decision (maintainer's choice):** "Straight everywhere". Its description: "Normalise to \" and '. Simplest to type and grep, less typographic."
+
+This differs from the plan's recommendation (curly in prose). U5b-1's tool and ratchet enforce straight double quotes and straight apostrophes in `app_en.arb`. Other locales keep their own conventions (the plan's call). Test fixtures that assert English, and ICU syntax (no `use-escaping`), are handled as the plan says.
+
 ## Still open
 
 - Nothing on the decision page.
