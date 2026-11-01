@@ -203,8 +203,18 @@ void main() {
 
       // Only the planned dance is numbered: the alternate shows ALT and the
       // break has no number, as in the set list's text and PDF (GIG-10).
-      expect(find.text('1'), findsOneWidget);
-      expect(find.text('2'), findsNothing);
+      // Scoped to the summary pane: the program list beside it carries a
+      // "this week" calendar strip whose day numbers come from the wall clock
+      // and collide with '1'/'2' in the week around the 1st and 2nd.
+      final summary = find.byType(ProgramSummaryPane);
+      expect(
+        find.descendant(of: summary, matching: find.text('1')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: summary, matching: find.text('2')),
+        findsNothing,
+      );
 
       // All three slots render.
       expect(find.text('Chase the Squirrel'), findsOneWidget);
