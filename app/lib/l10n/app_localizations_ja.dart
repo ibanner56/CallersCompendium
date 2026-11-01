@@ -7184,6 +7184,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importIssueProgramEmptySlot => 'プログラム内の空のスロットをスキップしました。';
 
   @override
+  String get importIssueProgramDeletedDance =>
+      'プログラムが Caller\'s Companion で削除されたダンスを参照していたため、そのスロットを省きました。';
+
+  @override
   String get importIssueProgramUnresolvedDance =>
       'プログラムがインポートされていないダンスを参照していたため、スロットをテキストのプレースホルダーとして保持しました。';
 

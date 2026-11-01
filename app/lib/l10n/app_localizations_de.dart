@@ -7569,6 +7569,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Ein leerer Programmplatz wurde übersprungen.';
 
   @override
+  String get importIssueProgramDeletedDance =>
+      'Ein Programm verwies auf einen Tanz, der in Caller\'s Companion gelöscht wurde; der Platz wurde weggelassen.';
+
+  @override
   String get importIssueProgramUnresolvedDance =>
       'Ein Programm verwies auf einen Tanz, der nicht importiert wurde; der Platz wurde als Text-Platzhalter beibehalten.';
 

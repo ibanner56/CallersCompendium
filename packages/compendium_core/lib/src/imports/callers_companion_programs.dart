@@ -40,12 +40,27 @@ class CcProgramsResult {
 /// this PR (see the PR notes).
 ///
 /// **Parse-never-fails:** an unresolved dance reference, an unparseable event
-/// date, or an empty slot degrades to an [ImportIssue] + a graceful fallback
-/// (a text slot noting the missing dance, a null date, a skipped empty slot) —
-/// never a throw.
+/// date, or an empty slot degrades to a graceful fallback (a text slot or a
+/// left-out slot, below; a null date; a skipped empty slot), with an
+/// [ImportIssue] where the person should hear of it — never a throw.
+///
+/// **A dance that did not commit** (maintainer decisions on #1976,
+/// 2026-10-30): a slot naming a CC dance [danceIdByCcRowId] does not resolve
+/// becomes
+/// - nothing, with an info issue, when the dance is not in the file's `Dance`
+///   table ([CcUsrArchive.danceRecordIds]): it was deleted in Caller's
+///   Companion;
+/// - its title then a `Dance not imported (…)` line, with a warning, when it
+///   is in [failedCcRowIds]: its commit failed;
+/// - its title alone, from [danceTitleByCcRowId], when the import left it out
+///   (Skip in review, or an ambiguous row an unattended import skipped);
+/// - the `Dance not imported (…)` line alone, with a warning, when there is
+///   no title to give.
 CcProgramsResult buildCcPrograms(
   CcUsrArchive archive, {
   required Map<String, String> danceIdByCcRowId,
+  Map<String, String> danceTitleByCcRowId = const {},
+  Set<String> failedCcRowIds = const {},
   String Function()? newId,
   String Function()? newSlotId,
   DateTime? now,
@@ -64,9 +79,19 @@ CcProgramsResult buildCcPrograms(
     final slots = <ProgramSlot>[];
     var position = 0;
     // A dance flagged `Break` puts the break after it and its alternates
-    // (#1974), so the slot waits for the next item that is not an alternate.
+    // (#1974): the break is pending until the next item that is not an
+    // alternate in the file ends that group, and is then due before the next
+    // slot kept, which may be a left-out dance's promoted alternate (#1976).
     var breakPending = false;
+    var breakDue = false;
+    // Places the due break; a break a left-out dance has just made pending
+    // for its own group stays pending.
     void addBreak() {
+      breakDue = false;
+      // Nothing to break between at the start, and a break right after
+      // another (a deleted dance's, #1976) adds nothing.
+      // An alternate break does not count: hiding alternates would hide it.
+      if (slots.isEmpty || (slots.last.isBreak && !slots.last.isAlt)) return;
       slots.add(
         ProgramSlot(
           id: mintSlotId(),
@@ -74,44 +99,69 @@ CcProgramsResult buildCcPrograms(
           text: Program.breakSlotText,
         ),
       );
-      breakPending = false;
     }
 
+    // A left-out dance's first alternate takes its place (#1976), as removing
+    // a slot in the program editor promotes one.
+    var promoteAlt = false;
     for (final item in set.items) {
       String? danceId;
       String? text;
+      final promoting = promoteAlt;
+      final isAlt = item.isAlt && !promoting;
+      promoteAlt = false;
       final cleanBreakText = _cleanNote(item.breakText);
       if (breakPending && !item.isAlt) {
-        // Unless the set already has its own break slot here.
-        final isOwnBreak =
-            item.danceRecordId == null &&
-            cleanBreakText?.trim().toLowerCase() ==
-                Program.breakSlotText.toLowerCase();
-        if (isOwnBreak) {
-          breakPending = false;
-        } else {
-          addBreak();
-        }
+        breakPending = false;
+        breakDue = true;
       }
-      if (item.danceRecordId != null) {
-        danceId = danceIdByCcRowId[item.danceRecordId];
-        if (danceId == null) {
-          // The referenced dance was not imported/committed; keep the slot as
-          // a placeholder text note rather than dropping it silently.
-          text =
-              cleanBreakText ??
-              "$kUnresolvedDanceMarkerPrefix"
-                  "Caller's Companion dance #${item.danceRecordId})";
+      if (item.danceRecordId case final ccId?) {
+        danceId = danceIdByCcRowId[ccId];
+        final known = archive.danceRecordIds;
+        if (danceId == null && known != null && !known.contains(ccId)) {
+          // Deleted in Caller's Companion: nothing to show (#1976, 5c). Its
+          // break still follows it and its alternates.
           issues.add(
             ImportIssue(
-              severity: ImportIssueSeverity.warning,
-              code: 'cc_program_unresolved_dance',
+              severity: ImportIssueSeverity.info,
+              code: 'cc_program_deleted_dance',
               message:
-                  'Set "$title" references dance '
-                  '#${item.danceRecordId}, which was not imported; kept the '
-                  'slot as a text placeholder.',
+                  'Set "$title" references dance #$ccId, which is not in the '
+                  'file; left the slot out.',
             ),
           );
+          if (item.breakAfter) breakPending = true;
+          // A deleted dance that was itself promoted passes it on.
+          promoteAlt = !isAlt;
+          continue;
+        }
+        if (danceId == null) {
+          final danceTitle = _cleanLine(danceTitleByCcRowId[ccId]);
+          final marker =
+              "$kUnresolvedDanceMarkerPrefix"
+              "Caller's Companion dance #$ccId)";
+          if (cleanBreakText == null &&
+              danceTitle != null &&
+              !failedCcRowIds.contains(ccId)) {
+            // Left out of the import on purpose: the title reads as the slot.
+            text = danceTitle;
+          } else {
+            // The marker sits on its own line, after a blank line, as
+            // `danceTitleFromSlotNote` expects. A slot's own text, which a
+            // real file never gives a dance slot, wins as before.
+            text =
+                cleanBreakText ??
+                (danceTitle == null ? marker : '$danceTitle\n\n$marker');
+            issues.add(
+              ImportIssue(
+                severity: ImportIssueSeverity.warning,
+                code: 'cc_program_unresolved_dance',
+                message:
+                    'Set "$title" references dance #$ccId, which was not '
+                    'imported; kept the slot as a text placeholder.',
+              ),
+            );
+          }
         }
       } else {
         text = cleanBreakText;
@@ -126,23 +176,43 @@ CcProgramsResult buildCcPrograms(
             message: 'Skipped an empty slot in set "$title".',
           ),
         );
+        // An empty alternate cannot take a left-out dance's place, and an
+        // empty dance's alternate takes its place.
+        promoteAlt = (promoting && item.isAlt) || !isAlt;
         continue;
       }
 
+      if (breakDue) {
+        // Unless this slot is a break already: the set's own, or a left-out
+        // dance titled "Break", which would otherwise read as a second one.
+        // (`!isAlt` is defensive: the first slot kept after a break falls due
+        // is never an alternate, as promotion passes through left-out items.)
+        final isOwnBreak =
+            !isAlt &&
+            text?.trim().toLowerCase() == Program.breakSlotText.toLowerCase();
+        if (isOwnBreak) {
+          breakDue = false;
+        } else {
+          addBreak();
+        }
+      }
       slots.add(
         ProgramSlot(
           id: mintSlotId(),
           position: position++,
           danceId: danceId,
           text: text,
-          isAlt: item.isAlt,
+          isAlt: isAlt,
           guestCaller: _cleanLine(item.guestCaller),
           danceMinutes: item.minutes,
         ),
       );
       if (item.breakAfter) breakPending = true;
     }
-    if (breakPending) addBreak();
+    if (breakPending || breakDue) {
+      breakPending = false;
+      addBreak();
+    }
     // Decided on the slots built, so a skipped item's caller does not count.
     final keptSlots = _keepsSlotCallers(slots, set.caller)
         ? slots

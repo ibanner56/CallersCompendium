@@ -9736,6 +9736,10 @@
   "@importIssueProgramEmptySlot": {
     "description": "Import note: an empty program/set slot was skipped."
   },
+  "importIssueProgramDeletedDance": "A program referenced a dance deleted in Caller's Companion; left that slot out.",
+  "@importIssueProgramDeletedDance": {
+    "description": "Import note: a Caller's Companion set slot pointed at a dance that is no longer in the file (deleted in Caller's Companion), so the slot was left out of the program."
+  },
   "importIssueProgramUnresolvedDance": "A program referenced a dance that wasn't imported; kept the slot as a text placeholder.",
   "@importIssueProgramUnresolvedDance": {
     "description": "Import note: a program slot pointed at a dance that wasn't part of the import; the slot was preserved as free text."

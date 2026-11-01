@@ -7454,6 +7454,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Skipped an empty slot in a program.';
 
   @override
+  String get importIssueProgramDeletedDance =>
+      'A program referenced a dance deleted in Caller\'s Companion; left that slot out.';
+
+  @override
   String get importIssueProgramUnresolvedDance =>
       'A program referenced a dance that wasn\'t imported; kept the slot as a text placeholder.';
 
