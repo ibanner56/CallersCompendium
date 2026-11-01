@@ -352,7 +352,9 @@ void main() {
       expect(loaded, isNotNull);
       expect(loaded!.title, '2020/03/14 - Grange Hall');
       expect(loaded.eventDate, DateTime.utc(2020, 3, 14));
-      expect(loaded.slots, hasLength(4));
+      // The slot naming dance #99, which the file does not have, is left out:
+      // it was deleted in Caller's Companion (#1976).
+      expect(loaded.slots, hasLength(3));
 
       // Slots resolve to the *new* Compendium dance ids the commit minted.
       expect(loaded.slots[0].danceId, byExternal['4']);
@@ -360,14 +362,45 @@ void main() {
       // Text-only break slot.
       expect(loaded.slots[2].danceId, isNull);
       expect(loaded.slots[2].text, 'Waltz break');
-      // Reference to a dance absent from the file degrades to a placeholder.
-      expect(loaded.slots[3].danceId, isNull);
-      expect(loaded.slots[3].text, contains('99'));
       expect(
-        result.programIssues.any(
-          (i) => i.code == 'cc_program_unresolved_dance',
-        ),
-        isTrue,
+        result.programIssues.map((i) => i.code),
+        contains('cc_program_deleted_dance'),
+      );
+      expect(
+        result.programIssues.map((i) => i.code),
+        isNot(contains('cc_program_unresolved_dance')),
+      );
+    });
+
+    test('a dance whose commit fails keeps its title and the marker '
+        '(#1976)', () async {
+      final failing = _FailingCreateDanceRepository(db, title: 'Petronella');
+      final failingImporter = CallersCompanionUsrImporter(
+        ImportPipeline(failing, choreographers),
+        programs,
+        venues,
+        customFieldDefs,
+        publishedSources: PublishedSourceRepository(db),
+        difficultyLevels: DifficultyLevelRepository(db),
+      );
+      final result = await failingImporter.import(
+        _ccUsrBytes(),
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+        newSlotId: sequentialIds(),
+      );
+
+      expect(result.danceSession.committedCount, 1);
+      final program = result.programs.single;
+      expect(program.slots[1].danceId, isNull);
+      expect(
+        program.slots[1].text,
+        "Petronella\n\nDance not imported (Caller's Companion dance #7)",
+      );
+      expect(
+        result.programIssues.map((i) => i.code),
+        contains('cc_program_unresolved_dance'),
       );
     });
 
@@ -486,11 +519,54 @@ void main() {
       expect(byExternal.containsKey('7'), isFalse);
 
       final program = result.programs.single;
-      // #1 and #3 resolve to the correct new ids; the skipped middle degrades.
+      // #1 and #3 resolve to the correct new ids; the skipped middle is its
+      // title, with no marker (#1976).
       expect(program.slots[0].danceId, byExternal['4']);
       expect(program.slots[1].danceId, isNull);
-      expect(program.slots[1].text, contains('7'));
+      expect(program.slots[1].text, 'Petronella');
       expect(program.slots[2].danceId, byExternal['13']);
+    });
+
+    test('a row left out of the commit batch takes its title from the '
+        'caller (#1976)', () async {
+      // The review screen commits only the rows it acts on; the titles of the
+      // rest arrive beside the batch.
+      final adapter = FakeSourceAdapter([
+        {'id': '4', 'title': 'Simplicity Swing'},
+      ]);
+      final planned = await pipeline.plan(adapter, const ImportRequest());
+      final archive = CcUsrArchive(
+        dances: const [],
+        sets: [
+          CcSet(
+            recordId: '1',
+            location: 'Grange Hall',
+            items: [
+              CcSetItem(order: 1, danceRecordId: '4'),
+              CcSetItem(order: 2, danceRecordId: '7'),
+              CcSetItem(order: 3, danceRecordId: '13'),
+            ],
+          ),
+        ],
+        warnings: const [],
+      );
+
+      final result = await importer.commit(
+        planned,
+        archive,
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+        danceTitleByCcRowId: {'7': 'Petronella'},
+      );
+
+      final slots = result.programs.single.slots;
+      expect(slots[1].text, 'Petronella');
+      // No title for #13: the marker alone.
+      expect(
+        slots[2].text,
+        "Dance not imported (Caller's Companion dance #13)",
+      );
     });
 
     test('a dance skipped at commit is excluded from the map', () async {
@@ -540,15 +616,14 @@ void main() {
       expect(byExternal.keys, ['4']);
 
       final program = result.programs.single;
-      // The committed dance resolves; the skipped one degrades to a placeholder.
+      // The committed dance resolves; the skipped one is its title, with no
+      // marker and no warning (#1976).
       expect(program.slots[0].danceId, byExternal['4']);
       expect(program.slots[1].danceId, isNull);
-      expect(program.slots[1].text, contains('7'));
+      expect(program.slots[1].text, 'Petronella');
       expect(
-        result.programIssues.any(
-          (i) => i.code == 'cc_program_unresolved_dance',
-        ),
-        isTrue,
+        result.programIssues.map((i) => i.code),
+        isNot(contains('cc_program_unresolved_dance')),
       );
 
       // Undo still reverts the one dance and the program.
@@ -745,12 +820,15 @@ void main() {
           isNull,
           reason: 'no "Dance not imported" placeholder for a dance we have',
         );
-        // Only the dance that truly is not in the collection (#99) is a note.
+        // The dance not in the file (#99) is left out, and nothing is a
+        // "not imported" note (#1976).
         expect(
-          second.programIssues
-              .where((i) => i.code == 'cc_program_unresolved_dance')
-              .length,
-          1,
+          second.programIssues.map((i) => i.code),
+          isNot(contains('cc_program_unresolved_dance')),
+        );
+        expect(
+          second.programIssues.map((i) => i.code),
+          contains('cc_program_deleted_dance'),
         );
         expect(
           (await dances.getById(swingId))!.title,
@@ -1959,5 +2037,22 @@ class _FailingLinkWriteDanceRepository extends DanceRepository {
       throw StateError('simulated related-link write failure');
     }
     return super.update(dance, localUserEdit: localUserEdit);
+  }
+}
+
+/// A [DanceRepository] that refuses to create the dance titled [title], so
+/// that one record of a `.USR` commit fails while the rest commit.
+class _FailingCreateDanceRepository extends DanceRepository {
+  _FailingCreateDanceRepository(CompendiumDatabase db, {required this.title})
+    : super(db, contraTaxonomy);
+
+  final String title;
+
+  @override
+  Future<void> create(Dance dance) {
+    if (dance.title == title) {
+      throw StateError('simulated dance write failure');
+    }
+    return super.create(dance);
   }
 }

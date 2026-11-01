@@ -1,14 +1,21 @@
 import 'package:compendium_core/src/imports/callers_companion_programs.dart';
 import 'package:compendium_core/src/imports/callers_companion_usr_archive.dart';
+import 'package:compendium_core/src/imports/program_slot_note.dart';
 import 'package:compendium_core/src/imports/structured_draft.dart';
 import 'package:compendium_core/src/model/enums.dart';
+import 'package:compendium_core/src/model/program.dart';
 import 'package:test/test.dart';
 
 /// Tests for [buildCcPrograms] — the pure Set/SetItem → Program builder. Built
 /// against hand-constructed [CcUsrArchive]s (its public constructors) so it is
 /// hermetic and Flutter-free.
-CcUsrArchive _archive(List<CcSet> sets) =>
-    CcUsrArchive(dances: const [], sets: sets, warnings: const []);
+CcUsrArchive _archive(List<CcSet> sets, {Set<String>? danceRecordIds}) =>
+    CcUsrArchive(
+      dances: const [],
+      sets: sets,
+      warnings: const [],
+      danceRecordIds: danceRecordIds,
+    );
 
 var _slot = 0;
 var _prog = 0;
@@ -25,9 +32,13 @@ void main() {
   CcProgramsResult build(
     CcUsrArchive archive, {
     Map<String, String> danceIds = const {},
+    Map<String, String> titles = const {},
+    Set<String> failed = const {},
   }) => buildCcPrograms(
     archive,
     danceIdByCcRowId: danceIds,
+    danceTitleByCcRowId: titles,
+    failedCcRowIds: failed,
     newId: mintId,
     newSlotId: mintSlot,
     now: DateTime.utc(2020),
@@ -551,6 +562,345 @@ void main() {
       expect(program.notes, 'Bring extra chairs.');
       expect(program.slots[0].guestCaller, 'Guest Caller');
       expect(program.slots[1].text, 'Waltz break');
+    });
+  });
+
+  group('a dance that did not commit (#1976 item 5)', () {
+    CcUsrArchive setOf(List<CcSetItem> items, {Set<String>? known}) => _archive(
+      [CcSet(recordId: '1', location: 'Hall', items: items)],
+      danceRecordIds: known,
+    );
+
+    test('(a) left out of the import: its title, no marker, no warning', () {
+      final result = build(
+        setOf([CcSetItem(order: 0, danceRecordId: '7')], known: {'7'}),
+        titles: {'7': 'Money Musk'},
+      );
+      expect(result.programs.single.slots.single.text, 'Money Musk');
+      expect(result.issues.map((i) => i.code), isEmpty);
+    });
+
+    test('(b) its commit failed: title, then the marker, with a warning', () {
+      final result = build(
+        setOf([CcSetItem(order: 0, danceRecordId: '7')], known: {'7'}),
+        titles: {'7': 'Money Musk'},
+        failed: {'7'},
+      );
+      final text = result.programs.single.slots.single.text!;
+      expect(
+        text,
+        "Money Musk\n\nDance not imported (Caller's Companion dance #7)",
+      );
+      expect(danceTitleFromSlotNote(text), 'Money Musk');
+      expect(result.issues.map((i) => i.code), ['cc_program_unresolved_dance']);
+    });
+
+    test('(b) failed before it had a title: the marker alone', () {
+      final result = build(
+        setOf([CcSetItem(order: 0, danceRecordId: '7')], known: {'7'}),
+        failed: {'7'},
+      );
+      expect(
+        result.programs.single.slots.single.text,
+        "Dance not imported (Caller's Companion dance #7)",
+      );
+    });
+
+    test('(c) deleted in Caller\'s Companion: left out, with an info note', () {
+      final result = build(
+        setOf(
+          [
+            CcSetItem(order: 0, danceRecordId: '4'),
+            CcSetItem(order: 1, danceRecordId: '99', breakAfter: true),
+            CcSetItem(order: 2, danceRecordId: '7'),
+          ],
+          known: {'4', '7'},
+        ),
+        danceIds: {'4': 'd4', '7': 'd7'},
+      );
+      final slots = result.programs.single.slots;
+      expect(slots.map((s) => s.danceId ?? s.text), [
+        'd4',
+        Program.breakSlotText,
+        'd7',
+      ]);
+      final issue = result.issues.single;
+      expect(issue.code, 'cc_program_deleted_dance');
+      expect(issue.severity, ImportIssueSeverity.info);
+    });
+
+    test("a deleted dance's first alternate takes its place", () {
+      final result = build(
+        setOf(
+          [
+            CcSetItem(order: 0, danceRecordId: '4'),
+            CcSetItem(order: 1, danceRecordId: '99', breakAfter: true),
+            CcSetItem(order: 2, danceRecordId: '7', isAlt: true),
+            CcSetItem(order: 3, danceRecordId: '8', isAlt: true),
+            CcSetItem(order: 4, danceRecordId: '9'),
+          ],
+          known: {'4', '7', '8', '9'},
+        ),
+        danceIds: {'4': 'd4', '7': 'd7', '8': 'd8', '9': 'd9'},
+      );
+      final slots = result.programs.single.slots;
+      expect(slots.map((s) => (s.danceId ?? s.text, s.isAlt)), [
+        ('d4', false),
+        ('d7', false),
+        ('d8', true),
+        (Program.breakSlotText, false),
+        ('d9', false),
+      ]);
+    });
+
+    test('a deleted dance that took a deleted dance\'s place passes it on', () {
+      final result = build(
+        setOf(
+          [
+            CcSetItem(order: 0, danceRecordId: '4'),
+            CcSetItem(order: 1, danceRecordId: '98'),
+            CcSetItem(order: 2, danceRecordId: '99', isAlt: true),
+            CcSetItem(order: 3, danceRecordId: '7', isAlt: true),
+            CcSetItem(order: 4, danceRecordId: '9'),
+          ],
+          known: {'4', '7', '9'},
+        ),
+        danceIds: {'4': 'd4', '7': 'd7', '9': 'd9'},
+      );
+      expect(result.programs.single.slots.map((s) => (s.danceId, s.isAlt)), [
+        ('d4', false),
+        ('d7', false),
+        ('d9', false),
+      ]);
+    });
+
+    test('an empty alternate does not use up the promotion', () {
+      final result = build(
+        setOf(
+          [
+            CcSetItem(order: 0, danceRecordId: '4'),
+            CcSetItem(order: 1, danceRecordId: '98'),
+            CcSetItem(order: 2, isAlt: true),
+            CcSetItem(order: 3, danceRecordId: '7', isAlt: true),
+          ],
+          known: {'4', '7'},
+        ),
+        danceIds: {'4': 'd4', '7': 'd7'},
+      );
+      expect(result.programs.single.slots.map((s) => (s.danceId, s.isAlt)), [
+        ('d4', false),
+        ('d7', false),
+      ]);
+    });
+
+    test('a deleted dance\'s break after another break is not doubled', () {
+      final result = build(
+        setOf(
+          [
+            CcSetItem(order: 0, danceRecordId: '4', breakAfter: true),
+            CcSetItem(order: 1, danceRecordId: '98', breakAfter: true),
+            CcSetItem(order: 2, danceRecordId: '9'),
+          ],
+          known: {'4', '9'},
+        ),
+        danceIds: {'4': 'd4', '9': 'd9'},
+      );
+      expect(result.programs.single.slots.map((s) => s.danceId ?? s.text), [
+        'd4',
+        Program.breakSlotText,
+        'd9',
+      ]);
+    });
+
+    test("the set's own break after a deleted dance is not doubled", () {
+      for (final own in ['Break', 'break']) {
+        final result = build(
+          setOf(
+            [
+              CcSetItem(order: 0, danceRecordId: '4', breakAfter: true),
+              CcSetItem(order: 1, danceRecordId: '98'),
+              CcSetItem(order: 2, breakText: own),
+              CcSetItem(order: 3, danceRecordId: '9'),
+            ],
+            known: {'4', '9'},
+          ),
+          danceIds: {'4': 'd4', '9': 'd9'},
+        );
+        expect(result.programs.single.slots.map((s) => s.danceId ?? s.text), [
+          'd4',
+          own,
+          'd9',
+        ], reason: own);
+      }
+    });
+
+    test("a lower-case own break is not followed by a deleted dance's", () {
+      final result = build(
+        setOf(
+          [
+            CcSetItem(order: 0, danceRecordId: '4'),
+            CcSetItem(order: 1, breakText: 'break'),
+            CcSetItem(order: 2, danceRecordId: '98', breakAfter: true),
+            CcSetItem(order: 3, danceRecordId: '9'),
+          ],
+          known: {'4', '9'},
+        ),
+        danceIds: {'4': 'd4', '9': 'd9'},
+      );
+      expect(result.programs.single.slots.map((s) => s.danceId ?? s.text), [
+        'd4',
+        'break',
+        'd9',
+      ]);
+    });
+
+    test('a deleted first dance does not open the program with a break', () {
+      final result = build(
+        setOf(
+          [
+            CcSetItem(order: 0, danceRecordId: '98', breakAfter: true),
+            CcSetItem(order: 1, danceRecordId: '9'),
+          ],
+          known: {'9'},
+        ),
+        danceIds: {'9': 'd9'},
+      );
+      expect(result.programs.single.slots.map((s) => s.danceId ?? s.text), [
+        'd9',
+      ]);
+    });
+
+    test("an empty dance's first alternate takes its place", () {
+      final result = build(
+        setOf(
+          [
+            CcSetItem(order: 0, danceRecordId: '4'),
+            CcSetItem(order: 1),
+            CcSetItem(order: 2, danceRecordId: '7', isAlt: true),
+          ],
+          known: {'4', '7'},
+        ),
+        danceIds: {'4': 'd4', '7': 'd7'},
+      );
+      expect(result.programs.single.slots.map((s) => (s.danceId, s.isAlt)), [
+        ('d4', false),
+        ('d7', false),
+      ]);
+    });
+
+    test("an earlier dance's break goes before a left-out dance's promoted "
+        'alternate', () {
+      for (final known in [
+        {'4', '7', '9'}, // 98 deleted in CC
+        null, // 98 unknown: becomes a marker slot, not left out
+      ]) {
+        final result = build(
+          setOf([
+            CcSetItem(order: 0, danceRecordId: '4', breakAfter: true),
+            CcSetItem(order: 1, danceRecordId: '98'),
+            CcSetItem(order: 2, danceRecordId: '7', isAlt: true),
+            CcSetItem(order: 3, danceRecordId: '9'),
+          ], known: known),
+          danceIds: {'4': 'd4', '7': 'd7', '9': 'd9'},
+        );
+        final slots = result.programs.single.slots;
+        expect(
+          slots.map((s) => s.danceId ?? (s.isBreak ? 'Break' : 'note')),
+          known == null
+              ? ['d4', 'Break', 'note', 'd7', 'd9']
+              : ['d4', 'Break', 'd7', 'd9'],
+        );
+      }
+    });
+
+    test("a left-out dance's break survives the earlier break's placement", () {
+      final result = build(
+        setOf(
+          [
+            CcSetItem(order: 0, danceRecordId: '97', breakAfter: true),
+            CcSetItem(order: 1, danceRecordId: '98', breakAfter: true),
+            CcSetItem(order: 2, danceRecordId: '7', isAlt: true),
+            CcSetItem(order: 3, danceRecordId: '9'),
+          ],
+          known: {'7', '9'},
+        ),
+        danceIds: {'7': 'd7', '9': 'd9'},
+      );
+      expect(result.programs.single.slots.map((s) => s.danceId ?? s.text), [
+        'd7',
+        Program.breakSlotText,
+        'd9',
+      ]);
+    });
+
+    test('an alternate break does not stand in for a flagged break', () {
+      final result = build(
+        setOf(
+          [
+            CcSetItem(order: 0, danceRecordId: '4', breakAfter: true),
+            CcSetItem(order: 1, breakText: 'Break', isAlt: true),
+            CcSetItem(order: 2, danceRecordId: '9'),
+          ],
+          known: {'4', '9'},
+        ),
+        danceIds: {'4': 'd4', '9': 'd9'},
+      );
+      expect(
+        result.programs.single.slots.map((s) => (s.danceId ?? s.text, s.isAlt)),
+        [
+          ('d4', false),
+          ('Break', true),
+          (Program.breakSlotText, false),
+          ('d9', false),
+        ],
+      );
+    });
+
+    test('a left-out dance titled "Break" is not a second break', () {
+      final result = build(
+        setOf(
+          [
+            CcSetItem(order: 0, danceRecordId: '4', breakAfter: true),
+            CcSetItem(order: 1, danceRecordId: '7'),
+            CcSetItem(order: 2, danceRecordId: '9'),
+          ],
+          known: {'4', '7', '9'},
+        ),
+        danceIds: {'4': 'd4', '9': 'd9'},
+        titles: {'7': 'Break'},
+      );
+      expect(result.programs.single.slots.map((s) => s.danceId ?? s.text), [
+        'd4',
+        'Break',
+        'd9',
+      ]);
+    });
+
+    test('a deleted alternate is just left out', () {
+      final result = build(
+        setOf(
+          [
+            CcSetItem(order: 0, danceRecordId: '4'),
+            CcSetItem(order: 1, danceRecordId: '99', isAlt: true),
+            CcSetItem(order: 2, danceRecordId: '7', isAlt: true),
+          ],
+          known: {'4', '7'},
+        ),
+        danceIds: {'4': 'd4', '7': 'd7'},
+      );
+      expect(result.programs.single.slots.map((s) => (s.danceId, s.isAlt)), [
+        ('d4', false),
+        ('d7', true),
+      ]);
+    });
+
+    test('without the file\'s dance list, a missing dance is not deleted', () {
+      final result = build(setOf([CcSetItem(order: 0, danceRecordId: '99')]));
+      expect(
+        result.programs.single.slots.single.text,
+        "Dance not imported (Caller's Companion dance #99)",
+      );
+      expect(result.issues.map((i) => i.code), ['cc_program_unresolved_dance']);
     });
   });
 }

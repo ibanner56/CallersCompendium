@@ -11159,6 +11159,12 @@ abstract class AppLocalizations {
   /// **'Skipped an empty slot in a program.'**
   String get importIssueProgramEmptySlot;
 
+  /// Import note: a Caller's Companion set slot pointed at a dance that is no longer in the file (deleted in Caller's Companion), so the slot was left out of the program.
+  ///
+  /// In en, this message translates to:
+  /// **'A program referenced a dance deleted in Caller\'s Companion; left that slot out.'**
+  String get importIssueProgramDeletedDance;
+
   /// Import note: a program slot pointed at a dance that wasn't part of the import; the slot was preserved as free text.
   ///
   /// In en, this message translates to:

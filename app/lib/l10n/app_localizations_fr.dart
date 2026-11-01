@@ -7586,6 +7586,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Un emplacement vide dans un programme a été ignoré.';
 
   @override
+  String get importIssueProgramDeletedDance =>
+      'Un programme référençait une danse supprimée dans Caller\'s Companion ; l\'emplacement a été omis.';
+
+  @override
   String get importIssueProgramUnresolvedDance =>
       'Un programme référençait une danse non importée ; l\'emplacement a été conservé comme texte de substitution.';
 

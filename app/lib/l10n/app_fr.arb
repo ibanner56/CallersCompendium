@@ -7334,6 +7334,10 @@
   "@importIssueProgramEmptySlot": {
     "x-sourceSha256": "5c9dbd0ffd0617887accdb063575f029cfe614d2ddc0da7b47718c7ddd421cdd"
   },
+  "importIssueProgramDeletedDance": "Un programme référençait une danse supprimée dans Caller's Companion ; l'emplacement a été omis.",
+  "@importIssueProgramDeletedDance": {
+    "x-sourceSha256": "85e690af9308604e2c749befa97c49d9911b3da55b90cacd2855403e413f5efa"
+  },
   "importIssueProgramUnresolvedDance": "Un programme référençait une danse non importée ; l'emplacement a été conservé comme texte de substitution.",
   "@importIssueProgramUnresolvedDance": {
     "x-sourceSha256": "acb7fcbc7626e8a99be9de22ee51116dd292c336c24ec4833044d6f4907b5195"

@@ -7489,6 +7489,10 @@ class AppLocalizationsDa extends AppLocalizations {
       'En tom plads i et program blev sprunget over.';
 
   @override
+  String get importIssueProgramDeletedDance =>
+      'Et program henviste til en dans, der er slettet i Caller\'s Companion; pladsen blev udeladt.';
+
+  @override
   String get importIssueProgramUnresolvedDance =>
       'Et program henviste til en dans, der ikke blev importeret; pladsen blev bevaret som en tekstpladsholder.';
 
