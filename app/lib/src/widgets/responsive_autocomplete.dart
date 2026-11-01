@@ -403,6 +403,11 @@ class _ResponsiveAutocompleteState<T extends Object>
               child: ConstrainedBox(
                 constraints: widget.overlayConstraints,
                 child: ListView(
+                  // Scrolling the suggestions must not take focus from the
+                  // field: losing focus closes the options. The app-wide
+                  // drag-to-dismiss default would do exactly that on touch.
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.manual,
                   padding: EdgeInsets.zero,
                   shrinkWrap: true,
                   children: [
