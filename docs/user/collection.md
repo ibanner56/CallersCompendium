@@ -84,19 +84,19 @@ screen, and on a tablet or desktop in the pane beside the list. The
 ## Group by category (a dance's "vibe")
 
 Many callers think of dances by their **vibe** — bouncy, flowy, glossy,
-connected — and organise a card box into those categories so they can jump to a
+connected — and organize a card box into those categories so they can jump to a
 "drawer" and hot-swap a dance mid-evening. **Tags** are exactly that in the app:
 give a dance one or more tags for its vibe or category, and they are ready to
 filter and group by.
 
-You can also give a tag its own colour, so a category stands out on dance
-cards and in dance detail. Tags start with no colour and look exactly as they
+You can also give a tag its own color, so a category stands out on dance
+cards and in dance detail. Tags start with no color and look exactly as they
 always have until you pick one, and the tag's name is always shown beside the
-colour, so nothing depends on being able to tell the colours apart.
+color, so nothing depends on being able to tell the colors apart.
 
-Colours, and everything else about your tags, are in the **Tags** manager:
+Colors, and everything else about your tags, are in the **Tags** manager:
 **Settings → General → Library → Tags** (**Settings → Appearance → Tag
-colours** opens it too). It lists every tag with the number of dances that use
+colors** opens it too). It lists every tag with the number of dances that use
 it, and you can search, show only the tags no dance uses (**Not used**), and
 sort by name or by number of dances. Select a tag, or its **⋮** menu, to:
 
@@ -105,24 +105,24 @@ sort by name or by number of dances. Select a tag, or its **⋮** menu, to:
   instead, under the name you typed; **Keep editing** takes you back to the
   name.
 - **Merge into…** another tag, picked from a searchable list. Every dance with
-  either tag ends up with the one you picked, which keeps its own colour (or
+  either tag ends up with the one you picked, which keeps its own color (or
   takes this tag's, if it had none).
-- Pick a **Colour…**, or **Remove colour**.
+- Pick a **Color…**, or **Remove color**.
 - **Delete** it. The tag comes off every dance that has it, and the message
   says how many dances that was (dances in
   [Recently deleted](./settings.md#recently-deleted) lose it too, but aren't
   counted).
 
 Each of these happens at once, without asking first. A rename, merge or delete
-offers **Undo** in the message that follows (a colour change has none: pick
-another colour, or **Remove colour**, to change it back). That message is the
+offers **Undo** in the message that follows (a color change has none: pick
+another color, or **Remove color**, to change it back). That message is the
 only Undo: a deleted tag doesn't go to Recently deleted. If you create a tag with the same name later, it starts
 with no dances. A rename, merge or delete also updates the
 [tags given to imported dances](./settings.md#import-defaults), and Undo puts
 them back.
 
 Next to **Sort** is a **Group by category** control, which appears once you
-have tags. Pick one tag and the list splits into two labelled sections —
+have tags. Pick one tag and the list splits into two labeled sections —
 the dances that carry that tag, then **Other** — so a whole category is together
 in one place. Your chosen **Sort** still orders the dances *inside* each
 section, and picking a dance behaves exactly as it does anywhere else in
@@ -193,7 +193,7 @@ example **Filters · 3**), and **Advanced** reads **Advanced (on)** while a
 figure query is in use. The **Advanced** panel's query editor is always
 available; it has no effect until you add a condition, and any condition you
 add applies straight away. To set a query aside, delete its conditions.
-While **Online search** is on, **Filters** and **Advanced** are greyed out,
+While **Online search** is on, **Filters** and **Advanced** are grayed out,
 because they only apply to your own library; **By phrase** stays available for
 sources that support it. A source selector appears under the row so you can
 choose which archive to search.
@@ -589,7 +589,7 @@ saved, the app says so and leaves your selection in place so you can try again;
 if an **Undo** can't be completed, it says that too, and nothing is left
 half-undone. Undoing **Edit custom field** puts back only the field you changed,
 so anything else you have edited in the meantime stays as it is. Selected rows are marked
-with a checkmark and a highlight — never colour alone — so the selection is clear
+with a checkmark and a highlight — never color alone — so the selection is clear
 however you are reading the screen.
 
 ## Jump straight to a dance or program

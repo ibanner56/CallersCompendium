@@ -136,7 +136,7 @@ repeat imports are easy to spot:
 - **Possibly imported** — one of your programs has the same title, but nothing
   ties it to this ContraDB event (for example, you built it by hand).
 
-Each marker shows an icon and a label — never colour alone — and the same hint
+Each marker shows an icon and a label — never color alone — and the same hint
 appears at the top of the preview once you open a program. It's only a hint:
 re-importing is always allowed if you want a fresh copy.
 
@@ -360,9 +360,9 @@ Here is how to read it:
   very next dance. Adjacent repeats like this can make two dances feel samey on
   the floor, so the matrix flags them for you to notice and, if you like,
   reconsider. Only the two colliding cells are flagged; a repeat that is not in
-  neighbouring dances, or whose beats don't actually overlap, is left alone.
+  neighboring dances, or whose beats don't actually overlap, is left alone.
   A **break** separates two dances, so the last dance before a break and the
-  first dance after it are not neighbours and are never flagged against each
+  first dance after it are not neighbors and are never flagged against each
   other. A waltz or a note between two dances, with no break, does not
   separate them.
 
@@ -410,7 +410,7 @@ Here is how to read it:
   PDF: drag a column to a new position, give it a name that suits your callers,
   or remove one you never use. Removed columns can be brought back at any time,
   and two reset controls restore the built-in columns or wipe every
-  customisation. The [Programs settings](./settings.md#programs) have the full
+  customization. The [Programs settings](./settings.md#programs) have the full
   walkthrough.
 
 The matrix shows **presence, not counts** — whether a move is in a dance, not how
@@ -497,7 +497,7 @@ menu:
 - **Export as JSON file** — opens a choice to **Save**, **Copy raw JSON**,
   **Share**, or **Cancel**. The file is the same as **Share (program + dances)**,
   named `.json` so a device without the app can still open it. **Save** opens
-  your system's save dialog; cancelling it saves nothing.
+  your system's save dialog; canceling it saves nothing.
 - **Export / print PDF** — builds a PDF and opens your system's print dialog.
 
 A set list is titles, event details, and slot notes by default, with each

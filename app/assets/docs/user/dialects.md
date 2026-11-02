@@ -418,7 +418,7 @@ required.
 
 **Comparing a figure with another caller.** Mid-conversation, flip the
 **Canonical** switch on the dance card to read the dance in neutral wording you
-both recognise, then flip back to your own.
+both recognize, then flip back to your own.
 
 ## Good to know
 

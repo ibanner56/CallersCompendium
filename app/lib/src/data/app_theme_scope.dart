@@ -155,7 +155,7 @@ enum AppThemeSelection {
     AppThemeSelection.system => 'System',
     AppThemeSelection.light => 'Light',
     AppThemeSelection.dark => 'Dark',
-    AppThemeSelection.softDark => 'Soft Dark',
+    AppThemeSelection.softDark => 'Soft dark',
     AppThemeSelection.highContrast => 'High contrast',
     AppThemeSelection.blulocoLight => 'Bluloco Light',
     AppThemeSelection.oneDarkPro => 'One Dark Pro',
@@ -199,7 +199,7 @@ enum AppThemeSelection {
 
   /// A curated display order for the Default group. Unlike the gallery
   /// sections (sorted A→Z), the built-in Default themes read more intuitively
-  /// grouped by canvas darkness — Dark, its dimmed Soft Dark sibling, then the
+  /// grouped by canvas darkness — Dark, its dimmed Soft dark sibling, then the
   /// high-contrast and light options — rather than alphabetically.
   static const List<AppThemeSelection> _defaultGroupOrder = [
     AppThemeSelection.dark,

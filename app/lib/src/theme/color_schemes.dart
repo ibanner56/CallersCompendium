@@ -80,7 +80,7 @@ class AppColorSchemes {
     inversePrimary: Color(0xFF8A5000),
   );
 
-  /// "Soft Dark" — a dimmed sibling of [dark] (§1a). Same warm lantern-amber
+  /// "Soft dark" — a dimmed sibling of [dark] (§1a). Same warm lantern-amber
   /// identity and content colors, but on a lighter, softer petrol-slate canvas
   /// (`#1E2A38` vs the standard `#121A24`) for callers who find the deep canvas
   /// too stark in a lit room — the same relationship GitHub Dark has to its

@@ -1037,7 +1037,7 @@ void main() {
     expect(fetched, hasLength(1));
     expect(await repos.programs.listAll(), isEmpty);
     expect(await repos.dances.listAll(), isEmpty);
-    expect(find.text('Import cancelled — nothing was added.'), findsOneWidget);
+    expect(find.text('Import canceled — nothing was added.'), findsOneWidget);
     expect(find.byKey(const ValueKey('contradb-program-cancel')), findsNothing);
   });
 

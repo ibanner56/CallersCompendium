@@ -56,7 +56,7 @@ box that takes a whole line and offers no move suggestions. Press Enter and the
 line is added; `sw` typed there on its own is an unrecognized figure, not a swing. See
 [Free-text entry](#free-text-entry) below.
 
-Anything you add that the app cannot recognise is still kept — it becomes a
+Anything you add that the app cannot recognize is still kept — it becomes a
 **unrecognized figure**, holding your text. Nothing you add is ever thrown away because
 the app did not understand it; the only change is that role words are saved as role terms and
 shown in your own dialect (see below).
@@ -121,7 +121,7 @@ With **Free-text entry** on, a new dance starts with no figures, so there are no
 placeholders to delete first, unless you have saved your own
 [starting figures](#start-new-dances-the-way-you-work).
 
-It also understands common phrasings such as `N swing`, `neighbours balance and
+It also understands common phrasings such as `N swing`, `neighbors balance and
 swing`, `half hey, ladies start by the right`, `1/4 hey, partner start right
 shoulder` and `allemande left 1 1/2 with neighbor`. When the app reads the start of a line
 as a figure, the rest of the line becomes that figure's note
@@ -308,7 +308,7 @@ for both:
 - `*text*` for **bold**
 - `_text_` for underline
 
-As you type, the app styles what it recognises: move names get a dotted
+As you type, the app styles what it recognizes: move names get a dotted
 underline, role terms are underlined, and
 [discouraged terms](./dialects.md) are struck through. The styling is only a
 hint: it does not change your text while you type. Role words are rewritten
@@ -426,7 +426,7 @@ undone.
 
 Some dances have two things happening at once — the ones on the ends do one
 thing while the middles do another. Choose **Group with next as meanwhile** and
-the two figures become a [meanwhile](./glossary.md#meanwhile) group, labelled
+the two figures become a [meanwhile](./glossary.md#meanwhile) group, labeled
 with how many sides it has and sharing one set of beats. Until you type a count
 for the group, its beats follow its sides: the longest side's, since the sides
 are danced at the same time. A modifier group follows its **Core**, and a
@@ -444,7 +444,7 @@ one. The group is saved with the dance once at least two of its sides are
 filled in; until then it is not counted in the **Total** (see
 [Keep an eye on the beats](#keep-an-eye-on-the-beats)).
 
-Inside the group, each side is labelled **Side 1**, **Side 2**, and so on, and has
+Inside the group, each side is labeled **Side 1**, **Side 2**, and so on, and has
 its own controls to move up, move down, or **Remove this side**. **Add side** adds
 another side, up to six.
 
@@ -458,7 +458,7 @@ the whole line, its sides' notes included.
 ### Modifier figures
 
 Use **Group with next as modifier** when one figure describes the main action
-and the next describes how it is performed. The first figure is labelled
+and the next describes how it is performed. The first figure is labeled
 **Core** and the figures after it **Modifier**, in order. **Add modifier**
 creates a modifier group from your **Modifier defaults**.
 
@@ -475,7 +475,7 @@ names them once.
 
 Choose **Group with next as sequence**, **Add sequence** from the **Add** menu,
 or type *sequence* in a figure's **Move** box to make it the first figure of a
-new sequence. Each figure in the group is labelled **Figure 1**, **Figure 2**,
+new sequence. Each figure in the group is labeled **Figure 1**, **Figure 2**,
 and so on, and keeps its own **Beats**: the group's beats are their total, shown
 at the top. A sequence must fit in one phrase of the dance (16 beats in the
 usual structure), so **Group with next as sequence** is only offered when the
@@ -739,7 +739,7 @@ dance.
 ## Fix figures an import could not read
 
 Imported dances sometimes arrive with figures kept as plain text because
-the app could not recognise them at the time. As the app's figure
+the app could not recognize them at the time. As the app's figure
 recognition improves, those can often be upgraded.
 
 In [Settings](./settings.md#import) ▸ **General** ▸ **Import**, find **Re-check
@@ -749,7 +749,7 @@ how many dances, and which ones. You confirm, and only then does anything
 happen.
 
 Your tags, ratings, notes, and everything else on each dance are kept exactly as
-they are — only figures that now recognise a known move are replaced. If there is
+they are — only figures that now recognize a known move are replaced. If there is
 nothing to upgrade, the app tells you that and leaves your collection alone.
 
 A dance whose stored figures the app cannot read at all is left out of the scan

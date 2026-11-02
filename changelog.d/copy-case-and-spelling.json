@@ -1,0 +1,9 @@
+{
+  "id": "copy-case-and-spelling",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "Wording is now consistent in US English with sentence case: \"Color\" instead of \"Colour\", \"canceled\", \"recognize\", \"customize\", and labels such as \"Developer options\", \"Back up + reset\" and \"Soft dark\" instead of Title Case."
+    ]
+  }
+}

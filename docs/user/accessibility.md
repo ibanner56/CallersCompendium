@@ -88,7 +88,7 @@ Caller's Compendium works with the screen reader on your platform:
 - **Narrator**, **NVDA**, or **JAWS** on Windows
 - **Orca** on Linux (best-effort support)
 
-Screens are labelled so a screen reader can describe them meaningfully. As you
+Screens are labeled so a screen reader can describe them meaningfully. As you
 work, the app announces changes you'd otherwise have to see:
 
 - Search result counts and selection counts are announced as they change, so you

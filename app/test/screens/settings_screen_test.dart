@@ -1073,14 +1073,14 @@ void main() {
             reason: '${group.label} gallery section should be alphabetical',
           );
         }
-        // The Default group uses a curated order (Dark, Soft Dark, High
+        // The Default group uses a curated order (Dark, Soft dark, High
         // contrast, Light) rather than alphabetical, which reads more
         // intuitively in the Settings pane.
         expect(
           AppThemeSelection.inGroup(
             AppThemeGroup.defaultHearth,
           ).map((s) => s.label),
-          equals(['Dark', 'Soft Dark', 'High contrast', 'Light']),
+          equals(['Dark', 'Soft dark', 'High contrast', 'Light']),
         );
       },
     );
@@ -3326,7 +3326,7 @@ void main() {
         });
       });
 
-      group('Developer Options (reset database)', () {
+      group('Developer options (reset database)', () {
         late List<String> events;
         late SyncResponseKind removeKind;
         late bool pairedAtReset;
@@ -3420,7 +3420,7 @@ void main() {
         ) async {
           await pump(tester);
 
-          expect(find.text('Developer Options'), findsOneWidget);
+          expect(find.text('Developer options'), findsOneWidget);
           expect(find.byKey(resetTile), findsNothing);
 
           await tester.ensureVisible(
@@ -5774,7 +5774,7 @@ void main() {
       expect(find.text('Glossary and Custom Figures'), findsOneWidget);
     });
 
-    testWidgets('Custom Figures is independent of Show Glossary: switchable '
+    testWidgets('Custom Figures is independent of Show glossary: switchable '
         'with the Glossary off, and the section opens for it', (tester) async {
       final show = ValueNotifier<bool>(false);
       addTearDown(show.dispose);

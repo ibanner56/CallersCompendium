@@ -898,7 +898,7 @@ Future<Set<String>> publishedSyncRecordIds(
 /// Clears a pending tombstone for a deliberate local act on the record.
 ///
 /// Two acts qualify, and sync-spec §6.8 admits no others: an explicit restore
-/// from Recently Deleted, and a deliberate local user edit — see
+/// from Recently deleted, and a deliberate local user edit — see
 /// [cancelPendingSyncDeletionForLocalEdit], which wraps this call with the
 /// existence stamp that edit path also owes.
 ///
@@ -955,7 +955,7 @@ Future<DateTime?> heldTombstoneExistenceAt(
 /// §6.8 holds a peer's tombstone for a still-cited entity in
 /// `pending_deletions`, keeps the row **live** locally, and advertises the
 /// entity as a tombstone until its last citation goes. The row being live is
-/// what makes this necessary: it never appears in Recently Deleted, so
+/// what makes this necessary: it never appears in Recently deleted, so
 /// `restore()` — §6.8's other cancellation — can never reach it. Without this,
 /// an edit to a held record is overwritten by the retained tombstone body the
 /// moment the last citation clears, and the record is deleted with the user's
@@ -1000,7 +1000,7 @@ Future<bool> cancelPendingSyncDeletionForLocalEdit(
   return true;
 }
 
-/// Clears a hold for an explicit restore from Recently Deleted, flooring the
+/// Clears a hold for an explicit restore from Recently deleted, flooring the
 /// restore's own existence stamp against the tombstone it is cancelling.
 ///
 /// [restore] already stamps causally via `stampExistenceTransition`, which

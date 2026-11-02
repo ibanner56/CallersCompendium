@@ -558,11 +558,11 @@ void main() {
     expect(await tester.runAsync(repos.userGlossary.listAll), isEmpty);
   });
 
-  testWidgets('More Details is optional: a figure saves without it', (
+  testWidgets('More details is optional: a figure saves without it', (
     tester,
   ) async {
     final repos = await pump(tester, initial: twoPullBys());
-    expect(find.text('More Details'), findsOneWidget);
+    expect(find.text('More details'), findsOneWidget);
     await tester.enterText(
       find.byKey(const ValueKey('compound-name')),
       'zoomies',
@@ -582,7 +582,7 @@ void main() {
   });
 
   testWidgets('a name taken by a term the hidden Glossary lists points to '
-      'Show Glossary, not to a figure', (tester) async {
+      'Show glossary, not to a figure', (tester) async {
     final repos = await pump(
       tester,
       custom: true,

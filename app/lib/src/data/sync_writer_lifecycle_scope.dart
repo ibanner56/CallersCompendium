@@ -47,7 +47,7 @@ class SyncWriterLifecycleScope extends InheritedWidget {
   final Future<void> Function()? onRestored;
 
   /// Deletes the local database and restarts the app on a fresh, empty one
-  /// (Settings ▸ Experimental ▸ Developer Options). Waits for any in-flight
+  /// (Settings ▸ Experimental ▸ Developer options). Waits for any in-flight
   /// writer, disposes the sync coordinator and closes the database first.
   /// Completes with whether the database was deleted; `false` leaves it as it
   /// was.

@@ -214,11 +214,11 @@
   },
   "migrationBelowFloorBackUpAndReset": "Sikkerhedskopi + Nulstil",
   "@migrationBelowFloorBackUpAndReset": {
-    "x-sourceSha256": "633c4f02620eabb2f4dd8df02d3c329b1b6529780a7b934c200ed3cfe8ebe1e0"
+    "x-sourceSha256": "6f36ad4849a58dd294bbc8578bdefacc0ad81dd6e4dd47a16580f7af377f2efb"
   },
   "migrationBelowFloorResetOnly": "Kun nulstil",
   "@migrationBelowFloorResetOnly": {
-    "x-sourceSha256": "ef5bef16d6b5a24ff5138c58793f9864031b22ebdc12c603907d7f13ac7c253b"
+    "x-sourceSha256": "1cbd23ae4ce846c83b6a16491b94e69a7944cac666900fdfc8ce5bdf07c3e5c6"
   },
   "migrationBelowFloorBackupFailedTitle": "Sikkerhedskopi mislykkedes",
   "@migrationBelowFloorBackupFailedTitle": {
@@ -334,7 +334,7 @@
   },
   "settingsDeveloperOptionsHeader": "Udviklerindstillinger",
   "@settingsDeveloperOptionsHeader": {
-    "x-sourceSha256": "d7de9cfa12968ab7b7b85e5087c51954cd21e321e3d946fe5de1f3df7657ec49"
+    "x-sourceSha256": "6f64f32db4f702cdf932f071ab6b554dc823575e4a9821a842a7ade18db0ed7e"
   },
   "settingsDeveloperResetTitle": "Nulstil databasen",
   "@settingsDeveloperResetTitle": {
@@ -542,7 +542,7 @@
   },
   "settingsExperimentalShowGlossaryTitle": "Vis ordliste",
   "@settingsExperimentalShowGlossaryTitle": {
-    "x-sourceSha256": "b9b74a82200a2f6733532a1fe14429332eeb4729de42060ef0b1f213a62fce80"
+    "x-sourceSha256": "d7131c36323f5e08921fd91e048eb480b89b7cc4e3aef80d75e2795cc41e2ce0"
   },
   "settingsExperimentalShowGlossarySubtitle": "Tilføjer en ordliste over de indbyggede figurer til navigationen, mellem Programmer og Indstillinger.",
   "@settingsExperimentalShowGlossarySubtitle": {
@@ -1050,7 +1050,7 @@
   },
   "syncConflictFieldColour": "Farve",
   "@syncConflictFieldColour": {
-    "x-sourceSha256": "3a9dfa58df63e0dda962a147a6cea86cc5294a5e859d89ddfa8e74a977fedf5d"
+    "x-sourceSha256": "6b73191a0a4b67420e61d51c9f207c35277eaf18fbbf5beb52a320a23fe09653"
   },
   "syncConflictThemeBrightness": "Lys eller mørk",
   "@syncConflictThemeBrightness": {
@@ -1974,7 +1974,7 @@
   },
   "appThemeLabelSoftDark": "Blød mørk",
   "@appThemeLabelSoftDark": {
-    "x-sourceSha256": "a1d6e637a8d9be9f105e29966e53aae07800bdab367b773f1950484e196fd0c6"
+    "x-sourceSha256": "85ab43173cb125121e08cbe917e4487336f4a7e64efbd33e4e0d09664556fe8e"
   },
   "appThemeLabelHighContrast": "Høj kontrast",
   "@appThemeLabelHighContrast": {
@@ -2102,7 +2102,7 @@
   },
   "appThemeDescriptionZenburn": "Den klassiske varme gråtone med lav kontrast",
   "@appThemeDescriptionZenburn": {
-    "x-sourceSha256": "8eed33d5cf01f8faaf8ba8185596ce8d269eaf39b7c3cde4658117f0d57eb302"
+    "x-sourceSha256": "a4b982a21bc480987eb4d6a1b0d82748c3fa170f3c1d9aa0be433b6dd7be44f3"
   },
   "appThemeDescriptionShadesOfPurple": "Kraftigt guld på dyb indigo",
   "@appThemeDescriptionShadesOfPurple": {
@@ -2334,31 +2334,31 @@
   },
   "settingsAppearanceFormationColoursHeader": "Formationsfarver",
   "@settingsAppearanceFormationColoursHeader": {
-    "x-sourceSha256": "a104f2d03f3e233ef1d22dc19c2c5a24cbf68ff9293b471fdcefe9020f953d33"
+    "x-sourceSha256": "f5bed80cba5128dbbd3dba32dca30f420f7d065cee301344178bcc0378aa067c"
   },
   "settingsAppearanceColourDanceTitle": "Farvenavngivne danse farver temaet",
   "@settingsAppearanceColourDanceTitle": {
-    "x-sourceSha256": "f266a25ae55b3e6362e0bbdc20a3c8c01a3bb00ffccb9d2ad04d5f7e0aaad091"
+    "x-sourceSha256": "a3cfa97e6d2eb429ec709302b29e9cbe9a6f54d1c2682bf293ebe2f4393a12ee"
   },
   "settingsAppearanceColourDanceSubtitle": "En legende overraskelse: når du åbner en dans, hvis titel nævner en farve – som Baby Rose eller Blue Boy – farvetones visningen i den farve. Fra som standard, og den træder til side, når et højkontrast-tema er aktivt, så læsbarheden altid vinder.",
   "@settingsAppearanceColourDanceSubtitle": {
-    "x-sourceSha256": "c55ff54e0ba346ec69d402b6277f7421a9263eb922aabba08438560ef44a6cd7"
+    "x-sourceSha256": "77705ddecab35b76d2ffd219af0973aa4276877a088bcda32dc90131e2eb6482"
   },
   "settingsAppearanceSetListColorTitle": "Farvekod sætlistrækker",
   "@settingsAppearanceSetListColorTitle": {
-    "x-sourceSha256": "7e01df33d94b5e6e118e6fea4b925e84f23ab5cc48edcce8d4ae3975a1c940f6"
+    "x-sourceSha256": "954bb7ba19588d6ab1d6cf694242401c53b4c474be3d915951391cfd9d19389b"
   },
   "settingsAppearanceSetListColorSubtitle": "Farveton hver dansrække efter dens formationsfamilie (contra, mixer, firkantet dans, …) — medmindre du har givet den formation sin egen farve, som så gælder. Danse markeret som mixer-danse får altid mixer-farvetonen, uanset formation. Formationen vises altid som tekst, så rækkerne forbliver læsbare uden farver.",
   "@settingsAppearanceSetListColorSubtitle": {
-    "x-sourceSha256": "232f4627ed9e2f518689fc74c581702696c4699041bd904500c86630a2da1ca3"
+    "x-sourceSha256": "13da083afec0044164fbf2d2ebee6900cc2a60793df81b849776df06d2079ce7"
   },
   "settingsAppearanceFormationColoursTitle": "Formationsetiketfarver",
   "@settingsAppearanceFormationColoursTitle": {
-    "x-sourceSha256": "79f6f85c15a24218dbe046fac396504b123ad5b6a7779091924f0b884a142676"
+    "x-sourceSha256": "f1156db10110fd919696c1d67b5435018b3d91a2ef5f1ca9f658329bed91884d"
   },
   "settingsAppearanceFormationColoursSubtitle": "Fremhæv individuelle formationer i dine egne farver – f.eks. Becket (CW) i gult, Becket (CCW) i lyserødt – på danskort, dansdetaljer, Perform-overskriften og sætlisterækker.",
   "@settingsAppearanceFormationColoursSubtitle": {
-    "x-sourceSha256": "eec836f8e8c66b85321f7b6e69a83ede9c3e3cda62b45529773a1d8a77635619"
+    "x-sourceSha256": "4f74986fa0ba38b09a8a83b9b388cc783b7f9cea7dc8db236da2d3563142b3a7"
   },
   "settingsAppearanceSelectedBadge": "Valgt",
   "@settingsAppearanceSelectedBadge": {
@@ -2366,7 +2366,7 @@
   },
   "settingsAppearancePreviewHeading": "Aa Forhåndsvisning",
   "@settingsAppearancePreviewHeading": {
-    "x-sourceSha256": "ef2432974ac7b8de920328d450bf588446720a4fedb25fd7b4c7ba2fe2718be8"
+    "x-sourceSha256": "748af32d589f5469c37623baa98c40f8b802aafffbe77a305063c751ced4ae0e"
   },
   "settingsAppearancePreviewBody": "Eksempel på brødtekst",
   "@settingsAppearancePreviewBody": {
@@ -2734,11 +2734,11 @@
   },
   "settingsFormationColoursTitle": "Formationsfarver",
   "@settingsFormationColoursTitle": {
-    "x-sourceSha256": "a104f2d03f3e233ef1d22dc19c2c5a24cbf68ff9293b471fdcefe9020f953d33"
+    "x-sourceSha256": "f5bed80cba5128dbbd3dba32dca30f420f7d065cee301344178bcc0378aa067c"
   },
   "settingsFormationColoursIntro": "Giv en formation sin egen farve for at fremhæve dens etiket på danskort, dansdetaljer og Perform-overskriften og for at farve dens sætlisterækker (mixer-danse beholder mixer-farven). Kun de formationer, du tilpasser, fremhæves; de øvrige viser deres etiket som normalt. Formationen vises altid som tekst, så etiketter forbliver læsbare uden farver.",
   "@settingsFormationColoursIntro": {
-    "x-sourceSha256": "908f4e23f32c266ded3e6fdccea065468f9a4daaeccacfea004031804037595b"
+    "x-sourceSha256": "cc67ec036885b635d0bc5700cd36e6619f5a5e6360b057524546ba815cbbc937"
   },
   "settingsFormationColoursListHeader": "Formationer",
   "@settingsFormationColoursListHeader": {
@@ -2746,7 +2746,7 @@
   },
   "settingsFormationColoursCustom": "Brugerdefineret farve",
   "@settingsFormationColoursCustom": {
-    "x-sourceSha256": "c31a3f15ca973a50a1f52e8b27deba26fa108c6926eb6299b044e62f0090214c"
+    "x-sourceSha256": "a5f69a181be084106b38312a3ec6dfbeb6264c248861cf57d49da4b856ccb7aa"
   },
   "settingsFormationColoursFamilyDefault": "Familiestandard",
   "@settingsFormationColoursFamilyDefault": {
@@ -2758,15 +2758,15 @@
   },
   "settingsAppearanceTagColoursHeader": "Tagfarver",
   "@settingsAppearanceTagColoursHeader": {
-    "x-sourceSha256": "2c44c93ab04a5cd53fbd631003d71d65a1e9605920885591a0197069b91b5cdc"
+    "x-sourceSha256": "b60b09fd646a943ea15b1faf80c695e4729fd2d05f2c875c935903438d79d93c"
   },
   "settingsAppearanceTagColoursTitle": "Tagfarver",
   "@settingsAppearanceTagColoursTitle": {
-    "x-sourceSha256": "2c44c93ab04a5cd53fbd631003d71d65a1e9605920885591a0197069b91b5cdc"
+    "x-sourceSha256": "b60b09fd646a943ea15b1faf80c695e4729fd2d05f2c875c935903438d79d93c"
   },
   "settingsAppearanceTagColoursSubtitle": "Giv et tag sin egen farve, så det skiller sig ud på danskort og i dansdetaljer. Taggets navn vises altid også, så tags forbliver læsbare uden farve.",
   "@settingsAppearanceTagColoursSubtitle": {
-    "x-sourceSha256": "4c98c4517bcd592a6c7522fb07487df7d70670c89570c2b87a2adf2c3268ba18"
+    "x-sourceSha256": "fac4e606137946a7de38fe329f99b3f8135962e61129f97c732a423a8e988cf4"
   },
   "settingsTagColoursEmpty": "Du har ikke oprettet nogen tags endnu. Tilføj et tag til en dans, så vises det her.",
   "@settingsTagColoursEmpty": {
@@ -2774,7 +2774,7 @@
   },
   "settingsTagColoursSaveError": "Farven kunne ikke gemmes. Prøv igen.",
   "@settingsTagColoursSaveError": {
-    "x-sourceSha256": "720781ed37a5bb700314bf6e2e662a9cd6649436c27b9dd6ab3d9a09457c5c89"
+    "x-sourceSha256": "e31f616b8e9d181279b8dc77f2db90ddf80b726e1ab66e3a1e38f8a5b58a6ba5"
   },
   "settingsTagColoursLoadError": "Dine tags kunne ikke indlæses.",
   "@settingsTagColoursLoadError": {
@@ -2794,11 +2794,11 @@
   },
   "tagManagerColour": "Farve…",
   "@tagManagerColour": {
-    "x-sourceSha256": "76ad1a213c7631daa53659cec4db7bf56f7cccad19737299b926d0087b499ae2"
+    "x-sourceSha256": "6e107e0398b006493689a361dcb31484580700c2f40851d777270e92dbe53076"
   },
   "tagManagerRemoveColour": "Fjern farve",
   "@tagManagerRemoveColour": {
-    "x-sourceSha256": "6a1a1f8cf536206cb54092d10f535f8cc078419e0ece015643b01243bab2bdb7"
+    "x-sourceSha256": "b308c8c184a81df37a3431f84495b2a9fd390b11412577bd54d50e2e451d0dae"
   },
   "tagManagerDeletedSnack": "{count, plural, =0{Slettede „{name}“} =1{Slettede „{name}“ fra 1 dans} other{Slettede „{name}“ fra {count} danse}}",
   "@tagManagerDeletedSnack": {
@@ -3282,7 +3282,7 @@
   },
   "settingsGeneralLibraryTagsSubtitle": "Omdøb, flet, farvelæg og slet dine tags.",
   "@settingsGeneralLibraryTagsSubtitle": {
-    "x-sourceSha256": "c140368a6b9ec7faa4b2244f3cd0e1189e1efb5cb19ad558be423dd4fdec46bc"
+    "x-sourceSha256": "68507be3f8a1f2143ef326b8eadd60ac6eec2f81cc19a9432bbdf1f2518f34e2"
   },
   "settingsGeneralLibraryAuthorsTitle": "Forfattere",
   "@settingsGeneralLibraryAuthorsTitle": {
@@ -3538,7 +3538,7 @@
   },
   "settingsGeneralReparseCustomFiguresSubtitle": "Tjek importerede danse igen, hvis figurer kun er gemt som ukendte figurer, fordi de ikke kunne genkendes ved importtidspunktet. Hvis appen nu kan genkende dem, opgraderes de på stedet – dine tags, vurderinger og noter bevares. Du forhåndsviser og bekræfter, inden noget ændres.",
   "@settingsGeneralReparseCustomFiguresSubtitle": {
-    "x-sourceSha256": "ac8b66febb797501a70a1cef04479b16d0b06f7bd642cb55dbc7fa52c770f721"
+    "x-sourceSha256": "868f92b7dcf43307b28b838c2219d775ab813baa1d91d03e332ada9f8767bcca"
   },
   "settingsGeneralReparseCustomFiguresAction": "Genkontrollér…",
   "@settingsGeneralReparseCustomFiguresAction": {
@@ -3558,15 +3558,15 @@
   },
   "backupRestoreIntegrityFailed": "Denne sikkerhedskopi bestod ikke integritetstjekket, så den kan være beskadiget eller ændret efter eksporten. Gendannelsen blev annulleret, og dine data er uændret.",
   "@backupRestoreIntegrityFailed": {
-    "x-sourceSha256": "ca4a8953283d4b195a2658d974954770259baccfae9dc5d0cca31f6bff125479"
+    "x-sourceSha256": "1edbca633ae4f0f7fe8f507bbb47dcd61bdf416b32a98753c81310f86a3d70a3"
   },
   "backupRestoreIncompatibleVersion": "Denne sikkerhedskopi indeholder elementer, som denne version af appen ikke kan læse (den kan stamme fra en nyere version), så gendannelsen blev annulleret. Dine data er uændret.",
   "@backupRestoreIncompatibleVersion": {
-    "x-sourceSha256": "4cca4f4742b1bcd00ac4a601911f0c19d6796b9029987531919994b579d25f26"
+    "x-sourceSha256": "91cebd18d5b71ae24a466ad06e6825c35c69f0bd6ed16fc0c7e4e75c1bf47c68"
   },
   "backupRestoreMissingAppSection": "Denne sikkerhedskopi indeholder ikke dine appindstillinger, temaer eller dialekter, så den kan ikke erstatte dine nuværende data. Gendannelsen blev annulleret, og dine data er uændret.",
   "@backupRestoreMissingAppSection": {
-    "x-sourceSha256": "b55cd0d43e0c720326340fc6ca5c699881b6c66fee51287d9efcd49ef3da7424"
+    "x-sourceSha256": "9e3485e2f20158bae696e724b4a55b994b844318c7c27c827ab8125d60ebae9f"
   },
   "backupRestoreInvalidFile": "Kunne ikke gendanne: filen er ikke en gyldig sikkerhedskopi. Dine data er uændret.",
   "@backupRestoreInvalidFile": {
@@ -3730,7 +3730,7 @@
   },
   "diagnosticsExportCancelled": "Eksport annulleret.",
   "@diagnosticsExportCancelled": {
-    "x-sourceSha256": "47c8e0cee4bd398e18018ee57a71dafa998a7a30d17eac6e7c16b4d341f93e7e"
+    "x-sourceSha256": "6ee4d68824a26fb057b2faa0efab2990a5c451d0c2b8363c0e6471e02f2b9f79"
   },
   "diagnosticsExportFailed": "Kunne ikke eksportere diagnostikloggen.",
   "@diagnosticsExportFailed": {
@@ -6840,7 +6840,7 @@
   },
   "importContraDbProgramCancelled": "Import annulleret – intet blev tilføjet.",
   "@importContraDbProgramCancelled": {
-    "x-sourceSha256": "95247a79235ff9b09cba7d8ef6f747e1139b18b75cd5a4c8c0528869918304fe"
+    "x-sourceSha256": "1d3503572c33320c378aa50426153e772cc031e22e055e58a5d02ac3cb4367aa"
   },
   "importContraDbActivityCount": "{activities, plural, =1{1 aktivitet} other{{activities} aktiviteter}} ({dances, plural, =1{1 dans} other{{dances} danse}}, {notes, plural, =1{1 note} other{{notes} noter}})",
   "@importContraDbActivityCount": {
@@ -6884,7 +6884,7 @@
   },
   "importTitleListDancesHint": "Indsæt én dansetitel pr. linje.\nUigenkendte linjer gemmes som noter.",
   "@importTitleListDancesHint": {
-    "x-sourceSha256": "310c41d6144cd1627160b2f934b2f57fcf4106eb8d205ddcf0581eb65bb7418d"
+    "x-sourceSha256": "d6ce0547d04e63c028124877a24836648f23afefe4f7ce54de409c50e3ea6c51"
   },
   "importTitleListEmptyHint": "Indsæt en liste med dansetitler ovenfor for at forhåndsvise programmet.",
   "@importTitleListEmptyHint": {
@@ -9496,7 +9496,7 @@
   },
   "themeEditorPreviewHeading": "Aa Forhåndsvisning",
   "@themeEditorPreviewHeading": {
-    "x-sourceSha256": "ef2432974ac7b8de920328d450bf588446720a4fedb25fd7b4c7ba2fe2718be8"
+    "x-sourceSha256": "748af32d589f5469c37623baa98c40f8b802aafffbe77a305063c751ced4ae0e"
   },
   "themeEditorBodySample": "Eksempel på brødtekst",
   "@themeEditorBodySample": {
@@ -9524,7 +9524,7 @@
   },
   "reparseConfirmBody": "Dette tjekker {figureCount, plural, =1{1 figur} other{{figureCount} figurer}} i {danceCount, plural, =1{1 dans} other{{danceCount} danse}} igen. Dine tags, vurderinger, noter og alt andet på hver dans bevares nøjagtigt som de er. Dette erstatter kun figurer, der nu genkender en kendt bevægelse.",
   "@reparseConfirmBody": {
-    "x-sourceSha256": "389ef2d1138a806e293ebce64c7cc485084975cf2061b4a6e140f16865f9f965"
+    "x-sourceSha256": "d844a10ea886eafd0e4255081864704d63617c33a29087f789a08eb53b62ae64"
   },
   "reparseConfirmUpgrade": "Opgradér",
   "@reparseConfirmUpgrade": {
@@ -9564,7 +9564,7 @@
   },
   "reparseEmptyBody": "Ingen af dine ukendte figurer fra imports kan genkendes som en kendt bevægelse lige nu. Tjek igen efter en kommende opdatering, der forbedrer genkendelsen af figurer.",
   "@reparseEmptyBody": {
-    "x-sourceSha256": "ac79301a3f84a7c5d7dff6c4b987efdb5503d6c7019a26d5b72b6a11b835640d"
+    "x-sourceSha256": "f179b8c35ee69e7e7decd522e78822d7d8b6401b7abb2902e5add07270ac76a0"
   },
   "reparseErrorTitle": "Kunne ikke kontrollere dine figurer",
   "@reparseErrorTitle": {
@@ -10524,7 +10524,7 @@
   },
   "compoundEditorDescription": "Flere detaljer",
   "@compoundEditorDescription": {
-    "x-sourceSha256": "0c5bd1ad443efff631fcaeafc36a11d8931a3a537fd822e05dd9bedceb355840"
+    "x-sourceSha256": "b5eff1dbd0154de8292af10fe3c9424573c847dcca5320f9828b637639addd2a"
   },
   "compoundEditorKeywords": "Andre navne",
   "@compoundEditorKeywords": {
@@ -10636,7 +10636,7 @@
   },
   "compoundEditorNameTakenHiddenTerm": "“{name}” er allerede navnet på et af dine egne begreber. De vises i ordlisten, mens Vis ordliste er slået til. Vælg et andet navn.",
   "@compoundEditorNameTakenHiddenTerm": {
-    "x-sourceSha256": "b29b840aeb7660239612eaf3d395c27e422c6aa8c16d55207e296be121fee7bc"
+    "x-sourceSha256": "0c039333fe741a12b9eef40d2229cbd29617370655a9857d13b7a4467379be2e"
   },
   "compoundEditorNoFigures": "Tilføj mindst én figur.",
   "@compoundEditorNoFigures": {

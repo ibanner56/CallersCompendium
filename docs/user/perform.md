@@ -44,7 +44,7 @@ typeface built to be read from a distance.
 
 Above the figures, the card shows the dance's title, author, formation,
 and level; below them come the dance's calling notes. The figure where the
-progression happens is marked with an icon labelled *Progression*. Break and
+progression happens is marked with an icon labeled *Progression*. Break and
 note slots in a program get a card of their own, with the text in the same
 large type.
 
@@ -109,7 +109,7 @@ it is full screen, it opens in its usual window next time. Phones and tablets
 have no button for this, because Perform is always full screen there.
 
 **Caller notes.** When you perform a program, a slot's caller note appears above
-the dance title, labelled *Caller note*. To hide these, turn off **Show caller
+the dance title, labeled *Caller note*. To hide these, turn off **Show caller
 notes in program Perform** in
 [Settings › Program › Performance](./settings.md#performance). The note is for
 your eyes only: it does not change the dance's own calling notes, search, or
