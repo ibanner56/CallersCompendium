@@ -3500,7 +3500,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 heroTag: 'save-program',
                 onPressed: _saving || _pickerImporting ? null : _save,
                 icon: const Icon(Icons.save_outlined),
-                label: Text(_dirty ? l10n.programsSaveDirty : l10n.commonSave),
+                label: Text(l10n.commonSave),
               )
             : null,
       ),
