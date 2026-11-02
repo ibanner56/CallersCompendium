@@ -120,6 +120,7 @@ import 'src/sync/sync_scope.dart';
 import 'src/sync/synced_settings_reload.dart';
 import 'src/sync/sync_runtime.dart';
 import 'src/theme/destructive_button_style.dart';
+import 'src/theme/keyboard_dismiss.dart';
 import 'src/update/update_controller.dart';
 import 'src/update/update_scope.dart';
 import 'src/utils/undo_snack_bar.dart';
@@ -2910,6 +2911,7 @@ class _CompendiumAppState extends State<CompendiumApp>
           supportedLocales: AppLocalizations.supportedLocales,
           localeListResolutionCallback: (locales, supported) =>
               resolveSystemLocale(locales, supported),
+          scrollBehavior: const AppScrollBehavior(),
           navigatorKey: _navigatorKey,
           navigatorObservers: [_performObserver],
           scaffoldMessengerKey: _messengerKey,

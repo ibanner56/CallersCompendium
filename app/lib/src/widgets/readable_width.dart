@@ -37,7 +37,7 @@ class ReadableListView extends StatelessWidget {
   const ReadableListView({
     required this.children,
     this.padding,
-    this.keyboardDismissBehavior = ScrollViewKeyboardDismissBehavior.manual,
+    this.keyboardDismissBehavior,
     super.key,
   });
 
@@ -48,7 +48,9 @@ class ReadableListView extends StatelessWidget {
   /// apply, as they do to a [ListView] given no padding.
   final EdgeInsets? padding;
 
-  final ScrollViewKeyboardDismissBehavior keyboardDismissBehavior;
+  /// When null, the ambient scroll configuration decides (see
+  /// `AppScrollBehavior`).
+  final ScrollViewKeyboardDismissBehavior? keyboardDismissBehavior;
 
   @override
   Widget build(BuildContext context) {

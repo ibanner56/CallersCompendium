@@ -1,3 +1,4 @@
+import 'package:compendium_app/src/theme/keyboard_dismiss.dart';
 import 'package:compendium_app/src/widgets/responsive_autocomplete.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -133,11 +134,13 @@ Future<void> _pump(
   TextDirection textDirection = TextDirection.ltr,
   FocusNode? focusNode,
   bool refocusAfterSelect = false,
+  ScrollBehavior? scrollBehavior,
 }) async {
   await tester.pumpWidget(
     Directionality(
       textDirection: textDirection,
       child: MaterialApp(
+        scrollBehavior: scrollBehavior,
         home: Scaffold(
           body: _TestPicker(
             options: options,
@@ -179,6 +182,28 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('test-option-swing')));
       await tester.pumpAndSettle();
       expect(picked, 'swing');
+    });
+
+    testWidgets('scrolling the overlay under the app-wide drag-to-dismiss '
+        'default keeps the options open', (tester) async {
+      await _pump(
+        tester,
+        options: [for (var i = 0; i < 40; i++) 'opt$i'],
+        onSelected: (_) {},
+        scrollBehavior: const AppScrollBehavior(),
+      );
+
+      await tester.enterText(find.byKey(const ValueKey('test-input')), 'opt');
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('test-option-opt0')), findsOneWidget);
+
+      await tester.drag(
+        find.byKey(const ValueKey('test-option-opt0')),
+        const Offset(0, -80),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('test-option-opt1')), findsOneWidget);
     });
 
     testWidgets('free-text fallback fires when nothing matches', (
