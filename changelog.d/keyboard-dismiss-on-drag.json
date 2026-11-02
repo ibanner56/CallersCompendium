@@ -1,0 +1,9 @@
+{
+  "id": "keyboard-dismiss-on-drag",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Dragging down on any screen, dialog or sheet now dismisses the on-screen keyboard on mobile, in every text field rather than only some of them."
+    ]
+  }
+}

@@ -293,4 +293,55 @@ void main() {
       expect(adapter.batchWarnings, isEmpty);
     });
   });
+
+  group('CcUsrArchive.danceRecordIds (#1976)', () {
+    test('a complete file lists every dance id, after withoutDances too', () {
+      final archive = readCcUsrArchive(_usrBytes());
+      expect(archive.danceRecordIds, hasLength(40));
+      expect(archive.withoutDances().danceRecordIds, archive.danceRecordIds);
+    });
+
+    test('a cut-short file does not claim to know its dances', () {
+      final full = _usrBytes();
+      final half = Uint8List.sublistView(full, 0, full.length ~/ 2);
+      expect(readCcUsrArchive(half).danceRecordIds, isNull);
+    });
+
+    test('a Dance row with no zk_Dance_ID leaves the dances unknown', () {
+      final archive = extractCcUsrArchive(
+        _db([
+          _dance([
+            FmpRecord(1, {1: '4'}),
+            FmpRecord(2, const {}),
+          ]),
+        ]),
+      );
+      expect(archive.dances, hasLength(2));
+      expect(archive.danceRecordIds, isNull);
+    });
+
+    test(
+      'a file the reader warned about does not claim to know its dances',
+      () {
+        final archive = extractCcUsrArchive(
+          FmpDatabase(
+            versionNum: 12,
+            creator: 'Pro 12.0',
+            tables: [
+              _dance([
+                FmpRecord(1, {1: '4'}),
+              ]),
+            ],
+            warnings: const ['Unrecognised chunk op-code 0x7 at offset 9.'],
+          ),
+        );
+        expect(archive.danceRecordIds, isNull);
+      },
+    );
+
+    test('a file with no Dance table does not claim to know its dances', () {
+      final archive = extractCcUsrArchive(_db(const []));
+      expect(archive.danceRecordIds, isNull);
+    });
+  });
 }

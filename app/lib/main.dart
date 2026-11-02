@@ -120,6 +120,7 @@ import 'src/sync/sync_scope.dart';
 import 'src/sync/synced_settings_reload.dart';
 import 'src/sync/sync_runtime.dart';
 import 'src/theme/destructive_button_style.dart';
+import 'src/theme/keyboard_dismiss.dart';
 import 'src/update/update_controller.dart';
 import 'src/update/update_scope.dart';
 import 'src/utils/undo_snack_bar.dart';
@@ -2218,7 +2219,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     });
   }
 
-  /// Back Up + Reset action for the below-floor recovery screen (issue #841).
+  /// Back up + reset action for the below-floor recovery screen (issue #841).
   ///
   /// Delegates the fail-closed snapshot logic to [performBackUpAndReset] (see
   /// `migration_guard.dart`): if the snapshot fails, shows a failure dialog and
@@ -2315,7 +2316,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     await _doReset(dbFile, l10n);
   }
 
-  /// Reset Only action for the below-floor recovery screen (issue #841).
+  /// Reset only action for the below-floor recovery screen (issue #841).
   ///
   /// The `error` parameter is unused here but matches the callback type
   /// (`void Function(DatabaseBelowFloorError)`) shared with [_backUpAndReset],
@@ -2356,7 +2357,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     await _doReset(dbFile, l10n);
   }
 
-  /// Settings ▸ Experimental ▸ Developer Options ▸ reset: deletes the database
+  /// Settings ▸ Experimental ▸ Developer options ▸ reset: deletes the database
   /// and restarts on an empty one, as a first launch would. Returns whether the
   /// database was actually deleted.
   ///
@@ -2910,6 +2911,7 @@ class _CompendiumAppState extends State<CompendiumApp>
           supportedLocales: AppLocalizations.supportedLocales,
           localeListResolutionCallback: (locales, supported) =>
               resolveSystemLocale(locales, supported),
+          scrollBehavior: const AppScrollBehavior(),
           navigatorKey: _navigatorKey,
           navigatorObservers: [_performObserver],
           scaffoldMessengerKey: _messengerKey,

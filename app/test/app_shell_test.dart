@@ -655,7 +655,7 @@ void main() {
         (d.label as Text).data!,
     ];
 
-    testWidgets('is absent while Show Glossary is off', (tester) async {
+    testWidgets('is absent while Show glossary is off', (tester) async {
       final repos = openTestRepositories();
       final show = ValueNotifier<bool>(false);
       addTearDown(show.dispose);

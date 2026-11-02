@@ -30,12 +30,12 @@ String databaseBelowFloorHeadline(AppLocalizations l10n) =>
 String databaseBelowFloorBody(AppLocalizations l10n, String bridgeTag) =>
     l10n.migrationBelowFloorBody(bridgeTag);
 
-/// Terminal-screen label for the "Back Up + Reset" button on the below-floor
+/// Terminal-screen label for the "Back up + reset" button on the below-floor
 /// recovery screen.
 String databaseBelowFloorBackUpAndReset(AppLocalizations l10n) =>
     l10n.migrationBelowFloorBackUpAndReset;
 
-/// Terminal-screen label for the "Reset Only" button on the below-floor
+/// Terminal-screen label for the "Reset only" button on the below-floor
 /// recovery screen.
 String databaseBelowFloorResetOnly(AppLocalizations l10n) =>
     l10n.migrationBelowFloorResetOnly;

@@ -20,7 +20,7 @@ double _contrast(Color a, Color b) {
 }
 
 /// The gallery palettes under test, keyed by their selection name. Includes
-/// the Default-group "Soft Dark" so its dimmed canvas is held to the same AA bar.
+/// the Default-group "Soft dark" so its dimmed canvas is held to the same AA bar.
 final Map<String, ColorScheme> _galleryPalettes = {
   'softDark': AppColorSchemes.softDark,
   'blulocoLight': GalleryPalettes.blulocoLight,

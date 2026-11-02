@@ -88,7 +88,7 @@ with **Include in sharing** turned off are left out. Your star rating of the
 dance is left out too; it stays on your devices and in your backup.
 
 On Linux the system has no file share sheet, so **Share dance file** is
-labelled **Save dance file…** and saves the file through the system dialog
+labeled **Save dance file…** and saves the file through the system dialog
 instead; choosing **Share** in the JSON dialog does the same.
 
 Opening either file in Caller's Compendium goes through import review before
@@ -148,7 +148,7 @@ If none of the program's dances have anything to put on a card — no structured
 figures, and no selected calling notes or walkthrough — the question is skipped
 and the export proceeds as set-list-only automatically.
 
-Cancelling the dialog (or dismissing it) stops the export — nothing is shared or
+Canceling the dialog (or dismissing it) stops the export — nothing is shared or
 copied.
 
 If something goes wrong the app says so plainly — "Couldn't share this set list",
@@ -200,7 +200,7 @@ The file leaves out what is private to you: the program's **Pay**, its
 own devices and in your [backup](./backup-portability.md), and still move with
 Device Sync. Pay is never part of the shared set-list text or PDF either.
 
-On Linux the system has no file share sheet, so this action is labelled **Save
+On Linux the system has no file share sheet, so this action is labeled **Save
 program file…** and saves the file through the system dialog instead.
 
 Custom fields with **Include in sharing** turned off are left out, values
@@ -225,7 +225,7 @@ until the recipient confirms. Any of your own figures the file carries are
 offered to them afterwards, to add to their Glossary or not — see
 [Figures in a shared file](./imports.md#figures-in-a-shared-file). Bringing the same file in twice does not pile up
 duplicate *dances* — the importer matches what is already there. A dance it
-recognises as one you already have defaults to **Skip**, and the program still
+recognizes as one you already have defaults to **Skip**, and the program still
 points at your copy of it. Programs are different: each import adds the program
 as a new one. If a caller sends you an updated version of a program you already
 have, it arrives beside your copy and never overwrites it, so your own date,

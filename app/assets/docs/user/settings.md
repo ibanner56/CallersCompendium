@@ -18,7 +18,7 @@ section.*
 
 ## Finding Settings
 
-**Settings** is a top-level destination, marked with a gear icon and labelled
+**Settings** is a top-level destination, marked with a gear icon and labeled
 **Settings**. On a narrow screen (like a phone) it's a tab in the bottom
 navigation; on a wide screen (a tablet or desktop) it's in the side navigation
 rail.
@@ -55,7 +55,7 @@ The **General** section gathers everyday behavior into small groups.
   (built-in figures start in lower case, as in ContraDB). Only the look in those
   places changes; exports, search, sync comparisons and screen-reader wording are
   unaffected.
-- **Tags** — opens the Tags manager, where you rename, merge, colour and delete
+- **Tags** — opens the Tags manager, where you rename, merge, color and delete
   your tags. See [Group by category](./collection.md#group-by-category-a-dances-vibe)
   for what each action does.
 - **Authors** and **Sources** — open the Authors and Sources managers. They
@@ -144,7 +144,7 @@ the full picture.
   undone straight after. See
   [Imports & migration](./imports.md#dances-tagged-ecd).
 - **Re-check unrecognized figures** — re-reads imported dances whose figures were kept
-  as plain text only because the app couldn't recognise them at the time.
+  as plain text only because the app couldn't recognize them at the time.
   You preview and confirm before anything changes, and your tags, ratings, and
   notes are preserved. See
   [Write & edit dances](./authoring.md#fix-figures-an-import-could-not-read).
@@ -229,7 +229,7 @@ details are handled when you export.
   - **Restore removed columns** brings back everything you removed and returns the
     built-in columns to their original order, while keeping your renames and any
     custom columns.
-  - **Restore all defaults** clears every customisation and returns the matrix to
+  - **Restore all defaults** clears every customization and returns the matrix to
     how it ships. Because it discards your renames and custom columns, it asks
     you to confirm first.
 
@@ -304,53 +304,53 @@ There's a **High contrast** theme for maximum legibility — see the
 ### Custom themes
 
 - **New custom theme** — opens an editor seeded from your current theme, so you
-  start from something familiar. You can tune any colour in it.
+  start from something familiar. You can tune any color in it.
 - Saved custom themes can be selected, edited, duplicated, or deleted at any time.
   They sync to your other devices along with your other settings when sync is on, and deleting a theme deletes it on those devices too.
 
 ### Easter eggs
 
-- **Colour-named dances tint the theme** (off by default) — a playful surprise:
-  open a dance whose title names a colour, like *Baby Rose* or *Blue Boy*, and its
-  view is tinted that colour. It steps aside when a high-contrast theme is active,
+- **Color-named dances tint the theme** (off by default) — a playful surprise:
+  open a dance whose title names a color, like *Baby Rose* or *Blue Boy*, and its
+  view is tinted that color. It steps aside when a high-contrast theme is active,
   so readability always wins.
 
 ### Set lists
 
-- **Colour-code set-list rows** — tints each dance row in a program's set list
+- **Color-code set-list rows** — tints each dance row in a program's set list
   (both the read-only summary and the builder) by its
   [formation](./glossary.md#formation) family — contras, triplets, mixers,
   circles, and squares each get their own accent, so you can read the *shape* of a program at a
   glance. Dances marked as [mixers](./glossary.md#mixer) always get the mixer
   accent regardless of their formation, so a mixer-flagged Improper reads as
   a mixer rather than a contra, even if you have given that formation its own
-  colour (see [Formation colours](#formation-colours) below). The formation (and "Mixer" when applicable) is
+  color (see [Formation colors](#formation-colors) below). The formation (and "Mixer" when applicable) is
   always shown as text on the row too, so rows stay fully readable without relying
-  on colour, and the family tints adapt to the High contrast theme. On by default;
-  turn it off to hide the tints (your own formation colours are hidden with them).
+  on color, and the family tints adapt to the High contrast theme. On by default;
+  turn it off to hide the tints (your own formation colors are hidden with them).
 
-### Formation colours
+### Formation colors
 
-- **Formation label colours** — highlight individual formations in your own
-  colours (for example Becket clockwise in yellow and Becket counter-clockwise in
+- **Formation label colors** — highlight individual formations in your own
+  colors (for example Becket clockwise in yellow and Becket counter-clockwise in
   pink). Your choices show on dance cards, in dance detail, in the Perform
   header, and on set-list rows in a program's summary and builder. On a set-list
-  row your colour replaces the built-in tint for that formation's family; a
-  formation you haven't coloured keeps its family tint, and a dance marked as a
-  mixer keeps the mixer accent. Your colour is used as you chose it in every
+  row your color replaces the built-in tint for that formation's family; a
+  formation you haven't colored keeps its family tint, and a dance marked as a
+  mixer keeps the mixer accent. Your color is used as you chose it in every
   theme, High contrast included, because on a row it only paints the edge of the
-  row, never text. With **Colour-code set-list rows** off, set-list rows show no
-  colour at all.
+  row, never text. With **Color-code set-list rows** off, set-list rows show no
+  color at all.
 
-### Tag colours
+### Tag colors
 
-- **Tag colours** — give a tag its own colour so it stands out wherever it
-  appears, on dance cards and in dance detail. Only the tags you colour change;
+- **Tag colors** — give a tag its own color so it stands out wherever it
+  appears, on dance cards and in dance detail. Only the tags you color change;
   every other tag looks exactly as it does now. The tag's name is always shown
-  beside the colour, so tags stay readable without relying on colour, and the
-  app picks a black or white label automatically so your colour stays legible in
+  beside the color, so tags stay readable without relying on color, and the
+  app picks a black or white label automatically so your color stays legible in
   every theme. This opens the Tags manager (also under **General → Library →
-  Tags**): choose **Colour…** in a tag's menu to pick one, or **Remove colour**.
+  Tags**): choose **Color…** in a tag's menu to pick one, or **Remove color**.
 
 ## Dialect
 
@@ -384,7 +384,7 @@ role names and wording the app uses when it describes dances.
   reads as, and a new dance starts with no figures unless you have saved
   starting figures. See [Free-text entry](./authoring.md#free-text-entry).
 - **Figure shorthands** — map short tokens to one or more figures you can insert
-  during free-text entry. This row is greyed out until **Free-text entry** is on. See
+  during free-text entry. This row is grayed out until **Free-text entry** is on. See
   [Figure shorthands](./authoring.md#figure-shorthands).
 - **Walkthrough snippets** — manage your personal, per-figure walkthrough
   wording. These settings are independent of canonical figure text.
@@ -421,7 +421,7 @@ The **Language & region** section handles formats and localization.
   | `d` or `dd` | Day |
 
   Separate them with a hyphen, slash, dot, comma, or space. If a pattern isn't
-  recognised the app says so and falls back to the system default until you
+  recognized the app says so and falls back to the system default until you
   correct it.
 
 - **First day of week** — choose **System default**, **Sunday**, **Monday**, or
@@ -717,15 +717,15 @@ useful thing you can send.
 ## Experimental
 
 The **Experimental** section holds features that are still in development —
-today, that's the **Glossary**, **Device Sync** and **Developer Options**. Anything here can change
+today, that's the **Glossary**, **Device Sync** and **Developer options**. Anything here can change
 before it becomes a regular setting. Each feature sits in its own section: select its heading to
 open or close it.
 
 ### Glossary and Custom Figures
 
-**Show Glossary** adds a **Glossary** destination to the navigation, between
+**Show glossary** adds a **Glossary** destination to the navigation, between
 **Programs** and **Settings**. It is **off by default**, and the section starts
-closed while both Show Glossary and Custom Figures are off.
+closed while both Show glossary and Custom Figures are off.
 
 The Glossary is a reference to the figures built into the app. Search it by a
 figure's name, an older name for it, or a word from its definition. Select a
@@ -751,12 +751,12 @@ button sits beside **+** in the Glossary toolbar, the same as on Collection and
 Programs, so your terms and notes can be pulled from another device.
 
 **Your terms** are words you define yourself, with no figure: a name and a
-definition (both required), **More Details** (optional), other names they can be found by,
+definition (both required), **More details** (optional), other names they can be found by,
 notes, and the **Dance form** they're for. They are listed in the Glossary
 alongside the built-in figures, marked **Custom**, and found the same way.
 Choose **+** in the Glossary to add one (with Custom Figures on, choose
 **Term** under **What it is**); select one to **Edit** or **Delete** it. Terms
-need only Show Glossary, not Custom Figures. A name already taken can't be
+need only Show glossary, not Custom Figures. A name already taken can't be
 saved, as for your figures below; one of your own figures keeps its name even
 while Custom Figures is off and it isn't shown, and saving says so. Terms can
 also come from a Caller's Companion file (see [Bring your glossary terms
@@ -764,18 +764,18 @@ across](./imports.md#bring-your-glossary-terms-across)); such a term's page show
 its **Source** as the file had it.
 
 **Custom Figures** lets you make your own figures and use them in dances. It
-is **off by default**, and it doesn't need Show Glossary: with the Glossary
+is **off by default**, and it doesn't need Show glossary: with the Glossary
 hidden you can still turn it on, and use your figures everywhere. If you turned
 it on in version 0.8.0-beta or before and later turned the Glossary off, it was
-greyed out but kept its setting. It now takes effect, and your figures
+grayed out but kept its setting. It now takes effect, and your figures
 show again everywhere Custom Figures shows them. Turn Custom Figures off here
 to hide them. While it is on, the **Your figures** row under the switch opens them: see your figures,
 choose **+** to add one, or select one to **Edit** or **Delete** it. The row
-is greyed out while Custom Figures is off.
+is grayed out while Custom Figures is off.
 The Glossary lists them too, when it is shown. While it is on:
 
 - Choose **+**, on that screen or in the Glossary, to add a figure of your own: a name and a
-  definition (both required), **More Details** (optional), other names it can be found by,
+  definition (both required), **More details** (optional), other names it can be found by,
   notes, and the **Dance form** it's for.
 - Under **What it is**, choose a **Combination**, which becomes figures that
   come with the app when you save a dance, a **New figure**, which stays
@@ -788,7 +788,7 @@ The Glossary lists them too, when it is shown. While it is on:
 - To start from a figure that comes with the app, open it in the Glossary and
   choose **Copy as your own figure**. The editor opens on a new figure named
   after it with **(copy)** (numbered if you already have one), with its
-  definition and More Details, its beats, its wording, and the parameters that
+  definition and More details, its beats, its wording, and the parameters that
   wording uses, with their defaults (a variant, such as *pull by neighbors*,
   starts from its own). The wording is the figure's plain one where the app
   words it in a way of its own, so read it through before you save. Its
@@ -816,7 +816,7 @@ The Glossary lists them too, when it is shown. While it is on:
   a parameter — the other hand, the other role, or partners for neighbors and
   neighbors for partners — where that has one. A choice
   that can't be used, because the kinds differ or no value would fit every
-  setting it fills, is shown greyed out with the reason.
+  setting it fills, is shown grayed out with the reason.
 - If a parameter fills nothing, or a new figure's wording leaves it out, saving
   asks whether to go **Back to editor** or **Save anyway**; a parameter a
   condition tests counts as used. Wording that uses something the figure
@@ -884,7 +884,7 @@ store has this version of the app or a later one. Until then changes to them
 aren't sent to your other devices, and Device Sync shows a note naming the
 device that is holding them back (see [New kinds of data wait for every
 device](#new-kinds-of-data-wait-for-every-device)). One exception, while the app
-is in beta: a figure or term saved with **More Details** left blank, or an edit
+is in beta: a figure or term saved with **More details** left blank, or an edit
 that clears it, isn't picked up by a device on an older version of the app,
 which keeps what it had until it is updated.
 
@@ -1276,7 +1276,7 @@ comparison shows:
   is only on this device, what is only on the other device, and what both have
   but differently — with the two versions side by side. For a dialect, that
   means the terms that differ in each section; for a theme, whether it's light
-  or dark and each colour that differs;
+  or dark and each color that differs;
 - for a dance: each detail that differs, with both versions. Figures are
   compared line by line under the part of the dance they start in (A1, A2, B1,
   B2), and figures that match aren't repeated; when a figure reads the same in
@@ -1289,7 +1289,7 @@ comparison shows:
   counted), whether the dances they share are in a different order, and
   whether their timings, alternates or other details differ;
 - for a tag, venue or author: each detail that differs, such as a tag's
-  colour or a venue's sponsor, schedule or price.
+  color or a venue's sponsor, schedule or price.
 
 Nothing is selected for you. Pick the version you want for each item, then
 choose **Keep selected**; with several items, **Keep all
@@ -1368,7 +1368,7 @@ are.
   you choose between the versions instead — see
   [Choosing which version to keep](#choosing-which-version-to-keep).
 
-### Developer Options
+### Developer options
 
 This section is closed until you open it. Today it holds one action.
 

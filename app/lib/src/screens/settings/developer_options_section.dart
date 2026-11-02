@@ -1,4 +1,4 @@
-// Part of the Settings screen: the Developer Options group of the Experimental
+// Part of the Settings screen: the Developer options group of the Experimental
 // pane.
 import 'package:flutter/material.dart';
 

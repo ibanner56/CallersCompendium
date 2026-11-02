@@ -32,7 +32,7 @@ import '../theme/app_shapes.dart';
 /// and the User Guide (`docs/design/ux.md` information architecture).
 ///
 /// The Glossary destination (issue #695) appears only while the Experimental
-/// "Show Glossary" setting is on ([ShowGlossaryScope]).
+/// "Show glossary" setting is on ([ShowGlossaryScope]).
 ///
 /// - **Narrow (< 900 px):** bottom [NavigationBar].
 /// - **Wide (≥ 900 px):** left [NavigationRail].
