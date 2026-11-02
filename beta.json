@@ -1,38 +1,38 @@
 {
   "manifestSchemaVersion": 1,
   "channel": "beta",
-  "version": "0.8.1-beta",
-  "releaseNotesUrl": "https://github.com/ibanner56/CallersCompendium/releases/tag/v0.8.1-beta",
-  "pubDate": "2026-10-27T02:37:13Z",
+  "version": "0.9.0-beta",
+  "releaseNotesUrl": "https://github.com/ibanner56/CallersCompendium/releases/tag/v0.9.0-beta",
+  "pubDate": "2026-11-02T18:27:13Z",
   "artifacts": [
     {
       "platform": "android",
       "arch": "universal",
-      "url": "https://github.com/ibanner56/CallersCompendium/releases/download/v0.8.1-beta/CallersCompendium-0.8.1-beta-android-universal.apk",
-      "sha256": "d5e4ff0864db262ff04161fd5f1dc2fb99b50f5cc46585d47237c1cb66eaec9e",
-      "size": 107246529
+      "url": "https://github.com/ibanner56/CallersCompendium/releases/download/v0.9.0-beta/CallersCompendium-0.9.0-beta-android-universal.apk",
+      "sha256": "f100082a2bd460fe038151578b282c051f2ea96077716f2ddfb89a9bc48fc145",
+      "size": 111338793
     },
     {
       "platform": "linux",
       "arch": "x64",
-      "url": "https://github.com/ibanner56/CallersCompendium/releases/download/v0.8.1-beta/CallersCompendium-0.8.1-beta-linux-x64.AppImage",
-      "sha256": "6b535a2bae07a52547de3e978f35606d96d15bc7f3e44b36d84c10d639f2417f",
-      "size": 22104568
+      "url": "https://github.com/ibanner56/CallersCompendium/releases/download/v0.9.0-beta/CallersCompendium-0.9.0-beta-linux-x64.AppImage",
+      "sha256": "9ed9929917fa7469b43f00081abdc337129455273ba208082d3cb820c8e4a61b",
+      "size": 22649336
     },
     {
       "platform": "macos",
       "arch": "universal",
-      "url": "https://github.com/ibanner56/CallersCompendium/releases/download/v0.8.1-beta/CallersCompendium-0.8.1-beta-macos-universal.dmg",
-      "sha256": "2bf4e86ef3c8c77477b833358c80665f732b29c778fc1e2b8ae3eac391c1468d",
-      "size": 40432687
+      "url": "https://github.com/ibanner56/CallersCompendium/releases/download/v0.9.0-beta/CallersCompendium-0.9.0-beta-macos-universal.dmg",
+      "sha256": "3136dda99893aaafc5579ea52edecfde13b435591d18022550c15762ea3ba855",
+      "size": 41731414
     },
     {
       "platform": "windows",
       "arch": "x64",
-      "url": "https://github.com/ibanner56/CallersCompendium/releases/download/v0.8.1-beta/CallersCompendium-0.8.1-beta-windows-x64.exe",
-      "sha256": "ca29190ef3bec9069a6de91aa3c6d8c956ed1cf2b3c3157985a8dd55106e5163",
-      "size": 20403376
+      "url": "https://github.com/ibanner56/CallersCompendium/releases/download/v0.9.0-beta/CallersCompendium-0.9.0-beta-windows-x64.exe",
+      "sha256": "cb12f7bff3744483156fb8539ee3c6caa589362582a65c96c59f50dfa0337e5b",
+      "size": 20820104
     }
   ],
-  "codename": "Down the Hall"
+  "codename": "End Effects"
 }
