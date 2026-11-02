@@ -124,8 +124,7 @@ for labels and headings, not for the guides' running prose.
   `ColourDanceTheme`) are not app strings and are not renamed.
 - **English only.** Danish, Dutch, French, German and Japanese keep their own
   conventions.
-- **Quotes are not covered here.** Straight versus curly quotes is a separate,
-  later decision.
+- **Quotes are straight.** See [App strings: straight quotes](#app-strings-straight-quotes).
 
 `app/test/l10n/us_spelling_sentence_case_test.dart` enforces the spelling and
 case rules on the English ARB.
