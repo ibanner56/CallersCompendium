@@ -530,6 +530,11 @@ Q-1 to Q-5 and Q-7 in `followups-triage.md` are still open.
 
 This differs from the plan's recommendation (curly in prose). U5b-1's tool and ratchet enforce straight double quotes and straight apostrophes in `app_en.arb`. Other locales keep their own conventions (the plan's call). Test fixtures that assert English, and ICU syntax (no `use-escaping`), are handled as the plan says.
 
+### Usage credits (2026-11-02 ~15:25 UTC)
+**Instruction (maintainer's words):** "We're on usage credits. Go slowly and check with me before creating new sessions or starting new work."
+
+This supersedes the standing "start the next one when green" rules for wave 4 and the follow-up bundles. No new session and no new branch of work starts without asking the maintainer first. The two sessions already finishing their PRs (bundle 1 and U5b-1) were told to open them before this instruction arrived. The orchestrator's scheduled check-ins are switched off.
+
 ## Still open
 
 - Nothing on the decision page.
