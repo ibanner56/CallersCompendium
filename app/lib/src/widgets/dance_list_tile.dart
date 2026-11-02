@@ -12,6 +12,7 @@ import '../models/dance_list_entry.dart';
 import '../search/facet_labels.dart';
 import '../theme/set_list_accents.dart';
 import 'program_status_chip.dart';
+import 'right_click_menu.dart';
 import 'tag_chip.dart';
 
 /// One Collection result row: title, authors, formation chip, status/tag chips
@@ -134,7 +135,7 @@ class DanceListTile extends StatelessWidget {
     );
     final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
     final renderer = FigureRenderer(contraTaxonomy);
-    return ListTile(
+    final tile = ListTile(
       selected: selected,
       visualDensity: VisualDensity.compact,
       onLongPress: onLongPress,
@@ -307,7 +308,11 @@ class DanceListTile extends StatelessWidget {
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
     );
+    // A right-click on the row opens the ⋮ menu ([_actionsMenu]).
+    return RightClickMenu(menuKey: _actionsMenuKey, child: tile);
   }
+
+  Key get _actionsMenuKey => ValueKey('dance-actions-${entry.dance.id}');
 
   String _renderCustomField(
     ({String label, String value}) field, {
@@ -350,7 +355,7 @@ class DanceListTile extends StatelessWidget {
   Widget _actionsMenu(AppLocalizations l10n) {
     final dance = entry.dance;
     return PopupMenuButton<_DanceRowAction>(
-      key: ValueKey('dance-actions-${dance.id}'),
+      key: _actionsMenuKey,
       tooltip: l10n.collectionRowActionsSemantic(dance.title),
       icon: const Icon(Icons.more_vert),
       onSelected: (action) {

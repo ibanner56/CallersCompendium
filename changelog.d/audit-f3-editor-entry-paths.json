@@ -8,7 +8,7 @@
       "Retyping a figure in its Move box, in a dance or in your default figures in Settings, now keeps its note, walkthrough step and progression mark, as picking a new move does.",
       "A meanwhile group's shared beats now follow its longest side, and a modifier group's its core, until you type a count for the group, however the group was made. Before, a group took its first side's count when grouped or added (so a 4-beat balance grouped with an 8-beat swing got 4), or 0 when typed or made in a shorthand.",
       "Deleting one of your own figures or combinations now says how many of your shorthands are for it, and that typing them will be read as ordinary lines.",
-      "With Free-text entry, a turn amount spelled out (\"petronella two times\", \"allemande left three quarters\") now keeps the line as a custom figure, as the same amount in figures does."
+      "With Free-text entry, a turn amount spelled out (\"petronella two times\", \"allemande left three quarters\") now keeps the line as an unrecognized figure, as the same amount in figures does."
     ]
   },
   "core": {

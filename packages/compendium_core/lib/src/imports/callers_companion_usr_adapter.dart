@@ -9,6 +9,7 @@ import 'import_error.dart';
 import 'raw_record.dart';
 import 'source_adapter.dart';
 import 'structured_draft.dart';
+import 'title_article.dart';
 
 /// A [SourceAdapter] that migrates Caller's Companion (CC) dances from the
 /// **binary FileMaker Pro 12 `.USR`** file — the *headline* Phase 6.5
@@ -169,9 +170,10 @@ class CallersCompanionUsrAdapter implements SourceAdapter, BatchWarningSource {
         DiscoveredRecord(
           source: source,
           externalId: entry.recordId,
+          // Fronted like the drafted title (#1976), so the two agree.
           label: (entry.record.name ?? '').trim().isEmpty
               ? null
-              : entry.record.name!.trim(),
+              : frontTrailingArticle(entry.record.name!.trim()),
           locator: {
             'rowId': entry.recordId,
             'columns': entry.rawColumns,

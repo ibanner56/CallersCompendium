@@ -3,10 +3,10 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "Device Sync checks whether a choreographer, tag, source or custom field you deleted on another device is still in use faster on a large collection, so a sync pass spends less time on those checks."
+      "Device Sync checks whether an author, tag, source or custom field you deleted on another device is still in use faster on a large collection, so a sync pass spends less time on those checks."
     ],
     "data_migrations": [
-      "Database schema v41 adds lookup indexes over the choreographer, tag, source and custom-field columns of the dance join tables. No data is changed."
+      "Database schema v41 adds lookup indexes over the author, tag, source and custom-field columns of the dance join tables. No data is changed."
     ]
   },
   "core": {

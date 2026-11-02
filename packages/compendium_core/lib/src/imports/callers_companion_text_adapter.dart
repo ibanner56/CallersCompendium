@@ -4,6 +4,7 @@ import 'import_error.dart';
 import 'raw_record.dart';
 import 'source_adapter.dart';
 import 'structured_draft.dart';
+import 'title_article.dart';
 
 /// A [SourceAdapter] that migrates Caller's Companion (CC) dances from CC's
 /// **"copy formatted dance" clipboard/text** export — the *fallback* migration
@@ -169,7 +170,11 @@ class CallersCompanionTextAdapter implements SourceAdapter {
       .toList(growable: false);
 
   /// The parsed title of a block for a discovery label, or `null`.
-  static String? _peekTitle(String block) => _parseBlock(block)?.name;
+  /// Fronted like the drafted title (#1976), so the two agree.
+  static String? _peekTitle(String block) => switch (_parseBlock(block)?.name) {
+    final name? => frontTrailingArticle(name),
+    null => null,
+  };
 
   /// Parses one dance block into a [CcDanceRecord], or `null` when the block is
   /// not a recognizable CC dance (empty, or no title and no body lines).

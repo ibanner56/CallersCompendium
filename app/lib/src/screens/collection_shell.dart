@@ -17,6 +17,7 @@ import '../widgets/online_import_dialogs.dart';
 import '../widgets/online_import_snack_bar.dart';
 import '../published_collections/published_collection_service.dart';
 import 'dance_detail_screen.dart';
+import 'dance_editor_screen.dart';
 import 'dance_list_screen.dart';
 import 'dance_reimport_flow.dart';
 import 'custom_fields_screen.dart';
@@ -53,7 +54,12 @@ class CollectionShell extends StatefulWidget {
     this.publishedCollectionService,
     this.callersBoxOnline,
     this.contraDbOnline,
+    this.commands,
   });
+
+  /// Lets the app shell run this Collection's New dance, Import and search
+  /// commands from the keyboard map and the macOS menu bar (PLAT-7, PLAT-8).
+  final CollectionCommands? commands;
 
   /// Test seam for choosing an import file; forwarded to [ImportReviewScreen].
   /// Defaults to [pickImportFile] (native open-file dialog) when null.
@@ -91,8 +97,94 @@ class CollectionShell extends StatefulWidget {
   State<CollectionShell> createState() => _CollectionShellState();
 }
 
+/// The Collection's own commands, for callers above it: the app shell runs
+/// them for Ctrl/Cmd-N, Ctrl/Cmd-F and the macOS menu bar (PLAT-7, PLAT-8).
+///
+/// Each returns whether a mounted Collection took it. The shell's layouts put
+/// the Collection at different tree positions, so a breakpoint crossing mounts
+/// a new [CollectionShell] before the old one goes; the newest one wins, and
+/// the old one's dispose leaves it attached.
+class CollectionCommands {
+  _CollectionShellState? _shell;
+
+  /// Opens the new-dance editor, as the New dance button does.
+  bool newDance() => _shell?._newDance() ?? false;
+
+  /// Starts a dance import, as the Import dances action does.
+  bool importDances() => _shell?._importDances() ?? false;
+
+  /// Moves the keyboard focus to the search box and selects its text. Returns
+  /// false when the dance list, and so its search box, is not showing.
+  bool focusSearch() => _shell?._focusSearch() ?? false;
+}
+
 class _CollectionShellState extends State<CollectionShell> {
   String? _selectedDanceId;
+
+  /// Whether the last layout was the split pane, so a command knows which
+  /// import view to open.
+  bool _wide = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.commands?._shell = this;
+  }
+
+  @override
+  void didUpdateWidget(CollectionShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.commands, widget.commands)) {
+      if (oldWidget.commands?._shell == this) oldWidget.commands?._shell = null;
+      widget.commands?._shell = this;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (widget.commands?._shell == this) widget.commands?._shell = null;
+    super.dispose();
+  }
+
+  /// The mounted dance list, when it is showing.
+  DanceListCommands? get _list => switch (_listKey.currentState) {
+    final DanceListCommands list => list,
+    _ => null,
+  };
+
+  bool _newDance() {
+    final list = _list;
+    if (list != null) {
+      list.openNewDance();
+    } else {
+      // The narrow layout is showing an embedded view in place of the list.
+      Navigator.of(context).push<String>(
+        MaterialPageRoute(builder: (_) => const DanceEditorScreen()),
+      );
+    }
+    return true;
+  }
+
+  bool _importDances() {
+    // Already importing, or committing one: nothing new to open.
+    if (_importCommitInFlight || _detailMode == _DetailMode.importReview) {
+      return true;
+    }
+    // The narrow layout keeps an embedded view showing across a breakpoint
+    // change, in place of the list ([build]); swap it as the wide layout
+    // would, rather than pushing a page over it.
+    final embedded =
+        _detailMode != _DetailMode.none &&
+        _detailMode != _DetailMode.onlinePreview;
+    if (_wide || embedded) {
+      _onImport();
+    } else {
+      _pushImportRoute();
+    }
+    return true;
+  }
+
+  bool _focusSearch() => _list?.focusSearch() ?? false;
 
   /// Which non-dance view (if any) the wide-layout detail pane currently shows,
   /// instead of a [DanceDetailScreen] / the empty placeholder. The states are
@@ -530,7 +622,8 @@ class _CollectionShellState extends State<CollectionShell> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth >= CollectionShell.splitBreakpoint) {
+        _wide = constraints.maxWidth >= CollectionShell.splitBreakpoint;
+        if (_wide) {
           return _buildSplitPane();
         }
         // Narrow: standard single-pane list with existing push navigation.

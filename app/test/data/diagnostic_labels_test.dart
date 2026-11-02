@@ -123,6 +123,7 @@ void main() {
       'cc_missing_title',
       'cc_new_level',
       'cc_inactive_level',
+      'cc_program_deleted_dance',
       'cc_program_empty_slot',
       'cc_program_unparsed_date',
       'cc_program_unresolved_dance',

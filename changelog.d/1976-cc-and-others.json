@@ -1,0 +1,17 @@
+{
+  "id": "1976-cc-and-others",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "A Caller's Companion dance credited to someone \"and others\" no longer creates a choreographer called \"Others\". You get the named choreographers, and a \"Choreography: … and others\" line in the dance's calling notes."
+    ]
+  },
+  "core": {
+    "added": [
+      "`peelUnnamedOthers` takes an \"and others\" / \"& others\" / \"et al.\" credit off a dance's raw author fields."
+    ],
+    "changed": [
+      "`mapCallersCompanionDance` credits only the named authors of an \"and others\" credit and records it as a `Choreography:` line in the calling notes."
+    ]
+  }
+}

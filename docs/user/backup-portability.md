@@ -89,7 +89,7 @@ A backup holds **everything** you've built, including:
 - All your programs, with their [slots](./glossary.md#slot),
   [alternates](./glossary.md#alt), event details, and which dances
   you've marked as performed.
-- Your custom fields, tags, choreographers, difficulty levels, and saved
+- Your custom fields, tags, authors, difficulty levels, and saved
   [venues](./glossary.md#venue). A sharing opt-out keeps a custom field out of
   files you send to other people; it does not remove the field from your own
   backup.

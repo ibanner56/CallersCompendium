@@ -840,7 +840,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('author-chip-c1')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Choreographer details'), findsOneWidget);
+    expect(find.text('Author details'), findsOneWidget);
     await tester.enterText(
       find.byKey(const ValueKey('choreographer-name-field')),
       'Gene H.',
@@ -881,7 +881,7 @@ void main() {
     expect(find.widgetWithText(InputChip, 'flowy'), findsNothing);
     await tester.tap(find.byKey(const ValueKey('tag-chip-t1')));
     await tester.pumpAndSettle();
-    expect(find.text('Choreographer details'), findsNothing);
+    expect(find.text('Author details'), findsNothing);
   });
 
   testWidgets(
@@ -3163,7 +3163,10 @@ void main() {
         'template', (tester) async {
       final repos = await freeTextRepos(on: false);
       await _pumpEditor(tester, repos);
-      expect(find.textContaining('unmatched text becomes'), findsOneWidget);
+      expect(
+        find.textContaining("text the app can't read becomes"),
+        findsOneWidget,
+      );
 
       await tester.enterText(
         find.byKey(const ValueKey('title-field')),

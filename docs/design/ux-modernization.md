@@ -661,8 +661,11 @@ Each step carries accessibility acceptance criteria drawn from
 - **UX-4 — Program builder + matrix.** Slot cards, matrix legend/sticky
   headers/density. *AC: status conveyed non-color; matrix remains AT-navigable as
   a table with pinned headers keyboard-reachable.*
-- **UX-5 — Shell / adaptive polish + Cmd-K + full keyboard map.** *AC: complete
-  desktop keyboard map; global search shortcut; focus visible throughout.*
+- **UX-5 — Shell / adaptive polish + Cmd-K + desktop keyboard map.** *AC: the
+  desktop keyboard map in `ux.md` "Information architecture" (save, new dance,
+  search, Settings, back; mouse Back; right-click on list rows) and the macOS
+  menu bar (PLAT-7, PLAT-8); global search shortcut; focus visible
+  throughout.*
 - **UX-6 — Theme gallery (palette picker).** IDE-inspired palettes (§4A) as
   contrast-validated `ColorScheme`s; extend `AppThemeSelection` + `AppColorSchemes`;
   generalize the `main.dart` theme-slot wiring; swap the Settings Appearance

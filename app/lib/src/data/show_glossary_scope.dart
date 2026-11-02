@@ -1,10 +1,10 @@
 import 'package:flutter/widgets.dart';
 
-/// Persisted-settings key for the Experimental "Show Glossary" toggle (issue
+/// Persisted-settings key for the Experimental "Show glossary" toggle (issue
 /// #695). Stored as a `bool`; unset means off (the default).
 const String kShowGlossaryKey = 'show_glossary';
 
-/// Exposes the Experimental "Show Glossary" setting as a live [ValueNotifier]
+/// Exposes the Experimental "Show glossary" setting as a live [ValueNotifier]
 /// to the widget tree.
 ///
 /// When `true`, the app shell shows a Glossary destination between Programs

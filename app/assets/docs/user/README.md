@@ -55,7 +55,7 @@ Everything else can wait until you need it.
 | Change how the app looks or behaves | [Settings](settings.md) |
 | Send a crash report to the developers | [Settings — Diagnostics](settings.md#diagnostics) |
 | Work out why something isn't behaving | [FAQ & troubleshooting](faq.md) |
-| Look up a word I don't recognise | [App terms](glossary.md) |
+| Look up a word I don't recognize | [App terms](glossary.md) |
 
 ## All guides
 

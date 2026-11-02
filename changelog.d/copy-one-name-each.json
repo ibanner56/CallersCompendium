@@ -1,0 +1,10 @@
+{
+  "id": "copy-one-name-each",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "Each thing now has one name in English. Text the app could not read as a figure is an \"unrecognized figure\" (your own figures under Custom Figures keep that name), deleted dances and programs are in \"Recently deleted\" rather than \"the trash\" or \"Deleted items\", the people who wrote a dance are \"authors\" everywhere (including the \"Author details\" dialog), \"Add note / waltz\" is \"Add note or break\", and the large-print screen is \"Perform mode\".",
+      "The User Guide and its App terms page use the same names, and App terms gains entries for Author, Recently deleted, Share file and Unrecognized figure."
+    ]
+  }
+}

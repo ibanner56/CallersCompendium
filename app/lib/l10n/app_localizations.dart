@@ -172,7 +172,7 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get navSettings;
 
-  /// Bottom/rail navigation label for the Glossary destination (shown only when Settings > Experimental > Show Glossary is on).
+  /// Bottom/rail navigation label for the Glossary destination (shown only when Settings > Experimental > Show glossary is on).
   ///
   /// In en, this message translates to:
   /// **'Glossary'**
@@ -201,6 +201,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Search ({hint})'**
   String navSearchTooltip(String hint);
+
+  /// Title of the File menu in the macOS menu bar. Shown only on macOS, in the app's menu bar (PlatformMenuBar). Follow the platform's usual name for this menu.
+  ///
+  /// In en, this message translates to:
+  /// **'File'**
+  String get menuFile;
+
+  /// File menu item that opens the new-dance editor in the Collection (Command-N). Shown only on macOS, in the app's menu bar (PlatformMenuBar). Title case, as macOS menu items are written in English.
+  ///
+  /// In en, this message translates to:
+  /// **'New Dance'**
+  String get menuNewDance;
+
+  /// File menu item that starts a dance import in the Collection. Shown only on macOS, in the app's menu bar (PlatformMenuBar). The trailing ellipsis means the item asks for more before it acts; keep it.
+  ///
+  /// In en, this message translates to:
+  /// **'Import Dances…'**
+  String get menuImportDances;
+
+  /// File menu item that leaves the current page, like the back button (Command-W). Shown only on macOS, in the app's menu bar (PlatformMenuBar).
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get menuClose;
+
+  /// App menu item that opens Settings (Command-comma). Shown only on macOS, in the app's menu bar (PlatformMenuBar). Use the name macOS itself uses for this item; keep the trailing ellipsis.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings…'**
+  String get menuSettings;
+
+  /// Title of the View menu in the macOS menu bar; it holds the system's Enter Full Screen item. Shown only on macOS, in the app's menu bar (PlatformMenuBar).
+  ///
+  /// In en, this message translates to:
+  /// **'View'**
+  String get menuView;
+
+  /// Title of the Window menu in the macOS menu bar; it holds the system's Minimize and Zoom items. Shown only on macOS, in the app's menu bar (PlatformMenuBar).
+  ///
+  /// In en, this message translates to:
+  /// **'Window'**
+  String get menuWindow;
+
+  /// Title of the Help menu in the macOS menu bar. Shown only on macOS, in the app's menu bar (PlatformMenuBar).
+  ///
+  /// In en, this message translates to:
+  /// **'Help'**
+  String get menuHelp;
+
+  /// Help menu item that opens the in-app User Guide. Shown only on macOS, in the app's menu bar (PlatformMenuBar). Title case, as macOS menu items are written in English.
+  ///
+  /// In en, this message translates to:
+  /// **'User Guide'**
+  String get menuUserGuide;
 
   /// Accessibility label on the startup loading spinner shown while the collection database is being prepared.
   ///
@@ -377,13 +431,13 @@ abstract class AppLocalizations {
   /// Button label on the below-floor recovery screen that first writes a backup of the current database, then resets it to a fresh state. The reset is only performed if the backup succeeds.
   ///
   /// In en, this message translates to:
-  /// **'Back Up + Reset'**
+  /// **'Back up + reset'**
   String get migrationBelowFloorBackUpAndReset;
 
   /// Button label on the below-floor recovery screen that resets the database to a fresh state without making a backup first. Unrecoverable.
   ///
   /// In en, this message translates to:
-  /// **'Reset Only'**
+  /// **'Reset only'**
   String get migrationBelowFloorResetOnly;
 
   /// Title of the dialog shown when the pre-reset backup fails on the below-floor recovery screen. The reset is NOT performed when this dialog is shown.
@@ -398,37 +452,37 @@ abstract class AppLocalizations {
   /// **'The backup could not be written, so your data has not been reset.'**
   String get migrationBelowFloorBackupFailedBody;
 
-  /// Title of the confirmation dialog shown before a reset action on the below-floor recovery screen (both Back Up + Reset and Reset Only). Used after a successful backup to ask the user to confirm the wipe.
+  /// Title of the confirmation dialog shown before a reset action on the below-floor recovery screen (both Back up + reset and Reset only). Used after a successful backup to ask the user to confirm the wipe.
   ///
   /// In en, this message translates to:
   /// **'Reset app data?'**
   String get migrationBelowFloorResetConfirmTitle;
 
-  /// Body of the confirmation dialog shown before a Back Up + Reset action once the backup has been written successfully.
+  /// Body of the confirmation dialog shown before a Back up + reset action once the backup has been written successfully.
   ///
   /// In en, this message translates to:
   /// **'A backup has been saved. Resetting will replace your current data with a fresh, empty database.'**
   String get migrationBelowFloorResetConfirmBody;
 
-  /// Confirm button of the reset dialog on the below-floor recovery screen, shown after a backup has been saved. Plain "Reset", not the "Back Up + Reset" button that opened the flow: the backup is already done.
+  /// Confirm button of the reset dialog on the below-floor recovery screen, shown after a backup has been saved. Plain "Reset", not the "Back up + reset" button that opened the flow: the backup is already done.
   ///
   /// In en, this message translates to:
   /// **'Reset'**
   String get migrationBelowFloorResetConfirmAction;
 
-  /// Line shown in the Back Up + Reset confirmation dialog to tell the user where the backup file was written.
+  /// Line shown in the Back up + reset confirmation dialog to tell the user where the backup file was written.
   ///
   /// In en, this message translates to:
   /// **'Backup saved to: {backupPath}'**
   String migrationBelowFloorBackupSavedAt(String backupPath);
 
-  /// Line shown in the Back Up + Reset confirmation dialog to tell the user where the diagnostic log was written (alongside the backup).
+  /// Line shown in the Back up + reset confirmation dialog to tell the user where the diagnostic log was written (alongside the backup).
   ///
   /// In en, this message translates to:
   /// **'Diagnostic log saved to: {logPath}'**
   String migrationBelowFloorDiagnosticLogSavedAt(String logPath);
 
-  /// Body of the confirmation dialog shown before a Reset Only action on the below-floor recovery screen. No backup is made. Must make the irreversibility and data loss explicit.
+  /// Body of the confirmation dialog shown before a Reset only action on the below-floor recovery screen. No backup is made. Must make the irreversibility and data loss explicit.
   ///
   /// In en, this message translates to:
   /// **'No backup will be made. Resetting will permanently delete all your current data and replace it with a fresh, empty database. This cannot be undone.'**
@@ -470,25 +524,31 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{1 dance will be deleted. Your search hides it. You can undo this.} other{{count} dances will be deleted, {notShown} of them hidden by your search. You can undo this.}}'**
   String confirmDeleteDancesNotShownBody(int count, int notShown);
 
-  /// Field label for the hexadecimal colour input in the shared colour-picker dialog.
+  /// Body of the confirm-before-delete dialog for a program when deleting it would remove it from the calling history of {count} dances (shown only when the 'Confirm before delete' setting is on and {count} is at least 1). {itemLabel} is the untrusted user-entered program title, rendered as plain text between typographic quotes. {count} is how many distinct dances list this program in their calling history under the current history settings.
+  ///
+  /// In en, this message translates to:
+  /// **'“{itemLabel}” will be deleted. {count, plural, =1{1 dance will lose this program from its calling history.} other{{count} dances will lose this program from their calling history.}} You can undo this.'**
+  String confirmDeleteProgramHistoryBody(String itemLabel, int count);
+
+  /// Field label for the hexadecimal color input in the shared color-picker dialog.
   ///
   /// In en, this message translates to:
   /// **'Hex'**
   String get colorEditHexLabel;
 
-  /// Screen-reader name of the red channel slider in the shared colour-picker dialog (the visual label is the single letter R).
+  /// Screen-reader name of the red channel slider in the shared color-picker dialog (the visual label is the single letter R).
   ///
   /// In en, this message translates to:
   /// **'Red'**
   String get colorEditChannelRed;
 
-  /// Screen-reader name of the green channel slider in the shared colour-picker dialog (the visual label is the single letter G).
+  /// Screen-reader name of the green channel slider in the shared color-picker dialog (the visual label is the single letter G).
   ///
   /// In en, this message translates to:
   /// **'Green'**
   String get colorEditChannelGreen;
 
-  /// Screen-reader name of the blue channel slider in the shared colour-picker dialog (the visual label is the single letter B).
+  /// Screen-reader name of the blue channel slider in the shared color-picker dialog (the visual label is the single letter B).
   ///
   /// In en, this message translates to:
   /// **'Blue'**
@@ -512,7 +572,7 @@ abstract class AppLocalizations {
   /// **'Program'**
   String get settingsProgramTitle;
 
-  /// Settings section navigation title (sidebar/app bar) for visual appearance: theme, colours, easter eggs.
+  /// Settings section navigation title (sidebar/app bar) for visual appearance: theme, colors, easter eggs.
   ///
   /// In en, this message translates to:
   /// **'Appearance'**
@@ -548,10 +608,10 @@ abstract class AppLocalizations {
   /// **'Experimental'**
   String get settingsExperimentalTitle;
 
-  /// Header of the expandable Developer Options section in Experimental settings.
+  /// Header of the expandable Developer options section in Experimental settings.
   ///
   /// In en, this message translates to:
-  /// **'Developer Options'**
+  /// **'Developer options'**
   String get settingsDeveloperOptionsHeader;
 
   /// Title of the row that resets the database to a clean install.
@@ -863,10 +923,10 @@ abstract class AppLocalizations {
   /// Title of the switch that adds the Glossary destination to the app's navigation.
   ///
   /// In en, this message translates to:
-  /// **'Show Glossary'**
+  /// **'Show glossary'**
   String get settingsExperimentalShowGlossaryTitle;
 
-  /// Subtitle of the Show Glossary switch in the Experimental settings section.
+  /// Subtitle of the Show glossary switch in the Experimental settings section.
   ///
   /// In en, this message translates to:
   /// **'Adds a Glossary of the built-in figures to the navigation, between Programs and Settings.'**
@@ -1151,7 +1211,7 @@ abstract class AppLocalizations {
   /// One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many choreographers are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =1{1 choreographer} other{{count} choreographers}}'**
+  /// **'{count, plural, =1{1 author} other{{count} authors}}'**
   String settingsSyncNoticeCountChoreographer(int count);
 
   /// One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many tags are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.
@@ -1622,10 +1682,10 @@ abstract class AppLocalizations {
   /// **'Origin'**
   String get syncConflictFieldProvenance;
 
-  /// Label for a tag's colour in the conflict comparison.
+  /// Label for a tag's color in the conflict comparison.
   ///
   /// In en, this message translates to:
-  /// **'Colour'**
+  /// **'Color'**
   String get syncConflictFieldColour;
 
   /// Label for whether a custom theme is light or dark, in the conflict comparison.
@@ -1826,7 +1886,7 @@ abstract class AppLocalizations {
   /// **'Some new kinds of data on this device will start syncing once device {tag} is updated to the latest version of the app, or removed from Other devices. They\'re safe here.'**
   String settingsSyncNoticeAwaitingDevice(String tag);
 
-  /// Short label beside the warning icon on a Device Sync notice that needs the user to do something, so the urgency is not carried by colour alone.
+  /// Short label beside the warning icon on a Device Sync notice that needs the user to do something, so the urgency is not carried by color alone.
   ///
   /// In en, this message translates to:
   /// **'Needs you'**
@@ -3013,10 +3073,10 @@ abstract class AppLocalizations {
   /// **'Dark'**
   String get appThemeLabelDark;
 
-  /// Name of the built-in "Soft Dark" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
+  /// Name of the built-in "Soft dark" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
   ///
   /// In en, this message translates to:
-  /// **'Soft Dark'**
+  /// **'Soft dark'**
   String get appThemeLabelSoftDark;
 
   /// Name of the built-in "High contrast" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
@@ -3208,7 +3268,7 @@ abstract class AppLocalizations {
   /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
   ///
   /// In en, this message translates to:
-  /// **'The classic low-contrast warm grey'**
+  /// **'The classic low-contrast warm gray'**
   String get appThemeDescriptionZenburn;
 
   /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
@@ -3235,307 +3295,307 @@ abstract class AppLocalizations {
   /// **'Gentle lilac Noctis daylight'**
   String get appThemeDescriptionNoctisLilac;
 
-  /// Heading of the "Primary" group of colour roles in the custom-theme editor.
+  /// Heading of the "Primary" group of color roles in the custom-theme editor.
   ///
   /// In en, this message translates to:
   /// **'Primary'**
   String get themeEditorGroupPrimary;
 
-  /// Heading of the "Secondary" group of colour roles in the custom-theme editor.
+  /// Heading of the "Secondary" group of color roles in the custom-theme editor.
   ///
   /// In en, this message translates to:
   /// **'Secondary'**
   String get themeEditorGroupSecondary;
 
-  /// Heading of the "Tertiary" group of colour roles in the custom-theme editor.
+  /// Heading of the "Tertiary" group of color roles in the custom-theme editor.
   ///
   /// In en, this message translates to:
   /// **'Tertiary'**
   String get themeEditorGroupTertiary;
 
-  /// Heading of the "Error" group of colour roles in the custom-theme editor.
+  /// Heading of the "Error" group of color roles in the custom-theme editor.
   ///
   /// In en, this message translates to:
   /// **'Error'**
   String get themeEditorGroupError;
 
-  /// Heading of the "Surface & text" group of colour roles in the custom-theme editor.
+  /// Heading of the "Surface & text" group of color roles in the custom-theme editor.
   ///
   /// In en, this message translates to:
   /// **'Surface & text'**
   String get themeEditorGroupSurfaceText;
 
-  /// Heading of the "Surface containers" group of colour roles in the custom-theme editor.
+  /// Heading of the "Surface containers" group of color roles in the custom-theme editor.
   ///
   /// In en, this message translates to:
   /// **'Surface containers'**
   String get themeEditorGroupSurfaceContainers;
 
-  /// Heading of the "Outline & effects" group of colour roles in the custom-theme editor.
+  /// Heading of the "Outline & effects" group of color roles in the custom-theme editor.
   ///
   /// In en, this message translates to:
   /// **'Outline & effects'**
   String get themeEditorGroupOutlineEffects;
 
-  /// Label of the "Primary" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  /// Label of the "Primary" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
   ///
   /// In en, this message translates to:
   /// **'Primary'**
   String get themeEditorRolePrimary;
 
-  /// Label of the "On primary" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  /// Label of the "On primary" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
   ///
   /// In en, this message translates to:
   /// **'On primary'**
   String get themeEditorRoleOnPrimary;
 
-  /// Label of the "Primary container" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  /// Label of the "Primary container" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
   ///
   /// In en, this message translates to:
   /// **'Primary container'**
   String get themeEditorRolePrimaryContainer;
 
-  /// Label of the "On primary container" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  /// Label of the "On primary container" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
   ///
   /// In en, this message translates to:
   /// **'On primary container'**
   String get themeEditorRoleOnPrimaryContainer;
 
-  /// Label of the "Secondary" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  /// Label of the "Secondary" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
   ///
   /// In en, this message translates to:
   /// **'Secondary'**
   String get themeEditorRoleSecondary;
 
-  /// Label of the "On secondary" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  /// Label of the "On secondary" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
   ///
   /// In en, this message translates to:
   /// **'On secondary'**
   String get themeEditorRoleOnSecondary;
 
-  /// Label of the "Secondary container" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  /// Label of the "Secondary container" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
   ///
   /// In en, this message translates to:
   /// **'Secondary container'**
   String get themeEditorRoleSecondaryContainer;
 
-  /// Label of the "On secondary container" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  /// Label of the "On secondary container" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
   ///
   /// In en, this message translates to:
   /// **'On secondary container'**
   String get themeEditorRoleOnSecondaryContainer;
 
-  /// Label of the "Tertiary" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  /// Label of the "Tertiary" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
   ///
   /// In en, this message translates to:
   /// **'Tertiary'**
   String get themeEditorRoleTertiary;
 
-  /// Label of the "On tertiary" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  /// Label of the "On tertiary" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
   ///
   /// In en, this message translates to:
   /// **'On tertiary'**
   String get themeEditorRoleOnTertiary;
 
-  /// Label of the "Tertiary container" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  /// Label of the "Tertiary container" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
   ///
   /// In en, this message translates to:
   /// **'Tertiary container'**
   String get themeEditorRoleTertiaryContainer;
 
-  /// Label of the "On tertiary container" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  /// Label of the "On tertiary container" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
   ///
   /// In en, this message translates to:
   /// **'On tertiary container'**
   String get themeEditorRoleOnTertiaryContainer;
 
-  /// Label of the "Error" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  /// Label of the "Error" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
   ///
   /// In en, this message translates to:
   /// **'Error'**
   String get themeEditorRoleError;
 
-  /// Label of the "On error" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  /// Label of the "On error" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
   ///
   /// In en, this message translates to:
   /// **'On error'**
   String get themeEditorRoleOnError;
 
-  /// Label of the "Error container" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  /// Label of the "Error container" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
   ///
   /// In en, this message translates to:
   /// **'Error container'**
   String get themeEditorRoleErrorContainer;
 
-  /// Label of the "On error container" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  /// Label of the "On error container" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
   ///
   /// In en, this message translates to:
   /// **'On error container'**
   String get themeEditorRoleOnErrorContainer;
 
-  /// Label of the "Surface" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  /// Label of the "Surface" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
   ///
   /// In en, this message translates to:
   /// **'Surface'**
   String get themeEditorRoleSurface;
 
-  /// Label of the "On surface" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  /// Label of the "On surface" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
   ///
   /// In en, this message translates to:
   /// **'On surface'**
   String get themeEditorRoleOnSurface;
 
-  /// Label of the "On surface variant" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  /// Label of the "On surface variant" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
   ///
   /// In en, this message translates to:
   /// **'On surface variant'**
   String get themeEditorRoleOnSurfaceVariant;
 
-  /// Label of the "Inverse surface" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  /// Label of the "Inverse surface" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
   ///
   /// In en, this message translates to:
   /// **'Inverse surface'**
   String get themeEditorRoleInverseSurface;
 
-  /// Label of the "On inverse surface" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  /// Label of the "On inverse surface" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
   ///
   /// In en, this message translates to:
   /// **'On inverse surface'**
   String get themeEditorRoleOnInverseSurface;
 
-  /// Label of the "Inverse primary" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  /// Label of the "Inverse primary" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
   ///
   /// In en, this message translates to:
   /// **'Inverse primary'**
   String get themeEditorRoleInversePrimary;
 
-  /// Label of the "Container lowest" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  /// Label of the "Container lowest" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
   ///
   /// In en, this message translates to:
   /// **'Container lowest'**
   String get themeEditorRoleSurfaceContainerLowest;
 
-  /// Label of the "Container low" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  /// Label of the "Container low" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
   ///
   /// In en, this message translates to:
   /// **'Container low'**
   String get themeEditorRoleSurfaceContainerLow;
 
-  /// Label of the "Container" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  /// Label of the "Container" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
   ///
   /// In en, this message translates to:
   /// **'Container'**
   String get themeEditorRoleSurfaceContainer;
 
-  /// Label of the "Container high" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  /// Label of the "Container high" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
   ///
   /// In en, this message translates to:
   /// **'Container high'**
   String get themeEditorRoleSurfaceContainerHigh;
 
-  /// Label of the "Container highest" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  /// Label of the "Container highest" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
   ///
   /// In en, this message translates to:
   /// **'Container highest'**
   String get themeEditorRoleSurfaceContainerHighest;
 
-  /// Label of the "Outline" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  /// Label of the "Outline" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
   ///
   /// In en, this message translates to:
   /// **'Outline'**
   String get themeEditorRoleOutline;
 
-  /// Label of the "Outline variant" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  /// Label of the "Outline variant" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
   ///
   /// In en, this message translates to:
   /// **'Outline variant'**
   String get themeEditorRoleOutlineVariant;
 
-  /// Label of the "Surface tint" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  /// Label of the "Surface tint" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
   ///
   /// In en, this message translates to:
   /// **'Surface tint'**
   String get themeEditorRoleSurfaceTint;
 
-  /// Label of the "Shadow" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  /// Label of the "Shadow" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
   ///
   /// In en, this message translates to:
   /// **'Shadow'**
   String get themeEditorRoleShadow;
 
-  /// Label of the "Scrim" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  /// Label of the "Scrim" color role in the custom-theme editor (a Material color-scheme role, e.g. "On primary" is the text/icon color drawn on top of "Primary").
   ///
   /// In en, this message translates to:
   /// **'Scrim'**
   String get themeEditorRoleScrim;
 
-  /// Label of the live WCAG contrast badge for the "Text on primary" colour pair in the custom-theme editor.
+  /// Label of the live WCAG contrast badge for the "Text on primary" color pair in the custom-theme editor.
   ///
   /// In en, this message translates to:
   /// **'Text on primary'**
   String get themeEditorPairOnPrimary;
 
-  /// Label of the live WCAG contrast badge for the "Text on primary container" colour pair in the custom-theme editor.
+  /// Label of the live WCAG contrast badge for the "Text on primary container" color pair in the custom-theme editor.
   ///
   /// In en, this message translates to:
   /// **'Text on primary container'**
   String get themeEditorPairOnPrimaryContainer;
 
-  /// Label of the live WCAG contrast badge for the "Text on secondary" colour pair in the custom-theme editor.
+  /// Label of the live WCAG contrast badge for the "Text on secondary" color pair in the custom-theme editor.
   ///
   /// In en, this message translates to:
   /// **'Text on secondary'**
   String get themeEditorPairOnSecondary;
 
-  /// Label of the live WCAG contrast badge for the "Text on secondary container" colour pair in the custom-theme editor.
+  /// Label of the live WCAG contrast badge for the "Text on secondary container" color pair in the custom-theme editor.
   ///
   /// In en, this message translates to:
   /// **'Text on secondary container'**
   String get themeEditorPairOnSecondaryContainer;
 
-  /// Label of the live WCAG contrast badge for the "Text on tertiary" colour pair in the custom-theme editor.
+  /// Label of the live WCAG contrast badge for the "Text on tertiary" color pair in the custom-theme editor.
   ///
   /// In en, this message translates to:
   /// **'Text on tertiary'**
   String get themeEditorPairOnTertiary;
 
-  /// Label of the live WCAG contrast badge for the "Text on tertiary container" colour pair in the custom-theme editor.
+  /// Label of the live WCAG contrast badge for the "Text on tertiary container" color pair in the custom-theme editor.
   ///
   /// In en, this message translates to:
   /// **'Text on tertiary container'**
   String get themeEditorPairOnTertiaryContainer;
 
-  /// Label of the live WCAG contrast badge for the "Text on error" colour pair in the custom-theme editor.
+  /// Label of the live WCAG contrast badge for the "Text on error" color pair in the custom-theme editor.
   ///
   /// In en, this message translates to:
   /// **'Text on error'**
   String get themeEditorPairOnError;
 
-  /// Label of the live WCAG contrast badge for the "Text on error container" colour pair in the custom-theme editor.
+  /// Label of the live WCAG contrast badge for the "Text on error container" color pair in the custom-theme editor.
   ///
   /// In en, this message translates to:
   /// **'Text on error container'**
   String get themeEditorPairOnErrorContainer;
 
-  /// Label of the live WCAG contrast badge for the "Body text on surface" colour pair in the custom-theme editor.
+  /// Label of the live WCAG contrast badge for the "Body text on surface" color pair in the custom-theme editor.
   ///
   /// In en, this message translates to:
   /// **'Body text on surface'**
   String get themeEditorPairOnSurface;
 
-  /// Label of the live WCAG contrast badge for the "Secondary text on surface" colour pair in the custom-theme editor.
+  /// Label of the live WCAG contrast badge for the "Secondary text on surface" color pair in the custom-theme editor.
   ///
   /// In en, this message translates to:
   /// **'Secondary text on surface'**
   String get themeEditorPairOnSurfaceVariant;
 
-  /// Label of the live WCAG contrast badge for the "Text on inverse surface" colour pair in the custom-theme editor.
+  /// Label of the live WCAG contrast badge for the "Text on inverse surface" color pair in the custom-theme editor.
   ///
   /// In en, this message translates to:
   /// **'Text on inverse surface'**
   String get themeEditorPairOnInverseSurface;
 
-  /// Label of the live WCAG contrast badge for the "Outline on surface" colour pair in the custom-theme editor.
+  /// Label of the live WCAG contrast badge for the "Outline on surface" color pair in the custom-theme editor.
   ///
   /// In en, this message translates to:
   /// **'Outline on surface'**
@@ -3553,46 +3613,46 @@ abstract class AppLocalizations {
   /// **'Set lists'**
   String get settingsAppearanceSetListsHeader;
 
-  /// Section header for the formation-colour customisation entry in Appearance settings.
+  /// Section header for the formation-color customisation entry in Appearance settings.
   ///
   /// In en, this message translates to:
-  /// **'Formation colours'**
+  /// **'Formation colors'**
   String get settingsAppearanceFormationColoursHeader;
 
-  /// Toggle title: tint a dance's view when its title names a colour.
+  /// Toggle title: tint a dance's view when its title names a color.
   ///
   /// In en, this message translates to:
-  /// **'Colour-named dances tint the theme'**
+  /// **'Color-named dances tint the theme'**
   String get settingsAppearanceColourDanceTitle;
 
-  /// Explanation for the colour-named-dances tinting toggle.
+  /// Explanation for the color-named-dances tinting toggle.
   ///
   /// In en, this message translates to:
-  /// **'A playful surprise: when you open a dance whose title names a colour — like Baby Rose or Blue Boy — its view is tinted that colour. Off by default, and it steps aside when a high-contrast theme is active so readability always wins.'**
+  /// **'A playful surprise: when you open a dance whose title names a color — like Baby Rose or Blue Boy — its view is tinted that color. Off by default, and it steps aside when a high-contrast theme is active so readability always wins.'**
   String get settingsAppearanceColourDanceSubtitle;
 
   /// Toggle title: tint set-list rows by formation family.
   ///
   /// In en, this message translates to:
-  /// **'Colour-code set-list rows'**
+  /// **'Color-code set-list rows'**
   String get settingsAppearanceSetListColorTitle;
 
-  /// Explanation for the set-list colour-coding toggle.
+  /// Explanation for the set-list color-coding toggle.
   ///
   /// In en, this message translates to:
-  /// **'Tint each dance row by its formation family (contra, mixer, square, …) — unless you have given that formation its own colour, which wins. Dances marked as mixers always get the mixer tint, regardless of formation. The formation is always shown as text too, so rows stay readable without colour.'**
+  /// **'Tint each dance row by its formation family (contra, mixer, square, …) — unless you have given that formation its own color, which wins. Dances marked as mixers always get the mixer tint, regardless of formation. The formation is always shown as text too, so rows stay readable without color.'**
   String get settingsAppearanceSetListColorSubtitle;
 
-  /// List-tile title opening the formation-colour customisation screen.
+  /// List-tile title opening the formation-color customisation screen.
   ///
   /// In en, this message translates to:
-  /// **'Formation label colours'**
+  /// **'Formation label colors'**
   String get settingsAppearanceFormationColoursTitle;
 
-  /// Explanation for the formation-colour customisation entry.
+  /// Explanation for the formation-color customisation entry.
   ///
   /// In en, this message translates to:
-  /// **'Highlight individual formations in your own colours — e.g. Becket (CW) in yellow, Becket (CCW) in pink — on dance cards, dance detail, the Perform header, and set-list rows.'**
+  /// **'Highlight individual formations in your own colors — e.g. Becket (CW) in yellow, Becket (CCW) in pink — on dance cards, dance detail, the Perform header, and set-list rows.'**
   String get settingsAppearanceFormationColoursSubtitle;
 
   /// Label shown on the currently-selected theme card in the gallery.
@@ -3604,7 +3664,7 @@ abstract class AppLocalizations {
   /// Sample heading text shown in a theme preview swatch.
   ///
   /// In en, this message translates to:
-  /// **'Aa Preview'**
+  /// **'Aa preview'**
   String get settingsAppearancePreviewHeading;
 
   /// Sample body text shown in a theme preview swatch.
@@ -4012,7 +4072,7 @@ abstract class AppLocalizations {
   /// Explanatory subtitle for the free-text-entry setting, describing what turning it on does.
   ///
   /// In en, this message translates to:
-  /// **'When on, adding a new figure lets you type it as one line (e.g. \"neighbor balance & swing\") instead of building it field by field, and typing a line into an existing figure\'s move and pressing Enter replaces that figure. The line is turned into figures; anything unrecognized is kept as a custom figure you can fix later. New dances start with no figures unless you have saved starting figures.'**
+  /// **'When on, adding a new figure lets you type it as one line (e.g. \"neighbor balance & swing\") instead of building it field by field, and typing a line into an existing figure\'s move and pressing Enter replaces that figure. The line is turned into figures; anything the app can\'t read is kept as an unrecognized figure you can fix later. New dances start with no figures unless you have saved starting figures.'**
   String get settingsDefaultsFreeTextEntrySubtitle;
 
   /// Title of the opt-in setting that makes the figure editor always recompute a figure's beat count from its move/params, even overriding a manually entered value (issue #689).
@@ -4153,16 +4213,16 @@ abstract class AppLocalizations {
   /// **'This move has no parameters to default.'**
   String get settingsDefaultsMoveNoParams;
 
-  /// App-bar title of the per-formation label-colour settings screen.
+  /// App-bar title of the per-formation label-color settings screen.
   ///
   /// In en, this message translates to:
-  /// **'Formation colours'**
+  /// **'Formation colors'**
   String get settingsFormationColoursTitle;
 
-  /// Intro paragraph explaining per-formation label colours.
+  /// Intro paragraph explaining per-formation label colors.
   ///
   /// In en, this message translates to:
-  /// **'Give a formation its own colour to highlight its label on dance cards, dance detail, and the Perform header, and to colour its set-list rows (mixers keep the mixer colour). Only the formations you customise are highlighted; the rest show their label as usual. The formation is always shown as text too, so labels stay readable without colour.'**
+  /// **'Give a formation its own color to highlight its label on dance cards, dance detail, and the Perform header, and to color its set-list rows (mixers keep the mixer color). Only the formations you customize are highlighted; the rest show their label as usual. The formation is always shown as text too, so labels stay readable without color.'**
   String get settingsFormationColoursIntro;
 
   /// Section header above the list of formation shapes.
@@ -4171,61 +4231,61 @@ abstract class AppLocalizations {
   /// **'Formations'**
   String get settingsFormationColoursListHeader;
 
-  /// Subtitle shown when a formation has a custom label colour set.
+  /// Subtitle shown when a formation has a custom label color set.
   ///
   /// In en, this message translates to:
-  /// **'Custom colour'**
+  /// **'Custom color'**
   String get settingsFormationColoursCustom;
 
-  /// Subtitle shown when a formation uses its family-default label colour.
+  /// Subtitle shown when a formation uses its family-default label color.
   ///
   /// In en, this message translates to:
   /// **'Family default'**
   String get settingsFormationColoursFamilyDefault;
 
-  /// Tooltip on the button that resets one formation's custom colour.
+  /// Tooltip on the button that resets one formation's custom color.
   ///
   /// In en, this message translates to:
   /// **'Reset {label} to the family default'**
   String settingsFormationColoursResetTooltip(String label);
 
-  /// Section header for the tag-colour customisation entry in Appearance settings.
+  /// Section header for the tag-color customisation entry in Appearance settings.
   ///
   /// In en, this message translates to:
-  /// **'Tag colours'**
+  /// **'Tag colors'**
   String get settingsAppearanceTagColoursHeader;
 
-  /// List-tile title opening the tag-colour customisation screen.
+  /// List-tile title opening the tag-color customisation screen.
   ///
   /// In en, this message translates to:
-  /// **'Tag colours'**
+  /// **'Tag colors'**
   String get settingsAppearanceTagColoursTitle;
 
-  /// Explanation for the tag-colour customisation entry.
+  /// Explanation for the tag-color customisation entry.
   ///
   /// In en, this message translates to:
-  /// **'Give a tag its own colour to make it stand out on dance cards and dance detail. The tag\'s name is always shown too, so tags stay readable without colour.'**
+  /// **'Give a tag its own color to make it stand out on dance cards and dance detail. The tag\'s name is always shown too, so tags stay readable without color.'**
   String get settingsAppearanceTagColoursSubtitle;
 
-  /// Shown on the tag-colour screen when the collection has no tags.
+  /// Shown on the tag-color screen when the collection has no tags.
   ///
   /// In en, this message translates to:
   /// **'You haven\'t created any tags yet. Add a tag to a dance and it will appear here.'**
   String get settingsTagColoursEmpty;
 
-  /// Snack-bar message shown when saving or clearing a tag colour fails.
+  /// Snack-bar message shown when saving or clearing a tag color fails.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t save that colour. Please try again.'**
+  /// **'Couldn\'t save that color. Please try again.'**
   String get settingsTagColoursSaveError;
 
-  /// Shown on the tag-colour screen when the tag list fails to load.
+  /// Shown on the tag-color screen when the tag list fails to load.
   ///
   /// In en, this message translates to:
   /// **'Couldn\'t load your tags.'**
   String get settingsTagColoursLoadError;
 
-  /// App-bar title of the Tags manager, where tags are renamed, merged, coloured and deleted.
+  /// App-bar title of the Tags manager, where tags are renamed, merged, colored and deleted.
   ///
   /// In en, this message translates to:
   /// **'Tags'**
@@ -4243,16 +4303,16 @@ abstract class AppLocalizations {
   /// **'Tag name'**
   String get tagManagerNameLabel;
 
-  /// Tags manager action: opens the colour picker for a tag.
+  /// Tags manager action: opens the color picker for a tag.
   ///
   /// In en, this message translates to:
-  /// **'Colour…'**
+  /// **'Color…'**
   String get tagManagerColour;
 
-  /// Tags manager action, offered only for a tag with a colour: removes the colour.
+  /// Tags manager action, offered only for a tag with a color: removes the color.
   ///
   /// In en, this message translates to:
-  /// **'Remove colour'**
+  /// **'Remove color'**
   String get tagManagerRemoveColour;
 
   /// Snackbar after deleting a tag in the Tags manager, with an Undo action. The count is the dances in the collection that lost the tag; dances in Recently deleted are not counted.
@@ -4982,7 +5042,7 @@ abstract class AppLocalizations {
   /// Subtitle of the Settings › General › Library entry that opens the Tags manager.
   ///
   /// In en, this message translates to:
-  /// **'Rename, merge, colour and delete your tags.'**
+  /// **'Rename, merge, color and delete your tags.'**
   String get settingsGeneralLibraryTagsSubtitle;
 
   /// Title of the Settings › General › Library entry that opens the Authors manager.
@@ -5066,13 +5126,13 @@ abstract class AppLocalizations {
   /// General settings section header for deleted-item retention preferences.
   ///
   /// In en, this message translates to:
-  /// **'Deleted items'**
+  /// **'Recently deleted'**
   String get settingsGeneralDeletedItemsHeader;
 
   /// Title of the General settings row that controls how long deleted dances and programs are retained.
   ///
   /// In en, this message translates to:
-  /// **'Keep deleted items for'**
+  /// **'Keep recently deleted items for'**
   String get settingsGeneralSoftDeleteRetentionTitle;
 
   /// Subtitle explaining the deleted-dance retention duration setting.
@@ -5150,7 +5210,7 @@ abstract class AppLocalizations {
   /// Kind label for a choreographer sync decision.
   ///
   /// In en, this message translates to:
-  /// **'Choreographer'**
+  /// **'Author'**
   String get syncReviewKindChoreographer;
 
   /// Kind label for a tag sync decision.
@@ -5252,7 +5312,7 @@ abstract class AppLocalizations {
   /// Confirmation dialog title shown before merging two choreographer records held only on this device.
   ///
   /// In en, this message translates to:
-  /// **'Merge these choreographers?'**
+  /// **'Merge these authors?'**
   String get syncReviewMergeDiscardsContactsTitle;
 
   /// Confirmation dialog body warning that merging two choreographers discards the losing record's device-local contact details.
@@ -5360,13 +5420,13 @@ abstract class AppLocalizations {
   /// Title of the General settings row that re-parses imported custom-only figures.
   ///
   /// In en, this message translates to:
-  /// **'Re-check custom figures'**
+  /// **'Re-check unrecognized figures'**
   String get settingsGeneralReparseCustomFiguresTitle;
 
   /// Subtitle explaining the re-check custom figures action.
   ///
   /// In en, this message translates to:
-  /// **'Re-check imported dances whose figures were kept as custom only because they could not be recognised at import time. If the app can now recognise them, they are upgraded in place — your tags, ratings, and notes are preserved. You preview and confirm before anything changes.'**
+  /// **'Re-check imported dances whose figures were kept as unrecognized figures only because they could not be recognized at import time. If the app can now recognize them, they are upgraded in place — your tags, ratings, and notes are preserved. You preview and confirm before anything changes.'**
   String get settingsGeneralReparseCustomFiguresSubtitle;
 
   /// Button label that opens the re-check custom figures flow; the ellipsis indicates more review follows.
@@ -5396,19 +5456,19 @@ abstract class AppLocalizations {
   /// Snackbar shown when a backup is refused because its SHA-256 integrity checksum did not verify (issue #536): the file is corrupt or was altered after export, so the restore does not run and data is unchanged.
   ///
   /// In en, this message translates to:
-  /// **'This backup failed its integrity check, so it may be corrupt or was changed after it was exported. The restore was cancelled and your data is unchanged.'**
+  /// **'This backup failed its integrity check, so it may be corrupt or was changed after it was exported. The restore was canceled and your data is unchanged.'**
   String get backupRestoreIntegrityFailed;
 
   /// Snackbar shown when a valid backup contains data too new for this app version, so restore is refused without changing local data.
   ///
   /// In en, this message translates to:
-  /// **'This backup contains items this version of the app can\'t read (it may be from a newer version), so the restore was cancelled. Your data is unchanged.'**
+  /// **'This backup contains items this version of the app can\'t read (it may be from a newer version), so the restore was canceled. Your data is unchanged.'**
   String get backupRestoreIncompatibleVersion;
 
   /// Snackbar shown when a replace restore is refused because the backup file has no app section (an older, hand-edited or incomplete file), so restoring it would clear preferences, themes and dialects it never described. Existing data is unchanged.
   ///
   /// In en, this message translates to:
-  /// **'This backup doesn\'t include your app settings, themes or dialects, so it can\'t replace your current data. The restore was cancelled and your data is unchanged.'**
+  /// **'This backup doesn\'t include your app settings, themes or dialects, so it can\'t replace your current data. The restore was canceled and your data is unchanged.'**
   String get backupRestoreMissingAppSection;
 
   /// Snackbar shown when the selected restore file is not a valid backup. Existing data is unchanged.
@@ -5651,10 +5711,10 @@ abstract class AppLocalizations {
   /// **'Diagnostics log exported.'**
   String get diagnosticsLogExported;
 
-  /// Snackbar shown when the diagnostics export/share flow is cancelled.
+  /// Snackbar shown when the diagnostics export/share flow is canceled.
   ///
   /// In en, this message translates to:
-  /// **'Export cancelled.'**
+  /// **'Export canceled.'**
   String get diagnosticsExportCancelled;
 
   /// Snackbar shown when diagnostics log export fails. Details are not shown in the UI.
@@ -5897,7 +5957,7 @@ abstract class AppLocalizations {
   /// **'OK'**
   String get commonOk;
 
-  /// Confirm button in the shared colour-picker dialog that applies the chosen colour.
+  /// Confirm button in the shared color-picker dialog that applies the chosen color.
   ///
   /// In en, this message translates to:
   /// **'Apply'**
@@ -6152,7 +6212,7 @@ abstract class AppLocalizations {
   /// Explanation shown for a figure that an import parser could not map to a structured move and kept verbatim. Shared by the import-gap badge tooltip, its explanation dialog body, and the figure-row Semantics label.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t recognize this call — kept exactly as written as a custom figure.'**
+  /// **'Couldn\'t recognize this call — kept exactly as written as an unrecognized figure.'**
   String get importGapMessage;
 
   /// Title of the dialog explaining an unrecognized (import-gap or free-text) custom figure (shown when the badge is tapped).
@@ -6164,7 +6224,7 @@ abstract class AppLocalizations {
   /// Full Semantics label announced for the import-gap badge itself (screen readers): a short prefix plus the explanation, modelled as one message rather than concatenated fragments.
   ///
   /// In en, this message translates to:
-  /// **'Unrecognized figure. Kept exactly as written as a custom figure.'**
+  /// **'Unrecognized figure. Kept exactly as written.'**
   String get importGapSemanticLabel;
 
   /// App-bar title of the Collection screen (phone layout).
@@ -6603,16 +6663,16 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{Cleared field on 1 dance} other{Cleared field on {count} dances}}'**
   String collectionBatchCustomFieldCleared(int count);
 
-  /// Snackbar confirming the selected dances were moved to Recently Deleted by Collection's batch Delete; it carries an Undo action.
+  /// Snackbar confirming the selected dances were moved to Recently deleted by Collection's batch Delete; it carries an Undo action.
   ///
   /// In en, this message translates to:
   /// **'{count, plural, =1{Deleted 1 dance} other{Deleted {count} dances}}'**
   String collectionBatchDeleted(int count);
 
-  /// Screen-reader announcement after Collection's batch Delete. Names Recently Deleted (the screen's title, recentlyDeletedTitle) so the way back outlasts the timed Undo snackbar.
+  /// Screen-reader announcement after Collection's batch Delete. Names Recently deleted (the screen's title, recentlyDeletedTitle) so the way back outlasts the timed Undo snackbar.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =1{Deleted 1 dance. Restore it from Recently Deleted.} other{Deleted {count} dances. Restore them from Recently Deleted.}}'**
+  /// **'{count, plural, =1{Deleted 1 dance. Restore it from Recently deleted.} other{Deleted {count} dances. Restore them from Recently deleted.}}'**
   String collectionBatchDeletedAnnouncement(int count);
 
   /// Accessible label for the per-row selection checkbox in batch mode.
@@ -8054,7 +8114,7 @@ abstract class AppLocalizations {
   /// Button that adds a free-text note or break slot to the program.
   ///
   /// In en, this message translates to:
-  /// **'Add note / waltz'**
+  /// **'Add note or break'**
   String get programsAddNoteBreakButton;
 
   /// Button that inserts a break slot into the program.
@@ -8952,7 +9012,7 @@ abstract class AppLocalizations {
   /// Tooltip on the button that closes the Perform view and returns to the previous screen.
   ///
   /// In en, this message translates to:
-  /// **'Exit performance view'**
+  /// **'Exit Perform mode'**
   String get performExitTooltip;
 
   /// Title of the confirmation dialog shown before leaving the Perform view, so a stray tap or system back does not drop the caller out mid-program.
@@ -8964,13 +9024,13 @@ abstract class AppLocalizations {
   /// Body text of the exit-confirmation dialog, reassuring the caller that their slot position and elapsed clock are preserved on re-entry.
   ///
   /// In en, this message translates to:
-  /// **'Leave the performance view? Your place and the running clock are kept, so you can resume where you left off.'**
+  /// **'Leave Perform mode? Your place and the running clock are kept, so you can resume where you left off.'**
   String get performExitBody;
 
   /// Body text of the exit-confirmation dialog for single-dance Perform, which keeps no resume state (unlike program Perform, performExitBody).
   ///
   /// In en, this message translates to:
-  /// **'Leave the performance view? Performing a single dance doesn\'t keep your place, so the next time starts fresh.'**
+  /// **'Leave Perform mode? Performing a single dance doesn\'t keep your place, so the next time starts fresh.'**
   String get performDanceExitBody;
 
   /// Button that dismisses the exit-confirmation dialog and stays in the Perform view.
@@ -10283,7 +10343,7 @@ abstract class AppLocalizations {
   /// **'No matching programs.'**
   String get importContraDbNoMatches;
 
-  /// Firm badge on a ContraDB program search/preview row that was already imported into the local collection (matched by its ContraDB program id). Accompanied by an icon so colour is never the only signal (WCAG 1.4.1).
+  /// Firm badge on a ContraDB program search/preview row that was already imported into the local collection (matched by its ContraDB program id). Accompanied by an icon so color is never the only signal (WCAG 1.4.1).
   ///
   /// In en, this message translates to:
   /// **'Imported'**
@@ -10301,7 +10361,7 @@ abstract class AppLocalizations {
   /// **'Already imported from ContraDB'**
   String get importContraDbMarkerImportedTooltipNoDate;
 
-  /// Softer badge on a ContraDB program search/preview row whose title matches an existing local program, but with no ContraDB id linking them (a weaker, title-only 'maybe you imported this' hint). Accompanied by an icon so colour is never the only signal (WCAG 1.4.1).
+  /// Softer badge on a ContraDB program search/preview row whose title matches an existing local program, but with no ContraDB id linking them (a weaker, title-only 'maybe you imported this' hint). Accompanied by an icon so color is never the only signal (WCAG 1.4.1).
   ///
   /// In en, this message translates to:
   /// **'Possibly imported'**
@@ -10358,7 +10418,7 @@ abstract class AppLocalizations {
   /// Snackbar shown when the user cancels a ContraDB program import part-way through. No program is created and any dances already imported are removed again.
   ///
   /// In en, this message translates to:
-  /// **'Import cancelled — nothing was added.'**
+  /// **'Import canceled — nothing was added.'**
   String get importContraDbProgramCancelled;
 
   /// Summary of a fetched ContraDB program's activities shown above the preview list.
@@ -10424,7 +10484,7 @@ abstract class AppLocalizations {
   /// Hint for the multi-line dance-titles field.
   ///
   /// In en, this message translates to:
-  /// **'Paste one dance title per line.\nUnrecognised lines are kept as notes.'**
+  /// **'Paste one dance title per line.\nUnrecognized lines are kept as notes.'**
   String get importTitleListDancesHint;
 
   /// Prompt shown before any dance titles have been pasted.
@@ -11099,6 +11159,12 @@ abstract class AppLocalizations {
   /// **'Skipped an empty slot in a program.'**
   String get importIssueProgramEmptySlot;
 
+  /// Import note: a Caller's Companion set slot pointed at a dance that is no longer in the file (deleted in Caller's Companion), so the slot was left out of the program.
+  ///
+  /// In en, this message translates to:
+  /// **'A program referenced a dance deleted in Caller\'s Companion; left that slot out.'**
+  String get importIssueProgramDeletedDance;
+
   /// Import note: a program slot pointed at a dance that wasn't part of the import; the slot was preserved as free text.
   ///
   /// In en, this message translates to:
@@ -11318,13 +11384,13 @@ abstract class AppLocalizations {
   /// Import note (no position available): a figure couldn't be mapped to the taxonomy and was imported as a custom figure.
   ///
   /// In en, this message translates to:
-  /// **'A figure couldn\'t be matched to a known move; imported as custom.'**
+  /// **'A figure couldn\'t be matched to a known move; imported as an unrecognized figure.'**
   String get importIssueMoveFallback;
 
   /// Import note: the figure at the given 1-based position couldn't be mapped to the taxonomy and was imported as a custom figure. {position} is the app's own figure index.
   ///
   /// In en, this message translates to:
-  /// **'Figure {position} couldn\'t be matched to a known move; imported as custom.'**
+  /// **'Figure {position} couldn\'t be matched to a known move; imported as an unrecognized figure.'**
   String importIssueMoveFallbackAt(int position);
 
   /// Import note (generic fallback): a figure parameter couldn't be mapped and a taxonomy default was used.
@@ -11390,7 +11456,7 @@ abstract class AppLocalizations {
   /// Import review: the content is not a Caller's Compendium archive (ImportErrorCode.notCompendiumArchive). Typed; raw error detail is not shown (CWE-209).
   ///
   /// In en, this message translates to:
-  /// **'This isn\'t a Caller\'s Compendium file. Choose a .json exported from this app.'**
+  /// **'This isn\'t a share file. Choose a .json or .ccshare file exported from this app.'**
   String get importRecordErrorNotCompendiumArchive;
 
   /// Import review: the content is not a Caller's Box dance export (ImportErrorCode.notCallersBoxDance). Typed; raw error detail is not shown (CWE-209).
@@ -11582,7 +11648,7 @@ abstract class AppLocalizations {
   /// Quality chip label when a dance's figures are fully custom (unstructured).
   ///
   /// In en, this message translates to:
-  /// **'Custom'**
+  /// **'Unrecognized'**
   String get importReviewCustom;
 
   /// Per-record option: import this record as a brand-new dance.
@@ -11972,13 +12038,13 @@ abstract class AppLocalizations {
   /// Helper text above the figure list explaining type-ahead figure entry.
   ///
   /// In en, this message translates to:
-  /// **'Type a move (e.g. \"sw\" → swing) and press Enter to add it with its default values; unmatched text becomes a custom figure.'**
+  /// **'Type a move (e.g. \"sw\" → swing) and press Enter to add it with its default values; text the app can\'t read becomes an unrecognized figure.'**
   String get danceEditorFiguresHelp;
 
   /// Helper text above the figure list while the Free-text entry setting is on: figures are typed as whole lines, and a line typed into an existing figure's move field replaces it.
   ///
   /// In en, this message translates to:
-  /// **'Add a figure by typing a whole line (e.g. \"neighbor balance & swing\") and pressing Enter. Typing a line into an existing figure\'s move replaces that figure. Anything unrecognized becomes a custom figure.'**
+  /// **'Add a figure by typing a whole line (e.g. \"neighbor balance & swing\") and pressing Enter. Typing a line into an existing figure\'s move replaces that figure. Any text the app can\'t read becomes an unrecognized figure.'**
   String get danceEditorFiguresHelpFreeText;
 
   /// Section heading for the dance notes fields.
@@ -12702,13 +12768,13 @@ abstract class AppLocalizations {
   /// Snackbar shown when renaming a choreographer to a name another choreographer already holds. The edit is refused rather than silently dropped (sync-spec 4.1, issue #1348); the raw exception is logged, never shown (CWE-209). {name} is untrusted user-entered text, rendered as plain text.
   ///
   /// In en, this message translates to:
-  /// **'A choreographer named \"{name}\" already exists. The name wasn\'t changed.'**
+  /// **'An author named \"{name}\" already exists. The name wasn\'t changed.'**
   String danceEditorChoreographerDuplicate(String name);
 
   /// Snackbar shown when CREATING a choreographer whose name a live choreographer already holds. Distinct from danceEditorChoreographerDuplicate, which is the rename case and says the name was not changed: here nothing was created and the existing author is untouched, so the user should select it instead. A safety net -- the author picker normally suppresses the create option for a name that already exists (issue #1348). The raw exception is logged, never shown (CWE-209). {name} is untrusted user-entered text, rendered as plain text.
   ///
   /// In en, this message translates to:
-  /// **'A choreographer named \"{name}\" already exists. The new author wasn\'t created — pick the existing one instead.'**
+  /// **'An author named \"{name}\" already exists. The new author wasn\'t created — pick the existing one instead.'**
   String danceEditorChoreographerCreateDuplicate(String name);
 
   /// Fallback dance title used when deleting a dance whose original title is unavailable.
@@ -12834,7 +12900,7 @@ abstract class AppLocalizations {
   /// Dialog title for editing shared choreographer/contact details.
   ///
   /// In en, this message translates to:
-  /// **'Choreographer details'**
+  /// **'Author details'**
   String get danceEditorChoreographerDetailsTitle;
 
   /// Introductory copy explaining shared and private choreographer details.
@@ -13056,7 +13122,7 @@ abstract class AppLocalizations {
   /// Helper text for free-text figure entry.
   ///
   /// In en, this message translates to:
-  /// **'e.g. \"neighbor balance & swing\" or \"16 circle left 3/4\". Enter adds it; unrecognized text is kept as a custom figure.'**
+  /// **'e.g. \"neighbor balance & swing\" or \"16 circle left 3/4\". Enter adds it; text the app can\'t read is kept as an unrecognized figure.'**
   String get danceEditorTypeFigureHelper;
 
   /// Button label for a paste destination in the figure list.
@@ -13074,7 +13140,7 @@ abstract class AppLocalizations {
   /// Fallback display name for a custom figure with no text.
   ///
   /// In en, this message translates to:
-  /// **'Custom figure'**
+  /// **'Unrecognized figure'**
   String get danceEditorCustomFigureName;
 
   /// Collapsed-row text for an empty figure draft.
@@ -13445,7 +13511,7 @@ abstract class AppLocalizations {
   /// Text field label for editing a custom figure description.
   ///
   /// In en, this message translates to:
-  /// **'Custom figure text'**
+  /// **'Unrecognized figure text'**
   String get danceEditorCustomFigureTextLabel;
 
   /// Helper text explaining lingo-aware styling in a custom figure text field.
@@ -13706,7 +13772,7 @@ abstract class AppLocalizations {
   /// **'Closing…'**
   String get appClosingMessage;
 
-  /// Update banner message when a newer version is available (idle/cancelled state).
+  /// Update banner message when a newer version is available (idle/canceled state).
   ///
   /// In en, this message translates to:
   /// **'A newer version of {appName} ({version}) is available.'**
@@ -14324,13 +14390,13 @@ abstract class AppLocalizations {
   /// **'Theme name'**
   String get themeEditorNameLabel;
 
-  /// Status shown when every checked colour pair meets WCAG AA contrast.
+  /// Status shown when every checked color pair meets WCAG AA contrast.
   ///
   /// In en, this message translates to:
   /// **'All checked pairs pass WCAG AA contrast.'**
   String get themeEditorContrastAllPass;
 
-  /// Warning shown when one or more colour pairs fall below WCAG AA contrast.
+  /// Warning shown when one or more color pairs fall below WCAG AA contrast.
   ///
   /// In en, this message translates to:
   /// **'{count, plural, =1{1 contrast pair below WCAG AA. You can still save, but some text may be hard to read.} other{{count} contrast pairs below WCAG AA. You can still save, but some text may be hard to read.}}'**
@@ -14351,7 +14417,7 @@ abstract class AppLocalizations {
   /// Heading of the live theme-preview card ('Aa' is a font specimen).
   ///
   /// In en, this message translates to:
-  /// **'Aa Preview'**
+  /// **'Aa preview'**
   String get themeEditorPreviewHeading;
 
   /// Sample body-text line in the theme preview.
@@ -14360,25 +14426,25 @@ abstract class AppLocalizations {
   /// **'Body text sample'**
   String get themeEditorBodySample;
 
-  /// Label for the primary colour swatch.
+  /// Label for the primary color swatch.
   ///
   /// In en, this message translates to:
   /// **'Primary'**
   String get themeEditorSwatchPrimary;
 
-  /// Label for the secondary colour swatch.
+  /// Label for the secondary color swatch.
   ///
   /// In en, this message translates to:
   /// **'Secondary'**
   String get themeEditorSwatchSecondary;
 
-  /// Label for the tertiary colour swatch.
+  /// Label for the tertiary color swatch.
   ///
   /// In en, this message translates to:
   /// **'Tertiary'**
   String get themeEditorSwatchTertiary;
 
-  /// Label for the error colour swatch.
+  /// Label for the error color swatch.
   ///
   /// In en, this message translates to:
   /// **'Error'**
@@ -14387,13 +14453,13 @@ abstract class AppLocalizations {
   /// Title of the confirm dialog before re-parsing custom figures.
   ///
   /// In en, this message translates to:
-  /// **'Upgrade custom figures?'**
+  /// **'Upgrade unrecognized figures?'**
   String get reparseConfirmTitle;
 
   /// Body of the confirm dialog before upgrading custom figures.
   ///
   /// In en, this message translates to:
-  /// **'This will re-check {figureCount, plural, =1{1 figure} other{{figureCount} figures}} in {danceCount, plural, =1{1 dance} other{{danceCount} dances}}. Your tags, ratings, notes, and everything else on each dance are kept exactly as they are. This only replaces figures that now recognise a known move.'**
+  /// **'This will re-check {figureCount, plural, =1{1 figure} other{{figureCount} figures}} in {danceCount, plural, =1{1 dance} other{{danceCount} dances}}. Your tags, ratings, notes, and everything else on each dance are kept exactly as they are. This only replaces figures that now recognize a known move.'**
   String reparseConfirmBody(int figureCount, int danceCount);
 
   /// Confirm-dialog action that performs the custom-figure upgrade.
@@ -14417,13 +14483,13 @@ abstract class AppLocalizations {
   /// Snackbar confirming how many dances had custom figures upgraded.
   ///
   /// In en, this message translates to:
-  /// **'Upgraded custom figures in {danceCount, plural, =1{1 dance} other{{danceCount} dances}}.'**
+  /// **'Upgraded unrecognized figures in {danceCount, plural, =1{1 dance} other{{danceCount} dances}}.'**
   String reparseUpgradedSnack(int danceCount);
 
   /// App-bar title for the re-check custom figures screen.
   ///
   /// In en, this message translates to:
-  /// **'Re-check custom figures'**
+  /// **'Re-check unrecognized figures'**
   String get reparseScreenTitle;
 
   /// Intro paragraph on the re-check custom figures screen.
@@ -14453,7 +14519,7 @@ abstract class AppLocalizations {
   /// Body of the empty state when no custom figures can be upgraded.
   ///
   /// In en, this message translates to:
-  /// **'None of your custom figures from imports can be recognised as a known move right now. Check back after a future update improves figure recognition.'**
+  /// **'None of your unrecognized figures from imports can be recognized as a known move right now. Check back after a future update improves figure recognition.'**
   String get reparseEmptyBody;
 
   /// Title of the error state when scanning for upgradable figures fails.
@@ -14909,13 +14975,13 @@ abstract class AppLocalizations {
   /// App-bar title for the recently-deleted (trash) screen.
   ///
   /// In en, this message translates to:
-  /// **'Recently Deleted'**
+  /// **'Recently deleted'**
   String get recentlyDeletedTitle;
 
   /// Shown on the recently-deleted screen when loading the deleted dances or programs fails, above a Retry button. Reassures the user that a failed load does not mean their deleted items are gone.
   ///
   /// In en, this message translates to:
-  /// **'Couldn’t load your deleted items. Nothing has been removed.'**
+  /// **'Couldn’t load your recently deleted items. Nothing has been removed.'**
   String get recentlyDeletedLoadError;
 
   /// Title of the confirm permanent-delete dialog.
@@ -14987,7 +15053,7 @@ abstract class AppLocalizations {
   /// Empty state for recently-deleted dances when there is no retention window.
   ///
   /// In en, this message translates to:
-  /// **'Nothing in the trash. Deleted dances are kept here until you remove them.'**
+  /// **'No recently deleted dances. Deleted dances are kept here until you remove them.'**
   String get recentlyDeletedEmptyDancesKept;
 
   /// Title of the empty Recently deleted lists (dances and programs).
@@ -14999,19 +15065,19 @@ abstract class AppLocalizations {
   /// Empty state for recently-deleted dances with a retention window of {days} days.
   ///
   /// In en, this message translates to:
-  /// **'Nothing in the trash. Deleted dances appear here for {days} days before being removed.'**
+  /// **'No recently deleted dances. Deleted dances appear here for {days} days before being removed.'**
   String recentlyDeletedEmptyDancesRetention(int days);
 
   /// Empty state for recently-deleted programs when there is no retention window.
   ///
   /// In en, this message translates to:
-  /// **'Nothing in the trash. Deleted programs are kept here until you remove them.'**
+  /// **'No recently deleted programs. Deleted programs are kept here until you remove them.'**
   String get recentlyDeletedEmptyProgramsKept;
 
   /// Empty state for recently-deleted programs with a retention window of {days} days.
   ///
   /// In en, this message translates to:
-  /// **'Nothing in the trash. Deleted programs appear here for {days} days before being removed.'**
+  /// **'No recently deleted programs. Deleted programs appear here for {days} days before being removed.'**
   String recentlyDeletedEmptyProgramsRetention(int days);
 
   /// Snackbar confirming a dance was restored; {title} is plain text.
@@ -15890,10 +15956,10 @@ abstract class AppLocalizations {
   /// **'One sentence, shown in the Glossary list.'**
   String get compoundEditorDefinitionHelper;
 
-  /// Label of a custom figure's optional "More Details" field, which holds its longer description.
+  /// Label of a custom figure's optional "More details" field, which holds its longer description.
   ///
   /// In en, this message translates to:
-  /// **'More Details'**
+  /// **'More details'**
   String get compoundEditorDescription;
 
   /// Label of a custom figure's optional keywords field, which search also finds it by.
@@ -16058,10 +16124,10 @@ abstract class AppLocalizations {
   /// **'“{name}” is already the name of one of your own figures. Those are listed in the Glossary while Custom Figures is on. Choose another name.'**
   String compoundEditorNameTakenHidden(String name);
 
-  /// Error shown when saving a figure under a name one of the user's own terms already has, while Show Glossary is off and that term is not shown.
+  /// Error shown when saving a figure under a name one of the user's own terms already has, while Show glossary is off and that term is not shown.
   ///
   /// In en, this message translates to:
-  /// **'“{name}” is already the name of one of your own terms. Those are listed in the Glossary while Show Glossary is on. Choose another name.'**
+  /// **'“{name}” is already the name of one of your own terms. Those are listed in the Glossary while Show glossary is on. Choose another name.'**
   String compoundEditorNameTakenHiddenTerm(String name);
 
   /// Error shown when saving a custom figure with no figures.
@@ -16337,7 +16403,7 @@ abstract class AppLocalizations {
   /// Added to the dialog confirming that a new figure of the user's (#1023) is deleted, when dances in the Trash use it: they are not changed, and keep the line each last stored.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =1{1 dance in the Trash uses it, and keeps the line it last stored.} other{{count} dances in the Trash use it, and keep the lines they last stored.}}'**
+  /// **'{count, plural, =1{1 dance in Recently deleted uses it, and keeps the line it last stored.} other{{count} dances in Recently deleted use it, and keep the lines they last stored.}}'**
   String glossaryCustomDeleteTrash(int count);
 
   /// Added to the dialog confirming that a new figure of the user's (#1023) is deleted, when the default figures for new dances, meanwhile sides or modifiers (Settings, Defaults) use it.

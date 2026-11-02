@@ -24,7 +24,7 @@ Future<void> _pumpGeneral(
   Size surface = const Size(1200, 2600),
   double textScale = 1,
 }) async {
-  // Tall enough that every General row (including the Deleted items section
+  // Tall enough that every General row (including the Recently deleted section
   // near the bottom) renders without scrolling — a ListView only builds
   // children within its viewport + cache extent, so a short surface can leave
   // a lower row unbuilt and unreachable by finders.

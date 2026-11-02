@@ -10,7 +10,7 @@ const String kShowCustomFiguresKey = 'show_custom_figures';
 /// When `true` the user's own figures can be added and edited from the Custom
 /// Figures screen in the Experimental settings, and from the Glossary while it
 /// is shown, and the dance editor offers them as a figure's move. It does not
-/// depend on "Show Glossary". When `false`
+/// depend on "Show glossary". When `false`
 /// they are hidden, never deleted: turning it back on shows them again. A
 /// dance-editor row that already holds one still expands when the dance is
 /// saved (#709).

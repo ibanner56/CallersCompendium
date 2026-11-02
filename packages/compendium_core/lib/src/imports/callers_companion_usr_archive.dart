@@ -40,9 +40,12 @@ class CcUsrArchive {
     this.relatedDancePairs = const [],
     required this.warnings,
     this.warningCodes = const [],
+    this.danceRecordIds,
   });
 
   /// One entry per CC `Dance` row, in file order.
+  ///
+  /// Empty after [withoutDances]; [danceRecordIds] outlives it.
   final List<CcDanceEntry> dances;
 
   /// One entry per CC `Set` row, each carrying its ordered [CcSetItem]s.
@@ -70,6 +73,14 @@ class CcUsrArchive {
   /// Non-fatal notes (missing tables, guessed column names, reader warnings).
   final List<String> warnings;
 
+  /// Every `zk_Dance_ID` in the file's `Dance` table, or `null` when that is
+  /// not known: the file is cut short or the reader warned about damage, it has
+  /// no `Dance` table, or a `Dance` row has no `zk_Dance_ID` (the column is
+  /// missing or a value blank). A `SetItem`
+  /// naming an id outside a known set names a dance deleted in Caller's
+  /// Companion (#1976), which `buildCcPrograms` leaves out.
+  final Set<String>? danceRecordIds;
+
   /// Typed twin of the notes in [warnings] that the user should hear about:
   /// each a [CcUsrWarningCodes] value, distinct, in first-seen order. The prose
   /// is English for logs; the app localizes from these codes. Notes that need
@@ -90,6 +101,7 @@ class CcUsrArchive {
     relatedDancePairs: relatedDancePairs,
     warnings: warnings,
     warningCodes: warningCodes,
+    danceRecordIds: danceRecordIds,
   );
 }
 
@@ -236,6 +248,7 @@ class CcDanceEntry {
     required this.recordId,
     required this.record,
     required this.rawColumns,
+    this.idIsFallback = false,
   });
 
   /// The CC dance identity used as the dedupe key **and** the join key that
@@ -245,6 +258,10 @@ class CcDanceEntry {
   final String recordId;
   final CcDanceRecord record;
   final Map<String, String> rawColumns;
+
+  /// Whether [recordId] is the FileMaker record id because the row had no
+  /// `zk_Dance_ID`, so `SetItem` rows cannot name this dance by it.
+  final bool idIsFallback;
 }
 
 /// A CC `Set` row reshaped toward the `Program` model.
@@ -384,6 +401,16 @@ CcUsrArchive extractCcUsrArchive(
     relatedDancePairs: relatedDancePairs,
     warnings: warnings.messages,
     warningCodes: warnings.codes,
+    // A cut-short or damaged file (one the reader warned about) may be missing
+    // dances, which are not deleted; and a row with no `zk_Dance_ID` is a
+    // dance no `SetItem` id can match.
+    danceRecordIds:
+        db.truncated ||
+            db.warnings.isNotEmpty ||
+            _findTable(db, _danceTableNames) == null ||
+            dances.any((d) => d.idIsFallback)
+        ? null
+        : Set.unmodifiable(danceIds),
   );
 }
 
@@ -461,6 +488,7 @@ List<CcDanceEntry> _extractDances(
           warnings: rowNotes,
         ),
         rawColumns: columns,
+        idIsFallback: ccId == null || ccId.isEmpty,
       ),
     );
   }

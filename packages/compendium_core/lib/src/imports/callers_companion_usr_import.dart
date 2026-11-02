@@ -257,9 +257,9 @@ class CallersCompanionUsrImporter {
   /// Commits a planned dance [batch] and then the programs from [archive].
   ///
   /// The dances commit first (real pipeline path), yielding the CC-dance-id →
-  /// new-Compendium-dance-id map used to FK-resolve each program slot. Programs
-  /// whose slots reference a dance that was not committed degrade to text
-  /// placeholders + issues (never a throw — see [buildCcPrograms]).
+  /// new-Compendium-dance-id map used to FK-resolve each program slot. A slot
+  /// whose dance was not committed never throws: it becomes a text slot or is
+  /// left out (see *Dances that did not commit*, below).
   ///
   /// [venueEntityMode] gates issue #687's venue-entity linking. It is read by
   /// the app from `VenueEntityModeScope` — a Flutter `InheritedNotifier` the
@@ -333,12 +333,22 @@ class CallersCompanionUsrImporter {
   /// **Skipped re-import rows (INTAKE-1):** [existingDanceIdByExternalId] maps
   /// a CC `zk_Dance_ID` to the local dance a re-import row the review left at
   /// Skip already matches (its verdict's target). Program slots for that dance
-  /// link to it instead of becoming "not imported" placeholders. The map is
+  /// link to it instead of becoming a text slot. The map is
   /// used for slots only: the dances it names are not written, so
   /// `Dance_Related` links are never added to a dance the user chose to leave
   /// as it is (and [undo] has no prior state to restore one from). An entry
   /// whose dance no longer exists is ignored, and [batch]'s own dance and an
   /// [earlierDanceIds] entry both win over it for the same CC id.
+  ///
+  /// **Dances that did not commit (#1976):** a slot whose dance resolves to
+  /// none shows the dance's title when the import left it out, its title and
+  /// a `Dance not imported (…)` line when it failed, and is left out when the
+  /// file no longer has the dance (see [buildCcPrograms]). The titles come
+  /// from [batch]'s drafts and [danceTitleByCcRowId], and the failures from
+  /// this commit; a caller that commits only some of its planned rows (the
+  /// review screen leaves Skip rows out of [batch]) passes the rest's titles
+  /// through [danceTitleByCcRowId]. A row that failed to plan has no draft,
+  /// so no title: its slot keeps the `Dance not imported (…)` marker.
   ///
   /// Everything is recorded on the returned [CcUsrImportResult] so [undo]
   /// reverts dances, programs **and** venues.
@@ -355,6 +365,7 @@ class CallersCompanionUsrImporter {
     void Function(int done, int total)? onProgress,
     Map<String, String> earlierDanceIds = const {},
     Set<String> earlierReimportedCcIds = const {},
+    Map<String, String> danceTitleByCcRowId = const {},
   }) async {
     final mintId = newId ?? uuidV4;
     final (
@@ -377,8 +388,8 @@ class CallersCompanionUsrImporter {
 
     // This batch's own dances win over an earlier commit's for the same CC
     // row. An earlier dance that no longer exists (deleted from the editor
-    // since) resolves to nothing, so its slots fall back to placeholders
-    // rather than naming a missing dance.
+    // since) resolves to nothing, so its slots fall back to text (its title,
+    // given one) rather than naming a missing dance.
     final committedEarlier = <String, String>{};
     final Map<String, String> danceIdByCcRowId;
     // Slots also link to a skipped re-import row's existing dance (see the doc
@@ -406,9 +417,20 @@ class CallersCompanionUsrImporter {
       rethrow;
     }
 
+    // What a slot whose dance did not commit shows (#1976): the dance's title,
+    // and whether it failed rather than being left out.
     final built = buildCcPrograms(
       archive,
       danceIdByCcRowId: slotDanceIdByCcRowId,
+      danceTitleByCcRowId: {
+        ...danceTitleByCcRowId,
+        for (final plan in batch.records)
+          ?plan.draft.raw.externalId: plan.draft.dance.title,
+      },
+      failedCcRowIds: {
+        for (final record in danceSession.records)
+          if (!record.succeeded) ?record.externalId,
+      },
       newId: mintId,
       newSlotId: newSlotId ?? uuidV4,
       now: now,

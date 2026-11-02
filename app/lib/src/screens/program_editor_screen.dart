@@ -48,6 +48,7 @@ import '../theme/keyboard_dismiss.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/safe_name.dart';
 import '../utils/undo_snack_bar.dart';
+import '../widgets/app_shortcuts.dart';
 import '../widgets/collection_picker.dart';
 import '../widgets/confirm_discard_changes.dart';
 import '../widgets/notice_card.dart';
@@ -3264,7 +3265,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     var deleted = false;
     try {
       // ROADMAP G.7: optional confirm dialog before the (still-undoable) delete.
-      if (!await confirmDeleteIfEnabled(context, itemLabel: title)) return;
+      if (!await confirmDeleteProgramIfEnabled(
+        context,
+        itemLabel: title,
+        programId: source.id,
+        repositories: _repos,
+      )) {
+        return;
+      }
       if (!mounted) return;
       // Finish any already-started auto-commit before soft-deleting. Otherwise
       // its update could land after the delete and clear the tombstone.
@@ -3378,7 +3386,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         ),
       ],
     );
-    return PopScope<Object?>(
+    final editor = PopScope<Object?>(
       canPop: !_pickerImporting && !_dirty && !isPersistedNewRoute,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop || _pickerImporting) return;
@@ -3495,6 +3503,32 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 label: Text(_dirty ? l10n.programsSaveDirty : l10n.commonSave),
               )
             : null,
+      ),
+    );
+    return Actions(
+      actions: {
+        // Ctrl/Cmd-S, bound app-wide ([appShortcuts]); the same rule as the
+        // Save button's, which shows on the Build tab only.
+        SaveIntent: CallbackAction<SaveIntent>(
+          onInvoke: (_) {
+            if (_loaded &&
+                _loadError == null &&
+                _tabController.index == 0 &&
+                !_saving &&
+                !_pickerImporting) {
+              unawaited(_save());
+            }
+            return null;
+          },
+        ),
+      },
+      // Holds the focus when nothing inside has it, so Ctrl/Cmd-S reaches the
+      // action above as soon as the editor opens. A new program's title field
+      // takes the focus itself: an autofocus here would win over it, because
+      // the outer one is queued first.
+      child: Focus(
+        autofocus: !(widget.isNew && !hasPersistedProgram),
+        child: editor,
       ),
     );
   }

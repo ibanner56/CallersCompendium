@@ -222,6 +222,13 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   /// True while [_performProgram] resolves deleted dances, so a double tap
   /// cannot push two Perform screens.
   bool _resolvingPerform = false;
+
+  /// Re-entrancy guard for [_delete]. The confirm now reads the history count
+  /// before its dialog opens (LIFE-6), so a second tap can land in that gap and
+  /// stack a second dialog; confirming the top one would then make a narrow
+  /// layout's `onDeleted` pop that dialog instead of this route. Same pattern
+  /// as the editor's `_deleting`.
+  bool _deleting = false;
   Object? _error;
 
   /// In-memory Perform resume state (issue #434), used when the host passes no
@@ -591,9 +598,25 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
 
   Future<void> _delete() async {
     final source = _program;
-    if (source == null) return;
+    if (source == null || _deleting) return;
+    _deleting = true;
+    try {
+      await _deleteConfirmed(source);
+    } finally {
+      _deleting = false;
+    }
+  }
+
+  Future<void> _deleteConfirmed(Program source) async {
     // ROADMAP G.7: optional confirm dialog before the (still-undoable) delete.
-    if (!await confirmDeleteIfEnabled(context, itemLabel: source.title)) return;
+    if (!await confirmDeleteProgramIfEnabled(
+      context,
+      itemLabel: source.title,
+      programId: source.id,
+      repositories: _repos,
+    )) {
+      return;
+    }
     if (!mounted) return;
     await _repos.programs.softDelete(source.id, at: DateTime.now().toUtc());
     if (!mounted) return;

@@ -243,7 +243,9 @@ editor was open (this offer, or sync) is not undone by that editor's next save.
 `band`, `caller` (primary/host caller), and `dancerLevel` are the CC-parity
 event-metadata fields (schema v3). `dancerLevel` is nullable free-text for now;
 a first-class dance-level enum is separate (ROADMAP 4b.1) and a different
-concept. Per-slot, `guestCaller` names a caller other than the host and
+concept. Per-slot, `guestCaller` names who called that slot, usually a caller
+other than the host (a Caller's Companion import keeps the host's name on
+their own slots too when a set has several callers, #1976), and
 `walkthroughMinutes` and `danceMinutes` are optional planned lengths, kept
 structured rather than buried in the free-text `text` note (each is `>= 0`).
 Callers' Companion's legacy `SetItem.Time` total maps to `danceMinutes`; the

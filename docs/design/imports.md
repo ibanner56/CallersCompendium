@@ -39,7 +39,7 @@ fetch → RawRecord → parse → StructuredDraft → canonicalize → dedupe �
 | **RawRecord** | Source-native payload preserved verbatim in memory + source id/version. The payload feeds `parse` and is **not persisted** — it was stored in `provenance.raw_payload` until schema v21 dropped that column (#781), because nothing read it back. Re-import dedupes on `(source, externalId)` and re-fetches from the source, so it needs no stored copy. |
 | **parse** | Adapter maps fields and parses figures into structured `Figure[]`. **Parsing never fails a dance**: any unparseable figure line becomes a `custom` figure carrying its beats and text. A dance can arrive 100% custom and still be searchable. |
 | **canonicalize** | Free text through the dialect `canonicalize()` chokepoint; terms/synonyms (incl. legacy "gypsy") mapped to canonical vocabulary; recognized formation strings map to the enum, with only source-specific detail retained separately. |
-| **dedupe** | Match by (source, externalId) first — re-import replaces only the matched dance's choreography (figures, formation, progression) and updates its provenance; see *Re-import replaces only the choreography*. Otherwise fuzzy (NFC-composed, normalized title + author) → user chooses link/duplicate/skip. A title that normalizes to nothing (non-Latin or punctuation-only — `normalizeTitle` keeps `[a-z0-9]`) is never scored against another and never auto-linked: it carries no identity signal, and `'' == ''` once scored every such dance 1.0 against every other. The index is a pre-batch snapshot, so `plan` also tracks `(source, externalId)` within the batch: a repeat is dropped and the kept record carries a `duplicate_external_id_in_batch` warning, so one batch can never commit two dances under one provenance key. Free-text imports feed their raw author names (see *Author resolution*) into this signal. An exact-normalized-title match with an overlapping tokenized author set is always a **confident match** (`DedupeCandidate.confident` / `DedupeVerdict.hasConfidentMatch`, issue #685) — it is guaranteed to surface as `ambiguous` regardless of how the score threshold is tuned, so inconsistent author-string formatting across sources can never silently resolve to `isNew`. Non-interactive callers never silently duplicate a confident match whose figures are identical: the title-list program import skips it, and the ContraDB program import links its slot to the existing dance (INTAKE-3; see *Program-import path*). Below the fuzzy tier, `DedupeVerdict.possibleMatchIds` lists dances that are **possibly** the same under a differently written title (see *Possible matches under another title*); it never changes the verdict. |
+| **dedupe** | Match by (source, externalId) first — re-import replaces only the matched dance's choreography (figures, formation, progression) and updates its provenance; see *Re-import replaces only the choreography*. Otherwise fuzzy (NFC-composed, normalized title + author) → user chooses link/duplicate/skip. Each title is keyed as written and with any trailing article fronted (`dedupeTitleKeys`, #1976), and two titles match exactly when their keys overlap: a library dance stored as "Bastringue, La" matches an incoming "La Bastringue", while "Thanks, Les" still matches "Thanks Les". In the fuzzy tier, only exactness uses the fronted key: an exact entry scores as the same title, and every other entry is scored on the titles as written, so a near-miss is no closer for its article. `normalizeTitle` itself, the sync key, is unchanged. A title that normalizes to nothing (non-Latin or punctuation-only — `normalizeTitle` keeps `[a-z0-9]`) is never scored against another and never auto-linked: it carries no identity signal, and `'' == ''` once scored every such dance 1.0 against every other. The index is a pre-batch snapshot, so `plan` also tracks `(source, externalId)` within the batch: a repeat is dropped and the kept record carries a `duplicate_external_id_in_batch` warning, so one batch can never commit two dances under one provenance key. Free-text imports feed their raw author names (see *Author resolution*) into this signal. An exact-normalized-title match with an overlapping tokenized author set is always a **confident match** (`DedupeCandidate.confident` / `DedupeVerdict.hasConfidentMatch`, issue #685) — it is guaranteed to surface as `ambiguous` regardless of how the score threshold is tuned, so inconsistent author-string formatting across sources can never silently resolve to `isNew`. Non-interactive callers never silently duplicate a confident match whose figures are identical: the title-list program import skips it, and the ContraDB program import links its slot to the existing dance (INTAKE-3; see *Program-import path*). Below the fuzzy tier, `DedupeVerdict.possibleMatchIds` lists dances that are **possibly** the same under a differently written title (see *Possible matches under another title*); it never changes the verdict. |
 | **review** | Batch imports land in a review queue: per-dance parse quality score (% structured vs custom figures), side-by-side raw vs parsed. Each row carries its own choice (new / re-import / link / duplicate / skip); a re-import match or possible match defaults to **skip** (#446), and bulk controls set every matched dance to Re-import or Skip and every possible match to Skip in one tap. A row whose only matches are *possible matches under another title* (#1907) is not a possible match in this sense: it keeps the **new** default and the bulk controls leave it alone. Two warnings count the existing dances a commit would change: one the dances links replace, one the dances re-imports update (only their choreography, and how many of them also take the title and credit). A target named by both counts as replaced. Nothing silently mutates existing user data. |
 | **commit** | Per-record: each dance commits in its own transaction and a failing record is rolled back on a best-effort basis (author writes and variation link-backs are separate operations, and a cleanup that itself fails leaves rows behind that Undo can remove); the batch as a whole is not one transaction. The commit reports `(done, total)` per record; the review screen shows that count for the generic, `.USR` and published-collection commits, while the shared-bundle commit and per-row Edit show an indeterminate spinner; provenance row written; author names resolved to `Choreographer` associations (see *Author resolution*); import session log kept for undo, which reverts the records that did commit. A draft's links are in the source's id space (a shared file carries the sender's link ids and dance ids), so each gets a fresh id. A related-dance link names its target by the target's external id (the generic JSON and published-collection adapters rewrite the file's dance id to the target's record key when the file carries the target), and is added only after the whole batch is written: to the dance the batch wrote under that key, else a live dance already received from the same source under it, else a live dance whose id it is (a file this library wrote). One that resolves to neither is left out with an `archive_related_dance_unresolved` note on `ImportSession.issues`, which the import result lists with the rest of the commit's notes. |
 
@@ -106,6 +106,19 @@ Acceptance: the same multi-author dance imported from Caller's Box (an
 to the **same** author set, so dedupe's author-overlap signal is consistent
 across sources regardless of which adapter produced it.
 
+**Caller's Companion "and others" (#1976).** Before splitting, the Caller's
+Companion mapping (`mapCallersCompanionDance`, both the `.USR` columns and the
+pasted "by" line) takes an unnamed-others credit off its author fields with
+`peelUnnamedOthers()`: `And Others`, `& others`, `et al.`, a bare `Others`, or
+one ending a field (`Rick Mohr and others.`, `Rick Mohr (and others)`). The
+named authors are credited and the dance gets a `Choreography: Rick Mohr and
+others` calling-notes line (`Choreography: others, not named` when nobody is
+named), so no choreographer called "Others" is made. Scoping it to CC was the
+implementer's choice, not the maintainer's: the decision was made on a CC
+issue, and `splitAuthorNames` is shared, so ContraDB and The Caller's Box still
+split "X and others" into `X` and `others`. The author set for dedupe
+still overlaps across sources on the named authors.
+
 - **Matching policy — exact, normalized, conservative.** A name matches an existing
   `Choreographer` iff its normalized form (NFC composition → trim → collapse
   internal whitespace → lowercase) equals an existing row's normalized name.
@@ -135,7 +148,9 @@ across sources regardless of which adapter produced it.
   no surviving dance still references (the repository's referenced-guard is
   respected). Pre-existing choreographers are never touched.
 - **`callingNotes` behavior change.** Author names are **no longer folded** into
-  `Dance.callingNotes`, and the old per-name `*_unresolved` info issues are removed;
+  `Dance.callingNotes` (except the Caller's Companion `Choreography: … and
+  others` line, above, which records a credit no choreographer row can hold;
+  #1976), and the old per-name `*_unresolved` info issues are removed;
   authorship now lives in `Dance.authorIds`. The per-record resolution outcome
   (matched vs created, per name) is surfaced structurally on
   `CommittedRecord.authorResolutions` for the review step.
@@ -143,7 +158,8 @@ across sources regardless of which adapter produced it.
 ### Dedupe confident-match guarantee (issue #685)
 
 `DedupeIndex.fuzzyMatches` always includes a candidate whose normalized title
-is exactly equal to the incoming record's **and** whose tokenized author set
+is exactly equal to the incoming record's (a shared `dedupeTitleKeys` key: the
+title as written, or with a trailing article fronted, #1976) **and** whose tokenized author set
 intersects it (`DedupeCandidate.confident = true`), even when its combined
 score would otherwise fall under the active threshold. `DedupeVerdict.
 hasConfidentMatch` exposes this at the verdict level. This is a deliberate,
@@ -312,8 +328,9 @@ title such as `New Dance`, whose bracket is the real name, or the bracket holds
 only a part number such as `{#2}`), a leading article
 dropped only before a letter, and every non-`[a-z0-9]` character deleted. A
 possible match needs an equal non-empty core key, a shared normalized author on
-both sides, and a **different** `normalizeTitle`, which keeps the tier disjoint
-from confident candidates. The ids ride on `DedupeVerdict.possibleMatchIds`.
+both sides, and **no** shared `dedupeTitleKeys` key, which keeps the tier
+disjoint from confident candidates. Both core keys are taken of the title as
+written and with a trailing article fronted (#1976). The ids ride on `DedupeVerdict.possibleMatchIds`.
 
 - **Never changes the verdict.** `kind`, `candidates` and `hasConfidentMatch`
   are untouched, so every caller that branches on them, including every
@@ -687,9 +704,36 @@ declines the collapse.
 - **Set flags (#1974).** `SetItem.Break` is a checkbox that CC's own set-list
   layout describes as "a break occurs after this dance", so the program gets a
   `Break` text slot after that dance and its alternates, unless the set already
-  has its own break slot there. A slot with no dance that carries the flag is
+  has its own break slot there (refined by *Dances that did not commit*,
+  below). A slot with no dance that carries the flag is
   the break itself. `Set.SetList_HideALT` is `Program.hideAlternates`,
   re-applied from the file on re-import like the program's other fields.
+- **Dances that did not commit (#1976).** A set slot whose CC dance resolves to
+  no dance (not in the batch's commit, an earlier Edit, or a skipped re-import
+  row's target) is built by `buildCcPrograms` from what the importer passes it,
+  per the maintainer's decisions on #1976 (2026-10-30): a dance the import left
+  out (Skip, or an ambiguous row an unattended import skipped) becomes a text
+  slot holding its title, with no marker or issue; one whose commit failed
+  becomes its title, a blank line, then the `Dance not imported (Caller's
+  Companion dance #N)` marker, with a `cc_program_unresolved_dance` warning
+  (a plan-time fetch or parse error has no draft, so no title: the marker
+  alone); and one whose `zk_Dance_ID` is not in the file's `Dance` table
+  (`CcUsrArchive.danceRecordIds`: deleted in CC) is left out with a
+  `cc_program_deleted_dance` info issue, its `Break` flag still placing the
+  break and its first alternate taking its place (an empty dance item's does
+  too). A Break flag's break falls due when the next item that is not an
+  alternate in the file ends the flagged dance's group, kept or not, and goes
+  in before the next slot kept (a promoted alternate included) unless that slot
+  is a break already (the set's own, or a left-out dance titled "Break"); the
+  import never adds a break at the start of a program or right after another
+  break that is not an alternate. `CallersCompanionUsrImporter.
+  commit` takes the titles from the batch's drafts and the failures from the
+  session's failed records; the review screen commits only the rows it acts
+  on, so it also passes every planned row's title (`danceTitleByCcRowId`).
+  `danceRecordIds` is `null` for a cut-short file or one the reader warned
+  about, one with no `Dance` table, or one with a `Dance` row lacking a
+  `zk_Dance_ID`, whose slots keep the marker instead of being dropped. (A
+  sector chain the reader stops walking without a warning is not caught.)
 - **Per-row Edit.** The review's **Import and edit** commits one `.USR` dance
   before the rest through `CallersCompanionUsrImporter.commitDances`, which runs
   the same definition, published-source and difficulty-level steps as `commit`
@@ -697,8 +741,8 @@ declines the collapse.
   repository) but builds no programs or links, and has no undo. The screen keeps
   each such dance's `zk_Dance_ID` → dance id and passes it to the batch `commit`
   as `earlierDanceIds`, so set slots and `Dance_Related` pairs naming it resolve
-  to it rather than becoming "not imported" placeholders; an entry whose dance
-  no longer exists is ignored, and the batch's own dance wins for a CC id it
+  to it rather than becoming "not imported" placeholders (see *Dances that did
+  not commit*, above); an entry whose dance no longer exists is ignored, and the batch's own dance wins for a CC id it
   also commits. The CC ids among them that the Edit re-imported go as
   `earlierReimportedCcIds`, and those dances get no `Dance_Related` link, as a
   dance the batch re-imports gets none — unless another row of the batch
@@ -1639,7 +1683,7 @@ has to be judged in its own context.
   bracket never overrules the roller a note names. Structured figures already
   stored keep their old `who`: the #1192 repair is unchanged and nothing
   re-reads them, so re-importing the same dance can differ from the stored
-  copy. An import-gap custom that **Re-check custom figures** re-reads gets
+  copy. An import-gap custom that **Re-check unrecognized figures** re-reads gets
   the new reading. `rollaway` and `w/ half sashay` read too.
   **Box circulate balance from beats (#1975, maintainer decision):** a box
   circulate that is a whole line gets `balance: true` in 8 beats and `balance:
@@ -1693,7 +1737,7 @@ has to be judged in its own context.
   decoded comma list says nothing about the balance, so unlike a Caller's Box
   `;` list it does not write `balance: false`. Square throughs already
   structured in a collection keep their balance; an import-gap custom that
-  **Re-check custom figures** reads again gets the new reading.
+  **Re-check unrecognized figures** reads again gets the new reading.
   ContraDB HTML's source-rendered `on the left`/`on the right` promenade tail
   is likewise promoted from the existing figure note to `turn`, using the
   maintainer mapping `on the left` → `clockwise` and `on the right` →
@@ -1924,7 +1968,7 @@ has to be judged in its own context.
     scrubbed like the rest of the line, so `form ring` after a figure still
     keeps the line text. Any other piece that reads as nothing keeps the whole
     line text, and a line of more than six pieces is not tried.
-  - Free-text entry and **Re-check custom figures** do not split at commas.
+  - Free-text entry and **Re-check unrecognized figures** do not split at commas.
 
   The shared balance reader also reads the hand Caller's Companion writes
   before it (`R-hand balance`, `Right hand balance`, `RH-balance`).
@@ -1962,13 +2006,46 @@ has to be judged in its own context.
     whole line must be the balance then the circulate, so `Box circulate,
     balance the wave` is not read, and `Balance the wave, circulate` reads the
     same as `Wave balance`. A bracket must say who crosses, as `_circulate`
-    reads The Caller's Box's definition: `(Larks cross)` gives `who`, `(Larks
-    cross, Robins loop R)` also `hand`, and the bracket stays the note. Any
-    other bracket keeps the line text, so the around-the-set line stays text
-    however its count is written.
+    reads The Caller's Box's definition: `(Larks cross)` gives `who` and
+    `(Larks cross, Robins loop R)` also `hand`. The bracket leaves no note
+    since #2089 (below). Any other bracket keeps the line text, so the
+    around-the-set line stays text however its count is written.
   - `goodBeats` is `[0, 4, 8]`: The Caller's Box folds `(4) Form a wave` and
     `(4) Balance the wave` into one balanced form short waves of 8, which keeps
     raising no `atypical_beats` warning.
+
+  **Box circulate brackets and a balance after it (#2089):** the maintainer's
+  decisions on #2089:
+  - `Box circulate (Larks cross)` and a bare `Circulate (Robins cross, Larks
+    loop L)` are a box circulate whose bracket gives `who` and `hand`, as after
+    `Wave balance,` (`_circulateCrossBracket`, through the same bracket reader).
+    No balance is stated, so the line's beats decide it, by the rule above
+    from #1975.
+  - A bracket read whole leaves no note, here and after `Wave balance,`: the box
+    circulate's display already says who crosses and who loops. A note would
+    also lose the line to ContraDB's reader, which keeps the bracket as its
+    note and leaves `who` at its default; the two readings would tie on
+    unexplained text, and precedence gives a tie to ContraDB.
+  - Any other bracket reads as before: a box circulate noting it, or, after a
+    bare `Circulate`, text.
+  - `Box circulate, balance the wave` stays text. A box circulate's balance
+    can only come first, and a line's 8 beats would turn it on. The fan-out
+    has no reading for a box circulate whose note holds a balance, at its
+    start or after a comma, `;`, dash, `and` or `then`
+    (`_balanceAfterCirculate`), for imports and typed figures alike.
+
+  The author's calls:
+  - The rule covers any balance written after it (`balance the ring`,
+    `Neighbor balance`), one after a bracket, and one later in the note (`Box
+    circulate to a wave, balance the wave`), but not `no balance`.
+  - Without the fan-out's reading, a Caller's Companion import splits the line
+    at the comma when the balance reads alone, as any comma line: `(8) Box
+    circulate, balance the ring` is a box circulate in 4 then a ring balance in
+    4, in the order written. `balance the wave` does not read alone, so that
+    line stays text.
+  - The rule covers only the box circulate. A square through, the other move
+    whose balance its beats give, already keeps `Square through 2, balance the
+    wave` text.
 
   **Star promenade centre (#843, taxonomy v26, NO new slot):** TCB writes the
   centre in a trailing parenthetical — `Neighbor star promenade 1/2 (WR)` — on

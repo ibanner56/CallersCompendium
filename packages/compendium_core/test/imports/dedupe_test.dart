@@ -387,6 +387,103 @@ void main() {
     });
   });
 
+  group('a trailing article is fronted before comparing (#1976)', () {
+    final index = DedupeIndex([
+      DedupeEntry(
+        danceId: 'd1',
+        title: 'Bastringue, La',
+        authorNames: ['Jane Doe'],
+      ),
+      DedupeEntry(danceId: 'd2', title: 'Baby Rose, The (var)'),
+    ]);
+
+    test('a library-style title is a confident match for the fronted one', () {
+      final matches = index.fuzzyMatches('La Bastringue', ['Jane Doe']);
+      expect(matches.map((m) => m.danceId), ['d1']);
+      expect(matches.single.confident, isTrue);
+      expect(matches.single.score, 1.0);
+    });
+
+    test('and the other way round', () {
+      final fronted = DedupeIndex([
+        DedupeEntry(
+          danceId: 'd1',
+          title: 'La Bastringue',
+          authorNames: ['Jane Doe'],
+        ),
+      ]);
+      final matches = fronted.fuzzyMatches('Bastringue, La', ['Jane Doe']);
+      expect(matches.single.confident, isTrue);
+    });
+
+    test('a comma-only difference still matches exactly', () {
+      final plain = DedupeIndex([
+        DedupeEntry(
+          danceId: 'd1',
+          title: 'Thanks Les',
+          authorNames: ['Jane Doe'],
+        ),
+      ]);
+      final matches = plain.fuzzyMatches('Thanks, Les', ['Jane Doe']);
+      expect(matches.single.confident, isTrue);
+      expect(matches.single.score, 1.0);
+    });
+
+    test('a fronted title is never also a possible match', () {
+      final fronted = DedupeIndex([
+        DedupeEntry(
+          danceId: 'd1',
+          title: 'The Baby Rose',
+          authorNames: ['Jane Doe'],
+        ),
+      ]);
+      expect(
+        fronted.possibleTitleMatches('Baby Rose, The', ['Jane Doe']),
+        isEmpty,
+      );
+      expect(
+        fronted.possibleTitleMatches('Baby Rose, The (var)', ['Jane Doe']),
+        ['d1'],
+      );
+    });
+
+    test('an exact fronted entry is never pruned by its written length', () {
+      final short = DedupeIndex([
+        DedupeEntry(danceId: 'd1', title: 'Rose, The'),
+      ]);
+      expect(short.fuzzyMatches('Rose', const []).single.score, 1.0);
+    });
+
+    test('exact entries under both keys are all found, in entry order', () {
+      // d2 is listed under the query's plain key, d1 and d3 under its fronted
+      // key, so the union must be sorted for the scan to see all three.
+      final mixed = DedupeIndex([
+        DedupeEntry(danceId: 'd1', title: 'The Baby Rose', authorNames: ['X']),
+        DedupeEntry(danceId: 'd2', title: 'Baby Rose The', authorNames: ['X']),
+        DedupeEntry(danceId: 'd3', title: 'Baby Rose', authorNames: ['X']),
+      ]);
+      final matches = mixed.fuzzyMatches('Baby Rose, The', ['X']);
+      expect(matches.where((m) => m.confident).map((m) => m.danceId).toSet(), {
+        'd1',
+        'd2',
+        'd3',
+      });
+    });
+
+    test('the core-title key fronts it too', () {
+      final withAuthor = DedupeIndex([
+        DedupeEntry(
+          danceId: 'd2',
+          title: 'Baby Rose, The (var)',
+          authorNames: ['Jane Doe'],
+        ),
+      ]);
+      expect(withAuthor.possibleTitleMatches('The Baby Rose', ['Jane Doe']), [
+        'd2',
+      ]);
+    });
+  });
+
   group('confident match (issue #685)', () {
     // Simulates one source recording the pair as split into two authors
     // (e.g. Caller's Box's Authors[] array) while an incoming record from a

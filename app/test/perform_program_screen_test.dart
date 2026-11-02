@@ -1423,7 +1423,7 @@ void main() {
     await tester.pumpAndSettle();
 
     for (final (key, label) in const [
-      ('perform-program-exit', 'Exit performance view'),
+      ('perform-program-exit', 'Exit Perform mode'),
       ('perform-jump', 'Jump to slot'),
       ('perform-alt-swap', 'Show alternate'),
       ('perform-next', 'Next slot'),

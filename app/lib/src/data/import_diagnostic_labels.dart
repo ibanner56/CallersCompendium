@@ -42,6 +42,7 @@ const Set<String> mappedImportIssueCodes = {
   'cc_missing_title',
   'cc_new_level',
   'cc_inactive_level',
+  'cc_program_deleted_dance',
   'cc_program_empty_slot',
   'cc_program_unparsed_date',
   'cc_program_unresolved_dance',
@@ -104,6 +105,8 @@ String? _localizedImportIssue(AppLocalizations l10n, ImportIssue issue) {
     case 'archive_program_unresolved_dance':
     case 'cc_program_unresolved_dance':
       return l10n.importIssueProgramUnresolvedDance;
+    case 'cc_program_deleted_dance':
+      return l10n.importIssueProgramDeletedDance;
     case 'archive_program_unresolved_venue':
       return l10n.importIssueProgramUnresolvedVenue;
     case 'archive_read_error':

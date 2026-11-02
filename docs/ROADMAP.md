@@ -288,7 +288,7 @@ implementation notes and deviations against each item — is in
 - **Glossary / terms** (CC `Term`: term + definition + source) — a browsable
   reference of caller terminology, dialect-aware. **Tracked in #695.**
   - **Delivered:** a read-only **Glossary** navigation destination, off by
-    default behind **Settings ▸ Experimental ▸ Show Glossary**, listing the
+    default behind **Settings ▸ Experimental ▸ Show glossary**, listing the
     taxonomy's built-in figures in the active dialect. Its built-in entries
     are derived from the taxonomy at runtime, so they are never stored or
     synced.

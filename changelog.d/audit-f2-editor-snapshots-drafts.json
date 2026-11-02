@@ -6,7 +6,7 @@
       "The prompt to restore an unsaved draft now says when the draft was saved, and warns you when the dance has changed since, so restoring it doesn't silently replace a tag, rating, sync or re-check that came later.",
       "Each new dance now keeps its own draft. A draft left by a new dance you never saved is offered back by its title, as another new dance, instead of as the dance you just started, and a dance started from a program slot no longer offers one.",
       "A beat count you typed by hand stays protected from automatic recalculation after Undo, Redo or restoring a draft, as it is when you open the dance.",
-      "Figure notes and custom figure text in a restored draft, or on screen when you change dialects while editing, are saved with the right roles, so a custom dialect's role words are no longer stored as plain words."
+      "Figure notes and unrecognized figure text in a restored draft, or on screen when you change dialects while editing, are saved with the right roles, so a custom dialect's role words are no longer stored as plain words."
     ]
   },
   "core": {

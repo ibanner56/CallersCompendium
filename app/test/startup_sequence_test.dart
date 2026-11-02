@@ -2158,7 +2158,7 @@ void main() {
   );
 
   testWidgets(
-    'after Back Up + Reset saves the backup, the confirm button just says Reset',
+    'after Back up + reset saves the backup, the confirm button just says Reset',
     (tester) async {
       await tester.binding.setSurfaceSize(const Size(1200, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -2192,7 +2192,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // The snapshot is real file I/O, which FakeAsync would never complete.
-      await tester.tap(find.text('Back Up + Reset'));
+      await tester.tap(find.text('Back up + reset'));
       for (var i = 0; i < 20; i++) {
         await tester.pump();
         await tester.runAsync(
@@ -2213,7 +2213,7 @@ void main() {
       );
       // The backup is already done, so the confirm no longer repeats it.
       expect(
-        find.descendant(of: dialog, matching: find.text('Back Up + Reset')),
+        find.descendant(of: dialog, matching: find.text('Back up + reset')),
         findsNothing,
       );
     },
@@ -2267,9 +2267,9 @@ void main() {
       );
       expect(find.byType(AppShell), findsNothing);
 
-      await tester.tap(find.text('Reset Only'));
+      await tester.tap(find.text('Reset only'));
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(FilledButton, 'Reset Only'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Reset only'));
       await tester.pumpAndSettle();
 
       expect(find.byType(AppShell), findsOneWidget);
@@ -2822,9 +2822,9 @@ void main() {
       find.text('This data is from a version too old to open'),
       findsOneWidget,
     );
-    await tester.tap(find.text('Reset Only'));
+    await tester.tap(find.text('Reset only'));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FilledButton, 'Reset Only'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Reset only'));
     await tester.pumpAndSettle();
 
     expect(find.text('Reset failed'), findsOneWidget);

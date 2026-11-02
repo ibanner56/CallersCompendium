@@ -39,7 +39,7 @@ import 'while_container.dart';
 /// `()`/`[]` recognition-only annotation strip. Pass this as the `frontEnd` to
 /// [parseFigureLine]/[parseFigureLines] to recognize the full TCB dialect.
 ///
-/// **Pre-recognizer ordering.** The first fourteen entries (through
+/// **Pre-recognizer ordering.** The first sixteen entries (through
 /// `_singleFileCircleRecognizer`) all anchor on a move keyword, and all
 /// require a successful resolution to their own move, so in most cases
 /// order is not correctness-critical.  Four overlapping anchor pairs each
@@ -80,6 +80,7 @@ final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
     _hey,
     _circulate,
     _waveBalanceCirculate,
+    _circulateCrossBracket,
     _handBalanceSquareThrough,
     _squareThroughPassList,
     _balanceHandAnnotation,
@@ -3159,14 +3160,13 @@ FigureMatch? _circulate(String scrubbed) {
 /// its balance (maintainer decision 2 on #1975), and so is `Wave balance, box
 /// circulate`. Reading `Balance the wave, circulate` the same way is the
 /// author's call. The whole line must be the balance then the circulate, so
-/// `Box circulate, balance the wave` is not read.
+/// `Box circulate, balance the wave` is not read here (#2089 keeps it text; see
+/// `_balanceAfterCirculate` in the fan-out).
 ///
-/// A bracket after it must say who crosses, as [_circulate] reads The Caller's
-/// Box's definition: `(Larks cross)` or `(Larks cross, Robins loop R)`. The
-/// crossers are `who`, a stated loop side is `hand`, and the bracket is kept as
-/// the note. Any other bracket keeps the line text, so `Wave balance,
-/// Circulate 8 (… around the set)`, which the maintainer decided is no box
-/// circulate, stays text however the count is written.
+/// A bracket after it must say who crosses ([_crossLoopBracket]). Any other
+/// bracket keeps the line text, so `Wave balance, Circulate 8 (… around the
+/// set)`, which the maintainer decided is no box circulate, stays text however
+/// the count is written.
 FigureMatch? _waveBalanceCirculate(String scrubbed) {
   final m = _waveBalanceThenCirculate.firstMatch(scrubbed);
   if (m == null) return null;
@@ -3174,6 +3174,38 @@ FigureMatch? _waveBalanceCirculate(String scrubbed) {
   if (body == null) {
     return const FigureMatch('box_circulate', params: {'balance': true});
   }
+  final read = _crossLoopBracket(body);
+  if (read == null) return null;
+  return FigureMatch(
+    'box_circulate',
+    params: {'balance': true, 'who': read.who, 'hand': ?read.hand},
+  );
+}
+
+/// Caller's Companion's `Box circulate (Larks cross)` and bare `Circulate
+/// (Larks cross, Robins loop R)`: a box circulate whose bracket says who
+/// crosses ([_crossLoopBracket]), with no balance stated, so the line's beats
+/// decide it (`withBeatImpliedBalance`). Maintainer decisions on #2089: both
+/// heads are read, and any other bracket leaves the line as it read before, a
+/// box circulate noting it or, after a bare `Circulate`, text.
+FigureMatch? _circulateCrossBracket(String scrubbed) {
+  final m = _circulateThenBracket.firstMatch(scrubbed);
+  if (m == null) return null;
+  final read = _crossLoopBracket(m[1]!.trim());
+  if (read == null) return null;
+  return FigureMatch(
+    'box_circulate',
+    params: {'who': read.who, 'hand': ?read.hand},
+  );
+}
+
+/// A Caller's Companion bracket saying who crosses in a box circulate, as
+/// [_circulate] reads The Caller's Box's definition: `Larks cross`, or `Larks
+/// cross, Robins loop R`. The crossers are `who` and a stated loop side is
+/// `hand`. The bracket leaves no note, since the box circulate's display says
+/// who crosses and who loops (maintainer decision on #2089). Null unless the
+/// crossers are one of a pair and the loopers, when named, are the other.
+({String who, String? hand})? _crossLoopBracket(String body) {
   final clauses = body.split(',').map((c) => c.trim()).toList();
   if (clauses.length > 2) return null;
   final cross = _crossRe.firstMatch(clauses.first);
@@ -3191,12 +3223,14 @@ FigureMatch? _waveBalanceCirculate(String scrubbed) {
     final side = loop[2]?.toLowerCase();
     hand = side == null ? null : (side.startsWith('r') ? 'right' : 'left');
   }
-  return FigureMatch(
-    'box_circulate',
-    params: {'balance': true, 'who': who, 'hand': ?hand},
-    note: body,
-  );
+  return (who: who, hand: hand);
 }
+
+/// `(box) circulate`, then one bracket, and nothing else.
+final RegExp _circulateThenBracket = RegExp(
+  r'^\s*(?:box\s+)?circulate\s*\(([^()\[\]]{1,120})\)\s*$',
+  caseSensitive: false,
+);
 
 /// The balance, then `,` or `and`, then the (box) circulate, then at most one
 /// bracket, and nothing else.

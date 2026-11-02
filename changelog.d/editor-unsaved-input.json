@@ -8,7 +8,7 @@
     "fixed": [
       "Saving a dance with a line still in the Type a figure box adds that figure first, as pressing Enter would. Leaving the editor with a line in the box asks before discarding it.",
       "The beat Total no longer counts a meanwhile or modifier group that is not complete enough to be saved.",
-      "A figure row with no move but a note is saved as a custom figure holding the note, instead of being dropped with its note.",
+      "A figure row with no move but a note is saved as an unrecognized figure holding the note, instead of being dropped with its note.",
       "Undo pressed straight after typing undoes the typing, instead of losing it and undoing the change before it."
     ]
   }

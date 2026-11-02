@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "\"Circle L\", \"Larks pull by L\", \"Slice L\", \"Larks pass R shoulder\", \"Neighbor alle R 1.5\" and \"Zig L, Zag R\", as Caller's Companion writes them, now come in as the figure with its direction, hand or shoulder instead of text, and \"R&L\" as a right and left through. This applies to imports and to figures you type, and Re-check custom figures picks it up for dances already imported. A lone L or R anywhere else, such as in a note about who stands where, stays as written."
+      "\"Circle L\", \"Larks pull by L\", \"Slice L\", \"Larks pass R shoulder\", \"Neighbor alle R 1.5\" and \"Zig L, Zag R\", as Caller's Companion writes them, now come in as the figure with its direction, hand or shoulder instead of text, and \"R&L\" as a right and left through. This applies to imports and to figures you type, and Re-check unrecognized figures picks it up for dances already imported. A lone L or R anywhere else, such as in a note about who stands where, stays as written."
     ]
   },
   "core": {

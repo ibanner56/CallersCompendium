@@ -60,13 +60,13 @@ class AppBootstrap extends StatelessWidget {
   final WidgetBuilder builder;
   final VoidCallback onRetry;
 
-  /// Called when the user confirms "Back Up + Reset" on the below-floor
+  /// Called when the user confirms "Back up + reset" on the below-floor
   /// recovery screen. The implementation must: (1) write a snapshot using
   /// [snapshotBeforeMigrate] and surface any [SnapshotFailure] rather than
   /// proceeding; (2) only wipe the database if the snapshot succeeded.
   final Future<void> Function(DatabaseBelowFloorError error) onBackUpAndReset;
 
-  /// Called when the user confirms "Reset Only" on the below-floor recovery
+  /// Called when the user confirms "Reset only" on the below-floor recovery
   /// screen. This action is unrecoverable; the implementation is responsible
   /// for any confirmation friction the maintainer has specified.
   final Future<void> Function(DatabaseBelowFloorError error) onResetOnly;
@@ -263,10 +263,10 @@ class AppBootstrap extends StatelessWidget {
 ///
 /// Like [DatabaseDowngradeError], this is terminal with *no* Retry — retrying
 /// cannot apply retired migration steps. Two recovery paths are offered:
-/// - **Back Up + Reset**: snapshot the database first (fail-closed — if the
+/// - **Back up + reset**: snapshot the database first (fail-closed — if the
 ///   snapshot cannot be written, the wipe is not performed), then wipe to a
 ///   fresh state.
-/// - **Reset Only**: wipe to a fresh state immediately, with no backup.
+/// - **Reset only**: wipe to a fresh state immediately, with no backup.
 ///
 /// The primary message explains that the data *is* recoverable by running the
 /// bridge release first, so the reset buttons are the fallback, not the only

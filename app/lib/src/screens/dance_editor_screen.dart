@@ -20,6 +20,7 @@ import '../search/dance_editor_reference_data.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/shortcut_platform.dart';
 import '../utils/undo_snack_bar.dart';
+import '../widgets/app_shortcuts.dart';
 import '../widgets/author_details_flow.dart';
 import '../widgets/confirm_discard_changes.dart';
 import '../widgets/load_error_view.dart';
@@ -970,6 +971,14 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
             ),
             _RedoIntent: CallbackAction<_RedoIntent>(
               onInvoke: (_) => _controller.redo(),
+            ),
+            // Ctrl/Cmd-S, bound app-wide ([appShortcuts]); the same rule as
+            // the Save button's.
+            SaveIntent: CallbackAction<SaveIntent>(
+              onInvoke: (_) {
+                if (_controller.loaded && !_saving) unawaited(_save());
+                return null;
+              },
             ),
           },
           child: Focus(

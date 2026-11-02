@@ -1,0 +1,14 @@
+{
+  "id": "plat-7-8-desktop-shortcuts-mac-menu",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "On a computer, Ctrl-S (Cmd-S) saves the dance or program you're editing, Ctrl-N starts a new dance, Ctrl-F puts the cursor in the Collection's search box (Quick search anywhere else), Ctrl-, opens Settings, and Esc or Ctrl-W goes back, asking first if you have unsaved changes. A mouse's Back button goes back too.",
+      "Right-clicking a dance in the Collection, or a program in Programs, opens its ⋮ menu.",
+      "On a Mac, the menu bar has Settings…, a File menu with New Dance, Import Dances… and Close, the system's full-screen item, and Help › User Guide."
+    ],
+    "removed": [
+      "On a Mac, the menu bar no longer has an Edit menu. Cmd-C, Cmd-X, Cmd-V, Cmd-Z and Cmd-A still work in text, and right-clicking text offers Copy."
+    ]
+  }
+}

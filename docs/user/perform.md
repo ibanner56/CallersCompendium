@@ -42,16 +42,16 @@ Perform mode shows one dance at a time in very large type, with the
 [figures](./glossary.md#figure) grouped by section (A1, A2, B1, B2) and set in a
 typeface built to be read from a distance.
 
-Above the figures, the card shows the dance's title, choreographer, formation,
+Above the figures, the card shows the dance's title, author, formation,
 and level; below them come the dance's calling notes. The figure where the
-progression happens is marked with an icon labelled *Progression*. Break and
+progression happens is marked with an icon labeled *Progression*. Break and
 note slots in a program get a card of their own, with the text in the same
 large type.
 
 Your [dialect](./dialects.md) is applied — or the program's own dialect, if you
 gave it one (see [Programs](./programs.md)) — so the card speaks in your words.
-For a quick look at the shared wording, choose **Canonical** under **Switch
-dialect** below. Figure
+To see the shared wording, choose **Canonical** under **Switch dialect** below
+(that section says how long the change lasts). Figure
 detail you recorded shows here too: when a swing ends facing somewhere other
 than the usual "in"/across — up or down the hall, or out of the set — the card
 notes that ending so you can cue it.
@@ -66,9 +66,11 @@ same thing, and every toggle says which state it is in rather than relying on
 how it looks.
 
 **Switch dialect.** Changes your active dialect for the whole app — handy when
-tonight's hall uses different role names. **Canonical** is one of the choices,
-for when a dancer or another caller asks what a figure is in the shared wording;
-switch back the same way. If the program has its own dialect, the switch changes
+tonight's hall uses different role names. The change stays after you leave
+Perform: later screens, PDFs and shared text use that dialect too, and it syncs to
+your other devices. **Canonical** is one of the choices, for when a dancer or
+another caller asks what a figure is in the shared wording; switch back the same
+way when you are done. If the program has its own dialect, the switch changes
 the wording for this time in Perform only: your active dialect stays as it was,
 and the program's dialect is back the next time you open Perform. See
 [Dialect](./dialects.md#switch-dialect-on-the-fly).
@@ -107,7 +109,7 @@ it is full screen, it opens in its usual window next time. Phones and tablets
 have no button for this, because Perform is always full screen there.
 
 **Caller notes.** When you perform a program, a slot's caller note appears above
-the dance title, labelled *Caller note*. To hide these, turn off **Show caller
+the dance title, labeled *Caller note*. To hide these, turn off **Show caller
 notes in program Perform** in
 [Settings › Program › Performance](./settings.md#performance). The note is for
 your eyes only: it does not change the dance's own calling notes, search, or
@@ -267,9 +269,9 @@ accessibility options.
 
 ## Leaving Perform
 
-Choose **Exit performance view** and the app checks first:
+Choose **Exit Perform mode** and the app checks first:
 
-> **Exit Perform?** — Leave the performance view? Your place and the running clock
+> **Exit Perform?** — Leave Perform mode? Your place and the running clock
 > are kept, so you can resume where you left off.
 
 **Keep performing** returns you to the card; **Exit** leaves. When you are
