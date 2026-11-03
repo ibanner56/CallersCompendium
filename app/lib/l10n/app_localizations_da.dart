@@ -5279,9 +5279,6 @@ class AppLocalizationsDa extends AppLocalizations {
   String get programsMarkAllPerformedTooltip => 'Markér alle som fremført';
 
   @override
-  String get programsSaveDirty => 'Gem ændringer';
-
-  @override
   String get commonSave => 'Gem';
 
   @override

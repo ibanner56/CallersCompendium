@@ -8069,12 +8069,6 @@ abstract class AppLocalizations {
   /// **'Mark all performed'**
   String get programsMarkAllPerformedTooltip;
 
-  /// Label of the save button when the program has unsaved changes; it replaces the plain Save label so the dirty state is readable by screen readers too.
-  ///
-  /// In en, this message translates to:
-  /// **'Save changes'**
-  String get programsSaveDirty;
-
   /// Generic Save button label.
   ///
   /// In en, this message translates to:

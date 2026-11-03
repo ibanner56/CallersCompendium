@@ -5313,9 +5313,6 @@ class AppLocalizationsNl extends AppLocalizations {
   String get programsMarkAllPerformedTooltip => 'Alles markeren als uitgevoerd';
 
   @override
-  String get programsSaveDirty => 'Wijzigingen opslaan';
-
-  @override
   String get commonSave => 'Opslaan';
 
   @override

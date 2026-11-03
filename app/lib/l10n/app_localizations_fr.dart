@@ -5350,9 +5350,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get programsMarkAllPerformedTooltip => 'Tout marquer comme joué';
 
   @override
-  String get programsSaveDirty => 'Enregistrer les modifications';
-
-  @override
   String get commonSave => 'Enregistrer';
 
   @override
