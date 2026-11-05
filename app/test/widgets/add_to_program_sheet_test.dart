@@ -391,6 +391,21 @@ void main() {
       expect(saved.slots.single.performedAt, isNull);
     });
 
+    // The other side of Q-7: the title is dropped only while the keyboard is up.
+    testWidgets('with the keyboard down the sheet shows its title', (
+      tester,
+    ) async {
+      await _openSheet(tester, openTestRepositories());
+
+      expect(
+        find.descendant(
+          of: find.byType(BottomSheet),
+          matching: find.text('Add to program'),
+        ),
+        findsOneWidget,
+      );
+    });
+
     for (final (name, scale) in [('', 1.0), (' at 200% text', 2.0)]) {
       testWidgets('at 360×640 with the keyboard up and a notch$name, '
           'the New row, the search field and a program '
