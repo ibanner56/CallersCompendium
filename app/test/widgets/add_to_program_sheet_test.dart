@@ -393,7 +393,7 @@ void main() {
 
     for (final (name, scale) in [('', 1.0), (' at 200% text', 2.0)]) {
       testWidgets('at 360×640 with the keyboard up and a notch$name, '
-          '${scale == 1 ? 'the New row, ' : ''}the search field and a program '
+          'the New row, the search field and a program '
           'row are visible between the status bar and the keyboard', (
         tester,
       ) async {
@@ -413,10 +413,9 @@ void main() {
         );
 
         const visibleBottom = 640 - keyboard;
-        // The field stays whole above the keyboard at any text size. At 100%
-        // the pinned New row and a whole program row fit as well; at 200% the
-        // title and New row scroll in place, so the field and the list keep
-        // their room (a RenderFlex overflow would fail the test).
+        // The field stays whole above the keyboard at any text size, and so
+        // does the pinned New row (N3-5): with the keyboard up the sheet drops
+        // its title to make room for it (Q-7, maintainer 2026-11-05).
         // The sheet itself stays below the status bar, not only its contents.
         expect(
           tester.getRect(find.byType(BottomSheet)).top,
@@ -425,13 +424,12 @@ void main() {
         final search = tester.getRect(_search);
         expect(search.top, greaterThanOrEqualTo(notch));
         expect(search.bottom, lessThanOrEqualTo(visibleBottom));
-        if (scale == 1) {
-          final create = tester.getRect(
-            find.byKey(const ValueKey('add-to-program-create')),
-          );
-          expect(create.top, greaterThanOrEqualTo(notch));
-          expect(create.bottom, lessThanOrEqualTo(visibleBottom));
-        }
+        final create = tester.getRect(
+          find.byKey(const ValueKey('add-to-program-create')),
+        );
+        expect(create.top, greaterThanOrEqualTo(notch));
+        expect(create.bottom, lessThanOrEqualTo(visibleBottom));
+        expect(find.text('Add to program'), findsNothing);
         final row = tester.getRect(_row('p0'));
         expect(row.top, greaterThanOrEqualTo(notch));
         expect(row.top + 48, lessThanOrEqualTo(visibleBottom));

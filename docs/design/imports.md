@@ -390,8 +390,11 @@ the same dance, not a guess. Before importing, it asks
 canonically identical figures; if so it **links the slot to that dance** and
 writes nothing (INTAKE-3, the #685 rule applied as reuse rather than as a
 skip). A confident match whose figures differ, or cannot be read, is imported
-as its own dance with a `duplicate()` resolution: there is still no per-dance
-prompt on a program import (#797).
+as a **variation** of that match (`DedupeResolution.variation`, linked back to
+it), the same outcome the Caller's Box path gives it unattended (#686); the
+maintainer chose this on 2026-11-05 (audit Q-3). A plan with no confident
+match is still imported with a `duplicate()` resolution. Either way there is
+no per-dance prompt on a program import (#797).
 
 Since #823 this resolver is no longer the only online-title→dance path. The
 Collection-side title-list import shares its **search** step

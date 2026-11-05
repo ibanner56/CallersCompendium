@@ -93,8 +93,8 @@ class ResolvedContraDbActivity {
 ///   already-imported copy instead of duplicating. A dance already in the
 ///   collection that confidently matches it (title and author) **with the same
 ///   figures** is linked too, from any source or entered by hand (#685,
-///   INTAKE-3); a confident match whose figures differ is imported as its own
-///   dance, with no per-dance prompt (#797). A same-titled local dance is never
+///   INTAKE-3); a confident match whose figures differ is imported as a
+///   variation of that match, with no per-dance prompt (#797). A same-titled local dance is never
 ///   assumed to be this dance on its title alone. If the ContraDB scrape fails (unpublished/removed), it falls
 ///   back to [callersBox] by title under the #313 confident unique-exact rule;
 ///   if that also fails, the verbatim title (plus any attached note) is kept as a
@@ -187,16 +187,21 @@ Future<ResolvedContraDbActivity> _resolveDance(
         text: attachedNote,
       );
     }
+    // A confident match that is not identical has differing (or unreadable)
+    // figures. It is imported as a variation of that match, linked back to it,
+    // the same outcome the Caller's Box path gives it (Q-3, maintainer
+    // 2026-11-05). Without a confident match, a possible match is imported as
+    // its own dance. Program import is non-interactive (#797), so a resolution
+    // is always passed: the service's confirmation outcomes are bypassed by
+    // construction rather than by assumption.
+    final confident = preview.plan.verdict.candidates.where((c) => c.confident);
     final result = await contraDb.import(
       repos,
       preview.plan,
       now: now,
-      // Program import is non-interactive — no per-dance prompt (#797). Any
-      // other confident match has differing (or unreadable) figures, and is
-      // imported as its own dance: duplicate() is passed explicitly so the
-      // service's confirmation outcomes are bypassed by construction rather
-      // than by assumption.
-      ambiguousResolution: DedupeResolution.duplicate(),
+      ambiguousResolution: confident.isEmpty
+          ? DedupeResolution.duplicate()
+          : DedupeResolution.variation(confident.first.danceId),
     );
     final session = result.session;
     if (session != null) await rollback?.record(session);

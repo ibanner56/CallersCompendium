@@ -56,6 +56,9 @@ class _FakeService implements OnlineSearchService {
   final searchedTitles = <String>[];
   final importedTitles = <String>[];
 
+  /// The `ambiguousResolution` each [import] call was given, in order.
+  final importedResolutions = <DedupeResolution?>[];
+
   @override
   Future<List<OnlineSearchResultRow>> search(OnlineSearchQuery query) async {
     searchedTitles.add(query.title);
@@ -97,6 +100,7 @@ class _FakeService implements OnlineSearchService {
   }) async {
     final title = plan.draft.dance.title;
     importedTitles.add(title);
+    importedResolutions.add(ambiguousResolution);
     // Simulate the real service's confident-match detection (#797): when
     // ambiguousResolution is null and the verdict has a confident candidate,
     // return needsConfirmation. This lets program-import tests verify the
@@ -513,8 +517,8 @@ void main() {
 
   // ── 2026-10 behaviour audit, INTAKE-3 ─────────────────────────────────────
   // A dance the user already has, with the same figures, is reused rather than
-  // imported a second time (#685); one whose figures differ is still imported
-  // as its own dance, with no per-dance prompt (#797). The fake plan names
+  // imported a second time (#685); one whose figures differ is imported as a
+  // variation of it, with no per-dance prompt (#797, Q-3). The fake plan names
   // 'local-existing' as its confident candidate, so a real dance under that id
   // decides which case applies.
   group('INTAKE-3: an identical dance already in the collection', () {
@@ -602,25 +606,33 @@ void main() {
       expect(contraDb.importedTitles, isEmpty, reason: 'no third copy');
     });
 
-    test('with different figures is still imported as its own dance', () async {
-      final repos = openTestRepositories();
-      await seedExisting(repos, figures: swing);
-      final contraDb = _FakeService(
-        OnlineSource.contraDb,
-        confidentTitles: {'tangled yarns'},
-        planFigures: [customFigure('partners balance and swing')],
-      );
+    // Q-3 (maintainer, 2026-11-05): a confident match with other figures is
+    // imported as a variation of the match, as the Caller's Box path does.
+    test(
+      'with different figures is imported as a variation of the match',
+      () async {
+        final repos = openTestRepositories();
+        await seedExisting(repos, figures: swing);
+        final contraDb = _FakeService(
+          OnlineSource.contraDb,
+          confidentTitles: {'tangled yarns'},
+          planFigures: [customFigure('partners balance and swing')],
+        );
 
-      final resolved = await resolveContraDbProgram(
-        program,
-        contraDb: contraDb,
-        callersBox: _FakeService(OnlineSource.callersBox),
-        repos: repos,
-      );
+        final resolved = await resolveContraDbProgram(
+          program,
+          contraDb: contraDb,
+          callersBox: _FakeService(OnlineSource.callersBox),
+          repos: repos,
+        );
 
-      expect(resolved.single.danceId, 'cdb-tangled yarns');
-      expect(contraDb.importedTitles, ['Tangled Yarns']);
-    });
+        expect(resolved.single.danceId, 'cdb-tangled yarns');
+        expect(contraDb.importedTitles, ['Tangled Yarns']);
+        final resolution = contraDb.importedResolutions.single;
+        expect(resolution?.kind, DedupeResolutionKind.variation);
+        expect(resolution?.targetDanceId, 'local-existing');
+      },
+    );
   });
 
   // ── 2026-10 audit, batch F12 (FAIL-2) ────────────────────────────────────
