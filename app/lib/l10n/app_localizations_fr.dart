@@ -3337,7 +3337,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsRecencyRequireEventDateSubtitle =>
-      'Ne modifie que les fenêtres de temps du filtre Appelé, jamais les décomptes. Activé : un programme sans date d’événement n’entre dans aucune fenêtre, même si ses danses comptent toujours comme appelées. Désactivé : un programme sans date est daté par sa dernière modification.';
+      'Ne modifie que les fenêtres de temps du filtre Appelé, jamais les décomptes. Activé : un programme sans date d’événement n’entre dans aucune fenêtre, même si ses danses comptent toujours comme appelées. Désactivé : un programme sans date est daté par le moment où son créneau a été marqué comme joué, sinon par sa dernière modification.';
 
   @override
   String get settingsRecencyRequirePerformedTitle =>
@@ -3353,7 +3353,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsHistoryOrderIgnoreUndatedSubtitle =>
-      'Ne modifie que l’ordre de l’historique d’une danse et le tri par dernier appel, jamais les décomptes. Activé : un programme sans date d’événement est listé après les programmes datés et ne donne aucune date de dernier appel. Désactivé : il est classé selon sa dernière modification.';
+      'Ne modifie que l’ordre de l’historique d’une danse et le tri par dernier appel, jamais les décomptes. Activé : un programme sans date d’événement est listé après les programmes datés et ne donne aucune date de dernier appel. Désactivé : il est classé selon le moment où son créneau a été marqué comme joué, sinon selon sa dernière modification.';
 
   @override
   String get settingsHistoryOrderIgnoreUnperformedTitle =>

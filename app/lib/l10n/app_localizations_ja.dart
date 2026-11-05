@@ -3121,7 +3121,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsRecencyRequireEventDateSubtitle =>
-      'コール済みフィルターの期間指定にのみ影響し、回数は変わりません。オンにすると、イベント日のないプログラムはどの期間にも含まれませんが、そのダンスはコール済みとして数えられます。オフにすると、日付のないプログラムは最終編集日時を日付として扱います。';
+      'コール済みフィルターの期間指定にのみ影響し、回数は変わりません。オンにすると、イベント日のないプログラムはどの期間にも含まれませんが、そのダンスはコール済みとして数えられます。オフにすると、日付のないプログラムは、スロットが「実施済み」とマークされた日時、なければ最終編集日時を日付として扱います。';
 
   @override
   String get settingsRecencyRequirePerformedTitle => '新しさは「実施済み」のスロットのみ対象';
@@ -3136,7 +3136,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsHistoryOrderIgnoreUndatedSubtitle =>
-      'ダンスの履歴の並び順と最終コール順にのみ影響し、回数は変わりません。オンにすると、イベント日のないプログラムは日付のあるものの後ろに表示され、最終コール日にも使われません。オフにすると、最終編集日時で並びます。';
+      'ダンスの履歴の並び順と最終コール順にのみ影響し、回数は変わりません。オンにすると、イベント日のないプログラムは日付のあるものの後ろに表示され、最終コール日にも使われません。オフにすると、スロットが「実施済み」とマークされた日時、なければ最終編集日時で並びます。';
 
   @override
   String get settingsHistoryOrderIgnoreUnperformedTitle =>

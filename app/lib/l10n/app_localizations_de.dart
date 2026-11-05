@@ -3319,7 +3319,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsRecencyRequireEventDateSubtitle =>
-      'Ändert nur die Zeitfenster des Gecallt-Filters, nie die Zählungen. Wenn aktiviert, liegt ein Programm ohne Veranstaltungsdatum in keinem Fenster, auch wenn seine Tänze weiterhin als gecallt zählen. Wenn deaktiviert, wird ein undatiertes Programm nach seiner letzten Bearbeitung datiert.';
+      'Ändert nur die Zeitfenster des Gecallt-Filters, nie die Zählungen. Wenn aktiviert, liegt ein Programm ohne Veranstaltungsdatum in keinem Fenster, auch wenn seine Tänze weiterhin als gecallt zählen. Wenn deaktiviert, wird ein undatiertes Programm danach datiert, wann sein Slot als aufgeführt markiert wurde, sonst nach seiner letzten Bearbeitung.';
 
   @override
   String get settingsRecencyRequirePerformedTitle =>
@@ -3335,7 +3335,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsHistoryOrderIgnoreUndatedSubtitle =>
-      'Ändert nur die Reihenfolge im Verlauf eines Tanzes und die Sortierung nach zuletzt gecallt, nie die Zählungen. Wenn aktiviert, steht ein Programm ohne Veranstaltungsdatum nach den datierten und liefert kein Datum für Zuletzt gecallt. Wenn deaktiviert, wird es nach seiner letzten Bearbeitung einsortiert.';
+      'Ändert nur die Reihenfolge im Verlauf eines Tanzes und die Sortierung nach zuletzt gecallt, nie die Zählungen. Wenn aktiviert, steht ein Programm ohne Veranstaltungsdatum nach den datierten und liefert kein Datum für Zuletzt gecallt. Wenn deaktiviert, wird es danach einsortiert, wann sein Slot als aufgeführt markiert wurde, sonst nach seiner letzten Bearbeitung.';
 
   @override
   String get settingsHistoryOrderIgnoreUnperformedTitle =>

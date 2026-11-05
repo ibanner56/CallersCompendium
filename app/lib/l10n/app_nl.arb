@@ -3260,9 +3260,9 @@
   "@settingsRecencyRequireEventDateTitle": {
     "x-sourceSha256": "afa4885654835890a138510f00989a31cc4fac88469e2c338d9779e4cb9c920a"
   },
-  "settingsRecencyRequireEventDateSubtitle": "Wijzigt alleen de tijdvensters van het filter Gecalld, nooit de tellingen. Als ingeschakeld, valt een programma zonder eventdatum in geen enkel venster, al telt de dans nog steeds als gecalld. Als uitgeschakeld, wordt een programma zonder datum gedateerd op het moment van de laatste bewerking.",
+  "settingsRecencyRequireEventDateSubtitle": "Wijzigt alleen de tijdvensters van het filter Gecalld, nooit de tellingen. Als ingeschakeld, valt een programma zonder eventdatum in geen enkel venster, al telt de dans nog steeds als gecalld. Als uitgeschakeld, wordt een programma zonder datum gedateerd op het moment waarop het slot als uitgevoerd is gemarkeerd, anders op het moment van de laatste bewerking.",
   "@settingsRecencyRequireEventDateSubtitle": {
-    "x-sourceSha256": "9ba344a1c8c6aa1d423f7b6860e29b7fff96dbfcefee59060f8d92e8d0e7aa07"
+    "x-sourceSha256": "88fc5e9e7bff3de37dd4dceb3ea62acd98cfee6ea39a6fd91579d2d28715073f"
   },
   "settingsRecencyRequirePerformedTitle": "Recentheid telt alleen slots die als uitgevoerd zijn gemarkeerd",
   "@settingsRecencyRequirePerformedTitle": {
@@ -3276,9 +3276,9 @@
   "@settingsHistoryOrderIgnoreUndatedTitle": {
     "x-sourceSha256": "7005abdf4984a1921691e75edf8a5f58c6e914b3fe89eb5429ec6c623e34b3d5"
   },
-  "settingsHistoryOrderIgnoreUndatedSubtitle": "Wijzigt alleen de volgorde van de historie van een dans en de sortering op laatst gecalld, nooit de tellingen. Als ingeschakeld, staat een programma zonder eventdatum na die met datum en geeft het geen datum voor Laatst gecalld. Als uitgeschakeld, wordt het gesorteerd op de laatste bewerking.",
+  "settingsHistoryOrderIgnoreUndatedSubtitle": "Wijzigt alleen de volgorde van de historie van een dans en de sortering op laatst gecalld, nooit de tellingen. Als ingeschakeld, staat een programma zonder eventdatum na die met datum en geeft het geen datum voor Laatst gecalld. Als uitgeschakeld, wordt het gesorteerd op het moment waarop het slot als uitgevoerd is gemarkeerd, anders op de laatste bewerking.",
   "@settingsHistoryOrderIgnoreUndatedSubtitle": {
-    "x-sourceSha256": "069ec90030f96cb8a4b829b69471a9cac56dc5e2549c89b8b50be31323f5349b"
+    "x-sourceSha256": "acd4ca4fce927041e8108e55a2093c308ae1a20099ac9175b1848b6c46e3caea"
   },
   "settingsHistoryOrderIgnoreUnperformedTitle": "Historievolgorde en Laatst gecalld negeren slots die niet als uitgevoerd zijn gemarkeerd",
   "@settingsHistoryOrderIgnoreUnperformedTitle": {

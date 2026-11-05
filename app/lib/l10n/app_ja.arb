@@ -3260,9 +3260,9 @@
   "@settingsRecencyRequireEventDateTitle": {
     "x-sourceSha256": "afa4885654835890a138510f00989a31cc4fac88469e2c338d9779e4cb9c920a"
   },
-  "settingsRecencyRequireEventDateSubtitle": "コール済みフィルターの期間指定にのみ影響し、回数は変わりません。オンにすると、イベント日のないプログラムはどの期間にも含まれませんが、そのダンスはコール済みとして数えられます。オフにすると、日付のないプログラムは最終編集日時を日付として扱います。",
+  "settingsRecencyRequireEventDateSubtitle": "コール済みフィルターの期間指定にのみ影響し、回数は変わりません。オンにすると、イベント日のないプログラムはどの期間にも含まれませんが、そのダンスはコール済みとして数えられます。オフにすると、日付のないプログラムは、スロットが「実施済み」とマークされた日時、なければ最終編集日時を日付として扱います。",
   "@settingsRecencyRequireEventDateSubtitle": {
-    "x-sourceSha256": "9ba344a1c8c6aa1d423f7b6860e29b7fff96dbfcefee59060f8d92e8d0e7aa07"
+    "x-sourceSha256": "88fc5e9e7bff3de37dd4dceb3ea62acd98cfee6ea39a6fd91579d2d28715073f"
   },
   "settingsRecencyRequirePerformedTitle": "新しさは「実施済み」のスロットのみ対象",
   "@settingsRecencyRequirePerformedTitle": {
@@ -3276,9 +3276,9 @@
   "@settingsHistoryOrderIgnoreUndatedTitle": {
     "x-sourceSha256": "7005abdf4984a1921691e75edf8a5f58c6e914b3fe89eb5429ec6c623e34b3d5"
   },
-  "settingsHistoryOrderIgnoreUndatedSubtitle": "ダンスの履歴の並び順と最終コール順にのみ影響し、回数は変わりません。オンにすると、イベント日のないプログラムは日付のあるものの後ろに表示され、最終コール日にも使われません。オフにすると、最終編集日時で並びます。",
+  "settingsHistoryOrderIgnoreUndatedSubtitle": "ダンスの履歴の並び順と最終コール順にのみ影響し、回数は変わりません。オンにすると、イベント日のないプログラムは日付のあるものの後ろに表示され、最終コール日にも使われません。オフにすると、スロットが「実施済み」とマークされた日時、なければ最終編集日時で並びます。",
   "@settingsHistoryOrderIgnoreUndatedSubtitle": {
-    "x-sourceSha256": "069ec90030f96cb8a4b829b69471a9cac56dc5e2549c89b8b50be31323f5349b"
+    "x-sourceSha256": "acd4ca4fce927041e8108e55a2093c308ae1a20099ac9175b1848b6c46e3caea"
   },
   "settingsHistoryOrderIgnoreUnperformedTitle": "履歴の並び順と最終コールで「実施済み」でないスロットを無視",
   "@settingsHistoryOrderIgnoreUnperformedTitle": {

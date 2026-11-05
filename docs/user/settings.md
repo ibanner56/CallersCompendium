@@ -308,8 +308,9 @@ out here too. These only change how calls are dated and ordered.
   event date. Its dances still count as called, they just fall in no window. Turn
   it off and an undated program is dated by when you marked the slot performed,
   or else by when the program was last changed, so it shows up as recent after an
-  edit. Before this setting existed, a slot marked performed in an undated
-  program was dated by that mark; turn this off to keep it so.
+  edit, even if you never marked it. Before this setting existed, a slot marked
+  performed in an undated program was dated by that mark, and one never marked
+  was in no window; no combination of these settings brings back exactly that.
 - **Recency only counts slots marked performed** (follows *Require "mark
   performed"*) — the **Within** windows skip a slot you have not marked
   performed. Until you set it yourself it follows the *Require "mark performed"*
@@ -319,8 +320,8 @@ out here too. These only change how calls are dated and ordered.
   history list and the **Last called** sort, a program with no event date gets no
   date. It is listed after the dated ones and gives no *last called* date, so a
   dance whose only calls are undated sorts with the dances you have never called.
-  It still shows "called ×N". Off, such a program is ordered by when it was last
-  changed.
+  It still shows "called ×N". Off, such a program is ordered by when its slot was
+  marked performed, else by when it was last changed.
 - **History order and Last called ignore slots not marked performed** (off) — the
   same for a slot you have not marked performed. With both on, only a dated slot
   you marked performed gives a date.

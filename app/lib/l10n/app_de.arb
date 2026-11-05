@@ -3260,9 +3260,9 @@
   "@settingsRecencyRequireEventDateTitle": {
     "x-sourceSha256": "afa4885654835890a138510f00989a31cc4fac88469e2c338d9779e4cb9c920a"
   },
-  "settingsRecencyRequireEventDateSubtitle": "Ändert nur die Zeitfenster des Gecallt-Filters, nie die Zählungen. Wenn aktiviert, liegt ein Programm ohne Veranstaltungsdatum in keinem Fenster, auch wenn seine Tänze weiterhin als gecallt zählen. Wenn deaktiviert, wird ein undatiertes Programm nach seiner letzten Bearbeitung datiert.",
+  "settingsRecencyRequireEventDateSubtitle": "Ändert nur die Zeitfenster des Gecallt-Filters, nie die Zählungen. Wenn aktiviert, liegt ein Programm ohne Veranstaltungsdatum in keinem Fenster, auch wenn seine Tänze weiterhin als gecallt zählen. Wenn deaktiviert, wird ein undatiertes Programm danach datiert, wann sein Slot als aufgeführt markiert wurde, sonst nach seiner letzten Bearbeitung.",
   "@settingsRecencyRequireEventDateSubtitle": {
-    "x-sourceSha256": "9ba344a1c8c6aa1d423f7b6860e29b7fff96dbfcefee59060f8d92e8d0e7aa07"
+    "x-sourceSha256": "88fc5e9e7bff3de37dd4dceb3ea62acd98cfee6ea39a6fd91579d2d28715073f"
   },
   "settingsRecencyRequirePerformedTitle": "Aktualität zählt nur als aufgeführt markierte Slots",
   "@settingsRecencyRequirePerformedTitle": {
@@ -3276,9 +3276,9 @@
   "@settingsHistoryOrderIgnoreUndatedTitle": {
     "x-sourceSha256": "7005abdf4984a1921691e75edf8a5f58c6e914b3fe89eb5429ec6c623e34b3d5"
   },
-  "settingsHistoryOrderIgnoreUndatedSubtitle": "Ändert nur die Reihenfolge im Verlauf eines Tanzes und die Sortierung nach zuletzt gecallt, nie die Zählungen. Wenn aktiviert, steht ein Programm ohne Veranstaltungsdatum nach den datierten und liefert kein Datum für Zuletzt gecallt. Wenn deaktiviert, wird es nach seiner letzten Bearbeitung einsortiert.",
+  "settingsHistoryOrderIgnoreUndatedSubtitle": "Ändert nur die Reihenfolge im Verlauf eines Tanzes und die Sortierung nach zuletzt gecallt, nie die Zählungen. Wenn aktiviert, steht ein Programm ohne Veranstaltungsdatum nach den datierten und liefert kein Datum für Zuletzt gecallt. Wenn deaktiviert, wird es danach einsortiert, wann sein Slot als aufgeführt markiert wurde, sonst nach seiner letzten Bearbeitung.",
   "@settingsHistoryOrderIgnoreUndatedSubtitle": {
-    "x-sourceSha256": "069ec90030f96cb8a4b829b69471a9cac56dc5e2549c89b8b50be31323f5349b"
+    "x-sourceSha256": "acd4ca4fce927041e8108e55a2093c308ae1a20099ac9175b1848b6c46e3caea"
   },
   "settingsHistoryOrderIgnoreUnperformedTitle": "Verlaufsreihenfolge und Zuletzt gecallt ignorieren nicht als aufgeführt markierte Slots",
   "@settingsHistoryOrderIgnoreUnperformedTitle": {

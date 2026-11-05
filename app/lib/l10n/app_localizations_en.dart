@@ -3256,7 +3256,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsRecencyRequireEventDateSubtitle =>
-      'Changes only the Called filter\'s time windows, never the counts. When on, a program with no event date falls in no window, though its dances still count as called. When off, an undated program is dated by when it was last edited.';
+      'Changes only the Called filter\'s time windows, never the counts. When on, a program with no event date falls in no window, though its dances still count as called. When off, an undated program is dated by when its slot was marked performed, else by when it was last edited.';
 
   @override
   String get settingsRecencyRequirePerformedTitle =>
@@ -3272,7 +3272,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsHistoryOrderIgnoreUndatedSubtitle =>
-      'Changes only the order of a dance\'s history and the Last called sort, never the counts. When on, a program with no event date is listed after the dated ones and gives no Last called date. When off, it is ordered by when it was last edited.';
+      'Changes only the order of a dance\'s history and the Last called sort, never the counts. When on, a program with no event date is listed after the dated ones and gives no Last called date. When off, it is ordered by when its slot was marked performed, else by when it was last edited.';
 
   @override
   String get settingsHistoryOrderIgnoreUnperformedTitle =>

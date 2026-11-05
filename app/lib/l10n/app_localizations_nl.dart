@@ -3307,7 +3307,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsRecencyRequireEventDateSubtitle =>
-      'Wijzigt alleen de tijdvensters van het filter Gecalld, nooit de tellingen. Als ingeschakeld, valt een programma zonder eventdatum in geen enkel venster, al telt de dans nog steeds als gecalld. Als uitgeschakeld, wordt een programma zonder datum gedateerd op het moment van de laatste bewerking.';
+      'Wijzigt alleen de tijdvensters van het filter Gecalld, nooit de tellingen. Als ingeschakeld, valt een programma zonder eventdatum in geen enkel venster, al telt de dans nog steeds als gecalld. Als uitgeschakeld, wordt een programma zonder datum gedateerd op het moment waarop het slot als uitgevoerd is gemarkeerd, anders op het moment van de laatste bewerking.';
 
   @override
   String get settingsRecencyRequirePerformedTitle =>
@@ -3323,7 +3323,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsHistoryOrderIgnoreUndatedSubtitle =>
-      'Wijzigt alleen de volgorde van de historie van een dans en de sortering op laatst gecalld, nooit de tellingen. Als ingeschakeld, staat een programma zonder eventdatum na die met datum en geeft het geen datum voor Laatst gecalld. Als uitgeschakeld, wordt het gesorteerd op de laatste bewerking.';
+      'Wijzigt alleen de volgorde van de historie van een dans en de sortering op laatst gecalld, nooit de tellingen. Als ingeschakeld, staat een programma zonder eventdatum na die met datum en geeft het geen datum voor Laatst gecalld. Als uitgeschakeld, wordt het gesorteerd op het moment waarop het slot als uitgevoerd is gemarkeerd, anders op de laatste bewerking.';
 
   @override
   String get settingsHistoryOrderIgnoreUnperformedTitle =>

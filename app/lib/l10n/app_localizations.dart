@@ -5012,7 +5012,7 @@ abstract class AppLocalizations {
   /// Subtitle of the recency-requires-event-date toggle. States it never changes the counts.
   ///
   /// In en, this message translates to:
-  /// **'Changes only the Called filter\'s time windows, never the counts. When on, a program with no event date falls in no window, though its dances still count as called. When off, an undated program is dated by when it was last edited.'**
+  /// **'Changes only the Called filter\'s time windows, never the counts. When on, a program with no event date falls in no window, though its dances still count as called. When off, an undated program is dated by when its slot was marked performed, else by when it was last edited.'**
   String get settingsRecencyRequireEventDateSubtitle;
 
   /// Title of the toggle that makes the Called filter time windows count only slots marked performed.
@@ -5036,7 +5036,7 @@ abstract class AppLocalizations {
   /// Subtitle of the history-order-ignores-undated toggle. States it never changes the counts.
   ///
   /// In en, this message translates to:
-  /// **'Changes only the order of a dance\'s history and the Last called sort, never the counts. When on, a program with no event date is listed after the dated ones and gives no Last called date. When off, it is ordered by when it was last edited.'**
+  /// **'Changes only the order of a dance\'s history and the Last called sort, never the counts. When on, a program with no event date is listed after the dated ones and gives no Last called date. When off, it is ordered by when its slot was marked performed, else by when it was last edited.'**
   String get settingsHistoryOrderIgnoreUndatedSubtitle;
 
   /// Title of the toggle that makes the history order and Last called sort ignore slots not marked performed.

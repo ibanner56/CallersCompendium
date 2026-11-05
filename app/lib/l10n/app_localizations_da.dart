@@ -3280,7 +3280,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsRecencyRequireEventDateSubtitle =>
-      'Ændrer kun tidsvinduerne i Kaldt-filteret, aldrig optællingerne. Når aktiveret ligger et program uden begivenhedsdato i intet vindue, selvom dets danse stadig tæller som kaldt. Når deaktiveret dateres et program uden dato efter, hvornår det sidst blev redigeret.';
+      'Ændrer kun tidsvinduerne i Kaldt-filteret, aldrig optællingerne. Når aktiveret ligger et program uden begivenhedsdato i intet vindue, selvom dets danse stadig tæller som kaldt. Når deaktiveret dateres et program uden dato efter, hvornår dets slot blev markeret som fremført, ellers efter hvornår det sidst blev redigeret.';
 
   @override
   String get settingsRecencyRequirePerformedTitle =>
@@ -3296,7 +3296,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsHistoryOrderIgnoreUndatedSubtitle =>
-      'Ændrer kun rækkefølgen i en dans\' historik og sorteringen efter sidst kaldt, aldrig optællingerne. Når aktiveret står et program uden begivenhedsdato efter dem med dato og giver ingen dato for sidst kaldt. Når deaktiveret sorteres det efter, hvornår det sidst blev redigeret.';
+      'Ændrer kun rækkefølgen i en dans\' historik og sorteringen efter sidst kaldt, aldrig optællingerne. Når aktiveret står et program uden begivenhedsdato efter dem med dato og giver ingen dato for sidst kaldt. Når deaktiveret sorteres det efter, hvornår dets slot blev markeret som fremført, ellers efter hvornår det sidst blev redigeret.';
 
   @override
   String get settingsHistoryOrderIgnoreUnperformedTitle =>

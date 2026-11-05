@@ -3260,9 +3260,9 @@
   "@settingsRecencyRequireEventDateTitle": {
     "x-sourceSha256": "afa4885654835890a138510f00989a31cc4fac88469e2c338d9779e4cb9c920a"
   },
-  "settingsRecencyRequireEventDateSubtitle": "Ne modifie que les fenêtres de temps du filtre Appelé, jamais les décomptes. Activé : un programme sans date d’événement n’entre dans aucune fenêtre, même si ses danses comptent toujours comme appelées. Désactivé : un programme sans date est daté par sa dernière modification.",
+  "settingsRecencyRequireEventDateSubtitle": "Ne modifie que les fenêtres de temps du filtre Appelé, jamais les décomptes. Activé : un programme sans date d’événement n’entre dans aucune fenêtre, même si ses danses comptent toujours comme appelées. Désactivé : un programme sans date est daté par le moment où son créneau a été marqué comme joué, sinon par sa dernière modification.",
   "@settingsRecencyRequireEventDateSubtitle": {
-    "x-sourceSha256": "9ba344a1c8c6aa1d423f7b6860e29b7fff96dbfcefee59060f8d92e8d0e7aa07"
+    "x-sourceSha256": "88fc5e9e7bff3de37dd4dceb3ea62acd98cfee6ea39a6fd91579d2d28715073f"
   },
   "settingsRecencyRequirePerformedTitle": "La récence ne compte que les créneaux marqués comme joués",
   "@settingsRecencyRequirePerformedTitle": {
@@ -3276,9 +3276,9 @@
   "@settingsHistoryOrderIgnoreUndatedTitle": {
     "x-sourceSha256": "7005abdf4984a1921691e75edf8a5f58c6e914b3fe89eb5429ec6c623e34b3d5"
   },
-  "settingsHistoryOrderIgnoreUndatedSubtitle": "Ne modifie que l’ordre de l’historique d’une danse et le tri par dernier appel, jamais les décomptes. Activé : un programme sans date d’événement est listé après les programmes datés et ne donne aucune date de dernier appel. Désactivé : il est classé selon sa dernière modification.",
+  "settingsHistoryOrderIgnoreUndatedSubtitle": "Ne modifie que l’ordre de l’historique d’une danse et le tri par dernier appel, jamais les décomptes. Activé : un programme sans date d’événement est listé après les programmes datés et ne donne aucune date de dernier appel. Désactivé : il est classé selon le moment où son créneau a été marqué comme joué, sinon selon sa dernière modification.",
   "@settingsHistoryOrderIgnoreUndatedSubtitle": {
-    "x-sourceSha256": "069ec90030f96cb8a4b829b69471a9cac56dc5e2549c89b8b50be31323f5349b"
+    "x-sourceSha256": "acd4ca4fce927041e8108e55a2093c308ae1a20099ac9175b1848b6c46e3caea"
   },
   "settingsHistoryOrderIgnoreUnperformedTitle": "L’ordre de l’historique et Dernier appel ignorent les créneaux non marqués comme joués",
   "@settingsHistoryOrderIgnoreUnperformedTitle": {

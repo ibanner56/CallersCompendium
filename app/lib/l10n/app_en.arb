@@ -4148,7 +4148,7 @@
   "@settingsRecencyRequireEventDateTitle": {
     "description": "Title of the toggle that makes the Called filter time windows count only programs with an event date."
   },
-  "settingsRecencyRequireEventDateSubtitle": "Changes only the Called filter's time windows, never the counts. When on, a program with no event date falls in no window, though its dances still count as called. When off, an undated program is dated by when it was last edited.",
+  "settingsRecencyRequireEventDateSubtitle": "Changes only the Called filter's time windows, never the counts. When on, a program with no event date falls in no window, though its dances still count as called. When off, an undated program is dated by when its slot was marked performed, else by when it was last edited.",
   "@settingsRecencyRequireEventDateSubtitle": {
     "description": "Subtitle of the recency-requires-event-date toggle. States it never changes the counts."
   },
@@ -4164,7 +4164,7 @@
   "@settingsHistoryOrderIgnoreUndatedTitle": {
     "description": "Title of the toggle that makes the history order and Last called sort ignore programs with no event date."
   },
-  "settingsHistoryOrderIgnoreUndatedSubtitle": "Changes only the order of a dance's history and the Last called sort, never the counts. When on, a program with no event date is listed after the dated ones and gives no Last called date. When off, it is ordered by when it was last edited.",
+  "settingsHistoryOrderIgnoreUndatedSubtitle": "Changes only the order of a dance's history and the Last called sort, never the counts. When on, a program with no event date is listed after the dated ones and gives no Last called date. When off, it is ordered by when its slot was marked performed, else by when it was last edited.",
   "@settingsHistoryOrderIgnoreUndatedSubtitle": {
     "description": "Subtitle of the history-order-ignores-undated toggle. States it never changes the counts."
   },
