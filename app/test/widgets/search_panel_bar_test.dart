@@ -225,4 +225,66 @@ void main() {
     expect(find.text('Nested one body'), findsOneWidget);
     expect(find.text('Nested two body'), findsNothing);
   });
+
+  Future<void> pumpWide(
+    WidgetTester tester, {
+    required double width,
+    double textScale = 1,
+    Widget? trailing,
+  }) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MediaQuery(
+          data: MediaQueryData(textScaler: TextScaler.linear(textScale)),
+          child: Scaffold(
+            body: Align(
+              alignment: Alignment.topLeft,
+              child: SizedBox(
+                width: width,
+                child: SearchPanelBar(
+                  storageId: 'wide',
+                  panels: _panels(),
+                  trailing: trailing,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  testWidgets('the toggles fill the row at any width', (tester) async {
+    for (final width in [320.0, 411.0, 700.0]) {
+      await pumpWide(
+        tester,
+        width: width,
+        trailing: const SizedBox(key: ValueKey('trail'), width: 40, height: 40),
+      );
+      final a = tester.getRect(find.byKey(_a));
+      final b = tester.getRect(find.byKey(_b));
+      final trail = tester.getRect(find.byKey(const ValueKey('trail')));
+      // Flush with the padded edges: the trailing control keeps its size and
+      // the tools share what is left, equally.
+      expect(a.left, 16);
+      expect(trail.right, closeTo(width - 16, 0.01), reason: 'width $width');
+      expect(trail.width, 40);
+      expect(a.width, closeTo(b.width, 0.01), reason: 'width $width');
+      expect(b.right + 4, closeTo(trail.left, 0.01));
+      // A stretched chip's label stays centred rather than hugging its start.
+      final label = tester.getRect(find.text('Alpha'));
+      expect(label.center.dx, closeTo(a.center.dx, 8), reason: 'width $width');
+    }
+  });
+
+  testWidgets('toggles wrap and still fill each row when text is large', (
+    tester,
+  ) async {
+    await pumpWide(tester, width: 200, textScale: 2);
+    final a = tester.getRect(find.byKey(_a));
+    final b = tester.getRect(find.byKey(_b));
+    expect(b.top, greaterThan(a.bottom - 1), reason: 'wrapped to a second run');
+    expect(a.right, closeTo(200 - 16, 0.01));
+    expect(b.right, closeTo(200 - 16, 0.01));
+  });
 }
