@@ -548,7 +548,8 @@ is no longer any code path that migrates from them.
   `Then(X, Y)`/`Then(Y, X)` both matched an `X while Y` container. The signal
   was absent from the index, so this needs a column, not just a query change.
   `group_idx` is shared by every row flattened from one top-level figure and
-  monotonic across them; `Then` now correlates on `a.group_idx < b.group_idx`.
+  monotonic across them; `Then` correlates `a` with the next group after it
+  (wrapping), so concurrent sides, which share a group, are never adjacent.
   Like the v2 `section` add, existing rows get the column DEFAULT (0) — wrong
   for correlation — so it schedules a derived rebuild (marker) that
   repopulates `group_idx` from `figures_json`.

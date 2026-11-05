@@ -7258,9 +7258,9 @@
   "@importErrorContraDbUnsupportedFigure": {
     "x-sourceSha256": "b3cdc0346e556478bbeb56d45067b5cc4e6361aa0ed3e239efe070a08fd08b57"
   },
-  "importErrorContraDbUnsupportedAdvanced": "ContraDB kan alleen geavanceerde zoekopdrachten uitvoeren die bestaan uit groepen “Alle van”, “Een van” en “Geen van” met “Heeft figuur”-voorwaarden. Verwijder tags, reeksen, figuurdetails, bewegingen die ContraDB niet kent en andere voorwaarden om in ContraDB te zoeken.",
+  "importErrorContraDbUnsupportedAdvanced": "ContraDB kan alleen geavanceerde zoekopdrachten uitvoeren die bestaan uit groepen “Alle van”, “Een van” en “Geen van” met “Heeft figuur”-voorwaarden. Verwijder tags, figuurdetails, bewegingen die ContraDB niet kent en andere voorwaarden om in ContraDB te zoeken.",
   "@importErrorContraDbUnsupportedAdvanced": {
-    "x-sourceSha256": "b85d3fe28c94975017fe018534925903e250f789144d0856fb5d75b1e3436520"
+    "x-sourceSha256": "ed8028a12f27b37a548983cb434d70a7a0208539163642e7901b82838ec76635"
   },
   "importErrorContraDbEmptyDanceInput": "Voer een ContraDB dans-URL of -id in om van te importeren.",
   "@importErrorContraDbEmptyDanceInput": {

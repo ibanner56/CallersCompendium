@@ -15,12 +15,6 @@ enum ContraDbAdvancedUnsupported {
   /// this app never has.
   tag,
 
-  /// A "then" sequence. The Collection means "this figure comes somewhere
-  /// before that one"; ContraDB's `then` requires the two to **abut**, and
-  /// wraps from the last figure to the first. Sending it would silently change
-  /// the question.
-  sequence,
-
   /// A figure condition with parameters or a phrase section. ContraDB
   /// compares parameters by position in each move's own formal-parameter list,
   /// which the app's named parameters are not mapped onto.
@@ -73,6 +67,7 @@ class ContraDbAdvancedRefused extends ContraDbAdvancedTranslation {
 /// | [FigureOr] | `["or", …]` |
 /// | [FigureNot] under [FigureFilter] | `["no", …]` ("no figure matches") |
 /// | [FigureNot] under [FigureAnd]/[FigureOr] | `["not", …]` (figurewise not) |
+/// | [ThenFilter] | `["then", …]` (the second immediately follows the first) |
 ///
 /// An empty [AndFilter]/[OrFilter] is refused as [ContraDbAdvancedUnsupported.other]:
 /// the builder never produces one (`BuilderGroup.toFilter` returns null for an
@@ -108,8 +103,12 @@ Object _dance(DanceFilter filter) {
       return _figure(query);
     case TagFilter() || UntaggedFilter():
       return ContraDbAdvancedUnsupported.tag;
-    case ThenFilter():
-      return ContraDbAdvancedUnsupported.sequence;
+    case ThenFilter(:final before, :final after):
+      // Both sides mean "immediately follows, wrapping from the last figure to
+      // the first", as ContraDB's `then` does (`SearchMatch#abuts?`). The
+      // operands are row-level, so a figure not under them is figurewise
+      // `not`, never the dance-level `no`.
+      return _combine('then', [before, after], _figure);
     case FullTextFilter() ||
         AuthorFilter() ||
         SourceFilter() ||

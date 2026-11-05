@@ -7111,7 +7111,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get importErrorContraDbUnsupportedAdvanced =>
-      'ContraDBでは、「フィギュアを含む」条件を「すべてに一致」「いずれかに一致」「どれにも一致しない」のグループで組み合わせた詳細検索のみ実行できます。ContraDBを検索するには、タグ、シーケンス、フィギュアの詳細、ContraDBにない技、その他の条件を削除してください。';
+      'ContraDBでは、「フィギュアを含む」条件を「すべてに一致」「いずれかに一致」「どれにも一致しない」のグループで組み合わせた詳細検索のみ実行できます。ContraDBを検索するには、タグ、フィギュアの詳細、ContraDBにない技、その他の条件を削除してください。';
 
   @override
   String get importErrorContraDbEmptyDanceInput =>

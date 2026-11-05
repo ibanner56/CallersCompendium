@@ -1067,9 +1067,9 @@ class DanceRepository {
       // every leaf flattened from this one top-level figure — including leaves
       // below a nested container — shares one group, and groups are
       // monotonic across top-level figures. Because simultaneous leaves share a
-      // group, the `a.group_idx < b.group_idx` correlation never treats them as
-      // one-before-the-other, while a genuine sequence of top-level figures
-      // (distinct, increasing groups) still matches.
+      // group, the next-group correlation never treats them as
+      // one-after-the-other, while a genuine run of top-level figures
+      // (distinct, consecutive groups) still matches.
       //
       // The one exception is a top-level `sequence`, whose children are danced
       // in order: each child takes the next group, so "balance and swing" kept

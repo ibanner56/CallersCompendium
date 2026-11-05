@@ -361,7 +361,7 @@ void main() {
       test('a condition ContraDB cannot express is refused unsent', () async {
         for (final unsupported in <DanceFilter>[
           const TagFilter('t1'),
-          ThenFilter(FigureLeaf('swing'), FigureLeaf('chain')),
+          ThenFilter(FigureLeaf('swing', section: 'A1'), FigureLeaf('chain')),
           FigureFilter.leaf('swing', params: const {'beats': 8}),
           AndFilter([petronella, const TagFilter('t1')]),
         ]) {

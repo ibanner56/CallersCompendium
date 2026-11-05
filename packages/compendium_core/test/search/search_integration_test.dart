@@ -1119,7 +1119,7 @@ void main() {
   });
 
   group('sequence: Then', () {
-    test('positive: before occurs earlier than after', () async {
+    test('positive: after immediately follows before', () async {
       await dances.create(_dance(id: 'a', title: 'A'));
       // petronella (idx0) then swing (idx1)
       expect(
@@ -1143,15 +1143,85 @@ void main() {
 
     test('Then with section constraint on the before clause', () async {
       await dances.create(_dance(id: 'a', title: 'A'));
-      // petronella in A1, then balance later.
+      // swing is in A2 and balance (B1) follows it directly.
       expect(
         await dances.search(
-          ThenFilter(
-            FigureLeaf('petronella', section: 'A1'),
-            FigureLeaf('balance'),
-          ),
+          ThenFilter(FigureLeaf('swing', section: 'A2'), FigureLeaf('balance')),
         ),
         ['a'],
+      );
+      // The section is a constraint, not a wildcard.
+      expect(
+        await dances.search(
+          ThenFilter(FigureLeaf('swing', section: 'A1'), FigureLeaf('balance')),
+        ),
+        isEmpty,
+      );
+    });
+
+    test('a figure in between stops a match: later is not immediately '
+        'after', () async {
+      await dances.create(_dance(id: 'a', title: 'A'));
+      // petronella, swing, balance, long_lines: swing sits between petronella
+      // and balance, though balance does come later in the dance.
+      expect(
+        await dances.search(
+          ThenFilter(FigureLeaf('petronella'), FigureLeaf('balance')),
+        ),
+        isEmpty,
+      );
+      expect(
+        await dances.search(
+          ThenFilter(FigureLeaf('petronella'), FigureLeaf('long_lines')),
+        ),
+        isEmpty,
+      );
+    });
+
+    test('wraps: the first figure follows the last, as in ContraDB', () async {
+      await dances.create(_dance(id: 'a', title: 'A'));
+      // long_lines is last and petronella first, so they abut across the end.
+      expect(
+        await dances.search(
+          ThenFilter(FigureLeaf('long_lines'), FigureLeaf('petronella')),
+        ),
+        ['a'],
+      );
+      // The wrap joins only the last figure to the first: balance is not last.
+      expect(
+        await dances.search(
+          ThenFilter(FigureLeaf('balance'), FigureLeaf('petronella')),
+        ),
+        isEmpty,
+      );
+    });
+
+    test('a two-figure dance matches in both orders (one is a wrap)', () async {
+      await dances.create(
+        _dance(
+          id: 'two',
+          title: 'Two',
+          figures: [
+            Figure(move: 'petronella', params: const {'beats': 32}),
+            Figure(move: 'swing', params: const {'who': 'partners'}),
+          ],
+        ),
+      );
+      for (final filter in [
+        ThenFilter(FigureLeaf('petronella'), FigureLeaf('swing')),
+        ThenFilter(FigureLeaf('swing'), FigureLeaf('petronella')),
+      ]) {
+        expect(await dances.search(filter), ['two']);
+      }
+    });
+
+    test('a dance with no figures never matches', () async {
+      await dances.create(_dance(id: 'none', title: 'None', figures: []));
+      expect(
+        await dances.search(
+          ThenFilter(FigureLeaf('swing'), FigureLeaf('swing')),
+        ),
+        isEmpty,
       );
     });
   });

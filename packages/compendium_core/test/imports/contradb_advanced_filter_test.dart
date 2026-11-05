@@ -136,6 +136,57 @@ void main() {
       );
     });
 
+    test('then: the second immediately follows the first', () {
+      expect(expression(ThenFilter(FigureLeaf('swing'), FigureLeaf('chain'))), [
+        'then',
+        ['figure', 'swing'],
+        ['figure', 'chain'],
+      ]);
+    });
+
+    test('then operands are row-level: groups and a figure not', () {
+      expect(
+        expression(
+          ThenFilter(
+            FigureOr([FigureLeaf('swing'), FigureLeaf('balance')]),
+            FigureNot(FigureLeaf('chain')),
+          ),
+        ),
+        [
+          'then',
+          [
+            'or',
+            ['figure', 'swing'],
+            ['figure', 'balance'],
+          ],
+          [
+            'not',
+            ['figure', 'chain'],
+          ],
+        ],
+      );
+    });
+
+    test('a then inside a dance-level group', () {
+      expect(
+        expression(
+          AndFilter([
+            FigureFilter.leaf('hey'),
+            ThenFilter(FigureLeaf('swing'), FigureLeaf('chain')),
+          ]),
+        ),
+        [
+          'and',
+          ['figure', 'hey'],
+          [
+            'then',
+            ['figure', 'swing'],
+            ['figure', 'chain'],
+          ],
+        ],
+      );
+    });
+
     test('the expression is JSON-encodable', () {
       final body = buildContraDbFilterBody(
         expression(
@@ -153,13 +204,6 @@ void main() {
     test('tags', () {
       expect(refusal(const TagFilter('t1')), ContraDbAdvancedUnsupported.tag);
       expect(refusal(const UntaggedFilter()), ContraDbAdvancedUnsupported.tag);
-    });
-
-    test('then sequences (ContraDB then means abutting, not earlier)', () {
-      expect(
-        refusal(ThenFilter(FigureLeaf('swing'), FigureLeaf('chain'))),
-        ContraDbAdvancedUnsupported.sequence,
-      );
     });
 
     test('figure parameters and sections', () {
@@ -193,6 +237,22 @@ void main() {
       expect(
         refusal(StatusFilter(DanceStatus.values.first)),
         ContraDbAdvancedUnsupported.other,
+      );
+    });
+
+    test('a then with an operand ContraDB cannot express is refused', () {
+      expect(
+        refusal(
+          ThenFilter(
+            FigureLeaf('swing', params: {'beats': 8}),
+            FigureLeaf('chain'),
+          ),
+        ),
+        ContraDbAdvancedUnsupported.figureDetail,
+      );
+      expect(
+        refusal(ThenFilter(FigureLeaf('swing'), FigureLeaf('swin'))),
+        ContraDbAdvancedUnsupported.figureName,
       );
     });
 

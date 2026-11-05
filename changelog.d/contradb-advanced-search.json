@@ -3,12 +3,18 @@
   "user_visible": true,
   "app": {
     "added": [
-      "You can use the Advanced panel while searching ContraDB online: groups of figure conditions (all of, any of, none of) find dances by the figures they contain, alone or together with the text you typed. ContraDB cannot run tags, sequences, or figure details, so a query that has them tells you so instead of searching with them left out."
+      "You can use the Advanced panel while searching ContraDB online: groups of figure conditions (all of, any of, none of) and Sequence (then) rows find dances by the figures they contain, alone or together with the text you typed. ContraDB cannot run tags or figure details, so a query that has them tells you so instead of searching with them left out."
+    ],
+    "changed": [
+      "A Sequence (then) row now finds a move that comes directly after the first one, the way ContraDB does, instead of any move that comes later in the dance. The dance counts as a loop, so the first move comes right after the last one."
     ]
   },
   "core": {
     "added": [
       "Add translateDanceFilterToContraDb and buildContraDbFilterBody to build ContraDB filter expressions from an Advanced search tree."
+    ],
+    "changed": [
+      "ThenFilter now matches a figure that immediately follows another, wrapping from the last figure to the first, instead of any later figure."
     ]
   }
 }
