@@ -174,6 +174,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(_title(tester), 'Settings');
+    // The body itself, not just the title: a failed read falls back to a
+    // title derived from the file name, which is also "Settings".
+    final markdown = tester.widget<Markdown>(find.byType(Markdown));
+    expect(markdown.data, startsWith('# Settings\n'));
   });
 
   testWidgets(
