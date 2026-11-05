@@ -3271,7 +3271,7 @@
   "@settingsDefaultsShareFieldsHeader": {
     "description": "Section header for the preference that chooses which non-figures dance fields appear when a program/dance is shared, copied, or exported to PDF (#1434)."
   },
-  "settingsDefaultsShareFieldsSubtitle": "Choose which details appear when you share, copy, or export a program or dance. Authors are shown by default; tunes are hidden until you turn them on.",
+  "settingsDefaultsShareFieldsSubtitle": "Choose which details appear when you share, copy, or export a program or dance. Tunes, the hook, and sources are hidden until you turn them on; everything else is shown by default.",
   "@settingsDefaultsShareFieldsSubtitle": {
     "description": "Subtitle describing the share-fields checkboxes (#1434)."
   },
@@ -4152,7 +4152,7 @@
   "@settingsProgramVenueCallCountTitle": {
     "description": "Title of the Program setting controlling how many venues with repeated calls appear in a dance's calling-history summary."
   },
-  "settingsProgramVenueCallCountSubtitle": "Show the top venues where a dance was called more than once. Set to 0 to hide this summary.",
+  "settingsProgramVenueCallCountSubtitle": "Show the top venues where a dance was called more than once. Choose Don't show to hide this summary.",
   "@settingsProgramVenueCallCountSubtitle": {
     "description": "Subtitle explaining the repeated-venue calling-history setting."
   },

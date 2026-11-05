@@ -2560,9 +2560,9 @@
   "@settingsDefaultsShareFieldsHeader": {
     "x-sourceSha256": "add3ae1245f2180d4be5f981ba0a516f020dd4076d00d6fbe82ce4780675d599"
   },
-  "settingsDefaultsShareFieldsSubtitle": "プログラムやダンスを共有・コピー・エクスポートする際に表示する項目を選択します。作者は既定で表示されます。チューンは有効にするまで非表示です。",
+  "settingsDefaultsShareFieldsSubtitle": "プログラムやダンスを共有・コピー・エクスポートする際に表示する項目を選択します。チューン、フック、ソースは有効にするまで非表示です。それ以外は既定で表示されます。",
   "@settingsDefaultsShareFieldsSubtitle": {
-    "x-sourceSha256": "b31964b5cf872c7cae665bb1297eb57be810fcff1878a20e8978c9ff90d2a903"
+    "x-sourceSha256": "39575b053b739190d3d17a644193ef09f77772a7fb5883e78efcd7703afbe987"
   },
   "settingsDefaultsShareFieldsAuthors": "作者",
   "@settingsDefaultsShareFieldsAuthors": {
@@ -3264,9 +3264,9 @@
   "@settingsProgramVenueCallCountTitle": {
     "x-sourceSha256": "fdf9b29bd90c4ed9bfad0d1d18525a867fb36abb1e2d5058d7b9a4cfdf57df39"
   },
-  "settingsProgramVenueCallCountSubtitle": "ダンスを2回以上コールした主な会場を表示します。0にするとこの概要を非表示にします。",
+  "settingsProgramVenueCallCountSubtitle": "ダンスを2回以上コールした主な会場を表示します。「表示しない」を選ぶとこの概要を非表示にします。",
   "@settingsProgramVenueCallCountSubtitle": {
-    "x-sourceSha256": "aa9efc3dea7ac205d403fd1c8f083f90f715db2ce595232f4e8897346042cc44"
+    "x-sourceSha256": "161907d288566116679c4485c34c1f0ef718e636ac1c6cc980e9368ce6689437"
   },
   "settingsProgramVenueCallCountOption": "{count, plural, =0{表示しない} =1{1会場} other{{count}会場}}",
   "@settingsProgramVenueCallCountOption": {

@@ -2560,9 +2560,9 @@
   "@settingsDefaultsShareFieldsHeader": {
     "x-sourceSha256": "add3ae1245f2180d4be5f981ba0a516f020dd4076d00d6fbe82ce4780675d599"
   },
-  "settingsDefaultsShareFieldsSubtitle": "Wähle aus, welche Details angezeigt werden, wenn du ein Programm oder einen Tanz teilst, kopierst oder exportierst. Autoren werden standardmäßig angezeigt; Melodien sind ausgeblendet, bis du sie aktivierst.",
+  "settingsDefaultsShareFieldsSubtitle": "Wähle aus, welche Details angezeigt werden, wenn du ein Programm oder einen Tanz teilst, kopierst oder exportierst. Melodien, Hook und Quellen sind ausgeblendet, bis du sie aktivierst; alles andere wird standardmäßig angezeigt.",
   "@settingsDefaultsShareFieldsSubtitle": {
-    "x-sourceSha256": "b31964b5cf872c7cae665bb1297eb57be810fcff1878a20e8978c9ff90d2a903"
+    "x-sourceSha256": "39575b053b739190d3d17a644193ef09f77772a7fb5883e78efcd7703afbe987"
   },
   "settingsDefaultsShareFieldsAuthors": "Autoren",
   "@settingsDefaultsShareFieldsAuthors": {
@@ -3264,9 +3264,9 @@
   "@settingsProgramVenueCallCountTitle": {
     "x-sourceSha256": "fdf9b29bd90c4ed9bfad0d1d18525a867fb36abb1e2d5058d7b9a4cfdf57df39"
   },
-  "settingsProgramVenueCallCountSubtitle": "Die wichtigsten Veranstaltungsorte anzeigen, an denen ein Tanz mehr als einmal aufgerufen wurde. Auf 0 setzen, um diese Übersicht auszublenden.",
+  "settingsProgramVenueCallCountSubtitle": "Die wichtigsten Veranstaltungsorte anzeigen, an denen ein Tanz mehr als einmal aufgerufen wurde. „Nicht anzeigen“ wählen, um diese Übersicht auszublenden.",
   "@settingsProgramVenueCallCountSubtitle": {
-    "x-sourceSha256": "aa9efc3dea7ac205d403fd1c8f083f90f715db2ce595232f4e8897346042cc44"
+    "x-sourceSha256": "161907d288566116679c4485c34c1f0ef718e636ac1c6cc980e9368ce6689437"
   },
   "settingsProgramVenueCallCountOption": "{count, plural, =0{Nicht anzeigen} =1{1 Veranstaltungsort} other{{count} Veranstaltungsorte}}",
   "@settingsProgramVenueCallCountOption": {

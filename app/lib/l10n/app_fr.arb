@@ -2560,9 +2560,9 @@
   "@settingsDefaultsShareFieldsHeader": {
     "x-sourceSha256": "add3ae1245f2180d4be5f981ba0a516f020dd4076d00d6fbe82ce4780675d599"
   },
-  "settingsDefaultsShareFieldsSubtitle": "Choisissez les détails qui apparaissent lorsque vous partagez, copiez ou exportez un programme ou une danse. Les auteurs sont affichés par défaut ; les airs sont masqués jusqu’à ce que vous les activiez.",
+  "settingsDefaultsShareFieldsSubtitle": "Choisissez les détails qui apparaissent lorsque vous partagez, copiez ou exportez un programme ou une danse. Les airs, l’accroche et les sources sont masqués jusqu’à ce que vous les activiez ; tout le reste est affiché par défaut.",
   "@settingsDefaultsShareFieldsSubtitle": {
-    "x-sourceSha256": "b31964b5cf872c7cae665bb1297eb57be810fcff1878a20e8978c9ff90d2a903"
+    "x-sourceSha256": "39575b053b739190d3d17a644193ef09f77772a7fb5883e78efcd7703afbe987"
   },
   "settingsDefaultsShareFieldsAuthors": "Auteurs",
   "@settingsDefaultsShareFieldsAuthors": {
@@ -3264,9 +3264,9 @@
   "@settingsProgramVenueCallCountTitle": {
     "x-sourceSha256": "fdf9b29bd90c4ed9bfad0d1d18525a867fb36abb1e2d5058d7b9a4cfdf57df39"
   },
-  "settingsProgramVenueCallCountSubtitle": "Afficher les principaux lieux où une danse a été appelée plusieurs fois. Régler sur 0 pour masquer ce résumé.",
+  "settingsProgramVenueCallCountSubtitle": "Afficher les principaux lieux où une danse a été appelée plusieurs fois. Choisir « Ne pas afficher » pour masquer ce résumé.",
   "@settingsProgramVenueCallCountSubtitle": {
-    "x-sourceSha256": "aa9efc3dea7ac205d403fd1c8f083f90f715db2ce595232f4e8897346042cc44"
+    "x-sourceSha256": "161907d288566116679c4485c34c1f0ef718e636ac1c6cc980e9368ce6689437"
   },
   "settingsProgramVenueCallCountOption": "{count, plural, =0{Ne pas afficher} =1{1 lieu} other{{count} lieux}}",
   "@settingsProgramVenueCallCountOption": {

@@ -2496,7 +2496,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsDefaultsShareFieldsSubtitle =>
-      'プログラムやダンスを共有・コピー・エクスポートする際に表示する項目を選択します。作者は既定で表示されます。チューンは有効にするまで非表示です。';
+      'プログラムやダンスを共有・コピー・エクスポートする際に表示する項目を選択します。チューン、フック、ソースは有効にするまで非表示です。それ以外は既定で表示されます。';
 
   @override
   String get settingsDefaultsShareFieldsAuthors => '作者';
@@ -3126,7 +3126,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsProgramVenueCallCountSubtitle =>
-      'ダンスを2回以上コールした主な会場を表示します。0にするとこの概要を非表示にします。';
+      'ダンスを2回以上コールした主な会場を表示します。「表示しない」を選ぶとこの概要を非表示にします。';
 
   @override
   String settingsProgramVenueCallCountOption(num count) {
