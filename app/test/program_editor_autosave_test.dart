@@ -388,7 +388,7 @@ void main() {
       );
       await _pumpEditor(tester, repos);
 
-      expect(find.textContaining('“Left Behind”'), findsOneWidget);
+      expect(find.textContaining('"Left Behind"'), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('program-draft-restore')));
       await tester.pumpAndSettle();
       expect(_titleText(tester), 'Left Behind');

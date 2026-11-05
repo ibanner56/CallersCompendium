@@ -2535,7 +2535,7 @@ void main() {
                   find.byKey(const ValueKey('sync-notice-divergence-records')),
                 )
                 .data,
-            'Affects: Tag “Contra corners”, Dance not on this device',
+            'Affects: Tag "Contra corners", Dance not on this device',
           );
         });
 

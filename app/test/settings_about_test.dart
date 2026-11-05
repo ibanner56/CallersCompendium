@@ -92,10 +92,10 @@ void main() {
       find.descendant(of: brandHeader, matching: find.text(kAppName)),
       findsOneWidget,
     );
-    expect(find.text('Version $kAppVersion, “$kAppCodename”'), findsOneWidget);
+    expect(find.text('Version $kAppVersion, "$kAppCodename"'), findsOneWidget);
     expect(
       find.text(
-        '$kAppName · Version $kAppVersion, “$kAppCodename” · $kAppLicenseSpdx',
+        '$kAppName · Version $kAppVersion, "$kAppCodename" · $kAppLicenseSpdx',
       ),
       findsOneWidget,
     );
@@ -119,7 +119,7 @@ void main() {
 
     // Theme "inspired by" note and dance-data provenance (TCB, CC BY-NC).
     expect(find.textContaining('code-editor palettes'), findsOneWidget);
-    expect(find.textContaining('The Caller’s Box'), findsOneWidget);
+    expect(find.textContaining('The Caller\'s Box'), findsOneWidget);
     expect(find.textContaining('CC BY-NC'), findsOneWidget);
 
     // The View-licenses entry is present.
@@ -138,7 +138,7 @@ void main() {
       find.descendant(of: brandHeader, matching: find.byType(BrandMark)),
       findsOneWidget,
     );
-    expect(find.text('Version $kAppVersion, “$kAppCodename”'), findsOneWidget);
+    expect(find.text('Version $kAppVersion, "$kAppCodename"'), findsOneWidget);
     expect(find.text(kAppTagline), findsOneWidget);
 
     // The detail route shows the same compliance content.

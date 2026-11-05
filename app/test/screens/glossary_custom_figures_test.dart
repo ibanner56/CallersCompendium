@@ -638,7 +638,7 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('glossary-custom-delete')));
       await tester.pumpAndSettle();
-      expect(find.text('Delete “grand right and left”?'), findsOneWidget);
+      expect(find.text('Delete "grand right and left"?'), findsOneWidget);
       await tester.tap(
         find.byKey(const ValueKey('glossary-custom-delete-confirm')),
       );

@@ -101,7 +101,7 @@ void main() {
 
     await _search(tester, 'zzz-no-such-figure');
     expect(find.byKey(const ValueKey('glossary-no-matches')), findsOneWidget);
-    expect(find.text('No figures match “zzz-no-such-figure”.'), findsOneWidget);
+    expect(find.text('No figures match "zzz-no-such-figure".'), findsOneWidget);
   });
 
   testWidgets('a figure with no shipped definition says so', (tester) async {
