@@ -545,6 +545,11 @@ This lifts the 2026-11-02 "check with me before creating new sessions" instructi
 
 #2103 and #2104 now carry `review: claude`, and every PR a session opens from here on gets it. No session requests a Copilot review, re-review or reviewer assignment; sessions answer the Copilot comments that exist or that the maintainer triggers.
 
+### Parallel work allowed (2026-11-05)
+**Instruction (maintainer's words):** "If you have work that is not blocked on other changes, you may now run them in parallel - the serial requirement was to address a nearing weekly limit that is now reset".
+
+This lifts the one-at-a-time rule for wave 4 and the follow-up bundles. The four-session cap and the hot-file rules in `decided-work-plan.md` still apply. Started in parallel at about 07:25 UTC: follow-up bundles 2, 3, 4 and 5. Held back because they depend on open work: U5b-2 (needs #2103 merged), UX6-2 and triage rows 22 and 51 (the program screens bundle 2 is editing), and the tag bulk handler's batched read (needs #2104 merged).
+
 ## Still open
 
 - Nothing on the decision page.
