@@ -997,7 +997,11 @@ around both rules above rather than through them:
   blanked dance, because only the deleting device rewrites citers; the app
   shows that slot as "Deleted dance" rather than the placeholder title
   (maintainer decision Q-6, 2026-10-31, recorded in
-  `docs/dev/audits/2026-10-behavior/` on the audit branch). A dance a
+  `docs/dev/audits/2026-10-behavior/` on the audit branch). A program share
+  sends such a slot as a purged-dance text slot reading "Deleted dance" and
+  leaves the blank out, and the PDF's figure pages skip it (the maintainer's
+  option (a) for follow-up row 49, 2026-11-05); the slot shape is archive
+  v4's, so no archive key or version changes. A dance a
   retention sweep kept the title of, because a slot still cites it, is shown
   as any dance in Recently deleted.
 

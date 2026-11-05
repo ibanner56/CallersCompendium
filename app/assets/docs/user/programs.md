@@ -286,7 +286,9 @@ deleted to use it normally again. Once the dance is gone for good, the slot
 keeps its title as text. With [Device Sync](./settings.md#device-sync), a
 slot you added before this device heard that another device deleted the dance
 for good shows "Deleted dance" instead, in the builder, the summary, Perform
-mode and the set list.
+mode and the set list. **Share (program + dances)** sends that slot as the
+words "Deleted dance" and leaves the dance out, and the PDF's figures pages
+skip it: there is nothing left of it to send.
 
 ### Event details
 

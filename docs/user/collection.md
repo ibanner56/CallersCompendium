@@ -534,7 +534,8 @@ undone.
     restore it there: it is empty.
   - If another device added the dance to a program before it heard about the
     deletion, that slot shows "Deleted dance" instead, because the title is
-    already gone.
+    already gone. Sharing that program sends the words "Deleted dance" in
+    that slot, not an empty dance.
   - A shared dance left in Recently deleted is cleared the same way when the
     window you chose in Settings runs out, on all your devices. One
     difference: while a program or another dance still includes it, it keeps

@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "A program slot whose dance was permanently deleted on another device now reads \"Deleted dance\" in the builder, the summary, Perform mode and the set lists you print, copy or share, instead of a dash.",
+      "A program slot whose dance was permanently deleted on another device now reads \"Deleted dance\" in the builder, the summary, Perform mode and the set lists you print, copy or share, instead of a dash. Sharing the program sends that slot as the words \"Deleted dance\" rather than an empty dance, and the PDF's figure pages leave it out.",
       "With Device Sync, a \"renamed onto a name this device already uses\" review no longer stays in the list after the clash has gone, for example once you rename one of the two by hand.",
       "With Device Sync, when another device changes a custom field's type or removes one of its choices, the dances in Recently deleted on this device lose the values that no longer fit, as they already did on the device that made the change. Before, such a dance could fail to restore.",
       "Permanently deleting a dance or program, by hand or when its time in Recently deleted runs out, now also removes any Device Sync review still waiting about it, which held a copy of its content."
