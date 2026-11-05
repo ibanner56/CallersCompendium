@@ -153,7 +153,8 @@ Between the two buttons, **Slot N of M** shows where you are. A dance and its
 alternates count as one slot, so stepping forward skips past the alternates.
 
 **Jump to slot** lists the whole program so you can go anywhere at once — useful
-if plans change mid-evening. When the current slot has an
+if plans change mid-evening. Dances are numbered as in your set list, so a
+break takes no number. When the current slot has an
 [alt](./glossary.md#alt), **Show alternate** switches the card to it (and on
 through any others, then back to the primary). This only changes what you are
 looking at; the program itself stays as it is.
