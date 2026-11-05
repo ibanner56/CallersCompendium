@@ -295,8 +295,12 @@ as `DateTime.utc(y, m, d)` like an event date.
 
 **One date expression.** B1 (#2032) added `callingHistoryDateSql` to
 `calling_history_scope.dart` (constraint 2). History order and the Last-called
-sort read it. H1 adds the recency variant beside it: the same expression
-without `updated_at`. The recency scope and the H3 chip read that variant.
+sort read it. H1 added the recency variant beside it: the same expression,
+gated so a slot that fails a switched-on recency condition has no date. As
+first built it had no `updated_at` fallback. Since 2026-11-05 it does, but only
+for a slot that passes "Recency only counts dated programs", which is off only
+when the caller turned that setting off (see the amendment under Q2). The
+recency scope and the H3 chip read that variant.
 - The two Dart copies (`effectiveDate` and `callingHistoryDisplayDate`,
   constraint 2) cannot share a SQL string. Today no test compares
   `callingHistoryDisplayDate` with either of the others. H1 adds a lockstep

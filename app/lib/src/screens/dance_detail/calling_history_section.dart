@@ -390,7 +390,9 @@ class _CallingHistorySectionState extends State<CallingHistorySection> {
 }
 
 /// The calendar day a calling-history row shows for [record]: the day
-/// [DanceCallingRecord.effectiveDate] picks, which also orders the rows.
+/// [DanceCallingRecord.effectiveDate] picks. It orders the rows unless a
+/// history-order setting leaves the row with no
+/// [DanceCallingRecord.orderingDate], which lists it after every dated row.
 ///
 /// That is the program's event date when it has one (GIG-2, maintainer
 /// decision 2026-10-29), so marking a slot performed on the Monday after
