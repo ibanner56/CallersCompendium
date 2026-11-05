@@ -1754,25 +1754,30 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// takes the stored value; one they have edited keeps their edit. Null when
   /// there is no [known] to tell the two apart, or the working copy is not a
   /// valid program. A cleared title is merged as [known]'s, and reported in
-  /// `titleCleared` for the caller to clear again.
-  ({Program program, bool titleCleared})? _withDetailsFromElsewhere(
-    Program? known,
-    Program stored,
-  ) {
+  /// `titleCleared` for the caller to clear again. `payFromElsewhere` says the
+  /// merge took the stored pay over a valid working pay.
+  ({Program program, bool titleCleared, bool payFromElsewhere})?
+  _withDetailsFromElsewhere(Program? known, Program stored) {
     if (known == null) return null;
     final typedTitle = _titleController.text.trim();
     final local = _draftProgramTitled(
       typedTitle.isEmpty ? known.title : typedTitle,
     );
     if (local == null) return null;
+    final program = _mergeUndoProgram(
+      atReadStart: known,
+      local: local,
+      live: stored,
+      slots: local.slots,
+    );
     return (
-      program: _mergeUndoProgram(
-        atReadStart: known,
-        local: local,
-        live: stored,
-        slots: local.slots,
-      ),
+      program: program,
       titleCleared: typedTitle.isEmpty,
+      // An unparseable amount is the person's edit, which the field keeps.
+      payFromElsewhere:
+          !_parsedPay().isInvalid &&
+          (program.payMinorUnits != local.payMinorUnits ||
+              program.payCurrency != local.payCurrency),
     );
   }
 
@@ -2134,7 +2139,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// as [_danceById] prefers the snapshot to [_deletedSlotDances].
   Future<void> _restoreDeletedSlotDance(String danceId) async {
     final dance = _danceById(danceId);
-    if (dance == null || !dance.isDeleted) return;
+    if (dance == null || !canRestoreSlotDance(dance)) return;
     await restoreSlotDanceFromRecentlyDeleted(context, _repos, dance);
   }
 
@@ -2407,6 +2412,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                     );
                     // A cleared title is the person's edit too.
                     if (merged.titleCleared) _titleController.clear();
+                    // The pay field keeps any typed text that differs from
+                    // [known], even text that parses to [known]'s amount;
+                    // when the merge took the pay from elsewhere, show it.
+                    if (merged.payFromElsewhere) _setPayFrom(merged.program);
                   } else if (elsewhere) {
                     _slots = withElsewhere(_slots);
                   } else if (generation == _editGeneration && !keepDirty) {
@@ -2430,9 +2439,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 if (!write.changedUnderneath) return null;
                 // Perform shows the builder's working copy. Without other
                 // unsaved edits that is now the stored program; with them,
-                // Perform's copy takes what changed elsewhere, and the
-                // builder's unsaved edits stay as they were.
+                // Perform's copy takes what changed elsewhere: its slots, and
+                // the details as the builder merged them above.
                 if (!keepDirty) return stored;
+                if (merged != null) {
+                  return merged.program.copyWith(
+                    slots: withElsewhere(updated.slots),
+                  );
+                }
                 return updated.copyWith(slots: withElsewhere(updated.slots));
               } on Object catch (_) {
                 // export-guard: exempt — mark-performed stamp, not an export
@@ -4116,6 +4130,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             slots: _slots,
             danceTitles: _slotTitleForDance,
             isDeletedDance: (id) => _danceById(id)?.isDeleted ?? false,
+            canRestoreDance: (id) => switch (_danceById(id)) {
+              final dance? => canRestoreSlotDance(dance),
+              null => false,
+            },
             onRestoreDeletedDance: _restoreDeletedSlotDance,
             formationFor: _formationForDance,
             mixerFor: _mixerForDance,

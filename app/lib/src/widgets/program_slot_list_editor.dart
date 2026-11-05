@@ -38,6 +38,7 @@ class ProgramSlotListEditor extends StatefulWidget {
     required this.onRemove,
     required this.onCreateDance,
     this.isDeletedDance,
+    this.canRestoreDance,
     this.onRestoreDeletedDance,
     this.reservedPerformedAt,
     this.dialect,
@@ -61,8 +62,13 @@ class ProgramSlotListEditor extends StatefulWidget {
   /// dance as live.
   final bool Function(String danceId)? isDeletedDance;
 
+  /// Whether a slot's `danceId` is a dance Recently deleted can restore: one
+  /// [isDeletedDance] marks, unless another device deleted it for good.
+  /// `null` offers no Restore.
+  final bool Function(String danceId)? canRestoreDance;
+
   /// Restores a slot's dance from Recently deleted (LIFE-8), offered on the
-  /// "…" menu of a row [isDeletedDance] marks. `null` offers nothing.
+  /// "…" menu of a row [canRestoreDance] accepts. `null` offers nothing.
   final void Function(String danceId)? onRestoreDeletedDance;
 
   /// Resolves a slot's `danceId` to its [Formation], or null when the dance is
@@ -158,13 +164,13 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
 
   /// [ProgramSlotListEditor.onRestoreDeletedDance] for [slot], or null when
   /// its dance is not in Recently deleted: a live dance has nothing to restore,
-  /// and a purged one is gone.
+  /// and one deleted for good (purged, or blanked by another device) is gone.
   VoidCallback? _restoreCallback(ProgramSlot slot) {
     final danceId = slot.danceId;
     final restore = widget.onRestoreDeletedDance;
     if (danceId == null ||
         restore == null ||
-        !(widget.isDeletedDance?.call(danceId) ?? false)) {
+        !(widget.canRestoreDance?.call(danceId) ?? false)) {
       return null;
     }
     return () => restore(danceId);

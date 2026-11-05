@@ -382,6 +382,12 @@ final RecentlyDeletedConfig<Dance> danceRecentlyDeletedConfig =
           l10n.recentlyDeletedEmptyDancesRetention(days),
     );
 
+/// Whether [dance] is in Recently deleted, so a program slot that points at
+/// it can offer Restore: soft-deleted, and not deleted for good on another
+/// device (a blank Recently deleted does not list, which cannot be restored).
+bool canRestoreSlotDance(Dance dance) =>
+    dance.isDeleted && !isPermanentlyDeleted(dance.deletedAt);
+
 /// Restores [dance], which a program slot points at, from Recently deleted
 /// (LIFE-8), through [danceRecentlyDeletedConfig]'s `restore`: the same write
 /// and read-back the Recently deleted screen makes. Says so with that screen's

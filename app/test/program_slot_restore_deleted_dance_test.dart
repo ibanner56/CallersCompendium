@@ -70,6 +70,22 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  /// [seed], then another device's permanent delete of d1 arrives: the
+  /// blank Device Sync writes, which Recently deleted no longer lists.
+  Future<CompendiumRepositories> seedBlanked() async {
+    final repos = await seed();
+    await repos.dances.writeFromSync(
+      Dance(
+        id: 'd1',
+        title: blankedRecordTitle,
+        createdAt: _now,
+        updatedAt: _now.add(const Duration(days: 1)),
+        deletedAt: permanentlyDeletedAt,
+      ),
+    );
+    return repos;
+  }
+
   AppLocalizations l10nOf(WidgetTester tester) =>
       AppLocalizations.of(tester.element(find.byType(Scaffold).first));
 
@@ -124,6 +140,23 @@ void main() {
 
       expect(slotTitle(tester), 'Gone Dance');
     });
+  });
+
+  testWidgets('a dance deleted for good on another device offers no '
+      'Restore', (tester) async {
+    final repos = await seedBlanked();
+    await pump(tester, repos, const ProgramEditorScreen(programId: 'p1'));
+    await tester.tap(find.byKey(const ValueKey('slot-0-menu')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('slot-0-restore-dance')), findsNothing);
+    await tester.tapAt(Offset.zero);
+    await tester.pumpAndSettle();
+
+    await pump(tester, repos, const ProgramSummaryScreen(programId: 'p1'));
+    expect(
+      find.byKey(const ValueKey('summary-slot-s1-restore-dance')),
+      findsNothing,
+    );
   });
 
   group('the program summary', () {

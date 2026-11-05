@@ -217,6 +217,20 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   Map<String, String> _danceTitles = const {};
   Map<String, Dance> _dances = const {};
 
+  /// Dances a slot's Restore is restoring, so a second tap before this pane
+  /// reloads does not restore (and announce) the dance twice.
+  final Set<String> _restoringDanceIds = {};
+
+  Future<void> _restoreSlotDance(Dance dance) async {
+    if (!_restoringDanceIds.add(dance.id)) return;
+    setState(() {});
+    try {
+      await restoreSlotDanceFromRecentlyDeleted(context, _repos, dance);
+    } finally {
+      if (mounted) setState(() => _restoringDanceIds.remove(dance.id));
+    }
+  }
+
   /// Author names in credit order, by dance id, for a Recently deleted dance
   /// whose authors include one Recently deleted holds, which `CollectionData`
   /// and [_dances] leave out. Only for the text and PDF exports, as Perform
@@ -1683,13 +1697,14 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       // A dance in Recently deleted can be restored from its row (LIFE-8).
       // Outside the row's merged semantics, so it is its own button. The row
       // loses its marking when this pane reloads on the restore's write.
-      final restoreButton = deleted && dance != null
+      final restoreButton = dance != null && canRestoreSlotDance(dance)
           ? Tooltip(
               message: l10n.programsRestoreDeletedDance,
               child: TextButton(
                 key: ValueKey('summary-slot-${slot.id}-restore-dance'),
-                onPressed: () =>
-                    restoreSlotDanceFromRecentlyDeleted(context, _repos, dance),
+                onPressed: _restoringDanceIds.contains(dance.id)
+                    ? null
+                    : () => _restoreSlotDance(dance),
                 child: Text(l10n.recentlyDeletedRestore),
               ),
             )
