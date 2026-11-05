@@ -540,6 +540,11 @@ This supersedes the standing "start the next one when green" rules for wave 4 an
 
 This lifts the 2026-11-02 "check with me before creating new sessions" instruction and restores the earlier rules: wave 4 and the follow-up bundles run one at a time, each released when the previous branch's PR has green CI and a green review, with PR creation pre-approved. #2103 (U5b-1) and #2104 (bundle 1) use Copilot review instead of the Claude label, per what their sessions reported the maintainer asked for. Next in line: U5b-2 after #2103 is green, and bundle 2 after #2104 is green.
 
+### Reviews (2026-11-05)
+**Instruction (maintainer's words):** "PRs which were not tagged for Claude review may now be tagged as such", then "Do not request additional copilot reviews".
+
+#2103 and #2104 now carry `review: claude`, and every PR a session opens from here on gets it. No session requests a Copilot review, re-review or reviewer assignment; sessions answer the Copilot comments that exist or that the maintainer triggers.
+
 ## Still open
 
 - Nothing on the decision page.
