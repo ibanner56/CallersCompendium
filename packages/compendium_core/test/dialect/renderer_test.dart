@@ -643,26 +643,40 @@ void main() {
         );
       });
 
-      test('slide along set still offers {move} to a custom wording', () {
+      test('slide along set starts a custom wording from {move}', () {
+        // The default line spells the name around the side, which a
+        // template cannot do with `{move}` whole; the editor and a copied
+        // figure start from `{move} {slide}` so a dialect's or a copy's own
+        // name still reaches the line.
         expect(
           renderer.moveWordingTemplate('slide_along_set'),
-          'slide {slide} along set',
+          '{move} {slide}',
         );
-        expect(renderer.moveWordingSlots('slide_along_set'), {'slide', 'move'});
-        // A wording written against the old default keeps rendering.
-        final dialect = larks.copyWith(
+        expect(renderer.moveWordingSlots('slide_along_set'), {'move', 'slide'});
+        expect(
+          renderer.moveWordingMissingSlots('slide_along_set', '{move} {slide}'),
+          isEmpty,
+        );
+        final renamed = Dialect(
+          name: 'Sashay',
+          moves: {'slide_along_set': 'sashay'},
           moveWordings: {'slide_along_set': '{move} {slide}'},
         );
         expect(
-          renderer.render(Figure(move: 'slide_along_set'), dialect),
-          'slide along set left',
+          renderer.render(Figure(move: 'slide_along_set'), renamed),
+          'sashay left',
+        );
+        // A caller who wants the default order writes it out.
+        final spelled = larks.copyWith(
+          moveWordings: {'slide_along_set': 'slide {slide} along set'},
         );
         expect(
-          renderer.moveWordingErrorMissingSlots(
-            'slide_along_set',
-            'slide {slide} along set',
-          ),
-          isEmpty,
+          renderer.render(Figure(move: 'slide_along_set'), spelled),
+          'slide left along set',
+        );
+        expect(
+          userFigureSeedFromMove(contraTaxonomy, 'slide_along_set')!.template,
+          contains('{move}'),
         );
       });
 
@@ -691,7 +705,7 @@ void main() {
 
     test('a subject a plural verb agrees with stays plural', () {
       String line(String move, Map<String, Object?> params) =>
-          renderer.render(Figure(move: move, params: params), larks);
+          renderer.render(testFigure(move: move, params: params), larks);
       expect(
         line('revolving_door', {'who': 'neighbors'}),
         contains('- neighbors take right hands'),
@@ -725,6 +739,26 @@ void main() {
       expect(
         line('form_short_waves', {}),
         contains('neighbor by the right on the sides'),
+      );
+    });
+
+    test('a sequence says a subject once whichever number each step uses', () {
+      String sequence(List<Figure> figures) =>
+          renderer.render(Figure.sequence(figures: figures, beats: 16), larks);
+      final wave = Figure(
+        move: 'form_a_long_wave',
+        params: {'who': 'neighbors'},
+      );
+      final balance = Figure(move: 'balance', params: {'who': 'neighbors'});
+      expect(
+        sequence([wave, balance]),
+        'neighbors dance in to a long wave in the center - balance the wave '
+        'and balance',
+      );
+      expect(
+        sequence([balance, wave]),
+        'neighbor balance and dance in to a long wave in the center - '
+        'balance the wave',
       );
     });
 

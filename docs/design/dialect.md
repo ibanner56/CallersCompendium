@@ -59,9 +59,7 @@ built figure.
   never blocks.
 - `moveWordings` maps canonical move IDs to optional **display-only sentence
   templates**. Templates use the computed slots for that move (for example
-  `{who}` and `{move}`; a move whose default wording spells its name around a
-  detail, `slide {slide} along set`, still offers `{move}`); unknown slots are
-  empty, nested bracketed groups are
+  `{who}` and `{move}`); unknown slots are empty, nested bracketed groups are
   omitted when their slots are empty, and substituted values are not rescanned.
   A `{!name}` slot forces that slot to display even where the normal render hides
   it (the stored `chain.hand` the role already implies, or an alias-pinned
@@ -71,7 +69,11 @@ built figure.
   (see [Conditional wording](#conditional-wording)).
   Malformed or empty templates fall back to the normal renderer. The editor
   warns when a template omits available slots and requires confirmation before
-  saving it. Imported templates are sanitized, capped at 512 UTF-16 code units
+  saving it. A new wording starts from the move's default display template,
+  except where that template could not keep `{move}` whole: slide along set
+  reads "slide left along set" by default but starts a wording from
+  `{move} {slide}`, so a dialect's own name for it still shows. Imported
+  templates are sanitized, capped at 512 UTF-16 code units
   each as stored, conditions included, and limited to 256 entries per dialect.
 - `moveWordingBranches` stores fixed branch-specific templates for
   `form_a_long_wave` (`inOnly`, `outOnly`, `inAndOut`, `neither`) and

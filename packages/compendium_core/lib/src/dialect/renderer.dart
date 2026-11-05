@@ -838,7 +838,8 @@ class FigureRenderer {
   /// A step whose subject is the previous step's says it once: "ones balance
   /// and swing", not "ones balance and ones swing". Only a plain repeat is
   /// dropped — both steps state the same `who` (an assumed one keeps its
-  /// marker), are taxonomy figures, and both lines begin with that subject — so
+  /// marker), are taxonomy figures, and both lines begin with that subject, in
+  /// either number ("neighbor balance", "neighbors dance in") — so
   /// a line the subject does not lead, or one worded by an override that does
   /// not start with it, is left whole. Display only: the canonical render
   /// joins every step in full.
@@ -852,15 +853,16 @@ class FigureRenderer {
     for (var i = 0; i < lines.length; i++) {
       var line = lines[i];
       if (i > 0) {
-        final prefix = _sharedSubjectPrefix(
+        final prefixes = _sharedSubjectPrefixes(
           children[i - 1],
           children[i],
           dialect,
         );
-        if (prefix != null &&
-            lines[i - 1].startsWith(prefix) &&
-            line.startsWith(prefix) &&
-            line.length > prefix.length) {
+        final previous = lines[i - 1];
+        final prefix = prefixes
+            .where((p) => line.startsWith(p) && line.length > p.length)
+            .firstOrNull;
+        if (prefix != null && prefixes.any(previous.startsWith)) {
           line = line.substring(prefix.length);
         }
       }
@@ -876,15 +878,26 @@ class FigureRenderer {
     return _andList(shown);
   }
 
-  /// `"<subject> "` when [previous] and [step] are both taxonomy figures that
-  /// state the same subject, else null.
-  String? _sharedSubjectPrefix(Figure previous, Figure step, Dialect dialect) {
+  /// The `"<subject> "` forms a line may open with when [previous] and [step]
+  /// are both taxonomy figures that state the same subject, else none. Both
+  /// numbers are offered: a subject reads singular before a move ("neighbor
+  /// balance") but plural before a plural verb ("neighbors dance in"), and
+  /// either step may be of either kind.
+  Set<String> _sharedSubjectPrefixes(
+    Figure previous,
+    Figure step,
+    Dialect dialect,
+  ) {
     bool plain(Figure f) => !f.isCustom && !f.isContainer && !f.assumedSubject;
-    if (!plain(previous) || !plain(step)) return null;
+    if (!plain(previous) || !plain(step)) return const {};
     final who = step.params['who'];
-    if (who is! String || who != previous.params['who']) return null;
-    final subject = _displaySubject(who, dialect);
-    return subject.isEmpty ? null : '$subject ';
+    if (who is! String || who != previous.params['who']) return const {};
+    return {
+      for (final plural in [false, true])
+        if (_displaySubject(who, dialect, plural: plural) case final subject
+            when subject.isNotEmpty)
+          '$subject ',
+    };
   }
 
   /// [line], the display text of [child], a side of a meanwhile or a part of
@@ -1580,15 +1593,18 @@ class FigureRenderer {
       }
       slots.add(slot);
     }
-    return slots..addAll(_moveWordingExtraSlots[moveId] ?? const {});
+    return slots;
   }
 
-  /// Slots a custom wording may use that the move's default display template
-  /// does not show. `slide_along_set` spells its name around the side
-  /// ("slide left along set"), but `{move}` is still computed for a wording,
-  /// and wordings written before that change use it.
-  static const Map<String, Set<String>> _moveWordingExtraSlots = {
-    'slide_along_set': {'move'},
+  /// Starting wordings for moves whose default line cannot be written as a
+  /// template that keeps `{move}` whole. `slide_along_set` reads "slide left
+  /// along set", spelling the name around the side; a wording seeded with
+  /// those literal words would ignore a dialect's own name for the move and a
+  /// copied figure's new name, so the editor and a copy start from `{move}
+  /// {slide}` instead, as they always have. A caller who wants the default
+  /// order in a wording of their own writes `slide {slide} along set`.
+  static const Map<String, String> _moveWordingSeedTemplates = {
+    'slide_along_set': '{move} {slide}',
   };
 
   /// Returns the available slots omitted by a custom wording template.
@@ -1625,12 +1641,15 @@ class FigureRenderer {
     return labels;
   }
 
-  /// The default display template for [moveId], including the display-specific
-  /// sentence structure where one exists.
+  /// The starting template for a wording of [moveId]: the default display
+  /// template, including the display-specific sentence structure where one
+  /// exists, except where [_moveWordingSeedTemplates] keeps `{move}` whole.
   String? moveWordingTemplate(String moveId) {
     final def = taxonomy.resolve(moveId);
     if (def == null) return null;
     final canonicalMoveId = def.id;
+    final seed = _moveWordingSeedTemplates[canonicalMoveId];
+    if (seed != null) return seed;
     final base = _displayBaseRenderers[canonicalMoveId];
     if (base == null) {
       return _displayRenderTemplates[canonicalMoveId] ?? def.renderTemplate;
@@ -2461,8 +2480,9 @@ class FigureRenderer {
   /// restructure (not a trailing suffix). Consulted in [_render] only when
   /// `!forCanonical`; the canonical render keeps expanding `renderTemplate`, so
   /// the dedupe/FTS text stays byte-for-byte stable. Dancer/role tokens map
-  /// through [_displayDancer] (dialect-aware + PR1 singularization); move names
-  /// through [_renderMoveName].
+  /// through [_displayDancer] (dialect-aware + PR1 singularization), or
+  /// [_displayGroup] where a plural verb agrees with them; move names through
+  /// [_renderMoveName].
   static final Map<String, _DisplayBaseRenderer> _displayBaseRenderers = {
     // Swing (issue #543). Reproduces the terse `{who} {prefix} {move}` line
     // (byte-identical to the template expansion) and appends an ending-facing
@@ -2688,8 +2708,8 @@ class FigureRenderer {
     // "slide along set left". The taxonomy's name is spelled out around the
     // side, so `{move}` is not in this template; a dialect that renames the
     // move keeps its own name whole, with the side after it ("sashay left"),
-    // as before. A custom wording may still use `{move}`
-    // ([_moveWordingExtraSlots]).
+    // as before. Custom wordings start from `{move} {slide}`
+    // ([_moveWordingSeedTemplates]).
     'slide_along_set': (r, def, params, dialect, verbose, decimals) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
       final slide = r._renderValue(
@@ -2822,8 +2842,9 @@ class FigureRenderer {
     // ContraDB `revolvingDoorWords`: words(smove, " - ", ssubject, "take",
     // shand, "hands and drop off", sobject, "on other side"). The subject
     // stays plural to agree with "take" (role2s, or `neighbors` rather than
-    // `neighbor`); the object (partners) singularizes per PR1. Unknown non-null who/whom/hand values humanize (surfacing malformed
-    // data) rather than blanking out. This base line already carries the
+    // `neighbor`); the object (partners) singularizes per PR1. Unknown non-null
+    // who/whom/hand values humanize (surfacing malformed data) rather than
+    // blanking out. This base line already carries the
     // drop-off outcome, so [_summarySuffix] no longer appends its own clarifier.
     'revolving_door': (r, def, params, dialect, verbose, decimals) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
