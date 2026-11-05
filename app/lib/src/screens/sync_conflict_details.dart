@@ -9,6 +9,8 @@ import '../data/active_dialect_scope.dart';
 import '../data/figure_summary.dart';
 import '../data/app_theme_labels_l10n.dart';
 import '../data/custom_theme.dart';
+import '../data/date_format_scope.dart';
+import '../data/regional_formats.dart';
 import '../glossary/figure_titles.dart';
 import '../search/facet_labels.dart';
 import '../sync/sync_setting_labels.dart';
@@ -16,8 +18,6 @@ import '../theme/app_spacing.dart';
 import '../widgets/compound_argument_editor.dart';
 import '../widgets/program_status_labels.dart';
 import '../widgets/provenance_labels.dart';
-import '../data/date_format_scope.dart';
-import '../data/regional_formats.dart';
 
 /// Names for the records a conflicted record refers to by id — its authors,
 /// tags, level, custom fields, a program's dances and venue — so a comparison

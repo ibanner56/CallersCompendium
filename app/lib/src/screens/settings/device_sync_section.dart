@@ -9,6 +9,8 @@ import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 
 import '../../../l10n/app_localizations.dart';
 import '../../data/backup_io.dart';
+import '../../data/date_format_scope.dart';
+import '../../data/regional_formats.dart';
 import '../../data/repositories_scope.dart';
 import '../../diagnostics/error_log.dart';
 import '../../sync/sync_controller.dart';
@@ -17,8 +19,8 @@ import '../../sync/sync_coordinator.dart'
 import '../../sync/sync_http_client.dart' show isDefaultSyncEndpoint;
 import '../../sync/sync_scope.dart';
 import '../../theme/app_spacing.dart';
-import '../../widgets/notice_card.dart';
 import '../../widgets/collapsible_section.dart';
+import '../../widgets/notice_card.dart';
 import '../../widgets/section_header.dart';
 import '../sync_conflict_sheet.dart';
 import '../sync_review_screen.dart';
@@ -28,8 +30,6 @@ import 'sync_failure_labels.dart';
 import 'sync_notice_labels.dart';
 import 'sync_pairing_screen.dart';
 import 'sync_support_codes.dart';
-import '../../data/date_format_scope.dart';
-import '../../data/regional_formats.dart';
 
 /// Device Sync settings and status (spec §6.1, §6.12, §6.14).
 ///

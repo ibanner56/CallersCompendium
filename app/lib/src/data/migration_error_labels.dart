@@ -1,6 +1,7 @@
+import 'package:flutter/material.dart' show MaterialLocalizations;
+
 import '../../l10n/app_localizations.dart';
 import 'migration_guard.dart';
-import 'package:flutter/material.dart' show MaterialLocalizations;
 import 'regional_formats.dart';
 
 /// Localized presentation of the startup migration-guard diagnostics
@@ -90,7 +91,8 @@ String databaseCopyLocationLabel(
 
 /// One line describing a conflicting [DatabaseCopy]: its folder name, its size
 /// in kilobytes (rounded up, so a non-empty file never reads as 0 KB) and its
-/// last-changed date and time in the app's locale. Path-free, like the rest of
+/// last-changed date and time (the date in the device's region, as
+/// [formatEventDateTime] shows it). Path-free, like the rest of
 /// this file.
 String databaseCopyDetails(
   AppLocalizations l10n,

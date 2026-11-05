@@ -7,8 +7,10 @@ import 'package:flutter/services.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
+import '../data/date_format_scope.dart';
 import '../data/display_defaults.dart';
 import '../data/editor_draft_shutdown_scope.dart';
+import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
 import '../data/related_dance_links.dart';
 import '../data/shorthand_mappings_scope.dart';
@@ -30,8 +32,6 @@ import 'dance_editor/dance_editor_form.dart';
 import 'dance_editor/name_picker.dart';
 import 'settings/library_manager_list.dart';
 import 'settings/settings_keys.dart';
-import '../data/date_format_scope.dart';
-import '../data/regional_formats.dart';
 
 /// Dance editor (`docs/design/ux.md` §3). Covers the metadata form — title,
 /// authors (with inline choreographer/tag creation), formation, form/type,
