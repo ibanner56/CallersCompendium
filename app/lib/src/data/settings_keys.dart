@@ -132,7 +132,8 @@ const String kCollectionTileVisibleFieldsKey = 'collection_tile_visible_fields';
 /// Key used to persist the set of [DanceShareField]s included when a
 /// program/dance is shared, copied, or exported to PDF (issue #1434). Stored
 /// as a JSON list of field name strings; absent/unset means every field
-/// except `tunes` (see [DanceShareField.allExceptTunes]) — the set every
+/// except the opt-in `tunes`, `hook` and `sources` (see
+/// [DanceShareField.allExceptTunes]) — the set every
 /// renderer emitted unconditionally before this preference existed — so
 /// existing users see no change to their exports until they adjust it.
 const String kProgramDanceShareFieldsKey = 'program_dance_share_fields';
