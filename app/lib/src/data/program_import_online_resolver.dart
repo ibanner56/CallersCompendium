@@ -139,9 +139,12 @@ class ProgramOnlineResolution {
 }
 
 /// Tries each of [services] in order for [line]'s title, stopping at the
-/// first [_SourceImported] or [_SourceDeclined] outcome (see [_attemptSource]).
+/// first [_SourceImported], [_SourceDeclined] or [_SourceReused] outcome (see
+/// [_attemptSource]). This chain treats [_SourceReused] as a decline; only
+/// [resolveConfidentOnlineDanceId] links to the dance it names.
 ///
-/// [_SourceDeclined] stops the chain **without trying later sources**: it means
+/// [_SourceDeclined] and [_SourceReused] stop the chain **without trying later
+/// sources**: they mean
 /// the local collection already has this exact dance (issue #685's rule), which
 /// is a fact about the user's collection, not about which source produced the
 /// hit — a second source cannot make it false, so asking one is wasted work at
@@ -240,9 +243,10 @@ class _SourceImported extends _SourceAttempt {
   final String danceId;
 }
 
-/// #685's conservative skip fired: a confident local duplicate whose figures
-/// are canonically identical, or whose target dance could not be loaded to
-/// check. Stops the chain — see [_resolveLineAcrossSources]'s doc for why.
+/// #685's conservative skip fired: a confident local duplicate whose target
+/// dance could not be loaded, or whose figures could not be read on either
+/// side, so identical-or-not cannot be told (identical figures are
+/// [_SourceReused]). Stops the chain — see [_resolveLineAcrossSources]'s doc for why.
 class _SourceDeclined extends _SourceAttempt {
   const _SourceDeclined();
 }
@@ -411,13 +415,16 @@ Future<_SourceAttempt> _attemptSource(
 /// Searches [service] by [title] and, on a **confident match** — a UNIQUE
 /// exact-title hit (exactly one result whose name equals [title] under
 /// `titleMatchKey`, found by [lookupUniqueExactTitle]) — imports that dance
-/// and returns its new dance id.
+/// and returns its new dance id, except that a previewed dance with a
+/// **confident local duplicate** (issue #685 — exact-normalized-title with an
+/// overlapping tokenized author set, see [DedupeVerdict.hasConfidentMatch])
+/// whose figures are canonically identical writes nothing and returns the
+/// existing dance's id (INTAKE-3 (a)).
 ///
 /// Returns null when there is no confident match (no results, only fuzzy hits,
-/// or more than one exact hit), when the previewed dance is already a
-/// **confident local duplicate** (issue #685 — exact-normalized-title with an
-/// overlapping tokenized author set, see [DedupeVerdict.hasConfidentMatch]),
-/// or when the import yields no id. Any other fetch / parse / import
+/// or more than one exact hit), when the confident local duplicate's target
+/// cannot be loaded or either side's figures cannot be read, or when the
+/// import yields no id. Any other fetch / parse / import
 /// [Exception] is swallowed and returns null so one bad title can't abort a
 /// batch; `Error`s (assertion/programmer bugs) still surface. The one
 /// exception is a source that cannot be reached at all (`isConnectionFailure`):
