@@ -550,6 +550,11 @@ This lifts the 2026-11-02 "check with me before creating new sessions" instructi
 
 This lifts the one-at-a-time rule for wave 4 and the follow-up bundles. The four-session cap and the hot-file rules in `decided-work-plan.md` still apply. Started in parallel at about 07:25 UTC: follow-up bundles 2, 3, 4 and 5. Held back because they depend on open work: U5b-2 (needs #2103 merged), UX6-2 and triage rows 22 and 51 (the program screens bundle 2 is editing), and the tag bulk handler's batched read (needs #2104 merged).
 
+### Blanked dances in program shares and PDFs (2026-11-05)
+**Question (from #2112, triage row 49):** when a dance has been blanked on another device but a program still uses it, what should the program's share file and the PDF "Include figures" option do with that slot? Today they carry an empty "-" dance.
+
+**Decision (maintainer's words):** "Go with option (a) for blanked dances". Option (a): the share sends a "Deleted dance" text slot and leaves the dance out, and the PDF skips that slot's figure page. Options (b) (omit the dance but keep the slot citing its id) and (c) (leave as is) were rejected. The bundle 3 session builds it on #2112.
+
 ## Still open
 
 - Nothing on the decision page.
