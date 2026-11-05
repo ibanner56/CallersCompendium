@@ -116,8 +116,9 @@ generate the four-word IDs that identify a device-sync account.
 [ContraDB](https://github.com/contradb/contra) by David Morse is licensed under
 AGPL-3.0, the same licence as Caller's Compendium.
 [`docs/research/contradb.md`](docs/research/contradb.md) records the decision
-to reuse its design with attribution. No ContraDB source code is transcribed,
-but the figure sentence structure and modifier phrasing produced by
+to reuse its design with attribution. No ContraDB source code is transcribed
+into anything the app ships, with one test-only exception (below), but the
+figure sentence structure and modifier phrasing produced by
 [`packages/compendium_core/lib/src/dialect/renderer.dart`](packages/compendium_core/lib/src/dialect/renderer.dart)
 follow ContraDB's `libfigure` (`app/javascript/libfigure/` upstream): a
 handful of moves adopt its `words()` sentence structure verbatim, and the
@@ -138,3 +139,10 @@ upOrDownTheHallWords, zigZagWords, longLinesWords, heyWords and gyreWords). No
 ContraDB source code is transcribed; the renderer's comments name the libfigure
 function each rendering follows.
 ```
+
+The exception is test-only and never built into the app:
+[`packages/compendium_core/test/imports/contradb_parity/contradb_reference.dart`](packages/compendium_core/test/imports/contradb_parity/contradb_reference.dart)
+is a line-for-line Dart port of the figure-filter subset of ContraDB's
+`lib/filter_dances.rb` and `lib/search_match.rb`, used as the reference side of
+the ContraDB Advanced-search parity tests. The same ContraDB notice above
+applies to it.

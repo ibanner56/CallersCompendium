@@ -46,12 +46,45 @@ tree. Conforms to [ux.md](ux.md) §1 and [dialect.md](dialect.md)
    (now supported, because ours means the same as ContraDB's `then`: the
    second figure immediately follows the first, wrapping from the last figure
    to the first), a figure parameter or section (ContraDB compares
-   parameters by position in each move's own list), an unknown move, or any
+   parameters by position in each move's own list), a move with no exact
+   ContraDB counterpart, or any
    local-only leaf makes the search refuse with
    `UrlFetchFailureReason.contraDbUnsupportedAdvanced` and send nothing: a
    condition silently dropped would answer a wider question than the panel
    shows. This translation decision is the implementing agent's, not the
    maintainer's.
+
+   **Moves translate by id, through an exact table.** A figure leaf carries
+   the Collection's move id (`do_si_do`), not a ContraDB name, so
+   `translateDanceFilterToContraDb` maps it through
+   `_contraDbForCollectionMove`, which holds only the moves the live importer
+   produces from exactly the ContraDB figures the filter selects. `pull_by` is
+   an `or` of ContraDB's two pull-bys. The importer keeps `see_saw` and
+   `swat_the_flea` apart from `do_si_do` and `box_the_gnat`, while ContraDB
+   stores both as the target move and answers `see saw` with an alias filter,
+   so `do_si_do` is sent as `["&", ["figure", "do si do"], ["not", ["figure",
+   "see saw"]]]`. A display name, a ContraDB spelling or a dialect term is
+   refused: the translator never sees the dialect. `meltdown_swing`, `custom`,
+   `star_promenade`, `allemande_orbit`, `pass_the_ocean` and the moves with no
+   ContraDB figure are refused.
+
+   **What parity covers.** `test/imports/contradb_parity/` imports ContraDB
+   dances through the real `ContraDbHtmlAdapter`, stores them, and compares
+   `FilterCompiler` with a reference evaluator of ContraDB's filter semantics
+   on the same dances. A query selects the same dances on both sides for every
+   shape the builder emits over figures that import one-to-one. It cannot for a
+   ContraDB figure the importer restructures, because the translator sees only
+   the query: a typed `custom` figure ("ones swing while twos circle", "balance
+   and swing") is one `custom` figure on ContraDB but structured figures
+   (flattened leaves, #590) here; `form an ocean wave & balance` is one figure
+   there and two here; a figure the importer cannot read (`*-hand chain`, `star
+   promenade`, `allemande orbit`) is a `custom` leaf here. Those differences are
+   pinned by `contradb_parity_structural_test.dart`.
+
+   **Results are the first 20.** ContraDB returns the matches in title order and
+   the app requests `contraDbSearchCount` (20) with offset 0; the response's
+   `numberMatching` is not read, so a broad query shows a truncated list with
+   no indication of how many matched.
 4. **Injection-safe by construction.** Every user value is a bind variable;
    only a fixed vocabulary of column names, operators, and JSON key paths is
    ever interpolated, and each is validated against an allow-list.
