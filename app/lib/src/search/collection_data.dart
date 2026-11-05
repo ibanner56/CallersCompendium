@@ -6,6 +6,7 @@ import 'package:drift/drift.dart'
 
 import '../models/dance_list_entry.dart';
 import 'coalesce_trailing.dart';
+import 'dance_detail_data.dart' show customValueText;
 
 /// Reference/vocabulary data loaded once for the Collection, used both to build
 /// facet controls and to hydrate search-result ids into [DanceListEntry]s
@@ -542,24 +543,11 @@ class CollectionData {
         for (final def in listFieldDefs)
           for (final value in dance.customFields)
             if (value.fieldId == def.id)
-              (label: def.label, value: _listValueText(value.value)),
+              (label: def.label, value: customValueText(value.value)),
       ],
       lastCalled: lastCalled[dance.id],
       callCounts:
           callCounts[dance.id] ?? const DanceCallCounts(all: 0, performed: 0),
     );
   }
-}
-
-/// A custom field's stored [value] as the list column shows it. Numbers are
-/// stored as doubles, so a whole one (3.0) reads as 3; anything else, a
-/// fractional or out-of-range number included, is shown by `toString()`.
-String _listValueText(Object value) {
-  if (value is num &&
-      value.isFinite &&
-      value == value.truncateToDouble() &&
-      value.abs() < 1e15) {
-    return value.toInt().toString();
-  }
-  return value.toString();
 }
