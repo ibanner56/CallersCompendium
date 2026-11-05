@@ -7836,7 +7836,7 @@
   },
   "importFileNotText": "Die Datei konnte nicht gelesen werden: Sie ist weder eine Freigabedatei noch Text, den die App lesen kann. Wenn eine andere App sie als Text gespeichert hat, speichere sie dort erneut als UTF-8 und versuche es noch einmal.",
   "@importFileNotText": {
-    "x-sourceSha256": "2b6b1e5e54a0395a362c30b25f7cb9bca9f24df5c8144396eae29310f06cccf5"
+    "x-sourceSha256": "eec1e1c43bd48784a659d67bf65997eabe537f3d6e8adb78b6a21ab96e89c582"
   },
   "importFileUnreadable": "Die Datei konnte nicht geöffnet werden. Vielleicht verwendet eine andere App sie gerade, oder sie liegt auf einem Laufwerk, das nicht verbunden ist.",
   "@importFileUnreadable": {
