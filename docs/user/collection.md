@@ -212,9 +212,17 @@ On ContraDB, **Advanced** searches the archive with the same **All of**,
 conditions you use on your own library, and its results must also match any
 text in the search box. ContraDB cannot run every condition the same way, so a
 query that contains a tag, a figure's details (such as its beats or section), a
-move ContraDB does not have, or any other filter is not sent; you see a message
-explaining this, rather than results that quietly ignore that condition. Remove
-those conditions to search ContraDB.
+move ContraDB has no exact equivalent for, or any other filter is not sent; you
+see a message explaining this, rather than results that quietly ignore that
+condition. Remove those conditions to search ContraDB.
+
+ContraDB stores some dances differently from how this app reads them. A figure
+someone typed in as free text (such as "ones swing while twos circle") is one
+figure on ContraDB, so a search for a move inside it can differ from the same
+search in your own library. The app asks ContraDB for only the first 20
+matching dances and does not show how many more there were, so a broad search
+such as one move on its own shows only part of the answer: add conditions to
+narrow it.
 
 ## Narrow things down with filters
 

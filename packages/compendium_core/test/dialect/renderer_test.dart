@@ -580,6 +580,315 @@ void main() {
       );
     });
 
+    group('display word order differs from the canonical text', () {
+      test('pull by names the hand before the direction', () {
+        final figure = Figure(
+          move: 'pull_by',
+          params: {'where': 'across', 'hand': 'left'},
+        );
+        expect(renderer.render(figure, larks), 'pull by left across');
+        // Search/dedupe text keeps its order: no index rebuild is owed.
+        expect(renderer.renderCanonical(figure), 'pull by across left');
+      });
+
+      test('pull by keeps its subject and balance ahead of the move', () {
+        final figure = Figure(
+          move: 'pull_by',
+          params: {
+            'who': 'neighbors',
+            'balance': true,
+            'where': 'rightDiagonal',
+          },
+        );
+        expect(
+          renderer.renderSummary(figure, larks),
+          'neighbor balance & pull by right on right diagonal',
+        );
+      });
+
+      test('a set direction reads as a call on every move', () {
+        String line(String move, Map<String, Object?> params) =>
+            renderer.render(testFigure(move: move, params: params), larks);
+        expect(
+          line('pull_by', {'where': 'leftDiagonal'}),
+          'pull by right on left diagonal',
+        );
+        expect(line('pull_by', {'where': 'in'}), 'pull by right facing in');
+        expect(line('chain', {'where': 'up'}), 'robins chain facing up');
+        expect(
+          line('right_left_through', {'where': 'rightDiagonal'}),
+          'right left through on right diagonal',
+        );
+        expect(
+          line('pass_through', {'where': 'out'}),
+          'pass through facing out',
+        );
+        expect(
+          line('circular_hey', {'where': 'leftDiagonal'}),
+          'circular hey, neighbors pass right on left diagonal',
+        );
+        expect(
+          line('cross_trails', {'where': 'rightDiagonal'}),
+          'cross trails - partner on right diagonal passing right shoulders, '
+          'neighbor passing left shoulders',
+        );
+        // `across` and `along` read as themselves.
+        expect(line('pull_by', {'where': 'across'}), 'pull by right across');
+        expect(line('chain', {'where': 'along'}), 'robins chain along');
+        expect(
+          line('promenade', {'singleFile': true, 'where': 'leftDiagonal'}),
+          'single file promenade on left diagonal',
+        );
+        // The canonical text keeps the humanized token.
+        expect(
+          renderer.renderCanonical(
+            testFigure(move: 'chain', params: {'where': 'leftDiagonal'}),
+          ),
+          'role2s chain left diagonal',
+        );
+      });
+
+      test('a wording condition reads a direction in either form', () {
+        final chain = renderer.moveWordingVocabulary('chain', larks);
+        String? stored(String condition) =>
+            checkWording('[if $condition then x]', chain).stored;
+        expect(
+          stored('where is on right diagonal'),
+          stored('where is right diagonal'),
+        );
+        expect(stored('where is right diagonal'), isNotNull);
+        expect(stored('where is facing in'), stored('where is in'));
+        expect(stored('where is in'), isNotNull);
+      });
+
+      test('a saved hey wording keeps an article that agrees with it', () {
+        // The starting wording before the direction moved after the move.
+        final old = larks.copyWith(
+          moveWordings: {
+            'hey': '{who} start {article} {where} {length} {move}',
+          },
+        );
+        expect(
+          renderer.render(
+            testFigure(move: 'hey', params: {'where': 'along'}),
+            old,
+          ),
+          'robins start an along half hey',
+        );
+        expect(
+          renderer.render(
+            testFigure(move: 'hey', params: {'where': 'up'}),
+            old,
+          ),
+          'robins start a facing up half hey',
+        );
+        expect(
+          renderer.render(testFigure(move: 'hey'), old),
+          'robins start a half hey',
+        );
+      });
+
+      test('a hey and an ocean wave name the direction after the figure', () {
+        String line(String move, Map<String, Object?> params) =>
+            renderer.render(testFigure(move: move, params: params), larks);
+        expect(
+          line('hey', {'where': 'along'}),
+          startsWith('robins start a half hey along - '),
+        );
+        expect(
+          line('hey', {'where': 'in'}),
+          startsWith('robins start a half hey facing in - '),
+        );
+        expect(
+          line('pass_the_ocean', {'where': 'leftDiagonal'}),
+          startsWith('pass through to an ocean wave on left diagonal - '),
+        );
+      });
+
+      test("Rory O'More's balance follows its subject", () {
+        expect(
+          renderer.renderSummary(
+            testFigure(
+              move: 'rory_o_more',
+              params: {'who': 'role1s', 'balance': true},
+            ),
+            larks,
+          ),
+          "larks balance & Rory O'More right",
+        );
+        expect(
+          renderer.renderSummary(
+            testFigure(move: 'rory_o_more', params: {'balance': true}),
+            larks,
+          ),
+          "balance & Rory O'More right",
+        );
+      });
+
+      test('pull by seeds its wording editor in display order', () {
+        expect(
+          renderer.moveWordingTemplate('pull_by'),
+          '{who} {move} {hand} {where}',
+        );
+        expect(renderer.moveWordingSlots('pull_by'), {
+          'who',
+          'move',
+          'hand',
+          'where',
+        });
+      });
+
+      test('slide along set names the side after the verb', () {
+        final figure = Figure(move: 'slide_along_set');
+        expect(renderer.render(figure, larks), 'slide left along set');
+        expect(
+          renderer.render(
+            Figure(move: 'slide_along_set', params: {'slide': 'right'}),
+            larks,
+          ),
+          'slide right along set',
+        );
+        expect(renderer.renderCanonical(figure), 'slide along set left');
+      });
+
+      test('slide along set keeps a dialect name whole', () {
+        final dialect = Dialect(
+          name: 'Sashay',
+          moves: {'slide_along_set': 'sashay'},
+        );
+        expect(
+          renderer.render(Figure(move: 'slide_along_set'), dialect),
+          'sashay left',
+        );
+      });
+
+      test('slide along set starts a custom wording from {move}', () {
+        // The default line spells the name around the side, which a
+        // template cannot do with `{move}` whole; the editor and a copied
+        // figure start from `{move} {slide}` so a dialect's or a copy's own
+        // name still reaches the line.
+        expect(
+          renderer.moveWordingTemplate('slide_along_set'),
+          '{move} {slide}',
+        );
+        expect(renderer.moveWordingSlots('slide_along_set'), {'move', 'slide'});
+        expect(
+          renderer.moveWordingMissingSlots('slide_along_set', '{move} {slide}'),
+          isEmpty,
+        );
+        final renamed = Dialect(
+          name: 'Sashay',
+          moves: {'slide_along_set': 'sashay'},
+          moveWordings: {'slide_along_set': '{move} {slide}'},
+        );
+        expect(
+          renderer.render(Figure(move: 'slide_along_set'), renamed),
+          'sashay left',
+        );
+        // A caller who wants the default order writes it out.
+        final spelled = larks.copyWith(
+          moveWordings: {'slide_along_set': 'slide {slide} along set'},
+        );
+        expect(
+          renderer.render(Figure(move: 'slide_along_set'), spelled),
+          'slide left along set',
+        );
+        expect(
+          userFigureSeedFromMove(contraTaxonomy, 'slide_along_set')!.template,
+          contains('{move}'),
+        );
+      });
+
+      test('slide along set reads as a gerund in a modifier', () {
+        final figure = Figure.modifier(
+          figures: [
+            Figure(move: 'swing'),
+            Figure(move: 'slide_along_set'),
+          ],
+          beats: 8,
+        );
+        expect(
+          renderer.renderSummary(figure, larks),
+          contains('sliding left along set'),
+        );
+        // A wording that keeps the name whole keeps its own gerund.
+        expect(
+          renderer.renderSummary(
+            figure,
+            larks.copyWith(moveWordings: {'slide_along_set': '{move} {slide}'}),
+          ),
+          contains('sliding along the set left'),
+        );
+      });
+    });
+
+    test('a subject a plural verb agrees with stays plural', () {
+      String line(String move, Map<String, Object?> params) =>
+          renderer.render(testFigure(move: move, params: params), larks);
+      expect(
+        line('revolving_door', {'who': 'neighbors'}),
+        contains('- neighbors take right hands'),
+      );
+      expect(
+        line('box_circulate', {'who': 'neighbors'}),
+        contains('- neighbors cross while'),
+      );
+      expect(
+        line('poussette', {'who': 'neighbors'}),
+        contains('- neighbors pull neighbor back'),
+      );
+      expect(
+        line('hey', {'pass1': 'neighbors'}),
+        startsWith('neighbors start a half hey'),
+      );
+      expect(
+        line('form_a_long_wave', {'who': 'neighbors'}),
+        startsWith('neighbors dance in to a long wave'),
+      );
+      expect(
+        line('pass_the_ocean', {}),
+        contains('neighbors take right hands on the sides'),
+      );
+      expect(
+        line('pass_the_ocean', {'center': 'partners'}),
+        contains('partners catch left hands in the center'),
+      );
+      // A subject that only prefixes the move keeps the caller's singular.
+      expect(line('swing', {'who': 'neighbors'}), 'neighbor swing');
+      expect(
+        line('form_short_waves', {}),
+        contains('neighbor by the right on the sides'),
+      );
+    });
+
+    test('a sequence says a subject once whichever number each step uses', () {
+      String sequence(List<Figure> figures) =>
+          renderer.render(Figure.sequence(figures: figures, beats: 16), larks);
+      final wave = Figure(
+        move: 'form_a_long_wave',
+        params: {'who': 'neighbors'},
+      );
+      final balance = Figure(move: 'balance', params: {'who': 'neighbors'});
+      expect(
+        sequence([wave, balance]),
+        'neighbors dance in to a long wave in the center - balance the wave '
+        'and balance',
+      );
+      expect(
+        sequence([balance, wave]),
+        'neighbor balance and dance in to a long wave in the center - '
+        'balance the wave',
+      );
+      // A line the subject does not lead keeps the next step's subject.
+      expect(
+        sequence([
+          Figure(move: 'revolving_door', params: {'who': 'neighbors'}),
+          balance,
+        ]),
+        endsWith('on other side and neighbor balance'),
+      );
+    });
+
     test('figure eight puts fraction first and describes its direction', () {
       final figure = Figure(
         move: 'figure_8',
@@ -2124,7 +2433,7 @@ void main() {
             Figure(move: 'promenade', params: {'where': 'up'}),
             d,
           ),
-          'partner promenade up',
+          'partner promenade facing up',
         );
       });
       test('promenade gains target when set', () {
@@ -2183,7 +2492,7 @@ void main() {
             Figure(move: 'pull_by', params: {'where': 'across'}),
             d,
           ),
-          'pull by across right',
+          'pull by right across',
         );
       });
       test('down_the_hall drops the default "forward" facing', () {
@@ -2926,7 +3235,7 @@ void main() {
       test('default: second dir/shoulder are the structural inverse', () {
         expect(
           renderer.render(Figure(move: 'cross_trails'), d),
-          'cross trails - partner across the set right shoulders, neighbor along the set left shoulders',
+          'cross trails - partner across the set passing right shoulders, neighbor along the set passing left shoulders',
         );
       });
       test('dir=along mirrors to "across the set" for the second pair', () {
@@ -2935,7 +3244,7 @@ void main() {
             Figure(move: 'cross_trails', params: {'where': 'along'}),
             d,
           ),
-          'cross trails - partner along the set right shoulders, neighbor across the set left shoulders',
+          'cross trails - partner along the set passing right shoulders, neighbor across the set passing left shoulders',
         );
       });
     });
@@ -3200,7 +3509,7 @@ void main() {
             ),
             d,
           ),
-          'cross trails - some imported group across the set right shoulders, along the set left shoulders',
+          'cross trails - some imported group across the set passing right shoulders, along the set passing left shoulders',
         );
       });
       test('poussette drops the direction clause for an unknown turn', () {
@@ -3514,11 +3823,12 @@ void main() {
       // a naive line-search into marking the MOVE NAME and leaving the real
       // subject authoritative. box_circulate renders its move name BEFORE the
       // subject, so it is the canonical trap: `moves: {box_circulate:
-      // 'partner circulate'}` yields "partner circulate - partner cross …",
-      // where a `line.indexOf('partner')` finds the move-name "partner" first.
+      // 'partners circulate'}` yields "partners circulate - partners cross …"
+      // (the subject is plural: it agrees with "cross"), where a
+      // `line.indexOf('partners')` finds the move-name "partners" first.
       final dialect = Dialect(
         name: 'Trap',
-        moves: const {'box_circulate': 'partner circulate'},
+        moves: const {'box_circulate': 'partners circulate'},
       );
       final assumed = Figure(
         move: 'box_circulate',
@@ -3527,10 +3837,10 @@ void main() {
       );
       final out = renderer.render(assumed, dialect);
       // The move name is intact — the marker did NOT land inside it …
-      expect(out, contains('partner circulate -'));
-      expect(out, isNot(startsWith('partner (assumed) circulate')));
+      expect(out, contains('partners circulate -'));
+      expect(out, isNot(startsWith('partners (assumed) circulate')));
       // … and the marker trails the ACTUAL subject token instead.
-      expect(out, contains('partner (assumed) cross'));
+      expect(out, contains('partners (assumed) cross'));
       // Exactly one marker (no residue, no double-marking).
       expect('(assumed)'.allMatches(out).length, 1);
 
@@ -3543,7 +3853,7 @@ void main() {
         dialect,
       );
       expect(statedOut, isNot(contains('(assumed)')));
-      expect(statedOut, startsWith('partner circulate -'));
+      expect(statedOut, startsWith('partners circulate -'));
     });
   });
 

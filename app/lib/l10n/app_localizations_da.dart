@@ -7476,7 +7476,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importErrorContraDbUnsupportedAdvanced =>
-      'ContraDB kan kun køre avancerede søgninger, der består af grupperne “Alle af”, “Nogen af” og “Ingen af” med “Har figur”- og “Sekvens (derefter)”-betingelser. Fjern tags, figurdetaljer, bevægelser som ContraDB ikke har, og andre betingelser for at søge i ContraDB.';
+      'ContraDB kan kun køre avancerede søgninger, der består af grupperne “Alle af”, “Nogen af” og “Ingen af” med “Har figur”- og “Sekvens (derefter)”-betingelser. Fjern tags, figurdetaljer, bevægelser uden præcis modsvarighed i ContraDB og andre betingelser for at søge i ContraDB.';
 
   @override
   String get importErrorContraDbEmptyDanceInput =>

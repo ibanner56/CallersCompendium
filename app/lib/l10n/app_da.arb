@@ -7322,9 +7322,9 @@
   "@importErrorContraDbUnsupportedFigure": {
     "x-sourceSha256": "b3cdc0346e556478bbeb56d45067b5cc4e6361aa0ed3e239efe070a08fd08b57"
   },
-  "importErrorContraDbUnsupportedAdvanced": "ContraDB kan kun køre avancerede søgninger, der består af grupperne “Alle af”, “Nogen af” og “Ingen af” med “Har figur”- og “Sekvens (derefter)”-betingelser. Fjern tags, figurdetaljer, bevægelser som ContraDB ikke har, og andre betingelser for at søge i ContraDB.",
+  "importErrorContraDbUnsupportedAdvanced": "ContraDB kan kun køre avancerede søgninger, der består af grupperne “Alle af”, “Nogen af” og “Ingen af” med “Har figur”- og “Sekvens (derefter)”-betingelser. Fjern tags, figurdetaljer, bevægelser uden præcis modsvarighed i ContraDB og andre betingelser for at søge i ContraDB.",
   "@importErrorContraDbUnsupportedAdvanced": {
-    "x-sourceSha256": "8f53ddf0ffef7f620b874fdc200ce6bed571cbec3bcb67d8c1436203f6c52854"
+    "x-sourceSha256": "b166d3ee8af2d030706374c4f6c379babc5a63abe7bc7cf6eea79ae4fce14680"
   },
   "importErrorContraDbEmptyDanceInput": "Indtast en ContraDB dans-URL eller id at importere fra.",
   "@importErrorContraDbEmptyDanceInput": {

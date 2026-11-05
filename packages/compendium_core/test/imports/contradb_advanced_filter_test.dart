@@ -25,14 +25,67 @@ void main() {
       expect(expression(FigureFilter.leaf('swing')), ['figure', 'swing']);
     });
 
-    test('resolves case and punctuation to ContraDB spelling', () {
-      expect(expression(FigureFilter.leaf('California Twirl')), [
+    test('resolves the Collection\'s move ids to ContraDB spelling', () {
+      // The builder emits taxonomy ids (`FigureLeaf.move`), not display names;
+      // ContraDB's `figure` operator is an exact, case-sensitive key.
+      expect(expression(FigureFilter.leaf('california_twirl')), [
         'figure',
         'California twirl',
       ]);
-      expect(expression(FigureFilter.leaf('Rory O’More')), [
+      expect(expression(FigureFilter.leaf('rory_o_more')), [
         'figure',
         "Rory O'More",
+      ]);
+      expect(expression(FigureFilter.leaf('arch_and_dive')), [
+        'figure',
+        'arch & dive',
+      ]);
+      expect(expression(FigureFilter.leaf('give_and_take')), [
+        'figure',
+        'give & take',
+      ]);
+      expect(expression(FigureFilter.leaf('shoulder_round')), [
+        'figure',
+        'gyre',
+      ]);
+    });
+
+    test('the Collection keeps an alias apart from its target move', () {
+      // The importer stores a see saw as `see_saw`, not as a `do_si_do`
+      // (likewise swat the flea / box the gnat), while ContraDB stores both
+      // as the target move and answers `see saw` with an alias filter (the
+      // target move with the alias's pinned parameter). So the Collection's
+      // `do_si_do` is ContraDB's `do si do` minus its `see saw`.
+      expect(expression(FigureFilter.leaf('see_saw')), ['figure', 'see saw']);
+      expect(expression(FigureFilter.leaf('swat_the_flea')), [
+        'figure',
+        'swat the flea',
+      ]);
+      expect(expression(FigureFilter.leaf('do_si_do')), [
+        '&',
+        ['figure', 'do si do'],
+        [
+          'not',
+          ['figure', 'see saw'],
+        ],
+      ]);
+      expect(expression(FigureFilter.leaf('box_the_gnat')), [
+        '&',
+        ['figure', 'box the gnat'],
+        [
+          'not',
+          ['figure', 'swat the flea'],
+        ],
+      ]);
+    });
+
+    test('a Collection move that is two ContraDB moves becomes their or', () {
+      // The importer folds both `pull by dancers` and `pull by direction` into
+      // `pull_by`, so the Collection's `pull_by` is exactly their union.
+      expect(expression(FigureFilter.leaf('pull_by')), [
+        'or',
+        ['figure', 'pull by dancers'],
+        ['figure', 'pull by direction'],
       ]);
     });
 
@@ -222,11 +275,60 @@ void main() {
         refusal(FigureFilter.leaf('not a real move')),
         ContraDbAdvancedUnsupported.figureName,
       );
-      // A partial name is not a move either; ContraDB would match nothing.
+      // A partial name is not a move either.
       expect(
         refusal(FigureFilter.leaf('swin')),
         ContraDbAdvancedUnsupported.figureName,
       );
+      // Collection-only moves have no ContraDB figure at all.
+      for (final id in [
+        'two_hand_turn',
+        'courtesy_turn',
+        'star_through',
+        'turn_as_couples',
+        'orbit',
+        'circular_hey',
+        // Each is a subset of ContraDB's single `form an ocean wave`.
+        'pass_the_ocean',
+        'form_short_waves',
+      ]) {
+        expect(
+          refusal(FigureFilter.leaf(id)),
+          ContraDbAdvancedUnsupported.figureName,
+          reason: id,
+        );
+      }
+    });
+
+    test('a display name or ContraDB spelling is not a Collection move id', () {
+      // The Collection resolves a typed name through the active dialect; this
+      // translator never sees the dialect, so only exact ids are trusted.
+      for (final name in ['do si do', 'Do Si Do', 'California Twirl', 'gyre']) {
+        expect(
+          refusal(FigureFilter.leaf(name)),
+          ContraDbAdvancedUnsupported.figureName,
+          reason: name,
+        );
+      }
+    });
+
+    test('moves whose ContraDB meaning differs or is lossy', () {
+      // `meltdown_swing`: the importer stores a meltdown swing as a `swing`
+      // with `prefix: meltdown`, so a leaf for the alias id matches nothing.
+      // `custom` / `star_promenade`: the importer sends unrecognised and
+      // declined lines to the Collection's `custom`, so the two sets differ.
+      for (final id in [
+        'meltdown_swing',
+        'custom',
+        'star_promenade',
+        'allemande_orbit',
+      ]) {
+        expect(
+          refusal(FigureFilter.leaf(id)),
+          ContraDbAdvancedUnsupported.figureName,
+          reason: id,
+        );
+      }
     });
 
     test('local-only conditions', () {
@@ -291,5 +393,119 @@ void main() {
     test('rejects an empty expression', () {
       expect(() => buildContraDbFilterBody([]), throwsArgumentError);
     });
+  });
+
+  group('the move table, checked as a whole', () {
+    // Every other assertion here copies one entry. These check the table's
+    // shape, so a typo or a stray entry cannot slip through unasserted.
+    // The table's own keys, so a misspelt or stale one is visited (walking the
+    // taxonomy instead would never reach a key that matches nothing in it).
+    final tableIds = contraDbTranslatableMoveIds.toList();
+    final translated = <String, Object?>{};
+    for (final id in tableIds) {
+      final t = translateDanceFilterToContraDb(FigureFilter.leaf(id));
+      if (t is ContraDbAdvancedExpression) translated[id] = t.expression;
+    }
+    // `see_saw` and `swat_the_flea` are aliases, not entries of `moves`.
+    final knownIds = {
+      ...contraTaxonomy.moves.keys,
+      ...contraTaxonomy.aliases.keys,
+    };
+
+    List<String> figureNames(Object? expression) => [
+      if (expression is List<Object?>)
+        if (expression.isNotEmpty && expression.first == 'figure')
+          expression[1] as String
+        else
+          for (final part in expression.skip(1)) ...figureNames(part),
+    ];
+
+    test('every table key is a Collection move or alias, and translates', () {
+      expect(tableIds.length, greaterThan(30));
+      expect(
+        tableIds.where((id) => !knownIds.contains(id)),
+        isEmpty,
+        reason: 'a key that is not a Collection move id is never asked about',
+      );
+      expect(translated.keys.toSet(), tableIds.toSet(), reason: 'refused');
+    });
+
+    test('the moves left out of the table are exactly the documented ones', () {
+      // A rename or a new taxonomy move changes this set on purpose, so it is
+      // decided (map it exactly, or refuse it) rather than defaulting to refused.
+      final leftOut = knownIds.difference(tableIds.toSet()).toList()..sort();
+      expect(leftOut, const [
+        'circular_hey',
+        'courtesy_turn',
+        'custom',
+        'form_short_waves',
+        'meltdown_swing',
+        'orbit',
+        'pass_the_ocean',
+        'pull_by_dancers',
+        'pull_by_direction',
+        'star_promenade',
+        'star_through',
+        'turn_as_couples',
+        'two_hand_turn',
+      ]);
+    });
+
+    test('every name it asks for is a real ContraDB figure name', () {
+      for (final entry in translated.entries) {
+        final names = figureNames(entry.value);
+        expect(names, isNotEmpty, reason: entry.key);
+        for (final name in names) {
+          expect(
+            canonicalContraDbFigureQuery(name),
+            name,
+            reason: '${entry.key} asks for "$name"',
+          );
+        }
+      }
+    });
+
+    test('see saw and swat the flea are asked for by their own moves only', () {
+      for (final entry in translated.entries) {
+        final names = figureNames(entry.value);
+        if (entry.key != 'see_saw') {
+          // do_si_do names it only inside `not`, to exclude it.
+          expect(
+            names.where((n) => n == 'see saw').length,
+            entry.key == 'do_si_do' ? 1 : 0,
+            reason: entry.key,
+          );
+        }
+        if (entry.key != 'swat_the_flea') {
+          expect(
+            names.where((n) => n == 'swat the flea').length,
+            entry.key == 'box_the_gnat' ? 1 : 0,
+            reason: entry.key,
+          );
+        }
+      }
+    });
+
+    test(
+      'moves that cannot be exact are refused, each for the right reason',
+      () {
+        for (final id in const [
+          'meltdown_swing',
+          'star_promenade',
+          'allemande_orbit',
+          'pass_the_ocean',
+          'form_short_waves',
+          'custom',
+        ]) {
+          final t = translateDanceFilterToContraDb(FigureFilter.leaf(id));
+          expect(t, isA<ContraDbAdvancedRefused>(), reason: id);
+          expect(
+            (t as ContraDbAdvancedRefused).reason,
+            ContraDbAdvancedUnsupported.figureName,
+            reason: id,
+          );
+        }
+      },
+    );
   });
 }

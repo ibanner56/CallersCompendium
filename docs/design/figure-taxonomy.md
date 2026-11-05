@@ -792,6 +792,25 @@ figure as the progression. This is non-serialized taxonomy metadata, so no
   large-print Perform mode, while the visible text stays terse.
 - FTS indexing uses canonical rendered text + searchKeywords (incl. legacy
   terms like "gypsy" so searches by older users still find shoulder round).
+- Display may put a move's details in a different order from its canonical
+  text where the template reads as search text rather than as a call:
+  `pull by right across` (canonical `pull by across right`) and
+  `slide left along set` (canonical `slide along set left`; a dialect that
+  renames the move keeps its name whole, `sashay left`). A set direction
+  reads the same way on every built-in move that shows one: a diagonal as
+  `on right diagonal`, a facing direction as `facing in`, and
+  `across`/`along` as themselves (`pull by right on left diagonal`, `robins
+  chain facing in`); a hey or an ocean wave names it after the figure (`a
+  half hey along`, `an ocean wave on right diagonal`). A figure of your own
+  keeps the plain direction, since its template supplies the words around
+  it. Cross trails says `passing` before each shoulder, so a direction never
+  reads as the shoulder's side (`partner on right diagonal passing right
+  shoulders`). Rory O'More's balance follows its subject (`larks balance &
+  Rory O'More right`). A subject the verb after it agrees with stays plural
+  (`neighbors take right hands`), while a subject that only prefixes the
+  move reads singular (`neighbor swing`). All of this is display-only
+  (`_displayDirection`, `_displayRenderTemplates` and `_displayBaseRenderers`
+  in `renderer.dart`), so canonical text and the FTS index are unchanged.
 
 ### Derived (computed-at-render) taxonomy values — convention WITHDRAWN (v22)
 
