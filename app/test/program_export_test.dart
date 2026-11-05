@@ -2669,7 +2669,7 @@ void main() {
       Program program, {
       required Set<DanceShareField> fields,
       Choreographer? Function(String id)? choreographerFor,
-      List<String> Function(String danceId)? trashedAuthorNamesFor,
+      List<String>? Function(String danceId)? authorNamesOverrideFor,
     }) async {
       String? clipboardText;
       tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
@@ -2703,7 +2703,7 @@ void main() {
                     danceFor: (id) => dancesWithAuthor[id],
                     choreographerFor:
                         choreographerFor ?? (id) => choreographers[id],
-                    trashedAuthorNamesFor: trashedAuthorNamesFor,
+                    authorNamesOverrideFor: authorNamesOverrideFor,
                   ),
                 ],
               ),
@@ -2738,7 +2738,7 @@ void main() {
     );
 
     testWidgets(
-      'an author in Recently deleted still gets the suffix, by name only',
+      'a dance with an author in Recently deleted gets its names, by name only',
       (tester) async {
         final text = await pumpAndCopy(
           tester,
@@ -2748,7 +2748,7 @@ void main() {
           fields: DanceShareField.allExceptTunes,
           // The collection does not list a deleted author.
           choreographerFor: (_) => null,
-          trashedAuthorNamesFor: (id) => id == 'd3' ? ['Jane Smith'] : [],
+          authorNamesOverrideFor: (id) => id == 'd3' ? ['Jane Smith'] : null,
         );
         expect(text, contains('1. Money Musk — by Jane Smith'));
       },

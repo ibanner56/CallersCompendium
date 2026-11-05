@@ -4,7 +4,7 @@
   "app": {
     "fixed": [
       "Perform's Jump to slot list numbers dances only, matching your set list: a break takes no number.",
-      "Copied and PDF set lists now name the author of a dance whose author is in Recently deleted, as Perform already did.",
+      "Copied and PDF set lists now name the authors of a dance in Recently deleted when one of them is in Recently deleted too, in credit order, as Perform already did.",
       "A new program now offers back the unsaved draft you saved last, not whichever draft sorts first."
     ]
   },

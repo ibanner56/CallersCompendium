@@ -151,11 +151,15 @@ void main() {
       await repos.choreographers.upsert(
         Choreographer(id: 'c1', name: 'Gene Hubert'),
       );
+      // ignore: unused_result
+      await repos.choreographers.upsert(
+        Choreographer(id: 'c2', name: 'Ann Live'),
+      );
       await repos.dances.create(
         Dance(
           id: 'd1',
           title: 'Gone Dance',
-          authorIds: const ['c1'],
+          authorIds: const ['c1', 'c2'],
           figures: const [],
           status: DanceStatus.active,
           createdAt: _now,
@@ -213,7 +217,8 @@ void main() {
       await tester.tap(find.text('Copy set list'));
       await tester.pumpAndSettle();
 
-      expect(copied, contains('by Gene Hubert'));
+      // In credit order, the trashed author first.
+      expect(copied, contains('by Gene Hubert, Ann Live'));
     },
   );
 }
