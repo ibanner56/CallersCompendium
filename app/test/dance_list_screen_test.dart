@@ -20,6 +20,7 @@ import 'package:compendium_app/src/data/require_event_date_for_history_scope.dar
 import 'package:compendium_app/src/data/sort_ignore_articles_scope.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/dance_list_screen.dart';
+import 'package:compendium_app/src/screens/published_collection_catalog_screen.dart';
 import 'package:compendium_app/src/search/collection_query.dart';
 import 'package:compendium_app/src/widgets/brand_mark.dart';
 import 'package:compendium_app/src/widgets/dance_list_tile.dart';
@@ -270,6 +271,36 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('collection-empty-import')));
     expect(imports, 1);
+  });
+
+  testWidgets('the import card offers the published collections catalog', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(id: kBabyRoseSeedDanceId, title: 'The Baby Rose'),
+    );
+    await _pumpScreen(tester, repos);
+    await tester.pumpAndSettle();
+
+    final browse = find.byKey(const ValueKey('collection-import-card-browse'));
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('collection-import-card')),
+        matching: find.text('Browse published collections'),
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(browse);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.byType(PublishedCollectionCatalogScreen), findsOneWidget);
+
+    // The real catalog service is on its own timeout while it tries the
+    // network; let it lapse before the test ends.
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(minutes: 2));
   });
 
   testWidgets('the import card goes once another dance is present', (

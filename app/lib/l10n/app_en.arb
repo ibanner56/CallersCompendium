@@ -2594,6 +2594,16 @@
       }
     }
   },
+  "settingsDialectEditConflictSnack": "\"{name}\" was renamed or deleted while you were editing it, so your changes were not saved.",
+  "@settingsDialectEditConflictSnack": {
+    "description": "Snackbar shown when saving a dialect's edited terms fails because the dialect was renamed or deleted while its editor was open; quotes the dialect's name as the editor opened it (untrusted user text, rendered as plain text).",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "My dialect"
+      }
+    }
+  },
   "settingsDialectActionsTooltip": "Dialect actions",
   "@settingsDialectActionsTooltip": {
     "description": "Tooltip for the per-dialect actions menu button."
@@ -5060,7 +5070,7 @@
   },
   "commonDeletedSnack": "\"{title}\" deleted.",
   "@commonDeletedSnack": {
-    "description": "Snackbar confirming a dance was soft-deleted, quoting its title.",
+    "description": "Snackbar confirming that an item was deleted, quoting its name or title. Used for dances and for other named items: dialects, custom themes, custom fields, custom figures, walkthrough snippets and shorthand tokens.",
     "placeholders": {
       "title": {
         "type": "String",
@@ -5331,6 +5341,10 @@
   "collectionImportCardBody": "Import dances you already have, or write your first one. \"The Baby Rose\" is here as a sample to look around with.",
   "@collectionImportCardBody": {
     "description": "Body of the card shown while the sample dance is the only dance in the Collection; points at Import dances and New dance."
+  },
+  "collectionBrowsePublishedCollections": "Browse published collections",
+  "@collectionBrowsePublishedCollections": {
+    "description": "Button on the card shown while the sample dance is the only dance in the Collection; opens the catalog of signed published collections."
   },
   "collectionFiltersTitle": "Filters",
   "@collectionFiltersTitle": {
@@ -8762,6 +8776,16 @@
       }
     }
   },
+  "onlineImportUpdated": "Updated \"{title}\" with the online version.",
+  "@onlineImportUpdated": {
+    "description": "Snackbar confirming an online import was written over a dance the user already had, after they chose Same dance (update existing). Nothing new was added, so it does not say Imported. The title is an untrusted external value rendered as plain text.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Money Musk"
+      }
+    }
+  },
   "onlineImportUndoKeptChanged": "\"{title}\" has changed since you imported it, so Undo left it as it is.",
   "@onlineImportUndoKeptChanged": {
     "description": "Snackbar shown when the user taps Undo on an online import, but the dance was edited after the import, so undoing would throw those edits away and nothing was undone (INTAKE-5). The title is the dance's title, an untrusted value rendered as plain text.",
@@ -9175,6 +9199,18 @@
   "importReviewClose": "Close import",
   "@importReviewClose": {
     "description": "Tooltip on the close button of the embedded import review screen."
+  },
+  "importReviewDiscardTitle": "Discard this import?",
+  "@importReviewDiscardTitle": {
+    "description": "Title of the dialog shown when the user leaves the import review screen before importing."
+  },
+  "importReviewDiscardBody": "If you leave now, the list you are reviewing and the choices you made on it are discarded.",
+  "@importReviewDiscardBody": {
+    "description": "Body of the dialog shown when the user leaves the import review screen before importing; the list is the planned import, with the choices made on it."
+  },
+  "importReviewKeepReviewing": "Keep reviewing",
+  "@importReviewKeepReviewing": {
+    "description": "Button that stays on the import review screen instead of discarding the list."
   },
   "importReviewSourceLabel": "Source",
   "@importReviewSourceLabel": {
@@ -10465,9 +10501,9 @@
   "@importReviewImportError": {
     "description": "Snackbar shown when an import commit (or commit-for-edit) throws. The raw exception is logged (debugPrint), never shown, so storage internals/paths can't leak to the UI (CWE-209)."
   },
-  "importFileNotText": "Couldn't read that file: it isn't text the app can read. If another app saved it, save it again as UTF-8 text and try again.",
+  "importFileNotText": "Couldn't read that file: it isn't a share file, or text the app can read. If another app saved it as text, save it again as UTF-8 and try again.",
   "@importFileNotText": {
-    "description": "Snackbar on the import screen when the chosen file is not UTF-8 text (for example a file saved in another encoding, or not a text file at all). Nothing was imported."
+    "description": "Snackbar on the import screen when the chosen file can't be read as UTF-8 text: a binary file that isn't a share file, or text saved in another encoding. Nothing was imported."
   },
   "importFileUnreadable": "Couldn't open that file. Another app may be using it, or it may be on a drive that isn't connected.",
   "@importFileUnreadable": {

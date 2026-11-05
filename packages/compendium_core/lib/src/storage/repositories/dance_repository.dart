@@ -92,6 +92,18 @@ final RegExp _legacyCallersBoxRollAwayClauseRe = RegExp(
   r'^(role1s|role2s) (roll|side-step|step aside)(?: (left|right))?$',
 );
 
+/// The text a custom-field value contributes to the search index.
+///
+/// A number reads the way a caller types it: a whole number is "3", never the
+/// "3.0" `double.toString` gives, which indexed a stray "0" token beside it.
+/// Every other value indexes as its own `toString`.
+String _customValueIndexText(Object? value) {
+  if (value is num && value.isFinite && value == value.truncateToDouble()) {
+    return value.toInt().toString();
+  }
+  return value.toString();
+}
+
 /// CRUD + search for [Dance]s.
 ///
 /// A write rebuilds the derived indexes ([DanceFigures] rows,
@@ -1590,7 +1602,8 @@ class DanceRepository {
     }
     return [
       for (final value in dance.customFields)
-        if (indexedIds.contains(value.fieldId)) value.value.toString(),
+        if (indexedIds.contains(value.fieldId))
+          _customValueIndexText(value.value),
     ];
   }
 

@@ -151,6 +151,26 @@ class DialectLibraryController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Saves [edited] over the custom dialect that has its name, and reports
+  /// whether it did. `false` means no custom dialect has that name any more,
+  /// so nothing is written.
+  ///
+  /// The save for an editor opened on an existing dialect, which keeps the name
+  /// it opened with. [upsert] cannot serve there: it adds the dialect when the
+  /// name is not found, so a dialect renamed elsewhere while its editor was
+  /// open would gain a second copy under its old name, and one deleted
+  /// meanwhile would come back. A dialect is identified by its name alone, so a
+  /// name deleted and then taken by a new dialect cannot be told apart from the
+  /// original here; the edit lands on that one.
+  Future<bool> updateTerms(Dialect edited) async {
+    final index = _customByNameIndex(edited.name);
+    if (index < 0) return false;
+    _customDialects[index] = edited;
+    await _persistDialects();
+    notifyListeners();
+    return true;
+  }
+
   /// Creates a custom dialect seeded from [from] (defaults to a blank canonical
   /// dialect) under a unique name derived from [name], saves it without
   /// activating it, and returns it. Used by "new" / "duplicate from preset".

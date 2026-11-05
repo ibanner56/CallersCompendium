@@ -2086,6 +2086,11 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String settingsDialectEditConflictSnack(String name) {
+    return '\"$name\" blev omdøbt eller slettet, mens du redigerede den, så dine ændringer blev ikke gemt.';
+  }
+
+  @override
   String get settingsDialectActionsTooltip => 'Dialekthandlinger';
 
   @override
@@ -4176,6 +4181,10 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get collectionImportCardBody =>
       'Importér danse, du allerede har, eller skriv din første. „The Baby Rose“ er med som eksempel, så du kan se dig om.';
+
+  @override
+  String get collectionBrowsePublishedCollections =>
+      'Gennemse udgivne samlinger';
 
   @override
   String get collectionFiltersTitle => 'Filtre';
@@ -6682,6 +6691,11 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String onlineImportUpdated(String title) {
+    return 'Opdaterede „$title“ med onlineversionen.';
+  }
+
+  @override
   String onlineImportUndoKeptChanged(String title) {
     return '„$title“ er ændret, siden du importerede den, så Fortryd lod den være som den er.';
   }
@@ -7035,6 +7049,16 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importReviewClose => 'Luk import';
+
+  @override
+  String get importReviewDiscardTitle => 'Kassér denne import?';
+
+  @override
+  String get importReviewDiscardBody =>
+      'Hvis du forlader siden nu, kasseres den liste, du gennemgår, og de valg, du har truffet på den.';
+
+  @override
+  String get importReviewKeepReviewing => 'Fortsæt gennemgang';
 
   @override
   String get importReviewSourceLabel => 'Kilde';
@@ -8065,7 +8089,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importFileNotText =>
-      'Kunne ikke læse den fil: den er ikke tekst, som appen kan læse. Hvis en anden app har gemt den, så gem den igen som UTF-8-tekst og prøv igen.';
+      'Kunne ikke læse den fil: den er ikke en delefil eller tekst, som appen kan læse. Hvis en anden app har gemt den som tekst, så gem den igen som UTF-8 og prøv igen.';
 
   @override
   String get importFileUnreadable =>

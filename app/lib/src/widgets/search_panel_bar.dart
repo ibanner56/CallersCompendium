@@ -1,8 +1,9 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/semantics.dart';
+import 'package:flutter/rendering.dart';
 
 import '../theme/app_spacing.dart';
 
@@ -40,7 +41,7 @@ class SearchPanelSpec {
 }
 
 /// The search tools (Filters, By phrase, Advanced) as one compact, wrapping row
-/// of toggles above the results, with the open tool's content below it.
+/// of toggles, stretched to the full width, above the results, with the open tool's content below it.
 ///
 /// Each tool used to be a full-width collapsible header, and the three stacked
 /// headers took about 150dp before the first result — nearly a fifth of a
@@ -174,10 +175,10 @@ class _SearchPanelBarState extends State<SearchPanelBar> {
             AppSpacing.md,
             AppSpacing.xs,
           ),
-          child: Wrap(
+          child: StretchWrap(
             spacing: AppSpacing.xxs,
             runSpacing: AppSpacing.xxs,
-            crossAxisAlignment: WrapCrossAlignment.center,
+            stretchCount: widget.panels.length,
             children: [
               for (final panel in widget.panels)
                 _PanelToggle(
@@ -256,13 +257,17 @@ class _PanelToggle extends StatelessWidget {
         // The chevron already adds space at the end of the label.
         padding: const EdgeInsets.symmetric(horizontal: 4),
         labelPadding: const EdgeInsetsDirectional.only(start: 4, end: 0),
-        label: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Flexible(child: Text(panel.label)),
-            const SizedBox(width: 2),
-            Icon(open ? Icons.expand_less : Icons.expand_more, size: 16),
-          ],
+        // Centred, because the row stretches the chip past its natural width.
+        label: Center(
+          widthFactor: 1,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(child: Text(panel.label)),
+              const SizedBox(width: 2),
+              Icon(open ? Icons.expand_less : Icons.expand_more, size: 16),
+            ],
+          ),
         ),
         onPressed: enabled ? onToggle : null,
       ),
@@ -279,4 +284,232 @@ class _PanelToggle extends StatelessWidget {
     }
     return toggle;
   }
+}
+
+/// A [Wrap]-like row that fills its width: children flow onto runs as in
+/// [Wrap], then each run's spare width is shared out among the first
+/// [stretchCount] children in it, so the tiles end flush with the right edge at
+/// any screen width or text scale, as the Caller's Box / ContraDB switch does.
+/// The rest (a trailing icon control) keep their natural width.
+///
+/// Stretched tiles in a run end up equal in width where they can; one whose
+/// natural width exceeds the equal share keeps it, and the others share what
+/// is left. A run with no stretched child is left-aligned.
+class StretchWrap extends MultiChildRenderObjectWidget {
+  const StretchWrap({
+    super.key,
+    super.children,
+    required this.stretchCount,
+    this.spacing = 0,
+    this.runSpacing = 0,
+  });
+
+  /// How many of the leading children stretch to fill their run.
+  final int stretchCount;
+  final double spacing;
+  final double runSpacing;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) =>
+      RenderStretchWrap(stretchCount, spacing, runSpacing);
+
+  @override
+  void updateRenderObject(
+    BuildContext context,
+    RenderStretchWrap renderObject,
+  ) {
+    renderObject
+      ..stretchCount = stretchCount
+      ..spacing = spacing
+      ..runSpacing = runSpacing;
+  }
+}
+
+class _StretchWrapParentData extends ContainerBoxParentData<RenderBox> {}
+
+class RenderStretchWrap extends RenderBox
+    with
+        ContainerRenderObjectMixin<RenderBox, _StretchWrapParentData>,
+        RenderBoxContainerDefaultsMixin<RenderBox, _StretchWrapParentData> {
+  RenderStretchWrap(this._stretchCount, this._spacing, this._runSpacing);
+
+  int _stretchCount;
+  int get stretchCount => _stretchCount;
+  set stretchCount(int value) {
+    if (value == _stretchCount) return;
+    _stretchCount = value;
+    markNeedsLayout();
+  }
+
+  double _spacing;
+  double get spacing => _spacing;
+  set spacing(double value) {
+    if (value == _spacing) return;
+    _spacing = value;
+    markNeedsLayout();
+  }
+
+  double _runSpacing;
+  double get runSpacing => _runSpacing;
+  set runSpacing(double value) {
+    if (value == _runSpacing) return;
+    _runSpacing = value;
+    markNeedsLayout();
+  }
+
+  @override
+  void setupParentData(RenderBox child) {
+    if (child.parentData is! _StretchWrapParentData) {
+      child.parentData = _StretchWrapParentData();
+    }
+  }
+
+  Iterable<RenderBox> get _children sync* {
+    for (var c = firstChild; c != null; c = childAfter(c)) {
+      yield c;
+    }
+  }
+
+  /// Widths for one run's children: natural, then the stretched ones levelled
+  /// up so the run spans [available].
+  List<double> _runWidths(
+    List<double> natural,
+    int firstIndex,
+    double available,
+  ) {
+    final widths = List<double>.of(natural);
+    final stretch = <int>[
+      for (var i = 0; i < natural.length; i++)
+        if (firstIndex + i < _stretchCount) i,
+    ];
+    if (stretch.isEmpty) return widths;
+    final fixed =
+        natural.fold<double>(0, (a, b) => a + b) -
+        stretch.fold<double>(0, (a, i) => a + natural[i]);
+    var space = available - fixed - _spacing * (natural.length - 1);
+    var open = [...stretch];
+    // Water-filling: a tile wider than the equal share keeps its natural width
+    // and leaves the rest to the others.
+    var changed = true;
+    while (changed && open.isNotEmpty) {
+      changed = false;
+      final share = space / open.length;
+      for (final i in [...open]) {
+        if (natural[i] >= share) {
+          space -= natural[i];
+          open.remove(i);
+          changed = true;
+        }
+      }
+    }
+    if (open.isNotEmpty) {
+      final share = space / open.length;
+      for (final i in open) {
+        widths[i] = share;
+      }
+    }
+    return widths;
+  }
+
+  /// Lays the children out (or measures them, when [layoutChild] only sizes)
+  /// and returns the overall size. [place] receives each child's offset.
+  Size _arrange(
+    BoxConstraints constraints,
+    Size Function(RenderBox child, BoxConstraints c) layoutChild,
+    void Function(RenderBox child, Offset offset)? place,
+  ) {
+    final maxWidth = constraints.maxWidth;
+    final children = _children.toList();
+    // Natural widths, to decide where runs break.
+    final natural = [
+      for (final c in children)
+        math.min(c.getMaxIntrinsicWidth(double.infinity), maxWidth),
+    ];
+    var dy = 0.0;
+    var width = 0.0;
+    var start = 0;
+    while (start < children.length) {
+      var end = start + 1;
+      var used = natural[start];
+      while (end < children.length &&
+          used + _spacing + natural[end] <= maxWidth + 0.001) {
+        used += _spacing + natural[end];
+        end++;
+      }
+      final widths = _runWidths(natural.sublist(start, end), start, maxWidth);
+      final sizes = <Size>[
+        for (var i = start; i < end; i++)
+          layoutChild(
+            children[i],
+            BoxConstraints(
+              minWidth: widths[i - start],
+              maxWidth: widths[i - start],
+            ),
+          ),
+      ];
+      final runHeight = sizes.fold<double>(0, (h, s) => math.max(h, s.height));
+      var dx = 0.0;
+      for (var i = start; i < end; i++) {
+        final size = sizes[i - start];
+        place?.call(
+          children[i],
+          Offset(dx, dy + (runHeight - size.height) / 2),
+        );
+        dx += size.width + _spacing;
+      }
+      width = math.max(width, dx - _spacing);
+      dy += runHeight + _runSpacing;
+      start = end;
+    }
+    final height = children.isEmpty ? 0.0 : dy - _runSpacing;
+    return constraints.constrain(Size(width, height));
+  }
+
+  @override
+  void performLayout() {
+    size = _arrange(
+      constraints,
+      (child, c) {
+        child.layout(c, parentUsesSize: true);
+        return child.size;
+      },
+      (child, offset) =>
+          (child.parentData! as _StretchWrapParentData).offset = offset,
+    );
+  }
+
+  @override
+  Size computeDryLayout(BoxConstraints constraints) =>
+      _arrange(constraints, (child, c) => child.getDryLayout(c), null);
+
+  @override
+  double computeMinIntrinsicWidth(double height) => _children.fold<double>(
+    0,
+    (w, c) => math.max(w, c.getMinIntrinsicWidth(height)),
+  );
+
+  @override
+  double computeMaxIntrinsicWidth(double height) =>
+      _children.fold<double>(0, (w, c) => w + c.getMaxIntrinsicWidth(height)) +
+      _spacing * math.max(0, childCount - 1);
+
+  @override
+  double computeMinIntrinsicHeight(double width) =>
+      getDryLayout(BoxConstraints(maxWidth: width)).height;
+
+  @override
+  double computeMaxIntrinsicHeight(double width) =>
+      getDryLayout(BoxConstraints(maxWidth: width)).height;
+
+  @override
+  double? computeDistanceToActualBaseline(TextBaseline baseline) =>
+      defaultComputeDistanceToHighestActualBaseline(baseline);
+
+  @override
+  bool hitTestChildren(BoxHitTestResult result, {required Offset position}) =>
+      defaultHitTestChildren(result, position: position);
+
+  @override
+  void paint(PaintingContext context, Offset offset) =>
+      defaultPaint(context, offset);
 }

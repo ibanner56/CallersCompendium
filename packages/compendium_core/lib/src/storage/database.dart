@@ -370,6 +370,19 @@ const String normalisationDerivedIndexRepairDoneKey =
 const String customFieldIndexRepairDoneKey =
     '__custom_field_index_repair_done__';
 
+/// Settings key for the one-time custom-number index repair. The search bar's
+/// text index used to carry a whole-number custom value as "3.0" (a `double`'s
+/// `toString`); it now carries "3" (`_customValueIndexText`), but a row written
+/// before that still has the old text, which gave false hits for "0". The pass
+/// reindexes exactly the dances holding a value for a number field that is
+/// indexed, so a library with none pays only the lookup.
+///
+/// Owed by the RULE CHANGE, not by any row change, like
+/// [customFieldIndexRepairDoneKey]. Written after a successful pass so it runs
+/// at most once per database; an interrupted pass retries on the next open.
+const String customNumberIndexRepairDoneKey =
+    '__custom_number_index_repair_done__';
+
 /// The `(table, column)` address of a column both writers of
 /// `normalisation_skips` can record against.
 ///

@@ -2072,6 +2072,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String settingsDialectEditConflictSnack(String name) {
+    return '\"$name\" was renamed or deleted while you were editing it, so your changes were not saved.';
+  }
+
+  @override
   String get settingsDialectActionsTooltip => 'Dialect actions';
 
   @override
@@ -4145,6 +4150,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get collectionImportCardBody =>
       'Import dances you already have, or write your first one. \"The Baby Rose\" is here as a sample to look around with.';
+
+  @override
+  String get collectionBrowsePublishedCollections =>
+      'Browse published collections';
 
   @override
   String get collectionFiltersTitle => 'Filters';
@@ -6647,6 +6656,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String onlineImportUpdated(String title) {
+    return 'Updated \"$title\" with the online version.';
+  }
+
+  @override
   String onlineImportUndoKeptChanged(String title) {
     return '\"$title\" has changed since you imported it, so Undo left it as it is.';
   }
@@ -6999,6 +7013,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importReviewClose => 'Close import';
+
+  @override
+  String get importReviewDiscardTitle => 'Discard this import?';
+
+  @override
+  String get importReviewDiscardBody =>
+      'If you leave now, the list you are reviewing and the choices you made on it are discarded.';
+
+  @override
+  String get importReviewKeepReviewing => 'Keep reviewing';
 
   @override
   String get importReviewSourceLabel => 'Source';
@@ -8030,7 +8054,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importFileNotText =>
-      'Couldn\'t read that file: it isn\'t text the app can read. If another app saved it, save it again as UTF-8 text and try again.';
+      'Couldn\'t read that file: it isn\'t a share file, or text the app can read. If another app saved it as text, save it again as UTF-8 and try again.';
 
   @override
   String get importFileUnreadable =>

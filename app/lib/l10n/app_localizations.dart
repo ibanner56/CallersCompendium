@@ -3001,6 +3001,12 @@ abstract class AppLocalizations {
   /// **'“{name}” will be permanently removed.'**
   String settingsDialectDeleteConfirmBody(String name);
 
+  /// Snackbar shown when saving a dialect's edited terms fails because the dialect was renamed or deleted while its editor was open; quotes the dialect's name as the editor opened it (untrusted user text, rendered as plain text).
+  ///
+  /// In en, this message translates to:
+  /// **'\"{name}\" was renamed or deleted while you were editing it, so your changes were not saved.'**
+  String settingsDialectEditConflictSnack(String name);
+
   /// Tooltip for the per-dialect actions menu button.
   ///
   /// In en, this message translates to:
@@ -6203,7 +6209,7 @@ abstract class AppLocalizations {
   /// **'Add “{tagName}” to the Collection filters'**
   String commonShowDancesTaggedTooltip(String tagName);
 
-  /// Snackbar confirming a dance was soft-deleted, quoting its title.
+  /// Snackbar confirming that an item was deleted, quoting its name or title. Used for dances and for other named items: dialects, custom themes, custom fields, custom figures, walkthrough snippets and shorthand tokens.
   ///
   /// In en, this message translates to:
   /// **'\"{title}\" deleted.'**
@@ -6494,6 +6500,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Import dances you already have, or write your first one. \"The Baby Rose\" is here as a sample to look around with.'**
   String get collectionImportCardBody;
+
+  /// Button on the card shown while the sample dance is the only dance in the Collection; opens the catalog of signed published collections.
+  ///
+  /// In en, this message translates to:
+  /// **'Browse published collections'**
+  String get collectionBrowsePublishedCollections;
 
   /// Title of the facet filters panel when no filters are active.
   ///
@@ -10109,6 +10121,12 @@ abstract class AppLocalizations {
   /// **'Imported \"{title}\".'**
   String onlineImportCreated(String title);
 
+  /// Snackbar confirming an online import was written over a dance the user already had, after they chose Same dance (update existing). Nothing new was added, so it does not say Imported. The title is an untrusted external value rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated \"{title}\" with the online version.'**
+  String onlineImportUpdated(String title);
+
   /// Snackbar shown when the user taps Undo on an online import, but the dance was edited after the import, so undoing would throw those edits away and nothing was undone (INTAKE-5). The title is the dance's title, an untrusted value rendered as plain text.
   ///
   /// In en, this message translates to:
@@ -10564,6 +10582,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Close import'**
   String get importReviewClose;
+
+  /// Title of the dialog shown when the user leaves the import review screen before importing.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard this import?'**
+  String get importReviewDiscardTitle;
+
+  /// Body of the dialog shown when the user leaves the import review screen before importing; the list is the planned import, with the choices made on it.
+  ///
+  /// In en, this message translates to:
+  /// **'If you leave now, the list you are reviewing and the choices you made on it are discarded.'**
+  String get importReviewDiscardBody;
+
+  /// Button that stays on the import review screen instead of discarding the list.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep reviewing'**
+  String get importReviewKeepReviewing;
 
   /// Label above the import-source dropdown when more than one source is available.
   ///
@@ -11915,10 +11951,10 @@ abstract class AppLocalizations {
   /// **'Couldn\'t complete the import.'**
   String get importReviewImportError;
 
-  /// Snackbar on the import screen when the chosen file is not UTF-8 text (for example a file saved in another encoding, or not a text file at all). Nothing was imported.
+  /// Snackbar on the import screen when the chosen file can't be read as UTF-8 text: a binary file that isn't a share file, or text saved in another encoding. Nothing was imported.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t read that file: it isn\'t text the app can read. If another app saved it, save it again as UTF-8 text and try again.'**
+  /// **'Couldn\'t read that file: it isn\'t a share file, or text the app can read. If another app saved it as text, save it again as UTF-8 and try again.'**
   String get importFileNotText;
 
   /// Snackbar on the import screen when the chosen file could not be read from disk (locked by another app, on a disconnected drive, or refused by the file system). Nothing was imported.

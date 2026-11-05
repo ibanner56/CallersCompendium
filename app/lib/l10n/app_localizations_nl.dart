@@ -2095,6 +2095,11 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String settingsDialectEditConflictSnack(String name) {
+    return '\"$name\" is hernoemd of verwijderd terwijl je het bewerkte, dus je wijzigingen zijn niet opgeslagen.';
+  }
+
+  @override
   String get settingsDialectActionsTooltip => 'Dialectacties';
 
   @override
@@ -4205,6 +4210,10 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get collectionImportCardBody =>
       'Importeer dansen die je al hebt, of schrijf je eerste. „The Baby Rose” staat er als voorbeeld om rond te kijken.';
+
+  @override
+  String get collectionBrowsePublishedCollections =>
+      'Gepubliceerde collecties bekijken';
 
   @override
   String get collectionFiltersTitle => 'Filters';
@@ -6726,6 +6735,11 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String onlineImportUpdated(String title) {
+    return '“$title” bijgewerkt met de onlineversie.';
+  }
+
+  @override
   String onlineImportUndoKeptChanged(String title) {
     return '“$title” is gewijzigd sinds je hem importeerde, dus Ongedaan maken heeft hem gelaten zoals hij is.';
   }
@@ -7082,6 +7096,16 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importReviewClose => 'Import sluiten';
+
+  @override
+  String get importReviewDiscardTitle => 'Deze import verwerpen?';
+
+  @override
+  String get importReviewDiscardBody =>
+      'Als je nu weggaat, worden de lijst die je aan het nakijken bent en je keuzes erop verworpen.';
+
+  @override
+  String get importReviewKeepReviewing => 'Doorgaan met nakijken';
 
   @override
   String get importReviewSourceLabel => 'Bron';
@@ -8121,7 +8145,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importFileNotText =>
-      'Dat bestand kon niet worden gelezen: het is geen tekst die de app kan lezen. Als een andere app het heeft opgeslagen, sla het daar opnieuw op als UTF-8-tekst en probeer het nog eens.';
+      'Dat bestand kon niet worden gelezen: het is geen deelbestand en ook geen tekst die de app kan lezen. Als een andere app het als tekst heeft opgeslagen, sla het daar opnieuw op als UTF-8 en probeer het nog eens.';
 
   @override
   String get importFileUnreadable =>

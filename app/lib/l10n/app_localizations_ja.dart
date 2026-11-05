@@ -1987,6 +1987,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String settingsDialectEditConflictSnack(String name) {
+    return '「$name」は編集中に名前が変更されたか削除されたため、変更は保存されませんでした。';
+  }
+
+  @override
   String get settingsDialectActionsTooltip => 'ダイアレクトのアクション';
 
   @override
@@ -3986,6 +3991,9 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get collectionImportCardBody =>
       'お持ちのダンスをインポートするか、最初の1曲を作成してください。「The Baby Rose」はサンプルとして入っています。';
+
+  @override
+  String get collectionBrowsePublishedCollections => '公開コレクションを見る';
 
   @override
   String get collectionFiltersTitle => 'フィルター';
@@ -6418,6 +6426,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String onlineImportUpdated(String title) {
+    return '「$title」をオンライン版で更新しました。';
+  }
+
+  @override
   String onlineImportUndoKeptChanged(String title) {
     return '「$title」はインポート後に変更されたため、元に戻す操作では変更しませんでした。';
   }
@@ -6746,6 +6759,15 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get importReviewClose => 'インポートを閉じる';
+
+  @override
+  String get importReviewDiscardTitle => 'このインポートを破棄しますか？';
+
+  @override
+  String get importReviewDiscardBody => '今ここを離れると、確認中のリストとその選択内容は破棄されます。';
+
+  @override
+  String get importReviewKeepReviewing => '確認を続ける';
 
   @override
   String get importReviewSourceLabel => 'ソース';
@@ -7731,7 +7753,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get importFileNotText =>
-      'そのファイルを読み込めませんでした。アプリが読めるテキストではありません。別のアプリで保存したファイルなら、UTF-8テキストとして保存し直してから、もう一度お試しください。';
+      'そのファイルを読み込めませんでした。共有ファイルでも、アプリが読めるテキストでもありません。別のアプリでテキストとして保存したファイルなら、UTF-8で保存し直してから、もう一度お試しください。';
 
   @override
   String get importFileUnreadable =>

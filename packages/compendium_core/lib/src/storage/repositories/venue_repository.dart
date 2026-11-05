@@ -156,6 +156,21 @@ class VenueRepository {
     return _toModel(row, prov);
   }
 
+  /// Whether a venue row with [id] exists at all, live or soft-deleted.
+  ///
+  /// For a reader deciding whether a stored `venueId` is dead. A tombstoned
+  /// venue is not: a restore can revive it. A `false` also covers a venue that
+  /// has not arrived yet (#2076), which this cannot tell from an erased one, so
+  /// a caller that replaces a dead link should do so only with a venue in hand.
+  Future<bool> rowExists(String id) async {
+    final row =
+        await (_db.selectOnly(_db.venues)
+              ..addColumns([_db.venues.id])
+              ..where(_db.venues.id.equals(id)))
+            .getSingleOrNull();
+    return row != null;
+  }
+
   /// Every live venue, by name. With [includeDeleted], soft-deleted rows too —
   /// for the one reader that must see everything still on disk, the crash-log
   /// term collector, which redacts what a failed statement could echo whether

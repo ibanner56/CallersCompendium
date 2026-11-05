@@ -306,7 +306,7 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
     1/2"); ContraDB has no standalone orbit figure (only the combined form), so
     TCB is the source. A conservative whole-line recognizer requires BOTH the
     direction and the amount to be stated (never fabricated); a bare "orbit"
-    degrades to a custom figure.
+    degrades to an unrecognized figure.
   - The combined figure is now `meanwhile[allemande, orbit]`: once `orbit` is
     recognized standalone, the TCB `||` fan-out and the ContraDB `while`
     fan-out both produce the container automatically. The ContraDB combined
@@ -367,7 +367,7 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
     the amount silently dropped from a structured figure.
   - Conservative whole-line recognizers require BOTH stated facts; a bare "mad
     robin" / "butterfly whirl" (ContraDB's own phrasing) or any leftover token
-    still degrades to a faithful custom figure.
+    still degrades to a faithful unrecognized figure.
 - **No version change (`grand right and left` + `flutterwheel`, issue #295):**
   both are **compound shorthands**, not moves, so the taxonomy is deliberately
   left alone — no `grand_right_and_left` / `flutterwheel` `MoveDef`, no version
@@ -682,7 +682,7 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
   The centre is preserved as a NOTE on TCB imports (`role2s by the right in the
   center`), storing canonical role tokens so it renders under the active
   dialect rather than freezing a gendered `W`. ContraDB star promenades import
-  as custom figures instead — an accepted structure regression, because ContraDB
+  as unrecognized figures instead — an accepted structure regression, because ContraDB
   supplies the centre role rather than the pick-up relationship.
 
   Removing a declared param changes `figureCanonicalKey` for *every*

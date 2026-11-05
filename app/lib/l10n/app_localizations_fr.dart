@@ -2111,6 +2111,11 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String settingsDialectEditConflictSnack(String name) {
+    return '\"$name\" a été renommé ou supprimé pendant votre modification ; vos changements n\'ont pas été enregistrés.';
+  }
+
+  @override
   String get settingsDialectActionsTooltip => 'Actions du dialecte';
 
   @override
@@ -4238,6 +4243,10 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get collectionImportCardBody =>
       'Importez les danses que vous avez déjà, ou écrivez la première. « The Baby Rose » est là comme exemple pour vous repérer.';
+
+  @override
+  String get collectionBrowsePublishedCollections =>
+      'Parcourir les collections publiées';
 
   @override
   String get collectionFiltersTitle => 'Filtres';
@@ -6769,6 +6778,11 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String onlineImportUpdated(String title) {
+    return '« $title » mis à jour avec la version en ligne.';
+  }
+
+  @override
   String onlineImportUndoKeptChanged(String title) {
     return '« $title » a été modifiée depuis son importation, donc Annuler l’a laissée telle quelle.';
   }
@@ -7130,6 +7144,16 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get importReviewClose => 'Fermer l’import';
+
+  @override
+  String get importReviewDiscardTitle => 'Abandonner cet import ?';
+
+  @override
+  String get importReviewDiscardBody =>
+      'Si vous quittez maintenant, la liste en cours de vérification et vos choix sont abandonnés.';
+
+  @override
+  String get importReviewKeepReviewing => 'Continuer la vérification';
 
   @override
   String get importReviewSourceLabel => 'Source';
@@ -8171,7 +8195,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get importFileNotText =>
-      'Impossible de lire ce fichier : ce n\'est pas du texte que l\'application sait lire. S\'il a été enregistré par une autre application, enregistrez-le à nouveau en texte UTF-8, puis réessayez.';
+      'Impossible de lire ce fichier : ce n\'est ni un fichier de partage, ni du texte que l\'application sait lire. S\'il a été enregistré en texte par une autre application, enregistrez-le à nouveau en UTF-8, puis réessayez.';
 
   @override
   String get importFileUnreadable =>

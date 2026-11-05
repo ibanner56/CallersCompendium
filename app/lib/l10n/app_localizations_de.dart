@@ -2098,6 +2098,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String settingsDialectEditConflictSnack(String name) {
+    return '\"$name\" wurde umbenannt oder gelöscht, während du es bearbeitet hast. Deine Änderungen wurden nicht gespeichert.';
+  }
+
+  @override
   String get settingsDialectActionsTooltip => 'Dialekt-Aktionen';
 
   @override
@@ -4223,6 +4228,10 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get collectionImportCardBody =>
       'Importieren Sie Tänze, die Sie bereits haben, oder schreiben Sie Ihren ersten. „The Baby Rose“ liegt als Beispiel zum Umsehen bei.';
+
+  @override
+  String get collectionBrowsePublishedCollections =>
+      'Veröffentlichte Sammlungen durchsuchen';
 
   @override
   String get collectionFiltersTitle => 'Filter';
@@ -6755,6 +6764,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String onlineImportUpdated(String title) {
+    return '„$title“ mit der Online-Version aktualisiert.';
+  }
+
+  @override
   String onlineImportUndoKeptChanged(String title) {
     return '„$title“ wurde seit dem Import geändert, daher hat Rückgängig ihn unverändert gelassen.';
   }
@@ -7112,6 +7126,16 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get importReviewClose => 'Import schließen';
+
+  @override
+  String get importReviewDiscardTitle => 'Diesen Import verwerfen?';
+
+  @override
+  String get importReviewDiscardBody =>
+      'Wenn du jetzt gehst, werden die Liste, die du gerade prüfst, und deine Auswahl darauf verworfen.';
+
+  @override
+  String get importReviewKeepReviewing => 'Weiter prüfen';
 
   @override
   String get importReviewSourceLabel => 'Quelle';
@@ -8158,7 +8182,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get importFileNotText =>
-      'Die Datei konnte nicht gelesen werden: Sie ist kein Text, den die App lesen kann. Wenn eine andere App sie gespeichert hat, speichere sie dort erneut als UTF-8-Text und versuche es noch einmal.';
+      'Die Datei konnte nicht gelesen werden: Sie ist weder eine Freigabedatei noch Text, den die App lesen kann. Wenn eine andere App sie als Text gespeichert hat, speichere sie dort erneut als UTF-8 und versuche es noch einmal.';
 
   @override
   String get importFileUnreadable =>

@@ -87,7 +87,8 @@ keep.
 6. If it is the one you want, choose **Import** to add it to your collection.
    The message that confirms it offers **Undo** while it is showing. Undo takes
    the dance back out, or, if you chose **Same dance (update existing)** for a
-   dance you already had, puts your own version back. A dance you have since
+   dance you already had, puts your own version back. In that case the message
+   says **Updated** rather than **Imported**, because nothing new was added. A dance you have since
    added to a program, or changed, is kept as it is.
 
 **Caller's Box results only include dances whose figures it will share.** Not
@@ -173,8 +174,9 @@ trusted Compendium Analect catalog. They are signed and checked before the app
 offers them for import, and the app records their source and version so you can
 see where the dances came from.
 
-1. Open **Collection** and choose **Import dances**, or open **Settings** →
-   **General** → **Import…**.
+1. Open **Collection** and choose **Import dances**, choose **Browse published
+   collections** on the card that shows while the sample dance is your only
+   dance, or open **Settings** → **General** → **Import…**.
 2. Under the source selector, choose a published collection to review its
    title, version, dance count, and availability. You can also browse the same
    catalog from **Settings** → **General** → **Published collections**.
@@ -277,8 +279,9 @@ of Caller's Compendium. Update the app before importing, or some details may be
 left out."* Update the app first if you want everything that file carries.
 
 If the app can't read the file you chose, it says why and nothing is imported:
-either the file isn't text the app can read (another app saved it in a
-different text encoding: save it again as UTF-8), or the file can't be opened
+either the file isn't a share file or text the app can read (another app
+saved it as text in a different encoding: save it again as UTF-8), or the file
+can't be opened
 (another app is using it, or it is on a drive that isn't connected).
 
 ### Open a shared program someone sent you
@@ -305,8 +308,9 @@ often open the file directly:
 - On Windows and Linux, if the app is already open, the file opens in the
   window you have. If you open more files while one is in review, the app
   keeps only the last one and shows it when you close that review. Only a `.ccshare` file stored on this computer opens this
-  way. For a file on a network share (a `\\server\folder` path) or a
-  symbolic link to a file, the app says it couldn't read the shared file:
+  way. For a file on a network share (a `\\server\folder` path), a
+  symbolic link to a file or, on Windows, a file inside a folder that is a
+  symbolic link or junction, the app says it couldn't read the shared file:
   copy the file itself to a local folder first.
 - **Any device**: go to **Settings › General** and choose **Import…**, then
   pick the file.
@@ -629,6 +633,10 @@ source you pick:
    If something is wrong with the **whole file** — an incomplete `.USR`, or a
    file from a newer version of the app — a warning at the top of the list says
    so, and what to do about it.
+   If you go back or close the screen while you are still deciding, the app asks
+   whether to **Discard** the import or **Keep reviewing**, because leaving
+   throws away the list and your choices on it. Dances you already brought in
+   with **Import and edit** stay in your collection.
 4. **Commit** — only now are the dances you accepted written to your collection.
 5. **Undo** — right after committing, the summary offers **Undo**, which removes
    everything the **Import** button added; dances brought in with **Import and
