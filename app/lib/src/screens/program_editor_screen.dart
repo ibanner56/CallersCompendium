@@ -4437,7 +4437,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final sectionShape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: AppShapes.borderRadiusMedium,
       side: BorderSide(color: colorScheme.outlineVariant),
     );
     return ExpansionTile(
