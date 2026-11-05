@@ -149,7 +149,7 @@ def test_prune_only_removes_stale_entries() -> None:
         check("--prune drops stale entries, keeps live ones, never admits a new violation", list(doc["violations"]) == ["still"], str(doc))
         check("--prune still exits 1 while a new violation remains", rc == 1, msg)
         _, msg = quiet(chk.run, root, False)
-        check("stale message recommends --prune", "--prune" in msg or "fresh (new)" in msg, msg)
+        check("after --prune only the new violation is reported, no stale entries", "stale entry" not in msg and "fresh (new)" in msg, msg)
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         tree(root, base_arb(fixed="it's"), {"violations": {"fixed": "0" * 16}, "literal": {}})
