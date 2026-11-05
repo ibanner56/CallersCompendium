@@ -2921,6 +2921,9 @@ class DanceRepository {
   ///
   /// Kept parts a newer peer's build sent (`retained_sync_fields`) are content
   /// too, and would otherwise be republished with the blank body, so they go.
+  /// So do the queued reviews about the dance (`review_queue`): a conflict
+  /// choice holds another device's whole version, and a fresh-attach
+  /// ambiguity pairs it with a second dance. Either side of a pair counts.
   /// References the dance alone held are collected as a purge collects them.
   Future<void> _blank(
     DanceRow row, {
@@ -2950,6 +2953,12 @@ class DanceRepository {
     await (_db.delete(_db.retainedSyncFields)..where(
           (t) =>
               t.kind.equals(SyncRecordKind.dance.name) & t.recordId.equals(id),
+        ))
+        .go();
+    await (_db.delete(_db.reviewQueue)..where(
+          (t) =>
+              t.kind.equalsValue(SyncRecordKind.dance) &
+              (t.recordId.equals(id) | t.counterpartId.equals(id)),
         ))
         .go();
     await (_db.update(_db.dances)..where((t) => t.id.equals(id))).write(
