@@ -1,0 +1,16 @@
+{
+  "id": "followups-collection-keys",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "On a computer, Ctrl-A (Cmd-A on a Mac) selects every dance in the Collection's current results while the keyboard focus is in the list. In the search box it still selects the text.",
+      "The card that shows while the sample dance is your only dance now has a Browse published collections button.",
+      "Performing a single dance, the arrow keys and Page Up / Page Down now scroll a long card, as they do in a program."
+    ],
+    "changed": [
+      "Going back from the import review screen before you have imported asks whether to discard the import, instead of throwing the list away without asking.",
+      "After you import an online dance as the Same dance as one you already had, the message says Updated instead of Imported.",
+      "Setting a level or rating, adding or clearing tunes, or editing a custom field on a very large selection of dances takes less time."
+    ]
+  }
+}

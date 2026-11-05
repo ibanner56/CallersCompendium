@@ -331,20 +331,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   /// page keys alike: a pedal that sends arrows should not need ten presses
   /// to reach the end. Returns false, scrolling nothing, when the card is
   /// already at that end or does not scroll.
-  bool _scrollCard(int direction) {
-    if (!_cardScroll.hasClients) return false;
-    final position = _cardScroll.position;
-    final target =
-        (position.pixels + direction * position.viewportDimension * 0.8).clamp(
-          position.minScrollExtent,
-          position.maxScrollExtent,
-        );
-    // Within a pixel of the end counts as there, so a rounding remainder
-    // cannot swallow a key press.
-    if ((target - position.pixels).abs() < 1) return false;
-    _cardScroll.jumpTo(target);
-    return true;
-  }
+  bool _scrollCard(int direction) => scrollPerformBy(_cardScroll, direction);
 
   /// Keyboard scrolling for the open walkthrough overlay: [lines] of a fixed
   /// step for the arrow keys, or a whole viewport (`page` set) for the page
