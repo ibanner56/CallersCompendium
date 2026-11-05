@@ -131,20 +131,33 @@ def check_use_escaping(l10n_yaml_text: str) -> None:
         )
 
 
-def load_literal(allowlist_path: Path) -> dict[str, str]:
-    """The ``literal`` exemptions (``{key: reason}``); empty if no file."""
+def load_allowlist_doc(allowlist_path: Path) -> dict:
+    """The allow-list document, shape-checked; ``{}`` if there is no file.
+
+    Both sections must map string -> string. This runs before the normaliser
+    writes anything, so a malformed list is refused (exit 2) instead of
+    failing half-way, after the ARB was already rewritten.
+    """
     if not allowlist_path.exists():
         return {}
     try:
         doc = json.loads(allowlist_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise StyleError(f"cannot read {allowlist_path}: {exc}") from exc
-    lit = doc.get("literal", {}) if isinstance(doc, dict) else None
-    if not isinstance(lit, dict) or not all(
-        isinstance(k, str) and isinstance(v, str) for k, v in lit.items()
-    ):
-        raise StyleError(f'{allowlist_path}: "literal" must map key -> reason string')
-    return lit
+    if not isinstance(doc, dict):
+        raise StyleError(f"{allowlist_path}: expected a JSON object")
+    for section in ("violations", "literal"):
+        entries = doc.get(section, {})
+        if not isinstance(entries, dict) or not all(
+            isinstance(k, str) and isinstance(v, str) for k, v in entries.items()
+        ):
+            raise StyleError(f'{allowlist_path}: "{section}" must map string -> string')
+    return doc
+
+
+def load_literal(allowlist_path: Path) -> dict[str, str]:
+    """The ``literal`` exemptions (``{key: reason}``); empty if no file."""
+    return load_allowlist_doc(allowlist_path).get("literal", {})
 
 
 def normalize_arb(
@@ -211,9 +224,9 @@ def prune_allowlist(path: Path, fixed: set[str]) -> int:
     Keeps the ratchet green after a normalise (a fixed string's entry would
     otherwise be stale). Shrink-only, so it cannot hide a violation.
     """
-    if not path.exists():
+    doc = load_allowlist_doc(path)
+    if not doc:
         return 0
-    doc = json.loads(path.read_text(encoding="utf-8"))
     listed = doc.get("violations", {})
     drop = [k for k in listed if k in fixed]
     for k in drop:

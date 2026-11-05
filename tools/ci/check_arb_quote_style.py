@@ -122,6 +122,18 @@ def regenerate(data: dict, allow: dict) -> dict:
     }
 
 
+def prune_stale(data: dict, allow: dict) -> dict:
+    """``allow`` minus its stale violation entries; adds nothing."""
+    messages = dict(style.message_items(data))
+    literal = allow["literal"]
+    keep = {
+        k: h
+        for k, h in allow["violations"].items()
+        if k in messages and k not in literal and style.has_curly(messages[k])
+    }
+    return {"violations": keep, "literal": {k: r for k, r in literal.items() if k in messages}}
+
+
 def write_allowlist(path: Path, doc: dict) -> None:
     ordered = {
         "violations": dict(sorted(doc["violations"].items())),
@@ -130,7 +142,7 @@ def write_allowlist(path: Path, doc: dict) -> None:
     path.write_text(json.dumps(ordered, indent=2) + "\n", encoding="utf-8")
 
 
-def run(root: Path, do_regenerate: bool) -> int:
+def run(root: Path, do_regenerate: bool, prune: bool = False) -> int:
     allow_path = root / style.ALLOWLIST_PATH
     try:
         data = style.load_arb_text((root / style.ARB_PATH).read_text(encoding="utf-8"))
@@ -144,6 +156,13 @@ def run(root: Path, do_regenerate: bool) -> int:
         print(f"wrote {len(doc['violations'])} allow-listed string(s) to {style.ALLOWLIST_PATH}.")
         return 0
     violations, stale = evaluate(data, allow)
+    if prune:
+        # Shrink-only: drop entries that are stale, never add one. Safe to run
+        # while a new violation is also present (--regenerate would admit it).
+        doc = prune_stale(data, allow)
+        write_allowlist(allow_path, doc)
+        print(f"pruned {len(allow['violations']) - len(doc['violations'])} stale entr(ies); {len(violations)} violation(s) remain.")
+        return 1 if violations else 0
     keys = [v.split(" ", 1)[0] for v in violations]
     for line in violations:
         print(f"::error::app_en.arb {line}")
@@ -161,7 +180,8 @@ def run(root: Path, do_regenerate: bool) -> int:
     if stale:
         print(
             "::error::Stale allow-list entries: if the strings were fixed on purpose, "
-            "run `python3 tools/ci/check_arb_quote_style.py --regenerate` and commit the shrink."
+            "run `python3 tools/ci/check_arb_quote_style.py --prune` and commit the shrink "
+            "(--prune only removes stale entries; --regenerate would also admit any new violation)."
         )
     if violations or stale:
         return 1
@@ -172,9 +192,10 @@ def run(root: Path, do_regenerate: bool) -> int:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--regenerate", action="store_true", help="rewrite the allow-list from the current ARB")
+    ap.add_argument("--prune", action="store_true", help="drop stale allow-list entries only; never adds one")
     ap.add_argument("--root", type=Path, default=style.REPO_ROOT, help=argparse.SUPPRESS)
     args = ap.parse_args(argv)
-    return run(args.root, args.regenerate)
+    return run(args.root, args.regenerate, args.prune)
 
 
 if __name__ == "__main__":

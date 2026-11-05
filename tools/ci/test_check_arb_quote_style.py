@@ -130,6 +130,33 @@ def test_ratchet_message_names_only_command() -> None:
         check("failure names `--only <key>`", "arb_quote_style.py --only fresh`" in msg, msg)
 
 
+def test_malformed_allowlist_leaves_arb_untouched() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        tree(root, base_arb(a=f"it{RSQ}s"), {"violations": ["a"], "literal": {}})
+        before = read_arb(root)
+        rc, msg = quiet(style.run, root, False)
+        check("a malformed violations list is refused before any write", rc == 2 and read_arb(root) == before, msg)
+
+
+def test_prune_only_removes_stale_entries() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        v = f"it{RSQ}s"
+        tree(root, base_arb(fixed="it's", still=v, fresh=f"new{RSQ}"), {"violations": {"fixed": "0" * 16, "still": chk.digest(v), "gone": "1" * 16}, "literal": {}})
+        rc, msg = quiet(chk.run, root, False, True)
+        doc = json.loads((root / "tools/ci/arb_quote_allowlist.json").read_text())
+        check("--prune drops stale entries, keeps live ones, never admits a new violation", list(doc["violations"]) == ["still"], str(doc))
+        check("--prune still exits 1 while a new violation remains", rc == 1, msg)
+        _, msg = quiet(chk.run, root, False)
+        check("stale message recommends --prune", "--prune" in msg or "fresh (new)" in msg, msg)
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        tree(root, base_arb(fixed="it's"), {"violations": {"fixed": "0" * 16}, "literal": {}})
+        _, msg = quiet(chk.run, root, False)
+        check("a stale-only failure names --prune, not just --regenerate", "check_arb_quote_style.py --prune" in msg, msg)
+
+
 def test_normaliser_check_mode() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
