@@ -986,8 +986,9 @@ void main() {
     expect(_titles(tester), ['Has Petronella']);
     expect(find.text('Advanced (on)'), findsOneWidget);
 
-    // Online results are not narrowed by the query, so Advanced is greyed out
-    // while online, but the query is kept for local search.
+    // The Caller's Box (the default online source) has no way to carry the
+    // query, so Advanced is greyed out while online, but the query is kept for
+    // local search.
     await _tapVisible(
       tester,
       find.byKey(const ValueKey('picker-online-search-enable')),
@@ -999,6 +1000,67 @@ void main() {
     );
     expect(find.text('Advanced (on)'), findsOneWidget);
     expect(_titles(tester), ['Has Petronella']);
+  });
+
+  testWidgets('advanced builder: online ContraDB search receives the query, '
+      "Caller's Box never does", (tester) async {
+    final repos = openTestRepositories();
+    final callers = _DedupeOnlineService(OnlineImportKind.created);
+    final contraDb = _DedupeOnlineService(
+      OnlineImportKind.created,
+      onlineSource: OnlineSource.contraDb,
+    );
+    await _pumpPicker(
+      tester,
+      repos,
+      onAddDance: (_) {},
+      enableOnlineSearch: true,
+      callersBoxOnline: callers,
+      contraDbOnline: contraDb,
+    );
+    await tester.pumpAndSettle();
+
+    // Build the query locally first, then go online: it is the same tree.
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('picker-advanced-panel')),
+    );
+    await _tapVisible(tester, find.text('Add'));
+    await _tapVisible(tester, find.text('Has figure'));
+    final moveField = find.byType(TextField).last;
+    await tester.ensureVisible(moveField);
+    await tester.enterText(moveField, 'petro');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('petronella').last);
+    await tester.pumpAndSettle();
+
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('picker-online-search-enable')),
+    );
+    // Caller's Box: nothing to search for (the query does not count), and it
+    // is never handed the query.
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+    expect(callers.searchedQueries, isEmpty);
+
+    await tester.tap(find.text('ContraDB'));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+    // The figure query alone is a complete ContraDB search.
+    expect(contraDb.searchedQueries, hasLength(1));
+    final advanced = contraDb.searchedQueries.single.advanced;
+    expect(advanced, isA<FigureFilter>());
+    expect(
+      ((advanced! as FigureFilter).query as FigureLeaf).move,
+      'petronella',
+    );
+
+    // Back on Caller's Box, still nothing is sent to it.
+    await tester.tap(find.text('Caller\'s Box'));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+    expect(callers.searchedQueries, isEmpty);
   });
 
   testWidgets('advanced builder: two "Has tag" rows find dances with both '
