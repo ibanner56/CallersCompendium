@@ -2111,6 +2111,11 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String settingsDialectEditConflictSnack(String name) {
+    return '\"$name\" a été renommé ou supprimé pendant votre modification ; vos changements n\'ont pas été enregistrés.';
+  }
+
+  @override
   String get settingsDialectActionsTooltip => 'Actions du dialecte';
 
   @override
@@ -8186,7 +8191,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get importFileNotText =>
-      'Impossible de lire ce fichier : ce n\'est pas du texte que l\'application sait lire. S\'il a été enregistré par une autre application, enregistrez-le à nouveau en texte UTF-8, puis réessayez.';
+      'Impossible de lire ce fichier : ce n\'est ni un fichier de partage, ni du texte que l\'application sait lire. S\'il a été enregistré en texte par une autre application, enregistrez-le à nouveau en UTF-8, puis réessayez.';
 
   @override
   String get importFileUnreadable =>

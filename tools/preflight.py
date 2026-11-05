@@ -289,6 +289,14 @@ STEPS: tuple[Step, ...] = (
         ),
     ),
     Step(
+        "arb-quote-style",
+        "app_en.arb uses straight quotes (allow-list burns down)",
+        (
+            py("tools/ci/test_check_arb_quote_style.py"),
+            py("tools/ci/check_arb_quote_style.py"),
+        ),
+    ),
+    Step(
         "stale-comment-refs",
         "comment citations resolve to code (count ceiling)",
         (
@@ -503,8 +511,11 @@ STEPS: tuple[Step, ...] = (
     ),
     Step(
         "l10n-drift",
-        "committed localizations match the current ARB-generated output",
-        (fvm_py("tools/ci/check_l10n_drift.py"),),
+        "committed localizations match the ARB-generated output; normalised apostrophes render unchanged",
+        (
+            fvm_py("tools/ci/check_l10n_drift.py"),
+            fvm_py("tools/ci/test_arb_quote_style_gen_l10n.py"),
+        ),
         fast=False,
         needs_binary="fvm",
     ),

@@ -169,13 +169,23 @@ void main() {
     });
   });
 
-  test('the coalescing window reduces re-reads for a sequentially-written '
+  test('the coalescing window holds back re-reads for a sequentially-written '
       'burst', () async {
+    // Not "windowed < unwindowed" over two wall-clock bursts: that comparison
+    // depended on every write landing inside the real 24 ms window, and failed
+    // on a slow runner with `windowed=2 unwindowed=2`. A window far longer
+    // than the test makes the outcome independent of write speed: the leading
+    // emit is the initial load, so every later notification must be held and
+    // none may reload before the window ends. Without the window each write
+    // can reload, so a missing or mis-wired transformer fails this at once.
+    const heldOpen = Duration(minutes: 5);
     final windowed = await _burst(
       repos: openTestRepositories(),
       writes: 10,
-      coalesce: DanceEditorReferenceData.coalesceWindow,
+      coalesce: heldOpen,
     );
+    // The control arm: the same burst, same stream, no window. It shows the
+    // stream is live and that `windowed == 0` is not a dead stream.
     final unwindowed = await _burst(
       repos: openTestRepositories(),
       writes: 10,
@@ -184,11 +194,17 @@ void main() {
 
     expect(
       windowed,
-      lessThan(unwindowed),
+      0,
       reason:
-          'the coalescing window must reduce re-reads for a burst written '
-          'one transaction at a time. Saw windowed=$windowed '
-          'unwindowed=$unwindowed',
+          'writes inside the coalescing window must not re-read before it '
+          'ends. Saw windowed=$windowed unwindowed=$unwindowed',
+    );
+    expect(
+      unwindowed,
+      greaterThan(0),
+      reason:
+          'the unwindowed control must re-read, or windowed==0 proves '
+          'nothing',
     );
   });
 }

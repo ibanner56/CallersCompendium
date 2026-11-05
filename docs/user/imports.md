@@ -275,8 +275,9 @@ of Caller's Compendium. Update the app before importing, or some details may be
 left out."* Update the app first if you want everything that file carries.
 
 If the app can't read the file you chose, it says why and nothing is imported:
-either the file isn't text the app can read (another app saved it in a
-different text encoding: save it again as UTF-8), or the file can't be opened
+either the file isn't a share file or text the app can read (another app
+saved it as text in a different encoding: save it again as UTF-8), or the file
+can't be opened
 (another app is using it, or it is on a drive that isn't connected).
 
 ### Open a shared program someone sent you
@@ -303,8 +304,9 @@ often open the file directly:
 - On Windows and Linux, if the app is already open, the file opens in the
   window you have. If you open more files while one is in review, the app
   keeps only the last one and shows it when you close that review. Only a `.ccshare` file stored on this computer opens this
-  way. For a file on a network share (a `\\server\folder` path) or a
-  symbolic link to a file, the app says it couldn't read the shared file:
+  way. For a file on a network share (a `\\server\folder` path), a
+  symbolic link to a file or, on Windows, a file inside a folder that is a
+  symbolic link or junction, the app says it couldn't read the shared file:
   copy the file itself to a local folder first.
 - **Any device**: go to **Settings › General** and choose **Import…**, then
   pick the file.

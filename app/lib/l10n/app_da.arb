@@ -1924,6 +1924,10 @@
   "@settingsDialectDeleteConfirmBody": {
     "x-sourceSha256": "54b5562a0381823ad8c2663dba0db935021b379431fffddfc83835da6a273829"
   },
+  "settingsDialectEditConflictSnack": "\"{name}\" blev omdøbt eller slettet, mens du redigerede den, så dine ændringer blev ikke gemt.",
+  "@settingsDialectEditConflictSnack": {
+    "x-sourceSha256": "9e3281ba02ea73d6457c7fde6f74101343054453e9bcd3dbc84e5967101cb3a0"
+  },
   "settingsDialectActionsTooltip": "Dialekthandlinger",
   "@settingsDialectActionsTooltip": {
     "x-sourceSha256": "777102777d9b2fbc6da7b30b1f3fc5384c65b6890ebfc04fdd2e8f9d2d1e673c"
@@ -7854,9 +7858,9 @@
   "@importReviewImportError": {
     "x-sourceSha256": "468698ddc233d06e939d5d5ca36ce259909e31cd8374a8de9b8c449a63eb6d54"
   },
-  "importFileNotText": "Kunne ikke læse den fil: den er ikke tekst, som appen kan læse. Hvis en anden app har gemt den, så gem den igen som UTF-8-tekst og prøv igen.",
+  "importFileNotText": "Kunne ikke læse den fil: den er ikke en delefil eller tekst, som appen kan læse. Hvis en anden app har gemt den som tekst, så gem den igen som UTF-8 og prøv igen.",
   "@importFileNotText": {
-    "x-sourceSha256": "2b6b1e5e54a0395a362c30b25f7cb9bca9f24df5c8144396eae29310f06cccf5"
+    "x-sourceSha256": "eec1e1c43bd48784a659d67bf65997eabe537f3d6e8adb78b6a21ab96e89c582"
   },
   "importFileUnreadable": "Kunne ikke åbne den fil. En anden app bruger den måske, eller den ligger på et drev, der ikke er tilsluttet.",
   "@importFileUnreadable": {

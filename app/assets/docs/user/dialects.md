@@ -346,6 +346,9 @@ is nothing to type.
   new name. If you delete it, the program quietly goes back to using your active
   dialect in Perform, and the editor shows the old name as **unavailable** so you
   can see what happened. Pick a dialect again to reconnect it.
+- If a dialect is renamed or deleted (for example on another device) while you
+  have it open in the editor, saving doesn't add it back or create a second
+  copy. You see a message that your changes weren't saved.
 
 ## Peek at the canonical wording
 

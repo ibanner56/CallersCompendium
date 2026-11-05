@@ -139,9 +139,12 @@ class ProgramOnlineResolution {
 }
 
 /// Tries each of [services] in order for [line]'s title, stopping at the
-/// first [_SourceImported] or [_SourceDeclined] outcome (see [_attemptSource]).
+/// first [_SourceImported], [_SourceDeclined] or [_SourceReused] outcome (see
+/// [_attemptSource]). This chain treats [_SourceReused] as a decline; only
+/// [resolveConfidentOnlineDanceId] links to the dance it names.
 ///
-/// [_SourceDeclined] stops the chain **without trying later sources**: it means
+/// [_SourceDeclined] and [_SourceReused] stop the chain **without trying later
+/// sources**: they mean
 /// the local collection already has this exact dance (issue #685's rule), which
 /// is a fact about the user's collection, not about which source produced the
 /// hit — a second source cannot make it false, so asking one is wasted work at
@@ -186,7 +189,7 @@ Future<ParsedProgramLine> _resolveLineAcrossSources(
           matchCount: 1,
           importedOnline: true,
         );
-      case _SourceDeclined():
+      case _SourceDeclined() || _SourceReused():
         // #685, applied regardless of source: never silently create a
         // duplicate of a dance the user already has. See this method's doc.
         //
@@ -240,11 +243,26 @@ class _SourceImported extends _SourceAttempt {
   final String danceId;
 }
 
-/// #685's conservative skip fired: a confident local duplicate whose figures
-/// are canonically identical, or whose target dance could not be loaded to
-/// check. Stops the chain — see [_resolveLineAcrossSources]'s doc for why.
+/// #685's conservative skip fired: a confident local duplicate whose target
+/// dance could not be loaded, or whose figures could not be read on either
+/// side, so identical-or-not cannot be told (identical figures are
+/// [_SourceReused]). Stops the chain — see [_resolveLineAcrossSources]'s doc for why.
 class _SourceDeclined extends _SourceAttempt {
   const _SourceDeclined();
+}
+
+/// #685's skip fired on a confident local duplicate whose figures are
+/// canonically identical, and the target is [danceId]: the dance the user
+/// already has. Nothing was written. Stops the chain, like [_SourceDeclined].
+///
+/// Kept apart from [_SourceDeclined] so a caller that links to the existing
+/// dance rather than writing a note (the ContraDB program import's Caller's Box
+/// fallback, INTAKE-3 (a)) can; [_resolveLineAcrossSources] treats it as a
+/// decline, as before.
+class _SourceReused extends _SourceAttempt {
+  const _SourceReused(this.danceId);
+
+  final String danceId;
 }
 
 /// No usable result from this source alone: no results, no exact-title hit
@@ -312,14 +330,15 @@ Future<_SourceAttempt> _attemptSource(
       final target = await repos.dances.getById(targetId);
       if (target == null) {
         // Can't confirm identical vs. differing without the target's
-        // figures — the conservative (#685-consistent) choice is to decline,
-        // same as if it were identical.
+        // figures — the conservative (#685-consistent) choice is to decline:
+        // without the target, identical-or-not cannot be told.
         return const _SourceDeclined();
       }
       final draftDance = preview.plan.draft.dance;
       // Both sides must be readable for the comparison below to mean anything.
-      // This path is UNATTENDED: `identical` declines, and `!identical` auto
-      // -imports a variation with no user present. An undecodable target would
+      // This path is UNATTENDED: `identical` writes nothing (it reports the
+      // existing dance; the plain-text chain treats that as a decline), and
+      // `!identical` auto-imports a variation with no user present. An undecodable target would
       // otherwise take the second branch by default — acting on a comparison
       // that was never actually performed. Declining instead leaves the
       // note-slot fallback (#312), which is what this code already does
@@ -341,9 +360,11 @@ Future<_SourceAttempt> _attemptSource(
         taxonomy: contraTaxonomy,
       );
       if (identical) {
-        // #685, UNCHANGED: a true duplicate must never be silently created
-        // non-interactively — decline, leaving the note-slot fallback (#312).
-        return const _SourceDeclined();
+        // #685: a true duplicate must never be silently created
+        // non-interactively. Report the dance the user already has so the
+        // program import can link its slot to it (INTAKE-3 (a)); a caller that
+        // cannot use it declines, leaving the note-slot fallback (#312).
+        return _SourceReused(targetId);
       }
       // #686: figures genuinely differ — auto-import as a distinct
       // variation, linked back to the matched dance, same outcome as the
@@ -395,13 +416,16 @@ Future<_SourceAttempt> _attemptSource(
 /// Searches [service] by [title] and, on a **confident match** — a UNIQUE
 /// exact-title hit (exactly one result whose name equals [title] under
 /// `titleMatchKey`, found by [lookupUniqueExactTitle]) — imports that dance
-/// and returns its new dance id.
+/// and returns its new dance id, except that a previewed dance with a
+/// **confident local duplicate** (issue #685 — exact-normalized-title with an
+/// overlapping tokenized author set, see [DedupeVerdict.hasConfidentMatch])
+/// whose figures are canonically identical writes nothing and returns the
+/// existing dance's id (INTAKE-3 (a)).
 ///
 /// Returns null when there is no confident match (no results, only fuzzy hits,
-/// or more than one exact hit), when the previewed dance is already a
-/// **confident local duplicate** (issue #685 — exact-normalized-title with an
-/// overlapping tokenized author set, see [DedupeVerdict.hasConfidentMatch]),
-/// or when the import yields no id. Any other fetch / parse / import
+/// or more than one exact hit), when the confident local duplicate's target
+/// cannot be loaded or either side's figures cannot be read, or when the
+/// import yields no id. Any other fetch / parse / import
 /// [Exception] is swallowed and returns null so one bad title can't abort a
 /// batch; `Error`s (assertion/programmer bugs) still surface. The one
 /// exception is a source that cannot be reached at all (`isConnectionFailure`):
@@ -440,8 +464,9 @@ Future<_SourceAttempt> _attemptSource(
 /// canonicalization-aware either way: dialect wording, beats, and
 /// progression never count as a difference.
 ///
-/// - **Identical figures** → still returns `null` (#685's rule, UNCHANGED —
-///   a true duplicate must never be silently created, non-interactively).
+/// - **Identical figures** → returns the id of the dance the user already has,
+///   writing nothing (#685: a true duplicate must never be silently created,
+///   non-interactively; INTAKE-3 (a): reuse it). The slot links to that dance.
 /// - **Differing figures** → auto-imports the previewed dance as a new,
 ///   distinct **variation** dance (`DedupeResolution.variation`, symmetric
 ///   `relatedDance` link-back on by default) and returns its id — the exact
@@ -479,6 +504,8 @@ Future<String?> resolveConfidentOnlineDanceId(
   );
   return switch (attempt) {
     _SourceImported(:final danceId) => danceId,
+    // The dance the user already has: link it, write nothing (INTAKE-3 (a)).
+    _SourceReused(:final danceId) => danceId,
     _SourceDeclined() || _SourceMiss() || _SourceAmbiguous() => null,
   };
 }

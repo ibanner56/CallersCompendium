@@ -931,8 +931,13 @@ class UpdateController extends ChangeNotifier {
     }
     final result = checked?.update;
 
-    _available = result;
-    _resetDownloadForNewResult();
+    // A failed check says nothing about the release it could not reach, so it
+    // leaves the update found earlier (and any download state for it) alone;
+    // only a completed check, with or without an update, replaces them.
+    if (checked != null) {
+      _available = result;
+      _resetDownloadForNewResult();
+    }
     _status = switch ((result, outcome)) {
       (UpdateAvailable(), _) => UpdateCheckStatus.updateAvailable,
       (_, UpdateChecked()) => UpdateCheckStatus.noUpdate,

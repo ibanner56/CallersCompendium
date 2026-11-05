@@ -482,8 +482,19 @@ class CallersCompanionUsrImporter {
             ? null
             : await _programs.getById(existingId, includeDeleted: true);
 
+        // A prior link counts as live while some venue row, live or
+        // tombstoned, still carries its id (a tombstone may yet be revived).
+        // With no row at all it is dead, or not arrived yet: #2076 leaves such
+        // an id on restore on purpose, since a peer's program can arrive before
+        // its venue, and the two cannot be told apart here. So a dead link is
+        // replaced only when this import resolves a real venue for the typed
+        // location (venue mode on); otherwise it is kept as before. A re-import
+        // that does resolve one in that window replaces the link.
+        final priorVenueId = prior?.venueId;
+        final priorLinkLive =
+            priorVenueId != null && await _venues.rowExists(priorVenueId);
         String? venueId;
-        if (venueEntityMode && !(prior != null && prior.venueId != null)) {
+        if (venueEntityMode && !priorLinkLive) {
           final cleanedLocation = program.venue;
           if (cleanedLocation != null && cleanedLocation.isNotEmpty) {
             final locationKey = _normalizeLocationKey(cleanedLocation);
@@ -565,7 +576,10 @@ class CallersCompanionUsrImporter {
             candidate,
             id: existingId,
             createdAt: prior.createdAt,
-            priorVenueId: prior.venueId,
+            // Kept unless the link is dead AND a venue resolved above.
+            priorVenueId: (priorLinkLive || venueId == null)
+                ? priorVenueId
+                : null,
           );
           if (priorCapturedFor.add(existingId)) {
             priorStates.add(prior);
@@ -1607,7 +1621,8 @@ class CallersCompanionUsrImporter {
   /// from the freshly built program.
   ///
   /// [priorVenueId] carries the matched program's existing `venueId` forward
-  /// **when set** — a `.USR` archive has no concept of this app-local venue
+  /// **when set** (the caller passes `null` only for a link no venue row backs
+  /// when this import resolved a venue to replace it) — a `.USR` archive has no concept of this app-local venue
   /// entity link of its own, so overwriting an established link with null (or
   /// with a fresh guess) would silently drop/flip-flop app-local state the
   /// source cannot reconstruct or express (issue #687 bullet 6). When there is
