@@ -61,7 +61,7 @@ final _textDef = CustomFieldDef(
 );
 
 Future<({CompendiumRepositories repos, _ReadCountingDances dances})>
-_pumpWithThreeDances(WidgetTester tester) async {
+_pumpWithThreeDances(WidgetTester tester, {bool withTag = false}) async {
   final db = openWidgetTestDatabase();
   final dances = _ReadCountingDances(db);
   final repos = CompendiumRepositories(db, contraTaxonomy, dances: dances);
@@ -69,6 +69,12 @@ _pumpWithThreeDances(WidgetTester tester) async {
   await repos.customFieldDefs.upsert(_textDef);
   for (final id in ['d1', 'd2', 'd3']) {
     await repos.dances.create(_dance(id, tunes: ['Reel A']));
+  }
+  if (withTag) {
+    // The Add tags picker lists tags a live dance uses, so one dance carries it.
+    // ignore: unused_result
+    await repos.tags.upsert(Tag(id: 't1', name: 'Beginner'));
+    await repos.dances.create(_dance('d4').copyWith(tagIds: ['t1']));
   }
   await pumpBatchScreen(tester, repos);
   await tester.tap(find.byKey(const ValueKey('collection-more-actions')));
@@ -154,5 +160,34 @@ void main() {
     await tester.pumpAndSettle();
     await _tap(tester, 'batch-custom-field-confirm');
     _expectBatched(t.dances);
+  });
+
+  testWidgets('add tags reads its priors in one batch', (tester) async {
+    final t = await _pumpWithThreeDances(tester, withTag: true);
+    await _tap(tester, 'batch-add-tags');
+    await _tap(tester, 'batch-tag-option-t1');
+    await _tap(tester, 'batch-tag-confirm');
+    _expectBatched(t.dances);
+    for (final id in ['d1', 'd2', 'd3']) {
+      expect((await t.repos.dances.getById(id))!.tagIds, ['t1'], reason: id);
+    }
+  });
+
+  testWidgets('remove tags reads its priors in one batch', (tester) async {
+    final t = await _pumpWithThreeDances(tester, withTag: true);
+    for (final id in ['d1', 'd2', 'd3']) {
+      final d = (await t.repos.dances.getById(id))!;
+      await t.repos.dances.update(d.copyWith(tagIds: ['t1']));
+    }
+    t.dances
+      ..getByIdCalls = 0
+      ..getByIdsCalls = 0;
+    await _tap(tester, 'batch-remove-tags');
+    await _tap(tester, 'batch-tag-option-t1');
+    await _tap(tester, 'batch-tag-confirm');
+    _expectBatched(t.dances);
+    for (final id in ['d1', 'd2', 'd3']) {
+      expect((await t.repos.dances.getById(id))!.tagIds, isEmpty, reason: id);
+    }
   });
 }

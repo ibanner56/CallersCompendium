@@ -1466,8 +1466,14 @@ class _DanceListScreenState extends State<DanceListScreen>
     try {
       await _repos.transaction(() async {
         final pending = <({Dance dance, List<String> next})>[];
+        // One batched read, not a `getById` per dance (N4-S4; see
+        // _batchSetStatus). It is unordered, so walk the selection in order.
+        final byId = {
+          for (final dance in await _repos.dances.getByIds(selectedIds))
+            dance.id: dance,
+        };
         for (final id in selectedIds) {
-          final dance = await _repos.dances.getById(id);
+          final dance = byId[id];
           if (dance == null) continue;
           final current = dance.tagIds;
           final List<String> next;

@@ -109,7 +109,14 @@ built figure.
   setting and each program as a record, so another device receives the two
   independently, in either order, and ends on the new name. A program edited
   on another device before it receives the rename is an ordinary record
-  conflict, and the loser keeps the old name, which reads as unavailable. Inside Perform the quick-switch is then session-local.
+  conflict, and the loser keeps the old name, which reads as unavailable. Saving
+  an editor opened on an existing dialect goes through
+  `DialectLibraryController.updateTerms`, which replaces by name and writes
+  nothing when no custom dialect has that name any more (renamed or deleted
+  while the editor was open), so a stale editor can neither add a second dialect
+  nor revive a deleted one; the screen says the changes were not saved. A
+  dialect has no id, so a deleted name that a new dialect has since taken cannot
+  be told apart from the original. Inside Perform the quick-switch is then session-local.
 
 ## Conditional wording
 
@@ -246,7 +253,7 @@ free text (notes/custom) ──term regex (case-preserving)──▶ display tex
 
 - Substitution covers: role terms, move display names, dancer terms
   (positional/relational sets and single-dancer identities alike), and terms
-  inside free text (notes, hooks, custom figures) via compiled word-boundary
+  inside free text (notes, hooks, unrecognized figures) via compiled word-boundary
   regex with case preservation.
 - Per-dance wording overrides use the same dialect substitution, but do not
   enter the canonical rendering or any search/deduplication identity.
@@ -260,7 +267,7 @@ free text (notes/custom) ──term regex (case-preserving)──▶ display tex
   labels included, is then rendered in the dialect as free text, which never
   reads a `{…}` or `[…]`, so a dialect's role word cannot add one either. The
   canonical render does the same in the canonical dialect. Without the
-  definition, the use shows its stored line as any custom figure does.
+  definition, the use shows its stored line as any unrecognized figure does.
   Outside the canonical render, a dialect's `moves` and `moveWordings` entries
   under `userFigure:<id>` stand in for the figure's name and template
   (`dialectUserFigureName`, `dialectUserFigureWording`; plan C8): keys older
@@ -330,7 +337,7 @@ Each occurrence is classified first, from the figure grammar's own vocabulary
    whitespace and the editor's `*bold*` and `_underline_` markers.
 3. Every other role term is rewritten as before.
 
-This applies wherever the chokepoint runs: figure notes, custom figure text,
+This applies wherever the chokepoint runs: figure notes, unrecognized figure text,
 the import scrub, free-text entry's retry, search queries and the editor's
 lingo underline. Notes stored by earlier versions are not repaired
 (maintainer decision, 2026-10-06): a note stored as `mad role2` still reads
@@ -366,7 +373,7 @@ Where the chokepoint IS wired:
   for the figure beside it, so its language must stay consistent with the
   figure — and importers already store note text canonically through
   `scrubFigureText` (issue #715).
-- **Custom figure text** (`params['text']` of a `custom` figure) typed in the
+- **Unrecognized figure text** (`params['text']` of a `custom` figure) typed in the
   dance editor goes through the same active-dialect chokepoint as figure notes
   when the dance is saved (`FigureDraft._canonicalParams`, called from
   `buildDance`), and is rendered back via `renderFreeText`. Move words that
@@ -548,7 +555,7 @@ Edge rules:
 | Surface | Dialect applied? |
 |---|---|
 | Dance card, editor previews, performance mode | ✅ |
-| Free text: custom figures, figure notes | ✅ (canonical on save, rendered on read) |
+| Free text: unrecognized figures, figure notes | ✅ (canonical on save, rendered on read) |
 | User-glossary text: custom compounds, notes on built-in figures | ✅ (glossary variant on save, rendered on read; #709) |
 | Figure notes inside a custom compound's parts | ✅ (`canonicalizeText` on save, as a dance's figure notes; #709) |
 | A figure of your own's wording template, choice and flag labels, text defaults | ✅ glossary variant on save, the template's literal text only (slots kept as written); rendered on read (#1023) |

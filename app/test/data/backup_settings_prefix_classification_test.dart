@@ -95,6 +95,7 @@ void main() {
       callersBoxRollAwayRoleRepairDoneKey,
       normalisationDerivedIndexRepairDoneKey,
       customFieldIndexRepairDoneKey,
+      customNumberIndexRepairDoneKey,
       'sync_last_used_fingerprint',
       'sync_enabled',
       'sync_endpoint',

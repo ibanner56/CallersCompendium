@@ -66,7 +66,11 @@ bool customFieldIndexesValueText(CustomFieldDefRow def) =>
 ///
 /// Definitions are **soft-deleted** as of schema v25 (issue #898).
 class CustomFieldDefRepository {
-  CustomFieldDefRepository(this._db, {this.onIndexedValuesChanged});
+  CustomFieldDefRepository(
+    this._db, {
+    this.onIndexedValuesChanged,
+    this.onDancesLostValues,
+  });
 
   final CompendiumDatabase _db;
 
@@ -79,6 +83,12 @@ class CustomFieldDefRepository {
   /// every definition it wrote (#1920,
   /// `CompendiumSyncStorage.reindexDerivedAfterApply`).
   final Future<void> Function(String id)? onIndexedValuesChanged;
+
+  /// Called, inside the write's transaction, with the dances whose values for a
+  /// tombstoned definition an [upsert] deleted by adopting it under a recreated
+  /// field of the same key (a new entity, so the old values do not carry over).
+  /// Their index rows are rebuilt so they stop carrying the deleted text.
+  final Future<void> Function(List<String> danceIds)? onDancesLostValues;
 
   /// Writes [def], reviving it if a tombstone holds its UNIQUE key. See
   /// `TagRepository.upsert`.
@@ -179,6 +189,18 @@ class CustomFieldDefRepository {
           incumbentDeletedAt: incumbent.deletedAt,
         );
       }
+      // Adoption deletes the adopted tombstone's `custom_field_values` rows
+      // (see [adoptTombstonedNaturalKey]), which are the trashed dances' values
+      // for it. Their index rows still carry that text, and once the rows are
+      // gone nothing links the dances to the field, so name them first.
+      final adoptedHolders =
+          (!fromSync &&
+              !collidingEdit &&
+              current == null &&
+              incumbent != null &&
+              incumbent.deletedAt != null)
+          ? await _danceIdsHolding(incumbent.id)
+          : const <String>[];
       final id = (collidingEdit || fromSync)
           ? def.id
           : await adoptTombstonedNaturalKey(
@@ -259,6 +281,9 @@ class CustomFieldDefRepository {
         if (heldBefore != def.shareable) await _restampDancesHolding(id, now);
         if (indexedBefore != await _indexesValues(id)) {
           await onIndexedValuesChanged?.call(id);
+        }
+        if (adoptedHolders.isNotEmpty) {
+          await onDancesLostValues?.call(adoptedHolders);
         }
       }
       if (localUserEdit) {
@@ -367,6 +392,14 @@ class CustomFieldDefRepository {
     )..where((t) => t.id.equals(id))).getSingleOrNull();
     return row != null && row.deletedAt == null && row.shareable;
   }
+
+  /// The ids of every dance, live or in the Trash, holding a value for [id].
+  Future<List<String>> _danceIdsHolding(String id) async => [
+    for (final row in await (_db.select(
+      _db.customFieldValues,
+    )..where((t) => t.fieldId.equals(id))).get())
+      row.danceId,
+  ];
 
   /// Whether definition [id] currently lets its values into the search bar's
   /// text index: a live row that [customFieldIndexesValueText] admits.

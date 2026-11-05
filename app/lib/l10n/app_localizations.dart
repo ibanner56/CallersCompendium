@@ -3001,6 +3001,12 @@ abstract class AppLocalizations {
   /// **'“{name}” will be permanently removed.'**
   String settingsDialectDeleteConfirmBody(String name);
 
+  /// Snackbar shown when saving a dialect's edited terms fails because the dialect was renamed or deleted while its editor was open; quotes the dialect's name as the editor opened it (untrusted user text, rendered as plain text).
+  ///
+  /// In en, this message translates to:
+  /// **'\"{name}\" was renamed or deleted while you were editing it, so your changes were not saved.'**
+  String settingsDialectEditConflictSnack(String name);
+
   /// Tooltip for the per-dialect actions menu button.
   ///
   /// In en, this message translates to:
@@ -6203,7 +6209,7 @@ abstract class AppLocalizations {
   /// **'Add “{tagName}” to the Collection filters'**
   String commonShowDancesTaggedTooltip(String tagName);
 
-  /// Snackbar confirming a dance was soft-deleted, quoting its title.
+  /// Snackbar confirming that an item was deleted, quoting its name or title. Used for dances and for other named items: dialects, custom themes, custom fields, custom figures, walkthrough snippets and shorthand tokens.
   ///
   /// In en, this message translates to:
   /// **'\"{title}\" deleted.'**
@@ -11945,10 +11951,10 @@ abstract class AppLocalizations {
   /// **'Couldn\'t complete the import.'**
   String get importReviewImportError;
 
-  /// Snackbar on the import screen when the chosen file is not UTF-8 text (for example a file saved in another encoding, or not a text file at all). Nothing was imported.
+  /// Snackbar on the import screen when the chosen file can't be read as UTF-8 text: a binary file that isn't a share file, or text saved in another encoding. Nothing was imported.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t read that file: it isn\'t text the app can read. If another app saved it, save it again as UTF-8 text and try again.'**
+  /// **'Couldn\'t read that file: it isn\'t a share file, or text the app can read. If another app saved it as text, save it again as UTF-8 and try again.'**
   String get importFileNotText;
 
   /// Snackbar on the import screen when the chosen file could not be read from disk (locked by another app, on a disconnected drive, or refused by the file system). Nothing was imported.

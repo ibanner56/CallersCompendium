@@ -56,8 +56,12 @@ class RecentlyDeletedConfig<T> {
   /// non-null.
   final Future<List<T>> Function(CompendiumRepositories repos) loadDeleted;
 
-  /// Restores [item] to the active collection.
-  final Future<void> Function(CompendiumRepositories repos, T item) restore;
+  /// Restores [item] to the active collection, and says whether it is live
+  /// again. `false` means nothing was restored: a peer permanently deleted
+  /// (blanked) the item, or it is gone, since the list was loaded. The
+  /// repositories' own `restore` returns quietly for those, so this reads the
+  /// outcome back rather than trusting that the call ran.
+  final Future<bool> Function(CompendiumRepositories repos, T item) restore;
 
   /// Permanently deletes [item], and says what that did: erased it, or (once
   /// Device Sync has published it) blanked it down to a deletion record.
@@ -187,14 +191,19 @@ class _RecentlyDeletedScreenState<T> extends State<RecentlyDeletedScreen<T>> {
   }
 
   Future<void> _restore(T item) async {
-    await _config.restore(_repos, item);
+    final restored = await _config.restore(_repos, item);
     if (!mounted) return;
-    final l10n = AppLocalizations.of(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(_config.restoredMessage(l10n, _config.titleOf(item))),
-      ),
-    );
+    // Not restored (blanked or removed elsewhere): claim nothing, as
+    // [_permanentDelete] does for `PermanentDeletion.none`. The reload drops
+    // the row.
+    if (restored) {
+      final l10n = AppLocalizations.of(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_config.restoredMessage(l10n, _config.titleOf(item))),
+        ),
+      );
+    }
     _reload();
   }
 
@@ -353,8 +362,10 @@ final RecentlyDeletedConfig<Dance> danceRecentlyDeletedConfig =
                 )
                 .toList(),
           ),
-      restore: (repos, dance) =>
-          repos.dances.restore(dance.id, at: DateTime.now().toUtc()),
+      restore: (repos, dance) async {
+        await repos.dances.restore(dance.id, at: DateTime.now().toUtc());
+        return await repos.dances.getById(dance.id) != null;
+      },
       // Scoped to this one dance: an unscoped purge would also erase every
       // other item trashed over 30 days ago, whatever the user's retention
       // setting says (LIFE-1).
@@ -393,8 +404,10 @@ final RecentlyDeletedConfig<Program> programRecentlyDeletedConfig =
                 )
                 .toList(),
           ),
-      restore: (repos, program) =>
-          repos.programs.restore(program.id, at: DateTime.now().toUtc()),
+      restore: (repos, program) async {
+        await repos.programs.restore(program.id, at: DateTime.now().toUtc());
+        return await repos.programs.getById(program.id) != null;
+      },
       permanentlyDelete: (repos, program) => repos.programs.permanentlyDelete(
         program.id,
         now: DateTime.now().toUtc(),

@@ -2095,6 +2095,11 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String settingsDialectEditConflictSnack(String name) {
+    return '\"$name\" is hernoemd of verwijderd terwijl je het bewerkte, dus je wijzigingen zijn niet opgeslagen.';
+  }
+
+  @override
   String get settingsDialectActionsTooltip => 'Dialectacties';
 
   @override
@@ -8139,7 +8144,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importFileNotText =>
-      'Dat bestand kon niet worden gelezen: het is geen tekst die de app kan lezen. Als een andere app het heeft opgeslagen, sla het daar opnieuw op als UTF-8-tekst en probeer het nog eens.';
+      'Dat bestand kon niet worden gelezen: het is geen deelbestand en ook geen tekst die de app kan lezen. Als een andere app het als tekst heeft opgeslagen, sla het daar opnieuw op als UTF-8 en probeer het nog eens.';
 
   @override
   String get importFileUnreadable =>
