@@ -555,6 +555,27 @@ This lifts the one-at-a-time rule for wave 4 and the follow-up bundles. The four
 
 **Decision (maintainer's words):** "Go with option (a) for blanked dances". Option (a): the share sends a "Deleted dance" text slot and leaves the dance out, and the PDF skips that slot's figure page. Options (b) (omit the dance but keep the slot citing its id) and (c) (leave as is) were rejected. The bundle 3 session builds it on #2112.
 
+## Follow-up decision sheet, answered 2026-11-05
+
+Answered on the "Follow-up decisions" artifact (https://claude.ai/artifact/T25kjB4Vj2yZkUiFfHesW5). The recommendations on that sheet were the orchestrating session's, not the maintainer's. The maintainer's picks, with their notes verbatim:
+
+- **Q-1 (revival under a held peer tombstone):** (b) keep waiting for the hold to resolve, as today. Recommended.
+- **Q-2 (undated, unperformed slots in Calling history and Last-called):** (a) leave the order and sort as they are. *(differs from the recommendation, (b))* Maintainer's note: "I don't mark my dances as performed, and still want recency. Some folks may want programs without dates to show up based on last edit time in recency. Some may want history and last called to only included programs with dates or dances marked performed. All four could be settings toggles for performance tracking behavior. If "all four" is unclear, ask and I'll specify." Open: the four behaviours are not yet pinned down. See Still open.
+- **Q-3 (ContraDB confident match with differing figures):** (a) import as a variation, as Caller's Box does. Recommended.
+- **Q-4 (type-aheads for Advanced and By phrase):** (a) schedule after the held program work. Recommended.
+- **Q-5 (alternate slot title width):** (a) accept as is. Recommended.
+- **Q-7 (pinned New-program row at 200% text with the keyboard up):** (b) drop the sheet title while the keyboard is up. Recommended.
+- **Merged-tag colour:** (b) the survivor's colour, or the other tag's if the survivor has none. Recommended.
+- **"Show these dances" (Tags manager row action):** (a) after the held program work. Recommended. Maintainer's note: "I thought we had a conversation about AND vs OR in tag search, is this separate from that?" Answer: yes, separate. The AND/OR toggle is B15 (#2063, built: "All tags / Any tag", AND the default once a second tag is added), decided under R2-tag-tap. The sheet card described the wrong feature (a chip-tap that shows only that tag, R2-tag-tap's option (c), which the maintainer did not pick). The thing waiting is the Tags manager action in `docs/design/tags-and-people.md` ("Not proposed here: a 'show these dances' action"), which opens Collection filtered to one tag.
+- **U5a calls:** feature names keep capitals; `docs/user` US spelling with `docs/design` left British; ARB `@description` British words fixed the next time an ARB PR touches the file. All (a), recommended.
+- **Bundle 2 leftovers:** (a) build the `_CompoundColumnDialog` guard and the program editor export-menu trashed-author gap in one small PR. **Whole-number custom values showing "3.0":** (a) fix. **Tiny documentation cleanups:** (a) do both. All recommended.
+- **Held program work:** (b) rows 22 and 51 in one session, then UX6-2. *(differs from the recommendation, (a))*
+- **H-2 (Danish):** the word for beat is "taktslag". Maintainer's note: "taktslag".
+- **H-7 (B28 full screen):** checked, works everywhere.
+- **Stray branch `claude/add-to-program-order-and-search`:** deleted by the maintainer (confirmed: no longer on origin).
+- **Not yet checked:** H-1 (Android picker), H-3 (native translation review), H-4 (Mac menu), H-5 (NVDA and VoiceOver), H-6 (Windows and Linux file association).
+
 ## Still open
 
-- Nothing on the decision page.
+- Q-2: the maintainer proposed settings toggles for how undated and unperformed programs count in recency, Calling history and Last-called, and said "If \"all four\" is unclear, ask". The four behaviours need confirming before anything is built.
+- H-1, H-3, H-4, H-5 and H-6 are device checks and reviews waiting on the maintainer.
