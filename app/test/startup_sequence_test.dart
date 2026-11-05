@@ -2141,7 +2141,7 @@ void main() {
 
       expect(
         find.text(
-          'This data was created by a newer version of Caller\u2019s Compendium. '
+          'This data was created by a newer version of Caller\'s Compendium. '
           'Update the app, then reopen it.',
         ),
         findsOneWidget,
@@ -2883,7 +2883,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
 
-      expect(find.text('Couldn\u2019t back up your data'), findsOneWidget);
+      expect(find.text('Couldn\'t back up your data'), findsOneWidget);
       expect(find.textContaining('low on storage'), findsOneWidget);
       expect(find.text('Quit'), findsOneWidget);
       expect(find.text('Proceed without a backup'), findsOneWidget);
@@ -2893,7 +2893,7 @@ void main() {
 
       // Consent given → migration ran and the app opened normally.
       expect(find.byType(AppShell), findsOneWidget);
-      expect(find.text('Couldn\u2019t back up your data'), findsNothing);
+      expect(find.text('Couldn\'t back up your data'), findsNothing);
     },
   );
 

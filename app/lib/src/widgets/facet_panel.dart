@@ -858,7 +858,7 @@ class _AuthorFacetState extends State<_AuthorFacet> {
 /// as removable chips in the shared [_FacetExpansion] shell — with one
 /// difference: the vocabulary is only a suggestion list, not a closed set.
 /// Tunes are free text, so the first dropdown row is always the typed text
-/// itself ("Add “Dmaj”"), which is what Enter commits; without it, Enter would
+/// itself (`Add "Dmaj"`), which is what Enter commits; without it, Enter would
 /// silently pick the first *suggestion* and a value like `Dmaj` could never be
 /// entered while `Dmaj / Bmin` existed. Selection is written into the
 /// parent-owned [FacetSelections.tunes] via [FacetSelections.addTune].

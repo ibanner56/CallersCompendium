@@ -194,7 +194,7 @@ void main() {
               find.byKey(const ValueKey('dialect-wording-error-swing')),
             )
             .data,
-        'The “{” in “{who” isn’t closed. Add “}” after the name, like {who}.',
+        'The "{" in "{who" isn\'t closed. Add "}" after the name, like {who}.',
       );
 
       final restore = find.byKey(const ValueKey('dialect-wordings-restore'));

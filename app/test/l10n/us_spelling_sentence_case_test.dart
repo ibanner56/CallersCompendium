@@ -45,11 +45,8 @@ const _userTypedKeys = <String>{};
 /// not Title Case, so it is masked before the case check.
 const _names = <String>[
   "Caller's Compendium",
-  'Caller’s Compendium',
   "Caller's Companion",
-  'Caller’s Companion',
   "Caller's Box",
-  'Caller’s Box',
   'ContraDB',
   'Device Sync',
   'Custom Figures',
@@ -76,7 +73,7 @@ bool _looksTitleCase(String value) {
   }
   if (RegExp(r'[.!?:;\n]').hasMatch(text)) return false;
   final words = RegExp(
-    r"[A-Za-z][A-Za-z'’-]*",
+    r"[A-Za-z][A-Za-z'-]*",
   ).allMatches(text).map((m) => m.group(0)!);
   final rest = words.skip(1).toList();
   // An acronym (JSON, USR, CW) is not a capitalized word.
