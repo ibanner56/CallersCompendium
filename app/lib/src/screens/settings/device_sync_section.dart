@@ -6,7 +6,6 @@ import 'package:compendium_core/compendium_core.dart'
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
-import 'package:intl/intl.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../data/backup_io.dart';
@@ -29,6 +28,8 @@ import 'sync_failure_labels.dart';
 import 'sync_notice_labels.dart';
 import 'sync_pairing_screen.dart';
 import 'sync_support_codes.dart';
+import '../../data/date_format_scope.dart';
+import '../../data/regional_formats.dart';
 
 /// Device Sync settings and status (spec §6.1, §6.12, §6.14).
 ///
@@ -787,9 +788,13 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
     return l10n.settingsSyncStatusLastSynced(_formatWhen(context, last));
   }
 
-  String _formatWhen(BuildContext context, DateTime when) => DateFormat.yMMMd(
-    Localizations.localeOf(context).toString(),
-  ).add_jm().format(when.toLocal());
+  String _formatWhen(BuildContext context, DateTime when) =>
+      formatEventDateTime(
+        when,
+        DateFormatScope.of(context),
+        MaterialLocalizations.of(context),
+        AppLocalizations.of(context),
+      );
 
   /// The last completed trigger attempt when it was not a success, or null
   /// when the last attempt succeeded, nothing has run yet in this session, or

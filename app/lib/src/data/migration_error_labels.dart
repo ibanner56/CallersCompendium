@@ -1,7 +1,7 @@
-import 'package:intl/intl.dart';
-
 import '../../l10n/app_localizations.dart';
 import 'migration_guard.dart';
+import 'package:flutter/material.dart' show MaterialLocalizations;
+import 'regional_formats.dart';
 
 /// Localized presentation of the startup migration-guard diagnostics
 /// (`migration_guard.dart`): [DatabaseDowngradeError], [DatabaseBelowFloorError],
@@ -92,11 +92,14 @@ String databaseCopyLocationLabel(
 /// in kilobytes (rounded up, so a non-empty file never reads as 0 KB) and its
 /// last-changed date and time in the app's locale. Path-free, like the rest of
 /// this file.
-String databaseCopyDetails(AppLocalizations l10n, DatabaseCopy copy) =>
-    l10n.migrationRelocationCopyDetails(
-      databaseCopyLocationLabel(l10n, copy.location),
-      (copy.bytes / 1024).ceil(),
-      DateFormat.yMMMd(
-        l10n.localeName,
-      ).add_jm().format(copy.modified.toLocal()),
-    );
+String databaseCopyDetails(
+  AppLocalizations l10n,
+  MaterialLocalizations material,
+  DatabaseCopy copy,
+) => l10n.migrationRelocationCopyDetails(
+  databaseCopyLocationLabel(l10n, copy.location),
+  (copy.bytes / 1024).ceil(),
+  // The Regional setting is stored in the database that failed to open, so
+  // this is the system default: the device's region.
+  formatEventDateTime(copy.modified, DateFormatSetting.system, material, l10n),
+);

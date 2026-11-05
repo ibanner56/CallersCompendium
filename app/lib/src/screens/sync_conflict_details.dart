@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/user_figures_scope.dart';
@@ -17,6 +16,8 @@ import '../theme/app_spacing.dart';
 import '../widgets/compound_argument_editor.dart';
 import '../widgets/program_status_labels.dart';
 import '../widgets/provenance_labels.dart';
+import '../data/date_format_scope.dart';
+import '../data/regional_formats.dart';
 
 /// Names for the records a conflicted record refers to by id — its authors,
 /// tags, level, custom fields, a program's dances and venue — so a comparison
@@ -115,9 +116,12 @@ String? syncConflictFigureName(BuildContext context, String figureId) {
 
 /// When a version was last changed, for telling versions apart.
 String syncConflictWhen(BuildContext context, DateTime when) =>
-    DateFormat.yMMMd(
-      Localizations.localeOf(context).toString(),
-    ).add_jm().format(when.toLocal());
+    formatEventDateTime(
+      when,
+      DateFormatScope.of(context),
+      MaterialLocalizations.of(context),
+      AppLocalizations.of(context),
+    );
 
 /// The fields of [kind] a comparison shows, in reading order, with their
 /// labels: exactly core's [syncUserVisibleFields], which the merge also uses
@@ -1060,9 +1064,12 @@ class SyncConflictComparison extends StatelessWidget {
               if (link is Map) _linkText(l10n, link),
           ].join('; ');
         case 'eventDate':
-          return DateFormat.yMMMd(
-            Localizations.localeOf(context).toString(),
-          ).format(syncConflictCalendarDate(value as String));
+          return formatEventDate(
+            syncConflictCalendarDate(value as String),
+            DateFormatScope.of(context),
+            MaterialLocalizations.of(context),
+            l10n,
+          );
         case 'payMinorUnits':
           // The amount alone is ambiguous: show it with that version's own
           // currency, formatted by the currency's exponent.

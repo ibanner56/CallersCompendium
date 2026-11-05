@@ -4,7 +4,6 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:intl/intl.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
@@ -31,6 +30,8 @@ import 'dance_editor/dance_editor_form.dart';
 import 'dance_editor/name_picker.dart';
 import 'settings/library_manager_list.dart';
 import 'settings/settings_keys.dart';
+import '../data/date_format_scope.dart';
+import '../data/regional_formats.dart';
 
 /// Dance editor (`docs/design/ux.md` §3). Covers the metadata form — title,
 /// authors (with inline choreographer/tag creation), formation, form/type,
@@ -655,9 +656,12 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
           const SizedBox(height: 12),
           Text(
             l10n.danceEditorUnsavedDraftSavedAt(
-              DateFormat.yMMMd(
-                Localizations.localeOf(context).toString(),
-              ).add_jm().format(savedAt.toLocal()),
+              formatEventDateTime(
+                savedAt,
+                DateFormatScope.of(context),
+                MaterialLocalizations.of(context),
+                l10n,
+              ),
             ),
           ),
         ],
