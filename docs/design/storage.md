@@ -965,8 +965,9 @@ around both rules above rather than through them:
   one.
 - **Permanently delete** (Recently deleted) marks a dance or program with
   `deleted_at` = the unix epoch, then erases it, or, if it is published,
-  **blanks** it: every content column is reset, its join rows, derived rows and
-  `retained_sync_fields` row are deleted, and `updated_at` is stamped after the
+  **blanks** it: every content column is reset, its join rows, derived rows,
+  `retained_sync_fields` row and `review_queue` rows are deleted, and
+  `updated_at` is stamped after the
   content it replaces, so the blank body wins on peers too. Only the deletion
   record remains, and Recently deleted hides any row with the epoch mark
   (LIFE-2; maintainer decision 2026-10-29, round 2: hide and blank, no
@@ -976,6 +977,16 @@ around both rules above rather than through them:
   blanks rows marked by builds that predate blanking; being automatic and
   pre-sync, it leaves citers alone and a cited dance keeps its title. See
   `lib/src/storage/permanent_deletion.dart`.
+
+  *Amended 2026-11-05:* the `review_queue` rows were added to what a blank
+  deletes: every row about the record, and for a dance either side of a
+  fresh-attach ambiguity pair. A conflict choice holds another device's whole
+  version, so until then the content stayed on the device until a pass
+  happened to drop the row, and for good once Device Sync was off. A program
+  slot that another device added before its blank arrived still cites the
+  blanked dance, because only the deleting device rewrites citers; the app
+  shows that slot as "Deleted dance" rather than the placeholder title
+  (maintainer decision Q-6, 2026-10-31).
 
 ### Migration safety (app-layer preflight)
 

@@ -488,7 +488,9 @@ already entered stays consistent. The app tells you which ones when you edit a
 field in use. A dance in **Recently deleted** doesn't count: it doesn't lock a
 field's type or keep you from removing a choice it uses. If you change the type,
 or remove that choice, the deleted dance loses its value for the field unless
-the value still fits, and restoring the dance won't bring it back. It doesn't
+the value still fits, and restoring the dance won't bring it back. With
+[Device Sync](./settings.md#device-sync), a change made on another device does
+the same to the deleted dances on this one. It doesn't
 keep you from deleting the whole field either; if you do, restoring the dance
 brings the field back with its value.
 
@@ -521,7 +523,10 @@ undone.
     leaves Recently deleted. Only a small deletion record is kept, with no
     names or text, so your other devices delete it too. A program that
     included the dance keeps its title as a line of text, as it does for any
-    dance that is gone for good. Programs work the same way.
+    dance that is gone for good. If another device added the dance to a
+    program before it heard about the deletion, that slot shows "Deleted
+    dance" instead, because the title is already gone. Programs work the same
+    way.
   - A device still on an older version of the app shows that deletion record
     in its Recently deleted as an untitled "—" entry until you update it. Don't
     restore it there: it is empty.
