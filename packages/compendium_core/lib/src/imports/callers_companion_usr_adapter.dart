@@ -13,8 +13,8 @@ import 'title_article.dart';
 
 /// A [SourceAdapter] that migrates Caller's Companion (CC) dances from the
 /// **binary FileMaker Pro 12 `.USR`** file — the *headline* Phase 6.5
-/// migration path (`docs/design/imports.md` §2, `docs/ROADMAP.md` 6.5). It
-/// pairs the pure-Dart [readFmp12] container reader (validated byte-for-byte
+/// migration path (`docs/design/imports.md` §2, `docs/ROADMAP-archive.md` 6.5).
+/// It pairs the pure-Dart [readFmp12] container reader (validated byte-for-byte
 /// against real FileMaker files) with the CC-schema [readCcUsrArchive] layer,
 /// then feeds each CC `Dance` row through the shared
 /// [mapCallersCompanionDance] mapping — the exact same mapping the CC *text*

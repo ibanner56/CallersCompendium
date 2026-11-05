@@ -226,9 +226,10 @@ typedef ImportBytePicker = Future<Uint8List?> Function();
 /// `file_selector`), restricted to `.usr`, and reads the chosen file's bytes.
 /// Returns `null` when the user cancels.
 ///
-/// Wired for the Caller's Companion `.USR` migration (`docs/ROADMAP.md` 6.5):
-/// the `.USR` is a binary FileMaker 12 container, so the review flow needs the
-/// raw bytes to hand to `CallersCompanionUsrAdapter` (via `options['bytes']`),
+/// Wired for the Caller's Companion `.USR` migration (`docs/ROADMAP-archive.md`
+/// 6.5): the `.USR` is a binary FileMaker 12 container, so the review flow
+/// needs the raw bytes to hand to `CallersCompanionUsrAdapter` (via
+/// `options['bytes']`),
 /// not a decoded string.
 Future<Uint8List?> pickImportUsrFile() async {
   final file = await openFile(acceptedTypeGroups: [importUsrTypeGroup()]);
