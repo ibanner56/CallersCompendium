@@ -585,8 +585,9 @@ and By phrase included — and says how many that is (for example **Select all
 42**). Once they are all picked it becomes **Deselect all 42**. It is a button
 on the toolbar when the screen is wide enough and the first entry of **More
 batch actions** when it is not. It is unavailable while a search is still
-running or **Online search** is on. To
-select the whole collection, clear the filters first.
+running or **Online search** is on. To select the whole collection, clear the
+filters first. On a computer, **Ctrl-A** (**Cmd-A** on a Mac) selects them all
+from the list; see [Using the keyboard](./accessibility.md#using-the-keyboard).
 
 The search box stays live while you select, and a dance you picked stays picked
 when a search hides it, so you can build a selection across several searches.

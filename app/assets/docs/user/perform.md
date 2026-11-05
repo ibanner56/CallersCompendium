@@ -144,7 +144,8 @@ When you perform a single dance, the same **up**, **down**, **Page Up** and
 **Page Down** keys scroll a long card, most of a screen at a time. There is no
 next slot to move to, so they stop at the top and the end.
 
-While the walkthrough overlay is open, none of these change your slot: taps on
+When you are calling a program and the walkthrough overlay is open, none of
+these change your slot: taps on
 the card are absorbed, the **up**, **down**, **Page Up** and **Page Down** keys
 scroll the walkthrough itself, and **Esc** closes it — so reading ahead can't
 move you off the dance you are calling.

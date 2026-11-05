@@ -150,7 +150,8 @@ and Linux and **Cmd** on a Mac:
 Ctrl-N and Ctrl-, take you out of whatever page you're on. If that page is an
 editor with unsaved changes, it asks about them first; answer, then press the
 keys again. They do nothing while a dialog is open. While performing, Ctrl-N, Ctrl-F
-and Ctrl-, do nothing and Esc only leaves full screen (see below); Ctrl-W and a
+and Ctrl-, do nothing, and Esc closes an open walkthrough when you are calling
+a program and otherwise only leaves full screen (see below); Ctrl-W and a
 mouse's Back button ask whether to stop performing, as the back button does.
 
 **Right-click.** On a computer, right-click a dance in the **Collection**, or a
@@ -183,7 +184,8 @@ keys only scroll a long card.
 These work alongside the on-screen next and previous controls and the large edge
 zones, so you can use whichever suits you. On a computer, **F11** (**Ctrl-Cmd-F**
 on macOS) takes Perform full screen and back, and **Esc** leaves full screen
-without leaving Perform. While a dance's walkthrough overlay is open, those keys pause — the
+without leaving Perform. When you are calling a program and a dance's walkthrough overlay is
+open, those keys pause — the
 **up** and **down** keys scroll the walkthrough instead — and **Esc** closes it,
 so reading ahead never changes your slot.
 
