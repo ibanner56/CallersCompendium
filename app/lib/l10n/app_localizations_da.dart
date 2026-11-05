@@ -5300,11 +5300,11 @@ class AppLocalizationsDa extends AppLocalizations {
   String get programsDeletedDanceFallback => '(slettet dans)';
 
   @override
-  String get programsRestoreDeletedDance => 'Restore from Recently deleted';
+  String get programsRestoreDeletedDance => 'Gendan fra For nylig slettet';
 
   @override
   String programsRestoreDeletedDanceError(String title) {
-    return 'Couldn\'t restore \"$title\". It\'s still in Recently deleted.';
+    return 'Kunne ikke gendanne „$title“. Den ligger stadig i For nylig slettet.';
   }
 
   @override

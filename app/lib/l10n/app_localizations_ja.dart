@@ -5067,11 +5067,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programsDeletedDanceFallback => '（削除済みダンス）';
 
   @override
-  String get programsRestoreDeletedDance => 'Restore from Recently deleted';
+  String get programsRestoreDeletedDance => '最近削除したアイテムから復元';
 
   @override
   String programsRestoreDeletedDanceError(String title) {
-    return 'Couldn\'t restore \"$title\". It\'s still in Recently deleted.';
+    return '「$title」を復元できませんでした。最近削除したアイテムに残っています。';
   }
 
   @override

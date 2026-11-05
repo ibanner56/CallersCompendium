@@ -5334,11 +5334,11 @@ class AppLocalizationsNl extends AppLocalizations {
   String get programsDeletedDanceFallback => '(verwijderde dans)';
 
   @override
-  String get programsRestoreDeletedDance => 'Restore from Recently deleted';
+  String get programsRestoreDeletedDance => 'Herstellen uit Onlangs verwijderd';
 
   @override
   String programsRestoreDeletedDanceError(String title) {
-    return 'Couldn\'t restore \"$title\". It\'s still in Recently deleted.';
+    return 'Kon “$title” niet herstellen. De dans staat nog in Onlangs verwijderd.';
   }
 
   @override

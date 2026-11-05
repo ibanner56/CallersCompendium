@@ -5356,11 +5356,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get programsDeletedDanceFallback => '(gelöschter Tanz)';
 
   @override
-  String get programsRestoreDeletedDance => 'Restore from Recently deleted';
+  String get programsRestoreDeletedDance =>
+      'Aus „Zuletzt gelöscht“ wiederherstellen';
 
   @override
   String programsRestoreDeletedDanceError(String title) {
-    return 'Couldn\'t restore \"$title\". It\'s still in Recently deleted.';
+    return '„$title“ konnte nicht wiederhergestellt werden. Der Tanz ist weiterhin unter „Zuletzt gelöscht“.';
   }
 
   @override
