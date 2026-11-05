@@ -36,7 +36,6 @@ void main() {
         'figure',
         "Rory O'More",
       ]);
-      expect(expression(FigureFilter.leaf('do_si_do')), ['figure', 'do si do']);
       expect(expression(FigureFilter.leaf('arch_and_dive')), [
         'figure',
         'arch & dive',
@@ -54,6 +53,35 @@ void main() {
       expect(expression(FigureFilter.leaf('form_short_waves')), [
         'figure',
         'form an ocean wave',
+      ]);
+    });
+
+    test('the Collection keeps an alias apart from its target move', () {
+      // The importer stores a see saw as `see_saw`, not as a `do_si_do`
+      // (likewise swat the flea / box the gnat), while ContraDB stores both
+      // as the target move and answers `see saw` with an alias filter (the
+      // target move with the alias's pinned parameter). So the Collection's
+      // `do_si_do` is ContraDB's `do si do` minus its `see saw`.
+      expect(expression(FigureFilter.leaf('see_saw')), ['figure', 'see saw']);
+      expect(expression(FigureFilter.leaf('swat_the_flea')), [
+        'figure',
+        'swat the flea',
+      ]);
+      expect(expression(FigureFilter.leaf('do_si_do')), [
+        '&',
+        ['figure', 'do si do'],
+        [
+          'not',
+          ['figure', 'see saw'],
+        ],
+      ]);
+      expect(expression(FigureFilter.leaf('box_the_gnat')), [
+        '&',
+        ['figure', 'box the gnat'],
+        [
+          'not',
+          ['figure', 'swat the flea'],
+        ],
       ]);
     });
 
@@ -291,14 +319,11 @@ void main() {
     });
 
     test('moves whose ContraDB meaning differs or is lossy', () {
-      // Aliases: the Collection stores them resolved (`see_saw` is a
-      // `do_si_do`), and ContraDB's alias filters add parameter constraints
-      // the Collection's alias leaf does not have.
+      // `meltdown_swing`: the importer stores a meltdown swing as a `swing`
+      // with `prefix: meltdown`, so a leaf for the alias id matches nothing.
       // `custom` / `star_promenade`: the importer sends unrecognised and
       // declined lines to the Collection's `custom`, so the two sets differ.
       for (final id in [
-        'see_saw',
-        'swat_the_flea',
         'meltdown_swing',
         'custom',
         'star_promenade',

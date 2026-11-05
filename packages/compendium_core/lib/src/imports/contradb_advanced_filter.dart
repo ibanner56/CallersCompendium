@@ -140,12 +140,10 @@ Object _figure(FigureQuery query) {
       if (params.isNotEmpty || section != null) {
         return ContraDbAdvancedUnsupported.figureDetail;
       }
-      final names = _contraDbMovesForCollectionMove[move];
-      if (names == null) return ContraDbAdvancedUnsupported.figureName;
-      final figures = [
-        for (final name in names) <Object?>['figure', name],
-      ];
-      return figures.length == 1 ? figures.single : <Object?>['or', ...figures];
+      final fragment = _contraDbForCollectionMove[move];
+      return fragment == null
+          ? ContraDbAdvancedUnsupported.figureName
+          : _copy(fragment);
     case FigureAnd(:final children):
       return _combine('&', children, _figure);
     case FigureOr(:final children):
@@ -155,6 +153,11 @@ Object _figure(FigureQuery query) {
       return inner is List<Object?> ? <Object?>['not', inner] : inner;
   }
 }
+
+/// A mutable deep copy of a const expression fragment.
+List<Object?> _copy(List<Object?> fragment) => [
+  for (final part in fragment) part is List<Object?> ? _copy(part) : part,
+];
 
 Object _combine<T>(
   String operator,
@@ -171,19 +174,28 @@ Object _combine<T>(
   return parts;
 }
 
-/// The ContraDB moves whose figures the importer turns into each Collection
-/// move, for the Collection moves where that mapping is **exact** in both
-/// directions (the live ContraDB importer, `contradb_figure_dialect.dart` and
-/// `contradb_adapter.dart`'s move table, produces the Collection move from
-/// exactly these ContraDB moves and no others). Spelled as ContraDB spells
-/// them (`_contraDbFigureNames`'s values).
+/// The ContraDB figure filter for each Collection move, for the Collection
+/// moves where it is **exact** in both directions: the live ContraDB importer
+/// (`contradb_figure_dialect.dart`, `contradb_html_adapter.dart`) produces the
+/// Collection move from exactly the figures the filter selects. Moves are
+/// spelled as ContraDB spells them (`_contraDbFigureNames`'s values).
+///
+/// Most are one `["figure", <move>]`. Exceptions, each verified against the
+/// importer by `test/imports/contradb_parity/`:
+///
+/// - **`pull_by`** is both `pull by dancers` and `pull by direction`.
+/// - **Aliases.** ContraDB stores a see saw as a `do si do` and answers the
+///   alias filter `see saw` with that move plus the alias's pinned parameter
+///   (`filter_dances.rb`, `alias_filter`). The importer keeps `see_saw` (and
+///   `swat_the_flea`) as moves of their own, apart from `do_si_do` (and
+///   `box_the_gnat`). So `see_saw` is the alias filter, and `do_si_do` is the
+///   target move *minus* the alias, expressed with the figurewise `&` / `not`.
 ///
 /// Left out on purpose, and therefore refused:
 ///
-/// - **Aliases** (`see_saw`, `swat_the_flea`, `meltdown_swing`). The Collection
-///   stores them resolved (`see_saw` is a `do_si_do` with a pinned parameter),
-///   so a leaf for the alias id matches no stored figure, while ContraDB's
-///   alias filter selects the target move with that parameter value.
+/// - **`meltdown_swing`**: the importer stores a meltdown swing as a `swing`
+///   with `prefix: meltdown`, so a leaf for the alias id matches no stored
+///   figure.
 /// - **`custom`** and **`star_promenade`**: the importer sends every line it
 ///   cannot structure (and every `star promenade`, by owner ruling #843) to the
 ///   Collection's `custom`, so that set is not ContraDB's `custom` set.
@@ -195,50 +207,70 @@ Object _combine<T>(
 /// - Collection moves with no ContraDB figure (`two_hand_turn`,
 ///   `courtesy_turn`, `star_through`, `turn_as_couples`, `orbit`,
 ///   `circular_hey`).
-const Map<String, List<String>> _contraDbMovesForCollectionMove = {
-  'allemande': ['allemande'],
-  'arch_and_dive': ['arch & dive'],
-  'balance': ['balance'],
-  'balance_the_ring': ['balance the ring'],
-  'box_circulate': ['box circulate'],
-  'box_the_gnat': ['box the gnat'],
-  'butterfly_whirl': ['butterfly whirl'],
-  'california_twirl': ['California twirl'],
-  'chain': ['chain'],
-  'circle': ['circle'],
-  'contra_corners': ['contra corners'],
-  'cross_trails': ['cross trails'],
-  'do_si_do': ['do si do'],
-  'dolphin_hey': ['dolphin hey'],
-  'down_the_hall': ['down the hall'],
-  'facing_star': ['facing star'],
-  'figure_8': ['figure 8'],
-  'form_a_long_wave': ['form a long wave'],
-  'form_long_waves': ['form long waves'],
-  'form_short_waves': ['form an ocean wave'],
-  'gate': ['gate'],
-  'give_and_take': ['give & take'],
-  'hey': ['hey'],
-  'long_lines': ['long lines'],
-  'mad_robin': ['mad robin'],
-  'pass_by': ['pass by'],
-  'pass_through': ['pass through'],
-  'petronella': ['petronella'],
-  'poussette': ['poussette'],
-  'promenade': ['promenade'],
-  'pull_by': ['pull by dancers', 'pull by direction'],
-  'revolving_door': ['revolving door'],
-  'right_left_through': ['right left through'],
-  'roll_away': ['roll away'],
-  'rory_o_more': ["Rory O'More"],
-  'shoulder_round': ['gyre'],
-  'slice': ['slice'],
-  'slide_along_set': ['slide along set'],
-  'square_through': ['square through'],
-  'stand_still': ['stand still'],
-  'star': ['star'],
-  'swing': ['swing'],
-  'turn_alone': ['turn alone'],
-  'up_the_hall': ['up the hall'],
-  'zig_zag': ['zig zag'],
+const Map<String, List<Object?>> _contraDbForCollectionMove = {
+  'allemande': ['figure', 'allemande'],
+  'arch_and_dive': ['figure', 'arch & dive'],
+  'balance': ['figure', 'balance'],
+  'balance_the_ring': ['figure', 'balance the ring'],
+  'box_circulate': ['figure', 'box circulate'],
+  'box_the_gnat': [
+    '&',
+    ['figure', 'box the gnat'],
+    [
+      'not',
+      ['figure', 'swat the flea'],
+    ],
+  ],
+  'butterfly_whirl': ['figure', 'butterfly whirl'],
+  'california_twirl': ['figure', 'California twirl'],
+  'chain': ['figure', 'chain'],
+  'circle': ['figure', 'circle'],
+  'contra_corners': ['figure', 'contra corners'],
+  'cross_trails': ['figure', 'cross trails'],
+  'do_si_do': [
+    '&',
+    ['figure', 'do si do'],
+    [
+      'not',
+      ['figure', 'see saw'],
+    ],
+  ],
+  'dolphin_hey': ['figure', 'dolphin hey'],
+  'down_the_hall': ['figure', 'down the hall'],
+  'facing_star': ['figure', 'facing star'],
+  'figure_8': ['figure', 'figure 8'],
+  'form_a_long_wave': ['figure', 'form a long wave'],
+  'form_long_waves': ['figure', 'form long waves'],
+  'form_short_waves': ['figure', 'form an ocean wave'],
+  'gate': ['figure', 'gate'],
+  'give_and_take': ['figure', 'give & take'],
+  'hey': ['figure', 'hey'],
+  'long_lines': ['figure', 'long lines'],
+  'mad_robin': ['figure', 'mad robin'],
+  'pass_by': ['figure', 'pass by'],
+  'pass_through': ['figure', 'pass through'],
+  'petronella': ['figure', 'petronella'],
+  'poussette': ['figure', 'poussette'],
+  'promenade': ['figure', 'promenade'],
+  'pull_by': [
+    'or',
+    ['figure', 'pull by dancers'],
+    ['figure', 'pull by direction'],
+  ],
+  'revolving_door': ['figure', 'revolving door'],
+  'right_left_through': ['figure', 'right left through'],
+  'roll_away': ['figure', 'roll away'],
+  'rory_o_more': ['figure', "Rory O'More"],
+  'see_saw': ['figure', 'see saw'],
+  'shoulder_round': ['figure', 'gyre'],
+  'slice': ['figure', 'slice'],
+  'slide_along_set': ['figure', 'slide along set'],
+  'square_through': ['figure', 'square through'],
+  'stand_still': ['figure', 'stand still'],
+  'star': ['figure', 'star'],
+  'swat_the_flea': ['figure', 'swat the flea'],
+  'swing': ['figure', 'swing'],
+  'turn_alone': ['figure', 'turn alone'],
+  'up_the_hall': ['figure', 'up the hall'],
+  'zig_zag': ['figure', 'zig zag'],
 };

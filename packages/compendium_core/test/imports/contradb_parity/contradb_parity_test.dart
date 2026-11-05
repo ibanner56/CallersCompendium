@@ -25,8 +25,12 @@ class ParityDance {
   final String id;
   final List<ContraFig> figures;
 
-  ContraDbDance get contra =>
-      ContraDbDance(id: id, moves: [for (final f in figures) f.move], title: id);
+  ContraDbDance get contra => ContraDbDance(
+    id: id,
+    moves: [for (final f in figures) f.move],
+    aliases: [for (final f in figures) f.alias],
+    title: id,
+  );
 }
 
 String describe(Object? n) => switch (n) {
@@ -69,8 +73,18 @@ Future<void> main() async {
   // Hand-picked edge shapes first, then seeded random dances over a small
   // alphabet (repeats and collisions are what exercise the set semantics).
   const alphabet = [
-    'swing', 'balance', 'chain', 'circle', 'do-si-do', 'long-lines',
-    'petronella', 'rlt', 'star', 'allemande', 'pass-through', 'box-the-gnat',
+    'swing',
+    'balance',
+    'chain',
+    'circle',
+    'do-si-do',
+    'long-lines',
+    'petronella',
+    'rlt',
+    'star',
+    'allemande',
+    'pass-through',
+    'box-the-gnat',
   ];
   setUpAll(() async {
     final named = <String, List<String>>{
@@ -89,22 +103,30 @@ Future<void> main() async {
     for (final e in named.entries) {
       await store(ParityDance(e.key, [for (final k in e.value) fig(k)]));
     }
+    // One single-figure dance per catalogue figure: every mapped move is
+    // queried against a dance that has exactly it.
+    for (final f in cleanFigures) {
+      await store(ParityDance('v-${f.key}', [f]));
+    }
     final rnd = Random(20261105);
     for (var i = 0; i < 240; i++) {
       final n = rnd.nextInt(7); // 0..6 figures
       await store(
-        ParityDance('r$i', [for (var j = 0; j < n; j++) fig(alphabet[rnd.nextInt(alphabet.length)])]),
+        ParityDance('r$i', [
+          for (var j = 0; j < n; j++)
+            fig(alphabet[rnd.nextInt(alphabet.length)]),
+        ]),
       );
     }
   });
   tearDownAll(() => db.close());
 
   // ---- tree generation ----------------------------------------------------
-  final localIds = [
-    for (final f in cleanFigures) ...f.local!,
-  ].toSet().toList()..sort();
+  final localIds = [for (final f in cleanFigures) ...f.local!].toSet().toList()
+    ..sort();
 
-  FigureLeaf leaf(Random r, List<String> pool) => FigureLeaf(pool[r.nextInt(pool.length)]);
+  FigureLeaf leaf(Random r, List<String> pool) =>
+      FigureLeaf(pool[r.nextInt(pool.length)]);
 
   FigureQuery figureQuery(Random r, List<String> pool, int depth) {
     if (depth <= 0 || r.nextInt(3) == 0) return leaf(r, pool);
@@ -126,7 +148,9 @@ Future<void> main() async {
       case 2:
       case 3:
         final k = 2 + r.nextInt(2);
-        final kids = [for (var i = 0; i < k; i++) danceFilter(r, pool, depth - 1)];
+        final kids = [
+          for (var i = 0; i < k; i++) danceFilter(r, pool, depth - 1),
+        ];
         return r.nextBool() ? AndFilter(kids) : OrFilter(kids);
       case 4:
         return NotFilter(danceFilter(r, pool, depth - 1));
@@ -136,28 +160,40 @@ Future<void> main() async {
   }
 
   /// Runs [filter] both ways. Returns null when the translator refuses.
-  Future<({List<String> local, List<String> contra})?> both(DanceFilter filter) async {
+  Future<({List<String> local, List<String> contra})?> both(
+    DanceFilter filter,
+  ) async {
     final t = translateDanceFilterToContraDb(filter);
     if (t is! ContraDbAdvancedExpression) return null;
     final local = (await dances.search(filter)).toList()..sort();
-    final contra = contraDbMatchingIds(t.expression, contraDances.map((d) => d.contra)).toList()
-      ..sort();
+    final contra = contraDbMatchingIds(
+      t.expression,
+      contraDances.map((d) => d.contra),
+    ).toList()..sort();
     return (local: local, contra: contra);
   }
 
   group('clean corpus: Collection and ContraDB select the same dances', () {
-    test('every catalogue line imports to the Collection move recorded for it', () async {
-      for (final f in cleanFigures) {
-        final got = [for (final x in await importedFigures(contraDbPage('t', 'c', [f]))) x.move];
-        expect(got, f.local, reason: f.key);
-      }
-    });
+    test(
+      'every catalogue line imports to the Collection move recorded for it',
+      () async {
+        for (final f in cleanFigures) {
+          final got = [
+            for (final x in await importedFigures(contraDbPage('t', 'c', [f])))
+              x.move,
+          ];
+          expect(got, f.local, reason: f.key);
+        }
+      },
+    );
 
     test('the corpus has the shapes the audit needs', () {
       expect(contraDances.where((d) => d.figures.isEmpty), isNotEmpty);
       expect(contraDances.where((d) => d.figures.length == 1), isNotEmpty);
       expect(
-        contraDances.where((d) => d.figures.map((f) => f.key).toSet().length < d.figures.length),
+        contraDances.where(
+          (d) => d.figures.map((f) => f.key).toSet().length < d.figures.length,
+        ),
         isNotEmpty,
         reason: 'repeated moves',
       );
@@ -175,11 +211,21 @@ Future<void> main() async {
         'none of': NotFilter(OrFilter([swing, chain])),
         'not (dance)': NotFilter(swing),
         'has no figure': FigureFilter(FigureNot(FigureLeaf('swing'))),
-        'figure and': FigureFilter(FigureAnd([FigureLeaf('swing'), FigureLeaf('balance')])),
-        'figure and (same figure, never)': FigureFilter(FigureAnd([FigureLeaf('swing'), FigureLeaf('chain')])),
-        'figure or': FigureFilter(FigureOr([FigureLeaf('swing'), FigureLeaf('chain')])),
-        'figure and not': FigureFilter(FigureAnd([FigureLeaf('swing'), FigureNot(FigureLeaf('chain'))])),
-        'figure not not': FigureFilter(FigureNot(FigureNot(FigureLeaf('swing')))),
+        'figure and': FigureFilter(
+          FigureAnd([FigureLeaf('swing'), FigureLeaf('balance')]),
+        ),
+        'figure and (same figure, never)': FigureFilter(
+          FigureAnd([FigureLeaf('swing'), FigureLeaf('chain')]),
+        ),
+        'figure or': FigureFilter(
+          FigureOr([FigureLeaf('swing'), FigureLeaf('chain')]),
+        ),
+        'figure and not': FigureFilter(
+          FigureAnd([FigureLeaf('swing'), FigureNot(FigureLeaf('chain'))]),
+        ),
+        'figure not not': FigureFilter(
+          FigureNot(FigureNot(FigureLeaf('swing'))),
+        ),
         'all(none, figure)': AndFilter([NotFilter(chain), swing]),
         'any(none, none)': OrFilter([NotFilter(chain), NotFilter(swing)]),
         'none(all)': NotFilter(AndFilter([swing, chain])),
@@ -214,10 +260,75 @@ Future<void> main() async {
         }
       }
       // ignore: avoid_print
-      print('randomised: compared=$compared refused=$refused (then: $sequence) '
-          'over ${contraDances.length} dances');
+      print(
+        'randomised: compared=$compared refused=$refused (then: $sequence) '
+        'over ${contraDances.length} dances',
+      );
       expect(failures, isEmpty, reason: failures.take(5).join('\n'));
-      expect(compared, greaterThan(500), reason: 'too few trees were translatable');
+      expect(
+        compared,
+        greaterThan(500),
+        reason: 'too few trees were translatable',
+      );
     });
+  });
+
+  group('vocabulary: every translatable Collection move agrees', () {
+    test('each mapped move id, alone and negated', () async {
+      for (final id in localIds) {
+        for (final filter in <DanceFilter>[
+          FigureFilter.leaf(id),
+          NotFilter(FigureFilter.leaf(id)),
+          FigureFilter(FigureNot(FigureLeaf(id))),
+        ]) {
+          final r = await both(filter);
+          expect(r, isNotNull, reason: '$id was refused');
+          expect(r!.local, r.contra, reason: describe(filter));
+        }
+      }
+    });
+
+    test(
+      'every ContraDB move is reached by a mapped id or is a documented gap',
+      () {
+        final reached = <String>{};
+        for (final id in contraTaxonomy.moves.keys) {
+          final t = translateDanceFilterToContraDb(FigureFilter.leaf(id));
+          if (t is ContraDbAdvancedExpression) {
+            void walk(Object? e) {
+              if (e is List && e.isNotEmpty && e.first == 'figure')
+                reached.add(e[1] as String);
+              if (e is List) e.forEach(walk);
+            }
+
+            walk(t.expression);
+          }
+        }
+        const documentedGaps = {
+          'meltdown swing', // alias of swing{prefix: meltdown}: refused
+          'custom', 'star promenade', 'allemande orbit',
+          'pull by dancers', 'pull by direction', // only via pull_by (or)
+        };
+        final missing = contraDbDefinedMoves.keys.toSet()
+          ..removeAll(reached)
+          ..removeAll(documentedGaps);
+        expect(
+          missing,
+          isEmpty,
+          reason: 'ContraDB moves with no Collection id',
+        );
+        // ...and nothing the translator emits is a name ContraDB lacks.
+        expect(reached.difference(contraDbDefinedMoves.keys.toSet()), isEmpty);
+        // Every accepted id is a real Collection move.
+        for (final id in localIds) {
+          expect(
+            contraTaxonomy.moves.containsKey(id) ||
+                contraTaxonomy.aliases.containsKey(id),
+            isTrue,
+            reason: id,
+          );
+        }
+      },
+    );
   });
 }

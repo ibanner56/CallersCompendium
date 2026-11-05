@@ -32,12 +32,21 @@ class ContraDbDance {
   ContraDbDance({
     required this.id,
     required this.moves,
+    List<String?>? aliases,
     this.title = '',
     this.choreographer = '',
-  });
+  }) : aliases = aliases ?? List<String?>.filled(moves.length, null);
 
   final String id;
   final List<String> moves;
+
+  /// For a figure whose stored move is an alias's target with the alias's
+  /// pinned parameter (a see saw is a `do si do` with left shoulders), the
+  /// alias name; otherwise null. MODELLED, not ported: ContraDB answers an
+  /// alias filter by `alias_filter(move)` (the pinned parameter values) against
+  /// the figure's `parameter_values`, which needs libfigure's parameter tables;
+  /// this abstracts that to "the figure carries that alias's pinned values".
+  final List<String?> aliases;
   final String title;
   final String choreographer;
 
@@ -82,8 +91,9 @@ class SearchMatch {
 
   bool abuts(SearchMatch other) => (last + 1) % nfigures == other.first;
 
-  SearchMatch? abut(SearchMatch other) =>
-      abuts(other) ? SearchMatch(first, nfigures, count: count + other.count) : null;
+  SearchMatch? abut(SearchMatch other) => abuts(other)
+      ? SearchMatch(first, nfigures, count: count + other.count)
+      : null;
 
   @override
   bool operator ==(Object other) =>
@@ -162,7 +172,9 @@ const Map<String, String> contraDbDefinedMoves = {
 /// `FilterDances.matching_figures` over [filter] (a decoded JSON array).
 Matches? matchingFigures(List<Object?> filter, ContraDbDance dance) {
   final operator = filter.first as String;
-  final name = operator == '&' ? 'figurewise_and' : operator.replaceAll('-', '_');
+  final name = operator == '&'
+      ? 'figurewise_and'
+      : operator.replaceAll('-', '_');
   switch (name) {
     case 'figure':
       return _forFigure(filter, dance);
@@ -180,13 +192,15 @@ Matches? matchingFigures(List<Object?> filter, ContraDbDance dance) {
     case 'then':
       return _forThen(filter, dance);
     case 'title':
-      return dance.title.toLowerCase().contains((filter[1] as String).toLowerCase())
+      return dance.title.toLowerCase().contains(
+            (filter[1] as String).toLowerCase(),
+          )
           ? <SearchMatch>{}
           : null;
     case 'choreographer':
-      return dance.choreographer
-              .toLowerCase()
-              .contains((filter[1] as String).toLowerCase())
+      return dance.choreographer.toLowerCase().contains(
+            (filter[1] as String).toLowerCase(),
+          )
           ? <SearchMatch>{}
           : null;
   }
@@ -218,7 +232,8 @@ Matches _diceSearchMatches(Matches set) => {
 Matches? _forFigure(List<Object?> filter, ContraDbDance dance) {
   final filterMove = filter[1] as String;
   final nfigures = dance.nfigures;
-  if (filterMove == '*') return nfigures > 0 ? _allFiguresMatch(nfigures) : null;
+  if (filterMove == '*')
+    return nfigures > 0 ? _allFiguresMatch(nfigures) : null;
   final paramFilters = filter.skip(2).toList();
   final searchMatches = <SearchMatch>{};
   for (var index = 0; index < nfigures; index++) {
@@ -231,15 +246,16 @@ Matches? _forFigure(List<Object?> filter, ContraDbDance dance) {
         'defined_events[${jsonLike(filterMove)}] is undefined (TypeError)',
       );
     }
-    final isAlias = canonical != filterMove;
-    if (paramFilters.isNotEmpty || isAlias) {
-      // Parameter / alias filters need libfigure's per-move parameter tables,
+    if (paramFilters.isNotEmpty) {
+      // Explicit parameter filters need libfigure's per-move parameter tables,
       // which this reference does not carry; no translator output reaches here.
-      throw ContraDbReferenceError(
-        'parameter and alias filters are not modelled by this reference',
-      );
+      throw ContraDbReferenceError('parameter filters are not modelled');
     }
-    if (dance.moves[index] == canonical) {
+    final isAlias = canonical != filterMove;
+    // `param_filters = alias_filter(filter_move) if filter_is_alias`: an alias
+    // filter selects the target move with the alias's pinned parameters.
+    final passesParams = !isAlias || dance.aliases[index] == filterMove;
+    if (dance.moves[index] == canonical && passesParams) {
       searchMatches.add(SearchMatch(index, nfigures));
     }
   }
@@ -284,7 +300,9 @@ Matches? _forAnd(List<Object?> filter, ContraDbDance dance) {
 Matches? _forNot(List<Object?> filter, ContraDbDance dance) {
   final sub = filter[1] as List<Object?>;
   final matched = matchingFigures(sub, dance) ?? <SearchMatch>{};
-  final matches = _allFiguresMatch(dance.nfigures).difference(_diceSearchMatches(matched));
+  final matches = _allFiguresMatch(
+    dance.nfigures,
+  ).difference(_diceSearchMatches(matched));
   return matches.isNotEmpty ? matches : null;
 }
 
@@ -314,4 +332,3 @@ List<String> contraDbMatchingIds(
   for (final d in dances)
     if (danceMatches(filter, d)) d.id,
 ];
-
