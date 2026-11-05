@@ -1355,6 +1355,20 @@ void main() {
     expect(find.byKey(const ValueKey('import-commit-button')), findsNothing);
   });
 
+  testWidgets('back on the no-dances message does not ask to discard', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pump(tester, repos, payload: _archivePayload([]));
+    await _toReview(tester);
+    expect(find.text('No dances found'), findsOneWidget);
+
+    await tester.state<NavigatorState>(find.byType(Navigator)).maybePop();
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('import-leave-dialog')), findsNothing);
+  });
+
   testWidgets('an undecodable payload shows an honest error', (tester) async {
     final repos = openTestRepositories();
     await _pump(tester, repos, payload: 'not json at all');

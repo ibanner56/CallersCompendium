@@ -2557,6 +2557,20 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     return choice == DiscardChangesChoice.discard;
   }
 
+  /// Whether leaving now would throw away a review: the review phase with
+  /// something on it to decide. Mirrors the branches of [_buildReview] that
+  /// show rows; its error and "no dances" messages hold nothing to lose, so
+  /// leaving them does not ask.
+  bool get _hasReviewToLose {
+    if (_phase != _Phase.review || _planError != null) return false;
+    final batch = _batch;
+    if (batch == null) return false;
+    if (batch.records.isNotEmpty) return true;
+    if (_titleList?.rows.isNotEmpty ?? false) return true;
+    return batch.errors.isEmpty &&
+        (_effectiveSharedBundle?.archive.programs.isNotEmpty ?? false);
+  }
+
   bool _askingToLeave = false;
 
   /// Leaves once the user confirms discarding the review: through
@@ -2582,7 +2596,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   Future<void> _closeEmbedded() async {
     final onClose = widget.onClose;
     if (onClose == null) return;
-    if (_phase == _Phase.review) {
+    if (_hasReviewToLose) {
       await _leaveReview();
     } else {
       onClose();
@@ -2605,9 +2619,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     // [_confirmLeaveReview]. The input and planning phases hold nothing worth
     // a prompt.
     return PopScope(
-      canPop: _phase != _Phase.committing && _phase != _Phase.review,
+      canPop: _phase != _Phase.committing && !_hasReviewToLose,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop && _phase == _Phase.review) unawaited(_leaveReview());
+        if (!didPop && _hasReviewToLose) unawaited(_leaveReview());
       },
       child: Scaffold(
         appBar: AppBar(
