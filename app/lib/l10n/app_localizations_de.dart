@@ -8154,7 +8154,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get importFileNotText =>
-      'Die Datei konnte nicht gelesen werden: Sie ist kein Text, den die App lesen kann. Wenn eine andere App sie gespeichert hat, speichere sie dort erneut als UTF-8-Text und versuche es noch einmal.';
+      'Die Datei konnte nicht gelesen werden: Sie ist weder eine Freigabedatei noch Text, den die App lesen kann. Wenn eine andere App sie als Text gespeichert hat, speichere sie dort erneut als UTF-8 und versuche es noch einmal.';
 
   @override
   String get importFileUnreadable =>

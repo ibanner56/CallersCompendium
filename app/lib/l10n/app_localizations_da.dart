@@ -8061,7 +8061,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importFileNotText =>
-      'Kunne ikke læse den fil: den er ikke tekst, som appen kan læse. Hvis en anden app har gemt den, så gem den igen som UTF-8-tekst og prøv igen.';
+      'Kunne ikke læse den fil: den er ikke en delefil eller tekst, som appen kan læse. Hvis en anden app har gemt den som tekst, så gem den igen som UTF-8 og prøv igen.';
 
   @override
   String get importFileUnreadable =>

@@ -5060,7 +5060,7 @@
   },
   "commonDeletedSnack": "\"{title}\" deleted.",
   "@commonDeletedSnack": {
-    "description": "Snackbar confirming a dance was soft-deleted, quoting its title.",
+    "description": "Snackbar confirming that an item was deleted, quoting its name or title. Used for dances and for other named items: dialects, custom themes, custom fields, custom figures, walkthrough snippets and shorthand tokens.",
     "placeholders": {
       "title": {
         "type": "String",
@@ -10461,9 +10461,9 @@
   "@importReviewImportError": {
     "description": "Snackbar shown when an import commit (or commit-for-edit) throws. The raw exception is logged (debugPrint), never shown, so storage internals/paths can't leak to the UI (CWE-209)."
   },
-  "importFileNotText": "Couldn't read that file: it isn't text the app can read. If another app saved it, save it again as UTF-8 text and try again.",
+  "importFileNotText": "Couldn't read that file: it isn't a share file, or text the app can read. If another app saved it as text, save it again as UTF-8 and try again.",
   "@importFileNotText": {
-    "description": "Snackbar on the import screen when the chosen file is not UTF-8 text (for example a file saved in another encoding, or not a text file at all). Nothing was imported."
+    "description": "Snackbar on the import screen when the chosen file can't be read as UTF-8 text: a binary file that isn't a share file, or text saved in another encoding. Nothing was imported."
   },
   "importFileUnreadable": "Couldn't open that file. Another app may be using it, or it may be on a drive that isn't connected.",
   "@importFileUnreadable": {

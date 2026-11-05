@@ -7727,7 +7727,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get importFileNotText =>
-      'そのファイルを読み込めませんでした。アプリが読めるテキストではありません。別のアプリで保存したファイルなら、UTF-8テキストとして保存し直してから、もう一度お試しください。';
+      'そのファイルを読み込めませんでした。共有ファイルでも、アプリが読めるテキストでもありません。別のアプリでテキストとして保存したファイルなら、UTF-8で保存し直してから、もう一度お試しください。';
 
   @override
   String get importFileUnreadable =>

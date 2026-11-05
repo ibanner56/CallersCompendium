@@ -7834,7 +7834,7 @@
   "@importReviewImportError": {
     "x-sourceSha256": "468698ddc233d06e939d5d5ca36ce259909e31cd8374a8de9b8c449a63eb6d54"
   },
-  "importFileNotText": "そのファイルを読み込めませんでした。アプリが読めるテキストではありません。別のアプリで保存したファイルなら、UTF-8テキストとして保存し直してから、もう一度お試しください。",
+  "importFileNotText": "そのファイルを読み込めませんでした。共有ファイルでも、アプリが読めるテキストでもありません。別のアプリでテキストとして保存したファイルなら、UTF-8で保存し直してから、もう一度お試しください。",
   "@importFileNotText": {
     "x-sourceSha256": "2b6b1e5e54a0395a362c30b25f7cb9bca9f24df5c8144396eae29310f06cccf5"
   },

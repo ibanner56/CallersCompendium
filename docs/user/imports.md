@@ -273,8 +273,9 @@ of Caller's Compendium. Update the app before importing, or some details may be
 left out."* Update the app first if you want everything that file carries.
 
 If the app can't read the file you chose, it says why and nothing is imported:
-either the file isn't text the app can read (another app saved it in a
-different text encoding: save it again as UTF-8), or the file can't be opened
+either the file isn't a share file or text the app can read (another app
+saved it as text in a different encoding: save it again as UTF-8), or the file
+can't be opened
 (another app is using it, or it is on a drive that isn't connected).
 
 ### Open a shared program someone sent you

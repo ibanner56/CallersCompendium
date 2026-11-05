@@ -8026,7 +8026,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importFileNotText =>
-      'Couldn\'t read that file: it isn\'t text the app can read. If another app saved it, save it again as UTF-8 text and try again.';
+      'Couldn\'t read that file: it isn\'t a share file, or text the app can read. If another app saved it as text, save it again as UTF-8 and try again.';
 
   @override
   String get importFileUnreadable =>

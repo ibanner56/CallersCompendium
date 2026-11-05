@@ -7834,7 +7834,7 @@
   "@importReviewImportError": {
     "x-sourceSha256": "468698ddc233d06e939d5d5ca36ce259909e31cd8374a8de9b8c449a63eb6d54"
   },
-  "importFileNotText": "Dat bestand kon niet worden gelezen: het is geen tekst die de app kan lezen. Als een andere app het heeft opgeslagen, sla het daar opnieuw op als UTF-8-tekst en probeer het nog eens.",
+  "importFileNotText": "Dat bestand kon niet worden gelezen: het is geen deelbestand en ook geen tekst die de app kan lezen. Als een andere app het als tekst heeft opgeslagen, sla het daar opnieuw op als UTF-8 en probeer het nog eens.",
   "@importFileNotText": {
     "x-sourceSha256": "2b6b1e5e54a0395a362c30b25f7cb9bca9f24df5c8144396eae29310f06cccf5"
   },

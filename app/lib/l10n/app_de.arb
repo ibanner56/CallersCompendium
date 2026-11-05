@@ -7834,7 +7834,7 @@
   "@importReviewImportError": {
     "x-sourceSha256": "468698ddc233d06e939d5d5ca36ce259909e31cd8374a8de9b8c449a63eb6d54"
   },
-  "importFileNotText": "Die Datei konnte nicht gelesen werden: Sie ist kein Text, den die App lesen kann. Wenn eine andere App sie gespeichert hat, speichere sie dort erneut als UTF-8-Text und versuche es noch einmal.",
+  "importFileNotText": "Die Datei konnte nicht gelesen werden: Sie ist weder eine Freigabedatei noch Text, den die App lesen kann. Wenn eine andere App sie als Text gespeichert hat, speichere sie dort erneut als UTF-8 und versuche es noch einmal.",
   "@importFileNotText": {
     "x-sourceSha256": "2b6b1e5e54a0395a362c30b25f7cb9bca9f24df5c8144396eae29310f06cccf5"
   },
