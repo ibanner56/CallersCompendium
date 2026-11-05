@@ -306,7 +306,8 @@ jobs:
       # decision 2026-10-31. Fails any new or edited app_en.arb value with a curly
       # quote or apostrophe; today's strings sit on tools/ci/arb_quote_allowlist.json
       # until the sweep (U5b-2) burns it down. Fix with
-      # `python3 tools/ci/arb_quote_style.py`, never `--regenerate`.
+      # `python3 tools/ci/arb_quote_style.py --only KEY...` on the reported keys,
+      # never `--regenerate`.
       # Pure-stdlib and offline.
       - name: Test the ARB quote-style normaliser and ratchet
         run: python3 tools/ci/test_check_arb_quote_style.py
