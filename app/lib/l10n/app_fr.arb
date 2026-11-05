@@ -7258,9 +7258,9 @@
   "@importErrorContraDbUnsupportedFigure": {
     "x-sourceSha256": "b3cdc0346e556478bbeb56d45067b5cc4e6361aa0ed3e239efe070a08fd08b57"
   },
-  "importErrorContraDbUnsupportedAdvanced": "ContraDB ne peut exécuter que des recherches avancées composées de groupes « Toutes », « L’une de » et « Aucune de » contenant des conditions « Contient une figure ». Retirez les tags, les séquences, les détails de figure et les autres conditions pour rechercher dans ContraDB.",
+  "importErrorContraDbUnsupportedAdvanced": "ContraDB ne peut exécuter que des recherches avancées composées de groupes « Toutes », « L’une de » et « Aucune de » contenant des conditions « Contient une figure ». Retirez les tags, les séquences, les détails de figure, les mouvements que ContraDB ne connaît pas et les autres conditions pour rechercher dans ContraDB.",
   "@importErrorContraDbUnsupportedAdvanced": {
-    "x-sourceSha256": "40d57857e688b15c4dd40775a78dbb4e2abd14d502a843de70172fd79aecd074"
+    "x-sourceSha256": "b85d3fe28c94975017fe018534925903e250f789144d0856fb5d75b1e3436520"
   },
   "importErrorContraDbEmptyDanceInput": "Saisissez une URL ou un identifiant de danse ContraDB pour importer.",
   "@importErrorContraDbEmptyDanceInput": {

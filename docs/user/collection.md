@@ -204,7 +204,7 @@ On ContraDB, **Advanced** searches the archive with the same **All of**,
 own library, and its results must also match any text in the search box.
 ContraDB cannot run every condition the same way, so a query that contains a
 tag, a **Sequence (then)** row, a figure's details (such as its beats or
-section), or any other filter is not sent; you see a message explaining this,
+section), a move ContraDB does not have, or any other filter is not sent; you see a message explaining this,
 rather than results that quietly ignore that condition. Remove those
 conditions to search ContraDB.
 

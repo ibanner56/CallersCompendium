@@ -55,10 +55,7 @@ void main() {
       expect(
         expression(
           NotFilter(
-            OrFilter([
-              FigureFilter.leaf('swing'),
-              FigureFilter.leaf('chain'),
-            ]),
+            OrFilter([FigureFilter.leaf('swing'), FigureFilter.leaf('chain')]),
           ),
         ),
         [
@@ -94,9 +91,7 @@ void main() {
     test('figure groups on one figure row: and → &, or → or', () {
       expect(
         expression(
-          FigureFilter(
-            FigureAnd([FigureLeaf('swing'), FigureLeaf('balance')]),
-          ),
+          FigureFilter(FigureAnd([FigureLeaf('swing'), FigureLeaf('balance')])),
         ),
         [
           '&',
@@ -117,23 +112,17 @@ void main() {
     });
 
     test('a top-level figure not means "no figure matches" → no', () {
-      expect(
-        expression(FigureFilter(FigureNot(FigureLeaf('swing')))),
-        [
-          'no',
-          ['figure', 'swing'],
-        ],
-      );
+      expect(expression(FigureFilter(FigureNot(FigureLeaf('swing')))), [
+        'no',
+        ['figure', 'swing'],
+      ]);
     });
 
     test('a figure not inside a figure group is figurewise → not', () {
       expect(
         expression(
           FigureFilter(
-            FigureAnd([
-              FigureLeaf('swing'),
-              FigureNot(FigureLeaf('balance')),
-            ]),
+            FigureAnd([FigureLeaf('swing'), FigureNot(FigureLeaf('balance'))]),
           ),
         ),
         [
@@ -163,10 +152,7 @@ void main() {
   group('refused rather than approximated', () {
     test('tags', () {
       expect(refusal(const TagFilter('t1')), ContraDbAdvancedUnsupported.tag);
-      expect(
-        refusal(const UntaggedFilter()),
-        ContraDbAdvancedUnsupported.tag,
-      );
+      expect(refusal(const UntaggedFilter()), ContraDbAdvancedUnsupported.tag);
     });
 
     test('then sequences (ContraDB then means abutting, not earlier)', () {
@@ -212,21 +198,13 @@ void main() {
 
     test('one unsupported operand refuses the whole tree', () {
       expect(
-        refusal(
-          AndFilter([
-            FigureFilter.leaf('swing'),
-            const TagFilter('t1'),
-          ]),
-        ),
+        refusal(AndFilter([FigureFilter.leaf('swing'), const TagFilter('t1')])),
         ContraDbAdvancedUnsupported.tag,
       );
       expect(
         refusal(
           NotFilter(
-            OrFilter([
-              FigureFilter.leaf('swing'),
-              FigureFilter.leaf('swin'),
-            ]),
+            OrFilter([FigureFilter.leaf('swing'), FigureFilter.leaf('swin')]),
           ),
         ),
         ContraDbAdvancedUnsupported.figureName,
@@ -234,19 +212,14 @@ void main() {
     });
 
     test('empty groups are refused', () {
-      expect(
-        refusal(const AndFilter([])),
-        ContraDbAdvancedUnsupported.other,
-      );
+      expect(refusal(const AndFilter([])), ContraDbAdvancedUnsupported.other);
       expect(refusal(const OrFilter([])), ContraDbAdvancedUnsupported.other);
     });
   });
 
   group('buildContraDbFilterBody', () {
     test('serializes the expression with default paging', () {
-      final decoded = jsonDecode(
-        buildContraDbFilterBody(['figure', 'swing']),
-      );
+      final decoded = jsonDecode(buildContraDbFilterBody(['figure', 'swing']));
       expect(decoded, {
         'filter': ['figure', 'swing'],
         'count': contraDbSearchCount,
