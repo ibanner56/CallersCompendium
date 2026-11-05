@@ -3019,14 +3019,14 @@ void main() {
     expect(find.text(l10n.migrationRelocationCopiesHeading), findsOneWidget);
     expect(
       find.bySemanticsLabel(
-        RegExp(r'^New location: 96 KB, last changed Oct 6, 2026 9:05\sAM$'),
+        RegExp(r'^New location: 96 KB, last changed 10/6/2026 9:05\sAM$'),
       ),
       findsOneWidget,
     );
     expect(
       find.bySemanticsLabel(
         RegExp(
-          r'^Documents folder: 4,312 KB, last changed Sep 30, 2026 9:40\sPM$',
+          r'^Documents folder: 4,312 KB, last changed 9/30/2026 9:40\sPM$',
         ),
       ),
       findsOneWidget,

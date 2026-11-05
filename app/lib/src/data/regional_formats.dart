@@ -318,6 +318,36 @@ String formatEventDate(
   return DateFormat.yMd(region).format(date);
 }
 
+/// Formats a moment for on-screen display: the date as [formatEventDate]
+/// shows it under [setting], then the time of day.
+///
+/// For records the app stamps itself (when a version was last changed, when sync
+/// last ran, when a draft was saved), where the date alone does not say which of
+/// two edits is later. The date follows the Regional setting and, under the
+/// system default, the device's region, so a person who chose `2026-07-15`
+/// reads that here too, not a month name in the app's language. The time stays
+/// in the app's language: the hour and minute carry no words, and the AM/PM
+/// marker of a region's own language would put a second language in an English
+/// line.
+String formatEventDateTime(
+  DateTime when,
+  DateFormatSetting setting,
+  MaterialLocalizations material,
+  AppLocalizations l10n, {
+  Locale? platformLocale,
+}) {
+  final local = when.toLocal();
+  final date = formatEventDate(
+    local,
+    setting,
+    material,
+    l10n,
+    platformLocale: platformLocale,
+  );
+  final time = DateFormat.jm(l10n.localeName).format(local);
+  return '$date $time';
+}
+
 /// Returns the fixed zero-padded pattern for [date] under [setting], or `null`
 /// for [DateFormatPref.system] and any invalid custom pattern (which have no
 /// fixed pattern and defer to the platform locale). Pure and Flutter-free so the

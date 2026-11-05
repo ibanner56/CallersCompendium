@@ -410,6 +410,11 @@ The **Language & region** section handles formats and localization.
   single order and use your device language's default. Pick a fixed format or
   **Custom…** if you want one layout everywhere.
 
+  The same choice formats the dates the app stamps itself, such as when an
+  unsaved draft was saved, when Device Sync last ran and when a version on a
+  sync conflict was changed. The time of day after the date stays in the app
+  language.
+
   A custom pattern is built from these tokens:
 
   | Token | Meaning |

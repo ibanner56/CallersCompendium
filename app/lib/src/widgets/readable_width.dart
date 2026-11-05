@@ -38,10 +38,17 @@ class ReadableListView extends StatelessWidget {
     required this.children,
     this.padding,
     this.keyboardDismissBehavior,
+    this.controller,
     super.key,
   });
 
   final List<Widget> children;
+
+  /// Drives the list's scroll position, for a screen that scrolls it itself.
+  /// When null, as for a [ListView] given no controller: the ambient
+  /// primary scroll controller where the platform inherits one (mobile by
+  /// default), otherwise the list's own.
+  final ScrollController? controller;
 
   /// The padding the list would have had uncapped; see
   /// [readableContentPadding]. When null, the safe-area insets above and below
@@ -56,6 +63,7 @@ class ReadableListView extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) => ListView(
+        controller: controller,
         keyboardDismissBehavior: keyboardDismissBehavior,
         padding: readableContentPadding(
           constraints.maxWidth,
