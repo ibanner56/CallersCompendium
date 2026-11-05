@@ -630,6 +630,48 @@ void main() {
       },
     );
 
+    // A peer's type change reaches this device through `writeFromSync`, which
+    // the local-write drop above did not cover, so the trashed dance kept a
+    // value its field no longer admits: unreadable, and unrestorable.
+    test('an inbound type change drops the trashed dance\'s value without '
+        'restamping it', () async {
+      await seedField(text);
+      await seedDance('trashed', 'a note', inTrash: true);
+      final before = await updatedAt('trashed');
+
+      await repo.writeFromSync(field(CustomFieldType.number), at: edited);
+
+      expect(await valuesByDance(), isEmpty);
+      expect(
+        (await dances.getById('trashed', includeDeleted: true))!.customFields,
+        isEmpty,
+      );
+      // §6.7 keeps an inbound write off the editor's path: the peer that made
+      // the change restamped its own copy of the dance, and that copy reaches
+      // this device as an ordinary newer edit.
+      expect(await updatedAt('trashed'), before);
+    });
+
+    test(
+      'an inbound choice removal drops it only from trashed dances',
+      () async {
+        await seedField(choice);
+        await seedDance('trashed-kept', 'driving', inTrash: true);
+        await seedDance('trashed-dropped', 'lyrical', inTrash: true);
+        await seedDance('live', 'lyrical');
+
+        await repo.writeFromSync(
+          field(CustomFieldType.choice, choices: ['driving']),
+          at: edited,
+        );
+
+        expect(await valuesByDance(), {
+          'trashed-kept': 'driving',
+          'live': 'lyrical',
+        });
+      },
+    );
+
     test('removing a choice drops it only from trashed dances', () async {
       await seedField(choice);
       await seedDance('trashed-kept', 'driving', inTrash: true);

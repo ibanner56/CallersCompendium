@@ -38,6 +38,7 @@ import '../widgets/program_status_chip.dart';
 import 'dance_detail_screen.dart';
 import 'dance_reimport_flow.dart';
 import '../widgets/command_palette.dart';
+import '../utils/slot_dance_title.dart';
 import 'perform_program_screen.dart';
 import 'program_editor_screen.dart';
 
@@ -855,7 +856,10 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
             if (!widget.prominentPerform) _buildPerformAction(program),
             ProgramExportMenu(
               program: program,
-              titleFor: (id) => _danceTitles[id],
+              titleFor: (id) => switch (_dances[id]) {
+                final dance? => slotDanceTitle(l10n, dance),
+                null => _danceTitles[id],
+              },
               venuesById: _venuesById,
               danceFor: (id) => _dances[id],
               choreographerFor: (id) => _collectionData?.choreographersById[id],
@@ -1444,9 +1448,9 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       // A dance in Recently deleted is marked as Perform marks it, and its row
       // opens nothing: the dance details read live dances only.
       final deleted = dance?.isDeleted ?? false;
-      final title = storedTitle == null || !deleted
+      final title = dance == null
           ? storedTitle
-          : '$storedTitle ${l10n.programsDeletedDanceFallback}';
+          : slotDanceTitle(l10n, dance, markDeleted: true);
       final performed = slot.performedAt != null;
       final showToggle = title != null && ShowPerformedTogglesScope.of(context);
       if (title == null) {

@@ -138,11 +138,16 @@ class CrashLogRecord {
   /// package; a test in the app pins every name to the real class so a rename
   /// cannot silently withhold (or, worse, mis-allow) a message. Adding a type
   /// means its message can never carry a URL, path, server text or user data.
+  ///
+  /// Device Sync is deliberately absent. A failed pass is thrown as the app's
+  /// `SyncWorkerFailure`, whose message is the worker isolate's `'$error'` text
+  /// for whatever went wrong, so it can carry a server's URL or response. The
+  /// typed `SyncFailure` it was listed under is returned, never thrown, so the
+  /// entry matched nothing.
   static const Set<String> messageSafeErrorTypes = {
     'UrlFetchException',
     'PublishedCollectionFetchException',
     '_UpdateDownloadError',
-    'SyncFailure',
   };
 
   /// Returns a copy safe for the default (scrubbed) export: [errorMessage] is

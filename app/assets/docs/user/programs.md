@@ -283,7 +283,10 @@ summary, as in [Perform mode](./perform.md). Its figures stay in the matrix.
 The set list you print, copy or share shows the plain title, and **Share
 (program + dances)** includes the dance itself. Restore the dance from Recently
 deleted to use it normally again. Once the dance is gone for good, the slot
-keeps its title as text.
+keeps its title as text. With [Device Sync](./settings.md#device-sync), a
+slot you added before this device heard that another device deleted the dance
+for good shows "Deleted dance" instead, in the builder, the summary, Perform
+mode and the set list.
 
 ### Event details
 

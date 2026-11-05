@@ -19,6 +19,7 @@ import '../utils/undo_snack_bar.dart';
 import '../widgets/colour_dance_theme.dart';
 import '../widgets/dialect_quick_switch.dart';
 import '../widgets/tap_tempo_metronome.dart';
+import '../utils/slot_dance_title.dart';
 import 'perform_a11y_prefs.dart';
 import 'perform_adjust_sheet.dart';
 import 'perform_card.dart';
@@ -760,9 +761,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     if (slot.danceId != null) {
       final dance = _danceForSlot(slot);
       if (dance == null) return l10n.programsDanceUnavailable;
-      return markDeleted && dance.isDeleted
-          ? '${dance.title} ${l10n.programsDeletedDanceFallback}'
-          : dance.title;
+      return slotDanceTitle(l10n, dance, markDeleted: markDeleted);
     }
     final rawText = slot.text?.trim();
     final text =
@@ -1723,9 +1722,11 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
         // A soft-deleted dance keeps its figures but says so in its title.
         if (dance.isDeleted) {
           dance = dance.copyWith(
-            title:
-                '${dance.title} '
-                '${AppLocalizations.of(context).programsDeletedDanceFallback}',
+            title: slotDanceTitle(
+              AppLocalizations.of(context),
+              dance,
+              markDeleted: true,
+            ),
           );
         }
         return PerformCard(

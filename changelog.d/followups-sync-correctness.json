@@ -1,0 +1,20 @@
+{
+  "id": "followups-sync-correctness",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "A program slot whose dance was permanently deleted on another device now reads \"Deleted dance\" in the builder, the summary, Perform mode and the set lists you print, copy or share, instead of a dash.",
+      "With Device Sync, a \"renamed onto a name this device already uses\" review no longer stays in the list after the clash has gone, for example once you rename one of the two by hand.",
+      "With Device Sync, when another device changes a custom field's type or removes one of its choices, the dances in Recently deleted on this device lose the values that no longer fit, as they already did on the device that made the change. Before, such a dance could fail to restore.",
+      "Permanently deleting a dance or program, by hand or when its time in Recently deleted runs out, now also removes any Device Sync review still waiting about it, which held a copy of its content."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "`CompendiumSyncStorage.refreshConflictReviews` drops §6.6 step-1 rename-collision rows whose collision has ended, judged from local state only.",
+      "`CustomFieldDefRepository.writeFromSync` drops the values trashed dances hold that no longer fit the field's new type or choices, without restamping them.",
+      "Blanking a dance or program deletes its `review_queue` rows, including a dance ambiguity row naming it as either side.",
+      "`CrashLogRecord.messageSafeErrorTypes` no longer lists `SyncFailure`, which is never thrown, so the entry matched nothing."
+    ]
+  }
+}

@@ -358,12 +358,10 @@ Future<void> raiseExistenceAbove(
 ///
 /// A **live** row holding the key is deliberately left alone *here*: this
 /// function only restores the pre-v25 outcome for the case v25 introduced.
-/// Its callers decide that one, and since the create half of #1348 they refuse
-/// it with `DuplicateNaturalKeyError` before the insert
-/// ([refuseCreationOntoLiveNaturalKey]) rather than letting it reach SQLite.
-/// Until then it surfaced as the raw `UNIQUE constraint failed` it had raised
-/// since before v25, which no screen catches by type — so on the one path a
-/// user could reach it, the field was silently not created.
+/// Its callers decide that one: they refuse it with `DuplicateNaturalKeyError`
+/// before the insert ([refuseCreationOntoLiveNaturalKey]) rather than letting
+/// it reach SQLite as the raw `UNIQUE constraint failed`, which no screen
+/// catches by type (#1348).
 ///
 /// ## Adoption applies to creation, never to a rename
 ///
@@ -394,10 +392,14 @@ Future<void> raiseExistenceAbove(
 /// detail forced by the foreign keys, and must not leak into what the user
 /// sees.
 ///
-/// Only `tags` can actually reach this state — `choreographers` and
-/// `custom_field_defs` are referentially guarded, so a tombstoned row of theirs
-/// has no join rows to clear. The clearing is written for all three anyway, so
-/// that relaxing a guard cannot quietly reintroduce the surprise.
+/// All three kinds reach this state. A tag's tombstone keeps its join rows
+/// unless the user's own delete stripped them
+/// (`ReferenceEditRepository.deleteTag`), and
+/// the guards on `choreographers` and `custom_field_defs` count live dances
+/// only, so a tombstoned author or field keeps the join rows of the dances in
+/// Recently deleted that still name it (#1357 for authors; for fields, the
+/// trash-policy decision of 2026-10-29, #2062). Adoption clears those too: a
+/// trashed dance restored later comes back without the credit or the value.
 Future<String?> adoptTombstonedNaturalKey(
   CompendiumDatabase db, {
   required TableInfo<Table, dynamic> table,

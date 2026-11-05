@@ -5300,6 +5300,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get programsDeletedDanceFallback => '(slettet dans)';
 
   @override
+  String get programsBlankedDanceTitle => 'Slettet dans';
+
+  @override
   String get programsSlotsLabel => 'Slots';
 
   @override

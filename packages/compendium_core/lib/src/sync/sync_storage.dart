@@ -1851,6 +1851,11 @@ final class CompendiumSyncStorage
   /// ([syncWithdrawnSettingKeys]) is dropped even when its address is in
   /// [unevaluated], and none is queued: an older build queued it, and this one
   /// can neither resolve it nor offer it (sync-spec §6.7, amended 2026-10-30).
+  ///
+  /// It then drops every §6.6 step-1 rename-collision row whose collision
+  /// local state shows has ended ([_dropStaleRenameCollisionReviews]), whether
+  /// or not its address is in [unevaluated]: that test reads no peer
+  /// (sync-spec §6.6, amended 2026-11-05).
   Future<int> refreshConflictReviews(
     Iterable<SyncMergeDecision> reviews, {
     Set<SyncRecordAddress> unevaluated = const {},
@@ -1938,8 +1943,77 @@ final class CompendiumSyncStorage
         added++;
       }
     }
+    await _dropStaleRenameCollisionReviews();
     return added;
   });
+
+  /// Drops every §6.6 step-1 row whose collision has ended (sync-spec §6.6,
+  /// amended 2026-11-05).
+  ///
+  /// A pass that still sees the collision re-queues the row while it
+  /// reconciles, before this runs, so what is left stale here is a row that
+  /// nothing will re-observe: the user renamed the name-holder by hand and the
+  /// update then landed, or the peer renamed the record again onto a free
+  /// name. Both actions of [_resolveNaturalKeyRenameCollision] refuse such a
+  /// row for ever, so leaving it only kept the review screen asking about a
+  /// pair that no longer collides.
+  ///
+  /// Every test reads this device's own rows, never a peer, so a peer this
+  /// pass could not read does not keep a row alive. The tests are the
+  /// resolver's refusals that local state alone settles, and nothing else: an
+  /// undecodable row stays for the resolver to report, and a row whose
+  /// name-holder is a tombstone stays because Keep both still resolves it.
+  Future<void> _dropStaleRenameCollisionReviews() async {
+    for (final row in await repositories.syncLocal.listReviewQueue()) {
+      if (!syncNaturalKeyRenameCollisionReasons.contains(row.reason)) continue;
+      if (!await _renameCollisionReviewIsStale(row)) continue;
+      await repositories.syncLocal.deleteReview(
+        kind: row.kind,
+        recordId: row.recordId,
+        counterpartId: row.counterpartId,
+      );
+    }
+  }
+
+  Future<bool> _renameCollisionReviewIsStale(ReviewQueueRow row) async {
+    final kind = row.kind;
+    final SyncRecordBlob candidate;
+    try {
+      candidate = decodeSyncRecordBlob(row.candidateBlob);
+    } on Object {
+      return false;
+    }
+    if (candidate.kind != kind || !syncNaturalKeyKinds.contains(kind)) {
+      return false;
+    }
+    final candidateKey = syncNaturalKeyForBody(kind, candidate.body);
+    if (candidateKey == null) return false;
+    for (final id in [row.recordId, row.counterpartId]) {
+      if (await repositories.syncLocal.resolveAlias(kind: kind, recordId: id) !=
+          id) {
+        return true;
+      }
+    }
+    // The record the update targets has gone, or has changed since the row
+    // was queued. A NULL legacy `local_hash` counts as changed, as it does for
+    // the resolver: a pass still seeing the pair has just re-queued it with
+    // the current hash. A *tombstoned* target is not stale: the step-1 guard
+    // still meets a peer's live copy of it and re-queues the row every pass,
+    // so dropping it here would only hide a blocked update.
+    final target = await _localNaturalCandidate(kind: kind, id: row.recordId);
+    if (target == null ||
+        row.localHash == null ||
+        target.wireHash != row.localHash) {
+      return true;
+    }
+    // The name-holder has gone, or no longer holds the name.
+    final holder = await _localNaturalCandidate(
+      kind: kind,
+      id: row.counterpartId,
+    );
+    return holder == null ||
+        syncNaturalKeyForBody(kind, holder.blob.body) != candidateKey;
+  }
 
   /// Applies the user's conflict choices, all or none.
   ///

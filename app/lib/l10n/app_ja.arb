@@ -5316,6 +5316,10 @@
   "@programsDeletedDanceFallback": {
     "x-sourceSha256": "901897ba706ffaca3066625d7477c0fd5ddfee302c8532be1bd8b2a5b11835f7"
   },
+  "programsBlankedDanceTitle": "削除されたダンス",
+  "@programsBlankedDanceTitle": {
+    "x-sourceSha256": "6da83de420134df8fd9ac6e70111e3a2f7503b272395a81fc4165ce2c280d7ff"
+  },
   "programsSlotsLabel": "スロット",
   "@programsSlotsLabel": {
     "x-sourceSha256": "4fd72c06bcff79710b0a5bd292b1f6408ec8cfa357e08566b663e4f14cbfc7f0"

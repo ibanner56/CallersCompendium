@@ -6850,6 +6850,10 @@
   "@programsDeletedDanceFallback": {
     "description": "Marks a program slot whose dance is in Recently deleted: shown after the dance's title in Perform, the program builder, its matrix and the program summary, and on its own when the dance can no longer be found."
   },
+  "programsBlankedDanceTitle": "Deleted dance",
+  "@programsBlankedDanceTitle": {
+    "description": "Shown in place of a dance's title in a program slot, in Perform and in program exports when the dance was permanently deleted on another device: its title and content are gone, so there is nothing else to show."
+  },
   "programsSlotsLabel": "Slots",
   "@programsSlotsLabel": {
     "description": "Section heading above the list of program slots in the editor."
