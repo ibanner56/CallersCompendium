@@ -7284,7 +7284,7 @@
   },
   "importErrorContraDbUnsupportedAdvanced": "ContraDBでは、「フィギュアを含む」条件を「すべてに一致」「いずれかに一致」「どれにも一致しない」のグループで組み合わせた詳細検索のみ実行できます。ContraDBを検索するには、タグ、フィギュアの詳細、ContraDBにない技、その他の条件を削除してください。",
   "@importErrorContraDbUnsupportedAdvanced": {
-    "x-sourceSha256": "ed8028a12f27b37a548983cb434d70a7a0208539163642e7901b82838ec76635"
+    "x-sourceSha256": "662183c5ddb02d8ac856f12d171f88036a9e8faeb4892cf225b099ad71dc46fe"
   },
   "importErrorContraDbEmptyDanceInput": "インポートするContraDBのダンスURLまたはIDを入力してください。",
   "@importErrorContraDbEmptyDanceInput": {

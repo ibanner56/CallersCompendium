@@ -7284,7 +7284,7 @@
   },
   "importErrorContraDbUnsupportedAdvanced": "ContraDB kan kun køre avancerede søgninger, der består af grupperne “Alle af”, “Nogen af” og “Ingen af” med “Har figur”-betingelser. Fjern tags, figurdetaljer, bevægelser som ContraDB ikke har, og andre betingelser for at søge i ContraDB.",
   "@importErrorContraDbUnsupportedAdvanced": {
-    "x-sourceSha256": "ed8028a12f27b37a548983cb434d70a7a0208539163642e7901b82838ec76635"
+    "x-sourceSha256": "662183c5ddb02d8ac856f12d171f88036a9e8faeb4892cf225b099ad71dc46fe"
   },
   "importErrorContraDbEmptyDanceInput": "Indtast en ContraDB dans-URL eller id at importere fra.",
   "@importErrorContraDbEmptyDanceInput": {

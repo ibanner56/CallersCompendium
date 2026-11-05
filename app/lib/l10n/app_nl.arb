@@ -7284,7 +7284,7 @@
   },
   "importErrorContraDbUnsupportedAdvanced": "ContraDB kan alleen geavanceerde zoekopdrachten uitvoeren die bestaan uit groepen “Alle van”, “Een van” en “Geen van” met “Heeft figuur”-voorwaarden. Verwijder tags, figuurdetails, bewegingen die ContraDB niet kent en andere voorwaarden om in ContraDB te zoeken.",
   "@importErrorContraDbUnsupportedAdvanced": {
-    "x-sourceSha256": "ed8028a12f27b37a548983cb434d70a7a0208539163642e7901b82838ec76635"
+    "x-sourceSha256": "662183c5ddb02d8ac856f12d171f88036a9e8faeb4892cf225b099ad71dc46fe"
   },
   "importErrorContraDbEmptyDanceInput": "Voer een ContraDB dans-URL of -id in om van te importeren.",
   "@importErrorContraDbEmptyDanceInput": {
