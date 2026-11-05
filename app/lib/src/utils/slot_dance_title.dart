@@ -2,6 +2,12 @@ import 'package:compendium_core/compendium_core.dart';
 
 import '../../l10n/app_localizations.dart';
 
+/// Whether [dance] is a blank another device's Permanently delete left: the
+/// permanently-deleted mark **and** the placeholder title, with no content.
+/// See [slotDanceTitle] for why the mark alone is not enough.
+bool isBlankedDance(Dance dance) =>
+    isPermanentlyDeleted(dance.deletedAt) && dance.title == blankedRecordTitle;
+
 /// The title a program slot shows for [dance].
 ///
 /// A dance permanently deleted on another device arrives here blanked: its
@@ -25,8 +31,7 @@ String slotDanceTitle(
   Dance dance, {
   bool markDeleted = false,
 }) {
-  if (isPermanentlyDeleted(dance.deletedAt) &&
-      dance.title == blankedRecordTitle) {
+  if (isBlankedDance(dance)) {
     return l10n.programsBlankedDanceTitle;
   }
   if (markDeleted && dance.isDeleted) {
