@@ -45,7 +45,9 @@ class ReadableListView extends StatelessWidget {
   final List<Widget> children;
 
   /// Drives the list's scroll position, for a screen that scrolls it itself.
-  /// When null, the ambient primary controller applies, as for a [ListView].
+  /// When null, as for a [ListView] given no controller: the ambient
+  /// [PrimaryScrollController] where the platform inherits one (mobile by
+  /// default), otherwise the list's own.
   final ScrollController? controller;
 
   /// The padding the list would have had uncapped; see
