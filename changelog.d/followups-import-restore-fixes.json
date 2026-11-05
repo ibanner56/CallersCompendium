@@ -4,7 +4,7 @@
   "app": {
     "fixed": [
       "Importing a program from ContraDB now links a slot to a dance you already have, when The Caller's Box fallback finds one with the same figures, instead of leaving the dance as a note.",
-      "You can now re-import a Caller's Companion file onto a program whose venue was removed entirely, and the program's location links to a venue again instead of keeping a dead link.",
+      "With venues turned on, re-importing a Caller's Companion file onto a program whose venue was removed entirely now links the program's location to a venue again instead of keeping a dead link.",
       "Saving a dialect you were editing no longer adds a second copy if it was renamed meanwhile, or brings it back if it was deleted; you see a message that your changes weren't saved.",
       "Restoring a dance or program from Recently deleted no longer says \"restored\" when another device had permanently deleted it in the meantime.",
       "Searching custom number fields no longer matches a stray \"0\" for whole numbers such as 3, and a trashed dance's search entry no longer keeps text from a custom field that was deleted and recreated."
