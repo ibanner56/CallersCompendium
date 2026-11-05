@@ -65,7 +65,8 @@ class DanceExportMenu extends StatelessWidget {
 
   /// Which non-figures fields appear on the exported card (issue #1434).
   /// Defaults to every field this widget rendered unconditionally before the
-  /// picker existed, minus tunes — see [DanceShareField.allExceptTunes].
+  /// picker existed, minus the opt-in tunes, hook and sources — see
+  /// [DanceShareField.allExceptTunes].
   final Set<DanceShareField> fields;
   final Map<String, Choreographer> choreographersById;
   final Map<String, Tag> tagsById;
