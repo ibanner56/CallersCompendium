@@ -1596,9 +1596,8 @@ class FigureRenderer {
     return slots;
   }
 
-  /// Starting wordings for moves whose default line cannot be written as a
-  /// template that keeps `{move}` whole. `slide_along_set` reads "slide left
-  /// along set", spelling the name around the side; a wording seeded with
+  /// Starting wordings that differ from the move's default display template.
+  /// `slide_along_set` reads "slide left along set", spelling the name around the side; a wording seeded with
   /// those literal words would ignore a dialect's own name for the move and a
   /// copied figure's new name, so the editor and a copy start from `{move}
   /// {slide}` instead, as they always have. A caller who wants the default

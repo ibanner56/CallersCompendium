@@ -70,9 +70,10 @@ built figure.
   Malformed or empty templates fall back to the normal renderer. The editor
   warns when a template omits available slots and requires confirmation before
   saving it. A new wording starts from the move's default display template,
-  except where that template could not keep `{move}` whole: slide along set
-  reads "slide left along set" by default but starts a wording from
-  `{move} {slide}`, so a dialect's own name for it still shows. Imported
+  except slide along set: it reads "slide left along set" by default, spelling
+  its name around the side, but starts a wording from `{move} {slide}`, so a
+  dialect's own name for it still shows. Saved unchanged, that wording reads
+  "slide along set left"; `slide {slide} along set` keeps the default order. Imported
   templates are sanitized, capped at 512 UTF-16 code units
   each as stored, conditions included, and limited to 256 entries per dialect.
 - `moveWordingBranches` stores fixed branch-specific templates for

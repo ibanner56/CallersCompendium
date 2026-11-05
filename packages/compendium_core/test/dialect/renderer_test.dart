@@ -760,6 +760,14 @@ void main() {
         'neighbor balance and dance in to a long wave in the center - '
         'balance the wave',
       );
+      // A line the subject does not lead keeps the next step's subject.
+      expect(
+        sequence([
+          Figure(move: 'revolving_door', params: {'who': 'neighbors'}),
+          balance,
+        ]),
+        endsWith('on other side and neighbor balance'),
+      );
     });
 
     test('figure eight puts fraction first and describes its direction', () {
