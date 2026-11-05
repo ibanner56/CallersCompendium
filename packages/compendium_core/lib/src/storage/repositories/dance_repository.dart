@@ -3603,7 +3603,10 @@ class DanceRepository {
   /// [callerFilter], [performedOnly] and [requireEventDate] scope
   /// [SearchSort.lastCalled] exactly as they scope a [CalledFilter] and the
   /// "called ×N" count (issue #583's "in lockstep"; FIND-2): pass the same
-  /// values. They have no effect on any other sort.
+  /// values. They have no effect on any other sort. [tracking]'s
+  /// `orderIgnoreUndated` and `orderIgnoreUnperformed` drop a slot with no
+  /// ordering date from [SearchSort.lastCalled] without changing which dances
+  /// count as called.
   ///
   /// [SearchSort.title] and [SearchSort.author] compare accent-folded keys
   /// ([foldForTitleMatch]), so "École" files with **E**. When
@@ -3629,6 +3632,7 @@ class DanceRepository {
     String? callerFilter,
     bool performedOnly = false,
     bool requireEventDate = false,
+    CallingHistoryTracking tracking = CallingHistoryTracking.defaults,
   }) async {
     final dir = direction ?? sort.defaultDirection;
     final descending = dir == SortDirection.descending;
@@ -3654,6 +3658,7 @@ class DanceRepository {
           caller: normalizeCallingHistoryCaller(callerFilter),
           performedOnly: performedOnly,
           requireEventDate: requireEventDate,
+          tracking: tracking,
         );
       case SearchSort.title:
         // SQL `COLLATE NOCASE` folds only ASCII case, so "École" would file
@@ -3796,6 +3801,7 @@ class DanceRepository {
     required String? caller,
     required bool performedOnly,
     required bool requireEventDate,
+    required CallingHistoryTracking tracking,
   }) async {
     if (ids.isEmpty) return ids;
     // The aggregate is restricted to the incoming result `ids` (chunked
@@ -3809,7 +3815,7 @@ class DanceRepository {
       final rows = await _db
           .customSelect(
             'SELECT program_slots.dance_id AS dance_id, '
-            'MAX(${callingHistoryDateSql(slotTable: 'program_slots', programTable: 'programs')}) '
+            'MAX(${callingHistoryDateSql(slotTable: 'program_slots', programTable: 'programs', ignoreUndated: tracking.orderIgnoreUndated, ignoreUnperformed: tracking.orderIgnoreUnperformed)}) '
             'AS last_called '
             'FROM program_slots '
             'JOIN programs ON programs.id = program_slots.program_id '
@@ -3828,9 +3834,11 @@ class DanceRepository {
           )
           .get();
       for (final r in rows) {
-        lastCalled[r.read<String>('dance_id')] = r.read<DateTime>(
-          'last_called',
-        );
+        // NULL: every counted slot of this dance lacks an ordering date, so it
+        // sorts with the never-called dances though it still counts as called.
+        if (r.read<DateTime?>('last_called') case final date?) {
+          lastCalled[r.read<String>('dance_id')] = date;
+        }
       }
     }
     // `ids` arrives in title (base) order; keep it as a stable tiebreak.

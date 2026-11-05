@@ -276,7 +276,8 @@ void main() {
       },
     );
 
-    test('an undated slot marked performed is dated by its stamp', () async {
+    test('an undated slot marked performed is dated by its stamp only when '
+        'recency does not require an event date', () async {
       await dance('tapped');
       await program(
         'undated',
@@ -284,9 +285,20 @@ void main() {
           slot('u1', 'tapped', performedAt: DateTime.utc(2026, 10, 1, 21)),
         ],
       );
-      expect(await search(CalledFilter(called: true, since: cutoff)), {
-        'tapped',
-      });
+      // Toggle 1 (on by default) leaves an undated program out of every window.
+      expect(await search(CalledFilter(called: true, since: cutoff)), isEmpty);
+      expect(
+        await search(
+          CalledFilter(
+            called: true,
+            since: cutoff,
+            tracking: const CallingHistoryTracking(
+              recencyRequireEventDate: false,
+            ),
+          ),
+        ),
+        {'tapped'},
+      );
     });
 
     test(
@@ -473,8 +485,8 @@ void main() {
   });
 
   group('one date expression', () {
-    test('SQL picks the same date as effectiveDate and recencyDate for every '
-        'combination of dates', () async {
+    test('SQL picks the same date as orderingDate and recencyDate for every '
+        'combination of dates and every toggle', () async {
       await dance('d');
       final event = DateTime.utc(2026, 9, 5);
       final performed = DateTime.utc(2026, 9, 7, 21, 30);
@@ -496,37 +508,52 @@ void main() {
       };
       expect(records, hasLength(4));
 
-      final rows = await db
-          .customSelect(
-            'SELECT ps.id AS slot_id, '
-            '${callingHistoryDateSql(slotTable: 'ps', programTable: 'p')} '
-            'AS history_date, '
-            '${callingHistoryRecencyDateSql(slotTable: 'ps', programTable: 'p')} '
-            'AS recency_date '
-            'FROM program_slots ps JOIN programs p ON p.id = ps.program_id',
-          )
-          .get();
-      expect(rows, hasLength(4));
-      for (final row in rows) {
-        final record = records[row.read<String>('slot_id')]!;
-        expect(
-          row.read<DateTime>('history_date').toUtc(),
-          record.effectiveDate,
-          reason: record.slotId,
-        );
-        expect(
-          row.read<DateTime?>('recency_date')?.toUtc(),
-          record.recencyDate,
-          reason: record.slotId,
-        );
+      for (final first in [false, true]) {
+        for (final second in [false, true]) {
+          final rows = await db
+              .customSelect(
+                'SELECT ps.id AS slot_id, '
+                '${callingHistoryDateSql(slotTable: 'ps', programTable: 'p', ignoreUndated: first, ignoreUnperformed: second)} '
+                'AS history_date, '
+                '${callingHistoryRecencyDateSql(slotTable: 'ps', programTable: 'p', requireEventDate: first, requirePerformed: second)} '
+                'AS recency_date '
+                'FROM program_slots ps JOIN programs p ON p.id = ps.program_id',
+              )
+              .get();
+          expect(rows, hasLength(4));
+          for (final row in rows) {
+            final record = records[row.read<String>('slot_id')]!;
+            final reason = '${record.slotId} flags=($first, $second)';
+            expect(
+              row.read<DateTime?>('history_date')?.toUtc(),
+              record.orderingDate(
+                ignoreUndated: first,
+                ignoreUnperformed: second,
+              ),
+              reason: reason,
+            );
+            expect(
+              row.read<DateTime?>('recency_date')?.toUtc(),
+              record.recencyDate(
+                requireEventDate: first,
+                requirePerformed: second,
+              ),
+              reason: reason,
+            );
+          }
+        }
       }
-      // The undated, unperformed slot is the one with no recency date.
+      // Unrestricted, every slot has a date, and it is effectiveDate.
+      expect(records.values.map((r) => r.orderingDate()), [
+        for (final r in records.values) r.effectiveDate,
+      ]);
+      // Under the defaults only the dated programs are in a recency window.
       expect(
         [
           for (final r in records.values)
-            if (r.recencyDate == null) r.slotId,
-        ],
-        ['s4'],
+            if (r.recencyDate() == null) r.slotId,
+        ]..sort(),
+        ['s3', 's4'],
       );
     });
   });
