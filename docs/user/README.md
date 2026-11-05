@@ -1,7 +1,7 @@
 # Caller's Compendium — User Guide
 
 Welcome! This is the home for **Caller's Compendium** user documentation — the
-guides that help you *use* the app, whether you are cataloguing dances, building a
+guides that help you *use* the app, whether you are cataloging dances, building a
 program for Saturday's gig, or calling from the stage.
 
 **Caller's Compendium** is a free, open-source dance organizer for contra-dance
@@ -40,6 +40,8 @@ Everything else can wait until you need it.
 | Import a signed published collection | [Imports & migration — Import a published collection](imports.md#import-a-published-collection) |
 | Find one dance in a big collection | [Collection & search — Search across your dances](collection.md#search-across-your-dances) |
 | Narrow a list by level, formation, or tag | [Collection & search — Narrow things down with filters](collection.md#narrow-things-down-with-filters) |
+| Tag, rate, or delete many dances at once | [Collection & search — Change many dances at once](collection.md#change-many-dances-at-once) |
+| Rename or merge tags, authors, or sources | [Settings — Library](settings.md#library) |
 | Write a new dance, or fix one that came in wrong | [Write & edit dances](authoring.md) |
 | Record how a dance is taught | [Write & edit dances — Walkthrough](authoring.md#walkthrough) |
 | Build a set list for an event | [Programs & matrix](programs.md) |

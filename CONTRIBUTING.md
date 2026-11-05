@@ -363,9 +363,10 @@ convention, how to add a string, and the full translation steps.
 
 ## Getting started
 
-The app is a Flutter [pub workspace](pubspec.yaml): the `app/` Flutter app plus a
+The app is a Flutter [pub workspace](pubspec.yaml): the `app/` Flutter app, a
 pure-Dart domain core in `packages/compendium_core/` (which must not import
-Flutter — ADR-001, enforced in CI). Flutter is pinned to the version in
+Flutter — ADR-001, enforced in CI), and the pure-Dart Athenaeum server for
+Device Sync in [`server/`](server/README.md). Flutter is pinned to the version in
 [`.fvmrc`](.fvmrc), which is the **single source of truth** for the Flutter
 version: [FVM](https://fvm.app/) reads it to keep everyone on that exact SDK
 locally, and CI derives its Flutter version from the very same file (via
@@ -414,6 +415,7 @@ symlink you can point your editor/PATH at — see the FVM docs.)
    fvm flutter analyze --fatal-infos                   # lint (CI treats infos as errors)
    (cd packages/compendium_core && fvm dart test)      # core unit tests
    (cd app && fvm flutter test)                        # app / widget tests
+   fvm dart analyze server && fvm dart test server/test # Athenaeum server
    ```
 
    The native Swift tests (`app/ios/RunnerTests`, `app/macos/RunnerTests`)

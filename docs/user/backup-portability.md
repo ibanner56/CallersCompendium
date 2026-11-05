@@ -82,17 +82,22 @@ something damaged.
 
 A backup holds **everything** you've built, including:
 
-- Your whole collection of dances — figures, notes, tunes, links, and
-  any [custom field](./glossary.md#custom-field) values you've filled in,
+- Your whole collection of dances — figures, notes, tunes, links, your star
+  ratings, and any [custom field](./glossary.md#custom-field) values you've filled in,
   including fields marked **Include in sharing** off, along with where each
   dance was imported from.
 - All your programs, with their [slots](./glossary.md#slot),
-  [alternates](./glossary.md#alt), event details, and which dances
-  you've marked as performed.
-- Your custom fields, tags, authors, difficulty levels, and saved
-  [venues](./glossary.md#venue). A sharing opt-out keeps a custom field out of
-  files you send to other people; it does not remove the field from your own
-  backup.
+  [alternates](./glossary.md#alt), event details, pay, Perform dialect, and
+  which dances you've marked as performed.
+- The dances and programs in **Recently deleted**, so you can still restore
+  them after bringing the backup back.
+- Your custom fields, tags, authors, published sources, difficulty levels,
+  and saved [venues](./glossary.md#venue). An author's private email,
+  location and deceased marker, and a venue's address and contact people, are
+  in your backup too. Files you share leave them out, except a venue's contact
+  people when you choose to include them. A sharing
+  opt-out keeps a custom field out of files you send to other people; it does
+  not remove the field from your own backup.
 - Your custom [dialects](./dialects.md) and which one is active.
 - Your custom themes and which one is active.
 - Your settings and preferences, including your figure shorthands and
@@ -231,10 +236,10 @@ Three related features are easy to mix up:
 
 - **Backup & restore** (this guide) works with your *entire* library at
   once — one file in, one file out.
-- **Sharing a single dance or program** as text or PDF happens from that
-  dance or program, not here. See
-  [Collection & search](./collection.md) for sharing dances and
-  [Programs & matrix](./programs.md) for sharing programs.
+- **Sharing a single dance or program** — as text, a PDF, or a file
+  another caller can import — happens from that dance or program, not here,
+  and leaves out private details a backup keeps. See
+  [Share, print & export](./sharing.md).
 - **Importing** brings dances in from other apps and sources — such as
   The Caller's Box, ContraDB, or another Caller's Compendium file — and
   *merges* them alongside what you already have. See

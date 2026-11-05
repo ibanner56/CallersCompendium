@@ -72,9 +72,11 @@ shorthand once you know what it means.
 ## Calling history
 
 The list, on each [dance](#dance), of the [programs](#program) that include it,
-most recent first — so you can see when you last called it. A setting
-decides whether every program counts or only slots you have marked performed;
-an [alt](#alt) counts only once you mark it performed.
+most recent first — so you can see when you last called it. The same history
+feeds the "called ×N" count, the **Last called** sort, and the **Calling
+history** filter. Settings decide what counts — for example, whether every
+program counts or only slots you have marked performed; an [alt](#alt) counts
+only once you mark it performed.
 See [Programs & matrix](./programs.md#track-what-you-have-called).
 
 ## Canonical wording
@@ -253,6 +255,25 @@ pre-fill a [walkthrough](#walkthrough) for any dance using that figure. Your sav
 snippets live under **Walkthrough snippets** in **Settings › Dialect › Dance
 details & shorthands**. See
 [Write & edit dances](./authoring.md#walkthrough).
+
+## Source
+
+Where a [dance](#dance) was published — a book, a collection, a magazine or a
+website. Like an [author](#author), a source is a shared record with its own
+details (its title, author and year among them), and each dance that cites it
+can add a page and number.
+You can filter your [collection](#collection) by source, and rename or merge
+sources in **Settings › General › Library › Sources**. See
+[Write & edit dances](./authoring.md#author-and-source-details-are-shared).
+
+## Tag
+
+A label of your own that you give a [dance](#dance) — often its "vibe" or
+category, such as *smooth* or *easy*. A dance can carry any number of tags, and
+a tag can have a color. Use tags to filter and group your
+[collection](#collection), and rename, merge, color or delete them in the
+**Tags** manager under **Settings › General › Library › Tags**. See
+[Collection & search](./collection.md#group-by-category-a-dances-vibe).
 
 ## Unrecognized figure
 

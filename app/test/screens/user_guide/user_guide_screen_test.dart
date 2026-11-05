@@ -56,8 +56,9 @@ void _tapLink(WidgetTester tester, String href) {
 }
 
 void main() {
-  // The root asset bundle caches parsed results (the asset manifest and each
-  // guide's string) as `SynchronousFuture`s after the first load. Under the
+  // The root asset bundle caches parsed results (the asset manifest; guides
+  // are read as bytes, which it does not cache) as `SynchronousFuture`s after
+  // the first load. Under the
   // test binding that cached-synchronous path stalls the guide's FutureBuilders
   // on every test after the first, so clear the cache before each test to make
   // each one load the guides fresh.
@@ -157,6 +158,26 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('user-guide-back')));
     await tester.pumpAndSettle();
     expect(_title(tester), 'User guide');
+  });
+
+  testWidgets('a guide of 50 KiB or more opens', (tester) async {
+    // AssetBundle.loadString decodes a string of 50 KiB or more on a
+    // background isolate, which never completes under the test binding, so a
+    // guide that grew past that size stopped opening in these tests. The
+    // reader decodes the bytes itself. settings.md is the guide used here;
+    // the first expectation keeps this test from silently testing a small one.
+    final bytes = await rootBundle.load('assets/docs/user/settings.md');
+    expect(bytes.lengthInBytes, greaterThanOrEqualTo(50 * 1024));
+
+    await _pumpGuide(tester);
+    _tapLink(tester, 'settings.md');
+    await tester.pumpAndSettle();
+
+    expect(_title(tester), 'Settings');
+    // The body itself, not just the title: a failed read falls back to a
+    // title derived from the file name, which is also "Settings".
+    final markdown = tester.widget<Markdown>(find.byType(Markdown));
+    expect(markdown.data, startsWith('# Settings\n'));
   });
 
   testWidgets(

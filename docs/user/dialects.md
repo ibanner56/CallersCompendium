@@ -60,10 +60,11 @@ follow on their own:
 - **Nothing is ever lost in translation.** Switching between dialects — even
   repeatedly, even mid-evening — can't corrupt or reword your saved dances.
 
-![A dance detail view with figures grouped into A1, A2, B1, and B2 sections and the toggle for showing canonical wording visible](images/dance-detail-dialect.png)
+![A dance detail view in the Larks/Robins dialect with figures grouped into A1, A2, B1, and B2 sections and the Canonical switch above them](images/dance-detail-dialect.png)
 
-*The dance card in the active dialect, with the toggle that switches to shared
-canonical wording without changing the saved dance.*
+*The dance card in the active dialect, with the **Canonical** switch that shows
+shared canonical wording without changing the saved dance. The switch appears
+when **Canonical figure text** is on in Settings › Dialect.*
 
 ## The dialects that come built in
 
@@ -346,6 +347,10 @@ is nothing to type.
   new name. If you delete it, the program quietly goes back to using your active
   dialect in Perform, and the editor shows the old name as **unavailable** so you
   can see what happened. Pick a dialect again to reconnect it.
+- A program's dialect is yours alone. When you share the program as a file, its
+  **Perform dialect** is left out; it stays in your
+  [backup](./backup-portability.md) and moves with Device Sync. See
+  [Share, print & export](./sharing.md#share-a-program-with-its-dances).
 - If a dialect is renamed or deleted (for example on another device) while you
   have it open in the editor, saving doesn't add it back or create a second
   copy. You see a message that your changes weren't saved.
