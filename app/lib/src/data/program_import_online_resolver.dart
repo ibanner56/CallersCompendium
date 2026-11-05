@@ -330,14 +330,15 @@ Future<_SourceAttempt> _attemptSource(
       final target = await repos.dances.getById(targetId);
       if (target == null) {
         // Can't confirm identical vs. differing without the target's
-        // figures — the conservative (#685-consistent) choice is to decline,
-        // same as if it were identical.
+        // figures — the conservative (#685-consistent) choice is to decline:
+        // without the target, identical-or-not cannot be told.
         return const _SourceDeclined();
       }
       final draftDance = preview.plan.draft.dance;
       // Both sides must be readable for the comparison below to mean anything.
-      // This path is UNATTENDED: `identical` declines, and `!identical` auto
-      // -imports a variation with no user present. An undecodable target would
+      // This path is UNATTENDED: `identical` writes nothing (it reports the
+      // existing dance; the plain-text chain treats that as a decline), and
+      // `!identical` auto-imports a variation with no user present. An undecodable target would
       // otherwise take the second branch by default — acting on a comparison
       // that was never actually performed. Declining instead leaves the
       // note-slot fallback (#312), which is what this code already does
