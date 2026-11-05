@@ -575,7 +575,19 @@ Answered on the "Follow-up decisions" artifact (https://claude.ai/artifact/T25kj
 - **Stray branch `claude/add-to-program-order-and-search`:** deleted by the maintainer (confirmed: no longer on origin).
 - **Not yet checked:** H-1 (Android picker), H-3 (native translation review), H-4 (Mac menu), H-5 (NVDA and VoiceOver), H-6 (Windows and Linux file association).
 
+### Q-2 clarified, 2026-11-05: four performance-tracking toggles
+
+The maintainer's four toggles, in their words:
+1. "Recency only counts dated programs (defaults to on)"
+2. "Recency only counts marked performed (defaults to match "require performed for calling history" which I believe is off by default)"
+3. "History order + last called ignores undated programs (defaults to off, sorts by edit timestamp)"
+4. "History order + last called ignores dances not marked performed (off by default)"
+
+The orchestrating session asked whether 3 and 4 were the two existing global settings ("Require an event date" and "Require mark performed", which also gate the counts). Answer: "Yes, correct, 3 and 4 are separate and only affect the history order and last-called sort. This should be clear in the setting descriptions." On how 1 and 2 combine: "yes, if toggle 1 is on, its condition must be satisfied. If toggle 2 is on, its condition must be satisfied. If both are on, both must be satisfied."
+
+So: four NEW settings; the two existing global settings stay and still gate the counts. The meaning of "ignores" for 3 and 4 (a slot with no ordering date stays in the list and in "called ×N", sorts after dated entries, and contributes no Last-called date) and the performed-slot-in-an-undated-program consequence of toggle 1 defaulting on were the orchestrating session's reading, stated in the build brief and not separately confirmed by the maintainer. Build session: `claude/followups-tracking-toggles`.
+
 ## Still open
 
-- Q-2: the maintainer proposed settings toggles for how undated and unperformed programs count in recency, Calling history and Last-called, and said "If \"all four\" is unclear, ask". The four behaviours need confirming before anything is built.
+- Q-2: building as four new settings (see the clarification above); the "ignores" reading for toggles 3 and 4 will be shown in the PR for the maintainer to correct.
 - H-1, H-3, H-4, H-5 and H-6 are device checks and reviews waiting on the maintainer.
