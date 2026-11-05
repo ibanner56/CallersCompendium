@@ -118,8 +118,11 @@ void main() {
     );
     await tester.pump();
     final message = tester.widget<Text>(error()).data!;
-    expect(message, contains('“robbins” isn’t one of the values who can have'));
-    expect(message, contains('Did you mean “robins”?'));
+    expect(
+      message,
+      contains('"robbins" isn\'t one of the values who can have'),
+    );
+    expect(message, contains('Did you mean "robins"?'));
     expect(message, contains('who can be: everyone, larks, robins'));
 
     await tester.tap(find.byKey(const ValueKey('dialect-editor-save')));
@@ -134,7 +137,7 @@ void main() {
     await tester.pump();
     expect(
       tester.widget<Text>(error()).data,
-      'Write “is not” instead of “isn\'t”: “who is not robins”.',
+      'Write "is not" instead of "isn\'t": "who is not robins".',
     );
 
     await tester.enterText(field(), '[if who is not robins then x else y]');
@@ -162,7 +165,7 @@ void main() {
     await tester.pump();
     expect(error(), findsNothing);
     expect(
-      find.textContaining('If you meant the words “everyone else”'),
+      find.textContaining('If you meant the words "everyone else"'),
       findsOneWidget,
     );
     await save(tester);
@@ -209,7 +212,7 @@ void main() {
     await tester.pump();
     expect(
       tester.widget<Text>(error()).data,
-      startsWith('Square brackets that start with “if” hold a condition'),
+      startsWith('Square brackets that start with "if" hold a condition'),
     );
     await tester.enterText(field(), '[[]if needed, ]{who} swing');
     await tester.pump();

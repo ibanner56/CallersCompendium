@@ -126,7 +126,7 @@
   },
   "appBootstrapLogHint": "De details zijn ook naar het diagnoselogboek in de supportmap van de app geschreven.",
   "@appBootstrapLogHint": {
-    "x-sourceSha256": "24e159922c67836b22a4a64e83817e471c51035d6ef0943eff679c60039d4399"
+    "x-sourceSha256": "8906a0375d6a8d923f1d8469d441c6a8d6859ea66f8c23d09f634bb06a17a52b"
   },
   "appBootstrapReleasesLink": "Releases-pagina openen",
   "@appBootstrapReleasesLink": {
@@ -138,27 +138,27 @@
   },
   "migrationDowngradeMessage": "Deze gegevens zijn gemaakt met een nieuwere versie van Caller’s Compendium. Werk de app bij en open haar daarna opnieuw.",
   "@migrationDowngradeMessage": {
-    "x-sourceSha256": "16e745baf449224ab5aedb863ef7ff32aacc237ac5e54e40b8cc9ba5c87a90e7"
+    "x-sourceSha256": "ae550c7961c13cd776d8e5256592d7414fd7349d254b08d5f05b40af5ba96033"
   },
   "migrationRelocationBothExist": "Caller’s Compendium is niet gestart, omdat opgeslagen gegevensbestanden zowel op de nieuwe locatie als in een map van een eerdere versie zijn gevonden. Er is niets gewijzigd of verwijderd. Bewaar de kopie die je wilt houden, verplaats de andere naar een andere plek en open de app daarna opnieuw. In het FAQ-onderdeel “Waar worden mijn gegevens opgeslagen?” staan de locaties.",
   "@migrationRelocationBothExist": {
-    "x-sourceSha256": "cad53d54c7447308b20e3c9780d595b1e708718c46738a1f0af5913ba7affebd"
+    "x-sourceSha256": "09373f470d553719e7696a3036f81043bff65c24db0a5c0fffb6d09c36fdf724"
   },
   "migrationRelocationMultipleLegacy": "Caller’s Compendium is niet gestart, omdat opgeslagen gegevens in meer dan één map van eerdere versies zijn gevonden. Er is niets gewijzigd of verwijderd. Bewaar de kopie die je wilt houden, verplaats de andere naar een andere plek en open de app daarna opnieuw. In het FAQ-onderdeel “Waar worden mijn gegevens opgeslagen?” staan de locaties.",
   "@migrationRelocationMultipleLegacy": {
-    "x-sourceSha256": "7d8dee5a9bba016f5ebf6a74248ffdc5f2f87fc251ff1e2063944dfc900b6ea2"
+    "x-sourceSha256": "8e1dd218ea7818a7b75ac7e95f81c6b7fd0531de9766a73d80fde1a80393ca22"
   },
   "migrationRelocationFailed": "Caller’s Compendium is niet gestart, omdat het verplaatsen van je opgeslagen gegevens naar de nieuwe locatie niet kon worden voltooid. Er is niets verwijderd. Maak ruimte vrij, sluit andere programma’s die de gegevens mogelijk gebruiken of controleer de maprechten en open de app daarna opnieuw om het opnieuw te proberen.",
   "@migrationRelocationFailed": {
-    "x-sourceSha256": "92053efe3d799c18cb1d651dfbde58bc0807ba270c55cbdc4f148ff0389c4dfa"
+    "x-sourceSha256": "0a448e88a981c4668354bc56a0c8df54276aaa4e20dab3e4c0bc97e78a68b538"
   },
   "migrationRelocationLegacyUnreachable": "Caller’s Compendium is niet gestart, omdat je map Documenten, waarin eerdere versies je opgeslagen gegevens bewaarden, niet bereikbaar was. Er is niets gewijzigd of aangemaakt. Staat Documenten op een ander station of in een netwerkmap, sluit die dan opnieuw aan en open de app daarna opnieuw. Heb je geen map Documenten, maak dan een lege aan en open de app daarna opnieuw. In het FAQ-onderdeel “Waar worden mijn gegevens opgeslagen?” lees je meer.",
   "@migrationRelocationLegacyUnreachable": {
-    "x-sourceSha256": "acf7948e37ecea717a061da9e09b3b4b9b269e3d840cb3f5fba7970ca8faa69e"
+    "x-sourceSha256": "d82828907e37e654ffc6d3a407ff85d0aa53376ea747cca7b5329b0be4947e96"
   },
   "migrationRelocationCopiesHeading": "Grootte en laatste wijziging van elke kopie (de grootste, meest recent gewijzigde kopie is meestal je bibliotheek):",
   "@migrationRelocationCopiesHeading": {
-    "x-sourceSha256": "c7cce717f97498558b82549a61e9a8c9cbfec71e6390273bfddf78eb8bd84267"
+    "x-sourceSha256": "3169df94b9cf6656442bf609bcbe23785ff7231a9a72d5e33f2f40792c8e4956"
   },
   "migrationRelocationCopyNewLocation": "Nieuwe locatie",
   "@migrationRelocationCopyNewLocation": {
@@ -178,7 +178,7 @@
   },
   "migrationSnapshotAbortedMessage": "Caller’s Compendium is niet gestart omdat er geen automatische back-up kon worden gemaakt voordat je opgeslagen gegevens werden bijgewerkt. {cause}Maak ruimte vrij (of herstel de back-upmap) en open de app dan opnieuw — of open opnieuw en kies om zonder back-up door te gaan.",
   "@migrationSnapshotAbortedMessage": {
-    "x-sourceSha256": "8a37a47a06cea0588a1b29ca9e254a91a9159d14a11eafdcb86aae462a7cb3dc"
+    "x-sourceSha256": "701d5476b4f7a24c13676a3f0663490c45e4cae71dc03fb5183c1686d57d2d68"
   },
   "migrationSnapshotCauseDiskFull": "Je apparaat lijkt weinig opslagruimte te hebben.",
   "@migrationSnapshotCauseDiskFull": {
@@ -190,11 +190,11 @@
   },
   "migrationSnapshotConsentTitle": "Kon je gegevens niet back-uppen",
   "@migrationSnapshotConsentTitle": {
-    "x-sourceSha256": "7d2f48ec4b8fc9730e95fbf258d2c7cbbcbc449c71e0d94ba59f4490a07531be"
+    "x-sourceSha256": "809b2d6dbd0aae49496f566c318ff23d50bf7ffd3fa9dc0a81a49bd78b153d1c"
   },
   "migrationSnapshotConsentBody": "Voordat je opgeslagen gegevens naar een nieuw formaat worden bijgewerkt, maakt Caller’s Compendium een automatische back-up zodat een mislukte update ongedaan kan worden gemaakt. Die back-up kon deze keer niet worden gemaakt.{cause}\n\nAls je zonder back-up doorgaat en de update wordt onderbroken, kunnen sommige van je dansen of programma’s verloren gaan. Je kunt afsluiten, ruimte vrijmaken (of de back-upmap herstellen) en de app opnieuw openen om het nog eens te proberen.",
   "@migrationSnapshotConsentBody": {
-    "x-sourceSha256": "f9b38077045b76bdab4a63e2fecd2803abccba5d6140895c34a0456eb789e762"
+    "x-sourceSha256": "1d1216f082332d05fe4421d65e1dd546566adcd5971dd5c6d22a012f40dd3f8d"
   },
   "migrationSnapshotConsentQuit": "Afsluiten",
   "@migrationSnapshotConsentQuit": {
@@ -266,7 +266,7 @@
   },
   "confirmDeleteBody": "“{itemLabel}” wordt verwijderd. Je kunt dit ongedaan maken.",
   "@confirmDeleteBody": {
-    "x-sourceSha256": "d08275cc446047e0a6a2578efa594ce7ff3d9b39f2db83a4ebd6e13f57861eb8"
+    "x-sourceSha256": "1982c62c17d7cede6a6d990e3bdd12866764df6b625654975ff5e3747d9cf404"
   },
   "confirmDeleteDancesBody": "{count, plural, =1{1 dans wordt verwijderd. Je kunt dit ongedaan maken.} other{{count} dansen worden verwijderd. Je kunt dit ongedaan maken.}}",
   "@confirmDeleteDancesBody": {
@@ -278,7 +278,7 @@
   },
   "confirmDeleteProgramHistoryBody": "“{itemLabel}” wordt verwijderd. {count, plural, =1{1 dans verliest dit programma uit zijn callerhistorie.} other{{count} dansen verliezen dit programma uit hun callerhistorie.}} Je kunt dit ongedaan maken.",
   "@confirmDeleteProgramHistoryBody": {
-    "x-sourceSha256": "3404332d40bf15d666ea55151effb5ae43dc842d8d065950f6e4b19b371976f5"
+    "x-sourceSha256": "30fad0b16608ed5989e0126025b129fb748e6a345ffb2fa0fff3849c477de3d8"
   },
   "colorEditHexLabel": "Hex",
   "@colorEditHexLabel": {
@@ -386,7 +386,7 @@
   },
   "glossaryNoMatches": "Geen figuren komen overeen met ‘{query}’.",
   "@glossaryNoMatches": {
-    "x-sourceSha256": "f52d4b33c03650afa3f2c74c834f662d7ef42734c353a004d488dd147bf19a67"
+    "x-sourceSha256": "83cbd2889964eefec7eaf7732f3222fa2e14b4a209e2f862f87cb2c7aeef390e"
   },
   "glossarySelectPrompt": "Selecteer een figuur om de definitie te zien.",
   "@glossarySelectPrompt": {
@@ -842,7 +842,7 @@
   },
   "settingsSyncNoticeRecordNamed": "{kind} ‘{name}’",
   "@settingsSyncNoticeRecordNamed": {
-    "x-sourceSha256": "31cac53311e22d47a6a18fccbb1fc1e9dd687d7afb1f5e75f21c71940e57712b"
+    "x-sourceSha256": "82b7f901c41bcc687f29edb68280e64fc0ebdd16cbb1a427cc748c59be664c8a"
   },
   "settingsSyncNoticeRecordNotHere": "{kind}, niet op dit apparaat",
   "@settingsSyncNoticeRecordNotHere": {
@@ -850,7 +850,7 @@
   },
   "settingsSyncNoticeRecordNewerFigures": "{kind} ‘{name}’ (bevat figuren die alleen een nieuwere versie kan lezen)",
   "@settingsSyncNoticeRecordNewerFigures": {
-    "x-sourceSha256": "8afc7ad25fad0c20ebd934e217ad05533a8a66f609193512af489b4f45a1484d"
+    "x-sourceSha256": "44f671140812ea486bef2ece8930173c2e79afb828c96280a7aab6a20068a424"
   },
   "settingsSyncNoticeRecordNotHereNewerFigures": "{kind} niet op dit apparaat (bevat figuren die alleen een nieuwere versie kan lezen)",
   "@settingsSyncNoticeRecordNotHereNewerFigures": {
@@ -1666,7 +1666,7 @@
   },
   "settingsAboutFontsBody": "Deze app bevat de volgende lettertypen onder de SIL Open Font License 1.1. De volledige licentieteksten zijn beschikbaar onder “Licenties bekijken” hieronder.",
   "@settingsAboutFontsBody": {
-    "x-sourceSha256": "467cc773c4b79ddb398888a2f7a72ef73189f24cb5202a2cddfe407314bfba2f"
+    "x-sourceSha256": "86b818b9b63cc6518218f7c1fb1c08ef083ffece9c761f394701e3234e5cbafe"
   },
   "settingsAboutFontFrauncesSubtitle": "SIL Open Font License 1.1 · © The Fraunces Project Authors — display & koppen",
   "@settingsAboutFontFrauncesSubtitle": {
@@ -1694,7 +1694,7 @@
   },
   "settingsAboutDanceDataBody": "Dansgegevens zijn afkomstig van The Caller's Box (Chris Page & Michael Dyck), waarvan de collectie is gepubliceerd onder de Creative Commons Attribution-NonCommercial-licentie (CC BY-NC), met dankbaarheid.",
   "@settingsAboutDanceDataBody": {
-    "x-sourceSha256": "f330083f696219ecaccc2fcd361f08786d899bc366677d918d1be72afd36ea66"
+    "x-sourceSha256": "c524b0a09ce49af55c9015afb568a8d87d833f7b12aa4753e2710913c4ee8a2c"
   },
   "settingsAboutLicensesHeader": "Licenties",
   "@settingsAboutLicensesHeader": {
@@ -1710,15 +1710,15 @@
   },
   "settingsAboutLegalese": "© De bijdragers van Caller's Compendium. Uitgebracht onder AGPL-3.0.",
   "@settingsAboutLegalese": {
-    "x-sourceSha256": "421d74cc334c06b8d4e9167e67423e586dd421f4dab9aa9402409d68936b9eb1"
+    "x-sourceSha256": "2ec5028215de5e8ca6715ed9932a7d7216128ae74290866e3c75cd90f4f82d53"
   },
   "settingsAboutVersion": "Versie {version}, “{codename}”",
   "@settingsAboutVersion": {
-    "x-sourceSha256": "e184327d69c4ddde92f360392e7b4531b66fe13c876d431bf792928c96345c90"
+    "x-sourceSha256": "d7f0eb30563030d3528997697d6a1e1a7b90be868efb52da1a13b7d1ee7f299a"
   },
   "settingsAboutVersionLine": "{appName} · Versie {version}, “{codename}” · {license}",
   "@settingsAboutVersionLine": {
-    "x-sourceSha256": "b887a5a35346c520190e4b1d03ad90641600fd9275b2928c60191ddc56cc5042"
+    "x-sourceSha256": "07bec657a3205ab861607172d0d2a1c6b0b861e18a596d00dec835e9cd2511fd"
   },
   "settingsUpdatesHeader": "Updates",
   "@settingsUpdatesHeader": {
@@ -1922,7 +1922,7 @@
   },
   "settingsDialectDeleteConfirmBody": "“{name}” wordt permanent verwijderd.",
   "@settingsDialectDeleteConfirmBody": {
-    "x-sourceSha256": "54b5562a0381823ad8c2663dba0db935021b379431fffddfc83835da6a273829"
+    "x-sourceSha256": "1d5d8e93bb74d70ab97fe737fb2069d9ebeed30d083e70526f4e3207b13941a2"
   },
   "settingsDialectEditConflictSnack": "\"{name}\" is hernoemd of verwijderd terwijl je het bewerkte, dus je wijzigingen zijn niet opgeslagen.",
   "@settingsDialectEditConflictSnack": {
@@ -2022,7 +2022,7 @@
   },
   "appThemeDescriptionGithubLight": "GitHubs heldere, neutrale licht",
   "@appThemeDescriptionGithubLight": {
-    "x-sourceSha256": "17c66c0577067c22814f35aa8ab0849a6f3d85de4069d801bb856b1e63188ec3"
+    "x-sourceSha256": "f71a2aa315c7a56d6334ffefb1c1ca9735ee43f551519028e9aa310204917232"
   },
   "appThemeDescriptionCatppuccinLatte": "Zacht pastellicht, favoriet van de community",
   "@appThemeDescriptionCatppuccinLatte": {
@@ -2046,7 +2046,7 @@
   },
   "appThemeDescriptionTokyoNightLight": "Heldere indigo daglicht, de dag van Tokyo Night",
   "@appThemeDescriptionTokyoNightLight": {
-    "x-sourceSha256": "f1730a93880cb5e53916dfbd19f954b0eda809dcf95794ff13097acb7e6a1113"
+    "x-sourceSha256": "95606de4acb86f2b8f316725b0d5851041ea77a99da5d206883cfb048564cd8a"
   },
   "appThemeDescriptionNordLight": "Koele arctische sneeuwstorm-neutrale tinten",
   "@appThemeDescriptionNordLight": {
@@ -2078,7 +2078,7 @@
   },
   "appThemeDescriptionGithubDark": "GitHubs neutrale donker",
   "@appThemeDescriptionGithubDark": {
-    "x-sourceSha256": "26a0934cc46b014ced2a9c1a92a532252ff4d2db8c785ffd725c75795307580c"
+    "x-sourceSha256": "d6a38985c0ac8648eae50d894002bd2b256cfe459441c49df1ea700b28727ff9"
   },
   "appThemeDescriptionEverforestDark": "Zacht bosgroen, weinig vermoeiend",
   "@appThemeDescriptionEverforestDark": {
@@ -2394,7 +2394,7 @@
   },
   "settingsAppearanceDeleteThemeBody": "“{name}” wordt permanent verwijderd.",
   "@settingsAppearanceDeleteThemeBody": {
-    "x-sourceSha256": "54b5562a0381823ad8c2663dba0db935021b379431fffddfc83835da6a273829"
+    "x-sourceSha256": "1d5d8e93bb74d70ab97fe737fb2069d9ebeed30d083e70526f4e3207b13941a2"
   },
   "settingsAppearanceCustomThemeSemantic": "Aangepast thema {name}",
   "@settingsAppearanceCustomThemeSemantic": {
@@ -2626,7 +2626,7 @@
   },
   "settingsDefaultsImportTagsSubtitle": "Wordt toegevoegd aan elke nieuwe dans die een import maakt, ook dansen uit een bestand dat iemand met je heeft gedeeld. Dansen die bij het importeren van een programma voor de plekken ervan worden gemaakt, krijgen geen tags.",
   "@settingsDefaultsImportTagsSubtitle": {
-    "x-sourceSha256": "46b3272c3dea055c93ff5cd00a0744ad249390fece3a8e1fdc41014fd5024b00"
+    "x-sourceSha256": "c803a49bf8e714711870e4bb5dab2f5c13a4b3a046e3ed0e7098968df11254bd"
   },
   "settingsDefaultsImportTagsEmpty": "Je hebt nog geen tags. Voeg er een toe aan een dans in de editor en kies die dan hier.",
   "@settingsDefaultsImportTagsEmpty": {
@@ -2806,19 +2806,19 @@
   },
   "tagManagerDeletedSnack": "{count, plural, =0{“{name}” verwijderd} =1{“{name}” verwijderd uit 1 dans} other{“{name}” verwijderd uit {count} dansen}}",
   "@tagManagerDeletedSnack": {
-    "x-sourceSha256": "7fe3ea285baeb3b2a2d98ae8620afc2e593f2715b4fde50758de534359a3b680"
+    "x-sourceSha256": "6993dfff0997924e3531fff06af53b860176a00e02c9335265b099efc12b1c5d"
   },
   "tagManagerRenamedSnack": "“{from}” hernoemd naar “{to}”",
   "@tagManagerRenamedSnack": {
-    "x-sourceSha256": "5e97d0d1296f39ceb9230f70ad16cc0d613613aa726d0b96524b7ba899315bed"
+    "x-sourceSha256": "e1a0a2d5bc8ce1ecfb6fa4850b8b158068c437fbf9b5f1719a983fff1d396ada"
   },
   "tagManagerMergedSnack": "“{from}” samengevoegd met “{into}”",
   "@tagManagerMergedSnack": {
-    "x-sourceSha256": "30e0db7e6b76090c883a36fb5d54a3c129e065769ad3c7ffd0b4e0a00ab7f01c"
+    "x-sourceSha256": "678ca9932f690cdb229138765599774966abba622251fa3e71552fe79503be09"
   },
   "tagManagerMergedSeveralSnack": "{count} tags samengevoegd tot “{into}”",
   "@tagManagerMergedSeveralSnack": {
-    "x-sourceSha256": "cacbce18bf0b7e9f1ebbf63bd0314e913760eb09f8c6a84c35823cffd21c7cc6"
+    "x-sourceSha256": "21b98785a3dc3fdf44d7fbcad2fcb881da76b54cbe214309eb96629925080b05"
   },
   "authorManagerTitle": "Auteurs",
   "@authorManagerTitle": {
@@ -2842,7 +2842,7 @@
   },
   "authorManagerMergedSeveralSnack": "{count} auteurs samengevoegd tot “{into}”",
   "@authorManagerMergedSeveralSnack": {
-    "x-sourceSha256": "4ed1779f0ab50c35824ff5fc36d4da9be5a0b9c3a19d6d32fd1205bd46aaf141"
+    "x-sourceSha256": "785cec907853d283aab2b88e428d0be5e4fbafbbfd039621c6bf7872e7e4c08b"
   },
   "sourceManagerTitle": "Bronnen",
   "@sourceManagerTitle": {
@@ -2902,7 +2902,7 @@
   },
   "libraryManagerRenameTitle": "“{name}” hernoemen",
   "@libraryManagerRenameTitle": {
-    "x-sourceSha256": "c710117e61420175c8c4be25544fb52a6b1cc7cbddc986c8238c327739080d35"
+    "x-sourceSha256": "68b8304fa832bf82013935aa98b2a65b9c96fd660b547cb0191fbbfb373e27d8"
   },
   "libraryManagerMergeInto": "Samenvoegen met…",
   "@libraryManagerMergeInto": {
@@ -2910,7 +2910,7 @@
   },
   "libraryManagerMergePickerTitle": "“{name}” samenvoegen met…",
   "@libraryManagerMergePickerTitle": {
-    "x-sourceSha256": "1c9210eb6f342caf12de302c702772a57f769dcb8fb3c463276974d1644a9102"
+    "x-sourceSha256": "a31d486a0c3dca7be544667a8fad5af50ffa57010e93d557702149af5ce38e05"
   },
   "libraryManagerMergeOfferTitle": "Naam al in gebruik",
   "@libraryManagerMergeOfferTitle": {
@@ -2918,15 +2918,15 @@
   },
   "libraryManagerMergeOfferOne": "“{existing}” bestaat al. “{from}” ermee samenvoegen?",
   "@libraryManagerMergeOfferOne": {
-    "x-sourceSha256": "ade1b4b0efe9e588983277e0a74acb22cdd5059f15b4253d06369e77f87736b8"
+    "x-sourceSha256": "5411ad956bb3549aa1f1d55d9bf8ed2783a772521c4c6dd76bfd3127c7030f54"
   },
   "libraryManagerMergeOfferOneRenamed": "“{existing}” bestaat al. “{from}” ermee samenvoegen en “{name}” noemen?",
   "@libraryManagerMergeOfferOneRenamed": {
-    "x-sourceSha256": "8c406476ccba0ed47f90b2adea8b3eef052521a8fe61bd775c93d0b945976947"
+    "x-sourceSha256": "45b4e455a0b183ba6f92f878161e60bed975eb7941b22594cebc535f909c8794"
   },
   "libraryManagerMergeOfferSeveral": "Meer dan één item heet al “{name}”. Kies het item waarmee “{from}” wordt samengevoegd; de andere worden er ook mee samengevoegd.",
   "@libraryManagerMergeOfferSeveral": {
-    "x-sourceSha256": "c512216514abd37359da61a98a255c09ff859b79dc5e0a3bdbce21a041c977ef"
+    "x-sourceSha256": "b2bb651a0135ef88e09929d2513d7350e099469de3f4ec5adea6ef76cae34be2"
   },
   "libraryManagerMerge": "Samenvoegen",
   "@libraryManagerMerge": {
@@ -2934,11 +2934,11 @@
   },
   "libraryManagerUndoConflict": "Ongedaan maken lukt niet: “{name}” wordt nu door een ander item gebruikt.",
   "@libraryManagerUndoConflict": {
-    "x-sourceSha256": "809d9c18ac9b04443bfbf9db194f9d785663625547377cd22b11e652f3f315f6"
+    "x-sourceSha256": "557f89d5df253c3cd5f7fa22074b46178097501dc07ab4514ed604a8c014c16e"
   },
   "libraryManagerEditFailed": "Die wijziging kon niet worden opgeslagen. Probeer het opnieuw.",
   "@libraryManagerEditFailed": {
-    "x-sourceSha256": "a42fb6a8c1dff3745489ee1813b6fd4ec4d0ecbb6f3b805bb5630e1a9f41809f"
+    "x-sourceSha256": "d0440ada226841be70d9333c8710023d216ebd66b239e9cd73235b473bb44de4"
   },
   "libraryManagerEditDetails": "Details bewerken…",
   "@libraryManagerEditDetails": {
@@ -2946,19 +2946,19 @@
   },
   "libraryManagerRenamedSnack": "“{from}” hernoemd naar “{to}”",
   "@libraryManagerRenamedSnack": {
-    "x-sourceSha256": "5e97d0d1296f39ceb9230f70ad16cc0d613613aa726d0b96524b7ba899315bed"
+    "x-sourceSha256": "e1a0a2d5bc8ce1ecfb6fa4850b8b158068c437fbf9b5f1719a983fff1d396ada"
   },
   "libraryManagerMergedSnack": "“{from}” samengevoegd met “{into}”",
   "@libraryManagerMergedSnack": {
-    "x-sourceSha256": "30e0db7e6b76090c883a36fb5d54a3c129e065769ad3c7ffd0b4e0a00ab7f01c"
+    "x-sourceSha256": "678ca9932f690cdb229138765599774966abba622251fa3e71552fe79503be09"
   },
   "libraryManagerDeletedSnack": "“{name}” verwijderd",
   "@libraryManagerDeletedSnack": {
-    "x-sourceSha256": "0c82d7f9acbbb899931e8e3827d38f139e9d0c176c0ca021a853096b632b47fb"
+    "x-sourceSha256": "c01d33e1bbf843edb8f635f4bc33095283004bceeac7fd456d43b330d8a904d4"
   },
   "libraryManagerMergeConfirmTitle": "“{from}” samenvoegen met “{into}”?",
   "@libraryManagerMergeConfirmTitle": {
-    "x-sourceSha256": "aa13d07fa5314e706136c4a008cf535629d2c59a6b6ca05918992c262b7de998"
+    "x-sourceSha256": "e4fc2a24298811de4f264f6e5a2e2e74db10339f68f880221aaf66a0fb6f146a"
   },
   "libraryManagerMergeDropsHeading": "Deze details verschillen. Het samengevoegde item houdt zijn eigen details, en deze vervallen:",
   "@libraryManagerMergeDropsHeading": {
@@ -2978,7 +2978,7 @@
   },
   "settingsGeneralSortIgnoreArticlesSubtitle": "Als ingeschakeld, sorteert de danslijst titels alfabetisch waarbij een voorlopend “the”, “a” of “an” wordt genegeerd — zodat “The Nice Combination” onder N valt. Uitschakelen om op de letterlijke titel te sorteren.",
   "@settingsGeneralSortIgnoreArticlesSubtitle": {
-    "x-sourceSha256": "cd597e1dbfa93681224b60518497aa3ec93f1b05724181d5aac94f212d343978"
+    "x-sourceSha256": "b5a5a47cc79287f54f1334e64e929f6d414bde8f05531b584ab0c0f72e259d05"
   },
   "settingsGeneralVenuesHeader": "Locaties",
   "@settingsGeneralVenuesHeader": {
@@ -2990,7 +2990,7 @@
   },
   "settingsGeneralVenueEntityModeSubtitle": "Maak van locaties herbruikbare records met adres, contacten en schema die veel programma's kunnen delen en die je op één plek bewerkt. Als uitgeschakeld, is de locatie van een programma een eenvoudig tekstveld. Omschakelen is verliesvrij — je ingetypte locatie en eventueel gekoppelde records worden beide bewaard.",
   "@settingsGeneralVenueEntityModeSubtitle": {
-    "x-sourceSha256": "81285264e18136cbabb8acc9b1380c322375853131ef6e8b168cc8b987663629"
+    "x-sourceSha256": "8845c70c42e0fe6937717323e57774526317e44b4b1e18ef0087d2d440ae4123"
   },
   "settingsGeneralManageVenuesTitle": "Locaties beheren",
   "@settingsGeneralManageVenuesTitle": {
@@ -3010,7 +3010,7 @@
   },
   "settingsGeneralMatrixExactCollisionSubtitle": "In de programmeringsmatrix wordt een herhaalde figuur tussen twee opeenvolgende dansen alleen gemarkeerd als de beats daadwerkelijk overlappen — niet alleen wanneer deze in dezelfde benoemde frase (A1, A2, B1, B2…) valt. Zet uit om elke herhaling in dezelfde frase te markeren, ook als de beats zelf niet overlappen.",
   "@settingsGeneralMatrixExactCollisionSubtitle": {
-    "x-sourceSha256": "d433fe862ddd3dc1f28811aa7a4fdf16562e53f4ad6e664bb57d18586a978c77"
+    "x-sourceSha256": "ed4a553eae16a0d67ad5b3b9758bc3297aaae691115adcc5dd2a0d8ad4fa5b4e"
   },
   "settingsProgramAutoCommitTitle": "Programmawijzigingen automatisch opslaan",
   "@settingsProgramAutoCommitTitle": {
@@ -3222,11 +3222,11 @@
   },
   "settingsGeneralRequirePerformedForHistoryTitle": "“Markeer als uitgevoerd” vereisen voor callerhistorie",
   "@settingsGeneralRequirePerformedForHistoryTitle": {
-    "x-sourceSha256": "026bee3d5482518b6124fd47aeab1e8fdd9f6c6b62fa5fb5d8450ed60a68ff02"
+    "x-sourceSha256": "c229e5493c13424977f1ffd0e094821fb9822043e8210e315b0a45629debb6ee"
   },
   "settingsGeneralRequirePerformedForHistorySubtitle": "Als ingeschakeld, toont de callerhistorie van een dans alleen programma’s waarvan het slot voor die dans als uitgevoerd is gemarkeerd. Als uitgeschakeld, verschijnt een programma zodra het de dans bevat.",
   "@settingsGeneralRequirePerformedForHistorySubtitle": {
-    "x-sourceSha256": "1848996e206cb4e46920d0bbc3310cb92d75a955a7a5042e6c91c27de09f0d7d"
+    "x-sourceSha256": "d17ae60f119ebc62e2f2492687687898f584def638de5e2549510d59bf3160ec"
   },
   "settingsGeneralShowPerformedTogglesTitle": "Schakelaars voor ‘markeren als uitgevoerd’ tonen",
   "@settingsGeneralShowPerformedTogglesTitle": {
@@ -3234,7 +3234,7 @@
   },
   "settingsGeneralShowPerformedTogglesSubtitle": "Als ingeschakeld, heeft elke dans in de programmaweergave een schakelaar om die als uitgevoerd te markeren of niet, zonder de editor te openen. Als uitgeschakeld, tonen de rijen alleen of een dans is uitgevoerd.",
   "@settingsGeneralShowPerformedTogglesSubtitle": {
-    "x-sourceSha256": "c72198d2bb64ea770c17a1f45239591d056d391a276ee7c416ddba46d5e53c48"
+    "x-sourceSha256": "bbfad0f7e461ca279423bfe1931e0c936ea4c19d19d4509df61a5624cab7c324"
   },
   "settingsGeneralMarkAllSetsStatusTitle": "Alles markeren als uitgevoerd zet de status",
   "@settingsGeneralMarkAllSetsStatusTitle": {
@@ -3250,7 +3250,7 @@
   },
   "settingsGeneralRequireEventDateForHistorySubtitle": "Als ingeschakeld, telt een programma zonder eventdatum pas mee voor de callerhistorie als je het een datum geeft. Gedupliceerde en ontvangen programma’s komen zonder datum binnen. Als uitgeschakeld, telt een programma mee, of het nu een datum heeft of niet.",
   "@settingsGeneralRequireEventDateForHistorySubtitle": {
-    "x-sourceSha256": "8bfbd2c15d3c1f7cedf4be79c03362ef0ba2dd836f800f1e8591a777352889ca"
+    "x-sourceSha256": "23e337b297b87aad7ada670e835d4b176fae90d6782c5ca898c149f64080259d"
   },
   "settingsGeneralTrackHistoryForAllCallersTitle": "Callerhistorie voor alle callers bijhouden",
   "@settingsGeneralTrackHistoryForAllCallersTitle": {
@@ -3278,7 +3278,7 @@
   },
   "settingsGeneralCapitalizeFiguresSubtitle": "Als ingeschakeld, begint elke figuur in de dansweergave, de Perform-modus en de figuureditor met een hoofdletter (“Neighbors allemande left”). Als uitgeschakeld, worden figuren getoond zoals ze zijn geschreven; ingebouwde figuren beginnen met een kleine letter, zoals in ContraDB. Alleen het uiterlijk van figuren op die plekken verandert; exports, zoeken, synchronisatievergelijkingen en de tekst voor schermlezers blijven ongewijzigd.",
   "@settingsGeneralCapitalizeFiguresSubtitle": {
-    "x-sourceSha256": "7f240fb961d598881097268169b7eafcb32a2e8b4698331673904b34b1f95a09"
+    "x-sourceSha256": "c60e410a32b18b83507626cecc403bf159a4d797127e791405358d0d7ac9e204"
   },
   "settingsGeneralLibraryTagsTitle": "Tags",
   "@settingsGeneralLibraryTagsTitle": {
@@ -3698,7 +3698,7 @@
   },
   "backupFileTooLarge": "Dat bestand is te groot voor een Caller’s Compendium-back-up ({sizeMb} MB; limiet {limitMb} MB). Je gegevens zijn ongewijzigd.",
   "@backupFileTooLarge": {
-    "x-sourceSha256": "3e9ac5f6ca85f6efe2676e53a0d0460c736dc1cb76c50731257083782748d37c"
+    "x-sourceSha256": "ab07d740afd2da7fb4666cc1582d933fbb9b7ac576af1f96ac6a309360aca0e3"
   },
   "backupExportTooLarge": "Je collectie is te groot om als één back-up te exporteren ({sizeMb} MB; limiet {limitMb} MB), dus er is niets opgeslagen. Je gegevens zijn ongewijzigd.",
   "@backupExportTooLarge": {
@@ -3742,7 +3742,7 @@
   },
   "diagnosticsClearFailed": "Het diagnosticslog kon niet worden gewist.",
   "@diagnosticsClearFailed": {
-    "x-sourceSha256": "50ce27d1bce5db751b69e08e7ddbf3573dc466a5c04aefbdd637f5e11e7e4857"
+    "x-sourceSha256": "cc2c2837d7238d553ce1796ff0ac52bcca737f7db1c41f875084ac25749d7fff"
   },
   "diagnosticsClearLogTitle": "Diagnosticslog wissen?",
   "@diagnosticsClearLogTitle": {
@@ -3866,7 +3866,7 @@
   },
   "commonUndoFailed": "Dat kon niet ongedaan worden gemaakt. Controleer het resultaat en probeer het opnieuw.",
   "@commonUndoFailed": {
-    "x-sourceSha256": "64cb613fabf9e2b50bffb15126b715f3b0c14864606feab0fb1c7cf39226199e"
+    "x-sourceSha256": "1f6c81c3140b07b5541f4c7aa6a357ec81bbc356d01d49332f189ad2d3da1f06"
   },
   "commonRetry": "Opnieuw proberen",
   "@commonRetry": {
@@ -4058,7 +4058,7 @@
   },
   "commonShowDancesTaggedTooltip": "“{tagName}” toevoegen aan de filters van de Collectie",
   "@commonShowDancesTaggedTooltip": {
-    "x-sourceSha256": "adf80e5ef33018bef6fbff7c25afa94e668c259ccfc1c44c00f2ebdc74b06bab"
+    "x-sourceSha256": "ccedbad69d42b583eba483da9003daca89431804a837a0b563a8d131c779593b"
   },
   "commonDeletedSnack": "“{title}” verwijderd.",
   "@commonDeletedSnack": {
@@ -5266,7 +5266,7 @@
   },
   "programsDraftAnotherNewProgramBody": "Je hebt een niet-opgeslagen concept van een ander nieuw programma, ‘{title}’. Wil je het herstellen in plaats van een nieuw te beginnen?",
   "@programsDraftAnotherNewProgramBody": {
-    "x-sourceSha256": "7fef500f5f004887e99ac40cec6c9bd12e3cd990df20b751f3a8b7de584d5ee3"
+    "x-sourceSha256": "7c77e7feaec8c841cdf34bd00ba6899421569e5841f14ac06629c5aa6ae7a9f7"
   },
   "programsDraftAnotherNewProgramUntitledBody": "Je hebt een niet-opgeslagen concept van een ander nieuw programma, nog zonder titel. Wil je het herstellen in plaats van een nieuw te beginnen?",
   "@programsDraftAnotherNewProgramUntitledBody": {
@@ -5394,7 +5394,7 @@
   },
   "programsVenueLegacyTextHint": "Eerder ingevoerde locatie: “{venueText}”. Koppel hieronder een opgeslagen locatie om herbruikbare gegevens te gebruiken — je ingetypte locatie blijft bewaard.",
   "@programsVenueLegacyTextHint": {
-    "x-sourceSha256": "80a32a9e9294a5abb5fc1e75ff595dfdba00d9fb8fb659b23d44fb061e284db0"
+    "x-sourceSha256": "5a4f944932a944c89e477138ad1231768950db792b54ae79693e236a0fcebb78"
   },
   "programsBandLabel": "Band",
   "@programsBandLabel": {
@@ -5916,7 +5916,7 @@
   },
   "programsMatrixEmptyBody": "De matrix wordt automatisch gevuld naarmate de dansen in het programma gestructureerde figuren krijgen.",
   "@programsMatrixEmptyBody": {
-    "x-sourceSha256": "3f675de5c9b724483c22e90974e18d525cf48c3680358ee755336e85f0c54324"
+    "x-sourceSha256": "eb3cb0add4bced346939ac6bc68a254eca5d1d5000066671f2b3f5059ade0120"
   },
   "performTitle": "Uitvoeren",
   "@performTitle": {
@@ -6528,7 +6528,7 @@
   },
   "exportMatrixEmptyState": "Nog geen gestructureerde figuren — de matrix wordt automatisch gevuld naarmate de dansen in het programma gestructureerde figuren krijgen.",
   "@exportMatrixEmptyState": {
-    "x-sourceSha256": "b1ae0e1c239d67a9c538cf887bf58d7cacfacb3f5440f8e4e70664a7c35dbd08"
+    "x-sourceSha256": "91c6e19638f210dbea87105db3b3a2b97f02fc14f8d94cba9bfde3a31f0efdbb"
   },
   "exportMatrixLegendDebut": "Hier geïntroduceerd",
   "@exportMatrixLegendDebut": {
@@ -7420,7 +7420,7 @@
   },
   "importIssueFormationUnclassified": "Een formatie kon niet worden herkend; bewaard als detail bij “other”.",
   "@importIssueFormationUnclassified": {
-    "x-sourceSha256": "6d9602a2bc80503e2465aeaa13e2a5dcf9be1bc0aa5c3ce0bec492b52351bbd0"
+    "x-sourceSha256": "9993768e300f3db9c3c34ee3c47966b2d2dd58918ccf589aeaed899c7ec3b5e3"
   },
   "importIssuePhraseStructureUnreadable": "Een fraseopbouw kon niet worden gelezen; er is een standaardopbouw gebruikt.",
   "@importIssuePhraseStructureUnreadable": {
@@ -7428,7 +7428,7 @@
   },
   "importIssueProgressionUnmapped": "Een progressie werd niet herkend; vastgelegd als “other”.",
   "@importIssueProgressionUnmapped": {
-    "x-sourceSha256": "40834a5e2b73f34b6b3870a196161f410e14fc97442679b84f31bbb4e5c8449f"
+    "x-sourceSha256": "aefba6d9bbe3bb3a88151b7c24bc1e2e4aee705f1e4b34049729e075a27c8119"
   },
   "importIssueMetadataOnlyStub": "Alleen de gegevens van de dans waren beschikbaar (geen figuren), dus de dans is zonder figuren geïmporteerd.",
   "@importIssueMetadataOnlyStub": {
@@ -8308,15 +8308,15 @@
   },
   "validationOrphanedAltNamed": "Het alternatief op positie {position} (“{text}”) heeft geen voorafgaande hoofdplek.",
   "@validationOrphanedAltNamed": {
-    "x-sourceSha256": "984680ee188c3aa14ef90eb2043d34a0b82842c8b95cc65fdf3138c9d5ee1eec"
+    "x-sourceSha256": "556675e41e6c61bda76f6f5498325734eaeb5ee0abd6b485efd07e05e4f83835"
   },
   "validationEmptySubstitution": "De vervanging voor “{term}” is leeg.",
   "@validationEmptySubstitution": {
-    "x-sourceSha256": "b9977d884eaad72046cbcfd79b3370782440476034477dad47db3864f6bfb9aa"
+    "x-sourceSha256": "bd4a761b735d0e14d29974356317efa962dcbc2babc054134b31f8bc04889053"
   },
   "validationDialectCollision": "“{source}” en “{existing}” verwijzen beide naar “{substitution}” — omkeren zou dubbelzinnig zijn.",
   "@validationDialectCollision": {
-    "x-sourceSha256": "b8c4a44002ec09c397af6a82e27dbe6b5c1f1f5b96dc72f359101d535d33fe74"
+    "x-sourceSha256": "dee51ecec06a3f41cec908aa62b70496bc898557a127384eaed31fec2ae72dd1"
   },
   "validationGeneric": "Dit item heeft een validatieprobleem.",
   "@validationGeneric": {
@@ -8444,7 +8444,7 @@
   },
   "danceEditorUnsavedNewDanceDraftMessage": "Je hebt een niet-opgeslagen concept van een andere nieuwe dans, ‘{title}’. Wil je het herstellen in plaats van een nieuwe te beginnen?",
   "@danceEditorUnsavedNewDanceDraftMessage": {
-    "x-sourceSha256": "cfa0a260dbb7d319cf1657e51a6a8c15425b1eeb38646cecfe70f1b5513810c7"
+    "x-sourceSha256": "4e61a324a0b6f57fcd5ee0b436de90a962bcd92e9ee01be671e6fe0c6e6a9f37"
   },
   "danceEditorUnsavedNewDanceDraftUntitledMessage": "Je hebt een niet-opgeslagen concept van een andere nieuwe dans, nog zonder titel. Wil je het herstellen in plaats van een nieuwe te beginnen?",
   "@danceEditorUnsavedNewDanceDraftUntitledMessage": {
@@ -9284,7 +9284,7 @@
   },
   "shorthandMappingsDeleteBody": "“{token}” wordt permanent verwijderd.",
   "@shorthandMappingsDeleteBody": {
-    "x-sourceSha256": "7891e76b8907a0bc270dc1e6c61f31c69f80355c4272dbf679e8e61117417cc4"
+    "x-sourceSha256": "fa03940830f67880e7d42db7656abd65366f1b73949bb6ff5e7e0e877c58a79d"
   },
   "shorthandMappingsActionsTooltip": "Afkortingsacties",
   "@shorthandMappingsActionsTooltip": {
@@ -9412,7 +9412,7 @@
   },
   "importShorthandSeedConflictNote": "Er bestaat al een afkorting met de naam “{token}”, dus deze knop is ongewijzigd gelaten.",
   "@importShorthandSeedConflictNote": {
-    "x-sourceSha256": "4752af4bb33ba46fa343b30db41a75079f5caaf967c26196ef75d76129feb739"
+    "x-sourceSha256": "5d691515f5819d5c2fa5c170b4186fd8efa8a5b6ab094d4915b07926aa7d6e41"
   },
   "importShorthandSeedSkip": "Overslaan",
   "@importShorthandSeedSkip": {
@@ -9892,7 +9892,7 @@
   },
   "recentlyDeletedLoadError": "Je onlangs verwijderde items konden niet worden geladen. Er is niets verwijderd.",
   "@recentlyDeletedLoadError": {
-    "x-sourceSha256": "9a90acfdcb6612410e77d650e8717ff4079ff3fdb1eeb1491d3a6ea96b6fa92d"
+    "x-sourceSha256": "ea6e275b5e21d8947fdae93ceeecdb8aff53e0bd9512e5682e67bcadf5a8316a"
   },
   "recentlyDeletedDeleteTitle": "Permanent verwijderen?",
   "@recentlyDeletedDeleteTitle": {
@@ -10008,7 +10008,7 @@
   },
   "venueLinkOfferRow": "“{name}”: {count, plural, =1{1 programma} other{{count} programma's}}",
   "@venueLinkOfferRow": {
-    "x-sourceSha256": "29c5f6c84b2376bb00998dfb55aa02c8033077b3e1f66526466ef41bc660f3b4"
+    "x-sourceSha256": "4d04bde8d9bba17dd1863c976f0b44af90e5e4a552d45ff5d9110d7c1130d7e5"
   },
   "venueLinkOfferConfirm": "Koppelen",
   "@venueLinkOfferConfirm": {
@@ -10028,15 +10028,15 @@
   },
   "venueManagerDeleteBody": "“{name}” permanent verwijderen? Dit kan niet ongedaan worden gemaakt.",
   "@venueManagerDeleteBody": {
-    "x-sourceSha256": "fda09aabaa479a31fce20638fb95e0c539cdee6cf95a95fb78b9b60614756d7a"
+    "x-sourceSha256": "833e71d14c9c6ff7b7e3a1472580b40266265e9d4ce80eecaebb6802a20687f4"
   },
   "venueManagerDeletedSnack": "“{name}” verwijderd",
   "@venueManagerDeletedSnack": {
-    "x-sourceSha256": "0c82d7f9acbbb899931e8e3827d38f139e9d0c176c0ca021a853096b632b47fb"
+    "x-sourceSha256": "c01d33e1bbf843edb8f635f4bc33095283004bceeac7fd456d43b330d8a904d4"
   },
   "venueManagerDeleteBlocked": "“{name}” kan niet worden verwijderd zolang het nog aan een programma is gekoppeld. Wijzig of verwijder de locatie van die programma’s eerst.",
   "@venueManagerDeleteBlocked": {
-    "x-sourceSha256": "917f238ddda3bcdc1eff82323a441e65b71f5128a5d1f9b7cd29afeb26369bed"
+    "x-sourceSha256": "adffd15a2b32566e5d76fc774797be1b0647817c84ab0023e2ce82307dd552b6"
   },
   "venueManagerDeleteTooltip": "{name} verwijderen",
   "@venueManagerDeleteTooltip": {
@@ -10116,7 +10116,7 @@
   },
   "venueEditorScheduleLabel": "Schema (bijv. “2e zaterdagen”)",
   "@venueEditorScheduleLabel": {
-    "x-sourceSha256": "f82e3f64c4d6d97423859d611e7dd07532995119ebb8cf196fa617109d36a840"
+    "x-sourceSha256": "c540fedb5755ab11738eefbf2c8b3ceb144b2a5f0393a60608890cab370565bf"
   },
   "venueEditorPriceLabel": "Prijs",
   "@venueEditorPriceLabel": {
@@ -10184,7 +10184,7 @@
   },
   "venuePickerCreateOption": "Nieuwe locatie “{name}” toevoegen",
   "@venuePickerCreateOption": {
-    "x-sourceSha256": "4b84ab053f669f63cc251cbde509d7e14efcd7dec0ba7d2d0bbd63052d3660b4"
+    "x-sourceSha256": "438fd464b51ed03fe545b1d3aac1554155bf034e524b5eee68ba1604a666ed4b"
   },
   "danceReimport": "Choreografie opnieuw importeren",
   "@danceReimport": {
@@ -10484,7 +10484,7 @@
   },
   "glossaryCustomDeleteTitle": "‘{name}’ verwijderen?",
   "@glossaryCustomDeleteTitle": {
-    "x-sourceSha256": "8e13216a05b75255681daa6d0da8938db3480ee79257419a088bb3b3a4c6f6c2"
+    "x-sourceSha256": "1e0ef443d7b229293d2419a62ed17d8a12d57a4dabde70e0ce35b3031424d490"
   },
   "glossaryCustomDeleteBody": "Ze wordt uit je woordenlijst verwijderd. Dansen die je er al mee hebt opgeslagen, behouden hun figuren.",
   "@glossaryCustomDeleteBody": {
@@ -10648,15 +10648,15 @@
   },
   "compoundEditorNameTaken": "‘{name}’ is al de naam van een figuur of afkorting. Kies een andere naam.",
   "@compoundEditorNameTaken": {
-    "x-sourceSha256": "262606172e7c9de4247bd5725ee0ea74ab261bedc4310906e817cc955d9efcf3"
+    "x-sourceSha256": "b6f0cb847baedb28084464421a8db5007b062ec11d061372ae33e632de35075f"
   },
   "compoundEditorNameTakenHidden": "‘{name}’ is al de naam van een van je eigen figuren. Die staan in de woordenlijst wanneer Eigen figuren aan staat. Kies een andere naam.",
   "@compoundEditorNameTakenHidden": {
-    "x-sourceSha256": "5ee866fe42345995b7ed626d64e97bec1b8acdc583e8e62d068f0b43aa75aab5"
+    "x-sourceSha256": "c459d9a38e24676aa7579bd96e1af3e42fd301308a72b2b41debb524afdb5740"
   },
   "compoundEditorNameTakenHiddenTerm": "“{name}” is al de naam van een van je eigen termen. Die staan in de woordenlijst zolang Woordenlijst tonen aanstaat. Kies een andere naam.",
   "@compoundEditorNameTakenHiddenTerm": {
-    "x-sourceSha256": "0c039333fe741a12b9eef40d2229cbd29617370655a9857d13b7a4467379be2e"
+    "x-sourceSha256": "3fe7add0ffbae2797ecfc53705f2ab841319b6295e897821110d12b9f678bcaa"
   },
   "compoundEditorNoFigures": "Voeg ten minste één figuur toe.",
   "@compoundEditorNoFigures": {
@@ -10780,7 +10780,7 @@
   },
   "userFigureEditorFlagLabelHelper": "Getoond in de formulering als dit aan staat, zoals ‘met een zwier’.",
   "@userFigureEditorFlagLabelHelper": {
-    "x-sourceSha256": "7e5040023e872753fdcee9beb1543c6fba579aa53431c721fb3ec862bd818f88"
+    "x-sourceSha256": "1cbfa5d6cbf677f7c5335c4faf33d8cfe5980937b578a0563594d2a1fc27c3e2"
   },
   "userFigureEditorWording": "Formulering",
   "@userFigureEditorWording": {
@@ -10928,147 +10928,147 @@
   },
   "wordingIssueUnclosedGroup": "Een “[” is niet gesloten: “{context}”. Voeg “]” toe waar dat deel eindigt.",
   "@wordingIssueUnclosedGroup": {
-    "x-sourceSha256": "c71948567301b81d3448158186468a207605a5406482f7457eaf592a2e660fa2"
+    "x-sourceSha256": "643d622b5e33c7c5a76ea16d9bcf16fa4a8615eee95b7e7c89ba90dc3408cfa2"
   },
   "wordingIssueStrayCloseBracket": "Er staat een “]” zonder “[” ervoor, bij “{context}”. Verwijder die, of voeg “[” toe waar dat deel begint.",
   "@wordingIssueStrayCloseBracket": {
-    "x-sourceSha256": "ec96203a14f6b4cd15e31598250c2e0f7719f4f4dfe5ed0991648de39bb3272a"
+    "x-sourceSha256": "20c3e539dcfd5a39a03d99f6cd802050cc328c3240895804b49ae4fd0501830d"
   },
   "wordingIssueUnclosedSlot": "De “{brace}” in “{context}” is niet gesloten. Voeg “{closeBrace}” toe na de naam, zoals {example}.",
   "@wordingIssueUnclosedSlot": {
-    "x-sourceSha256": "e4959cabf299a292128cfc5505bde5bcf09e66f52656684ba18da228248ab84a"
+    "x-sourceSha256": "091e0962a88c07debbbe2c4a511ddfcbe0f2894f4c18209b1474710a1388e0a5"
   },
   "wordingIssueStrayCloseBrace": "Er staat een “{closeBrace}” zonder “{brace}” ervoor, bij “{context}”. Verwijder die, of voeg “{brace}” toe voor de naam.",
   "@wordingIssueStrayCloseBrace": {
-    "x-sourceSha256": "847b8dea22c7e720bc76930ea3e0d8b4ccc563c69788e94d24673facbd835b92"
+    "x-sourceSha256": "bf84aff4e589787e5d3011c60a205cd9c78b32e559418a74260c76afa2212368"
   },
   "wordingIssueBadSlot": "“{found}” is geen plaatshouder: zet precies één naam tussen accolades, zoals {fix}.",
   "@wordingIssueBadSlot": {
-    "x-sourceSha256": "f827d402a26d9ba85d6ffd47d3d20e3321d7c22929f0acfde1d8974ec8e42a94"
+    "x-sourceSha256": "099505d1806729d5b14873d0c040aef34b3399748e5f6c50a23913c077ab5146"
   },
   "wordingIssueConditionInBraces": "Accolades bevatten één naam, geen voorwaarde: “{found}”. Gebruik vierkante haken om een formulering alleen in sommige gevallen te tonen: {fix}",
   "@wordingIssueConditionInBraces": {
-    "x-sourceSha256": "ded62b042836b4c71327bcba2e4cb5eed5ad181b3cf8f5b4d683692a7e450c49"
+    "x-sourceSha256": "ac489b772076bd45dd2676d617acd8d6fe0b62be658e32372256cedbf318e69a"
   },
   "wordingIssueTooLongStored": "Deze formulering is te lang om op te slaan: opgeslagen is ze langer dan {max} tekens (een voorwaarde neemt opgeslagen iets meer ruimte in dan getypt). Maak haar korter of gebruik minder voorwaarden.",
   "@wordingIssueTooLongStored": {
-    "x-sourceSha256": "c0dc898443482d0ddbf0ef993663f4227c686df7768d828bd97d9e35599b1055"
+    "x-sourceSha256": "a6ed2495aa7d9b8f0bc5fa06b30323c82a3348606a210e29b6007861626ec205"
   },
   "wordingIssueMissingCondition": "Schrijf na “{word}” wat er getest moet worden, bijvoorbeeld “{example}”.",
   "@wordingIssueMissingCondition": {
-    "x-sourceSha256": "e697c786f4107cdcddd581d3622d2d39856acb5609a7889c7466a476c8577c36"
+    "x-sourceSha256": "f8ac9a0ff5aa0d25a46db1f6055f5d6c745bd0403d51adafe499ea96e78a08dc"
   },
   "wordingIssueMissingThen": "Schrijf na de voorwaarde “{condition}” het woord “then” en de formulering die in dat geval getoond wordt.",
   "@wordingIssueMissingThen": {
-    "x-sourceSha256": "4a026bb73b3fde60ea026448a734edcfe80da4ba4efc93282280764da5b443d5"
+    "x-sourceSha256": "85a796fe8f317bfb38fa43acd06a1dd5b0407840f617e786a3999fc888b1ef8a"
   },
   "wordingIssueColonForThen": "Schrijf “then” in plaats van “:” na “{condition}”.",
   "@wordingIssueColonForThen": {
-    "x-sourceSha256": "ea03ecae2ba0d532c64f40c82e2cd1b8cc79c8fbab0198e0ea4817026c43f81c"
+    "x-sourceSha256": "f35dc6c6d6aeb5f7937e3cb41e9d2e5d3f61f29563c4e02e705f1e51d978ea25"
   },
   "wordingIssueUnknownName": "“{found}” is niet iets wat deze formulering kan testen. Je kunt testen: {names}.",
   "@wordingIssueUnknownName": {
-    "x-sourceSha256": "dd6a2a9594fa50e6f1ad705433a3b26d51555fc2bc0261781bcf3ae5f3ed023d"
+    "x-sourceSha256": "eedd54b0942caccde5b0428279fe8d218e12304ea25c9fdabdcc16dd6a795618"
   },
   "wordingIssueUnknownNameSuggest": "“{found}” is niet iets wat deze formulering kan testen. Bedoelde je “{suggestion}”? Je kunt testen: {names}.",
   "@wordingIssueUnknownNameSuggest": {
-    "x-sourceSha256": "176d79d683bca2aa524d8a2de10ab9d0204a4830fa869c04a6de18cf09d31a22"
+    "x-sourceSha256": "2dd3fdf0402ea0a8d8f0bd5fab9d35d228ff4a27a64ca0b1855d281f3505fce0"
   },
   "wordingIssueUnknownNameAfterIf": "Vierkante haken die met “if” beginnen bevatten een voorwaarde, en “{found}” is niet iets wat deze formulering kan testen. Je kunt testen: {names}.",
   "@wordingIssueUnknownNameAfterIf": {
-    "x-sourceSha256": "c5a4b7ba0261187efc7864a84027e95b1c9f2bffdcc44bcb3eff8eef78f75ab8"
+    "x-sourceSha256": "0baadda6fde7b6ebb46f5906fdb63b201bf2703deadbd38621d1fc4ab183b4a7"
   },
   "wordingIssueUnknownNameAfterIfSuggest": "Vierkante haken die met “if” beginnen bevatten een voorwaarde, en “{found}” is niet iets wat deze formulering kan testen. Bedoelde je “{suggestion}”? Je kunt testen: {names}.",
   "@wordingIssueUnknownNameAfterIfSuggest": {
-    "x-sourceSha256": "863b7ec75533af1f503499f8653ae59cf63516256a961f86c3592b0d94a13ba1"
+    "x-sourceSha256": "2d26001bddd06f71b7d17f3ae1ea4488453b9383daec314ecf984ecb0079db7b"
   },
   "wordingIssueNameInBraces": "Schrijf in een voorwaarde de naam zonder accolades: “{name}”, niet “{found}”.",
   "@wordingIssueNameInBraces": {
-    "x-sourceSha256": "f4539a56d6140ef356a495207e03230556d55435c10a2e46215a60a2a30b8310"
+    "x-sourceSha256": "cb662202ac47347b6220569c1cce64b376ad35eff679b287f561eb842d24d314"
   },
   "wordingIssueIsntForIsNot": "Schrijf “is not” in plaats van “{found}”: “{fix}”.",
   "@wordingIssueIsntForIsNot": {
-    "x-sourceSha256": "710738a2bd1002897b99e39ece81b65f333276c55e2f0948bf4c046213bfa731"
+    "x-sourceSha256": "b0ffcc3e1dec3f3262cd0cd5a90b2414af1b9758487d2bb0352a64275771a3ec"
   },
   "wordingIssueSymbolForWord": "Schrijf “{word}” in plaats van “{found}”: “{fix}”.",
   "@wordingIssueSymbolForWord": {
-    "x-sourceSha256": "3eaf125029b04f944a204ef04c04a51172d743a9304ed17e2b3444267b495924"
+    "x-sourceSha256": "2435a516c18136e681cb8f4b1638409d7aa9909460bd1adb69a84e3a12cfe595"
   },
   "wordingIssueQuotedValue": "Laat de aanhalingstekens weg: “{fix}”.",
   "@wordingIssueQuotedValue": {
-    "x-sourceSha256": "3c5135dd3cbb3e4833fdb92939f794cfdb5d148df4fa0751d9362098ac70a033"
+    "x-sourceSha256": "0796c9c8c32d30fc30646863d2a6e469c9cfd816475b09167f90b2d369ad6bb9"
   },
   "wordingIssueUnknownValue": "“{found}” is geen van de waarden die {name} kan hebben. {name} kan zijn: {values}.",
   "@wordingIssueUnknownValue": {
-    "x-sourceSha256": "f5f97f60006e50060847288569abb2274dd33c7e9390b336337fe9e6f34446f2"
+    "x-sourceSha256": "d9d115f01d364fc35d0b81ffc1a432d00c6282cf060b3f80fd0653f3f9e4ca9e"
   },
   "wordingIssueUnknownValueSuggest": "“{found}” is geen van de waarden die {name} kan hebben. Bedoelde je “{suggestion}”? {name} kan zijn: {values}.",
   "@wordingIssueUnknownValueSuggest": {
-    "x-sourceSha256": "36007cd2c0f96f897becda30eb8aff79e9d7596f1b691e41702c1b392dd47524"
+    "x-sourceSha256": "8cd4deff05307e076dec95ebbb916d1847f1c83c98f27d8429f06b678a737e3e"
   },
   "wordingIssueExpectedValue": "Schrijf na “{before}” een waarde die {name} kan hebben, zoals “{example}”. {name} kan zijn: {values}.",
   "@wordingIssueExpectedValue": {
-    "x-sourceSha256": "fb6afa14270f686a04fafdbf6eb7d4e4e84aa5fc57a08423a1d257d1f8b19635"
+    "x-sourceSha256": "7c3e8beabb8387a76be1900b3528633c7ba96f155c97a8df2ed7138184638774"
   },
   "wordingIssueListNeedsParens": "Zet de waarden na “is in” tussen haakjes: “{fix}”.",
   "@wordingIssueListNeedsParens": {
-    "x-sourceSha256": "198338b2e3570bca3b5f0f97428b745694954f1ba1490ada036aa38fbc58dd8f"
+    "x-sourceSha256": "076ae995c323f60c0a4ecc7605e913dc8e8b9c5825b33e0b7bdc3d6af9188c21"
   },
   "wordingIssueOneOfForIsIn": "Schrijf “{word}” in plaats van “{found}”: “{fix}”.",
   "@wordingIssueOneOfForIsIn": {
-    "x-sourceSha256": "3eaf125029b04f944a204ef04c04a51172d743a9304ed17e2b3444267b495924"
+    "x-sourceSha256": "2435a516c18136e681cb8f4b1638409d7aa9909460bd1adb69a84e3a12cfe595"
   },
   "wordingIssueEmptyList": "De haakjes na “is in” zijn leeg. Noem minstens één waarde, zoals “{example}”.",
   "@wordingIssueEmptyList": {
-    "x-sourceSha256": "e9455e9a9753fe62b942f5c2b49d3e2a094aee2bfacca60cb15bd25bdbc3983a"
+    "x-sourceSha256": "da5546ce2e48f47eda26dbd14f356b707d3802d6d29d2f338fc50746f9700660"
   },
   "wordingIssueUnclosedParen": "Een “(” is niet gesloten: “{context}”. Voeg “)” toe na “{before}”.",
   "@wordingIssueUnclosedParen": {
-    "x-sourceSha256": "bc5e1865c55d27174d0bf6dea0a8bc2107c5b769ddd266c1b5561ddedf801833"
+    "x-sourceSha256": "ac66672b7375aa32185811cdada8ca714c770cfcea5c26ec4127dc8304982196"
   },
   "wordingIssueStrayCloseParen": "Er staat een “)” zonder “(” ervoor, bij “{context}”. Verwijder die, of voeg de “(” toe waar die begint.",
   "@wordingIssueStrayCloseParen": {
-    "x-sourceSha256": "d0b94f62237477e475f2a6a32a6b48a02fedd4559767cf590300120789b21931"
+    "x-sourceSha256": "3146442e95311af46f8f48920124ce795fbc6a6f1509016e19e22e68bd5b61cb"
   },
   "wordingIssueEmptyParens": "Er staat niets tussen “(” en “)”. Zet er een voorwaarde in, of verwijder ze.",
   "@wordingIssueEmptyParens": {
-    "x-sourceSha256": "14a86ea7dd8b213192b9bf77739563a785c39468fccb896eac159345928128b2"
+    "x-sourceSha256": "151ec8849bc5c5e010795a652d2bec56d20bcfdffdfbcd05538fb89fa8e717c0"
   },
   "wordingIssueExpectedConnective": "Schrijf na “{before}” “and”, “or” of “then”: “{found}” kan daar niet staan.",
   "@wordingIssueExpectedConnective": {
-    "x-sourceSha256": "9c648a83b957ce7b2234cd61cede7528ee61da6bf3a6e18525fa01001232109e"
+    "x-sourceSha256": "dbd491a03146ea65ae28858703e988935f56d4a37a08cc453fa02c634a054f09"
   },
   "wordingIssueExpectedConnectiveInParens": "Schrijf na “{before}” “and”, “or” of “)”: “{found}” kan daar niet staan.",
   "@wordingIssueExpectedConnectiveInParens": {
-    "x-sourceSha256": "0d5d26d6ccd066287aaf54a77940b9a53f5f59fa84ae5dbe1c786af6e03ddd07"
+    "x-sourceSha256": "08e587ee1b700b00d27a0151d9084a68d21ab66bff330657af3bd7c5732d6854"
   },
   "wordingIssueExpectedConnectiveList": "Schrijf na “{before}” “and”, “or” of “then”. Zet de waarden in een lijst om op meer dan één te testen: “{fix}”.",
   "@wordingIssueExpectedConnectiveList": {
-    "x-sourceSha256": "1013ee71a6db0b5724d8a63dfab74114a2113b50899d0ed6519611b437b1dd88"
+    "x-sourceSha256": "7b41ed10c5bba1a4662b6bd9e094b0f54c87bae5e2c4f0f35e848ed872751b4b"
   },
   "wordingIssueExpectedListSeparator": "Zet in de lijst “{before}” een komma voor “{found}”, of sluit de lijst af met “)”.",
   "@wordingIssueExpectedListSeparator": {
-    "x-sourceSha256": "5e477276e381d4210a17ca048af17dd0f4948fbcaeee3c9badce5e5f9656c16a"
+    "x-sourceSha256": "e718e9ce9bd0c6c5d0edb0e3e22fc38feb661c33f65dc5d0e6fe82a2135a1739"
   },
   "wordingIssueMixedAndOr": "“{found}” mengt “and” en “or”, dus het is niet duidelijk wat eerst komt. Voeg haakjes toe: “{fixA}” of “{fixB}”.",
   "@wordingIssueMixedAndOr": {
-    "x-sourceSha256": "4263b36fe396044786936cbf8879387383de717b1076db2add1b6557da708004"
+    "x-sourceSha256": "e87a1b214ad664a82e27660d6e8461e99edec6da097adb0df41162d2cbea0017"
   },
   "wordingIssueFlagCompare": "{name} staat aan of uit en wordt dus niet met een waarde vergeleken. Schrijf “if {name}” voor aan, of “if not {name}” voor uit.",
   "@wordingIssueFlagCompare": {
-    "x-sourceSha256": "4266d82cf8435b2170ac1928ab34e4de8b7b0a6fd734f14bf9d02f79109ebd4e"
+    "x-sourceSha256": "64fb4de3b2533dcdb1334f58e718fc4eb0472416eddff64ed60e3449f9577660"
   },
   "wordingIssuePresenceOnly": "Bij {name} kun je alleen testen of het ingevuld is. Schrijf “{name} is empty”, “{name} is not empty” of gewoon “{name}”.",
   "@wordingIssuePresenceOnly": {
-    "x-sourceSha256": "a9c979258352bc3f967fdc2cbc8f00496222a396b6829cec0ef04f7be16a5cd8"
+    "x-sourceSha256": "06ea61779676a1b172c2a9f0974c09aebd5917ba12df06a2121e5d240d61d906"
   },
   "wordingIssueNotANumber": "{name} is geen getal en kan dus niet “{op}” iets zijn. Gebruik “{name} is …” of “{name} is in (…)”.",
   "@wordingIssueNotANumber": {
-    "x-sourceSha256": "2da1e72c52c9df7b68c19ea16fbf90bf5045abd233eb811fbe22874be13643ff"
+    "x-sourceSha256": "2e1c2450dcda3ad782f1daec62046923378788f7227c94ddce43569f6357eb44"
   },
   "wordingIssueExpectedNumber": "Schrijf na “{op}” een getal, zoals {example}: “{found}” is er geen.",
   "@wordingIssueExpectedNumber": {
-    "x-sourceSha256": "f08536515f1a5cdc3b4f6f7553920792c3d17cbc54e07c1785f0f1b8dfa75d1d"
+    "x-sourceSha256": "50bad584079179a2a6ef0e33bc1091d6e26325f9126b379ebcb13fccde935dcd"
   },
   "wordingIssueNumberOutOfRange": "{name} loopt van {min} tot {max}, dus {found} valt erbuiten.",
   "@wordingIssueNumberOutOfRange": {
@@ -11076,47 +11076,47 @@
   },
   "wordingIssueNumberNotWhole": "{name} telt in hele getallen, dus {found} kan geen van de waarden zijn.",
   "@wordingIssueNumberNotWhole": {
-    "x-sourceSha256": "415af2db253c222c6f92b3ed004c3175770d375d2819c9cefdefaeb914c13a6d"
+    "x-sourceSha256": "0f4739bd3ae1434696dd0b79c54718213791e67a5a9309f0ab109f1dc0dad53d"
   },
   "wordingIssueNumberNotQuarter": "{name} gaat in kwartslagen, zoals 0.25, 0.5, ¾ of 1½, dus {found} kan geen van de waarden zijn.",
   "@wordingIssueNumberNotQuarter": {
-    "x-sourceSha256": "cab33afadede59c1d04fb031bb153699cc083a95fb7fe8b8d048dee93f39f0d9"
+    "x-sourceSha256": "660f01f1dfc977af04d63f7a45d82a076349a95a4f3c0141545fa3f27d82e2be"
   },
   "wordingIssueNegatedComparison": "Schrijf “{fix}” in plaats van “{found}”.",
   "@wordingIssueNegatedComparison": {
-    "x-sourceSha256": "173b93fd52b1bbd0d2690709324e12a10924f27c1652a3864d79f1235f4d9f56"
+    "x-sourceSha256": "661e4a468060f42cf8d0ecaa3ede709670a6722d80e9e06f1861ac5a08ffe6db"
   },
   "wordingIssueAmbiguous": "“{found}” kan op twee manieren gelezen worden: “{readingA}” of “{readingB}”. Schrijf wat je bedoelt.",
   "@wordingIssueAmbiguous": {
-    "x-sourceSha256": "7307b10e00c7fd137997f09f4e945a7c142000938409ddcaa04cf188a4958ebf"
+    "x-sourceSha256": "0a82d650dfb4ad10271fca80fabbcd029a6a74e14a8cb47d6dcffe9d737d8d9e"
   },
   "wordingIssueSecondElse": "Dit deel heeft al een “else”, dus een tweede kan niet volgen. Hoort “else” hier bij de formulering, zet die woorden dan tussen eigen vierkante haken, zoals “[everyone else]”.",
   "@wordingIssueSecondElse": {
-    "x-sourceSha256": "3215751e39fc67251f2a24060fa4160f76ea36bac9c4c648a353f325addcc524"
+    "x-sourceSha256": "0b5f3ceb3b19d44fa2562996c0b31c9152caeee1cb7f567703795c89a1296a4a"
   },
   "wordingIssueElseAfterWord": "“else” begint hier de formulering voor alle andere gevallen. Bedoelde je de woorden “{phrase}”, zet ze dan tussen eigen vierkante haken: “[{phrase}]”.",
   "@wordingIssueElseAfterWord": {
-    "x-sourceSha256": "6682834ce54a521ab105fd06fd88bade8beb8cf569801e37ad63f78909691554"
+    "x-sourceSha256": "bd10769b76ca8ef96c04d9a3220b9360ca6d2d379e7dbbca9b7b8ed3aa43a2b4"
   },
   "wordingIssueOtherwiseWord": "“{found}” wordt hier als formulering getoond. Schrijf “else” om een formulering voor alle andere gevallen te geven.",
   "@wordingIssueOtherwiseWord": {
-    "x-sourceSha256": "301dcf7cf534c24af26947ac41d836dd11652f678eb24fadbca58cfe5c3ae164"
+    "x-sourceSha256": "4796632ae2d497a79110cb2df1045e36df705c5709aeac245edb81d1767a3cab"
   },
   "wordingIssueEmptyMeansNoValue": "“{name} is empty” test of {name} geen waarde heeft, niet op de optie “empty”. Schrijf “{fix}” om op die optie te testen.",
   "@wordingIssueEmptyMeansNoValue": {
-    "x-sourceSha256": "7aa997c79b580611a44310c3897577e15be1175e5a3436826c2b4c691cd80cfb"
+    "x-sourceSha256": "17fe6153a17f21700e81ee707162cd789fb73446b9654c256431a995bd84a7ff"
   },
   "wordingIssueValueAfterConnective": "“{found}” na “{word}” is een waarde, niet iets om te testen. Herhaal wat je test, “{fixA}”, of zet de waarden in een lijst: “{fixB}”.",
   "@wordingIssueValueAfterConnective": {
-    "x-sourceSha256": "1712e23d6a809549de82b017341e889c5ae2afc8d5aa5d68fb037ea5e1441a58"
+    "x-sourceSha256": "114a6736f43e9b80469d619f1711e43578e7e989efcb13c5078e44dfe01f761c"
   },
   "wordingIssueNothingToTest": "Deze formulering kan hier niets testen: de figuur waar ze bij hoort staat niet op dit apparaat, of deze versie van de app kent haar niet, dus haar voorwaarden kunnen niet gecontroleerd worden. Wijzig haar op een apparaat met die figuur, of verwijder de voorwaarde.",
   "@wordingIssueNothingToTest": {
-    "x-sourceSha256": "1567f7dbe61a1cd282a6667fccdc8f21cf62d11ed0367752e1f29b7fa9c4a063"
+    "x-sourceSha256": "c64a348bbacddfc6832955d45a6d8ab812d48d34194a90fa7b4afc26733719bd"
   },
   "wordingIssueTooLongTyped": "Deze formulering is te lang om te lezen: getypt is ze langer dan {max} tekens. Maak haar korter.",
   "@wordingIssueTooLongTyped": {
-    "x-sourceSha256": "414a08da598da5efc8a9932c58450b1a53cd1077f740b44e56b2d2c50ad38d25"
+    "x-sourceSha256": "b4d7d9504460c4ae94abc71bf8f0440a9d21f35467ef2f8f51ae20959af34f93"
   },
   "wordingIssueTooDeep": "Deze formulering zet te veel vierkante haken of haakjes in elkaar: er kunnen er hoogstens {max} genest worden. Haal er een paar weg.",
   "@wordingIssueTooDeep": {
@@ -11124,6 +11124,6 @@
   },
   "wordingIssueTooManyNots": "Deze voorwaarde zet te veel “not” in elkaar: hoogstens {max}. Haal er een paar weg: twee “not” achter elkaar heffen elkaar op.",
   "@wordingIssueTooManyNots": {
-    "x-sourceSha256": "01701d08cac6833aa29659a76104a098da7401e0401541a1573e918f0c897c82"
+    "x-sourceSha256": "1f489c691b161fb77bc3824fe650fbb1eeb6bbb57ed708c5b1bfd4e899a58f83"
   }
 }

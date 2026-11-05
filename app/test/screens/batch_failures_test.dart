@@ -109,7 +109,7 @@ final _choiceDef = CustomFieldDef(
 
 const _applyError = 'Could not apply batch changes. Try again.';
 const _undoFailed =
-    'Couldn’t undo that. Please check the result and try again.';
+    "Couldn't undo that. Please check the result and try again.";
 
 void main() {
   group('a failed batch write is reported', () {

@@ -1145,7 +1145,7 @@ void main() {
       expect(
         find.text(
           'You have an unsaved draft of another new dance, '
-          '“Abandoned”. Would you like to restore it instead of starting a '
+          '"Abandoned". Would you like to restore it instead of starting a '
           'new one?',
         ),
         findsOneWidget,

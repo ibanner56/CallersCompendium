@@ -112,7 +112,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get appBootstrapLogHint =>
-      'Details were also written to the diagnostics log in the app’s support folder.';
+      'Details were also written to the diagnostics log in the app\'s support folder.';
 
   @override
   String get appBootstrapReleasesLink => 'Open the Releases page';
@@ -133,27 +133,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get migrationDowngradeMessage =>
-      'This data was created by a newer version of Caller’s Compendium. Update the app, then reopen it.';
+      'This data was created by a newer version of Caller\'s Compendium. Update the app, then reopen it.';
 
   @override
   String get migrationRelocationBothExist =>
-      'Caller’s Compendium didn’t start because it found saved data files in the new location and also in a folder an earlier version used. Nothing was changed or deleted. Keep the copy you want, move the other one out of the way, then reopen the app. The FAQ entry “Where is my data stored?” lists the locations.';
+      'Caller\'s Compendium didn\'t start because it found saved data files in the new location and also in a folder an earlier version used. Nothing was changed or deleted. Keep the copy you want, move the other one out of the way, then reopen the app. The FAQ entry \"Where is my data stored?\" lists the locations.';
 
   @override
   String get migrationRelocationMultipleLegacy =>
-      'Caller’s Compendium didn’t start because it found saved data in more than one folder used by earlier versions. Nothing was changed or deleted. Keep the copy you want, move the others out of the way, then reopen the app. The FAQ entry “Where is my data stored?” lists the locations.';
+      'Caller\'s Compendium didn\'t start because it found saved data in more than one folder used by earlier versions. Nothing was changed or deleted. Keep the copy you want, move the others out of the way, then reopen the app. The FAQ entry \"Where is my data stored?\" lists the locations.';
 
   @override
   String get migrationRelocationFailed =>
-      'Caller’s Compendium didn’t start because it couldn’t finish moving your saved data to its new location. Nothing was deleted. Free up space, close other programs that may be using it, or check the folder permissions, then reopen the app to try again.';
+      'Caller\'s Compendium didn\'t start because it couldn\'t finish moving your saved data to its new location. Nothing was deleted. Free up space, close other programs that may be using it, or check the folder permissions, then reopen the app to try again.';
 
   @override
   String get migrationRelocationLegacyUnreachable =>
-      'Caller’s Compendium didn’t start because it couldn’t reach your Documents folder, where earlier versions kept your saved data. Nothing was changed or created. If Documents is on another drive or a network folder, reconnect it, then reopen the app. If you have no Documents folder, create an empty one, then reopen the app. The FAQ entry “Where is my data stored?” has more.';
+      'Caller\'s Compendium didn\'t start because it couldn\'t reach your Documents folder, where earlier versions kept your saved data. Nothing was changed or created. If Documents is on another drive or a network folder, reconnect it, then reopen the app. If you have no Documents folder, create an empty one, then reopen the app. The FAQ entry \"Where is my data stored?\" has more.';
 
   @override
   String get migrationRelocationCopiesHeading =>
-      'Each copy’s size and when it last changed (the larger, more recently changed copy is usually your library):';
+      'Each copy\'s size and when it last changed (the larger, more recently changed copy is usually your library):';
 
   @override
   String get migrationRelocationCopyNewLocation => 'New location';
@@ -180,7 +180,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String migrationSnapshotAbortedMessage(String cause) {
-    return 'Caller’s Compendium didn’t start because it couldn’t create an automatic backup before upgrading your saved data. ${cause}Free up space (or fix the backups folder), then reopen the app — or reopen and choose to continue without a backup.';
+    return 'Caller\'s Compendium didn\'t start because it couldn\'t create an automatic backup before upgrading your saved data. ${cause}Free up space (or fix the backups folder), then reopen the app — or reopen and choose to continue without a backup.';
   }
 
   @override
@@ -192,11 +192,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'The automatic backups folder could not be written to.';
 
   @override
-  String get migrationSnapshotConsentTitle => 'Couldn’t back up your data';
+  String get migrationSnapshotConsentTitle => 'Couldn\'t back up your data';
 
   @override
   String migrationSnapshotConsentBody(String cause) {
-    return 'Before upgrading your saved data to a new format, Caller’s Compendium makes an automatic backup so a failed upgrade can be undone. That backup couldn’t be created this time.$cause\n\nIf you continue without a backup and the upgrade is interrupted, some of your dances or programs could be lost. You can quit, free up space (or fix the backups folder), and reopen the app to try again.';
+    return 'Before upgrading your saved data to a new format, Caller\'s Compendium makes an automatic backup so a failed upgrade can be undone. That backup couldn\'t be created this time.$cause\n\nIf you continue without a backup and the upgrade is interrupted, some of your dances or programs could be lost. You can quit, free up space (or fix the backups folder), and reopen the app to try again.';
   }
 
   @override
@@ -263,7 +263,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String confirmDeleteBody(String itemLabel) {
-    return '“$itemLabel” will be deleted. You can undo this.';
+    return '\"$itemLabel\" will be deleted. You can undo this.';
   }
 
   @override
@@ -297,7 +297,7 @@ class AppLocalizationsEn extends AppLocalizations {
       other: '$count dances will lose this program from their calling history.',
       one: '1 dance will lose this program from its calling history.',
     );
-    return '“$itemLabel” will be deleted. $_temp0 You can undo this.';
+    return '\"$itemLabel\" will be deleted. $_temp0 You can undo this.';
   }
 
   @override
@@ -387,7 +387,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String glossaryNoMatches(String query) {
-    return 'No figures match “$query”.';
+    return 'No figures match \"$query\".';
   }
 
   @override
@@ -969,7 +969,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String settingsSyncNoticeRecordNamed(String kind, String name) {
-    return '$kind “$name”';
+    return '$kind \"$name\"';
   }
 
   @override
@@ -979,7 +979,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String settingsSyncNoticeRecordNewerFigures(String kind, String name) {
-    return '$kind “$name” (has figures only a newer version can read)';
+    return '$kind \"$name\" (has figures only a newer version can read)';
   }
 
   @override
@@ -1830,7 +1830,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsAboutFontsBody =>
-      'This app bundles the following typefaces under the SIL Open Font License 1.1. Their full license texts are available under “View licenses” below.';
+      'This app bundles the following typefaces under the SIL Open Font License 1.1. Their full license texts are available under \"View licenses\" below.';
 
   @override
   String get settingsAboutFontFrauncesSubtitle =>
@@ -1856,7 +1856,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsAboutDanceDataBody =>
-      'Dance data draws on The Caller’s Box (Chris Page & Michael Dyck), whose collection is published under the Creative Commons Attribution-NonCommercial license (CC BY-NC), with gratitude.';
+      'Dance data draws on The Caller\'s Box (Chris Page & Michael Dyck), whose collection is published under the Creative Commons Attribution-NonCommercial license (CC BY-NC), with gratitude.';
 
   @override
   String get settingsAboutLicensesHeader => 'Licenses';
@@ -1870,11 +1870,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsAboutLegalese =>
-      '© The Caller’s Compendium contributors. Licensed under AGPL-3.0.';
+      '© The Caller\'s Compendium contributors. Licensed under AGPL-3.0.';
 
   @override
   String settingsAboutVersion(String version, String codename) {
-    return 'Version $version, “$codename”';
+    return 'Version $version, \"$codename\"';
   }
 
   @override
@@ -1884,7 +1884,7 @@ class AppLocalizationsEn extends AppLocalizations {
     String codename,
     String license,
   ) {
-    return '$appName · Version $version, “$codename” · $license';
+    return '$appName · Version $version, \"$codename\" · $license';
   }
 
   @override
@@ -2068,7 +2068,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String settingsDialectDeleteConfirmBody(String name) {
-    return '“$name” will be permanently removed.';
+    return '\"$name\" will be permanently removed.';
   }
 
   @override
@@ -2151,7 +2151,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appThemeDescriptionNoctis => 'The original deep teal Noctis night';
 
   @override
-  String get appThemeDescriptionGithubLight => 'GitHub’s clean neutral light';
+  String get appThemeDescriptionGithubLight => 'GitHub\'s clean neutral light';
 
   @override
   String get appThemeDescriptionCatppuccinLatte =>
@@ -2175,7 +2175,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get appThemeDescriptionTokyoNightLight =>
-      'Crisp indigo daylight, Tokyo Night’s day';
+      'Crisp indigo daylight, Tokyo Night\'s day';
 
   @override
   String get appThemeDescriptionNordLight => 'Cool arctic snow-storm neutrals';
@@ -2203,7 +2203,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Cozy pastel dark, community favorite';
 
   @override
-  String get appThemeDescriptionGithubDark => 'GitHub’s neutral dark';
+  String get appThemeDescriptionGithubDark => 'GitHub\'s neutral dark';
 
   @override
   String get appThemeDescriptionEverforestDark =>
@@ -2451,7 +2451,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String settingsAppearanceDeleteThemeBody(String name) {
-    return '“$name” will be permanently removed.';
+    return '\"$name\" will be permanently removed.';
   }
 
   @override
@@ -2656,7 +2656,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsDefaultsImportTagsSubtitle =>
-      'Added to each new dance an import creates, including dances from a file someone shared with you. Dances created for a program’s slots while importing a program are not tagged.';
+      'Added to each new dance an import creates, including dances from a file someone shared with you. Dances created for a program\'s slots while importing a program are not tagged.';
 
   @override
   String get settingsDefaultsImportTagsEmpty =>
@@ -2823,26 +2823,26 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Deleted “$name” from $count dances',
-      one: 'Deleted “$name” from 1 dance',
-      zero: 'Deleted “$name”',
+      other: 'Deleted \"$name\" from $count dances',
+      one: 'Deleted \"$name\" from 1 dance',
+      zero: 'Deleted \"$name\"',
     );
     return '$_temp0';
   }
 
   @override
   String tagManagerRenamedSnack(String from, String to) {
-    return 'Renamed “$from” to “$to”';
+    return 'Renamed \"$from\" to \"$to\"';
   }
 
   @override
   String tagManagerMergedSnack(String from, String into) {
-    return 'Merged “$from” into “$into”';
+    return 'Merged \"$from\" into \"$into\"';
   }
 
   @override
   String tagManagerMergedSeveralSnack(int count, String into) {
-    return 'Combined $count tags into “$into”';
+    return 'Combined $count tags into \"$into\"';
   }
 
   @override
@@ -2863,7 +2863,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String authorManagerMergedSeveralSnack(int count, String into) {
-    return 'Combined $count authors into “$into”';
+    return 'Combined $count authors into \"$into\"';
   }
 
   @override
@@ -2922,7 +2922,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String libraryManagerRenameTitle(String name) {
-    return 'Rename “$name”';
+    return 'Rename \"$name\"';
   }
 
   @override
@@ -2930,7 +2930,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String libraryManagerMergePickerTitle(String name) {
-    return 'Merge “$name” into…';
+    return 'Merge \"$name\" into…';
   }
 
   @override
@@ -2938,7 +2938,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String libraryManagerMergeOfferOne(String existing, String from) {
-    return '“$existing” already exists. Merge “$from” into it?';
+    return '\"$existing\" already exists. Merge \"$from\" into it?';
   }
 
   @override
@@ -2947,12 +2947,12 @@ class AppLocalizationsEn extends AppLocalizations {
     String from,
     String name,
   ) {
-    return '“$existing” already exists. Merge “$from” into it and call it “$name”?';
+    return '\"$existing\" already exists. Merge \"$from\" into it and call it \"$name\"?';
   }
 
   @override
   String libraryManagerMergeOfferSeveral(String name, String from) {
-    return 'More than one entry is already called “$name”. Choose the one to merge “$from” into; the others are merged into it too.';
+    return 'More than one entry is already called \"$name\". Choose the one to merge \"$from\" into; the others are merged into it too.';
   }
 
   @override
@@ -2960,34 +2960,34 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String libraryManagerUndoConflict(String name) {
-    return 'Couldn’t undo: “$name” is now used by another entry.';
+    return 'Couldn\'t undo: \"$name\" is now used by another entry.';
   }
 
   @override
   String get libraryManagerEditFailed =>
-      'Couldn’t save that change. Please try again.';
+      'Couldn\'t save that change. Please try again.';
 
   @override
   String get libraryManagerEditDetails => 'Edit details…';
 
   @override
   String libraryManagerRenamedSnack(String from, String to) {
-    return 'Renamed “$from” to “$to”';
+    return 'Renamed \"$from\" to \"$to\"';
   }
 
   @override
   String libraryManagerMergedSnack(String from, String into) {
-    return 'Merged “$from” into “$into”';
+    return 'Merged \"$from\" into \"$into\"';
   }
 
   @override
   String libraryManagerDeletedSnack(String name) {
-    return 'Deleted “$name”';
+    return 'Deleted \"$name\"';
   }
 
   @override
   String libraryManagerMergeConfirmTitle(String from, String into) {
-    return 'Merge “$from” into “$into”?';
+    return 'Merge \"$from\" into \"$into\"?';
   }
 
   @override
@@ -3008,7 +3008,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsGeneralSortIgnoreArticlesSubtitle =>
-      'When on, the dance list alphabetizes titles ignoring a leading “the”, “a”, or “an” — so “The Nice Combination” files under N. Turn off to sort by the literal title.';
+      'When on, the dance list alphabetizes titles ignoring a leading \"the\", \"a\", or \"an\" — so \"The Nice Combination\" files under N. Turn off to sort by the literal title.';
 
   @override
   String get settingsGeneralVenuesHeader => 'Venues';
@@ -3019,7 +3019,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsGeneralVenueEntityModeSubtitle =>
-      'Turn venues into reusable records with address, contacts, and schedule that many programs can share and you edit in one place. When off, a program’s venue is a simple free-text field. Switching is lossless — your typed venue and any linked record are both kept.';
+      'Turn venues into reusable records with address, contacts, and schedule that many programs can share and you edit in one place. When off, a program\'s venue is a simple free-text field. Switching is lossless — your typed venue and any linked record are both kept.';
 
   @override
   String get settingsGeneralManageVenuesTitle => 'Manage venues';
@@ -3037,7 +3037,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsGeneralMatrixExactCollisionSubtitle =>
-      'In the programming matrix, only flag a repeated move between two back-to-back dances when its beats actually overlap — not just when it lands in the same named phrase (A1, A2, B1, B2…). Turn off to flag any repeat in the same phrase, even if the beats themselves don’t overlap.';
+      'In the programming matrix, only flag a repeated move between two back-to-back dances when its beats actually overlap — not just when it lands in the same named phrase (A1, A2, B1, B2…). Turn off to flag any repeat in the same phrase, even if the beats themselves don\'t overlap.';
 
   @override
   String get settingsProgramAutoCommitTitle => 'Auto-save program changes';
@@ -3217,11 +3217,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsGeneralRequirePerformedForHistoryTitle =>
-      'Require “mark performed” for calling history';
+      'Require \"mark performed\" for calling history';
 
   @override
   String get settingsGeneralRequirePerformedForHistorySubtitle =>
-      'When on, a dance’s calling history lists only programs whose slot for that dance was marked performed. When off, a program appears as soon as it contains the dance.';
+      'When on, a dance\'s calling history lists only programs whose slot for that dance was marked performed. When off, a program appears as soon as it contains the dance.';
 
   @override
   String get settingsGeneralShowPerformedTogglesTitle =>
@@ -3229,7 +3229,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsGeneralShowPerformedTogglesSubtitle =>
-      'When on, each dance in a program’s view has a toggle to mark it performed or not, without opening the editor. When off, rows only show whether a dance was performed.';
+      'When on, each dance in a program\'s view has a toggle to mark it performed or not, without opening the editor. When off, rows only show whether a dance was performed.';
 
   @override
   String get settingsGeneralMarkAllSetsStatusTitle =>
@@ -3245,7 +3245,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsGeneralRequireEventDateForHistorySubtitle =>
-      'When on, a program with no event date doesn’t count toward calling history until you give it one. Duplicated and received programs arrive without a date. When off, a program counts whether or not it has a date.';
+      'When on, a program with no event date doesn\'t count toward calling history until you give it one. Duplicated and received programs arrive without a date. When off, a program counts whether or not it has a date.';
 
   @override
   String get settingsGeneralTrackHistoryForAllCallersTitle =>
@@ -3280,7 +3280,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsGeneralCapitalizeFiguresSubtitle =>
-      'When on, each figure in the dance view, Perform mode and the figure editor starts with a capital letter (“Neighbors allemande left”). When off, figures are shown as written; built-in figures start in lower case, as in ContraDB. Only how figures look in those places changes; exports, search, sync comparisons and screen-reader wording are unaffected.';
+      'When on, each figure in the dance view, Perform mode and the figure editor starts with a capital letter (\"Neighbors allemande left\"). When off, figures are shown as written; built-in figures start in lower case, as in ContraDB. Only how figures look in those places changes; exports, search, sync comparisons and screen-reader wording are unaffected.';
 
   @override
   String get settingsGeneralLibraryTagsTitle => 'Tags';
@@ -3661,7 +3661,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String backupFileTooLarge(String sizeMb, String limitMb) {
-    return 'That file is too large to be a Caller’s Compendium backup ($sizeMb MB; limit $limitMb MB). Your data is unchanged.';
+    return 'That file is too large to be a Caller\'s Compendium backup ($sizeMb MB; limit $limitMb MB). Your data is unchanged.';
   }
 
   @override
@@ -3702,7 +3702,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get diagnosticsExportFailed => 'Couldn\'t export the diagnostics log.';
 
   @override
-  String get diagnosticsClearFailed => 'Couldn’t clear the diagnostics log.';
+  String get diagnosticsClearFailed => 'Couldn\'t clear the diagnostics log.';
 
   @override
   String get diagnosticsClearLogTitle => 'Clear diagnostics log?';
@@ -3806,7 +3806,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get commonUndoFailed =>
-      'Couldn’t undo that. Please check the result and try again.';
+      'Couldn\'t undo that. Please check the result and try again.';
 
   @override
   String get commonRetry => 'Retry';
@@ -3956,7 +3956,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String commonShowDancesTaggedTooltip(String tagName) {
-    return 'Add “$tagName” to the Collection filters';
+    return 'Add \"$tagName\" to the Collection filters';
   }
 
   @override
@@ -5223,7 +5223,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String programsDraftAnotherNewProgramBody(String title) {
-    return 'You have an unsaved draft of another new program, “$title”. Would you like to restore it instead of starting a new one?';
+    return 'You have an unsaved draft of another new program, \"$title\". Would you like to restore it instead of starting a new one?';
   }
 
   @override
@@ -5324,7 +5324,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String programsVenueLegacyTextHint(String venueText) {
-    return 'Previously entered venue: “$venueText”. Link a saved venue below to use reusable details — your typed venue is kept.';
+    return 'Previously entered venue: \"$venueText\". Link a saved venue below to use reusable details — your typed venue is kept.';
   }
 
   @override
@@ -5917,7 +5917,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get programsMatrixEmptyBody =>
-      'The matrix fills in automatically as the program’s dances gain structured figures.';
+      'The matrix fills in automatically as the program\'s dances gain structured figures.';
 
   @override
   String get performTitle => 'Perform';
@@ -6528,7 +6528,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exportMatrixEmptyState =>
-      'No structured figures yet — the matrix fills in automatically as the program’s dances gain structured figures.';
+      'No structured figures yet — the matrix fills in automatically as the program\'s dances gain structured figures.';
 
   @override
   String get exportMatrixLegendDebut => 'Introduced here';
@@ -7541,7 +7541,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importIssueFormationUnclassified =>
-      'A formation couldn\'t be recognized; kept as a detail on “other”.';
+      'A formation couldn\'t be recognized; kept as a detail on \"other\".';
 
   @override
   String get importIssuePhraseStructureUnreadable =>
@@ -7549,7 +7549,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importIssueProgressionUnmapped =>
-      'A progression wasn\'t recognized; recorded as “other”.';
+      'A progression wasn\'t recognized; recorded as \"other\".';
 
   @override
   String get importIssueMetadataOnlyStub =>
@@ -8445,12 +8445,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String validationOrphanedAltNamed(int position, String text) {
-    return 'The alternate at position $position (“$text”) has no preceding primary slot.';
+    return 'The alternate at position $position (\"$text\") has no preceding primary slot.';
   }
 
   @override
   String validationEmptySubstitution(String term) {
-    return 'The substitution for “$term” is empty.';
+    return 'The substitution for \"$term\" is empty.';
   }
 
   @override
@@ -8459,7 +8459,7 @@ class AppLocalizationsEn extends AppLocalizations {
     String existing,
     String substitution,
   ) {
-    return '“$source” and “$existing” both map to “$substitution” — reversal would be ambiguous.';
+    return '\"$source\" and \"$existing\" both map to \"$substitution\" — reversal would be ambiguous.';
   }
 
   @override
@@ -8572,7 +8572,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String danceEditorUnsavedNewDanceDraftMessage(String title) {
-    return 'You have an unsaved draft of another new dance, “$title”. Would you like to restore it instead of starting a new one?';
+    return 'You have an unsaved draft of another new dance, \"$title\". Would you like to restore it instead of starting a new one?';
   }
 
   @override
@@ -9559,7 +9559,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String shorthandMappingsDeleteBody(String token) {
-    return '“$token” will be permanently removed.';
+    return '\"$token\" will be permanently removed.';
   }
 
   @override
@@ -9676,7 +9676,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String importShorthandSeedConflictNote(String token) {
-    return 'A shorthand named “$token” already exists, so this button was left as-is.';
+    return 'A shorthand named \"$token\" already exists, so this button was left as-is.';
   }
 
   @override
@@ -10216,7 +10216,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get recentlyDeletedLoadError =>
-      'Couldn’t load your recently deleted items. Nothing has been removed.';
+      'Couldn\'t load your recently deleted items. Nothing has been removed.';
 
   @override
   String get recentlyDeletedDeleteTitle => 'Delete permanently?';
@@ -10337,7 +10337,7 @@ class AppLocalizationsEn extends AppLocalizations {
       other: '$count programs',
       one: '1 program',
     );
-    return '“$name”: $_temp0';
+    return '\"$name\": $_temp0';
   }
 
   @override
@@ -10362,17 +10362,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String venueManagerDeleteBody(String name) {
-    return 'Permanently delete “$name”? This can’t be undone.';
+    return 'Permanently delete \"$name\"? This can\'t be undone.';
   }
 
   @override
   String venueManagerDeletedSnack(String name) {
-    return 'Deleted “$name”';
+    return 'Deleted \"$name\"';
   }
 
   @override
   String venueManagerDeleteBlocked(String name) {
-    return 'Can’t delete “$name” while it’s still linked to a program. Change or remove its venue on those programs first.';
+    return 'Can\'t delete \"$name\" while it\'s still linked to a program. Change or remove its venue on those programs first.';
   }
 
   @override
@@ -10437,7 +10437,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get venueEditorTimeLabel => 'Time';
 
   @override
-  String get venueEditorScheduleLabel => 'Schedule (e.g. “2nd Saturdays”)';
+  String get venueEditorScheduleLabel => 'Schedule (e.g. \"2nd Saturdays\")';
 
   @override
   String get venueEditorPriceLabel => 'Price';
@@ -10489,7 +10489,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String venuePickerCreateOption(String name) {
-    return 'Add new venue “$name”';
+    return 'Add new venue \"$name\"';
   }
 
   @override
@@ -10778,7 +10778,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String glossaryCustomDeleteTitle(String name) {
-    return 'Delete “$name”?';
+    return 'Delete \"$name\"?';
   }
 
   @override
@@ -10922,17 +10922,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String compoundEditorNameTaken(String name) {
-    return '“$name” is already the name of a figure or shorthand. Choose another name.';
+    return '\"$name\" is already the name of a figure or shorthand. Choose another name.';
   }
 
   @override
   String compoundEditorNameTakenHidden(String name) {
-    return '“$name” is already the name of one of your own figures. Those are listed in the Glossary while Custom Figures is on. Choose another name.';
+    return '\"$name\" is already the name of one of your own figures. Those are listed in the Glossary while Custom Figures is on. Choose another name.';
   }
 
   @override
   String compoundEditorNameTakenHiddenTerm(String name) {
-    return '“$name” is already the name of one of your own terms. Those are listed in the Glossary while Show glossary is on. Choose another name.';
+    return '\"$name\" is already the name of one of your own terms. Those are listed in the Glossary while Show glossary is on. Choose another name.';
   }
 
   @override
@@ -11039,7 +11039,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get userFigureEditorFlagLabelHelper =>
-      'Shown in the wording when this is on, such as “with a flourish”.';
+      'Shown in the wording when this is on, such as \"with a flourish\".';
 
   @override
   String get userFigureEditorWording => 'Wording';
@@ -11207,12 +11207,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String wordingIssueUnclosedGroup(String context) {
-    return 'A “[” isn’t closed: “$context”. Add “]” where that part ends.';
+    return 'A \"[\" isn\'t closed: \"$context\". Add \"]\" where that part ends.';
   }
 
   @override
   String wordingIssueStrayCloseBracket(String context) {
-    return 'There’s a “]” with no “[” before it, near “$context”. Remove it, or add “[” where that part starts.';
+    return 'There\'s a \"]\" with no \"[\" before it, near \"$context\". Remove it, or add \"[\" where that part starts.';
   }
 
   @override
@@ -11222,7 +11222,7 @@ class AppLocalizationsEn extends AppLocalizations {
     String context,
     String example,
   ) {
-    return 'The “$brace” in “$context” isn’t closed. Add “$closeBrace” after the name, like $example.';
+    return 'The \"$brace\" in \"$context\" isn\'t closed. Add \"$closeBrace\" after the name, like $example.';
   }
 
   @override
@@ -11231,42 +11231,42 @@ class AppLocalizationsEn extends AppLocalizations {
     String closeBrace,
     String context,
   ) {
-    return 'There’s a “$closeBrace” with no “$brace” before it, near “$context”. Remove it, or add “$brace” before the name.';
+    return 'There\'s a \"$closeBrace\" with no \"$brace\" before it, near \"$context\". Remove it, or add \"$brace\" before the name.';
   }
 
   @override
   String wordingIssueBadSlot(String found, String fix) {
-    return '“$found” isn’t a slot: put just one name in braces, like $fix.';
+    return '\"$found\" isn\'t a slot: put just one name in braces, like $fix.';
   }
 
   @override
   String wordingIssueConditionInBraces(String found, String fix) {
-    return 'Braces hold one name, not a condition: “$found”. To show wording only in some cases, use square brackets: $fix';
+    return 'Braces hold one name, not a condition: \"$found\". To show wording only in some cases, use square brackets: $fix';
   }
 
   @override
   String wordingIssueTooLongStored(String max) {
-    return 'This wording is too long to save: as saved, it’s over $max characters (a condition can take a little more room saved than typed). Shorten it, or use fewer conditions.';
+    return 'This wording is too long to save: as saved, it\'s over $max characters (a condition can take a little more room saved than typed). Shorten it, or use fewer conditions.';
   }
 
   @override
   String wordingIssueMissingCondition(String word, String example) {
-    return 'After “$word”, write what to test, for example “$example”.';
+    return 'After \"$word\", write what to test, for example \"$example\".';
   }
 
   @override
   String wordingIssueMissingThen(String condition) {
-    return 'After the condition “$condition”, write “then” and the wording to show in that case.';
+    return 'After the condition \"$condition\", write \"then\" and the wording to show in that case.';
   }
 
   @override
   String wordingIssueColonForThen(String condition) {
-    return 'Write “then” instead of “:” after “$condition”.';
+    return 'Write \"then\" instead of \":\" after \"$condition\".';
   }
 
   @override
   String wordingIssueUnknownName(String found, String names) {
-    return '“$found” isn’t something this wording can test. You can test: $names.';
+    return '\"$found\" isn\'t something this wording can test. You can test: $names.';
   }
 
   @override
@@ -11275,12 +11275,12 @@ class AppLocalizationsEn extends AppLocalizations {
     String suggestion,
     String names,
   ) {
-    return '“$found” isn’t something this wording can test. Did you mean “$suggestion”? You can test: $names.';
+    return '\"$found\" isn\'t something this wording can test. Did you mean \"$suggestion\"? You can test: $names.';
   }
 
   @override
   String wordingIssueUnknownNameAfterIf(String found, String names) {
-    return 'Square brackets that start with “if” hold a condition, and “$found” isn’t something this wording can test. You can test: $names.';
+    return 'Square brackets that start with \"if\" hold a condition, and \"$found\" isn\'t something this wording can test. You can test: $names.';
   }
 
   @override
@@ -11289,32 +11289,32 @@ class AppLocalizationsEn extends AppLocalizations {
     String suggestion,
     String names,
   ) {
-    return 'Square brackets that start with “if” hold a condition, and “$found” isn’t something this wording can test. Did you mean “$suggestion”? You can test: $names.';
+    return 'Square brackets that start with \"if\" hold a condition, and \"$found\" isn\'t something this wording can test. Did you mean \"$suggestion\"? You can test: $names.';
   }
 
   @override
   String wordingIssueNameInBraces(String name, String found) {
-    return 'In a condition, write the name without braces: “$name”, not “$found”.';
+    return 'In a condition, write the name without braces: \"$name\", not \"$found\".';
   }
 
   @override
   String wordingIssueIsntForIsNot(String found, String fix) {
-    return 'Write “is not” instead of “$found”: “$fix”.';
+    return 'Write \"is not\" instead of \"$found\": \"$fix\".';
   }
 
   @override
   String wordingIssueSymbolForWord(String word, String found, String fix) {
-    return 'Write “$word” instead of “$found”: “$fix”.';
+    return 'Write \"$word\" instead of \"$found\": \"$fix\".';
   }
 
   @override
   String wordingIssueQuotedValue(String fix) {
-    return 'Leave out the quotation marks: “$fix”.';
+    return 'Leave out the quotation marks: \"$fix\".';
   }
 
   @override
   String wordingIssueUnknownValue(String found, String name, String values) {
-    return '“$found” isn’t one of the values $name can have. $name can be: $values.';
+    return '\"$found\" isn\'t one of the values $name can have. $name can be: $values.';
   }
 
   @override
@@ -11324,7 +11324,7 @@ class AppLocalizationsEn extends AppLocalizations {
     String suggestion,
     String values,
   ) {
-    return '“$found” isn’t one of the values $name can have. Did you mean “$suggestion”? $name can be: $values.';
+    return '\"$found\" isn\'t one of the values $name can have. Did you mean \"$suggestion\"? $name can be: $values.';
   }
 
   @override
@@ -11334,81 +11334,81 @@ class AppLocalizationsEn extends AppLocalizations {
     String example,
     String values,
   ) {
-    return 'After “$before”, write a value $name can have, like “$example”. $name can be: $values.';
+    return 'After \"$before\", write a value $name can have, like \"$example\". $name can be: $values.';
   }
 
   @override
   String wordingIssueListNeedsParens(String fix) {
-    return 'Put the values after “is in” in parentheses: “$fix”.';
+    return 'Put the values after \"is in\" in parentheses: \"$fix\".';
   }
 
   @override
   String wordingIssueOneOfForIsIn(String word, String found, String fix) {
-    return 'Write “$word” instead of “$found”: “$fix”.';
+    return 'Write \"$word\" instead of \"$found\": \"$fix\".';
   }
 
   @override
   String wordingIssueEmptyList(String example) {
-    return 'The parentheses after “is in” are empty. List at least one value, like “$example”.';
+    return 'The parentheses after \"is in\" are empty. List at least one value, like \"$example\".';
   }
 
   @override
   String wordingIssueUnclosedParen(String context, String before) {
-    return 'A “(” isn’t closed: “$context”. Add “)” after “$before”.';
+    return 'A \"(\" isn\'t closed: \"$context\". Add \")\" after \"$before\".';
   }
 
   @override
   String wordingIssueStrayCloseParen(String context) {
-    return 'There’s a “)” with no “(” before it, near “$context”. Remove it, or add the “(” where it starts.';
+    return 'There\'s a \")\" with no \"(\" before it, near \"$context\". Remove it, or add the \"(\" where it starts.';
   }
 
   @override
   String get wordingIssueEmptyParens =>
-      'There’s nothing between “(” and “)”. Put a condition inside, or remove them.';
+      'There\'s nothing between \"(\" and \")\". Put a condition inside, or remove them.';
 
   @override
   String wordingIssueExpectedConnective(String before, String found) {
-    return 'After “$before”, write “and”, “or” or “then”: “$found” can’t go there.';
+    return 'After \"$before\", write \"and\", \"or\" or \"then\": \"$found\" can\'t go there.';
   }
 
   @override
   String wordingIssueExpectedConnectiveInParens(String before, String found) {
-    return 'After “$before”, write “and”, “or” or “)”: “$found” can’t go there.';
+    return 'After \"$before\", write \"and\", \"or\" or \")\": \"$found\" can\'t go there.';
   }
 
   @override
   String wordingIssueExpectedConnectiveList(String before, String fix) {
-    return 'After “$before”, write “and”, “or” or “then”. To test for more than one value, list them: “$fix”.';
+    return 'After \"$before\", write \"and\", \"or\" or \"then\". To test for more than one value, list them: \"$fix\".';
   }
 
   @override
   String wordingIssueExpectedListSeparator(String before, String found) {
-    return 'In the list “$before”, put a comma before “$found”, or end the list with “)”.';
+    return 'In the list \"$before\", put a comma before \"$found\", or end the list with \")\".';
   }
 
   @override
   String wordingIssueMixedAndOr(String found, String fixA, String fixB) {
-    return '“$found” mixes “and” and “or”, so it isn’t clear which goes first. Add parentheses: “$fixA” or “$fixB”.';
+    return '\"$found\" mixes \"and\" and \"or\", so it isn\'t clear which goes first. Add parentheses: \"$fixA\" or \"$fixB\".';
   }
 
   @override
   String wordingIssueFlagCompare(String name) {
-    return '$name is either on or off, so it isn’t compared with a value. Write “if $name” for on, or “if not $name” for off.';
+    return '$name is either on or off, so it isn\'t compared with a value. Write \"if $name\" for on, or \"if not $name\" for off.';
   }
 
   @override
   String wordingIssuePresenceOnly(String name) {
-    return '$name can only be tested for whether it’s filled in. Write “$name is empty”, “$name is not empty”, or just “$name”.';
+    return '$name can only be tested for whether it\'s filled in. Write \"$name is empty\", \"$name is not empty\", or just \"$name\".';
   }
 
   @override
   String wordingIssueNotANumber(String name, String op) {
-    return '$name isn’t a number, so it can’t be “$op” something. Use “$name is …” or “$name is in (…)”.';
+    return '$name isn\'t a number, so it can\'t be \"$op\" something. Use \"$name is …\" or \"$name is in (…)\".';
   }
 
   @override
   String wordingIssueExpectedNumber(String op, String example, String found) {
-    return 'After “$op”, write a number, like $example: “$found” isn’t one.';
+    return 'After \"$op\", write a number, like $example: \"$found\" isn\'t one.';
   }
 
   @override
@@ -11423,41 +11423,41 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String wordingIssueNumberNotWhole(String name, String found) {
-    return '$name counts in whole numbers, so $found can’t be one of its values.';
+    return '$name counts in whole numbers, so $found can\'t be one of its values.';
   }
 
   @override
   String wordingIssueNumberNotQuarter(String name, String found) {
-    return '$name goes in quarter turns, like 0.25, 0.5, ¾ or 1½, so $found can’t be one of its values.';
+    return '$name goes in quarter turns, like 0.25, 0.5, ¾ or 1½, so $found can\'t be one of its values.';
   }
 
   @override
   String wordingIssueNegatedComparison(String fix, String found) {
-    return 'Write “$fix” instead of “$found”.';
+    return 'Write \"$fix\" instead of \"$found\".';
   }
 
   @override
   String wordingIssueAmbiguous(String found, String readingA, String readingB) {
-    return '“$found” can be read two ways: “$readingA” or “$readingB”. Write the one you mean.';
+    return '\"$found\" can be read two ways: \"$readingA\" or \"$readingB\". Write the one you mean.';
   }
 
   @override
   String get wordingIssueSecondElse =>
-      'This part already has an “else”, so a second can’t follow it. If “else” is part of the wording here, put those words in their own square brackets, like “[everyone else]”.';
+      'This part already has an \"else\", so a second can\'t follow it. If \"else\" is part of the wording here, put those words in their own square brackets, like \"[everyone else]\".';
 
   @override
   String wordingIssueElseAfterWord(String phrase) {
-    return '“else” here starts the wording for every other case. If you meant the words “$phrase”, put them in their own square brackets: “[$phrase]”.';
+    return '\"else\" here starts the wording for every other case. If you meant the words \"$phrase\", put them in their own square brackets: \"[$phrase]\".';
   }
 
   @override
   String wordingIssueOtherwiseWord(String found) {
-    return '“$found” shows as wording here. To give wording for every other case, write “else”.';
+    return '\"$found\" shows as wording here. To give wording for every other case, write \"else\".';
   }
 
   @override
   String wordingIssueEmptyMeansNoValue(String name, String fix) {
-    return '“$name is empty” tests whether $name has no value, not for its choice “empty”. To test for that choice, write “$fix”.';
+    return '\"$name is empty\" tests whether $name has no value, not for its choice \"empty\". To test for that choice, write \"$fix\".';
   }
 
   @override
@@ -11467,16 +11467,16 @@ class AppLocalizationsEn extends AppLocalizations {
     String fixA,
     String fixB,
   ) {
-    return '“$found” after “$word” is a value, not something to test. Say what you’re testing again, “$fixA”, or list the values: “$fixB”.';
+    return '\"$found\" after \"$word\" is a value, not something to test. Say what you\'re testing again, \"$fixA\", or list the values: \"$fixB\".';
   }
 
   @override
   String get wordingIssueNothingToTest =>
-      'This wording can’t test anything here: the figure it belongs to isn’t on this device, or this version of the app doesn’t know it, so its conditions can’t be checked. Change it on a device that has the figure, or remove the condition.';
+      'This wording can\'t test anything here: the figure it belongs to isn\'t on this device, or this version of the app doesn\'t know it, so its conditions can\'t be checked. Change it on a device that has the figure, or remove the condition.';
 
   @override
   String wordingIssueTooLongTyped(String max) {
-    return 'This wording is too long to read: it’s over $max characters as typed. Shorten it.';
+    return 'This wording is too long to read: it\'s over $max characters as typed. Shorten it.';
   }
 
   @override
@@ -11486,6 +11486,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String wordingIssueTooManyNots(String max) {
-    return 'This condition puts too many “not”s inside each other: at most $max. Take some out: two “not”s in a row cancel out.';
+    return 'This condition puts too many \"not\"s inside each other: at most $max. Take some out: two \"not\"s in a row cancel out.';
   }
 }

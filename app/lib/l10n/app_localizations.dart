@@ -295,7 +295,7 @@ abstract class AppLocalizations {
   /// Hint on the startup error screen that the failure was recorded in the on-device diagnostics (crash) log.
   ///
   /// In en, this message translates to:
-  /// **'Details were also written to the diagnostics log in the app’s support folder.'**
+  /// **'Details were also written to the diagnostics log in the app\'s support folder.'**
   String get appBootstrapLogHint;
 
   /// Button on the terminal startup screens (newer data, too-old data, backup could not be made, data could not be moved) that opens the project's GitHub Releases page in the browser, where newer builds and the migration-bridge build can be downloaded.
@@ -313,37 +313,37 @@ abstract class AppLocalizations {
   /// Terminal startup-screen message shown when the on-disk data was written by a newer app version than the one running (no downgrade path). No Retry is offered; the app has to be updated and reopened.
   ///
   /// In en, this message translates to:
-  /// **'This data was created by a newer version of Caller’s Compendium. Update the app, then reopen it.'**
+  /// **'This data was created by a newer version of Caller\'s Compendium. Update the app, then reopen it.'**
   String get migrationDowngradeMessage;
 
   /// Terminal startup-screen message shown when the one-time move of the database out of the old folder found data files in both the new location and an old location. Nothing is deleted. No Retry is offered.
   ///
   /// In en, this message translates to:
-  /// **'Caller’s Compendium didn’t start because it found saved data files in the new location and also in a folder an earlier version used. Nothing was changed or deleted. Keep the copy you want, move the other one out of the way, then reopen the app. The FAQ entry “Where is my data stored?” lists the locations.'**
+  /// **'Caller\'s Compendium didn\'t start because it found saved data files in the new location and also in a folder an earlier version used. Nothing was changed or deleted. Keep the copy you want, move the other one out of the way, then reopen the app. The FAQ entry \"Where is my data stored?\" lists the locations.'**
   String get migrationRelocationBothExist;
 
   /// Terminal startup-screen message shown when the one-time move of the database found saved data in more than one old location (Windows: Documents and the Roaming fallback) and none in the new location. Nothing is deleted. No Retry is offered.
   ///
   /// In en, this message translates to:
-  /// **'Caller’s Compendium didn’t start because it found saved data in more than one folder used by earlier versions. Nothing was changed or deleted. Keep the copy you want, move the others out of the way, then reopen the app. The FAQ entry “Where is my data stored?” lists the locations.'**
+  /// **'Caller\'s Compendium didn\'t start because it found saved data in more than one folder used by earlier versions. Nothing was changed or deleted. Keep the copy you want, move the others out of the way, then reopen the app. The FAQ entry \"Where is my data stored?\" lists the locations.'**
   String get migrationRelocationMultipleLegacy;
 
   /// Terminal startup-screen message shown when the one-time move of the database out of the Documents folder failed (disk full, unwritable folder, locked file). Nothing is deleted. No Retry is offered.
   ///
   /// In en, this message translates to:
-  /// **'Caller’s Compendium didn’t start because it couldn’t finish moving your saved data to its new location. Nothing was deleted. Free up space, close other programs that may be using it, or check the folder permissions, then reopen the app to try again.'**
+  /// **'Caller\'s Compendium didn\'t start because it couldn\'t finish moving your saved data to its new location. Nothing was deleted. Free up space, close other programs that may be using it, or check the folder permissions, then reopen the app to try again.'**
   String get migrationRelocationFailed;
 
   /// Terminal startup-screen message shown when there is no database in the new location yet and the Documents folder (where earlier versions kept the database) cannot be reached, so the app cannot tell whether a library is waiting there. Nothing is created. No Retry is offered.
   ///
   /// In en, this message translates to:
-  /// **'Caller’s Compendium didn’t start because it couldn’t reach your Documents folder, where earlier versions kept your saved data. Nothing was changed or created. If Documents is on another drive or a network folder, reconnect it, then reopen the app. If you have no Documents folder, create an empty one, then reopen the app. The FAQ entry “Where is my data stored?” has more.'**
+  /// **'Caller\'s Compendium didn\'t start because it couldn\'t reach your Documents folder, where earlier versions kept your saved data. Nothing was changed or created. If Documents is on another drive or a network folder, reconnect it, then reopen the app. If you have no Documents folder, create an empty one, then reopen the app. The FAQ entry \"Where is my data stored?\" has more.'**
   String get migrationRelocationLegacyUnreachable;
 
   /// Heading above the list of database copies on the terminal startup screen shown when saved data was found in more than one place. Each line below it names a folder, the copy's size and its last-changed date and time.
   ///
   /// In en, this message translates to:
-  /// **'Each copy’s size and when it last changed (the larger, more recently changed copy is usually your library):'**
+  /// **'Each copy\'s size and when it last changed (the larger, more recently changed copy is usually your library):'**
   String get migrationRelocationCopiesHeading;
 
   /// Name of the folder a database copy is in, on the terminal startup screen listing conflicting copies: the app's current data folder. Used as {location} in migrationRelocationCopyDetails.
@@ -377,7 +377,7 @@ abstract class AppLocalizations {
   /// Terminal startup-screen message shown when a pre-migration backup could not be created and the user declined to proceed without one. {cause} is an optional trailing sentence (already ends with a space) naming the likely cause, or empty when unknown.
   ///
   /// In en, this message translates to:
-  /// **'Caller’s Compendium didn’t start because it couldn’t create an automatic backup before upgrading your saved data. {cause}Free up space (or fix the backups folder), then reopen the app — or reopen and choose to continue without a backup.'**
+  /// **'Caller\'s Compendium didn\'t start because it couldn\'t create an automatic backup before upgrading your saved data. {cause}Free up space (or fix the backups folder), then reopen the app — or reopen and choose to continue without a backup.'**
   String migrationSnapshotAbortedMessage(String cause);
 
   /// Plain-language sentence naming the likely cause of a failed pre-migration backup: the device is low on storage. Embedded into the snapshot-failure copy.
@@ -395,13 +395,13 @@ abstract class AppLocalizations {
   /// Title of the blocking dialog asking whether to upgrade saved data without a recoverable backup after the automatic backup failed.
   ///
   /// In en, this message translates to:
-  /// **'Couldn’t back up your data'**
+  /// **'Couldn\'t back up your data'**
   String get migrationSnapshotConsentTitle;
 
   /// Body of the blocking dialog asking whether to upgrade saved data without a recoverable backup. {cause} is an optional block (already prefixed with two newlines) naming the likely cause, or empty when unknown.
   ///
   /// In en, this message translates to:
-  /// **'Before upgrading your saved data to a new format, Caller’s Compendium makes an automatic backup so a failed upgrade can be undone. That backup couldn’t be created this time.{cause}\n\nIf you continue without a backup and the upgrade is interrupted, some of your dances or programs could be lost. You can quit, free up space (or fix the backups folder), and reopen the app to try again.'**
+  /// **'Before upgrading your saved data to a new format, Caller\'s Compendium makes an automatic backup so a failed upgrade can be undone. That backup couldn\'t be created this time.{cause}\n\nIf you continue without a backup and the upgrade is interrupted, some of your dances or programs could be lost. You can quit, free up space (or fix the backups folder), and reopen the app to try again.'**
   String migrationSnapshotConsentBody(String cause);
 
   /// Button that safely aborts startup rather than upgrading saved data without a recoverable backup.
@@ -509,7 +509,7 @@ abstract class AppLocalizations {
   /// Body of the confirm-before-delete dialog. {itemLabel} is the untrusted user-entered name of the item being deleted (a dance or program title), rendered as plain text between typographic quotes.
   ///
   /// In en, this message translates to:
-  /// **'“{itemLabel}” will be deleted. You can undo this.'**
+  /// **'\"{itemLabel}\" will be deleted. You can undo this.'**
   String confirmDeleteBody(String itemLabel);
 
   /// Body of the confirm-before-delete dialog when several selected dances are deleted at once from Collection's selection mode (shown only when the 'Confirm before delete' setting is on). {count} includes selected dances the current search hides.
@@ -527,7 +527,7 @@ abstract class AppLocalizations {
   /// Body of the confirm-before-delete dialog for a program when deleting it would remove it from the calling history of {count} dances (shown only when the 'Confirm before delete' setting is on and {count} is at least 1). {itemLabel} is the untrusted user-entered program title, rendered as plain text between typographic quotes. {count} is how many distinct dances list this program in their calling history under the current history settings.
   ///
   /// In en, this message translates to:
-  /// **'“{itemLabel}” will be deleted. {count, plural, =1{1 dance will lose this program from its calling history.} other{{count} dances will lose this program from their calling history.}} You can undo this.'**
+  /// **'\"{itemLabel}\" will be deleted. {count, plural, =1{1 dance will lose this program from its calling history.} other{{count} dances will lose this program from their calling history.}} You can undo this.'**
   String confirmDeleteProgramHistoryBody(String itemLabel, int count);
 
   /// Field label for the hexadecimal color input in the shared color-picker dialog.
@@ -689,7 +689,7 @@ abstract class AppLocalizations {
   /// Shown in the Glossary when no dance figure matches the search text.
   ///
   /// In en, this message translates to:
-  /// **'No figures match “{query}”.'**
+  /// **'No figures match \"{query}\".'**
   String glossaryNoMatches(String query);
 
   /// Shown in the empty detail pane of the wide Glossary layout before a figure is selected.
@@ -1373,7 +1373,7 @@ abstract class AppLocalizations {
   /// One record in the settingsSyncNoticeAffected list: its kind (a syncReviewKind* label such as "Dance") and its title or name as stored on this device.
   ///
   /// In en, this message translates to:
-  /// **'{kind} “{name}”'**
+  /// **'{kind} \"{name}\"'**
   String settingsSyncNoticeRecordNamed(String kind, String name);
 
   /// One record in the settingsSyncNoticeAffected list that this device does not have, so there is no name to show — typically a record from another device that was skipped. {kind} is a syncReviewKind* label such as "Dance".
@@ -1385,7 +1385,7 @@ abstract class AppLocalizations {
   /// Variant of settingsSyncNoticeRecordNamed for a record another device shared that this version refused because a newer version of the app added something to its figures (the dance's steps). Tells the user what this version does not understand.
   ///
   /// In en, this message translates to:
-  /// **'{kind} “{name}” (has figures only a newer version can read)'**
+  /// **'{kind} \"{name}\" (has figures only a newer version can read)'**
   String settingsSyncNoticeRecordNewerFigures(String kind, String name);
 
   /// Variant of settingsSyncNoticeRecordNotHere for a record this device does not have yet because it was refused: a newer version of the app added something to its figures (the dance's steps).
@@ -2609,7 +2609,7 @@ abstract class AppLocalizations {
   /// Paragraph introducing the bundled fonts. 'SIL Open Font License 1.1' is a proper noun kept verbatim; “View licenses” refers to the tile of the same name.
   ///
   /// In en, this message translates to:
-  /// **'This app bundles the following typefaces under the SIL Open Font License 1.1. Their full license texts are available under “View licenses” below.'**
+  /// **'This app bundles the following typefaces under the SIL Open Font License 1.1. Their full license texts are available under \"View licenses\" below.'**
   String get settingsAboutFontsBody;
 
   /// Attribution subtitle for the Fraunces typeface: its license, copyright, and role in the app. License name and copyright are proper nouns kept verbatim.
@@ -2651,7 +2651,7 @@ abstract class AppLocalizations {
   /// Paragraph crediting The Caller's Box dance-data source. 'The Caller's Box', the author names, and 'CC BY-NC' are proper nouns kept verbatim.
   ///
   /// In en, this message translates to:
-  /// **'Dance data draws on The Caller’s Box (Chris Page & Michael Dyck), whose collection is published under the Creative Commons Attribution-NonCommercial license (CC BY-NC), with gratitude.'**
+  /// **'Dance data draws on The Caller\'s Box (Chris Page & Michael Dyck), whose collection is published under the Creative Commons Attribution-NonCommercial license (CC BY-NC), with gratitude.'**
   String get settingsAboutDanceDataBody;
 
   /// About section header for the full open-source license texts entry.
@@ -2675,19 +2675,19 @@ abstract class AppLocalizations {
   /// Legal notice shown on the license page. 'The Caller's Compendium' and 'AGPL-3.0' are proper nouns kept verbatim.
   ///
   /// In en, this message translates to:
-  /// **'© The Caller’s Compendium contributors. Licensed under AGPL-3.0.'**
+  /// **'© The Caller\'s Compendium contributors. Licensed under AGPL-3.0.'**
   String get settingsAboutLegalese;
 
   /// Version and release-codename line under the app wordmark in the About header. The codename is a proper noun kept verbatim.
   ///
   /// In en, this message translates to:
-  /// **'Version {version}, “{codename}”'**
+  /// **'Version {version}, \"{codename}\"'**
   String settingsAboutVersion(String version, String codename);
 
   /// One-line footer at the bottom of the About section combining the app name, version, release codename, and license identifier. The app name, version, codename, and license are proper nouns / identifiers kept verbatim; only the word 'Version' is translatable.
   ///
   /// In en, this message translates to:
-  /// **'{appName} · Version {version}, “{codename}” · {license}'**
+  /// **'{appName} · Version {version}, \"{codename}\" · {license}'**
   String settingsAboutVersionLine(
     String appName,
     String version,
@@ -2998,7 +2998,7 @@ abstract class AppLocalizations {
   /// Body of the confirm-delete dialog, quoting the dialect name (untrusted user text, rendered as plain text).
   ///
   /// In en, this message translates to:
-  /// **'“{name}” will be permanently removed.'**
+  /// **'\"{name}\" will be permanently removed.'**
   String settingsDialectDeleteConfirmBody(String name);
 
   /// Snackbar shown when saving a dialect's edited terms fails because the dialect was renamed or deleted while its editor was open; quotes the dialect's name as the editor opened it (untrusted user text, rendered as plain text).
@@ -3148,7 +3148,7 @@ abstract class AppLocalizations {
   /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
   ///
   /// In en, this message translates to:
-  /// **'GitHub’s clean neutral light'**
+  /// **'GitHub\'s clean neutral light'**
   String get appThemeDescriptionGithubLight;
 
   /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
@@ -3184,7 +3184,7 @@ abstract class AppLocalizations {
   /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
   ///
   /// In en, this message translates to:
-  /// **'Crisp indigo daylight, Tokyo Night’s day'**
+  /// **'Crisp indigo daylight, Tokyo Night\'s day'**
   String get appThemeDescriptionTokyoNightLight;
 
   /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
@@ -3232,7 +3232,7 @@ abstract class AppLocalizations {
   /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
   ///
   /// In en, this message translates to:
-  /// **'GitHub’s neutral dark'**
+  /// **'GitHub\'s neutral dark'**
   String get appThemeDescriptionGithubDark;
 
   /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
@@ -3706,7 +3706,7 @@ abstract class AppLocalizations {
   /// Body of the confirm-delete dialog for a custom theme.
   ///
   /// In en, this message translates to:
-  /// **'“{name}” will be permanently removed.'**
+  /// **'\"{name}\" will be permanently removed.'**
   String settingsAppearanceDeleteThemeBody(String name);
 
   /// Screen-reader label for a saved custom-theme card.
@@ -4054,7 +4054,7 @@ abstract class AppLocalizations {
   /// Explains which imports the default import tags apply to and which they skip.
   ///
   /// In en, this message translates to:
-  /// **'Added to each new dance an import creates, including dances from a file someone shared with you. Dances created for a program’s slots while importing a program are not tagged.'**
+  /// **'Added to each new dance an import creates, including dances from a file someone shared with you. Dances created for a program\'s slots while importing a program are not tagged.'**
   String get settingsDefaultsImportTagsSubtitle;
 
   /// Shown in place of the tag chips when the user has no tags.
@@ -4324,25 +4324,25 @@ abstract class AppLocalizations {
   /// Snackbar after deleting a tag in the Tags manager, with an Undo action. The count is the dances in the collection that lost the tag; dances in Recently deleted are not counted.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =0{Deleted “{name}”} =1{Deleted “{name}” from 1 dance} other{Deleted “{name}” from {count} dances}}'**
+  /// **'{count, plural, =0{Deleted \"{name}\"} =1{Deleted \"{name}\" from 1 dance} other{Deleted \"{name}\" from {count} dances}}'**
   String tagManagerDeletedSnack(String name, int count);
 
   /// Snackbar after renaming a tag in the Tags manager, with an Undo action.
   ///
   /// In en, this message translates to:
-  /// **'Renamed “{from}” to “{to}”'**
+  /// **'Renamed \"{from}\" to \"{to}\"'**
   String tagManagerRenamedSnack(String from, String to);
 
   /// Snackbar after merging one tag into another in the Tags manager, with an Undo action.
   ///
   /// In en, this message translates to:
-  /// **'Merged “{from}” into “{into}”'**
+  /// **'Merged \"{from}\" into \"{into}\"'**
   String tagManagerMergedSnack(String from, String into);
 
   /// Snackbar after a rename merged three or more tags into one (case variants of the same name), with an Undo action. The count includes the tag merged into.
   ///
   /// In en, this message translates to:
-  /// **'Combined {count} tags into “{into}”'**
+  /// **'Combined {count} tags into \"{into}\"'**
   String tagManagerMergedSeveralSnack(int count, String into);
 
   /// App-bar title of the Authors manager, where the authors credited on dances are renamed, merged, edited and deleted. User-facing text says “author”, never “choreographer” (decision D-3).
@@ -4378,7 +4378,7 @@ abstract class AppLocalizations {
   /// Snackbar after a rename merged three or more authors into one (case variants of the same name), with an Undo action. The count includes the author merged into.
   ///
   /// In en, this message translates to:
-  /// **'Combined {count} authors into “{into}”'**
+  /// **'Combined {count} authors into \"{into}\"'**
   String authorManagerMergedSeveralSnack(int count, String into);
 
   /// App-bar title of the Sources manager, where the published sources dances cite (books, websites) are renamed, merged, edited and deleted.
@@ -4468,7 +4468,7 @@ abstract class AppLocalizations {
   /// Title of the rename dialog in the Tags, Authors and Sources managers.
   ///
   /// In en, this message translates to:
-  /// **'Rename “{name}”'**
+  /// **'Rename \"{name}\"'**
   String libraryManagerRenameTitle(String name);
 
   /// Action in the Tags, Authors and Sources managers: opens a picker of the entry to merge this one into.
@@ -4480,7 +4480,7 @@ abstract class AppLocalizations {
   /// Title of the picker that chooses which entry to merge this one into.
   ///
   /// In en, this message translates to:
-  /// **'Merge “{name}” into…'**
+  /// **'Merge \"{name}\" into…'**
   String libraryManagerMergePickerTitle(String name);
 
   /// Title of the dialog shown when a rename in the Tags, Authors or Sources manager picks a name another entry already has.
@@ -4492,13 +4492,13 @@ abstract class AppLocalizations {
   /// Body of the dialog shown when a rename picks a name another entry already has. Merging keeps one entry; it can be undone.
   ///
   /// In en, this message translates to:
-  /// **'“{existing}” already exists. Merge “{from}” into it?'**
+  /// **'\"{existing}\" already exists. Merge \"{from}\" into it?'**
   String libraryManagerMergeOfferOne(String existing, String from);
 
   /// Body of the dialog shown when a rename picks a name another entry already has with different capitals. Merging keeps one entry, under the name typed; it can be undone.
   ///
   /// In en, this message translates to:
-  /// **'“{existing}” already exists. Merge “{from}” into it and call it “{name}”?'**
+  /// **'\"{existing}\" already exists. Merge \"{from}\" into it and call it \"{name}\"?'**
   String libraryManagerMergeOfferOneRenamed(
     String existing,
     String from,
@@ -4508,7 +4508,7 @@ abstract class AppLocalizations {
   /// Body of the dialog shown when a rename picks a name that several entries already have (they differ only in capitals). A list of them follows.
   ///
   /// In en, this message translates to:
-  /// **'More than one entry is already called “{name}”. Choose the one to merge “{from}” into; the others are merged into it too.'**
+  /// **'More than one entry is already called \"{name}\". Choose the one to merge \"{from}\" into; the others are merged into it too.'**
   String libraryManagerMergeOfferSeveral(String name, String from);
 
   /// Primary button of the merge dialog in the Tags, Authors and Sources managers.
@@ -4520,13 +4520,13 @@ abstract class AppLocalizations {
   /// Snackbar when Undo of a rename, merge or delete in the Tags, Authors or Sources manager cannot give a name back, because another entry has taken it since.
   ///
   /// In en, this message translates to:
-  /// **'Couldn’t undo: “{name}” is now used by another entry.'**
+  /// **'Couldn\'t undo: \"{name}\" is now used by another entry.'**
   String libraryManagerUndoConflict(String name);
 
   /// Snackbar when a rename, merge or delete in the Tags, Authors or Sources manager fails.
   ///
   /// In en, this message translates to:
-  /// **'Couldn’t save that change. Please try again.'**
+  /// **'Couldn\'t save that change. Please try again.'**
   String get libraryManagerEditFailed;
 
   /// Authors and Sources manager action: opens the entry's details (website, notes and so on) for editing.
@@ -4538,25 +4538,25 @@ abstract class AppLocalizations {
   /// Snackbar after renaming an author or a source in its manager, with an Undo action.
   ///
   /// In en, this message translates to:
-  /// **'Renamed “{from}” to “{to}”'**
+  /// **'Renamed \"{from}\" to \"{to}\"'**
   String libraryManagerRenamedSnack(String from, String to);
 
   /// Snackbar after merging one author or source into another, with an Undo action.
   ///
   /// In en, this message translates to:
-  /// **'Merged “{from}” into “{into}”'**
+  /// **'Merged \"{from}\" into \"{into}\"'**
   String libraryManagerMergedSnack(String from, String into);
 
   /// Snackbar after deleting an author or source no dance uses, with an Undo action. An entry a dance uses cannot be deleted, only merged.
   ///
   /// In en, this message translates to:
-  /// **'Deleted “{name}”'**
+  /// **'Deleted \"{name}\"'**
   String libraryManagerDeletedSnack(String name);
 
   /// Title of the dialog asking before a merge that will drop details, because both entries hold different values for them. Its body lists the dropped details.
   ///
   /// In en, this message translates to:
-  /// **'Merge “{from}” into “{into}”?'**
+  /// **'Merge \"{from}\" into \"{into}\"?'**
   String libraryManagerMergeConfirmTitle(String from, String into);
 
   /// Heading of the list, in a merge dialog, of the details the merge discards. Empty details are filled from the other entry instead; only conflicting values are dropped.
@@ -4586,7 +4586,7 @@ abstract class AppLocalizations {
   /// Subtitle explaining the ignore-leading-articles sort toggle. Example title and articles are illustrative text.
   ///
   /// In en, this message translates to:
-  /// **'When on, the dance list alphabetizes titles ignoring a leading “the”, “a”, or “an” — so “The Nice Combination” files under N. Turn off to sort by the literal title.'**
+  /// **'When on, the dance list alphabetizes titles ignoring a leading \"the\", \"a\", or \"an\" — so \"The Nice Combination\" files under N. Turn off to sort by the literal title.'**
   String get settingsGeneralSortIgnoreArticlesSubtitle;
 
   /// General settings section header for venue-related preferences.
@@ -4604,7 +4604,7 @@ abstract class AppLocalizations {
   /// Subtitle explaining what reusable venue records do and that switching modes preserves existing venue data.
   ///
   /// In en, this message translates to:
-  /// **'Turn venues into reusable records with address, contacts, and schedule that many programs can share and you edit in one place. When off, a program’s venue is a simple free-text field. Switching is lossless — your typed venue and any linked record are both kept.'**
+  /// **'Turn venues into reusable records with address, contacts, and schedule that many programs can share and you edit in one place. When off, a program\'s venue is a simple free-text field. Switching is lossless — your typed venue and any linked record are both kept.'**
   String get settingsGeneralVenueEntityModeSubtitle;
 
   /// Title of the General settings row that opens the reusable venue manager.
@@ -4634,7 +4634,7 @@ abstract class AppLocalizations {
   /// Subtitle explaining the exact-beat-overlap matrix collision toggle and what turning it off restores.
   ///
   /// In en, this message translates to:
-  /// **'In the programming matrix, only flag a repeated move between two back-to-back dances when its beats actually overlap — not just when it lands in the same named phrase (A1, A2, B1, B2…). Turn off to flag any repeat in the same phrase, even if the beats themselves don’t overlap.'**
+  /// **'In the programming matrix, only flag a repeated move between two back-to-back dances when its beats actually overlap — not just when it lands in the same named phrase (A1, A2, B1, B2…). Turn off to flag any repeat in the same phrase, even if the beats themselves don\'t overlap.'**
   String get settingsGeneralMatrixExactCollisionSubtitle;
 
   /// Title of the Program settings toggle that commits valid program-editor changes automatically.
@@ -4952,13 +4952,13 @@ abstract class AppLocalizations {
   /// Title of the General settings toggle that limits dance calling history to program slots marked performed.
   ///
   /// In en, this message translates to:
-  /// **'Require “mark performed” for calling history'**
+  /// **'Require \"mark performed\" for calling history'**
   String get settingsGeneralRequirePerformedForHistoryTitle;
 
   /// Subtitle explaining the require-mark-performed calling history toggle.
   ///
   /// In en, this message translates to:
-  /// **'When on, a dance’s calling history lists only programs whose slot for that dance was marked performed. When off, a program appears as soon as it contains the dance.'**
+  /// **'When on, a dance\'s calling history lists only programs whose slot for that dance was marked performed. When off, a program appears as soon as it contains the dance.'**
   String get settingsGeneralRequirePerformedForHistorySubtitle;
 
   /// Title of the Calling history setting that adds a mark-performed toggle to each dance row in the program view.
@@ -4970,7 +4970,7 @@ abstract class AppLocalizations {
   /// Subtitle explaining the show mark-performed toggles setting.
   ///
   /// In en, this message translates to:
-  /// **'When on, each dance in a program’s view has a toggle to mark it performed or not, without opening the editor. When off, rows only show whether a dance was performed.'**
+  /// **'When on, each dance in a program\'s view has a toggle to mark it performed or not, without opening the editor. When off, rows only show whether a dance was performed.'**
   String get settingsGeneralShowPerformedTogglesSubtitle;
 
   /// Title of the setting that makes Mark all performed also set the program status to Performed.
@@ -4994,7 +4994,7 @@ abstract class AppLocalizations {
   /// Subtitle explaining the require-an-event-date calling history toggle.
   ///
   /// In en, this message translates to:
-  /// **'When on, a program with no event date doesn’t count toward calling history until you give it one. Duplicated and received programs arrive without a date. When off, a program counts whether or not it has a date.'**
+  /// **'When on, a program with no event date doesn\'t count toward calling history until you give it one. Duplicated and received programs arrive without a date. When off, a program counts whether or not it has a date.'**
   String get settingsGeneralRequireEventDateForHistorySubtitle;
 
   /// Title of the General settings toggle that controls whether calling history counts programs from everyone, or only those led by the default caller (plus unattributed programs).
@@ -5036,7 +5036,7 @@ abstract class AppLocalizations {
   /// Subtitle explaining the capitalize figures toggle. ContraDB is a product name and stays untranslated.
   ///
   /// In en, this message translates to:
-  /// **'When on, each figure in the dance view, Perform mode and the figure editor starts with a capital letter (“Neighbors allemande left”). When off, figures are shown as written; built-in figures start in lower case, as in ContraDB. Only how figures look in those places changes; exports, search, sync comparisons and screen-reader wording are unaffected.'**
+  /// **'When on, each figure in the dance view, Perform mode and the figure editor starts with a capital letter (\"Neighbors allemande left\"). When off, figures are shown as written; built-in figures start in lower case, as in ContraDB. Only how figures look in those places changes; exports, search, sync comparisons and screen-reader wording are unaffected.'**
   String get settingsGeneralCapitalizeFiguresSubtitle;
 
   /// Settings › General › Library entry that opens the Tags manager.
@@ -5666,7 +5666,7 @@ abstract class AppLocalizations {
   /// Snackbar shown in the restore-from-backup dialog when the chosen file is larger than the size limit; the file was not read and data is unchanged. 'MB' is the megabyte unit.
   ///
   /// In en, this message translates to:
-  /// **'That file is too large to be a Caller’s Compendium backup ({sizeMb} MB; limit {limitMb} MB). Your data is unchanged.'**
+  /// **'That file is too large to be a Caller\'s Compendium backup ({sizeMb} MB; limit {limitMb} MB). Your data is unchanged.'**
   String backupFileTooLarge(String sizeMb, String limitMb);
 
   /// Snackbar shown when exporting a backup is refused because the encoded backup would exceed the size limit that restore can read; nothing is saved. 'MB' is the megabyte unit.
@@ -5732,7 +5732,7 @@ abstract class AppLocalizations {
   /// Snackbar shown when clearing the local diagnostics log fails (for example, the file is held open by another program). Details are not shown in the UI.
   ///
   /// In en, this message translates to:
-  /// **'Couldn’t clear the diagnostics log.'**
+  /// **'Couldn\'t clear the diagnostics log.'**
   String get diagnosticsClearFailed;
 
   /// Title of the confirmation dialog for clearing the local diagnostics log.
@@ -5918,7 +5918,7 @@ abstract class AppLocalizations {
   /// Snackbar shown when tapping Undo fails (for example, a full disk or a locked database), so the action may not have been reversed. Shared by every Undo prompt; screens whose Undo has a more specific failure (e.g. bulk performed marks) use their own string.
   ///
   /// In en, this message translates to:
-  /// **'Couldn’t undo that. Please check the result and try again.'**
+  /// **'Couldn\'t undo that. Please check the result and try again.'**
   String get commonUndoFailed;
 
   /// Button that re-attempts a failed load.
@@ -6206,7 +6206,7 @@ abstract class AppLocalizations {
   /// Tooltip on a tag chip (a Collection row, or a dance's detail page). Tapping it adds the tag to the Collection's Tags filter and keeps the rest of the search; from a detail page it also switches to the Collection.
   ///
   /// In en, this message translates to:
-  /// **'Add “{tagName}” to the Collection filters'**
+  /// **'Add \"{tagName}\" to the Collection filters'**
   String commonShowDancesTaggedTooltip(String tagName);
 
   /// Snackbar confirming that an item was deleted, quoting its name or title. Used for dances and for other named items: dialects, custom themes, custom fields, custom figures, walkthrough snippets and shorthand tokens.
@@ -8030,7 +8030,7 @@ abstract class AppLocalizations {
   /// Dialog body when the caller starts a new program and a draft of a different new program, never saved, is waiting from an earlier session. Restoring continues that program; discarding deletes it.
   ///
   /// In en, this message translates to:
-  /// **'You have an unsaved draft of another new program, “{title}”. Would you like to restore it instead of starting a new one?'**
+  /// **'You have an unsaved draft of another new program, \"{title}\". Would you like to restore it instead of starting a new one?'**
   String programsDraftAnotherNewProgramBody(String title);
 
   /// Dialog body when the caller starts a new program and an untitled draft of a different new program, never saved, is waiting from an earlier session.
@@ -8222,7 +8222,7 @@ abstract class AppLocalizations {
   /// Shown in the program editor's enriched (picker) venue mode when the program has legacy free-text but no linked venue yet; invites linking while assuring the typed text is preserved.
   ///
   /// In en, this message translates to:
-  /// **'Previously entered venue: “{venueText}”. Link a saved venue below to use reusable details — your typed venue is kept.'**
+  /// **'Previously entered venue: \"{venueText}\". Link a saved venue below to use reusable details — your typed venue is kept.'**
   String programsVenueLegacyTextHint(String venueText);
 
   /// Field label for the program's band in the editor.
@@ -9006,7 +9006,7 @@ abstract class AppLocalizations {
   /// Body of the matrix empty state explaining the matrix populates as dances gain structured figures.
   ///
   /// In en, this message translates to:
-  /// **'The matrix fills in automatically as the program’s dances gain structured figures.'**
+  /// **'The matrix fills in automatically as the program\'s dances gain structured figures.'**
   String get programsMatrixEmptyBody;
 
   /// App bar title for the single-dance Perform (large-print performance) view.
@@ -9950,7 +9950,7 @@ abstract class AppLocalizations {
   /// Empty-state line on the programming-matrix PDF when no dances have structured figures yet.
   ///
   /// In en, this message translates to:
-  /// **'No structured figures yet — the matrix fills in automatically as the program’s dances gain structured figures.'**
+  /// **'No structured figures yet — the matrix fills in automatically as the program\'s dances gain structured figures.'**
   String get exportMatrixEmptyState;
 
   /// Legend entry on the programming-matrix PDF for the star marker: the first dance in the program to use a move.
@@ -11288,7 +11288,7 @@ abstract class AppLocalizations {
   /// Import note: a formation/start-type string couldn't be classified to a known formation and was kept as detail on the 'other' formation.
   ///
   /// In en, this message translates to:
-  /// **'A formation couldn\'t be recognized; kept as a detail on “other”.'**
+  /// **'A formation couldn\'t be recognized; kept as a detail on \"other\".'**
   String get importIssueFormationUnclassified;
 
   /// Import note: a phrase-structure string couldn't be parsed and a default was substituted.
@@ -11300,7 +11300,7 @@ abstract class AppLocalizations {
   /// Import note: a progression value wasn't a standard tier and was recorded as 'other'.
   ///
   /// In en, this message translates to:
-  /// **'A progression wasn\'t recognized; recorded as “other”.'**
+  /// **'A progression wasn\'t recognized; recorded as \"other\".'**
   String get importIssueProgressionUnmapped;
 
   /// Import note: the source served only metadata (no figures), so the dance was imported as a metadata-only stub.
@@ -12620,19 +12620,19 @@ abstract class AppLocalizations {
   /// Program-editor warning: an alternate program slot (identified by its user-entered text) appears with no primary slot before it. {text} is user-entered content rendered as plain text.
   ///
   /// In en, this message translates to:
-  /// **'The alternate at position {position} (“{text}”) has no preceding primary slot.'**
+  /// **'The alternate at position {position} (\"{text}\") has no preceding primary slot.'**
   String validationOrphanedAltNamed(int position, String text);
 
   /// Dialect-editor validation error: a role/move term maps to an empty substitution. {term} is the user-entered source term rendered as plain text.
   ///
   /// In en, this message translates to:
-  /// **'The substitution for “{term}” is empty.'**
+  /// **'The substitution for \"{term}\" is empty.'**
   String validationEmptySubstitution(String term);
 
   /// Dialect-editor validation error: two source terms map to the same substitution, so reversing the dialect would be ambiguous. All three values are user-entered dialect terms rendered as plain text.
   ///
   /// In en, this message translates to:
-  /// **'“{source}” and “{existing}” both map to “{substitution}” — reversal would be ambiguous.'**
+  /// **'\"{source}\" and \"{existing}\" both map to \"{substitution}\" — reversal would be ambiguous.'**
   String validationDialectCollision(
     String source,
     String existing,
@@ -12828,7 +12828,7 @@ abstract class AppLocalizations {
   /// Dialog body when the caller starts a new dance and a draft of a different new dance, never saved, is waiting from an earlier session. Restoring continues that dance; discarding deletes it.
   ///
   /// In en, this message translates to:
-  /// **'You have an unsaved draft of another new dance, “{title}”. Would you like to restore it instead of starting a new one?'**
+  /// **'You have an unsaved draft of another new dance, \"{title}\". Would you like to restore it instead of starting a new one?'**
   String danceEditorUnsavedNewDanceDraftMessage(String title);
 
   /// Dialog body when the caller starts a new dance and an untitled draft of a different new dance, never saved, is waiting from an earlier session.
@@ -14099,7 +14099,7 @@ abstract class AppLocalizations {
   /// Body of the confirm-delete dialog; {token} is the user's shorthand token, rendered as plain text.
   ///
   /// In en, this message translates to:
-  /// **'“{token}” will be permanently removed.'**
+  /// **'\"{token}\" will be permanently removed.'**
   String shorthandMappingsDeleteBody(String token);
 
   /// Tooltip for the per-row overflow menu in the shorthand manager.
@@ -14291,7 +14291,7 @@ abstract class AppLocalizations {
   /// Explanation shown for a skipped, conflicting shorthand candidate; {token} is the user's token, rendered as plain text.
   ///
   /// In en, this message translates to:
-  /// **'A shorthand named “{token}” already exists, so this button was left as-is.'**
+  /// **'A shorthand named \"{token}\" already exists, so this button was left as-is.'**
   String importShorthandSeedConflictNote(String token);
 
   /// Button that declines seeding any shorthands and closes the step.
@@ -15011,7 +15011,7 @@ abstract class AppLocalizations {
   /// Shown on the recently-deleted screen when loading the deleted dances or programs fails, above a Retry button. Reassures the user that a failed load does not mean their deleted items are gone.
   ///
   /// In en, this message translates to:
-  /// **'Couldn’t load your recently deleted items. Nothing has been removed.'**
+  /// **'Couldn\'t load your recently deleted items. Nothing has been removed.'**
   String get recentlyDeletedLoadError;
 
   /// Title of the confirm permanent-delete dialog.
@@ -15185,7 +15185,7 @@ abstract class AppLocalizations {
   /// One line of the link-programs-to-venue offer: the venue record's name and how many programs would be linked to it.
   ///
   /// In en, this message translates to:
-  /// **'“{name}”: {count, plural, =1{1 program} other{{count} programs}}'**
+  /// **'\"{name}\": {count, plural, =1{1 program} other{{count} programs}}'**
   String venueLinkOfferRow(String name, int count);
 
   /// Button that links the offered programs to their venue records.
@@ -15215,19 +15215,19 @@ abstract class AppLocalizations {
   /// Body of the delete-venue confirmation dialog; {name} is the venue's name (plain text, may be user-entered or imported).
   ///
   /// In en, this message translates to:
-  /// **'Permanently delete “{name}”? This can’t be undone.'**
+  /// **'Permanently delete \"{name}\"? This can\'t be undone.'**
   String venueManagerDeleteBody(String name);
 
   /// Snackbar confirming a venue was deleted; {name} is the venue's name (plain text).
   ///
   /// In en, this message translates to:
-  /// **'Deleted “{name}”'**
+  /// **'Deleted \"{name}\"'**
   String venueManagerDeletedSnack(String name);
 
   /// Snackbar shown when a venue can't be deleted because a program still links to it; {name} is the venue's name (plain text).
   ///
   /// In en, this message translates to:
-  /// **'Can’t delete “{name}” while it’s still linked to a program. Change or remove its venue on those programs first.'**
+  /// **'Can\'t delete \"{name}\" while it\'s still linked to a program. Change or remove its venue on those programs first.'**
   String venueManagerDeleteBlocked(String name);
 
   /// Tooltip for the delete button on a venue row; {name} is the venue's name (plain text).
@@ -15347,7 +15347,7 @@ abstract class AppLocalizations {
   /// Venue generic-schedule field label, with an example of a recurring schedule.
   ///
   /// In en, this message translates to:
-  /// **'Schedule (e.g. “2nd Saturdays”)'**
+  /// **'Schedule (e.g. \"2nd Saturdays\")'**
   String get venueEditorScheduleLabel;
 
   /// Venue price field label.
@@ -15449,7 +15449,7 @@ abstract class AppLocalizations {
   /// Inline-create option in the venue picker; {name} is the text the user typed (plain text).
   ///
   /// In en, this message translates to:
-  /// **'Add new venue “{name}”'**
+  /// **'Add new venue \"{name}\"'**
   String venuePickerCreateOption(String name);
 
   /// Action label for replacing one saved dance's choreography from another source.
@@ -15899,7 +15899,7 @@ abstract class AppLocalizations {
   /// Title of the dialog confirming that a custom figure is deleted.
   ///
   /// In en, this message translates to:
-  /// **'Delete “{name}”?'**
+  /// **'Delete \"{name}\"?'**
   String glossaryCustomDeleteTitle(String name);
 
   /// Body of the dialog confirming that a custom figure is deleted.
@@ -16145,19 +16145,19 @@ abstract class AppLocalizations {
   /// Error shown when saving a custom figure under a name already in use.
   ///
   /// In en, this message translates to:
-  /// **'“{name}” is already the name of a figure or shorthand. Choose another name.'**
+  /// **'\"{name}\" is already the name of a figure or shorthand. Choose another name.'**
   String compoundEditorNameTaken(String name);
 
   /// Error shown when saving a term under a name one of the user's own figures already has, while Custom Figures is off and that figure is not shown.
   ///
   /// In en, this message translates to:
-  /// **'“{name}” is already the name of one of your own figures. Those are listed in the Glossary while Custom Figures is on. Choose another name.'**
+  /// **'\"{name}\" is already the name of one of your own figures. Those are listed in the Glossary while Custom Figures is on. Choose another name.'**
   String compoundEditorNameTakenHidden(String name);
 
   /// Error shown when saving a figure under a name one of the user's own terms already has, while Show glossary is off and that term is not shown.
   ///
   /// In en, this message translates to:
-  /// **'“{name}” is already the name of one of your own terms. Those are listed in the Glossary while Show glossary is on. Choose another name.'**
+  /// **'\"{name}\" is already the name of one of your own terms. Those are listed in the Glossary while Show glossary is on. Choose another name.'**
   String compoundEditorNameTakenHiddenTerm(String name);
 
   /// Error shown when saving a custom figure with no figures.
@@ -16343,7 +16343,7 @@ abstract class AppLocalizations {
   /// Helper text of an on/off parameter's wording.
   ///
   /// In en, this message translates to:
-  /// **'Shown in the wording when this is on, such as “with a flourish”.'**
+  /// **'Shown in the wording when this is on, such as \"with a flourish\".'**
   String get userFigureEditorFlagLabelHelper;
 
   /// Heading and label of a new figure's wording template.
@@ -16565,19 +16565,19 @@ abstract class AppLocalizations {
   /// A wording template opens a square bracket and never closes it.
   ///
   /// In en, this message translates to:
-  /// **'A “[” isn’t closed: “{context}”. Add “]” where that part ends.'**
+  /// **'A \"[\" isn\'t closed: \"{context}\". Add \"]\" where that part ends.'**
   String wordingIssueUnclosedGroup(String context);
 
   /// A wording template closes a square bracket it never opened.
   ///
   /// In en, this message translates to:
-  /// **'There’s a “]” with no “[” before it, near “{context}”. Remove it, or add “[” where that part starts.'**
+  /// **'There\'s a \"]\" with no \"[\" before it, near \"{context}\". Remove it, or add \"[\" where that part starts.'**
   String wordingIssueStrayCloseBracket(String context);
 
   /// A wording template opens a brace and never closes it. brace and closeBrace are the brace characters.
   ///
   /// In en, this message translates to:
-  /// **'The “{brace}” in “{context}” isn’t closed. Add “{closeBrace}” after the name, like {example}.'**
+  /// **'The \"{brace}\" in \"{context}\" isn\'t closed. Add \"{closeBrace}\" after the name, like {example}.'**
   String wordingIssueUnclosedSlot(
     String brace,
     String closeBrace,
@@ -16588,7 +16588,7 @@ abstract class AppLocalizations {
   /// A wording template closes a brace it never opened. brace and closeBrace are the brace characters.
   ///
   /// In en, this message translates to:
-  /// **'There’s a “{closeBrace}” with no “{brace}” before it, near “{context}”. Remove it, or add “{brace}” before the name.'**
+  /// **'There\'s a \"{closeBrace}\" with no \"{brace}\" before it, near \"{context}\". Remove it, or add \"{brace}\" before the name.'**
   String wordingIssueStrayCloseBrace(
     String brace,
     String closeBrace,
@@ -16598,49 +16598,49 @@ abstract class AppLocalizations {
   /// A wording template's braces hold something other than one name.
   ///
   /// In en, this message translates to:
-  /// **'“{found}” isn’t a slot: put just one name in braces, like {fix}.'**
+  /// **'\"{found}\" isn\'t a slot: put just one name in braces, like {fix}.'**
   String wordingIssueBadSlot(String found, String fix);
 
   /// A wording template puts a condition in braces instead of square brackets. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
   ///
   /// In en, this message translates to:
-  /// **'Braces hold one name, not a condition: “{found}”. To show wording only in some cases, use square brackets: {fix}'**
+  /// **'Braces hold one name, not a condition: \"{found}\". To show wording only in some cases, use square brackets: {fix}'**
   String wordingIssueConditionInBraces(String found, String fix);
 
   /// A wording template is over the length it may be saved at.
   ///
   /// In en, this message translates to:
-  /// **'This wording is too long to save: as saved, it’s over {max} characters (a condition can take a little more room saved than typed). Shorten it, or use fewer conditions.'**
+  /// **'This wording is too long to save: as saved, it\'s over {max} characters (a condition can take a little more room saved than typed). Shorten it, or use fewer conditions.'**
   String wordingIssueTooLongStored(String max);
 
   /// A condition is missing after a word that needs one. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
   ///
   /// In en, this message translates to:
-  /// **'After “{word}”, write what to test, for example “{example}”.'**
+  /// **'After \"{word}\", write what to test, for example \"{example}\".'**
   String wordingIssueMissingCondition(String word, String example);
 
   /// A condition is not followed by then. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
   ///
   /// In en, this message translates to:
-  /// **'After the condition “{condition}”, write “then” and the wording to show in that case.'**
+  /// **'After the condition \"{condition}\", write \"then\" and the wording to show in that case.'**
   String wordingIssueMissingThen(String condition);
 
   /// A condition is followed by a colon instead of then. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
   ///
   /// In en, this message translates to:
-  /// **'Write “then” instead of “:” after “{condition}”.'**
+  /// **'Write \"then\" instead of \":\" after \"{condition}\".'**
   String wordingIssueColonForThen(String condition);
 
   /// A condition tests a name the figure doesn't have.
   ///
   /// In en, this message translates to:
-  /// **'“{found}” isn’t something this wording can test. You can test: {names}.'**
+  /// **'\"{found}\" isn\'t something this wording can test. You can test: {names}.'**
   String wordingIssueUnknownName(String found, String names);
 
   /// A condition tests a name the figure doesn't have, with the closest name it does.
   ///
   /// In en, this message translates to:
-  /// **'“{found}” isn’t something this wording can test. Did you mean “{suggestion}”? You can test: {names}.'**
+  /// **'\"{found}\" isn\'t something this wording can test. Did you mean \"{suggestion}\"? You can test: {names}.'**
   String wordingIssueUnknownNameSuggest(
     String found,
     String suggestion,
@@ -16650,13 +16650,13 @@ abstract class AppLocalizations {
   /// The word after if, at the start of square brackets, is not a name the figure has. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
   ///
   /// In en, this message translates to:
-  /// **'Square brackets that start with “if” hold a condition, and “{found}” isn’t something this wording can test. You can test: {names}.'**
+  /// **'Square brackets that start with \"if\" hold a condition, and \"{found}\" isn\'t something this wording can test. You can test: {names}.'**
   String wordingIssueUnknownNameAfterIf(String found, String names);
 
   /// The word after if, at the start of square brackets, is not a name the figure has, with the closest one it does. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
   ///
   /// In en, this message translates to:
-  /// **'Square brackets that start with “if” hold a condition, and “{found}” isn’t something this wording can test. Did you mean “{suggestion}”? You can test: {names}.'**
+  /// **'Square brackets that start with \"if\" hold a condition, and \"{found}\" isn\'t something this wording can test. Did you mean \"{suggestion}\"? You can test: {names}.'**
   String wordingIssueUnknownNameAfterIfSuggest(
     String found,
     String suggestion,
@@ -16666,37 +16666,37 @@ abstract class AppLocalizations {
   /// A condition names what it tests in braces.
   ///
   /// In en, this message translates to:
-  /// **'In a condition, write the name without braces: “{name}”, not “{found}”.'**
+  /// **'In a condition, write the name without braces: \"{name}\", not \"{found}\".'**
   String wordingIssueNameInBraces(String name, String found);
 
   /// A condition uses isn't, which the wording language doesn't accept. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
   ///
   /// In en, this message translates to:
-  /// **'Write “is not” instead of “{found}”: “{fix}”.'**
+  /// **'Write \"is not\" instead of \"{found}\": \"{fix}\".'**
   String wordingIssueIsntForIsNot(String found, String fix);
 
   /// A condition uses a symbol such as = or && instead of the word for it. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
   ///
   /// In en, this message translates to:
-  /// **'Write “{word}” instead of “{found}”: “{fix}”.'**
+  /// **'Write \"{word}\" instead of \"{found}\": \"{fix}\".'**
   String wordingIssueSymbolForWord(String word, String found, String fix);
 
   /// A condition puts a value in quotation marks.
   ///
   /// In en, this message translates to:
-  /// **'Leave out the quotation marks: “{fix}”.'**
+  /// **'Leave out the quotation marks: \"{fix}\".'**
   String wordingIssueQuotedValue(String fix);
 
   /// A condition compares a name with a value it can't have.
   ///
   /// In en, this message translates to:
-  /// **'“{found}” isn’t one of the values {name} can have. {name} can be: {values}.'**
+  /// **'\"{found}\" isn\'t one of the values {name} can have. {name} can be: {values}.'**
   String wordingIssueUnknownValue(String found, String name, String values);
 
   /// A condition compares a name with a value it can't have, with the closest value it can.
   ///
   /// In en, this message translates to:
-  /// **'“{found}” isn’t one of the values {name} can have. Did you mean “{suggestion}”? {name} can be: {values}.'**
+  /// **'\"{found}\" isn\'t one of the values {name} can have. Did you mean \"{suggestion}\"? {name} can be: {values}.'**
   String wordingIssueUnknownValueSuggest(
     String found,
     String name,
@@ -16707,7 +16707,7 @@ abstract class AppLocalizations {
   /// A condition is missing the value it compares with.
   ///
   /// In en, this message translates to:
-  /// **'After “{before}”, write a value {name} can have, like “{example}”. {name} can be: {values}.'**
+  /// **'After \"{before}\", write a value {name} can have, like \"{example}\". {name} can be: {values}.'**
   String wordingIssueExpectedValue(
     String before,
     String name,
@@ -16718,91 +16718,91 @@ abstract class AppLocalizations {
   /// A condition lists values after is in without parentheses. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
   ///
   /// In en, this message translates to:
-  /// **'Put the values after “is in” in parentheses: “{fix}”.'**
+  /// **'Put the values after \"is in\" in parentheses: \"{fix}\".'**
   String wordingIssueListNeedsParens(String fix);
 
   /// A condition uses a phrase such as one of instead of is in. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
   ///
   /// In en, this message translates to:
-  /// **'Write “{word}” instead of “{found}”: “{fix}”.'**
+  /// **'Write \"{word}\" instead of \"{found}\": \"{fix}\".'**
   String wordingIssueOneOfForIsIn(String word, String found, String fix);
 
   /// A condition's list of values is empty. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
   ///
   /// In en, this message translates to:
-  /// **'The parentheses after “is in” are empty. List at least one value, like “{example}”.'**
+  /// **'The parentheses after \"is in\" are empty. List at least one value, like \"{example}\".'**
   String wordingIssueEmptyList(String example);
 
   /// A condition opens a parenthesis and never closes it.
   ///
   /// In en, this message translates to:
-  /// **'A “(” isn’t closed: “{context}”. Add “)” after “{before}”.'**
+  /// **'A \"(\" isn\'t closed: \"{context}\". Add \")\" after \"{before}\".'**
   String wordingIssueUnclosedParen(String context, String before);
 
   /// A condition closes a parenthesis it never opened.
   ///
   /// In en, this message translates to:
-  /// **'There’s a “)” with no “(” before it, near “{context}”. Remove it, or add the “(” where it starts.'**
+  /// **'There\'s a \")\" with no \"(\" before it, near \"{context}\". Remove it, or add the \"(\" where it starts.'**
   String wordingIssueStrayCloseParen(String context);
 
   /// A condition has empty parentheses.
   ///
   /// In en, this message translates to:
-  /// **'There’s nothing between “(” and “)”. Put a condition inside, or remove them.'**
+  /// **'There\'s nothing between \"(\" and \")\". Put a condition inside, or remove them.'**
   String get wordingIssueEmptyParens;
 
   /// A word follows a complete condition where only and, or or then may. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
   ///
   /// In en, this message translates to:
-  /// **'After “{before}”, write “and”, “or” or “then”: “{found}” can’t go there.'**
+  /// **'After \"{before}\", write \"and\", \"or\" or \"then\": \"{found}\" can\'t go there.'**
   String wordingIssueExpectedConnective(String before, String found);
 
   /// A word follows a complete condition inside parentheses where only and, or or a closing parenthesis may. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
   ///
   /// In en, this message translates to:
-  /// **'After “{before}”, write “and”, “or” or “)”: “{found}” can’t go there.'**
+  /// **'After \"{before}\", write \"and\", \"or\" or \")\": \"{found}\" can\'t go there.'**
   String wordingIssueExpectedConnectiveInParens(String before, String found);
 
   /// A condition names two values one after the other. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
   ///
   /// In en, this message translates to:
-  /// **'After “{before}”, write “and”, “or” or “then”. To test for more than one value, list them: “{fix}”.'**
+  /// **'After \"{before}\", write \"and\", \"or\" or \"then\". To test for more than one value, list them: \"{fix}\".'**
   String wordingIssueExpectedConnectiveList(String before, String fix);
 
   /// Two values in a list are not separated by a comma.
   ///
   /// In en, this message translates to:
-  /// **'In the list “{before}”, put a comma before “{found}”, or end the list with “)”.'**
+  /// **'In the list \"{before}\", put a comma before \"{found}\", or end the list with \")\".'**
   String wordingIssueExpectedListSeparator(String before, String found);
 
   /// A condition mixes and and or without parentheses. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
   ///
   /// In en, this message translates to:
-  /// **'“{found}” mixes “and” and “or”, so it isn’t clear which goes first. Add parentheses: “{fixA}” or “{fixB}”.'**
+  /// **'\"{found}\" mixes \"and\" and \"or\", so it isn\'t clear which goes first. Add parentheses: \"{fixA}\" or \"{fixB}\".'**
   String wordingIssueMixedAndOr(String found, String fixA, String fixB);
 
   /// A condition compares a switch with a value. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
   ///
   /// In en, this message translates to:
-  /// **'{name} is either on or off, so it isn’t compared with a value. Write “if {name}” for on, or “if not {name}” for off.'**
+  /// **'{name} is either on or off, so it isn\'t compared with a value. Write \"if {name}\" for on, or \"if not {name}\" for off.'**
   String wordingIssueFlagCompare(String name);
 
   /// A condition compares free text, or a slot that is only text, with a value. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
   ///
   /// In en, this message translates to:
-  /// **'{name} can only be tested for whether it’s filled in. Write “{name} is empty”, “{name} is not empty”, or just “{name}”.'**
+  /// **'{name} can only be tested for whether it\'s filled in. Write \"{name} is empty\", \"{name} is not empty\", or just \"{name}\".'**
   String wordingIssuePresenceOnly(String name);
 
   /// A condition uses a number comparison on something that isn't a number. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
   ///
   /// In en, this message translates to:
-  /// **'{name} isn’t a number, so it can’t be “{op}” something. Use “{name} is …” or “{name} is in (…)”.'**
+  /// **'{name} isn\'t a number, so it can\'t be \"{op}\" something. Use \"{name} is …\" or \"{name} is in (…)\".'**
   String wordingIssueNotANumber(String name, String op);
 
   /// A condition is missing the number it compares with. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
   ///
   /// In en, this message translates to:
-  /// **'After “{op}”, write a number, like {example}: “{found}” isn’t one.'**
+  /// **'After \"{op}\", write a number, like {example}: \"{found}\" isn\'t one.'**
   String wordingIssueExpectedNumber(String op, String example, String found);
 
   /// A condition compares with a number outside what the name can be.
@@ -16819,55 +16819,55 @@ abstract class AppLocalizations {
   /// A condition compares a whole-number name with a fraction.
   ///
   /// In en, this message translates to:
-  /// **'{name} counts in whole numbers, so {found} can’t be one of its values.'**
+  /// **'{name} counts in whole numbers, so {found} can\'t be one of its values.'**
   String wordingIssueNumberNotWhole(String name, String found);
 
   /// A condition compares an amount of turn with a value that isn't a whole number of quarter turns.
   ///
   /// In en, this message translates to:
-  /// **'{name} goes in quarter turns, like 0.25, 0.5, ¾ or 1½, so {found} can’t be one of its values.'**
+  /// **'{name} goes in quarter turns, like 0.25, 0.5, ¾ or 1½, so {found} can\'t be one of its values.'**
   String wordingIssueNumberNotQuarter(String name, String found);
 
   /// A condition writes is not before a number comparison. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
   ///
   /// In en, this message translates to:
-  /// **'Write “{fix}” instead of “{found}”.'**
+  /// **'Write \"{fix}\" instead of \"{found}\".'**
   String wordingIssueNegatedComparison(String fix, String found);
 
   /// A condition's words have two readings. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
   ///
   /// In en, this message translates to:
-  /// **'“{found}” can be read two ways: “{readingA}” or “{readingB}”. Write the one you mean.'**
+  /// **'\"{found}\" can be read two ways: \"{readingA}\" or \"{readingB}\". Write the one you mean.'**
   String wordingIssueAmbiguous(String found, String readingA, String readingB);
 
   /// A conditional part has two else words. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
   ///
   /// In en, this message translates to:
-  /// **'This part already has an “else”, so a second can’t follow it. If “else” is part of the wording here, put those words in their own square brackets, like “[everyone else]”.'**
+  /// **'This part already has an \"else\", so a second can\'t follow it. If \"else\" is part of the wording here, put those words in their own square brackets, like \"[everyone else]\".'**
   String get wordingIssueSecondElse;
 
   /// Warning: else follows a word it may have been meant to go with. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
   ///
   /// In en, this message translates to:
-  /// **'“else” here starts the wording for every other case. If you meant the words “{phrase}”, put them in their own square brackets: “[{phrase}]”.'**
+  /// **'\"else\" here starts the wording for every other case. If you meant the words \"{phrase}\", put them in their own square brackets: \"[{phrase}]\".'**
   String wordingIssueElseAfterWord(String phrase);
 
   /// Warning: a branch uses a word like otherwise where else may have been meant. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
   ///
   /// In en, this message translates to:
-  /// **'“{found}” shows as wording here. To give wording for every other case, write “else”.'**
+  /// **'\"{found}\" shows as wording here. To give wording for every other case, write \"else\".'**
   String wordingIssueOtherwiseWord(String found);
 
   /// Warning: a condition tests is empty on a name that has a choice called empty. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
   ///
   /// In en, this message translates to:
-  /// **'“{name} is empty” tests whether {name} has no value, not for its choice “empty”. To test for that choice, write “{fix}”.'**
+  /// **'\"{name} is empty\" tests whether {name} has no value, not for its choice \"empty\". To test for that choice, write \"{fix}\".'**
   String wordingIssueEmptyMeansNoValue(String name, String fix);
 
   /// A condition writes a second value after and/or instead of a second test. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
   ///
   /// In en, this message translates to:
-  /// **'“{found}” after “{word}” is a value, not something to test. Say what you’re testing again, “{fixA}”, or list the values: “{fixB}”.'**
+  /// **'\"{found}\" after \"{word}\" is a value, not something to test. Say what you\'re testing again, \"{fixA}\", or list the values: \"{fixB}\".'**
   String wordingIssueValueAfterConnective(
     String found,
     String word,
@@ -16878,13 +16878,13 @@ abstract class AppLocalizations {
   /// A condition is written in a wording whose figure is not on this device.
   ///
   /// In en, this message translates to:
-  /// **'This wording can’t test anything here: the figure it belongs to isn’t on this device, or this version of the app doesn’t know it, so its conditions can’t be checked. Change it on a device that has the figure, or remove the condition.'**
+  /// **'This wording can\'t test anything here: the figure it belongs to isn\'t on this device, or this version of the app doesn\'t know it, so its conditions can\'t be checked. Change it on a device that has the figure, or remove the condition.'**
   String get wordingIssueNothingToTest;
 
   /// Typed wording far longer than any template that can be saved.
   ///
   /// In en, this message translates to:
-  /// **'This wording is too long to read: it’s over {max} characters as typed. Shorten it.'**
+  /// **'This wording is too long to read: it\'s over {max} characters as typed. Shorten it.'**
   String wordingIssueTooLongTyped(String max);
 
   /// A wording nests brackets or parentheses deeper than allowed.
@@ -16896,7 +16896,7 @@ abstract class AppLocalizations {
   /// A condition nests not deeper than allowed. The word not is the wording language's own: keep it in English.
   ///
   /// In en, this message translates to:
-  /// **'This condition puts too many “not”s inside each other: at most {max}. Take some out: two “not”s in a row cancel out.'**
+  /// **'This condition puts too many \"not\"s inside each other: at most {max}. Take some out: two \"not\"s in a row cancel out.'**
   String wordingIssueTooManyNots(String max);
 }
 
