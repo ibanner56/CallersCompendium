@@ -1,0 +1,9 @@
+{
+  "id": "followups-regional-dates",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Draft-saved times, Device Sync's last-synced time, sync conflict dates and the database copy dates on the startup recovery screen now follow your Regional date format instead of always using the app language's month names."
+    ]
+  }
+}
