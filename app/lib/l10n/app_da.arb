@@ -6658,6 +6658,10 @@
   "@onlineResultCountCapped": {
     "x-sourceSha256": "d542496c932c10f9e0286e4f4d9c8f8afa8c96deb90451f232ac58c484160e8f"
   },
+  "onlineAdvancedPartlyApplied": "Nogle avancerede betingelser findes ikke i ContraDB og er udeladt.",
+  "@onlineAdvancedPartlyApplied": {
+    "x-sourceSha256": "0f99aeb37e287f4bd13ae20c95c8aa72018ee9556c316dadf1f61e09e8958c78"
+  },
   "onlineSearchHintByPhrase": "Skriv en titel eller forfatter, eller tilføj figurer efter frase for at søge {source}.",
   "@onlineSearchHintByPhrase": {
     "x-sourceSha256": "623c8dfe374551a31466565fa1f337dc4b2e2f078d4aec3beca94658cc8f6b25"
@@ -7334,9 +7338,9 @@
   "@importErrorContraDbUnsupportedFigure": {
     "x-sourceSha256": "b3cdc0346e556478bbeb56d45067b5cc4e6361aa0ed3e239efe070a08fd08b57"
   },
-  "importErrorContraDbUnsupportedAdvanced": "ContraDB kan kun køre avancerede søgninger, der består af grupperne “Alle af”, “Nogen af” og “Ingen af” med “Har figur”- og “Sekvens (derefter)”-betingelser. Fjern tags, figurdetaljer, bevægelser uden præcis modsvarighed i ContraDB og andre betingelser for at søge i ContraDB.",
+  "importErrorContraDbUnsupportedAdvanced": "ContraDB kan kun køre avancerede søgninger, der består af grupperne “Alle af”, “Nogen af” og “Ingen af” med “Har figur”- og “Sekvens (derefter)”-betingelser. Fjern tags, figursektioner, bevægelser uden præcis modsvarighed i ContraDB og andre betingelser for at søge i ContraDB.",
   "@importErrorContraDbUnsupportedAdvanced": {
-    "x-sourceSha256": "b166d3ee8af2d030706374c4f6c379babc5a63abe7bc7cf6eea79ae4fce14680"
+    "x-sourceSha256": "42862901a0a7909f2ae974441f520d33d531c9f3103518110d2a57883e1e9dc8"
   },
   "importErrorContraDbEmptyDanceInput": "Indtast en ContraDB dans-URL eller id at importere fra.",
   "@importErrorContraDbEmptyDanceInput": {

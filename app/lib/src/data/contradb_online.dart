@@ -78,7 +78,8 @@ class ContraDbOnline implements OnlineSearchService {
         UrlFetchFailureReason.contraDbUnsupportedFigure,
       );
     }
-    final advanced = _advancedExpression(query.advanced);
+    final translation = _advancedTranslation(query.advanced);
+    final advanced = translation?.expression;
     final hasText = textCriteria == 1;
     if (!hasText && advanced == null) {
       throw const UrlFetchException(UrlFetchFailureReason.contraDbEmptyTitle);
@@ -151,6 +152,8 @@ class ContraDbOnline implements OnlineSearchService {
               author: r.author,
               formation: r.formation,
               mayHaveMore: mayHaveMore,
+              advancedPartlyApplied:
+                  translation?.ignoredParams.isNotEmpty ?? false,
             ),
     ];
     // Each response is already title-sorted; re-sort only a merged set, by
@@ -171,10 +174,10 @@ class ContraDbOnline implements OnlineSearchService {
   /// ([translateDanceFilterToContraDb]); the search is refused rather than
   /// sent with that condition dropped, which would return a wider result set
   /// than the panel describes.
-  static List<Object?>? _advancedExpression(DanceFilter? filter) {
+  static ContraDbAdvancedExpression? _advancedTranslation(DanceFilter? filter) {
     if (filter == null) return null;
     return switch (translateDanceFilterToContraDb(filter)) {
-      ContraDbAdvancedExpression(:final expression) => expression,
+      final ContraDbAdvancedExpression expression => expression,
       ContraDbAdvancedRefused() => throw const UrlFetchException(
         UrlFetchFailureReason.contraDbUnsupportedAdvanced,
       ),

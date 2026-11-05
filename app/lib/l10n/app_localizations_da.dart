@@ -6699,6 +6699,10 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String get onlineAdvancedPartlyApplied =>
+      'Nogle avancerede betingelser findes ikke i ContraDB og er udeladt.';
+
+  @override
   String onlineSearchHintByPhrase(String source) {
     return 'Skriv en titel eller forfatter, eller tilføj figurer efter frase for at søge $source.';
   }
@@ -7489,7 +7493,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importErrorContraDbUnsupportedAdvanced =>
-      'ContraDB kan kun køre avancerede søgninger, der består af grupperne “Alle af”, “Nogen af” og “Ingen af” med “Har figur”- og “Sekvens (derefter)”-betingelser. Fjern tags, figurdetaljer, bevægelser uden præcis modsvarighed i ContraDB og andre betingelser for at søge i ContraDB.';
+      'ContraDB kan kun køre avancerede søgninger, der består af grupperne “Alle af”, “Nogen af” og “Ingen af” med “Har figur”- og “Sekvens (derefter)”-betingelser. Fjern tags, figursektioner, bevægelser uden præcis modsvarighed i ContraDB og andre betingelser for at søge i ContraDB.';
 
   @override
   String get importErrorContraDbEmptyDanceInput =>

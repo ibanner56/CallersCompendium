@@ -353,6 +353,21 @@ Future<void> _addPhraseMove(
   await tester.pumpAndSettle();
 }
 
+/// A ContraDB source whose search reports that Advanced params were left out.
+class _PartlyAppliedContraDb extends ContraDbOnline {
+  @override
+  Future<List<OnlineSearchResultRow>> search(OnlineSearchQuery query) async => [
+    const OnlineSearchResultRow(
+      source: OnlineSource.contraDb,
+      id: '1',
+      name: 'A Dance',
+      author: '',
+      formation: '',
+      advancedPartlyApplied: true,
+    ),
+  ];
+}
+
 void main() {
   // Issue #1420: the picker builds its own FacetPanel, so the Tunes facet has
   // to be wired here separately from the Collection screen.
@@ -1001,6 +1016,34 @@ void main() {
     );
     expect(find.text('Advanced (on)'), findsOneWidget);
     expect(_titles(tester), ['Has Petronella']);
+  });
+
+  testWidgets('a ContraDB search that left Advanced params out says so in the '
+      'picker', (tester) async {
+    final repos = openTestRepositories();
+    await _pumpPicker(
+      tester,
+      repos,
+      onAddDance: (_) {},
+      enableOnlineSearch: true,
+      contraDbOnline: _PartlyAppliedContraDb(),
+    );
+    await tester.pumpAndSettle();
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('picker-online-search-enable')),
+    );
+    await tester.tap(find.text('ContraDB'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('picker-search')), 'x');
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+    expect(
+      find.text(
+        "1 online result \u00b7 Some Advanced conditions don't exist on ContraDB and were left out.",
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('a full ContraDB page says there may be more in the picker', (

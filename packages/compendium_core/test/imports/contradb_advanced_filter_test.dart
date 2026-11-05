@@ -259,15 +259,25 @@ void main() {
       expect(refusal(const UntaggedFilter()), ContraDbAdvancedUnsupported.tag);
     });
 
-    test('figure parameters and sections', () {
-      expect(
-        refusal(FigureFilter.leaf('swing', params: {'beats': 8})),
-        ContraDbAdvancedUnsupported.figureDetail,
-      );
+    test('a phrase section, which ContraDB cannot express', () {
       expect(
         refusal(FigureFilter.leaf('swing', section: 'A1')),
         ContraDbAdvancedUnsupported.figureDetail,
       );
+      // Even with params that would otherwise translate.
+      expect(
+        refusal(
+          FigureFilter.leaf('swing', params: {'beats': 8}, section: 'A1'),
+        ),
+        ContraDbAdvancedUnsupported.figureDetail,
+      );
+    });
+
+    test('figure parameters are no longer a reason to refuse', () {
+      final result = translateDanceFilterToContraDb(
+        FigureFilter.leaf('swing', params: {'beats': 8}),
+      );
+      expect(result, isA<ContraDbAdvancedExpression>());
     });
 
     test('a move ContraDB does not define', () {
@@ -345,10 +355,7 @@ void main() {
     test('a then with an operand ContraDB cannot express is refused', () {
       expect(
         refusal(
-          ThenFilter(
-            FigureLeaf('swing', params: {'beats': 8}),
-            FigureLeaf('chain'),
-          ),
+          ThenFilter(FigureLeaf('swing', section: 'A1'), FigureLeaf('chain')),
         ),
         ContraDbAdvancedUnsupported.figureDetail,
       );

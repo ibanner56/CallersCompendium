@@ -8755,6 +8755,10 @@
       }
     }
   },
+  "onlineAdvancedPartlyApplied": "Some Advanced conditions don't exist on ContraDB and were left out.",
+  "@onlineAdvancedPartlyApplied": {
+    "description": "Note after the online result count when an Advanced search of ContraDB had figure parameters ContraDB has no counterpart for, which were left out, so the search is broader than the Advanced panel says. Follows the count after a middle dot."
+  },
   "onlineSearchHintByPhrase": "Type a title or author, or add by-phrase figures to search {source}.",
   "@onlineSearchHintByPhrase": {
     "description": "Empty-query hint for online sources that support by-phrase figure criteria.",
@@ -9747,9 +9751,9 @@
   "@importErrorContraDbUnsupportedFigure": {
     "description": "Error shown when a ContraDB Figure search is not an exact canonical move name."
   },
-  "importErrorContraDbUnsupportedAdvanced": "ContraDB can only run Advanced searches made of \"All of\", \"Any of\", and \"None of\" groups of \"Has figure\" and \"Sequence (then)\" conditions. Remove tags, figure details, moves ContraDB has no exact match for, and other conditions to search ContraDB.",
+  "importErrorContraDbUnsupportedAdvanced": "ContraDB can only run Advanced searches made of \"All of\", \"Any of\", and \"None of\" groups of \"Has figure\" and \"Sequence (then)\" conditions. Remove tags, figure sections, moves ContraDB has no exact match for, and other conditions to search ContraDB.",
   "@importErrorContraDbUnsupportedAdvanced": {
-    "description": "Error shown when the Advanced search has a condition ContraDB cannot run with the same meaning (a tag, a figure parameter or section, a move ContraDB has no exact match for, or a local-only filter), so the ContraDB search is not sent. Quoted names are the Advanced builder's group and row labels."
+    "description": "Error shown when the Advanced search has a condition ContraDB cannot run with the same meaning (a tag, a figure section, a move ContraDB has no exact match for, or a local-only filter), so the ContraDB search is not sent. Quoted names are the Advanced builder's group and row labels."
   },
   "importErrorContraDbEmptyDanceInput": "Enter a ContraDB dance URL or id to import from.",
   "@importErrorContraDbEmptyDanceInput": {

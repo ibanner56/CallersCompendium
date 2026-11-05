@@ -202,6 +202,21 @@ Future<void> _addPhraseMove(
   await tester.pumpAndSettle();
 }
 
+/// A ContraDB source whose search reports that Advanced params were left out.
+class _PartlyAppliedContraDb extends ContraDbOnline {
+  @override
+  Future<List<OnlineSearchResultRow>> search(OnlineSearchQuery query) async => [
+    const OnlineSearchResultRow(
+      source: OnlineSource.contraDb,
+      id: '1',
+      name: 'A Dance',
+      author: '',
+      formation: '',
+      advancedPartlyApplied: true,
+    ),
+  ];
+}
+
 void main() {
   ({CompendiumRepositories repos, _CountingDances dances}) countingRepos() {
     final db = openWidgetTestDatabase();
@@ -2011,6 +2026,38 @@ void main() {
       await search('short');
       expect(find.text('3 online results'), findsOneWidget);
       expect(find.textContaining('There may be more'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'a ContraDB search that left Advanced params out says so after the count',
+    (tester) async {
+      final repos = openTestRepositories();
+      await _pumpScreen(
+        tester,
+        repos,
+        contraDbOnline: _PartlyAppliedContraDb(),
+      );
+      await tester.pumpAndSettle();
+      await _tapVisible(
+        tester,
+        find.byKey(const ValueKey('online-search-enable')),
+      );
+      await tester.tap(find.text('ContraDB'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('collection-search-field')),
+        'x',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          "1 online result \u00b7 Some Advanced conditions don't exist on ContraDB and were left out.",
+        ),
+        findsOneWidget,
+      );
     },
   );
 
