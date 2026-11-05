@@ -179,8 +179,8 @@ Widget _buildCreateRow(
     key: const ValueKey('add-to-program-create'),
     leading: const Icon(Icons.add),
     // At 200% text the label alone wraps taller than the room above a phone's
-    // keyboard, so with it up the row is held to two lines. The semantics label
-    // is the whole text either way.
+    // keyboard, so with it up the row is held to two lines (the Text's semantics
+    // still carry the whole string).
     title: Text(
       l10n.programsCreateWithDance,
       maxLines: keyboardUp ? 2 : null,

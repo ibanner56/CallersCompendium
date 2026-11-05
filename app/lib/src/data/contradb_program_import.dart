@@ -94,8 +94,9 @@ class ResolvedContraDbActivity {
 ///   collection that confidently matches it (title and author) **with the same
 ///   figures** is linked too, from any source or entered by hand (#685,
 ///   INTAKE-3); a confident match whose figures differ is imported as a
-///   variation of that match, with no per-dance prompt (#797). A same-titled local dance is never
-///   assumed to be this dance on its title alone. If the ContraDB scrape fails (unpublished/removed), it falls
+///   variation of that match, with no per-dance prompt (#797). A same-titled
+///   local dance is never assumed to be this dance on its title alone. If the
+///   ContraDB scrape fails (unpublished/removed), it falls
 ///   back to [callersBox] by title under the #313 confident unique-exact rule;
 ///   if that also fails, the verbatim title (plus any attached note) is kept as a
 ///   note slot — nothing is invented or dropped.
