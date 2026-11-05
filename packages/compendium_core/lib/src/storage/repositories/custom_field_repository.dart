@@ -194,11 +194,9 @@ class CustomFieldDefRepository {
                 def.id;
       final heldBefore = fromSync ? null : await _publishesValues(id);
       final indexedBefore = fromSync ? null : await _indexesValues(id);
-      final typeBefore = fromSync
-          ? null
-          : (await (_db.select(
-              _db.customFieldDefs,
-            )..where((t) => t.id.equals(id))).getSingleOrNull())?.type;
+      final typeBefore = (await (_db.select(
+        _db.customFieldDefs,
+      )..where((t) => t.id.equals(id))).getSingleOrNull())?.type;
       await _db
           .into(_db.customFieldDefs)
           .insertOnConflictUpdate(
@@ -216,6 +214,21 @@ class CustomFieldDefRepository {
               updatedAt: Value(now),
             ),
           );
+      // An inbound write drops what no longer fits too, or a peer's type
+      // change would leave this device's trashed dances unreadable. It never
+      // restamps: §6.7 keeps the inbound write off the editor's path, and the
+      // peer that made the change restamped its own copies of those dances,
+      // which reach this device as ordinary newer edits.
+      if (fromSync && typeBefore != null) {
+        await _dropTrashedValuesThatNoLongerFit(
+          id,
+          typeBefore: typeBefore,
+          type: def.type,
+          choices: choices,
+          restamp: false,
+          at: now,
+        );
+      }
       if (collidingEdit) {
         await recordNormalisationSkipAt(
           _db,
@@ -263,8 +276,8 @@ class CustomFieldDefRepository {
   }
 
   /// Deletes the values that dances in Recently deleted hold for field [id]
-  /// once a local write (an edit, an import, a merge restore; never an inbound
-  /// sync write) has left them no longer fitting it: every such value when the
+  /// once a write (an edit, an import, a merge restore, or an inbound sync
+  /// write) has left them no longer fitting it: every such value when the
   /// type changed from [typeBefore] to [type] (other than between text and
   /// choice, which store the same text; number and boolean are dropped too,
   /// since a number read as a boolean changes the value), and, for a choice
@@ -280,10 +293,13 @@ class CustomFieldDefRepository {
   /// a live dance's value locks the type and its choice in the editor, and this
   /// write is not where that is enforced.
   ///
-  /// When the field published its values before this write ([restamp]), each
-  /// affected dance's wire body loses one, so its `updated_at` advances as
+  /// When the field published its values before a local write ([restamp]),
+  /// each affected dance's wire body loses one, so its `updated_at` advances as
   /// [_restampDancesHolding] does (sync-spec §6.5 I1). A dance whose value is
-  /// kept is not restamped: its body is unchanged.
+  /// kept is not restamped: its body is unchanged. An inbound write passes
+  /// `restamp: false`: the device that changed the field restamped the same
+  /// dances when it dropped the same values, so its copies win here as newer
+  /// edits (sync-spec §6.7, amended 2026-11-05).
   Future<void> _dropTrashedValuesThatNoLongerFit(
     String id, {
     required CustomFieldType typeBefore,
