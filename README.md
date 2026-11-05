@@ -43,24 +43,27 @@ stay up to date.
   the structured editor or type them as free text, using your own shorthands,
   and have them parsed into editable figures. Keep a step-by-step
   **Walkthrough** on each dance, pre-filled from a reusable snippet library, and
-  group your collection by category to find the right dance mid-evening.
+  group your collection by category to find the right dance mid-evening. Select
+  many dances to tag, rate, set the status of, or delete them together, and
+  rename or merge your tags, authors, and sources in one place.
 - **Programs** — Build, duplicate, print, and email set lists for your events,
   with alternates, free-text slots, and reusable venues. A programming matrix,
   computed from the choreography, shows the shape and variety of your evening
   at a glance. Start a program from a plain-text list of titles or from a
   ContraDB event, and share a program together with every dance it uses.
 - **Perform mode** — A large-print, high-contrast calling view with program
-  navigation, on-the-fly adjustments, a screen that stays awake, and
-  screen-reader-friendly figure text.
+  navigation, on-the-fly adjustments, a screen that stays awake, full screen on
+  a computer, and screen-reader-friendly figure text.
 - **Dialect** — Role names, move wording, and discouraged-term flags are all
   yours to set, and are applied as a presentation layer over a standard
   vocabulary, so search keeps working and your data stays portable. The app
   ships role-neutral presets (Larks/Robins by default, and Leads/Follows); you
   can build your own dialects, preview edits live, and switch dialects per gig.
-- **Imports** — Bring dances in from The Caller's Box and ContraDB by link or
-  ID, migrate from Caller's Companion (its `.USR` library file), or open a
-  Caller's Compendium file. Every import passes through
-  a review queue before anything reaches your collection.
+- **Imports** — Bring dances in from The Caller's Box and ContraDB by online
+  search, link, or ID, paste a list of titles, import a published collection,
+  migrate from Caller's Companion (its `.USR` library file), or open a
+  Caller's Compendium file. You see what an import will bring in before
+  anything reaches your collection.
 - **Device Sync** *(experimental, opt-in)* — Keep your library in step across
   your own devices, with no account and no sign-in. It is off until you turn it
   on; see [Device Sync](docs/user/settings.md#device-sync) in the Settings guide.
@@ -79,7 +82,8 @@ stay up to date.
   download's SHA-256 checksum** before handing it to your operating system.
 - **Accessible throughout** — Keyboard-reachable controls, screen-reader support,
   and a high-contrast stage theme run through the whole app, not only Perform
-  mode. See the [Accessibility guide](docs/user/accessibility.md).
+  mode. On a computer there are keyboard shortcuts, right-click menus, and a
+  macOS menu bar. See the [Accessibility guide](docs/user/accessibility.md).
 - **Your language** — The interface is available in English, German, French,
   Japanese, Danish, and Dutch, or can follow your device's language. Your dance
   terminology is set separately, through your dialect.

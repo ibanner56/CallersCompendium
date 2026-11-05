@@ -238,7 +238,7 @@ implementation notes and deviations against each item — is in
       channels is a backup → uninstall → install → restore, not an in-place update.
   - **Deferred** (later signing wave — needs paid developer accounts / a decision; see [ADR-002](adr/002-distribution-and-update-channels.md) §6)
     - Windows Authenticode/Store (MSIX) signing — Azure Trusted Signing is wired for the Windows installer and portable bundle when configured; the Linux half is decided in ADR-003 and tracked in #491. (macOS is now signed + notarized and iOS is distributed via TestFlight — see **Delivered** above.)
-    - Store distribution (Google Play, F-Droid, Flathub). **Google Play submission is now in preparation:** a release-workflow leg builds and stages a **signed Android App Bundle (`.aab`)** for Play (#535), a store-distribution **license exception** to the AGPL was added so managed marketplaces are permitted (#534), and **App Store & Google Play submission guides** plus listing copy, a privacy policy, and a contact address landed under [docs/dev/store-submission/](dev/store-submission/) (#532, #534). Actual store listing/publication is still pending. For Linux, the post-beta channel evaluation is decided in [ADR-003](adr/003-linux-native-distribution-channel.md): **Flathub-first** (auto-update + desktop integration + trusted-publisher signing, no self-run infra), with Snap/Launchpad PPA secondary and a self-hosted apt repo only on clear demand.
+    - Store distribution (Google Play, F-Droid, Flathub). **Google Play is in closed testing:** a release-workflow leg builds and stages a **signed Android App Bundle (`.aab`)** for Play (#535) and uploads it to Play when the Play service-account secret is configured (#1762); the closed-testing track exists and Android testers are pointed at it (#1082; [google-play.md](dev/store-submission/google-play.md#5b-closed-testing-the-mandatory-gate--gate-new-long-pole) has the tester count). A store-distribution **license exception** to the AGPL was added so managed marketplaces are permitted (#534), and **App Store & Google Play submission guides** plus listing copy, a privacy policy, and a contact address landed under [docs/dev/store-submission/](dev/store-submission/) (#532, #534). Open testing and a public store listing are still pending. For Linux, the post-beta channel evaluation is decided in [ADR-003](adr/003-linux-native-distribution-channel.md): **Flathub-first** (auto-update + desktop integration + trusted-publisher signing, no self-run infra), with Snap/Launchpad PPA secondary and a self-hosted apt repo only on clear demand.
     - Reconcile the bundle-id mismatch — **done**: all platforms now unify on the Apple form `org.callerscompendium.compendiumApp` (Android `applicationId`/namespace + Linux `APPLICATION_ID` updated to match; Apple was already the target and is the source of truth, since Apple bundle IDs disallow underscores).
 - [ ] 7.2 User documentation
   - **Delivered** — the [user-guide hub](user/README.md) + [style guide](user/style-guide.md), and the guides: Getting Started, Installation, Collection & search, Write & edit dances, Programs & matrix, Perform mode, Dialect (flagship), Settings, Accessibility, Imports & migration, Share/print & export, Backup & portability, FAQ & troubleshooting, and Glossary; plus an offline **in-app User Guide** (#233). (#219/#222/#223/#224/#229/#233/#239/#240/#243)
@@ -286,7 +286,8 @@ implementation notes and deviations against each item — is in
   the existing JSON backup export/import, or AirDrop of that file; everything
   shareable syncs through Athenaeum instead.
 - **Glossary / terms** (CC `Term`: term + definition + source) — a browsable
-  reference of caller terminology, dialect-aware. **Tracked in #695.**
+  reference of caller terminology, dialect-aware. **Tracked in #695** (closed as
+  completed 2026-10-14).
   - **Delivered:** a read-only **Glossary** navigation destination, off by
     default behind **Settings ▸ Experimental ▸ Show glossary**, listing the
     taxonomy's built-in figures in the active dialect. Its built-in entries
@@ -331,9 +332,9 @@ implementation notes and deviations against each item — is in
   ratchet enforcing that (#813). What remains here is additive: welcoming further
   **community-contributed** `app_<locale>.arb` translations (assisted tooling + a
   validation gate now support that, #523). Exported dance/program documents now
-  follow the UI language too (#529); the only surfaces still English by design are
-  a small set of core service-layer messages (#528) and the diagnostics-log export
-  body (a maintainer support artifact). See
+  follow the UI language too (#529), and the core-layer diagnostics the UI renders
+  were localized in #573 (closing #528); the only surface still English by design
+  is the diagnostics-log export body (a maintainer support artifact). See
   [docs/dev/localization.md](dev/localization.md).
 
 ### Plugin system (user-installable extensions)

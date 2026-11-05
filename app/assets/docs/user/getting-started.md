@@ -69,7 +69,7 @@ delete it the Collection shows the same two buttons on an empty page.
 *The Collection screen with a search query, the Filters panel open, and matching
 dances visible.*
 
-![The Collection screen with a figure search for "petronella", three formations chosen in the Filters panel, and the first of four matching dances open beside the list](images/collection-search-filters.png)
+![The Collection screen with a figure search for "petronella", three formations chosen in the Filters panel, and one of the four matching dances open beside the list](images/collection-search-filters.png)
 
 Two small things worth knowing on day one:
 
@@ -94,6 +94,14 @@ program when it is time to call, and step back out when you are done.
 **Guide** is this documentation, bundled into the app so you have it on stage with
 no signal. It is the same set of pages you are reading now.
 
+To jump straight to a dance or program you can name, choose **Search** — in the
+navigation rail on a wide screen, or in the app bar on a narrow one — or press
+**Ctrl-K** (**Cmd-K** on macOS); see
+[Jump straight to a dance or program](./collection.md#jump-straight-to-a-dance-or-program).
+On a computer you can also use keyboard shortcuts, your mouse's **Back** button,
+and right-click menus on dances and programs; the
+[Accessibility guide](./accessibility.md#using-the-keyboard) lists them.
+
 ### Collection — your dance library
 
 **Collection** is your whole library of dances, and it is where the app opens.
@@ -111,6 +119,9 @@ From here you can:
   [progression](./glossary.md#progression), author, tags, custom fields, or even by
   the figures a dance contains (for example, dances with a petronella, or a
   chain *then* a swing).
+- **Change many at once** — select several dances to tag them, set their
+  level or status, or delete them together; see
+  [Change many dances at once](./collection.md#change-many-dances-at-once).
 - **Add a dance** with **New dance**, or **Import** dances from other sources.
 
 Selecting a dance opens its detail view, with the full figure-by-figure
@@ -132,7 +143,7 @@ a waltz, announcements. A program also carries its event date, venue, and notes.
 *The Programs builder with ordered program slots beside a searchable collection
 picker.*
 
-![The Programs builder showing ordered program slots beside a searchable collection picker with filters](images/programs-builder.png)
+![The Programs builder showing ordered program slots with a break between the halves, beside a searchable collection picker with filters](images/programs-builder.png)
 
 Each program also has a **[matrix](./glossary.md#matrix)** — a figures-by-dances
 grid worked out from the choreography — so you can see the shape and variety of
@@ -143,8 +154,9 @@ and reading the matrix in full.
 ### Perform — the calling view
 
 **[Perform mode](./glossary.md#perform-mode)** is the app's stage-ready calling view.
-It is not a navigation tab; you enter it when you are ready to call and it fills
-the whole screen.
+It is not a navigation tab; you enter it when you are ready to call. On a phone
+or tablet it fills the whole screen; on a computer it opens in the app window,
+and **Full screen** takes it over the whole display.
 
 - To call a **single dance**, open it from your collection and choose
   **Perform this dance**.
@@ -153,9 +165,10 @@ the whole screen.
 
 Perform mode is built for the realities of the stage: huge, adjustable type on a
 high-contrast dark background, next and previous controls big enough to hit
-without looking, and the screen kept awake so it never dims mid-dance. If you
-need to make a change on the fly — reorder what is left, swap in an alt, or add a
-quick note — an **adjust** panel lets you do it without disturbing the card you
+without looking, and the screen kept awake so it never dims mid-dance. When a
+slot has an alt, **Show alternate** switches the card to it. If you need to
+change a program on the fly — reorder what is left, insert a dance, or add a
+quick note — **Adjust program** lets you do it without disturbing the card you
 are reading.
 
 *Perform mode in the dark-stage theme, with large type and controls for moving
@@ -222,8 +235,9 @@ dances** (or run an import from **Settings → General → Import…**).
 Caller's Compendium can bring in dances from community sources such as **The
 Caller's Box** and **ContraDB**, from a **Caller's Compendium** file that you
 or another caller exported, and your whole library from **Caller's Companion**
-(its exported `.USR` file). You can also turn on online search right from the
-collection to find and pull in individual dances from The Caller's Box.
+(its exported `.USR` file). You can also turn on **Online search** right from
+the collection to find and pull in individual dances from The Caller's Box or
+ContraDB.
 
 Importing a file, link or pasted list opens a **review screen** first, and
 nothing touches your collection until you commit there — so an import can never

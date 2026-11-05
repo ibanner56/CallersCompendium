@@ -15,7 +15,8 @@ rendering.
 | Why does this rule exist? | [agents/incidents.md](agents/incidents.md) |
 | How do I contribute / set up the toolchain? | [`CONTRIBUTING.md`](../../CONTRIBUTING.md) |
 | What is planned, and what is done? | [`docs/ROADMAP.md`](../ROADMAP.md) (open work), [`docs/ROADMAP-archive.md`](../ROADMAP-archive.md) (completed phases) |
-| Why is the stack what it is? | [`docs/adr/`](../adr/) — 001 stack, 002 distribution/update channels, 003 Linux packaging |
+| Why is the stack what it is? | [`docs/adr/`](../adr/) — 001 stack, 002 distribution/update channels, 003 Linux packaging, 004 Device Sync and the Athenaeum server, 005 difficulty vocabulary, 006 English country dance grammar |
+| How does Device Sync work? | [`docs/design/sync.md`](../design/sync.md), [`sync-spec.md`](../design/sync-spec.md) (the wire contract), [`sync-implementation.md`](../design/sync-implementation.md); the server is [`server/README.md`](../../server/README.md) |
 | What does the data model look like? | [`docs/design/domain-model.md`](../design/domain-model.md), [`docs/design/storage.md`](../design/storage.md) |
 | How do imports work? | [`docs/design/imports.md`](../design/imports.md) (large; read the section index at its head) |
 | What is a figure, formally? | [`docs/design/figure-taxonomy.md`](../design/figure-taxonomy.md), [`docs/design/dialect.md`](../design/dialect.md) |
@@ -56,6 +57,8 @@ one; a gate will fail, and the edit is lost at the next regeneration.
 | the `/guide/` section of the Pages site | `docs/user/*.md` | `tools/site/render_user_docs.py` |
 | `app/lib/l10n/*.dart` | `app/lib/l10n/*.arb` | `flutter gen-l10n` |
 | `packages/compendium_core/lib/src/storage/database.g.dart` | `tables.dart` | `build_runner` (drift) |
+| `packages/compendium_core/lib/src/sync/generated_sync_allow_list.dart` | `privacy/field_registry.dart` and `sync/wire_mapping.dart` | `packages/compendium_core/tool/generate_sync_allow_list.dart` (`test/sync/wire_mapping_test.dart` fails when it is stale) |
+| `packages/compendium_core/drift_schemas/generated/*.json` and `packages/compendium_core/test/storage/generated/*.dart` | a database written by `tool/write_head_database.dart` at each schema version | `drift_dev` — see [`drift_schemas/README.md`](../../packages/compendium_core/drift_schemas/README.md) |
 
 `app/assets/docs/` is a byte-for-byte mirror, gated by
 `python3 tools/ci/sync_user_docs.py --check`; it deliberately carries **no**
@@ -78,6 +81,8 @@ reproducible generated files.
 | Taxonomy | `packages/compendium_core/lib/src/taxonomy/` |
 | Privacy registry | `packages/compendium_core/lib/src/privacy/` |
 | Schema and migrations | `packages/compendium_core/lib/src/storage/` |
+| Device Sync (client side) | `packages/compendium_core/lib/src/sync/` |
+| Athenaeum sync server (pure Dart, a workspace member) | `server/` |
 | UI | `app/lib/src/screens/`, `app/lib/src/widgets/` |
 | Android share intake (size cap, staging, cold vs warm) | `app/android/app/src/main/kotlin/.../IncomingFileStager.kt`; JVM tests in `app/android/app/src/test/` |
 | CI ratchets | `tools/ci/` (each `check_*.py` / `report_*.py` should have a matching `test_*.py`; `check_l10n_drift.py`, a thin wrapper, has none. `tools/test_preflight.py` asserts every `test_*.py` under `tools/` is run by a workflow and by preflight) |

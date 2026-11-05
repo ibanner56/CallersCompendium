@@ -145,8 +145,8 @@ list (text)**, **Copy set list**, or **Export / print PDF**, the app asks
   beneath its title gets no card.
 
 If none of the program's dances have anything to put on a card — no structured
-figures, and no selected calling notes or walkthrough — the question is skipped
-and the export proceeds as set-list-only automatically.
+figures, and no selected calling notes, walkthrough, hook or published source —
+the question is skipped and the export proceeds as set-list-only automatically.
 
 Canceling the dialog (or dismissing it) stops the export — nothing is shared or
 copied.
@@ -176,8 +176,8 @@ Turning a field off removes it everywhere it would otherwise appear — but
 **author is the only one of these fields the plain numbered set-list line
 ever shows.** The rest only appear on the richer per-dance card: the "Set
 list and figures" appendix, a single dance's own **Share dance (text)**/
-**Copy dance** card, or any PDF. Figures are not part of this list; they stay
-controlled by the **Include figures?** choice above.
+**Copy dance** card, or a single dance's PDF. Figures are not part of this
+list; they stay controlled by the **Include figures?** choice above.
 
 ### Share a program with its dances
 

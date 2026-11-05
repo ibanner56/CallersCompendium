@@ -20,7 +20,10 @@ lay of the land first. To fill your library before you build a program, see
 ## Create and manage programs
 
 Open **Programs** to see the programs you have built. It starts with a short
-prompt and a **New program** button until you make your first one.
+prompt and a **New program** button until you make your first one. Once you
+have programs, a strip across the top shows the current week, with a dot on
+each day that has a program's event date; to choose which day the week starts
+on, see [Settings › Language & region](./settings.md#formats).
 
 Each program in the list shows its title, event date, venue, dance count, and a
 status label (**Draft**, **Finalized**, or **Performed**). The dance count is
@@ -48,7 +51,14 @@ direction the list opens with, see
   **Programs** toolbar. It appears only while [Device
   Sync](./settings.md#device-sync) is on and a store is connected, and shows a
   spinner while a sync is running.
-- **Duplicate** a program from its row's **…** menu to reuse last month's shape
+- **Add a dance from your collection** with **Add to program** on the dance's
+  page. **Create a new program with this dance** is always the first choice;
+  programs you can still plan are listed before those already **Performed**,
+  and a program that already holds the dance says **In this program** and asks
+  before adding it again. See
+  [What you can do with a dance](./collection.md#what-you-can-do-with-a-dance).
+- **Duplicate** a program from its row's **⋮** menu (on a computer, you can
+  also right-click the row) to reuse last month's shape
   as a starting point. The copy starts as a **Draft** with no performed marks,
   no pay and no event date, so it doesn't put a second entry on last month's
   date into your calling history. Give it the new date when you know it.
@@ -64,8 +74,9 @@ direction the list opens with, see
   Deleting a program also takes it out of the
   [calling history](#track-what-you-have-called) of every dance in it, and
   restoring it puts it back. With **Confirm before delete** on in
-  [Settings](./settings.md), the prompt says how many dances lose the program
-  from their history, counted under your current calling-history settings. The
+  [Settings › General › Accessibility](./settings.md#accessibility), the
+  prompt says how many dances lose the program from their history, counted
+  under your current calling-history settings. The
   warning appears only if you turned that setting on, and swiping a row to
   delete skips the prompt. The Undo message does not repeat the number.
 
@@ -78,7 +89,7 @@ program a title, paste your dance titles **one per line**, and you get a live
 preview before anything is saved:
 
 - **A line that matches a dance in your [collection](./glossary.md#collection)**
-  (ignoring capitalisation) becomes a **dance slot** linked to that dance.
+  (ignoring capitalization) becomes a **dance slot** linked to that dance.
 - **A line that matches nothing** — or that matches **more than one** dance, so
   the app can't tell which you meant — is kept as a **free-text note slot**, the
   same kind of slot used for breaks and announcements. Nothing is dropped, and
@@ -167,7 +178,7 @@ collection picker opens as a panel when you go to add a dance.
 *The Programs builder with ordered program slots beside a searchable collection
 picker.*
 
-![The Programs builder showing ordered program slots beside a searchable collection picker with filters](images/programs-builder.png)
+![The Programs builder showing ordered program slots with a break between the halves, beside a searchable collection picker with filters](images/programs-builder.png)
 
 - **Your program** — the ordered list of
   [slots](./glossary.md#slot) that make up the evening.
@@ -200,6 +211,16 @@ hold a result to show its details in the program pane, or hold a dance slot to
 show its details in the picker pane; letting go puts the pane back. On a narrow
 screen, details open on top of the picker, so your search is still there when
 you close them.
+
+### Save your program
+
+Choose **Save** at the bottom of the **Build** tab to keep your changes. On a
+computer, **Ctrl-S** (**Cmd-S** on a Mac) does the same while you're on the
+**Build** tab. A program needs a title before it can be saved. If you leave
+the builder with changes you haven't saved, the app asks **Discard changes?**:
+**Keep editing** takes you back, and **Discard** leaves without them. To have
+changes saved as you work instead, turn on **Auto-save program changes** in
+[Settings › Program › Programs](./settings.md#programs).
 
 ### Unsaved drafts
 
@@ -273,6 +294,13 @@ took its place.
 The builder numbers the dances the way the set list does: alternates show
 **ALT**, and a break has no number.
 
+Dance rows in the builder and on the program's summary are tinted by formation
+family (contras, triplets, mixers, circles, squares), and a formation you have
+given your own color shows that color instead, unless the dance is marked as a
+mixer, which keeps the mixer color. The formation is always written on the row
+too. To turn the tints off, or choose your own colors, see
+[Settings › Appearance › Set lists](./settings.md#set-lists).
+
 ### When a dance in a program is deleted
 
 A deleted dance stays in
@@ -292,7 +320,8 @@ A program carries the details of its event:
 - **Event date**, **Venue**, and **Notes**;
 - program-level **Band**, **Caller**, and **Dancer level**;
 - **Pay**, an amount and currency under **More details**, shown on the
-  program's summary but never in the shared program text or PDF;
+  program's summary but never in the shared set list, the PDF, or a program
+  file you share;
 - a **Status** — **Draft**, **Finalized**, or **Performed** — shown on the
   Programs list. Saving a change to **Performed** marks every unmarked dance
   in the program performed, except alternates, and that writes calling
@@ -305,7 +334,8 @@ A program carries the details of its event:
 - **Perform dialect**, the [dialect](./dialects.md#give-a-program-its-own-dialect)
   [Perform mode](./glossary.md#perform-mode) uses for this program. Leave it on
   **Use app dialect** to follow your active dialect. It affects Perform only: the
-  editor, the summary, the PDF, and exports keep your active dialect.
+  editor, the summary, the PDF, and exports keep your active dialect, and a
+  program file you share leaves it out.
 
 The **venue** can be a simple free-text label, or — when you turn on **Use
 reusable venue records** in [Settings › Program › Venues](./settings.md#venues) —
@@ -313,8 +343,9 @@ a saved [venue](./glossary.md#venue) record you can reuse across programs, with
 its own address, contacts, and schedule that you edit in one place. A program
 linked to a saved venue shows and exports that record's details; otherwise the
 free-text label is used. Switching modes never loses what you typed. Older
-programs with a typed venue can be linked to a matching record when you turn
-the setting on or add the venue; see
+programs with a typed venue can be linked to a matching record, so calling
+history counts them as one hall: the app offers this (**Link earlier
+programs?**) when you turn the setting on or add the venue; see
 [Settings › Program › Venues](./settings.md#venues).
 
 If you often play the same role, set a default caller or band in
@@ -335,7 +366,7 @@ sections together as the second half.
 *The program matrix with moves as columns, dances as rows, pinned headers, and
 markers that explain how figures are introduced and reused.*
 
-![The program matrix showing dances as rows and moves as columns, with pinned headers and a legend for introduced-here, dance's-first-figure, present, and adjacent-dance beat-overlap markers](images/program-matrix.png)
+![The program matrix showing dances as rows, each marked 1st or 2nd for its half of the evening, and moves as columns, with pinned headers and a legend for introduced-here, dance's-first-figure, present, and adjacent-dance beat-overlap markers](images/program-matrix.png)
 
 Here is how to read it:
 
@@ -510,9 +541,9 @@ When you share, copy, or export as PDF the app asks **"Include figures?"** —
 choose **Set list only** to keep titles, notes, and the author, or
 **Set list and figures** to append a full card for each dance, showing every
 selected field alongside its figures, after the set list. A dance with no
-structured figures still gets a card when it has calling notes or a walkthrough
-you've selected. If none of the program's dances have anything to put on a
-card, the question is skipped. If your program is linked to
+structured figures still gets a card when it has calling notes, a walkthrough,
+a hook or a published source you've selected. If none of the program's dances
+have anything to put on a card, the question is skipped. If your program is linked to
 a [venue](./glossary.md#venue) with contact people recorded, the PDF, JSON, and
 **Share (program + dances)** exports first ask whether to include those
 contacts, and leave them out unless you say otherwise. A venue's street address
@@ -581,8 +612,8 @@ one another caller [sent you](./sharing.md#share-a-program-with-its-dances),
 arrives without a date. To keep undated programs out of calling history until
 you date them, turn on **Require an event date for calling history** in the
 same settings section. It applies everywhere history is read: the "called ×N"
-count, the **Called** filter, the dance's history list, the **Last called**
-sort, and the repeated-venues and half summaries.
+count, the **Calling history** filter, the dance's history list, the **Last
+called** sort, and the repeated-venues and half summaries.
 
 The same settings section can also limit calling history to programs you called
 yourself, and control the repeated-venues summary.

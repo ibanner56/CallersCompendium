@@ -108,10 +108,20 @@ That's what a [dialect](./glossary.md#dialect) is for. Pick or build one under
 **Settings › Dialect**, and the app shows your words everywhere. See
 [Dialect](./dialects.md).
 
+### How do I fix a misspelled tag, author, or source everywhere at once?
+
+Rename it once and every dance that uses it follows. Tags, authors, and sources
+each have a manager under **Settings › General › Library**. If two entries are
+really the same — say an import spelled an author two ways — choose **Merge
+into…** on one of them, and every dance that used either ends up with the one
+you keep. A rename or merge offers **Undo**. See
+[Settings](./settings.md#library) and, for tags,
+[Collection & search](./collection.md#group-by-category-a-dances-vibe).
+
 ### How do I make the text bigger for calling on stage?
 
 [Perform mode](./glossary.md#perform-mode) sizes text to be read at arm's length.
-Leave **Auto-size** on to fit each card to the screen, or use the **Decrease text size** and **Increase text
+Leave **Auto-size text to screen** on to fit each card to the screen, or use the **Decrease text size** and **Increase text
 size** buttons to set the size yourself — which switches auto-size off and remembers your size for
 next time. See [Perform mode](./perform.md#set-the-stage), and
 [Accessibility](./accessibility.md) for more ways to adjust text, contrast, and
@@ -134,12 +144,13 @@ from a full backup. See [Share, print & export](./sharing.md).
 
 ### Where can I read these guides on my phone at the gig?
 
-They're already in the app. **Guide** is one of the four destinations in the
-navigation, alongside **Collection**, **Programs**, and **Settings**, and it holds
-this whole set of guides — bundled in, so it works with no signal in a church
-hall. Links between guides work there just as they do here, and you can select
-text to copy. Images and the search box are the two things it doesn't have, so
-head for the guide list to find your way around.
+They're already in the app. **Guide** sits in the navigation alongside
+**Collection**, **Programs**, and **Settings** (and **Glossary**, if you have
+turned it on), and it holds this whole set of guides, pictures included —
+bundled in, so it works with no signal in a church hall. Links between guides
+work there just as they do here, and you can select text to copy. The one thing
+it doesn't have is a search box, so head for the guide list to find your way
+around.
 
 ### How do I get updates?
 
