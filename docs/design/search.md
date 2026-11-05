@@ -41,7 +41,7 @@ tree. Conforms to [ux.md](ux.md) §1 and [dialect.md](dialect.md)
    selects its fixed `figure` filter. The Advanced builder's tree is also sent
    to ContraDB, translated by `translateDanceFilterToContraDb` onto its
    `lib/filter_dances.rb` array language (`and`, `or`, `no`, `&`, `not`,
-   `figure`) and combined with any text criterion under `and`. Figure
+   `then`, `figure`) and combined with any text criterion under `and`. Figure
    conditions in all/any/none groups and `ThenFilter` translate; `ThenFilter`
    means the same as ContraDB's `then` (the second figure immediately follows
    the first, wrapping from the last figure to the first). A tag, a figure
