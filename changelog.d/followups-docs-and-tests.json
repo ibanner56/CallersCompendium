@@ -4,7 +4,8 @@
   "app": {
     "changed": [
       "When you choose a file to import that isn't a share file or readable text, the message now says so, and explains how to resave a text file as UTF-8.",
-      "On Windows, the app no longer opens a share file that sits inside a folder linked to another location (a symbolic link or junction), the same way it already refuses a link to the file itself."
+      "On Windows, the app no longer opens a share file that sits inside a folder linked to another location (a symbolic link or junction), the same way it already refuses a link to the file itself.",
+      "Adding or removing a tag on many dances at once reads the selected dances in one step instead of one by one, so it is much faster on a large selection."
     ],
     "fixed": [
       "If Check for updates can't reach the server, the update it found earlier is no longer forgotten. The banner and the download stay available, and the status line says the check failed."
