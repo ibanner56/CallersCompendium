@@ -524,6 +524,9 @@ undone.
     names or text, so your other devices delete it too. A program that
     included the dance keeps its title as a line of text, as it does for any
     dance that is gone for good. Programs work the same way.
+  - If another device permanently deleted a dance while **Recently deleted**
+    was open here, tapping **Restore** on it restores nothing and shows no
+    "restored" message. The entry disappears when the list refreshes.
   - A device still on an older version of the app shows that deletion record
     in its Recently deleted as an untitled "—" entry until you update it. Don't
     restore it there: it is empty.

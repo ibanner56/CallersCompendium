@@ -371,9 +371,13 @@ The non-interactive program-import resolver
 `resolveConfidentOnlineDanceId`) already runs the previewed online dance
 through the full local `DedupeIndex` via `OnlineSearchService.loadPreview`
 (no second index build needed). Before calling `OnlineSearchService.import`,
-it now checks `preview.plan.verdict.hasConfidentMatch` and returns `null`
-(leaving the program line on the existing note-slot fallback) instead of
-importing. This is intentionally **not** the same as the interactive
+it now checks `preview.plan.verdict.hasConfidentMatch`. A confident match whose
+figures are canonically identical writes nothing: the plaintext-program resolver
+leaves the line on the note-slot fallback, while `resolveConfidentOnlineDanceId`
+returns the existing dance's id so the ContraDB program import's Caller's Box
+fallback links its slot to it (INTAKE-3). One whose figures cannot be read, or
+whose target cannot be loaded, returns `null` and also takes the note-slot
+fallback, instead of importing. This is intentionally **not** the same as the interactive
 `CallersBoxOnline`/`ContraDbOnline.import` behavior, which asks the user about
 a confident match (#797, #811; since INTAKE-5 also when the existing dance was
 entered by hand) and creates a second copy unasked only for a same-source

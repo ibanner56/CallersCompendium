@@ -903,6 +903,56 @@ void main() {
       expect(saved.name, equals('Mine'));
     });
 
+    Future<void> openEditorWithEdit(WidgetTester tester, String name) async {
+      await tester.tap(find.byKey(ValueKey('dialect-menu-$name')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Edit terms'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('dialect-role1-singular')),
+        'Gent',
+      );
+    }
+
+    testWidgets('saving after the dialect was renamed elsewhere adds no second '
+        'dialect and says so', (tester) async {
+      final ctx = await _pumpSettings(tester);
+      await ctx.dialectLibrary.upsert(Dialect(name: 'Mine'));
+      await openDialect(tester);
+      await tester.pumpAndSettle();
+      await openEditorWithEdit(tester, 'Mine');
+
+      await ctx.dialectLibrary.rename('Mine', 'Yours');
+      await tester.tap(find.byKey(const ValueKey('dialect-editor-save')));
+      await tester.pumpAndSettle();
+
+      expect(ctx.dialectLibrary.customDialects.map((d) => d.name), ['Yours']);
+      expect(ctx.dialectLibrary.customByName('Yours')!.roles, isEmpty);
+      expect(
+        find.textContaining('your changes were not saved'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('saving after the dialect was deleted elsewhere does not '
+        'bring it back', (tester) async {
+      final ctx = await _pumpSettings(tester);
+      await ctx.dialectLibrary.upsert(Dialect(name: 'Mine'));
+      await openDialect(tester);
+      await tester.pumpAndSettle();
+      await openEditorWithEdit(tester, 'Mine');
+
+      await ctx.dialectLibrary.delete('Mine');
+      await tester.tap(find.byKey(const ValueKey('dialect-editor-save')));
+      await tester.pumpAndSettle();
+
+      expect(ctx.dialectLibrary.customDialects, isEmpty);
+      expect(
+        find.textContaining('your changes were not saved'),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('saving an invalid dialect surfaces issues and stays open', (
       tester,
     ) async {

@@ -2086,6 +2086,11 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String settingsDialectEditConflictSnack(String name) {
+    return '\"$name\" blev omdøbt eller slettet, mens du redigerede den, så dine ændringer blev ikke gemt.';
+  }
+
+  @override
   String get settingsDialectActionsTooltip => 'Dialekthandlinger';
 
   @override

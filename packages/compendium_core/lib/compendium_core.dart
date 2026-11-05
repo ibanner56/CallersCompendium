@@ -172,6 +172,7 @@ export 'src/storage/database.dart'
         shareableTextNormalisationScopeKey,
         normalisationDerivedIndexRepairDoneKey,
         customFieldIndexRepairDoneKey,
+        customNumberIndexRepairDoneKey,
         kSectionRuleVersion,
         kCompendiumSchemaVersion,
         kMinSupportedSchemaVersion;

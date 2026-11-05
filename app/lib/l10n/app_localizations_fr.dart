@@ -2111,6 +2111,11 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String settingsDialectEditConflictSnack(String name) {
+    return '\"$name\" a été renommé ou supprimé pendant votre modification ; vos changements n\'ont pas été enregistrés.';
+  }
+
+  @override
   String get settingsDialectActionsTooltip => 'Actions du dialecte';
 
   @override

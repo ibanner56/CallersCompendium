@@ -1924,6 +1924,10 @@
   "@settingsDialectDeleteConfirmBody": {
     "x-sourceSha256": "54b5562a0381823ad8c2663dba0db935021b379431fffddfc83835da6a273829"
   },
+  "settingsDialectEditConflictSnack": "「{name}」は編集中に名前が変更されたか削除されたため、変更は保存されませんでした。",
+  "@settingsDialectEditConflictSnack": {
+    "x-sourceSha256": "9e3281ba02ea73d6457c7fde6f74101343054453e9bcd3dbc84e5967101cb3a0"
+  },
   "settingsDialectActionsTooltip": "ダイアレクトのアクション",
   "@settingsDialectActionsTooltip": {
     "x-sourceSha256": "777102777d9b2fbc6da7b30b1f3fc5384c65b6890ebfc04fdd2e8f9d2d1e673c"
