@@ -564,12 +564,12 @@ properties rather than becoming surprises.
 `app_en.arb` values use straight `"` and `'` (maintainer decision, 2026-10-31).
 `tools/ci/check_arb_quote_style.py` fails any new or edited English value with a
 curly quote or apostrophe; `python3 tools/ci/arb_quote_style.py --only KEY...`
-is the idempotent normaliser that fixes the reported keys (without `--only` it
-also rewrites every allow-listed string, which is the U5b-2 sweep). Values only, English only; the rule, the
-exemptions and the reasons are in the module docstrings and in the
-[style guide](../user/style-guide.md#app-strings-straight-quotes). Today's
-strings are on `tools/ci/arb_quote_allowlist.json` until the sweep empties it;
-`--regenerate` is for seeding and re-seeding that list, never for going green.
+is the idempotent normaliser that fixes the reported keys. Values only,
+English only; the rule, the exemptions and the reasons are in the module docstrings and in the
+[style guide](../user/style-guide.md#app-strings-straight-quotes). The
+allow-list (`tools/ci/arb_quote_allowlist.json`) is empty since the U5b-2 sweep,
+so a curly mark in English always fails; `--regenerate` would record a
+violation instead of fixing it and is never the way to go green.
 
 ### The `arb-translate` Copilot extension
 
