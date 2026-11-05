@@ -986,7 +986,10 @@ around both rules above rather than through them:
   slot that another device added before its blank arrived still cites the
   blanked dance, because only the deleting device rewrites citers; the app
   shows that slot as "Deleted dance" rather than the placeholder title
-  (maintainer decision Q-6, 2026-10-31).
+  (maintainer decision Q-6, 2026-10-31, recorded in
+  `docs/dev/audits/2026-10-behavior/` on the audit branch). A dance a
+  retention sweep kept the title of, because a slot still cites it, is shown
+  as any dance in Recently deleted.
 
 ### Migration safety (app-layer preflight)
 

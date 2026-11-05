@@ -3425,13 +3425,14 @@ being frozen.
 > outcome for ever, so the review screen kept asking about a pair that no
 > longer collides (follow-up N2-T1). After each pass applies, the client MUST
 > drop every step-1 row that local state alone shows has ended: `record_id`
-> or `counterpart_id` resolves through an alias; `record_id` is missing or
-> tombstoned; its wire hash differs from `local_hash`, or `local_hash` is
-> NULL; or the counterpart is missing or no longer holds the candidate's
-> natural key. A pass that still sees the collision has re-queued the row
-> with the current hashes before this runs, so nothing still being asked is
-> dropped. A tombstoned counterpart does not end the collision, because Keep
-> both still resolves it, and an undecodable row is left for the resolver to
+> or `counterpart_id` resolves through an alias; `record_id` is missing; its
+> wire hash differs from `local_hash`, or `local_hash` is NULL; or the
+> counterpart is missing or no longer holds the candidate's natural key. A
+> pass that still sees the collision has re-queued the row with the current
+> hashes before this runs, so nothing still being asked is dropped. Neither
+> side being a tombstone ends the collision: a tombstoned `record_id` still
+> meets the peer's live copy every pass, and Keep both still resolves a
+> tombstoned counterpart. An undecodable row is left for the resolver to
 > report. The client MUST NOT drop a row merely because the pass did not
 > observe it: a peer the pass could not read is not evidence that the
 > collision ended. Both rules are the implementing session's choices, not the

@@ -393,7 +393,8 @@ Future<void> raiseExistenceAbove(
 /// sees.
 ///
 /// All three kinds reach this state. A tag's tombstone keeps its join rows
-/// unless the user's own delete stripped them (`TagRepository.delete`), and
+/// unless the user's own delete stripped them
+/// (`ReferenceEditRepository.deleteTag`), and
 /// the guards on `choreographers` and `custom_field_defs` count live dances
 /// only, so a tombstoned author or field keeps the join rows of the dances in
 /// Recently deleted that still name it (#1357 for authors; for fields, the

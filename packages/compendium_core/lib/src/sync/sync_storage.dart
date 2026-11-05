@@ -1992,12 +1992,11 @@ final class CompendiumSyncStorage
     // The record the update targets has gone, or has changed since the row
     // was queued. A NULL legacy `local_hash` counts as changed, as it does for
     // the resolver: a pass still seeing the pair has just re-queued it with
-    // the current hash.
+    // the current hash. A *tombstoned* target is not stale: the step-1 guard
+    // still meets a peer's live copy of it and re-queues the row every pass,
+    // so dropping it here would only hide a blocked update.
     final target = await _localNaturalCandidate(kind: kind, id: row.recordId);
-    final targetMetadata = await _naturalRecordMetadata(kind, row.recordId);
     if (target == null ||
-        targetMetadata == null ||
-        targetMetadata.deletedAt != null ||
         row.localHash == null ||
         target.wireHash != row.localHash) {
       return true;

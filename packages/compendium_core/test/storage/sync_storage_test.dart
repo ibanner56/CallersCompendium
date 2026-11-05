@@ -6179,6 +6179,41 @@ void main() {
     expect(await repositories.syncLocal.listReviewQueue(), hasLength(1));
   });
 
+  // The step-1 guard keys on identities tombstones included, so a peer's live
+  // copy of a record deleted here still meets it and is re-queued every pass.
+  // Dropping that row would hide a blocked update rather than an ended one.
+  test('a step-1 row whose renamed record is a tombstone here survives the '
+      'refresh', () async {
+    await queueStep1Collision(renamedId: 'aaa-author', holderId: 'zzz-author');
+    await repositories.choreographers.delete(
+      'aaa-author',
+      at: renameCollisionStamp.add(const Duration(minutes: 5)),
+    );
+    final row = (await repositories.syncLocal.listReviewQueue()).single;
+    // The row is current: its hash describes the tombstone it now targets.
+    await repositories.syncLocal.deleteReview(
+      kind: row.kind,
+      recordId: row.recordId,
+      counterpartId: row.counterpartId,
+    );
+    await repositories.syncLocal.enqueueReview(
+      kind: row.kind,
+      recordId: row.recordId,
+      counterpartId: row.counterpartId,
+      reason: row.reason,
+      candidateBlob: row.candidateBlob,
+      candidateHash: row.candidateHash,
+      localHash: (await storage.snapshot())
+          .local[(kind: SyncRecordKind.choreographer, recordId: 'aaa-author')]!
+          .wireHash,
+      queuedAt: row.queuedAt,
+    );
+
+    await storage.refreshConflictReviews(const []);
+
+    expect(await repositories.syncLocal.listReviewQueue(), hasLength(1));
+  });
+
   test('an in-batch step-1 collision is resolvable end to end', () async {
     // The row #1364 started queueing. Its counterpart is a candidate that is
     // still only *prepared* when the row is written, so this also covers the

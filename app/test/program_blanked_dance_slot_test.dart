@@ -151,11 +151,24 @@ void main() {
     });
 
     test('a blanked dance is "Deleted dance", unmarked, in every view', () {
-      final blank = dance(deletedAt: permanentlyDeletedAt);
+      final blank = dance(
+        deletedAt: permanentlyDeletedAt,
+      ).copyWith(title: blankedRecordTitle);
       expect(slotDanceTitle(l10n, blank), l10n.programsBlankedDanceTitle);
       expect(
         slotDanceTitle(l10n, blank, markDeleted: true),
         l10n.programsBlankedDanceTitle,
+      );
+    });
+
+    // A retention sweep keeps the title of a dance a slot still cites, under
+    // the same permanently-deleted mark.
+    test('a swept dance that kept its title keeps showing it', () {
+      final swept = dance(deletedAt: permanentlyDeletedAt);
+      expect(slotDanceTitle(l10n, swept), 'Petronella');
+      expect(
+        slotDanceTitle(l10n, swept, markDeleted: true),
+        'Petronella ${l10n.programsDeletedDanceFallback}',
       );
     });
   });

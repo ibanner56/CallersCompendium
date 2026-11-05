@@ -9,7 +9,13 @@ import '../../l10n/app_localizations.dart';
 /// gone. The device that deleted it rewrote its own programs' slots, but a
 /// slot added on this device before the blank arrived still cites it, and
 /// used to read "— (deleted dance)". It shows "Deleted dance" instead (the
-/// maintainer's decision, Q-6, 2026-10-31).
+/// maintainer's decision Q-6, 2026-10-31, recorded in
+/// `docs/dev/audits/2026-10-behavior/` on the audit branch).
+///
+/// Both tests are needed. A retention sweep marks a dance a slot still cites
+/// as permanently deleted but keeps its title, which that slot goes on
+/// showing (`DanceRepository.removePermanentlyDeleted`); such a dance is
+/// treated as any other in Recently deleted.
 ///
 /// With [markDeleted], any other dance in Recently deleted keeps its title
 /// followed by "(deleted dance)", as Perform, the builder and the summary
@@ -19,7 +25,8 @@ String slotDanceTitle(
   Dance dance, {
   bool markDeleted = false,
 }) {
-  if (isPermanentlyDeleted(dance.deletedAt)) {
+  if (isPermanentlyDeleted(dance.deletedAt) &&
+      dance.title == blankedRecordTitle) {
     return l10n.programsBlankedDanceTitle;
   }
   if (markDeleted && dance.isDeleted) {
