@@ -464,8 +464,15 @@ void main() {
     venueCalls.value = 8;
     await tester.pumpAndSettle();
 
-    expect(tester.widget<SwitchListTile>(toggle).value, isTrue);
     expect(tester.widget<DropdownButton<int>>(dropdown).value, 8);
+    // The list builds lazily and the tracking rows below the dropdown lengthen
+    // it, so bring the toggle back into view before reading it.
+    await tester.scrollUntilVisible(
+      toggle,
+      -200,
+      scrollable: find.byType(Scrollable).last,
+    );
+    expect(tester.widget<SwitchListTile>(toggle).value, isTrue);
   });
 
   testWidgets('toggling program auto-commit persists the setting', (
