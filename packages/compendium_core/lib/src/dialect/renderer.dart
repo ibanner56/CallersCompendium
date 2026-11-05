@@ -641,10 +641,23 @@ class FigureRenderer {
               spec == null ? displayTemplate.slots[name] : params[name],
             ),
         };
-        final line = _assembleDisplayTemplate(
-          (slots: displayTemplate.slots, template: wording),
-          evaluate: (condition) =>
-              evaluateWordingCondition(condition, subjects),
+        // `{article}` agrees with the word that follows it in THIS wording,
+        // not in the default one: a hey wording saved before the direction
+        // moved after the move still reads `{article} {where} {length}`, and
+        // must say "an along half hey", not "a along half hey". Conditions
+        // still test the default line's article.
+        final hasArticle = displayTemplate.slots.containsKey('article');
+        final line = _resolveArticles(
+          _assembleDisplayTemplate(
+            (
+              slots: hasArticle
+                  ? {...displayTemplate.slots, 'article': _articleSentinel}
+                  : displayTemplate.slots,
+              template: wording,
+            ),
+            evaluate: (condition) =>
+                evaluateWordingCondition(condition, subjects),
+          ),
         );
         final displayLine = def.id == 'circle' && params['singleFile'] == true
             ? (line.trimLeft().startsWith('single file ')
@@ -804,7 +817,10 @@ class FigureRenderer {
       decimals,
       forCanonical: forCanonical,
     );
-    final rendered = def.renderTemplate.replaceAllMapped(
+    final template = forCanonical
+        ? def.renderTemplate
+        : _displayRenderTemplates[def.id] ?? def.renderTemplate;
+    final rendered = template.replaceAllMapped(
       _placeholder,
       (match) => slots[match[1]!] ?? '',
     );
@@ -835,7 +851,8 @@ class FigureRenderer {
   /// A step whose subject is the previous step's says it once: "ones balance
   /// and swing", not "ones balance and ones swing". Only a plain repeat is
   /// dropped — both steps state the same `who` (an assumed one keeps its
-  /// marker), are taxonomy figures, and both lines begin with that subject — so
+  /// marker), are taxonomy figures, and both lines begin with that subject, in
+  /// either number ("neighbor balance", "neighbors dance in") — so
   /// a line the subject does not lead, or one worded by an override that does
   /// not start with it, is left whole. Display only: the canonical render
   /// joins every step in full.
@@ -849,15 +866,16 @@ class FigureRenderer {
     for (var i = 0; i < lines.length; i++) {
       var line = lines[i];
       if (i > 0) {
-        final prefix = _sharedSubjectPrefix(
+        final prefixes = _sharedSubjectPrefixes(
           children[i - 1],
           children[i],
           dialect,
         );
-        if (prefix != null &&
-            lines[i - 1].startsWith(prefix) &&
-            line.startsWith(prefix) &&
-            line.length > prefix.length) {
+        final previous = lines[i - 1];
+        final prefix = prefixes
+            .where((p) => line.startsWith(p) && line.length > p.length)
+            .firstOrNull;
+        if (prefix != null && prefixes.any(previous.startsWith)) {
           line = line.substring(prefix.length);
         }
       }
@@ -873,15 +891,26 @@ class FigureRenderer {
     return _andList(shown);
   }
 
-  /// `"<subject> "` when [previous] and [step] are both taxonomy figures that
-  /// state the same subject, else null.
-  String? _sharedSubjectPrefix(Figure previous, Figure step, Dialect dialect) {
+  /// The `"<subject> "` forms a line may open with when [previous] and [step]
+  /// are both taxonomy figures that state the same subject, else none. Both
+  /// numbers are offered: a subject reads singular before a move ("neighbor
+  /// balance") but plural before a plural verb ("neighbors dance in"), and
+  /// either step may be of either kind.
+  Set<String> _sharedSubjectPrefixes(
+    Figure previous,
+    Figure step,
+    Dialect dialect,
+  ) {
     bool plain(Figure f) => !f.isCustom && !f.isContainer && !f.assumedSubject;
-    if (!plain(previous) || !plain(step)) return null;
+    if (!plain(previous) || !plain(step)) return const {};
     final who = step.params['who'];
-    if (who is! String || who != previous.params['who']) return null;
-    final subject = _displaySubject(who, dialect);
-    return subject.isEmpty ? null : '$subject ';
+    if (who is! String || who != previous.params['who']) return const {};
+    return {
+      for (final plural in [false, true])
+        if (_displaySubject(who, dialect, plural: plural) case final subject
+            when subject.isNotEmpty)
+          '$subject ',
+    };
   }
 
   /// [line], the display text of [child], a side of a meanwhile or a part of
@@ -1096,6 +1125,8 @@ class FigureRenderer {
       'rory_o_more': "doing a Rory O'More",
       'set': 'setting',
       'slide': 'sliding',
+      // Reached only when a custom wording puts `{move}` whole in the line;
+      // the default line is handled by [_gerundiveRenderedFallback].
       'slide_along_set': 'sliding along the set',
       'slice': 'taking',
       'square_through': 'squaring through',
@@ -1133,6 +1164,11 @@ class FigureRenderer {
   }
 
   String _gerundiveRenderedFallback(String moveId, String rendered) {
+    // Its display line spells the name around the side ("slide left along
+    // set"), so the name is not found whole and only the verb changes.
+    if (moveId == 'slide_along_set') {
+      return rendered.replaceFirst(RegExp(r'\bslide\b'), 'sliding');
+    }
     if (moveId != 'zig_zag') return rendered;
     final zigged = rendered.replaceFirst(RegExp(r'\bzig\b'), 'zigging');
     return zigged.replaceFirst(RegExp(r'\bzag\b'), 'and zagging');
@@ -1573,6 +1609,16 @@ class FigureRenderer {
     return slots;
   }
 
+  /// Starting wordings that differ from the move's default display template.
+  /// `slide_along_set` reads "slide left along set", spelling the name around the side; a wording seeded with
+  /// those literal words would ignore a dialect's own name for the move and a
+  /// copied figure's new name, so the editor and a copy start from `{move}
+  /// {slide}` instead, as they always have. A caller who wants the default
+  /// order in a wording of their own writes `slide {slide} along set`.
+  static const Map<String, String> _moveWordingSeedTemplates = {
+    'slide_along_set': '{move} {slide}',
+  };
+
   /// Returns the available slots omitted by a custom wording template.
   Set<String> moveWordingMissingSlots(String moveId, String wording) {
     final used = _wordingSlotNames(wording);
@@ -1607,14 +1653,19 @@ class FigureRenderer {
     return labels;
   }
 
-  /// The default display template for [moveId], including the display-specific
-  /// sentence structure where one exists.
+  /// The starting template for a wording of [moveId]: the default display
+  /// template, including the display-specific sentence structure where one
+  /// exists, except where [_moveWordingSeedTemplates] keeps `{move}` whole.
   String? moveWordingTemplate(String moveId) {
     final def = taxonomy.resolve(moveId);
     if (def == null) return null;
     final canonicalMoveId = def.id;
+    final seed = _moveWordingSeedTemplates[canonicalMoveId];
+    if (seed != null) return seed;
     final base = _displayBaseRenderers[canonicalMoveId];
-    if (base == null) return def.renderTemplate;
+    if (base == null) {
+      return _displayRenderTemplates[canonicalMoveId] ?? def.renderTemplate;
+    }
     final figure = Figure(move: canonicalMoveId);
     final params = taxonomy.effectiveParams(figure);
     return base(this, def, params, Dialect.canonical, false, false).template;
@@ -1668,11 +1719,13 @@ class FigureRenderer {
     Object? value,
     Dialect dialect, {
     bool omitUnspecified = false,
+    bool plural = false,
   }) {
     if (omitUnspecified && _isUnspecified(value)) return '';
     final subject = _displaySubject(
       value,
       dialect,
+      plural: plural,
     ).replaceAll(_subjectMarkSentinel, '');
     return subject.isEmpty ? subject : '$subject$_subjectMarkSentinel';
   }
@@ -1777,9 +1830,22 @@ class FigureRenderer {
   /// best-effort [_humanize] rather than silently blanked — malformed
   /// imported/user data must be visible, not hidden. `null` renders empty so
   /// the caller can drop the connective.
-  String _displaySubject(Object? value, Dialect dialect) {
+  ///
+  /// [plural] is for a subject a plural verb agrees with ("neighbors take
+  /// right hands"): it routes through [_displayGroup], which keeps
+  /// `neighbors` plural. The singular `neighbor` reads only as a caller's
+  /// prefix to a move ("neighbor swing"), not as the subject of "take".
+  String _displaySubject(
+    Object? value,
+    Dialect dialect, {
+    bool plural = false,
+  }) {
     if (value == null) return '';
-    if (value is String) return _displayDancer(value, dialect);
+    if (value is String) {
+      return plural
+          ? _displayGroup(value, dialect)
+          : _displayDancer(value, dialect);
+    }
     return _humanize(value.toString());
   }
 
@@ -1937,6 +2003,12 @@ class FigureRenderer {
     return substitution.replaceAll('%S', side is String ? side : '');
   }
 
+  /// The display (or, with [forCanonical], canonical) words for one param
+  /// [value] of a move.
+  ///
+  /// [userFigure] marks a value for a figure of your own, whose template
+  /// supplies its own words around a slot ("face {where}", "on the {where}"),
+  /// so built-in phrasing such as [_displayDirection]'s is not applied.
   String _renderValue(
     String name,
     Object? value,
@@ -1944,8 +2016,9 @@ class FigureRenderer {
     Dialect dialect,
     bool verbose,
     bool decimals,
-    bool forCanonical,
-  ) {
+    bool forCanonical, {
+    bool userFigure = false,
+  }) {
     if (value == null) return '';
     // The `unspecified` sentinel means the SOURCE STATED NOTHING, so it renders
     // as nothing — in the canonical render too. This is what lets an additive
@@ -1960,6 +2033,9 @@ class FigureRenderer {
     }
     if (value is String && roleTokens.contains(value)) {
       return _roleTerm(value, dialect);
+    }
+    if (!forCanonical && !userFigure && spec?.kind == ParamKind.direction) {
+      return _displayDirection(value);
     }
     // Swing's `prefix` modifier reads as a natural phrase in front of the move
     // ("balance & swing" / "meltdown swing"); `none` renders to nothing.
@@ -2105,6 +2181,7 @@ class FigureRenderer {
                 verbose,
                 decimals,
                 forCanonical,
+                userFigure: true,
               );
       }
     }
@@ -2177,6 +2254,7 @@ class FigureRenderer {
           verbose,
           decimals,
           forCanonical,
+          userFigure: true,
         );
     }
   }
@@ -2267,6 +2345,26 @@ class FigureRenderer {
 
   static String _gateFacingPhrase(String facing) =>
       _gateFacingPhrases[facing] ?? _humanize(facing);
+
+  /// DISPLAY-ONLY phrasing of a set direction (`ParamKind.direction`), shared
+  /// by every move that shows one: a diagonal reads "on right diagonal" and a
+  /// facing direction reads "facing in", so a direction never runs into the
+  /// hand or shoulder beside it ("pull by right on left diagonal", "pull by
+  /// right facing in"). `across` and `along` read as themselves. The
+  /// canonical render keeps the humanized token ("right diagonal"), so the
+  /// FTS/dedupe text is unchanged. An unexpected value humanizes.
+  static const Map<String, String> _directionPhrases = {
+    'rightDiagonal': 'on right diagonal',
+    'leftDiagonal': 'on left diagonal',
+    'in': 'facing in',
+    'out': 'facing out',
+    'up': 'facing up',
+    'down': 'facing down',
+  };
+
+  static String _displayDirection(Object? value) => value is String
+      ? _directionPhrases[value] ?? _humanize(value)
+      : _displayScalar(value);
 
   /// Swing `endFacing` values that render an ending-facing clause (issue #543).
   /// The default `in` (across) is deliberately ABSENT — a default swing renders
@@ -2382,10 +2480,25 @@ class FigureRenderer {
     'pass_by': 'pass by %S shoulders',
   };
 
+  /// DISPLAY-ONLY word order for moves whose `renderTemplate` reads well as
+  /// search text but not as a call. Each entry holds exactly the slots of the
+  /// move's `renderTemplate`, rearranged, so the slots are computed as before
+  /// and only their order changes; the canonical render keeps
+  /// `renderTemplate`, so the FTS/dedupe text is unchanged and needs no index
+  /// rebuild.
+  static const Map<String, String> _displayRenderTemplates = {
+    // The hand belongs to the pull, and a direction follows it: "pull by right
+    // across", not "pull by across right" (canonical: `{who} {move} {where}
+    // {hand}`).
+    'pull_by': '{who} {move} {hand} {where}',
+  };
+
   /// DISPLAY-ONLY singular forms for the positional dancer-set vocabulary that
   /// otherwise humanizes to a `partner`/`neighbor`/`shadow` plural. A figure's
   /// subject reads as a singular dancer in display (`neighbors` → `neighbor`),
-  /// while the canonical render keeps the plural token. Role tokens
+  /// while the canonical render keeps the plural token — except a subject a
+  /// plural verb agrees with, which stays plural ("neighbors take right
+  /// hands"; [_displaySubject]'s `plural`). Role tokens
   /// (`role1s`/`role2s`) and the group tokens `everyone`/`ones`/`twos`/
   /// `centers`/`firstCorners`/`secondCorners`/`sameRoles` are intentionally
   /// absent — they are never singularized.
@@ -2411,8 +2524,9 @@ class FigureRenderer {
   /// restructure (not a trailing suffix). Consulted in [_render] only when
   /// `!forCanonical`; the canonical render keeps expanding `renderTemplate`, so
   /// the dedupe/FTS text stays byte-for-byte stable. Dancer/role tokens map
-  /// through [_displayDancer] (dialect-aware + PR1 singularization); move names
-  /// through [_renderMoveName].
+  /// through [_displayDancer] (dialect-aware + PR1 singularization), or
+  /// [_displayGroup] where a plural verb agrees with them; move names through
+  /// [_renderMoveName].
   static final Map<String, _DisplayBaseRenderer> _displayBaseRenderers = {
     // Swing (issue #543). Reproduces the terse `{who} {prefix} {move}` line
     // (byte-identical to the template expansion) and appends an ending-facing
@@ -2634,6 +2748,30 @@ class FigureRenderer {
         'facing': facing,
       }, '{who} {move} {whom} {direction}{facing}');
     },
+    // The side belongs to the verb: "slide left along set", not the canonical
+    // "slide along set left". The taxonomy's name is spelled out around the
+    // side, so `{move}` is not in this template; a dialect that renames the
+    // move keeps its own name whole, with the side after it ("sashay left"),
+    // as before. Custom wordings start from `{move} {slide}`
+    // ([_moveWordingSeedTemplates]).
+    'slide_along_set': (r, def, params, dialect, verbose, decimals) {
+      final move = r._renderMoveName(def.id, def.displayName, params, dialect);
+      final slide = r._renderValue(
+        'slide',
+        params['slide'],
+        def.params['slide'],
+        dialect,
+        verbose,
+        decimals,
+        false,
+      );
+      return _displayTemplate(
+        {'move': move, 'slide': slide},
+        dialect.moves.containsKey(def.id)
+            ? '{move} {slide}'
+            : 'slide {slide} along set',
+      );
+    },
     // ContraDB `zigZagWords`: words(twho, "zig", sspin, "zag", return_sspin, …).
     // The zag direction is the mirror of the zig (`turn`) direction. ContraDB
     // omits the partners subject; per the ratified decision we instead surface
@@ -2747,13 +2885,14 @@ class FigureRenderer {
     },
     // ContraDB `revolvingDoorWords`: words(smove, " - ", ssubject, "take",
     // shand, "hands and drop off", sobject, "on other side"). The subject
-    // (role2s) stays a plural role term; the object (partners) singularizes per
-    // PR1. Unknown non-null who/whom/hand values humanize (surfacing malformed
-    // data) rather than blanking out. This base line already carries the
+    // stays plural to agree with "take" (role2s, or `neighbors` rather than
+    // `neighbor`); the object (partners) singularizes per PR1. Unknown non-null
+    // who/whom/hand values humanize (surfacing malformed data) rather than
+    // blanking out. This base line already carries the
     // drop-off outcome, so [_summarySuffix] no longer appends its own clarifier.
     'revolving_door': (r, def, params, dialect, verbose, decimals) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
-      final swho = r._displaySubject(params['who'], dialect);
+      final swho = r._displaySubject(params['who'], dialect, plural: true);
       final hand = _displayScalar(params['hand']);
       final swhom = r._displaySubject(params['whom'], dialect);
       return _displayTemplate({
@@ -2774,7 +2913,7 @@ class FigureRenderer {
     // (ContraDB's own empty-subject fallback).
     'box_circulate': (r, def, params, dialect, verbose, decimals) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
-      final swho = r._subjectWho(params, dialect);
+      final swho = r._subjectToken(params['who'], dialect, plural: true);
       final other = r._invertPair(params['who'], dialect);
       final hand = _displayScalar(params['hand']);
       return _displayTemplate({
@@ -2788,7 +2927,9 @@ class FigureRenderer {
     // sfirst_shoulder + ",", ssecond_who, ssecond_dir, ssecond_shoulder). The
     // second dir/shoulder are the fixed structural inverse of the first
     // (across<->"along the set"; right<->left shoulders). Shoulders render in
-    // full ("right shoulders"), matching ContraDB `stringParamShoulders`.
+    // full after "passing" ("passing right shoulders"), so a direction before
+    // them never reads as their side ("on right diagonal passing right
+    // shoulders").
     'cross_trails': (r, def, params, dialect, verbose, decimals) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
       final swho = r._displaySubject(params['who'], dialect);
@@ -2796,7 +2937,9 @@ class FigureRenderer {
       final dir = params['where'];
       final firstDir = dir == null
           ? ''
-          : '${_humanize(dir.toString())} the set';
+          : dir == 'across' || dir == 'along' || dir == '*'
+          ? '${_humanize(dir.toString())} the set'
+          : _displayDirection(dir);
       final secondDir = dir == 'across'
           ? 'along the set'
           : dir == 'along'
@@ -2807,13 +2950,15 @@ class FigureRenderer {
       final sh = params['shoulder'];
       final firstShoulder = sh == null
           ? ''
-          : '${_humanize(sh.toString())} shoulders';
+          : 'passing ${_humanize(sh.toString())} shoulders';
       final otherSh = sh == 'right'
           ? 'left'
           : sh == 'left'
           ? 'right'
           : null;
-      final secondShoulder = otherSh == null ? '' : '$otherSh shoulders';
+      final secondShoulder = otherSh == null
+          ? ''
+          : 'passing $otherSh shoulders';
       final firstPart = [
         swho,
         firstDir,
@@ -2837,7 +2982,7 @@ class FigureRenderer {
     'poussette': (r, def, params, dialect, verbose, decimals) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
       final half = _displayScalar(params['fraction']);
-      final swho = r._displaySubject(params['who'], dialect);
+      final swho = r._displaySubject(params['who'], dialect, plural: true);
       final swhom = r._displaySubject(params['whom'], dialect);
       final turn = params['direction'];
       final turnWord = turn == 'clockwise'
@@ -2949,17 +3094,21 @@ class FigureRenderer {
     // is "in center", the other "on ends". `full`/`half` name the length inline;
     // `lessThanHalf`/`betweenHalfAndFull` instead append "- until someone meets
     // [the second time]", or "- until <meetTarget> meet[ the second time]" when
-    // a partial hey names its `meetTarget` pair (issue #576). A non-`across` dir prefixes the phrase. Ricochet flags
+    // a partial hey names its `meetTarget` pair (issue #576). A non-`across`
+    // dir FOLLOWS the move, unlike ContraDB's prefix ("a half hey along", not
+    // "an along half hey"), worded as [_displayDirection]. Ricochet flags
     // add " - <who> ricochet[ first time| second time], …". Because the base
     // line now carries the length, [_summarySuffix] no longer appends "(half)".
     'hey': (r, def, params, dialect, verbose, decimals) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
       final pass1 = params['pass1'];
       final pass2 = params['pass2'];
-      final sfirst = r._subjectToken(pass1, dialect);
+      final sfirst = r._subjectToken(pass1, dialect, plural: true);
       final length = params['length'];
       final dir = params['where'];
-      final sdir2 = (dir == 'across' || dir == null) ? '' : _displayScalar(dir);
+      final sdir2 = (dir == 'across' || dir == null)
+          ? ''
+          : _displayDirection(dir);
       final usesUntil =
           length == 'lessThanHalf' || length == 'betweenHalfAndFull';
       final lengthWord = length == 'half'
@@ -2972,7 +3121,6 @@ class FigureRenderer {
           ? ''
           : _displayScalar(length);
       final mainPhrase = [
-        sdir2,
         lengthWord,
         move,
       ].where((s) => s.isNotEmpty).join(' ');
@@ -3072,7 +3220,7 @@ class FigureRenderer {
           'until': untilClause,
           'ricochets': ricoStrings.join(', '),
         },
-        '{who} start {article} {where} {length} {move}'
+        '{who} start {article} {length} {move} {where}'
         '[ - {shoulder_clause}]'
         '[ - {until}]'
         '[ - {ricochets}]',
@@ -3099,7 +3247,7 @@ class FigureRenderer {
             : '$changes/4',
         'who': swho,
         'shoulder': _displayScalar(params['shoulder']),
-        'where': _displayScalar(params['where']),
+        'where': _displayDirection(params['where']),
         'second': _circularHeySecondPass(r, params, dialect),
       }, '[{fraction} ]{move}, {who} pass {shoulder} {where}[, {second}]');
     },
@@ -3160,7 +3308,7 @@ class FigureRenderer {
     // appends " - balance the wave" (except the out-only branch, which uses
     // "& balance").
     'form_a_long_wave': (r, def, params, dialect, verbose, decimals) {
-      final swho = r._displaySubject(params['who'], dialect);
+      final swho = r._displaySubject(params['who'], dialect, plural: true);
       final other = r._invertPair(params['who'], dialect);
       final inFlag = params['in'] == true;
       final outFlag = params['out'] == true;
@@ -3242,21 +3390,25 @@ class FigureRenderer {
         'balance': balance,
       }, 'form short waves[ - {body}]{balance}');
     },
-    // A non-default `dir` surfaces the diagonal word ("a right diagonal ocean
-    // wave"), silent for the `across` default (ContraDB
-    // `stringParamSetDirectionSilencingDefault('across')`); the indefinite
-    // article tracks the resulting noun phrase. A truthy `balance` appends a
+    // A non-default `dir` follows the wave, worded as [_displayDirection] ("an
+    // ocean wave on right diagonal", "an ocean wave facing in"), silent for
+    // the `across` default (ContraDB
+    // `stringParamSetDirectionSilencingDefault('across')`). A truthy `balance` appends a
     // trailing " and balance" clause (product wording; not ContraDB's pre-dash
     // "& balance").
     'pass_the_ocean': (r, def, params, dialect, verbose, decimals) {
       final dirRaw = params['where'];
       final dirWord = (dirRaw == null || dirRaw == 'across')
           ? ''
-          : _humanize(dirRaw.toString());
-      final noun = dirWord.isEmpty ? 'ocean wave' : '$dirWord ocean wave';
+          : _displayDirection(dirRaw);
+      final noun = dirWord.isEmpty ? 'ocean wave' : 'ocean wave $dirWord';
       final article = _indefiniteArticle(noun);
-      final scenter = r._displaySubject(params['center'], dialect);
-      final ssides = r._displaySubject(params['sides'], dialect);
+      final scenter = r._displaySubject(
+        params['center'],
+        dialect,
+        plural: true,
+      );
+      final ssides = r._displaySubject(params['sides'], dialect, plural: true);
       final centerHandRaw = params['centerHand'];
       final centerHand = _displayScalar(centerHandRaw);
       final sideHand = centerHandRaw == 'right'
@@ -3340,13 +3492,13 @@ class FigureRenderer {
     //   - dir=along, turn=ccw (only dir stated): "partner promenade
     //     counterclockwise along" (the `along` exception shows the default)
     //   - dir=rightDiagonal, turn=ccw (only dir stated): "partner promenade
-    //     right diagonal" (other non-default directions leave the default
+    //     on right diagonal" (other non-default directions leave the default
     //     turn silent)
     //   - dir=across, turn=cw (only turn stated): "neighbor promenade
     //     clockwise across" — turn being non-default un-silences `across` too
     //     (a bare "clockwise" alone doesn't say what's being turned across)
     //   - dir=rightDiagonal, turn=ccw, destination=prevNeighbors: "partner
-    //     promenade counterclockwise right diagonal to prev neighbors" — a
+    //     promenade counterclockwise on right diagonal to prev neighbors" — a
     //     stated destination un-silences turn even though it's the default,
     //     because "to prev neighbors" alone doesn't say which way they travel
     // The `along` exception is intentional: the taxonomy cannot distinguish
@@ -3383,7 +3535,7 @@ class FigureRenderer {
         // the canonical form. `turn` (v30): shown whenever non-default or a
         // destination is stated. Unlike the non-singleFile branch, `dir=='along'`
         // does not add a separate default-turn exception here.
-        final dir = _displayScalar(dirRaw);
+        final dir = _displayDirection(dirRaw);
         final showTurn =
             !_isUnspecified(turnRaw) && (turnRaw != turnDefault || destStated);
         final turn = showTurn ? _displayScalar(turnRaw) : '';
@@ -3408,7 +3560,7 @@ class FigureRenderer {
           (turnRaw != turnDefault || destStated || dirRaw == 'along');
       final turn = showTurn ? _displayScalar(turnRaw) : '';
       final showDir = showTurn || dirRaw != dirDefault;
-      final dir = showDir ? _displayScalar(dirRaw) : '';
+      final dir = showDir ? _displayDirection(dirRaw) : '';
       final dest = destStated
           ? 'to ${destRaw is String ? r._displayGroup(destRaw, dialect) : _displayScalar(destRaw)}'
           : '';
@@ -3487,7 +3639,9 @@ class FigureRenderer {
           : '';
       final dir = params['where'];
       // Silence the default 'along' direction (ContraDB set_direction_along).
-      final dirClause = (dir is String && dir != 'along') ? _humanize(dir) : '';
+      final dirClause = (dir is String && dir != 'along')
+          ? _displayDirection(dir)
+          : '';
       return _displayTemplate({
         'move': move,
         'shoulder': shoulderClause,
@@ -3530,6 +3684,26 @@ class FigureRenderer {
     }
   }
 
+  /// Render-internal placeholder for an `{article}` slot in a custom wording,
+  /// resolved by [_resolveArticles] once the line is assembled. A Unicode
+  /// noncharacter, like [_subjectMarkSentinel], so it cannot collide with
+  /// real text.
+  static const String _articleSentinel = '\uFDD1';
+
+  /// Replaces each [_articleSentinel] in [line] with the indefinite article
+  /// for the text that follows it.
+  static String _resolveArticles(String line) {
+    var out = line;
+    for (var i = out.indexOf(_articleSentinel); i >= 0;) {
+      final article = _indefiniteArticle(
+        out.substring(i + _articleSentinel.length),
+      );
+      out = out.replaceRange(i, i + _articleSentinel.length, article);
+      i = out.indexOf(_articleSentinel, i + article.length);
+    }
+    return out;
+  }
+
   /// DISPLAY-ONLY: the indefinite article ("a"/"an") for [phrase], mirroring
   /// ContraDB `indefiniteArticleFor` (vowel-initial -> "an", else "a").
   static String _indefiniteArticle(String phrase) {
@@ -3553,8 +3727,10 @@ class FigureRenderer {
     // `words(sbalance, smove)` / `words(sbal, smove, …)` — balance first.
     'petronella': _BalancePlacement.leading,
     'pull_by': _BalancePlacement.leading,
-    // `words(sbalance, swho2, smove, sdir)` — balance before the subject.
-    'rory_o_more': _BalancePlacement.leading,
+    // ContraDB `words(sbalance, swho2, smove, sdir)` puts balance before the
+    // subject; a caller says the subject first ("larks balance & Rory O'More
+    // right"), so the balance follows it here, as box the gnat's does.
+    'rory_o_more': _BalancePlacement.afterWho,
     // `words(sbal, smove, "-", details)` — balance first.
     'box_circulate': _BalancePlacement.leading,
     // `words(swho, sbal, smove, sspin)` — subject, then balance before move.

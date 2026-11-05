@@ -26,8 +26,9 @@ import 'user_figure_definition.dart';
 ///   (a key a figure of the user's may not have) is dropped.
 /// - **Default beats**, from the move's beats default, within a figure's
 ///   bounds; 8 without one.
-/// - **Wording**: the move's own display wording when every slot it uses is
-///   one of the copy's, else its plain render template when that holds, else
+/// - **Wording**: the move's starting wording ([FigureRenderer.
+///   moveWordingTemplate], its display wording but for slide along set's
+///   `{move} {slide}`) when every slot it uses is one of the copy's, else its plain render template when that holds, else
 ///   just `{move}`.
 ///
 /// An alias is copied as the move it names, starting from the values it pins
