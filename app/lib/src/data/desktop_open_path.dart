@@ -70,6 +70,10 @@ class DesktopOpenCheck {
 /// - no UNC, device or NT-namespace path (two leading separators, or `\??\`);
 /// - on Windows, no reserved device name (`CON`, `NUL`, `COM1`, ...);
 /// - the [kDesktopShareFileExtension] extension, compared case-insensitively;
+/// - on Windows, no directory above the file is a symlink or junction: a
+///   directory symlink can point at a UNC path, so a link there reaches a
+///   remote host as surely as one at the file does. The walk runs from the
+///   drive root down and stops at the first link without stat'ing past it;
 /// - the last path component is a regular file, checked without following a
 ///   symlink or junction there (on Windows, another reparse point, such as a
 ///   OneDrive file, is followed);
@@ -83,7 +87,9 @@ class DesktopOpenCheck {
 /// that read is not caught here. Intake's read stops at the cap whatever the
 /// file reports as its length (`ArchiveIntakeService`), it validates the bytes,
 /// and review still needs the user's confirmation. Only the last component is
-/// checked for a symlink: a symlinked parent directory is followed.
+/// checked for a symlink off Windows: a symlinked parent directory is followed
+/// there (`/tmp` and `/home` are links on some systems, and a POSIX link
+/// cannot reach a network host the way a Windows directory symlink can).
 Future<DesktopOpenCheck> checkDesktopOpenPath(
   String raw, {
   int maxBytes = kMaxIncomingArchiveBytes,
@@ -116,6 +122,11 @@ Future<DesktopOpenCheck> checkDesktopOpenPath(
   }
   final fs = probe ?? const DesktopFileProbe();
   try {
+    if (windows && await _hasLinkedParent(path, raw, fs)) {
+      return const DesktopOpenCheck.rejected(
+        DesktopOpenRejection.notRegularFile,
+      );
+    }
     var type = await fs.type(raw, followLinks: false);
     // Windows reports every reparse point as a link when not following, and
     // OneDrive keeps a cloud reparse point on files it has downloaded. Only a
@@ -139,6 +150,35 @@ Future<DesktopOpenCheck> checkDesktopOpenPath(
     return const DesktopOpenCheck.rejected(DesktopOpenRejection.notRegularFile);
   }
   return DesktopOpenCheck.accepted(raw);
+}
+
+/// Whether a directory above [raw] is a symlink or junction, judged from the
+/// drive root down without following any link: the first one found ends the
+/// walk, so nothing below it is touched.
+///
+/// [raw] is normalized first. Win32 folds `.` and `..` before it reaches the
+/// disk, so a linked directory that a `..` cancels out is never traversed and
+/// is not a reason to refuse. A directory that does not exist, or any other
+/// reparse point (a OneDrive folder, a volume mount), is not a link here; the
+/// file itself is judged next and a missing one is refused there.
+Future<bool> _hasLinkedParent(
+  p.Context path,
+  String raw,
+  DesktopFileProbe fs,
+) async {
+  final parts = path.split(path.normalize(raw));
+  // parts: the drive root (`C:\`), each directory, then the file name.
+  if (parts.length < 3) return false;
+  var current = parts.first;
+  for (final part in parts.sublist(1, parts.length - 1)) {
+    current = path.join(current, part);
+    final type = await fs.type(current, followLinks: false);
+    if (type == FileSystemEntityType.link &&
+        await fs.isSymlinkOrJunction(current)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /// The file-system calls [checkDesktopOpenPath] makes, so a test can stand in
