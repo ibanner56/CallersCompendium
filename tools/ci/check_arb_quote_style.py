@@ -11,8 +11,8 @@ exceptions (values only, English only, literal-syntax strings).
 
 ``arb_quote_allowlist.json`` has two sections:
 
-* ``violations`` -- ``{key: sha256-prefix of the exact value}``: today's curly
-  strings, so the ratchet can ship before the sweep. Keyed on the *value hash*,
+* ``violations`` -- ``{key: sha256-prefix of the exact value}``: curly strings
+  exempted from the rule. It is empty, and any entry is stale-checked below. Keyed on the *value hash*,
   not just the key, so **editing an allow-listed string** (keeping the curly
   quote or adding more) fails as a changed string. The hash is opaque on
   purpose: nobody should read the list as a catalogue of acceptable copy.
@@ -21,12 +21,12 @@ exceptions (values only, English only, literal-syntax strings).
 
 The list is **self-cleaning**: an entry whose key is gone, whose value no longer
 has a curly quote, or whose value changed, fails as stale. That keeps the list
-a true statement of what is left to burn down (U5b-2 empties it).
+a true statement of what is exempted; the rule is that nothing is.
 
 ## Going green
 
 Run the normaliser on just the reported keys: ``python3 tools/ci/arb_quote_style.py --only KEY...``
-(without ``--only`` it rewrites every allow-listed string too -- the U5b-2 sweep). **Not**
+(without ``--only`` it rewrites every allow-listed string too, which is every string the list exempts). **Not**
 ``--regenerate``: that rewrites the allow-list to match the tree, which turns
 the check green while shipping the violation. It exists for exactly two
 occasions -- seeding the list, and re-seeding after merging a ``main`` whose
@@ -173,7 +173,7 @@ def run(root: Path, do_regenerate: bool, prune: bool = False) -> int:
             "::error::English app text uses straight quotes (\" and '), not curly ones "
             "(maintainer decision 2026-10-31). Fix: run "
             f"`python3 tools/ci/arb_quote_style.py --only {' '.join(keys)}` (just the string(s) "
-            "reported; without --only it rewrites the whole allow-list, which is the U5b-2 sweep). "
+            "reported; without --only it also rewrites every allow-listed string). "
             "Do NOT run this check with --regenerate to go green: that records the "
             "violation instead of fixing it."
         )
@@ -185,7 +185,7 @@ def run(root: Path, do_regenerate: bool, prune: bool = False) -> int:
         )
     if violations or stale:
         return 1
-    print(f"OK: no new curly quotes in app_en.arb ({len(allow['violations'])} allow-listed, to burn down).")
+    print(f"OK: no new curly quotes in app_en.arb ({len(allow['violations'])} allow-listed).")
     return 0
 
 

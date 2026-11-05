@@ -567,7 +567,7 @@ curly quote or apostrophe; `python3 tools/ci/arb_quote_style.py --only KEY...`
 is the idempotent normaliser that fixes the reported keys. Values only,
 English only; the rule, the exemptions and the reasons are in the module docstrings and in the
 [style guide](../user/style-guide.md#app-strings-straight-quotes). The
-allow-list (`tools/ci/arb_quote_allowlist.json`) is empty since the U5b-2 sweep,
+allow-list (`tools/ci/arb_quote_allowlist.json`) is empty,
 so a curly mark in English always fails; `--regenerate` would record a
 violation instead of fixing it and is never the way to go green.
 

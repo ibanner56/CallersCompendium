@@ -188,6 +188,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// falls back to it after the live snapshot.
   Map<String, Dance> _deletedSlotDances = const {};
 
+  /// Names of the authors of [_deletedSlotDances] that the collection does not
+  /// list because they are in Recently deleted, by choreographer id, from
+  /// [resolveDeletedSlotDances]. For the text and PDF exports only (GIG-11).
+  Map<String, String> _deletedSlotAuthorNames = const {};
+
   /// Dance ids [_lookUpDeletedSlotDances] has asked about since the last
   /// collection snapshot, so a rebuild does not ask again for one that
   /// resolved to nothing (a purged dance). Cleared with each snapshot, which
@@ -2017,6 +2022,30 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       _data?.dancesById[danceId] ??
       _deletedSlotDances[danceId];
 
+  /// A dance's author names in credit order for the text and PDF exports, when
+  /// some of its authors are in Recently deleted and so are missing from the
+  /// collection; null otherwise, so the export names authors as usual. As in
+  /// the program summary, the share bundle is unaffected: it embeds only the
+  /// author records the collection holds.
+  List<String>? _authorNamesOverrideFor(String danceId) {
+    final dance = _deletedSlotDances[danceId];
+    if (dance == null || _createdDances.containsKey(danceId)) return null;
+    String? nameOf(String id) =>
+        _createdChoreographers[id]?.name ??
+        _data?.choreographersById[id]?.name ??
+        _deletedSlotAuthorNames[id];
+    final names = [
+      for (final id in dance.authorIds)
+        if (nameOf(id) case final String name when name.isNotEmpty) name,
+    ];
+    final live = dance.authorIds.where(
+      (id) =>
+          _createdChoreographers.containsKey(id) ||
+          (_data?.choreographersById.containsKey(id) ?? false),
+    );
+    return live.length == dance.authorIds.length ? null : names;
+  }
+
   /// Looks up, once per collection snapshot, every slot dance that neither
   /// the snapshot nor the created-dance overlay holds, through
   /// [resolveDeletedSlotDances]: the same lookup Perform uses. Called from
@@ -2055,6 +2084,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
               if (!missing.any((s) => s.danceId == entry.key))
                 entry.key: entry.value,
             ...resolved.dances,
+          };
+          _deletedSlotAuthorNames = {
+            ..._deletedSlotAuthorNames,
+            ...resolved.authorNames,
           };
         });
       }),
@@ -3445,6 +3478,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                     choreographerFor: (id) =>
                         _createdChoreographers[id] ??
                         _data?.choreographersById[id],
+                    authorNamesOverrideFor: _authorNamesOverrideFor,
                     tagFor: (id) => _data?.tagFor(id),
                     publishedSourceFor: (id) => _data?.publishedSourceFor(id),
                     customFieldFor: (id) => _data?.customFieldFor(id),

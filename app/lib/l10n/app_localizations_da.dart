@@ -2695,11 +2695,11 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsDefaultsAggressiveBeatsUpdateTitle =>
-      'Genberegn figurtakter aggressivt';
+      'Genberegn figurernes taktslag aggressivt';
 
   @override
   String get settingsDefaultsAggressiveBeatsUpdateSubtitle =>
-      'Når slået til, genberegner en ændring af en figurs bevægelse eller en parameter, der påvirker timing, straks dens taktantal — selv hvis det overskriver et taktantal, du selv har indtastet. Når slået fra (standard), ændres et taktantal, du har redigeret, kun automatisk, når du slår en balance-indstilling til eller fra, hvilket tilføjer eller fjerner 4 takter.';
+      'Når slået til, genberegner en ændring af en figurs bevægelse eller en parameter, der påvirker timing, straks dens antal taktslag — selv hvis det overskriver et antal taktslag, du selv har indtastet. Når slået fra (standard), ændres et antal taktslag, du har redigeret, kun automatisk, når du slår en balance-indstilling til eller fra, hvilket tilføjer eller fjerner 4 taktslag.';
 
   @override
   String get settingsDefaultsFigureShorthandsTitle => 'Figurkortformer';
@@ -2762,7 +2762,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsDefaultsUserFiguresSubtitle =>
-      'Hver af dine nye figurer har sine egne standarder: de værdier, den starter med, og dens takter. Vælg en for at ændre dem.';
+      'Hver af dine nye figurer har sine egne standarder: de værdier, den starter med, og dens taktslag. Vælg en for at ændre dem.';
 
   @override
   String get settingsDefaultsMoveDefaultsSubtitle =>
