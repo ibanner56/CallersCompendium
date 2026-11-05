@@ -51,6 +51,7 @@ import 'package:compendium_app/src/sync/sync_network.dart';
 import 'package:compendium_app/src/sync/sync_scope.dart';
 import 'package:compendium_app/src/update/update_controller.dart';
 import 'package:compendium_app/src/update/update_scope.dart';
+import 'package:compendium_app/src/widgets/notice_card.dart';
 import 'package:compendium_app/src/widgets/section_header.dart';
 
 import '../support/controllable_sync_transport.dart';
@@ -1664,15 +1665,12 @@ void main() {
             findsOneWidget,
           );
           expect(find.byKey(const ValueKey('sync-endpoint')), findsNothing);
-          final icon = tester.widget<Icon>(
-            find.descendant(of: tile, matching: find.byType(Icon)),
+          final card = tester.widget<NoticeCard>(
+            find.descendant(of: tile, matching: find.byType(NoticeCard)),
           );
-          final scheme = Theme.of(
-            tester.element(find.byType(SettingsScreen)),
-          ).colorScheme;
           expect(
-            icon.color,
-            scheme.error,
+            card.kind,
+            NoticeKind.error,
             reason: 'a custom endpoint keeps its prominent §8 treatment',
           );
         },
@@ -2881,9 +2879,17 @@ void main() {
           final pumped = await pumpPassing(tester, () => result);
           await syncNow(tester);
 
-          final notice = tester.widget<ListTile>(find.byKey(divergence));
-          expect(notice.onTap, isNull, reason: 'a report is not a prompt');
-          expect(notice.trailing, isNull, reason: 'there is nothing to clear');
+          final notice = find.byKey(divergence);
+          expect(
+            find.descendant(of: notice, matching: find.byType(InkWell)),
+            findsNothing,
+            reason: 'a report is not a prompt',
+          );
+          expect(
+            find.descendant(of: notice, matching: find.byType(IconButton)),
+            findsNothing,
+            reason: 'there is nothing to clear',
+          );
 
           result = const SyncPassResult(SyncPassStatus.completed);
           await syncNow(tester);
@@ -4176,6 +4182,35 @@ void main() {
           expect(
             find.text('There is no copy of this phrase, and no taking it back'),
             findsOneWidget,
+          );
+          // Each disclosure is a boxed notice, like the notices elsewhere, and
+          // the one that warns of something irreversible is a warning.
+          for (final key in [
+            'sync-pairing-sharing-disclosure',
+            'sync-pairing-bearer-disclosure',
+            'sync-pairing-credential-disclosure',
+          ]) {
+            expect(
+              find.descendant(
+                of: find.byKey(ValueKey(key)),
+                matching: find.byType(NoticeCard),
+              ),
+              findsOneWidget,
+              reason: key,
+            );
+          }
+          expect(
+            tester
+                .widget<NoticeCard>(
+                  find.descendant(
+                    of: find.byKey(
+                      const ValueKey('sync-pairing-bearer-disclosure'),
+                    ),
+                    matching: find.byType(NoticeCard),
+                  ),
+                )
+                .kind,
+            NoticeKind.warning,
           );
 
           await tester.tap(

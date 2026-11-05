@@ -86,7 +86,9 @@ void scrollToFirstInvalidField(
     if (target == null || !target.mounted) return;
     Scrollable.ensureVisible(
       target,
-      duration: reduceMotion ? Duration.zero : const Duration(milliseconds: 200),
+      duration: reduceMotion
+          ? Duration.zero
+          : const Duration(milliseconds: 200),
       alignment: 0.1,
     );
   });
