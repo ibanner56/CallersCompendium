@@ -106,6 +106,30 @@ def test_normaliser_prunes_fixed_allowlist_entries() -> None:
         check("never adds entries", doc["violations"] == {}, str(doc))
 
 
+def test_only_limits_the_rewrite() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        old = f"old{RSQ}s"
+        tree(root, base_arb(listed=old, fresh=f"it{RSQ}s"), {"violations": {"listed": chk.digest(old)}, "literal": {}})
+        rc, _ = quiet(style.run, root, False, ["fresh"])
+        out = json.loads(read_arb(root))
+        check("--only straightens just the named key", rc == 0 and out["fresh"] == "it's" and out["listed"] == old, str(out))
+        doc = json.loads((root / "tools/ci/arb_quote_allowlist.json").read_text())
+        check("--only leaves other allow-list entries", list(doc["violations"]) == ["listed"], str(doc))
+        check("ratchet green after fixing just the new key", quiet(chk.run, root, False)[0] == 0)
+        before = read_arb(root)
+        rc, msg = quiet(style.run, root, False, ["nope"])
+        check("--only with an unknown key is bad input", rc == 2 and read_arb(root) == before, msg)
+
+
+def test_ratchet_message_names_only_command() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        tree(root, base_arb(fresh=f"it{RSQ}s"), {"violations": {}, "literal": {}})
+        _, msg = quiet(chk.run, root, False)
+        check("failure names `--only <key>`", "arb_quote_style.py --only fresh`" in msg, msg)
+
+
 def test_normaliser_check_mode() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)

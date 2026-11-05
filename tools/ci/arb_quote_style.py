@@ -13,6 +13,7 @@ violation is.
 
     python3 tools/ci/arb_quote_style.py            # rewrite app_en.arb in place
     python3 tools/ci/arb_quote_style.py --check    # report only; exit 1 if it would change
+    python3 tools/ci/arb_quote_style.py --only KEY [KEY...]   # just these keys
 
 After a rewrite it also drops the fixed strings' allow-list entries (shrink-only)
 and reminds you to re-run ``gen-l10n`` so the ``l10n-drift`` gate stays green.
@@ -146,8 +147,14 @@ def load_literal(allowlist_path: Path) -> dict[str, str]:
     return lit
 
 
-def normalize_arb(data: dict, literal: dict[str, str] | None = None) -> tuple[dict, list[str]]:
-    """Return ``(new_data, changed_keys)``. Key order and metadata are preserved."""
+def normalize_arb(
+    data: dict, literal: dict[str, str] | None = None, only: set[str] | None = None
+) -> tuple[dict, list[str]]:
+    """Return ``(new_data, changed_keys)``. Key order and metadata are preserved.
+
+    [only], when given, limits the rewrite to those keys: the way to fix one
+    string while the allow-list still holds the rest.
+    """
     literal = literal or {}
     out: dict = {}
     changed: list[str] = []
@@ -156,6 +163,7 @@ def normalize_arb(data: dict, literal: dict[str, str] | None = None) -> tuple[di
             not key.startswith("@")
             and isinstance(value, str)
             and key not in literal
+            and (only is None or key in only)
             and has_curly(value)
         ):
             out[key] = normalize_value(value)
@@ -165,13 +173,19 @@ def normalize_arb(data: dict, literal: dict[str, str] | None = None) -> tuple[di
     return out, changed
 
 
-def run(root: Path, check_only: bool) -> int:
+def run(root: Path, check_only: bool, only: list[str] | None = None) -> int:
     arb = root / ARB_PATH
     try:
         check_use_escaping((root / L10N_YAML).read_text(encoding="utf-8"))
         raw = arb.read_text(encoding="utf-8")
         data = load_arb_text(raw, arb.name)
-        new, changed = normalize_arb(data, load_literal(root / ALLOWLIST_PATH))
+        if only is not None:
+            unknown = sorted(set(only) - {k for k, _ in message_items(data)})
+            if unknown:
+                raise StyleError(f"--only names keys that are not messages in {arb.name}: {', '.join(unknown)}")
+        new, changed = normalize_arb(
+            data, load_literal(root / ALLOWLIST_PATH), None if only is None else set(only)
+        )
     except (OSError, StyleError) as exc:
         print(f"::error::{exc}", file=sys.stderr)
         return 2
@@ -212,9 +226,15 @@ def prune_allowlist(path: Path, fixed: set[str]) -> int:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--check", action="store_true", help="report only; exit 1 if anything would change")
+    ap.add_argument(
+        "--only",
+        nargs="+",
+        metavar="KEY",
+        help="normalise just these keys (fix one string while the allow-list holds the rest)",
+    )
     ap.add_argument("--root", type=Path, default=REPO_ROOT, help=argparse.SUPPRESS)
     args = ap.parse_args(argv)
-    return run(args.root, args.check)
+    return run(args.root, args.check, args.only)
 
 
 if __name__ == "__main__":

@@ -25,7 +25,8 @@ a true statement of what is left to burn down (U5b-2 empties it).
 
 ## Going green
 
-Run the normaliser: ``python3 tools/ci/arb_quote_style.py``. **Not**
+Run the normaliser on just the reported keys: ``python3 tools/ci/arb_quote_style.py --only KEY...``
+(without ``--only`` it rewrites every allow-listed string too -- the U5b-2 sweep). **Not**
 ``--regenerate``: that rewrites the allow-list to match the tree, which turns
 the check green while shipping the violation. It exists for exactly two
 occasions -- seeding the list, and re-seeding after merging a ``main`` whose
@@ -143,6 +144,7 @@ def run(root: Path, do_regenerate: bool) -> int:
         print(f"wrote {len(doc['violations'])} allow-listed string(s) to {style.ALLOWLIST_PATH}.")
         return 0
     violations, stale = evaluate(data, allow)
+    keys = [v.split(" ", 1)[0] for v in violations]
     for line in violations:
         print(f"::error::app_en.arb {line}")
     for line in stale:
@@ -150,7 +152,9 @@ def run(root: Path, do_regenerate: bool) -> int:
     if violations:
         print(
             "::error::English app text uses straight quotes (\" and '), not curly ones "
-            "(maintainer decision 2026-10-31). Fix: run `python3 tools/ci/arb_quote_style.py`. "
+            "(maintainer decision 2026-10-31). Fix: run "
+            f"`python3 tools/ci/arb_quote_style.py --only {' '.join(keys)}` (just the string(s) "
+            "reported; without --only it rewrites the whole allow-list, which is the U5b-2 sweep). "
             "Do NOT run this check with --regenerate to go green: that records the "
             "violation instead of fixing it."
         )
