@@ -44,14 +44,70 @@ tree. Conforms to [ux.md](ux.md) §1 and [dialect.md](dialect.md)
    `then`, `figure`) and combined with any text criterion under `and`. Figure
    conditions in all/any/none groups and `ThenFilter` translate; `ThenFilter`
    means the same as ContraDB's `then` (the second figure immediately follows
-   the first, wrapping from the last figure to the first). A tag, a figure
+   the first, wrapping from the last figure to the first), except for a dance
+   of one figure, where ContraDB pairs the figure with itself and the
+   Collection does not (see the `Then` section below). A tag, a figure
    parameter or section (ContraDB compares parameters by position in each
-   move's own list), an unknown move (in a figure or a `then` operand), or any
+   move's own list), a move with no exact ContraDB counterpart or an unknown
+   move (in a figure or a `then` operand), or any
    local-only leaf makes the search refuse with
    `UrlFetchFailureReason.contraDbUnsupportedAdvanced` and send nothing: a
    condition silently dropped would answer a wider question than the panel
    shows. This translation decision is the implementing agent's, not the
    maintainer's.
+
+   **Moves translate by id, through an exact table.** A figure leaf carries
+   the Collection's move id (`do_si_do`), not a ContraDB name, so
+   `translateDanceFilterToContraDb` maps it through
+   `_contraDbForCollectionMove`, which holds only the moves where the importer
+   turns ContraDB's own rendering of exactly those figures into that move
+   (typed `custom` prose is a separate, documented gap: see below).
+   `pull_by` is
+   an `or` of ContraDB's two pull-bys. The importer keeps `see_saw` and
+   `swat_the_flea` apart from `do_si_do` and `box_the_gnat`, while ContraDB
+   stores both as the target move and answers `see saw` with an alias filter,
+   so `do_si_do` is sent as `["&", ["figure", "do si do"], ["not", ["figure",
+   "see saw"]]]`. A display name, a ContraDB spelling or a dialect term is
+   refused: the translator never sees the dialect. `meltdown_swing`, `custom`,
+   `star_promenade`, `allemande_orbit`, `pass_the_ocean`, `form_short_waves` (two
+   halves of ContraDB's one `form an ocean wave`) and the moves with no
+   ContraDB figure are refused.
+
+   **What the translation does and does not guarantee.** The translator sees
+   only the query, so it is exact only where the importer turns a ContraDB
+   figure into the same Collection figure one-to-one. It cannot be for a
+   ContraDB figure the importer restructures: a typed `custom` figure ("ones
+   swing while twos circle", "balance and swing") is one `custom` figure on
+   ContraDB but structured figures (flattened leaves, #590) here; `form an
+   ocean wave & balance` is one figure there and two here; a figure the
+   importer cannot read (`*-hand chain`, `star promenade`, a balanced `swat
+   the flea`) is a `custom` leaf here, so the Collection under-matches it; and
+   typed prose the importer structures (`ladles trade by the left shoulder`
+   becomes `pass_by`, which ContraDB files under `custom`) over-matches. An `allemande orbit` is one figure on ContraDB and
+   `meanwhile[allemande, orbit]` here, which is why an `allemande` query is
+   sent as `allemande` or `allemande orbit`. The importer half of these is
+   pinned by `contradb_advanced_translation_import_test.dart`.
+
+   The ContraDB half is derived by reading ContraDB's `lib/filter_dances.rb`
+   and `lib/search_match.rb`, not measured: no engine runs here and nothing in
+   the test suite contacts contradb.com. An earlier test-only Dart port of that
+   engine was dropped on the user's instruction in the working session of
+   2026-11-05 (functional parity, not a copy of ContraDB's source; the
+   instruction is not recorded elsewhere), so a change on ContraDB's side is
+   not caught by CI.
+   `packages/compendium_core/tool/check_contradb_translation_live.dart` is an
+   opt-in script (never run by CI) that sends one query per expression shape
+   the translator emits and reports whether the server accepts it; on 2026-11-05
+   it accepted all thirteen (`figure`, `or`, `and`, `no`, `&`, `not`, both alias
+   filters, the `do si do` and `box the gnat` `& not` forms, `pull_by`'s `or`,
+   and `then` with its wrap). It sends no undefined move name, so it cannot show
+   that a bad name would be rejected. It shows that ContraDB accepts the expressions, not that the dances it
+   returns are the right ones.
+
+   **Results are the first 20.** The app asks ContraDB for
+   `titleA` order and requests `contraDbSearchCount` (20) with offset 0; the response's
+   `numberMatching` is not read, so a broad query shows a truncated list with
+   no indication of how many matched.
 4. **Injection-safe by construction.** Every user value is a bind variable;
    only a fixed vocabulary of column names, operators, and JSON key paths is
    ever interpolated, and each is validated against an allow-list.

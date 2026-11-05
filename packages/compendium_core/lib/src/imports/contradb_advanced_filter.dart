@@ -1,7 +1,6 @@
 import 'package:meta/meta.dart';
 
 import '../search/filter.dart';
-import 'contradb_search.dart';
 
 /// Why an Advanced [DanceFilter] cannot be sent to ContraDB.
 ///
@@ -20,8 +19,10 @@ enum ContraDbAdvancedUnsupported {
   /// which the app's named parameters are not mapped onto.
   figureDetail,
 
-  /// A move ContraDB does not define. ContraDB treats an unknown move as a
-  /// figure that matches nothing, so the search would look like "no results".
+  /// A move that has no exact ContraDB counterpart: one ContraDB does not
+  /// define (its `figure` operator raises, a server error, for an undefined
+  /// move on any dance that has figures), or one whose ContraDB meaning
+  /// differs from the Collection's (see [translateDanceFilterToContraDb]).
   figureName,
 
   /// Any other local-only condition (formation, level, status, rating, called
@@ -73,8 +74,13 @@ class ContraDbAdvancedRefused extends ContraDbAdvancedTranslation {
 /// the builder never produces one (`BuilderGroup.toFilter` returns null for an
 /// empty group) and ContraDB's empty `and`/`or` do not mean "everything"/"nothing".
 ///
-/// Moves are resolved through [canonicalContraDbFigureQuery], so case and
-/// punctuation variants are accepted and the exact ContraDB spelling is sent.
+/// A [FigureLeaf.move] is the Collection's **move id** (what the builder
+/// stores, e.g. `do_si_do`), which is not a ContraDB name; it is resolved by
+/// `_contraDbForCollectionMove`. A display name, a ContraDB spelling or a
+/// dialect's term is refused as [ContraDbAdvancedUnsupported.figureName]: the
+/// Collection resolves those through the active dialect, which this function
+/// never sees, so it cannot know they mean what ContraDB's identically spelt
+/// move means.
 ContraDbAdvancedTranslation translateDanceFilterToContraDb(DanceFilter filter) {
   final result = _dance(filter);
   return switch (result) {
@@ -134,10 +140,10 @@ Object _figure(FigureQuery query) {
       if (params.isNotEmpty || section != null) {
         return ContraDbAdvancedUnsupported.figureDetail;
       }
-      final canonical = canonicalContraDbFigureQuery(move);
-      return canonical == null
+      final fragment = _contraDbForCollectionMove[move];
+      return fragment == null
           ? ContraDbAdvancedUnsupported.figureName
-          : <Object?>['figure', canonical];
+          : _copy(fragment);
     case FigureAnd(:final children):
       return _combine('&', children, _figure);
     case FigureOr(:final children):
@@ -147,6 +153,11 @@ Object _figure(FigureQuery query) {
       return inner is List<Object?> ? <Object?>['not', inner] : inner;
   }
 }
+
+/// A mutable deep copy of a const expression fragment.
+List<Object?> _copy(List<Object?> fragment) => [
+  for (final part in fragment) part is List<Object?> ? _copy(part) : part,
+];
 
 Object _combine<T>(
   String operator,
@@ -162,3 +173,124 @@ Object _combine<T>(
   }
   return parts;
 }
+
+/// The ContraDB figure filter for each Collection move, for the Collection
+/// moves where the importer (`contradb_figure_dialect.dart`,
+/// `contradb_html_adapter.dart`) turns ContraDB's own rendering of exactly
+/// those figures into that move. Moves are spelled as ContraDB spells them
+/// (`_contraDbFigureNames`'s values).
+///
+/// That is exact for the figures ContraDB defines, not for every dance, and
+/// a query cannot know the difference. The importer also structures typed
+/// `custom` prose into moves that ContraDB files under `custom` (`ladles trade
+/// by the left shoulder` becomes `pass_by`; `partners swing, end facing
+/// across` becomes `swing`), and it cannot read some real renderings, which
+/// fall to `custom` here (a balanced `swat the flea`, a `*-hand chain`).
+/// Those over- and under-matches are documented in `docs/design/search.md`,
+/// not refused: almost any move can arrive from typed text.
+///
+/// Most are one `["figure", <move>]`. Exceptions, each derived by reading the
+/// importer and ContraDB's `filter_dances.rb` and covered by translator tests
+/// (`contradb_advanced_translation_import_test.dart` pins the importer half;
+/// nothing here has been run against ContraDB):
+///
+/// - **`pull_by`** is both `pull by dancers` and `pull by direction`.
+/// - **Aliases.** ContraDB stores a see saw as a `do si do` and answers the
+///   alias filter `see saw` with that move plus the alias's pinned parameter
+///   (`filter_dances.rb`, `alias_filter`). The importer keeps `see_saw` (and
+///   `swat_the_flea`) as moves of their own, apart from `do_si_do` (and
+///   `box_the_gnat`). So `see_saw` is the alias filter, and `do_si_do` is the
+///   target move *minus* the alias, expressed with the figurewise `&` / `not`.
+///
+/// Left out on purpose, and therefore refused:
+///
+/// - **`meltdown_swing`**: the importer stores a meltdown swing as a `swing`
+///   with `prefix: meltdown`, so a leaf for the alias id matches no stored
+///   figure.
+/// - **`custom`** and **`star_promenade`**: the importer sends every line it
+///   cannot structure (and every `star promenade`, by owner ruling #843) to the
+///   Collection's `custom`, so that set is not ContraDB's `custom` set.
+/// - **`allemande_orbit`**: not a figure the live importer produces; ContraDB's
+///   `allemande orbit` is one figure, the Collection's is a container.
+/// - **`pass_the_ocean`** and **`form_short_waves`**: ContraDB's one
+///   `form an ocean wave` (with a `pass_through` parameter) imports as one or
+///   the other, so each is a strict subset of it.
+/// - Collection moves with no ContraDB figure (`two_hand_turn`,
+///   `courtesy_turn`, `star_through`, `turn_as_couples`, `orbit`,
+///   `circular_hey`).
+///
+/// `allemande` maps to `allemande` **or** `allemande orbit`: the importer
+/// turns a real `allemande orbit` line into `meanwhile[allemande, orbit]`
+/// (`contradb_figure_dialect.dart`, `_allemandeOrbitMeanwhile`), so the
+/// Collection finds an allemande in that dance and ContraDB must be asked
+/// for both of its moves to answer the same question.
+const Map<String, List<Object?>> _contraDbForCollectionMove = {
+  'allemande': [
+    'or',
+    ['figure', 'allemande'],
+    ['figure', 'allemande orbit'],
+  ],
+  'arch_and_dive': ['figure', 'arch & dive'],
+  'balance': ['figure', 'balance'],
+  'balance_the_ring': ['figure', 'balance the ring'],
+  'box_circulate': ['figure', 'box circulate'],
+  'box_the_gnat': [
+    '&',
+    ['figure', 'box the gnat'],
+    [
+      'not',
+      ['figure', 'swat the flea'],
+    ],
+  ],
+  'butterfly_whirl': ['figure', 'butterfly whirl'],
+  'california_twirl': ['figure', 'California twirl'],
+  'chain': ['figure', 'chain'],
+  'circle': ['figure', 'circle'],
+  'contra_corners': ['figure', 'contra corners'],
+  'cross_trails': ['figure', 'cross trails'],
+  'do_si_do': [
+    '&',
+    ['figure', 'do si do'],
+    [
+      'not',
+      ['figure', 'see saw'],
+    ],
+  ],
+  'dolphin_hey': ['figure', 'dolphin hey'],
+  'down_the_hall': ['figure', 'down the hall'],
+  'facing_star': ['figure', 'facing star'],
+  'figure_8': ['figure', 'figure 8'],
+  'form_a_long_wave': ['figure', 'form a long wave'],
+  'form_long_waves': ['figure', 'form long waves'],
+  'gate': ['figure', 'gate'],
+  'give_and_take': ['figure', 'give & take'],
+  'hey': ['figure', 'hey'],
+  'long_lines': ['figure', 'long lines'],
+  'mad_robin': ['figure', 'mad robin'],
+  'pass_by': ['figure', 'pass by'],
+  'pass_through': ['figure', 'pass through'],
+  'petronella': ['figure', 'petronella'],
+  'poussette': ['figure', 'poussette'],
+  'promenade': ['figure', 'promenade'],
+  'pull_by': [
+    'or',
+    ['figure', 'pull by dancers'],
+    ['figure', 'pull by direction'],
+  ],
+  'revolving_door': ['figure', 'revolving door'],
+  'right_left_through': ['figure', 'right left through'],
+  'roll_away': ['figure', 'roll away'],
+  'rory_o_more': ['figure', "Rory O'More"],
+  'see_saw': ['figure', 'see saw'],
+  'shoulder_round': ['figure', 'gyre'],
+  'slice': ['figure', 'slice'],
+  'slide_along_set': ['figure', 'slide along set'],
+  'square_through': ['figure', 'square through'],
+  'stand_still': ['figure', 'stand still'],
+  'star': ['figure', 'star'],
+  'swat_the_flea': ['figure', 'swat the flea'],
+  'swing': ['figure', 'swing'],
+  'turn_alone': ['figure', 'turn alone'],
+  'up_the_hall': ['figure', 'up the hall'],
+  'zig_zag': ['figure', 'zig zag'],
+};
