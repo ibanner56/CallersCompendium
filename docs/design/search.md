@@ -398,9 +398,10 @@ figures" is not derivable from `idx`, `section` (sequential figures can share a
 phrase) or `beats` (each side stores its own), so it is carried explicitly as
 `group_idx`. `ThenFilter` correlates `a` with the **next** group after it
 (`b.group_idx` is the smallest larger `group_idx`, else the smallest overall),
-and requires `a.group_idx <> b.group_idx`: two sides of one container share a
-group and are excluded in **both** directions, while a real sequence of
-adjacent top-level figures matches. This was originally
+and pairs a row only with a row of a different group, or with itself (possible
+only in a one-group dance; see the `Then` section below): two sides of one
+container share a group and are excluded in **both** directions, while a real
+sequence of adjacent top-level figures matches. This was originally
 recorded as a limitation deferred to #594; #594 shipped without addressing it,
 so #748 tracked and fixed it.
 
