@@ -1215,6 +1215,65 @@ void main() {
       }
     });
 
+    test('a dance that opens and closes with the same move matches it then '
+        'itself, through the wrap', () async {
+      await dances.create(
+        _dance(
+          id: 'loop',
+          title: 'Loop',
+          figures: [
+            Figure(move: 'petronella', params: const {'beats': 16}),
+            Figure(move: 'swing', params: const {'who': 'partners'}),
+            Figure(move: 'petronella', params: const {'beats': 16}),
+          ],
+        ),
+      );
+      // The default dance has petronella once, first: no second one to abut.
+      await dances.create(_dance(id: 'once', title: 'Once'));
+      expect(
+        await dances.search(
+          ThenFilter(FigureLeaf('petronella'), FigureLeaf('petronella')),
+        ),
+        ['loop'],
+      );
+    });
+
+    test('a figure before a container abuts each of its concurrent sides, and '
+        'the sides do not abut each other', () async {
+      // swing, then petronella while balance, then long_lines.
+      await dances.create(
+        _dance(
+          id: 'mw',
+          title: 'MW',
+          figures: [
+            Figure(move: 'swing', params: const {'who': 'partners'}),
+            Figure.meanwhile(
+              figures: [
+                Figure(move: 'petronella'),
+                Figure(move: 'balance'),
+              ],
+              beats: 8,
+            ),
+            Figure(move: 'long_lines', params: const {'beats': 16}),
+          ],
+        ),
+      );
+      Future<List<String>> then(String a, String b) =>
+          dances.search(ThenFilter(FigureLeaf(a), FigureLeaf(b)));
+
+      expect(await then('swing', 'petronella'), ['mw']);
+      expect(await then('swing', 'balance'), ['mw']);
+      expect(await then('petronella', 'long_lines'), ['mw']);
+      expect(await then('balance', 'long_lines'), ['mw']);
+      // The wrap: long_lines is last, swing first.
+      expect(await then('long_lines', 'swing'), ['mw']);
+      // Concurrent sides, in both directions.
+      expect(await then('petronella', 'balance'), isEmpty);
+      expect(await then('balance', 'petronella'), isEmpty);
+      // A container sits between swing and long_lines.
+      expect(await then('swing', 'long_lines'), isEmpty);
+    });
+
     test('a dance with no figures never matches', () async {
       await dances.create(_dance(id: 'none', title: 'None', figures: []));
       expect(

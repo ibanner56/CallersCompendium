@@ -4716,9 +4716,9 @@
   "@collectionQueryThenConnector": {
     "x-sourceSha256": "21af6f1260f927f5b9b3ff5ca4a5d19493a1a47a5977240d8dca31bc47a63527"
   },
-  "collectionQueryThenLater": "Later",
-  "@collectionQueryThenLater": {
-    "x-sourceSha256": "73b6e48a1b552d112502d37a7b7870436efc5ea1de0bca58ccf12d6ae15d3a0c"
+  "collectionQueryThenNext": "Daarna",
+  "@collectionQueryThenNext": {
+    "x-sourceSha256": "1ff57a29d7c9d11bdf61c1b80f2b289b44c1ea844824d4b94a0d52b6ba5fc858"
   },
   "collectionQueryRemoveSequence": "Reeks verwijderen",
   "@collectionQueryRemoveSequence": {

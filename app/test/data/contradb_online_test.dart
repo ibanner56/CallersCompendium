@@ -352,6 +352,31 @@ void main() {
         ]);
       });
 
+      test(
+        'a then is sent as ContraDB then, with the text as an and',
+        () async {
+          final then = ThenFilter(FigureLeaf('swing'), FigureLeaf('chain'));
+          final requests = await run(OnlineSearchQuery(advanced: then));
+          expect(requests.single.expression, [
+            'then',
+            ['figure', 'swing'],
+            ['figure', 'chain'],
+          ]);
+          final withText = await run(
+            OnlineSearchQuery(title: 'x', advanced: then),
+          );
+          expect(withText.single.expression, [
+            'and',
+            ['title', 'x'],
+            [
+              'then',
+              ['figure', 'swing'],
+              ['figure', 'chain'],
+            ],
+          ]);
+        },
+      );
+
       test('a text-only query is unchanged: no expression', () async {
         final requests = await run(const OnlineSearchQuery(title: 'x'));
         expect(requests.single.expression, isNull);

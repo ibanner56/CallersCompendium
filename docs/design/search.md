@@ -131,7 +131,7 @@ sealed FigureQuery
 ```
 
 Rationale for the split (see *Open questions* for the flagged decision): a
-`ThenFilter` asks "does a figure matching X occur *before* a figure matching Y",
+`ThenFilter` asks "does a figure matching Y immediately follow a figure matching X",
 which is only meaningful for predicates evaluated **per `dance_figures` row**.
 Metadata leaves (`AuthorFilter`, `FullTextFilter`, `FormFilter`, …) are
 per-*dance*, not per-figure, so they have no position in the sequence and are
@@ -373,8 +373,10 @@ in the numbering cannot hide a pair. `a.group_idx <> b.group_idx` keeps the
 concurrent sides of one `meanwhile` (which share a `group_idx`; see the flatten
 note above) from being read as one-after-the-other in a dance whose only group
 is that container, where the wrap would otherwise pair the group with itself.
-(That guard departs from ContraDB for a dance of one figure, where its `then`
-pairs the figure with itself; see the parity audit.)
+That guard departs from ContraDB for a dance of one figure (or one container),
+where its `then` pairs the figure with itself: `Then(swing, swing)` matches
+there on ContraDB and not locally. This is known and unresolved; the choice to
+keep the #748 guard was the agent's.
 
 `<before applied to a>` / `<after applied to b>` are the `FigureQuery` clauses
 compiled against aliases `a` and `b` respectively (same clause shapes as the
@@ -382,6 +384,61 @@ compiled against aliases `a` and `b` respectively (same clause shapes as the
 Nested `ThenFilter` is not supported in v1 — `ThenFilter` operands are
 `FigureQuery`, which excludes `ThenFilter` — keeping the compiled join to a
 single pair of aliases.
+
+### Combinators & sort
+
+`AndFilter`/`OrFilter` wrap children in `( … AND … )` / `( … OR … )`; `NotFilter(child)` emits
+`NOT (<child>)`.
+
+**Execution model — one SELECT, plus a post-fetch sort for three cases.** The
+single compiled `SELECT` performs *all filtering* and every **SQL-expressible**
+sort: `title COLLATE NOCASE` (the default), `created_at DESC` / `updated_at
+DESC` (recently added / edited, each with a `title COLLATE NOCASE` tiebreak,
+since timestamps are stored at one-second precision and an import batch shares
+one instant), and — only for a bare Omni `FullTextFilter` leaf with at most two
+Unicode scalar values — `bm25(dance_fts)` relevance. Three sorts are **not**
+expressible in that one statement and are
+applied as a **post-fetch pass in Dart** over the returned id set:
+
+- `title` — SQL `COLLATE NOCASE` folds only ASCII case, so "École" would file
+  after Z. The Dart pass sorts by `titleSortKey` (leading article dropped when
+  the setting is on) or `foldForTitleMatch` (setting off), both of which strip
+  combining marks, so É files with E (FIND-15). The SQL `title COLLATE NOCASE`
+  stays as the base order for ties and for the other sorts' tiebreak. This is
+  **accent folding, not locale-aware collation**: NFD leaves Æ and Ø (no
+  decomposition) after Z and folds Danish Å to A, and non-English articles are
+  not ignored. Decided in the 2026-10-29 maintainer decisions
+  (`locale-sorting`, option a: fold accents, no new dependency);
+- `author` — needs the author-name join/ordering, and compares the same
+  accent-folded keys; and
+- `last-called` — needs a per-dance aggregate over `program_slots`/`programs`
+  (`DanceRepository._sortByLastCalled`), scoped by the same caller filter,
+  performed setting and alternate rule as the "called ×N" count, and ordered by
+  `COALESCE(event_date, performed_at, updated_at)`, the date the history list
+  orders by (GIG-2).
+
+So the compiler always emits exactly one `SELECT` (filter + SQL sort); when the
+requested sort is `title`, `author` or `last-called`, the id set it returns is reordered
+by an explicit Dart post-processing step — not by the SQL. `bm25` relevance is
+available only for a bare short Omni `FullTextFilter`; scoped queries,
+long-substring queries, and any other tree fall back to the `title` default
+because their result sets do not share the legacy rank source.
+
+### Worked example
+
+UX: *form = contra, has a `petronella` in B1, then a `swing`*:
+
+```
+AndFilter([
+  FormFilter(DanceForm.contra),
+  ThenFilter(
+    FigureLeaf('petronella', section: 'B1'),
+    FigureLeaf('swing'),
+  ),
+])
+```
+
+compiles to:
 
 ```sql
 SELECT id FROM dances

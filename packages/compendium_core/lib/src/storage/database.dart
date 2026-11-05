@@ -44,9 +44,14 @@ CREATE VIRTUAL TABLE dance_substring_fts USING fts5(
 /// the `Then` sequence self-join is driven by `a.dance_id = b.dance_id`, which
 /// is already served by the implicit index SQLite creates for the
 /// `dance_figures` composite primary key `{danceId, idx}` (same leading
-/// column). The correlation column `group_idx` (#748) is compared as a residual
-/// filter over that already per-dance-restricted row set — a dance holds only
-/// tens of figures — so no separate index on it is needed.
+/// column). The correlation column `group_idx` (#748) is compared inside that
+/// per-dance row set, and `Then` also reads the next existing group with two
+/// `MIN(group_idx)` subqueries per candidate row. A dance holds only tens of
+/// figures, so no separate index on it has been needed. Measured when `Then`
+/// became "immediately follows" (`benchmark/search_benchmark.dart`, 20,000
+/// dances, `before` pinned by move and section): median 13.7 ms against 14.0 ms
+/// for the old `<` correlation. A regression in that case is the signal to add
+/// one.
 const List<String> searchIndexSql = [
   'CREATE INDEX IF NOT EXISTS dance_figures_move_section '
       'ON dance_figures(move, section)',

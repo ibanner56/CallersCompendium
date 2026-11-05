@@ -4773,7 +4773,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get collectionQueryThenConnector => 'puis';
 
   @override
-  String get collectionQueryThenLater => 'Plus tard';
+  String get collectionQueryThenNext => 'Ensuite';
 
   @override
   String get collectionQueryRemoveSequence => 'Supprimer la séquence';

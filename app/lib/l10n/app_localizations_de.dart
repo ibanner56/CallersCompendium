@@ -4757,7 +4757,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get collectionQueryThenConnector => 'dann';
 
   @override
-  String get collectionQueryThenLater => 'Später';
+  String get collectionQueryThenNext => 'Danach';
 
   @override
   String get collectionQueryRemoveSequence => 'Sequenz entfernen';

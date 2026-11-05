@@ -7161,7 +7161,7 @@ abstract class AppLocalizations {
   /// **'Remove tag'**
   String get collectionQueryRemoveTag;
 
-  /// Advanced-query 'add' menu item: a two-figure ordered sequence condition.
+  /// Advanced-query 'add' menu item: a two-figure sequence condition in which the second figure immediately follows the first.
   ///
   /// In en, this message translates to:
   /// **'Sequence (then)'**
@@ -7185,7 +7185,7 @@ abstract class AppLocalizations {
   /// **'Remove figure'**
   String get collectionQueryRemoveFigure;
 
-  /// Label for the earlier figure of a 'then' sequence condition.
+  /// Label for the first figure of a 'then' sequence condition: the figure the next one must immediately follow.
   ///
   /// In en, this message translates to:
   /// **'First'**
@@ -7197,11 +7197,11 @@ abstract class AppLocalizations {
   /// **'then'**
   String get collectionQueryThenConnector;
 
-  /// Label for the later figure of a 'then' sequence condition.
+  /// Label for the figure that must come immediately after the first one in a 'then' sequence condition (the dance counts as a loop, so the first figure follows the last).
   ///
   /// In en, this message translates to:
-  /// **'Later'**
-  String get collectionQueryThenLater;
+  /// **'Next'**
+  String get collectionQueryThenNext;
 
   /// Tooltip for the button that removes a 'then' sequence condition.
   ///
@@ -11045,7 +11045,7 @@ abstract class AppLocalizations {
   /// **'ContraDB Figure searches use a complete move name, such as \"box circulate\".'**
   String get importErrorContraDbUnsupportedFigure;
 
-  /// Error shown when the Advanced search has a condition ContraDB cannot run with the same meaning (a tag, a then sequence, a figure parameter or section, or a local-only filter), so the ContraDB search is not sent. Quoted names are the Advanced builder's group and row labels.
+  /// Error shown when the Advanced search has a condition ContraDB cannot run with the same meaning (a tag, a figure parameter or section, a move ContraDB does not have, or a local-only filter), so the ContraDB search is not sent. Quoted names are the Advanced builder's group and row labels.
   ///
   /// In en, this message translates to:
   /// **'ContraDB can only run Advanced searches made of “All of”, “Any of”, and “None of” groups of “Has figure” conditions. Remove tags, figure details, moves ContraDB doesn’t have, and other conditions to search ContraDB.'**

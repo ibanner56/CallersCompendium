@@ -4738,7 +4738,7 @@ class AppLocalizationsNl extends AppLocalizations {
   String get collectionQueryThenConnector => 'dan';
 
   @override
-  String get collectionQueryThenLater => 'Later';
+  String get collectionQueryThenNext => 'Daarna';
 
   @override
   String get collectionQueryRemoveSequence => 'Reeks verwijderen';

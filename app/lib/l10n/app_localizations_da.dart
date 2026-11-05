@@ -4709,7 +4709,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get collectionQueryThenConnector => 'derefter';
 
   @override
-  String get collectionQueryThenLater => 'Senere';
+  String get collectionQueryThenNext => 'Derefter';
 
   @override
   String get collectionQueryRemoveSequence => 'Fjern sekvens';

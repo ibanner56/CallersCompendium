@@ -4495,7 +4495,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get collectionQueryThenConnector => '次に';
 
   @override
-  String get collectionQueryThenLater => '後で';
+  String get collectionQueryThenNext => '直後';
 
   @override
   String get collectionQueryRemoveSequence => 'シーケンスを削除';

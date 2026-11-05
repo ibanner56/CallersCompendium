@@ -458,7 +458,7 @@ class _ThenRow extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  l10n.collectionQueryThenLater,
+                  l10n.collectionQueryThenNext,
                   style: theme.textTheme.labelSmall,
                 ),
                 _FigureOperandEditor(

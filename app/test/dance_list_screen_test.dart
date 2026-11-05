@@ -2079,7 +2079,7 @@ void main() {
 
     expect(find.text('then'), findsOneWidget);
     expect(find.text('First'), findsOneWidget);
-    expect(find.text('Later'), findsOneWidget);
+    expect(find.text('Next'), findsOneWidget);
   });
 
   testWidgets('by phrase: match figure in A1 returns only dances with that '
