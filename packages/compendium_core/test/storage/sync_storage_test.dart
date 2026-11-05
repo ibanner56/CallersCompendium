@@ -6075,6 +6075,110 @@ void main() {
     expect(await repositories.choreographers.getById('zzz-author'), isNotNull);
   });
 
+  // A step-1 row nothing re-observes is never refreshed, so before the pass
+  // dropped stale ones a collision that ended on its own left a row neither
+  // action could clear: both refuse with `candidateChanged` for ever, and the
+  // review screen kept asking about a pair that no longer collides (N2-T1).
+  // Each case below ends the collision a different way and then runs the
+  // pass's refresh, the way `SyncCoordinator` does after every apply.
+  SyncMergeCandidate peerRename(String id, String name, Duration after) {
+    final stamp = renameCollisionStamp.add(after);
+    return SyncMergeCandidate(
+      blob: SyncRecordBlob(
+        kind: SyncRecordKind.choreographer,
+        id: id,
+        updatedAt: stamp,
+        deletedAt: null,
+        existenceAt: stamp,
+        body: syncBodyForEntity(
+          SyncRecordKind.choreographer,
+          Choreographer(id: id, name: name),
+        ),
+      ),
+    );
+  }
+
+  test('a step-1 row is dropped once the name-holder is renamed by hand and '
+      'the update lands', () async {
+    await queueStep1Collision(renamedId: 'aaa-author', holderId: 'zzz-author');
+    // ignore: unused_result
+    await repositories.choreographers.upsert(
+      Choreographer(
+        id: 'zzz-author',
+        name: 'Renamed by hand',
+        email: renameCollisionDetails['zzz-author']!.email,
+        location: renameCollisionDetails['zzz-author']!.location,
+        deceased: renameCollisionDetails['zzz-author']!.deceased,
+      ),
+      at: renameCollisionStamp.add(const Duration(minutes: 5)),
+    );
+
+    // The next pass plans the same update again, and now nothing holds the
+    // name, so it is written.
+    final result = await const SyncApplyEngine().apply(
+      candidates: [
+        peerRename(
+          'aaa-author',
+          renameCollisionDetails['zzz-author']!.name,
+          const Duration(minutes: 1),
+        ),
+      ],
+      storage: storage,
+    );
+    expect(result.applied, [
+      (kind: SyncRecordKind.choreographer, recordId: 'aaa-author'),
+    ]);
+    await storage.refreshConflictReviews(const []);
+
+    expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+  });
+
+  test('a step-1 row is dropped once the peer renames the record again onto a '
+      'free name', () async {
+    await queueStep1Collision(renamedId: 'aaa-author', holderId: 'zzz-author');
+
+    final result = await const SyncApplyEngine().apply(
+      candidates: [
+        peerRename('aaa-author', 'Alice Jones', const Duration(minutes: 2)),
+      ],
+      storage: storage,
+    );
+    expect(result.applied, [
+      (kind: SyncRecordKind.choreographer, recordId: 'aaa-author'),
+    ]);
+    await storage.refreshConflictReviews(const []);
+
+    expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+  });
+
+  test('a step-1 row whose collision still stands survives the refresh '
+      'unchanged', () async {
+    final item = await queueStep1Collision(
+      renamedId: 'aaa-author',
+      holderId: 'zzz-author',
+    );
+
+    await storage.refreshConflictReviews(const []);
+
+    final rows = await repositories.syncLocal.listReviewQueue();
+    expect(rows, hasLength(1));
+    expect(rows.single.queuedAt, item.row.queuedAt);
+    expect(rows.single.localHash, item.row.localHash);
+  });
+
+  test('a step-1 row whose name-holder is a tombstone survives the refresh, '
+      'because keep both still resolves it', () async {
+    await queueStep1Collision(renamedId: 'aaa-author', holderId: 'zzz-author');
+    await repositories.choreographers.delete(
+      'zzz-author',
+      at: renameCollisionStamp.add(const Duration(minutes: 5)),
+    );
+
+    await storage.refreshConflictReviews(const []);
+
+    expect(await repositories.syncLocal.listReviewQueue(), hasLength(1));
+  });
+
   test('an in-batch step-1 collision is resolvable end to end', () async {
     // The row #1364 started queueing. Its counterpart is a candidate that is
     // still only *prepared* when the row is written, so this also covers the
