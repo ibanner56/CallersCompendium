@@ -1851,6 +1851,11 @@ final class CompendiumSyncStorage
   /// ([syncWithdrawnSettingKeys]) is dropped even when its address is in
   /// [unevaluated], and none is queued: an older build queued it, and this one
   /// can neither resolve it nor offer it (sync-spec §6.7, amended 2026-10-30).
+  ///
+  /// It then drops every §6.6 step-1 rename-collision row whose collision
+  /// local state shows has ended ([_dropStaleRenameCollisionReviews]), whether
+  /// or not its address is in [unevaluated]: that test reads no peer
+  /// (sync-spec §6.6, amended 2026-11-05).
   Future<int> refreshConflictReviews(
     Iterable<SyncMergeDecision> reviews, {
     Set<SyncRecordAddress> unevaluated = const {},
