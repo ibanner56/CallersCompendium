@@ -132,12 +132,15 @@ control and a hidden scope for nothing.
   (`_buildResultCount`, `:2854`) shows the same count, so the number the caller
   sees before tapping is the number they get.
 - **Desktop.** Ctrl/Cmd-A selects all, but only while keyboard focus is in the
-  list, never in the search field, where it must keep selecting text. B29 built
-  the desktop shortcut map (`decided-work-plan.md`, B29), and its intents and
-  binding table are in `app/lib/src/widgets/app_shortcuts.dart`; this binding
-  goes there, and is N4's to add. Until it is added, *Select all* is
-  pointer-and-touch only, and that is acceptable because the button works with a
-  keyboard.
+  list, never in the search field, where it must keep selecting text. The
+  binding is in `app/lib/src/widgets/app_shortcuts.dart` (`SelectAllDancesIntent`),
+  and the action is registered around the result list in `dance_list_screen.dart`,
+  not around the search box, so the key reaches it only from inside the list.
+  Two calls of the follow-up session, not the maintainer's: the key only ever
+  selects (a second press leaves everything selected, unlike the button, which
+  toggles), and it starts selection mode when it is off. Rejected: reusing the
+  toggle (a stray second press would clear a large selection) and requiring
+  selection mode first (Ctrl-A on a plain list would do nothing).
 
 ## Q2. Selections a new search hides
 
@@ -630,7 +633,12 @@ list; for S3, a failure mid-batch must leave every dance live.
   (in-memory database, no device claim): the handler took about 5.6–6.1 s with a
   `getById` per dance and about 3.2–3.5 s with one `getByIds`; `setStatusForMany`
   itself takes about 0.9 s of that (core harness). The level, rating, tunes and
-  custom-field handlers still read per dance. S3's Delete reads no priors; its
+  custom-field handlers now read their priors with one `getByIds` as well
+  (follow-ups bundle 1; the tag handler, which reads inside its own
+  transaction, still reads per dance). Same harness, 5,000 dances, *Set rating*
+  from tapping Confirm to the settled list: about 6.4–6.6 s before and about
+  3.8–5.1 s after, over two runs each on a shared machine, so read it as a
+  direction, not a figure; no device claim. S3's Delete reads no priors; its
   figures are under Delete.
 - **Sync after a mass delete.** S3 timed the local snapshot scan with 5,000
   tombstones (see Delete); a full pass to a server, with encryption and upload,

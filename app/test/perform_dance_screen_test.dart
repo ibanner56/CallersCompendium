@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
@@ -1251,5 +1252,116 @@ void main() {
         expect(find.byType(PerformWalkthroughOverlay), findsNothing);
       },
     );
+  });
+
+  group('arrow and Page keys scroll a long card (PLAT-10)', () {
+    Dance longDance({String walkthrough = ''}) => _dance(
+      figures: [for (var i = 0; i < 40; i++) _chain()],
+      walkthrough: walkthrough,
+    );
+
+    ScrollPosition scrollOf(WidgetTester tester, Type within) => tester
+        .state<ScrollableState>(
+          find.descendant(
+            of: find.byType(within),
+            matching: find.byType(Scrollable),
+          ),
+        )
+        .position;
+
+    Future<void> pumpLong(WidgetTester tester, {String walkthrough = ''}) =>
+        _pumpPerform(
+          tester,
+          dance: longDance(walkthrough: walkthrough),
+          surfaceSize: const Size(1000, 800),
+        );
+
+    for (final keys in [
+      (LogicalKeyboardKey.arrowDown, LogicalKeyboardKey.arrowUp),
+      (LogicalKeyboardKey.pageDown, LogicalKeyboardKey.pageUp),
+    ]) {
+      testWidgets('${keys.$1.keyLabel} scrolls on and ${keys.$2.keyLabel} '
+          'back, and both stop at the ends', (tester) async {
+        await pumpLong(tester);
+        final position = scrollOf(tester, PerformCard);
+        expect(position.maxScrollExtent, greaterThan(0));
+        expect(position.pixels, 0);
+
+        await tester.sendKeyEvent(keys.$1);
+        await tester.pumpAndSettle();
+        expect(position.pixels, greaterThan(0));
+
+        var presses = 0;
+        while (position.pixels < position.maxScrollExtent) {
+          await tester.sendKeyEvent(keys.$1);
+          await tester.pumpAndSettle();
+          expect(++presses, lessThan(50));
+        }
+        // At the end another press changes nothing and does not throw.
+        await tester.sendKeyEvent(keys.$1);
+        await tester.pumpAndSettle();
+        expect(position.pixels, position.maxScrollExtent);
+
+        while (position.pixels > 0) {
+          await tester.sendKeyEvent(keys.$2);
+          await tester.pumpAndSettle();
+          expect(++presses, lessThan(100));
+        }
+        expect(position.pixels, 0);
+        expect(find.byType(PerformDanceScreen), findsOneWidget);
+      });
+    }
+
+    testWidgets('opening the walkthrough from the keyboard leaves the keys '
+        'working', (tester) async {
+      await pumpLong(tester, walkthrough: List.filled(80, 'Line.').join('\n'));
+      final toggle = find.byKey(const ValueKey('perform-walkthrough-toggle'));
+      // Tab to the toggle, as a keyboard user would.
+      for (var i = 0; i < 20; i++) {
+        final focused = FocusManager.instance.primaryFocus?.context;
+        if (focused?.findAncestorWidgetOfExactType<IconButton>()?.key ==
+            toggle.evaluate().single.widget.key) {
+          break;
+        }
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.pump();
+      }
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pumpAndSettle();
+      expect(find.byType(PerformWalkthroughOverlay), findsOneWidget);
+      final overlay = scrollOf(tester, PerformWalkthroughOverlay);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pumpAndSettle();
+
+      expect(overlay.pixels, greaterThan(0));
+    });
+
+    testWidgets('with the walkthrough open the keys scroll it, not the card', (
+      tester,
+    ) async {
+      await pumpLong(tester, walkthrough: List.filled(80, 'Line.').join('\n'));
+      await tester.tap(
+        find.byKey(const ValueKey('perform-walkthrough-toggle')),
+      );
+      await tester.pumpAndSettle();
+      final overlay = scrollOf(tester, PerformWalkthroughOverlay);
+      final card = tester
+          .state<ScrollableState>(
+            find
+                .descendant(
+                  of: find.byType(PerformCard),
+                  matching: find.byType(Scrollable),
+                )
+                .first,
+          )
+          .position;
+      expect(overlay.maxScrollExtent, greaterThan(0));
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pumpAndSettle();
+      expect(overlay.pixels, greaterThan(0));
+      expect(card.pixels, 0);
+    });
   });
 }
