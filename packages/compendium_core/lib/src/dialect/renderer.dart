@@ -2905,7 +2905,9 @@ class FigureRenderer {
     // sfirst_shoulder + ",", ssecond_who, ssecond_dir, ssecond_shoulder). The
     // second dir/shoulder are the fixed structural inverse of the first
     // (across<->"along the set"; right<->left shoulders). Shoulders render in
-    // full ("right shoulders"), matching ContraDB `stringParamShoulders`.
+    // full after "passing" ("passing right shoulders"), so a direction before
+    // them never reads as their side ("on right diagonal passing right
+    // shoulders").
     'cross_trails': (r, def, params, dialect, verbose, decimals) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
       final swho = r._displaySubject(params['who'], dialect);
@@ -2926,13 +2928,15 @@ class FigureRenderer {
       final sh = params['shoulder'];
       final firstShoulder = sh == null
           ? ''
-          : '${_humanize(sh.toString())} shoulders';
+          : 'passing ${_humanize(sh.toString())} shoulders';
       final otherSh = sh == 'right'
           ? 'left'
           : sh == 'left'
           ? 'right'
           : null;
-      final secondShoulder = otherSh == null ? '' : '$otherSh shoulders';
+      final secondShoulder = otherSh == null
+          ? ''
+          : 'passing $otherSh shoulders';
       final firstPart = [
         swho,
         firstDir,

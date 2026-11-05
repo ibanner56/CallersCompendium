@@ -629,7 +629,7 @@ void main() {
         );
         expect(
           line('cross_trails', {'where': 'rightDiagonal'}),
-          startsWith('cross trails - partner on right diagonal right'),
+          startsWith('cross trails - partner on right diagonal passing right'),
         );
         // `across` and `along` read as themselves.
         expect(line('pull_by', {'where': 'across'}), 'pull by right across');
@@ -3190,7 +3190,7 @@ void main() {
       test('default: second dir/shoulder are the structural inverse', () {
         expect(
           renderer.render(Figure(move: 'cross_trails'), d),
-          'cross trails - partner across the set right shoulders, neighbor along the set left shoulders',
+          'cross trails - partner across the set passing right shoulders, neighbor along the set passing left shoulders',
         );
       });
       test('dir=along mirrors to "across the set" for the second pair', () {
@@ -3199,7 +3199,7 @@ void main() {
             Figure(move: 'cross_trails', params: {'where': 'along'}),
             d,
           ),
-          'cross trails - partner along the set right shoulders, neighbor across the set left shoulders',
+          'cross trails - partner along the set passing right shoulders, neighbor across the set passing left shoulders',
         );
       });
     });
@@ -3464,7 +3464,7 @@ void main() {
             ),
             d,
           ),
-          'cross trails - some imported group across the set right shoulders, along the set left shoulders',
+          'cross trails - some imported group across the set passing right shoulders, along the set passing left shoulders',
         );
       });
       test('poussette drops the direction clause for an unknown turn', () {
