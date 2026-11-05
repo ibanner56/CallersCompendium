@@ -21,9 +21,6 @@ void main() {
           const PublishedCollectionFetchException(
             PublishedCollectionFetchFailure.unavailable,
           ).runtimeType.toString(),
-      'SyncFailure': const SyncFailure(
-        SyncFailureCause.timedOut,
-      ).runtimeType.toString(),
     };
     // The download error is private to update_controller.dart, so check the
     // declaration itself rather than export the class for a test.
@@ -37,6 +34,20 @@ void main() {
     for (final entry in real.entries) {
       expect(entry.value, entry.key);
     }
+  });
+
+  // `SyncFailure` was listed here once, but it is returned rather than thrown,
+  // so it never reaches the crash log. The type that does is
+  // `SyncWorkerFailure`, and its message is the worker's free text.
+  test('the thrown Device Sync failure keeps its message withheld', () {
+    final thrown = SyncWorkerFailure(
+      'GET https://sync.example.com/stores/abc failed',
+      SyncFailureCause.unreachable,
+    );
+    expect(
+      CrashLogRecord.messageSafeErrorTypes,
+      isNot(contains(thrown.runtimeType.toString())),
+    );
   });
 
   test('the typed messages that survive carry no URL, path or prose', () {
