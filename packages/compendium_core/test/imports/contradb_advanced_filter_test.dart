@@ -25,14 +25,45 @@ void main() {
       expect(expression(FigureFilter.leaf('swing')), ['figure', 'swing']);
     });
 
-    test('resolves case and punctuation to ContraDB spelling', () {
-      expect(expression(FigureFilter.leaf('California Twirl')), [
+    test('resolves the Collection\'s move ids to ContraDB spelling', () {
+      // The builder emits taxonomy ids (`FigureLeaf.move`), not display names;
+      // ContraDB's `figure` operator is an exact, case-sensitive key.
+      expect(expression(FigureFilter.leaf('california_twirl')), [
         'figure',
         'California twirl',
       ]);
-      expect(expression(FigureFilter.leaf('Rory O’More')), [
+      expect(expression(FigureFilter.leaf('rory_o_more')), [
         'figure',
         "Rory O'More",
+      ]);
+      expect(expression(FigureFilter.leaf('do_si_do')), ['figure', 'do si do']);
+      expect(expression(FigureFilter.leaf('arch_and_dive')), [
+        'figure',
+        'arch & dive',
+      ]);
+      expect(expression(FigureFilter.leaf('give_and_take')), [
+        'figure',
+        'give & take',
+      ]);
+      expect(expression(FigureFilter.leaf('shoulder_round')), [
+        'figure',
+        'gyre',
+      ]);
+      // The live importer reads ContraDB's `form an ocean wave` as
+      // `form_short_waves` (not `pass_the_ocean`).
+      expect(expression(FigureFilter.leaf('form_short_waves')), [
+        'figure',
+        'form an ocean wave',
+      ]);
+    });
+
+    test('a Collection move that is two ContraDB moves becomes their or', () {
+      // The importer folds both `pull by dancers` and `pull by direction` into
+      // `pull_by`, so the Collection's `pull_by` is exactly their union.
+      expect(expression(FigureFilter.leaf('pull_by')), [
+        'or',
+        ['figure', 'pull by dancers'],
+        ['figure', 'pull by direction'],
       ]);
     });
 
@@ -222,11 +253,63 @@ void main() {
         refusal(FigureFilter.leaf('not a real move')),
         ContraDbAdvancedUnsupported.figureName,
       );
-      // A partial name is not a move either; ContraDB would match nothing.
+      // A partial name is not a move either.
       expect(
         refusal(FigureFilter.leaf('swin')),
         ContraDbAdvancedUnsupported.figureName,
       );
+      // Collection-only moves have no ContraDB figure at all.
+      for (final id in [
+        'two_hand_turn',
+        'courtesy_turn',
+        'star_through',
+        'turn_as_couples',
+        'orbit',
+        'circular_hey',
+        // `pass_the_ocean` is ContraDB's `pass through` with an ocean-wave
+        // parameter, not a figure of its own.
+        'pass_the_ocean',
+      ]) {
+        expect(
+          refusal(FigureFilter.leaf(id)),
+          ContraDbAdvancedUnsupported.figureName,
+          reason: id,
+        );
+      }
+    });
+
+    test('a display name or ContraDB spelling is not a Collection move id', () {
+      // The Collection resolves a typed name through the active dialect; this
+      // translator never sees the dialect, so only exact ids are trusted.
+      for (final name in ['do si do', 'Do Si Do', 'California Twirl', 'gyre']) {
+        expect(
+          refusal(FigureFilter.leaf(name)),
+          ContraDbAdvancedUnsupported.figureName,
+          reason: name,
+        );
+      }
+    });
+
+    test('moves whose ContraDB meaning differs or is lossy', () {
+      // Aliases: the Collection stores them resolved (`see_saw` is a
+      // `do_si_do`), and ContraDB's alias filters add parameter constraints
+      // the Collection's alias leaf does not have.
+      // `custom` / `star_promenade`: the importer sends unrecognised and
+      // declined lines to the Collection's `custom`, so the two sets differ.
+      for (final id in [
+        'see_saw',
+        'swat_the_flea',
+        'meltdown_swing',
+        'custom',
+        'star_promenade',
+        'allemande_orbit',
+      ]) {
+        expect(
+          refusal(FigureFilter.leaf(id)),
+          ContraDbAdvancedUnsupported.figureName,
+          reason: id,
+        );
+      }
     });
 
     test('local-only conditions', () {
