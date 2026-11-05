@@ -796,7 +796,13 @@ figure as the progression. This is non-serialized taxonomy metadata, so no
   text where the template reads as search text rather than as a call:
   `pull by right across` (canonical `pull by across right`) and
   `slide left along set` (canonical `slide along set left`; a dialect that
-  renames the move keeps its name whole, `sashay left`). A subject the verb
+  renames the move keeps its name whole, `sashay left`). A set direction
+  reads the same way on every move that shows one: a diagonal as `on right
+  diagonal`, a facing direction as `facing in`, and `across`/`along` as
+  themselves (`pull by right on left diagonal`, `robins chain facing in`); a
+  hey or an ocean wave names it after the figure (`a half hey along`, `an
+  ocean wave on right diagonal`). Rory O'More's balance follows its subject
+  (`larks balance & Rory O'More right`). A subject the verb
   after it agrees with stays plural (`neighbors take right hands`), while a
   subject that only prefixes the move reads singular (`neighbor swing`). All
   of this is display-only (`_displayRenderTemplates`, `_displayBaseRenderers`

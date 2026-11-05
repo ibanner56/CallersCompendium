@@ -2014,6 +2014,9 @@ class FigureRenderer {
     if (value is String && roleTokens.contains(value)) {
       return _roleTerm(value, dialect);
     }
+    if (!forCanonical && spec?.kind == ParamKind.direction) {
+      return _displayDirection(value);
+    }
     // Swing's `prefix` modifier reads as a natural phrase in front of the move
     // ("balance & swing" / "meltdown swing"); `none` renders to nothing.
     if (spec?.kind == ParamKind.choice && name == 'prefix' && value is String) {
@@ -2320,6 +2323,26 @@ class FigureRenderer {
 
   static String _gateFacingPhrase(String facing) =>
       _gateFacingPhrases[facing] ?? _humanize(facing);
+
+  /// DISPLAY-ONLY phrasing of a set direction (`ParamKind.direction`), shared
+  /// by every move that shows one: a diagonal reads "on right diagonal" and a
+  /// facing direction reads "facing in", so a direction never runs into the
+  /// hand or shoulder beside it ("pull by right on left diagonal", "pull by
+  /// right facing in"). `across` and `along` read as themselves. The
+  /// canonical render keeps the humanized token ("right diagonal"), so the
+  /// FTS/dedupe text is unchanged. An unexpected value humanizes.
+  static const Map<String, String> _directionPhrases = {
+    'rightDiagonal': 'on right diagonal',
+    'leftDiagonal': 'on left diagonal',
+    'in': 'facing in',
+    'out': 'facing out',
+    'up': 'facing up',
+    'down': 'facing down',
+  };
+
+  static String _displayDirection(Object? value) => value is String
+      ? _directionPhrases[value] ?? _humanize(value)
+      : _displayScalar(value);
 
   /// Swing `endFacing` values that render an ending-facing clause (issue #543).
   /// The default `in` (across) is deliberately ABSENT — a default swing renders
@@ -2890,7 +2913,9 @@ class FigureRenderer {
       final dir = params['where'];
       final firstDir = dir == null
           ? ''
-          : '${_humanize(dir.toString())} the set';
+          : dir == 'across' || dir == 'along' || dir == '*'
+          ? '${_humanize(dir.toString())} the set'
+          : _displayDirection(dir);
       final secondDir = dir == 'across'
           ? 'along the set'
           : dir == 'along'
@@ -3043,7 +3068,9 @@ class FigureRenderer {
     // is "in center", the other "on ends". `full`/`half` name the length inline;
     // `lessThanHalf`/`betweenHalfAndFull` instead append "- until someone meets
     // [the second time]", or "- until <meetTarget> meet[ the second time]" when
-    // a partial hey names its `meetTarget` pair (issue #576). A non-`across` dir prefixes the phrase. Ricochet flags
+    // a partial hey names its `meetTarget` pair (issue #576). A non-`across`
+    // dir FOLLOWS the move, unlike ContraDB's prefix ("a half hey along", not
+    // "an along half hey"), worded as [_displayDirection]. Ricochet flags
     // add " - <who> ricochet[ first time| second time], …". Because the base
     // line now carries the length, [_summarySuffix] no longer appends "(half)".
     'hey': (r, def, params, dialect, verbose, decimals) {
@@ -3053,7 +3080,9 @@ class FigureRenderer {
       final sfirst = r._subjectToken(pass1, dialect, plural: true);
       final length = params['length'];
       final dir = params['where'];
-      final sdir2 = (dir == 'across' || dir == null) ? '' : _displayScalar(dir);
+      final sdir2 = (dir == 'across' || dir == null)
+          ? ''
+          : _displayDirection(dir);
       final usesUntil =
           length == 'lessThanHalf' || length == 'betweenHalfAndFull';
       final lengthWord = length == 'half'
@@ -3066,7 +3095,6 @@ class FigureRenderer {
           ? ''
           : _displayScalar(length);
       final mainPhrase = [
-        sdir2,
         lengthWord,
         move,
       ].where((s) => s.isNotEmpty).join(' ');
@@ -3166,7 +3194,7 @@ class FigureRenderer {
           'until': untilClause,
           'ricochets': ricoStrings.join(', '),
         },
-        '{who} start {article} {where} {length} {move}'
+        '{who} start {article} {length} {move} {where}'
         '[ - {shoulder_clause}]'
         '[ - {until}]'
         '[ - {ricochets}]',
@@ -3193,7 +3221,7 @@ class FigureRenderer {
             : '$changes/4',
         'who': swho,
         'shoulder': _displayScalar(params['shoulder']),
-        'where': _displayScalar(params['where']),
+        'where': _displayDirection(params['where']),
         'second': _circularHeySecondPass(r, params, dialect),
       }, '[{fraction} ]{move}, {who} pass {shoulder} {where}[, {second}]');
     },
@@ -3336,18 +3364,18 @@ class FigureRenderer {
         'balance': balance,
       }, 'form short waves[ - {body}]{balance}');
     },
-    // A non-default `dir` surfaces the diagonal word ("a right diagonal ocean
-    // wave"), silent for the `across` default (ContraDB
-    // `stringParamSetDirectionSilencingDefault('across')`); the indefinite
-    // article tracks the resulting noun phrase. A truthy `balance` appends a
+    // A non-default `dir` follows the wave, worded as [_displayDirection] ("an
+    // ocean wave on right diagonal", "an ocean wave facing in"), silent for
+    // the `across` default (ContraDB
+    // `stringParamSetDirectionSilencingDefault('across')`). A truthy `balance` appends a
     // trailing " and balance" clause (product wording; not ContraDB's pre-dash
     // "& balance").
     'pass_the_ocean': (r, def, params, dialect, verbose, decimals) {
       final dirRaw = params['where'];
       final dirWord = (dirRaw == null || dirRaw == 'across')
           ? ''
-          : _humanize(dirRaw.toString());
-      final noun = dirWord.isEmpty ? 'ocean wave' : '$dirWord ocean wave';
+          : _displayDirection(dirRaw);
+      final noun = dirWord.isEmpty ? 'ocean wave' : 'ocean wave $dirWord';
       final article = _indefiniteArticle(noun);
       final scenter = r._displaySubject(
         params['center'],
@@ -3438,13 +3466,13 @@ class FigureRenderer {
     //   - dir=along, turn=ccw (only dir stated): "partner promenade
     //     counterclockwise along" (the `along` exception shows the default)
     //   - dir=rightDiagonal, turn=ccw (only dir stated): "partner promenade
-    //     right diagonal" (other non-default directions leave the default
+    //     on right diagonal" (other non-default directions leave the default
     //     turn silent)
     //   - dir=across, turn=cw (only turn stated): "neighbor promenade
     //     clockwise across" — turn being non-default un-silences `across` too
     //     (a bare "clockwise" alone doesn't say what's being turned across)
     //   - dir=rightDiagonal, turn=ccw, destination=prevNeighbors: "partner
-    //     promenade counterclockwise right diagonal to prev neighbors" — a
+    //     promenade counterclockwise on right diagonal to prev neighbors" — a
     //     stated destination un-silences turn even though it's the default,
     //     because "to prev neighbors" alone doesn't say which way they travel
     // The `along` exception is intentional: the taxonomy cannot distinguish
@@ -3481,7 +3509,7 @@ class FigureRenderer {
         // the canonical form. `turn` (v30): shown whenever non-default or a
         // destination is stated. Unlike the non-singleFile branch, `dir=='along'`
         // does not add a separate default-turn exception here.
-        final dir = _displayScalar(dirRaw);
+        final dir = _displayDirection(dirRaw);
         final showTurn =
             !_isUnspecified(turnRaw) && (turnRaw != turnDefault || destStated);
         final turn = showTurn ? _displayScalar(turnRaw) : '';
@@ -3506,7 +3534,7 @@ class FigureRenderer {
           (turnRaw != turnDefault || destStated || dirRaw == 'along');
       final turn = showTurn ? _displayScalar(turnRaw) : '';
       final showDir = showTurn || dirRaw != dirDefault;
-      final dir = showDir ? _displayScalar(dirRaw) : '';
+      final dir = showDir ? _displayDirection(dirRaw) : '';
       final dest = destStated
           ? 'to ${destRaw is String ? r._displayGroup(destRaw, dialect) : _displayScalar(destRaw)}'
           : '';
@@ -3585,7 +3613,9 @@ class FigureRenderer {
           : '';
       final dir = params['where'];
       // Silence the default 'along' direction (ContraDB set_direction_along).
-      final dirClause = (dir is String && dir != 'along') ? _humanize(dir) : '';
+      final dirClause = (dir is String && dir != 'along')
+          ? _displayDirection(dir)
+          : '';
       return _displayTemplate({
         'move': move,
         'shoulder': shoulderClause,
@@ -3651,8 +3681,10 @@ class FigureRenderer {
     // `words(sbalance, smove)` / `words(sbal, smove, …)` — balance first.
     'petronella': _BalancePlacement.leading,
     'pull_by': _BalancePlacement.leading,
-    // `words(sbalance, swho2, smove, sdir)` — balance before the subject.
-    'rory_o_more': _BalancePlacement.leading,
+    // ContraDB `words(sbalance, swho2, smove, sdir)` puts balance before the
+    // subject; a caller says the subject first ("larks balance & Rory O'More
+    // right"), so the balance follows it here, as box the gnat's does.
+    'rory_o_more': _BalancePlacement.afterWho,
     // `words(sbal, smove, "-", details)` — balance first.
     'box_circulate': _BalancePlacement.leading,
     // `words(swho, sbal, smove, sspin)` — subject, then balance before move.
