@@ -40,6 +40,7 @@ import 'package:compendium_app/src/data/locale_scope.dart';
 import 'package:compendium_app/src/data/migration_error_labels.dart';
 import 'package:compendium_app/src/data/migration_guard.dart';
 import 'package:compendium_app/src/data/require_event_date_for_history_scope.dart';
+import 'package:compendium_app/src/data/calling_history_tracking_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/data/sort_ignore_articles_scope.dart';
 import 'package:compendium_app/src/data/aggressive_beats_update_scope.dart';
@@ -2362,6 +2363,30 @@ void main() {
           (
             key: kRequireEventDateForHistoryKey,
             read: RequireEventDateForHistoryScope.of,
+            defaultValue: false,
+          ),
+          (
+            key: kRecencyRequireEventDateKey,
+            read: (c) =>
+                CallingHistoryTrackingScope.of(c).recencyRequireEventDate,
+            defaultValue: true,
+          ),
+          // No stored value follows "require performed", which is off here.
+          (
+            key: kRecencyRequirePerformedKey,
+            read: (c) =>
+                CallingHistoryTrackingScope.of(c).recencyRequirePerformed,
+            defaultValue: false,
+          ),
+          (
+            key: kHistoryOrderIgnoreUndatedKey,
+            read: (c) => CallingHistoryTrackingScope.of(c).orderIgnoreUndated,
+            defaultValue: false,
+          ),
+          (
+            key: kHistoryOrderIgnoreUnperformedKey,
+            read: (c) =>
+                CallingHistoryTrackingScope.of(c).orderIgnoreUnperformed,
             defaultValue: false,
           ),
           (

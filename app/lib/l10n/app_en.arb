@@ -4112,7 +4112,7 @@
   "@settingsGeneralRequirePerformedForHistoryTitle": {
     "description": "Title of the General settings toggle that limits dance calling history to program slots marked performed."
   },
-  "settingsGeneralRequirePerformedForHistorySubtitle": "When on, a dance's calling history lists only programs whose slot for that dance was marked performed. When off, a program appears as soon as it contains the dance.",
+  "settingsGeneralRequirePerformedForHistorySubtitle": "Decides what counts as called. When on, only slots marked performed count anywhere calling history is read: the history list, called ×N, the Called filter and the Last called sort. When off, a slot counts as soon as its program contains the dance. Overrides the four settings below.",
   "@settingsGeneralRequirePerformedForHistorySubtitle": {
     "description": "Subtitle explaining the require-mark-performed calling history toggle."
   },
@@ -4136,9 +4136,45 @@
   "@settingsGeneralRequireEventDateForHistoryTitle": {
     "description": "Title of the calling-history settings toggle that leaves programs with no event date out of calling history."
   },
-  "settingsGeneralRequireEventDateForHistorySubtitle": "When on, a program with no event date doesn't count toward calling history until you give it one. Duplicated and received programs arrive without a date. When off, a program counts whether or not it has a date.",
+  "settingsGeneralRequireEventDateForHistorySubtitle": "Decides what counts as called. When on, a program with no event date counts nowhere calling history is read until you give it one. Duplicated and received programs arrive without a date. When off, a program counts whether or not it has a date. Overrides the four settings below.",
   "@settingsGeneralRequireEventDateForHistorySubtitle": {
     "description": "Subtitle explaining the require-an-event-date calling history toggle."
+  },
+  "settingsTrackingHeader": "Recency and history order",
+  "@settingsTrackingHeader": {
+    "description": "Header above the settings that change only how calling history is dated and ordered, never what counts as called."
+  },
+  "settingsRecencyRequireEventDateTitle": "Recency only counts dated programs",
+  "@settingsRecencyRequireEventDateTitle": {
+    "description": "Title of the toggle that makes the Called filter time windows count only programs with an event date."
+  },
+  "settingsRecencyRequireEventDateSubtitle": "Changes only the Called filter's time windows, never the counts. When on, a program with no event date falls in no window, though its dances still count as called. When off, an undated program is dated by when it was last edited.",
+  "@settingsRecencyRequireEventDateSubtitle": {
+    "description": "Subtitle of the recency-requires-event-date toggle. States it never changes the counts."
+  },
+  "settingsRecencyRequirePerformedTitle": "Recency only counts slots marked performed",
+  "@settingsRecencyRequirePerformedTitle": {
+    "description": "Title of the toggle that makes the Called filter time windows count only slots marked performed."
+  },
+  "settingsRecencyRequirePerformedSubtitle": "Changes only the Called filter's time windows, never the counts. When on, a slot not marked performed falls in no window, though it still counts as called. Until you set this yourself, it follows the require-performed setting above.",
+  "@settingsRecencyRequirePerformedSubtitle": {
+    "description": "Subtitle of the recency-requires-performed toggle. States it never changes the counts and that it follows the global require-performed setting until set."
+  },
+  "settingsHistoryOrderIgnoreUndatedTitle": "History order and Last called ignore undated programs",
+  "@settingsHistoryOrderIgnoreUndatedTitle": {
+    "description": "Title of the toggle that makes the history order and Last called sort ignore programs with no event date."
+  },
+  "settingsHistoryOrderIgnoreUndatedSubtitle": "Changes only the order of a dance's history and the Last called sort, never the counts. When on, a program with no event date is listed after the dated ones and gives no Last called date. When off, it is ordered by when it was last edited.",
+  "@settingsHistoryOrderIgnoreUndatedSubtitle": {
+    "description": "Subtitle of the history-order-ignores-undated toggle. States it never changes the counts."
+  },
+  "settingsHistoryOrderIgnoreUnperformedTitle": "History order and Last called ignore slots not marked performed",
+  "@settingsHistoryOrderIgnoreUnperformedTitle": {
+    "description": "Title of the toggle that makes the history order and Last called sort ignore slots not marked performed."
+  },
+  "settingsHistoryOrderIgnoreUnperformedSubtitle": "Changes only the order of a dance's history and the Last called sort, never the counts. When on, a slot not marked performed is listed after the others and gives no Last called date. When off, it is ordered by its program's date.",
+  "@settingsHistoryOrderIgnoreUnperformedSubtitle": {
+    "description": "Subtitle of the history-order-ignores-unperformed toggle. States it never changes the counts."
   },
   "settingsGeneralTrackHistoryForAllCallersTitle": "Track calling history for all callers",
   "@settingsGeneralTrackHistoryForAllCallersTitle": {

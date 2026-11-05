@@ -3224,9 +3224,9 @@
   "@settingsGeneralRequirePerformedForHistoryTitle": {
     "x-sourceSha256": "c229e5493c13424977f1ffd0e094821fb9822043e8210e315b0a45629debb6ee"
   },
-  "settingsGeneralRequirePerformedForHistorySubtitle": "Activé : l’historique d’appel d’une danse ne liste que les programmes dont le créneau pour cette danse a été marqué comme joué. Désactivé : un programme apparaît dès qu’il contient la danse.",
+  "settingsGeneralRequirePerformedForHistorySubtitle": "Détermine ce qui compte comme appelé. Activé : seuls les créneaux marqués comme joués comptent partout où l’historique d’appel est lu : la liste d’historique, « appelé ×N », le filtre Appelé et le tri par dernier appel. Désactivé : un créneau compte dès que son programme contient la danse. Prioritaire sur les quatre réglages ci-dessous.",
   "@settingsGeneralRequirePerformedForHistorySubtitle": {
-    "x-sourceSha256": "d17ae60f119ebc62e2f2492687687898f584def638de5e2549510d59bf3160ec"
+    "x-sourceSha256": "d3145fcbcff60ed81348b5e51f6f14a2955414925579a05988fe7bfe0a8e01f0"
   },
   "settingsGeneralShowPerformedTogglesTitle": "Afficher les commutateurs « marquer comme joué »",
   "@settingsGeneralShowPerformedTogglesTitle": {
@@ -3248,9 +3248,45 @@
   "@settingsGeneralRequireEventDateForHistoryTitle": {
     "x-sourceSha256": "f62790f3e48e6bd9f8b81f3fee8782bbeba76923cdb1d175e50df7d053afe6a2"
   },
-  "settingsGeneralRequireEventDateForHistorySubtitle": "Activé : un programme sans date d’événement ne compte pas dans l’historique d’appel tant que vous ne lui en donnez pas une. Les programmes dupliqués et reçus arrivent sans date. Désactivé : un programme compte, qu’il ait une date ou non.",
+  "settingsGeneralRequireEventDateForHistorySubtitle": "Détermine ce qui compte comme appelé. Activé : un programme sans date d’événement ne compte nulle part dans l’historique d’appel tant que vous ne lui en donnez pas une. Les programmes dupliqués et reçus arrivent sans date. Désactivé : un programme compte, qu’il ait une date ou non. Prioritaire sur les quatre réglages ci-dessous.",
   "@settingsGeneralRequireEventDateForHistorySubtitle": {
-    "x-sourceSha256": "23e337b297b87aad7ada670e835d4b176fae90d6782c5ca898c149f64080259d"
+    "x-sourceSha256": "28cda7212851d084501c8744628b7097b330c4442b65eccc7e660c867a0b3956"
+  },
+  "settingsTrackingHeader": "Récence et ordre de l’historique",
+  "@settingsTrackingHeader": {
+    "x-sourceSha256": "618f36841e967c647d75bbaeeb13d209487f073872d4c75657e09cbef7990166"
+  },
+  "settingsRecencyRequireEventDateTitle": "La récence ne compte que les programmes datés",
+  "@settingsRecencyRequireEventDateTitle": {
+    "x-sourceSha256": "afa4885654835890a138510f00989a31cc4fac88469e2c338d9779e4cb9c920a"
+  },
+  "settingsRecencyRequireEventDateSubtitle": "Ne modifie que les fenêtres de temps du filtre Appelé, jamais les décomptes. Activé : un programme sans date d’événement n’entre dans aucune fenêtre, même si ses danses comptent toujours comme appelées. Désactivé : un programme sans date est daté par sa dernière modification.",
+  "@settingsRecencyRequireEventDateSubtitle": {
+    "x-sourceSha256": "9ba344a1c8c6aa1d423f7b6860e29b7fff96dbfcefee59060f8d92e8d0e7aa07"
+  },
+  "settingsRecencyRequirePerformedTitle": "La récence ne compte que les créneaux marqués comme joués",
+  "@settingsRecencyRequirePerformedTitle": {
+    "x-sourceSha256": "f8b5d7069c593cc75013127054e2d9a296ca3dae723c4a0eeba7db016ef8d9b8"
+  },
+  "settingsRecencyRequirePerformedSubtitle": "Ne modifie que les fenêtres de temps du filtre Appelé, jamais les décomptes. Activé : un créneau non marqué comme joué n’entre dans aucune fenêtre, mais compte toujours comme appelé. Tant que vous ne le réglez pas vous-même, ce réglage suit l’exigence « joué » ci-dessus.",
+  "@settingsRecencyRequirePerformedSubtitle": {
+    "x-sourceSha256": "93062ca7561ac7ddc88ae9943bc1179101af9e5cf5250c0d99e7268850dd734f"
+  },
+  "settingsHistoryOrderIgnoreUndatedTitle": "L’ordre de l’historique et Dernier appel ignorent les programmes sans date",
+  "@settingsHistoryOrderIgnoreUndatedTitle": {
+    "x-sourceSha256": "7005abdf4984a1921691e75edf8a5f58c6e914b3fe89eb5429ec6c623e34b3d5"
+  },
+  "settingsHistoryOrderIgnoreUndatedSubtitle": "Ne modifie que l’ordre de l’historique d’une danse et le tri par dernier appel, jamais les décomptes. Activé : un programme sans date d’événement est listé après les programmes datés et ne donne aucune date de dernier appel. Désactivé : il est classé selon sa dernière modification.",
+  "@settingsHistoryOrderIgnoreUndatedSubtitle": {
+    "x-sourceSha256": "069ec90030f96cb8a4b829b69471a9cac56dc5e2549c89b8b50be31323f5349b"
+  },
+  "settingsHistoryOrderIgnoreUnperformedTitle": "L’ordre de l’historique et Dernier appel ignorent les créneaux non marqués comme joués",
+  "@settingsHistoryOrderIgnoreUnperformedTitle": {
+    "x-sourceSha256": "65b733cbf8ddc085428c6eb682a5f577d3e02659265831cfcf253869b34cc150"
+  },
+  "settingsHistoryOrderIgnoreUnperformedSubtitle": "Ne modifie que l’ordre de l’historique d’une danse et le tri par dernier appel, jamais les décomptes. Activé : un créneau non marqué comme joué est listé après les autres et ne donne aucune date de dernier appel. Désactivé : il est classé selon la date de son programme.",
+  "@settingsHistoryOrderIgnoreUnperformedSubtitle": {
+    "x-sourceSha256": "7c57f0b97a11718fdc34f1abab9ea59b8b952fa206a8d184c61f6c854b4c874d"
   },
   "settingsGeneralTrackHistoryForAllCallersTitle": "Suivre l’historique d’appel pour tous les callers",
   "@settingsGeneralTrackHistoryForAllCallersTitle": {

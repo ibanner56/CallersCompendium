@@ -718,17 +718,6 @@ void main() {
           record.eventDate ?? callingHistoryToLocal(record.effectiveDate),
           reason: reason,
         );
-        if (record.recencyDate case final recency?) {
-          expect(
-            callingHistoryDisplayDate(record),
-            record.eventDate ?? callingHistoryToLocal(recency),
-            reason: reason,
-          );
-        } else {
-          // Only an undated, unperformed slot has no recency date; the page
-          // still shows it, dated by the program's last edit.
-          expect((event, performed), (null, null), reason: reason);
-        }
       }
     }
   });

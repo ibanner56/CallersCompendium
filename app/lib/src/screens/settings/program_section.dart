@@ -12,6 +12,7 @@ import '../../data/program_auto_commit_scope.dart';
 import '../../data/persisted_preference.dart';
 import '../../data/repositories_scope.dart';
 import '../../data/require_event_date_for_history_scope.dart';
+import '../../data/calling_history_tracking_scope.dart';
 import '../../data/require_performed_for_history_scope.dart';
 import '../../data/show_performed_toggles_scope.dart';
 import '../../data/track_history_for_all_callers_scope.dart';
@@ -227,6 +228,67 @@ class _ProgramSectionState extends State<ProgramSection> {
     await persistSetting(repos.settings, kRequireEventDateForHistoryKey, value);
   }
 
+  /// The four tracking rows. Each flips its live notifier first, then persists;
+  /// the second stores an explicit value, which from then on wins over the
+  /// global "require performed" setting it followed until now.
+  List<Widget> _trackingRows(AppLocalizations l10n) {
+    final settings = CallingHistoryTrackingScope.settingsOf(context);
+    final tracking = CallingHistoryTrackingScope.of(context);
+    Widget row(
+      String keyName,
+      bool value,
+      ValueNotifier<bool?> notifier,
+      String settingKey,
+      String title,
+      String subtitle,
+    ) => SwitchListTile(
+      key: ValueKey(keyName),
+      value: value,
+      onChanged: (on) async {
+        notifier.value = on;
+        final repos = RepositoriesScope.of(context);
+        await persistSetting(repos.settings, settingKey, on);
+      },
+      title: Text(title),
+      subtitle: Text(subtitle),
+      isThreeLine: true,
+    );
+    return [
+      row(
+        'general-recency-require-event-date',
+        tracking.recencyRequireEventDate,
+        settings.recencyRequireEventDate,
+        kRecencyRequireEventDateKey,
+        l10n.settingsRecencyRequireEventDateTitle,
+        l10n.settingsRecencyRequireEventDateSubtitle,
+      ),
+      row(
+        'general-recency-require-performed',
+        tracking.recencyRequirePerformed,
+        settings.recencyRequirePerformed,
+        kRecencyRequirePerformedKey,
+        l10n.settingsRecencyRequirePerformedTitle,
+        l10n.settingsRecencyRequirePerformedSubtitle,
+      ),
+      row(
+        'general-history-order-ignore-undated',
+        tracking.orderIgnoreUndated,
+        settings.orderIgnoreUndated,
+        kHistoryOrderIgnoreUndatedKey,
+        l10n.settingsHistoryOrderIgnoreUndatedTitle,
+        l10n.settingsHistoryOrderIgnoreUndatedSubtitle,
+      ),
+      row(
+        'general-history-order-ignore-unperformed',
+        tracking.orderIgnoreUnperformed,
+        settings.orderIgnoreUnperformed,
+        kHistoryOrderIgnoreUnperformedKey,
+        l10n.settingsHistoryOrderIgnoreUnperformedTitle,
+        l10n.settingsHistoryOrderIgnoreUnperformedSubtitle,
+      ),
+    ];
+  }
+
   Future<void> _onTrackHistoryForAllCallersChanged(bool value) async {
     // Same instant-notifier-then-persist pattern: flip the live notifier so
     // every dependent (an open Collection list or dance-detail screen)
@@ -274,6 +336,7 @@ class _ProgramSectionState extends State<ProgramSection> {
       onTrackHistoryForAllCallersChanged: _onTrackHistoryForAllCallersChanged,
       venueCallCount: VenueCallCountScope.of(context),
       onVenueCallCountChanged: _onVenueCallCountChanged,
+      trackingRows: _trackingRows(AppLocalizations.of(context)),
     );
   }
 }
@@ -309,6 +372,7 @@ class _ProgramView extends StatelessWidget {
     required this.onTrackHistoryForAllCallersChanged,
     required this.venueCallCount,
     required this.onVenueCallCountChanged,
+    required this.trackingRows,
   });
 
   final bool venueEntityMode;
@@ -349,6 +413,11 @@ class _ProgramView extends StatelessWidget {
   final ValueChanged<bool> onTrackHistoryForAllCallersChanged;
   final int venueCallCount;
   final ValueChanged<int> onVenueCallCountChanged;
+
+  /// The recency and history-order rows, shown under their own header so the
+  /// two global gates above (which decide what counts) read apart from these
+  /// four (which only date and order).
+  final List<Widget> trackingRows;
 
   @override
   Widget build(BuildContext context) {
@@ -486,6 +555,8 @@ class _ProgramView extends StatelessWidget {
             ],
           ),
         ),
+        SectionHeader(title: l10n.settingsTrackingHeader),
+        ...trackingRows,
       ],
     );
   }

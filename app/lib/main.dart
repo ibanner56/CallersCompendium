@@ -56,6 +56,7 @@ import 'src/data/reduce_motion_scope.dart';
 import 'src/data/regional_formats.dart';
 import 'src/data/repositories_scope.dart';
 import 'src/data/require_event_date_for_history_scope.dart';
+import 'src/data/calling_history_tracking_scope.dart';
 import 'src/data/require_performed_for_history_scope.dart';
 import 'src/data/default_program_caller_scope.dart';
 import 'src/data/track_history_for_all_callers_scope.dart';
@@ -105,6 +106,10 @@ import 'src/screens/settings_screen.dart'
         kMatrixExactBeatCollisionKey,
         kProgramDanceShareFieldsKey,
         kProgramMatrixColumnsKey,
+        kHistoryOrderIgnoreUndatedKey,
+        kHistoryOrderIgnoreUnperformedKey,
+        kRecencyRequireEventDateKey,
+        kRecencyRequirePerformedKey,
         kRequireEventDateForHistoryKey,
         kRequirePerformedForHistoryKey,
         kSortIgnoreArticlesKey,
@@ -564,6 +569,32 @@ class _CompendiumAppState extends State<CompendiumApp>
   );
   final _requireEventDateForHistoryNotifier = PreferenceNotifier<bool>(
     key: kRequireEventDateForHistoryKey,
+    defaultValue: false,
+    decode: (Object? v) => v is bool ? v : false,
+    encode: (v) => v,
+  );
+  // The four performance-tracking toggles. Recency-requires-performed has no
+  // default of its own: null follows the global setting until the caller sets it.
+  final _recencyRequireEventDateNotifier = PreferenceNotifier<bool>(
+    key: kRecencyRequireEventDateKey,
+    defaultValue: true,
+    decode: (Object? v) => v is bool ? v : true,
+    encode: (v) => v,
+  );
+  final _recencyRequirePerformedNotifier = PreferenceNotifier<bool?>(
+    key: kRecencyRequirePerformedKey,
+    defaultValue: null,
+    decode: (Object? v) => v is bool ? v : null,
+    encode: (v) => v,
+  );
+  final _historyOrderIgnoreUndatedNotifier = PreferenceNotifier<bool>(
+    key: kHistoryOrderIgnoreUndatedKey,
+    defaultValue: false,
+    decode: (Object? v) => v is bool ? v : false,
+    encode: (v) => v,
+  );
+  final _historyOrderIgnoreUnperformedNotifier = PreferenceNotifier<bool>(
+    key: kHistoryOrderIgnoreUnperformedKey,
     defaultValue: false,
     decode: (Object? v) => v is bool ? v : false,
     encode: (v) => v,
@@ -1280,6 +1311,10 @@ class _CompendiumAppState extends State<CompendiumApp>
   late final List<PreferenceNotifier<Object?>> _preferences = [
     _requirePerformedForHistoryNotifier,
     _requireEventDateForHistoryNotifier,
+    _recencyRequireEventDateNotifier,
+    _recencyRequirePerformedNotifier,
+    _historyOrderIgnoreUndatedNotifier,
+    _historyOrderIgnoreUnperformedNotifier,
     _trackHistoryForAllCallersNotifier,
     _defaultProgramCallerNotifier,
     _sortIgnoreArticlesNotifier,
@@ -2133,6 +2168,10 @@ class _CompendiumAppState extends State<CompendiumApp>
     _themeNotifier.dispose();
     _requirePerformedForHistoryNotifier.dispose();
     _requireEventDateForHistoryNotifier.dispose();
+    _recencyRequireEventDateNotifier.dispose();
+    _recencyRequirePerformedNotifier.dispose();
+    _historyOrderIgnoreUndatedNotifier.dispose();
+    _historyOrderIgnoreUnperformedNotifier.dispose();
     _collectionTileFieldsNotifier.dispose();
     _danceShareFieldsNotifier.dispose();
     _collectionHiddenFacetsNotifier.dispose();
@@ -2751,6 +2790,16 @@ class _CompendiumAppState extends State<CompendiumApp>
     ),
     (child) => RequireEventDateForHistoryScope(
       notifier: _requireEventDateForHistoryNotifier,
+      child: child,
+    ),
+    (child) => CallingHistoryTrackingScope(
+      settings: CallingHistoryTrackingSettings(
+        requirePerformedForHistory: _requirePerformedForHistoryNotifier,
+        recencyRequireEventDate: _recencyRequireEventDateNotifier,
+        recencyRequirePerformed: _recencyRequirePerformedNotifier,
+        orderIgnoreUndated: _historyOrderIgnoreUndatedNotifier,
+        orderIgnoreUnperformed: _historyOrderIgnoreUnperformedNotifier,
+      ),
       child: child,
     ),
     (child) => CollectionTileFieldsScope(

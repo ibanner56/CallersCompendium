@@ -2924,6 +2924,7 @@ class _FailOnceSearchDances extends DanceRepository {
     String? callerFilter,
     bool performedOnly = false,
     bool requireEventDate = false,
+    CallingHistoryTracking tracking = CallingHistoryTracking.defaults,
   }) {
     if (!fired) {
       fired = true;
@@ -2939,6 +2940,7 @@ class _FailOnceSearchDances extends DanceRepository {
       callerFilter: callerFilter,
       performedOnly: performedOnly,
       requireEventDate: requireEventDate,
+      tracking: tracking,
     );
   }
 }

@@ -10,6 +10,7 @@ import 'package:compendium_app/src/data/matrix_collision_mode_scope.dart';
 import 'package:compendium_app/src/data/program_auto_commit_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/require_event_date_for_history_scope.dart';
+import 'package:compendium_app/src/data/calling_history_tracking_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/data/mark_all_sets_status_scope.dart';
 import 'package:compendium_app/src/data/show_performed_toggles_scope.dart';
@@ -20,6 +21,7 @@ import 'package:compendium_app/src/screens/settings_screen.dart';
 import 'package:compendium_app/src/screens/settings/matrix_column_editor_screen.dart';
 
 import 'support/test_repositories.dart';
+import 'support/tracking_settings.dart';
 import 'support/l10n_harness.dart';
 import 'support/screen_size.dart';
 import 'support/text_scale.dart';
@@ -69,36 +71,39 @@ Future<ValueNotifier<bool>> _pumpProgram(
   addTearDown(customThemes.dispose);
 
   await tester.pumpWidget(
-    MaterialApp(
-      localizationsDelegates: testLocalizationsDelegates,
-      supportedLocales: testSupportedLocales,
-      builder: (context, child) => RepositoriesScope(
-        repositories: repos,
-        child: AppThemeScope(
-          notifier: theme,
-          child: CustomThemesScope(
-            controller: customThemes,
-            child: ActiveDialectScope(
-              notifier: dialect,
-              child: VenueEntityModeScope(
-                notifier: venueMode,
-                child: MatrixCollisionModeScope(
-                  notifier: exactBeatCollision,
-                  child: RequirePerformedForHistoryScope(
-                    notifier: requirePerformed,
-                    child: RequireEventDateForHistoryScope(
-                      notifier: eventDate,
-                      child: TrackHistoryForAllCallersScope(
-                        notifier: trackAllCallers,
-                        child: ProgramAutoCommitScope(
-                          notifier: autoCommit,
-                          child: VenueCallCountScope(
-                            notifier: venueCalls,
-                            child:
-                                (textScaleBuilder(
-                                  textScale,
-                                )?.call(context, child)) ??
-                                child!,
+    CallingHistoryTrackingScope(
+      settings: testTrackingSettings(requirePerformed),
+      child: MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        builder: (context, child) => RepositoriesScope(
+          repositories: repos,
+          child: AppThemeScope(
+            notifier: theme,
+            child: CustomThemesScope(
+              controller: customThemes,
+              child: ActiveDialectScope(
+                notifier: dialect,
+                child: VenueEntityModeScope(
+                  notifier: venueMode,
+                  child: MatrixCollisionModeScope(
+                    notifier: exactBeatCollision,
+                    child: RequirePerformedForHistoryScope(
+                      notifier: requirePerformed,
+                      child: RequireEventDateForHistoryScope(
+                        notifier: eventDate,
+                        child: TrackHistoryForAllCallersScope(
+                          notifier: trackAllCallers,
+                          child: ProgramAutoCommitScope(
+                            notifier: autoCommit,
+                            child: VenueCallCountScope(
+                              notifier: venueCalls,
+                              child:
+                                  (textScaleBuilder(
+                                    textScale,
+                                  )?.call(context, child)) ??
+                                  child!,
+                            ),
                           ),
                         ),
                       ),
@@ -109,12 +114,12 @@ Future<ValueNotifier<bool>> _pumpProgram(
             ),
           ),
         ),
-      ),
-      home: ShowPerformedTogglesScope(
-        notifier: showPerformedToggles,
-        child: MarkAllSetsStatusScope(
-          notifier: markAllSetsStatus,
-          child: const SettingsScreen(),
+        home: ShowPerformedTogglesScope(
+          notifier: showPerformedToggles,
+          child: MarkAllSetsStatusScope(
+            notifier: markAllSetsStatus,
+            child: const SettingsScreen(),
+          ),
         ),
       ),
     ),
@@ -219,6 +224,50 @@ void main() {
 
     expect(tester.widget<SwitchListTile>(tile).value, isFalse);
     expect(await repos.settings.get(kShowPerformedTogglesKey), isFalse);
+  });
+
+  testWidgets('the four tracking toggles show their defaults and persist', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpProgram(tester, repos);
+
+    final defaults = {
+      'general-recency-require-event-date': (true, kRecencyRequireEventDateKey),
+      'general-recency-require-performed': (false, kRecencyRequirePerformedKey),
+      'general-history-order-ignore-undated': (
+        false,
+        kHistoryOrderIgnoreUndatedKey,
+      ),
+      'general-history-order-ignore-unperformed': (
+        false,
+        kHistoryOrderIgnoreUnperformedKey,
+      ),
+    };
+    for (final entry in defaults.entries) {
+      final (initial, settingKey) = entry.value;
+      final tile = find.byKey(ValueKey(entry.key));
+      await tester.scrollUntilVisible(
+        tile,
+        200,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.ensureVisible(tile);
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<SwitchListTile>(tile).value,
+        initial,
+        reason: entry.key,
+      );
+      // Nothing is stored until the caller flips it.
+      expect(await repos.settings.get(settingKey), isNull, reason: entry.key);
+      await tester.tap(tile);
+      await tester.pumpAndSettle();
+      expect(tester.widget<SwitchListTile>(tile).value, !initial);
+      expect(await repos.settings.get(settingKey), !initial);
+    }
+    // The descriptions say the new rows never change the counts.
+    expect(find.textContaining('never the counts'), findsWidgets);
   });
 
   testWidgets('"Mark all performed sets the status" defaults on, and '

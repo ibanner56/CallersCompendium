@@ -1,0 +1,21 @@
+{
+  "id": "tracking-toggles",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Four new settings under Settings > Program > Recency and history order control how calling history is dated: whether the Called filter's time windows count only dated programs, whether they count only slots marked performed, and whether the history order and the Last called sort ignore undated programs or slots not marked performed. They only change dating and order, never \"called x N\" or which dances count as called."
+    ],
+    "changed": [
+      "By default the Called filter's time windows (\"within 3 months\") now count only programs that have an event date, so a slot marked performed in an undated program no longer falls in a window. To keep the old behaviour, turn off \"Recency only counts dated programs\" in Settings > Program.",
+      "The descriptions of \"Require mark performed\" and \"Require an event date\" now say they decide what counts as called and override the new settings."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add CallingHistoryTracking and the matching SQL and Dart date helpers, so the Called filter's recency window and the history order can each be gated on dated and performed slots."
+    ],
+    "changed": [
+      "CalledFilter.since now dates a slot through CallingHistoryTracking: by default only programs with an event date have a recency date. DanceCallingRecord.recencyDate is now a method taking the same flags."
+    ]
+  }
+}

@@ -4958,7 +4958,7 @@ abstract class AppLocalizations {
   /// Subtitle explaining the require-mark-performed calling history toggle.
   ///
   /// In en, this message translates to:
-  /// **'When on, a dance\'s calling history lists only programs whose slot for that dance was marked performed. When off, a program appears as soon as it contains the dance.'**
+  /// **'Decides what counts as called. When on, only slots marked performed count anywhere calling history is read: the history list, called ×N, the Called filter and the Last called sort. When off, a slot counts as soon as its program contains the dance. Overrides the four settings below.'**
   String get settingsGeneralRequirePerformedForHistorySubtitle;
 
   /// Title of the Calling history setting that adds a mark-performed toggle to each dance row in the program view.
@@ -4994,8 +4994,62 @@ abstract class AppLocalizations {
   /// Subtitle explaining the require-an-event-date calling history toggle.
   ///
   /// In en, this message translates to:
-  /// **'When on, a program with no event date doesn\'t count toward calling history until you give it one. Duplicated and received programs arrive without a date. When off, a program counts whether or not it has a date.'**
+  /// **'Decides what counts as called. When on, a program with no event date counts nowhere calling history is read until you give it one. Duplicated and received programs arrive without a date. When off, a program counts whether or not it has a date. Overrides the four settings below.'**
   String get settingsGeneralRequireEventDateForHistorySubtitle;
+
+  /// Header above the settings that change only how calling history is dated and ordered, never what counts as called.
+  ///
+  /// In en, this message translates to:
+  /// **'Recency and history order'**
+  String get settingsTrackingHeader;
+
+  /// Title of the toggle that makes the Called filter time windows count only programs with an event date.
+  ///
+  /// In en, this message translates to:
+  /// **'Recency only counts dated programs'**
+  String get settingsRecencyRequireEventDateTitle;
+
+  /// Subtitle of the recency-requires-event-date toggle. States it never changes the counts.
+  ///
+  /// In en, this message translates to:
+  /// **'Changes only the Called filter\'s time windows, never the counts. When on, a program with no event date falls in no window, though its dances still count as called. When off, an undated program is dated by when it was last edited.'**
+  String get settingsRecencyRequireEventDateSubtitle;
+
+  /// Title of the toggle that makes the Called filter time windows count only slots marked performed.
+  ///
+  /// In en, this message translates to:
+  /// **'Recency only counts slots marked performed'**
+  String get settingsRecencyRequirePerformedTitle;
+
+  /// Subtitle of the recency-requires-performed toggle. States it never changes the counts and that it follows the global require-performed setting until set.
+  ///
+  /// In en, this message translates to:
+  /// **'Changes only the Called filter\'s time windows, never the counts. When on, a slot not marked performed falls in no window, though it still counts as called. Until you set this yourself, it follows the require-performed setting above.'**
+  String get settingsRecencyRequirePerformedSubtitle;
+
+  /// Title of the toggle that makes the history order and Last called sort ignore programs with no event date.
+  ///
+  /// In en, this message translates to:
+  /// **'History order and Last called ignore undated programs'**
+  String get settingsHistoryOrderIgnoreUndatedTitle;
+
+  /// Subtitle of the history-order-ignores-undated toggle. States it never changes the counts.
+  ///
+  /// In en, this message translates to:
+  /// **'Changes only the order of a dance\'s history and the Last called sort, never the counts. When on, a program with no event date is listed after the dated ones and gives no Last called date. When off, it is ordered by when it was last edited.'**
+  String get settingsHistoryOrderIgnoreUndatedSubtitle;
+
+  /// Title of the toggle that makes the history order and Last called sort ignore slots not marked performed.
+  ///
+  /// In en, this message translates to:
+  /// **'History order and Last called ignore slots not marked performed'**
+  String get settingsHistoryOrderIgnoreUnperformedTitle;
+
+  /// Subtitle of the history-order-ignores-unperformed toggle. States it never changes the counts.
+  ///
+  /// In en, this message translates to:
+  /// **'Changes only the order of a dance\'s history and the Last called sort, never the counts. When on, a slot not marked performed is listed after the others and gives no Last called date. When off, it is ordered by its program\'s date.'**
+  String get settingsHistoryOrderIgnoreUnperformedSubtitle;
 
   /// Title of the General settings toggle that controls whether calling history counts programs from everyone, or only those led by the default caller (plus unattributed programs).
   ///

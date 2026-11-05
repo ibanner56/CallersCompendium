@@ -3221,7 +3221,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsGeneralRequirePerformedForHistorySubtitle =>
-      'When on, a dance\'s calling history lists only programs whose slot for that dance was marked performed. When off, a program appears as soon as it contains the dance.';
+      'Decides what counts as called. When on, only slots marked performed count anywhere calling history is read: the history list, called ×N, the Called filter and the Last called sort. When off, a slot counts as soon as its program contains the dance. Overrides the four settings below.';
 
   @override
   String get settingsGeneralShowPerformedTogglesTitle =>
@@ -3245,7 +3245,42 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsGeneralRequireEventDateForHistorySubtitle =>
-      'When on, a program with no event date doesn\'t count toward calling history until you give it one. Duplicated and received programs arrive without a date. When off, a program counts whether or not it has a date.';
+      'Decides what counts as called. When on, a program with no event date counts nowhere calling history is read until you give it one. Duplicated and received programs arrive without a date. When off, a program counts whether or not it has a date. Overrides the four settings below.';
+
+  @override
+  String get settingsTrackingHeader => 'Recency and history order';
+
+  @override
+  String get settingsRecencyRequireEventDateTitle =>
+      'Recency only counts dated programs';
+
+  @override
+  String get settingsRecencyRequireEventDateSubtitle =>
+      'Changes only the Called filter\'s time windows, never the counts. When on, a program with no event date falls in no window, though its dances still count as called. When off, an undated program is dated by when it was last edited.';
+
+  @override
+  String get settingsRecencyRequirePerformedTitle =>
+      'Recency only counts slots marked performed';
+
+  @override
+  String get settingsRecencyRequirePerformedSubtitle =>
+      'Changes only the Called filter\'s time windows, never the counts. When on, a slot not marked performed falls in no window, though it still counts as called. Until you set this yourself, it follows the require-performed setting above.';
+
+  @override
+  String get settingsHistoryOrderIgnoreUndatedTitle =>
+      'History order and Last called ignore undated programs';
+
+  @override
+  String get settingsHistoryOrderIgnoreUndatedSubtitle =>
+      'Changes only the order of a dance\'s history and the Last called sort, never the counts. When on, a program with no event date is listed after the dated ones and gives no Last called date. When off, it is ordered by when it was last edited.';
+
+  @override
+  String get settingsHistoryOrderIgnoreUnperformedTitle =>
+      'History order and Last called ignore slots not marked performed';
+
+  @override
+  String get settingsHistoryOrderIgnoreUnperformedSubtitle =>
+      'Changes only the order of a dance\'s history and the Last called sort, never the counts. When on, a slot not marked performed is listed after the others and gives no Last called date. When off, it is ordered by its program\'s date.';
 
   @override
   String get settingsGeneralTrackHistoryForAllCallersTitle =>

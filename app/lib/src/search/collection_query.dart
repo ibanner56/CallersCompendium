@@ -537,6 +537,7 @@ DanceFilter buildCollectionFilter({
   String? callerFilter,
   bool performedOnly = false,
   bool requireEventDate = false,
+  CallingHistoryTracking tracking = CallingHistoryTracking.defaults,
   DateTime? today,
 }) {
   final branches = <DanceFilter>[];
@@ -569,6 +570,7 @@ DanceFilter buildCollectionFilter({
         callerFilter: callerFilter,
         performedOnly: performedOnly,
         requireEventDate: requireEventDate,
+        tracking: tracking,
         venue: facets.historyVenue,
         since: facets.historyCutoff(today ?? DateTime.now()),
       ),

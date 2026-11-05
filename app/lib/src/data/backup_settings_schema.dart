@@ -85,6 +85,10 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
   for (final key in const <String>[
     kRequirePerformedForHistoryKey,
     kRequireEventDateForHistoryKey,
+    kRecencyRequireEventDateKey,
+    kRecencyRequirePerformedKey,
+    kHistoryOrderIgnoreUndatedKey,
+    kHistoryOrderIgnoreUnperformedKey,
     kTrackHistoryForAllCallersKey,
     kAutoSizePerformKey,
     kShowIndividualPerformTimerKey,

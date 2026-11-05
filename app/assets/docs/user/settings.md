@@ -250,6 +250,10 @@ details are handled when you export.
 
 ### Calling history
 
+Two settings below decide **what counts** as called. They override the four
+under [Recency and history order](#recency-and-history-order), which only date
+and order what already counts.
+
 - **Require "mark performed" for calling history** (off) — when on, a dance's
   calling history lists only the [programs](./glossary.md#program) whose
   [slot](./glossary.md#slot) was actually marked performed, rather than every
@@ -276,6 +280,7 @@ details are handled when you export.
   programs and programs another caller sends you arrive without a date. When
   off, a program counts whether or not it has a date. It applies on top of the
   other calling-history settings (all must pass).
+
 - **Track calling history for all callers** (off) — when off *and* you've set a
   [default caller for new programs](#program-defaults), a dance's calling history
   and "called ×N" counts include only programs led by that caller (plus any
@@ -288,6 +293,35 @@ details are handled when you export.
 - **Repeated venues in calling history** (3) — shows the top venues where a
   dance was called more than once. Set this to 0 to hide the summary, or choose
   up to 10 venues.
+
+#### Recency and history order
+
+These four settings never change what counts as called, so they never change
+"called ×N", whether the **Called** filter matches a dance, or the venue and half
+summaries. The two settings above decide that, and a slot they leave out is left
+out here too. These only change how calls are dated and ordered.
+
+- **Recency only counts dated programs** (on) — the **Called** filter's
+  **Within** windows (and so "not called within 3 months") skip a program with no
+  event date. Its dances still count as called, they just fall in no window. Turn
+  it off and an undated program is dated by when you marked the slot performed,
+  or else by when the program was last changed, so it shows up as recent after an
+  edit. Before this setting existed, a slot marked performed in an undated
+  program was dated by that mark; turn this off to keep it so.
+- **Recency only counts slots marked performed** (follows *Require "mark
+  performed"*) — the **Within** windows skip a slot you have not marked
+  performed. Until you set it yourself it follows the *Require "mark performed"*
+  setting; once you switch it either way, your choice stays. With both recency
+  settings on, a slot must pass both.
+- **History order and Last called ignore undated programs** (off) — in a dance's
+  history list and the **Last called** sort, a program with no event date gets no
+  date. It is listed after the dated ones and gives no *last called* date, so a
+  dance whose only calls are undated sorts with the dances you have never called.
+  It still shows "called ×N". Off, such a program is ordered by when it was last
+  changed.
+- **History order and Last called ignore slots not marked performed** (off) — the
+  same for a slot you have not marked performed. With both on, only a dated slot
+  you marked performed gives a date.
 
 ## Appearance
 

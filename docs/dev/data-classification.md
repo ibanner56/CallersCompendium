@@ -473,7 +473,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; classified here so the catalogue has one source of truth. `settings.value_json` is `deviceLocal` at the column level so a blanket sync cannot happen by accident — these entries decide what actually travels.
 
-**108 settings keys**: 66 shareable, 12 device-local, 28 device-scoped, 1 protocol-identifier, 1 store-address. 4 personal data by category.
+**112 settings keys**: 70 shareable, 12 device-local, 28 device-scoped, 1 protocol-identifier, 1 store-address. 4 personal data by category.
 
 | Key | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |
@@ -540,6 +540,8 @@ Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; 
 | `first_day_of_week` | `dpv:NonPersonalData` | app user | shareable |  |
 | `formation_color_overrides` | `dpv:NonPersonalData` | app user | shareable |  |
 | `free_text_entry` | `dpv:NonPersonalData` | app user | shareable |  |
+| `history_order_ignore_undated` | `dpv:NonPersonalData` | app user | shareable |  |
+| `history_order_ignore_unperformed` | `dpv:NonPersonalData` | app user | shareable |  |
 | `last_backup_at` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
 | `last_used_collection_sort` | `dpv:NonPersonalData` | app user | shareable |  |
 | `last_used_collection_sort_direction` | `dpv:NonPersonalData` | app user | shareable |  |
@@ -552,6 +554,8 @@ Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; 
 | `perform_text_scale` | `dpv:NonPersonalData` | app user | **device-local** | Tuned to the screen it was set on. A scale chosen for a phone held at arm's length is wrong on a laptop driving a projector, but it may travel in a user-controlled local backup. |
 | `program_dance_share_fields` | `dpv:NonPersonalData` | app user | shareable |  |
 | `program_matrix_columns` | `dpv:NonPersonalData` | app user | shareable |  |
+| `recency_require_event_date` | `dpv:NonPersonalData` | app user | shareable |  |
+| `recency_require_performed` | `dpv:NonPersonalData` | app user | shareable |  |
 | `reduce_motion` | `dpv:NonPersonalData` | app user | **device-local** | Screen-bound: an override set against one screen or one device's system Reduce Motion setting is not an answer for another. deviceLocal, not deviceScoped: it is withheld for what it means on another screen, not for what it contains, and deviceScoped would also drop it from the user's own backups, which should give it back on restore. Per-device by the maintainer's decision (settings-sync-scope, 2026-10-29). |
 | `require_event_date_for_history` | `dpv:NonPersonalData` | app user | shareable |  |
 | `require_performed_for_history` | `dpv:NonPersonalData` | app user | shareable |  |
