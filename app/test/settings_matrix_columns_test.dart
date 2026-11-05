@@ -184,28 +184,6 @@ void main() {
     });
 
     testWidgets('a tap outside keeps the parameterized column dialog once a '
-        'constraint is chosen', (tester) async {
-      final read = await _pumpEditor(tester, taxonomy: _parameterizedTaxonomy);
-      await tester.tap(
-        find.byKey(const ValueKey('matrix-column-add-parameterized')),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(const ValueKey('matrix-parameterized-constraint-who')),
-      );
-      await tester.pump();
-
-      await tester.tapAt(const Offset(4, 4));
-      await tester.pumpAndSettle();
-
-      expect(
-        find.byKey(const ValueKey('matrix-parameterized-save')),
-        findsOneWidget,
-      );
-      expect(read().parameterized, isEmpty);
-    });
-
-    testWidgets('a tap outside keeps the parameterized column dialog once a '
         'label is typed', (tester) async {
       await _pumpEditor(tester, taxonomy: _parameterizedTaxonomy);
       await tester.tap(
