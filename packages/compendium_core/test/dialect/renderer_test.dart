@@ -580,6 +580,115 @@ void main() {
       );
     });
 
+    group('display word order differs from the canonical text', () {
+      test('pull by names the hand before the direction', () {
+        final figure = Figure(
+          move: 'pull_by',
+          params: {'where': 'across', 'hand': 'left'},
+        );
+        expect(renderer.render(figure, larks), 'pull by left across');
+        // Search/dedupe text keeps its order: no index rebuild is owed.
+        expect(renderer.renderCanonical(figure), 'pull by across left');
+      });
+
+      test('pull by keeps its subject and balance ahead of the move', () {
+        final figure = Figure(
+          move: 'pull_by',
+          params: {
+            'who': 'neighbors',
+            'balance': true,
+            'where': 'rightDiagonal',
+          },
+        );
+        expect(
+          renderer.renderSummary(figure, larks),
+          'neighbor balance & pull by right right diagonal',
+        );
+      });
+
+      test('pull by seeds its wording editor in display order', () {
+        expect(
+          renderer.moveWordingTemplate('pull_by'),
+          '{who} {move} {hand} {where}',
+        );
+        expect(renderer.moveWordingSlots('pull_by'), {
+          'who',
+          'move',
+          'hand',
+          'where',
+        });
+      });
+
+      test('slide along set names the side after the verb', () {
+        final figure = Figure(move: 'slide_along_set');
+        expect(renderer.render(figure, larks), 'slide left along set');
+        expect(
+          renderer.render(
+            Figure(move: 'slide_along_set', params: {'slide': 'right'}),
+            larks,
+          ),
+          'slide right along set',
+        );
+        expect(renderer.renderCanonical(figure), 'slide along set left');
+      });
+
+      test('slide along set keeps a dialect name whole', () {
+        final dialect = Dialect(
+          name: 'Sashay',
+          moves: {'slide_along_set': 'sashay'},
+        );
+        expect(
+          renderer.render(Figure(move: 'slide_along_set'), dialect),
+          'sashay left',
+        );
+      });
+
+      test('slide along set still offers {move} to a custom wording', () {
+        expect(
+          renderer.moveWordingTemplate('slide_along_set'),
+          'slide {slide} along set',
+        );
+        expect(renderer.moveWordingSlots('slide_along_set'), {'slide', 'move'});
+        // A wording written against the old default keeps rendering.
+        final dialect = larks.copyWith(
+          moveWordings: {'slide_along_set': '{move} {slide}'},
+        );
+        expect(
+          renderer.render(Figure(move: 'slide_along_set'), dialect),
+          'slide along set left',
+        );
+        expect(
+          renderer.moveWordingErrorMissingSlots(
+            'slide_along_set',
+            'slide {slide} along set',
+          ),
+          isEmpty,
+        );
+      });
+
+      test('slide along set reads as a gerund in a modifier', () {
+        final figure = Figure.modifier(
+          figures: [
+            Figure(move: 'swing'),
+            Figure(move: 'slide_along_set'),
+          ],
+          beats: 8,
+        );
+        expect(
+          renderer.renderSummary(figure, larks),
+          contains('sliding left along set'),
+        );
+        // A wording that keeps the name whole keeps its own gerund.
+        expect(
+          renderer.renderSummary(
+            figure,
+            larks.copyWith(moveWordings: {'slide_along_set': '{move} {slide}'}),
+          ),
+          contains('sliding along the set left'),
+        );
+      });
+    });
+
     test('figure eight puts fraction first and describes its direction', () {
       final figure = Figure(
         move: 'figure_8',
@@ -2183,7 +2292,7 @@ void main() {
             Figure(move: 'pull_by', params: {'where': 'across'}),
             d,
           ),
-          'pull by across right',
+          'pull by right across',
         );
       });
       test('down_the_hall drops the default "forward" facing', () {

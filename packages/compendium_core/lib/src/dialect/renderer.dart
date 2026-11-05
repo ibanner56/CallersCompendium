@@ -804,7 +804,10 @@ class FigureRenderer {
       decimals,
       forCanonical: forCanonical,
     );
-    final rendered = def.renderTemplate.replaceAllMapped(
+    final template = forCanonical
+        ? def.renderTemplate
+        : _displayRenderTemplates[def.id] ?? def.renderTemplate;
+    final rendered = template.replaceAllMapped(
       _placeholder,
       (match) => slots[match[1]!] ?? '',
     );
@@ -1096,6 +1099,8 @@ class FigureRenderer {
       'rory_o_more': "doing a Rory O'More",
       'set': 'setting',
       'slide': 'sliding',
+      // Reached only when a custom wording puts `{move}` whole in the line;
+      // the default line is handled by [_gerundiveRenderedFallback].
       'slide_along_set': 'sliding along the set',
       'slice': 'taking',
       'square_through': 'squaring through',
@@ -1133,6 +1138,11 @@ class FigureRenderer {
   }
 
   String _gerundiveRenderedFallback(String moveId, String rendered) {
+    // Its display line spells the name around the side ("slide left along
+    // set"), so the name is not found whole and only the verb changes.
+    if (moveId == 'slide_along_set') {
+      return rendered.replaceFirst(RegExp(r'\bslide\b'), 'sliding');
+    }
     if (moveId != 'zig_zag') return rendered;
     final zigged = rendered.replaceFirst(RegExp(r'\bzig\b'), 'zigging');
     return zigged.replaceFirst(RegExp(r'\bzag\b'), 'and zagging');
@@ -1570,8 +1580,16 @@ class FigureRenderer {
       }
       slots.add(slot);
     }
-    return slots;
+    return slots..addAll(_moveWordingExtraSlots[moveId] ?? const {});
   }
+
+  /// Slots a custom wording may use that the move's default display template
+  /// does not show. `slide_along_set` spells its name around the side
+  /// ("slide left along set"), but `{move}` is still computed for a wording,
+  /// and wordings written before that change use it.
+  static const Map<String, Set<String>> _moveWordingExtraSlots = {
+    'slide_along_set': {'move'},
+  };
 
   /// Returns the available slots omitted by a custom wording template.
   Set<String> moveWordingMissingSlots(String moveId, String wording) {
@@ -1614,7 +1632,9 @@ class FigureRenderer {
     if (def == null) return null;
     final canonicalMoveId = def.id;
     final base = _displayBaseRenderers[canonicalMoveId];
-    if (base == null) return def.renderTemplate;
+    if (base == null) {
+      return _displayRenderTemplates[canonicalMoveId] ?? def.renderTemplate;
+    }
     final figure = Figure(move: canonicalMoveId);
     final params = taxonomy.effectiveParams(figure);
     return base(this, def, params, Dialect.canonical, false, false).template;
@@ -2382,6 +2402,19 @@ class FigureRenderer {
     'pass_by': 'pass by %S shoulders',
   };
 
+  /// DISPLAY-ONLY word order for moves whose `renderTemplate` reads well as
+  /// search text but not as a call. Each entry holds exactly the slots of the
+  /// move's `renderTemplate`, rearranged, so the slots are computed as before
+  /// and only their order changes; the canonical render keeps
+  /// `renderTemplate`, so the FTS/dedupe text is unchanged and needs no index
+  /// rebuild.
+  static const Map<String, String> _displayRenderTemplates = {
+    // The hand belongs to the pull, and a direction follows it: "pull by right
+    // across", not "pull by across right" (canonical: `{who} {move} {where}
+    // {hand}`).
+    'pull_by': '{who} {move} {hand} {where}',
+  };
+
   /// DISPLAY-ONLY singular forms for the positional dancer-set vocabulary that
   /// otherwise humanizes to a `partner`/`neighbor`/`shadow` plural. A figure's
   /// subject reads as a singular dancer in display (`neighbors` → `neighbor`),
@@ -2633,6 +2666,30 @@ class FigureRenderer {
         'direction': direction,
         'facing': facing,
       }, '{who} {move} {whom} {direction}{facing}');
+    },
+    // The side belongs to the verb: "slide left along set", not the canonical
+    // "slide along set left". The taxonomy's name is spelled out around the
+    // side, so `{move}` is not in this template; a dialect that renames the
+    // move keeps its own name whole, with the side after it ("sashay left"),
+    // as before. A custom wording may still use `{move}`
+    // ([_moveWordingExtraSlots]).
+    'slide_along_set': (r, def, params, dialect, verbose, decimals) {
+      final move = r._renderMoveName(def.id, def.displayName, params, dialect);
+      final slide = r._renderValue(
+        'slide',
+        params['slide'],
+        def.params['slide'],
+        dialect,
+        verbose,
+        decimals,
+        false,
+      );
+      return _displayTemplate(
+        {'move': move, 'slide': slide},
+        dialect.moves.containsKey(def.id)
+            ? '{move} {slide}'
+            : 'slide {slide} along set',
+      );
     },
     // ContraDB `zigZagWords`: words(twho, "zig", sspin, "zag", return_sspin, …).
     // The zag direction is the mirror of the zig (`turn`) direction. ContraDB
