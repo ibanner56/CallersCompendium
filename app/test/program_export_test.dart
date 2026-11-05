@@ -2668,6 +2668,8 @@ void main() {
       WidgetTester tester,
       Program program, {
       required Set<DanceShareField> fields,
+      Choreographer? Function(String id)? choreographerFor,
+      String? Function(String id)? authorNameFor,
     }) async {
       String? clipboardText;
       tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
@@ -2699,7 +2701,9 @@ void main() {
                     program: program,
                     titleFor: titlesWithD3,
                     danceFor: (id) => dancesWithAuthor[id],
-                    choreographerFor: (id) => choreographers[id],
+                    choreographerFor:
+                        choreographerFor ?? (id) => choreographers[id],
+                    authorNameFor: authorNameFor,
                   ),
                 ],
               ),
@@ -2730,6 +2734,23 @@ void main() {
         expect(text, contains('1. Money Musk — by Jane Smith'));
         // Confirms this dance never reached the figures-appendix path.
         expect(text, isNot(contains('Figures:')));
+      },
+    );
+
+    testWidgets(
+      'an author in Recently deleted still gets the suffix, by name only',
+      (tester) async {
+        final text = await pumpAndCopy(
+          tester,
+          _program(
+            slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd3')],
+          ),
+          fields: DanceShareField.allExceptTunes,
+          // The collection does not list a deleted author.
+          choreographerFor: (_) => null,
+          authorNameFor: (id) => id == 'c1' ? 'Jane Smith' : null,
+        );
+        expect(text, contains('1. Money Musk — by Jane Smith'));
       },
     );
 

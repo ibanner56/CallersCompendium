@@ -68,6 +68,7 @@ class ProgramExportMenu extends StatelessWidget {
     this.venuesById = const {},
     this.danceFor,
     this.choreographerFor,
+    this.authorNameFor,
     this.tagFor,
     this.publishedSourceFor,
     this.customFieldFor,
@@ -98,6 +99,12 @@ class ProgramExportMenu extends StatelessWidget {
   /// reference and author attribution survives the round-trip. Optional and
   /// best-effort: an unresolved id is simply omitted from the bundle.
   final Choreographer? Function(String id)? choreographerFor;
+
+  /// Resolves an author id [choreographerFor] does not (an author in Recently
+  /// deleted) to a name, for the text and PDF exports only. Names only: the
+  /// share bundle embeds author records, and a deleted author's record does not
+  /// leave the device with a program (see [choreographerFor]).
+  final String? Function(String id)? authorNameFor;
 
   /// Resolves the difficulty level of the dance with this id (dance-keyed, not
   /// level-keyed). Must cover every dance in the program, alternates included:
@@ -170,8 +177,8 @@ class ProgramExportMenu extends StatelessWidget {
     if (dance == null) return const [];
     return [
       for (final id in dance.authorIds)
-        if (choreographerFor?.call(id)?.name case final String name
-            when name.isNotEmpty)
+        if ((choreographerFor?.call(id)?.name ?? authorNameFor?.call(id))
+            case final String name when name.isNotEmpty)
           name,
     ];
   }

@@ -214,6 +214,11 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   Program? _program;
   Map<String, String> _danceTitles = const {};
   Map<String, Dance> _dances = const {};
+
+  /// Names of the authors of [_dances] that Recently deleted holds, which
+  /// `CollectionData` leaves out. Only for the text and PDF exports, as
+  /// Perform shows them (GIG-11).
+  Map<String, String> _trashedAuthorNames = const {};
   Map<String, Venue> _venuesById = const {};
   CollectionData? _collectionData;
   List<DifficultyLevel> _difficultyLevels = const [];
@@ -506,6 +511,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           _program = null;
           _danceTitles = const {};
           _dances = const {};
+          _trashedAuthorNames = const {};
           _venuesById = const {};
           _collectionData = null;
           _loading = false;
@@ -537,6 +543,21 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           dances[dance.id] = dance;
         }
       }
+      // Authors the collection does not list because they are in Recently
+      // deleted still belong to a dance the exports carry.
+      final trashedAuthorNames = <String, String>{};
+      final missingAuthors = {
+        for (final dance in dances.values)
+          for (final id in dance.authorIds)
+            if (!data.choreographersById.containsKey(id)) id,
+      };
+      if (missingAuthors.isNotEmpty) {
+        for (final c in await _repos.choreographers.listAll(
+          includeDeleted: true,
+        )) {
+          if (missingAuthors.contains(c.id)) trashedAuthorNames[c.id] = c.name;
+        }
+      }
       // Resolve only the linked venue (if any). The summary shows a single
       // program, so loading the whole catalogue just to look up one id is
       // wasteful; resolveVenueLabel falls back to free text when the map is
@@ -552,6 +573,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         _program = program;
         _danceTitles = titles;
         _dances = dances;
+        _trashedAuthorNames = trashedAuthorNames;
         _venuesById = venuesById;
         _collectionData = data;
         _difficultyLevels = difficultyLevels;
@@ -859,6 +881,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
               venuesById: _venuesById,
               danceFor: (id) => _dances[id],
               choreographerFor: (id) => _collectionData?.choreographersById[id],
+              authorNameFor: (id) => _trashedAuthorNames[id],
               tagFor: (id) => _collectionData?.tagFor(id),
               publishedSourceFor: (id) =>
                   _collectionData?.publishedSourceFor(id),
