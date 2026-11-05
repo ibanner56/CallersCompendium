@@ -183,6 +183,45 @@ void main() {
       );
     });
 
+    testWidgets('a tap outside keeps the parameterized column dialog once a '
+        'label is typed', (tester) async {
+      await _pumpEditor(tester, taxonomy: _parameterizedTaxonomy);
+      await tester.tap(
+        find.byKey(const ValueKey('matrix-column-add-parameterized')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('matrix-parameterized-label')),
+        'Partner swing',
+      );
+      await tester.pump();
+
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('matrix-parameterized-save')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a tap outside still closes an untouched parameterized column '
+        'dialog', (tester) async {
+      await _pumpEditor(tester, taxonomy: _parameterizedTaxonomy);
+      await tester.tap(
+        find.byKey(const ValueKey('matrix-column-add-parameterized')),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('matrix-parameterized-save')),
+        findsNothing,
+      );
+    });
+
     testWidgets('renaming a column writes renames[id] and changes the header '
         'label used by the table and PDF', (tester) async {
       final read = await _pumpEditor(tester);

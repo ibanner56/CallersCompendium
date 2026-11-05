@@ -108,6 +108,48 @@ void main() {
     });
   });
 
+  group('formatEventDateTime', () {
+    const material = DefaultMaterialLocalizations();
+    final l10n = AppLocalizationsEn();
+    final when = DateTime(2026, 7, 15, 15, 4);
+    // Symbols load in setUpAll, after the group is declared.
+    String time() => DateFormat.jm('en').format(when);
+
+    test('follows the chosen format, then the time in the app language', () {
+      expect(
+        formatEventDateTime(
+          when,
+          DateFormatSetting(DateFormatPref.ymd),
+          material,
+          l10n,
+        ),
+        '2026-07-15 ${time()}',
+      );
+      expect(
+        formatEventDateTime(
+          when,
+          DateFormatSetting(DateFormatPref.dmy),
+          material,
+          l10n,
+        ),
+        '15/07/2026 ${time()}',
+      );
+    });
+
+    test('under the system default, uses the device region\'s numeric date, '
+        'not a month name', () {
+      final text = formatEventDateTime(
+        when,
+        DateFormatSetting.system,
+        material,
+        l10n,
+        platformLocale: const Locale('en', 'DK'),
+      );
+      expect(text, '${DateFormat.yMd('da').format(when)} ${time()}');
+      expect(text, isNot(contains('Jul')));
+    });
+  });
+
   group('formatEventDate', () {
     const material = DefaultMaterialLocalizations();
     final l10n = AppLocalizationsEn();

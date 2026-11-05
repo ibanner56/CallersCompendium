@@ -645,7 +645,7 @@ class _ShortcutHint extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: AppShapes.borderRadiusSmall,
         border: Border.all(color: scheme.outlineVariant),
       ),
       child: Text(

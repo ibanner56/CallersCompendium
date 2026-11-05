@@ -21,6 +21,7 @@ import 'import_gap_badge.dart';
 import 'lingo_text_editing_controller.dart';
 import 'move_autocomplete.dart';
 import 'user_figure_use_editor.dart';
+import '../theme/app_shapes.dart';
 
 /// Move id of the placeholder "stand still" figure that seeds new dances while
 /// Free-text entry is off (see `defaultNewDanceFigureTemplate`). Activating
@@ -2160,7 +2161,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
               key: _key('summary'),
               canRequestFocus: false,
               onTap: widget.onActivate,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: AppShapes.borderRadiusSmall,
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
                 child: Row(
@@ -2333,7 +2334,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                 color: focused ? theme.colorScheme.primary : Colors.transparent,
                 width: 2,
               ),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: AppShapes.borderRadiusSmall,
             ),
             child: child,
           );
@@ -2584,7 +2585,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
         child: Container(
           decoration: BoxDecoration(
             border: Border.all(color: theme.colorScheme.outlineVariant),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: AppShapes.borderRadiusSmall,
             color: theme.colorScheme.surfaceContainerLow,
           ),
           padding: const EdgeInsets.all(12),
@@ -2707,7 +2708,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
         child: Container(
           decoration: BoxDecoration(
             border: Border.all(color: theme.colorScheme.outlineVariant),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: AppShapes.borderRadiusSmall,
             color: theme.colorScheme.surfaceContainerLow,
           ),
           padding: const EdgeInsets.all(12),
@@ -2811,7 +2812,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
         child: Container(
           decoration: BoxDecoration(
             border: Border.all(color: theme.colorScheme.outlineVariant),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: AppShapes.borderRadiusSmall,
             color: theme.colorScheme.surfaceContainerLow,
           ),
           padding: const EdgeInsets.all(12),
@@ -2921,7 +2922,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
         child: Container(
           decoration: BoxDecoration(
             border: Border.all(color: theme.colorScheme.outlineVariant),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: AppShapes.borderRadiusSmall,
             color: theme.colorScheme.surfaceContainerLow,
           ),
           padding: const EdgeInsets.all(12),
@@ -3358,7 +3359,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
         child: Container(
           decoration: BoxDecoration(
             border: Border.all(color: theme.colorScheme.outlineVariant),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: AppShapes.borderRadiusSmall,
             color: theme.colorScheme.surfaceContainerLow,
           ),
           padding: const EdgeInsets.all(12),
@@ -3996,7 +3997,7 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
           border: Border.all(color: theme.colorScheme.outlineVariant),
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: AppShapes.borderRadiusSmall,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

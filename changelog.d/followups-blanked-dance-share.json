@@ -1,0 +1,9 @@
+{
+  "id": "followups-blanked-dance-share",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Sharing a program whose slot cites a dance permanently deleted on another device now sends that slot as the words \"Deleted dance\" instead of an empty dance titled \"—\", and the PDF's figure pages leave that dance out."
+    ]
+  }
+}

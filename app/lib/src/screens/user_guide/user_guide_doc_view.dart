@@ -7,6 +7,7 @@ import '../../data/reduce_motion_scope.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/readable_width.dart';
 import 'user_guide_docs.dart';
+import '../../theme/app_shapes.dart';
 
 /// Renders a single bundled user-guide document as Markdown.
 ///
@@ -191,7 +192,7 @@ class _UserGuideDocViewState extends State<UserGuideDocView> {
               ),
               blockquoteDecoration: BoxDecoration(
                 color: theme.colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: AppShapes.borderRadiusSmall,
               ),
             ),
             onTapLink: (text, href, title) {

@@ -49,3 +49,47 @@ void scrollToTopForError(BuildContext context, ScrollController controller) {
     }
   });
 }
+
+/// Scrolls the first field of the [Form] keyed by [formKey] that shows a
+/// validation error into view, once the frame that shows its message has been
+/// built.
+///
+/// `FormState.validate` puts each message on its own field and scrolls
+/// nothing, so a message on a field above or below the fold goes unseen. Call
+/// this right after a failed `validate()`. "First" is in the order the page
+/// reads. Only a field that is built can be found: a field a lazy list has not
+/// built is not validated either, so it has no message to show. It does
+/// nothing when no field has one.
+void scrollToFirstInvalidField(
+  BuildContext context,
+  GlobalKey<FormState> formKey,
+) {
+  final reduceMotion = ReduceMotionScope.of(context);
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    final formContext = formKey.currentContext;
+    if (formContext == null || !formContext.mounted) return;
+    BuildContext? firstInvalid;
+    void visit(Element element) {
+      if (firstInvalid != null) return;
+      if (element is StatefulElement) {
+        final state = element.state;
+        if (state is FormFieldState && state.hasError) {
+          firstInvalid = element;
+          return;
+        }
+      }
+      element.visitChildren(visit);
+    }
+
+    (formContext as Element).visitChildren(visit);
+    final target = firstInvalid;
+    if (target == null || !target.mounted) return;
+    Scrollable.ensureVisible(
+      target,
+      duration: reduceMotion
+          ? Duration.zero
+          : const Duration(milliseconds: 200),
+      alignment: 0.1,
+    );
+  });
+}

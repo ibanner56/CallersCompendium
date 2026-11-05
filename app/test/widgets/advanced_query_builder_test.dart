@@ -1001,4 +1001,49 @@ void _paramChoiceTests() {
       }
     });
   });
+
+  // U6: a leaf row's section dropdown was as wide as its longest label, so a
+  // long section name pushed the row past the edge of a phone at large text.
+  group('a leaf row fits a phone at large text (U6)', () {
+    const longLabel =
+        'An unusually long section label that a caller might type in';
+
+    testWidgets('the section dropdown stays inside 360px at 2x text', (
+      tester,
+    ) async {
+      final figure = BuilderFigure(move: 'swing', section: longLabel);
+      await _pump(
+        tester,
+        root: BuilderGroup(children: [figure]),
+        sectionLabels: const [longLabel, 'A'],
+        screenSize: const Size(360, 900),
+        textScale: 2.0,
+      );
+
+      expect(tester.takeException(), isNull);
+      expect(
+        tester.getRect(find.byKey(ValueKey('section-${figure.id}'))).right,
+        lessThanOrEqualTo(360),
+      );
+    });
+
+    testWidgets('the section dropdown keeps showing the chosen section', (
+      tester,
+    ) async {
+      final figure = BuilderFigure(move: 'swing', section: 'A');
+      await _pump(
+        tester,
+        root: BuilderGroup(children: [figure]),
+        sectionLabels: const ['A', 'B'],
+      );
+
+      expect(
+        find.descendant(
+          of: find.byKey(ValueKey('section-${figure.id}')),
+          matching: find.text('A'),
+        ),
+        findsOneWidget,
+      );
+    });
+  });
 }
