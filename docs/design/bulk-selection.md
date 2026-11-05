@@ -634,8 +634,8 @@ list; for S3, a failure mid-batch must leave every dance live.
   `getById` per dance and about 3.2–3.5 s with one `getByIds`; `setStatusForMany`
   itself takes about 0.9 s of that (core harness). The level, rating, tunes and
   custom-field handlers now read their priors with one `getByIds` as well
-  (follow-ups bundle 1; the tag handler, which reads inside its own
-  transaction, still reads per dance). Same harness, 5,000 dances, *Set rating*
+  (follow-ups bundle 1), and so does the tag handler, which reads inside its
+  own transaction (follow-ups bundle 5). Same harness, 5,000 dances, *Set rating*
   from tapping Confirm to the settled list: about 6.4–6.6 s before and about
   3.8–5.1 s after, over two runs each on a shared machine, so read it as a
   direction, not a figure; no device claim. S3's Delete reads no priors; its

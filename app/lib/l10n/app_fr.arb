@@ -7854,9 +7854,9 @@
   "@importReviewImportError": {
     "x-sourceSha256": "468698ddc233d06e939d5d5ca36ce259909e31cd8374a8de9b8c449a63eb6d54"
   },
-  "importFileNotText": "Impossible de lire ce fichier : ce n'est pas du texte que l'application sait lire. S'il a été enregistré par une autre application, enregistrez-le à nouveau en texte UTF-8, puis réessayez.",
+  "importFileNotText": "Impossible de lire ce fichier : ce n'est ni un fichier de partage, ni du texte que l'application sait lire. S'il a été enregistré en texte par une autre application, enregistrez-le à nouveau en UTF-8, puis réessayez.",
   "@importFileNotText": {
-    "x-sourceSha256": "2b6b1e5e54a0395a362c30b25f7cb9bca9f24df5c8144396eae29310f06cccf5"
+    "x-sourceSha256": "eec1e1c43bd48784a659d67bf65997eabe537f3d6e8adb78b6a21ab96e89c582"
   },
   "importFileUnreadable": "Impossible d'ouvrir ce fichier. Une autre application l'utilise peut-être, ou il se trouve sur un lecteur qui n'est pas connecté.",
   "@importFileUnreadable": {

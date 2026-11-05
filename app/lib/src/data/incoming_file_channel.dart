@@ -268,7 +268,8 @@ enum IncomingFileRejection {
   tooLarge('tooLarge'),
 
   /// A desktop open named a file the app will not read: a network-share or
-  /// device path, a symlink, or something that is not a regular file
+  /// device path, a symlink (on Windows, also a symlinked or junctioned
+  /// parent folder), or something that is not a regular file
   /// ([DesktopOpenRejection.remote], [DesktopOpenRejection.notRegularFile],
   /// [DesktopOpenRejection.deviceName]).
   /// Never sent by native code.

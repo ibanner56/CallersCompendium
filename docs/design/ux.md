@@ -119,7 +119,7 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   beat count per section shown continuously (overflow = inline warning, not
   error). Full entry of a standard dance must be achievable in <1 min without
   the mouse.
-- Custom figure = just typing free text where no move matches; a beats field
+- Unrecognized figure = just typing free text where no move matches; a beats field
   sets the figure's duration; lingo-line feedback (recognized terms underlined,
   discouraged struck) as you type.
 - Figure reordering: drag handle **plus** move-up/down buttons + cut/paste
@@ -136,7 +136,7 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   the figure's name and one editor per parameter, narrowed to the values it
   accepts, with progression and note but no walkthrough or wording override —
   which is never grouped into a container and is expanded into
-  ordinary figures when the dance is saved, or kept as a custom figure bearing
+  ordinary figures when the dance is saved, or kept as an unrecognized figure bearing
   its name when it no longer expands.
   Both lists, compounds and new figures, offer only entries tagged with the
   dance's form (untagged ones count as contra).

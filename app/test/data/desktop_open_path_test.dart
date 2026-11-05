@@ -327,6 +327,91 @@ void main() {
     });
   });
 
+  // A Windows directory symlink can point at a UNC path, so a link anywhere
+  // above the file reaches a remote host just as a link at the file does. The
+  // walk must refuse it before anything stats through it.
+  group('checkDesktopOpenPath with a linked parent directory (Windows)', () {
+    final windows = p.Context(style: p.Style.windows, current: r'C:\work');
+    const leaf = r'C:\Users\caller\Shares\Contra Night.ccshare';
+
+    test('a symlinked or junctioned parent is refused', () async {
+      for (final linked in [
+        r'C:\Users\caller\Shares',
+        r'C:\Users\caller',
+        r'C:\Users',
+      ]) {
+        final probe = _TreeProbe(links: {linked});
+
+        final check = await checkDesktopOpenPath(
+          leaf,
+          context: windows,
+          probe: probe,
+        );
+
+        expect(
+          check.rejection,
+          DesktopOpenRejection.notRegularFile,
+          reason: linked,
+        );
+        expect(
+          probe.statted,
+          isNot(contains(leaf)),
+          reason: 'the file must not be stat\'d through a linked parent',
+        );
+      }
+    });
+
+    test(
+      'a parent that is another kind of reparse point still opens',
+      () async {
+        final check = await checkDesktopOpenPath(
+          leaf,
+          context: windows,
+          probe: _TreeProbe(reparse: {r'C:\Users\caller'}),
+        );
+
+        expect(check.rejection, isNull);
+        expect(check.path, leaf);
+      },
+    );
+
+    test('plain parents open', () async {
+      final check = await checkDesktopOpenPath(
+        leaf,
+        context: windows,
+        probe: _TreeProbe(),
+      );
+
+      expect(check.rejection, isNull);
+    });
+
+    test('Windows folds `..` before following links, so only the folded '
+        'parents are judged', () async {
+      // Win32 turns C:\Users\caller\Shares\..\Contra Night.ccshare into
+      // C:\Users\caller\Contra Night.ccshare before it touches the disk, so
+      // the linked Shares directory is never traversed.
+      final check = await checkDesktopOpenPath(
+        r'C:\Users\caller\Shares\..\Contra Night.ccshare',
+        context: windows,
+        probe: _TreeProbe(links: {r'C:\Users\caller\Shares'}),
+      );
+
+      expect(check.rejection, isNull);
+    });
+
+    test('off Windows a linked parent is left alone (/tmp, /home)', () async {
+      final posix = p.Context(style: p.Style.posix, current: '/');
+
+      final check = await checkDesktopOpenPath(
+        '/home/caller/x.ccshare',
+        context: posix,
+        probe: _TreeProbe(links: {'/home'}),
+      );
+
+      expect(check.rejection, isNull);
+    });
+  });
+
   group('desktopOpenPathFromArgs', () {
     test('picks the .ccshare argument and makes it absolute', () {
       final path = desktopOpenPathFromArgs([
@@ -389,6 +474,38 @@ class _FakeProbe extends DesktopFileProbe {
 
   @override
   Future<bool> isSymlinkOrJunction(String path) async => symlinkOrJunction;
+
+  @override
+  Future<int> length(String path) async => 16;
+}
+
+/// A file system with a tree shape: every path is a directory except the
+/// `.ccshare` leaf, which is a file. [links] are symlinks or junctions and
+/// [reparse] are other reparse points (a OneDrive folder). Records each path
+/// statted, so a test can show a file was not reached through a linked parent.
+class _TreeProbe extends DesktopFileProbe {
+  _TreeProbe({this.links = const {}, this.reparse = const {}});
+
+  final Set<String> links;
+  final Set<String> reparse;
+  final List<String> statted = [];
+
+  @override
+  Future<FileSystemEntityType> type(
+    String path, {
+    required bool followLinks,
+  }) async {
+    statted.add(path);
+    if (!followLinks && (links.contains(path) || reparse.contains(path))) {
+      return FileSystemEntityType.link;
+    }
+    return path.endsWith('.ccshare')
+        ? FileSystemEntityType.file
+        : FileSystemEntityType.directory;
+  }
+
+  @override
+  Future<bool> isSymlinkOrJunction(String path) async => links.contains(path);
 
   @override
   Future<int> length(String path) async => 16;

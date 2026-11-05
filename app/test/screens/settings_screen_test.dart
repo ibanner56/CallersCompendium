@@ -852,6 +852,28 @@ void main() {
       expect(find.byKey(const ValueKey('dialect-tile-Doomed')), findsNothing);
       // Active falls back to the app default.
       expect(ctx.dialectLibrary.active, equals(Dialect.larksRobins));
+      // The delete is acknowledged by name (B10).
+      expect(find.text('"Doomed" deleted.'), findsOneWidget);
+    });
+
+    testWidgets('cancelling the delete keeps the dialect and says nothing', (
+      tester,
+    ) async {
+      final ctx = await _pumpSettings(tester);
+      await ctx.dialectLibrary.upsert(Dialect(name: 'Keeper'));
+      await openDialect(tester);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('dialect-menu-Keeper')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+      await tester.pumpAndSettle();
+
+      expect(ctx.dialectLibrary.customByName('Keeper'), isNotNull);
+      expect(find.byKey(const ValueKey('dialect-tile-Keeper')), findsOneWidget);
+      expect(find.byType(SnackBar), findsNothing);
     });
 
     testWidgets('editing a custom dialect terms round-trips through upsert', (
@@ -1219,6 +1241,55 @@ void main() {
 
       expect(ctx.customThemes.hasActive, isFalse);
       expect(ctx.themeNotifier.value, AppThemeSelection.monokai);
+    });
+
+    Future<void> chooseDelete(WidgetTester tester, String themeId) async {
+      final menu = find.byKey(ValueKey('custom-menu-$themeId'));
+      await revealInAppearance(tester, menu);
+      await tester.tap(menu);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('deleting a custom theme removes it and says so by name', (
+      tester,
+    ) async {
+      final ctx = await _pumpSettings(tester);
+      final created = await ctx.customThemes.duplicate(
+        name: 'Doomed Theme',
+        brightness: Brightness.dark,
+        roles: CustomTheme.rolesFromScheme(const ColorScheme.dark()),
+      );
+      await tester.pumpAndSettle();
+
+      await chooseDelete(tester, created.id);
+      await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+      await tester.pumpAndSettle();
+
+      expect(ctx.customThemes.byId(created.id), isNull);
+      expect(find.byKey(ValueKey('custom-${created.id}')), findsNothing);
+      expect(find.text('"Doomed Theme" deleted.'), findsOneWidget);
+    });
+
+    testWidgets('cancelling the delete keeps the theme and says nothing', (
+      tester,
+    ) async {
+      final ctx = await _pumpSettings(tester);
+      final created = await ctx.customThemes.duplicate(
+        name: 'Keeper Theme',
+        brightness: Brightness.dark,
+        roles: CustomTheme.rolesFromScheme(const ColorScheme.dark()),
+      );
+      await tester.pumpAndSettle();
+
+      await chooseDelete(tester, created.id);
+      await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+      await tester.pumpAndSettle();
+
+      expect(ctx.customThemes.byId(created.id), isNotNull);
+      expect(find.byKey(ValueKey('custom-${created.id}')), findsOneWidget);
+      expect(find.byType(SnackBar), findsNothing);
     });
   });
 
