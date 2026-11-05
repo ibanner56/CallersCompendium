@@ -1472,8 +1472,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   ///
   /// A new program's own key is new, so what it can find is a draft another
   /// new-program editor left: offered as that program, never as this one.
-  /// Of several, the first by key is offered; the rest wait for the next new
-  /// program.
+  /// Of several, the one saved most recently is offered; the rest wait for
+  /// the next new program.
   Future<void> _maybeStageDraft() async {
     if (!mounted) return;
     final List<String> candidates;
@@ -1481,13 +1481,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       candidates = _existing != null || widget.programId != null
           ? [_draftKey]
           : ([
-              for (final key in await _repos.settings.keysWithPrefix(
+              for (final key in await _repos.settings.keysWithPrefixNewestFirst(
                 kProgramEditorDraftKeyPrefix,
               ))
                 if (isNewProgramEditorDraftKey(key) &&
                     !_openDraftKeys.contains(key))
                   key,
-            ]..sort());
+            ]);
     } catch (_) {
       // diagnostics: silent — the draft lookup is best-effort; the editor loads without one.
       return;

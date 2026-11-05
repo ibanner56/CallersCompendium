@@ -211,7 +211,8 @@ stay on your device; they are never uploaded, shared, or included in backups.
 
 Each new program keeps its own draft, so two new programs never overwrite each
 other's. If a new program you never saved left one behind, the next new
-program you start offers it back by its title — *You have an unsaved draft of
+program you start offers it back by its title (the one you saved last, if
+several were left behind) — *You have an unsaved draft of
 another new program* — so you can **Restore** it and carry on with that
 program, or **Discard** it and start fresh.
 

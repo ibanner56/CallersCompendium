@@ -249,7 +249,7 @@ void main() {
 
       expect(find.text('First'), findsOneWidget);
       expect(find.text('then'), findsOneWidget);
-      expect(find.text('Later'), findsOneWidget);
+      expect(find.text('Next'), findsOneWidget);
     });
 
     testWidgets('each side shows "Group figures" button by default', (

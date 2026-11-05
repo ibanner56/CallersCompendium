@@ -4503,7 +4503,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get collectionQueryThenConnector => '次に';
 
   @override
-  String get collectionQueryThenLater => '後で';
+  String get collectionQueryThenNext => '直後';
 
   @override
   String get collectionQueryRemoveSequence => 'シーケンスを削除';
@@ -7133,6 +7133,10 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get importErrorContraDbUnsupportedFigure =>
       'ContraDBのFigure検索には、「box circulate」のような完全な技名を使用してください。';
+
+  @override
+  String get importErrorContraDbUnsupportedAdvanced =>
+      'ContraDBでは、「フィギュアを含む」と「シーケンス（次に）」の条件を「すべてに一致」「いずれかに一致」「どれにも一致しない」のグループで組み合わせた詳細検索のみ実行できます。ContraDBを検索するには、タグ、フィギュアの詳細、ContraDBにない技、その他の条件を削除してください。';
 
   @override
   String get importErrorContraDbEmptyDanceInput =>

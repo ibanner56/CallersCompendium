@@ -234,8 +234,8 @@ void main() {
       );
       expect(
         text,
-        'Affects: Dance “Petronella” (has figures only a newer version can '
-        'read), Program “Saturday”',
+        'Affects: Dance "Petronella" (has figures only a newer version can '
+        'read), Program "Saturday"',
       );
       expect(
         syncNoticeNewerFigureRecords(const [

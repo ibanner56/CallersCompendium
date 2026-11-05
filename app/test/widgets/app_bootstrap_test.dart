@@ -155,7 +155,7 @@ void main() {
 
     expect(
       find.text(
-        'This data was created by a newer version of Caller\u2019s Compendium. '
+        'This data was created by a newer version of Caller\'s Compendium. '
         'Update the app, then reopen it.',
       ),
       findsOneWidget,

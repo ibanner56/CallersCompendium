@@ -130,4 +130,29 @@ void main() {
       'editor_draft:new:a',
     ]);
   });
+
+  test(
+    'keysWithPrefixNewestFirst orders by the row\'s last write, then key',
+    () async {
+      await repo.set('draft:b', 1, at: DateTime.utc(2026, 1, 2));
+      await repo.set('draft:a', 2, at: DateTime.utc(2026, 1, 1));
+      await repo.set('draft:c', 3, at: DateTime.utc(2026, 1, 3));
+      await repo.set('draft:d', 4, at: DateTime.utc(2026, 1, 3));
+      await repo.set('other:z', 5, at: DateTime.utc(2026, 1, 9));
+      await repo.set('draft:gone', 6, at: DateTime.utc(2026, 1, 9));
+      await repo.remove('draft:gone');
+
+      expect(await repo.keysWithPrefixNewestFirst('draft:'), [
+        'draft:c',
+        'draft:d',
+        'draft:b',
+        'draft:a',
+      ]);
+
+      // A later write moves a key to the front: the order is the latest write,
+      // not the first.
+      await repo.set('draft:a', 7, at: DateTime.utc(2026, 1, 10));
+      expect((await repo.keysWithPrefixNewestFirst('draft:')).first, 'draft:a');
+    },
+  );
 }

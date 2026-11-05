@@ -456,8 +456,8 @@ void main() {
       );
       await tester.pumpAndSettle();
       const expected =
-          '“fats” isn’t one of the values style can have. Did you mean '
-          '“fast”? style can be: fast.';
+          '"fats" isn\'t one of the values style can have. Did you mean '
+          '"fast"? style can be: fast.';
       expect(
         tester
             .widget<Text>(
@@ -616,7 +616,7 @@ void main() {
     await save(tester);
     expect(
       find.text(
-        '“Pull By” is already the name of a figure or shorthand. Choose '
+        '"Pull By" is already the name of a figure or shorthand. Choose '
         'another name.',
       ),
       findsOneWidget,

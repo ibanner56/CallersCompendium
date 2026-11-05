@@ -103,7 +103,7 @@ class _SearchPanelBarState extends State<SearchPanelBar> {
   @override
   void didUpdateWidget(SearchPanelBar oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // A tool that is no longer offered or enabled (Advanced while online) cannot
+    // A tool that is no longer offered or enabled (Filters while online) cannot
     // stay the open one, or it would reappear open the moment it applies again.
     if (_open != null &&
         !widget.panels.any((panel) => panel.key == _open && panel.enabled)) {

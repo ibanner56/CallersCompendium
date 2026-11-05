@@ -195,10 +195,20 @@ example **Filters · 3**), and **Advanced** reads **Advanced (on)** while a
 figure query is in use. The **Advanced** panel's query editor is always
 available; it has no effect until you add a condition, and any condition you
 add applies straight away. To set a query aside, delete its conditions.
-While **Online search** is on, **Filters** and **Advanced** are grayed out,
-because they only apply to your own library; **By phrase** stays available for
-sources that support it. A source selector appears under the row so you can
-choose which archive to search.
+While **Online search** is on, **Filters** is grayed out, because it only
+applies to your own library. **By phrase** stays available for The Caller's Box,
+and **Advanced** for ContraDB; each is grayed out for the archive that cannot
+use it. A source selector appears under the row so you can choose which archive
+to search.
+
+On ContraDB, **Advanced** searches the archive with the same **All of**,
+**Any of**, and **None of** groups of **Has figure** and **Sequence (then)**
+conditions you use on your own library, and its results must also match any
+text in the search box. ContraDB cannot run every condition the same way, so a
+query that contains a tag, a figure's details (such as its beats or section), a
+move ContraDB does not have, or any other filter is not sent; you see a message
+explaining this, rather than results that quietly ignore that condition. Remove
+those conditions to search ContraDB.
 
 ## Narrow things down with filters
 
@@ -332,7 +342,9 @@ the moves — inside your dances. It works by stacking up rows and groups:
    when it appears there.
 3. Optionally set the move's **parameters** to be more specific.
 4. Add a **Sequence (then)** to require one move right after another — "a chain
-   *then* a swing."
+   *then* a swing." Only a move directly after the first counts, not one later
+   in the dance. A dance is treated as a loop, so the first move counts as
+   coming right after the last one.
 
 Rows live inside groups set to **All of**, **Any of**, or **None of** — match
 every row, any row, or no row — and a **Condition group** can sit inside another,

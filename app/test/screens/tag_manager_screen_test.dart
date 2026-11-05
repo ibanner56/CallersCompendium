@@ -225,7 +225,7 @@ void main() {
       await rename(tester, a, 'Flowy');
 
       expect((await repos.tags.getById(a))!.name, 'Flowy');
-      expect(find.text('Renamed “Flowing” to “Flowy”'), findsOneWidget);
+      expect(find.text('Renamed "Flowing" to "Flowy"'), findsOneWidget);
 
       await tester.tap(find.byKey(const ValueKey('tag-manager-undo')));
       await tester.pumpAndSettle();
@@ -248,8 +248,8 @@ void main() {
       // says so.
       expect(
         find.text(
-          '“Flowy” already exists. Merge “Flowing” into it and call it '
-          '“flowy”?',
+          '"Flowy" already exists. Merge "Flowing" into it and call it '
+          '"flowy"?',
         ),
         findsOneWidget,
       );
@@ -272,7 +272,7 @@ void main() {
 
       await rename(tester, a, 'Flowy');
       expect(
-        find.text('“Flowy” already exists. Merge “Flowing” into it?'),
+        find.text('"Flowy" already exists. Merge "Flowing" into it?'),
         findsOneWidget,
       );
       await tester.tap(
@@ -313,7 +313,7 @@ void main() {
       expect(tags, hasLength(1));
       expect(tags.single.name, 'Flowy');
       expect(tags.single.color, 0xFFFF0000, reason: "the chosen tag's colour");
-      expect(find.text('Combined 3 tags into “Flowy”'), findsOneWidget);
+      expect(find.text('Combined 3 tags into "Flowy"'), findsOneWidget);
     });
   });
 
@@ -343,7 +343,7 @@ void main() {
 
       expect((await liveTags()).map((t) => t.name), ['Bouncey', 'Flowy']);
       expect((await repos.dances.getById('one'))!.tagIds, [a]);
-      expect(find.text('Merged “Flowing” into “Flowy”'), findsOneWidget);
+      expect(find.text('Merged "Flowing" into "Flowy"'), findsOneWidget);
 
       await tester.tap(find.byKey(const ValueKey('tag-manager-undo')));
       await tester.pumpAndSettle();
@@ -396,7 +396,7 @@ void main() {
 
       expect(find.byType(AlertDialog), findsNothing, reason: 'Undo exists');
       expect(await liveTags(), isEmpty);
-      expect(find.text('Deleted “Bouncey” from 2 dances'), findsOneWidget);
+      expect(find.text('Deleted "Bouncey" from 2 dances'), findsOneWidget);
       expect(find.byKey(const ValueKey('tag-row-$a')), findsNothing);
     });
 

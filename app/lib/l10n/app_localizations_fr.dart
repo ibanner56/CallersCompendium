@@ -4782,7 +4782,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get collectionQueryThenConnector => 'puis';
 
   @override
-  String get collectionQueryThenLater => 'Plus tard';
+  String get collectionQueryThenNext => 'Ensuite';
 
   @override
   String get collectionQueryRemoveSequence => 'Supprimer la séquence';
@@ -7535,6 +7535,10 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get importErrorContraDbUnsupportedFigure =>
       'Les recherches de figures dans ContraDB utilisent un nom de mouvement complet, par exemple \"box circulate\".';
+
+  @override
+  String get importErrorContraDbUnsupportedAdvanced =>
+      'ContraDB ne peut exécuter que des recherches avancées composées de groupes « Toutes », « L’une de » et « Aucune de » contenant des conditions « Contient une figure » et « Séquence (puis) ». Retirez les tags, les détails de figure, les mouvements que ContraDB ne connaît pas et les autres conditions pour rechercher dans ContraDB.';
 
   @override
   String get importErrorContraDbEmptyDanceInput =>

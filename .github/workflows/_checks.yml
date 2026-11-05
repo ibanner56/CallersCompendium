@@ -304,8 +304,8 @@ jobs:
         run: python3 tools/ci/check_l10n_unused.py
       # Ratchet: English app text uses straight quotes (" and '), maintainer
       # decision 2026-10-31. Fails any new or edited app_en.arb value with a curly
-      # quote or apostrophe; today's strings sit on tools/ci/arb_quote_allowlist.json
-      # until the sweep (U5b-2) burns it down. Fix with
+      # quote or apostrophe; the allow-list (tools/ci/arb_quote_allowlist.json) is
+      # empty since the U5b-2 sweep. Fix with
       # `python3 tools/ci/arb_quote_style.py --only KEY...` on the reported keys,
       # never `--regenerate`.
       # Pure-stdlib and offline.

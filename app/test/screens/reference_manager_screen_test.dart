@@ -117,7 +117,7 @@ void main() {
 
       expect(await repos.choreographers.getById(a), isNull);
       expect(key('author-row-$a'), findsNothing);
-      expect(find.text('Deleted “Gene Hurbert”'), findsOneWidget);
+      expect(find.text('Deleted "Gene Hurbert"'), findsOneWidget);
 
       await tester.tap(key('author-manager-undo'));
       await tester.pumpAndSettle();
