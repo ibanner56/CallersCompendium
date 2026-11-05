@@ -116,6 +116,7 @@ void main() {
       String build(DifficultyLevel? Function(Dance)? resolver) =>
           buildProgramShareBundle(
             program,
+            blankedDanceSlotText: 'Deleted dance',
             danceFor: (id) => catalogWithLevel[id],
             choreographerFor: (_) => null,
             venueFor: (_) => null,
@@ -157,6 +158,7 @@ void main() {
 
       final json = buildProgramShareBundle(
         program,
+        blankedDanceSlotText: 'Deleted dance',
         danceFor: danceFor,
         choreographerFor: choreographerFor,
         tagFor: (_) => null,
@@ -195,6 +197,7 @@ void main() {
       final archive = decodeArchive(
         buildProgramShareBundle(
           program,
+          blankedDanceSlotText: 'Deleted dance',
           danceFor: danceFor,
           choreographerFor: choreographerFor,
           tagFor: (_) => null,
@@ -212,6 +215,7 @@ void main() {
       final archive = decodeArchive(
         buildProgramShareBundle(
           _program(slots: [_slot(0, danceId: 'd1')]),
+          blankedDanceSlotText: 'Deleted dance',
           danceFor: (id) => id == 'd1' ? trashed : null,
           choreographerFor: choreographerFor,
           tagFor: (_) => null,
@@ -240,6 +244,7 @@ void main() {
       final archive = decodeArchive(
         buildProgramShareBundle(
           _program(slots: [_slot(0, danceId: 'd1')]),
+          blankedDanceSlotText: 'Deleted dance',
           danceFor: (id) => id == 'd1' ? trashed : null,
           choreographerFor: choreographerFor,
           tagFor: (_) => null,
@@ -272,6 +277,7 @@ void main() {
               _slot(1, danceId: 'd2'),
             ],
           ),
+          blankedDanceSlotText: 'Deleted dance',
           danceFor: (id) => {'d1': trashed, 'd2': live}[id],
           choreographerFor: choreographerFor,
           tagFor: (_) => null,
@@ -295,6 +301,7 @@ void main() {
       final archive = decodeArchive(
         buildProgramShareBundle(
           program,
+          blankedDanceSlotText: 'Deleted dance',
           danceFor: danceFor,
           choreographerFor: choreographerFor,
           tagFor: (_) => null,
@@ -322,6 +329,7 @@ void main() {
 
         final json = buildProgramShareBundle(
           program,
+          blankedDanceSlotText: 'Deleted dance',
           danceFor: danceFor,
           choreographerFor: choreographerFor,
           tagFor: (_) => null,
@@ -373,6 +381,7 @@ void main() {
         final archive = decodeArchive(
           buildProgramShareBundle(
             program,
+            blankedDanceSlotText: 'Deleted dance',
             danceFor: authoredDanceFor,
             choreographerFor: choreographerCatalogFor,
             tagFor: (_) => null,
@@ -399,6 +408,7 @@ void main() {
         final archive = decodeArchive(
           buildProgramShareBundle(
             program,
+            blankedDanceSlotText: 'Deleted dance',
             danceFor: authoredDanceFor,
             choreographerFor: choreographerCatalogFor,
             tagFor: (_) => null,
@@ -423,6 +433,7 @@ void main() {
         final archive = decodeArchive(
           buildProgramShareBundle(
             program,
+            blankedDanceSlotText: 'Deleted dance',
             danceFor: authoredDanceFor,
             choreographerFor: choreographerCatalogFor,
             tagFor: (_) => null,
@@ -449,6 +460,7 @@ void main() {
         final archive = decodeArchive(
           buildProgramShareBundle(
             program,
+            blankedDanceSlotText: 'Deleted dance',
             danceFor: authoredDanceFor,
             choreographerFor: choreographerCatalogFor,
             tagFor: (_) => null,
@@ -472,6 +484,7 @@ void main() {
 
         final json = buildProgramShareBundle(
           program,
+          blankedDanceSlotText: 'Deleted dance',
           danceFor: authoredDanceFor,
           choreographerFor: choreographerCatalogFor,
           tagFor: (_) => null,
@@ -505,6 +518,7 @@ void main() {
 
         final json = buildProgramShareBundle(
           program,
+          blankedDanceSlotText: 'Deleted dance',
           danceFor: danceFor,
           choreographerFor: choreographerFor,
           tagFor: (_) => null,
@@ -543,6 +557,7 @@ void main() {
 
         final json = buildProgramShareBundle(
           program,
+          blankedDanceSlotText: 'Deleted dance',
           danceFor: danceFor,
           choreographerFor: choreographerFor,
           tagFor: (_) => null,
@@ -576,6 +591,7 @@ void main() {
         final archive = decodeArchive(
           buildProgramShareBundle(
             program,
+            blankedDanceSlotText: 'Deleted dance',
             danceFor: danceFor,
             choreographerFor: choreographerFor,
             tagFor: (_) => null,
@@ -598,6 +614,7 @@ void main() {
         final archive = decodeArchive(
           buildProgramShareBundle(
             program,
+            blankedDanceSlotText: 'Deleted dance',
             danceFor: danceFor,
             choreographerFor: choreographerFor,
             tagFor: (_) => null,
@@ -627,6 +644,7 @@ void main() {
 
         final json = buildProgramShareBundle(
           program,
+          blankedDanceSlotText: 'Deleted dance',
           danceFor: danceFor,
           choreographerFor: choreographerFor,
           tagFor: (_) => null,
@@ -763,6 +781,7 @@ void main() {
       final program = _program(slots: [_slot(0, danceId: 'd1')]);
       final json = buildProgramShareBundle(
         program,
+        blankedDanceSlotText: 'Deleted dance',
         danceFor: (id) =>
             id == 'd1' ? _dance('d1', 'Rory O\'More', authorIds: ['c1']) : null,
         choreographerFor: (id) => id == 'c1'
@@ -817,6 +836,7 @@ void main() {
       final program = _program(slots: [_slot(0, danceId: 'd1')]);
       final json = buildProgramShareBundle(
         program,
+        blankedDanceSlotText: 'Deleted dance',
         danceFor: (id) => id == 'd1'
             ? _dance('d1', 'Rory O\'More', authorIds: ['sender-cary'])
             : null,
@@ -849,6 +869,7 @@ void main() {
         final program = _program(slots: [_slot(0, danceId: 'd1')]);
         final json = buildProgramShareBundle(
           program,
+          blankedDanceSlotText: 'Deleted dance',
           danceFor: (id) => id == 'd1' ? _dance('d1', 'Anonymous Reel') : null,
           choreographerFor: (_) => null,
           tagFor: (_) => null,
@@ -876,6 +897,7 @@ void main() {
       );
       final json = buildProgramShareBundle(
         program,
+        blankedDanceSlotText: 'Deleted dance',
         danceFor: (id) => id == 'd1' ? _dance('d1', 'Rory O\'More') : null,
         choreographerFor: (_) => null,
         tagFor: (_) => null,
@@ -925,6 +947,7 @@ void main() {
         );
         final json = buildProgramShareBundle(
           program,
+          blankedDanceSlotText: 'Deleted dance',
           danceFor: (id) => id == 'd1' ? _dance('d1', 'Rory O\'More') : null,
           choreographerFor: (_) => null,
           tagFor: (_) => null,
@@ -995,6 +1018,7 @@ void main() {
           _slot(1, danceId: 'b'),
         ],
       ),
+      blankedDanceSlotText: 'Deleted dance',
       danceFor: (id) => richDance(id),
       choreographerFor: (_) => null,
       venueFor: (_) => null,

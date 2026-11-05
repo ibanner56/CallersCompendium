@@ -186,7 +186,9 @@ evening to another caller. It builds a single self-contained file — a
 `.ccshare` file — containing:
 
 - the program itself;
-- every dance the program's slots refer to;
+- every dance the program's slots refer to, except one deleted for good on
+  another device, which travels as the words "Deleted dance" (see
+  [Programs](./programs.md#when-a-dance-in-a-program-is-deleted));
 - the authors credited on those dances;
 - the tags, published sources, and [custom fields](./glossary.md#custom-field)
   those dances use, so the recipient can import them completely;

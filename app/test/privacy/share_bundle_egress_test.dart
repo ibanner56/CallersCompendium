@@ -257,6 +257,7 @@ final _program = Program(
 String _export({Set<VenueContactField> includeVenueContact = const {}}) =>
     buildProgramShareBundle(
       _program,
+      blankedDanceSlotText: 'Deleted dance',
       danceFor: (id) => id == 'd1' ? _dance : null,
       choreographerFor: (id) => id == 'c1' ? _choreographer : null,
       tagFor: (_) => null,

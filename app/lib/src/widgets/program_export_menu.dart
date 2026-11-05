@@ -22,6 +22,7 @@ import '../export/share_sanitization.dart';
 import '../export/share_file.dart';
 import '../search/facet_labels.dart';
 import '../utils/safe_name.dart';
+import '../utils/slot_dance_title.dart';
 import 'export_guard.dart';
 import 'program_figures_prompt_dialog.dart';
 import 'venue_contact_share_dialog.dart';
@@ -211,23 +212,7 @@ class ProgramExportMenu extends StatelessWidget {
   List<({Dance dance, bool isAlternate})> _orderedExportDances() {
     final resolveDance = danceFor;
     if (resolveDance == null) return const [];
-    final seen = <String>{};
-    final result = <({Dance dance, bool isAlternate})>[];
-    for (final group in program.outputGrouped) {
-      final primaryId = group.primary.danceId;
-      if (primaryId != null && seen.add(primaryId)) {
-        final dance = resolveDance(primaryId);
-        if (dance != null) result.add((dance: dance, isAlternate: false));
-      }
-      for (final alt in group.alternates) {
-        final altId = alt.danceId;
-        if (altId != null && seen.add(altId)) {
-          final dance = resolveDance(altId);
-          if (dance != null) result.add((dance: dance, isAlternate: true));
-        }
-      }
-    }
-    return result;
+    return orderedProgramExportDances(program, resolveDance);
   }
 
   /// Returns `true` if any dance reachable via [danceFor] in this program has a
@@ -436,6 +421,9 @@ class ProgramExportMenu extends StatelessWidget {
     final json = buildProgramShareBundle(
       program,
       danceFor: resolveDance,
+      blankedDanceSlotText: AppLocalizations.of(
+        context,
+      ).programsBlankedDanceTitle,
       choreographerFor: choreographerFor ?? (_) => null,
       venueFor: (id) => venuesById[id],
       tagFor: tagFor ?? (_) => null,
@@ -694,4 +682,34 @@ class ProgramExportMenu extends StatelessWidget {
       ],
     );
   }
+}
+
+/// The dances a program export appends (the PDF's "Include figures" pages and
+/// the text export's figures): every primary and alternate [resolveDance]
+/// resolves, in slot order, deduped by id, alternates tagged.
+///
+/// A dance another device permanently deleted ([isBlankedDance]) is left out:
+/// it has no figures, and its page would be titled "—". Its slot still reads
+/// "Deleted dance" in the set list (maintainer decision, 2026-11-05, row 49 of
+/// the follow-ups triage, option (a)).
+List<({Dance dance, bool isAlternate})> orderedProgramExportDances(
+  Program program,
+  Dance? Function(String danceId) resolveDance,
+) {
+  final seen = <String>{};
+  final result = <({Dance dance, bool isAlternate})>[];
+  void add(String? id, {required bool isAlternate}) {
+    if (id == null || !seen.add(id)) return;
+    final dance = resolveDance(id);
+    if (dance == null || isBlankedDance(dance)) return;
+    result.add((dance: dance, isAlternate: isAlternate));
+  }
+
+  for (final group in program.outputGrouped) {
+    add(group.primary.danceId, isAlternate: false);
+    for (final alt in group.alternates) {
+      add(alt.danceId, isAlternate: true);
+    }
+  }
+  return result;
 }

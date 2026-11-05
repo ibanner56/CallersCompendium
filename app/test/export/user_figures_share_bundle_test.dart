@@ -98,6 +98,7 @@ void main() {
         updatedAt: now,
       ),
       now: now,
+      blankedDanceSlotText: 'Deleted dance',
       danceFor: (id) => dances[id],
       choreographerFor: (_) => null,
       venueFor: (_) => null,
