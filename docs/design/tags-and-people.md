@@ -445,9 +445,13 @@ delete is already permanent (`settings.md:128-133`).
 
 - **Rename** with merge-on-collision, as above. A tag's colour lives in its
   row, so it survives a rename.
-- **Merge:** the survivor keeps the colour of the tag merged into. **Recommendation:** if the
+- **Merge:** the survivor keeps the colour of the tag merged into; if the
   survivor has none, it takes the loser's. Rejected alternative: always the
-  survivor's, which silently drops a colour the user chose.
+  survivor's, which silently drops a colour the user chose. **Decided**
+  (maintainer, 2026-11-05, as recommended) and built in N2-T2: `merge` fills a
+  blank colour from the others in ascending id order. "Survivor" here is the tag
+  merged *into*, not the one whose id survives (the smaller id, which can be
+  either): the colour follows what the user chose, not an id they cannot see.
 - **Delete**, with the count and Undo, as above.
 
 ### Authors
@@ -819,7 +823,8 @@ on these seven.
 Two smaller choices are my recommendations, not decisions, and the
 implementing branch should confirm them with the maintainer in its PR:
 
-- a merged tag keeps the loser's colour when the survivor has none;
+- a merged tag keeps the loser's colour when the survivor has none (decided
+  by the maintainer on 2026-11-05, and already built);
 - a "show these dances" action waits for B15.
 
 **Where the brief's line numbers differ.** The work plan cites
