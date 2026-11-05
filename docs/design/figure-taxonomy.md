@@ -801,7 +801,10 @@ figure as the progression. This is non-serialized taxonomy metadata, so no
   diagonal`, a facing direction as `facing in`, and `across`/`along` as
   themselves (`pull by right on left diagonal`, `robins chain facing in`); a
   hey or an ocean wave names it after the figure (`a half hey along`, `an
-  ocean wave on right diagonal`). Rory O'More's balance follows its subject
+  ocean wave on right diagonal`). Cross trails says `passing` before each
+  shoulder, so a direction never reads as the shoulder's side (`partner on
+  right diagonal passing right shoulders`). Rory O'More's balance follows its
+  subject
   (`larks balance & Rory O'More right`). A subject the verb
   after it agrees with stays plural (`neighbors take right hands`), while a
   subject that only prefixes the move reads singular (`neighbor swing`). All
