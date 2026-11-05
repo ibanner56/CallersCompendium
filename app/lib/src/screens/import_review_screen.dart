@@ -35,6 +35,7 @@ import '../data/venue_entity_mode_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../search/facet_labels.dart';
 import '../utils/undo_snack_bar.dart';
+import '../widgets/confirm_discard_changes.dart';
 import '../widgets/figure_diff_view.dart';
 import '../widgets/notice_card.dart';
 import 'dance_editor_screen.dart';
@@ -124,6 +125,7 @@ class ImportReviewScreen extends StatefulWidget {
     this.archiveDecoder,
     this.onlineService,
     this.onClose,
+    this.isActive = true,
     this.sharedBundle,
     this.publishedCollection,
     this.publishedCollectionService,
@@ -187,6 +189,12 @@ class ImportReviewScreen extends StatefulWidget {
   /// the whole shell). When null (the pushed / Settings case) the default back
   /// arrow and [Navigator.pop] behavior is preserved.
   final VoidCallback? onClose;
+
+  /// Whether this screen is the one showing. An embedded review stays mounted
+  /// when the user switches to another destination of the app shell; while it
+  /// is not active it must not ask to discard on a system back meant for the
+  /// destination in front. Always true for a pushed review.
+  final bool isActive;
 
   /// A pre-validated shared bundle to review (issue #432). When non-null the
   /// screen skips the manual input phase: it seeds the bundle, plans it
@@ -2543,6 +2551,68 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     }
   }
 
+  /// Asks before the review is thrown away. True when the user chose to leave.
+  /// Reuses [confirmDiscardChanges] with this screen's own wording.
+  Future<bool> _confirmLeaveReview() async {
+    final l10n = AppLocalizations.of(context);
+    final choice = await confirmDiscardChanges(
+      context,
+      title: l10n.importReviewDiscardTitle,
+      message: l10n.importReviewDiscardBody,
+      keepEditingLabel: l10n.importReviewKeepReviewing,
+      dialogKey: const ValueKey('import-leave-dialog'),
+    );
+    return choice == DiscardChangesChoice.discard;
+  }
+
+  /// Whether leaving now would throw away a review: the review phase with
+  /// something on it to decide. Mirrors the branches of [_buildReview] that
+  /// show rows; its error and "no dances" messages hold nothing to lose, so
+  /// leaving them does not ask.
+  bool get _hasReviewToLose {
+    if (!widget.isActive || _phase != _Phase.review || _planError != null) {
+      return false;
+    }
+    final batch = _batch;
+    if (batch == null) return false;
+    if (batch.records.isNotEmpty) return true;
+    if (_titleList?.rows.isNotEmpty ?? false) return true;
+    return batch.errors.isEmpty &&
+        (_effectiveSharedBundle?.archive.programs.isNotEmpty ?? false);
+  }
+
+  bool _askingToLeave = false;
+
+  /// Leaves once the user confirms discarding the review: through
+  /// [ImportReviewScreen.onClose] when embedded (there is no route of its own
+  /// to pop), otherwise by popping this route. A second back press while the
+  /// question is up is ignored, so it cannot stack a second dialog.
+  Future<void> _leaveReview() async {
+    if (_askingToLeave) return;
+    _askingToLeave = true;
+    final leave = await _confirmLeaveReview();
+    _askingToLeave = false;
+    if (!leave || !mounted) return;
+    final onClose = widget.onClose;
+    if (onClose != null) {
+      onClose();
+    } else {
+      Navigator.of(context).pop();
+    }
+  }
+
+  /// The embedded Close button. It calls [ImportReviewScreen.onClose] directly,
+  /// which `PopScope` does not intercept, so it asks for itself during review.
+  Future<void> _closeEmbedded() async {
+    final onClose = widget.onClose;
+    if (onClose == null) return;
+    if (_hasReviewToLose) {
+      await _leaveReview();
+    } else {
+      onClose();
+    }
+  }
+
   Widget _summaryLine(String keyLabel, String text) =>
       Text(text, key: ValueKey('import-summary-$keyLabel'));
 
@@ -2553,8 +2623,16 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     // mid-commit would let the write finish with the screen unmounted, stranding
     // freshly-imported data without its result and Undo (issue #432). The
     // imperative pop the post-commit flow performs is unaffected by PopScope.
+    //
+    // Leaving mid-review would throw away the planned list (and the choices
+    // made on it) silently, so a user-initiated back asks first; see
+    // [_confirmLeaveReview]. The input and planning phases hold nothing worth
+    // a prompt.
     return PopScope(
-      canPop: _phase != _Phase.committing,
+      canPop: _phase != _Phase.committing && !_hasReviewToLose,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _hasReviewToLose) unawaited(_leaveReview());
+      },
       child: Scaffold(
         appBar: AppBar(
           title: Text(l10n.importDances),
@@ -2573,7 +2651,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                   // its Undo/refresh (issue #432).
                   onPressed: _phase == _Phase.committing
                       ? null
-                      : widget.onClose,
+                      : _closeEmbedded,
                 ),
         ),
         body: switch (_phase) {

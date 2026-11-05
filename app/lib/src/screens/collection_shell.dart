@@ -55,7 +55,14 @@ class CollectionShell extends StatefulWidget {
     this.callersBoxOnline,
     this.contraDbOnline,
     this.commands,
+    this.isActive = true,
   });
+
+  /// Whether the Collection is the destination showing. The shell keeps it
+  /// mounted while another destination is selected, and a review open in its
+  /// detail pane must not then intercept system back (see
+  /// [ImportReviewScreen.isActive]).
+  final bool isActive;
 
   /// Lets the app shell run this Collection's New dance, Import and search
   /// commands from the keyboard map and the macOS menu bar (PLAT-7, PLAT-8).
@@ -746,6 +753,7 @@ class _CollectionShellState extends State<CollectionShell> {
           fetcher: widget.urlFetcher,
           publishedCollectionService: _publishedCollectionService,
           onClose: _onImportClose,
+          isActive: widget.isActive,
           onCommitStateChanged: (active) {
             _importCommitInFlight = active;
           },

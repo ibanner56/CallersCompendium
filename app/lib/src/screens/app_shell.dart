@@ -352,6 +352,7 @@ class AppShellState extends State<AppShell> {
       switch (d) {
         _Destination.collection => CollectionShell(
           commands: _collectionCommands,
+          isActive: _current == _Destination.collection,
         ),
         _Destination.programs => ProgramsShell(key: _programsShellKey),
         // Built only while shown, so a hidden Glossary costs nothing.

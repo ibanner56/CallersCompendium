@@ -16,6 +16,14 @@ String onlineSourceAttribution(AppLocalizations l10n, OnlineSource source) =>
       OnlineSource.contraDb => l10n.onlineAttributionContraDb,
     };
 
+bool _replacedExistingDance(OnlineImportResult result) {
+  final id = result.danceId;
+  final session = result.session;
+  return id != null &&
+      session != null &&
+      !session.insertedDanceIds.contains(id);
+}
+
 /// User-facing snackbar message for an online import [result]. Shared by every
 /// source so imports are reported identically. The dance [title] is an
 /// untrusted external value; it flows through a gen-l10n placeholder and is
@@ -33,6 +41,10 @@ String onlineImportMessage(AppLocalizations l10n, OnlineImportResult result) =>
     switch (result.kind) {
       OnlineImportKind.alreadyInCollection =>
         l10n.onlineImportAlreadyInCollection(result.title),
+      // "Same dance": the import was written over an existing dance under its
+      // own id, so nothing new was imported (B16).
+      OnlineImportKind.created when _replacedExistingDance(result) =>
+        l10n.onlineImportUpdated(result.title),
       OnlineImportKind.created => l10n.onlineImportCreated(result.title),
       OnlineImportKind.needsConfirmation => throw StateError(
         'onlineImportMessage reached with needsConfirmation for '
