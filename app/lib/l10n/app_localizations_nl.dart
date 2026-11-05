@@ -5325,6 +5325,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get programsDeletedDanceFallback => '(verwijderde dans)';
 
   @override
+  String get programsBlankedDanceTitle => 'Verwijderde dans';
+
+  @override
   String get programsSlotsLabel => 'Slots';
 
   @override

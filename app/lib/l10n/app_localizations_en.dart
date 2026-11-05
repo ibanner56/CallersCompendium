@@ -5255,6 +5255,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get programsDeletedDanceFallback => '(deleted dance)';
 
   @override
+  String get programsBlankedDanceTitle => 'Deleted dance';
+
+  @override
   String get programsSlotsLabel => 'Slots';
 
   @override

@@ -8093,6 +8093,12 @@ abstract class AppLocalizations {
   /// **'(deleted dance)'**
   String get programsDeletedDanceFallback;
 
+  /// Shown in place of a dance's title in a program slot, in Perform and in program exports when the dance was permanently deleted on another device: its title and content are gone, so there is nothing else to show.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted dance'**
+  String get programsBlankedDanceTitle;
+
   /// Section heading above the list of program slots in the editor.
   ///
   /// In en, this message translates to:

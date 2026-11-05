@@ -5362,6 +5362,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get programsDeletedDanceFallback => '(danse supprimée)';
 
   @override
+  String get programsBlankedDanceTitle => 'Danse supprimée';
+
+  @override
   String get programsSlotsLabel => 'Créneaux';
 
   @override

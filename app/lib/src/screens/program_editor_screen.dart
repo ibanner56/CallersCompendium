@@ -64,6 +64,7 @@ import '../widgets/program_export_menu.dart';
 import '../widgets/program_matrix_table.dart';
 import '../widgets/program_slot_list_editor.dart';
 import '../widgets/program_status_chip.dart';
+import '../utils/slot_dance_title.dart';
 
 /// Full-screen Program Builder (`docs/design/ux.md` §4).
 ///
@@ -2067,9 +2068,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   String? _slotTitleForDance(String danceId) {
     final dance = _danceById(danceId);
     if (dance == null) return null;
-    if (!dance.isDeleted) return dance.title;
-    return '${dance.title} '
-        '${AppLocalizations.of(context).programsDeletedDanceFallback}';
+    return slotDanceTitle(
+      AppLocalizations.of(context),
+      dance,
+      markDeleted: true,
+    );
   }
 
   Future<void> _rememberImportedDance(String danceId) async {
@@ -2104,7 +2107,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     }
   }
 
-  String? _titleForDance(String danceId) => _danceById(danceId)?.title;
+  String? _titleForDance(String danceId) => switch (_danceById(danceId)) {
+    final dance? => slotDanceTitle(AppLocalizations.of(context), dance),
+    null => null,
+  };
 
   /// Resolves a dance's formation for the slot editor's redundant accent +
   /// formation text (issue #270). Null when the dance is unavailable.
