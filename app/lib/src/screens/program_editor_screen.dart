@@ -1747,6 +1747,34 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     provenance: live.provenance,
   );
 
+  /// The working copy's details merged with [stored], a program that changed
+  /// elsewhere since this builder last knew it as [known], through
+  /// [_mergeUndoProgram]: a detail the person has not edited since [known]
+  /// takes the stored value; one they have edited keeps their edit. Null when
+  /// there is no [known] to tell the two apart, or the working copy is not a
+  /// valid program. A cleared title is merged as [known]'s, and reported in
+  /// `titleCleared` for the caller to clear again.
+  ({Program program, bool titleCleared})? _withDetailsFromElsewhere(
+    Program? known,
+    Program stored,
+  ) {
+    if (known == null) return null;
+    final typedTitle = _titleController.text.trim();
+    final local = _draftProgramTitled(
+      typedTitle.isEmpty ? known.title : typedTitle,
+    );
+    if (local == null) return null;
+    return (
+      program: _mergeUndoProgram(
+        atReadStart: known,
+        local: local,
+        live: stored,
+        slots: local.slots,
+      ),
+      titleCleared: typedTitle.isEmpty,
+    );
+  }
+
   List<ProgramSlot> _mergeUndoSlots({
     required List<ProgramSlot> atReadStart,
     required List<ProgramSlot> local,
@@ -2339,12 +2367,19 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 // adjustment alone leaves the builder clean).
                 final dirtyNow =
                     keepDirty || (generation != _editGeneration && _dirty);
+                // With other unsaved edits, each detail this builder has not
+                // edited since [known] takes the stored value, so a later save
+                // does not write it back stale (F11 a); a detail edited here
+                // keeps the edit, even if it also changed elsewhere.
+                final merged = elsewhere && dirtyNow
+                    ? _withDetailsFromElsewhere(known, stored)
+                    : null;
                 setState(() {
                   // With nothing else unsaved, the working copy is the stored
                   // program, details included when they changed elsewhere.
                   // With other unsaved edits, the working slots take what
-                  // changed elsewhere, so a later save keeps it; the unsaved
-                  // details stay as typed. Either way this holds when a later
+                  // changed elsewhere, so a later save keeps it, and the
+                  // details merge as above. Either way this holds when a later
                   // adjustment has overtaken this write: its own write
                   // compares with this one, so it will not see the change.
                   if (generation == _editGeneration) _dirty = keepDirty;
@@ -2354,6 +2389,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                           ? stored
                           : stored.copyWith(slots: withElsewhere(_slots)),
                     );
+                  } else if (merged != null) {
+                    _applyProgramToEditor(
+                      merged.program.copyWith(slots: withElsewhere(_slots)),
+                      payBaseline: known,
+                      venueIdBaseline: (value: stored.venueId),
+                    );
+                    // A cleared title is the person's edit too.
+                    if (merged.titleCleared) _titleController.clear();
                   } else if (elsewhere) {
                     _slots = withElsewhere(_slots);
                   } else if (generation == _editGeneration && !keepDirty) {
@@ -2361,8 +2404,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                   }
                   _existing = stored;
                 });
-                if (elsewhere && !dirtyNow) {
-                  await _refreshLinkedVenueForId(stored.venueId);
+                if (elsewhere && (!dirtyNow || merged != null)) {
+                  await _refreshLinkedVenueForId(_venueId);
                   if (!mounted) return null;
                 }
                 if (elsewhere && dirtyNow) _scheduleAutosave();
