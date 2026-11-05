@@ -44,6 +44,28 @@ TextScaler _effectiveScaler(BuildContext context, double scale) {
 /// shrink-to-fit case is affected.
 double _chromeScale(double scale) => scale < 1.0 ? scale : 1.0;
 
+/// Scrolls [controller] in [direction] (1 down, -1 up) for a Perform key:
+/// most of a viewport by default (so a pedal that sends arrows needs few
+/// presses to reach the end), or [step] pixels. Returns false, scrolling
+/// nothing, when the view is already at that end or does not scroll, so the
+/// caller can move on to the next slot instead (PLAT-10).
+bool scrollPerformBy(
+  ScrollController controller,
+  int direction, {
+  double? step,
+}) {
+  if (!controller.hasClients) return false;
+  final position = controller.position;
+  final target =
+      (position.pixels + direction * (step ?? position.viewportDimension * 0.8))
+          .clamp(position.minScrollExtent, position.maxScrollExtent);
+  // Within a pixel of the end counts as there, so a rounding remainder cannot
+  // swallow a key press.
+  if ((target - position.pixels).abs() < 1) return false;
+  controller.jumpTo(target);
+  return true;
+}
+
 /// Large-print card body for a dance-backed slot: header (title / authors /
 /// formation / level / status) + section-grouped figures + calling notes.
 ///

@@ -931,7 +931,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.text('Couldn’t undo that. Please check the result and try again.'),
+      find.text("Couldn't undo that. Please check the result and try again."),
       findsOneWidget,
     );
     expect(await repos.dances.listAll(), hasLength(2));

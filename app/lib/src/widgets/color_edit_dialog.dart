@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../theme/app_shapes.dart';
 
 /// A lightweight, dependency-free color editor: a live swatch, a hex field, and
 /// R/G/B sliders. Returns the chosen [Color] (fully opaque) via
@@ -89,7 +90,7 @@ class _ColorEditDialogState extends State<ColorEditDialog> {
               height: 56,
               decoration: BoxDecoration(
                 color: _color,
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: AppShapes.borderRadiusMedium,
                 border: Border.all(
                   color: Theme.of(context).colorScheme.outlineVariant,
                 ),

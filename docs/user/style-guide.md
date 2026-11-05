@@ -124,8 +124,7 @@ for labels and headings, not for the guides' running prose.
   `ColourDanceTheme`) are not app strings and are not renamed.
 - **English only.** Danish, Dutch, French, German and Japanese keep their own
   conventions.
-- **Quotes are not covered here.** Straight versus curly quotes is a separate,
-  later decision.
+- **Quotes are straight.** See [App strings: straight quotes](#app-strings-straight-quotes).
 
 `app/test/l10n/us_spelling_sentence_case_test.dart` enforces the spelling and
 case rules on the English ARB.
@@ -229,6 +228,29 @@ so that a reader on any platform feels the docs are for them.
   (this mirrors the app's own accessibility commitments).
 - **Avoid platform-loaded verbs** like "force-quit" or OS-specific menu names
   unless the guide is specifically about that platform.
+
+## App strings: straight quotes
+
+The English strings in `app/lib/l10n/app_en.arb` use **straight** quotes and
+apostrophes: `"` and `'`, never the curly “ ” ‘ ’. The maintainer chose this on
+2026-10-31 (conflict 10, option "Straight everywhere") over the typographic
+alternative: straight marks are the easiest to type and to search for.
+
+- **Values only.** Keys and the `@key` metadata (developer descriptions) are not
+  user-visible and are not checked.
+- **English only.** Danish, Dutch, French, German and Japanese keep their own
+  quote conventions.
+- **Text the user types is exempt from rewriting.** If a curly character is part
+  of syntax the user types, list its key under `literal` in
+  `tools/ci/arb_quote_allowlist.json` with a reason. None exist today.
+- **How it is enforced.** `python3 tools/ci/arb_quote_style.py` rewrites
+  `app_en.arb` to the rule and is safe to re-run (it refuses to run if
+  `use-escaping` is ever enabled in `l10n.yaml`, because `'` would then stop
+  being a plain character). `tools/ci/check_arb_quote_style.py` fails any new or
+  edited string that has a curly mark. The allow-list of earlier strings is
+  empty, so every curly mark fails. The fix for a failure is
+  `python3 tools/ci/arb_quote_style.py --only KEY...` on the reported keys (re-run
+  `flutter gen-l10n` after it), not `--regenerate`.
 
 ## Markdown conventions
 

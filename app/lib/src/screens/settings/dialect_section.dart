@@ -50,7 +50,20 @@ class _DialectLibrarySection extends StatelessWidget {
     final edited = await Navigator.of(context).push<Dialect>(
       MaterialPageRoute(builder: (_) => DialectEditorScreen(initial: dialect)),
     );
-    if (edited != null) await controller.upsert(edited);
+    if (edited == null) return;
+    // By name, not an upsert: the dialect may have been renamed or deleted
+    // while the editor was open, and a save must not add it back.
+    final saved = await controller.updateTerms(edited);
+    if (saved || !context.mounted) return;
+    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+      SnackBar(
+        content: Text(
+          AppLocalizations.of(
+            context,
+          ).settingsDialectEditConflictSnack(dialect.name),
+        ),
+      ),
+    );
   }
 
   Future<void> _createNew(BuildContext context) async {

@@ -420,6 +420,101 @@ void main() {
     });
   });
 
+  // A queued review holds a whole version of its record: a conflict choice
+  // keeps the other device's body, and a dance ambiguity pairs two dances.
+  // Blanking left those rows standing, so the content the user deleted stayed
+  // on the device until a pass happened to drop them, and for good once Device
+  // Sync was off. The blank removes every row about the record instead; rows
+  // about other records are left alone.
+  group('review queue', () {
+    Future<void> queue(
+      SyncRecordKind kind,
+      String recordId,
+      String counterpartId, {
+      String reason = syncConflictChoiceReason,
+    }) => repos.syncLocal.enqueueReview(
+      kind: kind,
+      recordId: recordId,
+      counterpartId: counterpartId,
+      reason: reason,
+      candidateBlob: '{"title":"Secret Title"}',
+      candidateHash: 'hash-$recordId-$counterpartId',
+      localHash: null,
+      queuedAt: created,
+    );
+
+    Future<List<(SyncRecordKind, String, String)>> queued() async => [
+      for (final row in await repos.syncLocal.listReviewQueue())
+        (row.kind, row.recordId, row.counterpartId),
+    ];
+
+    test('a blanked dance takes its queued reviews with it', () async {
+      await createFullDance('d1');
+      await repos.dances.create(sampleDance(id: 'd2'));
+      await publish(SyncRecordKind.dance, 'd1');
+      await queue(SyncRecordKind.dance, 'd1', 'peer-version-hash');
+      await queue(
+        SyncRecordKind.dance,
+        'd2',
+        'd1',
+        reason: syncDanceChoreographyAmbiguityReason,
+      );
+      await queue(SyncRecordKind.dance, 'd2', 'other-version-hash');
+      // Same id, other kind: not this record.
+      await queue(SyncRecordKind.program, 'd1', 'program-version-hash');
+      await repos.dances.softDelete('d1', at: trashedAt);
+
+      expect(
+        await repos.dances.permanentlyDelete('d1', now: now),
+        PermanentDeletion.blanked,
+      );
+
+      expect(await queued(), [
+        (SyncRecordKind.dance, 'd2', 'other-version-hash'),
+        (SyncRecordKind.program, 'd1', 'program-version-hash'),
+      ]);
+    });
+
+    test('a blanked program takes its queued reviews with it', () async {
+      await repos.programs.create(
+        Program(
+          id: 'p1',
+          title: 'Secret Gig',
+          createdAt: created,
+          updatedAt: created,
+        ),
+      );
+      await publish(SyncRecordKind.program, 'p1');
+      await queue(SyncRecordKind.program, 'p1', 'peer-version-hash');
+      await queue(SyncRecordKind.program, 'p2', 'other-version-hash');
+      await repos.programs.softDelete('p1', at: trashedAt);
+
+      expect(
+        await repos.programs.permanentlyDelete('p1', now: now),
+        PermanentDeletion.blanked,
+      );
+
+      expect(await queued(), [
+        (SyncRecordKind.program, 'p2', 'other-version-hash'),
+      ]);
+    });
+
+    test('a retention blank clears them too', () async {
+      await createFullDance('d1');
+      await publish(SyncRecordKind.dance, 'd1');
+      await queue(SyncRecordKind.dance, 'd1', 'peer-version-hash');
+      await repos.dances.softDelete('d1', at: trashedAt);
+
+      await repos.dances.purgeDeleted(
+        now: now,
+        retention: const Duration(days: 1),
+      );
+
+      expect(isPermanentlyDeleted((await danceRow('d1'))!.deletedAt), isTrue);
+      expect(await queued(), isEmpty);
+    });
+  });
+
   group('retention', () {
     test('an expired published dance is blanked, not left whole', () async {
       await createFullDance('d1');

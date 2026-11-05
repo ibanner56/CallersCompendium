@@ -176,7 +176,11 @@ class AppBootstrap extends StatelessWidget {
                   const SizedBox(height: 8),
                   for (final copy in error.copies)
                     Text(
-                      databaseCopyDetails(l10n, copy),
+                      databaseCopyDetails(
+                        l10n,
+                        MaterialLocalizations.of(context),
+                        copy,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                 ],

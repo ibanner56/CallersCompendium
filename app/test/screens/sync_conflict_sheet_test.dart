@@ -1607,8 +1607,8 @@ void main() {
       });
       await _open(tester);
 
-      expect(find.text('This device: Oct 5, 2026'), findsOneWidget);
-      expect(find.text('Another device: Oct 6, 2026'), findsOneWidget);
+      expect(find.text('This device: 10/5/2026'), findsOneWidget);
+      expect(find.text('Another device: 10/6/2026'), findsOneWidget);
     });
 
     test('a calendar date reads the same day west of Greenwich', () {

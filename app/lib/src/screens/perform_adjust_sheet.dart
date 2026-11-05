@@ -5,6 +5,7 @@ import 'package:flutter/semantics.dart';
 import '../search/collection_data.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
+import '../utils/slot_dance_title.dart';
 import '../widgets/collection_picker.dart';
 
 /// The non-destructive in-event "adjust" sheet for Performance mode
@@ -132,7 +133,7 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
       final dance =
           widget.danceOverrides[slot.danceId] ??
           widget.data.dancesById[slot.danceId];
-      if (dance != null) return dance.title;
+      if (dance != null) return slotDanceTitle(l10n, dance);
     }
     final rawText = slot.text?.trim();
     final text =

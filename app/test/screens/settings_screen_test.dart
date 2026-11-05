@@ -51,6 +51,7 @@ import 'package:compendium_app/src/sync/sync_network.dart';
 import 'package:compendium_app/src/sync/sync_scope.dart';
 import 'package:compendium_app/src/update/update_controller.dart';
 import 'package:compendium_app/src/update/update_scope.dart';
+import 'package:compendium_app/src/widgets/notice_card.dart';
 import 'package:compendium_app/src/widgets/section_header.dart';
 
 import '../support/controllable_sync_transport.dart';
@@ -852,6 +853,28 @@ void main() {
       expect(find.byKey(const ValueKey('dialect-tile-Doomed')), findsNothing);
       // Active falls back to the app default.
       expect(ctx.dialectLibrary.active, equals(Dialect.larksRobins));
+      // The delete is acknowledged by name (B10).
+      expect(find.text('"Doomed" deleted.'), findsOneWidget);
+    });
+
+    testWidgets('cancelling the delete keeps the dialect and says nothing', (
+      tester,
+    ) async {
+      final ctx = await _pumpSettings(tester);
+      await ctx.dialectLibrary.upsert(Dialect(name: 'Keeper'));
+      await openDialect(tester);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('dialect-menu-Keeper')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+      await tester.pumpAndSettle();
+
+      expect(ctx.dialectLibrary.customByName('Keeper'), isNotNull);
+      expect(find.byKey(const ValueKey('dialect-tile-Keeper')), findsOneWidget);
+      expect(find.byType(SnackBar), findsNothing);
     });
 
     testWidgets('editing a custom dialect terms round-trips through upsert', (
@@ -879,6 +902,56 @@ void main() {
       expect(saved!.roles['role1']!.singular, equals('Gent'));
       // The name is preserved (edit terms never renames).
       expect(saved.name, equals('Mine'));
+    });
+
+    Future<void> openEditorWithEdit(WidgetTester tester, String name) async {
+      await tester.tap(find.byKey(ValueKey('dialect-menu-$name')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Edit terms'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('dialect-role1-singular')),
+        'Gent',
+      );
+    }
+
+    testWidgets('saving after the dialect was renamed elsewhere adds no second '
+        'dialect and says so', (tester) async {
+      final ctx = await _pumpSettings(tester);
+      await ctx.dialectLibrary.upsert(Dialect(name: 'Mine'));
+      await openDialect(tester);
+      await tester.pumpAndSettle();
+      await openEditorWithEdit(tester, 'Mine');
+
+      await ctx.dialectLibrary.rename('Mine', 'Yours');
+      await tester.tap(find.byKey(const ValueKey('dialect-editor-save')));
+      await tester.pumpAndSettle();
+
+      expect(ctx.dialectLibrary.customDialects.map((d) => d.name), ['Yours']);
+      expect(ctx.dialectLibrary.customByName('Yours')!.roles, isEmpty);
+      expect(
+        find.textContaining('your changes were not saved'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('saving after the dialect was deleted elsewhere does not '
+        'bring it back', (tester) async {
+      final ctx = await _pumpSettings(tester);
+      await ctx.dialectLibrary.upsert(Dialect(name: 'Mine'));
+      await openDialect(tester);
+      await tester.pumpAndSettle();
+      await openEditorWithEdit(tester, 'Mine');
+
+      await ctx.dialectLibrary.delete('Mine');
+      await tester.tap(find.byKey(const ValueKey('dialect-editor-save')));
+      await tester.pumpAndSettle();
+
+      expect(ctx.dialectLibrary.customDialects, isEmpty);
+      expect(
+        find.textContaining('your changes were not saved'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('saving an invalid dialect surfaces issues and stays open', (
@@ -1219,6 +1292,55 @@ void main() {
 
       expect(ctx.customThemes.hasActive, isFalse);
       expect(ctx.themeNotifier.value, AppThemeSelection.monokai);
+    });
+
+    Future<void> chooseDelete(WidgetTester tester, String themeId) async {
+      final menu = find.byKey(ValueKey('custom-menu-$themeId'));
+      await revealInAppearance(tester, menu);
+      await tester.tap(menu);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('deleting a custom theme removes it and says so by name', (
+      tester,
+    ) async {
+      final ctx = await _pumpSettings(tester);
+      final created = await ctx.customThemes.duplicate(
+        name: 'Doomed Theme',
+        brightness: Brightness.dark,
+        roles: CustomTheme.rolesFromScheme(const ColorScheme.dark()),
+      );
+      await tester.pumpAndSettle();
+
+      await chooseDelete(tester, created.id);
+      await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+      await tester.pumpAndSettle();
+
+      expect(ctx.customThemes.byId(created.id), isNull);
+      expect(find.byKey(ValueKey('custom-${created.id}')), findsNothing);
+      expect(find.text('"Doomed Theme" deleted.'), findsOneWidget);
+    });
+
+    testWidgets('cancelling the delete keeps the theme and says nothing', (
+      tester,
+    ) async {
+      final ctx = await _pumpSettings(tester);
+      final created = await ctx.customThemes.duplicate(
+        name: 'Keeper Theme',
+        brightness: Brightness.dark,
+        roles: CustomTheme.rolesFromScheme(const ColorScheme.dark()),
+      );
+      await tester.pumpAndSettle();
+
+      await chooseDelete(tester, created.id);
+      await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+      await tester.pumpAndSettle();
+
+      expect(ctx.customThemes.byId(created.id), isNotNull);
+      expect(find.byKey(ValueKey('custom-${created.id}')), findsOneWidget);
+      expect(find.byType(SnackBar), findsNothing);
     });
   });
 
@@ -1664,15 +1786,12 @@ void main() {
             findsOneWidget,
           );
           expect(find.byKey(const ValueKey('sync-endpoint')), findsNothing);
-          final icon = tester.widget<Icon>(
-            find.descendant(of: tile, matching: find.byType(Icon)),
+          final card = tester.widget<NoticeCard>(
+            find.descendant(of: tile, matching: find.byType(NoticeCard)),
           );
-          final scheme = Theme.of(
-            tester.element(find.byType(SettingsScreen)),
-          ).colorScheme;
           expect(
-            icon.color,
-            scheme.error,
+            card.kind,
+            NoticeKind.error,
             reason: 'a custom endpoint keeps its prominent §8 treatment',
           );
         },
@@ -2414,7 +2533,7 @@ void main() {
                   find.byKey(const ValueKey('sync-notice-divergence-records')),
                 )
                 .data,
-            'Affects: Tag “Contra corners”, Dance not on this device',
+            'Affects: Tag "Contra corners", Dance not on this device',
           );
         });
 
@@ -2881,9 +3000,17 @@ void main() {
           final pumped = await pumpPassing(tester, () => result);
           await syncNow(tester);
 
-          final notice = tester.widget<ListTile>(find.byKey(divergence));
-          expect(notice.onTap, isNull, reason: 'a report is not a prompt');
-          expect(notice.trailing, isNull, reason: 'there is nothing to clear');
+          final notice = find.byKey(divergence);
+          expect(
+            find.descendant(of: notice, matching: find.byType(InkWell)),
+            findsNothing,
+            reason: 'a report is not a prompt',
+          );
+          expect(
+            find.descendant(of: notice, matching: find.byType(IconButton)),
+            findsNothing,
+            reason: 'there is nothing to clear',
+          );
 
           result = const SyncPassResult(SyncPassStatus.completed);
           await syncNow(tester);
@@ -4176,6 +4303,35 @@ void main() {
           expect(
             find.text('There is no copy of this phrase, and no taking it back'),
             findsOneWidget,
+          );
+          // Each disclosure is a boxed notice, like the notices elsewhere, and
+          // the one that warns of something irreversible is a warning.
+          for (final key in [
+            'sync-pairing-sharing-disclosure',
+            'sync-pairing-bearer-disclosure',
+            'sync-pairing-credential-disclosure',
+          ]) {
+            expect(
+              find.descendant(
+                of: find.byKey(ValueKey(key)),
+                matching: find.byType(NoticeCard),
+              ),
+              findsOneWidget,
+              reason: key,
+            );
+          }
+          expect(
+            tester
+                .widget<NoticeCard>(
+                  find.descendant(
+                    of: find.byKey(
+                      const ValueKey('sync-pairing-bearer-disclosure'),
+                    ),
+                    matching: find.byType(NoticeCard),
+                  ),
+                )
+                .kind,
+            NoticeKind.warning,
           );
 
           await tester.tap(

@@ -1104,9 +1104,12 @@ void main() {
         findsOneWidget,
       );
       // Shown in local time, so the expected text is built the same way.
-      final shown = DateFormat.yMMMd(
-        'en',
-      ).add_jm().format(DateTime.utc(2026, 10, 28, 15, 4).toLocal());
+      // The date is the system default's (the test device's region, en_US),
+      // the time the app language's.
+      final moment = DateTime.utc(2026, 10, 28, 15, 4).toLocal();
+      final shown =
+          '${DateFormat.yMd('en_US').format(moment)} '
+          '${DateFormat.jm('en').format(moment)}';
       expect(find.text('Draft saved $shown.'), findsOneWidget);
       expect(find.byKey(const ValueKey('draft-changed-since')), findsOneWidget);
     });
@@ -1145,7 +1148,7 @@ void main() {
       expect(
         find.text(
           'You have an unsaved draft of another new dance, '
-          '“Abandoned”. Would you like to restore it instead of starting a '
+          '"Abandoned". Would you like to restore it instead of starting a '
           'new one?',
         ),
         findsOneWidget,

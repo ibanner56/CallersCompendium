@@ -36,6 +36,7 @@ class DanceEditorForm extends StatelessWidget {
     super.key,
     required this.controller,
     required this.formKey,
+    required this.scrollController,
     required this.moreDetailsController,
     required this.taxonomy,
     required this.moveParamDefaults,
@@ -65,6 +66,10 @@ class DanceEditorForm extends StatelessWidget {
 
   final DanceEditorController controller;
   final GlobalKey<FormState> formKey;
+
+  /// The form's scroll position, so Save can bring the top of the page, where
+  /// the custom-number message is, into view.
+  final ScrollController scrollController;
   final ExpansibleController moreDetailsController;
   final Taxonomy taxonomy;
   final Map<String, Map<String, Object?>> moveParamDefaults;
@@ -261,6 +266,7 @@ class DanceEditorForm extends StatelessWidget {
     return Form(
       key: formKey,
       child: ReadableListView(
+        controller: scrollController,
         keyboardDismissBehavior: kTextEntryKeyboardDismiss,
         // Section headers carry their own padding; each section's content is
         // wrapped in horizontal AppSpacing.md so headers align with the fields

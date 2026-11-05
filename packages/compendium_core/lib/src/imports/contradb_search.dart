@@ -175,8 +175,34 @@ String buildContraDbSearchBody(
     }
     bodyQuery = canonical;
   }
+  return buildContraDbFilterBody(
+    <Object?>[filter, bodyQuery],
+    count: count,
+    offset: offset,
+    sortBy: sortBy,
+  );
+}
+
+/// Builds the JSON request body for an arbitrary ContraDB filter [expression]
+/// (the array query DSL of `lib/filter_dances.rb`), such as one produced by
+/// `translateDanceFilterToContraDb`, or a title/choreographer term combined
+/// with it under `"and"`.
+///
+/// The caller owns the expression's validity: this serializes it with the same
+/// paging and sort fields as [buildContraDbSearchBody]. An empty [expression]
+/// throws [ArgumentError], because ContraDB would otherwise raise a server
+/// error for it.
+String buildContraDbFilterBody(
+  List<Object?> expression, {
+  int count = contraDbSearchCount,
+  int offset = 0,
+  String sortBy = 'titleA',
+}) {
+  if (expression.isEmpty) {
+    throw ArgumentError.value(expression, 'expression', 'must not be empty');
+  }
   return jsonEncode(<String, Object?>{
-    'filter': <Object?>[filter, bodyQuery],
+    'filter': expression,
     'count': count,
     'offset': offset,
     'sort_by': sortBy,

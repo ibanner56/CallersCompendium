@@ -194,6 +194,28 @@ void main() {
     expect(mapping.figures.single.move, 'swing');
   });
 
+  testWidgets('Save applies a move named exactly in a Move box still being '
+      'typed in (AUTH-1)', (tester) async {
+    final read = await _pumpEditor(
+      tester,
+      initial: ShorthandMapping(token: 'bns', figures: [_swing()]),
+    );
+    await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('figure-0-move-input')));
+    await tester.enterText(
+      find.byKey(const ValueKey('figure-0-move-input')),
+      'star',
+    );
+    await tester.pumpAndSettle();
+
+    // Tapping Save does not always take focus from the box, so Save settles it.
+    await tester.tap(find.byKey(const ValueKey('shorthand-editor-save')));
+    await tester.pumpAndSettle();
+
+    expect(read()!.figures.single.move, 'star');
+  });
+
   testWidgets('offers meanwhile and modifier targets', (tester) async {
     await _pumpEditor(
       tester,

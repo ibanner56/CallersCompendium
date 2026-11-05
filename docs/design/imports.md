@@ -40,7 +40,7 @@ fetch → RawRecord → parse → StructuredDraft → canonicalize → dedupe �
 | **parse** | Adapter maps fields and parses figures into structured `Figure[]`. **Parsing never fails a dance**: any unparseable figure line becomes a `custom` figure carrying its beats and text. A dance can arrive 100% custom and still be searchable. |
 | **canonicalize** | Free text through the dialect `canonicalize()` chokepoint; terms/synonyms (incl. legacy "gypsy") mapped to canonical vocabulary; recognized formation strings map to the enum, with only source-specific detail retained separately. |
 | **dedupe** | Match by (source, externalId) first — re-import replaces only the matched dance's choreography (figures, formation, progression) and updates its provenance; see *Re-import replaces only the choreography*. Otherwise fuzzy (NFC-composed, normalized title + author) → user chooses link/duplicate/skip. Each title is keyed as written and with any trailing article fronted (`dedupeTitleKeys`, #1976), and two titles match exactly when their keys overlap: a library dance stored as "Bastringue, La" matches an incoming "La Bastringue", while "Thanks, Les" still matches "Thanks Les". In the fuzzy tier, only exactness uses the fronted key: an exact entry scores as the same title, and every other entry is scored on the titles as written, so a near-miss is no closer for its article. `normalizeTitle` itself, the sync key, is unchanged. A title that normalizes to nothing (non-Latin or punctuation-only — `normalizeTitle` keeps `[a-z0-9]`) is never scored against another and never auto-linked: it carries no identity signal, and `'' == ''` once scored every such dance 1.0 against every other. The index is a pre-batch snapshot, so `plan` also tracks `(source, externalId)` within the batch: a repeat is dropped and the kept record carries a `duplicate_external_id_in_batch` warning, so one batch can never commit two dances under one provenance key. Free-text imports feed their raw author names (see *Author resolution*) into this signal. An exact-normalized-title match with an overlapping tokenized author set is always a **confident match** (`DedupeCandidate.confident` / `DedupeVerdict.hasConfidentMatch`, issue #685) — it is guaranteed to surface as `ambiguous` regardless of how the score threshold is tuned, so inconsistent author-string formatting across sources can never silently resolve to `isNew`. Non-interactive callers never silently duplicate a confident match whose figures are identical: the title-list program import skips it, and the ContraDB program import links its slot to the existing dance (INTAKE-3; see *Program-import path*). Below the fuzzy tier, `DedupeVerdict.possibleMatchIds` lists dances that are **possibly** the same under a differently written title (see *Possible matches under another title*); it never changes the verdict. |
-| **review** | Batch imports land in a review queue: per-dance parse quality score (% structured vs custom figures), side-by-side raw vs parsed. Each row carries its own choice (new / re-import / link / duplicate / skip); a re-import match or possible match defaults to **skip** (#446), and bulk controls set every matched dance to Re-import or Skip and every possible match to Skip in one tap. A row whose only matches are *possible matches under another title* (#1907) is not a possible match in this sense: it keeps the **new** default and the bulk controls leave it alone. Two warnings count the existing dances a commit would change: one the dances links replace, one the dances re-imports update (only their choreography, and how many of them also take the title and credit). A target named by both counts as replaced. Nothing silently mutates existing user data. |
+| **review** | Batch imports land in a review queue: per-dance parse quality score (% structured vs unrecognized figures), side-by-side raw vs parsed. Each row carries its own choice (new / re-import / link / duplicate / skip); a re-import match or possible match defaults to **skip** (#446), and bulk controls set every matched dance to Re-import or Skip and every possible match to Skip in one tap. A row whose only matches are *possible matches under another title* (#1907) is not a possible match in this sense: it keeps the **new** default and the bulk controls leave it alone. Two warnings count the existing dances a commit would change: one the dances links replace, one the dances re-imports update (only their choreography, and how many of them also take the title and credit). A target named by both counts as replaced. Nothing silently mutates existing user data. |
 | **commit** | Per-record: each dance commits in its own transaction and a failing record is rolled back on a best-effort basis (author writes and variation link-backs are separate operations, and a cleanup that itself fails leaves rows behind that Undo can remove); the batch as a whole is not one transaction. The commit reports `(done, total)` per record; the review screen shows that count for the generic, `.USR` and published-collection commits, while the shared-bundle commit and per-row Edit show an indeterminate spinner; provenance row written; author names resolved to `Choreographer` associations (see *Author resolution*); import session log kept for undo, which reverts the records that did commit. A draft's links are in the source's id space (a shared file carries the sender's link ids and dance ids), so each gets a fresh id. A related-dance link names its target by the target's external id (the generic JSON and published-collection adapters rewrite the file's dance id to the target's record key when the file carries the target), and is added only after the whole batch is written: to the dance the batch wrote under that key, else a live dance already received from the same source under it, else a live dance whose id it is (a file this library wrote). One that resolves to neither is left out with an `archive_related_dance_unresolved` note on `ImportSession.issues`, which the import result lists with the rest of the commit's notes. |
 
 Adapters implement a small interface (`discover() / fetch() / parse()`) in the
@@ -371,9 +371,13 @@ The non-interactive program-import resolver
 `resolveConfidentOnlineDanceId`) already runs the previewed online dance
 through the full local `DedupeIndex` via `OnlineSearchService.loadPreview`
 (no second index build needed). Before calling `OnlineSearchService.import`,
-it now checks `preview.plan.verdict.hasConfidentMatch` and returns `null`
-(leaving the program line on the existing note-slot fallback) instead of
-importing. This is intentionally **not** the same as the interactive
+it now checks `preview.plan.verdict.hasConfidentMatch`. A confident match whose
+figures are canonically identical writes nothing: the plaintext-program resolver
+leaves the line on the note-slot fallback, while `resolveConfidentOnlineDanceId`
+returns the existing dance's id so the ContraDB program import's Caller's Box
+fallback links its slot to it (INTAKE-3). One whose figures cannot be read, or
+whose target cannot be loaded, returns `null` and also takes the note-slot
+fallback, instead of importing. This is intentionally **not** the same as the interactive
 `CallersBoxOnline`/`ContraDbOnline.import` behavior, which asks the user about
 a confident match (#797, #811; since INTAKE-5 also when the existing dance was
 entered by hand) and creates a second copy unasked only for a same-source
@@ -409,7 +413,7 @@ is.
   matching against taxonomy `searchKeywords`, parameter extraction for the
   high-frequency moves (swing, balance, allemande, circle, star, chain,
   long lines, right left through, promenade, petronella, do si do, hey…).
-  Long-tail/complex notation (per-pass hey lists) falls to custom figures —
+  Long-tail/complex notation (per-pass hey lists) falls to unrecognized figures —
   refined iteratively; parser coverage is measured against the full corpus and
   reported (target: ≥80% of figure lines structured in first release,
   improving over time). A top-level `||` (simultaneity — "Women allemande
@@ -1483,7 +1487,7 @@ without it there is nothing to build — and **false** of
 `_squareThroughPassList` or `_sideRunAnnotation`, whose runs only *add* params.
 `Square through 2 (Ph1R;Ph2L)` still imports as a `square_through`; only the
 unmapped detail is dropped. Prefer naming the outcome ("falls through to the
-shared reading", "becomes a custom figure") over the bare verb.
+shared reading", "becomes an unrecognized figure") over the bare verb.
 
 Which is which, derived from the code rather than from memory:
 
@@ -1582,7 +1586,7 @@ has to be judged in its own context.
   `'$label: $scrubbed'` prefix would duplicate structured data that can drift
   out of sync. Both the structured and custom paths therefore store clean text
   only. (This intentionally drops the previous CallersBox/ContraDB phrase-label
-  prefix on custom figures.)
+  prefix on unrecognized figures.)
 - **Non-quarter amounts round to the nearest quarter** (maintainer ruling).
   Rotation (`travel`) and places counts are quarter-granular, so a stated
   `2/3`, `7/8` or `1 & 1/8` used to decline the line to custom. The shared
@@ -2221,7 +2225,7 @@ dominant forming wording (~1,000 clauses) — now structures as `form_short_wave
 sizes still degrade to custom.
 
 **Measured effect** (real adapter over the full mirror, 20,516 parseable dances):
-custom figures 24,775 → 22,272 (−2,503), structured share 76.24% → **78.69%**;
+unrecognized figures 24,775 → 22,272 (−2,503), structured share 76.24% → **78.69%**;
 every forward-merge move's count is unchanged or higher (none lost a balance);
 and **per-dance beat totals are byte-identical for all 20,515 dances**, so
 `deriveSections`' cumulative section placement cannot drift.

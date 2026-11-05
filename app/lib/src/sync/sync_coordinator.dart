@@ -394,7 +394,8 @@ abstract interface class SyncCoordinatorStore
 
   /// Queues this pass's conflict choices and drops those it no longer raises
   /// (sync-spec §6.3, §6.6). [unevaluated] names addresses the merge skipped,
-  /// whose queued choices must survive the pass untouched.
+  /// whose queued choices must survive the pass untouched. Also drops the
+  /// §6.6 step-1 rows whose collision has ended, judged from local state alone.
   Future<int> refreshConflictReviews(
     Iterable<SyncMergeDecision> reviews, {
     Set<SyncRecordAddress> unevaluated,

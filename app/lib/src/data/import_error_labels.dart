@@ -84,6 +84,8 @@ String importErrorMessage(AppLocalizations l10n, UrlFetchException error) {
       l10n.importErrorContraDbEmptyTitle,
     UrlFetchFailureReason.contraDbUnsupportedFigure =>
       l10n.importErrorContraDbUnsupportedFigure,
+    UrlFetchFailureReason.contraDbUnsupportedAdvanced =>
+      l10n.importErrorContraDbUnsupportedAdvanced,
     UrlFetchFailureReason.contraDbEmptyDanceInput =>
       l10n.importErrorContraDbEmptyDanceInput,
     UrlFetchFailureReason.contraDbInvalidDanceUrl =>

@@ -38,6 +38,7 @@ import '../widgets/program_status_chip.dart';
 import 'dance_detail_screen.dart';
 import 'dance_reimport_flow.dart';
 import '../widgets/command_palette.dart';
+import '../utils/slot_dance_title.dart';
 import 'perform_program_screen.dart';
 import 'program_editor_screen.dart';
 
@@ -214,6 +215,12 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   Program? _program;
   Map<String, String> _danceTitles = const {};
   Map<String, Dance> _dances = const {};
+
+  /// Author names in credit order, by dance id, for a Recently deleted dance
+  /// whose authors include one Recently deleted holds, which `CollectionData`
+  /// and [_dances] leave out. Only for the text and PDF exports, as Perform
+  /// shows them (GIG-11).
+  Map<String, List<String>> _authorNamesOverride = const {};
   Map<String, Venue> _venuesById = const {};
   CollectionData? _collectionData;
   List<DifficultyLevel> _difficultyLevels = const [];
@@ -506,6 +513,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           _program = null;
           _danceTitles = const {};
           _dances = const {};
+          _authorNamesOverride = const {};
           _venuesById = const {};
           _collectionData = null;
           _loading = false;
@@ -529,13 +537,54 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       // still reaches the exports (GIG-11): the same lookup as
       // `resolveDeletedSlotDances`, which Perform uses.
       final loaded = await Future.wait(
-        ids.map((id) => _repos.dances.getById(id, includeDeleted: true)),
+        ids.map(
+          (id) => _repos.dances.getById(
+            id,
+            includeDeleted: true,
+            includeDeletedAuthors: true,
+          ),
+        ),
       );
+      // A dance Recently deleted holds can have an author it holds too, which
+      // the collection does not list. As in Perform (`resolveDeletedSlotDances`)
+      // the author is credited by name in the text and PDF exports, in credit
+      // order; but the dance the share bundle embeds keeps only the authors it
+      // can embed. A dance the collection lists is credited from the
+      // collection, as before.
+      final authorsToName = <String, List<String>>{};
       for (final dance in loaded) {
         if (dance != null) {
           titles[dance.id] = dance.title;
-          dances[dance.id] = dance;
+          final listed = data.dancesById.containsKey(dance.id);
+          final live = [
+            for (final id in dance.authorIds)
+              if (data.choreographersById.containsKey(id)) id,
+          ];
+          if (!listed && live.length != dance.authorIds.length) {
+            authorsToName[dance.id] = dance.authorIds;
+          }
+          dances[dance.id] = live.length == dance.authorIds.length
+              ? dance
+              : dance.copyWith(authorIds: live);
         }
+      }
+      final authorNames = <String, List<String>>{};
+      if (authorsToName.isNotEmpty) {
+        final names = {
+          for (final c in await _repos.choreographers.listAll(
+            includeDeleted: true,
+          ))
+            c.id: c.name,
+        };
+        authorNames.addAll({
+          for (final entry in authorsToName.entries)
+            entry.key: [
+              for (final id in entry.value)
+                if ((data.choreographersById[id]?.name ?? names[id])
+                    case final String name when name.isNotEmpty)
+                  name,
+            ],
+        });
       }
       // Resolve only the linked venue (if any). The summary shows a single
       // program, so loading the whole catalogue just to look up one id is
@@ -552,6 +601,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         _program = program;
         _danceTitles = titles;
         _dances = dances;
+        _authorNamesOverride = authorNames;
         _venuesById = venuesById;
         _collectionData = data;
         _difficultyLevels = difficultyLevels;
@@ -855,10 +905,14 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
             if (!widget.prominentPerform) _buildPerformAction(program),
             ProgramExportMenu(
               program: program,
-              titleFor: (id) => _danceTitles[id],
+              titleFor: (id) => switch (_dances[id]) {
+                final dance? => slotDanceTitle(l10n, dance),
+                null => _danceTitles[id],
+              },
               venuesById: _venuesById,
               danceFor: (id) => _dances[id],
               choreographerFor: (id) => _collectionData?.choreographersById[id],
+              authorNamesOverrideFor: (id) => _authorNamesOverride[id],
               tagFor: (id) => _collectionData?.tagFor(id),
               publishedSourceFor: (id) =>
                   _collectionData?.publishedSourceFor(id),
@@ -1444,9 +1498,9 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       // A dance in Recently deleted is marked as Perform marks it, and its row
       // opens nothing: the dance details read live dances only.
       final deleted = dance?.isDeleted ?? false;
-      final title = storedTitle == null || !deleted
+      final title = dance == null
           ? storedTitle
-          : '$storedTitle ${l10n.programsDeletedDanceFallback}';
+          : slotDanceTitle(l10n, dance, markDeleted: true);
       final performed = slot.performedAt != null;
       final showToggle = title != null && ShowPerformedTogglesScope.of(context);
       if (title == null) {

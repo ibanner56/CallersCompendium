@@ -12,13 +12,23 @@ import 'import_io.dart'
 /// same source-neutral seam ([OnlineSearchService]); this enum is the single
 /// place that carries their per-source differences — the selector [label] and
 /// the [supportsByPhrase] capability that gates the by-phrase panel (ContraDB
-/// has no by-phrase support). The user-facing per-source attribution line is
+/// has no by-phrase support) and the [supportsAdvanced] capability that gates
+/// the Advanced panel (The Caller's Box has no query language to carry it).
+/// The user-facing per-source attribution line is
 /// localized separately by `onlineSourceAttribution` in `online_search_labels`.
 enum OnlineSource {
-  callersBox(label: "Caller's Box", supportsByPhrase: true),
-  contraDb(label: 'ContraDB', supportsByPhrase: false);
+  callersBox(
+    label: "Caller's Box",
+    supportsByPhrase: true,
+    supportsAdvanced: false,
+  ),
+  contraDb(label: 'ContraDB', supportsByPhrase: false, supportsAdvanced: true);
 
-  const OnlineSource({required this.label, required this.supportsByPhrase});
+  const OnlineSource({
+    required this.label,
+    required this.supportsByPhrase,
+    required this.supportsAdvanced,
+  });
 
   /// Short name for the source selector (e.g. the SegmentedButton segment).
   final String label;
@@ -27,6 +37,12 @@ enum OnlineSource {
   /// maps by-phrase onto its own "search by phrase" fields; ContraDB has no
   /// by-phrase search API, so its by-phrase panel is hidden.
   final bool supportsByPhrase;
+
+  /// Whether this source accepts the Advanced builder's boolean figure query.
+  /// ContraDB's search API takes a filter expression, so the builder is
+  /// translated onto it (`translateDanceFilterToContraDb`); The Caller's Box
+  /// has only fixed form fields, so its Advanced panel stays greyed out.
+  final bool supportsAdvanced;
 }
 
 /// A source-neutral online search result row.
@@ -97,12 +113,17 @@ class OnlineSearchResultRow {
 /// Caller's Box may also run with [phrases] alone. [phrases] carries by-phrase
 /// figure criteria for sources that support them ([OnlineSource.supportsByPhrase]);
 /// sources without by-phrase support ignore it.
+///
+/// [advanced] carries the Advanced builder's filter for sources that support it
+/// ([OnlineSource.supportsAdvanced]); it combines with a text criterion (both
+/// must hold) and may run alone. Sources without Advanced support ignore it.
 class OnlineSearchQuery {
   const OnlineSearchQuery({
     this.title = '',
     this.author = '',
     this.figure = '',
     this.phrases,
+    this.advanced,
     this.requireFigures = true,
   });
 
@@ -113,20 +134,24 @@ class OnlineSearchQuery {
     String text,
     FullTextScope scope, {
     CallersBoxPhraseQuery? phrases,
+    DanceFilter? advanced,
   }) {
     final trimmed = text.trim();
     return switch (scope) {
       FullTextScope.omni || FullTextScope.title => OnlineSearchQuery(
         title: trimmed,
         phrases: phrases,
+        advanced: advanced,
       ),
       FullTextScope.author => OnlineSearchQuery(
         author: trimmed,
         phrases: phrases,
+        advanced: advanced,
       ),
       FullTextScope.figure => OnlineSearchQuery(
         figure: trimmed,
         phrases: phrases,
+        advanced: advanced,
       ),
     };
   }
@@ -134,12 +159,20 @@ class OnlineSearchQuery {
   /// Whether the query asks for nothing: no text in any field and no phrases.
   /// A source is never searched for an empty query.
   bool get isEmpty =>
-      title.isEmpty && author.isEmpty && figure.isEmpty && phrases == null;
+      title.isEmpty &&
+      author.isEmpty &&
+      figure.isEmpty &&
+      phrases == null &&
+      advanced == null;
 
   final String title;
   final String author;
   final String figure;
   final CallersBoxPhraseQuery? phrases;
+
+  /// The Advanced builder's filter (`BuilderGroup.toFilter`), or `null` when
+  /// it has no complete condition.
+  final DanceFilter? advanced;
 
   /// Whether results are limited to dances whose figures the source will
   /// actually serve (issue #845).

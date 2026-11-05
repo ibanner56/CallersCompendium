@@ -267,6 +267,50 @@ void main() {
     },
   );
 
+  test('Caller\'s Box fallback onto an IDENTICAL local dance links it and '
+      'imports nothing (INTAKE-3 (a))', () async {
+    final repos = openTestRepositories();
+    final shared = [customFigure('neighbors balance and swing')];
+    await repos.dances.create(
+      Dance(
+        id: 'local-existing',
+        title: 'Hidden Gem',
+        form: DanceForm.contra,
+        formation: const Formation(FormationShape.dupleImproper),
+        status: DanceStatus.active,
+        figures: shared,
+        hook: '',
+        createdAt: DateTime.utc(2026, 1, 1),
+        updatedAt: DateTime.utc(2026, 1, 1),
+      ),
+    );
+    final contraDb = _FakeService(OnlineSource.contraDb, failLoadIds: {'9'});
+    final callersBox = _FakeService(
+      OnlineSource.callersBox,
+      rowsByTitle: {
+        'hidden gem': [_tcbRow('Hidden Gem', id: '500')],
+      },
+      confidentTitles: {'hidden gem'},
+      planFigures: shared,
+    );
+
+    final resolved = await resolveContraDbProgram(
+      _program([
+        ContraDbProgramActivity.dance(danceId: '9', title: 'Hidden Gem'),
+      ]),
+      contraDb: contraDb,
+      callersBox: callersBox,
+      repos: repos,
+    );
+
+    expect(resolved.single.danceId, 'local-existing');
+    expect(
+      resolved.single.resolution,
+      ContraDbActivityResolution.linkedCallersBox,
+    );
+    expect(callersBox.importedTitles, isEmpty);
+  });
+
   test('Caller\'s Box fallback confident local duplicate (issue #685) is never '
       'imported — falls to the verbatim note floor and service.import is '
       'never called on that fallback path', () async {

@@ -1119,7 +1119,7 @@ void main() {
   });
 
   group('sequence: Then', () {
-    test('positive: before occurs earlier than after', () async {
+    test('positive: after immediately follows before', () async {
       await dances.create(_dance(id: 'a', title: 'A'));
       // petronella (idx0) then swing (idx1)
       expect(
@@ -1143,15 +1143,158 @@ void main() {
 
     test('Then with section constraint on the before clause', () async {
       await dances.create(_dance(id: 'a', title: 'A'));
-      // petronella in A1, then balance later.
+      // swing is in A2 and balance (B1) follows it directly.
       expect(
         await dances.search(
-          ThenFilter(
-            FigureLeaf('petronella', section: 'A1'),
-            FigureLeaf('balance'),
-          ),
+          ThenFilter(FigureLeaf('swing', section: 'A2'), FigureLeaf('balance')),
         ),
         ['a'],
+      );
+      // The section is a constraint, not a wildcard.
+      expect(
+        await dances.search(
+          ThenFilter(FigureLeaf('swing', section: 'A1'), FigureLeaf('balance')),
+        ),
+        isEmpty,
+      );
+    });
+
+    test('a figure in between stops a match: later is not immediately '
+        'after', () async {
+      await dances.create(_dance(id: 'a', title: 'A'));
+      // petronella, swing, balance, long_lines: swing sits between petronella
+      // and balance, though balance does come later in the dance.
+      expect(
+        await dances.search(
+          ThenFilter(FigureLeaf('petronella'), FigureLeaf('balance')),
+        ),
+        isEmpty,
+      );
+      expect(
+        await dances.search(
+          ThenFilter(FigureLeaf('petronella'), FigureLeaf('long_lines')),
+        ),
+        isEmpty,
+      );
+    });
+
+    test('wraps: the first figure follows the last, as in ContraDB', () async {
+      await dances.create(_dance(id: 'a', title: 'A'));
+      // long_lines is last and petronella first, so they abut across the end.
+      expect(
+        await dances.search(
+          ThenFilter(FigureLeaf('long_lines'), FigureLeaf('petronella')),
+        ),
+        ['a'],
+      );
+      // The wrap joins only the last figure to the first: balance is not last.
+      expect(
+        await dances.search(
+          ThenFilter(FigureLeaf('balance'), FigureLeaf('petronella')),
+        ),
+        isEmpty,
+      );
+    });
+
+    test('a two-figure dance matches in both orders (one is a wrap)', () async {
+      await dances.create(
+        _dance(
+          id: 'two',
+          title: 'Two',
+          figures: [
+            Figure(move: 'petronella', params: const {'beats': 32}),
+            Figure(move: 'swing', params: const {'who': 'partners'}),
+          ],
+        ),
+      );
+      for (final filter in [
+        ThenFilter(FigureLeaf('petronella'), FigureLeaf('swing')),
+        ThenFilter(FigureLeaf('swing'), FigureLeaf('petronella')),
+      ]) {
+        expect(await dances.search(filter), ['two']);
+      }
+    });
+
+    test('a dance that opens and closes with the same move matches it then '
+        'itself, through the wrap', () async {
+      await dances.create(
+        _dance(
+          id: 'loop',
+          title: 'Loop',
+          figures: [
+            Figure(move: 'petronella', params: const {'beats': 16}),
+            Figure(move: 'swing', params: const {'who': 'partners'}),
+            Figure(move: 'petronella', params: const {'beats': 16}),
+          ],
+        ),
+      );
+      // petronella comes again later, but neither next to itself nor across
+      // the wrap (the dance ends on balance): "later" is not "immediately".
+      await dances.create(
+        _dance(
+          id: 'spread',
+          title: 'Spread',
+          figures: [
+            Figure(move: 'petronella', params: const {'beats': 16}),
+            Figure(move: 'swing', params: const {'who': 'partners'}),
+            Figure(move: 'petronella', params: const {'beats': 16}),
+            Figure(move: 'balance', params: const {'beats': 16}),
+          ],
+        ),
+      );
+      // The default dance has petronella once, first: no second one to abut.
+      await dances.create(_dance(id: 'once', title: 'Once'));
+      expect(
+        await dances.search(
+          ThenFilter(FigureLeaf('petronella'), FigureLeaf('petronella')),
+        ),
+        ['loop'],
+      );
+    });
+
+    test('a figure before a container abuts each of its concurrent sides, and '
+        'the sides do not abut each other', () async {
+      // swing, then petronella while balance, then long_lines.
+      await dances.create(
+        _dance(
+          id: 'mw',
+          title: 'MW',
+          figures: [
+            Figure(move: 'swing', params: const {'who': 'partners'}),
+            Figure.meanwhile(
+              figures: [
+                Figure(move: 'petronella'),
+                Figure(move: 'balance'),
+              ],
+              beats: 8,
+            ),
+            Figure(move: 'long_lines', params: const {'beats': 16}),
+          ],
+        ),
+      );
+      Future<List<String>> then(String a, String b) =>
+          dances.search(ThenFilter(FigureLeaf(a), FigureLeaf(b)));
+
+      expect(await then('swing', 'petronella'), ['mw']);
+      expect(await then('swing', 'balance'), ['mw']);
+      expect(await then('petronella', 'long_lines'), ['mw']);
+      expect(await then('balance', 'long_lines'), ['mw']);
+      // The wrap: long_lines is last, swing first.
+      expect(await then('long_lines', 'swing'), ['mw']);
+      // Concurrent sides, in both directions.
+      expect(await then('petronella', 'balance'), isEmpty);
+      expect(await then('balance', 'petronella'), isEmpty);
+      // A container sits between swing and long_lines.
+      expect(await then('swing', 'long_lines'), isEmpty);
+    });
+
+    test('a dance with no figures never matches', () async {
+      await dances.create(_dance(id: 'none', title: 'None', figures: []));
+      expect(
+        await dances.search(
+          ThenFilter(FigureLeaf('swing'), FigureLeaf('swing')),
+        ),
+        isEmpty,
       );
     });
   });

@@ -20,6 +20,7 @@ import 'package:compendium_app/src/data/require_event_date_for_history_scope.dar
 import 'package:compendium_app/src/data/sort_ignore_articles_scope.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/dance_list_screen.dart';
+import 'package:compendium_app/src/screens/published_collection_catalog_screen.dart';
 import 'package:compendium_app/src/search/collection_query.dart';
 import 'package:compendium_app/src/widgets/brand_mark.dart';
 import 'package:compendium_app/src/widgets/dance_list_tile.dart';
@@ -270,6 +271,36 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('collection-empty-import')));
     expect(imports, 1);
+  });
+
+  testWidgets('the import card offers the published collections catalog', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(id: kBabyRoseSeedDanceId, title: 'The Baby Rose'),
+    );
+    await _pumpScreen(tester, repos);
+    await tester.pumpAndSettle();
+
+    final browse = find.byKey(const ValueKey('collection-import-card-browse'));
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('collection-import-card')),
+        matching: find.text('Browse published collections'),
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(browse);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.byType(PublishedCollectionCatalogScreen), findsOneWidget);
+
+    // The real catalog service is on its own timeout while it tries the
+    // network; let it lapse before the test ends.
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(minutes: 2));
   });
 
   testWidgets('the import card goes once another dance is present', (
@@ -1916,8 +1947,9 @@ void main() {
     expect(find.text('Advanced (on)'), findsOneWidget);
     expect(_titles(tester), ['Has Petronella']);
 
-    // Online results are not narrowed by the query, so Advanced is greyed out
-    // while online, but the query is kept for local search.
+    // The Caller's Box (the default online source) has no way to carry the
+    // query, so Advanced is greyed out while online, but the query is kept for
+    // local search.
     await _tapVisible(
       tester,
       find.byKey(const ValueKey('online-search-enable')),
@@ -1930,6 +1962,76 @@ void main() {
     expect(find.text('Advanced (on)'), findsOneWidget);
     expect(_titles(tester), ['Has Petronella']);
   });
+
+  testWidgets(
+    'advanced builder: online ContraDB search sends the figure query, alone '
+    'and combined with the title text',
+    (tester) async {
+      final repos = openTestRepositories();
+      final requests = <ContraDbSearchRequest>[];
+      final contraDb = ContraDbOnline(
+        searchFetcher: (request) async {
+          requests.add(request);
+          return '{"numberMatching":0,"dances":[]}';
+        },
+      );
+      await repos.dances.create(
+        _dance(
+          id: 'a',
+          title: 'Has Petronella',
+          figures: [
+            Figure(move: 'petronella', params: const {'beats': 8}),
+          ],
+        ),
+      );
+
+      await _pumpScreen(tester, repos, contraDbOnline: contraDb);
+      await tester.pumpAndSettle();
+
+      await _tapVisible(
+        tester,
+        find.byKey(const ValueKey('online-search-enable')),
+      );
+      await tester.tap(find.text('ContraDB'));
+      await tester.pumpAndSettle();
+      // ContraDB takes the query, so the tool is open to use while online.
+      expect(
+        tester
+            .widget<ActionChip>(find.byKey(const ValueKey('advanced-panel')))
+            .onPressed,
+        isNotNull,
+      );
+
+      await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
+      await _tapVisible(tester, find.text('Add'));
+      await _tapVisible(tester, find.text('Has figure'));
+      final moveField = find.byType(TextField).last;
+      await tester.ensureVisible(moveField);
+      await tester.enterText(moveField, 'petro');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('petronella').last);
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      // The figure condition alone is a complete search; no text is needed.
+      expect(requests, hasLength(1));
+      expect(requests.single.expression, ['figure', 'petronella']);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('collection-search-field')),
+        'rendezvous',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      // Text and the figure query must both hold.
+      expect(requests.last.expression, [
+        'and',
+        ['title', 'rendezvous'],
+        ['figure', 'petronella'],
+      ]);
+    },
+  );
 
   testWidgets('advanced builder: add and remove a condition group', (
     tester,
@@ -2008,7 +2110,7 @@ void main() {
 
     expect(find.text('then'), findsOneWidget);
     expect(find.text('First'), findsOneWidget);
-    expect(find.text('Later'), findsOneWidget);
+    expect(find.text('Next'), findsOneWidget);
   });
 
   testWidgets('by phrase: match figure in A1 returns only dances with that '

@@ -17,6 +17,7 @@ ValidationIssue _validationIssue(String code) => ValidationIssue(
   message: 'diagnostic english for $code',
   data: switch (code) {
     'phrase_overflow' || 'phrase_underflow' => {'actual': 68, 'expected': 64},
+    'sequence_exceeds_phrase' => {'position': 2, 'actual': 40, 'limit': 32},
     'orphaned_alt' => {'position': 2, 'text': 'Petronella'},
     incompleteFigureValidationCode => {'position': 3},
     'empty_substitution' => {'source': 'gents'},
@@ -41,7 +42,10 @@ void main() {
       for (final code in mappedValidationCodes) {
         final msg = validationIssueMessage(l10n, _validationIssue(code));
         expect(msg, isNotEmpty, reason: code);
-        expect(msg, isNot(equals(l10n.validationGeneric)), reason: code);
+        // startsWith, not equals: in a debug build (which tests are) the
+        // fallback is "<generic> [code: message]", so `equals` could never
+        // match and this assertion could not fail.
+        expect(msg, isNot(startsWith(l10n.validationGeneric)), reason: code);
       }
     });
 
@@ -184,7 +188,10 @@ void main() {
           ),
         );
         expect(msg, isNotEmpty, reason: code);
-        expect(msg, isNot(equals(l10n.importIssueGeneric)), reason: code);
+        // startsWith, not equals: in a debug build (which tests are) the
+        // fallback is "<generic> [code: message]", so `equals` could never
+        // match and this assertion could not fail.
+        expect(msg, isNot(startsWith(l10n.importIssueGeneric)), reason: code);
       }
     });
 

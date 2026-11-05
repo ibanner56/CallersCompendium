@@ -790,7 +790,7 @@ class _SectionBadge extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
         decoration: BoxDecoration(
           color: theme.colorScheme.tertiaryContainer,
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: AppShapes.borderRadiusSmall,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,

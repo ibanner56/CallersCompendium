@@ -456,8 +456,8 @@ void main() {
       );
       await tester.pumpAndSettle();
       const expected =
-          '“fats” isn’t one of the values style can have. Did you mean '
-          '“fast”? style can be: fast.';
+          '"fats" isn\'t one of the values style can have. Did you mean '
+          '"fast"? style can be: fast.';
       expect(
         tester
             .widget<Text>(
@@ -616,7 +616,7 @@ void main() {
     await save(tester);
     expect(
       find.text(
-        '“Pull By” is already the name of a figure or shorthand. Choose '
+        '"Pull By" is already the name of a figure or shorthand. Choose '
         'another name.',
       ),
       findsOneWidget,
@@ -763,6 +763,30 @@ void main() {
     ))!;
     final definition = decodeCompoundDefinition(saved.payload, contraTaxonomy)!;
     expect(definition.figures.first.note, 'role1s step out');
+  });
+
+  testWidgets('Save applies a move named exactly in a Move box still being '
+      'typed in (AUTH-1)', (tester) async {
+    final repos = await pump(
+      tester,
+      initial: twoPullBys(params: const [], bindings: const []),
+    );
+    await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('figure-0-move-input')));
+    await tester.enterText(
+      find.byKey(const ValueKey('figure-0-move-input')),
+      'star',
+    );
+    await tester.pumpAndSettle();
+
+    await save(tester);
+
+    final saved = (await tester.runAsync(
+      () => repos.userGlossary.getById('pb2'),
+    ))!;
+    final definition = decodeCompoundDefinition(saved.payload, contraTaxonomy)!;
+    expect([for (final f in definition.figures) f.move], ['star', 'pull_by']);
   });
 
   testWidgets('custom figures are not offered as parts', (tester) async {

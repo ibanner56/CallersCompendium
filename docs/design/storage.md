@@ -211,6 +211,16 @@ No full-table in-memory scans (ContraDB pitfall #2). Target: <50 ms over
   partially migrated. See "Retiring a schema version" below.
 - `figures_json.schemaVersion` migrates lazily on read + bulk on upgrade.
 - Derived tables rebuilt after any migration touching figures.
+- A change to how a derived index is *written*, with no schema change, is
+  repaired by a one-time `ensureMigrated` pass keyed by a device-scoped
+  `__*_done` settings marker instead of a schema bump, written after the pass
+  succeeds so an interrupted one retries. The pass reindexes only the dances the
+  rule changes. Two exist for `dance_fts.custom_values`:
+  `__custom_field_index_repair_done__` (Searchable off and yes/no fields left
+  out of the index, 2026-10-29) and `__custom_number_index_repair_done__`
+  (2026-11-05: a whole-number custom value indexes as "3", not "3.0"; the pass
+  reindexes the dances holding a value for an indexed number field). Neither
+  travels in a backup or syncs: each says a pass ran over *this* database.
 
 ## Retiring a schema version
 
@@ -548,7 +558,8 @@ is no longer any code path that migrates from them.
   `Then(X, Y)`/`Then(Y, X)` both matched an `X while Y` container. The signal
   was absent from the index, so this needs a column, not just a query change.
   `group_idx` is shared by every row flattened from one top-level figure and
-  monotonic across them; `Then` now correlates on `a.group_idx < b.group_idx`.
+  monotonic across them; `Then` correlates `a` with the next group after it
+  (wrapping), so concurrent sides, which share a group, are never adjacent.
   Like the v2 `section` add, existing rows get the column DEFAULT (0) — wrong
   for correlation — so it schedules a derived rebuild (marker) that
   repopulates `group_idx` from `figures_json`.
@@ -965,8 +976,9 @@ around both rules above rather than through them:
   one.
 - **Permanently delete** (Recently deleted) marks a dance or program with
   `deleted_at` = the unix epoch, then erases it, or, if it is published,
-  **blanks** it: every content column is reset, its join rows, derived rows and
-  `retained_sync_fields` row are deleted, and `updated_at` is stamped after the
+  **blanks** it: every content column is reset, its join rows, derived rows,
+  `retained_sync_fields` row and `review_queue` rows are deleted, and
+  `updated_at` is stamped after the
   content it replaces, so the blank body wins on peers too. Only the deletion
   record remains, and Recently deleted hides any row with the epoch mark
   (LIFE-2; maintainer decision 2026-10-29, round 2: hide and blank, no
@@ -976,6 +988,19 @@ around both rules above rather than through them:
   blanks rows marked by builds that predate blanking; being automatic and
   pre-sync, it leaves citers alone and a cited dance keeps its title. See
   `lib/src/storage/permanent_deletion.dart`.
+
+  *Amended 2026-11-05:* the `review_queue` rows were added to what a blank
+  deletes: every row about the record, and for a dance either side of a
+  fresh-attach ambiguity pair. A conflict choice holds another device's whole
+  version, so until then the content stayed on the device until a pass
+  happened to drop the row, and for good once Device Sync was off. A program
+  slot that another device added before its blank arrived still cites the
+  blanked dance, because only the deleting device rewrites citers; the app
+  shows that slot as "Deleted dance" rather than the placeholder title
+  (maintainer decision Q-6, 2026-10-31, recorded in
+  `docs/dev/audits/2026-10-behavior/` on the audit branch). A dance a
+  retention sweep kept the title of, because a slot still cites it, is shown
+  as any dance in Recently deleted.
 
 ### Migration safety (app-layer preflight)
 

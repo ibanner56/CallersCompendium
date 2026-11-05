@@ -136,7 +136,7 @@
   "@appBootstrapCopiedDetails": {
     "description": "Label of the startup error screen's Copy details button after the details were copied."
   },
-  "appBootstrapLogHint": "Details were also written to the diagnostics log in the app’s support folder.",
+  "appBootstrapLogHint": "Details were also written to the diagnostics log in the app's support folder.",
   "@appBootstrapLogHint": {
     "description": "Hint on the startup error screen that the failure was recorded in the on-device diagnostics (crash) log."
   },
@@ -160,27 +160,27 @@
       }
     }
   },
-  "migrationDowngradeMessage": "This data was created by a newer version of Caller’s Compendium. Update the app, then reopen it.",
+  "migrationDowngradeMessage": "This data was created by a newer version of Caller's Compendium. Update the app, then reopen it.",
   "@migrationDowngradeMessage": {
     "description": "Terminal startup-screen message shown when the on-disk data was written by a newer app version than the one running (no downgrade path). No Retry is offered; the app has to be updated and reopened."
   },
-  "migrationRelocationBothExist": "Caller’s Compendium didn’t start because it found saved data files in the new location and also in a folder an earlier version used. Nothing was changed or deleted. Keep the copy you want, move the other one out of the way, then reopen the app. The FAQ entry “Where is my data stored?” lists the locations.",
+  "migrationRelocationBothExist": "Caller's Compendium didn't start because it found saved data files in the new location and also in a folder an earlier version used. Nothing was changed or deleted. Keep the copy you want, move the other one out of the way, then reopen the app. The FAQ entry \"Where is my data stored?\" lists the locations.",
   "@migrationRelocationBothExist": {
     "description": "Terminal startup-screen message shown when the one-time move of the database out of the old folder found data files in both the new location and an old location. Nothing is deleted. No Retry is offered."
   },
-  "migrationRelocationMultipleLegacy": "Caller’s Compendium didn’t start because it found saved data in more than one folder used by earlier versions. Nothing was changed or deleted. Keep the copy you want, move the others out of the way, then reopen the app. The FAQ entry “Where is my data stored?” lists the locations.",
+  "migrationRelocationMultipleLegacy": "Caller's Compendium didn't start because it found saved data in more than one folder used by earlier versions. Nothing was changed or deleted. Keep the copy you want, move the others out of the way, then reopen the app. The FAQ entry \"Where is my data stored?\" lists the locations.",
   "@migrationRelocationMultipleLegacy": {
     "description": "Terminal startup-screen message shown when the one-time move of the database found saved data in more than one old location (Windows: Documents and the Roaming fallback) and none in the new location. Nothing is deleted. No Retry is offered."
   },
-  "migrationRelocationFailed": "Caller’s Compendium didn’t start because it couldn’t finish moving your saved data to its new location. Nothing was deleted. Free up space, close other programs that may be using it, or check the folder permissions, then reopen the app to try again.",
+  "migrationRelocationFailed": "Caller's Compendium didn't start because it couldn't finish moving your saved data to its new location. Nothing was deleted. Free up space, close other programs that may be using it, or check the folder permissions, then reopen the app to try again.",
   "@migrationRelocationFailed": {
     "description": "Terminal startup-screen message shown when the one-time move of the database out of the Documents folder failed (disk full, unwritable folder, locked file). Nothing is deleted. No Retry is offered."
   },
-  "migrationRelocationLegacyUnreachable": "Caller’s Compendium didn’t start because it couldn’t reach your Documents folder, where earlier versions kept your saved data. Nothing was changed or created. If Documents is on another drive or a network folder, reconnect it, then reopen the app. If you have no Documents folder, create an empty one, then reopen the app. The FAQ entry “Where is my data stored?” has more.",
+  "migrationRelocationLegacyUnreachable": "Caller's Compendium didn't start because it couldn't reach your Documents folder, where earlier versions kept your saved data. Nothing was changed or created. If Documents is on another drive or a network folder, reconnect it, then reopen the app. If you have no Documents folder, create an empty one, then reopen the app. The FAQ entry \"Where is my data stored?\" has more.",
   "@migrationRelocationLegacyUnreachable": {
     "description": "Terminal startup-screen message shown when there is no database in the new location yet and the Documents folder (where earlier versions kept the database) cannot be reached, so the app cannot tell whether a library is waiting there. Nothing is created. No Retry is offered."
   },
-  "migrationRelocationCopiesHeading": "Each copy’s size and when it last changed (the larger, more recently changed copy is usually your library):",
+  "migrationRelocationCopiesHeading": "Each copy's size and when it last changed (the larger, more recently changed copy is usually your library):",
   "@migrationRelocationCopiesHeading": {
     "description": "Heading above the list of database copies on the terminal startup screen shown when saved data was found in more than one place. Each line below it names a folder, the copy's size and its last-changed date and time."
   },
@@ -215,7 +215,7 @@
       }
     }
   },
-  "migrationSnapshotAbortedMessage": "Caller’s Compendium didn’t start because it couldn’t create an automatic backup before upgrading your saved data. {cause}Free up space (or fix the backups folder), then reopen the app — or reopen and choose to continue without a backup.",
+  "migrationSnapshotAbortedMessage": "Caller's Compendium didn't start because it couldn't create an automatic backup before upgrading your saved data. {cause}Free up space (or fix the backups folder), then reopen the app — or reopen and choose to continue without a backup.",
   "@migrationSnapshotAbortedMessage": {
     "description": "Terminal startup-screen message shown when a pre-migration backup could not be created and the user declined to proceed without one. {cause} is an optional trailing sentence (already ends with a space) naming the likely cause, or empty when unknown.",
     "placeholders": {
@@ -233,11 +233,11 @@
   "@migrationSnapshotCauseUnwritableBackupsDir": {
     "description": "Plain-language sentence naming the likely cause of a failed pre-migration backup: the backups folder is not writable. Embedded into the snapshot-failure copy."
   },
-  "migrationSnapshotConsentTitle": "Couldn’t back up your data",
+  "migrationSnapshotConsentTitle": "Couldn't back up your data",
   "@migrationSnapshotConsentTitle": {
     "description": "Title of the blocking dialog asking whether to upgrade saved data without a recoverable backup after the automatic backup failed."
   },
-  "migrationSnapshotConsentBody": "Before upgrading your saved data to a new format, Caller’s Compendium makes an automatic backup so a failed upgrade can be undone. That backup couldn’t be created this time.{cause}\n\nIf you continue without a backup and the upgrade is interrupted, some of your dances or programs could be lost. You can quit, free up space (or fix the backups folder), and reopen the app to try again.",
+  "migrationSnapshotConsentBody": "Before upgrading your saved data to a new format, Caller's Compendium makes an automatic backup so a failed upgrade can be undone. That backup couldn't be created this time.{cause}\n\nIf you continue without a backup and the upgrade is interrupted, some of your dances or programs could be lost. You can quit, free up space (or fix the backups folder), and reopen the app to try again.",
   "@migrationSnapshotConsentBody": {
     "description": "Body of the blocking dialog asking whether to upgrade saved data without a recoverable backup. {cause} is an optional block (already prefixed with two newlines) naming the likely cause, or empty when unknown.",
     "placeholders": {
@@ -333,7 +333,7 @@
   "@confirmDeleteTitle": {
     "description": "Title of the optional confirm-before-delete dialog (shown only when the 'Confirm before delete' setting is on)."
   },
-  "confirmDeleteBody": "“{itemLabel}” will be deleted. You can undo this.",
+  "confirmDeleteBody": "\"{itemLabel}\" will be deleted. You can undo this.",
   "@confirmDeleteBody": {
     "description": "Body of the confirm-before-delete dialog. {itemLabel} is the untrusted user-entered name of the item being deleted (a dance or program title), rendered as plain text between typographic quotes.",
     "placeholders": {
@@ -367,7 +367,7 @@
       }
     }
   },
-  "confirmDeleteProgramHistoryBody": "“{itemLabel}” will be deleted. {count, plural, =1{1 dance will lose this program from its calling history.} other{{count} dances will lose this program from their calling history.}} You can undo this.",
+  "confirmDeleteProgramHistoryBody": "\"{itemLabel}\" will be deleted. {count, plural, =1{1 dance will lose this program from its calling history.} other{{count} dances will lose this program from their calling history.}} You can undo this.",
   "@confirmDeleteProgramHistoryBody": {
     "description": "Body of the confirm-before-delete dialog for a program when deleting it would remove it from the calling history of {count} dances (shown only when the 'Confirm before delete' setting is on and {count} is at least 1). {itemLabel} is the untrusted user-entered program title, rendered as plain text between typographic quotes. {count} is how many distinct dances list this program in their calling history under the current history settings.",
     "placeholders": {
@@ -485,7 +485,7 @@
   "@glossarySearchHint": {
     "description": "Hint text in the Glossary screen's search field, which filters the list of dance figures."
   },
-  "glossaryNoMatches": "No figures match “{query}”.",
+  "glossaryNoMatches": "No figures match \"{query}\".",
   "@glossaryNoMatches": {
     "description": "Shown in the Glossary when no dance figure matches the search text.",
     "placeholders": {
@@ -1192,7 +1192,7 @@
   "@settingsSyncNoticeListSeparator": {
     "description": "Separator between items in a Device Sync notice's lists: the records in settingsSyncNoticeAffected, and the counts by kind in settingsSyncNoticeNewerVersionItems (for example \"3 programs, 1 setting\"). Include any spacing your language uses."
   },
-  "settingsSyncNoticeRecordNamed": "{kind} “{name}”",
+  "settingsSyncNoticeRecordNamed": "{kind} \"{name}\"",
   "@settingsSyncNoticeRecordNamed": {
     "description": "One record in the settingsSyncNoticeAffected list: its kind (a syncReviewKind* label such as \"Dance\") and its title or name as stored on this device.",
     "placeholders": {
@@ -1216,7 +1216,7 @@
       }
     }
   },
-  "settingsSyncNoticeRecordNewerFigures": "{kind} “{name}” (has figures only a newer version can read)",
+  "settingsSyncNoticeRecordNewerFigures": "{kind} \"{name}\" (has figures only a newer version can read)",
   "@settingsSyncNoticeRecordNewerFigures": {
     "description": "Variant of settingsSyncNoticeRecordNamed for a record another device shared that this version refused because a newer version of the app added something to its figures (the dance's steps). Tells the user what this version does not understand.",
     "placeholders": {
@@ -2264,7 +2264,7 @@
   "@settingsAboutFontsHeader": {
     "description": "About section header for the bundled-typeface attribution group."
   },
-  "settingsAboutFontsBody": "This app bundles the following typefaces under the SIL Open Font License 1.1. Their full license texts are available under “View licenses” below.",
+  "settingsAboutFontsBody": "This app bundles the following typefaces under the SIL Open Font License 1.1. Their full license texts are available under \"View licenses\" below.",
   "@settingsAboutFontsBody": {
     "description": "Paragraph introducing the bundled fonts. 'SIL Open Font License 1.1' is a proper noun kept verbatim; “View licenses” refers to the tile of the same name."
   },
@@ -2292,7 +2292,7 @@
   "@settingsAboutDanceDataHeader": {
     "description": "About section header for the dance-data provenance attribution."
   },
-  "settingsAboutDanceDataBody": "Dance data draws on The Caller’s Box (Chris Page & Michael Dyck), whose collection is published under the Creative Commons Attribution-NonCommercial license (CC BY-NC), with gratitude.",
+  "settingsAboutDanceDataBody": "Dance data draws on The Caller's Box (Chris Page & Michael Dyck), whose collection is published under the Creative Commons Attribution-NonCommercial license (CC BY-NC), with gratitude.",
   "@settingsAboutDanceDataBody": {
     "description": "Paragraph crediting The Caller's Box dance-data source. 'The Caller's Box', the author names, and 'CC BY-NC' are proper nouns kept verbatim."
   },
@@ -2308,11 +2308,11 @@
   "@settingsAboutViewLicensesSubtitle": {
     "description": "Subtitle for the 'View licenses' tile."
   },
-  "settingsAboutLegalese": "© The Caller’s Compendium contributors. Licensed under AGPL-3.0.",
+  "settingsAboutLegalese": "© The Caller's Compendium contributors. Licensed under AGPL-3.0.",
   "@settingsAboutLegalese": {
     "description": "Legal notice shown on the license page. 'The Caller's Compendium' and 'AGPL-3.0' are proper nouns kept verbatim."
   },
-  "settingsAboutVersion": "Version {version}, “{codename}”",
+  "settingsAboutVersion": "Version {version}, \"{codename}\"",
   "@settingsAboutVersion": {
     "description": "Version and release-codename line under the app wordmark in the About header. The codename is a proper noun kept verbatim.",
     "placeholders": {
@@ -2326,7 +2326,7 @@
       }
     }
   },
-  "settingsAboutVersionLine": "{appName} · Version {version}, “{codename}” · {license}",
+  "settingsAboutVersionLine": "{appName} · Version {version}, \"{codename}\" · {license}",
   "@settingsAboutVersionLine": {
     "description": "One-line footer at the bottom of the About section combining the app name, version, release codename, and license identifier. The app name, version, codename, and license are proper nouns / identifiers kept verbatim; only the word 'Version' is translatable.",
     "placeholders": {
@@ -2584,9 +2584,19 @@
   "@settingsDialectDeleteTitle": {
     "description": "Title of the confirm-delete dialog for a custom dialect."
   },
-  "settingsDialectDeleteConfirmBody": "“{name}” will be permanently removed.",
+  "settingsDialectDeleteConfirmBody": "\"{name}\" will be permanently removed.",
   "@settingsDialectDeleteConfirmBody": {
     "description": "Body of the confirm-delete dialog, quoting the dialect name (untrusted user text, rendered as plain text).",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "My dialect"
+      }
+    }
+  },
+  "settingsDialectEditConflictSnack": "\"{name}\" was renamed or deleted while you were editing it, so your changes were not saved.",
+  "@settingsDialectEditConflictSnack": {
+    "description": "Snackbar shown when saving a dialect's edited terms fails because the dialect was renamed or deleted while its editor was open; quotes the dialect's name as the editor opened it (untrusted user text, rendered as plain text).",
     "placeholders": {
       "name": {
         "type": "String",
@@ -2686,7 +2696,7 @@
   "@appThemeDescriptionNoctis": {
     "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
   },
-  "appThemeDescriptionGithubLight": "GitHub’s clean neutral light",
+  "appThemeDescriptionGithubLight": "GitHub's clean neutral light",
   "@appThemeDescriptionGithubLight": {
     "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
   },
@@ -2710,7 +2720,7 @@
   "@appThemeDescriptionAyuLight": {
     "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
   },
-  "appThemeDescriptionTokyoNightLight": "Crisp indigo daylight, Tokyo Night’s day",
+  "appThemeDescriptionTokyoNightLight": "Crisp indigo daylight, Tokyo Night's day",
   "@appThemeDescriptionTokyoNightLight": {
     "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
   },
@@ -2742,7 +2752,7 @@
   "@appThemeDescriptionCatppuccinMocha": {
     "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
   },
-  "appThemeDescriptionGithubDark": "GitHub’s neutral dark",
+  "appThemeDescriptionGithubDark": "GitHub's neutral dark",
   "@appThemeDescriptionGithubDark": {
     "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
   },
@@ -3058,7 +3068,7 @@
   "@settingsAppearanceDeleteThemeTitle": {
     "description": "Title of the confirm-delete dialog for a custom theme."
   },
-  "settingsAppearanceDeleteThemeBody": "“{name}” will be permanently removed.",
+  "settingsAppearanceDeleteThemeBody": "\"{name}\" will be permanently removed.",
   "@settingsAppearanceDeleteThemeBody": {
     "description": "Body of the confirm-delete dialog for a custom theme.",
     "placeholders": {
@@ -3325,7 +3335,7 @@
   "@settingsDefaultsImportTagsTitle": {
     "description": "Title of the Import defaults setting that picks the tags added to newly imported dances."
   },
-  "settingsDefaultsImportTagsSubtitle": "Added to each new dance an import creates, including dances from a file someone shared with you. Dances created for a program’s slots while importing a program are not tagged.",
+  "settingsDefaultsImportTagsSubtitle": "Added to each new dance an import creates, including dances from a file someone shared with you. Dances created for a program's slots while importing a program are not tagged.",
   "@settingsDefaultsImportTagsSubtitle": {
     "description": "Explains which imports the default import tags apply to and which they skip."
   },
@@ -3516,7 +3526,7 @@
   "@tagManagerRemoveColour": {
     "description": "Tags manager action, offered only for a tag with a color: removes the color."
   },
-  "tagManagerDeletedSnack": "{count, plural, =0{Deleted “{name}”} =1{Deleted “{name}” from 1 dance} other{Deleted “{name}” from {count} dances}}",
+  "tagManagerDeletedSnack": "{count, plural, =0{Deleted \"{name}\"} =1{Deleted \"{name}\" from 1 dance} other{Deleted \"{name}\" from {count} dances}}",
   "@tagManagerDeletedSnack": {
     "description": "Snackbar after deleting a tag in the Tags manager, with an Undo action. The count is the dances in the collection that lost the tag; dances in Recently deleted are not counted.",
     "placeholders": {
@@ -3530,7 +3540,7 @@
       }
     }
   },
-  "tagManagerRenamedSnack": "Renamed “{from}” to “{to}”",
+  "tagManagerRenamedSnack": "Renamed \"{from}\" to \"{to}\"",
   "@tagManagerRenamedSnack": {
     "description": "Snackbar after renaming a tag in the Tags manager, with an Undo action.",
     "placeholders": {
@@ -3544,7 +3554,7 @@
       }
     }
   },
-  "tagManagerMergedSnack": "Merged “{from}” into “{into}”",
+  "tagManagerMergedSnack": "Merged \"{from}\" into \"{into}\"",
   "@tagManagerMergedSnack": {
     "description": "Snackbar after merging one tag into another in the Tags manager, with an Undo action.",
     "placeholders": {
@@ -3558,7 +3568,7 @@
       }
     }
   },
-  "tagManagerMergedSeveralSnack": "Combined {count} tags into “{into}”",
+  "tagManagerMergedSeveralSnack": "Combined {count} tags into \"{into}\"",
   "@tagManagerMergedSeveralSnack": {
     "description": "Snackbar after a rename merged three or more tags into one (case variants of the same name), with an Undo action. The count includes the tag merged into.",
     "placeholders": {
@@ -3592,7 +3602,7 @@
   "@authorManagerLoadError": {
     "description": "Shown in the Authors manager when the author list fails to load."
   },
-  "authorManagerMergedSeveralSnack": "Combined {count} authors into “{into}”",
+  "authorManagerMergedSeveralSnack": "Combined {count} authors into \"{into}\"",
   "@authorManagerMergedSeveralSnack": {
     "description": "Snackbar after a rename merged three or more authors into one (case variants of the same name), with an Undo action. The count includes the author merged into.",
     "placeholders": {
@@ -3674,7 +3684,7 @@
   "@libraryManagerRename": {
     "description": "Action and dialog button in the Tags, Authors and Sources managers: renames the entry."
   },
-  "libraryManagerRenameTitle": "Rename “{name}”",
+  "libraryManagerRenameTitle": "Rename \"{name}\"",
   "@libraryManagerRenameTitle": {
     "description": "Title of the rename dialog in the Tags, Authors and Sources managers.",
     "placeholders": {
@@ -3688,7 +3698,7 @@
   "@libraryManagerMergeInto": {
     "description": "Action in the Tags, Authors and Sources managers: opens a picker of the entry to merge this one into."
   },
-  "libraryManagerMergePickerTitle": "Merge “{name}” into…",
+  "libraryManagerMergePickerTitle": "Merge \"{name}\" into…",
   "@libraryManagerMergePickerTitle": {
     "description": "Title of the picker that chooses which entry to merge this one into.",
     "placeholders": {
@@ -3702,7 +3712,7 @@
   "@libraryManagerMergeOfferTitle": {
     "description": "Title of the dialog shown when a rename in the Tags, Authors or Sources manager picks a name another entry already has."
   },
-  "libraryManagerMergeOfferOne": "“{existing}” already exists. Merge “{from}” into it?",
+  "libraryManagerMergeOfferOne": "\"{existing}\" already exists. Merge \"{from}\" into it?",
   "@libraryManagerMergeOfferOne": {
     "description": "Body of the dialog shown when a rename picks a name another entry already has. Merging keeps one entry; it can be undone.",
     "placeholders": {
@@ -3716,7 +3726,7 @@
       }
     }
   },
-  "libraryManagerMergeOfferOneRenamed": "“{existing}” already exists. Merge “{from}” into it and call it “{name}”?",
+  "libraryManagerMergeOfferOneRenamed": "\"{existing}\" already exists. Merge \"{from}\" into it and call it \"{name}\"?",
   "@libraryManagerMergeOfferOneRenamed": {
     "description": "Body of the dialog shown when a rename picks a name another entry already has with different capitals. Merging keeps one entry, under the name typed; it can be undone.",
     "placeholders": {
@@ -3734,7 +3744,7 @@
       }
     }
   },
-  "libraryManagerMergeOfferSeveral": "More than one entry is already called “{name}”. Choose the one to merge “{from}” into; the others are merged into it too.",
+  "libraryManagerMergeOfferSeveral": "More than one entry is already called \"{name}\". Choose the one to merge \"{from}\" into; the others are merged into it too.",
   "@libraryManagerMergeOfferSeveral": {
     "description": "Body of the dialog shown when a rename picks a name that several entries already have (they differ only in capitals). A list of them follows.",
     "placeholders": {
@@ -3752,7 +3762,7 @@
   "@libraryManagerMerge": {
     "description": "Primary button of the merge dialog in the Tags, Authors and Sources managers."
   },
-  "libraryManagerUndoConflict": "Couldn’t undo: “{name}” is now used by another entry.",
+  "libraryManagerUndoConflict": "Couldn't undo: \"{name}\" is now used by another entry.",
   "@libraryManagerUndoConflict": {
     "description": "Snackbar when Undo of a rename, merge or delete in the Tags, Authors or Sources manager cannot give a name back, because another entry has taken it since.",
     "placeholders": {
@@ -3762,7 +3772,7 @@
       }
     }
   },
-  "libraryManagerEditFailed": "Couldn’t save that change. Please try again.",
+  "libraryManagerEditFailed": "Couldn't save that change. Please try again.",
   "@libraryManagerEditFailed": {
     "description": "Snackbar when a rename, merge or delete in the Tags, Authors or Sources manager fails."
   },
@@ -3770,7 +3780,7 @@
   "@libraryManagerEditDetails": {
     "description": "Authors and Sources manager action: opens the entry's details (website, notes and so on) for editing."
   },
-  "libraryManagerRenamedSnack": "Renamed “{from}” to “{to}”",
+  "libraryManagerRenamedSnack": "Renamed \"{from}\" to \"{to}\"",
   "@libraryManagerRenamedSnack": {
     "description": "Snackbar after renaming an author or a source in its manager, with an Undo action.",
     "placeholders": {
@@ -3784,7 +3794,7 @@
       }
     }
   },
-  "libraryManagerMergedSnack": "Merged “{from}” into “{into}”",
+  "libraryManagerMergedSnack": "Merged \"{from}\" into \"{into}\"",
   "@libraryManagerMergedSnack": {
     "description": "Snackbar after merging one author or source into another, with an Undo action.",
     "placeholders": {
@@ -3798,7 +3808,7 @@
       }
     }
   },
-  "libraryManagerDeletedSnack": "Deleted “{name}”",
+  "libraryManagerDeletedSnack": "Deleted \"{name}\"",
   "@libraryManagerDeletedSnack": {
     "description": "Snackbar after deleting an author or source no dance uses, with an Undo action. An entry a dance uses cannot be deleted, only merged.",
     "placeholders": {
@@ -3808,7 +3818,7 @@
       }
     }
   },
-  "libraryManagerMergeConfirmTitle": "Merge “{from}” into “{into}”?",
+  "libraryManagerMergeConfirmTitle": "Merge \"{from}\" into \"{into}\"?",
   "@libraryManagerMergeConfirmTitle": {
     "description": "Title of the dialog asking before a merge that will drop details, because both entries hold different values for them. Its body lists the dropped details.",
     "placeholders": {
@@ -3848,7 +3858,7 @@
   "@settingsGeneralSortIgnoreArticlesTitle": {
     "description": "Title of the General settings toggle that sorts dance titles while ignoring leading articles such as 'the', 'a', and 'an'."
   },
-  "settingsGeneralSortIgnoreArticlesSubtitle": "When on, the dance list alphabetizes titles ignoring a leading “the”, “a”, or “an” — so “The Nice Combination” files under N. Turn off to sort by the literal title.",
+  "settingsGeneralSortIgnoreArticlesSubtitle": "When on, the dance list alphabetizes titles ignoring a leading \"the\", \"a\", or \"an\" — so \"The Nice Combination\" files under N. Turn off to sort by the literal title.",
   "@settingsGeneralSortIgnoreArticlesSubtitle": {
     "description": "Subtitle explaining the ignore-leading-articles sort toggle. Example title and articles are illustrative text."
   },
@@ -3860,7 +3870,7 @@
   "@settingsGeneralVenueEntityModeTitle": {
     "description": "Title of the General settings toggle that enables reusable venue records for programs."
   },
-  "settingsGeneralVenueEntityModeSubtitle": "Turn venues into reusable records with address, contacts, and schedule that many programs can share and you edit in one place. When off, a program’s venue is a simple free-text field. Switching is lossless — your typed venue and any linked record are both kept.",
+  "settingsGeneralVenueEntityModeSubtitle": "Turn venues into reusable records with address, contacts, and schedule that many programs can share and you edit in one place. When off, a program's venue is a simple free-text field. Switching is lossless — your typed venue and any linked record are both kept.",
   "@settingsGeneralVenueEntityModeSubtitle": {
     "description": "Subtitle explaining what reusable venue records do and that switching modes preserves existing venue data."
   },
@@ -3880,7 +3890,7 @@
   "@settingsGeneralMatrixExactCollisionTitle": {
     "description": "Title of the General settings toggle controlling the programming matrix's same-figure collision check (issue #962)."
   },
-  "settingsGeneralMatrixExactCollisionSubtitle": "In the programming matrix, only flag a repeated move between two back-to-back dances when its beats actually overlap — not just when it lands in the same named phrase (A1, A2, B1, B2…). Turn off to flag any repeat in the same phrase, even if the beats themselves don’t overlap.",
+  "settingsGeneralMatrixExactCollisionSubtitle": "In the programming matrix, only flag a repeated move between two back-to-back dances when its beats actually overlap — not just when it lands in the same named phrase (A1, A2, B1, B2…). Turn off to flag any repeat in the same phrase, even if the beats themselves don't overlap.",
   "@settingsGeneralMatrixExactCollisionSubtitle": {
     "description": "Subtitle explaining the exact-beat-overlap matrix collision toggle and what turning it off restores."
   },
@@ -4098,11 +4108,11 @@
   "@settingsGeneralCallingHistoryHeader": {
     "description": "General settings section header for calling-history preferences."
   },
-  "settingsGeneralRequirePerformedForHistoryTitle": "Require “mark performed” for calling history",
+  "settingsGeneralRequirePerformedForHistoryTitle": "Require \"mark performed\" for calling history",
   "@settingsGeneralRequirePerformedForHistoryTitle": {
     "description": "Title of the General settings toggle that limits dance calling history to program slots marked performed."
   },
-  "settingsGeneralRequirePerformedForHistorySubtitle": "When on, a dance’s calling history lists only programs whose slot for that dance was marked performed. When off, a program appears as soon as it contains the dance.",
+  "settingsGeneralRequirePerformedForHistorySubtitle": "When on, a dance's calling history lists only programs whose slot for that dance was marked performed. When off, a program appears as soon as it contains the dance.",
   "@settingsGeneralRequirePerformedForHistorySubtitle": {
     "description": "Subtitle explaining the require-mark-performed calling history toggle."
   },
@@ -4110,7 +4120,7 @@
   "@settingsGeneralShowPerformedTogglesTitle": {
     "description": "Title of the Calling history setting that adds a mark-performed toggle to each dance row in the program view."
   },
-  "settingsGeneralShowPerformedTogglesSubtitle": "When on, each dance in a program’s view has a toggle to mark it performed or not, without opening the editor. When off, rows only show whether a dance was performed.",
+  "settingsGeneralShowPerformedTogglesSubtitle": "When on, each dance in a program's view has a toggle to mark it performed or not, without opening the editor. When off, rows only show whether a dance was performed.",
   "@settingsGeneralShowPerformedTogglesSubtitle": {
     "description": "Subtitle explaining the show mark-performed toggles setting."
   },
@@ -4126,7 +4136,7 @@
   "@settingsGeneralRequireEventDateForHistoryTitle": {
     "description": "Title of the calling-history settings toggle that leaves programs with no event date out of calling history."
   },
-  "settingsGeneralRequireEventDateForHistorySubtitle": "When on, a program with no event date doesn’t count toward calling history until you give it one. Duplicated and received programs arrive without a date. When off, a program counts whether or not it has a date.",
+  "settingsGeneralRequireEventDateForHistorySubtitle": "When on, a program with no event date doesn't count toward calling history until you give it one. Duplicated and received programs arrive without a date. When off, a program counts whether or not it has a date.",
   "@settingsGeneralRequireEventDateForHistorySubtitle": {
     "description": "Subtitle explaining the require-an-event-date calling history toggle."
   },
@@ -4154,7 +4164,7 @@
   "@settingsGeneralCapitalizeFiguresTitle": {
     "description": "Title of the General settings Library toggle that capitalizes the first letter of each figure shown on screen."
   },
-  "settingsGeneralCapitalizeFiguresSubtitle": "When on, each figure in the dance view, Perform mode and the figure editor starts with a capital letter (“Neighbors allemande left”). When off, figures are shown as written; built-in figures start in lower case, as in ContraDB. Only how figures look in those places changes; exports, search, sync comparisons and screen-reader wording are unaffected.",
+  "settingsGeneralCapitalizeFiguresSubtitle": "When on, each figure in the dance view, Perform mode and the figure editor starts with a capital letter (\"Neighbors allemande left\"). When off, figures are shown as written; built-in figures start in lower case, as in ContraDB. Only how figures look in those places changes; exports, search, sync comparisons and screen-reader wording are unaffected.",
   "@settingsGeneralCapitalizeFiguresSubtitle": {
     "description": "Subtitle explaining the capitalize figures toggle. ContraDB is a product name and stays untranslated."
   },
@@ -4634,7 +4644,7 @@
   "@backupFileClearAction": {
     "description": "Button in the restore-from-backup dialog that forgets the chosen backup file so another file can be chosen or text pasted."
   },
-  "backupFileTooLarge": "That file is too large to be a Caller’s Compendium backup ({sizeMb} MB; limit {limitMb} MB). Your data is unchanged.",
+  "backupFileTooLarge": "That file is too large to be a Caller's Compendium backup ({sizeMb} MB; limit {limitMb} MB). Your data is unchanged.",
   "@backupFileTooLarge": {
     "description": "Snackbar shown in the restore-from-backup dialog when the chosen file is larger than the size limit; the file was not read and data is unchanged. 'MB' is the megabyte unit.",
     "placeholders": {
@@ -4718,7 +4728,7 @@
   "@diagnosticsExportFailed": {
     "description": "Snackbar shown when diagnostics log export fails. Details are not shown in the UI."
   },
-  "diagnosticsClearFailed": "Couldn’t clear the diagnostics log.",
+  "diagnosticsClearFailed": "Couldn't clear the diagnostics log.",
   "@diagnosticsClearFailed": {
     "description": "Snackbar shown when clearing the local diagnostics log fails (for example, the file is held open by another program). Details are not shown in the UI."
   },
@@ -4842,7 +4852,7 @@
   "@commonUndo": {
     "description": "Snackbar action that reverses the action just performed (delete, batch tag/level change)."
   },
-  "commonUndoFailed": "Couldn’t undo that. Please check the result and try again.",
+  "commonUndoFailed": "Couldn't undo that. Please check the result and try again.",
   "@commonUndoFailed": {
     "description": "Snackbar shown when tapping Undo fails (for example, a full disk or a locked database), so the action may not have been reversed. Shared by every Undo prompt; screens whose Undo has a more specific failure (e.g. bulk performed marks) use their own string."
   },
@@ -5048,7 +5058,7 @@
   "@commonMixer": {
     "description": "Label for a mixer — a dance in which dancers change partners each time through the sequence (a progressive partner-changing dance), NOT an audio or kitchen mixer. Used as a dance editor checkbox label and a dance-detail indicator."
   },
-  "commonShowDancesTaggedTooltip": "Add “{tagName}” to the Collection filters",
+  "commonShowDancesTaggedTooltip": "Add \"{tagName}\" to the Collection filters",
   "@commonShowDancesTaggedTooltip": {
     "description": "Tooltip on a tag chip (a Collection row, or a dance's detail page). Tapping it adds the tag to the Collection's Tags filter and keeps the rest of the search; from a detail page it also switches to the Collection.",
     "placeholders": {
@@ -5060,7 +5070,7 @@
   },
   "commonDeletedSnack": "\"{title}\" deleted.",
   "@commonDeletedSnack": {
-    "description": "Snackbar confirming a dance was soft-deleted, quoting its title.",
+    "description": "Snackbar confirming that an item was deleted, quoting its name or title. Used for dances and for other named items: dialects, custom themes, custom fields, custom figures, walkthrough snippets and shorthand tokens.",
     "placeholders": {
       "title": {
         "type": "String",
@@ -5331,6 +5341,10 @@
   "collectionImportCardBody": "Import dances you already have, or write your first one. \"The Baby Rose\" is here as a sample to look around with.",
   "@collectionImportCardBody": {
     "description": "Body of the card shown while the sample dance is the only dance in the Collection; points at Import dances and New dance."
+  },
+  "collectionBrowsePublishedCollections": "Browse published collections",
+  "@collectionBrowsePublishedCollections": {
+    "description": "Button on the card shown while the sample dance is the only dance in the Collection; opens the catalog of signed published collections."
   },
   "collectionFiltersTitle": "Filters",
   "@collectionFiltersTitle": {
@@ -6000,7 +6014,7 @@
   },
   "collectionQuerySequenceThen": "Sequence (then)",
   "@collectionQuerySequenceThen": {
-    "description": "Advanced-query 'add' menu item: a two-figure ordered sequence condition."
+    "description": "Advanced-query 'add' menu item: a two-figure sequence condition in which the second figure immediately follows the first."
   },
   "collectionQueryConditionGroup": "Condition group",
   "@collectionQueryConditionGroup": {
@@ -6016,15 +6030,15 @@
   },
   "collectionQueryThenFirst": "First",
   "@collectionQueryThenFirst": {
-    "description": "Label for the earlier figure of a 'then' sequence condition."
+    "description": "Label for the first figure of a 'then' sequence condition: the figure the next one must immediately follow."
   },
   "collectionQueryThenConnector": "then",
   "@collectionQueryThenConnector": {
     "description": "Connector between the two figures of a 'then' sequence condition."
   },
-  "collectionQueryThenLater": "Later",
-  "@collectionQueryThenLater": {
-    "description": "Label for the later figure of a 'then' sequence condition."
+  "collectionQueryThenNext": "Next",
+  "@collectionQueryThenNext": {
+    "description": "Label for the figure that must come immediately after the first one in a 'then' sequence condition (the dance counts as a loop, so the first figure follows the last)."
   },
   "collectionQueryRemoveSequence": "Remove sequence",
   "@collectionQueryRemoveSequence": {
@@ -6778,7 +6792,7 @@
   "@programsDraftBody": {
     "description": "Body of the dialog offering to restore an autosaved program draft."
   },
-  "programsDraftAnotherNewProgramBody": "You have an unsaved draft of another new program, “{title}”. Would you like to restore it instead of starting a new one?",
+  "programsDraftAnotherNewProgramBody": "You have an unsaved draft of another new program, \"{title}\". Would you like to restore it instead of starting a new one?",
   "@programsDraftAnotherNewProgramBody": {
     "description": "Dialog body when the caller starts a new program and a draft of a different new program, never saved, is waiting from an earlier session. Restoring continues that program; discarding deletes it.",
     "placeholders": {
@@ -6835,6 +6849,10 @@
   "programsDeletedDanceFallback": "(deleted dance)",
   "@programsDeletedDanceFallback": {
     "description": "Marks a program slot whose dance is in Recently deleted: shown after the dance's title in Perform, the program builder, its matrix and the program summary, and on its own when the dance can no longer be found."
+  },
+  "programsBlankedDanceTitle": "Deleted dance",
+  "@programsBlankedDanceTitle": {
+    "description": "Shown in place of a dance's title in a program slot, in Perform and in program exports when the dance was permanently deleted on another device: its title and content are gone, so there is nothing else to show."
   },
   "programsSlotsLabel": "Slots",
   "@programsSlotsLabel": {
@@ -6914,7 +6932,7 @@
   "@programsVenueLinkedHintFallbackName": {
     "description": "Fallback name used in programsVenueLinkedHint when the linked venue's display name is unavailable."
   },
-  "programsVenueLegacyTextHint": "Previously entered venue: “{venueText}”. Link a saved venue below to use reusable details — your typed venue is kept.",
+  "programsVenueLegacyTextHint": "Previously entered venue: \"{venueText}\". Link a saved venue below to use reusable details — your typed venue is kept.",
   "@programsVenueLegacyTextHint": {
     "description": "Shown in the program editor's enriched (picker) venue mode when the program has legacy free-text but no linked venue yet; invites linking while assuring the typed text is preserved.",
     "placeholders": {
@@ -7735,7 +7753,7 @@
   "@programsMatrixEmptyTitle": {
     "description": "Title of the matrix empty state shown when no dance has structured figures."
   },
-  "programsMatrixEmptyBody": "The matrix fills in automatically as the program’s dances gain structured figures.",
+  "programsMatrixEmptyBody": "The matrix fills in automatically as the program's dances gain structured figures.",
   "@programsMatrixEmptyBody": {
     "description": "Body of the matrix empty state explaining the matrix populates as dances gain structured figures."
   },
@@ -8582,7 +8600,7 @@
   "@exportMatrixFormationColumn": {
     "description": "Header for the pinned formation column of the programming-matrix PDF table (#663), matching the on-screen matrix's formation column."
   },
-  "exportMatrixEmptyState": "No structured figures yet — the matrix fills in automatically as the program’s dances gain structured figures.",
+  "exportMatrixEmptyState": "No structured figures yet — the matrix fills in automatically as the program's dances gain structured figures.",
   "@exportMatrixEmptyState": {
     "description": "Empty-state line on the programming-matrix PDF when no dances have structured figures yet."
   },
@@ -8755,6 +8773,16 @@
   "onlineImportCreated": "Imported \"{title}\".",
   "@onlineImportCreated": {
     "description": "Snackbar confirming an online dance was imported. The title is an untrusted external value rendered as plain text.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Money Musk"
+      }
+    }
+  },
+  "onlineImportUpdated": "Updated \"{title}\" with the online version.",
+  "@onlineImportUpdated": {
+    "description": "Snackbar confirming an online import was written over a dance the user already had, after they chose Same dance (update existing). Nothing new was added, so it does not say Imported. The title is an untrusted external value rendered as plain text.",
     "placeholders": {
       "title": {
         "type": "String",
@@ -9175,6 +9203,18 @@
   "importReviewClose": "Close import",
   "@importReviewClose": {
     "description": "Tooltip on the close button of the embedded import review screen."
+  },
+  "importReviewDiscardTitle": "Discard this import?",
+  "@importReviewDiscardTitle": {
+    "description": "Title of the dialog shown when the user leaves the import review screen before importing."
+  },
+  "importReviewDiscardBody": "If you leave now, the list you are reviewing and the choices you made on it are discarded.",
+  "@importReviewDiscardBody": {
+    "description": "Body of the dialog shown when the user leaves the import review screen before importing; the list is the planned import, with the choices made on it."
+  },
+  "importReviewKeepReviewing": "Keep reviewing",
+  "@importReviewKeepReviewing": {
+    "description": "Button that stays on the import review screen instead of discarding the list."
   },
   "importReviewSourceLabel": "Source",
   "@importReviewSourceLabel": {
@@ -9648,6 +9688,10 @@
   "@importErrorContraDbUnsupportedFigure": {
     "description": "Error shown when a ContraDB Figure search is not an exact canonical move name."
   },
+  "importErrorContraDbUnsupportedAdvanced": "ContraDB can only run Advanced searches made of \"All of\", \"Any of\", and \"None of\" groups of \"Has figure\" and \"Sequence (then)\" conditions. Remove tags, figure details, moves ContraDB doesn't have, and other conditions to search ContraDB.",
+  "@importErrorContraDbUnsupportedAdvanced": {
+    "description": "Error shown when the Advanced search has a condition ContraDB cannot run with the same meaning (a tag, a figure parameter or section, a move ContraDB does not have, or a local-only filter), so the ContraDB search is not sent. Quoted names are the Advanced builder's group and row labels."
+  },
   "importErrorContraDbEmptyDanceInput": "Enter a ContraDB dance URL or id to import from.",
   "@importErrorContraDbEmptyDanceInput": {
     "description": "Error shown when the ContraDB dance URL/id field is empty."
@@ -9804,7 +9848,7 @@
   "@importIssueDirectionUnmapped": {
     "description": "Import note: a Becket rotation direction wasn't 'CW' or 'CCW' and was defaulted to clockwise."
   },
-  "importIssueFormationUnclassified": "A formation couldn't be recognized; kept as a detail on “other”.",
+  "importIssueFormationUnclassified": "A formation couldn't be recognized; kept as a detail on \"other\".",
   "@importIssueFormationUnclassified": {
     "description": "Import note: a formation/start-type string couldn't be classified to a known formation and was kept as detail on the 'other' formation."
   },
@@ -9812,7 +9856,7 @@
   "@importIssuePhraseStructureUnreadable": {
     "description": "Import note: a phrase-structure string couldn't be parsed and a default was substituted."
   },
-  "importIssueProgressionUnmapped": "A progression wasn't recognized; recorded as “other”.",
+  "importIssueProgressionUnmapped": "A progression wasn't recognized; recorded as \"other\".",
   "@importIssueProgressionUnmapped": {
     "description": "Import note: a progression value wasn't a standard tier and was recorded as 'other'."
   },
@@ -10461,9 +10505,9 @@
   "@importReviewImportError": {
     "description": "Snackbar shown when an import commit (or commit-for-edit) throws. The raw exception is logged (debugPrint), never shown, so storage internals/paths can't leak to the UI (CWE-209)."
   },
-  "importFileNotText": "Couldn't read that file: it isn't text the app can read. If another app saved it, save it again as UTF-8 text and try again.",
+  "importFileNotText": "Couldn't read that file: it isn't a share file, or text the app can read. If another app saved it as text, save it again as UTF-8 and try again.",
   "@importFileNotText": {
-    "description": "Snackbar on the import screen when the chosen file is not UTF-8 text (for example a file saved in another encoding, or not a text file at all). Nothing was imported."
+    "description": "Snackbar on the import screen when the chosen file can't be read as UTF-8 text: a binary file that isn't a share file, or text saved in another encoding. Nothing was imported."
   },
   "importFileUnreadable": "Couldn't open that file. Another app may be using it, or it may be on a drive that isn't connected.",
   "@importFileUnreadable": {
@@ -11008,7 +11052,7 @@
       }
     }
   },
-  "validationOrphanedAltNamed": "The alternate at position {position} (“{text}”) has no preceding primary slot.",
+  "validationOrphanedAltNamed": "The alternate at position {position} (\"{text}\") has no preceding primary slot.",
   "@validationOrphanedAltNamed": {
     "description": "Program-editor warning: an alternate program slot (identified by its user-entered text) appears with no primary slot before it. {text} is user-entered content rendered as plain text.",
     "placeholders": {
@@ -11022,7 +11066,7 @@
       }
     }
   },
-  "validationEmptySubstitution": "The substitution for “{term}” is empty.",
+  "validationEmptySubstitution": "The substitution for \"{term}\" is empty.",
   "@validationEmptySubstitution": {
     "description": "Dialect-editor validation error: a role/move term maps to an empty substitution. {term} is the user-entered source term rendered as plain text.",
     "placeholders": {
@@ -11032,7 +11076,7 @@
       }
     }
   },
-  "validationDialectCollision": "“{source}” and “{existing}” both map to “{substitution}” — reversal would be ambiguous.",
+  "validationDialectCollision": "\"{source}\" and \"{existing}\" both map to \"{substitution}\" — reversal would be ambiguous.",
   "@validationDialectCollision": {
     "description": "Dialect-editor validation error: two source terms map to the same substitution, so reversing the dialect would be ambiguous. All three values are user-entered dialect terms rendered as plain text.",
     "placeholders": {
@@ -11208,7 +11252,7 @@
   "@danceEditorUnsavedDraftMessage": {
     "description": "Dialog body asking whether to restore a pending autosave draft."
   },
-  "danceEditorUnsavedNewDanceDraftMessage": "You have an unsaved draft of another new dance, “{title}”. Would you like to restore it instead of starting a new one?",
+  "danceEditorUnsavedNewDanceDraftMessage": "You have an unsaved draft of another new dance, \"{title}\". Would you like to restore it instead of starting a new one?",
   "@danceEditorUnsavedNewDanceDraftMessage": {
     "description": "Dialog body when the caller starts a new dance and a draft of a different new dance, never saved, is waiting from an earlier session. Restoring continues that dance; discarding deletes it.",
     "placeholders": {
@@ -12602,7 +12646,7 @@
   "@shorthandMappingsDeleteTitle": {
     "description": "Title of the confirm-delete dialog for a figure-shorthand mapping."
   },
-  "shorthandMappingsDeleteBody": "“{token}” will be permanently removed.",
+  "shorthandMappingsDeleteBody": "\"{token}\" will be permanently removed.",
   "@shorthandMappingsDeleteBody": {
     "description": "Body of the confirm-delete dialog; {token} is the user's shorthand token, rendered as plain text.",
     "placeholders": {
@@ -12755,7 +12799,7 @@
   "@importShorthandSeedConflictHeader": {
     "description": "Section header above call buttons whose shorthand token already exists and will not be seeded."
   },
-  "importShorthandSeedConflictNote": "A shorthand named “{token}” already exists, so this button was left as-is.",
+  "importShorthandSeedConflictNote": "A shorthand named \"{token}\" already exists, so this button was left as-is.",
   "@importShorthandSeedConflictNote": {
     "description": "Explanation shown for a skipped, conflicting shorthand candidate; {token} is the user's token, rendered as plain text.",
     "placeholders": {
@@ -13377,7 +13421,7 @@
   "@recentlyDeletedTitle": {
     "description": "App-bar title for the recently-deleted (trash) screen."
   },
-  "recentlyDeletedLoadError": "Couldn’t load your recently deleted items. Nothing has been removed.",
+  "recentlyDeletedLoadError": "Couldn't load your recently deleted items. Nothing has been removed.",
   "@recentlyDeletedLoadError": {
     "description": "Shown on the recently-deleted screen when loading the deleted dances or programs fails, above a Retry button. Reassures the user that a failed load does not mean their deleted items are gone."
   },
@@ -13533,7 +13577,7 @@
   "@venueLinkOfferBody": {
     "description": "Body of the dialog offering to link typed-venue programs to a venue record (GIG-7). One line per venue follows it."
   },
-  "venueLinkOfferRow": "“{name}”: {count, plural, =1{1 program} other{{count} programs}}",
+  "venueLinkOfferRow": "\"{name}\": {count, plural, =1{1 program} other{{count} programs}}",
   "@venueLinkOfferRow": {
     "description": "One line of the link-programs-to-venue offer: the venue record's name and how many programs would be linked to it.",
     "placeholders": {
@@ -13569,7 +13613,7 @@
   "@venueManagerDeleteTitle": {
     "description": "Title of the confirmation dialog for permanently deleting a venue."
   },
-  "venueManagerDeleteBody": "Permanently delete “{name}”? This can’t be undone.",
+  "venueManagerDeleteBody": "Permanently delete \"{name}\"? This can't be undone.",
   "@venueManagerDeleteBody": {
     "description": "Body of the delete-venue confirmation dialog; {name} is the venue's name (plain text, may be user-entered or imported).",
     "placeholders": {
@@ -13579,7 +13623,7 @@
       }
     }
   },
-  "venueManagerDeletedSnack": "Deleted “{name}”",
+  "venueManagerDeletedSnack": "Deleted \"{name}\"",
   "@venueManagerDeletedSnack": {
     "description": "Snackbar confirming a venue was deleted; {name} is the venue's name (plain text).",
     "placeholders": {
@@ -13589,7 +13633,7 @@
       }
     }
   },
-  "venueManagerDeleteBlocked": "Can’t delete “{name}” while it’s still linked to a program. Change or remove its venue on those programs first.",
+  "venueManagerDeleteBlocked": "Can't delete \"{name}\" while it's still linked to a program. Change or remove its venue on those programs first.",
   "@venueManagerDeleteBlocked": {
     "description": "Snackbar shown when a venue can't be deleted because a program still links to it; {name} is the venue's name (plain text).",
     "placeholders": {
@@ -13681,7 +13725,7 @@
   "@venueEditorTimeLabel": {
     "description": "Venue time field label."
   },
-  "venueEditorScheduleLabel": "Schedule (e.g. “2nd Saturdays”)",
+  "venueEditorScheduleLabel": "Schedule (e.g. \"2nd Saturdays\")",
   "@venueEditorScheduleLabel": {
     "description": "Venue generic-schedule field label, with an example of a recurring schedule."
   },
@@ -13749,7 +13793,7 @@
   "@venuePickerChangeHint": {
     "description": "Hint text for the venue picker's search field when a venue is already linked."
   },
-  "venuePickerCreateOption": "Add new venue “{name}”",
+  "venuePickerCreateOption": "Add new venue \"{name}\"",
   "@venuePickerCreateOption": {
     "description": "Inline-create option in the venue picker; {name} is the text the user typed (plain text).",
     "placeholders": {
@@ -14174,7 +14218,7 @@
   "@glossaryCustomGone": {
     "description": "Shown in place of a custom figure's details once it has been deleted."
   },
-  "glossaryCustomDeleteTitle": "Delete “{name}”?",
+  "glossaryCustomDeleteTitle": "Delete \"{name}\"?",
   "@glossaryCustomDeleteTitle": {
     "description": "Title of the dialog confirming that a custom figure is deleted.",
     "placeholders": {
@@ -14380,7 +14424,7 @@
   "@compoundBindingNoSharedValues": {
     "description": "Why a parameter cannot fill a setting: no value is allowed in all of them."
   },
-  "compoundEditorNameTaken": "“{name}” is already the name of a figure or shorthand. Choose another name.",
+  "compoundEditorNameTaken": "\"{name}\" is already the name of a figure or shorthand. Choose another name.",
   "@compoundEditorNameTaken": {
     "description": "Error shown when saving a custom figure under a name already in use.",
     "placeholders": {
@@ -14390,7 +14434,7 @@
       }
     }
   },
-  "compoundEditorNameTakenHidden": "“{name}” is already the name of one of your own figures. Those are listed in the Glossary while Custom Figures is on. Choose another name.",
+  "compoundEditorNameTakenHidden": "\"{name}\" is already the name of one of your own figures. Those are listed in the Glossary while Custom Figures is on. Choose another name.",
   "@compoundEditorNameTakenHidden": {
     "description": "Error shown when saving a term under a name one of the user's own figures already has, while Custom Figures is off and that figure is not shown.",
     "placeholders": {
@@ -14400,7 +14444,7 @@
       }
     }
   },
-  "compoundEditorNameTakenHiddenTerm": "“{name}” is already the name of one of your own terms. Those are listed in the Glossary while Show glossary is on. Choose another name.",
+  "compoundEditorNameTakenHiddenTerm": "\"{name}\" is already the name of one of your own terms. Those are listed in the Glossary while Show glossary is on. Choose another name.",
   "@compoundEditorNameTakenHiddenTerm": {
     "description": "Error shown when saving a figure under a name one of the user's own terms already has, while Show glossary is off and that term is not shown.",
     "placeholders": {
@@ -14548,7 +14592,7 @@
   "@userFigureEditorFlagLabel": {
     "description": "Label of the words an on/off parameter of a new figure adds to its wording when on."
   },
-  "userFigureEditorFlagLabelHelper": "Shown in the wording when this is on, such as “with a flourish”.",
+  "userFigureEditorFlagLabelHelper": "Shown in the wording when this is on, such as \"with a flourish\".",
   "@userFigureEditorFlagLabelHelper": {
     "description": "Helper text of an on/off parameter's wording."
   },
@@ -14771,7 +14815,7 @@
       }
     }
   },
-  "wordingIssueUnclosedGroup": "A “[” isn’t closed: “{context}”. Add “]” where that part ends.",
+  "wordingIssueUnclosedGroup": "A \"[\" isn't closed: \"{context}\". Add \"]\" where that part ends.",
   "@wordingIssueUnclosedGroup": {
     "description": "A wording template opens a square bracket and never closes it.",
     "placeholders": {
@@ -14781,7 +14825,7 @@
       }
     }
   },
-  "wordingIssueStrayCloseBracket": "There’s a “]” with no “[” before it, near “{context}”. Remove it, or add “[” where that part starts.",
+  "wordingIssueStrayCloseBracket": "There's a \"]\" with no \"[\" before it, near \"{context}\". Remove it, or add \"[\" where that part starts.",
   "@wordingIssueStrayCloseBracket": {
     "description": "A wording template closes a square bracket it never opened.",
     "placeholders": {
@@ -14791,7 +14835,7 @@
       }
     }
   },
-  "wordingIssueUnclosedSlot": "The “{brace}” in “{context}” isn’t closed. Add “{closeBrace}” after the name, like {example}.",
+  "wordingIssueUnclosedSlot": "The \"{brace}\" in \"{context}\" isn't closed. Add \"{closeBrace}\" after the name, like {example}.",
   "@wordingIssueUnclosedSlot": {
     "description": "A wording template opens a brace and never closes it. brace and closeBrace are the brace characters.",
     "placeholders": {
@@ -14813,7 +14857,7 @@
       }
     }
   },
-  "wordingIssueStrayCloseBrace": "There’s a “{closeBrace}” with no “{brace}” before it, near “{context}”. Remove it, or add “{brace}” before the name.",
+  "wordingIssueStrayCloseBrace": "There's a \"{closeBrace}\" with no \"{brace}\" before it, near \"{context}\". Remove it, or add \"{brace}\" before the name.",
   "@wordingIssueStrayCloseBrace": {
     "description": "A wording template closes a brace it never opened. brace and closeBrace are the brace characters.",
     "placeholders": {
@@ -14831,7 +14875,7 @@
       }
     }
   },
-  "wordingIssueBadSlot": "“{found}” isn’t a slot: put just one name in braces, like {fix}.",
+  "wordingIssueBadSlot": "\"{found}\" isn't a slot: put just one name in braces, like {fix}.",
   "@wordingIssueBadSlot": {
     "description": "A wording template's braces hold something other than one name.",
     "placeholders": {
@@ -14845,7 +14889,7 @@
       }
     }
   },
-  "wordingIssueConditionInBraces": "Braces hold one name, not a condition: “{found}”. To show wording only in some cases, use square brackets: {fix}",
+  "wordingIssueConditionInBraces": "Braces hold one name, not a condition: \"{found}\". To show wording only in some cases, use square brackets: {fix}",
   "@wordingIssueConditionInBraces": {
     "description": "A wording template puts a condition in braces instead of square brackets. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.",
     "placeholders": {
@@ -14859,7 +14903,7 @@
       }
     }
   },
-  "wordingIssueTooLongStored": "This wording is too long to save: as saved, it’s over {max} characters (a condition can take a little more room saved than typed). Shorten it, or use fewer conditions.",
+  "wordingIssueTooLongStored": "This wording is too long to save: as saved, it's over {max} characters (a condition can take a little more room saved than typed). Shorten it, or use fewer conditions.",
   "@wordingIssueTooLongStored": {
     "description": "A wording template is over the length it may be saved at.",
     "placeholders": {
@@ -14869,7 +14913,7 @@
       }
     }
   },
-  "wordingIssueMissingCondition": "After “{word}”, write what to test, for example “{example}”.",
+  "wordingIssueMissingCondition": "After \"{word}\", write what to test, for example \"{example}\".",
   "@wordingIssueMissingCondition": {
     "description": "A condition is missing after a word that needs one. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.",
     "placeholders": {
@@ -14883,7 +14927,7 @@
       }
     }
   },
-  "wordingIssueMissingThen": "After the condition “{condition}”, write “then” and the wording to show in that case.",
+  "wordingIssueMissingThen": "After the condition \"{condition}\", write \"then\" and the wording to show in that case.",
   "@wordingIssueMissingThen": {
     "description": "A condition is not followed by then. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.",
     "placeholders": {
@@ -14893,7 +14937,7 @@
       }
     }
   },
-  "wordingIssueColonForThen": "Write “then” instead of “:” after “{condition}”.",
+  "wordingIssueColonForThen": "Write \"then\" instead of \":\" after \"{condition}\".",
   "@wordingIssueColonForThen": {
     "description": "A condition is followed by a colon instead of then. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.",
     "placeholders": {
@@ -14903,7 +14947,7 @@
       }
     }
   },
-  "wordingIssueUnknownName": "“{found}” isn’t something this wording can test. You can test: {names}.",
+  "wordingIssueUnknownName": "\"{found}\" isn't something this wording can test. You can test: {names}.",
   "@wordingIssueUnknownName": {
     "description": "A condition tests a name the figure doesn't have.",
     "placeholders": {
@@ -14917,7 +14961,7 @@
       }
     }
   },
-  "wordingIssueUnknownNameSuggest": "“{found}” isn’t something this wording can test. Did you mean “{suggestion}”? You can test: {names}.",
+  "wordingIssueUnknownNameSuggest": "\"{found}\" isn't something this wording can test. Did you mean \"{suggestion}\"? You can test: {names}.",
   "@wordingIssueUnknownNameSuggest": {
     "description": "A condition tests a name the figure doesn't have, with the closest name it does.",
     "placeholders": {
@@ -14935,7 +14979,7 @@
       }
     }
   },
-  "wordingIssueUnknownNameAfterIf": "Square brackets that start with “if” hold a condition, and “{found}” isn’t something this wording can test. You can test: {names}.",
+  "wordingIssueUnknownNameAfterIf": "Square brackets that start with \"if\" hold a condition, and \"{found}\" isn't something this wording can test. You can test: {names}.",
   "@wordingIssueUnknownNameAfterIf": {
     "description": "The word after if, at the start of square brackets, is not a name the figure has. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.",
     "placeholders": {
@@ -14949,7 +14993,7 @@
       }
     }
   },
-  "wordingIssueUnknownNameAfterIfSuggest": "Square brackets that start with “if” hold a condition, and “{found}” isn’t something this wording can test. Did you mean “{suggestion}”? You can test: {names}.",
+  "wordingIssueUnknownNameAfterIfSuggest": "Square brackets that start with \"if\" hold a condition, and \"{found}\" isn't something this wording can test. Did you mean \"{suggestion}\"? You can test: {names}.",
   "@wordingIssueUnknownNameAfterIfSuggest": {
     "description": "The word after if, at the start of square brackets, is not a name the figure has, with the closest one it does. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.",
     "placeholders": {
@@ -14967,7 +15011,7 @@
       }
     }
   },
-  "wordingIssueNameInBraces": "In a condition, write the name without braces: “{name}”, not “{found}”.",
+  "wordingIssueNameInBraces": "In a condition, write the name without braces: \"{name}\", not \"{found}\".",
   "@wordingIssueNameInBraces": {
     "description": "A condition names what it tests in braces.",
     "placeholders": {
@@ -14981,7 +15025,7 @@
       }
     }
   },
-  "wordingIssueIsntForIsNot": "Write “is not” instead of “{found}”: “{fix}”.",
+  "wordingIssueIsntForIsNot": "Write \"is not\" instead of \"{found}\": \"{fix}\".",
   "@wordingIssueIsntForIsNot": {
     "description": "A condition uses isn't, which the wording language doesn't accept. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.",
     "placeholders": {
@@ -14995,7 +15039,7 @@
       }
     }
   },
-  "wordingIssueSymbolForWord": "Write “{word}” instead of “{found}”: “{fix}”.",
+  "wordingIssueSymbolForWord": "Write \"{word}\" instead of \"{found}\": \"{fix}\".",
   "@wordingIssueSymbolForWord": {
     "description": "A condition uses a symbol such as = or && instead of the word for it. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.",
     "placeholders": {
@@ -15013,7 +15057,7 @@
       }
     }
   },
-  "wordingIssueQuotedValue": "Leave out the quotation marks: “{fix}”.",
+  "wordingIssueQuotedValue": "Leave out the quotation marks: \"{fix}\".",
   "@wordingIssueQuotedValue": {
     "description": "A condition puts a value in quotation marks.",
     "placeholders": {
@@ -15023,7 +15067,7 @@
       }
     }
   },
-  "wordingIssueUnknownValue": "“{found}” isn’t one of the values {name} can have. {name} can be: {values}.",
+  "wordingIssueUnknownValue": "\"{found}\" isn't one of the values {name} can have. {name} can be: {values}.",
   "@wordingIssueUnknownValue": {
     "description": "A condition compares a name with a value it can't have.",
     "placeholders": {
@@ -15041,7 +15085,7 @@
       }
     }
   },
-  "wordingIssueUnknownValueSuggest": "“{found}” isn’t one of the values {name} can have. Did you mean “{suggestion}”? {name} can be: {values}.",
+  "wordingIssueUnknownValueSuggest": "\"{found}\" isn't one of the values {name} can have. Did you mean \"{suggestion}\"? {name} can be: {values}.",
   "@wordingIssueUnknownValueSuggest": {
     "description": "A condition compares a name with a value it can't have, with the closest value it can.",
     "placeholders": {
@@ -15063,7 +15107,7 @@
       }
     }
   },
-  "wordingIssueExpectedValue": "After “{before}”, write a value {name} can have, like “{example}”. {name} can be: {values}.",
+  "wordingIssueExpectedValue": "After \"{before}\", write a value {name} can have, like \"{example}\". {name} can be: {values}.",
   "@wordingIssueExpectedValue": {
     "description": "A condition is missing the value it compares with.",
     "placeholders": {
@@ -15085,7 +15129,7 @@
       }
     }
   },
-  "wordingIssueListNeedsParens": "Put the values after “is in” in parentheses: “{fix}”.",
+  "wordingIssueListNeedsParens": "Put the values after \"is in\" in parentheses: \"{fix}\".",
   "@wordingIssueListNeedsParens": {
     "description": "A condition lists values after is in without parentheses. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.",
     "placeholders": {
@@ -15095,7 +15139,7 @@
       }
     }
   },
-  "wordingIssueOneOfForIsIn": "Write “{word}” instead of “{found}”: “{fix}”.",
+  "wordingIssueOneOfForIsIn": "Write \"{word}\" instead of \"{found}\": \"{fix}\".",
   "@wordingIssueOneOfForIsIn": {
     "description": "A condition uses a phrase such as one of instead of is in. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.",
     "placeholders": {
@@ -15113,7 +15157,7 @@
       }
     }
   },
-  "wordingIssueEmptyList": "The parentheses after “is in” are empty. List at least one value, like “{example}”.",
+  "wordingIssueEmptyList": "The parentheses after \"is in\" are empty. List at least one value, like \"{example}\".",
   "@wordingIssueEmptyList": {
     "description": "A condition's list of values is empty. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.",
     "placeholders": {
@@ -15123,7 +15167,7 @@
       }
     }
   },
-  "wordingIssueUnclosedParen": "A “(” isn’t closed: “{context}”. Add “)” after “{before}”.",
+  "wordingIssueUnclosedParen": "A \"(\" isn't closed: \"{context}\". Add \")\" after \"{before}\".",
   "@wordingIssueUnclosedParen": {
     "description": "A condition opens a parenthesis and never closes it.",
     "placeholders": {
@@ -15137,7 +15181,7 @@
       }
     }
   },
-  "wordingIssueStrayCloseParen": "There’s a “)” with no “(” before it, near “{context}”. Remove it, or add the “(” where it starts.",
+  "wordingIssueStrayCloseParen": "There's a \")\" with no \"(\" before it, near \"{context}\". Remove it, or add the \"(\" where it starts.",
   "@wordingIssueStrayCloseParen": {
     "description": "A condition closes a parenthesis it never opened.",
     "placeholders": {
@@ -15147,11 +15191,11 @@
       }
     }
   },
-  "wordingIssueEmptyParens": "There’s nothing between “(” and “)”. Put a condition inside, or remove them.",
+  "wordingIssueEmptyParens": "There's nothing between \"(\" and \")\". Put a condition inside, or remove them.",
   "@wordingIssueEmptyParens": {
     "description": "A condition has empty parentheses."
   },
-  "wordingIssueExpectedConnective": "After “{before}”, write “and”, “or” or “then”: “{found}” can’t go there.",
+  "wordingIssueExpectedConnective": "After \"{before}\", write \"and\", \"or\" or \"then\": \"{found}\" can't go there.",
   "@wordingIssueExpectedConnective": {
     "description": "A word follows a complete condition where only and, or or then may. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.",
     "placeholders": {
@@ -15165,7 +15209,7 @@
       }
     }
   },
-  "wordingIssueExpectedConnectiveInParens": "After “{before}”, write “and”, “or” or “)”: “{found}” can’t go there.",
+  "wordingIssueExpectedConnectiveInParens": "After \"{before}\", write \"and\", \"or\" or \")\": \"{found}\" can't go there.",
   "@wordingIssueExpectedConnectiveInParens": {
     "description": "A word follows a complete condition inside parentheses where only and, or or a closing parenthesis may. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.",
     "placeholders": {
@@ -15179,7 +15223,7 @@
       }
     }
   },
-  "wordingIssueExpectedConnectiveList": "After “{before}”, write “and”, “or” or “then”. To test for more than one value, list them: “{fix}”.",
+  "wordingIssueExpectedConnectiveList": "After \"{before}\", write \"and\", \"or\" or \"then\". To test for more than one value, list them: \"{fix}\".",
   "@wordingIssueExpectedConnectiveList": {
     "description": "A condition names two values one after the other. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.",
     "placeholders": {
@@ -15193,7 +15237,7 @@
       }
     }
   },
-  "wordingIssueExpectedListSeparator": "In the list “{before}”, put a comma before “{found}”, or end the list with “)”.",
+  "wordingIssueExpectedListSeparator": "In the list \"{before}\", put a comma before \"{found}\", or end the list with \")\".",
   "@wordingIssueExpectedListSeparator": {
     "description": "Two values in a list are not separated by a comma.",
     "placeholders": {
@@ -15207,7 +15251,7 @@
       }
     }
   },
-  "wordingIssueMixedAndOr": "“{found}” mixes “and” and “or”, so it isn’t clear which goes first. Add parentheses: “{fixA}” or “{fixB}”.",
+  "wordingIssueMixedAndOr": "\"{found}\" mixes \"and\" and \"or\", so it isn't clear which goes first. Add parentheses: \"{fixA}\" or \"{fixB}\".",
   "@wordingIssueMixedAndOr": {
     "description": "A condition mixes and and or without parentheses. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.",
     "placeholders": {
@@ -15225,7 +15269,7 @@
       }
     }
   },
-  "wordingIssueFlagCompare": "{name} is either on or off, so it isn’t compared with a value. Write “if {name}” for on, or “if not {name}” for off.",
+  "wordingIssueFlagCompare": "{name} is either on or off, so it isn't compared with a value. Write \"if {name}\" for on, or \"if not {name}\" for off.",
   "@wordingIssueFlagCompare": {
     "description": "A condition compares a switch with a value. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.",
     "placeholders": {
@@ -15235,7 +15279,7 @@
       }
     }
   },
-  "wordingIssuePresenceOnly": "{name} can only be tested for whether it’s filled in. Write “{name} is empty”, “{name} is not empty”, or just “{name}”.",
+  "wordingIssuePresenceOnly": "{name} can only be tested for whether it's filled in. Write \"{name} is empty\", \"{name} is not empty\", or just \"{name}\".",
   "@wordingIssuePresenceOnly": {
     "description": "A condition compares free text, or a slot that is only text, with a value. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.",
     "placeholders": {
@@ -15245,7 +15289,7 @@
       }
     }
   },
-  "wordingIssueNotANumber": "{name} isn’t a number, so it can’t be “{op}” something. Use “{name} is …” or “{name} is in (…)”.",
+  "wordingIssueNotANumber": "{name} isn't a number, so it can't be \"{op}\" something. Use \"{name} is …\" or \"{name} is in (…)\".",
   "@wordingIssueNotANumber": {
     "description": "A condition uses a number comparison on something that isn't a number. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.",
     "placeholders": {
@@ -15259,7 +15303,7 @@
       }
     }
   },
-  "wordingIssueExpectedNumber": "After “{op}”, write a number, like {example}: “{found}” isn’t one.",
+  "wordingIssueExpectedNumber": "After \"{op}\", write a number, like {example}: \"{found}\" isn't one.",
   "@wordingIssueExpectedNumber": {
     "description": "A condition is missing the number it compares with. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.",
     "placeholders": {
@@ -15299,7 +15343,7 @@
       }
     }
   },
-  "wordingIssueNumberNotWhole": "{name} counts in whole numbers, so {found} can’t be one of its values.",
+  "wordingIssueNumberNotWhole": "{name} counts in whole numbers, so {found} can't be one of its values.",
   "@wordingIssueNumberNotWhole": {
     "description": "A condition compares a whole-number name with a fraction.",
     "placeholders": {
@@ -15313,7 +15357,7 @@
       }
     }
   },
-  "wordingIssueNumberNotQuarter": "{name} goes in quarter turns, like 0.25, 0.5, ¾ or 1½, so {found} can’t be one of its values.",
+  "wordingIssueNumberNotQuarter": "{name} goes in quarter turns, like 0.25, 0.5, ¾ or 1½, so {found} can't be one of its values.",
   "@wordingIssueNumberNotQuarter": {
     "description": "A condition compares an amount of turn with a value that isn't a whole number of quarter turns.",
     "placeholders": {
@@ -15327,7 +15371,7 @@
       }
     }
   },
-  "wordingIssueNegatedComparison": "Write “{fix}” instead of “{found}”.",
+  "wordingIssueNegatedComparison": "Write \"{fix}\" instead of \"{found}\".",
   "@wordingIssueNegatedComparison": {
     "description": "A condition writes is not before a number comparison. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.",
     "placeholders": {
@@ -15341,7 +15385,7 @@
       }
     }
   },
-  "wordingIssueAmbiguous": "“{found}” can be read two ways: “{readingA}” or “{readingB}”. Write the one you mean.",
+  "wordingIssueAmbiguous": "\"{found}\" can be read two ways: \"{readingA}\" or \"{readingB}\". Write the one you mean.",
   "@wordingIssueAmbiguous": {
     "description": "A condition's words have two readings. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.",
     "placeholders": {
@@ -15359,11 +15403,11 @@
       }
     }
   },
-  "wordingIssueSecondElse": "This part already has an “else”, so a second can’t follow it. If “else” is part of the wording here, put those words in their own square brackets, like “[everyone else]”.",
+  "wordingIssueSecondElse": "This part already has an \"else\", so a second can't follow it. If \"else\" is part of the wording here, put those words in their own square brackets, like \"[everyone else]\".",
   "@wordingIssueSecondElse": {
     "description": "A conditional part has two else words. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written."
   },
-  "wordingIssueElseAfterWord": "“else” here starts the wording for every other case. If you meant the words “{phrase}”, put them in their own square brackets: “[{phrase}]”.",
+  "wordingIssueElseAfterWord": "\"else\" here starts the wording for every other case. If you meant the words \"{phrase}\", put them in their own square brackets: \"[{phrase}]\".",
   "@wordingIssueElseAfterWord": {
     "description": "Warning: else follows a word it may have been meant to go with. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.",
     "placeholders": {
@@ -15373,7 +15417,7 @@
       }
     }
   },
-  "wordingIssueOtherwiseWord": "“{found}” shows as wording here. To give wording for every other case, write “else”.",
+  "wordingIssueOtherwiseWord": "\"{found}\" shows as wording here. To give wording for every other case, write \"else\".",
   "@wordingIssueOtherwiseWord": {
     "description": "Warning: a branch uses a word like otherwise where else may have been meant. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.",
     "placeholders": {
@@ -15383,7 +15427,7 @@
       }
     }
   },
-  "wordingIssueEmptyMeansNoValue": "“{name} is empty” tests whether {name} has no value, not for its choice “empty”. To test for that choice, write “{fix}”.",
+  "wordingIssueEmptyMeansNoValue": "\"{name} is empty\" tests whether {name} has no value, not for its choice \"empty\". To test for that choice, write \"{fix}\".",
   "@wordingIssueEmptyMeansNoValue": {
     "description": "Warning: a condition tests is empty on a name that has a choice called empty. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.",
     "placeholders": {
@@ -15397,7 +15441,7 @@
       }
     }
   },
-  "wordingIssueValueAfterConnective": "“{found}” after “{word}” is a value, not something to test. Say what you’re testing again, “{fixA}”, or list the values: “{fixB}”.",
+  "wordingIssueValueAfterConnective": "\"{found}\" after \"{word}\" is a value, not something to test. Say what you're testing again, \"{fixA}\", or list the values: \"{fixB}\".",
   "@wordingIssueValueAfterConnective": {
     "description": "A condition writes a second value after and/or instead of a second test. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.",
     "placeholders": {
@@ -15419,11 +15463,11 @@
       }
     }
   },
-  "wordingIssueNothingToTest": "This wording can’t test anything here: the figure it belongs to isn’t on this device, or this version of the app doesn’t know it, so its conditions can’t be checked. Change it on a device that has the figure, or remove the condition.",
+  "wordingIssueNothingToTest": "This wording can't test anything here: the figure it belongs to isn't on this device, or this version of the app doesn't know it, so its conditions can't be checked. Change it on a device that has the figure, or remove the condition.",
   "@wordingIssueNothingToTest": {
     "description": "A condition is written in a wording whose figure is not on this device."
   },
-  "wordingIssueTooLongTyped": "This wording is too long to read: it’s over {max} characters as typed. Shorten it.",
+  "wordingIssueTooLongTyped": "This wording is too long to read: it's over {max} characters as typed. Shorten it.",
   "@wordingIssueTooLongTyped": {
     "description": "Typed wording far longer than any template that can be saved.",
     "placeholders": {
@@ -15443,7 +15487,7 @@
       }
     }
   },
-  "wordingIssueTooManyNots": "This condition puts too many “not”s inside each other: at most {max}. Take some out: two “not”s in a row cancel out.",
+  "wordingIssueTooManyNots": "This condition puts too many \"not\"s inside each other: at most {max}. Take some out: two \"not\"s in a row cancel out.",
   "@wordingIssueTooManyNots": {
     "description": "A condition nests not deeper than allowed. The word not is the wording language's own: keep it in English.",
     "placeholders": {

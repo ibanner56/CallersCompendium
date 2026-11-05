@@ -64,6 +64,7 @@ import '../widgets/program_export_menu.dart';
 import '../widgets/program_matrix_table.dart';
 import '../widgets/program_slot_list_editor.dart';
 import '../widgets/program_status_chip.dart';
+import '../utils/slot_dance_title.dart';
 
 /// Full-screen Program Builder (`docs/design/ux.md` §4).
 ///
@@ -1471,8 +1472,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   ///
   /// A new program's own key is new, so what it can find is a draft another
   /// new-program editor left: offered as that program, never as this one.
-  /// Of several, the first by key is offered; the rest wait for the next new
-  /// program.
+  /// Of several, the one saved most recently is offered; the rest wait for
+  /// the next new program.
   Future<void> _maybeStageDraft() async {
     if (!mounted) return;
     final List<String> candidates;
@@ -1480,13 +1481,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       candidates = _existing != null || widget.programId != null
           ? [_draftKey]
           : ([
-              for (final key in await _repos.settings.keysWithPrefix(
+              for (final key in await _repos.settings.keysWithPrefixNewestFirst(
                 kProgramEditorDraftKeyPrefix,
               ))
                 if (isNewProgramEditorDraftKey(key) &&
                     !_openDraftKeys.contains(key))
                   key,
-            ]..sort());
+            ]);
     } catch (_) {
       // diagnostics: silent — the draft lookup is best-effort; the editor loads without one.
       return;
@@ -2067,9 +2068,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   String? _slotTitleForDance(String danceId) {
     final dance = _danceById(danceId);
     if (dance == null) return null;
-    if (!dance.isDeleted) return dance.title;
-    return '${dance.title} '
-        '${AppLocalizations.of(context).programsDeletedDanceFallback}';
+    return slotDanceTitle(
+      AppLocalizations.of(context),
+      dance,
+      markDeleted: true,
+    );
   }
 
   Future<void> _rememberImportedDance(String danceId) async {
@@ -2104,7 +2107,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     }
   }
 
-  String? _titleForDance(String danceId) => _danceById(danceId)?.title;
+  String? _titleForDance(String danceId) => switch (_danceById(danceId)) {
+    final dance? => slotDanceTitle(AppLocalizations.of(context), dance),
+    null => null,
+  };
 
   /// Resolves a dance's formation for the slot editor's redundant accent +
   /// formation text (issue #270). Null when the dance is unavailable.
@@ -4437,7 +4443,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final sectionShape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: AppShapes.borderRadiusMedium,
       side: BorderSide(color: colorScheme.outlineVariant),
     );
     return ExpansionTile(

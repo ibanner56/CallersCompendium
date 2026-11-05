@@ -66,7 +66,11 @@ bool customFieldIndexesValueText(CustomFieldDefRow def) =>
 ///
 /// Definitions are **soft-deleted** as of schema v25 (issue #898).
 class CustomFieldDefRepository {
-  CustomFieldDefRepository(this._db, {this.onIndexedValuesChanged});
+  CustomFieldDefRepository(
+    this._db, {
+    this.onIndexedValuesChanged,
+    this.onDancesLostValues,
+  });
 
   final CompendiumDatabase _db;
 
@@ -79,6 +83,12 @@ class CustomFieldDefRepository {
   /// every definition it wrote (#1920,
   /// `CompendiumSyncStorage.reindexDerivedAfterApply`).
   final Future<void> Function(String id)? onIndexedValuesChanged;
+
+  /// Called, inside the write's transaction, with the dances whose values for a
+  /// tombstoned definition an [upsert] deleted by adopting it under a recreated
+  /// field of the same key (a new entity, so the old values do not carry over).
+  /// Their index rows are rebuilt so they stop carrying the deleted text.
+  final Future<void> Function(List<String> danceIds)? onDancesLostValues;
 
   /// Writes [def], reviving it if a tombstone holds its UNIQUE key. See
   /// `TagRepository.upsert`.
@@ -179,6 +189,18 @@ class CustomFieldDefRepository {
           incumbentDeletedAt: incumbent.deletedAt,
         );
       }
+      // Adoption deletes the adopted tombstone's `custom_field_values` rows
+      // (see [adoptTombstonedNaturalKey]), which are the trashed dances' values
+      // for it. Their index rows still carry that text, and once the rows are
+      // gone nothing links the dances to the field, so name them first.
+      final adoptedHolders =
+          (!fromSync &&
+              !collidingEdit &&
+              current == null &&
+              incumbent != null &&
+              incumbent.deletedAt != null)
+          ? await _danceIdsHolding(incumbent.id)
+          : const <String>[];
       final id = (collidingEdit || fromSync)
           ? def.id
           : await adoptTombstonedNaturalKey(
@@ -194,11 +216,9 @@ class CustomFieldDefRepository {
                 def.id;
       final heldBefore = fromSync ? null : await _publishesValues(id);
       final indexedBefore = fromSync ? null : await _indexesValues(id);
-      final typeBefore = fromSync
-          ? null
-          : (await (_db.select(
-              _db.customFieldDefs,
-            )..where((t) => t.id.equals(id))).getSingleOrNull())?.type;
+      final typeBefore = (await (_db.select(
+        _db.customFieldDefs,
+      )..where((t) => t.id.equals(id))).getSingleOrNull())?.type;
       await _db
           .into(_db.customFieldDefs)
           .insertOnConflictUpdate(
@@ -216,6 +236,21 @@ class CustomFieldDefRepository {
               updatedAt: Value(now),
             ),
           );
+      // An inbound write drops what no longer fits too, or a peer's type
+      // change would leave this device's trashed dances unreadable. It never
+      // restamps: §6.7 keeps the inbound write off the editor's path, and the
+      // peer that made the change restamped its own copies of those dances,
+      // which reach this device as ordinary newer edits.
+      if (fromSync && typeBefore != null) {
+        await _dropTrashedValuesThatNoLongerFit(
+          id,
+          typeBefore: typeBefore,
+          type: def.type,
+          choices: choices,
+          restamp: false,
+          at: now,
+        );
+      }
       if (collidingEdit) {
         await recordNormalisationSkipAt(
           _db,
@@ -247,6 +282,9 @@ class CustomFieldDefRepository {
         if (indexedBefore != await _indexesValues(id)) {
           await onIndexedValuesChanged?.call(id);
         }
+        if (adoptedHolders.isNotEmpty) {
+          await onDancesLostValues?.call(adoptedHolders);
+        }
       }
       if (localUserEdit) {
         await cancelPendingSyncDeletionForLocalEdit(
@@ -263,8 +301,8 @@ class CustomFieldDefRepository {
   }
 
   /// Deletes the values that dances in Recently deleted hold for field [id]
-  /// once a local write (an edit, an import, a merge restore; never an inbound
-  /// sync write) has left them no longer fitting it: every such value when the
+  /// once a write (an edit, an import, a merge restore, or an inbound sync
+  /// write) has left them no longer fitting it: every such value when the
   /// type changed from [typeBefore] to [type] (other than between text and
   /// choice, which store the same text; number and boolean are dropped too,
   /// since a number read as a boolean changes the value), and, for a choice
@@ -280,10 +318,13 @@ class CustomFieldDefRepository {
   /// a live dance's value locks the type and its choice in the editor, and this
   /// write is not where that is enforced.
   ///
-  /// When the field published its values before this write ([restamp]), each
-  /// affected dance's wire body loses one, so its `updated_at` advances as
+  /// When the field published its values before a local write ([restamp]),
+  /// each affected dance's wire body loses one, so its `updated_at` advances as
   /// [_restampDancesHolding] does (sync-spec §6.5 I1). A dance whose value is
-  /// kept is not restamped: its body is unchanged.
+  /// kept is not restamped: its body is unchanged. An inbound write passes
+  /// `restamp: false`: the device that changed the field restamped the same
+  /// dances when it dropped the same values, so its copies win here as newer
+  /// edits (sync-spec §6.7, amended 2026-11-05).
   Future<void> _dropTrashedValuesThatNoLongerFit(
     String id, {
     required CustomFieldType typeBefore,
@@ -351,6 +392,14 @@ class CustomFieldDefRepository {
     )..where((t) => t.id.equals(id))).getSingleOrNull();
     return row != null && row.deletedAt == null && row.shareable;
   }
+
+  /// The ids of every dance, live or in the Trash, holding a value for [id].
+  Future<List<String>> _danceIdsHolding(String id) async => [
+    for (final row in await (_db.select(
+      _db.customFieldValues,
+    )..where((t) => t.fieldId.equals(id))).get())
+      row.danceId,
+  ];
 
   /// Whether definition [id] currently lets its values into the search bar's
   /// text index: a live row that [customFieldIndexesValueText] admits.

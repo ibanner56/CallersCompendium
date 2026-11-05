@@ -2211,7 +2211,9 @@ class ProgramRepository {
 
   /// Removes everything a trashed, published program holds except its
   /// deletion record: its slots, its provenance, any kept parts a newer peer's
-  /// build sent (`retained_sync_fields`), and every field of its row. The blank
+  /// build sent (`retained_sync_fields`), the queued reviews about it
+  /// (`review_queue`; a conflict choice holds another device's whole
+  /// version), and every field of its row. The blank
   /// body is stamped after the content it replaces, so it wins last-writer-wins
   /// on every peer. Nothing else cites a program.
   Future<void> _blank(ProgramRow row, {required DateTime now}) async {
@@ -2225,6 +2227,12 @@ class ProgramRepository {
     await (_db.delete(_db.retainedSyncFields)..where(
           (t) =>
               t.kind.equals(SyncRecordKind.program.name) &
+              t.recordId.equals(id),
+        ))
+        .go();
+    await (_db.delete(_db.reviewQueue)..where(
+          (t) =>
+              t.kind.equalsValue(SyncRecordKind.program) &
               t.recordId.equals(id),
         ))
         .go();

@@ -413,7 +413,7 @@ void main() {
 
       expect(
         find.text(
-          '\u201cBarn Dance\u201d will be deleted. 3 dances will lose this '
+          '"Barn Dance" will be deleted. 3 dances will lose this '
           'program from their calling history. You can undo this.',
         ),
         findsOneWidget,
@@ -451,9 +451,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.text(
-          '\u201cEmpty Night\u201d will be deleted. You can undo this.',
-        ),
+        find.text('"Empty Night" will be deleted. You can undo this.'),
         findsOneWidget,
       );
     });

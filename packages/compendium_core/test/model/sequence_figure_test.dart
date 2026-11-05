@@ -346,7 +346,7 @@ void main() {
       ]);
     });
 
-    test('Then matches the steps of a sequence in order only', () async {
+    test('Then matches the steps of a sequence in order, and a wrap', () async {
       await dances.create(sampleDance(id: 'seq', figures: [balanceAndSwing]));
       expect(
         await dances.search(
@@ -354,13 +354,49 @@ void main() {
         ),
         ['seq'],
       );
+      // A dance of just these two steps is a loop: swing is last, balance
+      // first, so the reverse order matches across the wrap.
       expect(
         await dances.search(
           ThenFilter(FigureLeaf('swing'), FigureLeaf('balance')),
         ),
-        isEmpty,
+        ['seq'],
       );
     });
+
+    test(
+      'Then reads a sequence step by step, not step to later step',
+      () async {
+        await dances.create(
+          sampleDance(
+            id: 'three',
+            figures: [
+              Figure.sequence(
+                figures: [
+                  Figure(move: 'balance', params: const {'beats': 4}),
+                  Figure(move: 'swing', params: const {'beats': 4}),
+                  Figure(move: 'chain', params: const {'beats': 4}),
+                ],
+                beats: 12,
+              ),
+            ],
+          ),
+        );
+        expect(
+          await dances.search(
+            ThenFilter(FigureLeaf('balance'), FigureLeaf('swing')),
+          ),
+          ['three'],
+        );
+        // swing sits between balance and chain.
+        expect(
+          await dances.search(
+            ThenFilter(FigureLeaf('balance'), FigureLeaf('chain')),
+          ),
+          isEmpty,
+        );
+      },
+    );
 
     test('a sequence inside a meanwhile shares the meanwhile group', () async {
       await dances.create(

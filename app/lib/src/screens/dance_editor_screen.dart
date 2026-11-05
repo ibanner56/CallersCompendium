@@ -4,12 +4,13 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:intl/intl.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
+import '../data/date_format_scope.dart';
 import '../data/display_defaults.dart';
 import '../data/editor_draft_shutdown_scope.dart';
+import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
 import '../data/related_dance_links.dart';
 import '../data/shorthand_mappings_scope.dart';
@@ -18,6 +19,7 @@ import '../editor/draft_save_health.dart';
 import '../editor/editor_snapshot.dart';
 import '../search/dance_editor_reference_data.dart';
 import '../utils/confirm_delete.dart';
+import '../utils/scroll_to_error.dart';
 import '../utils/shortcut_platform.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/app_shortcuts.dart';
@@ -67,6 +69,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   late CompendiumRepositories _repos;
   late DanceEditorController _controller;
   final _formKey = GlobalKey<FormState>();
+  final _formScroll = ScrollController();
   final _moreDetailsController = ExpansibleController();
 
   static final Taxonomy _taxonomy = contraTaxonomy;
@@ -337,6 +340,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
 
   @override
   void dispose() {
+    _formScroll.dispose();
     if (_dependenciesInitialized) {
       _unregisterShutdownFlush?.call();
       _controller.removeListener(_onControllerChanged);
@@ -446,9 +450,16 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     final formIsValid = _formKey.currentState?.validate() ?? false;
     if (!formIsValid || hasInvalidCustomFieldNumber) {
       if (hasInvalidCustomFieldNumber) _moreDetailsController.expand();
-      // `validate()` has put each message on its own field. Nothing scrolls to
-      // the first one, so it can sit above the fold.
+      // `validate()` has put each message on its own field, and scrolls to
+      // none of them, so the first is brought into view here. The
+      // custom-number message is the list's first entry, above every field,
+      // and a lazy list may have let go of it: scroll to the top instead.
       setState(() {});
+      if (hasInvalidCustomFieldNumber) {
+        scrollToTopForError(context, _formScroll);
+      } else {
+        scrollToFirstInvalidField(context, _formKey);
+      }
       return;
     }
     setState(() => _saving = true);
@@ -647,9 +658,12 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
           const SizedBox(height: 12),
           Text(
             l10n.danceEditorUnsavedDraftSavedAt(
-              DateFormat.yMMMd(
-                Localizations.localeOf(context).toString(),
-              ).add_jm().format(savedAt.toLocal()),
+              formatEventDateTime(
+                savedAt,
+                DateFormatScope.of(context),
+                MaterialLocalizations.of(context),
+                l10n,
+              ),
             ),
           ),
         ],
@@ -1083,6 +1097,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     return DanceEditorForm(
       controller: _controller,
       formKey: _formKey,
+      scrollController: _formScroll,
       moreDetailsController: _moreDetailsController,
       taxonomy: _taxonomy,
       moveParamDefaults: _moveParamDefaults,

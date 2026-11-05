@@ -167,9 +167,11 @@ large text), to choose where your words are looked for: **All fields**,
 sources, custom field values, hooks and notes, and finds each word exactly as
 you typed it. It skips yes/no fields, which you find with their filter, and
 any custom field with **Searchable** turned off (see
-[Make your own fields](#make-your-own-fields)). It also looks at figures, which are matched by meaning, so a
-role word finds the figure however the role was worded when the dance was
-entered. (Unrecognized figure text saved before role words were rewritten may not
+[Make your own fields](#make-your-own-fields)).
+
+**All fields** also looks at figures, but figures are matched by meaning, not
+by the exact letters you typed: a role word finds the figure however the role
+was worded when the dance was entered. (Unrecognized figure text saved before role words were rewritten may not
 match a role word until you save the dance again; see
 [Write & edit dances](./authoring.md).)
 
@@ -193,10 +195,20 @@ example **Filters · 3**), and **Advanced** reads **Advanced (on)** while a
 figure query is in use. The **Advanced** panel's query editor is always
 available; it has no effect until you add a condition, and any condition you
 add applies straight away. To set a query aside, delete its conditions.
-While **Online search** is on, **Filters** and **Advanced** are grayed out,
-because they only apply to your own library; **By phrase** stays available for
-sources that support it. A source selector appears under the row so you can
-choose which archive to search.
+While **Online search** is on, **Filters** is grayed out, because it only
+applies to your own library. **By phrase** stays available for The Caller's Box,
+and **Advanced** for ContraDB; each is grayed out for the archive that cannot
+use it. A source selector appears under the row so you can choose which archive
+to search.
+
+On ContraDB, **Advanced** searches the archive with the same **All of**,
+**Any of**, and **None of** groups of **Has figure** and **Sequence (then)**
+conditions you use on your own library, and its results must also match any
+text in the search box. ContraDB cannot run every condition the same way, so a
+query that contains a tag, a figure's details (such as its beats or section), a
+move ContraDB does not have, or any other filter is not sent; you see a message
+explaining this, rather than results that quietly ignore that condition. Remove
+those conditions to search ContraDB.
 
 ## Narrow things down with filters
 
@@ -330,7 +342,9 @@ the moves — inside your dances. It works by stacking up rows and groups:
    when it appears there.
 3. Optionally set the move's **parameters** to be more specific.
 4. Add a **Sequence (then)** to require one move right after another — "a chain
-   *then* a swing."
+   *then* a swing." Only a move directly after the first counts, not one later
+   in the dance. A dance is treated as a loop, so the first move counts as
+   coming right after the last one.
 
 Rows live inside groups set to **All of**, **Any of**, or **None of** — match
 every row, any row, or no row — and a **Condition group** can sit inside another,
@@ -488,7 +502,9 @@ already entered stays consistent. The app tells you which ones when you edit a
 field in use. A dance in **Recently deleted** doesn't count: it doesn't lock a
 field's type or keep you from removing a choice it uses. If you change the type,
 or remove that choice, the deleted dance loses its value for the field unless
-the value still fits, and restoring the dance won't bring it back. It doesn't
+the value still fits, and restoring the dance won't bring it back. With
+[Device Sync](./settings.md#device-sync), a change made on another device does
+the same to the deleted dances on this one. It doesn't
 keep you from deleting the whole field either; if you do, restoring the dance
 brings the field back with its value.
 
@@ -522,9 +538,15 @@ undone.
     names or text, so your other devices delete it too. A program that
     included the dance keeps its title as a line of text, as it does for any
     dance that is gone for good. Programs work the same way.
+  - If another device permanently deleted a dance while **Recently deleted**
+    was open here, tapping **Restore** on it restores nothing and shows no
+    "restored" message. The entry disappears when the list refreshes.
   - A device still on an older version of the app shows that deletion record
     in its Recently deleted as an untitled "—" entry until you update it. Don't
     restore it there: it is empty.
+  - If another device added the dance to a program before it heard about the
+    deletion, that slot shows "Deleted dance" instead, because the title is
+    already gone.
   - A shared dance left in Recently deleted is cleared the same way when the
     window you chose in Settings runs out, on all your devices. One
     difference: while a program or another dance still includes it, it keeps

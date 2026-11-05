@@ -6,10 +6,11 @@ import 'package:compendium_core/compendium_core.dart'
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
-import 'package:intl/intl.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../data/backup_io.dart';
+import '../../data/date_format_scope.dart';
+import '../../data/regional_formats.dart';
 import '../../data/repositories_scope.dart';
 import '../../diagnostics/error_log.dart';
 import '../../sync/sync_controller.dart';
@@ -19,6 +20,7 @@ import '../../sync/sync_http_client.dart' show isDefaultSyncEndpoint;
 import '../../sync/sync_scope.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/collapsible_section.dart';
+import '../../widgets/notice_card.dart';
 import '../../widgets/section_header.dart';
 import '../sync_conflict_sheet.dart';
 import '../sync_review_screen.dart';
@@ -401,13 +403,10 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
           // off for the launch although the stored setting may say on, and the
           // status block below only exists while it is on.
           if (controller.settingsUnreadable)
-            ListTile(
+            _SyncNoticeBox(
               key: const ValueKey('sync-settings-unreadable'),
-              leading: Icon(
-                Icons.error_outline,
-                color: theme.colorScheme.error,
-              ),
-              title: Text(l10n.settingsSyncStatusSettingsUnreadable),
+              kind: NoticeKind.error,
+              child: Text(l10n.settingsSyncStatusSettingsUnreadable),
             ),
           if (controller.enabled) ...[
             SwitchListTile(
@@ -537,28 +536,31 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
             // uploading imported dances nothing uses — only while that is
             // still off; never a wipe (spec §5.3).
             if (controller.quotaNearlyFull)
-              ListTile(
+              _SyncNoticeBox(
                 key: const ValueKey('sync-quota-warning'),
-                leading: Icon(
-                  Icons.error_outline,
-                  color: theme.colorScheme.error,
-                ),
-                title: Text(l10n.settingsSyncQuotaNearlyFull),
-                subtitle: controller.excludeImports
-                    ? null
-                    : Align(
-                        alignment: AlignmentDirectional.centerStart,
-                        child: TextButton(
-                          key: const ValueKey('sync-quota-exclude-imports'),
-                          onPressed: () => controller.setExcludeImports(true),
-                          child: Text(l10n.settingsSyncQuotaExcludeImports),
+                kind: NoticeKind.error,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(l10n.settingsSyncQuotaNearlyFull),
+                    Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        if (!controller.excludeImports)
+                          TextButton(
+                            key: const ValueKey('sync-quota-exclude-imports'),
+                            onPressed: () => controller.setExcludeImports(true),
+                            child: Text(l10n.settingsSyncQuotaExcludeImports),
+                          ),
+                        _CopyDetailsButton(
+                          key: const ValueKey('sync-quota-copy-details'),
+                          onPressed: () => _copySupportCode(
+                            syncQuotaSupportCode(controller.storeQuota!),
+                          ),
                         ),
-                      ),
-                trailing: _CopyDetailsButton(
-                  key: const ValueKey('sync-quota-copy-details'),
-                  onPressed: () => _copySupportCode(
-                    syncQuotaSupportCode(controller.storeQuota!),
-                  ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             // The conditions the last pass to raise any had to report (spec
@@ -614,13 +616,11 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
             // dialog of their own to report it in. This tile is the surface
             // they share.
             if (controller.mergedDuplicates > 0)
-              ListTile(
+              _SyncNoticeBox(
                 key: const ValueKey('sync-merged-duplicates'),
-                leading: Icon(
-                  Icons.merge_outlined,
-                  color: theme.colorScheme.tertiary,
-                ),
-                title: Text(
+                kind: NoticeKind.info,
+                icon: Icons.merge_outlined,
+                child: Text(
                   l10n.settingsSyncMergedDuplicates(
                     controller.mergedDuplicates,
                   ),
@@ -647,13 +647,13 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
                         ),
                       ),
                     )
-                  : ListTile(
+                  : _SyncNoticeBox(
                       key: const ValueKey('sync-custom-endpoint'),
-                      leading: Icon(
-                        Icons.dns_outlined,
-                        color: theme.colorScheme.error,
-                      ),
-                      title: Text(
+                      // Spec §8 asks for a prominent treatment: the loudest
+                      // kind, as the icon's error colour was before.
+                      kind: NoticeKind.error,
+                      icon: Icons.dns_outlined,
+                      child: Text(
                         l10n.settingsSyncCustomEndpointStatus(
                           controller.endpoint!.toString(),
                         ),
@@ -668,14 +668,11 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
               ),
             ),
             if (controller.expiryApproaching)
-              Padding(
-                padding: gutter.copyWith(top: AppSpacing.sm),
+              _SyncNoticeBox(
+                kind: NoticeKind.warning,
                 child: Text(
                   l10n.settingsSyncExpiryWarning,
                   key: const ValueKey('sync-expiry-warning'),
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.error,
-                  ),
                 ),
               ),
             if (controller.paired)
@@ -693,17 +690,21 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
                   // A failed count is not "no conflicts": hiding the row would
                   // tell the caller everything is resolved when it is unknown.
                   if (snapshot.hasError) {
-                    return ListTile(
+                    return _SyncNoticeBox(
                       key: const ValueKey('sync-conflicts-error'),
-                      leading: Icon(
-                        Icons.call_split,
-                        color: theme.colorScheme.error,
-                      ),
-                      title: Text(l10n.settingsSyncConflictsCheckFailed),
-                      trailing: TextButton(
-                        key: const ValueKey('sync-conflicts-retry'),
-                        onPressed: () => setState(() => _conflictGeneration++),
-                        child: Text(l10n.commonRetry),
+                      kind: NoticeKind.error,
+                      icon: Icons.call_split,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(l10n.settingsSyncConflictsCheckFailed),
+                          TextButton(
+                            key: const ValueKey('sync-conflicts-retry'),
+                            onPressed: () =>
+                                setState(() => _conflictGeneration++),
+                            child: Text(l10n.commonRetry),
+                          ),
+                        ],
                       ),
                     );
                   }
@@ -787,9 +788,13 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
     return l10n.settingsSyncStatusLastSynced(_formatWhen(context, last));
   }
 
-  String _formatWhen(BuildContext context, DateTime when) => DateFormat.yMMMd(
-    Localizations.localeOf(context).toString(),
-  ).add_jm().format(when.toLocal());
+  String _formatWhen(BuildContext context, DateTime when) =>
+      formatEventDateTime(
+        when,
+        DateFormatScope.of(context),
+        MaterialLocalizations.of(context),
+        AppLocalizations.of(context),
+      );
 
   /// The last completed trigger attempt when it was not a success, or null
   /// when the last attempt succeeded, nothing has run yet in this session, or
@@ -914,94 +919,98 @@ class _SyncNoticeTileState extends State<_SyncNoticeTile> {
         device: perDevice ? (tag: peerTag ?? '', count: total) : null,
       ),
     );
-    return ListTile(
+    final copy = widget.onCopyDetails;
+    return _SyncNoticeBox(
       key: ValueKey('sync-notice-$keyName'),
       // Needs-you is carried by the icon *and* a text label, never by colour
       // alone.
-      leading: needsYou
-          ? Icon(Icons.warning_amber_outlined, color: theme.colorScheme.error)
-          : Icon(Icons.info_outline, color: theme.colorScheme.tertiary),
-      title: needsYou
-          ? Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l10n.settingsSyncNoticeNeedsYou,
-                  key: ValueKey('sync-notice-$keyName-needs-you'),
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: theme.colorScheme.error,
-                  ),
-                ),
-                text,
-              ],
-            )
-          : text,
-      trailing: switch (widget.onCopyDetails) {
-        final onCopy? => _CopyDetailsButton(
-          key: ValueKey('sync-notice-$keyName-copy-details'),
-          onPressed: onCopy,
-        ),
-        null => null,
-      },
-      subtitle: total == 0 && peers == 0 && !perDevice
-          ? null
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (total > 0)
-                  FutureBuilder(
-                    future: _names,
-                    builder: (context, snapshot) {
-                      final named = snapshot.data;
-                      // Until the names arrive, the kinds alone still say
-                      // what to look for.
-                      final shown =
-                          named ??
-                          [
-                            for (final record in _records.take(
-                              kSyncNoticeNamedLimit,
-                            ))
-                              (record, const SyncNoticeRecordUnnamed()),
-                          ];
-                      return Text(
-                        syncNoticeAffectedText(
-                          l10n,
-                          shown,
-                          total,
-                          newerFigures: syncNoticeNewerFigureRecords(
-                            widget.reports,
-                          ),
-                        ),
-                        key: ValueKey(
-                          'sync-notice-${widget.group.name}-records',
-                        ),
-                      );
-                    },
-                  ),
-                if (peers > 0)
-                  Text(
-                    l10n.settingsSyncNoticeFromDevices(peers),
-                    key: ValueKey('sync-notice-${widget.group.name}-peers'),
-                  ),
-                // A per-device notice's one action: the list where that
-                // device is shown by the same tag, with what is waiting for
-                // it. That is where either remedy is, whether the notice
-                // needs you or not (#709: update or remove the device holding
-                // data back). A newer-version notice's remedy is updating
-                // this app, which nothing on this screen does, so it has none.
-                if (perDevice)
-                  Align(
-                    alignment: AlignmentDirectional.centerStart,
-                    child: TextButton(
-                      key: ValueKey('sync-notice-$keyName-action'),
-                      onPressed: () => showSyncDevicesScreen(context),
-                      child: Text(l10n.settingsSyncNoticeSeeDevices),
-                    ),
-                  ),
-              ],
+      kind: needsYou ? NoticeKind.warning : NoticeKind.info,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (needsYou)
+            Text(
+              l10n.settingsSyncNoticeNeedsYou,
+              key: ValueKey('sync-notice-$keyName-needs-you'),
+              style: theme.textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
+          text,
+          if (total > 0)
+            FutureBuilder(
+              future: _names,
+              builder: (context, snapshot) {
+                final named = snapshot.data;
+                // Until the names arrive, the kinds alone still say what to
+                // look for.
+                final shown =
+                    named ??
+                    [
+                      for (final record in _records.take(kSyncNoticeNamedLimit))
+                        (record, const SyncNoticeRecordUnnamed()),
+                    ];
+                return Text(
+                  syncNoticeAffectedText(
+                    l10n,
+                    shown,
+                    total,
+                    newerFigures: syncNoticeNewerFigureRecords(widget.reports),
+                  ),
+                  key: ValueKey('sync-notice-${widget.group.name}-records'),
+                );
+              },
+            ),
+          if (peers > 0)
+            Text(
+              l10n.settingsSyncNoticeFromDevices(peers),
+              key: ValueKey('sync-notice-${widget.group.name}-peers'),
+            ),
+          // A per-device notice's one action: the list where that device is
+          // shown by the same tag, with what is waiting for it. That is where
+          // either remedy is, whether the notice needs you or not (#709:
+          // update or remove the device holding data back). A newer-version
+          // notice's remedy is updating this app, which nothing on this
+          // screen does, so it has none.
+          if (perDevice)
+            TextButton(
+              key: ValueKey('sync-notice-$keyName-action'),
+              onPressed: () => showSyncDevicesScreen(context),
+              child: Text(l10n.settingsSyncNoticeSeeDevices),
+            ),
+          if (copy != null)
+            _CopyDetailsButton(
+              key: ValueKey('sync-notice-$keyName-copy-details'),
+              onPressed: copy,
+            ),
+        ],
+      ),
     );
   }
+}
+
+/// A notice of the Device Sync section: a [NoticeCard] set in the section's
+/// gutter, with the icon the [kind] implies unless [icon] says otherwise.
+class _SyncNoticeBox extends StatelessWidget {
+  const _SyncNoticeBox({
+    super.key,
+    required this.kind,
+    required this.child,
+    this.icon,
+  });
+
+  final NoticeKind kind;
+  final IconData? icon;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(
+      horizontal: AppSpacing.md,
+      vertical: AppSpacing.xs,
+    ),
+    child: NoticeCard(kind: kind, icon: icon, child: child),
+  );
 }
 
 /// The "Copy details" action on a needs-you Device Sync item.

@@ -466,7 +466,11 @@ void main() {
       expect(find.byType(ImportReviewScreen), findsOneWidget);
       expect(stagedFile.existsSync(), isTrue);
 
+      // Leaving mid-review asks first; the file is cleaned once it is dismissed.
       await tester.pageBack();
+      await tester.pumpAndSettle();
+      expect(stagedFile.existsSync(), isTrue);
+      await tester.tap(find.byKey(const ValueKey('discard-confirm')));
       await tester.pumpAndSettle();
 
       expect(stagedFile.existsSync(), isFalse);
