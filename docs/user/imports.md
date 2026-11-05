@@ -406,22 +406,17 @@ separated by commas, such as "Slide Left, Circle Left 3/4", comes across as
 those figures, sharing the line's beats. Anything the app cannot represent
 faithfully is kept word-for-word as text rather than guessed at.
 
-The app also reads the way Caller's Companion abbreviates and words its
-figures. "Circle L", "Larks pass R shoulder" and "Neighbor alle R 1.5" keep
-their direction, shoulder and hand, and "R&L" is a right and left through. A
-hey written "Half Hey, Robins start right shoulder" keeps who starts and on
-which shoulder. "New Neighbor" means your next neighbors and "Corner" your
-first corners. "Ring balance, spin to the right" is a petronella with its
-balance, "Balance wave and slide to the right" a Rory O'More with its balance,
-"Wave balance, circulate" a box circulate with its balance (a bracket such as
-"(Larks cross)" after it says who crosses), and "Partner R-hand balance, square
-through 2" one square through with its balance. "make short waves" forms short
-waves. The same wordings work when you type a figure with
-[Free-text entry](./authoring.md#free-text-entry) on. For dances you brought
-across before, [Re-check unrecognized figures](./authoring.md#fix-figures-an-import-could-not-read)
-can upgrade lines like these that were kept as text. It does not split a line
-at its commas, though: to pick up a line that names several figures, re-import
-the dance.
+The app also reads Caller's Companion's abbreviations and wording. "Circle L",
+"pass R shoulder" and "alle R 1.5" keep their direction, shoulder and hand;
+"R&L" is a right and left through; "New Neighbor" and "Corner" mean your next
+neighbors and first corners. "Ring balance, spin to the right", "Balance wave
+and slide to the right", "Wave balance, circulate" and "Partner R-hand balance,
+square through 2" read as a petronella, a Rory O'More, a box circulate and a
+square through, each with its balance. The same wordings work in
+[Free-text entry](./authoring.md#free-text-entry). For dances brought across
+earlier, [Re-check unrecognized figures](./authoring.md#fix-figures-an-import-could-not-read)
+can upgrade such lines, but it does not split a line at its commas: re-import
+the dance for that.
 
 The up to three **custom columns** you defined in Caller's Companion come
 across as **custom fields**, one per column name, filled in on each dance, so
