@@ -1079,11 +1079,13 @@ Sync is off and open while it is on.
   each device too: **App language**, **Reduce motion**, **Auto-size Perform
   cards**, and Perform's stage theme and text size. Unlike the sync settings
   above, a backup includes them. Your theme and custom themes do sync. A
-  device still on an older version of the app keeps syncing these with other
-  older devices, but this device ignores what it sends. Until you update it,
+  device still on an older version of the app keeps syncing the language,
+  **Reduce motion**, **Auto-size Perform cards** and stage theme settings with
+  other older devices (text size never synced), but this device ignores what it
+  sends. Until you update it,
   that older device may wrongly say this one isn't taking its changes; see
   **"Needs you"** above. A choice that was waiting under **Choose which
-  version to keep** for one of these settings from before you updated is
+  version to keep** for one of those four settings from before you updated is
   dropped, since there is nothing left to choose.
 
 **Connecting.** Once Device Sync is on, choose **Connect**, then either:

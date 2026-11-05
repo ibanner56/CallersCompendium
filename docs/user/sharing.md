@@ -158,10 +158,10 @@ If something goes wrong the app says so plainly — "Couldn't share this set lis
 
 Settings › Defaults has a checklist for every non-figures dance field a dance
 card can show: author, formation, level, mixer, status, phrase, calling
-notes, walkthrough, suggested tunes, hook, and published sources. Author is on
-by default, matching every export before this setting existed; suggested tunes,
-the hook and published sources are off by default, since no export showed them
-before.
+notes, walkthrough, suggested tunes, hook, and published sources. Everything
+except suggested tunes, the hook and published sources is on by default,
+matching every export before this setting existed; those three are off by
+default, since no export showed them before.
 
 A published source prints as one line per citation, such as *Give-and-Take —
 A. Author, 1990 (p. 12, no. 3)*: its title, author and year, then the page and

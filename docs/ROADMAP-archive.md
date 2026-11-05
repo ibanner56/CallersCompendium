@@ -456,7 +456,7 @@ defaults) live in the **Defaults** pane section below.
   `validate` only requires a locale to be a *subset* of the template, so a missing
   key passed it by design, which is how a 100-string backlog accumulated unseen.
   Two surfaces stay English by design for now — a small set of core service-layer
-  messages (#528) and the diagnostics-log export body (a maintainer support
+  messages (#528; since localized in #573) and the diagnostics-log export body (a maintainer support
   artifact). Exported dance/program documents now follow the UI language (#529).
   NOTE: the first-day-of-week preference is now live: the Programs list's "this
   week" header strip (`WeekdayHeaderStrip`) honors it, ordering its weekday

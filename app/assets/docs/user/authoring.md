@@ -727,7 +727,7 @@ work in the editor so you can try again.
 **Delete dance** (in the top bar, on an existing dance) removes the dance. As
 everywhere else in the app, deletion is a soft delete with an **Undo** offered
 right away (if you turned on **Confirm before delete** in
-[Settings](./settings.md), the app asks first) — see
+[Settings](./settings.md#accessibility), the app asks first) — see
 [Keep your collection tidy](./collection.md#keep-your-collection-tidy).
 
 ## Start new dances the way you work

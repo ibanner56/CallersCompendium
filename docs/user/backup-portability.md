@@ -93,8 +93,9 @@ A backup holds **everything** you've built, including:
   them after bringing the backup back.
 - Your custom fields, tags, authors, published sources, difficulty levels,
   and saved [venues](./glossary.md#venue). An author's private email,
-  location and deceased mark, and a venue's address and contact people, are
-  in your backup too, though they are left out of files you share. A sharing
+  location and deceased marker, and a venue's address and contact people, are
+  in your backup too. Files you share leave them out, except a venue's contact
+  people when you choose to include them. A sharing
   opt-out keeps a custom field out of files you send to other people; it does
   not remove the field from your own backup.
 - Your custom [dialects](./dialects.md) and which one is active.
