@@ -1,0 +1,9 @@
+{
+  "id": "collection-filters-full-width",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "The Filters, By phrase and Advanced buttons above the Collection now share the full width of the screen instead of leaving a gap at the end of the row."
+    ]
+  }
+}
