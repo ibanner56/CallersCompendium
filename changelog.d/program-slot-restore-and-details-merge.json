@@ -1,0 +1,12 @@
+{
+  "id": "program-slot-restore-and-details-merge",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "A program slot whose dance is in Recently deleted now offers Restore: from the slot's … menu in the program builder, or from the Restore button on its row in the program summary. Perform mode does not offer it."
+    ],
+    "fixed": [
+      "When Perform found a program changed elsewhere while the builder held unsaved edits, saving the builder later put back the old title, band or other details you had not edited. Those details now keep the change from elsewhere, and the ones you edited keep your edit."
+    ]
+  }
+}

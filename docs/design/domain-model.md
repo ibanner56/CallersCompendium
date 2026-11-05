@@ -320,7 +320,9 @@ URLs. (Every settings key is classified in
 - Deleting a dance (soft) keeps program slots valid. While the dance is in
   Recently deleted every program view shows its title marked as deleted
   (`resolveDeletedSlotDances` in the app); a dance id that resolves to nothing
-  shows a tombstone.
+  shows a tombstone. The builder and the summary, not Perform, offer Restore on
+  such a slot (`restoreSlotDanceFromRecentlyDeleted`, the Recently deleted
+  screen's own restore).
 
 ## Explicitly out of v1
 

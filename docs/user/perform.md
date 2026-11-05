@@ -254,7 +254,11 @@ somewhere else while Perform is open — most often when
 — your next change is saved on top of that edit rather than replacing it.
 Perform then switches to the newer program and says so: *This program had
 changed elsewhere since Perform opened. Perform now shows the latest version,
-with your change.* Undo still takes back only your own change. If you have set calling history to count
+with your change.* Undo still takes back only your own change. If you opened Perform from the
+builder with unsaved edits, the builder takes the newer program too: each
+detail you have not edited, such as the title or the band, takes the version
+from elsewhere, so saving later does not put the old one back, and each detail
+you have edited keeps your edit. If you have set calling history to count
 only slots marked performed, this is where you mark them — see
 [Programs & matrix](./programs.md#track-what-you-have-called).
 
