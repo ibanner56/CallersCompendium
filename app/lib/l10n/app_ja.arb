@@ -7282,9 +7282,9 @@
   "@importErrorContraDbUnsupportedFigure": {
     "x-sourceSha256": "b3cdc0346e556478bbeb56d45067b5cc4e6361aa0ed3e239efe070a08fd08b57"
   },
-  "importErrorContraDbUnsupportedAdvanced": "ContraDBでは、「フィギュアを含む」条件を「すべてに一致」「いずれかに一致」「どれにも一致しない」のグループで組み合わせた詳細検索のみ実行できます。ContraDBを検索するには、タグ、フィギュアの詳細、ContraDBにない技、その他の条件を削除してください。",
+  "importErrorContraDbUnsupportedAdvanced": "ContraDBでは、「フィギュアを含む」と「シーケンス（次に）」の条件を「すべてに一致」「いずれかに一致」「どれにも一致しない」のグループで組み合わせた詳細検索のみ実行できます。ContraDBを検索するには、タグ、フィギュアの詳細、ContraDBにない技、その他の条件を削除してください。",
   "@importErrorContraDbUnsupportedAdvanced": {
-    "x-sourceSha256": "662183c5ddb02d8ac856f12d171f88036a9e8faeb4892cf225b099ad71dc46fe"
+    "x-sourceSha256": "8f53ddf0ffef7f620b874fdc200ce6bed571cbec3bcb67d8c1436203f6c52854"
   },
   "importErrorContraDbEmptyDanceInput": "インポートするContraDBのダンスURLまたはIDを入力してください。",
   "@importErrorContraDbEmptyDanceInput": {

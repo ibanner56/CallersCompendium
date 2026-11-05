@@ -202,13 +202,13 @@ use it. A source selector appears under the row so you can choose which archive
 to search.
 
 On ContraDB, **Advanced** searches the archive with the same **All of**,
-**Any of**, and **None of** groups of **Has figure** conditions you use on your
-own library, and its results must also match any text in the search box.
-ContraDB cannot run every condition the same way, so a query that contains a
-tag, a figure's details (such as its beats or
-section), a move ContraDB does not have, or any other filter is not sent; you see a message explaining this,
-rather than results that quietly ignore that condition. Remove those
-conditions to search ContraDB.
+**Any of**, and **None of** groups of **Has figure** and **Sequence (then)**
+conditions you use on your own library, and its results must also match any
+text in the search box. ContraDB cannot run every condition the same way, so a
+query that contains a tag, a figure's details (such as its beats or section), a
+move ContraDB does not have, or any other filter is not sent; you see a message
+explaining this, rather than results that quietly ignore that condition. Remove
+those conditions to search ContraDB.
 
 ## Narrow things down with filters
 

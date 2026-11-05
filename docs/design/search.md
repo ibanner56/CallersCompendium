@@ -41,12 +41,12 @@ tree. Conforms to [ux.md](ux.md) §1 and [dialect.md](dialect.md)
    selects its fixed `figure` filter. The Advanced builder's tree is also sent
    to ContraDB, translated by `translateDanceFilterToContraDb` onto its
    `lib/filter_dances.rb` array language (`and`, `or`, `no`, `&`, `not`,
-   `figure`) and combined with any text criterion under `and`. Only figure
-   conditions in all/any/none groups translate. A tag, a `ThenFilter`
-   (now supported, because ours means the same as ContraDB's `then`: the
-   second figure immediately follows the first, wrapping from the last figure
-   to the first), a figure parameter or section (ContraDB compares
-   parameters by position in each move's own list), an unknown move, or any
+   `figure`) and combined with any text criterion under `and`. Figure
+   conditions in all/any/none groups and `ThenFilter` translate; `ThenFilter`
+   means the same as ContraDB's `then` (the second figure immediately follows
+   the first, wrapping from the last figure to the first). A tag, a figure
+   parameter or section (ContraDB compares parameters by position in each
+   move's own list), an unknown move (in a figure or a `then` operand), or any
    local-only leaf makes the search refuse with
    `UrlFetchFailureReason.contraDbUnsupportedAdvanced` and send nothing: a
    condition silently dropped would answer a wider question than the panel
