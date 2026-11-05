@@ -5047,9 +5047,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programsMarkAllPerformedTooltip => 'すべて実施済みにする';
 
   @override
-  String get programsSaveDirty => '変更を保存';
-
-  @override
   String get commonSave => '保存';
 
   @override

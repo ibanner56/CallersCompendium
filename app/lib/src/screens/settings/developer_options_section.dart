@@ -85,7 +85,7 @@ class _DeveloperOptionsSectionState extends State<DeveloperOptionsSection> {
         key: const ValueKey('developer-reset-database'),
         enabled: !_resetting,
         leading: Icon(
-          Icons.delete_forever_outlined,
+          Icons.dangerous_outlined,
           color: _resetting ? null : theme.colorScheme.error,
         ),
         title: Text(l10n.settingsDeveloperResetTitle),

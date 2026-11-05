@@ -6820,10 +6820,6 @@
   "@programsMarkAllPerformedTooltip": {
     "description": "Tooltip for the app-bar action that marks every dance in the program as performed."
   },
-  "programsSaveDirty": "Save changes",
-  "@programsSaveDirty": {
-    "description": "Label of the save button when the program has unsaved changes; it replaces the plain Save label so the dirty state is readable by screen readers too."
-  },
   "commonSave": "Save",
   "@commonSave": {
     "description": "Generic Save button label."

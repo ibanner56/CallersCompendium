@@ -5292,10 +5292,6 @@
   "@programsMarkAllPerformedTooltip": {
     "x-sourceSha256": "384c666be328ca6375f010475f1589a3238c0507f4043a54104ed3f412105da2"
   },
-  "programsSaveDirty": "Wijzigingen opslaan",
-  "@programsSaveDirty": {
-    "x-sourceSha256": "dd0ae7a5cbcf233968657563dce34639e681861e2df6d3f845c08d49981c0999"
-  },
   "commonSave": "Opslaan",
   "@commonSave": {
     "x-sourceSha256": "1509f561f2416598629b886ad7d3c05a7e221e4e0675c84bbff4ee6d9e03913d"

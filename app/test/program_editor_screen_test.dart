@@ -4684,7 +4684,13 @@ void main() {
       final saved = await repos.programs.getById('p1');
       expect(saved!.title, 'Night');
       expect(saved.slots.single.performedAt, isNull);
-      expect(find.text('Save changes'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('save-program')),
+          matching: find.text('Save'),
+        ),
+        findsOneWidget,
+      );
       await tester.tap(find.byKey(const ValueKey('save-program')));
       await tester.pumpAndSettle();
       final committed = await repos.programs.getById('p1');
@@ -6303,7 +6309,13 @@ void main() {
             .text,
         'Renamed',
       );
-      expect(find.text('Save changes'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('save-program')),
+          matching: find.text('Save'),
+        ),
+        findsOneWidget,
+      );
       final draft = await repos.settings.get('program_editor_draft:p1');
       expect(draft, contains('Renamed'));
 
