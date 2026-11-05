@@ -1688,11 +1688,13 @@ class FigureRenderer {
     Object? value,
     Dialect dialect, {
     bool omitUnspecified = false,
+    bool plural = false,
   }) {
     if (omitUnspecified && _isUnspecified(value)) return '';
     final subject = _displaySubject(
       value,
       dialect,
+      plural: plural,
     ).replaceAll(_subjectMarkSentinel, '');
     return subject.isEmpty ? subject : '$subject$_subjectMarkSentinel';
   }
@@ -1797,9 +1799,22 @@ class FigureRenderer {
   /// best-effort [_humanize] rather than silently blanked — malformed
   /// imported/user data must be visible, not hidden. `null` renders empty so
   /// the caller can drop the connective.
-  String _displaySubject(Object? value, Dialect dialect) {
+  ///
+  /// [plural] is for a subject a plural verb agrees with ("neighbors take
+  /// right hands"): it routes through [_displayGroup], which keeps
+  /// `neighbors` plural. The singular `neighbor` reads only as a caller's
+  /// prefix to a move ("neighbor swing"), not as the subject of "take".
+  String _displaySubject(
+    Object? value,
+    Dialect dialect, {
+    bool plural = false,
+  }) {
     if (value == null) return '';
-    if (value is String) return _displayDancer(value, dialect);
+    if (value is String) {
+      return plural
+          ? _displayGroup(value, dialect)
+          : _displayDancer(value, dialect);
+    }
     return _humanize(value.toString());
   }
 
@@ -2418,7 +2433,9 @@ class FigureRenderer {
   /// DISPLAY-ONLY singular forms for the positional dancer-set vocabulary that
   /// otherwise humanizes to a `partner`/`neighbor`/`shadow` plural. A figure's
   /// subject reads as a singular dancer in display (`neighbors` → `neighbor`),
-  /// while the canonical render keeps the plural token. Role tokens
+  /// while the canonical render keeps the plural token — except a subject a
+  /// plural verb agrees with, which stays plural ("neighbors take right
+  /// hands"; [_displaySubject]'s `plural`). Role tokens
   /// (`role1s`/`role2s`) and the group tokens `everyone`/`ones`/`twos`/
   /// `centers`/`firstCorners`/`secondCorners`/`sameRoles` are intentionally
   /// absent — they are never singularized.
@@ -2804,13 +2821,13 @@ class FigureRenderer {
     },
     // ContraDB `revolvingDoorWords`: words(smove, " - ", ssubject, "take",
     // shand, "hands and drop off", sobject, "on other side"). The subject
-    // (role2s) stays a plural role term; the object (partners) singularizes per
-    // PR1. Unknown non-null who/whom/hand values humanize (surfacing malformed
+    // stays plural to agree with "take" (role2s, or `neighbors` rather than
+    // `neighbor`); the object (partners) singularizes per PR1. Unknown non-null who/whom/hand values humanize (surfacing malformed
     // data) rather than blanking out. This base line already carries the
     // drop-off outcome, so [_summarySuffix] no longer appends its own clarifier.
     'revolving_door': (r, def, params, dialect, verbose, decimals) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
-      final swho = r._displaySubject(params['who'], dialect);
+      final swho = r._displaySubject(params['who'], dialect, plural: true);
       final hand = _displayScalar(params['hand']);
       final swhom = r._displaySubject(params['whom'], dialect);
       return _displayTemplate({
@@ -2831,7 +2848,7 @@ class FigureRenderer {
     // (ContraDB's own empty-subject fallback).
     'box_circulate': (r, def, params, dialect, verbose, decimals) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
-      final swho = r._subjectWho(params, dialect);
+      final swho = r._subjectToken(params['who'], dialect, plural: true);
       final other = r._invertPair(params['who'], dialect);
       final hand = _displayScalar(params['hand']);
       return _displayTemplate({
@@ -2894,7 +2911,7 @@ class FigureRenderer {
     'poussette': (r, def, params, dialect, verbose, decimals) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
       final half = _displayScalar(params['fraction']);
-      final swho = r._displaySubject(params['who'], dialect);
+      final swho = r._displaySubject(params['who'], dialect, plural: true);
       final swhom = r._displaySubject(params['whom'], dialect);
       final turn = params['direction'];
       final turnWord = turn == 'clockwise'
@@ -3013,7 +3030,7 @@ class FigureRenderer {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
       final pass1 = params['pass1'];
       final pass2 = params['pass2'];
-      final sfirst = r._subjectToken(pass1, dialect);
+      final sfirst = r._subjectToken(pass1, dialect, plural: true);
       final length = params['length'];
       final dir = params['where'];
       final sdir2 = (dir == 'across' || dir == null) ? '' : _displayScalar(dir);
@@ -3217,7 +3234,7 @@ class FigureRenderer {
     // appends " - balance the wave" (except the out-only branch, which uses
     // "& balance").
     'form_a_long_wave': (r, def, params, dialect, verbose, decimals) {
-      final swho = r._displaySubject(params['who'], dialect);
+      final swho = r._displaySubject(params['who'], dialect, plural: true);
       final other = r._invertPair(params['who'], dialect);
       final inFlag = params['in'] == true;
       final outFlag = params['out'] == true;
@@ -3312,8 +3329,12 @@ class FigureRenderer {
           : _humanize(dirRaw.toString());
       final noun = dirWord.isEmpty ? 'ocean wave' : '$dirWord ocean wave';
       final article = _indefiniteArticle(noun);
-      final scenter = r._displaySubject(params['center'], dialect);
-      final ssides = r._displaySubject(params['sides'], dialect);
+      final scenter = r._displaySubject(
+        params['center'],
+        dialect,
+        plural: true,
+      );
+      final ssides = r._displaySubject(params['sides'], dialect, plural: true);
       final centerHandRaw = params['centerHand'];
       final centerHand = _displayScalar(centerHandRaw);
       final sideHand = centerHandRaw == 'right'

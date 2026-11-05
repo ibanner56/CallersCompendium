@@ -689,6 +689,45 @@ void main() {
       });
     });
 
+    test('a subject a plural verb agrees with stays plural', () {
+      String line(String move, Map<String, Object?> params) =>
+          renderer.render(Figure(move: move, params: params), larks);
+      expect(
+        line('revolving_door', {'who': 'neighbors'}),
+        contains('- neighbors take right hands'),
+      );
+      expect(
+        line('box_circulate', {'who': 'neighbors'}),
+        contains('- neighbors cross while'),
+      );
+      expect(
+        line('poussette', {'who': 'neighbors'}),
+        contains('- neighbors pull neighbor back'),
+      );
+      expect(
+        line('hey', {'pass1': 'neighbors'}),
+        startsWith('neighbors start a half hey'),
+      );
+      expect(
+        line('form_a_long_wave', {'who': 'neighbors'}),
+        startsWith('neighbors dance in to a long wave'),
+      );
+      expect(
+        line('pass_the_ocean', {}),
+        contains('neighbors take right hands on the sides'),
+      );
+      expect(
+        line('pass_the_ocean', {'center': 'partners'}),
+        contains('partners catch left hands in the center'),
+      );
+      // A subject that only prefixes the move keeps the caller's singular.
+      expect(line('swing', {'who': 'neighbors'}), 'neighbor swing');
+      expect(
+        line('form_short_waves', {}),
+        contains('neighbor by the right on the sides'),
+      );
+    });
+
     test('figure eight puts fraction first and describes its direction', () {
       final figure = Figure(
         move: 'figure_8',
@@ -3623,11 +3662,12 @@ void main() {
       // a naive line-search into marking the MOVE NAME and leaving the real
       // subject authoritative. box_circulate renders its move name BEFORE the
       // subject, so it is the canonical trap: `moves: {box_circulate:
-      // 'partner circulate'}` yields "partner circulate - partner cross …",
-      // where a `line.indexOf('partner')` finds the move-name "partner" first.
+      // 'partners circulate'}` yields "partners circulate - partners cross …"
+      // (the subject is plural: it agrees with "cross"), where a
+      // `line.indexOf('partners')` finds the move-name "partners" first.
       final dialect = Dialect(
         name: 'Trap',
-        moves: const {'box_circulate': 'partner circulate'},
+        moves: const {'box_circulate': 'partners circulate'},
       );
       final assumed = Figure(
         move: 'box_circulate',
@@ -3636,10 +3676,10 @@ void main() {
       );
       final out = renderer.render(assumed, dialect);
       // The move name is intact — the marker did NOT land inside it …
-      expect(out, contains('partner circulate -'));
-      expect(out, isNot(startsWith('partner (assumed) circulate')));
+      expect(out, contains('partners circulate -'));
+      expect(out, isNot(startsWith('partners (assumed) circulate')));
       // … and the marker trails the ACTUAL subject token instead.
-      expect(out, contains('partner (assumed) cross'));
+      expect(out, contains('partners (assumed) cross'));
       // Exactly one marker (no residue, no double-marking).
       expect('(assumed)'.allMatches(out).length, 1);
 
@@ -3652,7 +3692,7 @@ void main() {
         dialect,
       );
       expect(statedOut, isNot(contains('(assumed)')));
-      expect(statedOut, startsWith('partner circulate -'));
+      expect(statedOut, startsWith('partners circulate -'));
     });
   });
 
