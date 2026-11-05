@@ -1048,7 +1048,8 @@ void main() {
         },
       );
 
-      test('is dropped, not carried, with venue mode off', () async {
+      test('is kept with venue mode off: no venue resolved to replace it (a '
+          'peer\'s venue may not have arrived)', () async {
         final programId = await importThenLink('gone');
 
         await importer.import(
@@ -1059,7 +1060,7 @@ void main() {
           newSlotId: sequentialIds(),
         );
 
-        expect((await programs.getById(programId))!.venueId, isNull);
+        expect((await programs.getById(programId))!.venueId, 'gone');
       });
 
       test('is kept when the venue is only soft-deleted (#2076)', () async {

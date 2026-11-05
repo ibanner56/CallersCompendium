@@ -159,8 +159,9 @@ class VenueRepository {
   /// Whether a venue row with [id] exists at all, live or soft-deleted.
   ///
   /// For a reader deciding whether a stored `venueId` is dead. A tombstoned
-  /// venue is not: a restore can revive it, and a program may arrive before
-  /// its venue does (#2076), so only the absence of any row counts.
+  /// venue is not: a restore can revive it. A `false` also covers a venue that
+  /// has not arrived yet (#2076), which this cannot tell from an erased one, so
+  /// a caller that replaces a dead link should do so only with a venue in hand.
   Future<bool> rowExists(String id) async {
     final row =
         await (_db.selectOnly(_db.venues)
