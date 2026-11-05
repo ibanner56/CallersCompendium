@@ -18,7 +18,7 @@ violation is.
 After a rewrite it also drops the fixed strings' allow-list entries (shrink-only)
 and reminds you to re-run ``gen-l10n`` so the ``l10n-drift`` gate stays green.
 It is **idempotent** and meant to be re-run on a fresh ``main`` rather than
-resolving ARB merge hunks by hand (U5b-2's conflict plan).
+resolving ARB merge hunks by hand: after a merge, re-run it on the merged tree.
 
 ## Own calls (not maintainer decisions)
 

@@ -6,6 +6,7 @@ import 'package:drift/drift.dart'
 
 import '../models/dance_list_entry.dart';
 import 'coalesce_trailing.dart';
+import 'dance_detail_data.dart' show customValueText;
 
 /// Reference/vocabulary data loaded once for the Collection, used both to build
 /// facet controls and to hydrate search-result ids into [DanceListEntry]s
@@ -542,7 +543,7 @@ class CollectionData {
         for (final def in listFieldDefs)
           for (final value in dance.customFields)
             if (value.fieldId == def.id)
-              (label: def.label, value: value.value.toString()),
+              (label: def.label, value: customValueText(value.value)),
       ],
       lastCalled: lastCalled[dance.id],
       callCounts:

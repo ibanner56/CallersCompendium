@@ -962,6 +962,38 @@ class _CompoundColumnDialogState extends State<_CompoundColumnDialog> {
   );
   late final List<_CompoundStepDraft> _steps = _initialSteps();
 
+  /// The steps the dialog opened with, to tell an edit from an untouched
+  /// dialog.
+  late final List<StepMatcher> _startSteps;
+
+  @override
+  void initState() {
+    super.initState();
+    // Read now: a lazy initializer would first run on the first edit.
+    _startSteps = _snapshot();
+  }
+
+  List<StepMatcher> _snapshot() => [
+    for (final step in _steps)
+      StepMatcher(move: step.move, params: Map.of(step.params)),
+  ];
+
+  /// Whether anything was changed since the dialog opened. A dirty dialog
+  /// ignores a tap outside it, Escape and Back, so a stray one cannot discard
+  /// the edits; its Cancel and Save buttons still close it.
+  bool _isDirty() {
+    if (_label.text != widget.initialLabel) return true;
+    final now = _snapshot();
+    if (now.length != _startSteps.length) return true;
+    for (var i = 0; i < now.length; i++) {
+      if (now[i].move != _startSteps[i].move ||
+          !mapEquals(now[i].params, _startSteps[i].params)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   String _moveOrDefault(String? move) =>
       move != null && widget.taxonomy.moves.containsKey(move)
       ? move
@@ -1060,60 +1092,64 @@ class _CompoundColumnDialogState extends State<_CompoundColumnDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return AlertDialog(
-      title: Text(
-        widget.initial == null
-            ? l10n.settingsMatrixColumnsCompoundTitle
-            : l10n.settingsMatrixColumnsCompoundEditTitle,
-      ),
-      content: SingleChildScrollView(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 560),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                l10n.settingsMatrixColumnsCompoundSteps,
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
-              for (var index = 0; index < _steps.length; index++)
-                _buildStep(context, index),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: OutlinedButton.icon(
-                  key: const ValueKey('matrix-compound-add-step'),
-                  onPressed: _addStep,
-                  icon: const Icon(Icons.add),
-                  label: Text(l10n.settingsMatrixColumnsCompoundAddStep),
+    return DirtyDialogGuard(
+      listenable: _label,
+      isDirty: _isDirty,
+      child: AlertDialog(
+        title: Text(
+          widget.initial == null
+              ? l10n.settingsMatrixColumnsCompoundTitle
+              : l10n.settingsMatrixColumnsCompoundEditTitle,
+        ),
+        content: SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  l10n.settingsMatrixColumnsCompoundSteps,
+                  style: Theme.of(context).textTheme.titleSmall,
                 ),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              TextField(
-                key: const ValueKey('matrix-compound-label'),
-                controller: _label,
-                decoration: InputDecoration(
-                  labelText: l10n.settingsMatrixColumnsCompoundLabel,
+                for (var index = 0; index < _steps.length; index++)
+                  _buildStep(context, index),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: OutlinedButton.icon(
+                    key: const ValueKey('matrix-compound-add-step'),
+                    onPressed: _addStep,
+                    icon: const Icon(Icons.add),
+                    label: Text(l10n.settingsMatrixColumnsCompoundAddStep),
+                  ),
                 ),
-                onChanged: (_) => setState(() {}),
-              ),
-            ],
+                const SizedBox(height: AppSpacing.sm),
+                TextField(
+                  key: const ValueKey('matrix-compound-label'),
+                  controller: _label,
+                  decoration: InputDecoration(
+                    labelText: l10n.settingsMatrixColumnsCompoundLabel,
+                  ),
+                  onChanged: (_) => setState(() {}),
+                ),
+              ],
+            ),
           ),
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.commonCancel),
+          ),
+          TextButton(
+            key: const ValueKey('matrix-compound-save'),
+            onPressed: _canSave
+                ? () => Navigator.of(context).pop(_saveDraft())
+                : null,
+            child: Text(l10n.commonSave),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.commonCancel),
-        ),
-        TextButton(
-          key: const ValueKey('matrix-compound-save'),
-          onPressed: _canSave
-              ? () => Navigator.of(context).pop(_saveDraft())
-              : null,
-          child: Text(l10n.commonSave),
-        ),
-      ],
     );
   }
 

@@ -198,4 +198,17 @@ void main() {
     expect(formatCustomFieldValue(ja, 'a lovely tune'), 'a lovely tune');
     expect(formatCustomFieldValue(ja, 12.5), '12.5');
   });
+
+  test(
+    'formatCustomFieldValue shows a whole number without a decimal',
+    () async {
+      final en = await AppLocalizations.delegate.load(const Locale('en'));
+
+      expect(formatCustomFieldValue(en, 3.0), '3');
+      expect(formatCustomFieldValue(en, 3), '3');
+      expect(formatCustomFieldValue(en, -2.0), '-2');
+      expect(formatCustomFieldValue(en, 2.5), '2.5');
+      expect(formatCustomFieldValue(en, double.infinity), 'Infinity');
+    },
+  );
 }
