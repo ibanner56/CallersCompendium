@@ -10,8 +10,9 @@
 // A parameter ContraDB has no counterpart for, or an app value with no exact
 // ContraDB value, is LEFT OUT of the filter (the figure is still searched, by
 // its other parameters) and named in [ContraDbParamTranslation.ignored], so the
-// caller can say the search is broader than the panel. That is deliberately not
-// a refusal of the figure.
+// caller can say the search is not the one the panel describes (usually
+// broader; narrower under a negation). That is deliberately not a refusal of
+// the figure.
 //
 // The positions and value vocabularies come from reading ContraDB's
 // `app/javascript/libfigure/figure.js` and `param.js`, and the value mappings

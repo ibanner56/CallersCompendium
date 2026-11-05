@@ -54,7 +54,8 @@ class ContraDbAdvancedExpression extends ContraDbAdvancedTranslation {
   /// `move.param` for each figure parameter the query set that ContraDB has no
   /// exact counterpart for and that was therefore left out of [expression]
   /// (for example `swing.endFacing`). The figure is still searched by its other
-  /// parameters, so the search can be broader than the Advanced panel says.
+  /// parameters, so the search can differ from the Advanced panel (usually
+  /// broader, narrower under a negation).
   final Set<String> ignoredParams;
 }
 
