@@ -311,8 +311,15 @@ every view of the program keeps showing it. Its slot shows the
 dance's title followed by "(deleted dance)" in the builder, the matrix and the
 summary, as in [Perform mode](./perform.md). Its figures stay in the matrix.
 The set list you print, copy or share shows the plain title, and **Share
-(program + dances)** includes the dance itself. Restore the dance from Recently
-deleted to use it normally again. Once the dance is gone for good, the slot
+(program + dances)** includes the dance itself. To use the dance normally
+again, restore it: choose **Restore from Recently deleted** in the slot's
+**…** menu in the builder, press **Restore** on its row in the summary, or
+restore it from Recently deleted itself. Like Restore there, it asks nothing
+first, since you can delete the dance again. However the dance comes back,
+even from another device, the "(deleted dance)" mark goes away in the
+builder, the matrix and the summary straight away; Perform mode drops it the
+next time you open it. Perform mode has no Restore, so a stray tap on stage changes
+nothing. Once the dance is gone for good, the slot
 keeps its title as text. With [Device Sync](./settings.md#device-sync), a
 slot you added before this device heard that another device deleted the dance
 for good shows "Deleted dance" instead, in the builder, the summary, Perform
