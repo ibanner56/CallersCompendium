@@ -426,8 +426,8 @@ void main() {
       );
       await _pumpEditor(tester, repos);
 
-      expect(find.textContaining('“Newer”'), findsOneWidget);
-      expect(find.textContaining('“Older”'), findsNothing);
+      expect(find.textContaining('"Newer"'), findsOneWidget);
+      expect(find.textContaining('"Older"'), findsNothing);
     });
 
     testWidgets('discarding another new program\'s draft removes that draft', (
