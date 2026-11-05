@@ -59,7 +59,9 @@ built figure.
   never blocks.
 - `moveWordings` maps canonical move IDs to optional **display-only sentence
   templates**. Templates use the computed slots for that move (for example
-  `{who}` and `{move}`); unknown slots are empty, nested bracketed groups are
+  `{who}` and `{move}`; a move whose default wording spells its name around a
+  detail, `slide {slide} along set`, still offers `{move}`); unknown slots are
+  empty, nested bracketed groups are
   omitted when their slots are empty, and substituted values are not rescanned.
   A `{!name}` slot forces that slot to display even where the normal render hides
   it (the stored `chain.hand` the role already implies, or an alias-pinned

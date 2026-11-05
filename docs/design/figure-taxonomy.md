@@ -792,6 +792,15 @@ figure as the progression. This is non-serialized taxonomy metadata, so no
   large-print Perform mode, while the visible text stays terse.
 - FTS indexing uses canonical rendered text + searchKeywords (incl. legacy
   terms like "gypsy" so searches by older users still find shoulder round).
+- Display may put a move's details in a different order from its canonical
+  text where the template reads as search text rather than as a call:
+  `pull by right across` (canonical `pull by across right`) and
+  `slide left along set` (canonical `slide along set left`; a dialect that
+  renames the move keeps its name whole, `sashay left`). A subject the verb
+  after it agrees with stays plural (`neighbors take right hands`), while a
+  subject that only prefixes the move reads singular (`neighbor swing`). All
+  of this is display-only (`_displayRenderTemplates`, `_displayBaseRenderers`
+  in `renderer.dart`), so canonical text and the FTS index are unchanged.
 
 ### Derived (computed-at-render) taxonomy values — convention WITHDRAWN (v22)
 

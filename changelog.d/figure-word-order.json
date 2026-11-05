@@ -1,0 +1,15 @@
+{
+  "id": "figure-word-order",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "You can see a pull by with a direction read \"pull by right across\", not \"pull by across right\", and a slide along the set read \"slide left along set\", not \"slide along set left\". A dialect that renames the slide keeps its own name, with the side after it.",
+      "You can see dancers read in the plural where the verb that follows is plural, such as \"neighbors take right hands on the sides\" in pass the ocean, and in revolving door, box circulate, poussette, hey and form a long wave. A dancer named in front of a move still reads in the singular, as in \"neighbor swing\"."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "Display `pull_by` as hand then direction and `slide_along_set` as \"slide <side> along set\", and keep a subject plural where a plural verb agrees with it. Canonical text is unchanged, so the search index needs no rebuild."
+    ]
+  }
+}
