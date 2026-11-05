@@ -33,7 +33,8 @@ enum DesktopOpenRejection {
   wrongExtension,
 
   /// Missing, or not a regular file: a symlink (not followed), a directory, a
-  /// named pipe, a socket or a device.
+  /// named pipe, a socket or a device. On Windows also a file under a
+  /// symlinked or junctioned directory.
   notRegularFile,
 
   /// A reserved Windows device name such as `COM1.ccshare` or `nul.ccshare`,
@@ -158,9 +159,15 @@ Future<DesktopOpenCheck> checkDesktopOpenPath(
 ///
 /// [raw] is normalized first. Win32 folds `.` and `..` before it reaches the
 /// disk, so a linked directory that a `..` cancels out is never traversed and
-/// is not a reason to refuse. A directory that does not exist, or any other
-/// reparse point (a OneDrive folder, a volume mount), is not a link here; the
-/// file itself is judged next and a missing one is refused there.
+/// is not a reason to refuse. A directory that does not exist, or a reparse
+/// point that is neither a symlink nor a junction (a OneDrive folder), is not
+/// a link here; the file itself is judged next and a missing one is refused
+/// there.
+///
+/// Known cost: Dart's `Link.target()` is believed to answer for every mount
+/// point reparse tag, which junctions share with NTFS volume mounts, so a
+/// folder that mounts a second disk is probably refused as well. Unverified
+/// on a real Windows host.
 Future<bool> _hasLinkedParent(
   p.Context path,
   String raw,

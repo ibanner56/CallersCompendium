@@ -302,8 +302,9 @@ often open the file directly:
 - On Windows and Linux, if the app is already open, the file opens in the
   window you have. If you open more files while one is in review, the app
   keeps only the last one and shows it when you close that review. Only a `.ccshare` file stored on this computer opens this
-  way. For a file on a network share (a `\\server\folder` path) or a
-  symbolic link to a file, the app says it couldn't read the shared file:
+  way. For a file on a network share (a `\\server\folder` path), a
+  symbolic link to a file or, on Windows, a file inside a folder that is a
+  symbolic link or junction, the app says it couldn't read the shared file:
   copy the file itself to a local folder first.
 - **Any device**: go to **Settings › General** and choose **Import…**, then
   pick the file.
