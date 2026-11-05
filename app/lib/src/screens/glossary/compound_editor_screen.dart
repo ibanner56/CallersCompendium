@@ -12,6 +12,7 @@ import '../../data/show_glossary_scope.dart';
 import '../../data/wording_issue_labels.dart';
 import '../../data/shorthand_mappings_scope.dart';
 import '../../editor/figure_draft.dart';
+import '../../editor/pending_move_text_controller.dart';
 import '../../search/facet_labels.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/app_bar_text_action.dart';
@@ -194,6 +195,9 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
   final _beats = TextEditingController(text: '8');
 
   bool _dirty = false;
+
+  /// Lets Save settle a Move box still being typed in, as leaving it would.
+  final _pendingMoveText = PendingMoveTextController();
   bool _saving = false;
   bool _showRequired = false;
   List<String> _errors = const [];
@@ -395,6 +399,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
     ]) {
       c.dispose();
     }
+    _pendingMoveText.dispose();
     for (final p in _params) {
       p.dispose();
     }
@@ -706,6 +711,9 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
     // Claimed before the first await, so a second tap cannot pass the checks
     // while the first is still running and save a second entry.
     if (_saving) return;
+    // Tapping Save does not always take focus from a Move box (AUTH-1), so
+    // text typed there and not yet applied is settled first.
+    _pendingMoveText.settle();
     setState(() => _saving = true);
     var saved = false;
     try {
@@ -1296,6 +1304,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
                 child: FigureListEditor(
                   drafts: _drafts,
+                  pendingMoveTextController: _pendingMoveText,
                   taxonomy: contraTaxonomy,
                   phraseStructure: PhraseStructure.standard,
                   dialect: dialect,

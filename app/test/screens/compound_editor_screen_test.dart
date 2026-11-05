@@ -765,6 +765,30 @@ void main() {
     expect(definition.figures.first.note, 'role1s step out');
   });
 
+  testWidgets('Save applies a move named exactly in a Move box still being '
+      'typed in (AUTH-1)', (tester) async {
+    final repos = await pump(
+      tester,
+      initial: twoPullBys(params: const [], bindings: const []),
+    );
+    await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('figure-0-move-input')));
+    await tester.enterText(
+      find.byKey(const ValueKey('figure-0-move-input')),
+      'star',
+    );
+    await tester.pumpAndSettle();
+
+    await save(tester);
+
+    final saved = (await tester.runAsync(
+      () => repos.userGlossary.getById('pb2'),
+    ))!;
+    final definition = decodeCompoundDefinition(saved.payload, contraTaxonomy)!;
+    expect([for (final f in definition.figures) f.move], ['star', 'pull_by']);
+  });
+
   testWidgets('custom figures are not offered as parts', (tester) async {
     await pump(tester, initial: twoPullBys());
     await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
