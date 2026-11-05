@@ -189,9 +189,11 @@ Future<ResolvedContraDbActivity> _resolveDance(
       );
     }
     // A confident match that is not identical has differing (or unreadable)
-    // figures. It is imported as a variation of that match, linked back to it,
-    // the same outcome the Caller's Box path gives it (Q-3, maintainer
-    // 2026-11-05). Without a confident match, a possible match is imported as
+    // figures. It is imported as a variation of that match, linked back to it
+    // (Q-3, maintainer 2026-11-05). For differing figures that is the Caller's
+    // Box path's outcome; for unreadable figures (or a target that cannot be
+    // loaded) that path declines, and this one still imports the variation,
+    // because it reads no figures. Without a confident match, a possible match is imported as
     // its own dance. Program import is non-interactive (#797), so a resolution
     // is always passed: the service's confirmation outcomes are bypassed by
     // construction rather than by assumption.

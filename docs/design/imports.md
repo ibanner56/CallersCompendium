@@ -391,8 +391,11 @@ canonically identical figures; if so it **links the slot to that dance** and
 writes nothing (INTAKE-3, the #685 rule applied as reuse rather than as a
 skip). A confident match whose figures differ, or cannot be read, is imported
 as a **variation** of that match (`DedupeResolution.variation`, linked back to
-it), the same outcome the Caller's Box path gives it unattended (#686); the
-maintainer chose this on 2026-11-05 (audit Q-3). A plan with no confident
+it); the maintainer chose this on 2026-11-05 (audit Q-3). For differing figures
+that is the outcome the Caller's Box path gives unattended (#686). For figures
+that cannot be read, or a target that cannot be loaded, the Caller's Box path
+declines and takes the note-slot fallback, while this path still imports the
+variation, because it reads no figures. A plan with no confident
 match is still imported with a `duplicate()` resolution. Either way there is
 no per-dance prompt on a program import (#797).
 

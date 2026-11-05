@@ -20,10 +20,11 @@ import 'add_to_program_list.dart';
 /// tapping it asks before adding the dance again (§4.3).
 ///
 /// The sheet is sized from the height the screen has left once the on-screen
-/// keyboard is up, so at normal text sizes the pinned row, the search field and
-/// a few rows stay visible while the caller types. At large text sizes the title
-/// and the pinned row scroll in place within 45% of the sheet, so the search
-/// field and the list keep their room (§4.5, "As built").
+/// keyboard is up, so the pinned row, the search field and a few rows stay
+/// visible while the caller types. With the keyboard up the title is dropped
+/// and the New row's label is held to two lines, so the row stays visible at
+/// any text size; the 45% cap on that header is only a backstop (§4.5, "As
+/// built").
 ///
 /// Extracted from `DanceDetailScreen` so the Collection list's row action menu
 /// ([DanceListTile]) and the detail screen share the exact same flow (identical

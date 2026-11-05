@@ -477,9 +477,10 @@ void main() {
   // result.danceId != null branches to linked(danceId: 'local-existing'),
   // attaching the slot to a dance it didn't actually import. RED: the slot's
   // danceId is 'local-existing' (wrong). GREEN: the fix passes
-  // ambiguousResolution: duplicate() → fake bypasses confirmation → returns
+  // a resolution (since Q-3, variation('local-existing'); duplicate() when
+  // there is no confident match) → fake bypasses confirmation → returns
   // created with danceId: 'cdb-tangled yarns' (a newly imported dance).
-  test('#797 program import: confident-match dance is imported as duplicate, '
+  test('#797 program import: confident-match dance is imported, '
       'not silently linked to the pre-existing candidate (red-run)', () async {
     final repos = openTestRepositories();
     // confidentTitles causes loadPreview to return a plan with a confident
