@@ -13,6 +13,7 @@
 import 'dart:math';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/drift.dart' show Variable;
 import 'package:test/test.dart';
 
 import '../../storage/test_database.dart';
@@ -242,6 +243,7 @@ Future<void> main() async {
       var compared = 0;
       var refused = 0;
       var sequence = 0;
+      final stats = <String, int>{};
       final failures = <String>[];
       for (var i = 0; i < 1500; i++) {
         final tree = danceFilter(r, localIds, 3);
@@ -252,6 +254,24 @@ Future<void> main() async {
           continue;
         }
         compared++;
+        final n = both_.contra.length;
+        final kind = n == 0
+            ? 'empty'
+            : n == contraDances.length
+            ? 'all'
+            : 'mixed';
+        stats[kind] = (stats[kind] ?? 0) + 1;
+        final d = describe(tree);
+        for (final feature in const [
+          'all(',
+          'any(',
+          'none(',
+          '&(',
+          '|(',
+          '!',
+        ]) {
+          if (d.contains(feature)) stats[feature] = (stats[feature] ?? 0) + 1;
+        }
         if (both_.local.join(',') != both_.contra.join(',')) {
           failures.add(
             '${describe(tree)}\n  collection-only: ${both_.local.toSet().difference(both_.contra.toSet())}'
@@ -262,7 +282,7 @@ Future<void> main() async {
       // ignore: avoid_print
       print(
         'randomised: compared=$compared refused=$refused (then: $sequence) '
-        'over ${contraDances.length} dances',
+        'over ${contraDances.length} dances; $stats',
       );
       expect(failures, isEmpty, reason: failures.take(5).join('\n'));
       expect(
@@ -331,4 +351,116 @@ Future<void> main() async {
       },
     );
   });
+
+  // The Collection's `then` currently means "somewhere earlier"; the owner has
+  // decided it must mean ContraDB's "immediately follows, wrapping from the
+  // last figure to the first". That change lands in `FilterCompiler._then`
+  // (not here). This group checks the INTENDED semantics, as plain SQL over
+  // `dance_figures.group_idx`, against the reference, so the reference and the
+  // corpus are proven able to judge it before the compiler change arrives; when
+  // it lands, the randomised test above starts comparing real `ThenFilter`s.
+  group('then, intended semantics (prototype SQL, not the compiler)', () {
+    Future<List<String>> adjacent(String a, String b) async {
+      final rows = await db
+          .customSelect(
+            'SELECT DISTINCT a.dance_id AS id FROM dance_figures a '
+            'JOIN dance_figures b ON a.dance_id = b.dance_id '
+            'AND (b.group_idx = a.group_idx + 1 OR (b.group_idx = 0 AND '
+            'a.group_idx = (SELECT MAX(group_idx) FROM dance_figures m '
+            'WHERE m.dance_id = a.dance_id))) '
+            'WHERE a.move = ? AND b.move = ?',
+            variables: [Variable.withString(a), Variable.withString(b)],
+          )
+          .get();
+      return [for (final r in rows) r.read<String>('id')]..sort();
+    }
+
+    test(
+      'every ordered pair of mapped moves, including a move with itself',
+      () async {
+        var nonEmpty = 0;
+        final pool = [
+          'swing',
+          'chain',
+          'balance',
+          'circle',
+          'petronella',
+          'star',
+        ];
+        for (final a in pool) {
+          for (final b in pool) {
+            final t = translateDanceFilterToContraDb(FigureFilter.leaf(a));
+            expect(t, isA<ContraDbAdvancedExpression>());
+            final contra = contraDbMatchingIds([
+              'then',
+              ['figure', a],
+              ['figure', b],
+            ], contraDances.map((d) => d.contra))..sort();
+            final local = await adjacent(a, b);
+            expect(local, contra, reason: 'then($a, $b)');
+            if (contra.isNotEmpty) nonEmpty++;
+          }
+        }
+        expect(
+          nonEmpty,
+          greaterThan(20),
+          reason: 'the corpus must exercise then',
+        );
+      },
+    );
+
+    test('a lone figure abuts itself on both sides (ContraDB quirk)', () async {
+      expect(await adjacent('chain', 'chain'), contains('one-chain'));
+      expect(
+        contraDbMatchingIds([
+          'then',
+          ['figure', 'chain'],
+          ['figure', 'chain'],
+        ], contraDances.map((d) => d.contra)),
+        contains('one-chain'),
+      );
+    });
+  });
+
+  group(
+    'dialects: the translator sees move ids, the compiler resolves terms',
+    () {
+      final waltz = Dialect(name: 'waltz', moves: {'swing': 'waltz'});
+
+      test(
+        'an id selects the same dances under a dialect that renames the move',
+        () async {
+          final filter = FigureFilter.leaf('swing');
+          final plain = (await dances.search(filter)).toList()..sort();
+          final renamed = (await dances.search(filter, dialect: waltz)).toList()
+            ..sort();
+          expect(renamed, plain);
+          expect(plain, isNotEmpty);
+          final contra = contraDbMatchingIds(
+            (translateDanceFilterToContraDb(filter)
+                    as ContraDbAdvancedExpression)
+                .expression,
+            contraDances.map((d) => d.contra),
+          )..sort();
+          expect(renamed, contra);
+        },
+      );
+
+      test(
+        "the dialect's own term finds the move locally, but is refused for ContraDB",
+        () async {
+          final filter = FigureFilter.leaf('waltz');
+          expect(
+            (await dances.search(filter, dialect: waltz)).toSet(),
+            (await dances.search(FigureFilter.leaf('swing'))).toSet(),
+            reason: 'the compiler resolves a dialect term to its move',
+          );
+          expect(
+            translateDanceFilterToContraDb(filter),
+            isA<ContraDbAdvancedRefused>(),
+          );
+        },
+      );
+    },
+  );
 }

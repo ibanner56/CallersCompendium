@@ -7,11 +7,14 @@
 // the two can be read side by side: `matching_figures_for_then` is
 // [_forThen], `SearchMatch#abut` is [SearchMatch.abut], and so on.
 //
-// FIDELITY: this has been checked against the Ruby by reading, and by the
-// parity suite's own hand-computed cases (`contradb_reference_test.dart`). It
-// has NOT been cross-run against the real Ruby: the sandbox that wrote it could
-// not execute downloaded code. `tool/`-style cross-check driver instructions are
-// in this directory's README.
+// FIDELITY: checked against the Ruby by reading, and by hand-computed cases
+// (`contradb_reference_test.dart`). It has NOT been cross-run against the real
+// Ruby, so a slip common to the port and to those cases would go unseen: treat
+// "the Collection agrees with this reference" as parity with ContraDB's
+// SEMANTICS AS READ, not as a measurement of contradb.com.
+//
+// Modelled, not ported: libfigure's alias parameter tables (see
+// [ContraDbDance.aliases]).
 //
 // Ruby conventions kept: a result is either `null` (Ruby `nil`: the dance does
 // not match) or a `Set<SearchMatch>` that **may be empty** (a successful match

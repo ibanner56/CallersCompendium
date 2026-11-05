@@ -76,7 +76,7 @@ class ContraDbAdvancedRefused extends ContraDbAdvancedTranslation {
 ///
 /// A [FigureLeaf.move] is the Collection's **move id** (what the builder
 /// stores, e.g. `do_si_do`), which is not a ContraDB name; it is resolved by
-/// [_contraDbMovesForCollectionMove]. A display name, a ContraDB spelling or a
+/// `_contraDbForCollectionMove`. A display name, a ContraDB spelling or a
 /// dialect's term is refused as [ContraDbAdvancedUnsupported.figureName]: the
 /// Collection resolves those through the active dialect, which this function
 /// never sees, so it cannot know they mean what ContraDB's identically spelt
