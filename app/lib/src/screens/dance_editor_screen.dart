@@ -69,7 +69,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   late CompendiumRepositories _repos;
   late DanceEditorController _controller;
   final _formKey = GlobalKey<FormState>();
-  final _customFieldErrorKey = GlobalKey();
+  final _formScroll = ScrollController();
   final _moreDetailsController = ExpansibleController();
 
   static final Taxonomy _taxonomy = contraTaxonomy;
@@ -340,6 +340,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
 
   @override
   void dispose() {
+    _formScroll.dispose();
     if (_dependenciesInitialized) {
       _unregisterShutdownFlush?.call();
       _controller.removeListener(_onControllerChanged);
@@ -451,10 +452,11 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       if (hasInvalidCustomFieldNumber) _moreDetailsController.expand();
       // `validate()` has put each message on its own field, and scrolls to
       // none of them, so the first is brought into view here. The
-      // custom-number message sits at the top of the page, above every field.
+      // custom-number message is the list's first entry, above every field,
+      // and a lazy list may have let go of it: scroll to the top instead.
       setState(() {});
       if (hasInvalidCustomFieldNumber) {
-        scrollToError(context, _customFieldErrorKey);
+        scrollToTopForError(context, _formScroll);
       } else {
         scrollToFirstInvalidField(context, _formKey);
       }
@@ -1095,7 +1097,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     return DanceEditorForm(
       controller: _controller,
       formKey: _formKey,
-      customFieldErrorKey: _customFieldErrorKey,
+      scrollController: _formScroll,
       moreDetailsController: _moreDetailsController,
       taxonomy: _taxonomy,
       moveParamDefaults: _moveParamDefaults,

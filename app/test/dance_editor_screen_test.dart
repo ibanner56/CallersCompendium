@@ -2898,6 +2898,58 @@ void main() {
     });
   });
 
+  testWidgets('a failed Save scrolls back to the custom-number message even '
+      'when the list has let go of it', (tester) async {
+    final repos = openTestRepositories();
+    // ignore: unused_result
+    await repos.customFieldDefs.upsert(
+      CustomFieldDef(
+        id: 'f-num',
+        key: 'number',
+        label: 'Number',
+        type: CustomFieldType.number,
+      ),
+    );
+    await repos.dances.create(
+      _dance(
+        id: 'long',
+        figures: [
+          for (var i = 0; i < 40; i++)
+            Figure(move: 'balance', params: const {'beats': 4}),
+        ],
+      ),
+    );
+    await _pumpEditor(
+      tester,
+      repos,
+      danceId: 'long',
+      surfaceSize: const Size(600, 500),
+    );
+    await tester.scrollUntilVisible(
+      find.text('More details'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await _expandMoreDetails(tester);
+    await tester.enterText(find.byKey(const ValueKey('custom-f-num')), '1e400');
+    final list = find.byType(ListView).first;
+    await tester.drag(list, const Offset(0, -20000));
+    await tester.pumpAndSettle();
+    final banner = find.byKey(
+      const ValueKey('custom-field-validation-error'),
+      skipOffstage: false,
+    );
+    expect(banner, findsNothing, reason: 'the list has let go of the message');
+
+    await tester.tap(find.byKey(const ValueKey('save-dance')));
+    await tester.pumpAndSettle();
+
+    final viewport = tester.getRect(list);
+    final rect = tester.getRect(banner);
+    expect(rect.top, greaterThanOrEqualTo(viewport.top));
+    expect(rect.bottom, lessThanOrEqualTo(viewport.bottom));
+  });
+
   // A failed Save puts each message on its own field. Nothing scrolled to the
   // first, so on a short window it could sit above the fold.
   group('a failed Save shows the first invalid field', () {
