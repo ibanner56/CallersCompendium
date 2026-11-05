@@ -144,7 +144,8 @@ When you perform a single dance, the same **up**, **down**, **Page Up** and
 **Page Down** keys scroll a long card, most of a screen at a time. There is no
 next slot to move to, so they stop at the top and the end.
 
-While the walkthrough overlay is open, none of these change your slot: taps on
+When you are calling a program and the walkthrough overlay is open, none of
+these change your slot: taps on
 the card are absorbed, the **up**, **down**, **Page Up** and **Page Down** keys
 scroll the walkthrough itself, and **Esc** closes it — so reading ahead can't
 move you off the dance you are calling.
@@ -278,6 +279,11 @@ Choose **Exit Perform mode** and the app checks first:
 
 > **Exit Perform?** — Leave Perform mode? Your place and the running clock
 > are kept, so you can resume where you left off.
+
+On a computer, **Ctrl-W** (**Cmd-W** on a Mac) and a mouse's **Back** button
+ask the same question. **Esc** never leaves Perform: when you are calling a
+program it closes an open walkthrough, and otherwise it takes the window out of
+full screen.
 
 **Keep performing** returns you to the card; **Exit** leaves. When you are
 calling a program, your place and the clock are kept for as long as that

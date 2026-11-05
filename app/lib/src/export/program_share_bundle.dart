@@ -1,6 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 
 import '../utils/safe_name.dart';
+import '../utils/slot_dance_title.dart';
 import 'share_sanitization.dart';
 
 /// Builds a self-contained "share this program + its dances" bundle (ROADMAP
@@ -104,9 +105,18 @@ import 'share_sanitization.dart';
 /// pinned by `app/test/export/share_venue_dedupe_seam_test.dart` and explained
 /// at [venueFingerprint]. Dedupe still works for venues that reach the importer
 /// with their address intact (`.USR` import, backup restore, local venues).
+///
+/// A dance another device permanently deleted reaches this device blanked,
+/// titled "—" with no content ([isBlankedDance]). It is not sent: its slot
+/// travels as a text slot reading [blankedDanceSlotText] ("Deleted dance"),
+/// marked as a purged dance's caption, so the receiver sees what the sender
+/// sees and imports no empty dance (maintainer decision, 2026-11-05, row 49 of
+/// the follow-ups triage, option (a)). A slot that also carried a note keeps
+/// the note as its text, as a purge leaves it.
 String buildProgramShareBundle(
   Program program, {
   required Dance? Function(String danceId) danceFor,
+  required String blankedDanceSlotText,
   required Choreographer? Function(String id) choreographerFor,
   required Venue? Function(String venueId) venueFor,
   required Tag? Function(String id) tagFor,
@@ -120,10 +130,15 @@ String buildProgramShareBundle(
   final dances = <Dance>[];
   final seen = <String>{};
   final trashedIds = <String>{};
+  final blankedIds = <String>{};
   for (final slot in program.slots) {
     final danceId = slot.danceId;
     if (danceId == null || !seen.add(danceId)) continue;
     final dance = danceFor(danceId);
+    if (dance != null && isBlankedDance(dance)) {
+      blankedIds.add(danceId);
+      continue;
+    }
     // A dance in the sender's Recently deleted is still part of the evening,
     // so it travels (GIG-11), but as a live dance: what the owner deleted is
     // not shared.
@@ -234,7 +249,11 @@ String buildProgramShareBundle(
   return encodeArchive(
     CompendiumArchive(
       exportedAt: (now ?? DateTime.now()).toUtc(),
-      programs: [sanitizeProgramForShare(program)],
+      programs: [
+        sanitizeProgramForShare(
+          _withBlankedDancesAsText(program, blankedIds, blankedDanceSlotText),
+        ),
+      ],
       dances: [for (final dance in dances) sanitizeDanceForShare(dance)],
       choreographers: choreographers,
       venues: venues,
@@ -306,4 +325,34 @@ String programShareBundleFileName(
     eventDate: eventDate,
   );
   return '$base.$extension';
+}
+
+/// [program] with every slot citing one of [blankedIds] turned into a text
+/// slot, as [DanceRepository]'s purge turns a slot whose dance is gone: no
+/// dance, and [text] as a purged dance's caption unless the slot has a note.
+Program _withBlankedDancesAsText(
+  Program program,
+  Set<String> blankedIds,
+  String text,
+) {
+  if (blankedIds.isEmpty) return program;
+  return program.copyWith(
+    slots: [
+      for (final slot in program.slots)
+        if (!blankedIds.contains(slot.danceId))
+          slot
+        else
+          ProgramSlot(
+            id: slot.id,
+            position: slot.position,
+            text: slot.text ?? text,
+            isPurgedDance: slot.text == null ? true : slot.isPurgedDance,
+            isAlt: slot.isAlt,
+            guestCaller: slot.guestCaller,
+            walkthroughMinutes: slot.walkthroughMinutes,
+            danceMinutes: slot.danceMinutes,
+            performedAt: slot.performedAt,
+          ),
+    ],
+  );
 }

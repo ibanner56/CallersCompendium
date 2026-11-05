@@ -20,10 +20,11 @@ import 'add_to_program_list.dart';
 /// tapping it asks before adding the dance again (§4.3).
 ///
 /// The sheet is sized from the height the screen has left once the on-screen
-/// keyboard is up, so at normal text sizes the pinned row, the search field and
-/// a few rows stay visible while the caller types. At large text sizes the title
-/// and the pinned row scroll in place within 45% of the sheet, so the search
-/// field and the list keep their room (§4.5, "As built").
+/// keyboard is up, so the pinned row, the search field and a few rows stay
+/// visible while the caller types. With the keyboard up the title is dropped
+/// and the New row's label is held to two lines, so the row stays visible at
+/// any text size; the 45% cap on that header is only a backstop (§4.5, "As
+/// built").
 ///
 /// Extracted from `DanceDetailScreen` so the Collection list's row action menu
 /// ([DanceListTile]) and the detail screen share the exact same flow (identical
@@ -83,7 +84,9 @@ Future<void> showAddToProgramSheet(
                 children: [
                   // The title and the pinned New row, capped so that a large text
                   // scale with the keyboard up cannot push the list and search
-                  // field out of the sheet: past the cap they scroll in place.
+                  // field out of the sheet. With the keyboard up the title is
+                  // dropped, so the New row keeps its room and is always in
+                  // view (N3-5); the cap is then only a backstop.
                   ConstrainedBox(
                     constraints: BoxConstraints(
                       maxHeight: constraints.maxHeight * 0.45,
@@ -91,18 +94,19 @@ Future<void> showAddToProgramSheet(
                     child: SingleChildScrollView(
                       child: Column(
                         children: [
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                            child: Align(
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                l10n.commonAddToProgram,
-                                style: Theme.of(
-                                  sheetContext,
-                                ).textTheme.titleMedium,
+                          if (keyboard == 0)
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  l10n.commonAddToProgram,
+                                  style: Theme.of(
+                                    sheetContext,
+                                  ).textTheme.titleMedium,
+                                ),
                               ),
                             ),
-                          ),
                           _buildCreateRow(
                             sheetContext,
                             repositories: repositories,
@@ -110,6 +114,7 @@ Future<void> showAddToProgramSheet(
                             danceTitle: danceTitle,
                             messenger: messenger,
                             l10n: l10n,
+                            keyboardUp: keyboard > 0,
                           ),
                         ],
                       ),
@@ -159,9 +164,9 @@ Future<void> showAddToProgramSheet(
 }
 
 /// The pinned first row, outside the scrolling list so it stays in reach with a
-/// long list or the keyboard up at normal text sizes (N3-5; at large text it
-/// scrolls in place with the title, see [showAddToProgramSheet]): creates a new program seeded with this
-/// dance.
+/// long list or the keyboard up, at any text size (N3-5; with the keyboard up
+/// the sheet drops its title to make room, see [showAddToProgramSheet]):
+/// creates a new program seeded with this dance.
 Widget _buildCreateRow(
   BuildContext sheetContext, {
   required CompendiumRepositories repositories,
@@ -169,11 +174,19 @@ Widget _buildCreateRow(
   required String danceTitle,
   required ScaffoldMessengerState messenger,
   required AppLocalizations l10n,
+  required bool keyboardUp,
 }) {
   return ListTile(
     key: const ValueKey('add-to-program-create'),
     leading: const Icon(Icons.add),
-    title: Text(l10n.programsCreateWithDance),
+    // At 200% text the label alone wraps taller than the room above a phone's
+    // keyboard, so with it up the row is held to two lines (the Text's semantics
+    // still carry the whole string).
+    title: Text(
+      l10n.programsCreateWithDance,
+      maxLines: keyboardUp ? 2 : null,
+      overflow: keyboardUp ? TextOverflow.ellipsis : null,
+    ),
     onTap: () => _createProgramWith(
       sheetContext,
       repositories: repositories,

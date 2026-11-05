@@ -39,6 +39,7 @@ void main() {
   test('program share bundle drops pay, dialect and dance rating', () {
     final json = buildProgramShareBundle(
       _program(),
+      blankedDanceSlotText: 'Deleted dance',
       danceFor: (_) => _dance(),
       choreographerFor: (_) => null,
       venueFor: (_) => null,
@@ -77,6 +78,7 @@ void main() {
   test('the strip leaves everything else on the program and dance', () {
     final json = buildProgramShareBundle(
       _program(),
+      blankedDanceSlotText: 'Deleted dance',
       danceFor: (_) => _dance(),
       choreographerFor: (_) => null,
       venueFor: (_) => null,

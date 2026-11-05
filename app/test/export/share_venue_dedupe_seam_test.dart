@@ -97,6 +97,7 @@ void main() {
       // index only when some bundled venue yields a non-null key.
       final json = buildProgramShareBundle(
         _program,
+        blankedDanceSlotText: 'Deleted dance',
         danceFor: (id) => id == 'd1' ? _dance : null,
         choreographerFor: (_) => null,
         tagFor: (_) => null,

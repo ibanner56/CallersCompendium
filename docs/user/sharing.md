@@ -145,8 +145,8 @@ list (text)**, **Copy set list**, or **Export / print PDF**, the app asks
   beneath its title gets no card.
 
 If none of the program's dances have anything to put on a card — no structured
-figures, and no selected calling notes or walkthrough — the question is skipped
-and the export proceeds as set-list-only automatically.
+figures, and no selected calling notes, walkthrough, hook or published source —
+the question is skipped and the export proceeds as set-list-only automatically.
 
 Canceling the dialog (or dismissing it) stops the export — nothing is shared or
 copied.
@@ -158,10 +158,10 @@ If something goes wrong the app says so plainly — "Couldn't share this set lis
 
 Settings › Defaults has a checklist for every non-figures dance field a dance
 card can show: author, formation, level, mixer, status, phrase, calling
-notes, walkthrough, suggested tunes, hook, and published sources. Author is on
-by default, matching every export before this setting existed; suggested tunes,
-the hook and published sources are off by default, since no export showed them
-before.
+notes, walkthrough, suggested tunes, hook, and published sources. Everything
+except suggested tunes, the hook and published sources is on by default,
+matching every export before this setting existed; those three are off by
+default, since no export showed them before.
 
 A published source prints as one line per citation, such as *Give-and-Take —
 A. Author, 1990 (p. 12, no. 3)*: its title, author and year, then the page and
@@ -176,8 +176,8 @@ Turning a field off removes it everywhere it would otherwise appear — but
 **author is the only one of these fields the plain numbered set-list line
 ever shows.** The rest only appear on the richer per-dance card: the "Set
 list and figures" appendix, a single dance's own **Share dance (text)**/
-**Copy dance** card, or any PDF. Figures are not part of this list; they stay
-controlled by the **Include figures?** choice above.
+**Copy dance** card, or a single dance's PDF. Figures are not part of this
+list; they stay controlled by the **Include figures?** choice above.
 
 ### Share a program with its dances
 
@@ -186,7 +186,9 @@ evening to another caller. It builds a single self-contained file — a
 `.ccshare` file — containing:
 
 - the program itself;
-- every dance the program's slots refer to;
+- every dance the program's slots refer to, except one deleted for good on
+  another device, which travels as the words "Deleted dance" (see
+  [Programs](./programs.md#when-a-dance-in-a-program-is-deleted));
 - the authors credited on those dances;
 - the tags, published sources, and [custom fields](./glossary.md#custom-field)
   those dances use, so the recipient can import them completely;

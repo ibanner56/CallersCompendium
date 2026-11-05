@@ -414,12 +414,24 @@ separated by commas, such as "Slide Left, Circle Left 3/4", comes across as
 those figures, sharing the line's beats. Anything the app cannot represent
 faithfully is kept word-for-word as text rather than guessed at.
 
+The app also reads Caller's Companion's abbreviations and wording. "Circle L",
+"pass R shoulder" and "alle R 1.5" keep their direction, shoulder and hand;
+"R&L" is a right and left through; "New Neighbor" and "Corner" mean your next
+neighbors and first corners. "Ring balance, spin to the right", "Balance wave
+and slide to the right", "Wave balance, circulate" and "Partner R-hand balance,
+square through 2" read as a petronella, a Rory O'More, a box circulate and a
+square through, each with its balance. The same wordings work in
+[Free-text entry](./authoring.md#free-text-entry). For dances brought across
+earlier, [Re-check unrecognized figures](./authoring.md#fix-figures-an-import-could-not-read)
+can upgrade such lines, but it does not split a line at its commas: re-import
+the dance for that.
+
 The up to three **custom columns** you defined in Caller's Companion come
 across as **custom fields**, one per column name, filled in on each dance, so
 you can show, search and sort by them like any field you made yourself. If you
 already have a text field whose key is the column name in lower case with
-punctuation turned into underscores (a column called "Card colour" matches a
-field with the key `card_colour` or `Card_Colour`), it is reused;
+punctuation turned into underscores (a column called "Card color" matches a
+field with the key `card_color` or `Card_Color`), it is reused;
 if that key is taken by a field of another kind (a number, say), the column
 arrives as a new field with `_2` on the end. A column with no name is called
 "User field" and its number. New fields are shared like any other custom field, so if a
@@ -457,13 +469,15 @@ Bastringue" count as the same title, whichever source either came from.
 A dance Caller's Companion credits to a choreographer **"and others"** (such
 as "Rick Mohr" and "And Others") is credited to the people it names, and the
 credit is kept as a line in its calling notes: "Choreography: Rick Mohr and
-others". No choreographer called "Others" is made. "& others", "et al." and a
+others". No author called "Others" is made. "& others", "et al." and a
 credit of just "Others" are read the same way, and a dance credited only to
 others reads "Choreography: others, not named". A dance you imported before
 keeps its credit; if you re-import it with **Also update title and credit**,
-it is credited to the named people only, without the note, and a choreographer
-called "Others" from the earlier import stays in your list until you remove
-it.
+it is credited to the named people only, without the note, and an author
+called "Others" from the earlier import stays in your list. Fix it in
+**Settings › General › Library › Authors** (see
+[Settings](./settings.md#library)): delete it once no dance credits it, or merge
+it into another author.
 
 Your **notes and sources** come across with each dance. Your calling notes
 come first, then the music, any progression detail, your other notes (under
@@ -507,7 +521,7 @@ Your own **glossary terms** can come across too, if the
 Some libraries mark English country dances with a tag called **ECD** rather
 than with the dance's **Type** (see [Write & edit dances](./authoring.md)),
 and a Caller's Companion library is often one of them. When the app opens and
-finds a dance tagged **ECD** (in any capitalisation) whose type is not already
+finds a dance tagged **ECD** (in any capitalization) whose type is not already
 **English (ECD)**, it asks once per launch:
 
 > **Convert ECD dances?** — Would you like to convert all non-English dances in
@@ -646,7 +660,7 @@ source you pick:
 *The import review screen lists each dance and the action available for its
 current result, so you can inspect the batch before committing it.*
 
-![The import review screen listing each dance with its structured-figure count and the choices to re-import it, import it as a duplicate, or skip it](images/import-review.png)
+![The import review screen listing each dance with its structured-figure count; each possible match offers to replace the existing dance with this version, import it as a duplicate, or skip it, and a Skip all possible matches button sits at the top](images/import-review.png)
 
 ## Avoiding duplicates
 
@@ -687,7 +701,7 @@ watches for matches:
   differently: The Caller's Box has `A-1 Reel {variant}` where your collection
   might have `A1 Reel (Imp Var)`. When a dance's title matches one you already
   have once punctuation and a trailing note in brackets are set aside, **and**
-  the two share a choreographer, the review offers a **Same dance under another
+  the two share an author, the review offers a **Same dance under another
   title — replace** choice for each such dance. Nothing is chosen for you. When
   these are a row's only matches, the row is headed **Possibly a dance you
   already have, under another title**, still defaults to **New dance**, and is

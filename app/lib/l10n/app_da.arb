@@ -2644,11 +2644,11 @@
   "@settingsDefaultsFreeTextEntrySubtitle": {
     "x-sourceSha256": "285d6cd7a37828cef8b40ff921653f50e8979ac8e10e6224b0bd3927f2a7277d"
   },
-  "settingsDefaultsAggressiveBeatsUpdateTitle": "Genberegn figurtakter aggressivt",
+  "settingsDefaultsAggressiveBeatsUpdateTitle": "Genberegn figurernes taktslag aggressivt",
   "@settingsDefaultsAggressiveBeatsUpdateTitle": {
     "x-sourceSha256": "1d163c476d946d3bcc7fa0c001b99114d7f53588e73341294a86e20043e32357"
   },
-  "settingsDefaultsAggressiveBeatsUpdateSubtitle": "Når slået til, genberegner en ændring af en figurs bevægelse eller en parameter, der påvirker timing, straks dens taktantal — selv hvis det overskriver et taktantal, du selv har indtastet. Når slået fra (standard), ændres et taktantal, du har redigeret, kun automatisk, når du slår en balance-indstilling til eller fra, hvilket tilføjer eller fjerner 4 takter.",
+  "settingsDefaultsAggressiveBeatsUpdateSubtitle": "Når slået til, genberegner en ændring af en figurs bevægelse eller en parameter, der påvirker timing, straks dens antal taktslag — selv hvis det overskriver et antal taktslag, du selv har indtastet. Når slået fra (standard), ændres et antal taktslag, du har redigeret, kun automatisk, når du slår en balance-indstilling til eller fra, hvilket tilføjer eller fjerner 4 taktslag.",
   "@settingsDefaultsAggressiveBeatsUpdateSubtitle": {
     "x-sourceSha256": "7ee476b3ea2b7dd326088903cfc362916fb09b7f97f971fe513b538252ce2934"
   },
@@ -2712,7 +2712,7 @@
   "@settingsDefaultsUserFiguresTitle": {
     "x-sourceSha256": "7a5620524eb36c2842c797c0ef3a21a9e023f4529ee7592b615f199808b2c560"
   },
-  "settingsDefaultsUserFiguresSubtitle": "Hver af dine nye figurer har sine egne standarder: de værdier, den starter med, og dens takter. Vælg en for at ændre dem.",
+  "settingsDefaultsUserFiguresSubtitle": "Hver af dine nye figurer har sine egne standarder: de værdier, den starter med, og dens taktslag. Vælg en for at ændre dem.",
   "@settingsDefaultsUserFiguresSubtitle": {
     "x-sourceSha256": "cd250d812df72953f432f85e544a5337cc20ae01885e63913dca1dfa998267ac"
   },

@@ -452,6 +452,61 @@ void main() {
       expect(config.renames, isEmpty);
     });
 
+    testWidgets('a tap outside keeps the compound column dialog once a label '
+        'is typed', (tester) async {
+      await _pumpEditor(tester);
+      await tester.tap(
+        find.byKey(const ValueKey('matrix-column-add-compound')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('matrix-compound-label')),
+        'Dosido then balance',
+      );
+      await tester.pump();
+
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('matrix-compound-save')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a tap outside keeps the compound column dialog once a step '
+        'is changed', (tester) async {
+      await _pumpEditor(tester);
+      await tester.tap(
+        find.byKey(const ValueKey('matrix-column-add-compound')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('matrix-compound-add-step')));
+      await tester.pump();
+
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('matrix-compound-save')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a tap outside still closes an untouched compound column '
+        'dialog', (tester) async {
+      await _pumpEditor(tester);
+      await tester.tap(
+        find.byKey(const ValueKey('matrix-column-add-compound')),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('matrix-compound-save')), findsNothing);
+    });
+
     testWidgets('adds and edits an ordered compound column sequence', (
       tester,
     ) async {

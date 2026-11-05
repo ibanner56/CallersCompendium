@@ -136,6 +136,15 @@ as an unrecognized figure, marked unparsed. Otherwise you would get a figure wit
 wrong beats or turn, with the rest hidden in its note. Use the leading
 `16 neighbors swing` form to set the beats.
 
+It also reads figures the way Caller's Companion writes them, each as one
+figure: `Circle L`, `Neighbor alle R 1.5` and `R&L` (a right and left
+through); `New Neighbor swing` (your next neighbors) and `Corner allemande
+left` (your first corners); `Ring balance, spin to the right` (a petronella
+with its balance); `Balance wave and slide to the right` (a Rory O'More with
+its balance); `Wave balance, circulate (Larks cross)` (a box circulate with its
+balance, the Larks crossing); `Partner R-hand balance, square through 2`; and
+`make short waves`.
+
 Any move's own name typed on its own works, whatever your dialect: `hey`, `mad
 robin`, `contra corners`, `give & take` (or `give and take`, `give-and-take`),
 in capitals or not, with or without a full stop, comma or exclamation mark
@@ -545,7 +554,10 @@ nothing in it to lose.
 ### Notes
 
 - **Calling notes** — how you call it, what to watch for.
-- **Hook** — one line on why you would call this dance.
+- **Hook** — one line on why you would call this dance. Printed and shared
+  dance cards can show it, and the dance's published sources, once you turn on
+  **Hook** and **Sources** under
+  [Settings › Defaults › Shared dance fields](./settings.md#shared-dance-fields).
 - **Walkthrough** — the step-by-step teach.
 
 ### Walkthrough
@@ -620,7 +632,9 @@ explicit about two things, and both matter:
 
 **Source details** works the same way: a source's details are shared across every
 dance that cites it, and editing them here updates the source everywhere it is
-referenced.
+referenced. To combine two copies of the same source, use **Merge into…** in
+**Settings → General → Library → Sources**; see
+[Settings](./settings.md#library).
 
 ## Undo, drafts, and saving
 
@@ -643,6 +657,11 @@ With a keyboard attached, these work on the figure list in the dance editor:
 |---|---|---|
 | Move the focused figure up or down | Alt-↑ / Alt-↓ | Option-↑ / Option-↓ |
 | Commit the figure you are editing and open the next (or add one at the end) | Ctrl-Enter | Cmd-Enter |
+
+On a computer, Ctrl-S (Cmd-S on a Mac) saves the dance, as **Save** does, and
+Ctrl-N (Cmd-N) starts a new dance. The
+[Accessibility guide](./accessibility.md#using-the-keyboard) lists every
+shortcut.
 
 ### Your work is kept while you type
 
@@ -669,11 +688,13 @@ or included in exports.
 
 If the app cannot write the draft — the device is out of storage space, for
 example — a small cloud-with-a-slash icon appears in the top bar of the dance
-editor and the program editor, and its tooltip says **Draft not saved**. Your
+editor and the program editor, and its tooltip says **Draft not saved — your
+latest changes are not being kept yet**. Your
 edits stay on screen and you can keep working, but nothing is being kept in
 case the app closes. Free up space, or save the dance or program now. The icon
 disappears by itself the next time a draft is written. The app also notes the
-first such failure in **Diagnostics** (by error type only, never your text).
+first such failure each time it runs in **Diagnostics** (by error type only,
+never your text).
 
 Each new dance keeps its own draft. If a new dance you never saved left one
 behind, the next new dance you start offers it back by its title — *You have an
@@ -706,7 +727,8 @@ work in the editor so you can try again.
 
 **Delete dance** (in the top bar, on an existing dance) removes the dance. As
 everywhere else in the app, deletion is a soft delete with an **Undo** offered
-right away — see
+right away (if you turned on **Confirm before delete** in
+[Settings](./settings.md#accessibility), the app asks first) — see
 [Keep your collection tidy](./collection.md#keep-your-collection-tidy).
 
 ## Start new dances the way you work

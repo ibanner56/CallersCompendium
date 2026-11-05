@@ -21,7 +21,9 @@ section.*
 **Settings** is a top-level destination, marked with a gear icon and labeled
 **Settings**. On a narrow screen (like a phone) it's a tab in the bottom
 navigation; on a wide screen (a tablet or desktop) it's in the side navigation
-rail.
+rail. On a computer you can also press **Ctrl-,** (**Cmd-,** on a Mac), or
+choose **Settings…** in the **Caller's Compendium** menu on a Mac (see
+[Using the keyboard](./accessibility.md#using-the-keyboard)).
 
 Inside, a list of sections sits beside the controls for the section you've
 chosen. On a narrow screen you pick a section and it opens as its own page, then
@@ -275,7 +277,7 @@ and order what already counts.
   marks.
 - **Require an event date for calling history** (off) — when on, a program with
   no event date counts nowhere calling history is read (the "called ×N" count,
-  the **Called** filter, a dance's history list, the **Last called** sort, and
+  the **Calling history** filter, a dance's history list, the **Last called** sort, and
   the repeated-venues and half summaries) until you give it a date. Duplicated
   programs and programs another caller sends you arrive without a date. When
   off, a program counts whether or not it has a date. It applies on top of the
@@ -291,8 +293,8 @@ and order what already counts.
   counts and **Last called** sort follow a change to the default caller straight
   away.
 - **Repeated venues in calling history** (3) — shows the top venues where a
-  dance was called more than once. Set this to 0 to hide the summary, or choose
-  up to 10 venues.
+  dance was called more than once. Choose **Don't show** to hide the summary, or
+  choose up to 10 venues.
 
 #### Recency and history order
 
@@ -428,7 +430,20 @@ choosing and customizing wording.
 
 ## Language & region
 
-The **Language & region** section handles formats and localization.
+The **Language & region** section sets the app's language, then how dates
+are shown.
+
+### Language
+
+- **App language** — choose **System default** or one of the bundled languages
+  (currently English, German, French, Japanese, Danish, and Dutch). Changing it
+  re-renders the app immediately and is remembered next time you open the app.
+  With **System default**, the app follows your device's language when it is one
+  of those bundled languages and otherwise uses English. The language belongs to
+  this device: it is not synced to your other devices, so each one can use its
+  own, but a backup includes it.
+  Your dance content — figure and call wording — is governed by your chosen
+  [dialect](./dialects.md), independent of the interface language.
 
 ### Formats
 
@@ -469,18 +484,6 @@ The **Language & region** section handles formats and localization.
   Programs list, which reorders the moment you change the setting. Date *entry*
   still uses the system picker, which follows the app's active language.
 
-### Language
-
-- **App language** — choose **System default** or one of the bundled languages
-  (currently English, German, French, Japanese, Danish, and Dutch). Changing it
-  re-renders the app immediately and is remembered next time you open the app.
-  With **System default**, the app follows your device's language when it is one
-  of those bundled languages and otherwise uses English. The language belongs to
-  this device: it is not synced to your other devices, so each one can use its
-  own, but a backup includes it.
-  Your dance content — figure and call wording — is governed by your chosen
-  [dialect](./dialects.md), independent of the interface language.
-
 ## Defaults
 
 The **Defaults** section sets starting points: how lists open, what dance rows
@@ -514,8 +517,8 @@ default.
 Choose which details appear when you share, copy, or export a program or dance:
 **Authors**, **Formation**, **Level**, **Mixer**, **Status**, **Phrase**,
 **Calling notes**, **Walkthrough**, **Tunes**, **Hook**, and **Sources**.
-Authors are shown by default; tunes, the hook and sources are hidden until you
-turn them on. See
+Everything except tunes, the hook and sources is shown by default; those three
+are hidden until you turn them on. See
 [Choose which dance fields appear](./sharing.md#choose-which-dance-fields-appear).
 
 ### Collection filters
@@ -651,7 +654,7 @@ How you installed the app decides what Updates offers:
   iOS, Google Play on Android).
 - **Portable copy** (the Windows .zip or the Linux .tar.gz): the app checks as
   usual, but instead of **Download & install update** it tells you to download
-  the new archive from the release. Tap the row (or **View release** on the
+  the new archive from the release. Choose the row (or **View release** on the
   banner) to open the release page. Replace this copy with the new archive
   yourself; the app doesn't unpack it for you.
 - **Everything else** (the Windows installer, the Linux AppImage, macOS, and the
@@ -1115,10 +1118,14 @@ Sync is off and open while it is on.
   each device too: **App language**, **Reduce motion**, **Auto-size Perform
   cards**, and Perform's stage theme and text size. Unlike the sync settings
   above, a backup includes them. Your theme and custom themes do sync. A
-  device still on an older version of the app keeps syncing these with other
-  older devices, but this device ignores what it sends. Until you update it,
+  device still on an older version of the app keeps syncing the language,
+  **Reduce motion**, **Auto-size Perform cards** and stage theme settings with
+  other older devices (text size never synced), but this device ignores what it
+  sends. Until you update it,
   that older device may wrongly say this one isn't taking its changes; see
-  **"Needs you"** above.
+  **"Needs you"** above. A choice that was waiting under **Choose which
+  version to keep** for one of those four settings from before you updated is
+  dropped, since there is nothing left to choose.
 
 **Connecting.** Once Device Sync is on, choose **Connect**, then either:
 
@@ -1322,7 +1329,7 @@ comparison shows:
   both, its note, its own walkthrough or wording, or its beats show what
   differs. Links show where they go, what kind they are and whether they join
   the related-dance group; published sources show their page and number; and
-  **Origin** shows where the dance came from and its licence;
+  **Origin** shows where the dance came from and its license;
 - for a program: each detail that differs, then the dances only one version
   has (a dance is matched by which dance it is, not its title, and repeats are
   counted), whether the dances they share are in a different order, and
@@ -1414,7 +1421,8 @@ are.
 
 This section is closed until you open it. Today it holds one action.
 
-**Reset database** deletes everything on this device and restarts the app as if
+**Reset database**, marked with a warning icon, deletes everything on this
+device and restarts the app as if
 it had just been installed: every dance, program, collection, note and setting
 is gone. It cannot be undone. Take a [backup](#backup--restore) first if you
 want to keep anything.

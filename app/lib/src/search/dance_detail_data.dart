@@ -294,9 +294,23 @@ class DanceDetailData {
 
 /// The text shown for a custom field's stored [value] on the dance detail
 /// screen: booleans read Yes/No in the app's language, anything else via
-/// `toString()`.
+/// [customValueText].
 String formatCustomFieldValue(AppLocalizations l10n, Object value) {
   if (value is bool) return value ? l10n.commonYes : l10n.commonNo;
+  return customValueText(value);
+}
+
+/// A custom field's stored [value] as text. Numbers are stored as doubles, so a
+/// whole one (3.0) reads as 3; anything else, a fractional or out-of-range
+/// number included, is shown by `toString()`. Shared by the dance detail screen
+/// and the dance list's custom columns.
+String customValueText(Object value) {
+  if (value is num &&
+      value.isFinite &&
+      value == value.truncateToDouble() &&
+      value.abs() < 1e15) {
+    return value.toInt().toString();
+  }
   return value.toString();
 }
 

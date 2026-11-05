@@ -259,7 +259,8 @@ During the beta, two things are worth knowing:
   download a new version the same way you did the first time.
 
 When the app does find an update: on **desktop** it can download it, verify it
-hasn't been tampered with, and hand it to your system's installer to finish. On
+hasn't been tampered with, and hand it to your system's installer to finish (on
+Linux, it shows you the verified download in your file manager to run yourself). On
 an **Android** phone or tablet that you installed from the Releases page, it
 links you to the release so you can download the new file.
 
