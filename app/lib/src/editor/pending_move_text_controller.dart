@@ -6,9 +6,12 @@ import 'package:flutter/widgets.dart';
 ///
 /// Leaving a Move box settles it: an exact move name or shorthand is applied,
 /// and anything else goes back to what the row holds. Tapping Save does not
-/// reliably take focus from the box, so the dance editor has Save settle it
-/// first ([settle]), and counts text that leaving would apply as unsaved
-/// ([hasPendingText]), as it does a line in the free-text composer.
+/// reliably take focus from the box, so the editors with a Save (the dance
+/// editor, and the combination and shorthand editors) settle it first
+/// ([settle]). The dance editor also counts text that leaving would apply as
+/// unsaved ([hasPendingText]), as it does a line in the free-text composer.
+/// The default figures in Settings have no Save: they apply as they are
+/// edited.
 ///
 /// Only the Move box that has focus can hold such text, so the controller
 /// serves one box at a time: the one that attached last.
