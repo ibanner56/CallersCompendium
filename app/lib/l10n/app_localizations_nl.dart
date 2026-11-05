@@ -4212,6 +4212,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Importeer dansen die je al hebt, of schrijf je eerste. „The Baby Rose” staat er als voorbeeld om rond te kijken.';
 
   @override
+  String get collectionBrowsePublishedCollections =>
+      'Gepubliceerde collecties bekijken';
+
+  @override
   String get collectionFiltersTitle => 'Filters';
 
   @override
@@ -6731,6 +6735,11 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String onlineImportUpdated(String title) {
+    return '“$title” bijgewerkt met de onlineversie.';
+  }
+
+  @override
   String onlineImportUndoKeptChanged(String title) {
     return '“$title” is gewijzigd sinds je hem importeerde, dus Ongedaan maken heeft hem gelaten zoals hij is.';
   }
@@ -7087,6 +7096,16 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importReviewClose => 'Import sluiten';
+
+  @override
+  String get importReviewDiscardTitle => 'Deze import verwerpen?';
+
+  @override
+  String get importReviewDiscardBody =>
+      'Als je nu weggaat, worden de lijst die je aan het nakijken bent en je keuzes erop verworpen.';
+
+  @override
+  String get importReviewKeepReviewing => 'Doorgaan met nakijken';
 
   @override
   String get importReviewSourceLabel => 'Bron';

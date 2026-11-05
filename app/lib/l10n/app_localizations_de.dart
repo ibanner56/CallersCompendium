@@ -4230,6 +4230,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Importieren Sie Tänze, die Sie bereits haben, oder schreiben Sie Ihren ersten. „The Baby Rose“ liegt als Beispiel zum Umsehen bei.';
 
   @override
+  String get collectionBrowsePublishedCollections =>
+      'Veröffentlichte Sammlungen durchsuchen';
+
+  @override
   String get collectionFiltersTitle => 'Filter';
 
   @override
@@ -6760,6 +6764,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String onlineImportUpdated(String title) {
+    return '„$title“ mit der Online-Version aktualisiert.';
+  }
+
+  @override
   String onlineImportUndoKeptChanged(String title) {
     return '„$title“ wurde seit dem Import geändert, daher hat Rückgängig ihn unverändert gelassen.';
   }
@@ -7117,6 +7126,16 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get importReviewClose => 'Import schließen';
+
+  @override
+  String get importReviewDiscardTitle => 'Diesen Import verwerfen?';
+
+  @override
+  String get importReviewDiscardBody =>
+      'Wenn du jetzt gehst, werden die Liste, die du gerade prüfst, und deine Auswahl darauf verworfen.';
+
+  @override
+  String get importReviewKeepReviewing => 'Weiter prüfen';
 
   @override
   String get importReviewSourceLabel => 'Quelle';
