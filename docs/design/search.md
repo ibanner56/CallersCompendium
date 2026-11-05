@@ -85,8 +85,12 @@ tree. Conforms to [ux.md](ux.md) §1 and [dialect.md](dialect.md)
    typed prose the importer structures (`ladles trade by the left shoulder`
    becomes `pass_by`, which ContraDB files under `custom`) over-matches. An `allemande orbit` is one figure on ContraDB and
    `meanwhile[allemande, orbit]` here, which is why an `allemande` query is
-   sent as `allemande` or `allemande orbit`. The importer half of these is
-   pinned by `contradb_advanced_translation_import_test.dart`.
+   sent as `allemande` or `allemande orbit`. The importer half is
+   pinned for two of these only, by `contradb_advanced_translation_import_test.dart`:
+   the `allemande orbit` container and a typed `A while B` line. The others
+   (`form an ocean wave & balance`, `*-hand chain`, a balanced `swat the flea`,
+   `ladles trade by` becoming `pass_by`) are described from reading the
+   importer and are not pinned by any test.
 
    The ContraDB half is derived by reading ContraDB's `lib/filter_dances.rb`
    and `lib/search_match.rb`, not measured: no engine runs here and nothing in
