@@ -1228,6 +1228,20 @@ void main() {
           ],
         ),
       );
+      // petronella comes again later, but neither next to itself nor across
+      // the wrap (the dance ends on balance): "later" is not "immediately".
+      await dances.create(
+        _dance(
+          id: 'spread',
+          title: 'Spread',
+          figures: [
+            Figure(move: 'petronella', params: const {'beats': 16}),
+            Figure(move: 'swing', params: const {'who': 'partners'}),
+            Figure(move: 'petronella', params: const {'beats': 16}),
+            Figure(move: 'balance', params: const {'beats': 16}),
+          ],
+        ),
+      );
       // The default dance has petronella once, first: no second one to abut.
       await dances.create(_dance(id: 'once', title: 'Once'));
       expect(
