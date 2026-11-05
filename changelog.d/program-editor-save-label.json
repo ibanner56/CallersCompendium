@@ -1,0 +1,9 @@
+{
+  "id": "program-editor-save-label",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "You can see the program editor's Save button always reads \"Save\", no longer switching to \"Save changes\" while you have unsaved edits."
+    ]
+  }
+}

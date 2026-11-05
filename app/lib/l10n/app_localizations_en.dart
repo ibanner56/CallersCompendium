@@ -5247,9 +5247,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get programsMarkAllPerformedTooltip => 'Mark all performed';
 
   @override
-  String get programsSaveDirty => 'Save changes';
-
-  @override
   String get commonSave => 'Save';
 
   @override

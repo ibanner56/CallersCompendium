@@ -8,6 +8,15 @@ the app and of `compendium_core`; version headings below refer to
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-11-02
+
+### Changed
+
+- The `compendium_core` dependency advances to `0.10.0`. The schema moves from
+  v40 to v41, which adds lookup indexes over the dance join tables. The
+  generated sync allow-list is unchanged, so this release adds no wire fields
+  or record kinds.
+
 ## [0.3.2] - 2026-10-26
 
 ### Changed
