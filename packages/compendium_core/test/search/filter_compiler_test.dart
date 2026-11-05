@@ -589,7 +589,8 @@ void main() {
   });
 
   group('sequence: ThenFilter', () {
-    test('self-join on group_idx with before/after clauses and bind order', () {
+    test('self-join on the next group_idx with before/after clauses and bind '
+        'order', () {
       final f = ThenFilter(
         FigureLeaf('petronella', section: 'B1'),
         FigureLeaf('swing'),
@@ -598,7 +599,12 @@ void main() {
         pred(f),
         'id IN (SELECT a.dance_id FROM dance_figures a '
         'JOIN dance_figures b ON a.dance_id = b.dance_id '
-        'AND a.group_idx < b.group_idx '
+        'AND a.group_idx <> b.group_idx '
+        'AND b.group_idx = COALESCE('
+        '(SELECT MIN(m.group_idx) FROM dance_figures m '
+        'WHERE m.dance_id = a.dance_id AND m.group_idx > a.group_idx), '
+        '(SELECT MIN(m.group_idx) FROM dance_figures m '
+        'WHERE m.dance_id = a.dance_id)) '
         'WHERE ((a.move = ? AND a.section = ?)) AND (b.move = ?))',
       );
       expect(compiler.compile(f).binds, ['petronella', 'B1', 'swing']);

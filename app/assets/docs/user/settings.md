@@ -425,6 +425,11 @@ are shown.
   single order and use your device language's default. Pick a fixed format or
   **Custom…** if you want one layout everywhere.
 
+  The same choice formats the dates the app stamps itself, such as when an
+  unsaved draft was saved, when Device Sync last ran and when a version on a
+  sync conflict was changed. The time of day after the date stays in the app
+  language.
+
   A custom pattern is built from these tokens:
 
   | Token | Meaning |
@@ -1360,7 +1365,10 @@ are.
     You aren't asked when the tag or author holding the name has been
     deleted: a deleted one gives the name up, and the rename goes ahead. Nor
     are you asked while the record holding the name is already on its way to
-    another name; the rename waits until it has moved, then applies.
+    another name; the rename waits until it has moved, then applies. If the
+    clash goes away before you choose, for example because you renamed one of
+    the two yourself or the other device renamed its record again, the
+    decision leaves the list after the next sync.
 
     Merging two authors is the one case that loses something: an email
     address, location, and deceased marker are kept only on your own device and

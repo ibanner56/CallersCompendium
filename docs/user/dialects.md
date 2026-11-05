@@ -351,6 +351,9 @@ is nothing to type.
   **Perform dialect** is left out; it stays in your
   [backup](./backup-portability.md) and moves with Device Sync. See
   [Share, print & export](./sharing.md#share-a-program-with-its-dances).
+- If a dialect is renamed or deleted (for example on another device) while you
+  have it open in the editor, saving doesn't add it back or create a second
+  copy. You see a message that your changes weren't saved.
 
 ## Peek at the canonical wording
 

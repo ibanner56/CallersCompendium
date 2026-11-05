@@ -92,6 +92,18 @@ final RegExp _legacyCallersBoxRollAwayClauseRe = RegExp(
   r'^(role1s|role2s) (roll|side-step|step aside)(?: (left|right))?$',
 );
 
+/// The text a custom-field value contributes to the search index.
+///
+/// A number reads the way a caller types it: a whole number is "3", never the
+/// "3.0" `double.toString` gives, which indexed a stray "0" token beside it.
+/// Every other value indexes as its own `toString`.
+String _customValueIndexText(Object? value) {
+  if (value is num && value.isFinite && value == value.truncateToDouble()) {
+    return value.toInt().toString();
+  }
+  return value.toString();
+}
+
 /// CRUD + search for [Dance]s.
 ///
 /// A write rebuilds the derived indexes ([DanceFigures] rows,
@@ -1067,9 +1079,9 @@ class DanceRepository {
       // every leaf flattened from this one top-level figure — including leaves
       // below a nested container — shares one group, and groups are
       // monotonic across top-level figures. Because simultaneous leaves share a
-      // group, the `a.group_idx < b.group_idx` correlation never treats them as
-      // one-before-the-other, while a genuine sequence of top-level figures
-      // (distinct, increasing groups) still matches.
+      // group, the next-group correlation never treats them as
+      // one-after-the-other, while a genuine run of top-level figures
+      // (distinct, consecutive groups) still matches.
       //
       // The one exception is a top-level `sequence`, whose children are danced
       // in order: each child takes the next group, so "balance and swing" kept
@@ -1590,7 +1602,8 @@ class DanceRepository {
     }
     return [
       for (final value in dance.customFields)
-        if (indexedIds.contains(value.fieldId)) value.value.toString(),
+        if (indexedIds.contains(value.fieldId))
+          _customValueIndexText(value.value),
     ];
   }
 
@@ -2921,6 +2934,9 @@ class DanceRepository {
   ///
   /// Kept parts a newer peer's build sent (`retained_sync_fields`) are content
   /// too, and would otherwise be republished with the blank body, so they go.
+  /// So do the queued reviews about the dance (`review_queue`): a conflict
+  /// choice holds another device's whole version, and a fresh-attach
+  /// ambiguity pairs it with a second dance. Either side of a pair counts.
   /// References the dance alone held are collected as a purge collects them.
   Future<void> _blank(
     DanceRow row, {
@@ -2950,6 +2966,12 @@ class DanceRepository {
     await (_db.delete(_db.retainedSyncFields)..where(
           (t) =>
               t.kind.equals(SyncRecordKind.dance.name) & t.recordId.equals(id),
+        ))
+        .go();
+    await (_db.delete(_db.reviewQueue)..where(
+          (t) =>
+              t.kind.equalsValue(SyncRecordKind.dance) &
+              (t.recordId.equals(id) | t.counterpartId.equals(id)),
         ))
         .go();
     await (_db.update(_db.dances)..where((t) => t.id.equals(id))).write(

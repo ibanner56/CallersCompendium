@@ -140,6 +140,10 @@ most of a screen, so a pedal reads through a long card in a few presses. The
 opens at its top. A card that fits needs no scrolling, so every key changes slot
 at once.
 
+When you perform a single dance, the same **up**, **down**, **Page Up** and
+**Page Down** keys scroll a long card, most of a screen at a time. There is no
+next slot to move to, so they stop at the top and the end.
+
 While the walkthrough overlay is open, none of these change your slot: taps on
 the card are absorbed, the **up**, **down**, **Page Up** and **Page Down** keys
 scroll the walkthrough itself, and **Esc** closes it — so reading ahead can't
@@ -149,7 +153,8 @@ Between the two buttons, **Slot N of M** shows where you are. A dance and its
 alternates count as one slot, so stepping forward skips past the alternates.
 
 **Jump to slot** lists the whole program so you can go anywhere at once — useful
-if plans change mid-evening. When the current slot has an
+if plans change mid-evening. Dances are numbered as in your set list, so a
+break takes no number. When the current slot has an
 [alt](./glossary.md#alt), **Show alternate** switches the card to it (and on
 through any others, then back to the primary). This only changes what you are
 looking at; the program itself stays as it is.

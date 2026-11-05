@@ -232,7 +232,8 @@ stay on your device; they are never uploaded, shared, or included in backups.
 
 Each new program keeps its own draft, so two new programs never overwrite each
 other's. If a new program you never saved left one behind, the next new
-program you start offers it back by its title — *You have an unsaved draft of
+program you start offers it back by its title (the one you saved last, if
+several were left behind) — *You have an unsaved draft of
 another new program* — so you can **Restore** it and carry on with that
 program, or **Discard** it and start fresh.
 
@@ -312,7 +313,10 @@ summary, as in [Perform mode](./perform.md). Its figures stay in the matrix.
 The set list you print, copy or share shows the plain title, and **Share
 (program + dances)** includes the dance itself. Restore the dance from Recently
 deleted to use it normally again. Once the dance is gone for good, the slot
-keeps its title as text.
+keeps its title as text. With [Device Sync](./settings.md#device-sync), a
+slot you added before this device heard that another device deleted the dance
+for good shows "Deleted dance" instead, in the builder, the summary, Perform
+mode and the set list.
 
 ### Event details
 

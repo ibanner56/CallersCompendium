@@ -109,7 +109,8 @@ token, so a short token such as `rl` is not taken for the first move whose name
 contains it; and only then the first suggestion offered.
 
 If you leave a figure's **Move** box without pressing Enter, by moving to
-another box, saving the dance, or closing the figure or opening another one,
+another box, saving the dance (or a combination or shorthand you are editing),
+or closing the figure or opening another one,
 what you typed is used only when it is exactly a move's name (or one of your
 own figures' names) or, with **Free-text entry** on, one of your shorthands.
 Anything else, such as part of a name, goes back to the move the figure had:

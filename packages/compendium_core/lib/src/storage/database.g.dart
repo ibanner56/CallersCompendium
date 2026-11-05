@@ -2917,9 +2917,9 @@ class DanceFigureRow extends DataClass implements Insertable<DanceFigureRow> {
   /// [idx] (unique per row, as the `{danceId, idx}` PK requires), [groupIdx] is
   /// deliberately **not** unique — the concurrent sides of a `meanwhile`
   /// container (flattened per side, #590) all carry the container's single
-  /// [groupIdx]. The `Then` sequence operator correlates on
-  /// `a.group_idx < b.group_idx` so two concurrent sides, sharing a group, are
-  /// never treated as one-before-the-other (#748). Added in schema v22; existing
+  /// [groupIdx]. The `Then` sequence operator pairs a row with the rows of the
+  /// next group after its own (wrapping from the last), so two concurrent
+  /// sides, sharing a group, are never treated as one-after-the-other (#748). Added in schema v22; existing
   /// rows default to 0 and are repopulated by the derived-index rebuild.
   final int groupIdx;
   final String move;

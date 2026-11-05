@@ -6,6 +6,7 @@ import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
 import '../editor/figure_draft.dart';
+import '../editor/pending_move_text_controller.dart';
 import '../utils/scroll_to_error.dart';
 import '../widgets/figure_list_editor.dart';
 import '../widgets/shorthand_shadow_warning.dart';
@@ -67,6 +68,9 @@ class _ShorthandMappingEditorScreenState
   String? _figuresError;
 
   final _scroll = ScrollController();
+
+  /// Lets Save settle a Move box still being typed in, as leaving it would.
+  final _pendingMoveText = PendingMoveTextController();
   final _figuresErrorKey = GlobalKey();
 
   /// The token and figures as the editor opened, for [_dirty]. The figures are
@@ -91,6 +95,7 @@ class _ShorthandMappingEditorScreenState
   void dispose() {
     _tokenController.dispose();
     _scroll.dispose();
+    _pendingMoveText.dispose();
     super.dispose();
   }
 
@@ -100,6 +105,9 @@ class _ShorthandMappingEditorScreenState
   /// Validates the token + figures and returns the edited mapping, or surfaces
   /// the first problem beside the field it is about and keeps the editor open.
   void _save() {
+    // Tapping Save does not always take focus from a Move box (AUTH-1), so
+    // text typed there and not yet applied is settled first.
+    _pendingMoveText.settle();
     final l10n = AppLocalizations.of(context);
     final token = _tokenController.text.trim();
     final String? tokenError;
@@ -280,6 +288,7 @@ class _ShorthandMappingEditorScreenState
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: FigureListEditor(
                 drafts: _drafts,
+                pendingMoveTextController: _pendingMoveText,
                 taxonomy: contraTaxonomy,
                 phraseStructure: PhraseStructure.standard,
                 // A shorthand expands to a snippet, not a whole dance: phrase

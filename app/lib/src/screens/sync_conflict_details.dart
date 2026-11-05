@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/user_figures_scope.dart';
@@ -10,6 +9,8 @@ import '../data/active_dialect_scope.dart';
 import '../data/figure_summary.dart';
 import '../data/app_theme_labels_l10n.dart';
 import '../data/custom_theme.dart';
+import '../data/date_format_scope.dart';
+import '../data/regional_formats.dart';
 import '../glossary/figure_titles.dart';
 import '../search/facet_labels.dart';
 import '../sync/sync_setting_labels.dart';
@@ -115,9 +116,12 @@ String? syncConflictFigureName(BuildContext context, String figureId) {
 
 /// When a version was last changed, for telling versions apart.
 String syncConflictWhen(BuildContext context, DateTime when) =>
-    DateFormat.yMMMd(
-      Localizations.localeOf(context).toString(),
-    ).add_jm().format(when.toLocal());
+    formatEventDateTime(
+      when,
+      DateFormatScope.of(context),
+      MaterialLocalizations.of(context),
+      AppLocalizations.of(context),
+    );
 
 /// The fields of [kind] a comparison shows, in reading order, with their
 /// labels: exactly core's [syncUserVisibleFields], which the merge also uses
@@ -1060,9 +1064,12 @@ class SyncConflictComparison extends StatelessWidget {
               if (link is Map) _linkText(l10n, link),
           ].join('; ');
         case 'eventDate':
-          return DateFormat.yMMMd(
-            Localizations.localeOf(context).toString(),
-          ).format(syncConflictCalendarDate(value as String));
+          return formatEventDate(
+            syncConflictCalendarDate(value as String),
+            DateFormatScope.of(context),
+            MaterialLocalizations.of(context),
+            l10n,
+          );
         case 'payMinorUnits':
           // The amount alone is ambiguous: show it with that version's own
           // currency, formatted by the currency's exponent.

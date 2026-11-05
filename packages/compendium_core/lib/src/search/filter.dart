@@ -540,12 +540,15 @@ class FigureFilter extends DanceFilter {
   final FigureQuery query;
 }
 
-/// Sequence: a figure matching [before] occurs **earlier** in the dance than
-/// a figure matching [after] (strict `a.group_idx < b.group_idx`, so two
+/// Sequence: a figure matching [after] **immediately follows** a figure
+/// matching [before], as in ContraDB's `then`. The dance is read as a loop, so
+/// the first figure follows the last: a dance that opens and closes with an
+/// allemande matches `Then(allemande, allemande)`. Figures are compared by
+/// `group_idx`, the next group after `before`'s (else the first), so two
 /// concurrent sides of one `meanwhile` container — which share a group — are
-/// not treated as one-before-the-other; #748). Operands are [FigureQuery] only
-/// — metadata leaves and nested [ThenFilter] have no per-position meaning and
-/// are excluded by the type.
+/// never one-after-the-other (#748), and a figure between the two stops a
+/// match. Operands are [FigureQuery] only — metadata leaves and nested
+/// [ThenFilter] have no per-position meaning and are excluded by the type.
 @immutable
 class ThenFilter extends DanceFilter {
   const ThenFilter(this.before, this.after);

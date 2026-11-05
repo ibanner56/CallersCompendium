@@ -47,6 +47,44 @@ void main() {
       expect(c.customByName('Mine')!.roles['role1']!.singular, 'Cat');
     });
 
+    group('updateTerms', () {
+      test('replaces the dialect that has the name', () async {
+        final (c, _) = await _controller();
+        await c.upsert(_custom('Mine'));
+
+        final saved = await c.updateTerms(
+          Dialect(name: 'Mine', roles: const {'role1': RoleTerm('Cat')}),
+        );
+
+        expect(saved, isTrue);
+        expect(c.customDialects, hasLength(1));
+        expect(c.customByName('Mine')!.roles['role1']!.singular, 'Cat');
+      });
+
+      test('writes nothing for a name that was renamed away', () async {
+        final (c, _) = await _controller();
+        await c.upsert(_custom('Mine'));
+        await c.rename('Mine', 'Yours');
+
+        final saved = await c.updateTerms(_custom('Mine'));
+
+        expect(saved, isFalse);
+        expect(c.customDialects.map((d) => d.name), ['Yours']);
+      });
+
+      test('does not revive a deleted dialect', () async {
+        final (c, settings) = await _controller();
+        await c.upsert(_custom('Mine'));
+        await c.delete('Mine');
+
+        final saved = await c.updateTerms(_custom('Mine'));
+
+        expect(saved, isFalse);
+        expect(c.customDialects, isEmpty);
+        expect(await settings.get(kCustomDialectsKey), isEmpty);
+      });
+    });
+
     test('upsert rejects a shipped preset name', () async {
       final (c, _) = await _controller();
       expect(() => c.upsert(_custom('Larks/Robins')), throwsArgumentError);

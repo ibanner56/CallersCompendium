@@ -19,6 +19,7 @@ import '../utils/undo_snack_bar.dart';
 import '../widgets/colour_dance_theme.dart';
 import '../widgets/dialect_quick_switch.dart';
 import '../widgets/tap_tempo_metronome.dart';
+import '../utils/slot_dance_title.dart';
 import 'perform_a11y_prefs.dart';
 import 'perform_adjust_sheet.dart';
 import 'perform_card.dart';
@@ -331,20 +332,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   /// page keys alike: a pedal that sends arrows should not need ten presses
   /// to reach the end. Returns false, scrolling nothing, when the card is
   /// already at that end or does not scroll.
-  bool _scrollCard(int direction) {
-    if (!_cardScroll.hasClients) return false;
-    final position = _cardScroll.position;
-    final target =
-        (position.pixels + direction * position.viewportDimension * 0.8).clamp(
-          position.minScrollExtent,
-          position.maxScrollExtent,
-        );
-    // Within a pixel of the end counts as there, so a rounding remainder
-    // cannot swallow a key press.
-    if ((target - position.pixels).abs() < 1) return false;
-    _cardScroll.jumpTo(target);
-    return true;
-  }
+  bool _scrollCard(int direction) => scrollPerformBy(_cardScroll, direction);
 
   /// Keyboard scrolling for the open walkthrough overlay: [lines] of a fixed
   /// step for the arrow keys, or a whole viewport (`page` set) for the page
@@ -773,9 +761,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     if (slot.danceId != null) {
       final dance = _danceForSlot(slot);
       if (dance == null) return l10n.programsDanceUnavailable;
-      return markDeleted && dance.isDeleted
-          ? '${dance.title} ${l10n.programsDeletedDanceFallback}'
-          : dance.title;
+      return slotDanceTitle(l10n, dance, markDeleted: markDeleted);
     }
     final rawText = slot.text?.trim();
     final text =
@@ -813,6 +799,11 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
       showDragHandle: true,
       builder: (sheetContext) {
         final l10n = AppLocalizations.of(sheetContext);
+        // The set-list numbers (GIG-10): dances only, so a break takes none
+        // and the last number is the program's dance count.
+        final numbers = Program.danceNumbersForSlots([
+          for (final group in _groups) group.primary,
+        ]);
         return SafeArea(
           child: ListView.builder(
             key: const ValueKey('perform-jump-list'),
@@ -826,7 +817,11 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                   : null;
               return ListTile(
                 key: ValueKey('perform-jump-slot-$index'),
-                leading: CircleAvatar(child: Text('${index + 1}')),
+                leading: CircleAvatar(
+                  child: numbers[index] == null
+                      ? const Icon(Icons.horizontal_rule)
+                      : Text('${numbers[index]}'),
+                ),
                 title: Text(_slotLabel(l10n, group.primary, markDeleted: true)),
                 subtitle: subtitle == null ? null : Text(subtitle),
                 selected: index == _groupIndex,
@@ -1736,9 +1731,11 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
         // A soft-deleted dance keeps its figures but says so in its title.
         if (dance.isDeleted) {
           dance = dance.copyWith(
-            title:
-                '${dance.title} '
-                '${AppLocalizations.of(context).programsDeletedDanceFallback}',
+            title: slotDanceTitle(
+              AppLocalizations.of(context),
+              dance,
+              markDeleted: true,
+            ),
           );
         }
         return PerformCard(

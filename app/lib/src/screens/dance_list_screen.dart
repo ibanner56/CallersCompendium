@@ -44,6 +44,7 @@ import '../utils/shortcut_platform.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/add_to_program_sheet.dart';
 import '../widgets/advanced_query_builder.dart';
+import '../widgets/app_shortcuts.dart';
 import '../widgets/batch_custom_field_dialog.dart';
 import '../widgets/batch_level_dialog.dart';
 import '../widgets/batch_rating_dialog.dart';
@@ -71,6 +72,7 @@ import 'app_shell_search_scope.dart';
 import 'dance_detail_screen.dart';
 import 'dance_editor_screen.dart';
 import 'dance_reimport_flow.dart';
+import 'published_collection_navigation.dart';
 
 /// Collection screen: browse and search the dance library
 /// (`docs/design/ux.md` §1). A unified full-text search bar, a one-tap facet
@@ -160,6 +162,44 @@ class DanceListScreen extends StatefulWidget {
 
   @override
   State<DanceListScreen> createState() => _DanceListScreenState();
+}
+
+/// Wraps the search panels, so [_SelectAllDancesAction] can tell focus there
+/// from focus in the results.
+class _NotTheResultList extends StatelessWidget {
+  const _NotTheResultList({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => child;
+}
+
+/// Handles [SelectAllDancesIntent] for the result list, and reports itself
+/// disabled whenever Select all could not act (a pending or failed search,
+/// online mode, no results), so the key then falls through to whatever else
+/// is bound to it.
+class _SelectAllDancesAction extends Action<SelectAllDancesIntent> {
+  _SelectAllDancesAction({required this.canAct, required this.onInvoke});
+
+  final bool Function() canAct;
+  final VoidCallback onInvoke;
+
+  /// Not while focus is on a control in the search panels (a chip, a button,
+  /// a dropdown): those sit in the same scroll view as the results but are not
+  /// the list.
+  @override
+  bool isEnabled(SelectAllDancesIntent intent) =>
+      canAct() &&
+      FocusManager.instance.primaryFocus?.context
+              ?.findAncestorWidgetOfExactType<_NotTheResultList>() ==
+          null;
+
+  @override
+  Object? invoke(SelectAllDancesIntent intent) {
+    onInvoke();
+    return null;
+  }
 }
 
 /// Actions in the Collection multi-select "more" overflow menu (#423), holding
@@ -893,7 +933,16 @@ class _DanceListScreenState extends State<DanceListScreen>
 
   void _onAdvancedChanged() {
     setState(() {});
-    _runSearch();
+    if (_onlineEnabled) {
+      // Online, the Advanced query narrows an online source that accepts it
+      // (ContraDB); for one that does not, the panel is greyed out, so this
+      // is only reached for a source whose search it affects.
+      _debounceTimer?.cancel();
+      _onlineSeq++;
+      _debounceTimer = Timer(_onlineDebounce, _runOnlineSearch);
+    } else {
+      _runSearch();
+    }
   }
 
   void _onByPhraseChanged() {
@@ -933,8 +982,7 @@ class _DanceListScreenState extends State<DanceListScreen>
       }
     });
     if (value) {
-      if (_ftsController.text.trim().isNotEmpty ||
-          _effectivePhrases() != null) {
+      if (_hasOnlineCriteria) {
         _runOnlineSearch();
       }
     } else {
@@ -955,7 +1003,7 @@ class _DanceListScreenState extends State<DanceListScreen>
       _onlineError = null;
       _onlineSearching = false;
     });
-    if (_ftsController.text.trim().isNotEmpty || _effectivePhrases() != null) {
+    if (_hasOnlineCriteria) {
       _runOnlineSearch();
     }
   }
@@ -981,6 +1029,21 @@ class _DanceListScreenState extends State<DanceListScreen>
   CallersBoxPhraseQuery? _effectivePhrases() =>
       _onlineSource.supportsByPhrase ? _onlinePhrases() : null;
 
+  /// The Advanced builder's filter as it applies to the active online source:
+  /// `null` for sources without Advanced support
+  /// ([OnlineSource.supportsAdvanced], i.e. The Caller's Box), so a residual
+  /// local Advanced query can't leak into its search or keep an empty search
+  /// "active". Mirrors [_effectivePhrases].
+  DanceFilter? _effectiveAdvanced() =>
+      _onlineSource.supportsAdvanced ? _advancedRoot.toFilter() : null;
+
+  /// Whether the online search has anything to search for: query text, by-phrase
+  /// figures, or an Advanced query the active source accepts.
+  bool get _hasOnlineCriteria =>
+      _ftsController.text.trim().isNotEmpty ||
+      _effectivePhrases() != null ||
+      _effectiveAdvanced() != null;
+
   /// Runs a live search against the active online source for the current query
   /// text and/or by-phrase figures. Guarded by a sequence number so a slow
   /// response can't overwrite a newer query.
@@ -989,6 +1052,7 @@ class _DanceListScreenState extends State<DanceListScreen>
       _ftsController.text,
       _ftsScope,
       phrases: _effectivePhrases(),
+      advanced: _effectiveAdvanced(),
     );
     if (query.isEmpty) {
       setState(() {
@@ -1356,6 +1420,18 @@ class _DanceListScreenState extends State<DanceListScreen>
     });
   }
 
+  /// Ctrl/Cmd-A: selects every dance in the current results, starting selection
+  /// mode first when it is off. Unlike [_toggleSelectAll] it never deselects,
+  /// so pressing it twice leaves everything selected, as in a file manager.
+  void _selectAllFromKeyboard() {
+    if (!_canSelectAll) return;
+    final ids = [for (final e in _results) e.dance.id];
+    setState(() {
+      _selectionMode = true;
+      _selection.selectAll(ids);
+    });
+  }
+
   void _deselectNotShown() {
     final shown = _shownIds;
     setState(() => _selection.deselectNotShown(shown));
@@ -1414,8 +1490,14 @@ class _DanceListScreenState extends State<DanceListScreen>
     try {
       await _repos.transaction(() async {
         final pending = <({Dance dance, List<String> next})>[];
+        // One batched read, not a `getById` per dance (N4-S4; see
+        // _batchSetStatus). It is unordered, so walk the selection in order.
+        final byId = {
+          for (final dance in await _repos.dances.getByIds(selectedIds))
+            dance.id: dance,
+        };
         for (final id in selectedIds) {
-          final dance = await _repos.dances.getById(id);
+          final dance = byId[id];
           if (dance == null) continue;
           final current = dance.tagIds;
           final List<String> next;
@@ -1559,10 +1641,9 @@ class _DanceListScreenState extends State<DanceListScreen>
     final priorLevels = <String, String?>{};
     final int count;
     try {
-      for (final id in selectedIds) {
-        final dance = await _repos.dances.getById(id);
-        if (dance == null) continue;
-        priorLevels[id] = dance.difficultyLevelId;
+      // One batched read, not a `getById` per dance (see _batchSetStatus).
+      for (final dance in await _repos.dances.getByIds(selectedIds)) {
+        priorLevels[dance.id] = dance.difficultyLevelId;
       }
 
       count = await _repos.dances.setLevelForMany(
@@ -1749,10 +1830,9 @@ class _DanceListScreenState extends State<DanceListScreen>
     final priorRatings = <String, int?>{};
     final int count;
     try {
-      for (final id in selectedIds) {
-        final dance = await _repos.dances.getById(id);
-        if (dance == null) continue;
-        priorRatings[id] = dance.rating;
+      // One batched read, not a `getById` per dance (see _batchSetStatus).
+      for (final dance in await _repos.dances.getByIds(selectedIds)) {
+        priorRatings[dance.id] = dance.rating;
       }
 
       count = await _repos.dances.setRatingForMany(
@@ -1889,9 +1969,8 @@ class _DanceListScreenState extends State<DanceListScreen>
     final priorTunes = <String, List<String>>{};
     final int count;
     try {
-      for (final id in selectedIds) {
-        final dance = await _repos.dances.getById(id);
-        if (dance == null) continue;
+      // One batched read, not a `getById` per dance (see _batchSetStatus).
+      for (final dance in await _repos.dances.getByIds(selectedIds)) {
         // Deliberately not captured for an undecodable list. The snapshot is a
         // `List<String>`, so it would capture `[]` and Undo would write `[]`
         // back — destroying stored text the batch itself skipped. Omitting the
@@ -1902,7 +1981,7 @@ class _DanceListScreenState extends State<DanceListScreen>
           UnreadableTunes() => null,
         };
         if (priors == null) continue;
-        priorTunes[id] = priors;
+        priorTunes[dance.id] = priors;
       }
 
       count = await _repos.dances.addTunesForMany(
@@ -1972,9 +2051,8 @@ class _DanceListScreenState extends State<DanceListScreen>
     final priorTunes = <String, List<String>>{};
     final int count;
     try {
-      for (final id in selectedIds) {
-        final dance = await _repos.dances.getById(id);
-        if (dance == null) continue;
+      // One batched read, not a `getById` per dance (see _batchSetStatus).
+      for (final dance in await _repos.dances.getByIds(selectedIds)) {
         // Deliberately not captured for an undecodable list. The snapshot is a
         // `List<String>`, so it would capture `[]` and Undo would write `[]`
         // back — destroying stored text the batch itself skipped. Omitting the
@@ -1985,7 +2063,7 @@ class _DanceListScreenState extends State<DanceListScreen>
           UnreadableTunes() => null,
         };
         if (priors == null) continue;
-        priorTunes[id] = priors;
+        priorTunes[dance.id] = priors;
       }
 
       count = await _repos.dances.clearTunesForMany(
@@ -2058,10 +2136,9 @@ class _DanceListScreenState extends State<DanceListScreen>
     final priorFields = <String, List<CustomFieldValue>>{};
     final int count;
     try {
-      for (final id in selectedIds) {
-        final dance = await _repos.dances.getById(id);
-        if (dance == null) continue;
-        priorFields[id] = [
+      // One batched read, not a `getById` per dance (see _batchSetStatus).
+      for (final dance in await _repos.dances.getByIds(selectedIds)) {
+        priorFields[dance.id] = [
           for (final f in dance.customFields)
             if (f.fieldId == choice.def.id) f,
         ];
@@ -2789,36 +2866,49 @@ class _DanceListScreenState extends State<DanceListScreen>
           ),
         ),
         Expanded(
-          child: CustomScrollView(
-            keyboardDismissBehavior: kTextEntryKeyboardDismiss,
-            slivers: [
-              SliverList(
-                delegate: SliverChildListDelegate([
-                  // Which tools appear in which mode is documented on
-                  // [_buildSearchPanels]. By-phrase maps onto TCB's own "search
-                  // by phrase" fields, so it's offered for the Caller's Box
-                  // source even with an empty local collection; for sources
-                  // without by-phrase support (ContraDB) it is greyed out, or
-                  // absent when the collection is empty.
-                  _buildSearchPanels(data, collectionEmpty),
-                  if (_onlineEnabled || !collectionEmpty) _buildResultCount(),
-                  const Divider(height: 1),
-                ]),
+          // Ctrl/Cmd-A ([appShortcuts]) is handled here, around the list and
+          // not the search box above it, so it acts only while focus is in the
+          // list; a text field keeps its own Select all.
+          child: Actions(
+            actions: {
+              SelectAllDancesIntent: _SelectAllDancesAction(
+                canAct: () => _canSelectAll,
+                onInvoke: _selectAllFromKeyboard,
               ),
-              if (_onlineEnabled)
-                _buildOnlineResultsSliver()
-              else if (collectionEmpty)
-                _buildEmptyCollectionSliver()
-              else ...[
-                if (_onlyTheSampleDance(data) && !_hasActiveQuery)
-                  _buildImportCardSliver(),
-                _buildResultsSliver(),
+            },
+            child: CustomScrollView(
+              keyboardDismissBehavior: kTextEntryKeyboardDismiss,
+              slivers: [
+                SliverList(
+                  delegate: SliverChildListDelegate([
+                    // Which tools appear in which mode is documented on
+                    // [_buildSearchPanels]. By-phrase maps onto TCB's own "search
+                    // by phrase" fields, so it's offered for the Caller's Box
+                    // source even with an empty local collection; for sources
+                    // without by-phrase support (ContraDB) it is greyed out, or
+                    // absent when the collection is empty.
+                    _NotTheResultList(
+                      child: _buildSearchPanels(data, collectionEmpty),
+                    ),
+                    if (_onlineEnabled || !collectionEmpty) _buildResultCount(),
+                    const Divider(height: 1),
+                  ]),
+                ),
+                if (_onlineEnabled)
+                  _buildOnlineResultsSliver()
+                else if (collectionEmpty)
+                  _buildEmptyCollectionSliver()
+                else ...[
+                  if (_onlyTheSampleDance(data) && !_hasActiveQuery)
+                    _buildImportCardSliver(),
+                  _buildResultsSliver(),
+                ],
+                // Lets the last row scroll clear of the "New dance" FAB.
+                const SliverToBoxAdapter(
+                  child: SizedBox(height: AppSpacing.fabClearance),
+                ),
               ],
-              // Lets the last row scroll clear of the "New dance" FAB.
-              const SliverToBoxAdapter(
-                child: SizedBox(height: AppSpacing.fabClearance),
-              ),
-            ],
+            ),
           ),
         ),
       ],
@@ -2891,7 +2981,18 @@ class _DanceListScreenState extends State<DanceListScreen>
               Wrap(
                 spacing: AppSpacing.sm,
                 runSpacing: AppSpacing.sm,
-                children: _startActions(l10n),
+                children: [
+                  ..._startActions(l10n),
+                  // The signed catalog is the quickest way to a first full
+                  // collection, so the card that points at importing points
+                  // at it too (U9).
+                  TextButton.icon(
+                    key: const ValueKey('collection-import-card-browse'),
+                    onPressed: () => pushPublishedCollectionCatalog(context),
+                    icon: const Icon(Icons.collections_bookmark_outlined),
+                    label: Text(l10n.collectionBrowsePublishedCollections),
+                  ),
+                ],
               ),
             ],
           ),
@@ -2902,11 +3003,12 @@ class _DanceListScreenState extends State<DanceListScreen>
 
   /// The search tools that apply to the current mode, as one compact row of
   /// toggles ([SearchPanelBar]). Local filters can't apply to online results,
-  /// so while online Filters and Advanced stay in the row greyed out (the row
-  /// does not jump, and a choice made in them is still shown as in force for
-  /// when the user returns); an empty collection has nothing to filter, so
-  /// Filters is left out then. By phrase is enabled for local search and for
-  /// online sources that support it, and greyed out for those that do not.
+  /// so while online Filters stays in the row greyed out (the row does not
+  /// jump, and a choice made in it is still shown as in force for when the user
+  /// returns); an empty collection has nothing to filter, so Filters is left
+  /// out then. By phrase and Advanced are enabled for local search and for
+  /// online sources that support them (By phrase: The Caller's Box; Advanced:
+  /// ContraDB), and greyed out for those that do not.
   ///
   /// The Online search icon ends the row in both modes: it is how a user
   /// enters and leaves online mode, so it must not depend on the mode. While
@@ -2956,7 +3058,7 @@ class _DanceListScreenState extends State<DanceListScreen>
           ),
         SearchPanelSpec(
           key: const ValueKey('advanced-panel'),
-          enabled: !_onlineEnabled,
+          enabled: !_onlineEnabled || _onlineSource.supportsAdvanced,
           label: _advancedRoot.toFilter() != null
               ? l10n.collectionAdvancedActive
               : l10n.collectionAdvancedTitle,
@@ -3154,7 +3256,7 @@ class _DanceListScreenState extends State<DanceListScreen>
         ),
       );
     }
-    if (_ftsController.text.trim().isEmpty && _effectivePhrases() == null) {
+    if (!_hasOnlineCriteria) {
       final hint = _onlineSource.supportsByPhrase
           ? l10n.collectionOnlineSearchHintByPhrase(_onlineSource.label)
           : l10n.collectionOnlineSearchHintTitle(_onlineSource.label);

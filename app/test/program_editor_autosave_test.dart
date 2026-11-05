@@ -388,7 +388,7 @@ void main() {
       );
       await _pumpEditor(tester, repos);
 
-      expect(find.textContaining('“Left Behind”'), findsOneWidget);
+      expect(find.textContaining('"Left Behind"'), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('program-draft-restore')));
       await tester.pumpAndSettle();
       expect(_titleText(tester), 'Left Behind');
@@ -408,6 +408,26 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('save-program')));
       await tester.pumpAndSettle();
       expect(await hasNewProgramDraft(repos), isFalse);
+    });
+
+    testWidgets('with several left behind, a new program offers the one saved '
+        'last, not the first by key', (tester) async {
+      final repos = openTestRepositories();
+      // `aaa` sorts first but was saved first; `zzz` was saved last.
+      await repos.settings.set(
+        programEditorDraftKey('${kNewProgramDraftIdPrefix}aaa'),
+        encodeProgramDraft(_draft(title: 'Older')),
+        at: DateTime.utc(2026, 11, 1),
+      );
+      await repos.settings.set(
+        programEditorDraftKey('${kNewProgramDraftIdPrefix}zzz'),
+        encodeProgramDraft(_draft(title: 'Newer')),
+        at: DateTime.utc(2026, 11, 2),
+      );
+      await _pumpEditor(tester, repos);
+
+      expect(find.textContaining('"Newer"'), findsOneWidget);
+      expect(find.textContaining('"Older"'), findsNothing);
     });
 
     testWidgets('discarding another new program\'s draft removes that draft', (

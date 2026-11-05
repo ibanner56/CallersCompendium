@@ -2141,7 +2141,7 @@ void main() {
 
       expect(
         find.text(
-          'This data was created by a newer version of Caller\u2019s Compendium. '
+          'This data was created by a newer version of Caller\'s Compendium. '
           'Update the app, then reopen it.',
         ),
         findsOneWidget,
@@ -2883,7 +2883,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
 
-      expect(find.text('Couldn\u2019t back up your data'), findsOneWidget);
+      expect(find.text('Couldn\'t back up your data'), findsOneWidget);
       expect(find.textContaining('low on storage'), findsOneWidget);
       expect(find.text('Quit'), findsOneWidget);
       expect(find.text('Proceed without a backup'), findsOneWidget);
@@ -2893,7 +2893,7 @@ void main() {
 
       // Consent given → migration ran and the app opened normally.
       expect(find.byType(AppShell), findsOneWidget);
-      expect(find.text('Couldn\u2019t back up your data'), findsNothing);
+      expect(find.text('Couldn\'t back up your data'), findsNothing);
     },
   );
 
@@ -3019,14 +3019,14 @@ void main() {
     expect(find.text(l10n.migrationRelocationCopiesHeading), findsOneWidget);
     expect(
       find.bySemanticsLabel(
-        RegExp(r'^New location: 96 KB, last changed Oct 6, 2026 9:05\sAM$'),
+        RegExp(r'^New location: 96 KB, last changed 10/6/2026 9:05\sAM$'),
       ),
       findsOneWidget,
     );
     expect(
       find.bySemanticsLabel(
         RegExp(
-          r'^Documents folder: 4,312 KB, last changed Sep 30, 2026 9:40\sPM$',
+          r'^Documents folder: 4,312 KB, last changed 9/30/2026 9:40\sPM$',
         ),
       ),
       findsOneWidget,

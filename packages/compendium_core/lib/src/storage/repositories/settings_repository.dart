@@ -283,6 +283,38 @@ class SettingsRepository {
         if (row.read(key) case final k? when k.startsWith(prefix)) k,
     ];
   }
+
+  /// The keys that start with [prefix], most recently written first.
+  ///
+  /// For keys whose newest value matters, such as the editor autosave drafts:
+  /// each autosave rewrites its row, so the row's own timestamp says which
+  /// draft was saved last. A row with no timestamp (written before the column
+  /// existed) comes after every stamped one, and ties break on the key, so the
+  /// order is stable.
+  Future<List<String>> keysWithPrefixNewestFirst(String prefix) async {
+    final key = _db.settings.key;
+    final updatedAt = _db.settings.updatedAt;
+    final query = _db.selectOnly(_db.settings)
+      ..addColumns([key, updatedAt])
+      ..where(key.like('$prefix%') & _db.settings.deletedAt.isNull());
+    final rows = [
+      for (final row in await query.get())
+        if (row.read(key) case final k? when k.startsWith(prefix))
+          (key: k, at: row.read(updatedAt)),
+    ];
+    rows.sort((a, b) {
+      final x = a.at;
+      final y = b.at;
+      if (x != null && y != null) {
+        final byTime = y.compareTo(x);
+        if (byTime != 0) return byTime;
+      } else if (x != null || y != null) {
+        return x == null ? 1 : -1;
+      }
+      return a.key.compareTo(b.key);
+    });
+    return [for (final row in rows) row.key];
+  }
 }
 
 class _WriteTally {

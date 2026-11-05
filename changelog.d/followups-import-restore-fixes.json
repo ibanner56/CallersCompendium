@@ -1,0 +1,21 @@
+{
+  "id": "followups-import-restore-fixes",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Importing a program from ContraDB now links a slot to a dance you already have, when The Caller's Box fallback finds one with the same figures, instead of leaving the dance as a note.",
+      "With venues turned on, re-importing a Caller's Companion file onto a program whose venue was removed entirely now links the program's location to a venue again instead of keeping a dead link.",
+      "Saving a dialect you were editing no longer adds a second copy if it was renamed meanwhile, or brings it back if it was deleted; you see a message that your changes weren't saved.",
+      "Restoring a dance or program from Recently deleted no longer says \"restored\" when another device had permanently deleted it in the meantime.",
+      "Searching custom number fields no longer matches a stray \"0\" for whole numbers such as 3, and a trashed dance's search entry no longer keeps text from a custom field that was deleted and recreated."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "Index whole-number custom values as \"3\" rather than \"3.0\"; a one-time `ensureMigrated` pass behind `customNumberIndexRepairDoneKey` reindexes the dances holding a value for a number field.",
+      "Reindex the trashed dances whose custom-field values are deleted when a recreated field adopts a tombstoned definition's key.",
+      "A Caller's Companion re-import resolves the program's venue afresh when the prior `venueId` names no row at all, live or tombstoned (`VenueRepository.rowExists`).",
+      "`resolveConfidentOnlineDanceId` returns the existing dance's id for a confident match with identical figures."
+    ]
+  }
+}

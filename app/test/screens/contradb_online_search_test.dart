@@ -143,21 +143,28 @@ void main() {
     expect(find.byKey(const ValueKey('filters-panel')), findsNothing);
   });
 
-  testWidgets('ContraDB drops the By phrase tool, and switching back to '
-      'Caller\'s Box restores it', (tester) async {
+  testWidgets('ContraDB drops the By phrase tool and keeps Advanced; Caller\'s '
+      'Box restores By phrase and greys out Advanced', (tester) async {
     final repos = openTestRepositories();
     await _pumpShell(tester, repos, _contraDb());
     await _enableContraDb(tester);
 
-    // ContraDB has no by-phrase search, and Advanced is local-only.
-    expectPanelDisabled(tester, 'advanced-panel');
+    // ContraDB has no by-phrase search, but it takes the Advanced query.
+    expect(
+      tester
+          .widget<ActionChip>(find.byKey(const ValueKey('advanced-panel')))
+          .onPressed,
+      isNotNull,
+    );
     expect(find.byKey(const ValueKey('by-phrase-panel')), findsNothing);
 
-    // Caller's Box supports by-phrase search, so the tool comes back.
+    // Caller's Box supports by-phrase search, so that tool comes back; it has
+    // no way to carry the Advanced query, so that tool is greyed out.
     await tester.tap(find.text('Caller\'s Box'));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('by-phrase-panel')), findsOneWidget);
+    expectPanelDisabled(tester, 'advanced-panel');
   });
 
   testWidgets('searching ContraDB renders results with its attribution', (

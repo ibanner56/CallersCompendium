@@ -435,6 +435,11 @@ final Map<String, DataClassification> settingsClassifications = {
   // Like its siblings it says the pass ran over *this* database's index, which
   // a restore onto another install would make false; its value is `"done"`.
   '__custom_field_index_repair_done__': _installState,
+  // Added with its pass (follow-up row 35: a whole-number custom value indexed
+  // as "3.0"). Like its siblings it says the pass ran over *this* database's
+  // index, which a restore onto another install would make false, so it must
+  // not travel or sync; its value is `"done"`.
+  '__custom_number_index_repair_done__': _installState,
 };
 
 /// Classification for settings keys that are *built at runtime* from a known

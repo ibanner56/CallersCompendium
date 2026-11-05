@@ -271,6 +271,39 @@ void main() {
     },
   );
 
+  testWidgets('Restore on a dance a peer blanked meanwhile claims nothing', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Blanked Dance'));
+    await repos.dances.softDelete('d1', at: _now);
+    await _pumpScreen(tester, repos);
+    expect(find.byKey(const ValueKey('restore-d1')), findsOneWidget);
+
+    // A peer's permanent deletion arrives while the list is on screen.
+    await repos.dances.softDelete('d1', at: DateTime.utc(1970));
+    await tester.tap(find.byKey(const ValueKey('restore-d1')));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('restored to your collection'), findsNothing);
+    expect(find.byKey(const ValueKey('restore-d1')), findsNothing);
+    final kept = await repos.dances.getById('d1', includeDeleted: true);
+    expect(kept!.deletedAt, isNotNull, reason: 'still deleted');
+  });
+
+  testWidgets('Restore on a live item still says restored', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Fine Dance'));
+    await repos.dances.softDelete('d1', at: _now);
+    await _pumpScreen(tester, repos);
+
+    await tester.tap(find.byKey(const ValueKey('restore-d1')));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('restored to your collection'), findsOneWidget);
+    expect((await repos.dances.getById('d1'))!.deletedAt, isNull);
+  });
+
   testWidgets('a dance already permanently deleted is not listed', (
     tester,
   ) async {

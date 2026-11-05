@@ -260,6 +260,7 @@ class CompendiumRepositories {
         db,
         onIndexedValuesChanged: (id) =>
             dances.reindexDancesHoldingCustomFields([id]),
+        onDancesLostValues: dances.reindexDerived,
       );
   final ProgramRepository programs;
   final PublishedSourceRepository publishedSources;
@@ -953,6 +954,7 @@ class CompendiumRepositories {
         onProgress: onDerivedRebuildProgress,
       );
       await _repairCustomFieldIndexIfNeeded(alreadyRebuilt: rebuiltThisCall);
+      await _repairCustomNumberIndexIfNeeded(alreadyRebuilt: rebuiltThisCall);
       // Last, so it reads records every earlier sweep has finished with. A
       // field a newer version added and this device kept (sync-spec §6.7) may
       // be one this build now syncs; move it into the record before anyone
@@ -1742,6 +1744,43 @@ class CompendiumRepositories {
     // Written AFTER success — if the reindex throws, the marker is not written
     // and the next startup retries.
     await _writeSweepMarker(customFieldIndexRepairDoneKey, '"done"');
+  }
+
+  /// One-time repair of the whole-number custom values the search bar's text
+  /// index carried as "3.0" before `_customValueIndexText` wrote them as "3".
+  /// See [customNumberIndexRepairDoneKey].
+  ///
+  /// Reindexes only the dances, in the Trash or not, holding a value for an
+  /// indexed number field, rather than the whole library: those are the only
+  /// rows the rule changes. A whole-library rebuild earlier in this call has
+  /// already written every row under the rule, so it owes nothing.
+  Future<void> _repairCustomNumberIndexIfNeeded({
+    required bool alreadyRebuilt,
+  }) async {
+    final done = await db
+        .customSelect(
+          'SELECT 1 FROM settings WHERE key = ? AND deleted_at IS NULL',
+          variables: [Variable.withString(customNumberIndexRepairDoneKey)],
+        )
+        .get();
+    if (done.isNotEmpty) return;
+
+    if (!alreadyRebuilt) {
+      // Tombstoned definitions are left out: their values are kept out of the
+      // index (#1358), so the rule changes nothing for them.
+      final numberFields = [
+        for (final row in await (db.select(
+          db.customFieldDefs,
+        )..where((t) => t.deletedAt.isNull())).get())
+          if (row.type == CustomFieldType.number &&
+              customFieldIndexesValueText(row))
+            row.id,
+      ];
+      await dances.reindexDancesHoldingCustomFields(numberFields);
+    }
+    // Written AFTER success — if the reindex throws, the marker is not written
+    // and the next startup retries.
+    await _writeSweepMarker(customNumberIndexRepairDoneKey, '"done"');
   }
 
   Set<TableInfo<Table, dynamic>> _updatesForTable(String tableName) => {

@@ -15,6 +15,7 @@ import '../../sync/sync_failure.dart';
 import '../../sync/sync_http_client.dart';
 import '../../sync/sync_scope.dart';
 import '../../theme/app_spacing.dart';
+import '../../widgets/notice_card.dart';
 import 'sync_failure_labels.dart';
 
 /// Whether the user is creating a new store or attaching to one that already
@@ -442,7 +443,7 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
             _Disclosure(
               key: const ValueKey('sync-pairing-weak-phrase-warning'),
               icon: Icons.warning_amber_outlined,
-              iconColor: theme.colorScheme.error,
+              kind: NoticeKind.warning,
               title: l10n.settingsSyncPairingWeakPhraseTitle,
               body: l10n.settingsSyncPairingWeakPhraseBody,
             ),
@@ -476,7 +477,7 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
           _Disclosure(
             key: const ValueKey('sync-pairing-custom-endpoint-warning'),
             icon: Icons.warning_amber_outlined,
-            iconColor: theme.colorScheme.error,
+            kind: NoticeKind.warning,
             title: l10n.settingsSyncPairingCustomEndpointTitle(custom.host),
             body: l10n.settingsSyncPairingCustomEndpointBody,
           ),
@@ -516,7 +517,7 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
         _Disclosure(
           key: const ValueKey('sync-pairing-bearer-disclosure'),
           icon: Icons.folder_shared_outlined,
-          iconColor: theme.colorScheme.error,
+          kind: NoticeKind.warning,
           title: l10n.settingsSyncPairingBearerTitle,
           body: l10n.settingsSyncPairingBearerBody,
         ),
@@ -605,39 +606,25 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
   }
 }
 
+/// One of the pairing screen's disclosures, boxed as a [NoticeCard] like the
+/// notices elsewhere: informational by default, [NoticeKind.warning] where the
+/// text warns of something the user could regret.
 class _Disclosure extends StatelessWidget {
   const _Disclosure({
     super.key,
     required this.icon,
     required this.title,
     required this.body,
-    this.iconColor,
+    this.kind = NoticeKind.info,
   });
 
   final IconData icon;
-  final Color? iconColor;
+  final NoticeKind kind;
   final String title;
   final String body;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, color: iconColor ?? theme.colorScheme.secondary),
-        const SizedBox(width: AppSpacing.sm),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: theme.textTheme.titleSmall),
-              const SizedBox(height: AppSpacing.xxs),
-              Text(body, style: theme.textTheme.bodyMedium),
-            ],
-          ),
-        ),
-      ],
-    );
+    return NoticeCard(kind: kind, icon: icon, title: title, child: Text(body));
   }
 }

@@ -2898,6 +2898,97 @@ void main() {
     });
   });
 
+  testWidgets('a failed Save scrolls back to the custom-number message even '
+      'when the list has let go of it', (tester) async {
+    final repos = openTestRepositories();
+    // ignore: unused_result
+    await repos.customFieldDefs.upsert(
+      CustomFieldDef(
+        id: 'f-num',
+        key: 'number',
+        label: 'Number',
+        type: CustomFieldType.number,
+      ),
+    );
+    await repos.dances.create(
+      _dance(
+        id: 'long',
+        figures: [
+          for (var i = 0; i < 40; i++)
+            Figure(move: 'balance', params: const {'beats': 4}),
+        ],
+      ),
+    );
+    await _pumpEditor(
+      tester,
+      repos,
+      danceId: 'long',
+      surfaceSize: const Size(600, 500),
+    );
+    await tester.scrollUntilVisible(
+      find.text('More details'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await _expandMoreDetails(tester);
+    await tester.enterText(find.byKey(const ValueKey('custom-f-num')), '1e400');
+    final list = find.byType(ListView).first;
+    await tester.drag(list, const Offset(0, -20000));
+    await tester.pumpAndSettle();
+    final banner = find.byKey(
+      const ValueKey('custom-field-validation-error'),
+      skipOffstage: false,
+    );
+    expect(banner, findsNothing, reason: 'the list has let go of the message');
+
+    await tester.tap(find.byKey(const ValueKey('save-dance')));
+    await tester.pumpAndSettle();
+
+    final viewport = tester.getRect(list);
+    final rect = tester.getRect(banner);
+    expect(rect.top, greaterThanOrEqualTo(viewport.top));
+    expect(rect.bottom, lessThanOrEqualTo(viewport.bottom));
+  });
+
+  // A failed Save puts each message on its own field. Nothing scrolled to the
+  // first, so on a short window it could sit above the fold.
+  group('a failed Save shows the first invalid field', () {
+    void expectInView(WidgetTester tester, Finder field) {
+      final viewport = tester.getRect(find.byType(ListView).first);
+      final rect = tester.getRect(field);
+      expect(rect.top, greaterThanOrEqualTo(viewport.top));
+      expect(rect.bottom, lessThanOrEqualTo(viewport.bottom));
+    }
+
+    testWidgets(
+      'a missing title scrolls back to the title, above a later one',
+      (tester) async {
+        final repos = openTestRepositories();
+        await _pumpEditor(tester, repos, surfaceSize: const Size(600, 500));
+        // A later field is invalid too: the first one on the page is shown.
+        await tester.enterText(
+          find.byKey(const ValueKey('phrase-field')),
+          'abc',
+        );
+        await tester.drag(find.byType(ListView).first, const Offset(0, -300));
+        await tester.pumpAndSettle();
+        final title = find.byKey(const ValueKey('title-field'));
+        final viewport = tester.getRect(find.byType(ListView).first);
+        expect(
+          tester.getRect(title).top,
+          lessThan(viewport.top),
+          reason: 'the title starts above the fold',
+        );
+
+        await tester.tap(find.byKey(const ValueKey('save-dance')));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Title is required'), findsOneWidget);
+        expectInView(tester, title);
+      },
+    );
+  });
+
   // October behaviour audit, AUTH-1, maintainer decision AUTH-1-move-blur =
   // (a): a move name typed into a row's Move box without Enter is applied
   // when the box is left, and anything else is put back. Tapping Save does

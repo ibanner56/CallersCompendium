@@ -899,6 +899,36 @@ void main() {
   );
 
   testWidgets(
+    'the jump sheet numbers dances only: a break takes no number (GIG-10)',
+    (tester) async {
+      final data = await _dataWith(const []);
+      await _pumpProgram(
+        tester,
+        data: data,
+        program: _program([
+          _slot(id: 's1', position: 0, text: 'First'),
+          _slot(id: 's2', position: 1, text: 'Break'),
+          _slot(id: 's3', position: 2, text: 'Second'),
+        ]),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('perform-jump')));
+      await tester.pumpAndSettle();
+
+      String? numberOf(int index) {
+        final avatar = find.descendant(
+          of: find.byKey(ValueKey('perform-jump-slot-$index')),
+          matching: find.byType(CircleAvatar),
+        );
+        final text = find.descendant(of: avatar, matching: find.byType(Text));
+        return text.evaluate().isEmpty ? null : tester.widget<Text>(text).data;
+      }
+
+      expect([numberOf(0), numberOf(1), numberOf(2)], ['1', null, '2']);
+    },
+  );
+
+  testWidgets(
     'an unresolvable slot dance shows Dance unavailable, not Untitled slot',
     (tester) async {
       final data = await _dataWith(const []);

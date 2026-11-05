@@ -3417,6 +3417,27 @@ Refresh updates the inputs of a pending *choice*; it never decides it. §6.10's
 step 2's argument above, which rests on that rule and not on the row's fields
 being frozen.
 
+> **Amended 2026-11-05.** A step-1 row whose collision has ended is dropped.
+> Refresh replaces only a row that a pass observes again, and a collision
+> that has ended is observed by nothing: the user renamed the name-holder by
+> hand and the update then landed, or the peer renamed the record again onto
+> a free name. Both actions then refuse the row with the stale-candidate
+> outcome for ever, so the review screen kept asking about a pair that no
+> longer collides (follow-up N2-T1). After each pass applies, the client MUST
+> drop every step-1 row that local state alone shows has ended: `record_id`
+> or `counterpart_id` resolves through an alias; `record_id` is missing; its
+> wire hash differs from `local_hash`, or `local_hash` is NULL; or the
+> counterpart is missing or no longer holds the candidate's natural key. A
+> pass that still sees the collision has re-queued the row with the current
+> hashes before this runs, so nothing still being asked is dropped. Neither
+> side being a tombstone ends the collision: a tombstoned `record_id` still
+> meets the peer's live copy every pass, and Keep both still resolves a
+> tombstoned counterpart. An undecodable row is left for the resolver to
+> report. The client MUST NOT drop a row merely because the pass did not
+> observe it: a peer the pass could not read is not evidence that the
+> collision ended. Both rules are the implementing session's choices, not the
+> maintainer's.
+
 Fresh-attach dance ambiguity rows follow the same rule and the same
 local-version check. Explicit dance reconciliation may additionally delete
 affected ambiguity rows and reinsert derived pairs; each reinsert records the
@@ -3769,6 +3790,25 @@ another row holds the incoming one, which stores an altered copy while still
 reporting success. Auditing today's behaviour would not hold, because the risk
 is a future edit to the editor's path silently changing what an inbound apply
 does.
+
+> **Amended 2026-11-05.** One effect of a local custom-field edit also belongs
+> to the inbound write. When an applied definition's type or options no longer
+> admit a value that a dance in Recently deleted holds, `writeFromSync`
+> deletes that value, as a local edit has done since #2062. Without it, a
+> peer's type change left that dance unreadable here: a text value under a
+> number field does not decode. Unlike the local edit, the inbound write does
+> not restamp the dance. The device that changed the field dropped the same
+> value from its own copy and restamped that copy, which reaches this device
+> as an ordinary newer edit. A live dance's value is never dropped, here or by
+> a local edit. This is the implementing session's choice, not the
+> maintainer's. Rejected: restamping here too, which would make every
+> receiving device republish the same change under its own stamp.
+>
+> **Limits.** A dance restored on this device while another device changed
+> the field is live here, so it keeps a value that no longer fits, as it did
+> before this amendment. A peer on a build older than #2062 neither drops nor
+> restamps, so it and this device hold the trashed dance at one `updatedAt`
+> with different bodies until the peer updates.
 
 **Sender/receiver contract.** The sender emits explicit `null` for an empty
 `shareable` field and omits only non-`shareable` fields. The receiver MUST
