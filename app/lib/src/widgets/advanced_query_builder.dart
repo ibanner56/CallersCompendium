@@ -292,34 +292,61 @@ class _FigureRow extends StatelessWidget {
   final VoidCallback onChanged;
   final VoidCallback onRemove;
 
+  /// Below this width the "Has figure" label sits above the editor. Beside it
+  /// at a large text size, the label took nearly the whole line of a phone and
+  /// left the editor a few dp.
+  static const double _stackBelow = 480;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final editor = _FigureEditor(
+      figure: figure,
+      taxonomy: taxonomy,
+      dialect: dialect,
+      sectionLabels: sectionLabels,
+      onChanged: onChanged,
+    );
+    final remove = IconButton(
+      key: ValueKey('remove-${figure.id}'),
+      tooltip: l10n.collectionQueryRemoveFigure,
+      icon: const Icon(Icons.remove_circle_outline),
+      onPressed: onRemove,
+    );
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 12, right: 8),
-            child: Text(l10n.collectionQueryHasFigure),
-          ),
-          Expanded(
-            child: _FigureEditor(
-              figure: figure,
-              taxonomy: taxonomy,
-              dialect: dialect,
-              sectionLabels: sectionLabels,
-              onChanged: onChanged,
-            ),
-          ),
-          IconButton(
-            key: ValueKey('remove-${figure.id}'),
-            tooltip: l10n.collectionQueryRemoveFigure,
-            icon: const Icon(Icons.remove_circle_outline),
-            onPressed: onRemove,
-          ),
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth < _stackBelow) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 4, bottom: 4),
+                  child: Text(l10n.collectionQueryHasFigure),
+                ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: editor),
+                    remove,
+                  ],
+                ),
+              ],
+            );
+          }
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 12, right: 8),
+                child: Text(l10n.collectionQueryHasFigure),
+              ),
+              Expanded(child: editor),
+              remove,
+            ],
+          );
+        },
       ),
     );
   }
@@ -1161,27 +1188,42 @@ class _ParamDropdown extends StatelessWidget {
     }
     return Semantics(
       label: label,
-      child: DropdownButton<String?>(
-        key: ValueKey('param-${figure.id}-$paramKey'),
-        value: value,
-        hint: Text(l10n.collectionQueryAnyParam(label)),
-        onChanged: (v) {
-          v == null
-              ? figure.params.remove(paramKey)
-              : figure.params[paramKey] = v;
-          onChanged();
-        },
-        items: [
-          DropdownMenuItem(
-            value: null,
-            child: Text(l10n.collectionQueryAnyParam(label)),
+      // Capped like the section dropdown, so a long label cannot widen the row
+      // past a narrow screen.
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 240),
+        child: DropdownButton<String?>(
+          key: ValueKey('param-${figure.id}-$paramKey'),
+          isExpanded: true,
+          value: value,
+          hint: Text(
+            l10n.collectionQueryAnyParam(label),
+            overflow: TextOverflow.ellipsis,
           ),
-          for (final choice in selectable)
+          onChanged: (v) {
+            v == null
+                ? figure.params.remove(paramKey)
+                : figure.params[paramKey] = v;
+            onChanged();
+          },
+          items: [
             DropdownMenuItem(
-              value: choice,
-              child: Text(figureParamChoiceLabel(l10n, spec, dialect, choice)),
+              value: null,
+              child: Text(
+                l10n.collectionQueryAnyParam(label),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-        ],
+            for (final choice in selectable)
+              DropdownMenuItem(
+                value: choice,
+                child: Text(
+                  figureParamChoiceLabel(l10n, spec, dialect, choice),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
