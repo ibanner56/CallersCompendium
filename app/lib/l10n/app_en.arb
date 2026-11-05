@@ -6850,6 +6850,20 @@
   "@programsDeletedDanceFallback": {
     "description": "Marks a program slot whose dance is in Recently deleted: shown after the dance's title in Perform, the program builder, its matrix and the program summary, and on its own when the dance can no longer be found."
   },
+  "programsRestoreDeletedDance": "Restore from Recently deleted",
+  "@programsRestoreDeletedDance": {
+    "description": "Action on a program slot whose dance is in Recently deleted, in the program builder's slot menu and as the tooltip of the program summary's Restore button. Restores the dance to the collection, as Recently deleted's own Restore does. Not offered in Perform."
+  },
+  "programsRestoreDeletedDanceError": "Couldn't restore \"{title}\". It's still in Recently deleted.",
+  "@programsRestoreDeletedDanceError": {
+    "description": "Snackbar when restoring a program slot's dance from Recently deleted fails.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Petronella"
+      }
+    }
+  },
   "programsBlankedDanceTitle": "Deleted dance",
   "@programsBlankedDanceTitle": {
     "description": "Shown in place of a dance's title in a program slot, in Perform and in program exports when the dance was permanently deleted on another device: its title and content are gone, so there is nothing else to show."

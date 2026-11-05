@@ -382,6 +382,46 @@ final RecentlyDeletedConfig<Dance> danceRecentlyDeletedConfig =
           l10n.recentlyDeletedEmptyDancesRetention(days),
     );
 
+/// Restores [dance], which a program slot points at, from Recently deleted
+/// (LIFE-8), through [danceRecentlyDeletedConfig]'s `restore`: the same write
+/// and read-back the Recently deleted screen makes. Says so with that screen's
+/// snackbar, and nothing when nothing was restored (a peer permanently
+/// deleted the dance meanwhile). No Undo and no confirm, as on that screen:
+/// the dance can be deleted again. A failed write is logged and reported.
+///
+/// The slot's "deleted" marking is not cleared here: every program surface
+/// reads its dances from a collection watch, which the restore's write
+/// reaches, as does a restore made on Recently deleted or on another device.
+Future<void> restoreSlotDanceFromRecentlyDeleted(
+  BuildContext context,
+  CompendiumRepositories repos,
+  Dance dance,
+) async {
+  final messenger = ScaffoldMessenger.of(context);
+  final l10n = AppLocalizations.of(context);
+  final String? message;
+  try {
+    message = await danceRecentlyDeletedConfig.restore(repos, dance)
+        ? danceRecentlyDeletedConfig.restoredMessage(l10n, dance.title)
+        : null;
+  } on Object catch (e, st) {
+    logCaughtError(
+      e,
+      st,
+      source: 'recently_deleted_screen.restoreSlotDanceFromRecentlyDeleted',
+    );
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(l10n.programsRestoreDeletedDanceError(dance.title)),
+      ),
+    );
+    return;
+  }
+  if (message != null) {
+    messenger.showSnackBar(SnackBar(content: Text(message)));
+  }
+}
+
 /// Config for the programs "Recently deleted" screen. Programs are purged by
 /// the same user-configurable window as dances (the startup sweep in
 /// `main.dart` passes one `retention` to both), so [loadRetention] reads the

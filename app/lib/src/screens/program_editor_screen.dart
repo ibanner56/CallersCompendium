@@ -58,6 +58,7 @@ import 'dance_detail_screen.dart';
 import 'dance_reimport_flow.dart';
 import '../widgets/command_palette.dart';
 import 'perform_program_screen.dart';
+import 'recently_deleted_screen.dart';
 import '../widgets/export_guard.dart';
 import '../widgets/load_error_view.dart';
 import '../widgets/program_export_menu.dart';
@@ -2128,6 +2129,15 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     );
   }
 
+  /// Restores a slot's dance from Recently deleted (LIFE-8). The slot loses
+  /// its "deleted" marking when the collection snapshot lists the dance again,
+  /// as [_danceById] prefers the snapshot to [_deletedSlotDances].
+  Future<void> _restoreDeletedSlotDance(String danceId) async {
+    final dance = _danceById(danceId);
+    if (dance == null || !dance.isDeleted) return;
+    await restoreSlotDanceFromRecentlyDeleted(context, _repos, dance);
+  }
+
   /// The slot list's title for [danceId]: the dance's title, marked as
   /// deleted while the dance is in Recently deleted, as Perform marks it.
   /// Exports use [_titleForDance], which leaves the mark out: the band is
@@ -4106,6 +4116,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             slots: _slots,
             danceTitles: _slotTitleForDance,
             isDeletedDance: (id) => _danceById(id)?.isDeleted ?? false,
+            onRestoreDeletedDance: _restoreDeletedSlotDance,
             formationFor: _formationForDance,
             mixerFor: _mixerForDance,
             dialect: _dialect,

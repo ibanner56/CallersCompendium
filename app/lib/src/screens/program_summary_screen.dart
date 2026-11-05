@@ -40,6 +40,7 @@ import 'dance_reimport_flow.dart';
 import '../widgets/command_palette.dart';
 import '../utils/slot_dance_title.dart';
 import 'perform_program_screen.dart';
+import 'recently_deleted_screen.dart';
 import 'program_editor_screen.dart';
 
 /// How many times a row toggle re-reads and retries after losing a race with
@@ -1679,14 +1680,29 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           ),
         ),
       );
+      // A dance in Recently deleted can be restored from its row (LIFE-8).
+      // Outside the row's merged semantics, so it is its own button. The row
+      // loses its marking when this pane reloads on the restore's write.
+      final restoreButton = deleted && dance != null
+          ? Tooltip(
+              message: l10n.programsRestoreDeletedDance,
+              child: TextButton(
+                key: ValueKey('summary-slot-${slot.id}-restore-dance'),
+                onPressed: () =>
+                    restoreSlotDanceFromRecentlyDeleted(context, _repos, dance),
+                child: Text(l10n.recentlyDeletedRestore),
+              ),
+            )
+          : null;
       return Padding(
         padding: EdgeInsets.only(left: indented ? 32 : 0, top: 2, bottom: 2),
-        child: showToggle
+        child: showToggle || restoreButton != null
             ? Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(child: rowBody),
-                  _performedToggle(slot, title),
+                  ?restoreButton,
+                  if (showToggle) _performedToggle(slot, title),
                 ],
               )
             : rowBody,

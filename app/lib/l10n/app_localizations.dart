@@ -8105,6 +8105,18 @@ abstract class AppLocalizations {
   /// **'(deleted dance)'**
   String get programsDeletedDanceFallback;
 
+  /// Action on a program slot whose dance is in Recently deleted, in the program builder's slot menu and as the tooltip of the program summary's Restore button. Restores the dance to the collection, as Recently deleted's own Restore does. Not offered in Perform.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore from Recently deleted'**
+  String get programsRestoreDeletedDance;
+
+  /// Snackbar when restoring a program slot's dance from Recently deleted fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t restore \"{title}\". It\'s still in Recently deleted.'**
+  String programsRestoreDeletedDanceError(String title);
+
   /// Shown in place of a dance's title in a program slot, in Perform and in program exports when the dance was permanently deleted on another device: its title and content are gone, so there is nothing else to show.
   ///
   /// In en, this message translates to:

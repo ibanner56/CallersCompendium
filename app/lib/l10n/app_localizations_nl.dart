@@ -5334,6 +5334,14 @@ class AppLocalizationsNl extends AppLocalizations {
   String get programsDeletedDanceFallback => '(verwijderde dans)';
 
   @override
+  String get programsRestoreDeletedDance => 'Restore from Recently deleted';
+
+  @override
+  String programsRestoreDeletedDanceError(String title) {
+    return 'Couldn\'t restore \"$title\". It\'s still in Recently deleted.';
+  }
+
+  @override
   String get programsBlankedDanceTitle => 'Verwijderde dans';
 
   @override
