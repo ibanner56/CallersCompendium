@@ -190,9 +190,12 @@ Object _combine<T>(
 /// not refused: almost any move can arrive from typed text.
 ///
 /// Most are one `["figure", <move>]`. Exceptions, each derived by reading the
-/// importer and ContraDB's `filter_dances.rb` and covered by translator tests
-/// (`contradb_advanced_translation_import_test.dart` pins the importer half;
-/// nothing here has been run against ContraDB):
+/// importer and ContraDB's `filter_dances.rb`. The expression for each is
+/// pinned by `contradb_advanced_filter_test.dart`; only `allemande`'s importer
+/// half is pinned (`contradb_advanced_translation_import_test.dart`). Nothing
+/// checks that the dances ContraDB returns for them are the right ones: the
+/// opt-in `tool/check_contradb_translation_live.dart` showed ContraDB accepts
+/// each expression, and no more:
 ///
 /// - **`pull_by`** is both `pull by dancers` and `pull by direction`.
 /// - **Aliases.** ContraDB stores a see saw as a `do si do` and answers the
@@ -212,6 +215,9 @@ Object _combine<T>(
 ///   Collection's `custom`, so that set is not ContraDB's `custom` set.
 /// - **`allemande_orbit`**: not a figure the live importer produces; ContraDB's
 ///   `allemande orbit` is one figure, the Collection's is a container.
+/// - **`pull_by_dancers`** and **`pull_by_direction`**: the Collection's
+///   narrower pull-bys. `pull_by` covers both ContraDB figures; no ContraDB
+///   figure selects exactly one of these two, so they are refused.
 /// - **`pass_the_ocean`** and **`form_short_waves`**: ContraDB's one
 ///   `form an ocean wave` (with a `pass_through` parameter) imports as one or
 ///   the other, so each is a strict subset of it.
@@ -294,3 +300,10 @@ const Map<String, List<Object?>> _contraDbForCollectionMove = {
   'up_the_hall': ['figure', 'up the hall'],
   'zig_zag': ['figure', 'zig zag'],
 };
+
+/// The Collection move ids [translateDanceFilterToContraDb] has an entry
+/// for, so a test can check the table itself (a misspelt key is otherwise
+/// just a move that is never asked about, and is silently refused).
+@visibleForTesting
+Iterable<String> get contraDbTranslatableMoveIds =>
+    _contraDbForCollectionMove.keys;

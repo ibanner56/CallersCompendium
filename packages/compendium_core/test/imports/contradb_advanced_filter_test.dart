@@ -398,11 +398,19 @@ void main() {
   group('the move table, checked as a whole', () {
     // Every other assertion here copies one entry. These check the table's
     // shape, so a typo or a stray entry cannot slip through unasserted.
+    // The table's own keys, so a misspelt or stale one is visited (walking the
+    // taxonomy instead would never reach a key that matches nothing in it).
+    final tableIds = contraDbTranslatableMoveIds.toList();
     final translated = <String, Object?>{};
-    for (final id in contraTaxonomy.moves.keys) {
+    for (final id in tableIds) {
       final t = translateDanceFilterToContraDb(FigureFilter.leaf(id));
       if (t is ContraDbAdvancedExpression) translated[id] = t.expression;
     }
+    // `see_saw` and `swat_the_flea` are aliases, not entries of `moves`.
+    final knownIds = {
+      ...contraTaxonomy.moves.keys,
+      ...contraTaxonomy.aliases.keys,
+    };
 
     List<String> figureNames(Object? expression) => [
       if (expression is List<Object?>)
@@ -412,9 +420,35 @@ void main() {
           for (final part in expression.skip(1)) ...figureNames(part),
     ];
 
-    test('some moves translate, and every one is a Collection move id', () {
-      expect(translated.length, greaterThan(30));
-      expect(translated.keys, everyElement(isIn(contraTaxonomy.moves.keys)));
+    test('every table key is a Collection move or alias, and translates', () {
+      expect(tableIds.length, greaterThan(30));
+      expect(
+        tableIds.where((id) => !knownIds.contains(id)),
+        isEmpty,
+        reason: 'a key that is not a Collection move id is never asked about',
+      );
+      expect(translated.keys.toSet(), tableIds.toSet(), reason: 'refused');
+    });
+
+    test('the moves left out of the table are exactly the documented ones', () {
+      // A rename or a new taxonomy move changes this set on purpose, so it is
+      // decided (map it exactly, or refuse it) rather than defaulting to refused.
+      final leftOut = knownIds.difference(tableIds.toSet()).toList()..sort();
+      expect(leftOut, const [
+        'circular_hey',
+        'courtesy_turn',
+        'custom',
+        'form_short_waves',
+        'meltdown_swing',
+        'orbit',
+        'pass_the_ocean',
+        'pull_by_dancers',
+        'pull_by_direction',
+        'star_promenade',
+        'star_through',
+        'turn_as_couples',
+        'two_hand_turn',
+      ]);
     });
 
     test('every name it asks for is a real ContraDB figure name', () {

@@ -1,11 +1,12 @@
 // What the importer does with ContraDB figures, as it bears on how the Advanced
 // translator must ask ContraDB.
 //
-// These pin the LOCAL half of each claim in the translator's comments: how a
-// ContraDB figure arrives in the Collection (the real importer's output) and
-// what the local search then finds. The ContraDB half comes from reading its
-// `filter_dances.rb`; nothing here runs ContraDB, so a change on its side is
-// not caught.
+// These pin the LOCAL half of two claims in the translator's comments: an
+// `allemande orbit` imports as `meanwhile[allemande, orbit]`, and a typed
+// `A while B` line is structured locally. They say nothing about the other
+// table entries (the alias split of `do_si_do`/`see_saw`, `pull_by`'s `or`).
+// The ContraDB half comes from reading its `filter_dances.rb`; nothing here
+// runs ContraDB, so a change on its side is not caught.
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
 
