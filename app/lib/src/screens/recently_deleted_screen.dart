@@ -395,9 +395,10 @@ bool canRestoreSlotDance(Dance dance) =>
 /// deleted the dance meanwhile). No Undo and no confirm, as on that screen:
 /// the dance can be deleted again. A failed write is logged and reported.
 ///
-/// The slot's "deleted" marking is not cleared here: every program surface
-/// reads its dances from a collection watch, which the restore's write
-/// reaches, as does a restore made on Recently deleted or on another device.
+/// The slot's "deleted" marking is not cleared here: the builder, its matrix
+/// and the summary read their dances from a collection watch, which the
+/// restore's write reaches, as does a restore made on Recently deleted or on
+/// another device. Perform keeps the dances it was opened with.
 Future<void> restoreSlotDanceFromRecentlyDeleted(
   BuildContext context,
   CompendiumRepositories repos,

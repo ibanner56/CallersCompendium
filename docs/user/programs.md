@@ -316,8 +316,9 @@ again, restore it: choose **Restore from Recently deleted** in the slot's
 **…** menu in the builder, press **Restore** on its row in the summary, or
 restore it from Recently deleted itself. Like Restore there, it asks nothing
 first, since you can delete the dance again. However the dance comes back,
-even from another device, the "(deleted dance)" mark goes away in every view
-of the program. Perform mode has no Restore, so a stray tap on stage changes
+even from another device, the "(deleted dance)" mark goes away in the
+builder, the matrix and the summary straight away; Perform mode drops it the
+next time you open it. Perform mode has no Restore, so a stray tap on stage changes
 nothing. Once the dance is gone for good, the slot
 keeps its title as text. With [Device Sync](./settings.md#device-sync), a
 slot you added before this device heard that another device deleted the dance
