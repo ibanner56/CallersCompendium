@@ -804,7 +804,8 @@ class BuilderTag extends BuilderNode {
   }
 }
 
-/// A "then" sequence row: figure [before] occurs earlier than figure [after].
+/// A "then" sequence row: figure [after] immediately follows figure [before]
+/// (the dance is a loop, so the first figure follows the last).
 /// Folds to a [ThenFilter]; needs both sides complete.
 ///
 /// Each side is a [BuilderFigureNode] — either a single [BuilderFigure] (the

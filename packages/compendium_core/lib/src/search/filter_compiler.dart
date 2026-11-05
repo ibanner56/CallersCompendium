@@ -825,20 +825,33 @@ class FilterCompiler {
   String _then(FigureQuery before, FigureQuery after, List<Object?> binds) {
     final a = _figureClause(before, 'a', binds);
     final b = _figureClause(after, 'b', binds);
+    // `after` must IMMEDIATELY follow `before`, as in ContraDB's `then`
+    // (`SearchMatch#abuts?`: `(last + 1) % nfigures == other.first`): the next
+    // figure after `before`, and the first figure again after the last one, so
+    // a dance that opens and closes with an allemande matches
+    // `Then(allemande, allemande)`.
+    //
     // Correlate on `group_idx`, not `idx` (#748). A `meanwhile` container is
     // flattened into one `dance_figures` row per concurrent side (#590), and
     // the `{dance_id, idx}` PK forces those sides onto consecutive `idx`
-    // values — so `a.idx < b.idx` would treat two *simultaneous* sides as
-    // one-before-the-other, matching an `X while Y` container for both
-    // `Then(X, Y)` and `Then(Y, X)`. `group_idx` is shared by all rows
-    // flattened from one top-level figure, except that a top-level `sequence`
-    // gives each child its own (see `_insertDerivedRows`), so two
-    // concurrent sides share a group and the strict `<` excludes them in both
-    // directions, while a genuine sequence (distinct, increasing groups) still
-    // matches.
+    // values, so `idx` would treat two *simultaneous* sides as adjacent.
+    // `group_idx` is shared by all rows flattened from one top-level figure,
+    // except that a top-level `sequence` gives each child its own (see
+    // `_insertDerivedRows`). "The next figure" is therefore the next group that
+    // exists after `a`'s (the smallest larger `group_idx`, else the smallest
+    // overall: the wrap), not `group_idx + 1`, so a gap in the numbering could
+    // never hide a pair. `a.group_idx <> b.group_idx` keeps two concurrent
+    // sides of one container, which share a group, from being read as
+    // one-after-the-other in a dance that has only that one group, where the
+    // wrap would otherwise pair a group with itself.
     return 'id IN (SELECT a.dance_id FROM dance_figures a '
         'JOIN dance_figures b ON a.dance_id = b.dance_id '
-        'AND a.group_idx < b.group_idx '
+        'AND a.group_idx <> b.group_idx '
+        'AND b.group_idx = COALESCE('
+        '(SELECT MIN(m.group_idx) FROM dance_figures m '
+        'WHERE m.dance_id = a.dance_id AND m.group_idx > a.group_idx), '
+        '(SELECT MIN(m.group_idx) FROM dance_figures m '
+        'WHERE m.dance_id = a.dance_id)) '
         'WHERE ($a) AND ($b))';
   }
 

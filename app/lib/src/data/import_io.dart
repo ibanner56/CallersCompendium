@@ -336,6 +336,7 @@ enum UrlFetchFailureReason {
   // ContraDB.
   contraDbEmptyTitle,
   contraDbUnsupportedFigure,
+  contraDbUnsupportedAdvanced,
   contraDbEmptyDanceInput,
   contraDbInvalidDanceUrl,
   contraDbMissingDanceId,
@@ -1715,11 +1716,24 @@ typedef ContraDbSearchFetcher =
 /// [filter] is an internal fixed vocabulary value, never user-controlled
 /// structure. It is `title`, `choreographer`, or `figure`; Figure [query] text
 /// is normalized and must resolve to an exact canonical ContraDB move name.
+///
+/// An **expression** request ([ContraDbSearchRequest.expression]) instead
+/// carries a complete ContraDB filter array, built by the app from the
+/// Advanced query builder (`translateDanceFilterToContraDb`) and never from
+/// raw user text; its [query] is empty and its [filter] is `advanced`.
 class ContraDbSearchRequest {
-  const ContraDbSearchRequest({required this.query, required this.filter});
+  const ContraDbSearchRequest({required this.query, required this.filter})
+    : expression = null;
+
+  const ContraDbSearchRequest.expression(List<Object?> this.expression)
+    : query = '',
+      filter = 'advanced';
 
   final String query;
   final String filter;
+
+  /// The complete ContraDB filter array for an Advanced search, else `null`.
+  final List<Object?>? expression;
 }
 
 /// POSTs [body] to the ContraDB search endpoint [uri] with [client].
@@ -1789,6 +1803,8 @@ Future<http.Response> _sendContraDbSearch(
 
 /// Default [ContraDbSearchFetcher]: POSTs [query] using [filter] as a ContraDB
 /// title-, choreographer-, or figure-search JSON body to [contraDbSearchUrl]
+/// (or, when [expression] is given, that complete Advanced filter array and
+/// neither [query] nor [filter])
 /// (with an [importFetchTimeout]) and returns the response body. Figure queries
 /// are normalized and invalid or partial names are rejected before the POST.
 /// Throws a [UrlFetchException] with a clear, user-presentable message for a
@@ -1799,6 +1815,7 @@ Future<http.Response> _sendContraDbSearch(
 Future<String> fetchContraDbSearch(
   String query, {
   String filter = 'title',
+  List<Object?>? expression,
   http.Client? client,
 }) async {
   // [contraDbSearchUrl] is a hard-coded public https constant, so this guard
@@ -1811,7 +1828,9 @@ Future<String> fetchContraDbSearch(
   // to narrow. _sendContraDbSearch additionally refuses redirects, so no
   // unvalidated hop can follow this check.
   final uri = _guardFetchUri(Uri.parse(contraDbSearchUrl));
-  final body = buildContraDbSearchBody(query, filter: filter);
+  final body = expression != null
+      ? buildContraDbFilterBody(expression)
+      : buildContraDbSearchBody(query, filter: filter);
   final ownClient = client == null;
   final effectiveClient = client ?? http.Client();
   final http.Response response;

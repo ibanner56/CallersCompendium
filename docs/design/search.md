@@ -38,7 +38,20 @@ tree. Conforms to [ux.md](ux.md) §1 and [dialect.md](dialect.md)
    criteria remain available only to sources that support them. Caller's Box
    maps the free-text Figure criterion to global positive figure lines;
    ContraDB resolves Figure input against its exact canonical vocabulary and
-   selects its fixed `figure` filter.
+   selects its fixed `figure` filter. The Advanced builder's tree is also sent
+   to ContraDB, translated by `translateDanceFilterToContraDb` onto its
+   `lib/filter_dances.rb` array language (`and`, `or`, `no`, `&`, `not`,
+   `then`, `figure`) and combined with any text criterion under `and`. Figure
+   conditions in all/any/none groups and `ThenFilter` translate; `ThenFilter`
+   means the same as ContraDB's `then` (the second figure immediately follows
+   the first, wrapping from the last figure to the first). A tag, a figure
+   parameter or section (ContraDB compares parameters by position in each
+   move's own list), an unknown move (in a figure or a `then` operand), or any
+   local-only leaf makes the search refuse with
+   `UrlFetchFailureReason.contraDbUnsupportedAdvanced` and send nothing: a
+   condition silently dropped would answer a wider question than the panel
+   shows. This translation decision is the implementing agent's, not the
+   maintainer's.
 4. **Injection-safe by construction.** Every user value is a bind variable;
    only a fixed vocabulary of column names, operators, and JSON key paths is
    ever interpolated, and each is validated against an allow-list.
@@ -118,7 +131,7 @@ sealed FigureQuery
 ```
 
 Rationale for the split (see *Open questions* for the flagged decision): a
-`ThenFilter` asks "does a figure matching X occur *before* a figure matching Y",
+`ThenFilter` asks "does a figure matching Y immediately follow a figure matching X",
 which is only meaningful for predicates evaluated **per `dance_figures` row**.
 Metadata leaves (`AuthorFilter`, `FullTextFilter`, `FormFilter`, …) are
 per-*dance*, not per-figure, so they have no position in the sequence and are
@@ -318,36 +331,59 @@ sequence: `ThenFilter(X, Y)` — and, symmetrically, `ThenFilter(Y, X)` — woul
 signal needed to separate "two sides of one container" from "two sequential
 figures" is not derivable from `idx`, `section` (sequential figures can share a
 phrase) or `beats` (each side stores its own), so it is carried explicitly as
-`group_idx`. `ThenFilter` correlates on `a.group_idx < b.group_idx`: two sides of one
-container share a group and are excluded in **both** directions, while a real
-sequence (distinct, increasing groups) still matches. This was originally
+`group_idx`. `ThenFilter` correlates `a` with the **next** group after it
+(`b.group_idx` is the smallest larger `group_idx`, else the smallest overall),
+and requires `a.group_idx <> b.group_idx`: two sides of one container share a
+group and are excluded in **both** directions, while a real sequence of
+adjacent top-level figures matches. This was originally
 recorded as a limitation deferred to #594; #594 shipped without addressing it,
 so #748 tracked and fixed it.
 
 ### Sequence: `ThenFilter(before, after)`
 
-"A figure matching `before` occurs earlier in the dance than a figure matching
-`after`" → a self-join on `dance_figures.group_idx`:
+"A figure matching `after` immediately follows a figure matching `before`" →
+a self-join on `dance_figures.group_idx` against the next group:
 
 ```sql
 EXISTS (SELECT 1 FROM dance_figures a
         JOIN dance_figures b
           ON a.dance_id = b.dance_id
          AND a.dance_id = dances.id
-         AND a.group_idx < b.group_idx
+         AND a.group_idx <> b.group_idx
+         AND b.group_idx = COALESCE(
+               (SELECT MIN(m.group_idx) FROM dance_figures m
+                 WHERE m.dance_id = a.dance_id AND m.group_idx > a.group_idx),
+               (SELECT MIN(m.group_idx) FROM dance_figures m
+                 WHERE m.dance_id = a.dance_id))
         WHERE (<before applied to a>)
           AND (<after applied to b>))
 ```
 
+**Requested by the user on 2026-11-05 and implemented by the agent, not
+independently ratified by the maintainer:** `Then` means what ContraDB's
+`then` means (`lib/search_match.rb`: `abuts?` is
+`(last + 1) % nfigures == other.first`), so the Advanced builder and the
+ContraDB online search ask the same question. This replaces the earlier
+"occurs somewhere earlier" meaning (`a.group_idx < b.group_idx`). Two
+consequences: a figure between `before` and `after` ends a match, and the dance
+is read as a loop, so `Then(allemande, allemande)` matches a dance that opens
+and closes with an allemande, and in a two-figure dance both orders match.
+"The next figure" is the next group that exists, not `group_idx + 1`, so a gap
+in the numbering cannot hide a pair. `a.group_idx <> b.group_idx` keeps the
+concurrent sides of one `meanwhile` (which share a `group_idx`; see the flatten
+note above) from being read as one-after-the-other in a dance whose only group
+is that container, where the wrap would otherwise pair the group with itself.
+That guard departs from ContraDB for a dance of one figure (or one container),
+where its `then` pairs the figure with itself: `Then(swing, swing)` matches
+there on ContraDB and not locally. This is known and unresolved; the choice to
+keep the #748 guard was the agent's.
+
 `<before applied to a>` / `<after applied to b>` are the `FigureQuery` clauses
 compiled against aliases `a` and `b` respectively (same clause shapes as the
 `EXISTS` above, minus the `dance_id` correlation which the join supplies).
-`a.group_idx < b.group_idx` gives strict "before" while excluding the concurrent
-sides of one `meanwhile` (which share a `group_idx`; see the flatten note
-above); consecutive-only ("immediately then") is **not** in v1 (see *Open
-questions*). Nested `ThenFilter` is not supported in v1 — `ThenFilter` operands are
-`FigureQuery`, which excludes `ThenFilter` — keeping the compiled join to a single
-pair of aliases.
+Nested `ThenFilter` is not supported in v1 — `ThenFilter` operands are
+`FigureQuery`, which excludes `ThenFilter` — keeping the compiled join to a
+single pair of aliases.
 
 ### Combinators & sort
 
@@ -412,7 +448,8 @@ WHERE deleted_at IS NULL
                 JOIN dance_figures b
                   ON a.dance_id = b.dance_id
                  AND a.dance_id = dances.id
-                 AND a.group_idx < b.group_idx
+                 AND a.group_idx <> b.group_idx
+                 AND b.group_idx = <next group after a's, wrapping>
                 WHERE (a.move = ? AND a.section = ?)  -- 'petronella','B1'
                   AND (b.move = ?)) )                 -- 'swing'
 ORDER BY title COLLATE NOCASE;

@@ -4766,7 +4766,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get collectionQueryThenConnector => 'dann';
 
   @override
-  String get collectionQueryThenLater => 'Später';
+  String get collectionQueryThenNext => 'Danach';
 
   @override
   String get collectionQueryRemoveSequence => 'Sequenz entfernen';
@@ -7517,6 +7517,10 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get importErrorContraDbUnsupportedFigure =>
       'ContraDB-Figurensuchen verwenden einen vollständigen Bewegungsnamen, z. B. \"box circulate\".';
+
+  @override
+  String get importErrorContraDbUnsupportedAdvanced =>
+      'ContraDB kann nur erweiterte Suchen ausführen, die aus Gruppen „Alle von“, „Beliebige von“ und „Keine von“ mit „Hat Figur“- und „Sequenz (dann)“-Bedingungen bestehen. Entferne Tags, Figurdetails, Bewegungen, die ContraDB nicht kennt, und andere Bedingungen, um ContraDB zu durchsuchen.';
 
   @override
   String get importErrorContraDbEmptyDanceInput =>

@@ -6014,7 +6014,7 @@
   },
   "collectionQuerySequenceThen": "Sequence (then)",
   "@collectionQuerySequenceThen": {
-    "description": "Advanced-query 'add' menu item: a two-figure ordered sequence condition."
+    "description": "Advanced-query 'add' menu item: a two-figure sequence condition in which the second figure immediately follows the first."
   },
   "collectionQueryConditionGroup": "Condition group",
   "@collectionQueryConditionGroup": {
@@ -6030,15 +6030,15 @@
   },
   "collectionQueryThenFirst": "First",
   "@collectionQueryThenFirst": {
-    "description": "Label for the earlier figure of a 'then' sequence condition."
+    "description": "Label for the first figure of a 'then' sequence condition: the figure the next one must immediately follow."
   },
   "collectionQueryThenConnector": "then",
   "@collectionQueryThenConnector": {
     "description": "Connector between the two figures of a 'then' sequence condition."
   },
-  "collectionQueryThenLater": "Later",
-  "@collectionQueryThenLater": {
-    "description": "Label for the later figure of a 'then' sequence condition."
+  "collectionQueryThenNext": "Next",
+  "@collectionQueryThenNext": {
+    "description": "Label for the figure that must come immediately after the first one in a 'then' sequence condition (the dance counts as a loop, so the first figure follows the last)."
   },
   "collectionQueryRemoveSequence": "Remove sequence",
   "@collectionQueryRemoveSequence": {
@@ -9687,6 +9687,10 @@
   "importErrorContraDbUnsupportedFigure": "ContraDB Figure searches use a complete move name, such as \"box circulate\".",
   "@importErrorContraDbUnsupportedFigure": {
     "description": "Error shown when a ContraDB Figure search is not an exact canonical move name."
+  },
+  "importErrorContraDbUnsupportedAdvanced": "ContraDB can only run Advanced searches made of \"All of\", \"Any of\", and \"None of\" groups of \"Has figure\" and \"Sequence (then)\" conditions. Remove tags, figure details, moves ContraDB doesn't have, and other conditions to search ContraDB.",
+  "@importErrorContraDbUnsupportedAdvanced": {
+    "description": "Error shown when the Advanced search has a condition ContraDB cannot run with the same meaning (a tag, a figure parameter or section, a move ContraDB does not have, or a local-only filter), so the ContraDB search is not sent. Quoted names are the Advanced builder's group and row labels."
   },
   "importErrorContraDbEmptyDanceInput": "Enter a ContraDB dance URL or id to import from.",
   "@importErrorContraDbEmptyDanceInput": {

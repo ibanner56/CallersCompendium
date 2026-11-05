@@ -4718,7 +4718,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get collectionQueryThenConnector => 'derefter';
 
   @override
-  String get collectionQueryThenLater => 'Senere';
+  String get collectionQueryThenNext => 'Derefter';
 
   @override
   String get collectionQueryRemoveSequence => 'Fjern sekvens';
@@ -7438,6 +7438,10 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get importErrorContraDbUnsupportedFigure =>
       'ContraDB-figursøgninger bruger et komplet figurnavn, f.eks. \"box circulate\".';
+
+  @override
+  String get importErrorContraDbUnsupportedAdvanced =>
+      'ContraDB kan kun køre avancerede søgninger, der består af grupperne “Alle af”, “Nogen af” og “Ingen af” med “Har figur”- og “Sekvens (derefter)”-betingelser. Fjern tags, figurdetaljer, bevægelser som ContraDB ikke har, og andre betingelser for at søge i ContraDB.';
 
   @override
   String get importErrorContraDbEmptyDanceInput =>

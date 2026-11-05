@@ -4724,9 +4724,9 @@
   "@collectionQueryThenConnector": {
     "x-sourceSha256": "21af6f1260f927f5b9b3ff5ca4a5d19493a1a47a5977240d8dca31bc47a63527"
   },
-  "collectionQueryThenLater": "Später",
-  "@collectionQueryThenLater": {
-    "x-sourceSha256": "73b6e48a1b552d112502d37a7b7870436efc5ea1de0bca58ccf12d6ae15d3a0c"
+  "collectionQueryThenNext": "Danach",
+  "@collectionQueryThenNext": {
+    "x-sourceSha256": "1ff57a29d7c9d11bdf61c1b80f2b289b44c1ea844824d4b94a0d52b6ba5fc858"
   },
   "collectionQueryRemoveSequence": "Sequenz entfernen",
   "@collectionQueryRemoveSequence": {
@@ -7285,6 +7285,10 @@
   "importErrorContraDbUnsupportedFigure": "ContraDB-Figurensuchen verwenden einen vollständigen Bewegungsnamen, z. B. \"box circulate\".",
   "@importErrorContraDbUnsupportedFigure": {
     "x-sourceSha256": "b3cdc0346e556478bbeb56d45067b5cc4e6361aa0ed3e239efe070a08fd08b57"
+  },
+  "importErrorContraDbUnsupportedAdvanced": "ContraDB kann nur erweiterte Suchen ausführen, die aus Gruppen „Alle von“, „Beliebige von“ und „Keine von“ mit „Hat Figur“- und „Sequenz (dann)“-Bedingungen bestehen. Entferne Tags, Figurdetails, Bewegungen, die ContraDB nicht kennt, und andere Bedingungen, um ContraDB zu durchsuchen.",
+  "@importErrorContraDbUnsupportedAdvanced": {
+    "x-sourceSha256": "8f53ddf0ffef7f620b874fdc200ce6bed571cbec3bcb67d8c1436203f6c52854"
   },
   "importErrorContraDbEmptyDanceInput": "Geben Sie eine ContraDB-Tanz-URL oder -ID zum Importieren ein.",
   "@importErrorContraDbEmptyDanceInput": {

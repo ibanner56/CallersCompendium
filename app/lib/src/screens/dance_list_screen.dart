@@ -933,7 +933,16 @@ class _DanceListScreenState extends State<DanceListScreen>
 
   void _onAdvancedChanged() {
     setState(() {});
-    _runSearch();
+    if (_onlineEnabled) {
+      // Online, the Advanced query narrows an online source that accepts it
+      // (ContraDB); for one that does not, the panel is greyed out, so this
+      // is only reached for a source whose search it affects.
+      _debounceTimer?.cancel();
+      _onlineSeq++;
+      _debounceTimer = Timer(_onlineDebounce, _runOnlineSearch);
+    } else {
+      _runSearch();
+    }
   }
 
   void _onByPhraseChanged() {
@@ -973,8 +982,7 @@ class _DanceListScreenState extends State<DanceListScreen>
       }
     });
     if (value) {
-      if (_ftsController.text.trim().isNotEmpty ||
-          _effectivePhrases() != null) {
+      if (_hasOnlineCriteria) {
         _runOnlineSearch();
       }
     } else {
@@ -995,7 +1003,7 @@ class _DanceListScreenState extends State<DanceListScreen>
       _onlineError = null;
       _onlineSearching = false;
     });
-    if (_ftsController.text.trim().isNotEmpty || _effectivePhrases() != null) {
+    if (_hasOnlineCriteria) {
       _runOnlineSearch();
     }
   }
@@ -1021,6 +1029,21 @@ class _DanceListScreenState extends State<DanceListScreen>
   CallersBoxPhraseQuery? _effectivePhrases() =>
       _onlineSource.supportsByPhrase ? _onlinePhrases() : null;
 
+  /// The Advanced builder's filter as it applies to the active online source:
+  /// `null` for sources without Advanced support
+  /// ([OnlineSource.supportsAdvanced], i.e. The Caller's Box), so a residual
+  /// local Advanced query can't leak into its search or keep an empty search
+  /// "active". Mirrors [_effectivePhrases].
+  DanceFilter? _effectiveAdvanced() =>
+      _onlineSource.supportsAdvanced ? _advancedRoot.toFilter() : null;
+
+  /// Whether the online search has anything to search for: query text, by-phrase
+  /// figures, or an Advanced query the active source accepts.
+  bool get _hasOnlineCriteria =>
+      _ftsController.text.trim().isNotEmpty ||
+      _effectivePhrases() != null ||
+      _effectiveAdvanced() != null;
+
   /// Runs a live search against the active online source for the current query
   /// text and/or by-phrase figures. Guarded by a sequence number so a slow
   /// response can't overwrite a newer query.
@@ -1029,6 +1052,7 @@ class _DanceListScreenState extends State<DanceListScreen>
       _ftsController.text,
       _ftsScope,
       phrases: _effectivePhrases(),
+      advanced: _effectiveAdvanced(),
     );
     if (query.isEmpty) {
       setState(() {
@@ -2979,11 +3003,12 @@ class _DanceListScreenState extends State<DanceListScreen>
 
   /// The search tools that apply to the current mode, as one compact row of
   /// toggles ([SearchPanelBar]). Local filters can't apply to online results,
-  /// so while online Filters and Advanced stay in the row greyed out (the row
-  /// does not jump, and a choice made in them is still shown as in force for
-  /// when the user returns); an empty collection has nothing to filter, so
-  /// Filters is left out then. By phrase is enabled for local search and for
-  /// online sources that support it, and greyed out for those that do not.
+  /// so while online Filters stays in the row greyed out (the row does not
+  /// jump, and a choice made in it is still shown as in force for when the user
+  /// returns); an empty collection has nothing to filter, so Filters is left
+  /// out then. By phrase and Advanced are enabled for local search and for
+  /// online sources that support them (By phrase: The Caller's Box; Advanced:
+  /// ContraDB), and greyed out for those that do not.
   ///
   /// The Online search icon ends the row in both modes: it is how a user
   /// enters and leaves online mode, so it must not depend on the mode. While
@@ -3033,7 +3058,7 @@ class _DanceListScreenState extends State<DanceListScreen>
           ),
         SearchPanelSpec(
           key: const ValueKey('advanced-panel'),
-          enabled: !_onlineEnabled,
+          enabled: !_onlineEnabled || _onlineSource.supportsAdvanced,
           label: _advancedRoot.toFilter() != null
               ? l10n.collectionAdvancedActive
               : l10n.collectionAdvancedTitle,
@@ -3231,7 +3256,7 @@ class _DanceListScreenState extends State<DanceListScreen>
         ),
       );
     }
-    if (_ftsController.text.trim().isEmpty && _effectivePhrases() == null) {
+    if (!_hasOnlineCriteria) {
       final hint = _onlineSource.supportsByPhrase
           ? l10n.collectionOnlineSearchHintByPhrase(_onlineSource.label)
           : l10n.collectionOnlineSearchHintTitle(_onlineSource.label);
