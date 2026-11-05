@@ -602,7 +602,81 @@ void main() {
         );
         expect(
           renderer.renderSummary(figure, larks),
-          'neighbor balance & pull by right right diagonal',
+          'neighbor balance & pull by right on right diagonal',
+        );
+      });
+
+      test('a set direction reads as a call on every move', () {
+        String line(String move, Map<String, Object?> params) =>
+            renderer.render(testFigure(move: move, params: params), larks);
+        expect(
+          line('pull_by', {'where': 'leftDiagonal'}),
+          'pull by right on left diagonal',
+        );
+        expect(line('pull_by', {'where': 'in'}), 'pull by right facing in');
+        expect(line('chain', {'where': 'up'}), 'robins chain facing up');
+        expect(
+          line('right_left_through', {'where': 'rightDiagonal'}),
+          'right left through on right diagonal',
+        );
+        expect(
+          line('pass_through', {'where': 'out'}),
+          'pass through facing out',
+        );
+        expect(
+          line('circular_hey', {'where': 'leftDiagonal'}),
+          'circular hey, neighbors pass right on left diagonal',
+        );
+        expect(
+          line('cross_trails', {'where': 'rightDiagonal'}),
+          startsWith('cross trails - partner on right diagonal right'),
+        );
+        // `across` and `along` read as themselves.
+        expect(line('pull_by', {'where': 'across'}), 'pull by right across');
+        expect(line('chain', {'where': 'along'}), 'robins chain along');
+        // The canonical text keeps the humanized token.
+        expect(
+          renderer.renderCanonical(
+            testFigure(move: 'chain', params: {'where': 'leftDiagonal'}),
+          ),
+          'role2s chain left diagonal',
+        );
+      });
+
+      test('a hey and an ocean wave name the direction after the figure', () {
+        String line(String move, Map<String, Object?> params) =>
+            renderer.render(testFigure(move: move, params: params), larks);
+        expect(
+          line('hey', {'where': 'along'}),
+          startsWith('robins start a half hey along - '),
+        );
+        expect(
+          line('hey', {'where': 'in'}),
+          startsWith('robins start a half hey facing in - '),
+        );
+        expect(
+          line('pass_the_ocean', {'where': 'leftDiagonal'}),
+          startsWith('pass through to an ocean wave on left diagonal - '),
+        );
+      });
+
+      test("Rory O'More's balance follows its subject", () {
+        expect(
+          renderer.renderSummary(
+            testFigure(
+              move: 'rory_o_more',
+              params: {'who': 'role1s', 'balance': true},
+            ),
+            larks,
+          ),
+          "larks balance & Rory O'More right",
+        );
+        expect(
+          renderer.renderSummary(
+            testFigure(move: 'rory_o_more', params: {'balance': true}),
+            larks,
+          ),
+          "balance & Rory O'More right",
         );
       });
 
@@ -2314,7 +2388,7 @@ void main() {
             Figure(move: 'promenade', params: {'where': 'up'}),
             d,
           ),
-          'partner promenade up',
+          'partner promenade facing up',
         );
       });
       test('promenade gains target when set', () {
