@@ -275,8 +275,9 @@ Choose **Exit Perform mode** and the app checks first:
 > are kept, so you can resume where you left off.
 
 On a computer, **Ctrl-W** (**Cmd-W** on a Mac) and a mouse's **Back** button
-ask the same question. **Esc** never leaves Perform: it closes an open
-walkthrough, and otherwise takes the window out of full screen.
+ask the same question. **Esc** never leaves Perform: when you are calling a
+program it closes an open walkthrough, and otherwise it takes the window out of
+full screen.
 
 **Keep performing** returns you to the card; **Exit** leaves. When you are
 calling a program, your place and the clock are kept for as long as that
