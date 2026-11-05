@@ -1056,22 +1056,35 @@ class _SectionDropdown extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     return Semantics(
       label: l10n.collectionQuerySectionLabel,
-      child: DropdownButton<String?>(
-        key: ValueKey('section-${figure.id}'),
-        value: figure.section,
-        hint: Text(l10n.collectionQueryAnySection),
-        onChanged: (value) {
-          figure.section = value;
-          onChanged();
-        },
-        items: [
-          DropdownMenuItem(
-            value: null,
-            child: Text(l10n.collectionQueryAnySection),
-          ),
-          for (final label in sectionLabels)
-            DropdownMenuItem(value: label, child: Text(label)),
-        ],
+      // Capped, and expanded within the cap, so a long section label is
+      // ellipsized rather than widening the row past a narrow screen. The
+      // enclosing Wrap bounds the cap by the line, so it also shrinks there.
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 240),
+        child: DropdownButton<String?>(
+          key: ValueKey('section-${figure.id}'),
+          isExpanded: true,
+          value: figure.section,
+          hint: Text(l10n.collectionQueryAnySection),
+          onChanged: (value) {
+            figure.section = value;
+            onChanged();
+          },
+          items: [
+            DropdownMenuItem(
+              value: null,
+              child: Text(
+                l10n.collectionQueryAnySection,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            for (final label in sectionLabels)
+              DropdownMenuItem(
+                value: label,
+                child: Text(label, overflow: TextOverflow.ellipsis),
+              ),
+          ],
+        ),
       ),
     );
   }
