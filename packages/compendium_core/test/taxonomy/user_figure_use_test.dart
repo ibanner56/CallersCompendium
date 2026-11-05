@@ -47,6 +47,41 @@ void main() {
   Figure use(Map<String, Object?> args, {String text = 'stored line'}) =>
       userFigureUseFigure(id: 'zoom-id', args: args, text: text);
 
+  test('a direction reads as the figure\'s own template words it', () {
+    // Built-in moves word a direction as a call ("on right diagonal",
+    // "facing in"); a figure of your own supplies its own words around the
+    // slot, so it gets the plain direction.
+    final drift = FigureRenderer(
+      contraTaxonomy,
+      userFigures: UserFigureCatalog.fromEntries([
+        entry(
+          id: 'drift-id',
+          name: 'drift',
+          payload: {
+            'form': 'contra',
+            'template': '{move} on the {where}, then face {facing}',
+            'defaultBeats': 8,
+            'params': [
+              {'key': 'where', 'kind': 'direction'},
+              {'key': 'facing', 'kind': 'direction'},
+            ],
+          },
+        ),
+      ]),
+    );
+    expect(
+      drift.render(
+        userFigureUseFigure(
+          id: 'drift-id',
+          args: const {'where': 'rightDiagonal', 'facing': 'in'},
+          text: 'stored',
+        ),
+        Dialect.larksRobins,
+      ),
+      'drift on the right diagonal, then face in',
+    );
+  });
+
   group('the reference', () {
     test('rides inside params, so builds before it keep it whole', () {
       final figure = use(const {'hand': 'right'});

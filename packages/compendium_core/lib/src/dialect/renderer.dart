@@ -641,10 +641,23 @@ class FigureRenderer {
               spec == null ? displayTemplate.slots[name] : params[name],
             ),
         };
-        final line = _assembleDisplayTemplate(
-          (slots: displayTemplate.slots, template: wording),
-          evaluate: (condition) =>
-              evaluateWordingCondition(condition, subjects),
+        // `{article}` agrees with the word that follows it in THIS wording,
+        // not in the default one: a hey wording saved before the direction
+        // moved after the move still reads `{article} {where} {length}`, and
+        // must say "an along half hey", not "a along half hey". Conditions
+        // still test the default line's article.
+        final hasArticle = displayTemplate.slots.containsKey('article');
+        final line = _resolveArticles(
+          _assembleDisplayTemplate(
+            (
+              slots: hasArticle
+                  ? {...displayTemplate.slots, 'article': _articleSentinel}
+                  : displayTemplate.slots,
+              template: wording,
+            ),
+            evaluate: (condition) =>
+                evaluateWordingCondition(condition, subjects),
+          ),
         );
         final displayLine = def.id == 'circle' && params['singleFile'] == true
             ? (line.trimLeft().startsWith('single file ')
@@ -1990,6 +2003,12 @@ class FigureRenderer {
     return substitution.replaceAll('%S', side is String ? side : '');
   }
 
+  /// The display (or, with [forCanonical], canonical) words for one param
+  /// [value] of a move.
+  ///
+  /// [userFigure] marks a value for a figure of your own, whose template
+  /// supplies its own words around a slot ("face {where}", "on the {where}"),
+  /// so built-in phrasing such as [_displayDirection]'s is not applied.
   String _renderValue(
     String name,
     Object? value,
@@ -1997,8 +2016,9 @@ class FigureRenderer {
     Dialect dialect,
     bool verbose,
     bool decimals,
-    bool forCanonical,
-  ) {
+    bool forCanonical, {
+    bool userFigure = false,
+  }) {
     if (value == null) return '';
     // The `unspecified` sentinel means the SOURCE STATED NOTHING, so it renders
     // as nothing — in the canonical render too. This is what lets an additive
@@ -2014,7 +2034,7 @@ class FigureRenderer {
     if (value is String && roleTokens.contains(value)) {
       return _roleTerm(value, dialect);
     }
-    if (!forCanonical && spec?.kind == ParamKind.direction) {
+    if (!forCanonical && !userFigure && spec?.kind == ParamKind.direction) {
       return _displayDirection(value);
     }
     // Swing's `prefix` modifier reads as a natural phrase in front of the move
@@ -2161,6 +2181,7 @@ class FigureRenderer {
                 verbose,
                 decimals,
                 forCanonical,
+                userFigure: true,
               );
       }
     }
@@ -2233,6 +2254,7 @@ class FigureRenderer {
           verbose,
           decimals,
           forCanonical,
+          userFigure: true,
         );
     }
   }
@@ -3660,6 +3682,26 @@ class FigureRenderer {
       default:
         return _humanize(value.toString());
     }
+  }
+
+  /// Render-internal placeholder for an `{article}` slot in a custom wording,
+  /// resolved by [_resolveArticles] once the line is assembled. A Unicode
+  /// noncharacter, like [_subjectMarkSentinel], so it cannot collide with
+  /// real text.
+  static const String _articleSentinel = '\uFDD1';
+
+  /// Replaces each [_articleSentinel] in [line] with the indefinite article
+  /// for the text that follows it.
+  static String _resolveArticles(String line) {
+    var out = line;
+    for (var i = out.indexOf(_articleSentinel); i >= 0;) {
+      final article = _indefiniteArticle(
+        out.substring(i + _articleSentinel.length),
+      );
+      out = out.replaceRange(i, i + _articleSentinel.length, article);
+      i = out.indexOf(_articleSentinel, i + article.length);
+    }
+    return out;
   }
 
   /// DISPLAY-ONLY: the indefinite article ("a"/"an") for [phrase], mirroring

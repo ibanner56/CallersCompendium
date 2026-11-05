@@ -629,17 +629,62 @@ void main() {
         );
         expect(
           line('cross_trails', {'where': 'rightDiagonal'}),
-          startsWith('cross trails - partner on right diagonal passing right'),
+          'cross trails - partner on right diagonal passing right shoulders, '
+          'neighbor passing left shoulders',
         );
         // `across` and `along` read as themselves.
         expect(line('pull_by', {'where': 'across'}), 'pull by right across');
         expect(line('chain', {'where': 'along'}), 'robins chain along');
+        expect(
+          line('promenade', {'singleFile': true, 'where': 'leftDiagonal'}),
+          'single file promenade on left diagonal',
+        );
         // The canonical text keeps the humanized token.
         expect(
           renderer.renderCanonical(
             testFigure(move: 'chain', params: {'where': 'leftDiagonal'}),
           ),
           'role2s chain left diagonal',
+        );
+      });
+
+      test('a wording condition reads a direction in either form', () {
+        final chain = renderer.moveWordingVocabulary('chain', larks);
+        String? stored(String condition) =>
+            checkWording('[if $condition then x]', chain).stored;
+        expect(
+          stored('where is on right diagonal'),
+          stored('where is right diagonal'),
+        );
+        expect(stored('where is right diagonal'), isNotNull);
+        expect(stored('where is facing in'), stored('where is in'));
+        expect(stored('where is in'), isNotNull);
+      });
+
+      test('a saved hey wording keeps an article that agrees with it', () {
+        // The starting wording before the direction moved after the move.
+        final old = larks.copyWith(
+          moveWordings: {
+            'hey': '{who} start {article} {where} {length} {move}',
+          },
+        );
+        expect(
+          renderer.render(
+            testFigure(move: 'hey', params: {'where': 'along'}),
+            old,
+          ),
+          'robins start an along half hey',
+        );
+        expect(
+          renderer.render(
+            testFigure(move: 'hey', params: {'where': 'up'}),
+            old,
+          ),
+          'robins start a facing up half hey',
+        );
+        expect(
+          renderer.render(testFigure(move: 'hey'), old),
+          'robins start a half hey',
         );
       });
 
