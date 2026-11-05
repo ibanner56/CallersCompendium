@@ -523,13 +523,13 @@ undone.
     leaves Recently deleted. Only a small deletion record is kept, with no
     names or text, so your other devices delete it too. A program that
     included the dance keeps its title as a line of text, as it does for any
-    dance that is gone for good. If another device added the dance to a
-    program before it heard about the deletion, that slot shows "Deleted
-    dance" instead, because the title is already gone. Programs work the same
-    way.
+    dance that is gone for good. Programs work the same way.
   - A device still on an older version of the app shows that deletion record
     in its Recently deleted as an untitled "—" entry until you update it. Don't
     restore it there: it is empty.
+  - If another device added the dance to a program before it heard about the
+    deletion, that slot shows "Deleted dance" instead, because the title is
+    already gone.
   - A shared dance left in Recently deleted is cleared the same way when the
     window you chose in Settings runs out, on all your devices. One
     difference: while a program or another dance still includes it, it keeps
