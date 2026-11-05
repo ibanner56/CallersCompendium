@@ -215,10 +215,10 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   Map<String, String> _danceTitles = const {};
   Map<String, Dance> _dances = const {};
 
-  /// Names of the authors of [_dances] that Recently deleted holds, which
-  /// `CollectionData` leaves out. Only for the text and PDF exports, as
-  /// Perform shows them (GIG-11).
-  Map<String, String> _trashedAuthorNames = const {};
+  /// Names, by dance id, of the authors that Recently deleted holds, which
+  /// `CollectionData` and [_dances] leave out. Only for the text and PDF
+  /// exports, as Perform shows them (GIG-11).
+  Map<String, List<String>> _trashedAuthorNames = const {};
   Map<String, Venue> _venuesById = const {};
   CollectionData? _collectionData;
   List<DifficultyLevel> _difficultyLevels = const [];
@@ -535,28 +535,50 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       // still reaches the exports (GIG-11): the same lookup as
       // `resolveDeletedSlotDances`, which Perform uses.
       final loaded = await Future.wait(
-        ids.map((id) => _repos.dances.getById(id, includeDeleted: true)),
+        ids.map(
+          (id) => _repos.dances.getById(
+            id,
+            includeDeleted: true,
+            includeDeletedAuthors: true,
+          ),
+        ),
       );
+      // Authors the collection does not list are in Recently deleted. Their
+      // names reach the text and PDF exports as Perform shows them, but the
+      // dance the share bundle embeds keeps only the authors it can embed.
+      final trashedAuthorIds = <String, List<String>>{};
       for (final dance in loaded) {
         if (dance != null) {
           titles[dance.id] = dance.title;
-          dances[dance.id] = dance;
+          final live = [
+            for (final id in dance.authorIds)
+              if (data.choreographersById.containsKey(id)) id,
+          ];
+          final trashed = [
+            for (final id in dance.authorIds)
+              if (!data.choreographersById.containsKey(id)) id,
+          ];
+          if (trashed.isNotEmpty) trashedAuthorIds[dance.id] = trashed;
+          dances[dance.id] = trashed.isEmpty
+              ? dance
+              : dance.copyWith(authorIds: live);
         }
       }
-      // Authors the collection does not list because they are in Recently
-      // deleted still belong to a dance the exports carry.
-      final trashedAuthorNames = <String, String>{};
-      final missingAuthors = {
-        for (final dance in dances.values)
-          for (final id in dance.authorIds)
-            if (!data.choreographersById.containsKey(id)) id,
-      };
-      if (missingAuthors.isNotEmpty) {
-        for (final c in await _repos.choreographers.listAll(
-          includeDeleted: true,
-        )) {
-          if (missingAuthors.contains(c.id)) trashedAuthorNames[c.id] = c.name;
-        }
+      final trashedAuthorNames = <String, List<String>>{};
+      if (trashedAuthorIds.isNotEmpty) {
+        final names = {
+          for (final c in await _repos.choreographers.listAll(
+            includeDeleted: true,
+          ))
+            c.id: c.name,
+        };
+        trashedAuthorNames.addAll({
+          for (final entry in trashedAuthorIds.entries)
+            entry.key: [
+              for (final id in entry.value)
+                if (names[id] case final String name when name.isNotEmpty) name,
+            ],
+        });
       }
       // Resolve only the linked venue (if any). The summary shows a single
       // program, so loading the whole catalogue just to look up one id is
@@ -881,7 +903,8 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
               venuesById: _venuesById,
               danceFor: (id) => _dances[id],
               choreographerFor: (id) => _collectionData?.choreographersById[id],
-              authorNameFor: (id) => _trashedAuthorNames[id],
+              trashedAuthorNamesFor: (id) =>
+                  _trashedAuthorNames[id] ?? const [],
               tagFor: (id) => _collectionData?.tagFor(id),
               publishedSourceFor: (id) =>
                   _collectionData?.publishedSourceFor(id),

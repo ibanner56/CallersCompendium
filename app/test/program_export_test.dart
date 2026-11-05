@@ -2669,7 +2669,7 @@ void main() {
       Program program, {
       required Set<DanceShareField> fields,
       Choreographer? Function(String id)? choreographerFor,
-      String? Function(String id)? authorNameFor,
+      List<String> Function(String danceId)? trashedAuthorNamesFor,
     }) async {
       String? clipboardText;
       tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
@@ -2703,7 +2703,7 @@ void main() {
                     danceFor: (id) => dancesWithAuthor[id],
                     choreographerFor:
                         choreographerFor ?? (id) => choreographers[id],
-                    authorNameFor: authorNameFor,
+                    trashedAuthorNamesFor: trashedAuthorNamesFor,
                   ),
                 ],
               ),
@@ -2748,7 +2748,7 @@ void main() {
           fields: DanceShareField.allExceptTunes,
           // The collection does not list a deleted author.
           choreographerFor: (_) => null,
-          authorNameFor: (id) => id == 'c1' ? 'Jane Smith' : null,
+          trashedAuthorNamesFor: (id) => id == 'd3' ? ['Jane Smith'] : [],
         );
         expect(text, contains('1. Money Musk — by Jane Smith'));
       },
