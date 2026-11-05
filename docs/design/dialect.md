@@ -109,7 +109,14 @@ built figure.
   setting and each program as a record, so another device receives the two
   independently, in either order, and ends on the new name. A program edited
   on another device before it receives the rename is an ordinary record
-  conflict, and the loser keeps the old name, which reads as unavailable. Inside Perform the quick-switch is then session-local.
+  conflict, and the loser keeps the old name, which reads as unavailable. Saving
+  an editor opened on an existing dialect goes through
+  `DialectLibraryController.updateTerms`, which replaces by name and writes
+  nothing when no custom dialect has that name any more (renamed or deleted
+  while the editor was open), so a stale editor can neither add a second dialect
+  nor revive a deleted one; the screen says the changes were not saved. A
+  dialect has no id, so a deleted name that a new dialect has since taken cannot
+  be told apart from the original. Inside Perform the quick-switch is then session-local.
 
 ## Conditional wording
 

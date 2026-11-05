@@ -1987,6 +1987,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String settingsDialectEditConflictSnack(String name) {
+    return '「$name」は編集中に名前が変更されたか削除されたため、変更は保存されませんでした。';
+  }
+
+  @override
   String get settingsDialectActionsTooltip => 'ダイアレクトのアクション';
 
   @override

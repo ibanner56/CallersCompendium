@@ -1009,6 +1009,77 @@ void main() {
       },
     );
 
+    group('a prior venue link that no row backs', () {
+      // The repository's save guard refuses a dead id, so the column is
+      // rewritten directly: the state #2076 leaves on a restore.
+      Future<String> importThenLink(String venueId) async {
+        final first = await importer.import(
+          _ccUsrBytes(),
+          now: now,
+          venueEntityMode: false,
+          newId: sequentialIds(),
+          newSlotId: sequentialIds(),
+        );
+        final programId = first.programs.single.id;
+        await db.customStatement(
+          'UPDATE programs SET venue_id = ? WHERE id = ?',
+          [venueId, programId],
+        );
+        return programId;
+      }
+
+      test(
+        'is dropped, and the location resolved afresh, in venue mode',
+        () async {
+          final programId = await importThenLink('gone');
+
+          final second = await importer.import(
+            _ccUsrBytes(),
+            now: DateTime.utc(2026, 8, 1),
+            venueEntityMode: true,
+            newId: sequentialIds(),
+            newSlotId: sequentialIds(),
+          );
+
+          final reloaded = await programs.getById(programId);
+          expect(second.insertedVenueIds, hasLength(1));
+          expect(reloaded!.venueId, second.insertedVenueIds.single);
+          expect(await venues.getById(reloaded.venueId!), isNotNull);
+        },
+      );
+
+      test('is dropped, not carried, with venue mode off', () async {
+        final programId = await importThenLink('gone');
+
+        await importer.import(
+          _ccUsrBytes(),
+          now: DateTime.utc(2026, 8, 1),
+          venueEntityMode: false,
+          newId: sequentialIds(),
+          newSlotId: sequentialIds(),
+        );
+
+        expect((await programs.getById(programId))!.venueId, isNull);
+      });
+
+      test('is kept when the venue is only soft-deleted (#2076)', () async {
+        await venues.upsert(Venue(id: 'v1', name: 'Guiding Star Grange'));
+        await venues.delete('v1');
+        final programId = await importThenLink('v1');
+
+        final second = await importer.import(
+          _ccUsrBytes(),
+          now: DateTime.utc(2026, 8, 1),
+          venueEntityMode: true,
+          newId: sequentialIds(),
+          newSlotId: sequentialIds(),
+        );
+
+        expect(second.insertedVenueIds, isEmpty);
+        expect((await programs.getById(programId))!.venueId, 'v1');
+      });
+    });
+
     test('undo after a re-import restores the prior program state', () async {
       await importer.import(
         _ccUsrBytes(),

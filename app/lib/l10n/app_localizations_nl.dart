@@ -2095,6 +2095,11 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String settingsDialectEditConflictSnack(String name) {
+    return '\"$name\" is hernoemd of verwijderd terwijl je het bewerkte, dus je wijzigingen zijn niet opgeslagen.';
+  }
+
+  @override
   String get settingsDialectActionsTooltip => 'Dialectacties';
 
   @override

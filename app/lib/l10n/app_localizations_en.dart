@@ -2072,6 +2072,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String settingsDialectEditConflictSnack(String name) {
+    return '\"$name\" was renamed or deleted while you were editing it, so your changes were not saved.';
+  }
+
+  @override
   String get settingsDialectActionsTooltip => 'Dialect actions';
 
   @override

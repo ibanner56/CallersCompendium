@@ -211,6 +211,16 @@ No full-table in-memory scans (ContraDB pitfall #2). Target: <50 ms over
   partially migrated. See "Retiring a schema version" below.
 - `figures_json.schemaVersion` migrates lazily on read + bulk on upgrade.
 - Derived tables rebuilt after any migration touching figures.
+- A change to how a derived index is *written*, with no schema change, is
+  repaired by a one-time `ensureMigrated` pass keyed by a device-scoped
+  `__*_done` settings marker instead of a schema bump, written after the pass
+  succeeds so an interrupted one retries. The pass reindexes only the dances the
+  rule changes. Two exist for `dance_fts.custom_values`:
+  `__custom_field_index_repair_done__` (Searchable off and yes/no fields left
+  out of the index, 2026-10-29) and `__custom_number_index_repair_done__`
+  (2026-11-05: a whole-number custom value indexes as "3", not "3.0"; the pass
+  reindexes the dances holding a value for an indexed number field). Neither
+  travels in a backup or syncs: each says a pass ran over *this* database.
 
 ## Retiring a schema version
 

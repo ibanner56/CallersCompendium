@@ -370,8 +370,9 @@ void main() {
     expect(line.danceId, isNull);
   });
 
-  test('confident match + IDENTICAL figures (issue #686) still skips — #685\'s '
-      'never-silently-duplicate rule is unchanged', () async {
+  test('confident match + IDENTICAL figures (issue #686) writes nothing and '
+      'returns the dance already held — #685\'s never-silently-duplicate '
+      'rule, INTAKE-3 (a)', () async {
     final repos = openTestRepositories();
     final sharedFigures = [
       Figure(move: 'swing', params: {'who': 'partners', 'beats': 8}),
@@ -394,7 +395,7 @@ void main() {
       repos: repos,
     );
 
-    expect(danceId, isNull);
+    expect(danceId, 'local-existing');
     expect(service.importedIds, isEmpty);
     // No new dance was created, and the existing one is untouched.
     expect(await repos.dances.getById('local-existing'), isNotNull);

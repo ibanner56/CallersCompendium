@@ -2098,6 +2098,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String settingsDialectEditConflictSnack(String name) {
+    return '\"$name\" wurde umbenannt oder gelöscht, während du es bearbeitet hast. Deine Änderungen wurden nicht gespeichert.';
+  }
+
+  @override
   String get settingsDialectActionsTooltip => 'Dialekt-Aktionen';
 
   @override

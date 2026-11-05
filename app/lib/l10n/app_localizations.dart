@@ -3001,6 +3001,12 @@ abstract class AppLocalizations {
   /// **'“{name}” will be permanently removed.'**
   String settingsDialectDeleteConfirmBody(String name);
 
+  /// Snackbar shown when saving a dialect's edited terms fails because the dialect was renamed or deleted while its editor was open; quotes the dialect's name as the editor opened it (untrusted user text, rendered as plain text).
+  ///
+  /// In en, this message translates to:
+  /// **'\"{name}\" was renamed or deleted while you were editing it, so your changes were not saved.'**
+  String settingsDialectEditConflictSnack(String name);
+
   /// Tooltip for the per-dialect actions menu button.
   ///
   /// In en, this message translates to:

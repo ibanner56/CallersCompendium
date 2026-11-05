@@ -186,7 +186,7 @@ Future<ParsedProgramLine> _resolveLineAcrossSources(
           matchCount: 1,
           importedOnline: true,
         );
-      case _SourceDeclined():
+      case _SourceDeclined() || _SourceReused():
         // #685, applied regardless of source: never silently create a
         // duplicate of a dance the user already has. See this method's doc.
         //
@@ -245,6 +245,20 @@ class _SourceImported extends _SourceAttempt {
 /// check. Stops the chain — see [_resolveLineAcrossSources]'s doc for why.
 class _SourceDeclined extends _SourceAttempt {
   const _SourceDeclined();
+}
+
+/// #685's skip fired on a confident local duplicate whose figures are
+/// canonically identical, and the target is [danceId]: the dance the user
+/// already has. Nothing was written. Stops the chain, like [_SourceDeclined].
+///
+/// Kept apart from [_SourceDeclined] so a caller that links to the existing
+/// dance rather than writing a note (the ContraDB program import's Caller's Box
+/// fallback, INTAKE-3 (a)) can; [_resolveLineAcrossSources] treats it as a
+/// decline, as before.
+class _SourceReused extends _SourceAttempt {
+  const _SourceReused(this.danceId);
+
+  final String danceId;
 }
 
 /// No usable result from this source alone: no results, no exact-title hit
@@ -341,9 +355,11 @@ Future<_SourceAttempt> _attemptSource(
         taxonomy: contraTaxonomy,
       );
       if (identical) {
-        // #685, UNCHANGED: a true duplicate must never be silently created
-        // non-interactively — decline, leaving the note-slot fallback (#312).
-        return const _SourceDeclined();
+        // #685: a true duplicate must never be silently created
+        // non-interactively. Report the dance the user already has so the
+        // program import can link its slot to it (INTAKE-3 (a)); a caller that
+        // cannot use it declines, leaving the note-slot fallback (#312).
+        return _SourceReused(targetId);
       }
       // #686: figures genuinely differ — auto-import as a distinct
       // variation, linked back to the matched dance, same outcome as the
@@ -440,8 +456,9 @@ Future<_SourceAttempt> _attemptSource(
 /// canonicalization-aware either way: dialect wording, beats, and
 /// progression never count as a difference.
 ///
-/// - **Identical figures** → still returns `null` (#685's rule, UNCHANGED —
-///   a true duplicate must never be silently created, non-interactively).
+/// - **Identical figures** → returns the id of the dance the user already has,
+///   writing nothing (#685: a true duplicate must never be silently created,
+///   non-interactively; INTAKE-3 (a): reuse it). The slot links to that dance.
 /// - **Differing figures** → auto-imports the previewed dance as a new,
 ///   distinct **variation** dance (`DedupeResolution.variation`, symmetric
 ///   `relatedDance` link-back on by default) and returns its id — the exact
@@ -479,6 +496,8 @@ Future<String?> resolveConfidentOnlineDanceId(
   );
   return switch (attempt) {
     _SourceImported(:final danceId) => danceId,
+    // The dance the user already has: link it, write nothing (INTAKE-3 (a)).
+    _SourceReused(:final danceId) => danceId,
     _SourceDeclined() || _SourceMiss() || _SourceAmbiguous() => null,
   };
 }
