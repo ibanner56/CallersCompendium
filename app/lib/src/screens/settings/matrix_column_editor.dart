@@ -8,6 +8,7 @@
 // Parameterized and compound columns are created here; both custom kinds
 // share the ordered list, rename, hide, and cleanup behavior.
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/foundation.dart' show mapEquals;
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
@@ -728,6 +729,27 @@ class _ParameterizedColumnDialogState
 
   MoveDef get _move => widget.taxonomy.moves[_baseMove]!;
 
+  /// The move and constraints the dialog opened with, to tell an edit from an
+  /// untouched dialog.
+  late final String _startMove;
+  late final Map<String, Object?> _startParams;
+
+  @override
+  void initState() {
+    super.initState();
+    // Read now: a lazy initializer would first run on the first edit.
+    _startMove = _baseMove;
+    _startParams = Map.of(_params);
+  }
+
+  /// Whether anything was changed since the dialog opened. A dirty dialog
+  /// ignores a tap outside it, Escape and Back, so a stray one cannot discard
+  /// the edits; its Cancel and Save buttons still close it.
+  bool _isDirty() =>
+      _label.text != widget.initialLabel ||
+      _baseMove != _startMove ||
+      !mapEquals(_params, _startParams);
+
   String _initialMove() {
     final initialMove = widget.initial?.baseMove;
     if (initialMove != null && widget.taxonomy.moves.containsKey(initialMove)) {
@@ -778,120 +800,126 @@ class _ParameterizedColumnDialogState
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final params = _move.params.entries.toList();
-    return AlertDialog(
-      title: Text(
-        widget.initial == null
-            ? l10n.settingsMatrixColumnsParameterizedTitle
-            : l10n.settingsMatrixColumnsParameterizedEditTitle,
-      ),
-      content: SingleChildScrollView(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 520),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              DropdownButtonFormField<String>(
-                key: const ValueKey('matrix-parameterized-move'),
-                initialValue: _baseMove,
-                decoration: InputDecoration(
-                  labelText: l10n.settingsMatrixColumnsParameterizedMove,
-                ),
-                items: [
-                  for (final move in widget.taxonomy.moves.values)
-                    DropdownMenuItem(
-                      value: move.id,
-                      child: Text(move.displayName),
-                    ),
-                ],
-                onChanged: (value) {
-                  if (value != null) _changeMove(value);
-                },
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                l10n.settingsMatrixColumnsParameterizedConstraints,
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
-              if (params.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: AppSpacing.xs),
-                  child: Text(l10n.settingsMatrixColumnsParameterizedNoParams),
-                )
-              else ...[
-                Wrap(
-                  spacing: AppSpacing.xs,
-                  runSpacing: AppSpacing.xs,
-                  children: [
-                    for (final entry in params)
-                      FilterChip(
-                        key: ValueKey(
-                          'matrix-parameterized-constraint-${entry.key}',
-                        ),
-                        label: Text(
-                          figureParamKeyLabel(
-                            l10n,
-                            entry.key,
-                            moveId: _baseMove,
-                          ),
-                        ),
-                        selected: _selected.contains(entry.key),
-                        onSelected: (selected) =>
-                            _toggleParam(entry.key, selected),
+    return DirtyDialogGuard(
+      listenable: _label,
+      isDirty: _isDirty,
+      child: AlertDialog(
+        title: Text(
+          widget.initial == null
+              ? l10n.settingsMatrixColumnsParameterizedTitle
+              : l10n.settingsMatrixColumnsParameterizedEditTitle,
+        ),
+        content: SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                DropdownButtonFormField<String>(
+                  key: const ValueKey('matrix-parameterized-move'),
+                  initialValue: _baseMove,
+                  decoration: InputDecoration(
+                    labelText: l10n.settingsMatrixColumnsParameterizedMove,
+                  ),
+                  items: [
+                    for (final move in widget.taxonomy.moves.values)
+                      DropdownMenuItem(
+                        value: move.id,
+                        child: Text(move.displayName),
                       ),
                   ],
+                  onChanged: (value) {
+                    if (value != null) _changeMove(value);
+                  },
                 ),
-                for (final entry in params)
-                  if (_selected.contains(entry.key))
-                    Padding(
-                      padding: const EdgeInsets.only(top: AppSpacing.sm),
-                      child: FigureParamEditor(
-                        key: ValueKey(
-                          'matrix-parameterized-editor-${entry.key}',
-                        ),
-                        keyPrefix: 'matrix-parameterized',
-                        paramKey: entry.key,
-                        spec: entry.value,
-                        value: _params[entry.key],
-                        onChanged: (value) =>
-                            setState(() => _params[entry.key] = value),
-                        dialect: Dialect.canonical,
-                        moveId: _baseMove,
-                      ),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  l10n.settingsMatrixColumnsParameterizedConstraints,
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                if (params.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: AppSpacing.xs),
+                    child: Text(
+                      l10n.settingsMatrixColumnsParameterizedNoParams,
                     ),
-              ],
-              const SizedBox(height: AppSpacing.sm),
-              TextField(
-                key: const ValueKey('matrix-parameterized-label'),
-                controller: _label,
-                decoration: InputDecoration(
-                  labelText: l10n.settingsMatrixColumnsParameterizedLabel,
+                  )
+                else ...[
+                  Wrap(
+                    spacing: AppSpacing.xs,
+                    runSpacing: AppSpacing.xs,
+                    children: [
+                      for (final entry in params)
+                        FilterChip(
+                          key: ValueKey(
+                            'matrix-parameterized-constraint-${entry.key}',
+                          ),
+                          label: Text(
+                            figureParamKeyLabel(
+                              l10n,
+                              entry.key,
+                              moveId: _baseMove,
+                            ),
+                          ),
+                          selected: _selected.contains(entry.key),
+                          onSelected: (selected) =>
+                              _toggleParam(entry.key, selected),
+                        ),
+                    ],
+                  ),
+                  for (final entry in params)
+                    if (_selected.contains(entry.key))
+                      Padding(
+                        padding: const EdgeInsets.only(top: AppSpacing.sm),
+                        child: FigureParamEditor(
+                          key: ValueKey(
+                            'matrix-parameterized-editor-${entry.key}',
+                          ),
+                          keyPrefix: 'matrix-parameterized',
+                          paramKey: entry.key,
+                          spec: entry.value,
+                          value: _params[entry.key],
+                          onChanged: (value) =>
+                              setState(() => _params[entry.key] = value),
+                          dialect: Dialect.canonical,
+                          moveId: _baseMove,
+                        ),
+                      ),
+                ],
+                const SizedBox(height: AppSpacing.sm),
+                TextField(
+                  key: const ValueKey('matrix-parameterized-label'),
+                  controller: _label,
+                  decoration: InputDecoration(
+                    labelText: l10n.settingsMatrixColumnsParameterizedLabel,
+                  ),
+                  onChanged: (_) => setState(() {}),
                 ),
-                onChanged: (_) => setState(() {}),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.commonCancel),
-        ),
-        TextButton(
-          key: const ValueKey('matrix-parameterized-save'),
-          onPressed: _label.text.trim().isEmpty
-              ? null
-              : () => Navigator.of(context).pop(
-                  _ParameterizedColumnDraft(
-                    baseMove: _baseMove,
-                    params: Map<String, Object?>.of(_params),
-                    label: _label.text.trim(),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.commonCancel),
+          ),
+          TextButton(
+            key: const ValueKey('matrix-parameterized-save'),
+            onPressed: _label.text.trim().isEmpty
+                ? null
+                : () => Navigator.of(context).pop(
+                    _ParameterizedColumnDraft(
+                      baseMove: _baseMove,
+                      params: Map<String, Object?>.of(_params),
+                      label: _label.text.trim(),
+                    ),
                   ),
-                ),
-          child: Text(l10n.commonSave),
-        ),
-      ],
+            child: Text(l10n.commonSave),
+          ),
+        ],
+      ),
     );
   }
 }
