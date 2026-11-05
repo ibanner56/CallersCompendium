@@ -167,9 +167,11 @@ large text), to choose where your words are looked for: **All fields**,
 sources, custom field values, hooks and notes, and finds each word exactly as
 you typed it. It skips yes/no fields, which you find with their filter, and
 any custom field with **Searchable** turned off (see
-[Make your own fields](#make-your-own-fields)). It also looks at figures, which are matched by meaning, so a
-role word finds the figure however the role was worded when the dance was
-entered. (Unrecognized figure text saved before role words were rewritten may not
+[Make your own fields](#make-your-own-fields)).
+
+**All fields** also looks at figures, but figures are matched by meaning, not
+by the exact letters you typed: a role word finds the figure however the role
+was worded when the dance was entered. (Unrecognized figure text saved before role words were rewritten may not
 match a role word until you save the dance again; see
 [Write & edit dances](./authoring.md).)
 
