@@ -3988,6 +3988,9 @@ class AppLocalizationsJa extends AppLocalizations {
       'お持ちのダンスをインポートするか、最初の1曲を作成してください。「The Baby Rose」はサンプルとして入っています。';
 
   @override
+  String get collectionBrowsePublishedCollections => '公開コレクションを見る';
+
+  @override
   String get collectionFiltersTitle => 'フィルター';
 
   @override
@@ -6418,6 +6421,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String onlineImportUpdated(String title) {
+    return '「$title」をオンライン版で更新しました。';
+  }
+
+  @override
   String onlineImportUndoKeptChanged(String title) {
     return '「$title」はインポート後に変更されたため、元に戻す操作では変更しませんでした。';
   }
@@ -6746,6 +6754,15 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get importReviewClose => 'インポートを閉じる';
+
+  @override
+  String get importReviewDiscardTitle => 'このインポートを破棄しますか？';
+
+  @override
+  String get importReviewDiscardBody => '今ここを離れると、確認中のリストとその選択内容は破棄されます。';
+
+  @override
+  String get importReviewKeepReviewing => '確認を続ける';
 
   @override
   String get importReviewSourceLabel => 'ソース';
