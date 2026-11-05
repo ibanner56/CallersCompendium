@@ -2029,7 +2029,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// author records the collection holds.
   List<String>? _authorNamesOverrideFor(String danceId) {
     final dance = _deletedSlotDances[danceId];
-    if (dance == null || _createdDances.containsKey(danceId)) return null;
+    // Same precedence as [_danceById]: a dance the collection lists (restored
+    // since the lookup) is credited from the collection.
+    if (dance == null ||
+        _createdDances.containsKey(danceId) ||
+        (_data?.dancesById.containsKey(danceId) ?? false)) {
+      return null;
+    }
     String? nameOf(String id) =>
         _createdChoreographers[id]?.name ??
         _data?.choreographersById[id]?.name ??
