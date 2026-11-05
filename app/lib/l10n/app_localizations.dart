@@ -10145,7 +10145,7 @@ abstract class AppLocalizations {
   /// **'Showing {count} online results. There may be more: narrow your search to see the rest.'**
   String onlineResultCountCapped(int count);
 
-  /// Note after the online result count when an Advanced search of ContraDB had figure parameters ContraDB has no counterpart for, which were left out, so the search is broader than the Advanced panel says. Follows the count after a middle dot.
+  /// Note after the online result count when an Advanced search of ContraDB had figure parameters ContraDB has no counterpart for, which were left out, so the search is not exactly the one the Advanced panel describes (usually broader, narrower under None of). Follows the count after a middle dot.
   ///
   /// In en, this message translates to:
   /// **'Some Advanced conditions don\'t exist on ContraDB and were left out.'**

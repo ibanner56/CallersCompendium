@@ -3194,7 +3194,7 @@ class _DanceListScreenState extends State<DanceListScreen>
               : l10n.onlineResultCount(count))
         : l10n.collectionDanceCount(count);
     // Parameters ContraDB has no counterpart for were left out of the
-    // search, so it is broader than the Advanced panel says.
+    // search, so it is not exactly the one the Advanced panel describes.
     final String label =
         online && _onlineResults.any((row) => row.advancedPartlyApplied)
         ? '$countLabel \u00b7 ${l10n.onlineAdvancedPartlyApplied}'

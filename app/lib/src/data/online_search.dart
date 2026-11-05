@@ -101,7 +101,8 @@ class OnlineSearchResultRow {
   /// Whether the Advanced query behind this row's search had figure
   /// parameters ContraDB has no counterpart for, which were left out of the
   /// ContraDB filter. The figures are still searched by their other
-  /// parameters, so the results can be broader than the Advanced panel says.
+  /// parameters, so the results can differ from what the Advanced panel says
+  /// (usually broader, narrower under None of).
   /// Set on every row of such a search.
   final bool advancedPartlyApplied;
 

@@ -219,7 +219,8 @@ conditions to search ContraDB.
 A figure's details, such as its beats or the dancers doing it, are sent to
 ContraDB where it has them. A detail ContraDB does not have, such as how a
 swing ends, is left out, and the line above the results says so: that search
-is broader than the one you described. A few details also match a little more
+usually finds more dances than the one you described (fewer, if the figure is
+under **None of**). A few details also match a little more
 or less on ContraDB than in your library; for example, **neighbors** there
 also includes the previous and next neighbors.
 

@@ -8757,7 +8757,7 @@
   },
   "onlineAdvancedPartlyApplied": "Some Advanced conditions don't exist on ContraDB and were left out.",
   "@onlineAdvancedPartlyApplied": {
-    "description": "Note after the online result count when an Advanced search of ContraDB had figure parameters ContraDB has no counterpart for, which were left out, so the search is broader than the Advanced panel says. Follows the count after a middle dot."
+    "description": "Note after the online result count when an Advanced search of ContraDB had figure parameters ContraDB has no counterpart for, which were left out, so the search is not exactly the one the Advanced panel describes (usually broader, narrower under None of). Follows the count after a middle dot."
   },
   "onlineSearchHintByPhrase": "Type a title or author, or add by-phrase figures to search {source}.",
   "@onlineSearchHintByPhrase": {

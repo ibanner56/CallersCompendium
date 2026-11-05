@@ -173,7 +173,10 @@ class ContraDbOnline implements OnlineSearchService {
   /// holds a condition ContraDB cannot express with the same meaning
   /// ([translateDanceFilterToContraDb]); the search is refused rather than
   /// sent with that condition dropped, which would return a wider result set
-  /// than the panel describes.
+  /// than the panel describes. The exception is a figure parameter with no
+  /// ContraDB counterpart: it is left out and reported in
+  /// [ContraDbAdvancedExpression.ignoredParams], carried on the rows as
+  /// `advancedPartlyApplied`.
   static ContraDbAdvancedExpression? _advancedTranslation(DanceFilter? filter) {
     if (filter == null) return null;
     return switch (translateDanceFilterToContraDb(filter)) {

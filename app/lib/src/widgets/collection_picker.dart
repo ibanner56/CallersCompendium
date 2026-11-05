@@ -1078,7 +1078,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
 
   /// The online count line: the count (or its "may be more" form), followed
   /// by a note when parameters ContraDB has no counterpart for were left out
-  /// of the search, so it is broader than the Advanced panel says.
+  /// of the search, so it is not exactly the one the Advanced panel describes.
   String _onlineCountLabel(AppLocalizations l10n, int count) {
     final countLabel = _onlineResults.any((row) => row.mayHaveMore)
         ? l10n.onlineResultCountCapped(count)

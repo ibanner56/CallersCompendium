@@ -127,15 +127,17 @@ tree. Conforms to [ux.md](ux.md) §1 and [dialect.md](dialect.md)
    importer on rendered figure lines (the renderings were composed by hand from
    ContraDB's `*Words` functions, not fetched from contradb.com).
 
-   *Left out, not refused.* **Decided by the user (2026-11-05):** support every
+   *Left out, not refused.* **Decided by the user, in the agent session that wrote this (2026-11-05; no issue or
+   comment records it, only that session):** support every
    parameter ContraDB also has, and do not refuse a figure because some of its
    parameters have no ContraDB counterpart. Such a parameter, or an app value
    with no exact ContraDB value, is left out of the filter; the figure is still
    searched by its other parameters. The translation returns the left-out names
    (`ContraDbAdvancedExpression.ignoredParams`, `move.param`), `ContraDbOnline`
    sets `OnlineSearchResultRow.advancedPartlyApplied` on every row, and the
-   count line adds a note after the count, because the search is then broader
-   than the panel says. The note rides on the rows, so a search that finds no
+   count line adds a note after the count, because the search is then not the
+   one the panel describes: usually broader, but narrower under a negation
+   (**None of**), where a dropped condition makes the excluded set larger. The note rides on the rows, so a search that finds no
    dances shows no note. A value of `unspecified` means "not set" and is not
    reported. The parameters with no ContraDB counterpart, pinned by
    `contradb_advanced_params_test.dart`: `balance.hand`, `butterfly_whirl.who`
