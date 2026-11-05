@@ -1,8 +1,8 @@
-    show CallingHistoryTracking;
 // Part of the Settings screen, split by section. The Program section gathers
 // the program-facing preferences — venues, the programming matrix, Perform
 // mode, and calling history — that previously lived under General (issue #935).
-import 'package:compendium_core/compendium_core.dart' show CallingHistoryTracking;
+import 'package:compendium_core/compendium_core.dart'
+    show CallingHistoryTracking;
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
