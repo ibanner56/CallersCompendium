@@ -153,7 +153,7 @@ void main() {
   );
 
   test(
-    'ContraDB moves with no Collection counterpart fall out of "has no figure"',
+    'ContraDB moves with no Collection counterpart still count under "has no figure"',
     () async {
       // Both sides agree there is no `star_promenade`/`allemande_orbit` query
       // (the translator refuses them), so the only visible effect is on negation:

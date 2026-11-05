@@ -65,7 +65,8 @@ tree. Conforms to [ux.md](ux.md) §1 and [dialect.md](dialect.md)
    so `do_si_do` is sent as `["&", ["figure", "do si do"], ["not", ["figure",
    "see saw"]]]`. A display name, a ContraDB spelling or a dialect term is
    refused: the translator never sees the dialect. `meltdown_swing`, `custom`,
-   `star_promenade`, `allemande_orbit`, `pass_the_ocean` and the moves with no
+   `star_promenade`, `allemande_orbit`, `pass_the_ocean`, `form_short_waves` (two
+   halves of ContraDB's one `form an ocean wave`) and the moves with no
    ContraDB figure are refused.
 
    **What parity covers.** `test/imports/contradb_parity/` imports ContraDB
@@ -81,8 +82,8 @@ tree. Conforms to [ux.md](ux.md) §1 and [dialect.md](dialect.md)
    promenade`, `allemande orbit`) is a `custom` leaf here. Those differences are
    pinned by `contradb_parity_structural_test.dart`.
 
-   **Results are the first 20.** ContraDB returns the matches in title order and
-   the app requests `contraDbSearchCount` (20) with offset 0; the response's
+   **Results are the first 20.** The app asks ContraDB for
+   `titleA` order and requests `contraDbSearchCount` (20) with offset 0; the response's
    `numberMatching` is not read, so a broad query shows a truncated list with
    no indication of how many matched.
 4. **Injection-safe by construction.** Every user value is a bind variable;

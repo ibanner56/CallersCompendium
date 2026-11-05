@@ -201,9 +201,9 @@ Object _combine<T>(
 ///   Collection's `custom`, so that set is not ContraDB's `custom` set.
 /// - **`allemande_orbit`**: not a figure the live importer produces; ContraDB's
 ///   `allemande orbit` is one figure, the Collection's is a container.
-/// - **`pass_the_ocean`**: ContraDB's `pass through` with an ocean-wave
-///   parameter, not a figure of its own (its `form an ocean wave` imports as
-///   `form_short_waves`).
+/// - **`pass_the_ocean`** and **`form_short_waves`**: ContraDB's one
+///   `form an ocean wave` (with a `pass_through` parameter) imports as one or
+///   the other, so each is a strict subset of it.
 /// - Collection moves with no ContraDB figure (`two_hand_turn`,
 ///   `courtesy_turn`, `star_through`, `turn_as_couples`, `orbit`,
 ///   `circular_hey`).
@@ -241,7 +241,6 @@ const Map<String, List<Object?>> _contraDbForCollectionMove = {
   'figure_8': ['figure', 'figure 8'],
   'form_a_long_wave': ['figure', 'form a long wave'],
   'form_long_waves': ['figure', 'form long waves'],
-  'form_short_waves': ['figure', 'form an ocean wave'],
   'gate': ['figure', 'gate'],
   'give_and_take': ['figure', 'give & take'],
   'hey': ['figure', 'hey'],

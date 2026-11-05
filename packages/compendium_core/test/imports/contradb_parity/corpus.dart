@@ -167,6 +167,9 @@ const List<ContraFig> cleanFigures = [
     'facing star clockwise 3 places with ones putting their right hands in and backing up',
     ['facing_star'],
   ),
+  ContraFig('pull-by-direction', 'pull by direction', 'pull by right along', [
+    'pull_by',
+  ]),
   ContraFig('rory', "Rory O'More", "balance rory o'more right", [
     'rory_o_more',
   ]),

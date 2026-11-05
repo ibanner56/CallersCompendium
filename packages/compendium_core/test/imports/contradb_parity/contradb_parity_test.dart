@@ -327,6 +327,7 @@ Future<void> main() async {
         const documentedGaps = {
           'meltdown swing', // alias of swing{prefix: meltdown}: refused
           'custom', 'star promenade', 'allemande orbit',
+          'form an ocean wave', // split across pass_the_ocean / form_short_waves
           'pull by dancers', 'pull by direction', // only via pull_by (or)
         };
         final missing = contraDbDefinedMoves.keys.toSet()

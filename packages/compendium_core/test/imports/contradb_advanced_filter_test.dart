@@ -48,12 +48,6 @@ void main() {
         'figure',
         'gyre',
       ]);
-      // The live importer reads ContraDB's `form an ocean wave` as
-      // `form_short_waves` (not `pass_the_ocean`).
-      expect(expression(FigureFilter.leaf('form_short_waves')), [
-        'figure',
-        'form an ocean wave',
-      ]);
     });
 
     test('the Collection keeps an alias apart from its target move', () {
@@ -294,9 +288,9 @@ void main() {
         'turn_as_couples',
         'orbit',
         'circular_hey',
-        // `pass_the_ocean` is ContraDB's `pass through` with an ocean-wave
-        // parameter, not a figure of its own.
+        // Each is a subset of ContraDB's single `form an ocean wave`.
         'pass_the_ocean',
+        'form_short_waves',
       ]) {
         expect(
           refusal(FigureFilter.leaf(id)),
