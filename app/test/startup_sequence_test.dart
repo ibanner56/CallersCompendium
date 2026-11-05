@@ -2367,26 +2367,23 @@ void main() {
           ),
           (
             key: kRecencyRequireEventDateKey,
-            read: (c) =>
-                CallingHistoryTrackingScope.of(c).recencyRequireEventDate,
+            read: (c) => callingHistoryTrackingOf(c).recencyRequireEventDate,
             defaultValue: true,
           ),
           // No stored value follows "require performed", which is off here.
           (
             key: kRecencyRequirePerformedKey,
-            read: (c) =>
-                CallingHistoryTrackingScope.of(c).recencyRequirePerformed,
+            read: (c) => callingHistoryTrackingOf(c).recencyRequirePerformed,
             defaultValue: false,
           ),
           (
             key: kHistoryOrderIgnoreUndatedKey,
-            read: (c) => CallingHistoryTrackingScope.of(c).orderIgnoreUndated,
+            read: (c) => callingHistoryTrackingOf(c).orderIgnoreUndated,
             defaultValue: false,
           ),
           (
             key: kHistoryOrderIgnoreUnperformedKey,
-            read: (c) =>
-                CallingHistoryTrackingScope.of(c).orderIgnoreUnperformed,
+            read: (c) => callingHistoryTrackingOf(c).orderIgnoreUnperformed,
             defaultValue: false,
           ),
           (

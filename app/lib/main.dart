@@ -599,16 +599,6 @@ class _CompendiumAppState extends State<CompendiumApp>
     decode: (Object? v) => v is bool ? v : false,
     encode: (v) => v,
   );
-  // Built once: the scope's listenable is a merge of five notifiers, and a
-  // fresh one per rebuild of the wrapper chain would re-subscribe every
-  // dependent.
-  late final _callingHistoryTracking = CallingHistoryTrackingSettings(
-    requirePerformedForHistory: _requirePerformedForHistoryNotifier,
-    recencyRequireEventDate: _recencyRequireEventDateNotifier,
-    recencyRequirePerformed: _recencyRequirePerformedNotifier,
-    orderIgnoreUndated: _historyOrderIgnoreUndatedNotifier,
-    orderIgnoreUnperformed: _historyOrderIgnoreUnperformedNotifier,
-  );
   final _trackHistoryForAllCallersNotifier = PreferenceNotifier<bool>(
     key: kTrackHistoryForAllCallersKey,
     defaultValue: false,
@@ -2802,8 +2792,20 @@ class _CompendiumAppState extends State<CompendiumApp>
       notifier: _requireEventDateForHistoryNotifier,
       child: child,
     ),
-    (child) => CallingHistoryTrackingScope(
-      settings: _callingHistoryTracking,
+    (child) => RecencyRequireEventDateScope(
+      notifier: _recencyRequireEventDateNotifier,
+      child: child,
+    ),
+    (child) => RecencyRequirePerformedScope(
+      notifier: _recencyRequirePerformedNotifier,
+      child: child,
+    ),
+    (child) => HistoryOrderIgnoreUndatedScope(
+      notifier: _historyOrderIgnoreUndatedNotifier,
+      child: child,
+    ),
+    (child) => HistoryOrderIgnoreUnperformedScope(
+      notifier: _historyOrderIgnoreUnperformedNotifier,
       child: child,
     ),
     (child) => CollectionTileFieldsScope(

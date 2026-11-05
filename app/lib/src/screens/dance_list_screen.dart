@@ -490,7 +490,7 @@ class _DanceListScreenState extends State<DanceListScreen>
     final requireEventDateChanged =
         _started && newRequireEventDate != _requireEventDateForHistory;
     _requireEventDateForHistory = newRequireEventDate;
-    final newTracking = CallingHistoryTrackingScope.of(context);
+    final newTracking = callingHistoryTrackingOf(context);
     final trackingChanged = _started && newTracking != _tracking;
     _tracking = newTracking;
 

@@ -10,7 +10,6 @@ import 'package:compendium_app/src/data/matrix_collision_mode_scope.dart';
 import 'package:compendium_app/src/data/program_auto_commit_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/require_event_date_for_history_scope.dart';
-import 'package:compendium_app/src/data/calling_history_tracking_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/data/mark_all_sets_status_scope.dart';
 import 'package:compendium_app/src/data/show_performed_toggles_scope.dart';
@@ -71,8 +70,7 @@ Future<ValueNotifier<bool>> _pumpProgram(
   addTearDown(customThemes.dispose);
 
   await tester.pumpWidget(
-    CallingHistoryTrackingScope(
-      settings: testTrackingSettings(requirePerformed),
+    TrackingScopes(
       child: MaterialApp(
         localizationsDelegates: testLocalizationsDelegates,
         supportedLocales: testSupportedLocales,

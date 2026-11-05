@@ -25,7 +25,6 @@ import 'package:compendium_app/src/data/dialect_library_controller.dart';
 import 'package:compendium_app/src/data/dialect_library_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
-import 'package:compendium_app/src/data/calling_history_tracking_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import '../support/tracking_settings.dart';
 import 'package:compendium_app/src/data/shorthand_mappings_controller.dart';
@@ -233,8 +232,7 @@ _pumpSettings(
   addTearDown(syncController.dispose);
 
   await tester.pumpWidget(
-    CallingHistoryTrackingScope(
-      settings: testTrackingSettings(requirePerformedNotifier),
+    TrackingScopes(
       child: MaterialApp(
         localizationsDelegates: testLocalizationsDelegates,
         supportedLocales: testSupportedLocales,

@@ -290,7 +290,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     // reloads this whole screen to re-run one query (issue #768).
     _requirePerformedForHistory = RequirePerformedForHistoryScope.of(context);
     _requireEventDateForHistory = RequireEventDateForHistoryScope.of(context);
-    _tracking = CallingHistoryTrackingScope.of(context);
+    _tracking = callingHistoryTrackingOf(context);
     _trackHistoryForAllCallers = TrackHistoryForAllCallersScope.of(context);
     _venueCallCount = VenueCallCountScope.of(context);
     if (!_started) {

@@ -1,44 +1,73 @@
 import 'package:compendium_app/src/data/calling_history_tracking_scope.dart';
+import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_core/compendium_core.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   late ValueNotifier<bool> requirePerformed;
   late ValueNotifier<bool?> recencyPerformed;
-  late CallingHistoryTrackingSettings settings;
+  late CallingHistoryTracking? seen;
+  var builds = 0;
+
+  Future<void> pump(WidgetTester tester) => tester.pumpWidget(
+    RequirePerformedForHistoryScope(
+      notifier: requirePerformed,
+      child: RecencyRequireEventDateScope(
+        notifier: ValueNotifier(true),
+        child: RecencyRequirePerformedScope(
+          notifier: recencyPerformed,
+          child: HistoryOrderIgnoreUndatedScope(
+            notifier: ValueNotifier(false),
+            child: HistoryOrderIgnoreUnperformedScope(
+              notifier: ValueNotifier(false),
+              child: Builder(
+                builder: (context) {
+                  builds++;
+                  seen = callingHistoryTrackingOf(context);
+                  return const SizedBox();
+                },
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
 
   setUp(() {
     requirePerformed = ValueNotifier(false);
     recencyPerformed = ValueNotifier(null);
-    settings = CallingHistoryTrackingSettings(
-      requirePerformedForHistory: requirePerformed,
-      recencyRequireEventDate: ValueNotifier(true),
-      recencyRequirePerformed: recencyPerformed,
-      orderIgnoreUndated: ValueNotifier(false),
-      orderIgnoreUnperformed: ValueNotifier(false),
+    seen = null;
+    builds = 0;
+  });
+
+  testWidgets('with no scopes the shipped defaults apply', (tester) async {
+    await tester.pumpWidget(
+      Builder(
+        builder: (context) {
+          seen = callingHistoryTrackingOf(context);
+          return const SizedBox();
+        },
+      ),
     );
+    expect(seen, CallingHistoryTracking.defaults);
   });
 
-  test('defaults resolve to the shipped defaults', () {
-    expect(settings.resolve(), CallingHistoryTracking.defaults);
-  });
-
-  test('recency-requires-performed follows the global setting until set', () {
+  testWidgets('recency-requires-performed follows the global setting until '
+      'set, and a stored value wins', (tester) async {
+    await pump(tester);
+    expect(seen!.recencyRequirePerformed, isFalse);
     requirePerformed.value = true;
-    expect(settings.resolve().recencyRequirePerformed, isTrue);
-    // A stored value wins, in either direction.
+    await tester.pump();
+    expect(seen!.recencyRequirePerformed, isTrue);
     recencyPerformed.value = false;
-    expect(settings.resolve().recencyRequirePerformed, isFalse);
+    await tester.pump();
+    expect(seen!.recencyRequirePerformed, isFalse);
     requirePerformed.value = false;
     recencyPerformed.value = true;
-    expect(settings.resolve().recencyRequirePerformed, isTrue);
-  });
-
-  test('the listenable fires when the global setting changes', () {
-    var fired = 0;
-    settings.listenable.addListener(() => fired++);
-    requirePerformed.value = true;
-    expect(fired, 1);
+    await tester.pump();
+    expect(seen!.recencyRequirePerformed, isTrue);
+    expect(builds, greaterThan(1));
   });
 }
