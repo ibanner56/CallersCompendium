@@ -1947,11 +1947,11 @@ bool _isContraDbUrl(Uri uri) => _contraDbHosts.contains(uri.host.toLowerCase());
 
 /// The canonical, ordered list of selectable import sources
 /// (`docs/ROADMAP-archive.md` Phase 6.3/6.4/6.5): a pasted title list
-/// (issue #823), the [CallersBoxAdapter] ("The Caller's Box"), the [ContraDbHtmlAdapter]
-/// ("ContraDB"), the generic [GenericJsonAdapter] ("a Caller's Compendium JSON
-/// file"), and the [CallersCompanionUsrAdapter] ("a Caller's Companion .USR
-/// file", a binary FileMaker 12 migration that also imports the program
-/// history).
+/// (issue #823), the [CallersBoxAdapter] ("The Caller's Box"), the
+/// [ContraDbHtmlAdapter] ("ContraDB"), the generic [GenericJsonAdapter] ("a
+/// Caller's Compendium JSON file"), and the [CallersCompanionUsrAdapter] ("a
+/// Caller's Companion .USR file", a binary FileMaker 12 migration that also
+/// imports the program history).
 ///
 /// Order and default selection are separate concerns (see
 /// [ImportSource.preselected]): the title list leads the dropdown, while The
