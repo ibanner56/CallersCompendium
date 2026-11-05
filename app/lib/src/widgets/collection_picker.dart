@@ -551,14 +551,22 @@ class _CollectionPickerState extends State<CollectionPicker> {
       _onlineResults = const [];
       _onlineError = null;
       _onlineImportError = null;
-      _onlineSearching =
-          _ftsController.text.trim().isNotEmpty || _effectivePhrases() != null;
+      _onlineSearching = _hasOnlineCriteria;
     });
   }
 
   void _onAdvancedChanged() {
-    setState(() {});
-    _runSearch();
+    if (_onlineEnabled) {
+      // Online, the Advanced query narrows an online source that accepts it
+      // (ContraDB); for one that does not, the panel is greyed out, so this
+      // is only reached for a source whose search it affects.
+      _debounceTimer?.cancel();
+      _prepareDebouncedOnlineSearch();
+      _debounceTimer = Timer(_onlineDebounce, _runOnlineSearch);
+    } else {
+      setState(() {});
+      _runSearch();
+    }
   }
 
   bool get _hasActiveQuery =>
@@ -600,6 +608,21 @@ class _CollectionPickerState extends State<CollectionPicker> {
   CallersBoxPhraseQuery? _effectivePhrases() =>
       _onlineSource.supportsByPhrase ? _onlinePhrases() : null;
 
+  /// The Advanced builder's filter as it applies to the active online source:
+  /// `null` for sources without Advanced support
+  /// ([OnlineSource.supportsAdvanced], i.e. The Caller's Box), so a residual
+  /// local Advanced query can't leak into its search or keep an empty search
+  /// "active". Mirrors [_effectivePhrases].
+  DanceFilter? _effectiveAdvanced() =>
+      _onlineSource.supportsAdvanced ? _advancedRoot.toFilter() : null;
+
+  /// Whether the online search has anything to search for: query text, by-phrase
+  /// figures, or an Advanced query the active source accepts.
+  bool get _hasOnlineCriteria =>
+      _ftsController.text.trim().isNotEmpty ||
+      _effectivePhrases() != null ||
+      _effectiveAdvanced() != null;
+
   void _onOnlineToggled(bool value) {
     _debounceTimer?.cancel();
     _searchSeq++;
@@ -620,8 +643,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
       }
     });
     if (value) {
-      if (_ftsController.text.trim().isNotEmpty ||
-          _effectivePhrases() != null) {
+      if (_hasOnlineCriteria) {
         _runOnlineSearch();
       }
     } else {
@@ -640,7 +662,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
       _onlineImportError = null;
       _onlineSearching = false;
     });
-    if (_ftsController.text.trim().isNotEmpty || _effectivePhrases() != null) {
+    if (_hasOnlineCriteria) {
       _runOnlineSearch();
     }
   }
@@ -650,6 +672,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
       _ftsController.text,
       _ftsScope,
       phrases: _effectivePhrases(),
+      advanced: _effectiveAdvanced(),
     );
     if (query.isEmpty) {
       setState(() {
@@ -890,9 +913,9 @@ class _CollectionPickerState extends State<CollectionPicker> {
   }
 
   /// The same compact row of search tools as the Collection
-  /// ([SearchPanelBar]): Filters and By phrase are local-only (By phrase also
-  /// for online sources that support it), and Advanced is local-only too, so
-  /// while online those tools stay in the row greyed out. The Online search
+  /// ([SearchPanelBar]): Filters is local-only, By phrase and Advanced are also
+  /// available for online sources that support them, and a tool the active
+  /// source does not support stays in the row greyed out while online. The Online search
   /// icon ends the row in both modes (when the picker offers online search);
   /// while online, the source selector sits full-width under the row.
   Widget _buildSearchPanels(CollectionData data) {
@@ -939,7 +962,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
         ),
         SearchPanelSpec(
           key: const ValueKey('picker-advanced-panel'),
-          enabled: !_onlineEnabled,
+          enabled: !_onlineEnabled || _onlineSource.supportsAdvanced,
           label: _advancedRoot.toFilter() != null
               ? l10n.collectionAdvancedActive
               : l10n.collectionPickerAdvanced,
@@ -1249,7 +1272,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
         ),
       );
     }
-    if (_ftsController.text.trim().isEmpty && _effectivePhrases() == null) {
+    if (!_hasOnlineCriteria) {
       final hint = _onlineSource.supportsByPhrase
           ? l10n.onlineSearchHintByPhrase(_onlineSource.label)
           : l10n.onlineSearchHintTitle(_onlineSource.label);

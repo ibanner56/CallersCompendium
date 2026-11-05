@@ -33,8 +33,11 @@ class ContraDbOnline implements OnlineSearchService {
     UrlFetcher? htmlFetcher,
   }) : _searchFetcher =
            searchFetcher ??
-           ((request) =>
-               fetchContraDbSearch(request.query, filter: request.filter)),
+           ((request) => fetchContraDbSearch(
+             request.query,
+             filter: request.filter,
+             expression: request.expression,
+           )),
        _htmlFetcher = htmlFetcher ?? fetchImportUrl;
 
   final ContraDbSearchFetcher _searchFetcher;
@@ -44,7 +47,9 @@ class ContraDbOnline implements OnlineSearchService {
   OnlineSource get source => OnlineSource.contraDb;
 
   /// Searches ContraDB by the selected title, author, or exact canonical figure
-  /// criterion and returns the parsed result rows. Figure input accepts
+  /// criterion and/or the Advanced builder's figure query ([OnlineSearchQuery.advanced]),
+  /// and returns the parsed result rows. A text criterion with an Advanced query
+  /// is sent as one `and` expression. Figure input accepts
   /// case/whitespace variants and is resolved to ContraDB's source spelling
   /// before the request. Title and author text containing an apostrophe or
   /// double quote is searched in both its ASCII and its curly spelling
@@ -73,14 +78,16 @@ class ContraDbOnline implements OnlineSearchService {
         UrlFetchFailureReason.contraDbUnsupportedFigure,
       );
     }
-    if (title.isEmpty && author.isEmpty && figure.isEmpty) {
+    final advanced = _advancedExpression(query.advanced);
+    final hasText = textCriteria == 1;
+    if (!hasText && advanced == null) {
       throw const UrlFetchException(UrlFetchFailureReason.contraDbEmptyTitle);
     }
     final queryText = title.isNotEmpty
         ? title
         : author.isNotEmpty
         ? author
-        : canonicalFigure!;
+        : (canonicalFigure ?? '');
     final filter = title.isNotEmpty
         ? 'title'
         : author.isNotEmpty
@@ -89,11 +96,26 @@ class ContraDbOnline implements OnlineSearchService {
     // ContraDB matches punctuation exactly and stores both `'` and `’` (and
     // both `"` and `“”`), so free text is sent in each spelling and the
     // results merged. A figure is already its canonical source spelling.
-    final variants = filter == 'figure'
+    final variants = !hasText
+        ? [queryText]
+        : filter == 'figure'
         ? [queryText]
         : contraDbTitleQueryVariants(queryText);
-    Future<String> fetch(String variant) =>
-        _searchFetcher(ContraDbSearchRequest(query: variant, filter: filter));
+    // A text criterion and the Advanced filter must both hold, which is
+    // ContraDB's dance-level `and`; either alone is sent as it is.
+    ContraDbSearchRequest requestFor(String variant) {
+      if (advanced == null) {
+        return ContraDbSearchRequest(query: variant, filter: filter);
+      }
+      if (!hasText) return ContraDbSearchRequest.expression(advanced);
+      return ContraDbSearchRequest.expression(<Object?>[
+        'and',
+        <Object?>[filter, variant],
+        advanced,
+      ]);
+    }
+
+    Future<String> fetch(String variant) => _searchFetcher(requestFor(variant));
     // Only the first (ASCII) spelling decides whether the search failed. The
     // curly spelling is a widening: if it alone fails, the search returns what
     // it would have returned before that spelling was sent at all.
@@ -133,6 +155,22 @@ class ContraDbOnline implements OnlineSearchService {
       });
     }
     return rows;
+  }
+
+  /// The ContraDB filter for the Advanced builder's [filter], or `null` when it
+  /// has none. Throws [UrlFetchFailureReason.contraDbUnsupportedAdvanced] when it
+  /// holds a condition ContraDB cannot express with the same meaning
+  /// ([translateDanceFilterToContraDb]); the search is refused rather than
+  /// sent with that condition dropped, which would return a wider result set
+  /// than the panel describes.
+  static List<Object?>? _advancedExpression(DanceFilter? filter) {
+    if (filter == null) return null;
+    return switch (translateDanceFilterToContraDb(filter)) {
+      ContraDbAdvancedExpression(:final expression) => expression,
+      ContraDbAdvancedRefused() => throw const UrlFetchException(
+        UrlFetchFailureReason.contraDbUnsupportedAdvanced,
+      ),
+    };
   }
 
   /// Fetches the per-dance HTML for [result], parses it with

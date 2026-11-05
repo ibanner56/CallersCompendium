@@ -7492,6 +7492,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'ContraDB-Figurensuchen verwenden einen vollständigen Bewegungsnamen, z. B. \"box circulate\".';
 
   @override
+  String get importErrorContraDbUnsupportedAdvanced =>
+      'ContraDB kann nur erweiterte Suchen ausführen, die aus Gruppen „Alle von“, „Beliebige von“ und „Keine von“ mit „Hat Figur“-Bedingungen bestehen. Entferne Tags, Sequenzen, Figurdetails und andere Bedingungen, um ContraDB zu durchsuchen.';
+
+  @override
   String get importErrorContraDbEmptyDanceInput =>
       'Geben Sie eine ContraDB-Tanz-URL oder -ID zum Importieren ein.';
 

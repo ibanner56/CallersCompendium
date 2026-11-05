@@ -280,6 +280,133 @@ void main() {
       },
     );
 
+    group('Advanced filter', () {
+      final petronella = FigureFilter.leaf('petronella');
+
+      Future<List<ContraDbSearchRequest>> run(OnlineSearchQuery query) async {
+        final requests = <ContraDbSearchRequest>[];
+        final online = ContraDbOnline(
+          searchFetcher: (value) async {
+            requests.add(value);
+            return _searchJson();
+          },
+        );
+        await online.search(query);
+        return requests;
+      }
+
+      test('alone is sent as the translated expression', () async {
+        final requests = await run(OnlineSearchQuery(advanced: petronella));
+        expect(requests, hasLength(1));
+        expect(requests.single.expression, ['figure', 'petronella']);
+      });
+
+      test('with title text is one dance-level and', () async {
+        final requests = await run(
+          OnlineSearchQuery(title: ' Rendezvous ', advanced: petronella),
+        );
+        expect(requests.single.expression, [
+          'and',
+          ['title', 'Rendezvous'],
+          ['figure', 'petronella'],
+        ]);
+      });
+
+      test('with author text uses the choreographer operator', () async {
+        final requests = await run(
+          OnlineSearchQuery(author: 'Adina Gordon', advanced: petronella),
+        );
+        expect(requests.single.expression, [
+          'and',
+          ['choreographer', 'Adina Gordon'],
+          ['figure', 'petronella'],
+        ]);
+      });
+
+      test('with Figure text combines both figures', () async {
+        final requests = await run(
+          OnlineSearchQuery(figure: 'Box Circulate', advanced: petronella),
+        );
+        expect(requests.single.expression, [
+          'and',
+          ['figure', 'box circulate'],
+          ['figure', 'petronella'],
+        ]);
+      });
+
+      test('keeps the apostrophe variants, each combined with it', () async {
+        final requests = await run(
+          OnlineSearchQuery(title: "anna's", advanced: petronella),
+        );
+        expect(requests.map((r) => r.expression), [
+          [
+            'and',
+            ['title', "anna's"],
+            ['figure', 'petronella'],
+          ],
+          [
+            'and',
+            ['title', 'anna’s'],
+            ['figure', 'petronella'],
+          ],
+        ]);
+      });
+
+      test('a text-only query is unchanged: no expression', () async {
+        final requests = await run(const OnlineSearchQuery(title: 'x'));
+        expect(requests.single.expression, isNull);
+        expect(requests.single.filter, 'title');
+      });
+
+      test('a condition ContraDB cannot express is refused unsent', () async {
+        for (final unsupported in <DanceFilter>[
+          const TagFilter('t1'),
+          ThenFilter(FigureLeaf('swing'), FigureLeaf('chain')),
+          FigureFilter.leaf('swing', params: const {'beats': 8}),
+          AndFilter([petronella, const TagFilter('t1')]),
+        ]) {
+          var called = false;
+          final online = ContraDbOnline(
+            searchFetcher: (_) async {
+              called = true;
+              return _searchJson();
+            },
+          );
+          await expectLater(
+            online.search(OnlineSearchQuery(title: 'x', advanced: unsupported)),
+            throwsA(
+              isA<UrlFetchException>().having(
+                (error) => error.reason,
+                'reason',
+                UrlFetchFailureReason.contraDbUnsupportedAdvanced,
+              ),
+            ),
+          );
+          expect(called, isFalse);
+        }
+      });
+
+      test('transport posts the expression as the filter', () async {
+        late http.Request captured;
+        final client = MockClient((request) async {
+          captured = request;
+          return http.Response(_searchJson(), 200);
+        });
+        await fetchContraDbSearch(
+          '',
+          expression: const [
+            'no',
+            ['figure', 'swing'],
+          ],
+          client: client,
+        );
+        expect(jsonDecode(captured.body)['filter'], [
+          'no',
+          ['figure', 'swing'],
+        ]);
+      });
+    });
+
     test('rejects an unknown Figure before making a request', () async {
       var called = false;
       final online = ContraDbOnline(

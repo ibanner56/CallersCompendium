@@ -7413,6 +7413,10 @@ class AppLocalizationsDa extends AppLocalizations {
       'ContraDB-figursøgninger bruger et komplet figurnavn, f.eks. \"box circulate\".';
 
   @override
+  String get importErrorContraDbUnsupportedAdvanced =>
+      'ContraDB kan kun køre avancerede søgninger, der består af grupperne “Alle af”, “Nogen af” og “Ingen af” med “Har figur”-betingelser. Fjern tags, sekvenser, figurdetaljer og andre betingelser for at søge i ContraDB.';
+
+  @override
   String get importErrorContraDbEmptyDanceInput =>
       'Indtast en ContraDB dans-URL eller id at importere fra.';
 

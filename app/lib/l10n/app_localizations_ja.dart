@@ -7110,6 +7110,10 @@ class AppLocalizationsJa extends AppLocalizations {
       'ContraDBのFigure検索には、「box circulate」のような完全な技名を使用してください。';
 
   @override
+  String get importErrorContraDbUnsupportedAdvanced =>
+      'ContraDBでは、「フィギュアを含む」条件を「すべてに一致」「いずれかに一致」「どれにも一致しない」のグループで組み合わせた詳細検索のみ実行できます。ContraDBを検索するには、タグ、シーケンス、フィギュアの詳細、その他の条件を削除してください。';
+
+  @override
   String get importErrorContraDbEmptyDanceInput =>
       'インポートするContraDBのダンスURLまたはIDを入力してください。';
 

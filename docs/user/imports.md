@@ -76,7 +76,11 @@ keep.
    (`’` and `'`, `“”` and `"`) and the different dashes count as the same, so
    type them however your keyboard does. Accented letters must still be typed
    with their accents (`Déjà vu`, not `Deja vu`), but upper or lower case
-   doesn't matter.
+   doesn't matter. With ContraDB you can instead (or as well) use the
+   **Advanced** panel to find dances by the figures they contain; a dance
+   must match both the Advanced query and any text you typed. See the
+   [Collection & search guide](./collection.md#search-across-your-dances) for
+   what ContraDB can and cannot run.
 5. Select a result to open a **preview** of that dance. While the dance is
    loading you can choose **Cancel** (or press Back) to stop waiting and return
    to your results.

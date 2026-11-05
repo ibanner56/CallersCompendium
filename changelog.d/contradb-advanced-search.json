@@ -1,0 +1,14 @@
+{
+  "id": "contradb-advanced-search",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "You can use the Advanced panel while searching ContraDB online: groups of figure conditions (all of, any of, none of) find dances by the figures they contain, alone or together with the text you typed. ContraDB cannot run tags, sequences, or figure details, so a query that has them tells you so instead of searching with them left out."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add translateDanceFilterToContraDb and buildContraDbFilterBody to build ContraDB filter expressions from an Advanced search tree."
+    ]
+  }
+}

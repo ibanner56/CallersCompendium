@@ -11045,6 +11045,12 @@ abstract class AppLocalizations {
   /// **'ContraDB Figure searches use a complete move name, such as \"box circulate\".'**
   String get importErrorContraDbUnsupportedFigure;
 
+  /// Error shown when the Advanced search has a condition ContraDB cannot run with the same meaning (a tag, a then sequence, a figure parameter or section, or a local-only filter), so the ContraDB search is not sent. Quoted names are the Advanced builder's group and row labels.
+  ///
+  /// In en, this message translates to:
+  /// **'ContraDB can only run Advanced searches made of “All of”, “Any of”, and “None of” groups of “Has figure” conditions. Remove tags, sequences, figure details, and other conditions to search ContraDB.'**
+  String get importErrorContraDbUnsupportedAdvanced;
+
   /// Error shown when the ContraDB dance URL/id field is empty.
   ///
   /// In en, this message translates to:

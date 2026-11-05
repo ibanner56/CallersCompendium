@@ -38,7 +38,19 @@ tree. Conforms to [ux.md](ux.md) §1 and [dialect.md](dialect.md)
    criteria remain available only to sources that support them. Caller's Box
    maps the free-text Figure criterion to global positive figure lines;
    ContraDB resolves Figure input against its exact canonical vocabulary and
-   selects its fixed `figure` filter.
+   selects its fixed `figure` filter. The Advanced builder's tree is also sent
+   to ContraDB, translated by `translateDanceFilterToContraDb` onto its
+   `lib/filter_dances.rb` array language (`and`, `or`, `no`, `&`, `not`,
+   `figure`) and combined with any text criterion under `and`. Only figure
+   conditions in all/any/none groups translate. A tag, a `ThenFilter`
+   (ContraDB's `then` requires the figures to abut and wraps around, where
+   ours means "earlier"), a figure parameter or section (ContraDB compares
+   parameters by position in each move's own list), an unknown move, or any
+   local-only leaf makes the search refuse with
+   `UrlFetchFailureReason.contraDbUnsupportedAdvanced` and send nothing: a
+   condition silently dropped would answer a wider question than the panel
+   shows. This translation decision is the implementing agent's, not the
+   maintainer's.
 4. **Injection-safe by construction.** Every user value is a bind variable;
    only a fixed vocabulary of column names, operators, and JSON key paths is
    ever interpolated, and each is validated against an allow-list.

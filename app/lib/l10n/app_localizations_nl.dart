@@ -7461,6 +7461,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'ContraDB-figuurzoekopdrachten gebruiken een volledige bewegingsnaam, zoals \"box circulate\".';
 
   @override
+  String get importErrorContraDbUnsupportedAdvanced =>
+      'ContraDB kan alleen geavanceerde zoekopdrachten uitvoeren die bestaan uit groepen “Alle van”, “Een van” en “Geen van” met “Heeft figuur”-voorwaarden. Verwijder tags, reeksen, figuurdetails en andere voorwaarden om in ContraDB te zoeken.';
+
+  @override
   String get importErrorContraDbEmptyDanceInput =>
       'Voer een ContraDB dans-URL of -id in om van te importeren.';
 
