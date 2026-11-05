@@ -273,7 +273,7 @@ details are handled when you export.
   marks.
 - **Require an event date for calling history** (off) — when on, a program with
   no event date counts nowhere calling history is read (the "called ×N" count,
-  the **Called** filter, a dance's history list, the **Last called** sort, and
+  the **Calling history** filter, a dance's history list, the **Last called** sort, and
   the repeated-venues and half summaries) until you give it a date. Duplicated
   programs and programs another caller sends you arrive without a date. When
   off, a program counts whether or not it has a date. It applies on top of the

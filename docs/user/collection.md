@@ -560,9 +560,10 @@ custom field), with **Delete** on its own at the bottom.
 The bar at the top counts how many dances you have selected. **Select all**
 picks every dance in the list you are looking at — the current search, filters
 and By phrase included — and says how many that is (for example **Select all
-42**). Once they are all picked it becomes **Deselect all**. It is a button on
-the toolbar when the screen is wide enough and the first entry of **More batch
-actions** when it is not. It is unavailable while a search is still running. To
+42**). Once they are all picked it becomes **Deselect all 42**. It is a button
+on the toolbar when the screen is wide enough and the first entry of **More
+batch actions** when it is not. It is unavailable while a search is still
+running or **Online search** is on. To
 select the whole collection, clear the filters first.
 
 The search box stays live while you select, and a dance you picked stays picked

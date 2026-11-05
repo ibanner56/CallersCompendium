@@ -298,8 +298,9 @@ Dance rows in the builder and on the program's summary are tinted by formation
 family (contras, triplets, mixers, circles, squares), and a formation you have
 given your own color shows that color instead, unless the dance is marked as a
 mixer, which keeps the mixer color. The formation is always written on the row
-too. To turn the tints off, or choose your own colors, see
-[Settings › Appearance › Set lists](./settings.md#set-lists).
+too. To turn the tints off, see
+[Settings › Appearance › Set lists](./settings.md#set-lists); to choose your own
+colors, see [Formation colors](./settings.md#formation-colors).
 
 ### When a dance in a program is deleted
 
