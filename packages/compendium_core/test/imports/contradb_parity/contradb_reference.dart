@@ -235,8 +235,9 @@ Matches _diceSearchMatches(Matches set) => {
 Matches? _forFigure(List<Object?> filter, ContraDbDance dance) {
   final filterMove = filter[1] as String;
   final nfigures = dance.nfigures;
-  if (filterMove == '*')
+  if (filterMove == '*') {
     return nfigures > 0 ? _allFiguresMatch(nfigures) : null;
+  }
   final paramFilters = filter.skip(2).toList();
   final searchMatches = <SearchMatch>{};
   for (var index = 0; index < nfigures; index++) {

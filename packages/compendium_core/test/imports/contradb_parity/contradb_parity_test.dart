@@ -123,7 +123,7 @@ Future<void> main() async {
   tearDownAll(() => db.close());
 
   // ---- tree generation ----------------------------------------------------
-  final localIds = [for (final f in cleanFigures) ...f.local!].toSet().toList()
+  final localIds = <String>{for (final f in cleanFigures) ...f.local!}.toList()
     ..sort();
 
   FigureLeaf leaf(Random r, List<String> pool) =>
@@ -230,6 +230,15 @@ Future<void> main() async {
         'all(none, figure)': AndFilter([NotFilter(chain), swing]),
         'any(none, none)': OrFilter([NotFilter(chain), NotFilter(swing)]),
         'none(all)': NotFilter(AndFilter([swing, chain])),
+        'then': ThenFilter(FigureLeaf('swing'), FigureLeaf('chain')),
+        'then (reverse, wraps)': ThenFilter(
+          FigureLeaf('chain'),
+          FigureLeaf('swing'),
+        ),
+        'then (operand and)': ThenFilter(
+          FigureAnd([FigureLeaf('swing'), FigureLeaf('swing')]),
+          FigureOr([FigureLeaf('chain'), FigureLeaf('balance')]),
+        ),
       };
       for (final e in cases.entries) {
         final r = await both(e.value);
@@ -243,6 +252,7 @@ Future<void> main() async {
       var compared = 0;
       var refused = 0;
       var sequence = 0;
+      var loneThen = 0;
       final stats = <String, int>{};
       final failures = <String>[];
       for (var i = 0; i < 1500; i++) {
@@ -273,6 +283,27 @@ Future<void> main() async {
           if (d.contains(feature)) stats[feature] = (stats[feature] ?? 0) + 1;
         }
         if (both_.local.join(',') != both_.contra.join(',')) {
+          final l = both_.local.toSet();
+          final c = both_.contra.toSet();
+          final differing = l.difference(c).union(c.difference(l));
+          // ContraDB's `then` lets a lone figure abut itself
+          // (`(last + 1) % 1 == first`), so `then(X, Y)` matches a one-figure
+          // dance whose figure satisfies both operands. The Collection
+          // deliberately does not pair a figure group with itself (so two
+          // concurrent sides of one `meanwhile` are not "one after the
+          // other"), so the two sides differ on one-figure dances only. Pinned
+          // in the 'lone figure' test below, not tolerated anywhere else.
+          final loneOnly =
+              describe(tree).contains('then(') &&
+              differing.every(
+                (id) =>
+                    contraDances.firstWhere((d) => d.id == id).figures.length ==
+                    1,
+              );
+          if (loneOnly) {
+            loneThen++;
+            continue;
+          }
           failures.add(
             '${describe(tree)}\n  collection-only: ${both_.local.toSet().difference(both_.contra.toSet())}'
             '\n  contradb-only : ${both_.contra.toSet().difference(both_.local.toSet())}',
@@ -282,7 +313,8 @@ Future<void> main() async {
       // ignore: avoid_print
       print(
         'randomised: compared=$compared refused=$refused (then: $sequence) '
-        'over ${contraDances.length} dances; $stats',
+        'over ${contraDances.length} dances; lone-figure then divergences: '
+        '$loneThen; $stats',
       );
       expect(failures, isEmpty, reason: failures.take(5).join('\n'));
       expect(
@@ -292,6 +324,32 @@ Future<void> main() async {
       );
     });
   });
+
+  test(
+    'lone figure: ContraDB then lets it abut itself, the Collection does not',
+    () async {
+      // `(last + 1) % 1 == first` makes `then(chain, chain)` match a one-figure
+      // dance on ContraDB. The Collection pairs distinct figure groups only (so
+      // two concurrent sides of one `meanwhile` are not read as consecutive),
+      // which also excludes a lone figure paired with itself. Decision for the
+      // maintainer; see the audit report.
+      final filter = ThenFilter(FigureLeaf('chain'), FigureLeaf('chain'));
+      final r = await both(filter);
+      expect(r, isNotNull);
+      expect(r!.contra, contains('one-chain'));
+      expect(r.local, isNot(contains('one-chain')));
+      // With two or more figures they agree, including the wrap-around.
+      expect(r.local.where((id) => id != 'one-chain'), isNotEmpty);
+      final multiIds = {
+        for (final d in contraDances)
+          if (d.figures.length >= 2) d.id,
+      };
+      expect(
+        r.local.where(multiIds.contains).toSet(),
+        r.contra.where(multiIds.contains).toSet(),
+      );
+    },
+  );
 
   group('vocabulary: every translatable Collection move agrees', () {
     test('each mapped move id, alone and negated', () async {
@@ -316,8 +374,9 @@ Future<void> main() async {
           final t = translateDanceFilterToContraDb(FigureFilter.leaf(id));
           if (t is ContraDbAdvancedExpression) {
             void walk(Object? e) {
-              if (e is List && e.isNotEmpty && e.first == 'figure')
+              if (e is List && e.isNotEmpty && e.first == 'figure') {
                 reached.add(e[1] as String);
+              }
               if (e is List) e.forEach(walk);
             }
 
@@ -353,14 +412,14 @@ Future<void> main() async {
     );
   });
 
-  // The Collection's `then` currently means "somewhere earlier"; the owner has
-  // decided it must mean ContraDB's "immediately follows, wrapping from the
-  // last figure to the first". That change lands in `FilterCompiler._then`
-  // (not here). This group checks the INTENDED semantics, as plain SQL over
-  // `dance_figures.group_idx`, against the reference, so the reference and the
-  // corpus are proven able to judge it before the compiler change arrives; when
-  // it lands, the randomised test above starts comparing real `ThenFilter`s.
-  group('then, intended semantics (prototype SQL, not the compiler)', () {
+  // `FilterCompiler._then` now means ContraDB's "immediately follows, wrapping
+  // from the last figure to the first"; the randomised and hand-picked tests
+  // above compare it for real. This group is an independent cross-check of the
+  // INTENDED semantics, as plain SQL over
+  // `dance_figures.group_idx`, against the reference. It does not use
+  // FilterCompiler, so it shows the reference and corpus agree with the
+  // intended meaning independently of the compiler's own SQL.
+  group('then, intended semantics (independent SQL, not the compiler)', () {
     Future<List<String>> adjacent(String a, String b) async {
       final rows = await db
           .customSelect(
