@@ -3180,7 +3180,9 @@ class _DanceListScreenState extends State<DanceListScreen>
         ? _selection.notShown(_shownIds)
         : 0;
     final String label = online
-        ? l10n.onlineResultCount(count)
+        ? (_onlineResults.any((row) => row.mayHaveMore)
+              ? l10n.onlineResultCountCapped(count)
+              : l10n.onlineResultCount(count))
         : l10n.collectionDanceCount(count);
     return Padding(
       padding: const EdgeInsets.fromLTRB(

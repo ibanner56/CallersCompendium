@@ -60,6 +60,7 @@ class OnlineSearchResultRow {
     required this.author,
     required this.formation,
     this.figuresAvailable = true,
+    this.mayHaveMore = false,
   });
 
   /// Which source this row came from (drives the attribution line).
@@ -86,6 +87,16 @@ class OnlineSearchResultRow {
   /// [CallersBoxOnline] carries it here (issue #845).
   final bool figuresAvailable;
 
+  /// Whether the search that produced this row got a **full page** from a
+  /// source that returns a limited one, so more dances may have matched than
+  /// are listed. Set on every row of such a search, and `false` for a source
+  /// that is not paged (The Caller's Box) or a page that was not full.
+  ///
+  /// It is the source's own signal, not a guess from how many rows came back:
+  /// ContraDB merges the ASCII and curly spellings of an apostrophe query, so
+  /// the merged count can pass a page size that no single response reached.
+  final bool mayHaveMore;
+
   @override
   bool operator ==(Object other) =>
       other is OnlineSearchResultRow &&
@@ -94,17 +105,25 @@ class OnlineSearchResultRow {
       other.name == name &&
       other.author == author &&
       other.formation == formation &&
-      other.figuresAvailable == figuresAvailable;
+      other.figuresAvailable == figuresAvailable &&
+      other.mayHaveMore == mayHaveMore;
 
   @override
-  int get hashCode =>
-      Object.hash(source, id, name, author, formation, figuresAvailable);
+  int get hashCode => Object.hash(
+    source,
+    id,
+    name,
+    author,
+    formation,
+    figuresAvailable,
+    mayHaveMore,
+  );
 
   @override
   String toString() =>
       'OnlineSearchResultRow(source: $source, id: $id, name: $name, '
       'author: $author, formation: $formation, '
-      'figuresAvailable: $figuresAvailable)';
+      'figuresAvailable: $figuresAvailable, mayHaveMore: $mayHaveMore)';
 }
 
 /// A source-neutral online search request.

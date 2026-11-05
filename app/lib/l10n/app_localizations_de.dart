@@ -6724,6 +6724,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String onlineResultCountCapped(int count) {
+    return '$count Online-Ergebnisse angezeigt. Es gibt möglicherweise mehr: Grenze die Suche ein, um den Rest zu sehen.';
+  }
+
+  @override
   String onlineSearchHintByPhrase(String source) {
     return 'Gib einen Titel oder Autor ein oder füge Figuren für die Phrasensuche hinzu, um $source zu durchsuchen.';
   }

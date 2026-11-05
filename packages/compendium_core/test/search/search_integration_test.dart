@@ -1288,6 +1288,63 @@ void main() {
       expect(await then('swing', 'long_lines'), isEmpty);
     });
 
+    test('a one-figure dance pairs its figure with itself, as ContraDB '
+        'does', () async {
+      await dances.create(
+        _dance(
+          id: 'lone',
+          title: 'Lone',
+          figures: [
+            Figure(move: 'swing', params: const {'beats': 64}),
+          ],
+        ),
+      );
+      expect(
+        await dances.search(
+          ThenFilter(FigureLeaf('swing'), FigureLeaf('swing')),
+        ),
+        ['lone'],
+      );
+      // The figure must satisfy BOTH sides: there is no other figure.
+      expect(
+        await dances.search(
+          ThenFilter(FigureLeaf('swing'), FigureLeaf('chain')),
+        ),
+        isEmpty,
+      );
+      expect(
+        await dances.search(
+          ThenFilter(FigureLeaf('chain'), FigureLeaf('swing')),
+        ),
+        isEmpty,
+      );
+    });
+
+    test('a lone row pairs only with itself: two sides of one container '
+        'still do not pair (#748)', () async {
+      await dances.create(
+        _dance(
+          id: 'mw-only',
+          title: 'MW only',
+          figures: [
+            Figure.meanwhile(
+              figures: [
+                Figure(move: 'petronella'),
+                Figure(move: 'balance'),
+              ],
+              beats: 8,
+            ),
+          ],
+        ),
+      );
+      for (final filter in [
+        ThenFilter(FigureLeaf('petronella'), FigureLeaf('balance')),
+        ThenFilter(FigureLeaf('balance'), FigureLeaf('petronella')),
+      ]) {
+        expect(await dances.search(filter), isEmpty);
+      }
+    });
+
     test('a dance with no figures never matches', () async {
       await dances.create(_dance(id: 'none', title: 'None', figures: []));
       expect(

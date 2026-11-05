@@ -6610,6 +6610,10 @@
   "@onlineResultCount": {
     "x-sourceSha256": "70de997e28d65e0ec02101f962391063f42342840a6f2cac9cf35619abaead8e"
   },
+  "onlineResultCountCapped": "{count} online resultaten getoond. Er zijn er mogelijk meer: verfijn de zoekopdracht om de rest te zien.",
+  "@onlineResultCountCapped": {
+    "x-sourceSha256": "d542496c932c10f9e0286e4f4d9c8f8afa8c96deb90451f232ac58c484160e8f"
+  },
   "onlineSearchHintByPhrase": "Typ een titel of auteur, of voeg figuren per frase toe om te zoeken in {source}.",
   "@onlineSearchHintByPhrase": {
     "x-sourceSha256": "623c8dfe374551a31466565fa1f337dc4b2e2f078d4aec3beca94658cc8f6b25"

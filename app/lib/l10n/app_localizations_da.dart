@@ -6651,6 +6651,11 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String onlineResultCountCapped(int count) {
+    return 'Viser $count online-resultater. Der kan være flere: indsnævr søgningen for at se resten.';
+  }
+
+  @override
   String onlineSearchHintByPhrase(String source) {
     return 'Skriv en titel eller forfatter, eller tilføj figurer efter frase for at søge $source.';
   }

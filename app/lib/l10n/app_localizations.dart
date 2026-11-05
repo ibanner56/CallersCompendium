@@ -10073,6 +10073,12 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{1 online result} other{{count} online results}}'**
   String onlineResultCount(int count);
 
+  /// Count of online search results shown above the results list when the source returns a limited page that this search filled, so more results may exist than are shown. Replaces the plain count in that case.
+  ///
+  /// In en, this message translates to:
+  /// **'Showing {count} online results. There may be more: narrow your search to see the rest.'**
+  String onlineResultCountCapped(int count);
+
   /// Empty-query hint for online sources that support by-phrase figure criteria.
   ///
   /// In en, this message translates to:

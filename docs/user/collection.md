@@ -216,8 +216,10 @@ ContraDB stores some dances differently from how this app reads them. A figure
 someone typed in as free text (such as "ones swing while twos circle") is one
 figure on ContraDB, so a search for a move inside it can differ from the same
 search in your own library. The app asks ContraDB for only the first 20
-matching dances and does not show how many more there were, so a broad search
-such as one move on its own shows only part of the answer: add conditions to
+matching dances (a title or author with an apostrophe in it is searched in
+both spellings, so a few more can show), so a broad search such as one move
+on its own shows only part of the answer. When ContraDB sends back a full
+list, the line above the results says there may be more: add conditions to
 narrow it.
 
 ## Narrow things down with filters

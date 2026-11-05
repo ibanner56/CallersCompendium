@@ -44,9 +44,8 @@ tree. Conforms to [ux.md](ux.md) §1 and [dialect.md](dialect.md)
    `then`, `figure`) and combined with any text criterion under `and`. Figure
    conditions in all/any/none groups and `ThenFilter` translate; `ThenFilter`
    means the same as ContraDB's `then` (the second figure immediately follows
-   the first, wrapping from the last figure to the first), except for a dance
-   of one figure, where ContraDB pairs the figure with itself and the
-   Collection does not (see the `Then` section below). A tag, a figure
+   the first, wrapping from the last figure to the first; a dance of one
+   figure pairs that figure with itself on both sides). A tag, a figure
    parameter or section (ContraDB compares parameters by position in each
    move's own list), a move with no exact ContraDB counterpart or an unknown
    move (in a figure or a `then` operand), or any
@@ -109,9 +108,15 @@ tree. Conforms to [ux.md](ux.md) §1 and [dialect.md](dialect.md)
    returns are the right ones.
 
    **Results are the first 20.** The app asks ContraDB for
-   `titleA` order and requests `contraDbSearchCount` (20) with offset 0; the response's
-   `numberMatching` is not read, so a broad query shows a truncated list with
-   no indication of how many matched.
+   `titleA` order and requests `contraDbSearchCount` (20) with offset 0, and
+   reads no further pages. The response's `numberMatching` is not read either,
+   so the app cannot say how many matched; it knows only that a response that
+   filled the page may have been cut off (`OnlineSearchResultRow.mayHaveMore`,
+   judged per response), and then the count line above the results says there
+   may be more instead of giving a plain count. An apostrophe query sends the
+   ASCII and curly spellings as two requests and merges the rows, so up to 40
+   can show, and the notice appears only if one of the two filled its page.
+   Paging and a "showing N of M" total are not built.
 4. **Injection-safe by construction.** Every user value is a bind variable;
    only a fixed vocabulary of column names, operators, and JSON key paths is
    ever interpolated, and each is validated against an allow-list.
@@ -409,7 +414,7 @@ EXISTS (SELECT 1 FROM dance_figures a
         JOIN dance_figures b
           ON a.dance_id = b.dance_id
          AND a.dance_id = dances.id
-         AND a.group_idx <> b.group_idx
+         AND (a.group_idx <> b.group_idx OR a.idx = b.idx)
          AND b.group_idx = COALESCE(
                (SELECT MIN(m.group_idx) FROM dance_figures m
                  WHERE m.dance_id = a.dance_id AND m.group_idx > a.group_idx),
@@ -433,10 +438,20 @@ in the numbering cannot hide a pair. `a.group_idx <> b.group_idx` keeps the
 concurrent sides of one `meanwhile` (which share a `group_idx`; see the flatten
 note above) from being read as one-after-the-other in a dance whose only group
 is that container, where the wrap would otherwise pair the group with itself.
-That guard departs from ContraDB for a dance of one figure (or one container),
-where its `then` pairs the figure with itself: `Then(swing, swing)` matches
-there on ContraDB and not locally. This is known and unresolved; the choice to
-keep the #748 guard was the agent's.
+
+One exception, matching ContraDB: a dance with exactly one group is one
+figure to ContraDB, whose `abuts?` pairs a lone figure with itself
+(`(0 + 1) % 1 == 0`), so `Then(swing, swing)` matches a one-figure dance there.
+A row may therefore pair with **itself** (`a.idx = b.idx`); that can hold only
+when the dance has one group, because `b` is forced to the next group after
+`a`'s, which is `a`'s own only then, so no separate group count is needed.
+For a dance whose one figure is a typed `A while B` ContraDB sees one `custom`
+figure, so its answer differs from the Collection's per row (the structural
+gap above); the self-pair is exact only for a genuinely one-figure dance. Two *different* rows of that group, the concurrent sides of one
+container, still never pair, so #748 holds. **Decided by the agent**: the
+alternatives were to keep the divergence documented (the audit's pin) or to
+drop the guard, which breaks #748; the user approved follow-ups for the
+divergence but did not pick between them.
 
 `<before applied to a>` / `<after applied to b>` are the `FigureQuery` clauses
 compiled against aliases `a` and `b` respectively (same clause shapes as the
@@ -508,7 +523,7 @@ WHERE deleted_at IS NULL
                 JOIN dance_figures b
                   ON a.dance_id = b.dance_id
                  AND a.dance_id = dances.id
-                 AND a.group_idx <> b.group_idx
+                 AND (a.group_idx <> b.group_idx OR <a lone row pairs with itself>)
                  AND b.group_idx = <next group after a's, wrapping>
                 WHERE (a.move = ? AND a.section = ?)  -- 'petronella','B1'
                   AND (b.move = ?)) )                 -- 'swing'
