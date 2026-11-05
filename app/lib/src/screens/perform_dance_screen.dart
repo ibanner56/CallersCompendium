@@ -113,7 +113,14 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
 
   void _toggleWalkthrough() {
     setState(() => _showWalkthrough = !_showWalkthrough);
+    // Opened from the app bar with the keyboard, focus would stay on the
+    // toolbar button, outside the body that handles the scroll keys. Bring it
+    // back so the arrow and Page keys reach the card or the walkthrough.
+    _bodyFocus.requestFocus();
   }
+
+  /// The body's focus, which the arrow and Page keys are handled under.
+  final FocusNode _bodyFocus = FocusNode(debugLabel: 'perform-dance-body');
 
   /// Scroll position of the card when it overflows (auto-size off, or a dance
   /// too long to fit even at the smallest auto-size), driven by the arrow and
@@ -227,6 +234,7 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
     _elapsed?.dispose();
     _cardScroll.dispose();
     _walkthroughScroll.dispose();
+    _bodyFocus.dispose();
     super.dispose();
   }
 
@@ -562,6 +570,7 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
                 },
               },
               child: Focus(
+                focusNode: _bodyFocus,
                 autofocus: true,
                 child: SafeArea(
                   child: Stack(

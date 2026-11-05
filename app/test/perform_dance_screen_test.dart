@@ -1312,6 +1312,31 @@ void main() {
       });
     }
 
+    testWidgets('opening the walkthrough from the keyboard leaves the keys '
+        'working', (tester) async {
+      await pumpLong(tester, walkthrough: List.filled(80, 'Line.').join('\n'));
+      final toggle = find.byKey(const ValueKey('perform-walkthrough-toggle'));
+      // Tab to the toggle, as a keyboard user would.
+      for (var i = 0; i < 20; i++) {
+        final focused = FocusManager.instance.primaryFocus?.context;
+        if (focused?.findAncestorWidgetOfExactType<IconButton>()?.key ==
+            toggle.evaluate().single.widget.key) {
+          break;
+        }
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.pump();
+      }
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pumpAndSettle();
+      expect(find.byType(PerformWalkthroughOverlay), findsOneWidget);
+      final overlay = scrollOf(tester, PerformWalkthroughOverlay);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pumpAndSettle();
+
+      expect(overlay.pixels, greaterThan(0));
+    });
+
     testWidgets('with the walkthrough open the keys scroll it, not the card', (
       tester,
     ) async {

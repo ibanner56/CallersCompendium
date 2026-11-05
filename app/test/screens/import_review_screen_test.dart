@@ -4979,6 +4979,46 @@ void main() {
       expect(find.byType(ImportReviewScreen), findsOneWidget);
     });
 
+    testWidgets(
+      'a review that is not the showing destination does not intercept '
+      'back',
+      (tester) async {
+        final repos = openTestRepositories();
+        await tester.binding.setSurfaceSize(const Size(1000, 1600));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: RepositoriesScope(
+              repositories: repos,
+              child: ImportReviewScreen(
+                sources: [
+                  ImportSource(
+                    kind: ImportSourceKind.genericJson,
+                    adapterFactory: GenericJsonAdapter.new,
+                  ),
+                ],
+                sharedBundle: bundleFor(danceProgramVenueArchive()),
+                onClose: () {},
+                isActive: false,
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const ValueKey('import-commit-button')),
+          findsOneWidget,
+        );
+
+        await tester.state<NavigatorState>(find.byType(Navigator)).maybePop();
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(const ValueKey('import-leave-dialog')), findsNothing);
+      },
+    );
+
     testWidgets('embedded Close during review asks first', (tester) async {
       final repos = openTestRepositories();
       var closed = 0;

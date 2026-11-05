@@ -124,6 +124,7 @@ class ImportReviewScreen extends StatefulWidget {
     this.archiveDecoder,
     this.onlineService,
     this.onClose,
+    this.isActive = true,
     this.sharedBundle,
     this.publishedCollection,
     this.publishedCollectionService,
@@ -187,6 +188,12 @@ class ImportReviewScreen extends StatefulWidget {
   /// the whole shell). When null (the pushed / Settings case) the default back
   /// arrow and [Navigator.pop] behavior is preserved.
   final VoidCallback? onClose;
+
+  /// Whether this screen is the one showing. An embedded review stays mounted
+  /// when the user switches to another destination of the app shell; while it
+  /// is not active it must not ask to discard on a system back meant for the
+  /// destination in front. Always true for a pushed review.
+  final bool isActive;
 
   /// A pre-validated shared bundle to review (issue #432). When non-null the
   /// screen skips the manual input phase: it seeds the bundle, plans it
@@ -2562,7 +2569,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// show rows; its error and "no dances" messages hold nothing to lose, so
   /// leaving them does not ask.
   bool get _hasReviewToLose {
-    if (_phase != _Phase.review || _planError != null) return false;
+    if (!widget.isActive || _phase != _Phase.review || _planError != null) {
+      return false;
+    }
     final batch = _batch;
     if (batch == null) return false;
     if (batch.records.isNotEmpty) return true;
