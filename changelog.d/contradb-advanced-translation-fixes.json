@@ -1,0 +1,17 @@
+{
+  "id": "contradb-advanced-translation-fixes",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "The Advanced panel now works for moves of more than one word, such as do si do and box circulate, when searching ContraDB online. Before, every such move was refused."
+    ],
+    "changed": [
+      "The message shown when ContraDB cannot run an Advanced query now says some moves have no exact match on ContraDB, since a few moves it does have are refused too."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "translateDanceFilterToContraDb now translates the Collection's move ids (such as do_si_do) to ContraDB's moves through an exact-mapping table, and refuses moves with no exact ContraDB equivalent."
+    ]
+  }
+}
