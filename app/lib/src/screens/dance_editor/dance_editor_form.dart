@@ -36,6 +36,7 @@ class DanceEditorForm extends StatelessWidget {
     super.key,
     required this.controller,
     required this.formKey,
+    required this.customFieldErrorKey,
     required this.moreDetailsController,
     required this.taxonomy,
     required this.moveParamDefaults,
@@ -65,6 +66,9 @@ class DanceEditorForm extends StatelessWidget {
 
   final DanceEditorController controller;
   final GlobalKey<FormState> formKey;
+
+  /// On the custom-number message, so Save can scroll to it.
+  final GlobalKey customFieldErrorKey;
   final ExpansibleController moreDetailsController;
   final Taxonomy taxonomy;
   final Map<String, Map<String, Object?>> moveParamDefaults;
@@ -270,6 +274,7 @@ class DanceEditorForm extends StatelessWidget {
         children: [
           if (controller.hasInvalidCustomFieldNumber)
             Padding(
+              key: customFieldErrorKey,
               padding: const EdgeInsets.fromLTRB(
                 AppSpacing.md,
                 AppSpacing.sm,

@@ -18,6 +18,7 @@ import '../editor/draft_save_health.dart';
 import '../editor/editor_snapshot.dart';
 import '../search/dance_editor_reference_data.dart';
 import '../utils/confirm_delete.dart';
+import '../utils/scroll_to_error.dart';
 import '../utils/shortcut_platform.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/app_shortcuts.dart';
@@ -67,6 +68,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   late CompendiumRepositories _repos;
   late DanceEditorController _controller;
   final _formKey = GlobalKey<FormState>();
+  final _customFieldErrorKey = GlobalKey();
   final _moreDetailsController = ExpansibleController();
 
   static final Taxonomy _taxonomy = contraTaxonomy;
@@ -446,9 +448,15 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     final formIsValid = _formKey.currentState?.validate() ?? false;
     if (!formIsValid || hasInvalidCustomFieldNumber) {
       if (hasInvalidCustomFieldNumber) _moreDetailsController.expand();
-      // `validate()` has put each message on its own field. Nothing scrolls to
-      // the first one, so it can sit above the fold.
+      // `validate()` has put each message on its own field, and scrolls to
+      // none of them, so the first is brought into view here. The
+      // custom-number message sits at the top of the page, above every field.
       setState(() {});
+      if (hasInvalidCustomFieldNumber) {
+        scrollToError(context, _customFieldErrorKey);
+      } else {
+        scrollToFirstInvalidField(context, _formKey);
+      }
       return;
     }
     setState(() => _saving = true);
@@ -1083,6 +1091,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     return DanceEditorForm(
       controller: _controller,
       formKey: _formKey,
+      customFieldErrorKey: _customFieldErrorKey,
       moreDetailsController: _moreDetailsController,
       taxonomy: _taxonomy,
       moveParamDefaults: _moveParamDefaults,
