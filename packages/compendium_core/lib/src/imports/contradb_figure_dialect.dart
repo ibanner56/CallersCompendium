@@ -668,7 +668,7 @@ FigureMatch? _formAShortWave(String text) {
 }
 
 /// pass_the_ocean in the app's own display wording (#2121), which differs
-/// from ContraDB's: "pass through to an ocean wave [DIRECTION] - CENTER catch
+/// from ContraDB's: "pass through to an ocean wave [a direction] - CENTER catch
 /// HAND hands in the center, SIDES take HAND hands on the sides [and
 /// balance]". The display derives the side hand from the center hand, so a
 /// line whose two hands are not opposite is not this wording and is not read.
