@@ -126,7 +126,10 @@ tree. Conforms to [ux.md](ux.md) §1 and [dialect.md](dialect.md)
    `parseContraDbNumberMatching` reads it and `ContraDbOnline` puts it on every
    row (`OnlineSearchResultRow.totalMatching`). `onlineResultCountLabel` then
    says "Showing 20 of 143 online results" when the total exceeds what is
-   shown, and the plain count when it does not (a page that is exactly full of
+   shown (with "Scroll down to load more" only while scrolling can load more:
+   once paging has ended short of the total, or a page has failed and waits for
+   its Try again button, the line has no such hint), and the plain count when
+   it does not (a page that is exactly full of
    exactly that many matches is complete). The total is used only when one
    response answered: an apostrophe query sends the ASCII and curly spellings
    as two requests and merges the rows, so up to 40 can show, and their totals
