@@ -317,7 +317,8 @@ Merge-readiness is a separate, automated gate — do not approximate it by hand:
 python3 tools/ci/check_pr_review_gates.py all <PR> --closes <ISSUE>...
 ```
 
-It checks review freshness against the reviewer's own latest entry (not
+It checks review freshness against the reviewer's own latest review (for
+Claude, its latest entry with a `## Review verdict:` line; not
 `.[-1].commit_id`, which a stale review passes), unresolved threads with
 `totalCount`, CI on the current head, and that the PR closes exactly the issues
 named. Beware that a **branch name** or prose containing `close #N` can close an

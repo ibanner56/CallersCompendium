@@ -57,6 +57,93 @@ def test_other_workflows_are_not_exempt() -> None:
     ]
 
 
+OLD = "a" * 40
+NEW = "b" * 40
+
+
+def _pin(sha: str, comment: str = "") -> str:
+    return f"        uses: anthropics/claude-code-action@{sha}{comment}"
+
+
+def _yml(*lines: str) -> bytes:
+    return ("\n".join(lines) + "\n").encode("utf-8")
+
+
+ASSISTANT_BEFORE = _yml("on: issue_comment", "jobs:", _pin(OLD, " # v1.0.266"), "        with: {}")
+REVIEW_BEFORE = _yml("jobs:", _pin(OLD, " # v1.0.266"), "      prompt: |", "        Review it.")
+REVIEW_AFTER = _yml("jobs:", _pin(NEW, " # v1.0.300"), "      prompt: |", "        Review it.")
+
+
+def _bump(after: bytes, review: bytes = REVIEW_AFTER) -> bool:
+    return gate.is_matching_pin_bump(ASSISTANT_BEFORE, after, REVIEW_BEFORE, review)
+
+
+def test_a_pin_bump_to_the_review_workflows_pin_rides_along() -> None:
+    assert _bump(_yml("on: issue_comment", "jobs:", _pin(NEW, " # v1.0.300"), "        with: {}"))
+
+
+def test_a_pin_bump_to_another_pin_does_not() -> None:
+    assert not _bump(_yml("on: issue_comment", "jobs:", _pin("c" * 40), "        with: {}"))
+
+
+def test_any_other_changed_line_does_not() -> None:
+    assert not _bump(_yml("on: issue_comment", "jobs:", _pin(NEW), "        with: {x: 1}"))
+    # A line moved to another action, even one pinned by SHA, is not a pin of
+    # this action.
+    assert not _bump(
+        _yml("on: issue_comment", "jobs:", "        uses: someone/else@" + NEW, "        with: {}")
+    )
+    # Re-indenting the pin line, or making it a new sequence item, changes the
+    # YAML structure even though both lines are pins.
+    for prefix in ["      - uses: ", "          uses: ", "\tuses: "]:
+        moved = prefix + "anthropics/claude-code-action@" + NEW + " # v1.0.300"
+        assert not _bump(_yml("on: issue_comment", "jobs:", moved, "        with: {}")), prefix
+
+
+def test_an_added_or_dropped_line_does_not() -> None:
+    assert not _bump(_yml("on: issue_comment", "jobs:", _pin(NEW), _pin(NEW), "        with: {}"))
+    assert not _bump(_yml("on: issue_comment", "jobs:", "        with: {}"))
+    assert not _bump(ASSISTANT_BEFORE), "a file that does not change is no bump"
+
+
+def test_a_yaml_line_break_git_does_not_see_hides_nothing() -> None:
+    """YAML breaks lines on a lone CR and on NEL, LS and PS; git does not, so
+    each could carry a whole step inside what git calls one pin line."""
+    for brk in ["\r", "\r\n", "\u0085", "\u2028", "\u2029", "\x0b", "\x0c"]:
+        smuggled = _pin(NEW, " # v1.0.300") + brk + "      - uses: evil/exfil@" + NEW
+        after = _yml("on: issue_comment", "jobs:", smuggled, "        with: {}")
+        assert not _bump(after), repr(brk)
+    # Inside the comment, too.
+    after = _yml("on: issue_comment", "jobs:", _pin(NEW, " # v1\r  run: x"), "        with: {}")
+    assert not _bump(after)
+
+
+def test_the_review_workflows_own_change_must_be_a_pin_only_bump() -> None:
+    """A pin-shaped line it does not run cannot vouch for a SHA: not one added
+    in a block scalar, nor one left readable while the real pin is rewritten
+    so the pattern cannot read it."""
+    after = _yml("on: issue_comment", "jobs:", _pin(NEW), "        with: {}")
+    in_scalar = _yml(
+        "jobs:", _pin(OLD, " # v1.0.266"), "      prompt: |",
+        "            uses: anthropics/claude-code-action@" + NEW,
+    )
+    assert not _bump(after, in_scalar)
+    quoted = _yml(
+        "jobs:", '        uses: "anthropics/claude-code-action@' + OLD + '"',
+        "      prompt: |", "            uses: anthropics/claude-code-action@" + NEW,
+    )
+    assert not _bump(after, quoted)
+    assert not _bump(after, REVIEW_BEFORE), "a review workflow that moves nothing vouches for nothing"
+    other_change = _yml("jobs:", _pin(NEW), "      prompt: |", "        Review it twice.")
+    assert not _bump(after, other_change)
+
+
+def test_pin_moves_reports_the_target() -> None:
+    assert gate.pin_moves(REVIEW_BEFORE, REVIEW_AFTER) == {NEW.encode()}
+    assert gate.pin_moves(REVIEW_BEFORE, REVIEW_BEFORE) == set()
+    assert gate.pin_moves(REVIEW_BEFORE, REVIEW_BEFORE + b"x\n") is None
+
+
 # --------------------------------------------------------------------------- #
 # git plumbing, against a scratch repository
 # --------------------------------------------------------------------------- #
@@ -112,6 +199,56 @@ def test_against_a_real_repository() -> None:
         assert res.returncode == 1, res.stdout + res.stderr
         assert "renamed.yml" in res.stdout, res.stdout
 
+        # A bump of the action moves both workflows' pins: the assistant's
+        # rides along when it moves to the review workflow's pin and does
+        # nothing else.
+        _run(repo, "git", "checkout", "-q", base)
+        pinned = _commit(
+            repo,
+            {REVIEW: _pin(OLD) + "\n", ASSISTANT: "on: x\n" + _pin(OLD) + "\n"},
+            "pinned",
+        )
+        bump = _commit(
+            repo,
+            {REVIEW: _pin(NEW) + "\n", ASSISTANT: "on: x\n" + _pin(NEW) + "\n"},
+            "bump both",
+        )
+        res = _gate(repo, pinned, bump)
+        assert res.returncode == 0, res.stdout + res.stderr
+
+        _run(repo, "git", "checkout", "-q", pinned)
+        sneaky = _commit(
+            repo,
+            {REVIEW: _pin(NEW) + "\n", ASSISTANT: "on: y\n" + _pin(NEW) + "\n"},
+            "bump both and change the assistant",
+        )
+        res = _gate(repo, pinned, sneaky)
+        assert res.returncode == 1, res.stdout + res.stderr
+        assert ASSISTANT in res.stdout, res.stdout
+
+        # A lone CR is one line to git and two to YAML: the hidden step must
+        # not ride along as "only a pin".
+        _run(repo, "git", "checkout", "-q", pinned)
+        (repo / ASSISTANT).write_bytes(
+            ("on: x\n" + _pin(NEW) + "\r      - uses: evil/exfil@" + NEW + "\n").encode()
+        )
+        (repo / REVIEW).write_text(_pin(NEW) + "\n", encoding="utf-8")
+        _run(repo, "git", "add", ASSISTANT, REVIEW)
+        _run(repo, "git", "commit", "-q", "-m", "smuggle a step behind a CR")
+        smuggled = _run(repo, "git", "rev-parse", "HEAD").stdout.strip()
+        res = _gate(repo, pinned, smuggled)
+        assert res.returncode == 1, res.stdout + res.stderr
+
+        _run(repo, "git", "checkout", "-q", pinned)
+        mismatched = _commit(
+            repo,
+            {REVIEW: _pin(NEW) + "\n", ASSISTANT: "on: x\n" + _pin("c" * 40) + "\n"},
+            "bump to different pins",
+        )
+        res = _gate(repo, pinned, mismatched)
+        assert res.returncode == 1, res.stdout + res.stderr
+
+        _run(repo, "git", "checkout", "-q", renamed)
         unrelated = _commit(repo, {"README": "t\n"}, "unrelated")
         res = _gate(repo, renamed, unrelated)
         assert res.returncode == 0, res.stdout + res.stderr
