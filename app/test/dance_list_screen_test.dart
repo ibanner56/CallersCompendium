@@ -2299,13 +2299,14 @@ void main() {
       await _pumpScreen(tester, repos, contraDbOnline: contraDb);
       await tester.pumpAndSettle();
 
-      // A local Advanced query with a tag row and a figure row.
+      // A local Advanced query with one tag row.
       await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
       await _tapVisible(tester, find.text('Add'));
       await _tapVisible(tester, find.text('Has tag').last);
       expect(find.byType(DropdownButtonFormField<String>), findsOneWidget);
 
-      // Going online with The Caller's Box leaves the (greyed-out) query alone.
+      // Going online with The Caller's Box leaves the query alone: turning
+      // online mode off again finds the tag row still there.
       await _tapVisible(
         tester,
         find.byKey(const ValueKey('online-search-enable')),
@@ -2315,8 +2316,22 @@ void main() {
         findsNothing,
         reason: 'the panel is closed while The Caller\'s Box is the source',
       );
+      await _tapVisible(
+        tester,
+        find.byKey(const ValueKey('online-search-enable')),
+      );
+      await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
+      expect(
+        find.byType(DropdownButtonFormField<String>),
+        findsOneWidget,
+        reason: 'The Caller\'s Box has no Advanced panel to clean up',
+      );
 
       // Choosing ContraDB drops the tag row; "Has tag" is greyed out.
+      await _tapVisible(
+        tester,
+        find.byKey(const ValueKey('online-search-enable')),
+      );
       await tester.tap(find.text('ContraDB'));
       await tester.pumpAndSettle();
       await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
