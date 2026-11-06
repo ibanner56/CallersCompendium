@@ -632,12 +632,20 @@ class _CollectionPickerState extends State<CollectionPicker> {
       _effectivePhrases() != null ||
       _effectiveAdvanced() != null;
 
+  /// Removes tag rows from the Advanced query when the source now searched
+  /// cannot carry a tag (ContraDB has none): one left behind would make the
+  /// search fail. Call inside `setState`, once online mode is on.
+  void _dropTagRowsIfUnsupported() {
+    if (_onlineSource.hidesAdvancedTags) removeBuilderTags(_advancedRoot);
+  }
+
   void _onOnlineToggled(bool value) {
     _debounceTimer?.cancel();
     _searchSeq++;
     _onlineSeq++;
     setState(() {
       _onlineEnabled = value;
+      if (value) _dropTagRowsIfUnsupported();
       _onlineError = null;
       _onlineImportError = null;
       if (value) {
@@ -666,6 +674,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
     _onlineSeq++;
     setState(() {
       _onlineSource = source;
+      if (_onlineEnabled) _dropTagRowsIfUnsupported();
       _onlineResults = const [];
       _onlineError = null;
       _onlineImportError = null;
@@ -1074,6 +1083,9 @@ class _CollectionPickerState extends State<CollectionPicker> {
       dialect: widget.dialect,
       sectionLabels: data.sectionLabels,
       tags: data.tags,
+      tagsUnavailableFor: _onlineEnabled && _onlineSource.hidesAdvancedTags
+          ? _onlineSource.label
+          : null,
       onChanged: _onAdvancedChanged,
     );
   }

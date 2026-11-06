@@ -4793,6 +4793,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get collectionQueryHasTag => 'Contient le tag';
 
   @override
+  String collectionQueryHasTagUnavailable(String source) {
+    return 'Contient le tag (indisponible sur $source)';
+  }
+
+  @override
   String get collectionQueryTagLabel => 'Tag';
 
   @override

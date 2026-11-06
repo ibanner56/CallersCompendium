@@ -4777,6 +4777,11 @@ class AppLocalizationsDe extends AppLocalizations {
   String get collectionQueryHasTag => 'Hat Tag';
 
   @override
+  String collectionQueryHasTagUnavailable(String source) {
+    return 'Hat Tag (bei $source nicht verfügbar)';
+  }
+
+  @override
   String get collectionQueryTagLabel => 'Tag';
 
   @override
