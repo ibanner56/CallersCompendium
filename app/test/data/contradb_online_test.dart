@@ -132,7 +132,7 @@ void main() {
 
   group("a ContraDB response's numberMatching becomes totalMatching", () {
     String page(int shown, {Object? total}) => jsonEncode({
-      if (total != null) 'numberMatching': total,
+      'numberMatching': ?total,
       'dances': [
         for (var id = 1; id <= shown; id++)
           {
