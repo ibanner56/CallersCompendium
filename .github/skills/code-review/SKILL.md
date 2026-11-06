@@ -301,9 +301,10 @@ have their own traps — do not reinvent them:
   reviewer login differs by endpoint (`copilot-pull-request-reviewer[bot]` on
   `/reviews`, `Copilot` on `/comments`). Full procedure:
   [code-review.md](../../../docs/dev/agents/code-review.md).
-- A Claude review (the opt-in `review: claude` label) is this skill's own output
-  format, posted as one review per round by `claude-code-review.yml`. Read and
-  gate it with `--reviewer claude`; the script defaults to Copilot.
+- A Claude review (requested with the `review: claude` label, the default
+  reviewer) is this skill's own output format, posted as one review per round by
+  `claude-code-review.yml`. The script reads it by default; pass
+  `--reviewer copilot` to gate a Copilot review instead.
 - Batch fixes for a whole round into one push; each push starts another round and
   re-pays the resident prompt.
 

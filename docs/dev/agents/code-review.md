@@ -7,16 +7,16 @@ read it here when you need the reasoning or are working by hand.
 
 ## Choosing a reviewer
 
-Copilot is the default reviewer and needs no setup. Claude is **opt-in, per
-PR**: it reviews only PRs carrying the `review: claude` label. Use either one;
-neither is required of anyone else.
+PRs are reviewed by Claude by default. The workflow reviews only PRs carrying
+the `review: claude` label, so apply it to request a review (see
+[Requesting a Claude review](#requesting-a-claude-review)). Copilot is still
+available and needs no setup.
 
 The merge gate reads one reviewer's reviews, and a review by the other does not
-count. It defaults to Copilot, so existing invocations are unchanged. If you
-asked Claude instead, say so:
+count. It defaults to Claude. If you asked Copilot instead, say so:
 
 ```sh
-python3 tools/ci/check_pr_review_gates.py all <PR> --reviewer claude --closes <ISSUE>...
+python3 tools/ci/check_pr_review_gates.py all <PR> --reviewer copilot --closes <ISSUE>...
 ```
 
 ## Requesting a Copilot review

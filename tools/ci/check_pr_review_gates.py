@@ -10,7 +10,7 @@ hand-rolled versions read as PASS when they should have failed:
 ``findings``    Review findings, including the ``Suppressed comments`` blocks
                 that ``GET /pulls/<N>/comments``, thread state and the inline
                 comment count are all blind to. Reads every page of review
-                bodies, every round. For ``--reviewer claude`` it also prints
+                bodies, every round. For a Claude review (the default) it also prints
                 the latest ``## Review verdict:`` line and FAILS on
                 ``BLOCK``: a finding on a line outside the diff exists only in
                 the review body, so no inline comment or thread records it.
@@ -35,10 +35,10 @@ A red run should cost a few hundred tokens to
 act on, not a few thousand to read.
 
 ``--reviewer`` names whose review the ``findings`` and ``review`` gates read:
-``copilot`` (the default, so existing invocations are unchanged) or ``claude``
-(the opt-in ``claude-code-review.yml`` workflow). A PR reviewed by one is not
-reviewed as far as the gate for the other is concerned; pass the reviewer you
-actually requested.
+``claude`` (the default: PRs are reviewed by the ``claude-code-review.yml``
+workflow, requested with the ``review: claude`` label) or ``copilot``. A PR
+reviewed by one is not reviewed as far as the gate for the other is concerned;
+pass ``--reviewer copilot`` if you requested Copilot instead.
 
 Exit codes: 0 all gates pass, 1 at least one gate failed, 2 at least one gate
 could not be answered (bad input, or ``gh`` missing or unauthenticated). 2
@@ -90,8 +90,6 @@ CLAUDE = Reviewer(review_login="claude[bot]", comment_login="claude[bot]")
 
 REVIEWERS = {"copilot": COPILOT, "claude": CLAUDE}
 
-REVIEWER_LOGIN = COPILOT.review_login
-REVIEWER_COMMENT_LOGIN = COPILOT.comment_login
 
 # The first line of a Claude review (.github/skills/code-review/SKILL.md). Models
 # decorate it (`**BLOCK**`, backticks, a different heading level), so those are
@@ -223,7 +221,7 @@ def _reviews(fetcher: Any, pr: int) -> list[dict[str, Any]]:
 
 
 def gate_findings(
-    fetcher: Any, pr: int, reviewer: Reviewer = COPILOT
+    fetcher: Any, pr: int, reviewer: Reviewer = CLAUDE
 ) -> tuple[bool, list[str]]:
     """Report review findings, including every suppressed block, every round."""
     reviews = [
@@ -308,7 +306,7 @@ def _login(entry: dict[str, Any]) -> str:
 
 
 def gate_review(
-    fetcher: Any, pr: int, reviewer: Reviewer = COPILOT
+    fetcher: Any, pr: int, reviewer: Reviewer = CLAUDE
 ) -> tuple[bool, list[str]]:
     """The reviewer's latest review must be on the commit being merged."""
     head = _head_sha(fetcher, pr)
@@ -633,7 +631,7 @@ def run_gates(
     names: Sequence[str],
     intended: Sequence[int],
     *,
-    reviewer: Reviewer = COPILOT,
+    reviewer: Reviewer = CLAUDE,
     out: Callable[[str], None] = print,
 ) -> int:
     failed = 0
@@ -683,10 +681,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument(
         "--reviewer",
         choices=sorted(REVIEWERS),
-        default="copilot",
+        default="claude",
         help=(
             "whose review the findings and review gates read (default: "
-            "copilot); claude is the opt-in `review: claude` workflow"
+            "claude, the `review: claude` workflow); copilot if you "
+            "requested Copilot instead"
         ),
     )
     parser.add_argument("--repo", help="owner/name (default: detected via gh)")

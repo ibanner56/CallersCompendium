@@ -182,13 +182,13 @@
   color: "CFD3D7"
   description: "GitHub Actions workflow updates"
 
-# --- review: opt-in reviewers (terracotta) -----------------------------------
-# A PR label, not a triage label. Copilot stays the default reviewer; this one
-# asks .github/workflows/claude-code-review.yml for a Claude review of every
-# push by a human while it is applied (docs/dev/agents/code-review.md).
+# --- review: reviewers (terracotta) ------------------------------------------
+# A PR label, not a triage label. Claude is the default reviewer; this label is
+# how a PR asks .github/workflows/claude-code-review.yml for a Claude review of
+# every push by a human while it is applied (docs/dev/agents/code-review.md).
 - name: "review: claude"
   color: "D97757"
-  description: "Opt-in: Claude reviews each human push to this PR while the label is on"
+  description: "Requests the default Claude review of each human push while the label is on"
 
 # --- claude: Claude review status on a PR (traffic light) --------------------
 # Set by .github/workflows/claude-review-status.yml, exactly one at a time, while
