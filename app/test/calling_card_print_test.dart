@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:compendium_app/src/data/calling_card_settings_scope.dart';
 import 'package:compendium_app/src/export/calling_card_layout.dart';
+import 'package:compendium_app/src/widgets/calling_card_print.dart';
 import 'package:compendium_app/src/widgets/dance_export_menu.dart';
 import 'package:compendium_app/src/widgets/program_export_menu.dart';
 import 'package:compendium_core/compendium_core.dart';
@@ -82,6 +83,17 @@ Future<void> _open(WidgetTester tester, String menuKey) async {
 }
 
 void main() {
+  test('primaries are numbered in order; an alternate takes no number', () {
+    expect(callingCardPlaces([false, true, false, false, true], 'Alt'), [
+      '1',
+      'Alt',
+      '2',
+      '3',
+      'Alt',
+    ]);
+    expect(callingCardPlaces(const [], 'Alt'), isEmpty);
+  });
+
   group('dance Export menu', () {
     testWidgets('offers no calling card while the setting is off', (
       tester,

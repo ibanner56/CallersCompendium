@@ -71,3 +71,17 @@ Future<void> printCallingCards({
     );
   }
 }, source: source);
+
+/// What each card's `number` block prints when a program is printed: the
+/// dance's place among the program's primary dances (1, 2, 3, ...), or
+/// [alternateLabel] for an alternate, which takes no place of its own.
+List<String> callingCardPlaces(
+  Iterable<bool> isAlternate,
+  String alternateLabel,
+) {
+  var place = 0;
+  return [
+    for (final alternate in isAlternate)
+      alternate ? alternateLabel : '${++place}',
+  ];
+}

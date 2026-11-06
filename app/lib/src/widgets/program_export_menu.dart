@@ -595,14 +595,16 @@ class ProgramExportMenu extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
     final renderer = UserFiguresScope.rendererOf(context);
-    var place = 0;
+    final dances = _orderedExportDances();
+    final places = callingCardPlaces(
+      dances.map((e) => e.isAlternate),
+      l10n.exportIncludeFiguresAlternate,
+    );
     final entries = [
-      for (final entry in _orderedExportDances())
+      for (final (i, entry) in dances.indexed)
         CallingCardEntry(
           dance: entry.dance,
-          number: entry.isAlternate
-              ? l10n.exportIncludeFiguresAlternate
-              : '${++place}',
+          number: places[i],
           labels: _cardLabelsFor(
             context,
             entry.dance,
