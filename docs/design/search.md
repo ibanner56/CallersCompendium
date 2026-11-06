@@ -212,12 +212,11 @@ tree. Conforms to [ux.md](ux.md) §1 and [dialect.md](dialect.md)
    `along`, a promenade `across` and its direction, and a long wave's `in` and
    `balance` under-match, because the importer reads the figures ContraDB stores
    differently as the default. A figure 8 `above` is stored two ways (`''` and
-   `above`), so it is an `or`. The `poussette` direction is **inverted** on
-   purpose (clockwise is `false`): ContraDB renders a stored `true` as "left",
-   and the importer reads "back then right" as clockwise, so the mapping that
-   round-trips through the importer is the inverted one. Whether that matches
-   the dancers' physical direction is the importer's existing decision, not this
-   one's.
+   `above`), so it is an `or`. The `poussette` direction maps clockwise to
+   `true`, as ContraDB stores it: ContraDB renders a stored `true` as "back then
+   left", and the importer reads that as clockwise. *(Changed in #2121: the
+   importer used to read the sides the other way round, and this mapping was
+   inverted to round-trip through it.)*
 
    *What is verified.* Positions against ContraDB's formal lists, the
    left-out set, and every value mapping are pinned by unit tests; the opt-in

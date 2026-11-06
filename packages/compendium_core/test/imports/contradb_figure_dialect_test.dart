@@ -664,7 +664,15 @@ void main() {
       expect(f.params['fraction'], 'half');
       expect(f.params['who'], 'ones');
       expect(f.params['whom'], 'neighbors');
-      expect(f.params['direction'], 'clockwise');
+      // ContraDB writes clockwise as "back then left" (libfigure
+      // `poussetteWords`); this test asserted the reverse before #2121.
+      expect(f.params['direction'], 'counterclockwise');
+      expect(
+        _parse(
+          'half poussette - ones pull neighbors back then left',
+        ).params['direction'],
+        'clockwise',
+      );
     });
 
     test('cross trails', () {

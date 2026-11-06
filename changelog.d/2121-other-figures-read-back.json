@@ -1,0 +1,14 @@
+{
+  "id": "2121-other-figures-read-back",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Typing or pasting a poussette, zig-zag, figure 8 or box circulate the way the figure list shows it now gives that figure, with its dancers, fraction, direction, ender and who leads. A poussette imported from ContraDB now turns the way ContraDB says: \"back then left\" is clockwise. The import read it the other way round before, so a ContraDB poussette you imported earlier may show the opposite turn; importing that dance again corrects it. Searching ContraDB for a poussette's direction now finds the direction you chose."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "The ContraDB figure reader reads the app's display wording for a poussette, zig-zag and figure 8 (`_poussetteDisplay`, `_zigZagDisplay`, `_figure8Display`) and the display's subjects and `others` in a box circulate's cross-while-loop clause. ContraDB's own poussette reader now maps \"back then left\" to clockwise, as libfigure writes a clockwise turn (`spin_clockwise` is `true`; `poussetteWords` writes `true` as \"back then left\"); it read the sides reversed, and the ContraDB search translation's poussette mapping, inverted to match it, is un-inverted. Not read on purpose: a figure 8 with no direction (`where: none`) and a box circulate without its balance, whose ContraDB and beat-implied readings this would override."
+    ]
+  }
+}

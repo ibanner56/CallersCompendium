@@ -283,16 +283,19 @@ const List<FigureMatch? Function(String)> _recognizers =
       _courtesyTurnFacingDisplay,
       _gate,
       _contraCorners,
+      _zigZagDisplay,
       _zigZag,
       _boxCirculateBare,
       _boxCirculate,
       _slice,
       _revolvingDoor,
       _facingStar,
+      _poussetteDisplay,
       _poussette,
       _crossTrails,
       _downTheHall,
       _upTheHall,
+      _figure8Display,
       _figure8,
       _squareThroughDisplay,
       _squareThrough,
@@ -1034,6 +1037,113 @@ FigureMatch? _squareThroughDisplay(String text) {
 /// one-word `counterclockwise`, besides ContraDB's own spellings ([_spinDir]).
 String? _displaySpin(_Scan s) =>
     _spinDir(s) ?? (s.eat('counterclockwise') ? 'counterclockwise' : null);
+
+/// The display's fraction words for a poussette or a figure 8 (#2121).
+const List<MapEntry<String, String>> _displayFractions = [
+  MapEntry('three quarter', 'threeQuarter'),
+  MapEntry('quarter', 'quarter'),
+  MapEntry('half', 'half'),
+  MapEntry('full', 'full'),
+  MapEntry('other', 'other'),
+];
+
+String? _displayFraction(_Scan s) {
+  for (final MapEntry(key: phrase, value: token) in _displayFractions) {
+    if (s.eatPhrase(phrase)) return token;
+  }
+  return null;
+}
+
+/// The zig-zag in the app's display wording (#2121): "zig SIDE zag OTHER
+/// [with WHO]" and an ender, " into a ring" or ", trailing two catching
+/// hands". The zag is the zig's mirror, so a line where it is not is not this
+/// wording. Only the whole line is read.
+FigureMatch? _zigZagDisplay(String text) {
+  final s = _Scan(text);
+  if (!s.eat('zig')) return null;
+  final slide = _leftRight(s.peek());
+  if (slide == null) return null;
+  s.take();
+  if (!s.eat('zag') || !s.eat(_otherSide(slide))) return null;
+  String? who;
+  if (s.eat('with')) {
+    who = _displaySubject(s);
+    if (who == null) return null;
+  }
+  String? ender;
+  if (s.eatPhrase('into a ring')) {
+    ender = 'ring';
+  } else if (s.eatPhrase('trailing two catching hands')) {
+    ender = 'allemande';
+  }
+  if (s.peek() != null) return null;
+  return FigureMatch(
+    'zig_zag',
+    params: {'slide': slide, 'who': ?who, 'ender': ?ender},
+  );
+}
+
+/// The poussette in the app's display wording (#2121): "FRACTION poussette -
+/// WHO pull [WHOM] back then left|right", where left is clockwise. Only the
+/// whole line is read.
+FigureMatch? _poussetteDisplay(String text) {
+  final s = _Scan(text);
+  final fraction = _displayFraction(s);
+  if (fraction == null || !s.eat('poussette') || !s.eat('-')) return null;
+  final who = _displaySubject(s);
+  if (who == null || !s.eat('pull')) return null;
+  final whom = _displaySubject(s);
+  String? direction;
+  if (s.eatPhrase('back then')) {
+    final side = _leftRight(s.peek());
+    if (side == null) return null;
+    s.take();
+    direction = side == 'left' ? 'clockwise' : 'counterclockwise';
+  }
+  if (s.peek() != null) return null;
+  return FigureMatch(
+    'poussette',
+    params: {
+      'fraction': fraction,
+      'who': who,
+      'whom': ?whom,
+      'direction': ?direction,
+    },
+  );
+}
+
+/// The figure 8 in the app's display wording (#2121): "WHO FRACTION figure 8
+/// up|down between OTHER | across [, LEAD leading]". A line with no
+/// direction is left to the existing readers: the display writes it for
+/// `where: none`, and whether ContraDB means `none` by it is not established.
+/// Only the whole line is read.
+FigureMatch? _figure8Display(String text) {
+  final s = _Scan(text);
+  final who = _displaySubject(s);
+  final fraction = _displayFraction(s);
+  if (who == null || fraction == null || !s.eatPhrase('figure 8')) {
+    return null;
+  }
+  final String where;
+  if (s.eat('across')) {
+    where = 'across';
+  } else {
+    final up = s.eatPhrase('up between');
+    if (!up && !s.eatPhrase('down between')) return null;
+    if (_displaySubject(s) == null && !s.eat('others')) return null;
+    where = up ? 'above' : 'below';
+  }
+  String? lead;
+  if (s.peek() != null) {
+    lead = _displaySubject(s);
+    if (lead == null || !s.eat('leading')) return null;
+  }
+  if (s.peek() != null) return null;
+  return FigureMatch(
+    'figure_8',
+    params: {'who': who, 'fraction': fraction, 'where': where, 'lead': ?lead},
+  );
+}
 
 /// A subject as the app's display writes it (#2121): any [_subject], the
 /// singular the display uses for a pair (`neighbor`, `partner`, `shadow`), or
@@ -1983,7 +2093,9 @@ FigureMatch? _zigZag(String text) {
 ///   `box_circulate` with note `"- all balance"`.
 Map<String, Object?>? _crossWhileLoopParams(_Scan s) {
   final save = s.pos;
-  final who = _subject(s);
+  // The display's subjects too, and its `others` for a pair it cannot invert
+  // (#2121).
+  final who = _displaySubject(s);
   if (who == null) {
     s.reset(save);
     return null;
@@ -1992,7 +2104,7 @@ Map<String, Object?>? _crossWhileLoopParams(_Scan s) {
     s.reset(save);
     return null;
   }
-  if (_subject(s) == null) {
+  if (_displaySubject(s) == null && !s.eat('others')) {
     s.reset(save);
     return null;
   }
@@ -2130,7 +2242,11 @@ FigureMatch? _facingStar(String text) {
 }
 
 /// poussetteWords. Renders as: "[half|full] poussette - WHO pull WHOM back then
-/// left|right".
+/// left|right", where left is clockwise: ContraDB writes a truthy `turn`
+/// (`spin_clockwise` is `value: true`, libfigure `param.js`) as "back then
+/// left" (`figure.js` `poussetteWords`), as the app's renderer does. This read
+/// the sides the other way round before #2121, so every imported ContraDB
+/// poussette turned the wrong way.
 FigureMatch? _poussette(String text) {
   final s = _Scan(text);
   String? half;
@@ -2151,7 +2267,7 @@ FigureMatch? _poussette(String text) {
         final d = _leftRight(s.peek());
         if (d != null) {
           s.take();
-          params['direction'] = d == 'right' ? 'clockwise' : 'counterclockwise';
+          params['direction'] = d == 'left' ? 'clockwise' : 'counterclockwise';
         }
       }
     }
