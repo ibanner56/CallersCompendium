@@ -6,6 +6,7 @@ import '../taxonomy/taxonomy.dart';
 import '../validation/validation.dart';
 import 'beat_implied_balance.dart';
 import 'callersbox_figure_dialect.dart' show hasTopLevelSeparator;
+import 'contradb_figure_dialect.dart' show readDisplayedCourtesyTurnWithWhom;
 import 'figure_front_end_fan_out.dart';
 import 'figure_text_scrub.dart';
 import 'shorthand_mappings.dart';
@@ -801,8 +802,28 @@ List<Figure> _parseSplit(
             ),
           )
           .nonNulls
+          .firstOrNull ??
+      [split.text, ...readTexts]
+          .map((text) => _displayedCourtesyTurn(text, split.beats, names))
+          .nonNulls
           .firstOrNull;
   return named == null ? raw : [named];
+}
+
+/// A courtesy turn naming `whom` as the app displays one (#2121), read only
+/// here so imports keep leaving `whom` out ([readDisplayedCourtesyTurnWithWhom]
+/// says why). A figure [taxonomy] rejects is a miss.
+Figure? _displayedCourtesyTurn(String text, int beats, Taxonomy taxonomy) {
+  final match = readDisplayedCourtesyTurnWithWhom(text);
+  if (match == null) return null;
+  final figure = Figure(
+    move: match.moveId,
+    params: {...match.params, if (beats > 0) 'beats': beats},
+  );
+  final invalid = taxonomy
+      .validateFigure(figure)
+      .any((i) => i.severity == ValidationSeverity.error);
+  return invalid ? null : figure;
 }
 
 /// Whether any of [figures], or any figure inside one, carries a note.

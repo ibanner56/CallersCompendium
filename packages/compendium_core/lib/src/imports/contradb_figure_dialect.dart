@@ -899,6 +899,39 @@ FigureMatch? _courtesyTurnFacingDisplay(String text) {
   );
 }
 
+/// A courtesy turn that names `whom`, in the app's display wording: "SUBJECT
+/// courtesy turn WHOM [spin] [to face DANCER]". Only free-text entry calls it
+/// (`parseFreeTextFigureEntry`), so a figure the app displays reads back; it
+/// is not one of this reader's recognizers, so no import reads a second dancer
+/// from a source line. That split is the maintainer's decision on #2121
+/// (2026-11-06), which keeps the shared grammar's earlier ruling that an
+/// import leaves `whom` out unless a source states it. Only the whole line is
+/// read.
+FigureMatch? readDisplayedCourtesyTurnWithWhom(String text) {
+  final s = _Scan(text);
+  final who = _displaySubject(s);
+  if (who == null || !s.eatPhrase('courtesy turn')) return null;
+  final whom = _displaySubject(s);
+  if (whom == null) return null;
+  final direction =
+      _spinDir(s) ?? (s.eat('counterclockwise') ? 'counterclockwise' : null);
+  String? endFacing;
+  if (s.eatPhrase('to face')) {
+    endFacing = _displaySubject(s);
+    if (endFacing == null) return null;
+  }
+  if (s.peek() != null) return null;
+  return FigureMatch(
+    'courtesy_turn',
+    params: {
+      'who': who,
+      'whom': whom,
+      'direction': ?direction,
+      'endFacing': ?endFacing,
+    },
+  );
+}
+
 /// A set-relative facing as the app's display words it, one of
 /// [displayFacingPhrases] (#2121).
 String? _displayFacing(_Scan s) {

@@ -50,34 +50,6 @@ Canonical	chain	{"where":"in"}	role2s chain facing in
 Canonical	chain	{"where":"out"}	role2s chain facing out
 Canonical	chain	{"where":"up"}	role2s chain facing up
 Canonical	chain	{"where":"down"}	role2s chain facing down
-Canonical	courtesy_turn	{"whom":"everyone"}	partner courtesy turn everyone
-Canonical	courtesy_turn	{"whom":"role1s"}	partner courtesy turn role1s
-Canonical	courtesy_turn	{"whom":"role2s"}	partner courtesy turn role2s
-Canonical	courtesy_turn	{"whom":"ones"}	partner courtesy turn ones
-Canonical	courtesy_turn	{"whom":"twos"}	partner courtesy turn twos
-Canonical	courtesy_turn	{"whom":"partners"}	partner courtesy turn partner
-Canonical	courtesy_turn	{"whom":"neighbors"}	partner courtesy turn neighbor
-Canonical	courtesy_turn	{"whom":"sameRoles"}	partner courtesy turn same roles
-Canonical	courtesy_turn	{"whom":"shadows"}	partner courtesy turn shadow
-Canonical	courtesy_turn	{"whom":"secondShadows"}	partner courtesy turn second shadow
-Canonical	courtesy_turn	{"whom":"prevNeighbors"}	partner courtesy turn prev neighbor
-Canonical	courtesy_turn	{"whom":"nextNeighbors"}	partner courtesy turn next neighbor
-Canonical	courtesy_turn	{"whom":"thirdNeighbors"}	partner courtesy turn third neighbor
-Canonical	courtesy_turn	{"whom":"fourthNeighbors"}	partner courtesy turn fourth neighbor
-Canonical	courtesy_turn	{"whom":"firstCorners"}	partner courtesy turn first corners
-Canonical	courtesy_turn	{"whom":"secondCorners"}	partner courtesy turn second corners
-Canonical	courtesy_turn	{"whom":"thirdCorners"}	partner courtesy turn third corners
-Canonical	courtesy_turn	{"whom":"opposites"}	partner courtesy turn opposites
-Canonical	courtesy_turn	{"whom":"prevPartners"}	partner courtesy turn prev partner
-Canonical	courtesy_turn	{"whom":"nextPartners"}	partner courtesy turn next partner
-Canonical	courtesy_turn	{"whom":"thirdPartners"}	partner courtesy turn third partner
-Canonical	courtesy_turn	{"whom":"fourthPartners"}	partner courtesy turn fourth partner
-Canonical	courtesy_turn	{"whom":"fifthPartners"}	partner courtesy turn fifth partner
-Canonical	courtesy_turn	{"whom":"centers"}	partner courtesy turn centers
-Canonical	courtesy_turn	{"whom":"onesRole1"}	partner courtesy turn first role1
-Canonical	courtesy_turn	{"whom":"onesRole2"}	partner courtesy turn first role2
-Canonical	courtesy_turn	{"whom":"twosRole1"}	partner courtesy turn second role1
-Canonical	courtesy_turn	{"whom":"twosRole2"}	partner courtesy turn second role2
 Canonical	promenade	{"where":"rightDiagonal"}	partner promenade on right diagonal
 Canonical	promenade	{"where":"leftDiagonal"}	partner promenade on left diagonal
 Canonical	promenade	{"where":"in"}	partner promenade facing in
@@ -358,34 +330,6 @@ Larks/Robins	chain	{"where":"in"}	robins chain facing in
 Larks/Robins	chain	{"where":"out"}	robins chain facing out
 Larks/Robins	chain	{"where":"up"}	robins chain facing up
 Larks/Robins	chain	{"where":"down"}	robins chain facing down
-Larks/Robins	courtesy_turn	{"whom":"everyone"}	partner courtesy turn everyone
-Larks/Robins	courtesy_turn	{"whom":"role1s"}	partner courtesy turn larks
-Larks/Robins	courtesy_turn	{"whom":"role2s"}	partner courtesy turn robins
-Larks/Robins	courtesy_turn	{"whom":"ones"}	partner courtesy turn ones
-Larks/Robins	courtesy_turn	{"whom":"twos"}	partner courtesy turn twos
-Larks/Robins	courtesy_turn	{"whom":"partners"}	partner courtesy turn partner
-Larks/Robins	courtesy_turn	{"whom":"neighbors"}	partner courtesy turn neighbor
-Larks/Robins	courtesy_turn	{"whom":"sameRoles"}	partner courtesy turn same roles
-Larks/Robins	courtesy_turn	{"whom":"shadows"}	partner courtesy turn shadow
-Larks/Robins	courtesy_turn	{"whom":"secondShadows"}	partner courtesy turn second shadow
-Larks/Robins	courtesy_turn	{"whom":"prevNeighbors"}	partner courtesy turn prev neighbor
-Larks/Robins	courtesy_turn	{"whom":"nextNeighbors"}	partner courtesy turn next neighbor
-Larks/Robins	courtesy_turn	{"whom":"thirdNeighbors"}	partner courtesy turn third neighbor
-Larks/Robins	courtesy_turn	{"whom":"fourthNeighbors"}	partner courtesy turn fourth neighbor
-Larks/Robins	courtesy_turn	{"whom":"firstCorners"}	partner courtesy turn first corners
-Larks/Robins	courtesy_turn	{"whom":"secondCorners"}	partner courtesy turn second corners
-Larks/Robins	courtesy_turn	{"whom":"thirdCorners"}	partner courtesy turn third corners
-Larks/Robins	courtesy_turn	{"whom":"opposites"}	partner courtesy turn opposites
-Larks/Robins	courtesy_turn	{"whom":"prevPartners"}	partner courtesy turn prev partner
-Larks/Robins	courtesy_turn	{"whom":"nextPartners"}	partner courtesy turn next partner
-Larks/Robins	courtesy_turn	{"whom":"thirdPartners"}	partner courtesy turn third partner
-Larks/Robins	courtesy_turn	{"whom":"fourthPartners"}	partner courtesy turn fourth partner
-Larks/Robins	courtesy_turn	{"whom":"fifthPartners"}	partner courtesy turn fifth partner
-Larks/Robins	courtesy_turn	{"whom":"centers"}	partner courtesy turn centers
-Larks/Robins	courtesy_turn	{"whom":"onesRole1"}	partner courtesy turn first lark
-Larks/Robins	courtesy_turn	{"whom":"onesRole2"}	partner courtesy turn first robin
-Larks/Robins	courtesy_turn	{"whom":"twosRole1"}	partner courtesy turn second lark
-Larks/Robins	courtesy_turn	{"whom":"twosRole2"}	partner courtesy turn second robin
 Larks/Robins	promenade	{"where":"rightDiagonal"}	partner promenade on right diagonal
 Larks/Robins	promenade	{"where":"leftDiagonal"}	partner promenade on left diagonal
 Larks/Robins	promenade	{"where":"in"}	partner promenade facing in
@@ -672,34 +616,6 @@ Leads/Follows	chain	{"where":"in"}	follows chain facing in
 Leads/Follows	chain	{"where":"out"}	follows chain facing out
 Leads/Follows	chain	{"where":"up"}	follows chain facing up
 Leads/Follows	chain	{"where":"down"}	follows chain facing down
-Leads/Follows	courtesy_turn	{"whom":"everyone"}	partner courtesy turn everyone
-Leads/Follows	courtesy_turn	{"whom":"role1s"}	partner courtesy turn leads
-Leads/Follows	courtesy_turn	{"whom":"role2s"}	partner courtesy turn follows
-Leads/Follows	courtesy_turn	{"whom":"ones"}	partner courtesy turn ones
-Leads/Follows	courtesy_turn	{"whom":"twos"}	partner courtesy turn twos
-Leads/Follows	courtesy_turn	{"whom":"partners"}	partner courtesy turn partner
-Leads/Follows	courtesy_turn	{"whom":"neighbors"}	partner courtesy turn neighbor
-Leads/Follows	courtesy_turn	{"whom":"sameRoles"}	partner courtesy turn same roles
-Leads/Follows	courtesy_turn	{"whom":"shadows"}	partner courtesy turn shadow
-Leads/Follows	courtesy_turn	{"whom":"secondShadows"}	partner courtesy turn second shadow
-Leads/Follows	courtesy_turn	{"whom":"prevNeighbors"}	partner courtesy turn prev neighbor
-Leads/Follows	courtesy_turn	{"whom":"nextNeighbors"}	partner courtesy turn next neighbor
-Leads/Follows	courtesy_turn	{"whom":"thirdNeighbors"}	partner courtesy turn third neighbor
-Leads/Follows	courtesy_turn	{"whom":"fourthNeighbors"}	partner courtesy turn fourth neighbor
-Leads/Follows	courtesy_turn	{"whom":"firstCorners"}	partner courtesy turn first corners
-Leads/Follows	courtesy_turn	{"whom":"secondCorners"}	partner courtesy turn second corners
-Leads/Follows	courtesy_turn	{"whom":"thirdCorners"}	partner courtesy turn third corners
-Leads/Follows	courtesy_turn	{"whom":"opposites"}	partner courtesy turn opposites
-Leads/Follows	courtesy_turn	{"whom":"prevPartners"}	partner courtesy turn prev partner
-Leads/Follows	courtesy_turn	{"whom":"nextPartners"}	partner courtesy turn next partner
-Leads/Follows	courtesy_turn	{"whom":"thirdPartners"}	partner courtesy turn third partner
-Leads/Follows	courtesy_turn	{"whom":"fourthPartners"}	partner courtesy turn fourth partner
-Leads/Follows	courtesy_turn	{"whom":"fifthPartners"}	partner courtesy turn fifth partner
-Leads/Follows	courtesy_turn	{"whom":"centers"}	partner courtesy turn centers
-Leads/Follows	courtesy_turn	{"whom":"onesRole1"}	partner courtesy turn first lead
-Leads/Follows	courtesy_turn	{"whom":"onesRole2"}	partner courtesy turn first follow
-Leads/Follows	courtesy_turn	{"whom":"twosRole1"}	partner courtesy turn second lead
-Leads/Follows	courtesy_turn	{"whom":"twosRole2"}	partner courtesy turn second follow
 Leads/Follows	promenade	{"where":"rightDiagonal"}	partner promenade on right diagonal
 Leads/Follows	promenade	{"where":"leftDiagonal"}	partner promenade on left diagonal
 Leads/Follows	promenade	{"where":"in"}	partner promenade facing in

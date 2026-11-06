@@ -87,10 +87,26 @@ void main() {
       });
     });
 
-    // Pins today's reading while the maintainer decides whether `whom` is
-    // read (#2121); no reader in this batch reads it.
-    test('a second dancer is still not read as whom', () {
-      expect(typed('partner courtesy turn role1s').isCustom, isTrue);
+    test('free text reads a second dancer as whom; an import does not', () {
+      // The maintainer's decision on #2121: the display's own wording reads
+      // back, and an import still leaves `whom` out unless a source states it.
+      expect(typed('partner courtesy turn role1s clockwise').params, {
+        'who': 'partners',
+        'whom': 'role1s',
+        'direction': 'clockwise',
+      });
+      expect(
+        typed(
+          'partner courtesy turn third corners to face second shadow',
+        ).params,
+        {
+          'who': 'partners',
+          'whom': 'thirdCorners',
+          'endFacing': 'secondShadows',
+        },
+      );
+      expect(imported('partner courtesy turn role1s').isCustom, isTrue);
+      expect(imported('ones courtesy turn twos').isCustom, isTrue);
     });
   });
 }
