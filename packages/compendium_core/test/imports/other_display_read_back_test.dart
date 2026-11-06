@@ -120,6 +120,16 @@ void main() {
     }
   });
 
+  test('a promenade reads a displayed direction before its turn', () {
+    final f = only('partners promenade on left diagonal on the left');
+    expect(f.params, {
+      'who': 'partners',
+      'where': 'leftDiagonal',
+      'direction': 'clockwise',
+    });
+    expect(f.note, isNull);
+  });
+
   test('a revolving door reads the display\'s subjects', () {
     expect(
       only(
