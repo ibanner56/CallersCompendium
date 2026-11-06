@@ -2118,9 +2118,8 @@ void main() {
     },
   );
 
-  testWidgets('a ContraDB search with more matches than shown says "of N"', (
-    tester,
-  ) async {
+  testWidgets('a ContraDB search that stops short of its total says "of N" '
+      'without a hint to scroll', (tester) async {
     final repos = openTestRepositories();
     await _pumpScreen(tester, repos, contraDbOnline: _TotalContraDb());
     await tester.pumpAndSettle();
@@ -2138,7 +2137,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.text('Showing 1 of 5 online results. Scroll down to load more.'),
+      // This source answers every page with the same row, so paging adds
+      // nothing and stops short of the total: no hint to scroll.
+      find.text('Showing 1 of 5 online results.'),
       findsOneWidget,
     );
   });
@@ -2476,9 +2477,13 @@ void main() {
       expect(find.byKey(const ValueKey('online-more-retry')), findsOneWidget);
       expect(contraDb.requests.map((r) => r.offset), [0, 20]);
 
-      // Nothing more is asked while the failure stands.
+      // Nothing more is asked while the failure stands, and the count line no
+      // longer tells the user to scroll: only Try again loads more.
       await scrollToEnd(tester);
       expect(contraDb.requests, hasLength(2));
+      await scrollToTop(tester);
+      expect(find.text('Showing 20 of 45 online results.'), findsOneWidget);
+      await scrollToEnd(tester);
 
       fail = false;
       await tester.tap(find.byKey(const ValueKey('online-more-retry')));

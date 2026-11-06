@@ -1183,7 +1183,9 @@ class _CollectionPickerState extends State<CollectionPicker> {
                           ? onlineResultCountLabel(
                               l10n,
                               _onlineResults,
-                              hasMore: _onlineHasMore,
+                              // A failed page loads only by its Try again
+                              // button, not by scrolling.
+                              hasMore: _onlineHasMore && !_onlineMoreFailed,
                             )
                           : l10n.collectionDanceCount(count),
                       style: Theme.of(context).textTheme.bodySmall,

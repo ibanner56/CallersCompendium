@@ -30,10 +30,20 @@ void main() {
         hasMore: hasMore ?? rows.any((row) => row.mayHaveMore),
       );
 
-  test('a total larger than what is shown says "of"', () {
+  test('a total larger than what is shown says "of", and to scroll while '
+      'more can load', () {
     expect(
-      label([_row(1, total: 143), _row(2, total: 143)]),
+      label([_row(1, total: 143), _row(2, total: 143)], hasMore: true),
       'Showing 2 of 143 online results. Scroll down to load more.',
+    );
+  });
+
+  test('a total larger than what is shown, but nothing more will load by '
+      'scrolling: no hint to scroll', () {
+    // Paging ended short of the total, or a failed page waits for Try again.
+    expect(
+      label([_row(1, total: 143), _row(2, total: 143)], hasMore: false),
+      'Showing 2 of 143 online results.',
     );
   });
 
@@ -78,7 +88,7 @@ void main() {
         'left out.';
     expect(label([_row(1, partly: true)]), '1 online result · $note');
     expect(
-      label([_row(1, total: 5, partly: true)]),
+      label([_row(1, total: 5, partly: true)], hasMore: true),
       'Showing 1 of 5 online results. Scroll down to load more. '
       '· $note',
     );

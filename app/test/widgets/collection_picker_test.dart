@@ -1097,7 +1097,8 @@ void main() {
     );
   });
 
-  testWidgets('a ContraDB search with more matches than shown says "of N" in '
+  testWidgets('a ContraDB search that stops short of its total says "of N" '
+      'without a hint to scroll in '
       'the picker', (tester) async {
     final repos = openTestRepositories();
     await _pumpPicker(
@@ -1118,7 +1119,9 @@ void main() {
     await tester.pump(const Duration(milliseconds: 600));
     await tester.pumpAndSettle();
     expect(
-      find.text('Showing 1 of 5 online results. Scroll down to load more.'),
+      // This source answers every page with the same row, so paging adds
+      // nothing and stops short of the total: no hint to scroll.
+      find.text('Showing 1 of 5 online results.'),
       findsOneWidget,
     );
   });

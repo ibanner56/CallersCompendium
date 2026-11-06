@@ -6445,6 +6445,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String onlineResultCountOfTotalStopped(int count, int total) {
+    return '$total件中$count件のオンライン結果を表示しています。';
+  }
+
+  @override
   String get onlineAdvancedPartlyApplied => '一部の詳細検索の条件はContraDBにないため、除外されました。';
 
   @override

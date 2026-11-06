@@ -8780,6 +8780,18 @@
       }
     }
   },
+  "onlineResultCountOfTotalStopped": "Showing {count} of {total} online results.",
+  "@onlineResultCountOfTotalStopped": {
+    "description": "Count of online search results shown above the results list when the source reports a total larger than what has been loaded, but no more will load by scrolling: paging ended without reaching the total, or a page failed and only the Try again button loads more. The same as the scroll form, without its hint to scroll.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "onlineAdvancedPartlyApplied": "Some Advanced conditions don't exist on ContraDB and were left out.",
   "@onlineAdvancedPartlyApplied": {
     "description": "Note after the online result count when an Advanced search of ContraDB had figure parameters ContraDB has no counterpart for, which were left out, so the search is not exactly the one the Advanced panel describes (usually broader, narrower under None of). Follows the count after a middle dot."

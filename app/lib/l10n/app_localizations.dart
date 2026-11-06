@@ -10163,6 +10163,12 @@ abstract class AppLocalizations {
   /// **'Showing {count} of {total} online results. Scroll down to load more.'**
   String onlineResultCountOfTotal(int count, int total);
 
+  /// Count of online search results shown above the results list when the source reports a total larger than what has been loaded, but no more will load by scrolling: paging ended without reaching the total, or a page failed and only the Try again button loads more. The same as the scroll form, without its hint to scroll.
+  ///
+  /// In en, this message translates to:
+  /// **'Showing {count} of {total} online results.'**
+  String onlineResultCountOfTotalStopped(int count, int total);
+
   /// Note after the online result count when an Advanced search of ContraDB had figure parameters ContraDB has no counterpart for, which were left out, so the search is not exactly the one the Advanced panel describes (usually broader, narrower under None of). Follows the count after a middle dot.
   ///
   /// In en, this message translates to:

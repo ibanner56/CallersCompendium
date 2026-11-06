@@ -4,7 +4,9 @@ import '../data/online_search.dart';
 /// The line above online search results: how many there are, and any caveat
 /// about how the search ran.
 ///
-/// - The source gave a total larger than what is shown: "Showing 20 of 143".
+/// - The source gave a total larger than what is shown: "Showing 20 of 143",
+///   with a hint to scroll while [hasMore], and without it when no more will
+///   load by scrolling.
 /// - The source gave a total and everything is shown: the plain count.
 /// - No total, but [hasMore] (a response filled its page and more may remain):
 ///   the "there may be more" form.
@@ -24,7 +26,12 @@ String onlineResultCountLabel(
   final more = hasMore && rows.isNotEmpty;
   final String countLabel;
   if (total != null && total > count) {
-    countLabel = l10n.onlineResultCountOfTotal(count, total);
+    // The hint to scroll is only true while scrolling can load more: not once
+    // paging has ended short of the total, nor while a failed page waits for
+    // its Try again button.
+    countLabel = more
+        ? l10n.onlineResultCountOfTotal(count, total)
+        : l10n.onlineResultCountOfTotalStopped(count, total);
   } else if (total == null && more) {
     countLabel = l10n.onlineResultCountCapped(count);
   } else {
