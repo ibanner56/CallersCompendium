@@ -124,7 +124,7 @@ void main() {
 
   group('the display\'s dancer names (#2121)', () {
     test(
-      'a series name reads in any spelling the display or ContraDB uses',
+      'a series name reads singular or plural, with `previous` or `prev`',
       () {
         for (final (line, who) in [
           ('prev neighbor swing', 'prevNeighbors'),
@@ -141,6 +141,11 @@ void main() {
         }
       },
     );
+
+    test('`centers trade` stays text: centers trade with a hand turn', () {
+      expect(only('centers trade').isCustom, isTrue);
+      expect(only('neighbors trade').move, 'pass_by');
+    });
 
     test('`second neighbor` and `second partner` name no set', () {
       // The display never writes them, and which set they mean is unsettled.

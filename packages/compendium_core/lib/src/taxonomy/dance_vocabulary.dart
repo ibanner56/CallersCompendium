@@ -75,7 +75,8 @@ const Map<String, String> dancerWords = {
 ///
 /// These are two-word names: neither word alone names the set, and `next`,
 /// `third` and `second` are ordinary words elsewhere in a call. `previous` is
-/// ContraDB's spelling of `prev`. `second neighbor` and `second partner` are
+/// read as `prev` (ContraDB's JSON API spells the previous neighbors that
+/// way). `second neighbor` and `second partner` are
 /// not listed: the display never writes them, and which set they mean is not
 /// settled (ContraDB's `2nd neighbors` is the next neighbours).
 const Map<String, Map<String, String>> seriesDancerWords = {
