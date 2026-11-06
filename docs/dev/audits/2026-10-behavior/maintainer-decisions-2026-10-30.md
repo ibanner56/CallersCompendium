@@ -598,6 +598,12 @@ So: four NEW settings; the two existing global settings stay and still gate the 
 
 **Decision (maintainer's words):** "Drop it if no one knows what it was". Dropped. `bulk-selection.md` is left as it is; no session is assigned to it. If someone later finds which numbers were meant, it can be reopened as a new item.
 
+### Standing go-ahead for the held work, 2026-11-06
+
+**Instruction (maintainer's words):** "You've got my approval to keep moving on your remaining held work as it becomes unblocked".
+
+The orchestrating session's reading: this covers the work still waiting on the sheet's "after the held program work" answers, namely Q-4 (type-aheads for Advanced search and By phrase) and the Tags manager "show these dances" action. Each starts once UX6-2's PR is open (the maintainer's earlier condition), under the existing standing PR approval, the four-session cap and the hot-file rules. It does not cover anything the maintainer has not yet decided.
+
 ## Still open
 
 - Q-2: building as four new settings (see the clarification above); the "ignores" reading for toggles 3 and 4 will be shown in the PR for the maintainer to correct.
