@@ -606,5 +606,8 @@ The orchestrating session's reading: this covers the work still waiting on the s
 
 ## Still open
 
-- Q-2: building as four new settings (see the clarification above); the "ignores" reading for toggles 3 and 4 will be shown in the PR for the maintainer to correct.
-- H-1, H-3, H-4, H-5 and H-6 are device checks and reviews waiting on the maintainer.
+Closed out 2026-11-06; see `closeout-2026-11-06.md`.
+
+- The wide Programs split pane (no app bar) keeps its in-body action row; no decision has been made.
+- The merged-tag colour reading ("survivor" means the tag you merge into) is the orchestrating session's, not confirmed.
+- H-1, H-3, H-4, H-5 and H-6 are device checks and native-speaker reviews waiting on the maintainer.
