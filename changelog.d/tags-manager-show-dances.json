@@ -1,0 +1,9 @@
+{
+  "id": "tags-manager-show-dances",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "A tag's menu in the Tags manager has Show dances, which opens your collection filtered to that tag."
+    ]
+  }
+}

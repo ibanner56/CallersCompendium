@@ -2880,6 +2880,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get tagManagerNameLabel => 'Nom du tag';
 
   @override
+  String get tagManagerShowDances => 'Afficher les danses';
+
+  @override
   String get tagManagerColour => 'Couleur…';
 
   @override

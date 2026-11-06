@@ -58,7 +58,9 @@ The **General** section gathers everyday behavior into small groups.
   places changes; exports, search, sync comparisons and screen-reader wording are
   unaffected.
 - **Tags** — opens the Tags manager, where you rename, merge, color and delete
-  your tags. See [Group by category](./collection.md#group-by-category-a-dances-vibe)
+  your tags. **Show dances** in a tag's menu closes Settings and opens your
+  collection filtered to that tag; your search text and other filters stay as
+  they were. See [Group by category](./collection.md#group-by-category-a-dances-vibe)
   for what each action does.
 - **Authors** and **Sources** — open the Authors and Sources managers. They
   work like the Tags manager: search, a **Not used** filter, sort by name or by

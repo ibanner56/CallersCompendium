@@ -2796,6 +2796,10 @@
   "@tagManagerNameLabel": {
     "x-sourceSha256": "1ace926bc7cdee5323e297d439d2d268286749252b1c7f5e332d5003681d092d"
   },
+  "tagManagerShowDances": "ダンスを表示",
+  "@tagManagerShowDances": {
+    "x-sourceSha256": "eb0d6f96f9fac9d7c3dc22d26267e06393f6924a1c69f86f28b19be8d666a9f8"
+  },
   "tagManagerColour": "色…",
   "@tagManagerColour": {
     "x-sourceSha256": "6e107e0398b006493689a361dcb31484580700c2f40851d777270e92dbe53076"

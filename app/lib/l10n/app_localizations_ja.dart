@@ -2697,6 +2697,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get tagManagerNameLabel => 'タグ名';
 
   @override
+  String get tagManagerShowDances => 'ダンスを表示';
+
+  @override
   String get tagManagerColour => '色…';
 
   @override

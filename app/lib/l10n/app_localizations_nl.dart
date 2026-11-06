@@ -2850,6 +2850,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get tagManagerNameLabel => 'Tagnaam';
 
   @override
+  String get tagManagerShowDances => 'Dansen tonen';
+
+  @override
   String get tagManagerColour => 'Kleur…';
 
   @override

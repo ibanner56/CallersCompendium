@@ -4,6 +4,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/collection_filter_scope.dart';
 import '../data/repositories_scope.dart';
 import '../data/tag_edits.dart';
 import '../diagnostics/error_log.dart';
@@ -113,7 +114,18 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
   List<LibraryManagerAction> _actionsFor(LibraryManagerEntry entry) {
     final l10n = AppLocalizations.of(context);
     final coloured = _tag(entry.id)?.color != null;
+    // The same entry a tapped tag chip uses: the shell pops to the Collection
+    // and the list adds the tag. Absent where no scope is mounted (focused
+    // widget tests), since the action would do nothing.
+    final filter = CollectionFilterScope.maybeOf(context);
     return [
+      if (filter != null)
+        LibraryManagerAction(
+          id: 'show-dances',
+          label: l10n.tagManagerShowDances,
+          icon: Icons.filter_list,
+          onSelected: () => filter.filterByTag(entry.id),
+        ),
       LibraryManagerAction(
         id: 'rename',
         label: l10n.libraryManagerRename,

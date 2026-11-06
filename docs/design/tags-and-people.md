@@ -568,11 +568,15 @@ nothing to the Collection toolbar, which B14 and B15 are already changing.
 retired. The manager lists live tags through `TagRepository.watchAll`
 (`tag_repository.dart:451-456`), as that screen does today.
 
-**Not proposed here:** a "show these dances" action. It would open Collection
-filtered to the row, and B15 is changing how an external tag filter behaves
-(`dance_list_screen.dart:503-530`). Add it after B15 lands, using whatever
-rule B15 settles. *B15 had merged by the time T2 was built; T2 still leaves
-the action out, as its scope says, and names it as a follow-up.*
+**Show dances (built).** A tag row's ⋮ menu and row sheet also hold **Show
+dances**, which leaves Settings and opens Collection with that one tag added to
+the Tags facet. It calls `CollectionFilterController.filterByTag`, the entry a
+tapped tag chip uses, so it behaves as a chip tap does: the search text, other
+facets and sort are kept, and a tag already selected stays (a second tag
+defaults the facet to "all tags", B15). A tag with no live dances opens the
+ordinary empty result. It was deferred from T2 until B15 settled the rule for
+an external tag filter, then built as a follow-up. Authors and sources do not
+have it.
 
 **What T2 built (2026-10-30).** The shared list is `LibraryManagerList`
 (`app/lib/src/screens/settings/library_manager_list.dart`), with the dialogs
@@ -825,7 +829,8 @@ implementing branch should confirm them with the maintainer in its PR:
 
 - a merged tag keeps the loser's colour when the survivor has none (decided
   by the maintainer on 2026-11-05, and already built);
-- a "show these dances" action waits for B15.
+- a "show these dances" action waits for B15 (built after B15 landed; see
+  "Show dances (built)" under the manager screens).
 
 **Where the brief's line numbers differ.** The work plan cites
 `settings.md:1158-1168` for the sync **Merge** choice and `ux.md:186-187` for
