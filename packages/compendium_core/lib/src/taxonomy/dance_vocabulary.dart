@@ -108,6 +108,20 @@ String? seriesDancer(String ordinal, String? relationship) {
   return seriesDancerWords[noun]?[ordinal];
 }
 
+/// How the figure display words a set direction (`ParamKind.direction`) that
+/// does not read as itself: a diagonal reads "on right diagonal" and a facing
+/// direction "facing in". `across` and `along` read as themselves. The display
+/// (`FigureRenderer`) writes these and the figure readers read them back
+/// (#2121), so the two cannot drift apart.
+const Map<String, String> displayDirectionPhrases = {
+  'rightDiagonal': 'on right diagonal',
+  'leftDiagonal': 'on left diagonal',
+  'in': 'facing in',
+  'out': 'facing out',
+  'up': 'facing up',
+  'down': 'facing down',
+};
+
 /// Qualifiers that, followed by `neighbor`/`neighbors`, name the `sameRoles`
 /// dancer set ("Same-role neighbor do-si-do" → `do_si_do(who: sameRoles)`).
 ///

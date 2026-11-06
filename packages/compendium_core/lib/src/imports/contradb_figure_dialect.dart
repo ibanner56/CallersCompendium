@@ -1,5 +1,7 @@
 import '../model/figure.dart';
-import '../taxonomy/dance_vocabulary.dart' show seriesDancerWords;
+import '../taxonomy/contra_taxonomy.dart';
+import '../taxonomy/dance_vocabulary.dart'
+    show displayDirectionPhrases, seriesDancerWords;
 import '../taxonomy/param_types.dart';
 import '../taxonomy/taxonomy.dart';
 import 'contradb_dancer_vocab.dart';
@@ -238,7 +240,12 @@ const List<FigureMatch? Function(String)> _recognizers =
     <FigureMatch? Function(String)>[
       _swing,
       _passTheOcean,
+      _passTheOceanDisplay,
       _formAShortWave,
+      _formShortWavesDisplay,
+      // Ahead of [_formLongWaves], which takes any tail as its note and so
+      // would read the display's clause as a note.
+      _formLongWavesDisplay,
       _formLongWaves,
       _hey,
       _longLines,
@@ -284,6 +291,7 @@ const List<FigureMatch? Function(String)> _recognizers =
       _figure8,
       _squareThrough,
       _formALongWave,
+      _formALongWaveInPlace,
       _dolphinHey,
     ];
 
@@ -660,6 +668,166 @@ FigureMatch? _formAShortWave(String text) {
   );
 }
 
+/// pass_the_ocean in the app's own display wording (#2121), which differs
+/// from ContraDB's: "pass through to an ocean wave [a direction] - CENTER catch
+/// HAND hands in the center, SIDES take HAND hands on the sides [and
+/// balance]". The display derives the side hand from the center hand, so a
+/// line whose two hands are not opposite is not this wording and is not read.
+FigureMatch? _passTheOceanDisplay(String text) {
+  final s = _Scan(text);
+  if (!s.eatPhrase('pass through to')) return null;
+  if (!(s.eat('a') || s.eat('an'))) return null;
+  if (!s.eatPhrase('ocean wave')) return null;
+  final where = _displayDirectionPhrase(s);
+  if (!s.eat('-')) return null;
+  final center = _displaySubject(s);
+  if (center == null || !s.eat('catch')) return null;
+  final centerHand = _leftRight(s.peek());
+  if (centerHand == null) return null;
+  s.take();
+  if (!s.eatPhrase('hands in the center')) return null;
+  final sides = _displaySubject(s);
+  if (sides == null || !s.eat('take')) return null;
+  if (s.peek() != _otherSide(centerHand)) return null;
+  s.take();
+  if (!s.eatPhrase('hands on the sides')) return null;
+  final balance = s.eatPhrase('and balance');
+  // Only the display's whole line: a tail would ride as a note the params
+  // may contradict (`…, balance` with no balance read).
+  if (s.peek() != null) return null;
+  return FigureMatch(
+    'pass_the_ocean',
+    params: {
+      'where': ?where,
+      if (balance) 'balance': true,
+      'center': center,
+      'centerHand': centerHand,
+      'sides': sides,
+    },
+  );
+}
+
+/// form_short_waves in the app's own display wording (#2121): "form short
+/// waves - CENTER by the HAND in the center, SIDES by the HAND on the sides [-
+/// and balance]". The wave's axis is not displayed, so it is not read. As for
+/// [_passTheOceanDisplay], the two hands must be opposite.
+FigureMatch? _formShortWavesDisplay(String text) {
+  final s = _Scan(text);
+  if (!s.eatPhrase('form short waves -')) return null;
+  final center = _displaySubject(s);
+  if (center == null || !s.eatPhrase('by the')) return null;
+  final centerHand = _leftRight(s.peek());
+  if (centerHand == null) return null;
+  s.take();
+  if (!s.eatPhrase('in the center')) return null;
+  final sides = _displaySubject(s);
+  if (sides == null || !s.eatPhrase('by the')) return null;
+  if (s.peek() != _otherSide(centerHand)) return null;
+  s.take();
+  if (!s.eatPhrase('on the sides')) return null;
+  final balance = s.eatPhrase('- and balance');
+  // Only the display's whole line: a tail would ride as a note the params
+  // may contradict (`…, balance` with no balance read).
+  if (s.peek() != null) return null;
+  return FigureMatch(
+    'form_short_waves',
+    params: {
+      if (balance) 'balance': true,
+      'center': center,
+      'centerHand': centerHand,
+      'sides': sides,
+    },
+  );
+}
+
+/// form_long_waves in the app's own display wording (#2121), which says
+/// "facing" where ContraDB says "face" and adds the pair held and a balance:
+/// "form long waves - [WHOM by the HAND,] WHO facing in, OTHER facing out [-
+/// and balance]". The display derives OTHER from WHO, so a line naming any
+/// other pair there is not this wording and is not read.
+FigureMatch? _formLongWavesDisplay(String text) {
+  final s = _Scan(text);
+  if (!s.eatPhrase('form long waves -')) return null;
+  final params = <String, Object?>{};
+  final hold = s.pos;
+  final whom = _displaySubject(s);
+  final whomHand = whom == null || !s.eatPhrase('by the')
+      ? null
+      : _leftRight(s.peek());
+  if (whomHand != null) {
+    s.take();
+    params['whom'] = whom;
+    params['whomHand'] = whomHand;
+  } else {
+    s.reset(hold);
+  }
+  final who = _displaySubject(s);
+  if (who == null || !s.eatPhrase('facing in')) return null;
+  final other = _displaySubject(s);
+  if (other == null || _invertPairHash[who] != other) return null;
+  if (!s.eatPhrase('facing out')) return null;
+  params['who'] = who;
+  if (s.eatPhrase('- and balance')) params['balance'] = true;
+  // Only the display's whole line: a tail would ride as a note the params
+  // may contradict (`…, balance` with no balance read).
+  if (s.peek() != null) return null;
+  return FigureMatch('form_long_waves', params: params);
+}
+
+/// form_a_long_wave that dances neither in nor out (#2121): "WHO form a long
+/// wave in the center [- balance the wave]", as the app's display and
+/// ContraDB both write it. [_formALongWave] reads the three forms that dance
+/// in or out.
+FigureMatch? _formALongWaveInPlace(String text) {
+  final s = _Scan(text);
+  final who = _displaySubject(s);
+  if (who == null) return null;
+  if (!s.eatPhrase('form a long wave in the center')) return null;
+  final balance = s.eat('-') && s.eatPhrase('balance the wave');
+  // Only the display's whole line: a tail would ride as a note the params
+  // may contradict (`…, balance` with no balance read).
+  if (s.peek() != null) return null;
+  return FigureMatch(
+    'form_a_long_wave',
+    params: {'who': who, 'in': false, 'out': false, 'balance': balance},
+  );
+}
+
+/// A subject as the app's display writes it (#2121): any [_subject], the
+/// singular the display uses for a pair (`neighbor`, `partner`, `shadow`), or
+/// a corner pairing ContraDB does not name (`third corners`, `opposites`).
+String? _displaySubject(_Scan s) {
+  if (_subject(s) case final who?) return who;
+  for (final MapEntry(key: phrase, value: token) in _displayOnlySubjects) {
+    if (s.eatPhrase(phrase)) return token;
+  }
+  return null;
+}
+
+/// The subjects [_displaySubject] reads beyond [_subject].
+const List<MapEntry<String, String>> _displayOnlySubjects = [
+  MapEntry('third corners', 'thirdCorners'),
+  MapEntry('opposites', 'opposites'),
+  MapEntry('neighbor', 'neighbors'),
+  MapEntry('partner', 'partners'),
+  MapEntry('shadow', 'shadows'),
+];
+
+/// A set direction as the app's display words it after a move (#2121):
+/// `along`, or one of [displayDirectionPhrases]. `across`, the usual default,
+/// is not displayed, so it is never read here.
+String? _displayDirectionPhrase(_Scan s) {
+  if (s.eat('along')) return 'along';
+  for (final MapEntry(key: token, value: phrase)
+      in displayDirectionPhrases.entries) {
+    if (s.eatPhrase(phrase)) return token;
+  }
+  return null;
+}
+
+/// The other hand or side.
+String _otherSide(String side) => side == 'left' ? 'right' : 'left';
+
 /// Consumes an optional `& balance` token, returning whether it was present.
 bool _eatAmpBalance(_Scan s) {
   final save = s.pos;
@@ -687,11 +855,14 @@ bool _eatBalanceAmp(_Scan s) {
 /// heyWords (common full/half form). Renders as: "PASS1 start a FULL|HALF hey -
 /// SH1 PLACE, SH2 PLACE". Extracts pass1, length, and the first shoulder; the
 /// shoulder/place clause is part of the render (consumed, not a note).
-/// `until`-length heys are deferred. Canonical ricochet clauses are consumed
+/// A partial length reads from its `until` clause ([_eatHeyUntil]). Canonical
+/// ricochet clauses are consumed
 /// only when the complete comma-separated suffix is recognized.
 FigureMatch? _hey(String text) {
   final s = _Scan(text);
-  final pass1 = _subject(s);
+  // The display's subjects too (`third corners`), and below its direction and
+  // `until` clause (#2121).
+  final pass1 = _displaySubject(s);
   if (pass1 == null) return null;
   if (!s.eat('start')) return null;
   if (!(s.eat('a') || s.eat('an'))) return null;
@@ -704,6 +875,7 @@ FigureMatch? _hey(String text) {
   if (!s.eat('hey')) return null;
   final params = <String, Object?>{'pass1': pass1};
   if (length != null) params['length'] = length;
+  if (_displayDirectionPhrase(s) case final where?) params['where'] = where;
   final clauseSave = s.pos;
   if (s.eat('-')) {
     final sh1 = _shoulderTerse(s.peek());
@@ -720,6 +892,11 @@ FigureMatch? _hey(String text) {
       s.reset(clauseSave); // not a shoulder clause — leave it as the note
     }
   }
+  // A partial length names no length word; the `until` clause says which.
+  if (length == null) {
+    length = _eatHeyUntil(s, params);
+    if (length != null) params['length'] = length;
+  }
   final ricoSave = s.pos;
   final ricoParams = <String, Object?>{};
   if (length != null && _eatHeyRicochets(s, pass1, length, ricoParams)) {
@@ -729,6 +906,38 @@ FigureMatch? _hey(String text) {
   }
   return FigureMatch('hey', params: params, note: s.note());
 }
+
+/// Consumes a hey's partial-length clause, "- until someone meets [the second
+/// time]" or "- until GROUP meet [the second time]" (ContraDB
+/// hey-length wording, which the app's display mirrors; #2121), and
+/// returns the length it states, setting the named `meetTarget` in [params].
+/// Returns null, consuming nothing, when there is no such clause.
+String? _eatHeyUntil(_Scan s, Map<String, Object?> params) {
+  final save = s.pos;
+  if (!s.eat('-') || !s.eat('until')) {
+    s.reset(save);
+    return null;
+  }
+  String? target;
+  if (!s.eatPhrase('someone meets')) {
+    target = _displaySubject(s);
+    // A target the hey does not take would fail validation and lose the whole
+    // line, so the clause is left to the note instead, as before #2121.
+    if (target == null ||
+        !(_heyMeetTargets?.contains(target) ?? false) ||
+        !s.eat('meet')) {
+      s.reset(save);
+      return null;
+    }
+  }
+  final second = s.eatPhrase('the second time');
+  if (target != null) params['meetTarget'] = target;
+  return second ? 'betweenHalfAndFull' : 'lessThanHalf';
+}
+
+/// The pairs a hey's `meetTarget` takes.
+final List<String>? _heyMeetTargets =
+    contraTaxonomy.moves['hey']?.params['meetTarget']?.choices;
 
 /// Consumes the complete canonical ricochet suffix emitted by the renderer.
 /// If any comma-separated clause is malformed, the whole suffix is left for
@@ -1259,7 +1468,8 @@ FigureMatch? _dolphinHey(String text) {
   if (!s.eatPhrase('dolphin hey')) return null;
   if (!s.eat('-')) return null;
   if (!s.eatPhrase('start with')) return null;
-  final who = _subject(s);
+  // The display writes a pair in the singular (`neighbor`, #2121).
+  final who = _displaySubject(s);
   if (who == null) return null;
   if (!s.eat('passing')) return null;
   final whom = _singleDancer(s);
@@ -1866,8 +2076,9 @@ FigureMatch? _formALongWave(String text) {
   }
 
   // !out && in: "WHO dance in to a long wave in the center
-  // [- balance the wave]" (the pre-existing, most common form).
-  final who = _subject(s);
+  // [- balance the wave]" (the pre-existing, most common form). The subject is
+  // read as the app's display writes it too (`third corners`, #2121).
+  final who = _displaySubject(s);
   if (who == null) return null;
   if (!s.eatPhrase('dance in to a long wave in the center')) return null;
   final params = <String, Object?>{'who': who, 'in': true, 'out': false};

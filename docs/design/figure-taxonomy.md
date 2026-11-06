@@ -1669,7 +1669,11 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
     unless written with `full`. The recognizer requires the extent,
     group, shoulder and direction rather than defaulting them. Purely
     additive: no schema migration, no derived-index rebuild (no existing
-    figure changes).
+    figure changes). *Superseded in part by #2121 (not a taxonomy change): a
+    line with no extent now reads as the full four changes, so the full
+    circuit's display line reads back; the group, shoulder and direction are
+    still required, and the direction may also be one of the display's
+    diagonal or facing phrases (`on right diagonal`, `facing in`).*
 - v37: adds `circular_hey.who2`, the group passed second, by the other
     shoulder — the counterpart of `hey.pass2`. It defaults to the
     `unspecified` sentinel and draws from the same pair vocabulary as
