@@ -2369,6 +2369,56 @@ void main() {
     },
   );
 
+  testWidgets('clearing the search on ContraDB forgets the removed tag rows', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    // ignore: unused_result
+    await repos.tags.upsert(Tag(id: 't1', name: 'smooth'));
+    await repos.dances.create(
+      _dance(id: 'a', title: 'Smooth', tagIds: const ['t1']),
+    );
+    final contraDb = ContraDbOnline(
+      searchFetcher: (_) async => '{"numberMatching":0,"dances":[]}',
+    );
+    await _pumpScreen(tester, repos, contraDbOnline: contraDb);
+    await tester.pumpAndSettle();
+
+    await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
+    await _tapVisible(tester, find.text('Add'));
+    await _tapVisible(tester, find.text('Has tag').last);
+    await _tapVisible(
+      tester,
+      find.byType(DropdownButtonFormField<String>).first,
+    );
+    await tester.tap(find.text('smooth').last);
+    await tester.pumpAndSettle();
+
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('online-search-enable')),
+    );
+    await tester.tap(find.text('ContraDB'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('collection-search-field')),
+      'x',
+    );
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+
+    // Clear the search: the query, and the rows kept for it, are gone.
+    await _tapVisible(tester, find.byIcon(Icons.clear));
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('online-search-enable')),
+    );
+    if (find.byType(DropdownButtonFormField<String>).evaluate().isEmpty) {
+      await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
+    }
+    expect(find.byType(DropdownButtonFormField<String>), findsNothing);
+  });
+
   testWidgets('advanced builder: add a "then" sequence row', (tester) async {
     final repos = openTestRepositories();
     await repos.dances.create(_dance(id: 'a', title: 'Alpha'));
