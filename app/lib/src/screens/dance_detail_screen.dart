@@ -988,8 +988,10 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                       : Center(child: Text(l10n.danceNotFound)))
                 : SelectableContent(child: _buildBody(detail)),
             // Edit mirrors the program preview's builder affordance: a bottom-right
-            // extended FAB (`docs/design/ux.md` §2/§3) rather than an AppBar action,
-            // so opening the editor is consistent across the dance and program views.
+            // extended FAB rather than an AppBar action, so opening the editor is
+            // consistent across the dance and program views (the floating-action
+            // rule is `docs/design/ux.md`, "Where Save, New and the record's name
+            // go", D-11).
             // In preview mode the same slot becomes an Import button.
             floatingActionButton: detail == null || _isReadOnly
                 ? null

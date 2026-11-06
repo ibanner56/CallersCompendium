@@ -1,0 +1,9 @@
+{
+  "id": "ux6-2-program-summary-top-bar",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "On a program's own screen, Export, Mark all performed, Duplicate and Delete are now in the top bar next to the title \"Program\", and the program's name has its own line below. On narrow screens, the last three stay in the ⋮ menu."
+    ]
+  }
+}

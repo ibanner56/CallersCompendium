@@ -1046,8 +1046,10 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
               ),
               body: _buildBody(),
               // Save mirrors the program builder: a bottom-right extended FAB
-              // (`docs/design/ux.md` §3) rather than an AppBar action, so the
-              // primary commit affordance is consistent across editors. Undo /
+              // rather than an AppBar action. The two long editors (dance and
+              // program) float Save; the short ones keep it in the top bar
+              // (`docs/design/ux.md`, "Where Save, New and the record's name
+              // go", D-11). Undo /
               // redo stay in the AppBar. The `_saving` disabled state and inline
               // spinner are preserved.
               floatingActionButton: _controller.loaded

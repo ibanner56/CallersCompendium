@@ -208,8 +208,8 @@ visible Copy. That is one more reason rule 1 should hold.
 - **Phone-first layouts.** Option A in question 4 leaves phone layouts
   untouched.
 - **D-11.** Nothing here touches Save, New or header placement. The summary
-  header row (`program_summary_screen.dart:722-756`) stays as it is; selection
-  wraps its *text*, not its action buttons.
+  header (the program's name and, in the split pane, its action row) stays as
+  it is; selection wraps its *text*, not its action buttons.
 
 ## Proposed design
 

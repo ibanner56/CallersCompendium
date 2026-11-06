@@ -603,7 +603,9 @@ just show a check on dances already marked. To mark
 every unperformed dance at once, use **Mark all performed** in the program
 editor or on a saved program's summary; it offers a one-tap **Undo**. On a
 phone, or wherever the summary pane is narrow, it is in the **More actions** (⋮)
-menu, with **Duplicate** and **Delete**. Mark all performed skips alternates,
+menu, with **Duplicate** and **Delete**. On a program's own screen these
+actions (and **Export**) are in the top bar, beside the title "Program"; the
+program's name is on its own line below it. Mark all performed skips alternates,
 and so does setting a program's status to **Performed**: mark the alternates you
 used yourself.
 

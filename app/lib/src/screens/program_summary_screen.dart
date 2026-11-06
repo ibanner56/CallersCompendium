@@ -179,9 +179,11 @@ class ProgramSummaryPane extends StatefulWidget {
   final VoidCallback onDeleted;
   final void Function(String id) onNavigateTo;
 
-  /// Wraps the pane in a [Scaffold] [AppBar] (back button + generic title) when
-  /// pushed as a full-screen route on narrow layouts. The wide detail pane
-  /// leaves this `false` — its title lives in the body, not an app bar.
+  /// Wraps the pane in a [Scaffold] [AppBar] (back button + generic title +
+  /// the record actions) when pushed as a full-screen route on narrow layouts;
+  /// the program's name then has its own line in the body. The wide detail
+  /// pane leaves this `false` — it has no app bar, so the name and the same
+  /// actions share one row in the body.
   final bool showAppBar;
 
   /// Renders a prominent full-width "Perform this program" button (Perform-first)
@@ -196,9 +198,9 @@ class ProgramSummaryPane extends StatefulWidget {
   final OnlineSearchService? contraDbOnline;
   final ImportPicker? reimportPicker;
 
-  /// Pane width (logical pixels) below which the title row keeps Perform and
-  /// Export and moves Mark all performed, Duplicate and Delete into a "⋮"
-  /// menu. Matches `DanceDetailScreen.compactActionsBreakpoint`.
+  /// Pane width (logical pixels) below which the actions (in the top bar, or
+  /// the body's title row when there is none) keep Perform and Export and
+  /// move Mark all performed, Duplicate and Delete into a "⋮" menu. Matches `DanceDetailScreen.compactActionsBreakpoint`.
   static const double compactActionsBreakpoint = 600;
 
   @override
@@ -850,29 +852,89 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Scaffold(
-      appBar: widget.showAppBar
-          ? AppBar(title: Text(l10n.programsSummaryTitle))
-          : null,
-      // Below [ProgramSummaryPane.compactActionsBreakpoint] the title row
-      // keeps Perform and Export; the rest fold into [_secondaryActionsMenu].
-      body: LayoutBuilder(
-        builder: (context, constraints) => _buildBody(
-          compact:
-              constraints.maxWidth <
-              ProgramSummaryPane.compactActionsBreakpoint,
-        ),
-      ),
-      floatingActionButton: (_program != null)
-          ? FloatingActionButton.extended(
-              key: const ValueKey('open-builder'),
-              heroTag: 'open-builder',
-              onPressed: _openBuilder,
-              icon: const Icon(Icons.edit_outlined),
-              label: Text(l10n.programsEditProgram),
-            )
-          : null,
+    // One width read for both the top bar and the body, so the two never
+    // disagree about whether the secondary actions are inline or folded.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact =
+            constraints.maxWidth < ProgramSummaryPane.compactActionsBreakpoint;
+        final program = _loading || _error != null ? null : _program;
+        return Scaffold(
+          // D-11 "(B) Actions to top bar" (UX6-2): with a top bar, it keeps
+          // the word "Program" and carries the record actions; the program's
+          // own name keeps its line in the body. The wide split pane has no
+          // top bar and keeps the same actions in its body row.
+          appBar: widget.showAppBar
+              ? AppBar(
+                  title: Text(l10n.programsSummaryTitle),
+                  actions: program == null
+                      ? null
+                      : _buildActions(program, compact: compact),
+                )
+              : null,
+          body: _buildBody(compact: compact),
+          floatingActionButton: (_program != null)
+              ? FloatingActionButton.extended(
+                  key: const ValueKey('open-builder'),
+                  heroTag: 'open-builder',
+                  onPressed: _openBuilder,
+                  icon: const Icon(Icons.edit_outlined),
+                  label: Text(l10n.programsEditProgram),
+                )
+              : null,
+        );
+      },
     );
+  }
+
+  /// The record actions, in tab order: Perform (only when it is not the
+  /// prominent body button), Export, then Mark all performed, Duplicate and
+  /// Delete. Below [ProgramSummaryPane.compactActionsBreakpoint] the last
+  /// three fold into [_secondaryActionsMenu]. Shown in the top bar when there
+  /// is one, else at the end of the body's title row.
+  List<Widget> _buildActions(Program program, {required bool compact}) {
+    final l10n = AppLocalizations.of(context);
+    return [
+      if (!widget.prominentPerform) _buildPerformAction(program),
+      ProgramExportMenu(
+        program: program,
+        titleFor: (id) => switch (_dances[id]) {
+          final dance? => slotDanceTitle(l10n, dance),
+          null => _danceTitles[id],
+        },
+        venuesById: _venuesById,
+        danceFor: (id) => _dances[id],
+        choreographerFor: (id) => _collectionData?.choreographersById[id],
+        authorNamesOverrideFor: (id) => _authorNamesOverride[id],
+        tagFor: (id) => _collectionData?.tagFor(id),
+        publishedSourceFor: (id) => _collectionData?.publishedSourceFor(id),
+        customFieldFor: (id) => _collectionData?.customFieldFor(id),
+        difficultyLevelFor: (id) => _difficultyLevelFor(_dances[id]),
+      ),
+      if (compact)
+        _secondaryActionsMenu(program)
+      else ...[
+        if (program.slots.any((s) => s.danceId != null))
+          IconButton(
+            key: const ValueKey('mark-all-performed'),
+            tooltip: l10n.programsMarkAllPerformedTooltip,
+            icon: const Icon(Icons.done_all),
+            onPressed: _markAllPerformed,
+          ),
+        IconButton(
+          key: const ValueKey('summary-duplicate'),
+          tooltip: l10n.commonDuplicate,
+          icon: const Icon(Icons.copy_all_outlined),
+          onPressed: _duplicate,
+        ),
+        IconButton(
+          key: const ValueKey('summary-delete'),
+          tooltip: l10n.commonDelete,
+          icon: const Icon(Icons.delete_outline),
+          onPressed: _delete,
+        ),
+      ],
+    ];
   }
 
   Widget _buildBody({required bool compact}) {
@@ -912,53 +974,20 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         AppSpacing.fabClearance,
       ),
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(program.title, style: theme.textTheme.headlineSmall),
-            ),
-            if (!widget.prominentPerform) _buildPerformAction(program),
-            ProgramExportMenu(
-              program: program,
-              titleFor: (id) => switch (_dances[id]) {
-                final dance? => slotDanceTitle(l10n, dance),
-                null => _danceTitles[id],
-              },
-              venuesById: _venuesById,
-              danceFor: (id) => _dances[id],
-              choreographerFor: (id) => _collectionData?.choreographersById[id],
-              authorNamesOverrideFor: (id) => _authorNamesOverride[id],
-              tagFor: (id) => _collectionData?.tagFor(id),
-              publishedSourceFor: (id) =>
-                  _collectionData?.publishedSourceFor(id),
-              customFieldFor: (id) => _collectionData?.customFieldFor(id),
-              difficultyLevelFor: (id) => _difficultyLevelFor(_dances[id]),
-            ),
-            if (compact)
-              _secondaryActionsMenu(program)
-            else ...[
-              if (program.slots.any((s) => s.danceId != null))
-                IconButton(
-                  key: const ValueKey('mark-all-performed'),
-                  tooltip: l10n.programsMarkAllPerformedTooltip,
-                  icon: const Icon(Icons.done_all),
-                  onPressed: _markAllPerformed,
+        if (widget.showAppBar)
+          Text(program.title, style: theme.textTheme.headlineSmall)
+        else
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  program.title,
+                  style: theme.textTheme.headlineSmall,
                 ),
-              IconButton(
-                key: const ValueKey('summary-duplicate'),
-                tooltip: l10n.commonDuplicate,
-                icon: const Icon(Icons.copy_all_outlined),
-                onPressed: _duplicate,
               ),
-              IconButton(
-                key: const ValueKey('summary-delete'),
-                tooltip: l10n.commonDelete,
-                icon: const Icon(Icons.delete_outline),
-                onPressed: _delete,
-              ),
+              ..._buildActions(program, compact: compact),
             ],
-          ],
-        ),
+          ),
         const SizedBox(height: 8),
         ProgramStatusChip(status: program.status),
         if (widget.prominentPerform) ...[
@@ -1012,7 +1041,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     );
   }
 
-  /// The narrow title row's "⋮" menu: Mark all performed, Duplicate and
+  /// The narrow layout's "⋮" menu: Mark all performed, Duplicate and
   /// Delete, under the keys and labels of the buttons they replace.
   Widget _secondaryActionsMenu(Program program) {
     final l10n = AppLocalizations.of(context);
