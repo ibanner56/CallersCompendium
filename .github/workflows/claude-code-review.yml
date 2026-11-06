@@ -1,6 +1,7 @@
-# Claude code review, opt-in per pull request.
+# Claude code review, run per pull request on request.
 #
-# Copilot stays the default reviewer; nothing here runs on a PR unless someone
+# Claude is the default reviewer, and the merge gate reads its review unless
+# told otherwise; still, nothing here runs on a PR unless someone
 # with write access applies the `review: claude` label (the action rejects any
 # actor whose repository permission is not write or admin, so triage is not
 # enough). While the label is on the PR, every push by a human is reviewed
@@ -14,8 +15,8 @@
 # docs/dev/agents/code-review.md.
 #
 # Every round submits exactly one PR review (`POST /pulls/<N>/reviews`) whose
-# `commit_id` is the head it reviewed, so `check_pr_review_gates.py --reviewer
-# claude` reads it the same way it reads a Copilot review. The stock
+# `commit_id` is the head it reviewed, so `check_pr_review_gates.py`, which
+# reads Claude's review by default, can check that it covers the head. The stock
 # `code-review@claude-code-plugins` command is not used: it stops for good once
 # Claude has commented on a PR, so pushes after the first round would never be
 # re-reviewed, and it reads CLAUDE.md where this repository keeps AGENTS.md.
@@ -78,8 +79,9 @@
 # did not, so a green `claude-review` check is still not evidence that
 # a review happened; the review entry is. CI's `Claude workflow isolation`
 # job (tools/ci/check_claude_workflow_isolation.py) fails any PR that changes
-# this file together with anything else, so only the workflow change itself
-# goes unreviewed. claude.yml is not covered: the check is on the invoking
+# this file together with anything else, unless the whole change bumps the
+# action's pin and claude.yml moves its pin to match, so only the workflow
+# change itself, and that matching pin in claude.yml, goes unreviewed. Otherwise claude.yml is not covered: the check is on the invoking
 # workflow, so a PR editing claude.yml is still reviewed by this one.
 name: Claude Code Review
 
