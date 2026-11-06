@@ -271,6 +271,24 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
 - Every interactive element: visible focus, name/role/state semantics, 24px+
   targets (44pt in Perform), traversal order = visual order.
 - No color-only meaning anywhere (chips/badges pair icon+text).
+- **Where Save, New and the record's name go** (maintainer decision D-11 of the
+  October 2026 UX audit, UX6-2): Save and New keep today's layout; the
+  record's name takes option (B), "actions to top bar".
+  - **Save.** The two long editors, dance and program, float Save as a
+    bottom-right extended button, so it stays in reach while a long form
+    scrolls. The shorter editors (theme, compound, compound shorthand,
+    shorthand mapping, dialect) keep Save in the top bar. A new editor follows
+    the length of its form; it does not mix the two.
+  - **New.** A top-level list floats a New button. Where a floating button
+    would cover entries (the Glossary), New is a "+" in the top bar.
+  - **The record's name.** On a record screen with a top bar, the bar keeps its
+    generic title and carries the record's actions; the full name keeps its own
+    line in the body. The full-screen program summary does this ("Program";
+    Export, Mark all performed, Duplicate and Delete in the bar, Perform as a
+    full-width body button; below 600 dp the last three fold into the existing
+    "⋮" menu). Dance detail already shows the name in a body card. The wide
+    Programs split pane has no top bar and keeps its actions on the name's row
+    in the body; whether it should change is a separate maintainer call.
 
 ## Deliverables next
 
