@@ -97,8 +97,9 @@ Future<ValueNotifier<bool>> _pumpProgram(
                             child: VenueCallCountScope(
                               notifier: venueCalls,
                               child:
-                                  (textScaleBuilder(textScale)
-                                      ?.call(context, child)) ??
+                                  (textScaleBuilder(
+                                    textScale,
+                                  )?.call(context, child)) ??
                                   child!,
                             ),
                           ),

@@ -194,8 +194,9 @@ void main() {
     test(
       'fails open (unavailable, no throw) on an unexpected IO fault',
       () async {
-        final result = await guardWith(primitive: _FakePrimitive.throwing())
-            .acquire();
+        final result = await guardWith(
+          primitive: _FakePrimitive.throwing(),
+        ).acquire();
 
         expect(result, SingleInstanceResult.unavailable);
       },

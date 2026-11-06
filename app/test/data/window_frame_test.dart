@@ -45,8 +45,11 @@ void main() {
         isFalse,
       );
       expect(
-        WindowFrame.fromJson({'width': 800, 'height': 600, 'maximized': true})!
-            .maximized,
+        WindowFrame.fromJson({
+          'width': 800,
+          'height': 600,
+          'maximized': true,
+        })!.maximized,
         isTrue,
       );
     });

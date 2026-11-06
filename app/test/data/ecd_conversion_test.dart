@@ -198,8 +198,9 @@ void main() {
 
       // The tag is removed from the dance (e.g. by a concurrent sync pass)
       // while the dialog is still up, before the user confirms.
-      final retagged = (await repos.dances.getById('d1'))!
-          .copyWith(tagIds: const []);
+      final retagged = (await repos.dances.getById(
+        'd1',
+      ))!.copyWith(tagIds: const []);
       await repos.dances.update(retagged, localUserEdit: true);
 
       final converted = await convertDancesToEcd(repos);

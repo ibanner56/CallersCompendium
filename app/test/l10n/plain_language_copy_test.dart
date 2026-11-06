@@ -106,8 +106,9 @@ void main() {
         'importReviewBatchErrors',
       ]) {
         final value = en[key] as String;
-        final branches = RegExp(r'=1\{(.*?)\} other\{(.*)\}\}$')
-            .firstMatch(value);
+        final branches = RegExp(
+          r'=1\{(.*?)\} other\{(.*)\}\}$',
+        ).firstMatch(value);
         expect(branches, isNotNull, reason: key);
         expect(branches!.group(1), isNot(branches.group(2)), reason: key);
       }

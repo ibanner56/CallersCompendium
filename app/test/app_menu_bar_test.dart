@@ -125,8 +125,9 @@ void main() {
       'Window',
       'Help',
     ]);
-    final labels = {for (final item in _items(_sentMenus)) item['label']}
-        .whereType<String>();
+    final labels = {
+      for (final item in _items(_sentMenus)) item['label'],
+    }.whereType<String>();
     expect(
       labels,
       containsAll([

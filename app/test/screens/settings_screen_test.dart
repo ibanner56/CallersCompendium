@@ -26,9 +26,7 @@ import 'package:compendium_app/src/data/dialect_library_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
-
 import '../support/tracking_settings.dart';
-
 import 'package:compendium_app/src/data/shorthand_mappings_controller.dart';
 import 'package:compendium_app/src/data/shorthand_mappings_scope.dart';
 import 'package:compendium_app/src/data/show_custom_figures_scope.dart';
@@ -1140,9 +1138,9 @@ void main() {
       () {
         // Gallery sections (Light/Dark) list alphabetically by label.
         for (final group in [AppThemeGroup.light, AppThemeGroup.dark]) {
-          final labels = AppThemeSelection.inGroup(group)
-              .map((s) => s.label)
-              .toList();
+          final labels = AppThemeSelection.inGroup(
+            group,
+          ).map((s) => s.label).toList();
           final sorted = [...labels]
             ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
           expect(
@@ -1155,8 +1153,9 @@ void main() {
         // contrast, Light) rather than alphabetical, which reads more
         // intuitively in the Settings pane.
         expect(
-          AppThemeSelection.inGroup(AppThemeGroup.defaultHearth)
-              .map((s) => s.label),
+          AppThemeSelection.inGroup(
+            AppThemeGroup.defaultHearth,
+          ).map((s) => s.label),
           equals(['Dark', 'Soft dark', 'High contrast', 'Light']),
         );
       },

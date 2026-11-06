@@ -1048,8 +1048,9 @@ void main() {
       expect(copy.ownManifest?.hash, 'manifest');
       expect(copy.ownManifest?.blobHashes, {first.wireHash});
       expect(
-        SyncPeerManifestCache.fromMessage(SyncPeerManifestCache().toMessage())
-            .ownManifest,
+        SyncPeerManifestCache.fromMessage(
+          SyncPeerManifestCache().toMessage(),
+        ).ownManifest,
         isNull,
       );
     });
@@ -2237,49 +2238,54 @@ void main() {
     },
   );
 
-  test('does not report an uploaded publication as unreflected when its peer blob is unavailable', () async {
-    final candidate = SyncMergeCandidate.fromBlob(_tag('legacy', 'Shared tag'));
-    final legacy = candidate.address;
-    final canonical = (kind: SyncRecordKind.tag, recordId: 'canonical');
-    final store = _FakeStore(
-      aliases: {legacy: canonical},
-      snapshotBuilder: (_) => SyncCoordinatorSnapshot(
-        epoch: 'epoch-1',
-        previouslyUsed: false,
-        local: {legacy: candidate},
-        publication: {legacy: candidate},
-        baseline: const {},
-      ),
-    );
-    final transport = _FakeTransport(
-      devices: ['peer'],
-      peerManifest: _manifest(
-        deviceId: 'peer',
-        records: {
-          SyncRecordKind.tag: {canonical.recordId: candidate.wireHash},
-        },
-      ),
-    );
-    final coordinator = SyncCoordinator(
-      syncId: 'configured',
-      deviceId: 'device-a',
-      store: store,
-      transport: transport,
-      now: () => DateTime.utc(2026, 7, 15, 12),
-    );
-    addTearDown(coordinator.dispose);
+  test(
+    'does not report an uploaded publication as unreflected when its peer blob is unavailable',
+    () async {
+      final candidate = SyncMergeCandidate.fromBlob(
+        _tag('legacy', 'Shared tag'),
+      );
+      final legacy = candidate.address;
+      final canonical = (kind: SyncRecordKind.tag, recordId: 'canonical');
+      final store = _FakeStore(
+        aliases: {legacy: canonical},
+        snapshotBuilder: (_) => SyncCoordinatorSnapshot(
+          epoch: 'epoch-1',
+          previouslyUsed: false,
+          local: {legacy: candidate},
+          publication: {legacy: candidate},
+          baseline: const {},
+        ),
+      );
+      final transport = _FakeTransport(
+        devices: ['peer'],
+        peerManifest: _manifest(
+          deviceId: 'peer',
+          records: {
+            SyncRecordKind.tag: {canonical.recordId: candidate.wireHash},
+          },
+        ),
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+        now: () => DateTime.utc(2026, 7, 15, 12),
+      );
+      addTearDown(coordinator.dispose);
 
-    final results = [
-      await coordinator.syncNow(),
-      await coordinator.syncNow(),
-      await coordinator.syncNow(),
-    ];
+      final results = [
+        await coordinator.syncNow(),
+        await coordinator.syncNow(),
+        await coordinator.syncNow(),
+      ];
 
-    expect(
-      results.expand((result) => result.reports).map((report) => report.code),
-      isNot(contains(SyncReportCode.unreflectedPublication)),
-    );
-  });
+      expect(
+        results.expand((result) => result.reports).map((report) => report.code),
+        isNot(contains(SyncReportCode.unreflectedPublication)),
+      );
+    },
+  );
 
   test(
     'omits a fallback and its dependents when the fallback blob is unavailable',
@@ -3876,8 +3882,9 @@ void main() {
             // And the app's own write, through its own connection, completes
             // while the scan is still paused.
             try {
-              await duringScan(appRepositories)
-                  .timeout(const Duration(seconds: 5));
+              await duringScan(
+                appRepositories,
+              ).timeout(const Duration(seconds: 5));
               appDone = true;
             } on Object catch (error) {
               appFailed = error;
@@ -4174,40 +4181,43 @@ void main() {
     },
   );
 
-  test('incomplete fresh attach retries before applying or publishing a partial union', () async {
-    final local = SyncMergeCandidate.fromBlob(
-      _setting('custom_dialects', 'local'),
-    );
-    final store = _FakeStore(epoch: null, local: {local.address: local});
-    final transport = _FakeTransport(
-      devices: ['peer'],
-      peerManifest: _manifest(deviceId: 'peer', records: const {}),
-      manifestResponses: {
-        'peer': [_FakeTransport.response(500)],
-      },
-    );
-    final coordinator = SyncCoordinator(
-      syncId: 'configured',
-      deviceId: 'device-a',
-      store: store,
-      transport: transport,
-    );
+  test(
+    'incomplete fresh attach retries before applying or publishing a partial union',
+    () async {
+      final local = SyncMergeCandidate.fromBlob(
+        _setting('custom_dialects', 'local'),
+      );
+      final store = _FakeStore(epoch: null, local: {local.address: local});
+      final transport = _FakeTransport(
+        devices: ['peer'],
+        peerManifest: _manifest(deviceId: 'peer', records: const {}),
+        manifestResponses: {
+          'peer': [_FakeTransport.response(500)],
+        },
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+      );
 
-    final first = await coordinator.syncNow();
+      final first = await coordinator.syncNow();
 
-    expect(first.status, SyncPassStatus.failed);
-    expect(store.freshAttachDedupeCalls, 0);
-    expect(store.writes, isEmpty);
-    expect(store.baselineReplacements, 0);
-    expect(transport.manifestPuts, 0);
+      expect(first.status, SyncPassStatus.failed);
+      expect(store.freshAttachDedupeCalls, 0);
+      expect(store.writes, isEmpty);
+      expect(store.baselineReplacements, 0);
+      expect(transport.manifestPuts, 0);
 
-    final second = await coordinator.syncNow();
+      final second = await coordinator.syncNow();
 
-    expect(second.status, SyncPassStatus.completed);
-    expect(store.freshAttachDedupeCalls, 1);
-    expect(store.baselineReplacements, 1);
-    expect(transport.manifestPuts, 1);
-  });
+      expect(second.status, SyncPassStatus.completed);
+      expect(store.freshAttachDedupeCalls, 1);
+      expect(store.baselineReplacements, 1);
+      expect(transport.manifestPuts, 1);
+    },
+  );
 
   test(
     'fresh attach skips a listed peer blob that is unavailable and completes',
@@ -4279,186 +4289,195 @@ void main() {
     },
   );
 
-  test('fresh attach withholds a baseline entry for an address unresolved from one peer', () async {
-    final shared = SyncMergeCandidate.fromBlob(
-      _setting('custom_dialects', 'shared'),
-    );
-    final clean = SyncMergeCandidate.fromBlob(
-      _setting('default_program_band', 'clean'),
-    );
-    final missingHash = _hash('a');
-    final store = _FakeStore(
-      epoch: null,
-      local: {shared.address: shared, clean.address: clean},
-    );
-    final transport = _FakeTransport(
-      devices: ['peer-a', 'peer-b'],
-      peerManifests: {
-        // Advertises a body for `shared` that the store no longer holds.
-        'peer-a': _manifest(
-          deviceId: 'peer-a',
-          records: {
-            SyncRecordKind.setting: {shared.blob.id: missingHash},
-          },
-        ),
-        'peer-b': _manifest(
-          deviceId: 'peer-b',
+  test(
+    'fresh attach withholds a baseline entry for an address unresolved from one peer',
+    () async {
+      final shared = SyncMergeCandidate.fromBlob(
+        _setting('custom_dialects', 'shared'),
+      );
+      final clean = SyncMergeCandidate.fromBlob(
+        _setting('default_program_band', 'clean'),
+      );
+      final missingHash = _hash('a');
+      final store = _FakeStore(
+        epoch: null,
+        local: {shared.address: shared, clean.address: clean},
+      );
+      final transport = _FakeTransport(
+        devices: ['peer-a', 'peer-b'],
+        peerManifests: {
+          // Advertises a body for `shared` that the store no longer holds.
+          'peer-a': _manifest(
+            deviceId: 'peer-a',
+            records: {
+              SyncRecordKind.setting: {shared.blob.id: missingHash},
+            },
+          ),
+          'peer-b': _manifest(
+            deviceId: 'peer-b',
+            records: {
+              SyncRecordKind.setting: {
+                shared.blob.id: shared.wireHash,
+                clean.blob.id: clean.wireHash,
+              },
+            },
+          ),
+        },
+        blobResponses: {
+          shared.wireHash: _FakeTransport.response(
+            200,
+            body: utf8.encode(encodeSyncRecordBlob(shared.blob)),
+          ),
+          clean.wireHash: _FakeTransport.response(
+            200,
+            body: utf8.encode(encodeSyncRecordBlob(clean.blob)),
+          ),
+          missingHash: _FakeTransport.response(404),
+        },
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+      );
+
+      final result = await coordinator.syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(
+        result.reports.map((report) => report.code),
+        contains(SyncReportCode.unresolvedBlob),
+      );
+      expect(store.baselineReplacements, 1);
+      // `shared` is unresolved from peer-a, so the merge never decided it — a
+      // second peer carrying this device's own hash is not evidence that the
+      // record is agreed, exactly as steady state treats it.
+      expect(store.replacedEntries, [clean.address]);
+    },
+  );
+
+  test(
+    'fresh attach reports a refused peer record and applies the rest',
+    () async {
+      final noncanonical = SyncRecordBlob(
+        kind: SyncRecordKind.setting,
+        id: 'custom_dialects',
+        updatedAt: DateTime.utc(2026, 7, 15, 12),
+        deletedAt: null,
+        existenceAt: DateTime.utc(2026, 7, 15, 12),
+        body: {'value': 'é'},
+      );
+      final refused = SyncMergeCandidate.fromBlob(noncanonical);
+      final accepted = SyncMergeCandidate.fromBlob(
+        _setting('default_program_band', 'canonical'),
+      );
+      final store = _FakeStore(epoch: null);
+      final transport = _FakeTransport(
+        devices: ['peer'],
+        peerManifest: _manifest(
+          deviceId: 'peer',
           records: {
             SyncRecordKind.setting: {
-              shared.blob.id: shared.wireHash,
-              clean.blob.id: clean.wireHash,
+              noncanonical.id: refused.wireHash,
+              accepted.blob.id: accepted.wireHash,
             },
           },
         ),
-      },
-      blobResponses: {
-        shared.wireHash: _FakeTransport.response(
-          200,
-          body: utf8.encode(encodeSyncRecordBlob(shared.blob)),
-        ),
-        clean.wireHash: _FakeTransport.response(
-          200,
-          body: utf8.encode(encodeSyncRecordBlob(clean.blob)),
-        ),
-        missingHash: _FakeTransport.response(404),
-      },
-    );
-    final coordinator = SyncCoordinator(
-      syncId: 'configured',
-      deviceId: 'device-a',
-      store: store,
-      transport: transport,
-    );
-
-    final result = await coordinator.syncNow();
-
-    expect(result.status, SyncPassStatus.completed);
-    expect(
-      result.reports.map((report) => report.code),
-      contains(SyncReportCode.unresolvedBlob),
-    );
-    expect(store.baselineReplacements, 1);
-    // `shared` is unresolved from peer-a, so the merge never decided it — a
-    // second peer carrying this device's own hash is not evidence that the
-    // record is agreed, exactly as steady state treats it.
-    expect(store.replacedEntries, [clean.address]);
-  });
-
-  test('fresh attach reports a refused peer record and applies the rest', () async {
-    final noncanonical = SyncRecordBlob(
-      kind: SyncRecordKind.setting,
-      id: 'custom_dialects',
-      updatedAt: DateTime.utc(2026, 7, 15, 12),
-      deletedAt: null,
-      existenceAt: DateTime.utc(2026, 7, 15, 12),
-      body: {'value': 'é'},
-    );
-    final refused = SyncMergeCandidate.fromBlob(noncanonical);
-    final accepted = SyncMergeCandidate.fromBlob(
-      _setting('default_program_band', 'canonical'),
-    );
-    final store = _FakeStore(epoch: null);
-    final transport = _FakeTransport(
-      devices: ['peer'],
-      peerManifest: _manifest(
-        deviceId: 'peer',
-        records: {
-          SyncRecordKind.setting: {
-            noncanonical.id: refused.wireHash,
-            accepted.blob.id: accepted.wireHash,
-          },
-        },
-      ),
-      blobResponses: {
-        refused.wireHash: _FakeTransport.response(
-          200,
-          body: utf8.encode(encodeSyncRecordBlob(noncanonical)),
-        ),
-        accepted.wireHash: _FakeTransport.response(
-          200,
-          body: utf8.encode(encodeSyncRecordBlob(accepted.blob)),
-        ),
-      },
-    );
-    final coordinator = SyncCoordinator(
-      syncId: 'configured',
-      deviceId: 'device-a',
-      store: store,
-      transport: transport,
-    );
-
-    final result = await coordinator.syncNow();
-
-    // A peer on an older build whose body this device refuses must not stop the
-    // attach: §6.5 skips only that record and does not gate the rest.
-    expect(result.status, SyncPassStatus.completed);
-    expect(
-      result.reports.map((report) => report.code),
-      contains(SyncReportCode.nonCanonicalWireBody),
-    );
-    expect(
-      store.writes.map((write) => write.address),
-      contains(accepted.address),
-    );
-    expect(
-      store.writes.map((write) => write.address),
-      isNot(contains(refused.address)),
-    );
-    expect(transport.manifestPuts, 1);
-    expect(store.baselineReplacements, 1);
-  });
-
-  test('incomplete fresh attach retries when a peer manifest carries a stale epoch', () async {
-    final local = SyncMergeCandidate.fromBlob(
-      _setting('custom_dialects', 'local'),
-    );
-    final store = _FakeStore(epoch: null, local: {local.address: local});
-    final staleManifest = SyncManifest(
-      deviceId: 'peer',
-      epoch: 'epoch-0',
-      writtenAt: DateTime.utc(2026, 7, 15, 12),
-      records: const {},
-    );
-    final transport = _FakeTransport(
-      devices: ['peer'],
-      peerManifest: _manifest(deviceId: 'peer', records: const {}),
-      manifestResponses: {
-        'peer': [
-          _FakeTransport.response(
+        blobResponses: {
+          refused.wireHash: _FakeTransport.response(
             200,
-            body: encodeSyncManifestUtf8(staleManifest),
+            body: utf8.encode(encodeSyncRecordBlob(noncanonical)),
           ),
-        ],
-      },
-    );
-    final coordinator = SyncCoordinator(
-      syncId: 'configured',
-      deviceId: 'device-a',
-      store: store,
-      transport: transport,
-    );
+          accepted.wireHash: _FakeTransport.response(
+            200,
+            body: utf8.encode(encodeSyncRecordBlob(accepted.blob)),
+          ),
+        },
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+      );
 
-    final first = await coordinator.syncNow();
+      final result = await coordinator.syncNow();
 
-    // The manifest itself is unusable, so the union is incomplete for every
-    // record that peer holds and the attach still persists nothing.
-    expect(first.status, SyncPassStatus.failed);
-    expect(
-      first.reports.map((report) => report.code),
-      contains(SyncReportCode.malformedRecord),
-    );
-    expect(store.freshAttachDedupeCalls, 0);
-    expect(store.writes, isEmpty);
-    expect(store.baselineReplacements, 0);
-    expect(transport.manifestPuts, 0);
+      // A peer on an older build whose body this device refuses must not stop the
+      // attach: §6.5 skips only that record and does not gate the rest.
+      expect(result.status, SyncPassStatus.completed);
+      expect(
+        result.reports.map((report) => report.code),
+        contains(SyncReportCode.nonCanonicalWireBody),
+      );
+      expect(
+        store.writes.map((write) => write.address),
+        contains(accepted.address),
+      );
+      expect(
+        store.writes.map((write) => write.address),
+        isNot(contains(refused.address)),
+      );
+      expect(transport.manifestPuts, 1);
+      expect(store.baselineReplacements, 1);
+    },
+  );
 
-    final second = await coordinator.syncNow();
+  test(
+    'incomplete fresh attach retries when a peer manifest carries a stale epoch',
+    () async {
+      final local = SyncMergeCandidate.fromBlob(
+        _setting('custom_dialects', 'local'),
+      );
+      final store = _FakeStore(epoch: null, local: {local.address: local});
+      final staleManifest = SyncManifest(
+        deviceId: 'peer',
+        epoch: 'epoch-0',
+        writtenAt: DateTime.utc(2026, 7, 15, 12),
+        records: const {},
+      );
+      final transport = _FakeTransport(
+        devices: ['peer'],
+        peerManifest: _manifest(deviceId: 'peer', records: const {}),
+        manifestResponses: {
+          'peer': [
+            _FakeTransport.response(
+              200,
+              body: encodeSyncManifestUtf8(staleManifest),
+            ),
+          ],
+        },
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+      );
 
-    expect(second.status, SyncPassStatus.completed);
-    expect(store.freshAttachDedupeCalls, 1);
-    expect(store.baselineReplacements, 1);
-    expect(transport.manifestPuts, 1);
-  });
+      final first = await coordinator.syncNow();
+
+      // The manifest itself is unusable, so the union is incomplete for every
+      // record that peer holds and the attach still persists nothing.
+      expect(first.status, SyncPassStatus.failed);
+      expect(
+        first.reports.map((report) => report.code),
+        contains(SyncReportCode.malformedRecord),
+      );
+      expect(store.freshAttachDedupeCalls, 0);
+      expect(store.writes, isEmpty);
+      expect(store.baselineReplacements, 0);
+      expect(transport.manifestPuts, 0);
+
+      final second = await coordinator.syncNow();
+
+      expect(second.status, SyncPassStatus.completed);
+      expect(store.freshAttachDedupeCalls, 1);
+      expect(store.baselineReplacements, 1);
+      expect(transport.manifestPuts, 1);
+    },
+  );
 
   test(
     'failed fresh attach retries after its epoch state is cleared',
@@ -4622,34 +4641,44 @@ void main() {
     },
   );
 
-  test('continuation stops without publishing when the epoch changes and retries fresh attach', () async {
-    final candidate = SyncMergeCandidate.fromBlob(
-      _setting('custom_dialects', 'local'),
-    );
-    final store = _FakeStore(
-      local: {candidate.address: candidate},
-      snapshotEpochs: [null, null, 'epoch-1', 'epoch-1', 'epoch-1', 'epoch-2'],
-    );
-    final transport = _FakeTransport(
-      storeEpochs: ['epoch-1', 'epoch-2', 'epoch-2', 'epoch-2'],
-    );
-    final coordinator = SyncCoordinator(
-      syncId: 'configured',
-      deviceId: 'device-a',
-      store: store,
-      transport: transport,
-    );
+  test(
+    'continuation stops without publishing when the epoch changes and retries fresh attach',
+    () async {
+      final candidate = SyncMergeCandidate.fromBlob(
+        _setting('custom_dialects', 'local'),
+      );
+      final store = _FakeStore(
+        local: {candidate.address: candidate},
+        snapshotEpochs: [
+          null,
+          null,
+          'epoch-1',
+          'epoch-1',
+          'epoch-1',
+          'epoch-2',
+        ],
+      );
+      final transport = _FakeTransport(
+        storeEpochs: ['epoch-1', 'epoch-2', 'epoch-2', 'epoch-2'],
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+      );
 
-    final staleContinuation = await coordinator.syncNow();
-    expect(staleContinuation.status, SyncPassStatus.staleEpoch);
-    expect(transport.manifestPuts, 0);
-    expect(store.baselineReplacements, 0);
+      final staleContinuation = await coordinator.syncNow();
+      expect(staleContinuation.status, SyncPassStatus.staleEpoch);
+      expect(transport.manifestPuts, 0);
+      expect(store.baselineReplacements, 0);
 
-    final retried = await coordinator.syncNow();
-    expect(retried.status, SyncPassStatus.completed);
-    expect(transport.manifestPuts, 1);
-    expect(store.baselineReplacements, 1);
-  });
+      final retried = await coordinator.syncNow();
+      expect(retried.status, SyncPassStatus.completed);
+      expect(transport.manifestPuts, 1);
+      expect(store.baselineReplacements, 1);
+    },
+  );
 
   test(
     'propagates fresh-attach duplicate counts through the coordinator result',
@@ -4965,109 +4994,115 @@ void main() {
     },
   );
 
-  test('a stale peer live copy does not reverse an unrepairable pending tombstone', () async {
-    final now = DateTime.utc(2026, 7, 15, 12);
-    final address = (kind: SyncRecordKind.setting, recordId: 'custom_dialects');
-    // Out of window on `updatedAt` only, so repair is attempted and the
-    // existence half is left alone.
-    final localTombstone = SyncMergeCandidate.fromBlob(
-      SyncRecordBlob(
-        kind: address.kind,
-        id: address.recordId,
-        updatedAt: now.add(const Duration(hours: 25)),
-        deletedAt: now,
-        existenceAt: now,
-        body: const {'value': 'pending'},
-      ),
-    );
-    // In window, so `repairSyncCandidate` considers it, but a different body
-    // under a non-null baseline takes the "do not stamp a different body over
-    // it" branch. The tombstone therefore reaches the merge still
-    // quarantined, which is the path this test exists for. Its `existenceAt`
-    // is older than the tombstone's, so it must lose on §6.4 even if it were
-    // considered at all.
-    final peerLive = SyncMergeCandidate.fromBlob(
-      SyncRecordBlob(
-        kind: address.kind,
-        id: address.recordId,
-        updatedAt: now,
-        deletedAt: null,
-        existenceAt: now.subtract(const Duration(minutes: 1)),
-        body: const {'value': 'peer'},
-      ),
-    );
-    final pendingLive = SyncMergeCandidate.fromBlob(
-      SyncRecordBlob(
-        kind: address.kind,
-        id: address.recordId,
-        updatedAt: now,
-        deletedAt: null,
-        existenceAt: now,
-        body: const {'value': 'pending'},
-      ),
-    );
-    final store = _FakeStore(
-      snapshotBuilder: (_) => SyncCoordinatorSnapshot(
-        epoch: 'epoch-1',
-        previouslyUsed: false,
-        local: const {},
-        publication: {address: localTombstone},
-        pendingLive: {address: pendingLive},
-        pending: {address},
-        baseline: {
-          address: SyncBaselineEntry(
-            kind: address.kind,
-            recordId: address.recordId,
-            wireHash: _hash('a'),
-          ),
-        },
-      ),
-      currentCandidatesBuilder: () => {address: pendingLive},
-    );
-    final transport = _FakeTransport(
-      devices: ['peer'],
-      peerManifest: _manifest(
-        deviceId: 'peer',
-        records: {
-          SyncRecordKind.setting: {address.recordId: peerLive.wireHash},
-        },
-      ),
-      blobResponses: _blobs([peerLive]),
-    );
-    final coordinator = SyncCoordinator(
-      syncId: 'configured',
-      deviceId: 'device-a',
-      store: store,
-      transport: transport,
-      now: () => now,
-    );
-    addTearDown(coordinator.dispose);
+  test(
+    'a stale peer live copy does not reverse an unrepairable pending tombstone',
+    () async {
+      final now = DateTime.utc(2026, 7, 15, 12);
+      final address = (
+        kind: SyncRecordKind.setting,
+        recordId: 'custom_dialects',
+      );
+      // Out of window on `updatedAt` only, so repair is attempted and the
+      // existence half is left alone.
+      final localTombstone = SyncMergeCandidate.fromBlob(
+        SyncRecordBlob(
+          kind: address.kind,
+          id: address.recordId,
+          updatedAt: now.add(const Duration(hours: 25)),
+          deletedAt: now,
+          existenceAt: now,
+          body: const {'value': 'pending'},
+        ),
+      );
+      // In window, so `repairSyncCandidate` considers it, but a different body
+      // under a non-null baseline takes the "do not stamp a different body over
+      // it" branch. The tombstone therefore reaches the merge still
+      // quarantined, which is the path this test exists for. Its `existenceAt`
+      // is older than the tombstone's, so it must lose on §6.4 even if it were
+      // considered at all.
+      final peerLive = SyncMergeCandidate.fromBlob(
+        SyncRecordBlob(
+          kind: address.kind,
+          id: address.recordId,
+          updatedAt: now,
+          deletedAt: null,
+          existenceAt: now.subtract(const Duration(minutes: 1)),
+          body: const {'value': 'peer'},
+        ),
+      );
+      final pendingLive = SyncMergeCandidate.fromBlob(
+        SyncRecordBlob(
+          kind: address.kind,
+          id: address.recordId,
+          updatedAt: now,
+          deletedAt: null,
+          existenceAt: now,
+          body: const {'value': 'pending'},
+        ),
+      );
+      final store = _FakeStore(
+        snapshotBuilder: (_) => SyncCoordinatorSnapshot(
+          epoch: 'epoch-1',
+          previouslyUsed: false,
+          local: const {},
+          publication: {address: localTombstone},
+          pendingLive: {address: pendingLive},
+          pending: {address},
+          baseline: {
+            address: SyncBaselineEntry(
+              kind: address.kind,
+              recordId: address.recordId,
+              wireHash: _hash('a'),
+            ),
+          },
+        ),
+        currentCandidatesBuilder: () => {address: pendingLive},
+      );
+      final transport = _FakeTransport(
+        devices: ['peer'],
+        peerManifest: _manifest(
+          deviceId: 'peer',
+          records: {
+            SyncRecordKind.setting: {address.recordId: peerLive.wireHash},
+          },
+        ),
+        blobResponses: _blobs([peerLive]),
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+        now: () => now,
+      );
+      addTearDown(coordinator.dispose);
 
-    final result = await coordinator.syncNow();
+      final result = await coordinator.syncNow();
 
-    expect(result.status, SyncPassStatus.completed);
-    // A quarantined pending tombstone is a quarantined record, so §6.3
-    // excludes it from the merge table entirely. Dropping it from the local
-    // side alone would leave the engine deciding the address with no local
-    // candidate, where the peer's live copy wins unconditionally and the
-    // deferred deletion is silently reversed.
-    expect(
-      store.writes.where((write) => write.address == address),
-      isEmpty,
-      reason:
-          'a stale peer live copy must not be applied over a pending deletion',
-    );
-    expect(store.writes, isEmpty);
-    // Nothing was applied, so the pending deletion still stands.
-    expect(result.appliedKinds, isNot(contains(SyncRecordKind.setting)));
-    final quarantined = result.reports.where(
-      (report) =>
-          report.code == SyncReportCode.quarantinedRecord &&
-          report.peerId == null,
-    );
-    expect(quarantined, hasLength(1));
-    expect(quarantined.single.recordId, address.recordId);
-  });
+      expect(result.status, SyncPassStatus.completed);
+      // A quarantined pending tombstone is a quarantined record, so §6.3
+      // excludes it from the merge table entirely. Dropping it from the local
+      // side alone would leave the engine deciding the address with no local
+      // candidate, where the peer's live copy wins unconditionally and the
+      // deferred deletion is silently reversed.
+      expect(
+        store.writes.where((write) => write.address == address),
+        isEmpty,
+        reason:
+            'a stale peer live copy must not be applied over a pending deletion',
+      );
+      expect(store.writes, isEmpty);
+      // Nothing was applied, so the pending deletion still stands.
+      expect(result.appliedKinds, isNot(contains(SyncRecordKind.setting)));
+      final quarantined = result.reports.where(
+        (report) =>
+            report.code == SyncReportCode.quarantinedRecord &&
+            report.peerId == null,
+      );
+      expect(quarantined, hasLength(1));
+      expect(quarantined.single.recordId, address.recordId);
+    },
+  );
 
   test('uploads only blobs retained by the final manifest', () async {
     final local = SyncMergeCandidate.fromBlob(
@@ -5218,8 +5253,9 @@ void main() {
         losingId: losingId,
         survivingId: survivorId,
       );
-      final beforePass = await CompendiumSyncCoordinatorStore(repositories)
-          .snapshot();
+      final beforePass = await CompendiumSyncCoordinatorStore(
+        repositories,
+      ).snapshot();
       expect(
         beforePass.pending,
         contains((kind: SyncRecordKind.tag, recordId: survivorId)),
@@ -6042,8 +6078,9 @@ void main() {
     );
 
     test('a completed pass carries the quota its store lookup read', () async {
-      final result = await coordinatorFor(_FakeTransport(storeQuota: quota))
-          .syncNow();
+      final result = await coordinatorFor(
+        _FakeTransport(storeQuota: quota),
+      ).syncNow();
 
       expect(result.status, SyncPassStatus.completed);
       expect(result.quota?.blobs, 900);
@@ -6084,8 +6121,9 @@ void main() {
       ('a quota that is not an object', 'full'),
     ]) {
       test('$name costs only the warning, never the pass', () async {
-        final result = await coordinatorFor(_FakeTransport(storeQuota: value))
-            .syncNow();
+        final result = await coordinatorFor(
+          _FakeTransport(storeQuota: value),
+        ).syncNow();
 
         expect(result.status, SyncPassStatus.completed);
         expect(result.quota, isNull);
@@ -6981,8 +7019,9 @@ void main() {
       expect([
         for (final batch in transport.batchRequests) ...batch,
       ], fetchOrder(library));
-      final snapshot = await CompendiumSyncCoordinatorStore(repositories)
-          .snapshot();
+      final snapshot = await CompendiumSyncCoordinatorStore(
+        repositories,
+      ).snapshot();
       expect(snapshot.epoch, 'epoch-1');
       expect(snapshot.baseline.keys.toSet(), {
         for (final c in library) c.address,
@@ -7395,8 +7434,9 @@ void main() {
         ..beginPublicationEpoch('epoch-1')
         ..blobUploadBatchUnsupported = true;
       expect(
-        SyncPeerManifestCache.fromMessage(cache.toMessage())
-            .blobUploadBatchUnsupported,
+        SyncPeerManifestCache.fromMessage(
+          cache.toMessage(),
+        ).blobUploadBatchUnsupported,
         isTrue,
       );
       cache.beginPublicationEpoch('epoch-2');
@@ -7588,8 +7628,9 @@ void main() {
       missingResponses: missing.isEmpty ? null : const [],
     );
     Set<String> publishedSettings(_FakeTransport transport) =>
-        (decodeSyncManifest(utf8.decode(transport.manifestBodies.last))
-                    .records[SyncRecordKind.setting] ??
+        (decodeSyncManifest(
+                  utf8.decode(transport.manifestBodies.last),
+                ).records[SyncRecordKind.setting] ??
                 const <String, String>{})
             .keys
             .toSet();
@@ -8092,8 +8133,9 @@ void main() {
       }
 
       Set<String> manifestIds(_FakeTransport transport, SyncRecordKind kind) =>
-          (decodeSyncManifest(utf8.decode(transport.manifestBodies.last))
-                      .records[kind] ??
+          (decodeSyncManifest(
+                    utf8.decode(transport.manifestBodies.last),
+                  ).records[kind] ??
                   const <String, String>{})
               .keys
               .toSet();
@@ -8221,8 +8263,9 @@ void main() {
         for (final c in [compound, term, figure, gone, future]) c.address: c,
       };
       Set<String> publishedEntries(_FakeTransport transport) =>
-          (decodeSyncManifest(utf8.decode(transport.manifestBodies.last))
-                      .records[SyncRecordKind.glossaryEntry] ??
+          (decodeSyncManifest(
+                    utf8.decode(transport.manifestBodies.last),
+                  ).records[SyncRecordKind.glossaryEntry] ??
                   const <String, String>{})
               .keys
               .toSet();
@@ -8359,9 +8402,9 @@ void main() {
         transport: transport,
       );
       addTearDown(coordinator.dispose);
-      Map<SyncRecordKind, Map<String, String>> manifest() =>
-          decodeSyncManifest(utf8.decode(transport.manifestBodies.last))
-              .records;
+      Map<SyncRecordKind, Map<String, String>> manifest() => decodeSyncManifest(
+        utf8.decode(transport.manifestBodies.last),
+      ).records;
 
       var result = await coordinator.syncNow();
       expect(result.status, SyncPassStatus.completed);

@@ -289,8 +289,9 @@ void main() {
     );
     await target.settings.set(shareableTextNormalisationScopeKey, 'stale');
 
-    final outcome = await BackupService(target)
-        .restoreFromJson(json, mode: RestoreMode.merge);
+    final outcome = await BackupService(
+      target,
+    ).restoreFromJson(json, mode: RestoreMode.merge);
 
     expect(outcome.hasErrors, isFalse);
     expect((await target.dances.getById('existing'))?.title, 'café');
@@ -519,8 +520,9 @@ void main() {
       await repos.dances.create(_dance('live', 'Live Dance'));
 
       // Well-formed JSON, but no `core` section — must be treated as fatal.
-      final outcome = await BackupService(repos)
-          .restoreFromJson('{"backupVersion":1,"app":{"settings":{}}}');
+      final outcome = await BackupService(
+        repos,
+      ).restoreFromJson('{"backupVersion":1,"app":{"settings":{}}}');
 
       expect(outcome.applied, isFalse);
       expect(outcome.hasErrors, isTrue);
@@ -623,8 +625,9 @@ void main() {
         '"updatedAt":"2026-01-01T00:00:00.000Z"}'
         ']},"app":{}}';
 
-    final outcome = await BackupService(repos)
-        .restoreFromJson(json, mode: RestoreMode.merge);
+    final outcome = await BackupService(
+      repos,
+    ).restoreFromJson(json, mode: RestoreMode.merge);
 
     // Merge is additive and tolerant: it applies, keeping the existing `stale`
     // dance and adding the readable `good` one, dropping only `newer`.
@@ -706,8 +709,9 @@ void main() {
 
     // The store recovers; retry re-applies ONLY the settings.
     target.settings.failWrites = false;
-    final retried = await BackupService(target.repos)
-        .retryApplySettings(json, mode: RestoreMode.replace);
+    final retried = await BackupService(
+      target.repos,
+    ).retryApplySettings(json, mode: RestoreMode.replace);
 
     expect(retried.applied, isTrue);
     expect(retried.settingsFailed, isFalse);
@@ -820,8 +824,9 @@ void main() {
 
       // The text is garbage: only the handed-in decode can make this restore.
       final target = openTestRepositories();
-      final outcome = await BackupService(target)
-          .restoreFromJson('not a backup', decoded: read);
+      final outcome = await BackupService(
+        target,
+      ).restoreFromJson('not a backup', decoded: read);
 
       expect(outcome.applied, isTrue);
       expect(
@@ -842,8 +847,9 @@ void main() {
 
     // No JSON is handed in: the retry works from the already-decoded result.
     final read = await decodeBackupOnIsolate(json);
-    final retried = await BackupService(target.repos)
-        .retryApplySettingsFrom(read, mode: RestoreMode.replace);
+    final retried = await BackupService(
+      target.repos,
+    ).retryApplySettingsFrom(read, mode: RestoreMode.replace);
 
     expect(retried.applied, isTrue);
     expect(retried.settingsFailed, isFalse);
@@ -860,10 +866,12 @@ void main() {
     await BackupService(target.repos).restoreFromJson(json);
     target.settings.failWrites = false;
 
-    final first = await BackupService(target.repos)
-        .retryApplySettings(json, mode: RestoreMode.replace);
-    final second = await BackupService(target.repos)
-        .retryApplySettings(json, mode: RestoreMode.replace);
+    final first = await BackupService(
+      target.repos,
+    ).retryApplySettings(json, mode: RestoreMode.replace);
+    final second = await BackupService(
+      target.repos,
+    ).retryApplySettings(json, mode: RestoreMode.replace);
 
     expect(first.settingsFailed, isFalse);
     expect(second.settingsFailed, isFalse);
@@ -914,8 +922,9 @@ void main() {
     final repos = openTestRepositories();
     await repos.settings.set(kSortIgnoreArticlesKey, true);
 
-    final outcome = await BackupService(repos)
-        .retryApplySettings('garbage {', mode: RestoreMode.replace);
+    final outcome = await BackupService(
+      repos,
+    ).retryApplySettings('garbage {', mode: RestoreMode.replace);
 
     expect(outcome.applied, isFalse);
     expect(outcome.settingsFailed, isFalse);
@@ -923,36 +932,40 @@ void main() {
     expect(await repos.settings.get(kSortIgnoreArticlesKey), true);
   });
 
-  test('retryApplySettings reports integrityFailed (applied:false, not a success) '
-      'for a tampered backup and applies nothing (#608)', () async {
-    final source = openTestRepositories();
-    await source.dances.create(_dance('d1', 'Restored Dance'));
-    final json = await BackupService(source).exportToJson();
+  test(
+    'retryApplySettings reports integrityFailed (applied:false, not a success) '
+    'for a tampered backup and applies nothing (#608)',
+    () async {
+      final source = openTestRepositories();
+      await source.dances.create(_dance('d1', 'Restored Dance'));
+      final json = await BackupService(source).exportToJson();
 
-    // Alter the payload without recomputing the checksum — the exact
-    // tamper/corruption the SHA-256 guard (#536) catches. This locks the
-    // defensive retry branch the UI maps to an integrity error rather than a
-    // false "Settings applied." (#644 review).
-    final envelope = jsonDecode(json) as Map<String, Object?>;
-    envelope['payload'] = (envelope['payload'] as String).replaceFirst(
-      'Restored Dance',
-      'Tampered Dance',
-    );
-    final tampered = jsonEncode(envelope);
+      // Alter the payload without recomputing the checksum — the exact
+      // tamper/corruption the SHA-256 guard (#536) catches. This locks the
+      // defensive retry branch the UI maps to an integrity error rather than a
+      // false "Settings applied." (#644 review).
+      final envelope = jsonDecode(json) as Map<String, Object?>;
+      envelope['payload'] = (envelope['payload'] as String).replaceFirst(
+        'Restored Dance',
+        'Tampered Dance',
+      );
+      final tampered = jsonEncode(envelope);
 
-    final repos = openTestRepositories();
-    await repos.settings.set(kSortIgnoreArticlesKey, true);
+      final repos = openTestRepositories();
+      await repos.settings.set(kSortIgnoreArticlesKey, true);
 
-    final outcome = await BackupService(repos)
-        .retryApplySettings(tampered, mode: RestoreMode.replace);
+      final outcome = await BackupService(
+        repos,
+      ).retryApplySettings(tampered, mode: RestoreMode.replace);
 
-    // Nothing applied, and this is NOT a settings-failure retry state — it's a
-    // clean integrity refusal the UI reports as an error, never a success.
-    expect(outcome.applied, isFalse);
-    expect(outcome.settingsFailed, isFalse);
-    expect(outcome.integrityFailed, isTrue);
-    expect(await repos.settings.get(kSortIgnoreArticlesKey), true);
-  });
+      // Nothing applied, and this is NOT a settings-failure retry state — it's a
+      // clean integrity refusal the UI reports as an error, never a success.
+      expect(outcome.applied, isFalse);
+      expect(outcome.settingsFailed, isFalse);
+      expect(outcome.integrityFailed, isTrue);
+      expect(await repos.settings.get(kSortIgnoreArticlesKey), true);
+    },
+  );
 
   group('replace preflight: incomplete or newer backups', () {
     const stamp = '"createdAt":"2026-07-15T00:00:00.000Z"';
@@ -1041,8 +1054,9 @@ void main() {
       const json =
           '{"backupVersion":1,$stamp,"core":{"dances":[$backupDance]}}';
 
-      final outcome = await BackupService(repos)
-          .restoreFromJson(json, mode: RestoreMode.merge);
+      final outcome = await BackupService(
+        repos,
+      ).restoreFromJson(json, mode: RestoreMode.merge);
 
       expect(outcome.applied, isTrue);
       expect((await repos.dances.listAll()).map((d) => d.id).toSet(), {
@@ -1058,8 +1072,9 @@ void main() {
           '{"backupVersion":999,$stamp,"core":{"dances":[$backupDance]},'
           '"app":{}}';
 
-      final outcome = await BackupService(repos)
-          .restoreFromJson(json, mode: RestoreMode.merge);
+      final outcome = await BackupService(
+        repos,
+      ).restoreFromJson(json, mode: RestoreMode.merge);
 
       expect(outcome.applied, isTrue);
       expect(outcome.warnings, isNotEmpty);
@@ -1101,8 +1116,9 @@ void main() {
       const json =
           '{"backupVersion":1,$stamp,"core":{"dances":[$backupDance]}}';
 
-      final outcome = await BackupService(repos)
-          .retryApplySettings(json, mode: RestoreMode.replace);
+      final outcome = await BackupService(
+        repos,
+      ).retryApplySettings(json, mode: RestoreMode.replace);
 
       expect(outcome.settingsFailed, isFalse);
       await expectLiveIntact(repos);

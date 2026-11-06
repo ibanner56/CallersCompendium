@@ -305,14 +305,15 @@ void main() {
     expect(find.byKey(_bannerKey), findsNothing);
 
     const otherKey = ValueKey('other-banner');
-    ScaffoldMessenger.of(tester.element(find.byType(AppShell)))
-        .showMaterialBanner(
-          MaterialBanner(
-            key: otherKey,
-            content: const Text('other'),
-            actions: const [SizedBox.shrink()],
-          ),
-        );
+    ScaffoldMessenger.of(
+      tester.element(find.byType(AppShell)),
+    ).showMaterialBanner(
+      MaterialBanner(
+        key: otherKey,
+        content: const Text('other'),
+        actions: const [SizedBox.shrink()],
+      ),
+    );
     await tester.pumpAndSettle();
 
     save.complete(true);

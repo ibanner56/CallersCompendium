@@ -11,7 +11,8 @@ import 'package:http/testing.dart';
 
 UpdateArtifact _artifact({
   int size = 0,
-  String url = 'https://release-assets.githubusercontent.com/CallersCompendium-0.2.0-macos-universal.dmg',
+  String url =
+      'https://release-assets.githubusercontent.com/CallersCompendium-0.2.0-macos-universal.dmg',
   String sha256 = 'abcd',
 }) => UpdateArtifact(
   platform: UpdatePlatform.macos,

@@ -1487,8 +1487,9 @@ void main() {
       expect(files.single.path, isNot(endsWith('.ccshare')));
       expect(captured!.fileNameOverrides, ['Friday_Contra_2026-03-09.json']);
 
-      final archive = decodeArchive(File(files.single.path).readAsStringSync())
-          .archive;
+      final archive = decodeArchive(
+        File(files.single.path).readAsStringSync(),
+      ).archive;
       expect(archive.programs.single.id, 'p1');
       expect(archive.dances.map((d) => d.id).toSet(), {'d1', 'd2'});
     });
@@ -2549,95 +2550,97 @@ void main() {
       expect(pdfMediaBox(await captured!(PdfPageFormat.a4)), (595, 842));
     });
 
-    testWidgets('PDF path: onLayout still lays out the PDF after the export menu has '
-        'unmounted', (tester) async {
-      // Printing.layoutPdf may call onLayout again later (a page-format
-      // change in the print dialog) after the menu has unmounted. Every
-      // inherited value must be resolved before onLayout is built, as
-      // _exportMatrixPdf does (CS-11). Mutation this test catches: reading any
-      // `Scope.of(context)` inside the onLayout closure, which throws
-      // "Looking up a deactivated widget's ancestor is unsafe" here.
-      final prog = _program(
-        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
-      );
-      LayoutCallback? captured;
-      await tester.pumpWidget(
-        MaterialApp(
-          localizationsDelegates: testLocalizationsDelegates,
-          supportedLocales: testSupportedLocales,
-          home: Scaffold(
-            appBar: AppBar(
-              actions: [
-                ProgramExportMenu(
-                  program: prog,
-                  titleFor: _titles,
-                  danceFor: _danceFor,
-                  shareInvoker: (params) async {},
-                  pdfLayouter: ({required name, required onLayout}) async {
-                    captured = onLayout;
-                  },
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('program-export-menu')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Export / print PDF'));
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(
-          const ValueKey('program-figures-prompt-set-list-and-figures'),
-        ),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(const ValueKey('program-figures-prompt-confirm')),
-      );
-      await tester.pumpAndSettle();
-      expect(captured, isNotNull);
-
-      await tester.pumpWidget(const SizedBox.shrink());
-      await tester.pumpAndSettle();
-
-      final bytes = await captured!(PdfPageFormat.letter);
-      expect(bytes, isNotEmpty);
-    });
-
     testWidgets(
-      'PDF path: Cancel on figures prompt → pdf layouter NOT invoked',
+      'PDF path: onLayout still lays out the PDF after the export menu has '
+      'unmounted',
       (tester) async {
-        // Mutation: remove null-check on _figuresConsent → PDF is invoked after
-        // cancel → pdfInvoked flips to true → assertion fails.
-        // Note: this test asserts on invocation, not content — that's correct
-        // here because the question is "did cancel abort the export", not "what
-        // did the PDF contain". Checked by mutation audit: goes RED when the
-        // null-guard is removed. The content question is covered by the test above.
-        var pdfInvoked = false;
+        // Printing.layoutPdf may call onLayout again later (a page-format
+        // change in the print dialog) after the menu has unmounted. Every
+        // inherited value must be resolved before onLayout is built, as
+        // _exportMatrixPdf does (CS-11). Mutation this test catches: reading any
+        // `Scope.of(context)` inside the onLayout closure, which throws
+        // "Looking up a deactivated widget's ancestor is unsafe" here.
+        final prog = _program(
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+        );
+        LayoutCallback? captured;
         await tester.pumpWidget(
-          figuresMenu(
-            program: _program(
-              slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: Scaffold(
+              appBar: AppBar(
+                actions: [
+                  ProgramExportMenu(
+                    program: prog,
+                    titleFor: _titles,
+                    danceFor: _danceFor,
+                    shareInvoker: (params) async {},
+                    pdfLayouter: ({required name, required onLayout}) async {
+                      captured = onLayout;
+                    },
+                  ),
+                ],
+              ),
             ),
-            onShare: (_) {},
-            onPdf: () => pdfInvoked = true,
           ),
         );
         await tester.pumpAndSettle();
-
         await tester.tap(find.byKey(const ValueKey('program-export-menu')));
         await tester.pumpAndSettle();
         await tester.tap(find.text('Export / print PDF'));
         await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(
+            const ValueKey('program-figures-prompt-set-list-and-figures'),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('program-figures-prompt-confirm')),
+        );
+        await tester.pumpAndSettle();
+        expect(captured, isNotNull);
 
-        await tester.tap(find.text('Cancel'));
+        await tester.pumpWidget(const SizedBox.shrink());
         await tester.pumpAndSettle();
 
-        expect(pdfInvoked, isFalse);
+        final bytes = await captured!(PdfPageFormat.letter);
+        expect(bytes, isNotEmpty);
       },
     );
+
+    testWidgets('PDF path: Cancel on figures prompt → pdf layouter NOT invoked', (
+      tester,
+    ) async {
+      // Mutation: remove null-check on _figuresConsent → PDF is invoked after
+      // cancel → pdfInvoked flips to true → assertion fails.
+      // Note: this test asserts on invocation, not content — that's correct
+      // here because the question is "did cancel abort the export", not "what
+      // did the PDF contain". Checked by mutation audit: goes RED when the
+      // null-guard is removed. The content question is covered by the test above.
+      var pdfInvoked = false;
+      await tester.pumpWidget(
+        figuresMenu(
+          program: _program(
+            slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          ),
+          onShare: (_) {},
+          onPdf: () => pdfInvoked = true,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Export / print PDF'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
+      expect(pdfInvoked, isFalse);
+    });
   });
 
   group('DanceShareField picker (issue #1434)', () {

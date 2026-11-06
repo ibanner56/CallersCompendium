@@ -107,25 +107,24 @@ void main() {
       expect(find.text('Undo'), findsNothing);
     });
 
-    testWidgets(
-      'clears the current prompt so successive prompts do not stack',
-      (tester) async {
-        await tester.pumpWidget(
-          _harness(
-            accessibleNavigation: false,
-            onUndo: () {},
-            duration: const Duration(seconds: 3),
-          ),
-        );
-        await _showAndAwaitEntrance(tester);
-        // Fire a second undoable action while the first prompt is still on screen.
-        await tester.tap(find.byKey(const ValueKey('show')));
-        await tester.pumpAndSettle();
+    testWidgets('clears the current prompt so successive prompts do not stack', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _harness(
+          accessibleNavigation: false,
+          onUndo: () {},
+          duration: const Duration(seconds: 3),
+        ),
+      );
+      await _showAndAwaitEntrance(tester);
+      // Fire a second undoable action while the first prompt is still on screen.
+      await tester.tap(find.byKey(const ValueKey('show')));
+      await tester.pumpAndSettle();
 
-        expect(find.byType(SnackBar), findsOneWidget);
-        expect(find.text('Undo'), findsOneWidget);
-      },
-    );
+      expect(find.byType(SnackBar), findsOneWidget);
+      expect(find.text('Undo'), findsOneWidget);
+    });
 
     testWidgets('an Undo that throws asynchronously says it failed', (
       tester,

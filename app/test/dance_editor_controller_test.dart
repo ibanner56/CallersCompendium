@@ -1270,9 +1270,9 @@ void main() {
             draft.params['text'] = 'Mad robin twice, then MAD ROBINS';
             controller.titleController.text = 'Some Dance';
             controller.onTextEdited();
-            final saved = figuresOf(controller.buildDance())
-                .last
-                .params['text'];
+            final saved = figuresOf(
+              controller.buildDance(),
+            ).last.params['text'];
             expect(saved, 'mad robin twice, then mad robins');
             // And it stays put on the next load and save.
             final again = DanceEditorController(

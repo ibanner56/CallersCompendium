@@ -74,17 +74,21 @@ void main() {
     });
 
     test('defaults full-text scope to Omni and preserves explicit scopes', () {
-      final omni = buildCollectionFilter(
-        ftsText: 'swing',
-        facets: FacetSelections(),
-        defs: defs,
-      ) as FullTextFilter;
-      final title = buildCollectionFilter(
-        ftsText: 'swing',
-        facets: FacetSelections(),
-        defs: defs,
-        scope: FullTextScope.title,
-      ) as FullTextFilter;
+      final omni =
+          buildCollectionFilter(
+                ftsText: 'swing',
+                facets: FacetSelections(),
+                defs: defs,
+              )
+              as FullTextFilter;
+      final title =
+          buildCollectionFilter(
+                ftsText: 'swing',
+                facets: FacetSelections(),
+                defs: defs,
+                scope: FullTextScope.title,
+              )
+              as FullTextFilter;
 
       expect(omni.scope, FullTextScope.omni);
       expect(title.scope, FullTextScope.title);
@@ -244,12 +248,14 @@ void main() {
       final grange = VenueKey.typed('Grange');
       final today = DateTime.utc(2026, 10, 30);
 
-      CalledFilter built(FacetSelections facets) => buildCollectionFilter(
-        ftsText: '',
-        facets: facets,
-        defs: defs,
-        today: today,
-      ) as CalledFilter;
+      CalledFilter built(FacetSelections facets) =>
+          buildCollectionFilter(
+                ftsText: '',
+                facets: facets,
+                defs: defs,
+                today: today,
+              )
+              as CalledFilter;
 
       test('the venue and window ride on the one chosen polarity', () {
         final facets = FacetSelections()
@@ -1498,24 +1504,27 @@ void main() {
       },
     );
 
-    test('before=leaf, after=none-of-group folds to ThenFilter(FigureLeaf, FigureNot)', () {
-      final thenNode = BuilderThen(
-        before: BuilderFigure(move: 'petronella'),
-        after: BuilderFigureGroup(
-          kind: GroupKind.none,
-          children: [BuilderFigure(move: 'chain')],
-        ),
-      );
-      final f = thenNode.toFilter();
-      expect(f, isA<ThenFilter>());
-      final tf = f as ThenFilter;
-      expect(tf.before, isA<FigureLeaf>());
-      expect((tf.before as FigureLeaf).move, 'petronella');
-      expect(tf.after, isA<FigureNot>());
-      // none-of with one child → FigureNot(FigureLeaf)
-      expect((tf.after as FigureNot).child, isA<FigureLeaf>());
-      expect(((tf.after as FigureNot).child as FigureLeaf).move, 'chain');
-    });
+    test(
+      'before=leaf, after=none-of-group folds to ThenFilter(FigureLeaf, FigureNot)',
+      () {
+        final thenNode = BuilderThen(
+          before: BuilderFigure(move: 'petronella'),
+          after: BuilderFigureGroup(
+            kind: GroupKind.none,
+            children: [BuilderFigure(move: 'chain')],
+          ),
+        );
+        final f = thenNode.toFilter();
+        expect(f, isA<ThenFilter>());
+        final tf = f as ThenFilter;
+        expect(tf.before, isA<FigureLeaf>());
+        expect((tf.before as FigureLeaf).move, 'petronella');
+        expect(tf.after, isA<FigureNot>());
+        // none-of with one child → FigureNot(FigureLeaf)
+        expect((tf.after as FigureNot).child, isA<FigureLeaf>());
+        expect(((tf.after as FigureNot).child as FigureLeaf).move, 'chain');
+      },
+    );
 
     test('both operands groups: any-of before, none-of after', () {
       final thenNode = BuilderThen(
@@ -1558,23 +1567,26 @@ void main() {
       expect(thenNode.toFilter(), isNull);
     });
 
-    test('before=group(all-of), after=leaf folds to ThenFilter(FigureAnd, FigureLeaf)', () {
-      final thenNode = BuilderThen(
-        before: BuilderFigureGroup(
-          kind: GroupKind.all,
-          children: [
-            BuilderFigure(move: 'swing', section: 'B1'),
-            BuilderFigure(move: 'circle'),
-          ],
-        ),
-        after: BuilderFigure(move: 'star'),
-      );
-      final f = thenNode.toFilter();
-      expect(f, isA<ThenFilter>());
-      final tf = f as ThenFilter;
-      expect(tf.before, isA<FigureAnd>());
-      expect((tf.before as FigureAnd).children, hasLength(2));
-    });
+    test(
+      'before=group(all-of), after=leaf folds to ThenFilter(FigureAnd, FigureLeaf)',
+      () {
+        final thenNode = BuilderThen(
+          before: BuilderFigureGroup(
+            kind: GroupKind.all,
+            children: [
+              BuilderFigure(move: 'swing', section: 'B1'),
+              BuilderFigure(move: 'circle'),
+            ],
+          ),
+          after: BuilderFigure(move: 'star'),
+        );
+        final f = thenNode.toFilter();
+        expect(f, isA<ThenFilter>());
+        final tf = f as ThenFilter;
+        expect(tf.before, isA<FigureAnd>());
+        expect((tf.before as FigureAnd).children, hasLength(2));
+      },
+    );
   });
 }
 

@@ -2148,48 +2148,51 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('a URL from a non-allowlisted host shows an inline error naming the '
-        'supported hosts, and is never fetched (#621)', (tester) async {
-      final repos = openTestRepositories();
-      var fetchCalls = 0;
-      await _pump(
-        tester,
-        repos,
-        payload: 'unused',
-        sources: sourcesFor(),
-        fetcher: (url) async {
-          fetchCalls++;
-          return tcbJson;
-        },
-      );
+    testWidgets(
+      'a URL from a non-allowlisted host shows an inline error naming the '
+      'supported hosts, and is never fetched (#621)',
+      (tester) async {
+        final repos = openTestRepositories();
+        var fetchCalls = 0;
+        await _pump(
+          tester,
+          repos,
+          payload: 'unused',
+          sources: sourcesFor(),
+          fetcher: (url) async {
+            fetchCalls++;
+            return tcbJson;
+          },
+        );
 
-      await selectCallersBox(tester);
-      // A lookalike host must be rejected before any URL is built/fetched.
-      await _fetch(
-        tester,
-        'https://ibiblio.org.evil.com/contradance/thecallersbox/dance.php?id=1',
-      );
+        await selectCallersBox(tester);
+        // A lookalike host must be rejected before any URL is built/fetched.
+        await _fetch(
+          tester,
+          'https://ibiblio.org.evil.com/contradance/thecallersbox/dance.php?id=1',
+        );
 
-      expect(find.byKey(const ValueKey('import-url-error')), findsOneWidget);
-      expect(
-        find.descendant(
-          of: find.byKey(const ValueKey('import-url-error')),
-          matching: find.textContaining('ibiblio.org'),
-        ),
-        findsOneWidget,
-      );
-      // #766 removed thecallersbox.com from the allowlist, so the message
-      // must no longer offer it as somewhere the user could paste from.
-      expect(
-        find.descendant(
-          of: find.byKey(const ValueKey('import-url-error')),
-          matching: find.textContaining('thecallersbox.com'),
-        ),
-        findsNothing,
-      );
-      expect(fetchCalls, 0);
-      expect(tester.takeException(), isNull);
-    });
+        expect(find.byKey(const ValueKey('import-url-error')), findsOneWidget);
+        expect(
+          find.descendant(
+            of: find.byKey(const ValueKey('import-url-error')),
+            matching: find.textContaining('ibiblio.org'),
+          ),
+          findsOneWidget,
+        );
+        // #766 removed thecallersbox.com from the allowlist, so the message
+        // must no longer offer it as somewhere the user could paste from.
+        expect(
+          find.descendant(
+            of: find.byKey(const ValueKey('import-url-error')),
+            matching: find.textContaining('thecallersbox.com'),
+          ),
+          findsNothing,
+        );
+        expect(fetchCalls, 0);
+        expect(tester.takeException(), isNull);
+      },
+    );
 
     testWidgets('switching source clears stale URL provenance', (tester) async {
       final repos = openTestRepositories();
@@ -3269,8 +3272,9 @@ void main() {
       await chooseAndReview(tester);
       expect(
         find.text(
-          lookupAppLocalizations(const Locale('en'))
-              .importReviewWillImport(1, 3),
+          lookupAppLocalizations(
+            const Locale('en'),
+          ).importReviewWillImport(1, 3),
         ),
         findsOneWidget,
         reason: 'the two known dances default to Skip',
@@ -3536,9 +3540,9 @@ void main() {
 
   group('file from a newer version (IMP-10)', () {
     String patchedVersion(int version) {
-      final json = jsonDecode(
-        _archivePayload([_dance('a', 'Alpha')]),
-      ) as Map<String, Object?>;
+      final json =
+          jsonDecode(_archivePayload([_dance('a', 'Alpha')]))
+              as Map<String, Object?>;
       json['schemaVersion'] = version;
       return jsonEncode(json);
     }
@@ -4289,41 +4293,44 @@ void main() {
       expect((await repos.dances.listAll()).single.title, 'Shared Reel');
     });
 
-    testWidgets('a dance that fails to import is listed in the result, not counted as a '
-        'success', (tester) async {
-      final repos = openTestRepositories();
-      // A commit failure is recorded on its record rather than thrown, so
-      // the rest of the file still imports.
-      await repos.db.customStatement(
-        'CREATE TRIGGER boom BEFORE INSERT ON dances '
-        "WHEN NEW.title = 'Doomed Reel' BEGIN SELECT RAISE(ABORT, 'boom'); END",
-      );
-      final archive = danceProgramVenueArchive();
-      await pumpShared(
-        tester,
-        repos,
-        bundleFor(
-          CompendiumArchive(
-            exportedAt: archive.exportedAt,
-            dances: [...archive.dances, sharedDance('d2', 'Doomed Reel')],
-            programs: archive.programs,
-            venues: archive.venues,
+    testWidgets(
+      'a dance that fails to import is listed in the result, not counted as a '
+      'success',
+      (tester) async {
+        final repos = openTestRepositories();
+        // A commit failure is recorded on its record rather than thrown, so
+        // the rest of the file still imports.
+        await repos.db.customStatement(
+          'CREATE TRIGGER boom BEFORE INSERT ON dances '
+          "WHEN NEW.title = 'Doomed Reel' BEGIN SELECT RAISE(ABORT, 'boom'); END",
+        );
+        final archive = danceProgramVenueArchive();
+        await pumpShared(
+          tester,
+          repos,
+          bundleFor(
+            CompendiumArchive(
+              exportedAt: archive.exportedAt,
+              dances: [...archive.dances, sharedDance('d2', 'Doomed Reel')],
+              programs: archive.programs,
+              venues: archive.venues,
+            ),
           ),
-        ),
-      );
+        );
 
-      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
-      await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+        await tester.pumpAndSettle();
 
-      expect((await repos.dances.listAll()).map((d) => d.title), [
-        'Shared Reel',
-      ]);
-      final l10n = lookupAppLocalizations(const Locale('en'));
-      // One dance and one program imported; one dance failed.
-      expect(find.text(l10n.importReviewSummaryCreated(1)), findsOneWidget);
-      expect(find.text(l10n.importReviewSummaryPrograms(1)), findsOneWidget);
-      expect(find.text(l10n.importReviewRecordsFailed(1)), findsOneWidget);
-    });
+        expect((await repos.dances.listAll()).map((d) => d.title), [
+          'Shared Reel',
+        ]);
+        final l10n = lookupAppLocalizations(const Locale('en'));
+        // One dance and one program imported; one dance failed.
+        expect(find.text(l10n.importReviewSummaryCreated(1)), findsOneWidget);
+        expect(find.text(l10n.importReviewSummaryPrograms(1)), findsOneWidget);
+        expect(find.text(l10n.importReviewRecordsFailed(1)), findsOneWidget);
+      },
+    );
 
     // INTAKE-6: settings.md says default import tags apply from the import
     // screen; a shared file reached it and was not tagged.
@@ -4629,17 +4636,20 @@ void main() {
       },
     );
 
-    testWidgets('suppresses the per-row Edit affordance so nothing writes before the '
-        'batch Import consent', (tester) async {
-      final repos = openTestRepositories();
+    testWidgets(
+      'suppresses the per-row Edit affordance so nothing writes before the '
+      'batch Import consent',
+      (tester) async {
+        final repos = openTestRepositories();
 
-      await pumpShared(tester, repos, bundleFor(danceProgramVenueArchive()));
+        await pumpShared(tester, repos, bundleFor(danceProgramVenueArchive()));
 
-      // The dance row renders, but its one-click Edit (which would commit that
-      // dance immediately, outside the batch Undo) is gone on the share path.
-      expect(find.byKey(const ValueKey('import-row-0')), findsOneWidget);
-      expect(find.byKey(const ValueKey('import-row-0-edit')), findsNothing);
-    });
+        // The dance row renders, but its one-click Edit (which would commit that
+        // dance immediately, outside the batch Undo) is gone on the share path.
+        expect(find.byKey(const ValueKey('import-row-0')), findsOneWidget);
+        expect(find.byKey(const ValueKey('import-row-0-edit')), findsNothing);
+      },
+    );
 
     testWidgets(
       'share-target custom difficulty survives planning before bulk commit',
@@ -4728,38 +4738,41 @@ void main() {
 
     // ── Issue #869: Import gating when all dances are skipped ────────────────
 
-    testWidgets('#869: skipping every dance still enables Import when the bundle carries '
-        'a program (share-target path)', (tester) async {
-      final repos = openTestRepositories();
+    testWidgets(
+      '#869: skipping every dance still enables Import when the bundle carries '
+      'a program (share-target path)',
+      (tester) async {
+        final repos = openTestRepositories();
 
-      await pumpShared(tester, repos, bundleFor(danceProgramVenueArchive()));
+        await pumpShared(tester, repos, bundleFor(danceProgramVenueArchive()));
 
-      // Set the one dance row to Skip — now importable == 0.
-      await tester.tap(find.byKey(const ValueKey('import-row-0-skip')));
-      await tester.pumpAndSettle();
+        // Set the one dance row to Skip — now importable == 0.
+        await tester.tap(find.byKey(const ValueKey('import-row-0-skip')));
+        await tester.pumpAndSettle();
 
-      // Import must still be enabled: the program will be written regardless
-      // of how dance rows are dispositioned.
-      final button = tester.widget<FilledButton>(
-        find.byKey(const ValueKey('import-commit-button')),
-      );
-      expect(button.onPressed, isNotNull);
+        // Import must still be enabled: the program will be written regardless
+        // of how dance rows are dispositioned.
+        final button = tester.widget<FilledButton>(
+          find.byKey(const ValueKey('import-commit-button')),
+        );
+        expect(button.onPressed, isNotNull);
 
-      // The programs label must be present to satisfy the acceptance criterion
-      // that the label cannot read "0 of 1" beside an enabled button without
-      // indicating the program.
-      expect(
-        find.byKey(const ValueKey('import-programs-label')),
-        findsOneWidget,
-      );
+        // The programs label must be present to satisfy the acceptance criterion
+        // that the label cannot read "0 of 1" beside an enabled button without
+        // indicating the program.
+        expect(
+          find.byKey(const ValueKey('import-programs-label')),
+          findsOneWidget,
+        );
 
-      // Committing writes the program but not the skipped dance.
-      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
-      await tester.pumpAndSettle();
+        // Committing writes the program but not the skipped dance.
+        await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+        await tester.pumpAndSettle();
 
-      expect(await repos.programs.listAll(), hasLength(1));
-      expect(await repos.dances.listAll(), isEmpty);
-    });
+        expect(await repos.programs.listAll(), hasLength(1));
+        expect(await repos.dances.listAll(), isEmpty);
+      },
+    );
 
     testWidgets(
       '#869: skipping every dance keeps Import disabled when the bundle has no '
@@ -4794,26 +4807,29 @@ void main() {
       },
     );
 
-    testWidgets('#869: programs label is shown on the common path (dances selected, bundle '
-        'carries a program)', (tester) async {
-      final repos = openTestRepositories();
+    testWidgets(
+      '#869: programs label is shown on the common path (dances selected, bundle '
+      'carries a program)',
+      (tester) async {
+        final repos = openTestRepositories();
 
-      // Leave default choices — dance is set to Import.
-      await pumpShared(tester, repos, bundleFor(danceProgramVenueArchive()));
+        // Leave default choices — dance is set to Import.
+        await pumpShared(tester, repos, bundleFor(danceProgramVenueArchive()));
 
-      // Import is enabled (existing behaviour).
-      final button = tester.widget<FilledButton>(
-        find.byKey(const ValueKey('import-commit-button')),
-      );
-      expect(button.onPressed, isNotNull);
+        // Import is enabled (existing behaviour).
+        final button = tester.widget<FilledButton>(
+          find.byKey(const ValueKey('import-commit-button')),
+        );
+        expect(button.onPressed, isNotNull);
 
-      // Programs label is also shown on the common path, not only in the
-      // all-dances-skipped edge case.
-      expect(
-        find.byKey(const ValueKey('import-programs-label')),
-        findsOneWidget,
-      );
-    });
+        // Programs label is also shown on the common path, not only in the
+        // all-dances-skipped edge case.
+        expect(
+          find.byKey(const ValueKey('import-programs-label')),
+          findsOneWidget,
+        );
+      },
+    );
 
     testWidgets(
       'embedded: the Close button is disabled while committing so a mid-commit '
@@ -5338,77 +5354,80 @@ void main() {
       },
     );
 
-    testWidgets('editing the paste field after picking a .ccshare commits the edited '
-        'text only — the original decoded bundle is not used', (tester) async {
-      // This guards the staleness hazard identified in PR #874 review:
-      // overwriting the paste field with a dance-only payload must commit
-      // only what is in the paste field — the program from the originally
-      // picked archive must not bleed through.
-      //
-      // With plan-time detection, _refreshPickedBundle re-decodes at each
-      // Continue and updates _cachedPickedBundle to match the current text.
-      // An overwrite with dance-only JSON produces a cache miss (no programs),
-      // and _commit falls through to GenericJsonAdapter.
-      //
-      // Mutate-out target: disable program detection in _refreshPickedBundle so
-      // _cachedPickedBundle is always null. The round-3 stale-equality check
-      // had the same surface — with it, the cache is set at pick time and
-      // cleared when the text changes; with its absence, the cache stays set
-      // from the original pick, so _commit routes through
-      // CompendiumArchiveImporter and writes the original program. Either
-      // mutation causes the "programs isEmpty" assertion below to fail.
-      final repos = openTestRepositories();
-      final original = pickerArchive(); // has a program
-      final originalPayload = encodeArchive(original);
+    testWidgets(
+      'editing the paste field after picking a .ccshare commits the edited '
+      'text only — the original decoded bundle is not used',
+      (tester) async {
+        // This guards the staleness hazard identified in PR #874 review:
+        // overwriting the paste field with a dance-only payload must commit
+        // only what is in the paste field — the program from the originally
+        // picked archive must not bleed through.
+        //
+        // With plan-time detection, _refreshPickedBundle re-decodes at each
+        // Continue and updates _cachedPickedBundle to match the current text.
+        // An overwrite with dance-only JSON produces a cache miss (no programs),
+        // and _commit falls through to GenericJsonAdapter.
+        //
+        // Mutate-out target: disable program detection in _refreshPickedBundle so
+        // _cachedPickedBundle is always null. The round-3 stale-equality check
+        // had the same surface — with it, the cache is set at pick time and
+        // cleared when the text changes; with its absence, the cache stays set
+        // from the original pick, so _commit routes through
+        // CompendiumArchiveImporter and writes the original program. Either
+        // mutation causes the "programs isEmpty" assertion below to fail.
+        final repos = openTestRepositories();
+        final original = pickerArchive(); // has a program
+        final originalPayload = encodeArchive(original);
 
-      // A dance-only archive we will substitute by editing the paste field.
-      final editedPayload = encodeArchive(
-        CompendiumArchive(
-          exportedAt: DateTime.utc(2026, 7, 15),
-          dances: [
-            Dance(
-              id: 'd99',
-              title: 'Edited Reel',
-              createdAt: DateTime.utc(2026, 1, 1),
-              updatedAt: DateTime.utc(2026, 1, 1),
-            ),
-          ],
-        ),
-      );
+        // A dance-only archive we will substitute by editing the paste field.
+        final editedPayload = encodeArchive(
+          CompendiumArchive(
+            exportedAt: DateTime.utc(2026, 7, 15),
+            dances: [
+              Dance(
+                id: 'd99',
+                title: 'Edited Reel',
+                createdAt: DateTime.utc(2026, 1, 1),
+                updatedAt: DateTime.utc(2026, 1, 1),
+              ),
+            ],
+          ),
+        );
 
-      // Pick the bundle-with-programs, then overwrite the paste field with the
-      // dance-only payload before planning — simulating a user edit.
-      await pumpWithPicker(tester, repos, originalPayload);
-      await tester.tap(find.byKey(const ValueKey('import-choose-file')));
-      await tester.pumpAndSettle();
-      // Overwrite the paste field (simulates the user editing after pick).
-      await tester.enterText(
-        find.byKey(const ValueKey('import-paste-field')),
-        editedPayload,
-      );
-      await tester.pumpAndSettle();
+        // Pick the bundle-with-programs, then overwrite the paste field with the
+        // dance-only payload before planning — simulating a user edit.
+        await pumpWithPicker(tester, repos, originalPayload);
+        await tester.tap(find.byKey(const ValueKey('import-choose-file')));
+        await tester.pumpAndSettle();
+        // Overwrite the paste field (simulates the user editing after pick).
+        await tester.enterText(
+          find.byKey(const ValueKey('import-paste-field')),
+          editedPayload,
+        );
+        await tester.pumpAndSettle();
 
-      // Plan and commit the edited payload.
-      await tester.tap(find.byKey(const ValueKey('import-continue')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
-      await tester.pumpAndSettle();
+        // Plan and commit the edited payload.
+        await tester.tap(find.byKey(const ValueKey('import-continue')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+        await tester.pumpAndSettle();
 
-      // The edited payload's dance committed, not the original bundle's.
-      final dances = await repos.dances.listAll();
-      expect(dances.map((d) => d.title), contains('Edited Reel'));
-      // No program — the stale decoded bundle was not used.
-      expect(await repos.programs.listAll(), isEmpty);
-      // Dance-only path: a summary with no programs.
-      expect(
-        find.byKey(const ValueKey('import-result-dialog')),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(const ValueKey('import-summary-Programs')),
-        findsNothing,
-      );
-    });
+        // The edited payload's dance committed, not the original bundle's.
+        final dances = await repos.dances.listAll();
+        expect(dances.map((d) => d.title), contains('Edited Reel'));
+        // No program — the stale decoded bundle was not used.
+        expect(await repos.programs.listAll(), isEmpty);
+        // Dance-only path: a summary with no programs.
+        expect(
+          find.byKey(const ValueKey('import-result-dialog')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('import-summary-Programs')),
+          findsNothing,
+        );
+      },
+    );
 
     // ── Issue #869: Import gating when all dances are skipped (picker path) ─
 

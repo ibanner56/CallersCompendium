@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/widgets/figure_table.dart';
-
 import '../support/l10n_harness.dart';
 
 /// Dance-detail display of a `meanwhile` container figure (#594, layered on

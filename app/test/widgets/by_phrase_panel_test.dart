@@ -4,7 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/search/collection_query.dart';
 import 'package:compendium_app/src/widgets/by_phrase_panel.dart';
-
 import '../support/l10n_harness.dart';
 import '../support/screen_size.dart';
 

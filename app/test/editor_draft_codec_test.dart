@@ -43,131 +43,137 @@ EditorSnapshot _minimalSnapshot({
 void main() {
   group('draft codec v6 —', () {
     test('rejects same-kind nested containers in autosave drafts', () {
-      final raw = jsonDecode(
-        encodeDraft(
-          _minimalSnapshot(
-            figureDrafts: [
-              FigureDraftSnapshot(
-                id: 'root',
-                move: null,
-                params: const {},
-                note: '',
-                progression: false,
-                schemaVersion: figureSchemaVersion,
-                modifierFigures: [
-                  FigureDraftSnapshot(
-                    id: 'child',
-                    move: null,
-                    params: const {},
-                    note: '',
-                    progression: false,
-                    schemaVersion: figureSchemaVersion,
-                    modifierFigures: const [],
-                  ),
-                  FigureDraftSnapshot(
-                    id: 'plain',
-                    move: 'swing',
-                    params: const {},
-                    note: '',
-                    progression: false,
-                    schemaVersion: figureSchemaVersion,
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ) as Map<String, Object?>;
-
-      expect(() => decodeDraft(raw), throwsA(isA<FormatException>()));
-    });
-
-    test('rejects container nesting deeper than two levels', () {
-      final raw = jsonDecode(
-        encodeDraft(
-          _minimalSnapshot(
-            figureDrafts: [
-              FigureDraftSnapshot(
-                id: 'root',
-                move: null,
-                params: const {},
-                note: '',
-                progression: false,
-                schemaVersion: figureSchemaVersion,
-                modifierFigures: [
-                  FigureDraftSnapshot(
-                    id: 'middle',
-                    move: null,
-                    params: const {},
-                    note: '',
-                    progression: false,
-                    schemaVersion: figureSchemaVersion,
-                    meanwhileSides: [
+      final raw =
+          jsonDecode(
+                encodeDraft(
+                  _minimalSnapshot(
+                    figureDrafts: [
                       FigureDraftSnapshot(
-                        id: 'deep',
+                        id: 'root',
                         move: null,
                         params: const {},
                         note: '',
                         progression: false,
                         schemaVersion: figureSchemaVersion,
-                        modifierFigures: const [],
+                        modifierFigures: [
+                          FigureDraftSnapshot(
+                            id: 'child',
+                            move: null,
+                            params: const {},
+                            note: '',
+                            progression: false,
+                            schemaVersion: figureSchemaVersion,
+                            modifierFigures: const [],
+                          ),
+                          FigureDraftSnapshot(
+                            id: 'plain',
+                            move: 'swing',
+                            params: const {},
+                            note: '',
+                            progression: false,
+                            schemaVersion: figureSchemaVersion,
+                          ),
+                        ],
                       ),
+                    ],
+                  ),
+                ),
+              )
+              as Map<String, Object?>;
+
+      expect(() => decodeDraft(raw), throwsA(isA<FormatException>()));
+    });
+
+    test('rejects container nesting deeper than two levels', () {
+      final raw =
+          jsonDecode(
+                encodeDraft(
+                  _minimalSnapshot(
+                    figureDrafts: [
                       FigureDraftSnapshot(
-                        id: 'plain',
-                        move: 'swing',
+                        id: 'root',
+                        move: null,
                         params: const {},
                         note: '',
                         progression: false,
                         schemaVersion: figureSchemaVersion,
+                        modifierFigures: [
+                          FigureDraftSnapshot(
+                            id: 'middle',
+                            move: null,
+                            params: const {},
+                            note: '',
+                            progression: false,
+                            schemaVersion: figureSchemaVersion,
+                            meanwhileSides: [
+                              FigureDraftSnapshot(
+                                id: 'deep',
+                                move: null,
+                                params: const {},
+                                note: '',
+                                progression: false,
+                                schemaVersion: figureSchemaVersion,
+                                modifierFigures: const [],
+                              ),
+                              FigureDraftSnapshot(
+                                id: 'plain',
+                                move: 'swing',
+                                params: const {},
+                                note: '',
+                                progression: false,
+                                schemaVersion: figureSchemaVersion,
+                              ),
+                            ],
+                          ),
+                          FigureDraftSnapshot(
+                            id: 'plain',
+                            move: 'swing',
+                            params: const {},
+                            note: '',
+                            progression: false,
+                            schemaVersion: figureSchemaVersion,
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                  FigureDraftSnapshot(
-                    id: 'plain',
-                    move: 'swing',
-                    params: const {},
-                    note: '',
-                    progression: false,
-                    schemaVersion: figureSchemaVersion,
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ) as Map<String, Object?>;
+                ),
+              )
+              as Map<String, Object?>;
 
       expect(() => decodeDraft(raw), throwsA(isA<FormatException>()));
     });
 
     test('rejects structural containers with more than six children', () {
-      final raw = jsonDecode(
-        encodeDraft(
-          _minimalSnapshot(
-            figureDrafts: [
-              FigureDraftSnapshot(
-                id: 'root',
-                move: null,
-                params: const {},
-                note: '',
-                progression: false,
-                schemaVersion: figureSchemaVersion,
-                modifierFigures: [
-                  for (var i = 0; i < kMaxMeanwhileSides + 1; i++)
-                    FigureDraftSnapshot(
-                      id: 'child-$i',
-                      move: 'swing',
-                      params: const {},
-                      note: '',
-                      progression: false,
-                      schemaVersion: figureSchemaVersion,
-                    ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ) as Map<String, Object?>;
+      final raw =
+          jsonDecode(
+                encodeDraft(
+                  _minimalSnapshot(
+                    figureDrafts: [
+                      FigureDraftSnapshot(
+                        id: 'root',
+                        move: null,
+                        params: const {},
+                        note: '',
+                        progression: false,
+                        schemaVersion: figureSchemaVersion,
+                        modifierFigures: [
+                          for (var i = 0; i < kMaxMeanwhileSides + 1; i++)
+                            FigureDraftSnapshot(
+                              id: 'child-$i',
+                              move: 'swing',
+                              params: const {},
+                              note: '',
+                              progression: false,
+                              schemaVersion: figureSchemaVersion,
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              )
+              as Map<String, Object?>;
 
       expect(() => decodeDraft(raw), throwsA(isA<FormatException>()));
     });
@@ -624,8 +630,9 @@ void main() {
 
     test('unknown top-level keys are silently ignored', () {
       // Insert a future key the current codec doesn't know about.
-      final encoded = encodeDraft(_minimalSnapshot())
-          .replaceFirst('"v":6', '"v":6,"futureKey":"ignored"');
+      final encoded = encodeDraft(
+        _minimalSnapshot(),
+      ).replaceFirst('"v":6', '"v":6,"futureKey":"ignored"');
       final decoded = decodeDraft(encoded);
       expect(decoded.title, 'Test');
     });

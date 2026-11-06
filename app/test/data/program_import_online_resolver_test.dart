@@ -663,30 +663,27 @@ void main() {
     expect(service.searchedQueries.single.requireFigures, isTrue);
   });
 
-  test(
-    '#845: a title held only by a figure-hidden dance stays a note',
-    () async {
-      // The behavioural consequence, end to end. `_FakeOnlineService` honours
-      // `requireFigures`, so the old opt-out makes this line import the figureless
-      // stub — red on what the code DID, not merely on which flag it passed.
-      final repos = openTestRepositories();
-      final service = _FakeOnlineService(
-        rowsByTitle: {
-          'petronella': [_row('Petronella', id: '1', figuresAvailable: false)],
-        },
-      );
+  test('#845: a title held only by a figure-hidden dance stays a note', () async {
+    // The behavioural consequence, end to end. `_FakeOnlineService` honours
+    // `requireFigures`, so the old opt-out makes this line import the figureless
+    // stub — red on what the code DID, not merely on which flag it passed.
+    final repos = openTestRepositories();
+    final service = _FakeOnlineService(
+      rowsByTitle: {
+        'petronella': [_row('Petronella', id: '1', figuresAvailable: false)],
+      },
+    );
 
-      final resolved = (await resolveUnmatchedOnline(
-        [_unmatched('Petronella')],
-        service: service,
-        repos: repos,
-      )).lines;
+    final resolved = (await resolveUnmatchedOnline(
+      [_unmatched('Petronella')],
+      service: service,
+      repos: repos,
+    )).lines;
 
-      expect(resolved.single.resolution, PlaintextLineResolution.unmatched);
-      expect(service.loadedIds, isEmpty);
-      expect(service.importedIds, isEmpty);
-    },
-  );
+    expect(resolved.single.resolution, PlaintextLineResolution.unmatched);
+    expect(service.loadedIds, isEmpty);
+    expect(service.importedIds, isEmpty);
+  });
 
   test('#845: a figure-hidden twin no longer hides the dance that has '
       'figures', () async {

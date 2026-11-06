@@ -13,8 +13,9 @@ void main() {
         if (entity is! File || !entity.path.endsWith('.dart')) continue;
         final lines = entity.readAsLinesSync();
         for (var i = 0; i < lines.length; i++) {
-          if (RegExp(r'''^\s*(import|export)\s+['"](\.\./)+screens/''')
-              .hasMatch(lines[i])) {
+          if (RegExp(
+            r'''^\s*(import|export)\s+['"](\.\./)+screens/''',
+          ).hasMatch(lines[i])) {
             offenders.add('${entity.path}:${i + 1}: ${lines[i].trim()}');
           }
         }

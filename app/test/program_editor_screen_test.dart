@@ -5382,8 +5382,9 @@ void main() {
   });
 
   test('_exportMatrixPdf reads no BuildContext or state inside onLayout', () {
-    final src = File('lib/src/screens/program_editor_screen.dart')
-        .readAsStringSync();
+    final src = File(
+      'lib/src/screens/program_editor_screen.dart',
+    ).readAsStringSync();
     final start = src.indexOf('Future<void> _exportMatrixPdf(');
     expect(start, isNonNegative);
     final onLayout = src.indexOf('onLayout:', start);

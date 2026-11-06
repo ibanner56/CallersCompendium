@@ -1203,8 +1203,9 @@ void main() {
 
       final restoreFuture = runWrite!(() async {
         restoreStarted = true;
-        final outcome = await BackupService(appData.repositories)
-            .restoreFromJson(backupJson);
+        final outcome = await BackupService(
+          appData.repositories,
+        ).restoreFromJson(backupJson);
         lifecycle.add('restored');
         return outcome;
       });
@@ -2515,8 +2516,9 @@ void main() {
   // preferences must also return to its default when a restored backup lacks
   // its key, and show a stored non-default value at startup.
   group('restoring a backup without a non-boolean preference resets it', () {
-    final matrixStored = const MatrixColumnConfig(hidden: {'some-column'})
-        .toJson();
+    final matrixStored = const MatrixColumnConfig(
+      hidden: {'some-column'},
+    ).toJson();
     final cases =
         <
           ({

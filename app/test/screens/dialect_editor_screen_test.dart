@@ -603,7 +603,8 @@ void main() {
           initial: Dialect(
             name: 'Wording',
             moveWordings: const {
-              'hey': '{who} {article} {where} {length} {shoulder} {until} {ricochets}',
+              'hey':
+                  '{who} {article} {where} {length} {shoulder} {until} {ricochets}',
             },
           ),
         ),

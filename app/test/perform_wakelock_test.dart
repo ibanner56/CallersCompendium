@@ -55,9 +55,9 @@ Future<void> _pushPerform(WidgetTester tester, Widget screen) async {
           body: Center(
             child: ElevatedButton(
               key: const ValueKey('launch-perform'),
-              onPressed: () =>
-                  Navigator.of(context)
-                      .push(MaterialPageRoute<void>(builder: (_) => screen)),
+              onPressed: () => Navigator.of(
+                context,
+              ).push(MaterialPageRoute<void>(builder: (_) => screen)),
               child: const Text('Perform'),
             ),
           ),

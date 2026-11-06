@@ -583,8 +583,9 @@ void main() {
       live.close();
       File('${legacy.path}-shm').writeAsBytesSync(const [9]);
       legacyBackups.createSync();
-      File(p.join(legacyBackups.path, 'compendium.pre-v6-x.sqlite.bak'))
-          .writeAsBytesSync(const [1, 2, 3]);
+      File(
+        p.join(legacyBackups.path, 'compendium.pre-v6-x.sqlite.bak'),
+      ).writeAsBytesSync(const [1, 2, 3]);
       File(p.join(legacyBackups.path, 'notes.txt')).writeAsStringSync('mine');
 
       final moved = await relocateLegacyDatabase(
@@ -604,8 +605,9 @@ void main() {
       expect(File('${legacy.path}-wal').existsSync(), isFalse);
       expect(File('${legacy.path}-shm').existsSync(), isFalse);
       expect(
-        File(p.join(targetBackups.path, 'compendium.pre-v6-x.sqlite.bak'))
-            .readAsBytesSync(),
+        File(
+          p.join(targetBackups.path, 'compendium.pre-v6-x.sqlite.bak'),
+        ).readAsBytesSync(),
         const [1, 2, 3],
       );
       // Only our own snapshots move: a stranger's file in Documents stays.
@@ -1303,8 +1305,9 @@ void main() {
     test('removes the emptied legacy db_backups folder', () async {
       _createFixture(legacy.path, userVersion: 7, seedValue: 'x');
       legacyBackups.createSync();
-      File(p.join(legacyBackups.path, 'compendium.pre-v6-x.sqlite.bak'))
-          .writeAsBytesSync(const [1]);
+      File(
+        p.join(legacyBackups.path, 'compendium.pre-v6-x.sqlite.bak'),
+      ).writeAsBytesSync(const [1]);
 
       await relocateLegacyDatabase(target: target, legacy: [legacy]);
 
@@ -1363,8 +1366,9 @@ void main() {
         'fails', () async {
       _createFixture(legacy.path, userVersion: 7, seedValue: 'keep me');
       legacyBackups.createSync();
-      File(p.join(legacyBackups.path, 'compendium.pre-v6-x.sqlite.bak'))
-          .writeAsBytesSync(const [1]);
+      File(
+        p.join(legacyBackups.path, 'compendium.pre-v6-x.sqlite.bak'),
+      ).writeAsBytesSync(const [1]);
       // The target directory cannot be created: its parent is a regular file.
       final blocker = File(p.join(dir.path, 'blocker'))..writeAsStringSync('');
       final blockedTarget = File(
@@ -1384,8 +1388,9 @@ void main() {
 
       expect(seeded(legacy), 'keep me');
       expect(
-        File(p.join(legacyBackups.path, 'compendium.pre-v6-x.sqlite.bak'))
-            .existsSync(),
+        File(
+          p.join(legacyBackups.path, 'compendium.pre-v6-x.sqlite.bak'),
+        ).existsSync(),
         isTrue,
       );
     });
@@ -1394,8 +1399,9 @@ void main() {
         'can retry cleanly', () async {
       _createFixture(legacy.path, userVersion: 7, seedValue: 'keep me');
       legacyBackups.createSync();
-      File(p.join(legacyBackups.path, 'compendium.pre-v6-x.sqlite.bak'))
-          .writeAsBytesSync(const [1]);
+      File(
+        p.join(legacyBackups.path, 'compendium.pre-v6-x.sqlite.bak'),
+      ).writeAsBytesSync(const [1]);
       // The database file copies fine; the snapshot destination cannot be
       // created because a regular file squats on the db_backups name.
       target.parent.createSync(recursive: true);

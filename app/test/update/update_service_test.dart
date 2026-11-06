@@ -632,30 +632,33 @@ void main() {
       expect(hops, kMaxArtifactRedirects + 1);
     });
 
-    test('upfront guard: disallowed initial host throws before any request is made', () async {
-      // sendManifestFollowingHttpsRedirects validates the initial URI before
-      // the first client.send() call, mirroring downloadArtifact's upfront
-      // guard. The mock would return a 200 if reached; the guard must throw
-      // first so it is never called.
-      //
-      // This test distinguishes "guards every request" from "guards only
-      // redirect targets". Mutation target: remove the upfront
-      // isAllowedArtifactHost(uri) check and confirm requestsMade > 0.
-      var requestsMade = 0;
-      final client = MockClient.streaming((request, _) async {
-        requestsMade++;
-        return http.StreamedResponse(
-          Stream<List<int>>.value(utf8.encode(_manifest())),
-          200,
+    test(
+      'upfront guard: disallowed initial host throws before any request is made',
+      () async {
+        // sendManifestFollowingHttpsRedirects validates the initial URI before
+        // the first client.send() call, mirroring downloadArtifact's upfront
+        // guard. The mock would return a 200 if reached; the guard must throw
+        // first so it is never called.
+        //
+        // This test distinguishes "guards every request" from "guards only
+        // redirect targets". Mutation target: remove the upfront
+        // isAllowedArtifactHost(uri) check and confirm requestsMade > 0.
+        var requestsMade = 0;
+        final client = MockClient.streaming((request, _) async {
+          requestsMade++;
+          return http.StreamedResponse(
+            Stream<List<int>>.value(utf8.encode(_manifest())),
+            200,
+          );
+        });
+        final disallowedUri = Uri.parse('https://evil.example.com/stable.json');
+        await expectLater(
+          sendManifestFollowingHttpsRedirects(client, disallowedUri),
+          throwsA(isA<Exception>()),
         );
-      });
-      final disallowedUri = Uri.parse('https://evil.example.com/stable.json');
-      await expectLater(
-        sendManifestFollowingHttpsRedirects(client, disallowedUri),
-        throwsA(isA<Exception>()),
-      );
-      expect(requestsMade, 0);
-    });
+        expect(requestsMade, 0);
+      },
+    );
   });
 }
 

@@ -377,19 +377,22 @@ void main() {
       expect(requested, hasLength(2));
     });
 
-    test('refuses a hop to a thecallersbox segment outside /contradance/', () async {
-      // The hop-level twin of the builder guard: a compromised mirror must not
-      // be able to bounce an import into some other ibiblio archive that
-      // merely has a `thecallersbox` directory.
-      final (client, requested) = redirectOnceTo(
-        'https://www.ibiblio.org/anyarchive/thecallersbox/dance.php?id=1',
-      );
-      await expectLater(
-        fetchImportUrl(callersBoxJson, client: client),
-        throwsBlockedHost(),
-      );
-      expect(requested, [callersBoxJson]);
-    });
+    test(
+      'refuses a hop to a thecallersbox segment outside /contradance/',
+      () async {
+        // The hop-level twin of the builder guard: a compromised mirror must not
+        // be able to bounce an import into some other ibiblio archive that
+        // merely has a `thecallersbox` directory.
+        final (client, requested) = redirectOnceTo(
+          'https://www.ibiblio.org/anyarchive/thecallersbox/dance.php?id=1',
+        );
+        await expectLater(
+          fetchImportUrl(callersBoxJson, client: client),
+          throwsBlockedHost(),
+        );
+        expect(requested, [callersBoxJson]);
+      },
+    );
 
     test(
       'refuses a hop to the removed thecallersbox.com hosts (#766)',

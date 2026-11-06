@@ -90,8 +90,9 @@ void main() {
 
     test('reads from a path via the injected reader, then validates', () async {
       final json = _validBundleJson();
-      final result = await service(readBytes: (path) async => _bytes(json))
-          .validateFromPath('/anywhere/bundle.json');
+      final result = await service(
+        readBytes: (path) async => _bytes(json),
+      ).validateFromPath('/anywhere/bundle.json');
 
       expect(result.isValidated, isTrue);
       expect(result.archive, isNotNull);
@@ -254,9 +255,9 @@ void main() {
       ]);
       addTearDown(writer.kill);
 
-      final validation = await ArchiveIntakeService(maxBytes: 1024)
-          .validateFromPath(fifo)
-          .timeout(const Duration(seconds: 10));
+      final validation = await ArchiveIntakeService(
+        maxBytes: 1024,
+      ).validateFromPath(fifo).timeout(const Duration(seconds: 10));
 
       expect(validation.reason, ArchiveIntakeRejectionReason.tooLarge);
     },

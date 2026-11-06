@@ -5,7 +5,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:compendium_app/src/theme/app_theme.dart';
 import 'package:compendium_app/src/theme/app_theme_extension.dart';
 import 'package:compendium_app/src/widgets/program_status_chip.dart';
-
 import '../support/l10n_harness.dart';
 
 Future<void> _pump(WidgetTester tester, ProgramStatus status) async {

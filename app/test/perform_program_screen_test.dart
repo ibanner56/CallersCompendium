@@ -1327,8 +1327,9 @@ void main() {
       program: _program([_slot(id: 's1', position: 0, danceId: 'd1')]),
     );
 
-    final scheme = Theme.of(tester.element(find.byType(PerformCard)))
-        .colorScheme;
+    final scheme = Theme.of(
+      tester.element(find.byType(PerformCard)),
+    ).colorScheme;
     expect(scheme, AppColorSchemes.highContrast);
     expect(scheme.brightness, Brightness.dark);
     expect(scheme.surface, AppColorSchemes.highContrast.surface);
@@ -2325,8 +2326,9 @@ void main() {
           localizationsDelegates: testLocalizationsDelegates,
           supportedLocales: testSupportedLocales,
           builder: (context, child) => MediaQuery(
-            data: MediaQuery.of(context)
-                .copyWith(textScaler: TextScaler.linear(textScale)),
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: TextScaler.linear(textScale)),
             child: RepositoriesScope(
               repositories: repos,
               child: ActiveDialectScope(notifier: notifier, child: child!),
@@ -3031,8 +3033,9 @@ void main() {
       await _pumpProgram(
         tester,
         data: data,
-        program: _program([_slot(id: 's1', position: 0, danceId: 'd1')])
-            .copyWith(dialectName: programDialect),
+        program: _program([
+          _slot(id: 's1', position: 0, danceId: 'd1'),
+        ]).copyWith(dialectName: programDialect),
         // The app dialect is Larks/Robins; the program asks for another.
         activeDialect: Dialect.larksRobins,
         dialectLibrary: controller,

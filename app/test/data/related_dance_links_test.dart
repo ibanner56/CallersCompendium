@@ -130,8 +130,9 @@ void main() {
           links: [_related('target-link', 'source', label: 'keep this')],
         ),
       );
-      final source = (await repos.dances.getById('source'))!
-          .copyWith(links: [_related('source-link', 'target')]);
+      final source = (await repos.dances.getById(
+        'source',
+      ))!.copyWith(links: [_related('source-link', 'target')]);
       await repos.dances.update(source);
 
       await saveDanceWithRelatedLinks(repos, dance: source);
@@ -150,8 +151,9 @@ void main() {
       _dance(id: 'old', links: [_related('old-link', 'source')]),
     );
     await repos.dances.create(_dance(id: 'new'));
-    final original = (await repos.dances.getById('source'))!
-        .copyWith(links: [_related('source-link', 'old')]);
+    final original = (await repos.dances.getById(
+      'source',
+    ))!.copyWith(links: [_related('source-link', 'old')]);
     await repos.dances.update(original);
 
     final updated = original.copyWith(
@@ -168,8 +170,9 @@ void main() {
   test('removing a relation removes every reciprocal row', () async {
     final repos = openTestRepositories();
     await repos.dances.create(_dance(id: 'source'));
-    final original = (await repos.dances.getById('source'))!
-        .copyWith(links: [_related('source-link', 'target')]);
+    final original = (await repos.dances.getById(
+      'source',
+    ))!.copyWith(links: [_related('source-link', 'target')]);
     await repos.dances.create(_dance(id: 'target'));
     await repos.dances.create(original);
     await repos.dances.update(
@@ -203,8 +206,9 @@ void main() {
     await repos.dances.create(
       _dance(id: 'target', links: [_related('target-link', 'source')]),
     );
-    final original = (await repos.dances.getById('source'))!
-        .copyWith(links: [_related('source-link', 'target')]);
+    final original = (await repos.dances.getById(
+      'source',
+    ))!.copyWith(links: [_related('source-link', 'target')]);
     await repos.dances.update(original);
     await repos.dances.softDelete('target', at: DateTime.utc(2026, 1, 2));
 
@@ -268,8 +272,9 @@ void main() {
     await repos.dances.create(
       _dance(id: 'old', links: [_related('old-link', 'source')]),
     );
-    final original = (await repos.dances.getById('source'))!
-        .copyWith(title: 'Original', links: [_related('source-link', 'old')]);
+    final original = (await repos.dances.getById(
+      'source',
+    ))!.copyWith(title: 'Original', links: [_related('source-link', 'old')]);
     await repos.dances.create(original);
     final invalid = original.copyWith(
       title: 'Should not save',
@@ -466,8 +471,9 @@ void main() {
 
       for (final id in ['a', 'b', 'c']) {
         expect(
-          (await repos.dances.getById(id))!.links
-              .where((link) => link.transitive),
+          (await repos.dances.getById(
+            id,
+          ))!.links.where((link) => link.transitive),
           isEmpty,
         );
       }

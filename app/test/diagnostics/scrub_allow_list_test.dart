@@ -24,8 +24,9 @@ void main() {
     };
     // The download error is private to update_controller.dart, so check the
     // declaration itself rather than export the class for a test.
-    final controller = File('lib/src/update/update_controller.dart')
-        .readAsStringSync();
+    final controller = File(
+      'lib/src/update/update_controller.dart',
+    ).readAsStringSync();
     expect(controller, contains('class _UpdateDownloadError implements'));
     real['_UpdateDownloadError'] = '_UpdateDownloadError';
 
