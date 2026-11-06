@@ -2615,6 +2615,23 @@ const Map<String, String> _heyLengths = {
   '3/4': 'betweenHalfAndFull',
 };
 
+/// Removes and returns the set direction that LEADS [w], worded as the figure
+/// display words one: `across`, `along`, or one of [displayDirectionPhrases]
+/// (`on right diagonal`, `facing in`; #2121). Null, consuming nothing, when
+/// [w] does not start with one.
+String? _takeLeadingDirection(List<String> w) {
+  if (_consumeLeading(w, ['across'])) return 'across';
+  if (_consumeLeading(w, ['along'])) return 'along';
+  for (final MapEntry(key: token, value: phrase)
+      in displayDirectionPhrases.entries) {
+    if (_consumeLeading(w, phrase.split(' '))) return token;
+  }
+  return null;
+}
+
+/// The changes in a full circular hey, which its display states with no extent.
+const int _circularHeyFullCircuit = 4;
+
 /// Extent words of a circular hey -> number of changes (quarters of a full
 /// four-change circuit). `1/2` is the only non-quarter spelling accepted.
 final Map<String, int> _circularHeyExtents = {
@@ -2627,18 +2644,19 @@ final Map<String, int> _circularHeyExtents = {
 /// across" / "full circular hey, ones pass left along", plus the "square hey"
 /// alias (ADR-006 §7.4). This is the shape the display renderer writes for
 /// every count except the full circuit: four changes (the default) renders with
-/// no extent ("circular hey, neighbors pass right across"), so that line does
-/// NOT parse back and stays custom text rather than a bare "circular hey"
-/// asserting a full circuit the source never stated. Write `full` to structure
-/// it.
+/// no extent ("circular hey, neighbors pass right across").
 ///
-/// Every fact the move stores is REQUIRED from the text, never defaulted: the
-/// extent as a quarter-fraction of a full circuit (`N/4` -> `changes: N`,
-/// `1/2` -> 2, `full` -> 4), the group that passes first, the shoulder and the
-/// direction. A bare "circular hey" would otherwise be stored with the
-/// taxonomy's defaults and read back as a stated "full, neighbors, right,
-/// across". An extent outside `1/4`..`10/4` or ANY leftover token yields null,
-/// so the line degrades to a faithful custom figure.
+/// Every other fact the move stores is REQUIRED from the text, never defaulted:
+/// the group that passes first, the shoulder and the direction. The extent is
+/// a quarter-fraction of a full circuit (`N/4` -> `changes: N`, `1/2` -> 2,
+/// `full` -> 4); a line that states the rest and no extent is the display's
+/// four changes (#2121). That reverses the earlier rule that such a line stays
+/// text: the implementing author's call, so that a full circular hey reads
+/// back from its own displayed line, as every other figure does. This reader
+/// still declines a bare "circular hey", which states nothing else (free-text
+/// entry reads a move's name alone through its own lookup). An
+/// extent outside `1/4`..`10/4` or ANY leftover token yields null, so the line
+/// degrades to a faithful custom figure.
 ///
 /// v37: the display line may end with the second pass, "…, partners pass
 /// left", which is read into `who2`. That pass must use the other shoulder —
@@ -2652,7 +2670,8 @@ _Match? _circularHey(List<String> w) {
       break;
     }
   }
-  if (changes == null) return null;
+  // No extent is the display's full circuit, the default (#2121).
+  changes ??= _circularHeyFullCircuit;
   if (!_consumePhrase(w, ['circular', 'hey']) &&
       !_consumePhrase(w, ['square', 'hey'])) {
     return null;
@@ -2661,14 +2680,8 @@ _Match? _circularHey(List<String> w) {
   if (who == null || !_consumePhrase(w, ['pass'])) return null;
   final shoulder = _takeSide(w);
   if (shoulder == null) return null;
-  final String where;
-  if (_consumePhrase(w, ['across'])) {
-    where = 'across';
-  } else if (_consumePhrase(w, ['along'])) {
-    where = 'along';
-  } else {
-    return null;
-  }
+  final where = _takeLeadingDirection(w);
+  if (where == null) return null;
   _dropFiller(w);
   String? who2;
   if (w.isNotEmpty) {

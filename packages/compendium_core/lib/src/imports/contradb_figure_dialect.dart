@@ -858,7 +858,9 @@ bool _eatBalanceAmp(_Scan s) {
 /// only when the complete comma-separated suffix is recognized.
 FigureMatch? _hey(String text) {
   final s = _Scan(text);
-  final pass1 = _subject(s);
+  // The display's subjects too (`third corners`), and below its direction and
+  // `until` clause (#2121).
+  final pass1 = _displaySubject(s);
   if (pass1 == null) return null;
   if (!s.eat('start')) return null;
   if (!(s.eat('a') || s.eat('an'))) return null;
@@ -871,6 +873,7 @@ FigureMatch? _hey(String text) {
   if (!s.eat('hey')) return null;
   final params = <String, Object?>{'pass1': pass1};
   if (length != null) params['length'] = length;
+  if (_displayDirectionPhrase(s) case final where?) params['where'] = where;
   final clauseSave = s.pos;
   if (s.eat('-')) {
     final sh1 = _shoulderTerse(s.peek());
@@ -887,6 +890,11 @@ FigureMatch? _hey(String text) {
       s.reset(clauseSave); // not a shoulder clause — leave it as the note
     }
   }
+  // A partial length names no length word; the `until` clause says which.
+  if (length == null) {
+    length = _eatHeyUntil(s, params);
+    if (length != null) params['length'] = length;
+  }
   final ricoSave = s.pos;
   final ricoParams = <String, Object?>{};
   if (length != null && _eatHeyRicochets(s, pass1, length, ricoParams)) {
@@ -895,6 +903,30 @@ FigureMatch? _hey(String text) {
     s.reset(ricoSave);
   }
   return FigureMatch('hey', params: params, note: s.note());
+}
+
+/// Consumes a hey's partial-length clause, "- until someone meets [the second
+/// time]" or "- until GROUP meet [the second time]" (ContraDB
+/// `stringParamHeyLength`, which the app's display mirrors; #2121), and
+/// returns the length it states, setting the named `meetTarget` in [params].
+/// Returns null, consuming nothing, when there is no such clause.
+String? _eatHeyUntil(_Scan s, Map<String, Object?> params) {
+  final save = s.pos;
+  if (!s.eat('-') || !s.eat('until')) {
+    s.reset(save);
+    return null;
+  }
+  String? target;
+  if (!s.eatPhrase('someone meets')) {
+    target = _displaySubject(s);
+    if (target == null || !s.eat('meet')) {
+      s.reset(save);
+      return null;
+    }
+  }
+  final second = s.eatPhrase('the second time');
+  if (target != null) params['meetTarget'] = target;
+  return second ? 'betweenHalfAndFull' : 'lessThanHalf';
 }
 
 /// Consumes the complete canonical ricochet suffix emitted by the renderer.
@@ -1426,7 +1458,8 @@ FigureMatch? _dolphinHey(String text) {
   if (!s.eatPhrase('dolphin hey')) return null;
   if (!s.eat('-')) return null;
   if (!s.eatPhrase('start with')) return null;
-  final who = _subject(s);
+  // The display writes a pair in the singular (`neighbor`, #2121).
+  final who = _displaySubject(s);
   if (who == null) return null;
   if (!s.eat('passing')) return null;
   final whom = _singleDancer(s);
