@@ -89,10 +89,20 @@ class _CallingCardLayoutEditorScreenState
     }
   }
 
+  /// Saves typing the debounce has not saved yet. Here, not in [dispose]:
+  /// [_save] looks its notifier up through the context, which is still
+  /// allowed while the screen is being deactivated and no longer once it is
+  /// disposed.
+  @override
+  void deactivate() {
+    _timer?.cancel();
+    if (_dirty) unawaited(_save(_controller.text));
+    super.deactivate();
+  }
+
   @override
   void dispose() {
     _timer?.cancel();
-    if (_dirty) unawaited(_save(_controller.text));
     _controller.dispose();
     super.dispose();
   }
@@ -118,7 +128,7 @@ class _CallingCardLayoutEditorScreenState
 
   Future<void> _save(String text) async {
     _dirty = false;
-    final notifier = _notifier!;
+    final notifier = CallingCardSettingsScope.notifierOf(context);
     final next = notifier.value.copyWith(
       layout: () => text == kDefaultCallingCardLayout ? null : text,
     );
