@@ -1723,18 +1723,27 @@ typedef ContraDbSearchFetcher =
 /// Advanced query builder (`translateDanceFilterToContraDb`) and never from
 /// raw user text; its [query] is empty and its [filter] is `advanced`.
 class ContraDbSearchRequest {
-  const ContraDbSearchRequest({required this.query, required this.filter})
-    : expression = null;
+  const ContraDbSearchRequest({
+    required this.query,
+    required this.filter,
+    this.offset = 0,
+  }) : expression = null;
 
-  const ContraDbSearchRequest.expression(List<Object?> this.expression)
-    : query = '',
-      filter = 'advanced';
+  const ContraDbSearchRequest.expression(
+    List<Object?> this.expression, {
+    this.offset = 0,
+  }) : query = '',
+       filter = 'advanced';
 
   final String query;
   final String filter;
 
   /// The complete ContraDB filter array for an Advanced search, else `null`.
   final List<Object?>? expression;
+
+  /// How many matches to skip: the start of the page to fetch. ContraDB's
+  /// `numberMatching` does not change with it.
+  final int offset;
 }
 
 /// POSTs [body] to the ContraDB search endpoint [uri] with [client].
@@ -1817,6 +1826,7 @@ Future<String> fetchContraDbSearch(
   String query, {
   String filter = 'title',
   List<Object?>? expression,
+  int offset = 0,
   http.Client? client,
 }) async {
   // [contraDbSearchUrl] is a hard-coded public https constant, so this guard
@@ -1830,8 +1840,8 @@ Future<String> fetchContraDbSearch(
   // unvalidated hop can follow this check.
   final uri = _guardFetchUri(Uri.parse(contraDbSearchUrl));
   final body = expression != null
-      ? buildContraDbFilterBody(expression)
-      : buildContraDbSearchBody(query, filter: filter);
+      ? buildContraDbFilterBody(expression, offset: offset)
+      : buildContraDbSearchBody(query, filter: filter, offset: offset);
   final ownClient = client == null;
   final effectiveClient = client ?? http.Client();
   final http.Response response;
