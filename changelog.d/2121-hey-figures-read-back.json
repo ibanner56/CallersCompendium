@@ -1,0 +1,14 @@
+{
+  "id": "2121-hey-figures-read-back",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Typing or pasting a hey, circular hey or dolphin hey the way the figure list shows it now gives that figure: a hey keeps its direction (\"robins start a half hey on right diagonal - …\") and its partial length (\"… - until someone meets\"), a full circular hey shown as \"circular hey, neighbors pass right across\" is read as the full four changes, and \"dolphin hey - start with neighbor passing first lark by right shoulders\" is a dolphin hey."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "The ContraDB figure reader's hey reads a displayed direction after `hey`, the partial-length `until` clause (with its named `meetTarget`), and the display's subjects; its dolphin hey reads the display's subjects. The shared grammar reads a circular hey with no extent as four changes, which reverses its earlier rule that such a line stays text, and reads the display's direction phrases after the shoulder."
+    ]
+  }
+}

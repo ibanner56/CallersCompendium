@@ -228,9 +228,20 @@ void main() {
       );
     });
 
+    test(
+      'no extent is the full circuit the display leaves unstated (#2121)',
+      () {
+        // The display writes four changes with no extent, so the line it shows
+        // reads back as four; every other fact must still be stated.
+        final f = parse('circular hey, neighbors pass right across')!;
+        expect(f.move, 'circular_hey');
+        expect(f.params['changes'], 4);
+        expect(parse('circular hey, neighbors pass right')?.move, 'custom');
+      },
+    );
+
     test('unstated facts are never defaulted: each degrades to custom', () {
       for (final line in [
-        'circular hey, neighbors pass right across', // no extent
         '3/4 circular hey', // no who / shoulder / direction
         '3/4 circular hey, neighbors pass across', // no shoulder
         '3/4 circular hey, neighbors pass right', // no direction

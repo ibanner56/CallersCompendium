@@ -1,4 +1,5 @@
 import '../model/figure.dart';
+import '../taxonomy/contra_taxonomy.dart';
 import '../taxonomy/dance_vocabulary.dart'
     show displayDirectionPhrases, seriesDancerWords;
 import '../taxonomy/param_types.dart';
@@ -854,11 +855,14 @@ bool _eatBalanceAmp(_Scan s) {
 /// heyWords (common full/half form). Renders as: "PASS1 start a FULL|HALF hey -
 /// SH1 PLACE, SH2 PLACE". Extracts pass1, length, and the first shoulder; the
 /// shoulder/place clause is part of the render (consumed, not a note).
-/// `until`-length heys are deferred. Canonical ricochet clauses are consumed
+/// A partial length reads from its `until` clause ([_eatHeyUntil]). Canonical
+/// ricochet clauses are consumed
 /// only when the complete comma-separated suffix is recognized.
 FigureMatch? _hey(String text) {
   final s = _Scan(text);
-  final pass1 = _subject(s);
+  // The display's subjects too (`third corners`), and below its direction and
+  // `until` clause (#2121).
+  final pass1 = _displaySubject(s);
   if (pass1 == null) return null;
   if (!s.eat('start')) return null;
   if (!(s.eat('a') || s.eat('an'))) return null;
@@ -871,6 +875,7 @@ FigureMatch? _hey(String text) {
   if (!s.eat('hey')) return null;
   final params = <String, Object?>{'pass1': pass1};
   if (length != null) params['length'] = length;
+  if (_displayDirectionPhrase(s) case final where?) params['where'] = where;
   final clauseSave = s.pos;
   if (s.eat('-')) {
     final sh1 = _shoulderTerse(s.peek());
@@ -887,6 +892,11 @@ FigureMatch? _hey(String text) {
       s.reset(clauseSave); // not a shoulder clause — leave it as the note
     }
   }
+  // A partial length names no length word; the `until` clause says which.
+  if (length == null) {
+    length = _eatHeyUntil(s, params);
+    if (length != null) params['length'] = length;
+  }
   final ricoSave = s.pos;
   final ricoParams = <String, Object?>{};
   if (length != null && _eatHeyRicochets(s, pass1, length, ricoParams)) {
@@ -896,6 +906,38 @@ FigureMatch? _hey(String text) {
   }
   return FigureMatch('hey', params: params, note: s.note());
 }
+
+/// Consumes a hey's partial-length clause, "- until someone meets [the second
+/// time]" or "- until GROUP meet [the second time]" (ContraDB
+/// hey-length wording, which the app's display mirrors; #2121), and
+/// returns the length it states, setting the named `meetTarget` in [params].
+/// Returns null, consuming nothing, when there is no such clause.
+String? _eatHeyUntil(_Scan s, Map<String, Object?> params) {
+  final save = s.pos;
+  if (!s.eat('-') || !s.eat('until')) {
+    s.reset(save);
+    return null;
+  }
+  String? target;
+  if (!s.eatPhrase('someone meets')) {
+    target = _displaySubject(s);
+    // A target the hey does not take would fail validation and lose the whole
+    // line, so the clause is left to the note instead, as before #2121.
+    if (target == null ||
+        !(_heyMeetTargets?.contains(target) ?? false) ||
+        !s.eat('meet')) {
+      s.reset(save);
+      return null;
+    }
+  }
+  final second = s.eatPhrase('the second time');
+  if (target != null) params['meetTarget'] = target;
+  return second ? 'betweenHalfAndFull' : 'lessThanHalf';
+}
+
+/// The pairs a hey's `meetTarget` takes.
+final List<String>? _heyMeetTargets =
+    contraTaxonomy.moves['hey']?.params['meetTarget']?.choices;
 
 /// Consumes the complete canonical ricochet suffix emitted by the renderer.
 /// If any comma-separated clause is malformed, the whole suffix is left for
@@ -1426,7 +1468,8 @@ FigureMatch? _dolphinHey(String text) {
   if (!s.eatPhrase('dolphin hey')) return null;
   if (!s.eat('-')) return null;
   if (!s.eatPhrase('start with')) return null;
-  final who = _subject(s);
+  // The display writes a pair in the singular (`neighbor`, #2121).
+  final who = _displaySubject(s);
   if (who == null) return null;
   if (!s.eat('passing')) return null;
   final whom = _singleDancer(s);
