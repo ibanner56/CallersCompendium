@@ -367,7 +367,8 @@ the moves — inside your dances. It works by stacking up rows and groups:
    typing and choose from the matches. It finds moves by the names the dance
    editor uses, including your dialect's own names for them (alternative names
    such as *seesaw* are not offered here). While **Custom Figures** is on, your own
-   new figures are offered too, first and marked as yours; picking one finds
+   new figures are offered too, marked as yours and listed before the built-in
+   moves unless you type a move's exact name, which comes first; picking one finds
    the dances that use it. A use that shows its stored line instead of your
    figure's wording is not found this way — one changed on another device, one
    with a choice the figure no longer has, or one of a figure you have deleted
