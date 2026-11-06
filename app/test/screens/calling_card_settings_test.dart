@@ -334,6 +334,65 @@ void main() {
       expect(h.notifier.value.layout, 'title');
     });
 
+    testWidgets('Back mid-typing saves, without notifying during a build', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      final notifier = ValueNotifier(const CallingCardSettings(enabled: true));
+      addTearDown(notifier.dispose);
+      // The scope sits above the Navigator, as in the app, so leaving the
+      // editor notifies a live ancestor rather than one already going away.
+      await tester.pumpWidget(
+        RepositoriesScope(
+          repositories: repos,
+          child: ActiveDialectScope(
+            notifier: ValueNotifier(Dialect.larksRobins),
+            child: CallingCardSettingsScope(
+              notifier: notifier,
+              child: MaterialApp(
+                localizationsDelegates: testLocalizationsDelegates,
+                supportedLocales: testSupportedLocales,
+                home: Builder(
+                  builder: (context) => TextButton(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => CallingCardLayoutEditorScreen(
+                          rasterizer: rasterizer,
+                          // Leave with the save still pending.
+                          saveDelay: const Duration(seconds: 10),
+                        ),
+                      ),
+                    ),
+                    child: const Text('open'),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      await drawn(tester, 1);
+      await tester.enterText(
+        find.byKey(const ValueKey('calling-card-layout-field')),
+        'title',
+      );
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(notifier.value.layout, 'title');
+      await tester.runAsync(() async {
+        await _settle(tester, () => true);
+        expect(
+          CallingCardSettings.fromJson(
+            await repos.settings.get(kCallingCardSettingsKey),
+          ).layout,
+          'title',
+        );
+      });
+    });
+
     testWidgets('an example replaces the layout, with Undo', (tester) async {
       final h = await pumpEditor(tester);
       final example = find.byKey(

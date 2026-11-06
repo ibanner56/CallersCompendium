@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart' show SchedulerBinding;
 import 'package:printing/printing.dart';
 
 import '../../../l10n/app_localizations.dart';
@@ -47,9 +48,17 @@ Future<Uint8List> rasterizeCallingCard(Uint8List pdf, double dpi) async {
 /// never loses work; Reset and the examples replace it, the examples with an
 /// Undo.
 class CallingCardLayoutEditorScreen extends StatefulWidget {
-  const CallingCardLayoutEditorScreen({super.key, this.rasterizer});
+  const CallingCardLayoutEditorScreen({
+    super.key,
+    this.rasterizer,
+    this.saveDelay = const Duration(milliseconds: 400),
+  });
 
   final CallingCardRasterizer? rasterizer;
+
+  /// How long typing must pause before the layout is saved and redrawn.
+  /// A test lengthens it to leave the screen with a save still pending.
+  final Duration saveDelay;
 
   @override
   State<CallingCardLayoutEditorScreen> createState() =>
@@ -58,10 +67,6 @@ class CallingCardLayoutEditorScreen extends StatefulWidget {
 
 class _CallingCardLayoutEditorScreenState
     extends State<CallingCardLayoutEditorScreen> {
-  /// How long typing must pause before the layout is saved and redrawn.
-  @visibleForTesting
-  static const debounce = Duration(milliseconds: 400);
-
   late final TextEditingController _controller;
   late CallingCardLayout _layout;
   Timer? _timer;
@@ -94,11 +99,12 @@ class _CallingCardLayoutEditorScreenState
   /// Saves typing the debounce has not saved yet. Here, not in [dispose]:
   /// [_save] looks its notifier up through the context, which is still
   /// allowed while the screen is being deactivated and no longer once it is
-  /// disposed.
+  /// disposed. Deactivation runs inside the build that removes the route, so
+  /// the save waits for that frame to end before it notifies anyone.
   @override
   void deactivate() {
     _timer?.cancel();
-    if (_dirty) unawaited(_save(_controller.text));
+    if (_dirty) unawaited(_save(_controller.text, afterThisFrame: true));
     super.deactivate();
   }
 
@@ -113,7 +119,7 @@ class _CallingCardLayoutEditorScreenState
     setState(() => _layout = CallingCardLayout.parse(text));
     _dirty = true;
     _timer?.cancel();
-    _timer = Timer(debounce, () {
+    _timer = Timer(widget.saveDelay, () {
       unawaited(_save(text));
       _renderPreview();
     });
@@ -128,15 +134,21 @@ class _CallingCardLayoutEditorScreenState
     _renderPreview();
   }
 
-  Future<void> _save(String text) async {
+  /// Stores [text] as the layout. With [afterThisFrame], the notifier is
+  /// assigned once the current frame ends: its scope is an ancestor of the
+  /// Navigator, and notifying it from inside a build would mark it dirty
+  /// during that build. Everything the context provides is read first.
+  Future<void> _save(String text, {bool afterThisFrame = false}) async {
     _dirty = false;
     final notifier = CallingCardSettingsScope.notifierOf(context);
+    final settings = _settings!;
+    if (afterThisFrame) await SchedulerBinding.instance.endOfFrame;
     final next = notifier.value.copyWith(
       layout: () => text == kDefaultCallingCardLayout ? null : text,
     );
     if (next == notifier.value) return;
     notifier.value = next;
-    await persistSetting(_settings!, kCallingCardSettingsKey, next.toJson());
+    await persistSetting(settings, kCallingCardSettingsKey, next.toJson());
   }
 
   Future<void> _renderPreview() async {
