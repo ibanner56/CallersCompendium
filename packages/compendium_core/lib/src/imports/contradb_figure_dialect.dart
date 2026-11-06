@@ -909,7 +909,7 @@ FigureMatch? _hey(String text) {
 
 /// Consumes a hey's partial-length clause, "- until someone meets [the second
 /// time]" or "- until GROUP meet [the second time]" (ContraDB
-/// `stringParamHeyLength`, which the app's display mirrors; #2121), and
+/// hey-length wording, which the app's display mirrors; #2121), and
 /// returns the length it states, setting the named `meetTarget` in [params].
 /// Returns null, consuming nothing, when there is no such clause.
 String? _eatHeyUntil(_Scan s, Map<String, Object?> params) {
