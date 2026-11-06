@@ -784,6 +784,11 @@ bool _isSameRolePair(List<String> w, int i) =>
 /// "Opposite(s)" is the opposites, unless it describes a role, side,
 /// direction, way or hand ("opposite role pull by L"). These are maintainer
 /// decisions, except "3rd"/"third", the author's extension of the ordinals.
+///
+/// It also reads the names the figure display writes (#2121): the neighbour,
+/// partner and shadow series ([seriesDancer]), `same roles`, `centers`, and
+/// `first`/`second` before a role word. Those are the implementing author's
+/// call, so that a figure reads back from its own displayed text.
 String? _takeNamedDancerAt(List<String> w, int i) {
   final word = w[i];
   final next = i + 1 < w.length ? w[i + 1] : null;
@@ -2977,6 +2982,10 @@ _Match? _tradePassBy(List<String> w) {
   final who = _takeDancer(w);
   if (!_consumePhrase(w, ['trade'])) return null;
   final who2 = who ?? _takeDancer(w);
+  // The trade rule was decided for men, women and neighbors (#945). The
+  // centers of a wave usually trade with a hand turn, so `centers trade` stays
+  // text rather than read as a pass by (#2121 made `centers` a subject).
+  if (who2 == 'centers') return null;
   // "trade by" is consumed here (rather than folded into a shoulder phrase)
   // because a leftover `by` with no side word (e.g. a bare "trade by") must
   // still structure, matching the plain "trade" case above.
