@@ -111,9 +111,17 @@ tree. Conforms to [ux.md](ux.md) §1 and [dialect.md](dialect.md)
    that a bad name would be rejected. It shows that ContraDB accepts the expressions, not that the dances it
    returns are the right ones.
 
-   **Results are the first 20.** The app asks ContraDB for
-   `titleA` order and requests `contraDbSearchCount` (20) with offset 0, and
-   reads no further pages. The response's `numberMatching` is the whole match
+   **Results come 20 at a time, as the list is scrolled.** The app asks ContraDB
+   for `titleA` order, `contraDbSearchCount` (20) rows per request. The first
+   request has offset 0; the list's last item (`OnlineMoreFooter`) is built only
+   once the end of the list is near the viewport, and then asks for the next page
+   (`OnlineSearchQuery.withOffset(pages * 20)`, `_loadMoreOnline` in the
+   Collection and the picker). One page is in flight at a time; a page for a
+   search that has since been replaced is dropped by the same sequence number as
+   the first page; a page that adds no new row ends it (`appendOnlinePage`,
+   `onlineHasMore`); a failed page shows a retry instead of asking again.
+   Whether more remain is the total when the source gave one (fewer rows shown
+   than that), else whether the page just fetched was full. The response's `numberMatching` is the whole match
    count and does not change with the offset (checked live on 2026-11-06), so
    `parseContraDbNumberMatching` reads it and `ContraDbOnline` puts it on every
    row (`OnlineSearchResultRow.totalMatching`). `onlineResultCountLabel` then
@@ -126,7 +134,20 @@ tree. Conforms to [ux.md](ux.md) §1 and [dialect.md](dialect.md)
    With no total (a merged query, a response without `numberMatching`, or a
    malformed one) the fallback is the earlier rule: a response that filled the
    page may have been cut off (`mayHaveMore`, judged per response), and the
-   count line says there may be more. Paging is not built.
+   count line says there may be more (`hasMore`, from the latest page only, so
+   an earlier full page does not keep the wording once the last one is in). An
+   apostrophe query pages both spellings at the same offset and merges each
+   page's rows in as they arrive; rows are title-sorted within a page, so the
+   order is only approximate across page boundaries.
+
+   **A repeated request is not sent again.** `ContraDbOnline` remembers the last
+   successful search (every spelling's filter, text, expression and offset) for
+   60 seconds and answers an identical one from it, because each ContraDB
+   request scans every dance. An Advanced edit that does not change the
+   expression sent (an empty row added, a group re-labelled around one
+   condition) therefore costs no request. A failed search is not remembered.
+   Typing, Advanced and By phrase edits were already debounced (500 ms online);
+   that is unchanged.
 
    **Figure parameters.** ContraDB takes a figure's parameters by position
    after the move (`["figure", "swing", "partners", "*", 16]`).

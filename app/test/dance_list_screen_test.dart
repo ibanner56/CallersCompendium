@@ -2051,6 +2051,10 @@ void main() {
       );
       await _pumpScreen(tester, repos, contraDbOnline: contraDb);
       await tester.pumpAndSettle();
+      // A short window, so the end of the page is off screen and the next page
+      // is not fetched: this test is about the count line for a full page.
+      await tester.binding.setSurfaceSize(const Size(800, 600));
+      await tester.pumpAndSettle();
       await _tapVisible(
         tester,
         find.byKey(const ValueKey('online-search-enable')),

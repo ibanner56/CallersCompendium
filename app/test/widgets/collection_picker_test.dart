@@ -1149,6 +1149,9 @@ void main() {
       onAddDance: (_) {},
       enableOnlineSearch: true,
       contraDbOnline: contraDb,
+      // A short window, so the end of the page is off screen and the next page
+      // is not fetched: this test is about the count line for a full page.
+      surfaceSize: const Size(800, 600),
     );
     await tester.pumpAndSettle();
     await _tapVisible(
