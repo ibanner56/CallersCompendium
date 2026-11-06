@@ -587,6 +587,11 @@ The orchestrating session asked whether 3 and 4 were the two existing global set
 
 So: four NEW settings; the two existing global settings stay and still gate the counts. The meaning of "ignores" for 3 and 4 (a slot with no ordering date stays in the list and in "called ×N", sorts after dated entries, and contributes no Last-called date) and the performed-slot-in-an-undated-program consequence of toggle 1 defaulting on were the orchestrating session's reading, stated in the build brief and not separately confirmed by the maintainer. Build session: `claude/followups-tracking-toggles`.
 
+### Tracking-toggle PR (#2128), answered 2026-11-06
+
+- **Toggle 1 defaults on, so a performed slot in an undated program leaves the recency window, and no combination of the four settings restores the old "dated or performed" rule.** Maintainer: "1 I accept".
+- **"Ship it as one PR" (the size decision for #2128, which arrived as a user message in the build session):** Maintainer: "2 I sent that". So the one-PR decision is the maintainer's.
+
 ## Still open
 
 - Q-2: building as four new settings (see the clarification above); the "ignores" reading for toggles 3 and 4 will be shown in the PR for the maintainer to correct.
