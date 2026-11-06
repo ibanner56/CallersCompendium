@@ -341,6 +341,27 @@ def test_run_gates_passes_the_reviewer_to_both_review_gates() -> None:
     assert any(CLAUDE.review_login in line for line in printed), printed
 
 
+def test_run_gates_and_findings_default_to_claude() -> None:
+    """With no reviewer named, run_gates gates Claude's review, findings included."""
+    printed: list[str] = []
+    fetcher = FakeFetcher(
+        {
+            "pulls/1": pull(),
+            "pulls/1/reviews": [[review(CLAUDE.review_login, HEAD, BLOCK_BODY)]],
+            "pulls/1/comments": [[]],
+        }
+    )
+    code = gates.run_gates(
+        fetcher, 1, ["findings", "review"], [], out=printed.append
+    )
+    assert code == 1, printed
+    assert any(line.startswith("FAIL findings:") for line in printed), printed
+    assert any(line.startswith("PASS review:") for line in printed), printed
+
+    ok, lines = gates.gate_findings(_claude_reviews((HEAD, BLOCK_BODY)), 1)
+    assert not ok, lines
+
+
 def _reviewer_chosen_by_cli(argv: list[str]) -> Any:
     seen: dict[str, Any] = {}
 

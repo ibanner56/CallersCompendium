@@ -326,7 +326,7 @@ issue on its own — even a denial like `Does not close #887`. Reasoning:
 ## Output format
 
 Most work here is done by AI agents, so a review is an **input to another
-session**, not just prose for a human. The opt-in Claude review workflow
+session**, not just prose for a human. The Claude review workflow
 (`.github/workflows/claude-code-review.yml`) posts this template as its review
 body, so a change here changes what that workflow posts. Emit findings in the structure below: it
 is skimmable top-to-bottom, and each finding is self-contained so a fixing agent

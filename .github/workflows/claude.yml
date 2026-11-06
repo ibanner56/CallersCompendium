@@ -1,6 +1,6 @@
 # Claude assistant, on demand: runs only when a comment, review or issue by an
 # OWNER, MEMBER or COLLABORATOR mentions @claude, and does whatever that
-# mention asks. It is not the review workflow: opt-in Claude reviews are
+# mention asks. It is not the review workflow: Claude reviews are
 # claude-code-review.yml (docs/dev/agents/code-review.md).
 name: Claude Code
 

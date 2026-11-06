@@ -314,8 +314,12 @@ def gate_review(
         r for r in _reviews(fetcher, pr) if _login(r) == reviewer.review_login
     ]
     if not reviewed:
+        others = ", ".join(
+            f"--reviewer {name}" for name, r in REVIEWERS.items() if r != reviewer
+        )
         return False, [
-            f"no review by {reviewer.review_login} (an unreviewed PR fails closed)"
+            f"no review by {reviewer.review_login} (an unreviewed PR fails "
+            f"closed; if another reviewer was requested, pass {others})"
         ]
     latest = reviewed[-1].get("commit_id") or ""
     if latest != head:
