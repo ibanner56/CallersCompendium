@@ -126,25 +126,27 @@ tree. Conforms to [ux.md](ux.md) §1 and [dialect.md](dialect.md)
    `parseContraDbNumberMatching` reads it and `ContraDbOnline` puts it on every
    row (`OnlineSearchResultRow.totalMatching`). `onlineResultCountLabel` then
    says "Showing 20 of 143 online results" when the total exceeds what is
-   shown (with "Scroll down to load more" only while scrolling can load more:
-   once paging has ended short of the total, or a page has failed and waits for
-   its Try again button, the line has no such hint), and the plain count when
-   it does not. With no total, "There may be more: scroll down to load them"
-   becomes "There may be more." after a failed page, so the line never reads as
-   a complete result while Try again waits (`onlineResultCountLabel` takes both
-   facts: `hasMore`, and `loadFailed`) (a page that is exactly full of
-   exactly that many matches is complete). The total is used only when one
-   response answered: an apostrophe query sends the ASCII and curly spellings
-   as two requests and merges the rows, so up to 40 can show, and their totals
-   are not added because a dance matching both spellings would count twice.
-   With no total (a merged query, a response without `numberMatching`, or a
-   malformed one) the fallback is the earlier rule: a response that filled the
-   page may have been cut off (`mayHaveMore`, judged per response), and the
-   count line says there may be more (`hasMore`, from the latest page only, so
-   an earlier full page does not keep the wording once the last one is in). An
-   apostrophe query pages both spellings at the same offset and merges each
-   page's rows in as they arrive; rows are title-sorted within a page, so the
-   order is only approximate across page boundaries.
+   shown, and the plain count when it does not (a page that is exactly full of
+   exactly that many matches is complete). "Scroll down to load more" follows
+   the "of" line only while scrolling can load more: once paging has ended
+   short of the total, or a page has failed and waits for its Try again
+   button, the line has no such hint.
+
+   The total is used only when one response answered: an apostrophe query
+   sends the ASCII and curly spellings as two requests and merges the rows, so
+   up to 40 can show, and their totals are not added because a dance matching
+   both spellings would count twice. With no total (a merged query, a response
+   without `numberMatching`, or a malformed one) the fallback is the earlier
+   rule: a response that filled the page may have been cut off
+   (`mayHaveMore`, judged per response), and the count line says there may be
+   more ("There may be more: scroll down to load them", or just "There may be
+   more." after a failed page, so it never reads as a complete result while
+   Try again waits). Whether more may remain (`hasMore`) is taken from the
+   latest page only, so an earlier full page does not keep the wording once
+   the last one is in; `onlineResultCountLabel` takes that and `loadFailed` as
+   separate facts. An apostrophe query pages both spellings at the same offset
+   and merges each page's rows in as they arrive; rows are title-sorted within
+   a page, so the order is only approximate across page boundaries.
 
    **A repeated request is not sent again.** `ContraDbOnline` remembers the last
    successful search for 60 seconds and answers an identical one from it,
