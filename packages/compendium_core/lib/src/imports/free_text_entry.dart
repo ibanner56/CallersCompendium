@@ -619,8 +619,9 @@ List<Figure> _parseLine(
   }
   // A typed `(8) Box circulate` or `(8) Square through 2` reads its balance
   // from its beats as an imported one does (#1975), and a typed balance and
-  // box the gnat with no count gets the beats of its balance (#2121), unless
-  // it is one clause of a longer line, which leaves a clause beats-absent.
+  // box the gnat with no count gets 8 beats, the balance and the box (#2121),
+  // unless it is one clause of a longer line, which leaves a clause
+  // beats-absent.
   final balanced = withBeatImpliedBalance(trimmed, result);
   return clause ? balanced : withBalancedBoxBeats(trimmed, balanced);
 }
