@@ -83,8 +83,9 @@ void main() {
       expect(input.controller!.text, 'buzz');
     });
 
-    testWidgets('a dialect name equal to a built-in move offers both, exact '
-        'name first', (tester) async {
+    testWidgets('a dialect name equal to a built-in move offers both moves', (
+      tester,
+    ) async {
       final clash = Dialect(name: 'Clash', moves: {'swing': 'chain'});
       final row = await pumpRow(tester, dialect: clash);
       await tester.enterText(
@@ -96,7 +97,8 @@ void main() {
       final chain = find.byKey(ValueKey('has-figure-${row.id}-option-chain'));
       expect(swing, findsOneWidget);
       expect(chain, findsOneWidget);
-      // Both read "chain"; the editor lists them in taxonomy order.
+      // Both read "chain" and both name it exactly, so no order is promised
+      // here; the editor never drops either move.
     });
 
     testWidgets('with no dialect, a dialect-only name finds nothing', (
