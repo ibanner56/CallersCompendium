@@ -3520,7 +3520,7 @@
   },
   "tagManagerShowDances": "Show dances",
   "@tagManagerShowDances": {
-    "description": "Tags manager row action, in the ⋮ menu and the row sheet: leaves Settings and opens the Collection filtered to this one tag."
+    "description": "Tags manager row action, in the ⋮ menu and the row sheet: leaves Settings and adds this tag to the Collection's filter (other filters and already selected tags are kept)."
   },
   "tagManagerColour": "Color…",
   "@tagManagerColour": {
