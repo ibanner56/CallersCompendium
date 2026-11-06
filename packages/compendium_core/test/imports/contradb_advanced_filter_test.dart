@@ -253,6 +253,69 @@ void main() {
     });
   });
 
+  group('allemande under a figure-level not', () {
+    const orbitOr = [
+      'or',
+      ['figure', 'allemande'],
+      ['figure', 'allemande orbit'],
+    ];
+
+    test('drops the orbit branch, which the local `not` still matches', () {
+      // Locally an `allemande orbit` is `meanwhile[allemande, orbit]`: its
+      // orbit row is not an allemande, so the group matches `not allemande`.
+      // ContraDB must not rule that figure out, so `not` takes the plain move.
+      expect(
+        expression(
+          ThenFilter(FigureNot(FigureLeaf('allemande')), FigureLeaf('swing')),
+        ),
+        [
+          'then',
+          [
+            'not',
+            ['figure', 'allemande'],
+          ],
+          ['figure', 'swing'],
+        ],
+      );
+    });
+
+    test('with parameters, keeps only the allemande branch', () {
+      final positive = expression(
+        FigureFilter.leaf('allemande', params: const {'hand': 'right'}),
+      );
+      expect(positive.first, 'or', reason: '$positive');
+      final negated = expression(
+        ThenFilter(
+          FigureNot(FigureLeaf('allemande', params: const {'hand': 'right'})),
+          FigureLeaf('swing'),
+        ),
+      );
+      expect(negated[1], ['not', positive[1]]);
+    });
+
+    test('a positive or doubly negated allemande still asks for the orbit', () {
+      expect(expression(FigureFilter.leaf('allemande')), orbitOr);
+      expect(
+        expression(
+          ThenFilter(
+            FigureNot(FigureNot(FigureLeaf('allemande'))),
+            FigureLeaf('swing'),
+          ),
+        )[1],
+        [
+          'not',
+          ['not', orbitOr],
+        ],
+      );
+      // The dance-level "no figure is an allemande" is a positive figure
+      // question under `no`, so it asks for both.
+      expect(expression(FigureFilter(FigureNot(FigureLeaf('allemande')))), [
+        'no',
+        orbitOr,
+      ]);
+    });
+  });
+
   group('refused rather than approximated', () {
     test('tags', () {
       expect(refusal(const TagFilter('t1')), ContraDbAdvancedUnsupported.tag);

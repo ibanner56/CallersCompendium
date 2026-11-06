@@ -283,7 +283,7 @@ String? resolveDateLocale(Locale locale) {
 /// given), not the app language: an English-UI caller on a phone in Denmark
 /// reads `15.7.2026`, whether the phone's language is Danish or English. It
 /// uses that region's numeric date (`yMd`, see [resolveDateLocale]), which
-/// carries the year (the abbreviated `formatMediumDate` form omits it, so a
+/// carries the year (Material's abbreviated medium date omits it, so a
 /// printed set list from last season would read like this season's) and has no
 /// month names, so the app language and the device's can never mix in one date.
 ///

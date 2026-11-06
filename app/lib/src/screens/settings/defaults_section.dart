@@ -1790,7 +1790,7 @@ class _DefaultsView extends StatelessWidget {
       color: theme.colorScheme.primary,
     );
     return ReadableListView(
-      keyboardDismissBehavior: kTextEntryKeyboardDismiss,
+      keyboardDismissBehavior: textEntryKeyboardDismiss(),
       children: [
         SectionHeader(title: l10n.settingsDefaultsDisplayHeader),
         SettingsDropdownRow(

@@ -1455,8 +1455,8 @@ class ProgramRepository {
   /// `docs/design/domain-model.md`; `docs/design/ux.md` §2 / the dance-detail
   /// wireframe "History"). One record per matching slot, ordered by each
   /// record's [DanceCallingRecord.effectiveDate] (event_date, else
-  /// performed_at, else updated_at) descending — the ordering never depends on
-  /// `performed_at` being present (GIG-2).
+  /// performed_at, else updated_at) descending. With the order toggles off,
+  /// the ordering never depends on `performed_at` being present (GIG-2).
   ///
   /// [tracking]'s `orderIgnoreUndated` and `orderIgnoreUnperformed` change only
   /// the order: a record with no [DanceCallingRecord.orderingDate] stays in the
@@ -1498,8 +1498,10 @@ class ProgramRepository {
   /// [callingHistoryForDance], called with the same arguments, lists a slot of
   /// this program. Takes the same [performedOnly], [requireEventDate] and
   /// [callerFilter] as that query, so the number matches what the user sees on
-  /// dance pages. A program that is already in the trash, or that the caller
-  /// filter excludes, is in no one's history and yields 0.
+  /// dance pages. A permanently deleted dance has no dance page, so it is not
+  /// counted even when a slot still cites it. A program that is already in the
+  /// trash, or that the caller filter excludes, is in no one's history and
+  /// yields 0.
   Future<int> danceCountLosingHistory(
     String programId, {
     bool performedOnly = false,
@@ -1512,12 +1514,20 @@ class ProgramRepository {
           'SELECT COUNT(DISTINCT program_slots.dance_id) AS n '
           'FROM program_slots '
           'JOIN programs ON programs.id = program_slots.program_id '
+          'JOIN dances ON dances.id = program_slots.dance_id '
           'WHERE program_slots.program_id = ? '
-          'AND program_slots.dance_id IS NOT NULL '
           '${_historyScopeSql(performedOnly: performedOnly, requireEventDate: requireEventDate, caller: caller)}'
-          'AND programs.deleted_at IS NULL',
-          variables: [Variable<String>(programId), ..._callerVariables(caller)],
-          readsFrom: _programDerivedTables,
+          'AND programs.deleted_at IS NULL '
+          // A permanently deleted dance (here or on a synced device) has no
+          // dance page, so it has no history to lose. A slot can still cite
+          // one: a blanked dance's "Deleted dance" slot, or a cited tombstone.
+          "AND (dances.deleted_at IS NULL OR dances.deleted_at <> ?)",
+          variables: [
+            Variable<String>(programId),
+            ..._callerVariables(caller),
+            Variable<int>(unixSeconds(permanentlyDeletedAt)),
+          ],
+          readsFrom: {..._programDerivedTables, _db.dances},
         )
         .getSingle();
     return row.read<int>('n');

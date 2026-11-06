@@ -16,6 +16,20 @@ action's validation is a token exchange that presents only the running job's
 OIDC token, so it checks the workflow that invoked it: a PR editing
 ``claude.yml`` is reviewed by an unchanged ``claude-code-review.yml``.
 
+One companion change may ride along: when the review workflow's whole change
+moves its ``anthropics/claude-code-action`` pin to one commit, ``claude.yml``
+moving its pin to that same commit and changing nothing else. Both workflows pin the same action, so
+every bump of it (Dependabot's included) touches both files, and splitting it
+would leave the two on different versions between PRs. That change carries no
+content the review workflow's own does not, so it adds nothing that escapes
+review. Any other change to ``claude.yml`` makes it a stowaway as before.
+
+The two versions of ``claude.yml`` are compared as bytes, line by line, split
+on ``\n`` only -- never as a parsed diff. YAML also breaks lines on a lone CR
+and on NEL/LS/PS, which git does not, so a diff line could carry a whole
+hidden step; here every line must be byte-identical except pin lines, whose
+optional trailing comment may hold printable ASCII only.
+
 The diff is the whole PR (``<base>...<head>``, i.e. against the merge base), not
 an incremental range, and uses ``--no-renames`` so that renaming a workflow
 counts as removing it -- which is a change to it.
@@ -30,11 +44,23 @@ resolve to a commit -- which must never be mistaken for "nothing to check".
 
 from __future__ import annotations
 
+import re
 import subprocess
 import sys
 from typing import Iterable
 
-CLAUDE_WORKFLOWS = frozenset({".github/workflows/claude-code-review.yml"})
+REVIEW_WORKFLOW = ".github/workflows/claude-code-review.yml"
+CLAUDE_WORKFLOWS = frozenset({REVIEW_WORKFLOW})
+ASSISTANT_WORKFLOW = ".github/workflows/claude.yml"
+
+# A whole `uses:` line pinning the action to a full commit SHA, with an
+# optional trailing comment (Dependabot writes the version there). Bytes, and
+# spaces, tabs and printable ASCII only: anything YAML might read as a line
+# break (CR, NEL, LS, PS) fails the match.
+_ACTION_PIN = re.compile(
+    rb"[ \t]*(?:-[ \t]+)?uses:[ \t]*anthropics/claude-code-action@([0-9a-f]{40})"
+    rb"(?:[ \t]+#[ -~]*)?[ \t]*"
+)
 
 
 def _fail(msg: str, code: int = 2) -> None:
@@ -76,6 +102,77 @@ def stowaways(changed: Iterable[str]) -> list[str]:
     return sorted(changed - CLAUDE_WORKFLOWS)
 
 
+def pin_moves(before: bytes, after: bytes) -> set[bytes] | None:
+    """The SHAs the action's pin lines move to from [before] to [after], or
+    ``None`` unless that is the only change.
+
+    Every line of [after] must equal the same line of [before], except pin
+    lines that were pins before and are pins after, with the same bytes up to
+    the SHA, so indentation and a `- ` marker cannot change (compared as bytes, split on
+    ``\\n`` only). An unchanged file moves nothing: the empty set.
+    """
+    old_lines = before.split(b"\n")
+    new_lines = after.split(b"\n")
+    if len(old_lines) != len(new_lines):
+        return None
+    moved: set[bytes] = set()
+    for old, new in zip(old_lines, new_lines):
+        if old == new:
+            continue
+        old_pin = _ACTION_PIN.fullmatch(old)
+        new_pin = _ACTION_PIN.fullmatch(new)
+        if not old_pin or not new_pin:
+            return None
+        # Everything before the SHA (indentation, a `- ` marker) must stay put:
+        # changing it moves the line to another place in the YAML structure.
+        if old[: old_pin.start(1)] != new[: new_pin.start(1)]:
+            return None
+        moved.add(new_pin.group(1))
+    return moved
+
+
+def is_matching_pin_bump(
+    before: bytes,
+    after: bytes,
+    review_before: bytes,
+    review_after: bytes,
+) -> bool:
+    """Whether ``claude.yml`` going from [before] to [after] only moves the
+    action's pin, to the one SHA the review workflow's own pin-only bump
+    ([review_before] to [review_after]) moves to.
+
+    The review workflow's change must be a pin-only bump too. Its pin lines on
+    the base branch are real step pins, reviewed when they landed; a change
+    that rewrites one so the pattern cannot read it, or adds a pin-shaped line
+    in a block scalar, is no pin-only bump, so it cannot vouch for a SHA the
+    workflow does not run.
+    """
+    review_moves = pin_moves(review_before, review_after)
+    if not review_moves or len(review_moves) != 1:
+        return False
+    moves = pin_moves(before, after)
+    return bool(moves) and moves == review_moves
+
+
+def _blob(ref: str, path: str) -> bytes | None:
+    res = subprocess.run(["git", "show", f"{ref}:{path}"], capture_output=True)
+    return res.stdout if res.returncode == 0 else None
+
+
+def _assistant_bumps_with_review(base: str, head: str) -> bool:
+    merge_base = _git("merge-base", base, head)
+    if merge_base.returncode != 0:
+        return False
+    fork = merge_base.stdout.strip()
+    before = _blob(fork, ASSISTANT_WORKFLOW)
+    after = _blob(head, ASSISTANT_WORKFLOW)
+    review_before = _blob(fork, REVIEW_WORKFLOW)
+    review_after = _blob(head, REVIEW_WORKFLOW)
+    if None in (before, after, review_before, review_after):
+        return False
+    return is_matching_pin_bump(before, after, review_before, review_after)
+
+
 def main(argv: list[str]) -> int:
     if len(argv) not in (2, 3):
         _fail("usage: check_claude_workflow_isolation.py <base_ref> [head_ref]")
@@ -86,6 +183,11 @@ def main(argv: list[str]) -> int:
 
     changed = changed_paths(base, head)
     others = stowaways(changed)
+    pin_rides_along = (
+        ASSISTANT_WORKFLOW in others and _assistant_bumps_with_review(base, head)
+    )
+    if pin_rides_along:
+        others.remove(ASSISTANT_WORKFLOW)
     if others:
         touched = ", ".join(sorted(set(changed) & CLAUDE_WORKFLOWS))
         print(
@@ -99,7 +201,12 @@ def main(argv: list[str]) -> int:
             print(f"  {path}")
         return 1
 
-    if set(changed) & CLAUDE_WORKFLOWS:
+    if pin_rides_along:
+        print(
+            "OK: only the Claude review workflow changed, and "
+            f"{ASSISTANT_WORKFLOW} moves its action pin to the same commit"
+        )
+    elif set(changed) & CLAUDE_WORKFLOWS:
         print("OK: only the Claude review workflow changed")
     else:
         print("OK: the Claude review workflow is unchanged")

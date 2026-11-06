@@ -30,6 +30,12 @@ updates:
         update-types:
           - "minor"
           - "patch"
+        # claude-code-action gets a PR of its own: it is pinned in
+        # claude-code-review.yml, and a PR changing that file may change
+        # nothing else but the same pin in claude.yml
+        # (tools/ci/check_claude_workflow_isolation.py).
+        exclude-patterns:
+          - "anthropics/claude-code-action"
 
   # Android Gradle dependencies for the Flutter app.
   - package-ecosystem: "gradle"

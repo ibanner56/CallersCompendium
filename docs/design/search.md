@@ -85,7 +85,10 @@ tree. Conforms to [ux.md](ux.md) §1 and [dialect.md](dialect.md)
    typed prose the importer structures (`ladles trade by the left shoulder`
    becomes `pass_by`, which ContraDB files under `custom`) over-matches. An `allemande orbit` is one figure on ContraDB and
    `meanwhile[allemande, orbit]` here, which is why an `allemande` query is
-   sent as `allemande` or `allemande orbit`. The importer half is
+   sent as `allemande` or `allemande orbit`. Under a figure-level `not` (such as a
+   Sequence side that is a "None of" group) it is sent as `allemande` alone:
+   the group's orbit row is not an allemande, so the Collection still matches
+   `not allemande` there, and ContraDB must not rule the orbit figure out. The importer half is
    pinned for two of these only, by `contradb_advanced_translation_import_test.dart`:
    the `allemande orbit` container and a typed `A while B` line. The others
    (`form an ocean wave & balance`, `*-hand chain`, a balanced `swat the flea`,
@@ -185,7 +188,7 @@ tree. Conforms to [ux.md](ux.md) §1 and [dialect.md](dialect.md)
 
    *What is verified.* Positions against ContraDB's formal lists, the
    left-out set, and every value mapping are pinned by unit tests; the opt-in
-   `tool/check_contradb_translation_live.dart` sent 30 expression shapes
+   `tool/check_contradb_translation_live.dart` sent 31 expression shapes
    (including one per parameter shape above) and ContraDB accepted all of them.
    On 2026-11-06 the script was extended to print the figure text ContraDB
    matched, and the implementing agent read it for each shape: the text agreed
@@ -328,7 +331,7 @@ compiles to the literal `1` (TRUE); `OrFilter([])` to `0` (FALSE); the outer
 | `LevelFilter(l, lte/gte)` | `level_id IN (SELECT candidate.id FROM difficulty_levels candidate CROSS JOIN (SELECT position, id FROM difficulty_levels WHERE id = ?) target WHERE (candidate.position, candidate.id) <=/>= (target.position, target.id))` |
 | `MixedLevelFilter(b)` | `mixed_level = ?` (bind `1`/`0`) |
 | `MixerFilter(b)` | `mixer = ?` (bind `1`/`0`) |
-| `CalledFilter(true, scope)` | `EXISTS` over `program_slots` joined to non-deleted `programs`. An alternate slot matches only once it is marked performed (`callingHistoryAlternateClause`). An optional caller scope includes matching, NULL, and blank host callers; `performedOnly` adds `performed_at IS NOT NULL`, and `requireEventDate` adds `event_date IS NOT NULL`. The scopes narrow the same slots: `venue` adds `p.venue_id = ?` for a record key, or `p.venue_id IS NULL AND cc_venue_key(p.venue) = ?` for a typed one; `since` adds `COALESCE(p.event_date, ps.performed_at) >= ?` (`callingHistoryRecencyDateSql`; no end date, and a slot with neither date is in no window); `currentProgramId` adds `p.id <> ?` |
+| `CalledFilter(true, scope)` | `EXISTS` over `program_slots` joined to non-deleted `programs`. An alternate slot matches only once it is marked performed (`callingHistoryAlternateClause`). An optional caller scope includes matching, NULL, and blank host callers; `performedOnly` adds `performed_at IS NOT NULL`, and `requireEventDate` adds `event_date IS NOT NULL`. The scopes narrow the same slots: `venue` adds `p.venue_id = ?` for a record key, or `p.venue_id IS NULL AND cc_venue_key(p.venue) = ?` for a typed one; `since` adds `<date> >= ?`, where `<date>` is `callingHistoryRecencyDateSql`: `COALESCE(p.event_date, ps.performed_at, p.updated_at)`, NULL (in no window) for a slot whose program has no event date while the tracking setting `recencyRequireEventDate` is on (the default), or that is not marked performed while `recencyRequirePerformed` is on. No end date; `currentProgramId` adds `p.id <> ?` |
 | `CalledFilter(false, scope)` | `NOT (EXISTS …)` with the same rules and scopes, so a scope reads "no counted slot at the venue, in the window", never "a slot elsewhere" |
 | `RatingFilter(n)` | `rating >= ?` (unrated dances excluded — NULL is not on the scale) |
 
@@ -575,7 +578,10 @@ applied as a **post-fetch pass in Dart** over the returned id set:
   (`DanceRepository._sortByLastCalled`), scoped by the same caller filter,
   performed setting and alternate rule as the "called ×N" count, and ordered by
   `COALESCE(event_date, performed_at, updated_at)`, the date the history list
-  orders by (GIG-2).
+  orders by (GIG-2). The tracking settings `orderIgnoreUndated` and
+  `orderIgnoreUnperformed` (off by default) give a slot whose program has no
+  event date, or that is not marked performed, no date: Last called ignores it
+  (`callingHistoryDateSql`).
 
 So the compiler always emits exactly one `SELECT` (filter + SQL sort); when the
 requested sort is `title`, `author` or `last-called`, the id set it returns is reordered
@@ -755,7 +761,9 @@ are ([dialect.md](dialect.md) "Canonicalization on input"):
 - **`FigureLeaf.move` / `FigureQuery` moves**: the move name is canonicalized
   to its taxonomy id before binding to `f.move = ?`. A caller who typed a
   dialect/synonym move name resolves to the same canonical `move` stored in
-  `dance_figures`. A dialect `moves` key naming a figure of your own
+  `dance_figures`, except a name that is itself a built-in move id, which binds
+  as given (`_canonicalizeMove`): with `{swing: 'chain'}`, `chain` searches
+  chains. A dialect `moves` key naming a figure of your own
   (`userFigure:<id>`, #1023) is not a move and is left out of this reverse
   map and of `SearchEnrichment`'s, so its wording never rewrites a query's
   move to a key no row has.
@@ -805,7 +813,9 @@ tree. This section specifies the mapping; the widget shipped as
   and stored as the canonical move id, the same figure leaf as the search
   bar's reading of that name (no new query shape). With no dialect active only
   built-in names match; a dialect name that collides with a built-in move's
-  offers both moves, as the editor does. Aliases are not offered (a figure leaf
+  offers both moves, as the editor does, and each searches its own move: the
+  compiler never maps a built-in move id through the dialect's names
+  (`FilterCompiler._canonicalizeMove`). Aliases are not offered (a figure leaf
   matches the stored id; the search bar reads an alias's name as text). The
   By phrase chips read in the active dialect. `params` = named-param pickers
   from the move's schema; `section` = dropdown of the dance form's phrase labels (`A1 A2 B1 B2 …`).

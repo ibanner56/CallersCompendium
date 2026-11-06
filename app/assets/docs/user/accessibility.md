@@ -232,8 +232,9 @@ A few smaller settings and behaviors round out the experience:
   colors you choose yourself too: a formation or tag you have colored still shows
   its name, and the app picks a black or white label for it automatically so the
   text stays readable whichever color you pick.
-- **Scrolling puts the on-screen keyboard away.** On a phone or tablet, drag
-  any list or page with your finger and the on-screen keyboard closes, so it
+- **Scrolling puts the on-screen keyboard away.** On an Android phone or
+  tablet, an iPhone or an iPad, drag any list or page with your finger and the
+  on-screen keyboard closes, so it
   isn't covering what you want to read. A list of suggestions under a box
   you're typing in scrolls without closing it.
 - **Perform mode keeps the screen awake.** The display won't dim or sleep

@@ -1,0 +1,28 @@
+{
+  "id": "audit-followups-2026-11",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "On a Windows, macOS or Linux computer, scrolling a list with a trackpad no longer takes the focus out of the box you are typing in, so Quick search's arrow keys and Enter keep working while you scroll its results. Dragging a list on an Android or iOS phone or tablet still puts the on-screen keyboard away.",
+      "When you delete a program, the number of dances that lose it from their calling history no longer counts a dance that was already permanently deleted.",
+      "With a dialect that calls a move by another built-in move's name, picking the built-in move in Advanced or By phrase now searches that move, not the dialect's.",
+      "Renaming an author in Edit details to another author's name written with different capitals or spacing now offers to merge them, as Rename does, instead of saving a second author.",
+      "After you merge authors while a dance is open in the editor, the editor lists the dance's authors in the order the merge saved.",
+      "Restoring an unsaved dance draft after one of its authors or tags was merged now credits the author or tag it was merged into, and leaves out one that was deleted, instead of saving a credit that never shows.",
+      "A Caller's Companion program whose date does not exist, such as 2021-02-30, is imported with no event date and a warning, instead of on a different day.",
+      "An imported or typed \"Box circulate with balance\" reads as a box circulate again, and \"Box circulate, no balance\" no longer gets its balance turned on.",
+      "The Last backup date and the date of a backup file you pick to restore now follow your Regional date format."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add customNumberText, the one formatter for a custom number field's value: a whole number without its trailing \".0\", at any size, shared by the search index, the dance screens and the editor."
+    ],
+    "fixed": [
+      "ProgramRepository.danceCountLosingHistory no longer counts a permanently deleted dance.",
+      "FilterCompiler binds a built-in move id as given instead of mapping it through the dialect's move names.",
+      "The Caller's Companion program importer reads an ISO date as written and refuses an impossible one.",
+      "The figure fan-out no longer treats \"with balance\", or a \"balance first\" that ends its clause, in a box circulate's note as a balance after it, and gives a box circulate whose note says \"no balance\" balance: false."
+    ]
+  }
+}

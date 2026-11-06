@@ -372,29 +372,52 @@ bool _startsWith(List<String> words, List<String> start) {
   return true;
 }
 
+/// The year, month and day an ISO 8601 value begins with, extended or basic,
+/// with whatever time and offset follow left unread.
+final RegExp _isoDatePrefix = RegExp(
+  r'^([+-]?\d{4,6})-?(\d{2})-?(\d{2})(?:[T ].*)?$',
+);
+
+/// [year]-[month]-[day] as a UTC date, or `null` when no such day exists.
+/// `DateTime` silently normalises an impossible date (2/31 → March 2), so
+/// anything that does not round-trip is refused rather than stored as a wrong
+/// day.
+DateTime? _calendarDate(int year, int month, int day) {
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+  final date = DateTime.utc(year, month, day);
+  return date.year == year && date.month == month && date.day == day
+      ? date
+      : null;
+}
+
 (DateTime?, ImportIssue?) _parseEventDate(String? raw, String recordId) {
   final value = raw?.trim() ?? '';
   if (value.isEmpty) return (null, null);
 
-  // ISO-ish first (what DateTime.tryParse handles).
-  final iso = DateTime.tryParse(value);
-  if (iso != null) return (DateTime.utc(iso.year, iso.month, iso.day), null);
+  // ISO-ish first (what DateTime.tryParse handles). The calendar date is read
+  // as written: `tryParse` rolls an impossible day over (2021-02-30 → March 2)
+  // and converts a value with an offset to UTC, which can change the day.
+  final iso = _isoDatePrefix.firstMatch(value);
+  if (iso != null && DateTime.tryParse(value) != null) {
+    final date = _calendarDate(
+      int.parse(iso.group(1)!),
+      int.parse(iso.group(2)!),
+      int.parse(iso.group(3)!),
+    );
+    if (date != null) return (date, null);
+  }
 
   // Common US FileMaker shape: M/D/YYYY or M-D-YYYY.
   final m = RegExp(r'^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$').firstMatch(value);
   if (m != null) {
     var year = int.parse(m.group(3)!);
     if (year < 100) year += year < 70 ? 2000 : 1900;
-    final month = int.parse(m.group(1)!);
-    final day = int.parse(m.group(2)!);
-    if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
-      final date = DateTime.utc(year, month, day);
-      // DateTime silently normalises impossible dates (e.g. 2/31 → Mar 2), so
-      // reject anything that didn't round-trip rather than storing a wrong day.
-      if (date.year == year && date.month == month && date.day == day) {
-        return (date, null);
-      }
-    }
+    final date = _calendarDate(
+      year,
+      int.parse(m.group(1)!),
+      int.parse(m.group(2)!),
+    );
+    if (date != null) return (date, null);
   }
 
   return (

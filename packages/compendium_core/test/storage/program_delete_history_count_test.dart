@@ -1,4 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/src/storage/database.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:test/test.dart';
 
 import 'test_database.dart';
@@ -130,6 +132,24 @@ void main() {
     await programs.create(mixed(trashed: true));
     expect(await programs.danceCountLosingHistory('p1'), 0);
     expect(await programs.danceCountLosingHistory('nope'), 0);
+  });
+
+  test('a dance permanently deleted elsewhere is not counted although a slot '
+      'still cites it', () async {
+    await programs.create(mixed());
+    // What a blank arriving by sync leaves: the slot added on this device still
+    // cites `b`, now marked permanently deleted and titled with the
+    // placeholder. It has no dance page, so it has no history to lose.
+    await (db.update(db.dances)..where((t) => t.id.equals('b'))).write(
+      DancesCompanion(
+        title: const Value(blankedRecordTitle),
+        deletedAt: Value(permanentlyDeletedAt),
+      ),
+    );
+    expect(await programs.danceCountLosingHistory('p1'), 2); // a and d
+    // A dance merely in the trash can still be restored with its history.
+    await dances.softDelete('d', at: now);
+    expect(await programs.danceCountLosingHistory('p1'), 2);
   });
 
   test('another program holding the same dance does not change the count; '

@@ -628,7 +628,20 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     if (!mounted) return;
 
     if (restore == true) {
-      _controller.applyRestoredDraft(draft);
+      EditorSnapshot current;
+      try {
+        current = await _controller.withLiveReferences(draft);
+      } catch (error, stackTrace) {
+        // A failed read must not lose the draft: restore it as written.
+        logCaughtError(
+          error,
+          stackTrace,
+          source: 'dance_editor_screen._restoreDraft',
+        );
+        current = draft;
+      }
+      if (!mounted) return;
+      _controller.applyRestoredDraft(current);
       setState(() {
         _rebuildTagOptions();
       });
