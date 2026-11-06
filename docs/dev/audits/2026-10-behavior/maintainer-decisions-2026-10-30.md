@@ -592,6 +592,12 @@ So: four NEW settings; the two existing global settings stay and still gate the 
 - **Toggle 1 defaults on, so a performed slot in an undated program leaves the recency window, and no combination of the four settings restores the old "dated or performed" rule.** Maintainer: "1 I accept".
 - **"Ship it as one PR" (the size decision for #2128, which arrived as a user message in the build session):** Maintainer: "2 I sent that". So the one-PR decision is the maintainer's.
 
+### Stale "row 7" timing numbers in docs/design/bulk-selection.md, 2026-11-06
+
+**Question:** a follow-up from bundle 1 said `docs/design/bulk-selection.md` has stale "row 7" timing numbers. No test or benchmark reproduces the figures, and neither the build session nor the orchestrating session could tell what "row 7" refers to. Drop the item?
+
+**Decision (maintainer's words):** "Drop it if no one knows what it was". Dropped. `bulk-selection.md` is left as it is; no session is assigned to it. If someone later finds which numbers were meant, it can be reopened as a new item.
+
 ## Still open
 
 - Q-2: building as four new settings (see the clarification above); the "ignores" reading for toggles 3 and 4 will be shown in the PR for the maintainer to correct.
