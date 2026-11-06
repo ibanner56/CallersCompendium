@@ -50,6 +50,16 @@ void main() {
       expect(f.note, isNull);
     });
 
+    test('a shoulder stated only for the second pair sets the first', () {
+      final f = only(
+        'cross trails - partners across the set, neighbors along the set '
+        'passing right shoulders',
+      );
+      expect(f.params['shoulder'], 'left');
+      expect(f.params['who2'], 'neighbors');
+      expect(f.note, isNull);
+    });
+
     test('a second pass by the same shoulder is not read', () {
       final f = only(
         'cross trails - partner across the set passing right shoulders, '

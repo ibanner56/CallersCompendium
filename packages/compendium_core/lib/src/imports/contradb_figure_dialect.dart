@@ -2102,7 +2102,11 @@ FigureMatch? _crossTrails(String text) {
         final sh2 = _shoulderPhrase(s);
         if (sh2 == null) {
           s.reset(sh2Save);
-        } else if (sh != null && sh2 == sh) {
+        } else if (sh == null) {
+          // Only the first shoulder is stored and the second is its opposite,
+          // so a line stating only the second states the first too.
+          params['shoulder'] = _otherSide(sh2);
+        } else if (sh2 == sh) {
           // Trails cross by opposite shoulders, and only the first is stored:
           // a second pass by the same shoulder would be silently changed.
           return null;
