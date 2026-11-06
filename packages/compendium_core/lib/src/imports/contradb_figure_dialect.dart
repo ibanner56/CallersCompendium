@@ -1084,7 +1084,7 @@ FigureMatch? _zigZagDisplay(String text) {
 }
 
 /// The poussette in the app's display wording (#2121): "FRACTION poussette -
-/// WHO pull [WHOM] back then left|right", where left is clockwise. Only the
+/// WHO pull [whom] back then left|right", where left is clockwise. Only the
 /// whole line is read.
 FigureMatch? _poussetteDisplay(String text) {
   final s = _Scan(text);
@@ -2244,7 +2244,7 @@ FigureMatch? _facingStar(String text) {
 /// poussetteWords. Renders as: "[half|full] poussette - WHO pull WHOM back then
 /// left|right", where left is clockwise: ContraDB writes a truthy `turn`
 /// (`spin_clockwise` is `value: true`, libfigure `param.js`) as "back then
-/// left" (`figure.js` `poussetteWords`), as the app's renderer does. This read
+/// left" (`figure.js`, its poussette words), as the app's renderer does. This read
 /// the sides the other way round before #2121, so every imported ContraDB
 /// poussette turned the wrong way.
 FigureMatch? _poussette(String text) {
