@@ -1,7 +1,7 @@
 import '../model/figure.dart';
 import '../taxonomy/contra_taxonomy.dart';
 import '../taxonomy/dance_vocabulary.dart'
-    show displayDirectionPhrases, seriesDancerWords;
+    show displayDirectionPhrases, displayFacingPhrases, seriesDancerWords;
 import '../taxonomy/param_types.dart';
 import '../taxonomy/taxonomy.dart';
 import 'contradb_dancer_vocab.dart';
@@ -276,6 +276,10 @@ const List<FigureMatch? Function(String)> _recognizers =
       _tradeBy,
       _passThrough,
       _pullByDancers,
+      // Ahead of [_gate]: ContraDB's own wording (`to face up the set`) is not
+      // the display's, so it falls through to [_gate] whole.
+      _gateDisplay,
+      _courtesyTurnFacingDisplay,
       _gate,
       _contraCorners,
       _zigZag,
@@ -791,6 +795,113 @@ FigureMatch? _formALongWaveInPlace(String text) {
     'form_a_long_wave',
     params: {'who': who, 'in': false, 'out': false, 'balance': balance},
   );
+}
+
+/// The gate in the app's display wording (#2121): "[SUBJECT] [mirror] gate
+/// [OBJECT [OBJECT]] [clockwise|counterclockwise] [TURN] [to face FACING] [,
+/// WHOM forward]". Every slot is optional, as the display leaves an unstated
+/// one out, and only the whole line is read.
+///
+/// The subject is `who` or `pair`, which the display words alike. A line that
+/// states a rotation (mirror, a spin or a turn) is The Caller's Box shape, whose
+/// subject is the pair you gate with, as the shared grammar reads it; any
+/// other is ContraDB's shape, whose subject is `who`. A "WHOM forward" clause
+/// is written only when the subject is the pair. Of the objects, the display
+/// writes the pair before `whom`; a lone object is read as `whom`, as
+/// ContraDB's `<who> gate <whom>` is.
+///
+/// A line with nothing beyond a subject, and a Caller's Box shape that leaves
+/// out the direction or the turn, are left to the readers that already decide
+/// them.
+FigureMatch? _gateDisplay(String text) {
+  final s = _Scan(text);
+  final subject = _displaySubject(s);
+  final mirror = s.eat('mirror');
+  if (!s.eat('gate')) return null;
+  final objects = <String>[
+    if (subject != null)
+      for (var i = 0; i < 2; i++) ?_displaySubject(s),
+  ];
+  // `neighbor gate, larks forward`: with nothing between, the dancers after
+  // the move are the forward clause, not an object.
+  String? forward;
+  if (objects.length == 1 && s.eat('forward')) forward = objects.removeLast();
+  final spin = mirror ? null : _spinDir(s);
+  final turn = _rotation(s.peek());
+  if (turn != null) s.take();
+  String? facing;
+  if (s.eatPhrase('to face')) {
+    facing = _displayFacing(s);
+    if (facing == null) return null;
+  }
+  if (objects.isEmpty && forward == null) {
+    final save = s.pos;
+    forward = _displaySubject(s);
+    if (forward != null && !s.eat('forward')) {
+      forward = null;
+      s.reset(save);
+    }
+  }
+  if (s.peek() != null) return null;
+  final rotated = mirror || spin != null || turn != null;
+  // A bare `gate`, or one with only a subject, states nothing this wording
+  // adds: it is left to the readers that already decide it (an import keeps
+  // `Partner gate` as text; free text reads it by name).
+  if (objects.isEmpty && !rotated && facing == null && forward == null) {
+    return null;
+  }
+  // A subject with a rotation is The Caller's Box shape, which the shared
+  // grammar reads only when it states the direction AND the turn, never
+  // filling in either (`Partner gate counterclockwise` stays text). The same
+  // rule holds here, so an import reads that line as it did before.
+  final rotationStated = (mirror || spin != null) && turn != null;
+  if (subject != null && objects.isEmpty && rotated && !rotationStated) {
+    return null;
+  }
+  final subjectIsPair = forward != null || (objects.isEmpty && rotated);
+  return FigureMatch(
+    'gate',
+    params: {
+      subjectIsPair ? 'pair' : 'who': ?subject,
+      if (objects.length == 2) ...{'pair': objects[0], 'whom': objects[1]},
+      if (objects.length == 1) 'whom': objects[0],
+      'whom': ?forward,
+      if (mirror) 'direction': 'mirror' else 'direction': ?spin,
+      'travel': ?turn,
+      'endFacing': ?facing,
+    },
+  );
+}
+
+/// A courtesy turn with its ending facing, in the app's display wording
+/// (#2121): "SUBJECT courtesy turn [clockwise|counterclockwise] to face
+/// DANCER". The shared grammar reads The Caller's Box's `face N2`; the display
+/// writes `to face` and any dancer, singular for a pair. Only a whole line
+/// with the facing is read, so every other courtesy turn line is left to the
+/// shared grammar. The two-dancer form (`partner courtesy turn larks`) names
+/// `whom`, which the shared grammar deliberately does not read; nor does this.
+FigureMatch? _courtesyTurnFacingDisplay(String text) {
+  final s = _Scan(text);
+  final who = _displaySubject(s);
+  if (who == null || !s.eatPhrase('courtesy turn')) return null;
+  final direction = _spinDir(s);
+  if (!s.eatPhrase('to face')) return null;
+  final endFacing = _displaySubject(s);
+  if (endFacing == null || s.peek() != null) return null;
+  return FigureMatch(
+    'courtesy_turn',
+    params: {'who': who, 'direction': ?direction, 'endFacing': endFacing},
+  );
+}
+
+/// A set-relative facing as the app's display words it, one of
+/// [displayFacingPhrases] (#2121).
+String? _displayFacing(_Scan s) {
+  for (final MapEntry(key: token, value: phrase)
+      in displayFacingPhrases.entries) {
+    if (s.eatPhrase(phrase)) return token;
+  }
+  return null;
 }
 
 /// A subject as the app's display writes it (#2121): any [_subject], the
@@ -2087,9 +2198,12 @@ FigureMatch? _formALongWave(String text) {
 }
 
 /// Consumes a spin-direction word, returning `clockwise`/`counterclockwise`.
+/// ContraDB hyphenates `counter-clockwise`; the app's display writes it as one
+/// word (#2121).
 String? _spinDir(_Scan s) {
   if (s.eat('clockwise')) return 'clockwise';
   if (s.eat('counter-clockwise')) return 'counterclockwise';
+  if (s.eat('counterclockwise')) return 'counterclockwise';
   final save = s.pos;
   if (s.eat('counter') && s.eat('clockwise')) return 'counterclockwise';
   s.reset(save);

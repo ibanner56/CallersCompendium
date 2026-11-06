@@ -1,5 +1,6 @@
 import '../model/figure.dart';
-import '../taxonomy/dance_vocabulary.dart' show displayDirectionPhrases;
+import '../taxonomy/dance_vocabulary.dart'
+    show displayDirectionPhrases, displayFacingPhrases;
 import '../taxonomy/gate_facing.dart';
 import '../taxonomy/move_def.dart';
 import '../taxonomy/param_opposites.dart';
@@ -2335,17 +2336,10 @@ class FigureRenderer {
   /// Human phrasing for a set-relative facing token, shared by the derived
   /// rotation-gate ending facing (issue #294) and swing's `endFacing` clause
   /// (issue #543). An unexpected value humanizes rather than blanking,
-  /// surfacing malformed data.
-  static const Map<String, String> _gateFacingPhrases = {
-    'in': 'into the set',
-    'out': 'out of the set',
-    'up': 'up the hall',
-    'down': 'down the hall',
-    'along': 'along the set',
-  };
-
+  /// surfacing malformed data. The phrases are [displayFacingPhrases], which
+  /// the figure readers share so a displayed facing reads back (#2121).
   static String _gateFacingPhrase(String facing) =>
-      _gateFacingPhrases[facing] ?? _humanize(facing);
+      displayFacingPhrases[facing] ?? _humanize(facing);
 
   /// DISPLAY-ONLY phrasing of a set direction (`ParamKind.direction`), shared
   /// by every move that shows one: a diagonal reads "on right diagonal" and a
