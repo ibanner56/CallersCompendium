@@ -6674,6 +6674,10 @@
   "@onlineResultCountOfTotalStopped": {
     "x-sourceSha256": "2e567c5639b1c694a959a219b38c6f2d9227e37196694e8ec7861648db85ebce"
   },
+  "onlineResultCountMaybeMore": "{count}件のオンライン結果を表示しています。ほかにもある可能性があります。",
+  "@onlineResultCountMaybeMore": {
+    "x-sourceSha256": "c5b5f11f6b702a5ff3a1128423d99d5be82e54d781c24c4cb16cc350f3528323"
+  },
   "onlineAdvancedPartlyApplied": "一部の詳細検索の条件はContraDBにないため、除外されました。",
   "@onlineAdvancedPartlyApplied": {
     "x-sourceSha256": "0f99aeb37e287f4bd13ae20c95c8aa72018ee9556c316dadf1f61e09e8958c78"

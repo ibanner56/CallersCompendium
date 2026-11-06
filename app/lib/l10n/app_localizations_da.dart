@@ -6717,6 +6717,11 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String onlineResultCountMaybeMore(int count) {
+    return 'Viser $count online-resultater. Der kan være flere.';
+  }
+
+  @override
   String get onlineAdvancedPartlyApplied =>
       'Nogle avancerede betingelser findes ikke i ContraDB og er udeladt.';
 

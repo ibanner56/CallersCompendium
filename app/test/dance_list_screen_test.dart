@@ -242,6 +242,7 @@ class _PagedContraDb extends ContraDbOnline {
 
   factory _PagedContraDb({
     required int total,
+    bool reportTotal = true,
     bool Function(ContraDbSearchRequest request)? failWhen,
   }) {
     final requests = <ContraDbSearchRequest>[];
@@ -251,7 +252,7 @@ class _PagedContraDb extends ContraDbOnline {
       final from = request.offset;
       final to = (from + 20) < total ? from + 20 : total;
       return jsonEncode({
-        'numberMatching': total,
+        if (reportTotal) 'numberMatching': total,
         'dances': [
           for (var id = from + 1; id <= to; id++)
             {
@@ -2612,6 +2613,26 @@ void main() {
       expect(find.byKey(const ValueKey('online-more-retry')), findsNothing);
       await scrollToTop(tester);
       expect(find.text(of(40)), findsOneWidget);
+    });
+
+    testWidgets('a failed page with no total still says there may be more', (
+      tester,
+    ) async {
+      final contraDb = _PagedContraDb(
+        total: 45,
+        reportTotal: false,
+        failWhen: (request) => request.offset == 20,
+      );
+      await openContraDb(tester, contraDb);
+
+      await scrollToEnd(tester);
+      expect(find.byKey(const ValueKey('online-more-retry')), findsOneWidget);
+      await scrollToTop(tester);
+      expect(
+        find.text('Showing 20 online results. There may be more.'),
+        findsOneWidget,
+        reason: 'the plain count would read as a complete result',
+      );
     });
 
     testWidgets('a new search starts again from the first page', (

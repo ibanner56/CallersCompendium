@@ -6682,6 +6682,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String onlineResultCountMaybeMore(int count) {
+    return 'Showing $count online results. There may be more.';
+  }
+
+  @override
   String get onlineAdvancedPartlyApplied =>
       'Some Advanced conditions don\'t exist on ContraDB and were left out.';
 

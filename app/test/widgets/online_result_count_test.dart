@@ -23,12 +23,16 @@ OnlineSearchResultRow _row(
 
 void main() {
   final l10n = lookupAppLocalizations(const Locale('en'));
-  String label(List<OnlineSearchResultRow> rows, {bool? hasMore}) =>
-      onlineResultCountLabel(
-        l10n,
-        rows,
-        hasMore: hasMore ?? rows.any((row) => row.mayHaveMore),
-      );
+  String label(
+    List<OnlineSearchResultRow> rows, {
+    bool? hasMore,
+    bool loadFailed = false,
+  }) => onlineResultCountLabel(
+    l10n,
+    rows,
+    hasMore: hasMore ?? rows.any((row) => row.mayHaveMore),
+    loadFailed: loadFailed,
+  );
 
   test('a total larger than what is shown says "of", and to scroll while '
       'more can load', () {
@@ -72,6 +76,31 @@ void main() {
       reason: 'an earlier full page must not keep the "may be more" form',
     );
   });
+
+  test(
+    'a failed page keeps what the line knew, without the hint to scroll',
+    () {
+      // Total known: the "of" line, no hint (only Try again loads more now).
+      expect(
+        label(
+          [_row(1, total: 143), _row(2, total: 143)],
+          hasMore: true,
+          loadFailed: true,
+        ),
+        'Showing 2 of 143 online results.',
+      );
+      // No total: still "there may be more", not the plain count, which would
+      // read as a complete result while Try again waits.
+      expect(
+        label(
+          [_row(1, mayHaveMore: true), _row(2, mayHaveMore: true)],
+          hasMore: true,
+          loadFailed: true,
+        ),
+        'Showing 2 online results. There may be more.',
+      );
+    },
+  );
 
   test('nothing shown: the plain count, whatever an earlier search left', () {
     expect(label(const [], hasMore: true), '0 online results');

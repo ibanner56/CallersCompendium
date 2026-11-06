@@ -3282,11 +3282,11 @@ class _DanceListScreenState extends State<DanceListScreen>
         ? _selection.notShown(_shownIds)
         : 0;
     final String label = online
-        // A failed page loads only by its Try again button, not by scrolling.
         ? onlineResultCountLabel(
             l10n,
             _onlineResults,
-            hasMore: _onlineHasMore && !_onlineMoreFailed,
+            hasMore: _onlineHasMore,
+            loadFailed: _onlineMoreFailed,
           )
         : l10n.collectionDanceCount(count);
     return Padding(
