@@ -1,4 +1,5 @@
 import '../model/figure.dart';
+import '../taxonomy/contra_taxonomy.dart';
 import '../taxonomy/dance_vocabulary.dart'
     show displayDirectionPhrases, seriesDancerWords;
 import '../taxonomy/param_types.dart';
@@ -854,7 +855,8 @@ bool _eatBalanceAmp(_Scan s) {
 /// heyWords (common full/half form). Renders as: "PASS1 start a FULL|HALF hey -
 /// SH1 PLACE, SH2 PLACE". Extracts pass1, length, and the first shoulder; the
 /// shoulder/place clause is part of the render (consumed, not a note).
-/// `until`-length heys are deferred. Canonical ricochet clauses are consumed
+/// A partial length reads from its `until` clause ([_eatHeyUntil]). Canonical
+/// ricochet clauses are consumed
 /// only when the complete comma-separated suffix is recognized.
 FigureMatch? _hey(String text) {
   final s = _Scan(text);
@@ -919,7 +921,11 @@ String? _eatHeyUntil(_Scan s, Map<String, Object?> params) {
   String? target;
   if (!s.eatPhrase('someone meets')) {
     target = _displaySubject(s);
-    if (target == null || !s.eat('meet')) {
+    // A target the hey does not take would fail validation and lose the whole
+    // line, so the clause is left to the note instead, as before #2121.
+    if (target == null ||
+        !(_heyMeetTargets?.contains(target) ?? false) ||
+        !s.eat('meet')) {
       s.reset(save);
       return null;
     }
@@ -928,6 +934,10 @@ String? _eatHeyUntil(_Scan s, Map<String, Object?> params) {
   if (target != null) params['meetTarget'] = target;
   return second ? 'betweenHalfAndFull' : 'lessThanHalf';
 }
+
+/// The pairs a hey's `meetTarget` takes.
+final List<String>? _heyMeetTargets =
+    contraTaxonomy.moves['hey']?.params['meetTarget']?.choices;
 
 /// Consumes the complete canonical ricochet suffix emitted by the renderer.
 /// If any comma-separated clause is malformed, the whole suffix is left for

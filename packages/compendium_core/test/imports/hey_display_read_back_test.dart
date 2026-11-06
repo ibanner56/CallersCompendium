@@ -45,6 +45,16 @@ void main() {
     });
   });
 
+  test('an until clause naming a pair the hey cannot meet stays a note', () {
+    final f = only(
+      'role2s start a hey - rights in center, lefts on ends - until everyone '
+      'meet',
+    );
+    expect(f.move, 'hey');
+    expect(f.params, isNot(contains('meetTarget')));
+    expect(f.note, '- until everyone meet');
+  });
+
   group('circular hey', () {
     test('no extent is the full circuit the display leaves unstated', () {
       final f = only('circular hey, neighbors pass right across');
@@ -56,6 +66,17 @@ void main() {
       final f = only('circular hey, neighbors pass left facing up');
       expect(f.params['where'], 'up');
       expect(f.params['shoulder'], 'left');
+    });
+
+    test('the direction is still read after a filler or a second pass', () {
+      for (final line in [
+        '3/4 circular hey, the neighbors pass right across',
+        '3/4 circular hey, neighbors pass right, partners pass left across',
+      ]) {
+        final f = only(line);
+        expect(f.move, 'circular_hey', reason: line);
+        expect(f.params['where'], 'across', reason: line);
+      }
     });
 
     test('a line that leaves out more than the extent stays text', () {

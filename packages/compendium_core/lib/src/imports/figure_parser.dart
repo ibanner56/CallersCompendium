@@ -2615,16 +2615,16 @@ const Map<String, String> _heyLengths = {
   '3/4': 'betweenHalfAndFull',
 };
 
-/// Removes and returns the set direction that LEADS [w], worded as the figure
-/// display words one: `across`, `along`, or one of [displayDirectionPhrases]
-/// (`on right diagonal`, `facing in`; #2121). Null, consuming nothing, when
-/// [w] does not start with one.
-String? _takeLeadingDirection(List<String> w) {
-  if (_consumeLeading(w, ['across'])) return 'across';
-  if (_consumeLeading(w, ['along'])) return 'along';
+/// Removes and returns a set direction from anywhere in [w], worded as the
+/// figure display words one: `across`, `along`, or one of
+/// [displayDirectionPhrases] (`on right diagonal`, `facing in`; #2121). Null,
+/// consuming nothing, when [w] states none.
+String? _takeDirection(List<String> w) {
+  if (_consumePhrase(w, ['across'])) return 'across';
+  if (_consumePhrase(w, ['along'])) return 'along';
   for (final MapEntry(key: token, value: phrase)
       in displayDirectionPhrases.entries) {
-    if (_consumeLeading(w, phrase.split(' '))) return token;
+    if (_consumePhrase(w, phrase.split(' '))) return token;
   }
   return null;
 }
@@ -2680,7 +2680,7 @@ _Match? _circularHey(List<String> w) {
   if (who == null || !_consumePhrase(w, ['pass'])) return null;
   final shoulder = _takeSide(w);
   if (shoulder == null) return null;
-  final where = _takeLeadingDirection(w);
+  final where = _takeDirection(w);
   if (where == null) return null;
   _dropFiller(w);
   String? who2;
