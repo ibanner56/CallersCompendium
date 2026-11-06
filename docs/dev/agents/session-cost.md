@@ -74,8 +74,9 @@ pipe them through a filter. The main context should never hold a full test log.
 ### Batch review responses
 
 Fix everything from one review round in a single push, and read the round with
-`python3 tools/ci/check_pr_review_gates.py findings <N>` — one line per finding,
-including the suppressed block — rather than paginated review JSON. See
+`python3 tools/ci/check_pr_review_gates.py findings <N>` (add `--reviewer
+copilot` for a Copilot review) — one line per finding, with Claude's verdict or
+Copilot's suppressed block — rather than paginated review JSON. See
 [code-review.md](code-review.md#answering-findings).
 
 ### Fail early, locally

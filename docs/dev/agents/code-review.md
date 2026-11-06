@@ -7,16 +7,16 @@ read it here when you need the reasoning or are working by hand.
 
 ## Choosing a reviewer
 
-Copilot is the default reviewer and needs no setup. Claude is **opt-in, per
-PR**: it reviews only PRs carrying the `review: claude` label. Use either one;
-neither is required of anyone else.
+PRs are reviewed by Claude by default. The workflow reviews only PRs carrying
+the `review: claude` label, so apply it to request a review (see
+[Requesting a Claude review](#requesting-a-claude-review)). Copilot is still
+available and needs no setup.
 
 The merge gate reads one reviewer's reviews, and a review by the other does not
-count. It defaults to Copilot, so existing invocations are unchanged. If you
-asked Claude instead, say so:
+count. It defaults to Claude. If you asked Copilot instead, say so:
 
 ```sh
-python3 tools/ci/check_pr_review_gates.py all <PR> --reviewer claude --closes <ISSUE>...
+python3 tools/ci/check_pr_review_gates.py all <PR> --reviewer copilot --closes <ISSUE>...
 ```
 
 ## Requesting a Copilot review
@@ -281,8 +281,9 @@ Traps:
   round re-reads the diff and re-pays the resident prompt, so per-comment pushes
   multiply the most expensive part of the cycle.
 - **Read findings through the script, not raw JSON.** `check_pr_review_gates.py
-  findings <N>` (add `--reviewer claude` for a Claude review) prints one line per finding — including the suppressed block, or for
-  Claude the latest verdict — instead of pages of paginated review JSON.
+  findings <N>` (add `--reviewer copilot` for a Copilot review) prints one line
+  per finding — with Claude's latest verdict, or for Copilot including the
+  suppressed block — instead of pages of paginated review JSON.
 - **Reply after the fix is pushed**, so the reply and the corrected code are
   visible together. Note that replies are recorded as review entries, which is
   why review-freshness must be filtered by reviewer identity

@@ -28,7 +28,7 @@ reasoning below when a gate fails, or when you are checking by hand.
   the rest with `after: "<endCursor>"` before concluding anything.
 
 - **No `BLOCK` verdict in the latest Claude review.** Only when Claude is the
-  reviewer (`--reviewer claude`). A blocker on a line outside the diff exists in
+  reviewer (the default). A blocker on a line outside the diff exists in
   the review body only, so no inline comment or thread records it and the other
   gates pass. `findings` prints the latest `## Review verdict:` line and fails on
   `BLOCK`. Details:
@@ -58,7 +58,8 @@ reasoning below when a gate fails, or when you are checking by hand.
   ```
 
   The login above is Copilot's. For a Claude review it is `claude[bot]`; the
-  script takes `--reviewer claude` rather than a login
+  script reads Claude's by default and takes `--reviewer copilot` rather than a
+  login
   ([code-review.md](code-review.md#choosing-a-reviewer)).
 
   `--slurp` wraps all pages into an outer array, so `.[][]` flattens them and

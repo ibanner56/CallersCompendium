@@ -24,7 +24,8 @@ assert SPEC and SPEC.loader
 gates = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(gates)
 
-REVIEWER = gates.REVIEWER_LOGIN
+COPILOT = gates.COPILOT
+COPILOT_LOGIN = COPILOT.review_login
 AUTHOR = "ibanner56"
 HEAD = "c11f747e2b0f4d9a8c1e5d3b7a6f2e1d0c9b8a77"
 STALE = "a76f3e0f1d2c3b4a5968778695a4b3c2d1e0f9a8"
@@ -71,20 +72,20 @@ def test_review_freshness_catches_the_authors_reply_carrying_head() -> None:
         {
             "pulls/1": pull(),
             "pulls/1/reviews": [
-                [review(REVIEWER, STALE), review(AUTHOR, HEAD)],
+                [review(COPILOT_LOGIN, STALE), review(AUTHOR, HEAD)],
             ],
         }
     )
-    ok, lines = gates.gate_review(fetcher, 1)
+    ok, lines = gates.gate_review(fetcher, 1, COPILOT)
     assert not ok, lines
     assert STALE[:8] in lines[0] and HEAD[:8] in lines[0]
 
 
 def test_review_freshness_passes_on_current_head() -> None:
     fetcher = FakeFetcher(
-        {"pulls/1": pull(), "pulls/1/reviews": [[review(REVIEWER, HEAD)]]}
+        {"pulls/1": pull(), "pulls/1/reviews": [[review(COPILOT_LOGIN, HEAD)]]}
     )
-    ok, lines = gates.gate_review(fetcher, 1)
+    ok, lines = gates.gate_review(fetcher, 1, COPILOT)
     assert ok, lines
 
 
@@ -92,7 +93,7 @@ def test_unreviewed_pr_fails_closed() -> None:
     fetcher = FakeFetcher(
         {"pulls/1": pull(), "pulls/1/reviews": [[review(AUTHOR, HEAD)]]}
     )
-    ok, lines = gates.gate_review(fetcher, 1)
+    ok, lines = gates.gate_review(fetcher, 1, COPILOT)
     assert not ok, lines
     assert "no review" in lines[0]
 
@@ -102,12 +103,12 @@ def test_reviews_are_read_across_pages() -> None:
         {
             "pulls/1": pull(),
             "pulls/1/reviews": [
-                [review(REVIEWER, STALE)],
-                [review(REVIEWER, HEAD)],
+                [review(COPILOT_LOGIN, STALE)],
+                [review(COPILOT_LOGIN, HEAD)],
             ],
         }
     )
-    ok, _ = gates.gate_review(fetcher, 1)
+    ok, _ = gates.gate_review(fetcher, 1, COPILOT)
     assert ok
     assert ("pulls/1/reviews", True) in fetcher.rest_calls, "must paginate"
 
@@ -133,7 +134,7 @@ def test_claude_freshness_ignores_a_copilot_review_on_head() -> None:
         {
             "pulls/1": pull(),
             "pulls/1/reviews": [
-                [review(CLAUDE.review_login, STALE), review(REVIEWER, HEAD)]
+                [review(CLAUDE.review_login, STALE), review(COPILOT_LOGIN, HEAD)]
             ],
         }
     )
@@ -153,17 +154,26 @@ def test_claude_freshness_passes_on_its_own_review_at_head() -> None:
     assert ok, lines
 
 
-def test_default_reviewer_is_copilot_so_a_claude_review_does_not_count() -> None:
-    """Contributors who never pass --reviewer keep the Copilot gate unchanged."""
-    fetcher = FakeFetcher(
+def test_default_reviewer_is_claude_so_a_copilot_review_does_not_count() -> None:
+    """PRs are reviewed by Claude by default, so the gate reads Claude unless told."""
+    copilot_only = FakeFetcher(
+        {
+            "pulls/1": pull(),
+            "pulls/1/reviews": [[review(COPILOT_LOGIN, HEAD)]],
+        }
+    )
+    ok, lines = gates.gate_review(copilot_only, 1)
+    assert not ok, lines
+    assert CLAUDE.review_login in lines[0], lines
+
+    claude_only = FakeFetcher(
         {
             "pulls/1": pull(),
             "pulls/1/reviews": [[review(CLAUDE.review_login, HEAD)]],
         }
     )
-    ok, lines = gates.gate_review(fetcher, 1)
-    assert not ok, lines
-    assert REVIEWER in lines[0], lines
+    ok, lines = gates.gate_review(claude_only, 1)
+    assert ok, lines
 
 
 def test_claude_findings_read_claudes_inline_comments_only() -> None:
@@ -176,7 +186,7 @@ def test_claude_findings_read_claudes_inline_comments_only() -> None:
             "pulls/1/comments": [
                 [
                     inline(CLAUDE.comment_login, "lib/claude.dart"),
-                    inline(gates.REVIEWER_COMMENT_LOGIN, "lib/copilot.dart"),
+                    inline(COPILOT.comment_login, "lib/copilot.dart"),
                 ]
             ],
         }
@@ -306,11 +316,11 @@ def test_a_copilot_review_is_not_read_for_a_verdict() -> None:
     """Copilot's body has no verdict line; the Copilot gate stays as it was."""
     fetcher = FakeFetcher(
         {
-            "pulls/1/reviews": [[review(REVIEWER, HEAD, BLOCK_BODY)]],
+            "pulls/1/reviews": [[review(COPILOT_LOGIN, HEAD, BLOCK_BODY)]],
             "pulls/1/comments": [[]],
         }
     )
-    ok, lines = gates.gate_findings(fetcher, 1)
+    ok, lines = gates.gate_findings(fetcher, 1, COPILOT)
     assert ok, lines
     assert not any("verdict" in line for line in lines), lines
 
@@ -331,6 +341,27 @@ def test_run_gates_passes_the_reviewer_to_both_review_gates() -> None:
     assert any(CLAUDE.review_login in line for line in printed), printed
 
 
+def test_run_gates_and_findings_default_to_claude() -> None:
+    """With no reviewer named, run_gates gates Claude's review, findings included."""
+    printed: list[str] = []
+    fetcher = FakeFetcher(
+        {
+            "pulls/1": pull(),
+            "pulls/1/reviews": [[review(CLAUDE.review_login, HEAD, BLOCK_BODY)]],
+            "pulls/1/comments": [[]],
+        }
+    )
+    code = gates.run_gates(
+        fetcher, 1, ["findings", "review"], [], out=printed.append
+    )
+    assert code == 1, printed
+    assert any(line.startswith("FAIL findings:") for line in printed), printed
+    assert any(line.startswith("PASS review:") for line in printed), printed
+
+    ok, lines = gates.gate_findings(_claude_reviews((HEAD, BLOCK_BODY)), 1)
+    assert not ok, lines
+
+
 def _reviewer_chosen_by_cli(argv: list[str]) -> Any:
     seen: dict[str, Any] = {}
 
@@ -347,12 +378,12 @@ def _reviewer_chosen_by_cli(argv: list[str]) -> Any:
     return seen["reviewer"]
 
 
-def test_cli_reviewer_defaults_to_copilot_and_accepts_claude() -> None:
-    assert _reviewer_chosen_by_cli(["review", "1", "--repo", "o/r"]) == gates.COPILOT
+def test_cli_reviewer_defaults_to_claude_and_accepts_copilot() -> None:
+    assert _reviewer_chosen_by_cli(["review", "1", "--repo", "o/r"]) == CLAUDE
     chosen = _reviewer_chosen_by_cli(
-        ["review", "1", "--repo", "o/r", "--reviewer", "claude"]
+        ["review", "1", "--repo", "o/r", "--reviewer", "copilot"]
     )
-    assert chosen == CLAUDE
+    assert chosen == COPILOT
 
 
 # --------------------------------------------------------------------------- #
@@ -374,11 +405,11 @@ lib/b.dart:40 — unused parameter
 def test_findings_surface_suppressed_blocks_that_thread_state_cannot_see() -> None:
     fetcher = FakeFetcher(
         {
-            "pulls/1/reviews": [[review(REVIEWER, HEAD, SUPPRESSED_BODY)]],
+            "pulls/1/reviews": [[review(COPILOT_LOGIN, HEAD, SUPPRESSED_BODY)]],
             "pulls/1/comments": [[]],
         }
     )
-    ok, lines = gates.gate_findings(fetcher, 1)
+    ok, lines = gates.gate_findings(fetcher, 1, COPILOT)
     assert ok
     assert "2 suppressed" in lines[0]
     assert any("this cast can throw" in line for line in lines[1:])
@@ -388,19 +419,19 @@ def test_findings_surface_suppressed_blocks_that_thread_state_cannot_see() -> No
 def test_findings_use_the_comments_endpoint_login() -> None:
     """The two endpoints report the reviewer under different logins."""
     inline = {
-        "user": {"login": gates.REVIEWER_COMMENT_LOGIN},
+        "user": {"login": COPILOT.comment_login},
         "path": "lib/a.dart",
         "line": 7,
         "body": "possible null dereference",
     }
-    wrong_login = dict(inline, user={"login": REVIEWER})
+    wrong_login = dict(inline, user={"login": COPILOT_LOGIN})
     fetcher = FakeFetcher(
         {
-            "pulls/1/reviews": [[review(REVIEWER, HEAD)]],
+            "pulls/1/reviews": [[review(COPILOT_LOGIN, HEAD)]],
             "pulls/1/comments": [[inline, wrong_login]],
         }
     )
-    _, lines = gates.gate_findings(fetcher, 1)
+    _, lines = gates.gate_findings(fetcher, 1, COPILOT)
     assert "1 inline finding(s)" in lines[0], lines
     assert any("lib/a.dart:7" in line for line in lines[1:])
 
@@ -410,14 +441,14 @@ def test_findings_read_every_round_not_just_the_last() -> None:
         {
             "pulls/1/reviews": [
                 [
-                    review(REVIEWER, STALE, SUPPRESSED_BODY),
-                    review(REVIEWER, HEAD, "Reviewed 8 of 8 files."),
+                    review(COPILOT_LOGIN, STALE, SUPPRESSED_BODY),
+                    review(COPILOT_LOGIN, HEAD, "Reviewed 8 of 8 files."),
                 ]
             ],
             "pulls/1/comments": [[]],
         }
     )
-    _, lines = gates.gate_findings(fetcher, 1)
+    _, lines = gates.gate_findings(fetcher, 1, COPILOT)
     assert "2 suppressed" in lines[0], lines
 
 
@@ -853,14 +884,15 @@ def test_run_gates_exits_zero_through_the_fallback() -> None:
             "title": "t",
             "body": "Closes #9",
         },
-        "pulls/1/reviews": [[review(REVIEWER, HEAD)]],
+        "pulls/1/reviews": [[review(COPILOT_LOGIN, HEAD)]],
         "pulls/1/comments": [[]],
         THREADS_PATH: [rest_thread(True)],
         "pulls/1/commits": [[]],
     }
     printed: list[str] = []
     code = gates.run_gates(
-        FakeFetcher(rest, REFUSED), 1, ["closes", "threads", "review"], [9], out=printed.append
+        FakeFetcher(rest, REFUSED), 1, ["closes", "threads", "review"], [9],
+        reviewer=COPILOT, out=printed.append
     )
     assert code == 0, printed
     assert not any(line.startswith("SKIP") for line in printed), printed
@@ -875,14 +907,15 @@ def test_run_gates_reports_every_gate_and_exits_non_zero() -> None:
     fetcher = FakeFetcher(
         {
             "pulls/1": pull(),
-            "pulls/1/reviews": [[review(REVIEWER, STALE)]],
+            "pulls/1/reviews": [[review(COPILOT_LOGIN, STALE)]],
             "pulls/1/comments": [[]],
         },
         threads_payload([{"isResolved": True}], 1, False),
     )
     printed: list[str] = []
     code = gates.run_gates(
-        fetcher, 1, ["findings", "threads", "review"], [], out=printed.append
+        fetcher, 1, ["findings", "threads", "review"], [], reviewer=COPILOT,
+        out=printed.append
     )
     assert code == 1
     assert any(line.startswith("FAIL review:") for line in printed)
