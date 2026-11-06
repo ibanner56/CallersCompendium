@@ -365,8 +365,11 @@ Open the **Advanced** builder to ask about the [figures](./glossary.md#figure) �
 the moves — inside your dances. It works by stacking up rows and groups:
 
 1. Add a **Has figure** row and pick a move with the type-ahead field — start
-   typing and choose from the matches. While **Custom Figures** is on, your own
-   new figures are offered too, first and marked as yours; picking one finds
+   typing and choose from the matches. It finds moves by the names the dance
+   editor uses, including your dialect's own names for them (alternative names
+   such as *seesaw* are not offered here). While **Custom Figures** is on, your own
+   new figures are offered too, marked as yours and listed before the built-in
+   moves unless you type a move's exact name, which comes first; picking one finds
    the dances that use it. A use that shows its stored line instead of your
    figure's wording is not found this way — one changed on another device, one
    with a choice the figure no longer has, or one of a figure you have deleted
@@ -398,7 +401,8 @@ If you think about dances the way The Caller's Box does — phrase by phrase —
 the **By phrase** panel. For each phrase (A1, A2, B1, B2) you can require that
 certain moves **are present** ("figures match") or that certain moves **are
 absent** ("but do not match"). It is a quick way to say, for instance, "a swing
-in B1, but no hey anywhere in A."
+in B1, but no hey anywhere in A." Each box is a type-ahead like the one in
+Advanced, so you can type your dialect's own name for a move.
 
 ### Everything combines
 

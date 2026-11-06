@@ -1051,6 +1051,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
       selections: _byPhrase,
       taxonomy: data.taxonomy,
       sectionLabels: data.sectionLabels,
+      dialect: widget.dialect,
       onChanged: _onByPhraseChanged,
     );
   }

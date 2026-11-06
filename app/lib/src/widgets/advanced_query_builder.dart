@@ -6,7 +6,7 @@ import '../data/user_figures_scope.dart';
 import '../search/collection_query.dart';
 import '../search/collection_query_labels.dart';
 import '../search/facet_labels.dart';
-import 'responsive_autocomplete.dart';
+import 'move_autocomplete.dart';
 
 /// The "Advanced" boolean-tree query builder (`docs/design/search.md`
 /// "Query-builder UX"). Edits the mutable [BuilderGroup] [root] in place and
@@ -845,7 +845,11 @@ class _MoveField extends StatelessWidget {
         userFigureName,
         dialect,
       ),
-      final move => taxonomy.resolve(move)?.displayName ?? move,
+      // In the active dialect, as the suggestion that set it read.
+      final move =>
+        taxonomy.resolve(move) == null
+            ? move
+            : FigureRenderer(taxonomy).displayMoveName(move, dialect),
     };
     return MoveTypeAheadField(
       initialText: current,
@@ -886,45 +890,11 @@ class _MoveField extends StatelessWidget {
   }
 }
 
-/// One entry a [MoveTypeAheadField] offers: a taxonomy move, or one of the
-/// user's own figures (#1023).
-sealed class _TypeAheadOption {
-  const _TypeAheadOption();
-
-  String get label;
-
-  /// The option-row key suffix: the move id, or `userFigure:<id>`.
-  String get keySuffix;
-}
-
-final class _MoveTypeAheadOption extends _TypeAheadOption {
-  const _MoveTypeAheadOption(this.move);
-
-  final MoveDef move;
-
-  @override
-  String get label => move.displayName;
-
-  @override
-  String get keySuffix => move.id;
-}
-
-final class _UserFigureTypeAheadOption extends _TypeAheadOption {
-  const _UserFigureTypeAheadOption(this.view, this.label);
-
-  final UserFigureView view;
-
-  @override
-  final String label;
-
-  @override
-  String get keySuffix => userFigureKeyFor(view.id);
-}
-
-/// A reusable move type-ahead: a [ResponsiveAutocomplete] over the
-/// [Taxonomy]'s moves (matching display name, id, or search keywords),
-/// rendered as a dense outlined [TextField]. Shared by the Advanced builder's
-/// "has figure" rows and the By-Phrase panel so both search moves identically.
+/// A reusable move type-ahead over the [Taxonomy]'s moves: the dance editor's
+/// [MoveAutocomplete] (display name, the [dialect]'s own name for the move, id
+/// or search keywords), so search and the editor suggest alike. Shared by the
+/// Advanced builder's "has figure" rows and the By-Phrase panel so both search
+/// moves identically.
 ///
 /// [onSelected] fires when the user picks a move; [onCleared] (optional) fires
 /// when the field is emptied. Multi-select callers (e.g. the By-Phrase panel)
@@ -977,91 +947,50 @@ class MoveTypeAheadField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final label = labelText ?? l10n.collectionQueryMoveLabel;
     // Looked up only when figures are offered, so a field that offers none
     // (the By-Phrase panel's) does not rebuild when the catalog changes.
     final renderer = onUserFigureSelected == null
         ? null
         : UserFiguresScope.rendererOf(context);
-    final mine = renderer == null
-        ? const <_UserFigureTypeAheadOption>[]
-        : [
-            for (final view in userFigures.figures)
-              if (view.definition != null)
-                _UserFigureTypeAheadOption(
-                  view,
-                  renderer.renderFreeText(
-                    view.name,
-                    dialect ?? Dialect.canonical,
-                  ),
-                ),
-          ];
-    return ResponsiveAutocomplete<_TypeAheadOption>(
-      initialValue: TextEditingValue(text: initialText),
-      displayStringForOption: (o) => o.label,
-      // Reuses the field's own label as the sheet's a11y announcement (e.g.
-      // "Move"), matching the pattern in `MoveAutocomplete`.
-      sheetSemanticLabel: label,
-      optionsBuilder: (value) {
-        final q = value.text.trim().toLowerCase();
-        if (q.isEmpty) return const Iterable<_TypeAheadOption>.empty();
-        return <_TypeAheadOption>[
-          for (final o in mine)
-            if (o.label.toLowerCase().contains(q)) o,
-          for (final m in taxonomy.moves.values)
-            if (m.displayName.toLowerCase().contains(q) ||
-                m.id.toLowerCase().contains(q) ||
-                m.searchKeywords.any((k) => k.toLowerCase().contains(q)))
-              _MoveTypeAheadOption(m),
-        ].take(8);
-      },
-      onSelected: (o) => switch (o) {
-        _MoveTypeAheadOption(:final move) => onSelected(move),
-        _UserFigureTypeAheadOption(:final view) => onUserFigureSelected?.call(
-          view,
-        ),
-      },
-      optionTileBuilder: (context, o, onSelected) {
-        final marker = l10n.glossaryCustomMarker;
-        return ListTile(
-          key: fieldKey == null
-              ? null
-              : ValueKey('$fieldKey-option-${o.keySuffix}'),
-          dense: true,
-          title: Text(o.label),
-          // Marked in words for assistive technology, not by the icon alone,
-          // as the dance editor's picker marks them.
-          trailing: o is _UserFigureTypeAheadOption
-              ? Tooltip(
-                  message: marker,
-                  excludeFromSemantics: true,
-                  child: Icon(
-                    Icons.person_outline,
-                    size: 18,
-                    semanticLabel: marker,
-                  ),
-                )
-              : null,
-          onTap: onSelected,
-        );
-      },
-      fieldViewBuilder: (context, controller, focusNode, onSubmit, _) {
-        return TextField(
-          key: fieldKey == null ? null : ValueKey('$fieldKey-input'),
-          controller: controller,
-          focusNode: focusNode,
-          decoration: InputDecoration(
-            labelText: label,
-            hintText: hintText ?? l10n.collectionQueryMoveHint,
-            isDense: true,
-            border: const OutlineInputBorder(),
+    final mine = {
+      if (renderer != null)
+        for (final view in userFigures.figures)
+          if (view.definition != null) view.id: view,
+    };
+    // The dance editor's own picker does the matching and ranking, so a
+    // dialect's move names, exact-name-first order and the cap are the
+    // editor's, not a second copy of them. Aliases are not offered: a figure
+    // leaf compiles to `move = ?` on the stored id, and the search bar reads
+    // an alias's name as text instead.
+    return MoveAutocomplete(
+      taxonomy: taxonomy,
+      dialect: dialect,
+      initialText: initialText,
+      fieldKey: fieldKey,
+      labelText: labelText ?? l10n.collectionQueryMoveLabel,
+      hintText: hintText ?? l10n.collectionQueryMoveHint,
+      includeAliases: false,
+      compoundMarkerLabel: l10n.glossaryCustomMarker,
+      compoundOptions: [
+        for (final view in mine.values)
+          MoveOption(
+            id: view.id,
+            kind: MoveOptionKind.userFigure,
+            displayName: renderer!.renderFreeText(
+              view.name,
+              dialect ?? Dialect.canonical,
+            ),
           ),
-          onChanged: (text) {
-            // Clearing the field clears the move.
-            if (text.trim().isEmpty) onCleared?.call();
-          },
-          onSubmitted: (_) => onSubmit(),
-        );
+      ],
+      onCleared: onCleared,
+      onSelected: (option) {
+        if (option.kind == MoveOptionKind.userFigure) {
+          final view = mine[option.id];
+          if (view != null) onUserFigureSelected?.call(view);
+          return;
+        }
+        final move = taxonomy.moves[option.id];
+        if (move != null) onSelected(move);
       },
     );
   }

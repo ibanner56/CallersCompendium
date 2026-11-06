@@ -24,12 +24,18 @@ class ByPhrasePanel extends StatelessWidget {
     required this.taxonomy,
     required this.sectionLabels,
     required this.onChanged,
+    this.dialect,
   });
 
   final ByPhraseSelections selections;
   final Taxonomy taxonomy;
   final List<String> sectionLabels;
   final VoidCallback onChanged;
+
+  /// Active dialect: move suggestions and chips use its own move names, as the
+  /// dance editor's move entry does. Canonical when null. Picks are stored as
+  /// canonical move ids either way.
+  final Dialect? dialect;
 
   /// Caller's Box-style caption for the [index]-th phrase, e.g.
   /// "first phrase (usually A1)". Ordinals beyond the fourth fall back to
@@ -58,6 +64,7 @@ class ByPhrasePanel extends StatelessWidget {
             caption: captionFor(l10n, index, label),
             selections: selections,
             taxonomy: taxonomy,
+            dialect: dialect,
             onChanged: onChanged,
           ),
       ],
@@ -72,6 +79,7 @@ class _PhraseRow extends StatelessWidget {
     required this.caption,
     required this.selections,
     required this.taxonomy,
+    required this.dialect,
     required this.onChanged,
   });
 
@@ -79,6 +87,7 @@ class _PhraseRow extends StatelessWidget {
   final String caption;
   final ByPhraseSelections selections;
   final Taxonomy taxonomy;
+  final Dialect? dialect;
   final VoidCallback onChanged;
 
   @override
@@ -102,6 +111,7 @@ class _PhraseRow extends StatelessWidget {
             fieldLabel: l10n.collectionByPhraseFieldMatch(caption),
             moves: selections.match.putIfAbsent(label, () => []),
             taxonomy: taxonomy,
+            dialect: dialect,
             onChanged: onChanged,
           ),
           const SizedBox(height: 4),
@@ -110,6 +120,7 @@ class _PhraseRow extends StatelessWidget {
             fieldLabel: l10n.collectionByPhraseFieldExclude(caption),
             moves: selections.exclude.putIfAbsent(label, () => []),
             taxonomy: taxonomy,
+            dialect: dialect,
             onChanged: onChanged,
           ),
         ],
@@ -128,6 +139,7 @@ class _MoveMultiField extends StatelessWidget {
     required this.fieldLabel,
     required this.moves,
     required this.taxonomy,
+    required this.dialect,
     required this.onChanged,
   });
 
@@ -135,10 +147,16 @@ class _MoveMultiField extends StatelessWidget {
   final String fieldLabel;
   final List<String> moves;
   final Taxonomy taxonomy;
+  final Dialect? dialect;
   final VoidCallback onChanged;
 
-  String _displayName(String moveId) =>
-      taxonomy.resolve(moveId)?.displayName ?? moveId;
+  /// The chip's label: the move's name in the active dialect, as the
+  /// suggestion that added it read.
+  String _displayName(String moveId) => taxonomy.resolve(moveId) == null
+      ? moveId
+      : FigureRenderer(
+          taxonomy,
+        ).displayMoveName(moveId, dialect ?? Dialect.canonical);
 
   @override
   Widget build(BuildContext context) {
@@ -178,6 +196,7 @@ class _MoveMultiField extends StatelessWidget {
             // count for reliable test targeting.
             key: ValueKey('$keyPrefix-input-${moves.length}'),
             taxonomy: taxonomy,
+            dialect: dialect,
             labelText: fieldLabel,
             // New capability (see MoveTypeAheadField.fieldKey doc comment):
             // this call site had no ValueKeys on the field/options before.

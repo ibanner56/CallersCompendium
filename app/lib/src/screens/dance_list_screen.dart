@@ -3153,6 +3153,7 @@ class _DanceListScreenState extends State<DanceListScreen>
       selections: _byPhrase,
       taxonomy: data.taxonomy,
       sectionLabels: data.sectionLabels,
+      dialect: _dialect,
       onChanged: _onByPhraseChanged,
     );
   }

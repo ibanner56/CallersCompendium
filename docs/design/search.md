@@ -797,11 +797,18 @@ tree. This section specifies the mapping; the widget shipped as
 - **Common case**: the facet chips compose into a flat `AndFilter` of leaves. No tree
   UI is shown until the user opens **Advanced**, which reveals the nested
   group/figure/sequence editor (ez-query lesson).
-- **Figure row pickers**: `move` = taxonomy type-ahead over the built-in move
-  names and keywords. It does not yet offer a dialect's own move names, as the
-  editor does; the maintainer deferred that (FIND-4, 2026-10-29: "type-aheads
-  later"), while the search bar already reads them; `params` = named-param pickers from the move's schema; `section`
-  = dropdown of the dance form's phrase labels (`A1 A2 B1 B2 …`).
+- **Figure row pickers**: `move` = the dance editor's move type-ahead
+  (`MoveAutocomplete`), so Advanced and By phrase suggest what the editor
+  suggests, in the same ranking: matching the built-in name, the active
+  dialect's own name for the move, the id and the keywords, the move named
+  exactly first, at most eight. A dialect's move is shown by its dialect name
+  and stored as the canonical move id, the same figure leaf as the search
+  bar's reading of that name (no new query shape). With no dialect active only
+  built-in names match; a dialect name that collides with a built-in move's
+  offers both moves, as the editor does. Aliases are not offered (a figure leaf
+  matches the stored id; the search bar reads an alias's name as text). The
+  By phrase chips read in the active dialect. `params` = named-param pickers
+  from the move's schema; `section` = dropdown of the dance form's phrase labels (`A1 A2 B1 B2 …`).
 - **Sequence row**: two figure-row editors joined by "then"; each side is a
   `FigureQuery` (a figure leaf, or a `FigureAnd`/`FigureOr` group of figure leaves).
 - **Accessibility**: result counts are announced politely to AT via a live

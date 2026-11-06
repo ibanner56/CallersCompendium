@@ -44,6 +44,10 @@ const Map<String, int> _allowed = {
   'lib/src/screens/dance_editor/dance_editor_controller.dart': 1,
   'lib/src/widgets/figure_list_editor.dart': 9,
   'lib/src/widgets/move_autocomplete.dart': 1,
+  // A built-in move's name in the active dialect (the Advanced row's resting
+  // text, a By phrase chip); never a dance's figures.
+  'lib/src/widgets/advanced_query_builder.dart': 1,
+  'lib/src/widgets/by_phrase_panel.dart': 1,
   'lib/src/widgets/compound_argument_editor.dart': 1,
   'lib/src/widgets/user_figure_argument_editor.dart': 1,
   'lib/src/screens/settings/defaults_section.dart': 1,
