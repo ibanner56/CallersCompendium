@@ -64,6 +64,10 @@ void main() {
     );
   });
 
+  test('nothing shown: the plain count, whatever an earlier search left', () {
+    expect(label(const [], hasMore: true), '0 online results');
+  });
+
   test('no total and no full page: the plain count', () {
     expect(label([_row(1), _row(2)]), '2 online results');
     expect(label(const []), '0 online results');

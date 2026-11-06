@@ -280,6 +280,64 @@ void main() {
       expect(calls, 4);
     });
 
+    test(
+      'a parameter only the translation left out is part of the key',
+      () async {
+        var calls = 0;
+        final online = ContraDbOnline(
+          searchFetcher: (_) async {
+            calls++;
+            return page(2);
+          },
+        );
+        // `swing.endFacing` has no ContraDB counterpart: both queries send the
+        // same expression, but only the second is "partly applied".
+        final plain = await online.search(
+          OnlineSearchQuery(advanced: FigureFilter.leaf('swing')),
+        );
+        final withLeftOut = await online.search(
+          OnlineSearchQuery(
+            advanced: FigureFilter.leaf(
+              'swing',
+              params: const {'endFacing': 'out'},
+            ),
+          ),
+        );
+        expect(plain.any((row) => row.advancedPartlyApplied), isFalse);
+        expect(withLeftOut.every((row) => row.advancedPartlyApplied), isTrue);
+        expect(calls, 2, reason: 'not answered with the other\'s rows');
+
+        // The same edit twice in a row is the repeat that is not asked again.
+        await online.search(
+          OnlineSearchQuery(
+            advanced: FigureFilter.leaf(
+              'swing',
+              params: const {'endFacing': 'out'},
+            ),
+          ),
+        );
+        expect(calls, 2);
+      },
+    );
+
+    test('a search whose extra spelling failed is not remembered', () async {
+      var calls = 0;
+      final online = ContraDbOnline(
+        searchFetcher: (request) async {
+          calls++;
+          if (request.query.contains('\u2019')) throw Exception('down');
+          return page(2);
+        },
+      );
+      const query = OnlineSearchQuery(title: "Mary's");
+      final first = await online.search(query);
+      expect(first, isNotEmpty);
+      expect(calls, 2);
+
+      await online.search(query);
+      expect(calls, 4, reason: 'the curly spelling is asked for again');
+    });
+
     test('a failed search is not remembered', () async {
       var calls = 0;
       final online = ContraDbOnline(

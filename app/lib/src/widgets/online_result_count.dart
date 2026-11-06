@@ -19,10 +19,13 @@ String onlineResultCountLabel(
 }) {
   final count = rows.length;
   final total = rows.isEmpty ? null : rows.first.totalMatching;
+  // Nothing shown, so nothing more to load: a stale flag from an earlier
+  // search must not read "Showing 0 ... there may be more".
+  final more = hasMore && rows.isNotEmpty;
   final String countLabel;
   if (total != null && total > count) {
     countLabel = l10n.onlineResultCountOfTotal(count, total);
-  } else if (total == null && hasMore) {
+  } else if (total == null && more) {
     countLabel = l10n.onlineResultCountCapped(count);
   } else {
     countLabel = l10n.onlineResultCount(count);

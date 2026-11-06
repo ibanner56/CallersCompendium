@@ -139,17 +139,23 @@ class ContraDbOnline implements OnlineSearchService {
     }
 
     // The same request again, soon after it was answered: answer from that.
+    // The parameters the translation left out are part of the key: they change
+    // no expression sent, but they decide the rows' `advancedPartlyApplied`, so
+    // an edit to only such a parameter must not be answered with the old flag.
     final key = jsonEncode([
-      for (final variant in variants)
-        () {
-          final request = requestFor(variant);
-          return [
-            request.filter,
-            request.query,
-            request.expression,
-            request.offset,
-          ];
-        }(),
+      [
+        for (final variant in variants)
+          () {
+            final request = requestFor(variant);
+            return [
+              request.filter,
+              request.query,
+              request.expression,
+              request.offset,
+            ];
+          }(),
+      ],
+      (translation?.ignoredParams.toList() ?? <String>[])..sort(),
     ]);
     final lastAt = _lastAt;
     if (key == _lastKey &&
@@ -214,9 +220,13 @@ class ContraDbOnline implements OnlineSearchService {
         return byTitle != 0 ? byTitle : a.id.compareTo(b.id);
       });
     }
-    _lastKey = key;
-    _lastAt = _clock();
-    _lastRows = List.of(rows);
+    // A search whose extra spelling failed answered less than it should, so it
+    // is not remembered: the repeat asks for that spelling again.
+    if (bodies.nonNulls.length == variants.length) {
+      _lastKey = key;
+      _lastAt = _clock();
+      _lastRows = List.of(rows);
+    }
     return rows;
   }
 

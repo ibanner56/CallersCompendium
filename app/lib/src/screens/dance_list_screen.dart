@@ -1076,9 +1076,6 @@ class _DanceListScreenState extends State<DanceListScreen>
       _effectivePhrases() != null ||
       _effectiveAdvanced() != null;
 
-  /// Runs a live search against the active online source for the current query
-  /// text and/or by-phrase figures. Guarded by a sequence number so a slow
-  /// response can't overwrite a newer query.
   /// Fetches the next page of the current online search and appends it. Called
   /// by the list's last item once the end is near; one request at a time, and
   /// a page for a search that has since been replaced is dropped.
@@ -1128,6 +1125,9 @@ class _DanceListScreenState extends State<DanceListScreen>
     }
   }
 
+  /// Runs a live search against the active online source for the current query
+  /// text and/or by-phrase figures. Guarded by a sequence number so a slow
+  /// response can't overwrite a newer query.
   Future<void> _runOnlineSearch() async {
     final query = OnlineSearchQuery.forScope(
       _ftsController.text,
