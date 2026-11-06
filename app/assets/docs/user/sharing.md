@@ -27,8 +27,8 @@ the dance's **More actions** menu.) There are five actions:
 | **Export dance as JSON** | Builds the same file as **Share dance file**, named `.json` instead, then offers **Save**, **Copy raw JSON**, **Share**, or **Cancel** |
 | **Export / print PDF** | Builds a PDF and opens your system's print dialog |
 
-With **Calling cards** turned on in Settings › Experimental, there is a sixth:
-**Print calling card**, which prints the dance on a small card — see
+With **Print calling cards** turned on in Settings › Experimental › Calling
+cards, there is a sixth: **Print calling card**, which prints the dance on a small card — see
 [Print calling cards](#print-calling-cards).
 
 **Copying a selection instead.** On Windows, macOS and Linux you can also drag
@@ -129,8 +129,8 @@ Open a program and choose **Export**. Five actions:
 | **Export as JSON file** | Opens a choice to **Save**, **Copy raw JSON**, **Share**, or **Cancel**. The same package is named `.json` for a recipient who doesn't have the app, or when you want to read the file yourself |
 | **Export / print PDF** | Builds a PDF set list and opens your system's print dialog |
 
-With **Calling cards** turned on in Settings › Experimental, there is a sixth:
-**Print calling cards**, one small card for each of the program's dances — see
+With **Print calling cards** turned on in Settings › Experimental › Calling
+cards, there is a sixth: **Print calling cards**, one small card for each of the program's dances — see
 [Print calling cards](#print-calling-cards).
 
 The set list — text and PDF alike — is titles, event details, and slot notes by
@@ -290,24 +290,26 @@ choosing one over the other.
 ## Print calling cards
 
 A calling card is one dance on a small card, such as a 3 × 5 index card, to hold
-while you call. Turn on **Calling cards** in Settings › Experimental first; that
-is also where you choose the card size and lay out what goes on it (see
+while you call. Turn on **Print calling cards** in Settings › Experimental ›
+Calling cards first; that is also where you choose the card size and lay out what goes on it (see
 [Calling cards](./settings.md#calling-cards)).
 
 - **One dance:** open it and choose **Export** › **Print calling card**.
 - **A whole program:** open it and choose **Export** › **Print calling cards**.
-  You get one card per dance, in program order: the dances are numbered 1, 2,
-  3…, and an alternate is marked **Alternate**, for a layout that prints the
-  `number`. A dance that appears twice prints once, and a slot that is only
-  a note (a waltz, a break) prints no card. The action is unavailable until the
+  You get one card per dance, in program order, each alternate after the dance
+  it stands in for. For a layout that prints the `number`, each card carries
+  the number the dance has in the set list, and an alternate is marked
+  **Alternate**. A dance that appears twice prints once, under its first
+  number, and a slot that is only a note (a waltz, the break) prints no card.
+  A program that hides its alternates prints no cards for them. The action is unavailable until the
   program has a dance in it.
 
 Your system's print dialog opens on the card's own paper size, and each page
 of what it prints is one card — the cards don't change if you pick other paper
 in the dialog, so load your printer with cards of that size, or save the PDF.
 A card that doesn't fit even at half size is cut off at the bottom and marked
-with a small triangle in its bottom-right corner, and after printing the app
-says how many were cut off.
+with a small grey triangle at the bottom-right corner of its printed area, and
+after printing the app says how many were cut off.
 
 Calling cards follow your **active dialect**, like every other export, and the
 same [shared dance fields](#choose-which-dance-fields-appear): a field you

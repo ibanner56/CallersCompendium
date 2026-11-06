@@ -67,7 +67,8 @@ typedef PdfLayouter =
 ///   (`printing`, all platforms including Linux).
 /// - **Print calling cards** — only while Settings › Experimental › Calling
 ///   cards is on, and gated on [danceFor] like the file actions: one small
-///   card per dance, primaries numbered in program order, then alternates.
+///   card per dance, in output order, each alternate after its primary, and
+///   numbered as the set list numbers them ([callingCardPlaces]).
 ///
 /// The two file actions are gated on [danceFor]: without a dance resolver there
 /// is nothing to embed.
@@ -584,8 +585,8 @@ class ProgramExportMenu extends StatelessWidget {
     );
   }
 
-  /// One calling card per dance [_orderedExportDances] yields, numbered by
-  /// its place among the program's primary dances; an alternate is labelled
+  /// One calling card per dance [_orderedExportDances] yields, numbered as
+  /// the set list numbers it ([callingCardPlaces]); an alternate is labelled
   /// "Alternate" instead. Resolves every context-dependent value before the
   /// print dialog's await, as [_exportPdf] does.
   Future<void> _printCallingCards(
@@ -595,16 +596,15 @@ class ProgramExportMenu extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
     final renderer = UserFiguresScope.rendererOf(context);
-    final dances = _orderedExportDances();
     final places = callingCardPlaces(
-      dances.map((e) => e.isAlternate),
+      program,
       l10n.exportIncludeFiguresAlternate,
     );
     final entries = [
-      for (final (i, entry) in dances.indexed)
+      for (final entry in _orderedExportDances())
         CallingCardEntry(
           dance: entry.dance,
-          number: places[i],
+          number: places[entry.dance.id] ?? '',
           labels: _cardLabelsFor(
             context,
             entry.dance,

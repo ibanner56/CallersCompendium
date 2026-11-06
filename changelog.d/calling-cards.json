@@ -3,13 +3,14 @@
   "user_visible": true,
   "app": {
     "added": [
-      "Experimental: print a dance, or every dance in a program, as calling cards to hold while you call — one small card per dance, 3 × 5 inches unless you choose another size, with the title, formation and authors at the top and the figures phrase by phrase below, after the design of Yona Appletree's Contra Card. Turn on Calling cards in Settings › Experimental, then choose Print calling card from a dance's Export menu or Print calling cards from a program's.",
+      "Experimental: print a dance, or every dance in a program, as calling cards to hold while you call — one small card per dance, 3 × 5 inches unless you choose another size, with the title, formation and authors at the top and the figures phrase by phrase below, after the design of Yona Appletree's Contra Card. Turn on Print calling cards in Settings › Experimental › Calling cards, then choose Print calling card from a dance's Export menu or Print calling cards from a program's.",
       "Experimental: lay out your calling cards in Settings › Experimental › Calling cards › Card layout. Each line of the layout is one row of the card; the editor lists any line it can't read, shows a sample dance on your card as you type, and has the blocks and options to tap in, with four example layouts to start from. A card too full for its size shrinks to fit, down to half size."
     ]
   },
   "core": {
     "added": [
-      "Classify the calling_card_print setting (whether calling cards are offered, their size and layout) as a shareable app-user preference."
+      "Classify the calling_card_print setting (whether calling cards are offered, their size and layout) as a shareable app-user preference.",
+      "DanceCardContent.formation and DanceCardContent.level: the formation and level labels on their own, gated by their DanceShareField like the rest of the card."
     ]
   }
 }

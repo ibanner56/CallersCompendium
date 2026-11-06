@@ -84,8 +84,11 @@ class _CallingCardSectionState extends State<CallingCardSection> {
   ) {
     final from = current.size;
     if (from.unit == unit) return;
+    // Two decimals of an inch, so millimetres survive the round trip
+    // (105 mm is 4.13 in, which comes back as 104.9 mm, not 104.1).
+    final places = unit == CallingCardUnit.inch ? 100 : 10;
     double convert(double v) =>
-        (v * from.unit.points / unit.points * 10).roundToDouble() / 10;
+        (v * from.unit.points / unit.points * places).roundToDouble() / places;
     final size = CallingCardSize(
       convert(from.width),
       convert(from.height),
@@ -104,6 +107,13 @@ class _CallingCardSectionState extends State<CallingCardSection> {
     if (_custom == null) {
       _custom = preset == null;
       if (_custom!) _fillCustomFields(l10n, settings.size);
+    }
+    // A size from elsewhere (Device Sync, a restore) that is no preset opens
+    // the custom fields, or the dropdown would have no value to show. The
+    // fields are not on screen yet, so filling them notifies no one.
+    if (!_custom! && preset == null) {
+      _custom = true;
+      _fillCustomFields(l10n, settings.size);
     }
     final custom = _custom!;
 

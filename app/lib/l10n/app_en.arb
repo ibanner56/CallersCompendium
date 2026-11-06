@@ -15673,7 +15673,7 @@
   "@settingsCallingCardsUnitMillimetres": {
     "description": "Unit choice for a custom card size."
   },
-  "settingsCallingCardsSizeInvalid": "Each side must be from 1 to 14 inches (25 to 356 mm).",
+  "settingsCallingCardsSizeInvalid": "Each side must be from 1 to 14 inches (26 to 355 mm).",
   "@settingsCallingCardsSizeInvalid": {
     "description": "Error under the custom card size fields when a side is out of range or not a number."
   },

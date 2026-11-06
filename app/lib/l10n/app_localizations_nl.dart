@@ -11730,7 +11730,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsCallingCardsSizeInvalid =>
-      'Elke zijde moet tussen 1 en 14 inch (25 tot 356 mm) liggen.';
+      'Elke zijde moet tussen 1 en 14 inch (26 tot 355 mm) liggen.';
 
   @override
   String get settingsCallingCardsLandscapeTitle => 'Liggend';

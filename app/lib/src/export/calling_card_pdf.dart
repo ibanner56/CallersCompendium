@@ -115,7 +115,6 @@ Future<Uint8List> buildCallingCardsPdf(
     final card = _CardBuilder(
       entry: entry,
       content: content,
-      fields: fields,
       renderer: fig,
       dialect: dialect,
       labels: labels,
@@ -160,7 +159,6 @@ class _CardBuilder {
   _CardBuilder({
     required this.entry,
     required this.content,
-    required this.fields,
     required this.renderer,
     required this.dialect,
     required this.labels,
@@ -170,7 +168,6 @@ class _CardBuilder {
 
   final CallingCardEntry entry;
   final DanceCardContent content;
-  final Set<DanceShareField> fields;
   final FigureRenderer renderer;
   final Dialect dialect;
   final DanceExportLabels labels;
@@ -215,14 +212,8 @@ class _CardBuilder {
       switch (kind) {
         CallingCardBlockKind.title => content.title,
         CallingCardBlockKind.authors => content.authorNames.join(', '),
-        CallingCardBlockKind.formation =>
-          fields.contains(DanceShareField.formation)
-              ? entry.labels.formationLabel.trim()
-              : '',
-        CallingCardBlockKind.level =>
-          fields.contains(DanceShareField.level)
-              ? (entry.labels.levelLabel ?? '').trim()
-              : '',
+        CallingCardBlockKind.formation => content.formation ?? '',
+        CallingCardBlockKind.level => content.level ?? '',
         CallingCardBlockKind.meta => content.metaLines.join('  ·  '),
         CallingCardBlockKind.notes => content.callingNotes ?? '',
         CallingCardBlockKind.walkthrough => content.walkthrough ?? '',
@@ -404,9 +395,10 @@ class _CardBuilder {
 }
 
 /// Lays its child out at full width and, when it is taller than the space it
-/// is given, at the largest scale (down to [minScale]) at which it fits —
-/// laid out narrower by the same factor, so its lines re-wrap rather than
-/// squash — then paints it scaled into the space. Past [minScale] the child
+/// is given, at the largest scale (down to [minScale]) at which it fits — laid
+/// out wider by the inverse of that scale, so that once painted at the scale
+/// it spans the full width again and its lines re-wrap rather than squash —
+/// then paints it scaled into the space. Past [minScale] the child
 /// is clipped at the bottom and a corner triangle marks the card.
 class _ShrinkToFit extends pw.SingleChildWidget {
   _ShrinkToFit({

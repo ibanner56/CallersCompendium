@@ -3,10 +3,10 @@ import 'package:intl/intl.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../export/calling_card_layout.dart';
 
-/// A side length as the user reads it: no trailing `.0`, at most one decimal,
-/// in the UI locale's decimal style.
+/// A side length as the user reads it: no trailing zeros, at most two
+/// decimals, in the UI locale's decimal style.
 String callingCardSideLabel(AppLocalizations l10n, double value) =>
-    NumberFormat('0.#', l10n.localeName).format(value);
+    NumberFormat('0.##', l10n.localeName).format(value);
 
 /// A card measurement, short side first: "3 × 5 in", "105 × 148 mm".
 String callingCardSizeLabel(AppLocalizations l10n, CallingCardSize size) {

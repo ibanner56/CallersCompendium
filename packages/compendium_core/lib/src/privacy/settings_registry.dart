@@ -123,8 +123,10 @@ final Map<String, DataClassification> settingsClassifications = {
         'Whether calling cards are offered, the card size and the card '
         'layout: how the user likes their cards printed, which is the same '
         'card stock on any device they own, so it travels like any '
-        'preference. The layout can hold words the user typed for a text '
-        'block; they are the user\'s own, never a third party\'s.',
+        'preference. The layout can hold free text the user typed for a '
+        'text block; like walkthrough_snippets, that is configuration the '
+        'user authored for their own use, classified by what the setting is '
+        'for rather than by whatever words they choose to print.',
   ),
   'free_text_entry': _preference,
   'aggressive_beats_update': _preference,

@@ -11798,7 +11798,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsCallingCardsSizeInvalid =>
-      'Chaque côté doit mesurer de 1 à 14 pouces (25 à 356 mm).';
+      'Chaque côté doit mesurer de 1 à 14 pouces (26 à 355 mm).';
 
   @override
   String get settingsCallingCardsLandscapeTitle => 'Paysage';

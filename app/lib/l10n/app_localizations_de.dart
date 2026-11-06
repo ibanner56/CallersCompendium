@@ -11782,7 +11782,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsCallingCardsSizeInvalid =>
-      'Jede Seite muss zwischen 1 und 14 Zoll (25 bis 356 mm) liegen.';
+      'Jede Seite muss zwischen 1 und 14 Zoll (26 bis 355 mm) liegen.';
 
   @override
   String get settingsCallingCardsLandscapeTitle => 'Querformat';

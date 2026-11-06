@@ -11611,7 +11611,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsCallingCardsSizeInvalid =>
-      'Each side must be from 1 to 14 inches (25 to 356 mm).';
+      'Each side must be from 1 to 14 inches (26 to 355 mm).';
 
   @override
   String get settingsCallingCardsLandscapeTitle => 'Landscape';

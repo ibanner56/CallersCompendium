@@ -51,13 +51,6 @@ enum CallingCardBlockKind {
 
   /// The name the layout language spells this block with.
   String get keyword => name;
-
-  /// Blocks that print text from the dance or the program, and so take the
-  /// text options (size, bold, italic, alignment, color, lines, label).
-  bool get isText => switch (this) {
-    rule || space || card || figures => false,
-    _ => true,
-  };
 }
 
 /// Horizontal alignment of a text block within its share of the row.
@@ -396,14 +389,17 @@ class _Parser {
       quotedPart = false;
     }
 
+    // Curly quotes count as straight ones: a phone keyboard or a paste can
+    // turn one into the other.
+    bool isQuote(String ch) => ch == '"' || ch == '\u201C' || ch == '\u201D';
     for (final ch in text.split('')) {
       if (inQuote) {
-        if (ch == '"') {
+        if (isQuote(ch)) {
           inQuote = false;
         } else {
           buf.write(ch);
         }
-      } else if (ch == '"') {
+      } else if (isQuote(ch)) {
         inQuote = true;
         // Only a token that *starts* with a quote is a bare quoted value;
         // `label="Notes: "` stays one `name=value` token.
@@ -411,7 +407,8 @@ class _Parser {
       } else if (ch == '|') {
         flush();
         blocks.add([]);
-      } else if (ch == ' ' || ch == '\t') {
+      } else if (ch.trim().isEmpty) {
+        // Any space, a pasted no-break space included.
         flush();
       } else {
         buf.write(ch);

@@ -11655,7 +11655,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsCallingCardsSizeInvalid =>
-      'Hver side skal være fra 1 til 14 tommer (25 til 356 mm).';
+      'Hver side skal være fra 1 til 14 tommer (26 til 355 mm).';
 
   @override
   String get settingsCallingCardsLandscapeTitle => 'Liggende';

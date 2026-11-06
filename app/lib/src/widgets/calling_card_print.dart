@@ -13,7 +13,8 @@ import 'dance_export_actions.dart' show PdfLayouter;
 import 'export_guard.dart';
 
 /// Prints [entries] as calling cards through the OS print dialog, laid out by
-/// [settings], and says afterwards if any card was cut off.
+/// [settings], and says afterwards if any card was cut off — unless the
+/// dialog was cancelled.
 ///
 /// [pdfLayouter] is the Export menus' test seam. Without it the dialog opens
 /// on the card's own paper size and does not re-lay the cards out when the
@@ -54,10 +55,12 @@ Future<void> printCallingCards({
     canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
     report: report,
   );
+  // The seam does not say whether the user printed; the real dialog does.
+  var printed = true;
   if (pdfLayouter != null) {
     await pdfLayouter(name: jobName, onLayout: build);
   } else {
-    await Printing.layoutPdf(
+    printed = await Printing.layoutPdf(
       name: jobName,
       format: PdfPageFormat(size.widthPoints, size.heightPoints),
       dynamicLayout: false,
@@ -65,23 +68,37 @@ Future<void> printCallingCards({
     );
   }
   final cutOff = report.overflowed.length;
-  if (cutOff > 0) {
+  if (printed && cutOff > 0) {
     messenger.showSnackBar(
       SnackBar(content: Text(l10n.exportCallingCardsCutOff(cutOff))),
     );
   }
 }, source: source);
 
-/// What each card's `number` block prints when a program is printed: the
-/// dance's place among the program's primary dances (1, 2, 3, ...), or
-/// [alternateLabel] for an alternate, which takes no place of its own.
-List<String> callingCardPlaces(
-  Iterable<bool> isAlternate,
-  String alternateLabel,
-) {
-  var place = 0;
-  return [
-    for (final alternate in isAlternate)
-      alternate ? alternateLabel : '${++place}',
+/// What each card's `number` block prints when [program] is printed, by
+/// dance id: the number the set list gives the dance's first slot (planned
+/// dances, note slots included, numbered 1, 2, 3, ... in output order by
+/// [Program.danceNumbersForSlots]), or [alternateLabel] when that slot is an
+/// alternate, which the set list marks instead of numbering. A dance that
+/// appears twice keeps its first slot's label, as it prints one card.
+Map<String, String> callingCardPlaces(Program program, String alternateLabel) {
+  final slots = [
+    for (final group in program.outputGrouped) ...[
+      group.primary,
+      ...group.alternates,
+    ],
   ];
+  final numbers = Program.danceNumbersForSlots(slots);
+  final places = <String, String>{};
+  for (final (i, slot) in slots.indexed) {
+    final id = slot.danceId;
+    if (id == null || places.containsKey(id)) continue;
+    final number = numbers[i];
+    if (number != null) {
+      places[id] = '$number';
+    } else if (slot.isAlt) {
+      places[id] = alternateLabel;
+    }
+  }
+  return places;
 }

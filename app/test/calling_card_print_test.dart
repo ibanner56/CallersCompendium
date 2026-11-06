@@ -83,15 +83,31 @@ Future<void> _open(WidgetTester tester, String menuKey) async {
 }
 
 void main() {
-  test('primaries are numbered in order; an alternate takes no number', () {
-    expect(callingCardPlaces([false, true, false, false, true], 'Alt'), [
-      '1',
-      'Alt',
-      '2',
-      '3',
-      'Alt',
-    ]);
-    expect(callingCardPlaces(const [], 'Alt'), isEmpty);
+  test('cards are numbered as the set list numbers the slots', () {
+    final program = Program(
+      id: 'p',
+      title: 'Friday',
+      createdAt: _now,
+      updatedAt: _now,
+      slots: [
+        // A leading alternate with no primary: the set list prints it ALT:.
+        ProgramSlot(id: 's0', position: 0, danceId: 'orphan', isAlt: true),
+        ProgramSlot(id: 's1', position: 1, danceId: 'a'),
+        ProgramSlot(id: 's2', position: 2, danceId: 'alt', isAlt: true),
+        // A note slot takes a number in the set list; the break does not.
+        ProgramSlot(id: 's3', position: 3, text: 'Waltz'),
+        ProgramSlot(id: 's4', position: 4, text: Program.breakSlotText),
+        ProgramSlot(id: 's5', position: 5, danceId: 'b'),
+        // A repeat keeps its first slot's number.
+        ProgramSlot(id: 's6', position: 6, danceId: 'a'),
+      ],
+    );
+    expect(callingCardPlaces(program, 'Alt'), {
+      'orphan': 'Alt',
+      'a': '1',
+      'alt': 'Alt',
+      'b': '3',
+    });
   });
 
   group('dance Export menu', () {

@@ -11201,7 +11201,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsCallingCardsUnitMillimetres => 'ミリメートル';
 
   @override
-  String get settingsCallingCardsSizeInvalid => '各辺は1～14インチ（25～356 mm）にしてください。';
+  String get settingsCallingCardsSizeInvalid => '各辺は1～14インチ（26～355 mm）にしてください。';
 
   @override
   String get settingsCallingCardsLandscapeTitle => '横向き';

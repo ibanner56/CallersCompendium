@@ -17088,7 +17088,7 @@ abstract class AppLocalizations {
   /// Error under the custom card size fields when a side is out of range or not a number.
   ///
   /// In en, this message translates to:
-  /// **'Each side must be from 1 to 14 inches (25 to 356 mm).'**
+  /// **'Each side must be from 1 to 14 inches (26 to 355 mm).'**
   String get settingsCallingCardsSizeInvalid;
 
   /// Switch title: print calling cards with the long side across.

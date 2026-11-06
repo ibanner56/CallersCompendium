@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
@@ -67,6 +66,55 @@ Widget _section() =>
     const Scaffold(body: SingleChildScrollView(child: CallingCardSection()));
 
 void main() {
+  group('insertCallingCardSnippet', () {
+    String insert(
+      String text,
+      int cursor,
+      String snippet, {
+      bool block = false,
+    }) {
+      final (next, at) = insertCallingCardSnippet(
+        text,
+        cursor,
+        snippet,
+        block: block,
+      );
+      // The cursor lands just after what was inserted.
+      expect(next.substring(0, at), endsWith(snippet));
+      return next;
+    }
+
+    test('a block goes on a new line after the cursor\'s line', () {
+      expect(
+        insert('title size=16', 8, 'figures', block: true),
+        'title size=16\nfigures',
+      );
+      expect(
+        insert('title\nrule', 0, 'figures', block: true),
+        'title\nfigures\nrule',
+      );
+      expect(insert('', 0, 'figures', block: true), 'figures');
+      expect(
+        insert('title\n\nrule', 6, 'figures', block: true),
+        'title\nfigures\nrule',
+      );
+    });
+
+    test('an option goes after the word the cursor is in, spaced', () {
+      expect(insert('title', 5, 'bold'), 'title bold');
+      expect(insert('title size=16', 6, 'bold'), 'title size=16 bold');
+      expect(insert('title size=16', 8, 'bold'), 'title size=16 bold');
+      expect(insert('title size=16', 5, 'bold'), 'title bold size=16');
+      expect(insert('title size=16', 0, 'bold'), 'title bold size=16');
+      expect(insert('  title', 0, 'bold'), '  title bold');
+      expect(
+        insert('title | formation', 7, 'right'),
+        'title | formation right',
+      );
+      expect(insert('title\nfigures', 2, 'bold'), 'title bold\nfigures');
+    });
+  });
+
   group('Experimental › Calling cards', () {
     testWidgets('the switch turns calling cards on and stores it', (
       tester,
@@ -328,7 +376,7 @@ void main() {
         await tester.pump();
         await tester.tap(chip);
         await tester.pump();
-        expect(controller(tester).text, 'title\nfigures\n');
+        expect(controller(tester).text, 'title\nfigures');
 
         controller(tester).selection = const TextSelection.collapsed(offset: 5);
         final option = find.byKey(const ValueKey('calling-card-insert-bold'));
@@ -336,7 +384,7 @@ void main() {
         await tester.pump();
         await tester.tap(option);
         await tester.pump();
-        expect(controller(tester).text, 'title bold\nfigures\n');
+        expect(controller(tester).text, 'title bold\nfigures');
         await tester.pump(const Duration(milliseconds: 450));
         await drawn(tester, 2);
       },

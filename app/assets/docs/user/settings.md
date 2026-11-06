@@ -947,8 +947,8 @@ can then edit them down but not add more.
 ### Calling cards
 
 A calling card is one dance on a small card — a 3 × 5 index card unless you
-choose otherwise — to hold while you call: the title, with the formation and
-authors beside it, then the figures phrase by phrase (A1, A2, B1, B2) with
+choose otherwise — to hold while you call: the title, with the formation
+beside it and the authors under it, then the figures phrase by phrase (A1, A2, B1, B2) with
 their beats, then your calling notes. The design comes from
 [Contra Card](https://github.com/Yona-Appletree/contra-card), a tool by
 caller Yona Appletree.
@@ -960,7 +960,7 @@ calling cards** — see [Print calling cards](./sharing.md#print-calling-cards).
 
 - **Card size** — an index card (3 × 5, 4 × 6 or 5 × 8 inches), A6 or A7, or
   **Custom size**, where you type a width and height in inches or millimetres.
-  Each side can be from 1 to 14 inches (25 to 356 mm); a size outside that
+  Each side can be from 1 to 14 inches (26 to 355 mm); a size outside that
   isn't kept, and the field says so.
 - **Landscape** (on by default) — print with the long side across the top.
   Turn it off for a card that stands upright.
@@ -1010,7 +1010,7 @@ layout above back.
 The blocks are `title`, `authors`, `formation`, `level`, `meta` (formation,
 level, mixer, status and phrase on one line), `figures`, `notes` (calling
 notes), `walkthrough`, `hook`, `tunes`, `sources`, `program` and `number` (a
-program's title, and the dance's place in it: 1, 2, 3, or **Alternate**), `text`
+program's title, and the dance's number in its set list, or **Alternate**), `text`
 (your own words in quotes, like `text "Called by me"`), `rule` (a line across),
 and `space 8` (a gap of 8 points; there are 72 points to an inch). A `card
 margin=18` line on its own sets the space around the card's edge.
@@ -1029,7 +1029,8 @@ print takes no space, so a dance with no level simply has no level.
 
 **When a card is too full**, everything on it shrinks evenly until it fits, down
 to half size. A dance that still doesn't fit is cut off at the bottom, and a
-small dark triangle in the card's bottom-right corner marks it. The preview says
+small grey triangle at the bottom-right corner of the printed area (inside the
+margin) marks it. The preview says
 so, and printing tells you how many cards were cut off. Add `lines=` to a long
 block, take a block out, or choose a bigger card.
 

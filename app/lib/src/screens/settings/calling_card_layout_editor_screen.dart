@@ -241,27 +241,18 @@ class _CallingCardLayoutEditorScreenState
       );
   }
 
-  /// Inserts [snippet] at the cursor: a block on a line of its own, an option
-  /// after a space.
+  /// Inserts [snippet] where the cursor is; see [insertCallingCardSnippet].
   void _insert(String snippet, {required bool block}) {
-    final text = _controller.text;
     final selection = _controller.selection;
-    final at = selection.isValid ? selection.start : text.length;
-    final end = selection.isValid ? selection.end : text.length;
-    final before = text.substring(0, at);
-    final String insertion;
-    if (block) {
-      final needsBreak = before.isNotEmpty && !before.endsWith('\n');
-      insertion = '${needsBreak ? '\n' : ''}$snippet\n';
-    } else {
-      final needsSpace =
-          before.isNotEmpty && !before.endsWith(' ') && !before.endsWith('\n');
-      insertion = '${needsSpace ? ' ' : ''}$snippet';
-    }
-    final next = before + insertion + text.substring(end);
+    final (next, cursor) = insertCallingCardSnippet(
+      _controller.text,
+      selection.isValid ? selection.end : _controller.text.length,
+      snippet,
+      block: block,
+    );
     _controller.value = TextEditingValue(
       text: next,
-      selection: TextSelection.collapsed(offset: at + insertion.length),
+      selection: TextSelection.collapsed(offset: cursor),
     );
     _onChanged(next);
   }
@@ -329,6 +320,9 @@ class _CallingCardLayoutEditorScreenState
     keyboardType: TextInputType.multiline,
     autocorrect: false,
     enableSuggestions: false,
+    // iOS would otherwise type the layout's straight quotes as curly ones.
+    smartQuotesType: SmartQuotesType.disabled,
+    smartDashesType: SmartDashesType.disabled,
     style: _mono,
     decoration: InputDecoration(
       labelText: l10n.callingCardEditorFieldLabel,
@@ -589,4 +583,57 @@ class _CallingCardLayoutEditorScreenState
     ),
     (['thickness=2'], l10n.callingCardHelpOptionThickness),
   ];
+}
+
+/// Adds a tapped [snippet] to the layout [text] near [cursor], so that the
+/// result still reads as the user meant, wherever the cursor was:
+///
+/// * a block goes on a line of its own: on the cursor's line if that line is
+///   blank, otherwise on a new line after it;
+/// * an option goes after the word the cursor is in or just before (at the
+///   start of a line or of a block after `|`, after that block's name), with
+///   a space on each side where it needs one.
+///
+/// Returns the new text and the offset just after the snippet.
+@visibleForTesting
+(String, int) insertCallingCardSnippet(
+  String text,
+  int cursor,
+  String snippet, {
+  required bool block,
+}) {
+  final at = cursor.clamp(0, text.length);
+  final lineStart = text.lastIndexOf('\n', at == 0 ? 0 : at - 1) + 1;
+  final newline = text.indexOf('\n', at);
+  final lineEnd = newline < 0 ? text.length : newline;
+  if (block) {
+    if (text.substring(lineStart, lineEnd).trim().isEmpty) {
+      final next = text.replaceRange(lineStart, lineEnd, snippet);
+      return (next, lineStart + snippet.length);
+    }
+    final next = text.replaceRange(lineEnd, lineEnd, '\n$snippet');
+    return (next, lineEnd + 1 + snippet.length);
+  }
+  bool isGap(String ch) => ch.trim().isEmpty || ch == '|';
+  var pos = at;
+  // At the start of a line, or of a block after a `|`, skip to the end of
+  // that block's first word, its name.
+  final bar = text.lastIndexOf('|', at == 0 ? 0 : at - 1);
+  final blockStart = bar >= lineStart ? bar + 1 : lineStart;
+  if (text.substring(blockStart, pos).trim().isEmpty) {
+    while (pos < lineEnd && text[pos].trim().isEmpty) {
+      pos++;
+    }
+  }
+  // Finish the word the cursor is in.
+  while (pos < lineEnd && !isGap(text[pos])) {
+    pos++;
+  }
+  final spaceBefore = pos > lineStart && !isGap(text[pos - 1]) ? ' ' : '';
+  final spaceAfter = pos < lineEnd && text[pos].trim().isNotEmpty ? ' ' : '';
+  final insertion = '$spaceBefore$snippet$spaceAfter';
+  return (
+    text.replaceRange(pos, pos, insertion),
+    pos + spaceBefore.length + snippet.length,
+  );
 }

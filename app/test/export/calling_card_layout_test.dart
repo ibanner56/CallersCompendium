@@ -66,6 +66,24 @@ figures
       expect(t.size, 12);
     });
 
+    test('curly quotes count as straight ones', () {
+      final b = parse(
+        'text \u201CCalled by me\u201D size=12',
+      ).rows.single.single;
+      expect(b.text, 'Called by me');
+      expect(b.size, 12);
+      expect(
+        parse('notes label=\u201CNB: \u201D').rows.single.single.label,
+        'NB: ',
+      );
+    });
+
+    test('any space separates words, a no-break space included', () {
+      final layout = parse('title\u00A0bold');
+      expect(layout.issues, isEmpty);
+      expect(layout.rows.single.single.bold, isTrue);
+    });
+
     test('figures switches', () {
       final f = parse(
         'figures beats=off notes=no phrases=false dividers=off',

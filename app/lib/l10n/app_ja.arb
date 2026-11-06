@@ -11250,9 +11250,9 @@
   "@settingsCallingCardsUnitMillimetres": {
     "x-sourceSha256": "4b13675413ba57d4af813b38aa65ee7f498a8e8bca4b7389812572ece0935888"
   },
-  "settingsCallingCardsSizeInvalid": "各辺は1～14インチ（25～356 mm）にしてください。",
+  "settingsCallingCardsSizeInvalid": "各辺は1～14インチ（26～355 mm）にしてください。",
   "@settingsCallingCardsSizeInvalid": {
-    "x-sourceSha256": "473f2c6df3799500f78bc0d16976643294660a9b5853aaadc4fd2a4a5cdfcb16"
+    "x-sourceSha256": "9944182c6d8907d1fd9814fc42a3670a84cfb754da70920f47d132752657a6dd"
   },
   "settingsCallingCardsLandscapeTitle": "横向き",
   "@settingsCallingCardsLandscapeTitle": {
