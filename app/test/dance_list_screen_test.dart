@@ -217,6 +217,21 @@ class _PartlyAppliedContraDb extends ContraDbOnline {
   ];
 }
 
+/// A ContraDB source that reports 5 matches in all while returning one row.
+class _TotalContraDb extends ContraDbOnline {
+  @override
+  Future<List<OnlineSearchResultRow>> search(OnlineSearchQuery query) async => [
+    const OnlineSearchResultRow(
+      source: OnlineSource.contraDb,
+      id: '1',
+      name: 'A Dance',
+      author: '',
+      formation: '',
+      totalMatching: 5,
+    ),
+  ];
+}
+
 void main() {
   ({CompendiumRepositories repos, _CountingDances dances}) countingRepos() {
     final db = openWidgetTestDatabase();
@@ -1979,8 +1994,8 @@ void main() {
   });
 
   testWidgets(
-    'a full ContraDB page says there may be more; a short one gives the '
-    'plain count',
+    'a full ContraDB page with no total says there may be more; a short one '
+    'gives the plain count',
     (tester) async {
       final repos = openTestRepositories();
       String page(int n) {
@@ -1989,7 +2004,9 @@ void main() {
             '{"id":$i,"title":"Dance $i","choreographer_name":"",'
                 '"formation":"improper"}',
         ].join(',');
-        return '{"numberMatching":$n,"dances":[$rows]}';
+        // No `numberMatching`: without the source's total, a full page is all
+        // the app knows, so it can only say there may be more.
+        return '{"dances":[$rows]}';
       }
 
       final contraDb = ContraDbOnline(
@@ -2060,6 +2077,33 @@ void main() {
       );
     },
   );
+
+  testWidgets('a ContraDB search with more matches than shown says "of N"', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpScreen(tester, repos, contraDbOnline: _TotalContraDb());
+    await tester.pumpAndSettle();
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('online-search-enable')),
+    );
+    await tester.tap(find.text('ContraDB'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('collection-search-field')),
+      'x',
+    );
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(
+        'Showing 1 of 5 online results. Narrow your search to see the rest.',
+      ),
+      findsOneWidget,
+    );
+  });
 
   testWidgets(
     'two short ContraDB pages merged past 20 rows do not claim there may be '

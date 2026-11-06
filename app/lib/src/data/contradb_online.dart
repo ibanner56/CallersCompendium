@@ -140,6 +140,12 @@ class ContraDbOnline implements OnlineSearchService {
     // is judged per response: the merged count of two short pages (the two
     // spellings of an apostrophe query) says nothing about either being full.
     final mayHaveMore = pages.any((page) => page.length >= contraDbSearchCount);
+    // The source's own total, only when a single response answered: two
+    // spelling variants may both count a dance that matches either, so their
+    // totals cannot be added.
+    final totalMatching = bodies.nonNulls.length == 1
+        ? parseContraDbNumberMatching(bodies.nonNulls.single)
+        : null;
     final seenIds = <String>{};
     final rows = [
       for (final page in pages)
@@ -152,6 +158,7 @@ class ContraDbOnline implements OnlineSearchService {
               author: r.author,
               formation: r.formation,
               mayHaveMore: mayHaveMore,
+              totalMatching: totalMatching,
               advancedPartlyApplied:
                   translation?.ignoredParams.isNotEmpty ?? false,
             ),

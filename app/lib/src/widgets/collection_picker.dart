@@ -30,6 +30,7 @@ import 'collection_search_controls.dart';
 import 'dance_list_tile.dart';
 import 'facet_panel.dart';
 import 'online_import_dialogs.dart';
+import 'online_result_count.dart';
 import 'online_result_tile.dart';
 import 'online_search_toggle.dart';
 import 'preview_hold_listener.dart';
@@ -1076,18 +1077,6 @@ class _CollectionPickerState extends State<CollectionPicker> {
     );
   }
 
-  /// The online count line: the count (or its "may be more" form), followed
-  /// by a note when parameters ContraDB has no counterpart for were left out
-  /// of the search, so it is not exactly the one the Advanced panel describes.
-  String _onlineCountLabel(AppLocalizations l10n, int count) {
-    final countLabel = _onlineResults.any((row) => row.mayHaveMore)
-        ? l10n.onlineResultCountCapped(count)
-        : l10n.onlineResultCount(count);
-    return _onlineResults.any((row) => row.advancedPartlyApplied)
-        ? '$countLabel \u00b7 ${l10n.onlineAdvancedPartlyApplied}'
-        : countLabel;
-  }
-
   Widget _buildResultCount() {
     final l10n = AppLocalizations.of(context);
     final count = _onlineEnabled ? _onlineResults.length : _results.length;
@@ -1110,7 +1099,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
                     liveRegion: true,
                     child: Text(
                       _onlineEnabled
-                          ? _onlineCountLabel(l10n, count)
+                          ? onlineResultCountLabel(l10n, _onlineResults)
                           : l10n.collectionDanceCount(count),
                       style: Theme.of(context).textTheme.bodySmall,
                     ),

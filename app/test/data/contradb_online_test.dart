@@ -130,6 +130,67 @@ void main() {
     });
   });
 
+  group("a ContraDB response's numberMatching becomes totalMatching", () {
+    String page(int shown, {Object? total}) => jsonEncode({
+      'numberMatching': ?total,
+      'dances': [
+        for (var id = 1; id <= shown; id++)
+          {
+            'id': id,
+            'title': 'Dance $id',
+            'choreographer_name': '',
+            'formation': 'improper',
+          },
+      ],
+    });
+
+    test('a single response: the total is on every row', () async {
+      final rows = await ContraDbOnline(
+        searchFetcher: (_) async => page(contraDbSearchCount, total: 143),
+      ).search(const OnlineSearchQuery(title: 'x'));
+      expect(rows, hasLength(contraDbSearchCount));
+      expect(rows.every((row) => row.totalMatching == 143), isTrue);
+    });
+
+    test('no numberMatching, or a malformed one: no total', () async {
+      for (final total in <Object?>[null, -1, 'many', 2.5]) {
+        final rows = await ContraDbOnline(
+          searchFetcher: (_) async => page(3, total: total),
+        ).search(const OnlineSearchQuery(title: 'x'));
+        expect(rows, hasLength(3), reason: '$total');
+        expect(
+          rows.every((row) => row.totalMatching == null),
+          isTrue,
+          reason: '$total',
+        );
+      }
+    });
+
+    test('two spellings merged: no total, since the counts overlap', () async {
+      final rows = await ContraDbOnline(
+        searchFetcher: (request) async => request.query.contains('\u2019')
+            ? page(2, total: 2)
+            : page(2, total: 2),
+      ).search(const OnlineSearchQuery(title: "Mary's"));
+      expect(rows, isNotEmpty);
+      expect(rows.every((row) => row.totalMatching == null), isTrue);
+    });
+
+    test(
+      'a spelling that failed leaves one response: its total stands',
+      () async {
+        final rows = await ContraDbOnline(
+          searchFetcher: (request) async {
+            if (request.query.contains('\u2019')) throw Exception('down');
+            return page(4, total: 9);
+          },
+        ).search(const OnlineSearchQuery(title: "Mary's"));
+        expect(rows, hasLength(4));
+        expect(rows.every((row) => row.totalMatching == 9), isTrue);
+      },
+    );
+  });
+
   group('fetchContraDbSearch', () {
     test('POSTs a title-filter JSON body to the search endpoint', () async {
       late http.Request captured;

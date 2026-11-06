@@ -9,13 +9,17 @@
 // for each and reporting the HTTP status and `numberMatching`. A server error
 // here means the translator emits something ContraDB rejects.
 //
-// What it does not check: that the matched dances are the right ones. That
-// rests on reading ContraDB's `lib/filter_dances.rb` and `lib/search_match.rb`;
-// compare the counts below with the same search typed into contradb.com's own
-// advanced search if a result looks wrong.
+// What it shows, for a person to read: the figure text ContraDB matched in the
+// first few dances (`matching_figures_html`, tags stripped), so a value mapping
+// can be eyeballed against the condition it was meant to express ("full figure
+// 8", "back then right"). A count of zero is not a verdict: check each
+// condition alone before concluding a value is wrong, because two conditions
+// that each match can still have no dance in common. It does not check that
+// every matched dance is the right one; that rests on ContraDB's
+// `lib/filter_dances.rb` and `lib/search_match.rb`.
 //
 // Be polite: ContraDB scans every dance for each request, so this sends one
-// request per expression, with `count` 1, and nothing else.
+// request per expression, with `count` 3, and nothing else.
 import 'dart:convert';
 import 'dart:io';
 
@@ -100,7 +104,7 @@ Future<void> main() async {
         failures++;
         continue;
       }
-      final body = buildContraDbFilterBody(translation.expression, count: 1);
+      final body = buildContraDbFilterBody(translation.expression, count: 3);
       final request = await client.postUrl(
         Uri.parse('https://contradb.com/api/v1/dances'),
       );
@@ -118,6 +122,17 @@ Future<void> main() async {
             ? 'numberMatching=${decoded['numberMatching']} '
                   'numberSearched=${decoded['numberSearched']}'
             : 'unexpected body';
+        if (decoded is Map && decoded['dances'] is List) {
+          for (final dance in (decoded['dances'] as List).take(2)) {
+            if (dance is! Map) continue;
+            final shown = '${dance['matching_figures_html'] ?? ''}'
+                .replaceAll(RegExp('<[^>]+>'), ' ')
+                .replaceAll(RegExp(r'\s+'), ' ')
+                .trim();
+            detail +=
+                '\n             matched: ${shown.length > 140 ? shown.substring(0, 140) : shown}';
+          }
+        }
       } else {
         failures++;
       }

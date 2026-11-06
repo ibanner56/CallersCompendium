@@ -6743,6 +6743,11 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String onlineResultCountOfTotal(int count, int total) {
+    return '$count van $total online resultaten getoond. Verfijn de zoekopdracht om de rest te zien.';
+  }
+
+  @override
   String get onlineAdvancedPartlyApplied =>
       'Sommige geavanceerde voorwaarden bestaan niet in ContraDB en zijn weggelaten.';
 

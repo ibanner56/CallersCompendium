@@ -61,6 +61,7 @@ import '../widgets/facet_panel.dart';
 import '../widgets/load_error_view.dart';
 import '../widgets/online_import_dialogs.dart';
 import '../widgets/online_import_snack_bar.dart';
+import '../widgets/online_result_count.dart';
 import '../widgets/online_result_tile.dart';
 import '../widgets/online_search_toggle.dart';
 import '../widgets/search_panel_bar.dart';
@@ -3188,17 +3189,9 @@ class _DanceListScreenState extends State<DanceListScreen>
     final int hidden = !online && _selectionMode && _searchError == null
         ? _selection.notShown(_shownIds)
         : 0;
-    final String countLabel = online
-        ? (_onlineResults.any((row) => row.mayHaveMore)
-              ? l10n.onlineResultCountCapped(count)
-              : l10n.onlineResultCount(count))
+    final String label = online
+        ? onlineResultCountLabel(l10n, _onlineResults)
         : l10n.collectionDanceCount(count);
-    // Parameters ContraDB has no counterpart for were left out of the
-    // search, so it is not exactly the one the Advanced panel describes.
-    final String label =
-        online && _onlineResults.any((row) => row.advancedPartlyApplied)
-        ? '$countLabel \u00b7 ${l10n.onlineAdvancedPartlyApplied}'
-        : countLabel;
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.md,

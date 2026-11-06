@@ -368,6 +368,21 @@ class _PartlyAppliedContraDb extends ContraDbOnline {
   ];
 }
 
+/// A ContraDB source that reports 5 matches in all while returning one row.
+class _TotalContraDb extends ContraDbOnline {
+  @override
+  Future<List<OnlineSearchResultRow>> search(OnlineSearchQuery query) async => [
+    const OnlineSearchResultRow(
+      source: OnlineSource.contraDb,
+      id: '1',
+      name: 'A Dance',
+      author: '',
+      formation: '',
+      totalMatching: 5,
+    ),
+  ];
+}
+
 void main() {
   // Issue #1420: the picker builds its own FacetPanel, so the Tunes facet has
   // to be wired here separately from the Collection screen.
@@ -1046,13 +1061,41 @@ void main() {
     );
   });
 
-  testWidgets('a full ContraDB page says there may be more in the picker', (
-    tester,
-  ) async {
+  testWidgets('a ContraDB search with more matches than shown says "of N" in '
+      'the picker', (tester) async {
+    final repos = openTestRepositories();
+    await _pumpPicker(
+      tester,
+      repos,
+      onAddDance: (_) {},
+      enableOnlineSearch: true,
+      contraDbOnline: _TotalContraDb(),
+    );
+    await tester.pumpAndSettle();
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('picker-online-search-enable')),
+    );
+    await tester.tap(find.text('ContraDB'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('picker-search')), 'x');
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+    expect(
+      find.text(
+        'Showing 1 of 5 online results. Narrow your search to see the rest.',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('a full ContraDB page with no total says there may be more in '
+      'the picker', (tester) async {
     final repos = openTestRepositories();
     final contraDb = ContraDbOnline(
+      // No `numberMatching`: without the source's total, a full page can only
+      // say there may be more.
       searchFetcher: (request) async => jsonEncode({
-        'numberMatching': 20,
         'dances': [
           for (var i = 1; i <= 20; i++)
             {
