@@ -6791,12 +6791,12 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String onlineResultCountCapped(int count) {
-    return '$count résultats en ligne affichés. Il peut y en avoir d’autres : affinez la recherche pour voir le reste.';
+    return '$count résultats en ligne affichés. Il peut y en avoir d’autres : faites défiler pour les charger.';
   }
 
   @override
   String onlineResultCountOfTotal(int count, int total) {
-    return '$count résultats en ligne affichés sur $total. Affinez la recherche pour voir le reste.';
+    return '$count résultats en ligne affichés sur $total. Faites défiler pour en charger davantage.';
   }
 
   @override

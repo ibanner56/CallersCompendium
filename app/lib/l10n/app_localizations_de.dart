@@ -6777,12 +6777,12 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String onlineResultCountCapped(int count) {
-    return '$count Online-Ergebnisse angezeigt. Es gibt möglicherweise mehr: Grenze die Suche ein, um den Rest zu sehen.';
+    return '$count Online-Ergebnisse angezeigt. Es gibt möglicherweise mehr: Scrolle nach unten, um sie zu laden.';
   }
 
   @override
   String onlineResultCountOfTotal(int count, int total) {
-    return '$count von $total Online-Ergebnissen angezeigt. Grenze die Suche ein, um den Rest zu sehen.';
+    return '$count von $total Online-Ergebnissen angezeigt. Scrolle nach unten, um mehr zu laden.';
   }
 
   @override

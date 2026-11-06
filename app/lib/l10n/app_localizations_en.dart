@@ -6668,12 +6668,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String onlineResultCountCapped(int count) {
-    return 'Showing $count online results. There may be more: narrow your search to see the rest.';
+    return 'Showing $count online results. There may be more: scroll down to load them.';
   }
 
   @override
   String onlineResultCountOfTotal(int count, int total) {
-    return 'Showing $count of $total online results. Narrow your search to see the rest.';
+    return 'Showing $count of $total online results. Scroll down to load more.';
   }
 
   @override

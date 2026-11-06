@@ -6662,13 +6662,13 @@
   "@onlineResultCount": {
     "x-sourceSha256": "70de997e28d65e0ec02101f962391063f42342840a6f2cac9cf35619abaead8e"
   },
-  "onlineResultCountCapped": "{count} résultats en ligne affichés. Il peut y en avoir d’autres : affinez la recherche pour voir le reste.",
+  "onlineResultCountCapped": "{count} résultats en ligne affichés. Il peut y en avoir d’autres : faites défiler pour les charger.",
   "@onlineResultCountCapped": {
-    "x-sourceSha256": "d542496c932c10f9e0286e4f4d9c8f8afa8c96deb90451f232ac58c484160e8f"
+    "x-sourceSha256": "a48eb51b9f7dc04035e91442f67dd6abe14f4b00769234bc32aee5dc6bf87437"
   },
-  "onlineResultCountOfTotal": "{count} résultats en ligne affichés sur {total}. Affinez la recherche pour voir le reste.",
+  "onlineResultCountOfTotal": "{count} résultats en ligne affichés sur {total}. Faites défiler pour en charger davantage.",
   "@onlineResultCountOfTotal": {
-    "x-sourceSha256": "f1f7ce16c3c7deb54a43d04d350a73d02fd5ed256ac0a95b8eaa32a95d601780"
+    "x-sourceSha256": "2d42648684a96603d5d144a633d347972dac68b5aee6b894ba4e7840f7050dc3"
   },
   "onlineAdvancedPartlyApplied": "Certaines conditions avancées n’existent pas dans ContraDB et ont été ignorées.",
   "@onlineAdvancedPartlyApplied": {

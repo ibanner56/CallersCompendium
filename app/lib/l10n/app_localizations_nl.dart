@@ -6747,12 +6747,12 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String onlineResultCountCapped(int count) {
-    return '$count online resultaten getoond. Er zijn er mogelijk meer: verfijn de zoekopdracht om de rest te zien.';
+    return '$count online resultaten getoond. Er zijn er mogelijk meer: scroll omlaag om ze te laden.';
   }
 
   @override
   String onlineResultCountOfTotal(int count, int total) {
-    return '$count van $total online resultaten getoond. Verfijn de zoekopdracht om de rest te zien.';
+    return '$count van $total online resultaten getoond. Scroll omlaag om meer te laden.';
   }
 
   @override

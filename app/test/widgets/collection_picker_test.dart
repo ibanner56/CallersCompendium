@@ -1118,9 +1118,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 600));
     await tester.pumpAndSettle();
     expect(
-      find.text(
-        'Showing 1 of 5 online results. Narrow your search to see the rest.',
-      ),
+      find.text('Showing 1 of 5 online results. Scroll down to load more.'),
       findsOneWidget,
     );
   });
@@ -1165,7 +1163,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       find.text(
-        'Showing 20 online results. There may be more: narrow your search to see the rest.',
+        'Showing 20 online results. There may be more: scroll down to load them.',
       ),
       findsOneWidget,
     );
@@ -1365,8 +1363,7 @@ void main() {
     }
 
     String of(int shown) =>
-        'Showing $shown of 45 online results. Narrow your search to see the '
-        'rest.';
+        'Showing $shown of 45 online results. Scroll down to load more.';
 
     testWidgets('scrolling to the end loads the next page, until all are in', (
       tester,

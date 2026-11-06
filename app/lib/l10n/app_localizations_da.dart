@@ -6703,12 +6703,12 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String onlineResultCountCapped(int count) {
-    return 'Viser $count online-resultater. Der kan være flere: indsnævr søgningen for at se resten.';
+    return 'Viser $count online-resultater. Der kan være flere: rul ned for at indlæse dem.';
   }
 
   @override
   String onlineResultCountOfTotal(int count, int total) {
-    return 'Viser $count af $total online-resultater. Indsnævr søgningen for at se resten.';
+    return 'Viser $count af $total online-resultater. Rul ned for at indlæse flere.';
   }
 
   @override

@@ -33,7 +33,7 @@ void main() {
   test('a total larger than what is shown says "of"', () {
     expect(
       label([_row(1, total: 143), _row(2, total: 143)]),
-      'Showing 2 of 143 online results. Narrow your search to see the rest.',
+      'Showing 2 of 143 online results. Scroll down to load more.',
     );
   });
 
@@ -51,8 +51,7 @@ void main() {
   test('no total and a full page: the "may be more" form', () {
     expect(
       label([_row(1, mayHaveMore: true), _row(2, mayHaveMore: true)]),
-      'Showing 2 online results. There may be more: narrow your search to see '
-      'the rest.',
+      'Showing 2 online results. There may be more: scroll down to load them.',
     );
   });
 
@@ -80,7 +79,7 @@ void main() {
     expect(label([_row(1, partly: true)]), '1 online result · $note');
     expect(
       label([_row(1, total: 5, partly: true)]),
-      'Showing 1 of 5 online results. Narrow your search to see the rest. '
+      'Showing 1 of 5 online results. Scroll down to load more. '
       '· $note',
     );
   });
