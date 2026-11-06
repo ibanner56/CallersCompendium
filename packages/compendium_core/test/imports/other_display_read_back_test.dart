@@ -227,5 +227,10 @@ void main() {
         expect(f.note, contains('facing up the hall'), reason: line);
       }
     });
+
+    test('a promenade direction before its destination is still read', () {
+      final f = imported('centers promenade facing down to first lead');
+      expect(f.params['where'], 'down');
+    });
   });
 }

@@ -1235,7 +1235,7 @@ void _readTrailingDisplayDirection(
   final where = _displayDirectionPhrase(s);
   if (where == null) return;
   final next = s.peek();
-  if (next == null || then.contains(next) || s.previousEndsWith(',')) {
+  if (next == null || then.contains(next) || s.previousTokenEndsWith(',')) {
     params['where'] = where;
   } else {
     s.reset(save);
@@ -1638,7 +1638,7 @@ FigureMatch? _promenade(String text) {
       s.take();
       params['where'] = dir;
     }
-    _readTrailingDisplayDirection(s, params, then: const {'on'});
+    _readTrailingDisplayDirection(s, params, then: const {'on', 'to'});
     final turn = _promenadeTurn(s);
     if (turn != null) params['direction'] = turn;
   }
@@ -1804,7 +1804,8 @@ FigureMatch? _archAndDive(String text) {
 ///
 /// The display's own subjects (`larks take partner`, #2121) are read only on a
 /// whole line, so a custom `role1s take partner by the right hand` is not
-/// force-matched either.
+/// force-matched either. A `give & take` line whose subjects ContraDB names
+/// keeps the looser reading above, as before.
 FigureMatch? _giveAndTake(String text) =>
     _giveAndTakeWith(text, _subject) ??
     _giveAndTakeWith(text, _displaySubject, wholeLine: true);
@@ -2135,8 +2136,8 @@ FigureMatch? _zigZag(String text) {
 /// any mismatch.
 ///
 /// Both dancer-set subjects must resolve via [_displaySubject], and the looping
-/// one may be the display's `others` (unknown role → decline). [who] is the crossing subject; [hand] from a trailing
-/// `left`/`right` when present.
+/// one may be the display's `others` (unknown role → decline). [who] is the
+/// crossing subject; [hand] from a trailing `left`/`right` when present.
 ///
 /// **Why a shared helper.** [_boxCirculateBare] and [_boxCirculate] both parse
 /// this clause. Extracting it into one site prevents silent grammar drift: two
@@ -2147,8 +2148,8 @@ FigureMatch? _zigZag(String text) {
 /// **Security.** The params map is allocated only after a full match. Input is
 /// already sanitised upstream; [_Scan] tokenizes on `\S+` (bounded by input
 /// length) and this function reads at most ~5 tokens, returning early on the
-/// first mismatch. `_subject` and `eatPhrase` do allocate internally (string
-/// comparisons, `split`), but those are O(1) per token against a fixed
+/// first mismatch. `_displaySubject` and `eatPhrase` do allocate internally
+/// (string comparisons, `split`), but those are O(1) per token against a fixed
 /// vocabulary and bounded by the input length already enforced upstream.
 ///
 /// **Measured consequence of the guards:**
