@@ -15,8 +15,7 @@
 #
 # Every round submits exactly one PR review (`POST /pulls/<N>/reviews`) whose
 # `commit_id` is the head it reviewed, so `check_pr_review_gates.py`, which
-# reads Claude's review by default, can check that it covers the head. The
-# stock
+# reads Claude's review by default, can check that it covers the head. The stock
 # `code-review@claude-code-plugins` command is not used: it stops for good once
 # Claude has commented on a PR, so pushes after the first round would never be
 # re-reviewed, and it reads CLAUDE.md where this repository keeps AGENTS.md.
