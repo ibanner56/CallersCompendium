@@ -84,7 +84,7 @@ class _CallingCardSectionState extends State<CallingCardSection> {
   ) {
     final from = current.size;
     if (from.unit == unit) return;
-    // Two decimals of an inch, so millimetres survive the round trip
+    // Two decimals of an inch, so millimeters survive the round trip
     // (105 mm is 4.13 in, which comes back as 104.9 mm, not 104.1).
     final places = unit == CallingCardUnit.inch ? 100 : 10;
     double convert(double v) =>

@@ -11607,7 +11607,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsCallingCardsUnitInches => 'Inches';
 
   @override
-  String get settingsCallingCardsUnitMillimetres => 'Millimetres';
+  String get settingsCallingCardsUnitMillimetres => 'Millimeters';
 
   @override
   String get settingsCallingCardsSizeInvalid =>
@@ -11836,7 +11836,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get callingCardExampleTeaching => 'Teaching card';
 
   @override
-  String get callingCardSampleTitle => 'Sample Contra';
+  String get callingCardSampleTitle => 'Sample contra';
 
   @override
   String get callingCardSampleAuthor => 'A. Caller';
@@ -11848,7 +11848,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get callingCardSampleFigureNote => 'Hold on for the whole turn.';
 
   @override
-  String get callingCardSampleProgram => 'Friday Night Dance';
+  String get callingCardSampleProgram => 'Friday night dance';
 
   @override
   String get exportPrintCallingCard => 'Print calling card';

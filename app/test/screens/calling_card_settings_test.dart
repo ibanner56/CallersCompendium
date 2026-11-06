@@ -223,7 +223,7 @@ void main() {
       expect(find.byKey(const ValueKey('calling-card-width')), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('calling-card-unit')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Millimetres').last);
+      await tester.tap(find.text('Millimeters').last);
       await tester.pumpAndSettle();
       expect(
         h.notifier.value.size,

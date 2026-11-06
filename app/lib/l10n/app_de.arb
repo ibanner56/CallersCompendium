@@ -11248,7 +11248,7 @@
   },
   "settingsCallingCardsUnitMillimetres": "Millimeter",
   "@settingsCallingCardsUnitMillimetres": {
-    "x-sourceSha256": "4b13675413ba57d4af813b38aa65ee7f498a8e8bca4b7389812572ece0935888"
+    "x-sourceSha256": "f222baf08e531ee9fa48d44c9e3b8d5082c53da6fde5918db35a5273d5760f76"
   },
   "settingsCallingCardsSizeInvalid": "Jede Seite muss zwischen 1 und 14 Zoll (26 bis 355 mm) liegen.",
   "@settingsCallingCardsSizeInvalid": {
@@ -11504,7 +11504,7 @@
   },
   "callingCardSampleTitle": "Beispiel-Contra",
   "@callingCardSampleTitle": {
-    "x-sourceSha256": "5ff17063c71490b96024bd7879e63851b63573a4afcc8167d45f49e6e97c861f"
+    "x-sourceSha256": "63f43e020d1ef5398fa1761b8732ee7284114685a2571d0fb7656f64ff86b81c"
   },
   "callingCardSampleAuthor": "A. Caller",
   "@callingCardSampleAuthor": {
@@ -11520,7 +11520,7 @@
   },
   "callingCardSampleProgram": "Tanzabend am Freitag",
   "@callingCardSampleProgram": {
-    "x-sourceSha256": "568be71ab062516a6d6ac140daec450ca1559cd8fa2205162a448f001da18dba"
+    "x-sourceSha256": "1c44b293f67e813324b41c48515cc7a6c7c0b0b2532929d6c74b53f65847009d"
   },
   "exportPrintCallingCard": "Calling-Karte drucken",
   "@exportPrintCallingCard": {

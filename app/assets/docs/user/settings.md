@@ -959,7 +959,7 @@ while it is off: select **Calling cards** to open it. Turn it on and a dance's
 calling cards** — see [Print calling cards](./sharing.md#print-calling-cards).
 
 - **Card size** — an index card (3 × 5, 4 × 6 or 5 × 8 inches), A6 or A7, or
-  **Custom size**, where you type a width and height in inches or millimetres.
+  **Custom size**, where you type a width and height in inches or millimeters.
   Each side can be from 1 to 14 inches (26 to 355 mm); a size outside that
   isn't kept, and the field says so.
 - **Landscape** (on by default) — print with the long side across the top.

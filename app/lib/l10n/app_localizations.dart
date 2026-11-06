@@ -17049,7 +17049,7 @@ abstract class AppLocalizations {
   /// **'{width} × {height} in'**
   String settingsCallingCardsSizeInches(String width, String height);
 
-  /// A card measurement in millimetres, short side first.
+  /// A card measurement in millimeters, short side first.
   ///
   /// In en, this message translates to:
   /// **'{width} × {height} mm'**
@@ -17082,7 +17082,7 @@ abstract class AppLocalizations {
   /// Unit choice for a custom card size.
   ///
   /// In en, this message translates to:
-  /// **'Millimetres'**
+  /// **'Millimeters'**
   String get settingsCallingCardsUnitMillimetres;
 
   /// Error under the custom card size fields when a side is out of range or not a number.
@@ -17466,7 +17466,7 @@ abstract class AppLocalizations {
   /// Title of the made-up dance the calling-card preview shows.
   ///
   /// In en, this message translates to:
-  /// **'Sample Contra'**
+  /// **'Sample contra'**
   String get callingCardSampleTitle;
 
   /// Author name of the made-up dance the calling-card preview shows.
@@ -17490,7 +17490,7 @@ abstract class AppLocalizations {
   /// Program title the calling-card preview shows for the program block.
   ///
   /// In en, this message translates to:
-  /// **'Friday Night Dance'**
+  /// **'Friday night dance'**
   String get callingCardSampleProgram;
 
   /// Export-menu item: print this dance as a small calling card.

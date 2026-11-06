@@ -15641,7 +15641,7 @@
   },
   "settingsCallingCardsSizeMillimetres": "{width} × {height} mm",
   "@settingsCallingCardsSizeMillimetres": {
-    "description": "A card measurement in millimetres, short side first.",
+    "description": "A card measurement in millimeters, short side first.",
     "placeholders": {
       "width": {
         "type": "String",
@@ -15669,7 +15669,7 @@
   "@settingsCallingCardsUnitInches": {
     "description": "Unit choice for a custom card size."
   },
-  "settingsCallingCardsUnitMillimetres": "Millimetres",
+  "settingsCallingCardsUnitMillimetres": "Millimeters",
   "@settingsCallingCardsUnitMillimetres": {
     "description": "Unit choice for a custom card size."
   },
@@ -15995,7 +15995,7 @@
   "@callingCardExampleTeaching": {
     "description": "Name of an example calling-card layout with the walkthrough."
   },
-  "callingCardSampleTitle": "Sample Contra",
+  "callingCardSampleTitle": "Sample contra",
   "@callingCardSampleTitle": {
     "description": "Title of the made-up dance the calling-card preview shows."
   },
@@ -16011,7 +16011,7 @@
   "@callingCardSampleFigureNote": {
     "description": "A figure note on the made-up dance the calling-card preview shows."
   },
-  "callingCardSampleProgram": "Friday Night Dance",
+  "callingCardSampleProgram": "Friday night dance",
   "@callingCardSampleProgram": {
     "description": "Program title the calling-card preview shows for the program block."
   },
