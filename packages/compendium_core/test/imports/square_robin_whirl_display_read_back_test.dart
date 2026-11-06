@@ -91,6 +91,15 @@ void main() {
       );
     });
 
+    test('a turn with no whom is followed by who is in front', () {
+      // The display writes `around,` with no whom before the in-front clause.
+      expect(only('mad robin clockwise 1½ around, role2s in front').params, {
+        'direction': 'clockwise',
+        'travel': 1.5,
+        'who': 'role2s',
+      });
+    });
+
     test('no in-front clause states who is unspecified', () {
       expect(only('mad robin counterclockwise').params, {
         'direction': 'counterclockwise',

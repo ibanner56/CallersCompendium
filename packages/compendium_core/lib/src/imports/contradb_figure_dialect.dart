@@ -956,7 +956,9 @@ FigureMatch? _madRobinDisplay(String text) {
   if (turn != null) s.take();
   String? whom;
   if (s.eat('around')) {
-    whom = _displaySubject(s);
+    // `around,` ends a turn with no whom: what follows the comma is the
+    // in-front clause, not whom it turns around.
+    if (!s.previousEndsWith(',')) whom = _displaySubject(s);
     // The display never writes a bare `around`: it names a turn or a whom.
     if (turn == null && whom == null) return null;
   } else if (turn != null) {
@@ -2504,6 +2506,11 @@ class _Scan {
 
   int get pos => _i;
   void reset(int p) => _i = p;
+
+  /// Whether the token just consumed ends with [suffix] as written, before
+  /// normalization strips its punctuation.
+  bool previousEndsWith(String suffix) =>
+      _i > 0 && _tokens[_i - 1].endsWith(suffix);
 
   /// The next token, normalized for matching, or null at end.
   String? peek() => _i < _tokens.length ? _t.norm(_i) : null;
