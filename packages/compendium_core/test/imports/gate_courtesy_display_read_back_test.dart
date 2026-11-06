@@ -88,8 +88,9 @@ void main() {
     });
 
     test('free text reads a second dancer as whom; an import does not', () {
-      // The maintainer's decision on #2121: the display's own wording reads
-      // back, and an import still leaves `whom` out unless a source states it.
+      // The maintainer's decision (2026-11-06, recorded in #2121's Status):
+      // the display's own wording reads back, and an import still leaves
+      // `whom` out unless a source states it.
       expect(typed('partner courtesy turn role1s clockwise').params, {
         'who': 'partners',
         'whom': 'role1s',

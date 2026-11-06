@@ -903,10 +903,10 @@ FigureMatch? _courtesyTurnFacingDisplay(String text) {
 /// courtesy turn WHOM [spin] [to face DANCER]". Only free-text entry calls it
 /// (`parseFreeTextFigureEntry`), so a figure the app displays reads back; it
 /// is not one of this reader's recognizers, so no import reads a second dancer
-/// from a source line. That split is the maintainer's decision on #2121
-/// (2026-11-06), which keeps the shared grammar's earlier ruling that an
-/// import leaves `whom` out unless a source states it. Only the whole line is
-/// read.
+/// from a source line. That split is the maintainer's decision of 2026-11-06,
+/// recorded in #2121's Status section; it keeps the shared grammar's earlier
+/// ruling that an import leaves `whom` out unless a source states it. Only the
+/// whole line is read.
 FigureMatch? readDisplayedCourtesyTurnWithWhom(String text) {
   final s = _Scan(text);
   final who = _displaySubject(s);
