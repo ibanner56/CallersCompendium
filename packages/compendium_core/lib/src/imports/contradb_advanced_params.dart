@@ -171,7 +171,7 @@ Object? _slide(Object? v) => switch (v) {
 };
 
 /// A spin where ContraDB stores `true` for clockwise (`facing star`,
-/// `promenade`).
+/// `promenade`, `poussette`).
 Object? _spinClockwise(Object? v) => switch (v) {
   'clockwise' => true,
   'counterclockwise' => false,

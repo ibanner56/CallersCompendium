@@ -2134,8 +2134,8 @@ FigureMatch? _zigZag(String text) {
 /// `{'who': …, 'hand'?: …}`, or returns `null` leaving [s] **unchanged** on
 /// any mismatch.
 ///
-/// Both dancer-set subjects must resolve via [_subject] (unknown role →
-/// decline). [who] is the crossing subject; [hand] from a trailing
+/// Both dancer-set subjects must resolve via [_displaySubject], and the looping
+/// one may be the display's `others` (unknown role → decline). [who] is the crossing subject; [hand] from a trailing
 /// `left`/`right` when present.
 ///
 /// **Why a shared helper.** [_boxCirculateBare] and [_boxCirculate] both parse
@@ -2152,7 +2152,7 @@ FigureMatch? _zigZag(String text) {
 /// vocabulary and bounded by the input length already enforced upstream.
 ///
 /// **Measured consequence of the guards:**
-/// - Dropping the [_subject] null-check on the looping dancer would admit
+/// - Dropping the [_displaySubject] null-check on the looping dancer would admit
 ///   lines whose second role is unrecognized — e.g.
 ///   `role1s cross while unknown loop` — turning an unknown into a structured
 ///   `box_circulate` with the wrong `who`.
@@ -2313,9 +2313,10 @@ FigureMatch? _facingStar(String text) {
 }
 
 /// poussetteWords. Renders as: "[half|full] poussette - WHO pull WHOM back then
-/// left|right", where left is clockwise: ContraDB writes a truthy `turn`
-/// (`spin_clockwise` is `value: true`, libfigure `param.js`) as "back then
-/// left" (`figure.js`, its poussette words), as the app's renderer does. This read
+/// left|right", where left is clockwise: the turn is libfigure's spin
+/// parameter, whose clock wording writes a truthy value as "clockwise"
+/// (`param.js`), and ContraDB writes a truthy turn as "back then left"
+/// (`figure.js`, its poussette words), as the app's renderer does. This read
 /// the sides the other way round before #2121, so every imported ContraDB
 /// poussette turned the wrong way.
 FigureMatch? _poussette(String text) {
