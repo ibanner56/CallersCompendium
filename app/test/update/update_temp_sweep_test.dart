@@ -166,9 +166,8 @@ void main() {
           ..writeAsStringSync('keep')
           ..setLastModifiedSync(later.subtract(const Duration(days: 400)));
         try {
-          Link(
-            '${temp.path}/${kUpdateTempDirPrefix}link',
-          ).createSync(outside.path);
+          Link('${temp.path}/${kUpdateTempDirPrefix}link')
+              .createSync(outside.path);
         } on FileSystemException {
           markTestSkipped('this host cannot create symbolic links');
           return;

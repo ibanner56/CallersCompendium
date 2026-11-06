@@ -210,9 +210,8 @@ void main() {
     test(
       '$asset covers every CJK rune in app_ja.arb and a Japanese title',
       () async {
-        final glyphs = TtfParser(
-          await rootBundle.load(asset),
-        ).charToGlyphIndexMap;
+        final glyphs = TtfParser(await rootBundle.load(asset))
+            .charToGlyphIndexMap;
         // U+2E80 is where the CJK radicals begin: everything from there up is
         // beyond what Roboto can draw. (Latin such as the Æ/ø in the title is
         // Roboto's job and is deliberately not asserted here.)

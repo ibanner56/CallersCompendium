@@ -360,9 +360,10 @@ void main() {
         () => repos.userGlossary.getById('zoom-id'),
       ))!;
       expect(saved.kind, UserGlossaryEntryKind.customFigure);
-      final choice = decodeUserFigureDefinition(
-        saved.payload,
-      )!.param('style')!.choices.single;
+      final choice = decodeUserFigureDefinition(saved.payload)!
+          .param('style')!
+          .choices
+          .single;
       expect((choice.id, choice.label), ('abc12345', 'quick'));
     });
 
@@ -955,9 +956,8 @@ void main() {
           localizationsDelegates: testLocalizationsDelegates,
           supportedLocales: testSupportedLocales,
           builder: (context, child) => MediaQuery(
-            data: MediaQuery.of(
-              context,
-            ).copyWith(textScaler: TextScaler.linear(scale)),
+            data: MediaQuery.of(context)
+                .copyWith(textScaler: TextScaler.linear(scale)),
             child: RepositoriesScope(
               repositories: repos,
               child: ActiveDialectScope(notifier: dialect, child: child!),

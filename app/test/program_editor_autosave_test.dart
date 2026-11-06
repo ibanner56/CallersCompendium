@@ -307,19 +307,16 @@ void main() {
       );
     });
 
-    test(
-      'decodes a value round-tripped through a settings repository',
-      () async {
-        final repos = openTestRepositories();
-        await repos.settings.set(
-          'program_editor_draft:new',
-          encodeProgramDraft(_draft(title: 'Via Settings')),
-        );
-        // SettingsRepository.get returns the raw JSON string; decode handles it.
-        final decoded = decodeProgramDraft(await newProgramDraft(repos));
-        expect(decoded.title, 'Via Settings');
-      },
-    );
+    test('decodes a value round-tripped through a settings repository', () async {
+      final repos = openTestRepositories();
+      await repos.settings.set(
+        'program_editor_draft:new',
+        encodeProgramDraft(_draft(title: 'Via Settings')),
+      );
+      // SettingsRepository.get returns the raw JSON string; decode handles it.
+      final decoded = decodeProgramDraft(await newProgramDraft(repos));
+      expect(decoded.title, 'Via Settings');
+    });
   });
 
   // -------------------------------------------------------------------------

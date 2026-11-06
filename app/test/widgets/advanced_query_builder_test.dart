@@ -4,6 +4,7 @@ import 'package:compendium_app/src/widgets/advanced_query_builder.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
 import '../support/l10n_harness.dart';
 import '../support/screen_size.dart';
 
@@ -14,6 +15,7 @@ import '../support/screen_size.dart';
 
 class _Host extends StatefulWidget {
   const _Host({
+    this.tagsUnavailableFor,
     required this.root,
     required this.sectionLabels,
     required this.taxonomy,
@@ -23,6 +25,7 @@ class _Host extends StatefulWidget {
     this.textScale = 1.0,
   });
   final double textScale;
+  final String? tagsUnavailableFor;
   final BuilderGroup root;
   final List<Tag> tags;
   final VoidCallback? onChanged;
@@ -54,6 +57,7 @@ class _HostState extends State<_Host> {
             dialect: widget.dialect,
             sectionLabels: widget.sectionLabels,
             tags: widget.tags,
+            tagsUnavailableFor: widget.tagsUnavailableFor,
             onChanged: () {
               widget.onChanged?.call();
               setState(() {});
@@ -88,6 +92,7 @@ Future<void> _pump(
   List<Tag> tags = const [],
   VoidCallback? onChanged,
   double textScale = 1.0,
+  String? tagsUnavailableFor,
 }) async {
   await setScreenSize(tester, screenSize);
   await tester.pumpWidget(
@@ -97,6 +102,7 @@ Future<void> _pump(
       taxonomy: taxonomy ?? contraTaxonomy,
       dialect: dialect ?? Dialect.larksRobins,
       tags: tags,
+      tagsUnavailableFor: tagsUnavailableFor,
       onChanged: onChanged,
       textScale: textScale,
     ),
@@ -135,6 +141,48 @@ void main() {
       expect(row.toFilter(), isNull, reason: 'an unpicked row is skipped');
       expect(find.byKey(ValueKey('tag-${row.id}')), findsOneWidget);
       expect(find.text('Choose a tag'), findsOneWidget);
+    });
+
+    testWidgets('a source with no tags: "Has tag" is greyed out and names it', (
+      tester,
+    ) async {
+      final root = BuilderGroup();
+      await _pump(
+        tester,
+        root: root,
+        tags: tags,
+        tagsUnavailableFor: 'ContraDB',
+      );
+
+      await openAddMenu(tester, root);
+
+      expect(find.text('Has tag'), findsNothing);
+      final entry = find.byKey(ValueKey('add-tag-unavailable-${root.id}'));
+      expect(entry, findsOneWidget);
+      expect(
+        find.descendant(
+          of: entry,
+          matching: find.text('Has tag (not available on ContraDB)'),
+        ),
+        findsOneWidget,
+      );
+      expect(tester.widget<PopupMenuItem<String>>(entry).enabled, isFalse);
+
+      await tester.tap(entry, warnIfMissed: false);
+      await tester.pumpAndSettle();
+      expect(root.children, isEmpty, reason: 'a disabled entry adds nothing');
+    });
+
+    testWidgets('greyed out even when the collection has no tags', (
+      tester,
+    ) async {
+      final root = BuilderGroup();
+      await _pump(tester, root: root, tagsUnavailableFor: 'ContraDB');
+      await openAddMenu(tester, root);
+      expect(
+        find.byKey(ValueKey('add-tag-unavailable-${root.id}')),
+        findsOneWidget,
+      );
     });
 
     testWidgets('the Add menu does not offer "Has tag" with no tags', (

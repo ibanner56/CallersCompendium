@@ -24,9 +24,8 @@ void main() {
       contains('path = "$_bundleName.app"'),
     );
     expect(
-      File(
-        'macos/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme',
-      ).readAsStringSync(),
+      File('macos/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme')
+          .readAsStringSync(),
       contains('BuildableName = "$_bundleName.app"'),
     );
     expect(

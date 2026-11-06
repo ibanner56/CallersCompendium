@@ -2,8 +2,10 @@ import 'dart:ui' show PlatformDispatcher;
 
 import 'package:intl/intl.dart' show DateFormat;
 import 'package:compendium_core/compendium_core.dart';
+
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -448,61 +450,58 @@ void main() {
     expect(find.text('Export / print PDF'), findsOneWidget);
   });
 
-  testWidgets(
-    'the wide export menu respects a deselected DanceShareFieldsScope field '
-    '(issue #1434 review finding)',
-    (tester) async {
-      String? clipboardText;
-      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+  testWidgets('the wide export menu respects a deselected DanceShareFieldsScope field '
+      '(issue #1434 review finding)', (tester) async {
+    String? clipboardText;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'Clipboard.setData') {
+          clipboardText = (call.arguments as Map)['text'] as String?;
+        }
+        return null;
+      },
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
         SystemChannels.platform,
-        (call) async {
-          if (call.method == 'Clipboard.setData') {
-            clipboardText = (call.arguments as Map)['text'] as String?;
-          }
-          return null;
-        },
-      );
-      addTearDown(
-        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-          SystemChannels.platform,
-          null,
-        ),
-      );
+        null,
+      ),
+    );
 
-      final repos = openTestRepositories();
-      // ignore: unused_result
-      await repos.choreographers.upsert(
-        Choreographer(id: 'c1', name: 'Gene Hubert'),
-      );
-      await repos.dances.create(
-        _dance(id: 'd1', title: 'Midwest Folklore', authorIds: ['c1']),
-      );
+    final repos = openTestRepositories();
+    // ignore: unused_result
+    await repos.choreographers.upsert(
+      Choreographer(id: 'c1', name: 'Gene Hubert'),
+    );
+    await repos.dances.create(
+      _dance(id: 'd1', title: 'Midwest Folklore', authorIds: ['c1']),
+    );
 
-      await _pumpDetail(
-        tester,
-        repos,
-        'd1',
-        shareFields: {...DanceShareField.allExceptTunes}
-          ..remove(DanceShareField.authors),
-      );
+    await _pumpDetail(
+      tester,
+      repos,
+      'd1',
+      shareFields: {...DanceShareField.allExceptTunes}
+        ..remove(DanceShareField.authors),
+    );
 
-      await tester.tap(find.byKey(const ValueKey('dance-export-menu')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Copy dance'));
-      await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('dance-export-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Copy dance'));
+    await tester.pumpAndSettle();
 
-      expect(clipboardText, isNotNull);
-      expect(clipboardText, contains('Midwest Folklore'));
-      expect(
-        clipboardText,
-        isNot(contains('Gene Hubert')),
-        reason:
-            'the wide DanceExportMenu must read the live DanceShareFieldsScope, '
-            'not a hardcoded default — mutating out that pass-through must '
-            'turn this red',
-      );
-    },
-  );
+    expect(clipboardText, isNotNull);
+    expect(clipboardText, contains('Midwest Folklore'));
+    expect(
+      clipboardText,
+      isNot(contains('Gene Hubert')),
+      reason:
+          'the wide DanceExportMenu must read the live DanceShareFieldsScope, '
+          'not a hardcoded default — mutating out that pass-through must '
+          'turn this red',
+    );
+  });
 
   group('narrow app bar', () {
     Future<DialectLibraryController> buildLibrary(
@@ -516,94 +515,79 @@ void main() {
       return controller;
     }
 
-    testWidgets(
-      'keeps primary actions one-tap and collapses the rest into an overflow '
-      'menu without overflowing at a phone width',
-      (tester) async {
-        final repos = openTestRepositories();
-        await repos.dances.create(_dance(id: 'd1', title: 'Narrow Dance'));
-        final library = await buildLibrary(repos);
+    testWidgets('keeps primary actions one-tap and collapses the rest into an overflow '
+        'menu without overflowing at a phone width', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Narrow Dance'));
+      final library = await buildLibrary(repos);
 
-        await _pumpDetail(
-          tester,
-          repos,
-          'd1',
-          surfaceSize: const Size(360, 800),
-          dialectLibrary: library,
-        );
+      await _pumpDetail(
+        tester,
+        repos,
+        'd1',
+        surfaceSize: const Size(360, 800),
+        dialectLibrary: library,
+      );
 
-        // (a) No RenderFlex overflow at a 360dp phone width.
-        expect(tester.takeException(), isNull);
+      // (a) No RenderFlex overflow at a 360dp phone width.
+      expect(tester.takeException(), isNull);
 
-        // Primary actions stay one-tap on the bar (Edit remains the FAB).
-        expect(find.byKey(const ValueKey('perform-dance')), findsOneWidget);
-        expect(
-          find.byKey(const ValueKey('add-dance-to-program')),
-          findsOneWidget,
-        );
-        expect(find.byKey(const ValueKey('edit-dance')), findsOneWidget);
+      // Primary actions stay one-tap on the bar (Edit remains the FAB).
+      expect(find.byKey(const ValueKey('perform-dance')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('add-dance-to-program')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('edit-dance')), findsOneWidget);
 
-        // Secondary actions are not shown directly on the narrow bar, and the
-        // wide-layout Export/dialect popup controls are not used in compact mode.
-        expect(find.byKey(const ValueKey('duplicate-dance')), findsNothing);
-        expect(find.byKey(const ValueKey('delete-dance')), findsNothing);
-        expect(
-          find.byKey(const ValueKey('overflow-share-dance')),
-          findsNothing,
-        );
-        expect(find.byKey(const ValueKey('dance-export-menu')), findsNothing);
-        expect(
-          find.byKey(const ValueKey('dialect-quick-switch')),
-          findsNothing,
-        );
+      // Secondary actions are not shown directly on the narrow bar, and the
+      // wide-layout Export/dialect popup controls are not used in compact mode.
+      expect(find.byKey(const ValueKey('duplicate-dance')), findsNothing);
+      expect(find.byKey(const ValueKey('delete-dance')), findsNothing);
+      expect(find.byKey(const ValueKey('overflow-share-dance')), findsNothing);
+      expect(find.byKey(const ValueKey('dance-export-menu')), findsNothing);
+      expect(find.byKey(const ValueKey('dialect-quick-switch')), findsNothing);
 
-        // (b) The overflow menu exposes every secondary action as its own
-        // first-class, activatable item (no nested popup menus).
-        final overflow = find.byKey(const ValueKey('dance-actions-overflow'));
-        expect(overflow, findsOneWidget);
-        await tester.tap(overflow);
-        await tester.pumpAndSettle();
+      // (b) The overflow menu exposes every secondary action as its own
+      // first-class, activatable item (no nested popup menus).
+      final overflow = find.byKey(const ValueKey('dance-actions-overflow'));
+      expect(overflow, findsOneWidget);
+      await tester.tap(overflow);
+      await tester.pumpAndSettle();
 
-        expect(find.byKey(const ValueKey('duplicate-dance')), findsOneWidget);
-        expect(find.byKey(const ValueKey('delete-dance')), findsOneWidget);
-        expect(
-          find.byKey(const ValueKey('overflow-share-dance')),
-          findsOneWidget,
-        );
-        expect(
-          find.byKey(const ValueKey('overflow-copy-dance')),
-          findsOneWidget,
-        );
-        expect(
-          find.byKey(const ValueKey('overflow-share-dance-bundle')),
-          findsOneWidget,
-        );
-        expect(
-          find.byKey(const ValueKey('overflow-share-dance-json')),
-          findsOneWidget,
-        );
-        expect(
-          find.byKey(const ValueKey('overflow-export-pdf')),
-          findsOneWidget,
-        );
-        // Each dialect in the library is offered as a checkable entry.
-        expect(
-          find.byKey(
-            ValueKey('dialect-quick-switch-${Dialect.larksRobins.name}'),
-          ),
-          findsOneWidget,
-        );
-        expect(
-          find.byKey(
-            ValueKey('dialect-quick-switch-${Dialect.leadsFollows.name}'),
-          ),
-          findsOneWidget,
-        );
+      expect(find.byKey(const ValueKey('duplicate-dance')), findsOneWidget);
+      expect(find.byKey(const ValueKey('delete-dance')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('overflow-share-dance')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('overflow-copy-dance')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('overflow-share-dance-bundle')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('overflow-share-dance-json')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('overflow-export-pdf')), findsOneWidget);
+      // Each dialect in the library is offered as a checkable entry.
+      expect(
+        find.byKey(
+          ValueKey('dialect-quick-switch-${Dialect.larksRobins.name}'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          ValueKey('dialect-quick-switch-${Dialect.leadsFollows.name}'),
+        ),
+        findsOneWidget,
+      );
 
-        // The (scrollable) menu itself introduces no overflow at 360dp.
-        expect(tester.takeException(), isNull);
-      },
-    );
+      // The (scrollable) menu itself introduces no overflow at 360dp.
+      expect(tester.takeException(), isNull);
+    });
 
     testWidgets(
       'reports a missing referenced tag from the compact file export',
@@ -923,17 +907,15 @@ void main() {
 
       expect(savedName, 'Narrow_Dance.json');
       final actual = jsonDecode(savedJson!) as Map<String, dynamic>;
-      final expected =
-          jsonDecode(
-                buildDanceShareBundle(
-                  dance,
-                  choreographerFor: (_) => null,
-                  tagFor: (_) => null,
-                  publishedSourceFor: (_) => null,
-                  customFieldFor: (_) => null,
-                ),
-              )
-              as Map<String, dynamic>;
+      final expected = jsonDecode(
+        buildDanceShareBundle(
+          dance,
+          choreographerFor: (_) => null,
+          tagFor: (_) => null,
+          publishedSourceFor: (_) => null,
+          customFieldFor: (_) => null,
+        ),
+      ) as Map<String, dynamic>;
       actual.remove('exportedAt');
       expected.remove('exportedAt');
       expect(actual, expected);
@@ -1398,9 +1380,9 @@ void main() {
 
     // Overview title sits in a Card, styled as the Fraunces headline.
     final title = tester.widget<Text>(find.text('Separated Reel'));
-    final expected = Theme.of(
-      tester.element(find.text('Separated Reel')),
-    ).textTheme.headlineMedium;
+    final expected = Theme.of(tester.element(find.text('Separated Reel')))
+        .textTheme
+        .headlineMedium;
     expect(title.style, expected);
     expect(
       find.ancestor(

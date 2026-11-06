@@ -756,6 +756,22 @@ class BuilderGroup extends BuilderNode {
   }
 }
 
+/// Removes every "has tag" row from [root], at any depth, and returns how many
+/// it removed. A source that has no tags cannot carry such a condition, and a
+/// tag row left behind would keep the search from being sent.
+int removeBuilderTags(BuilderGroup root) {
+  var removed = 0;
+  root.children.removeWhere((child) {
+    if (child is BuilderTag) {
+      removed++;
+      return true;
+    }
+    if (child is BuilderGroup) removed += removeBuilderTags(child);
+    return false;
+  });
+  return removed;
+}
+
 /// A "has figure" row: a move (required), an optional section, and optional
 /// named params. Folds to a [FigureFilter] leaf, or a [FigureLeaf] when used as
 /// a [ThenFilter] operand (via [BuilderFigureNode]).

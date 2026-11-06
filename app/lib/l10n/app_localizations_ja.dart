@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -4510,6 +4511,11 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get collectionQueryHasTag => 'タグあり';
+
+  @override
+  String collectionQueryHasTagUnavailable(String source) {
+    return 'タグあり（$sourceでは使えません）';
+  }
 
   @override
   String get collectionQueryTagLabel => 'タグ';

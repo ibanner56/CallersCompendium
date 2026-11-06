@@ -64,9 +64,8 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           builder: (context, child) => MediaQuery(
-            data: MediaQuery.of(
-              context,
-            ).copyWith(padding: const EdgeInsets.only(bottom: 34)),
+            data: MediaQuery.of(context)
+                .copyWith(padding: const EdgeInsets.only(bottom: 34)),
             child: child!,
           ),
           home: Scaffold(

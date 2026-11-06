@@ -151,9 +151,8 @@ void main() {
     });
 
     test('a blanked dance is "Deleted dance", unmarked, in every view', () {
-      final blank = dance(
-        deletedAt: permanentlyDeletedAt,
-      ).copyWith(title: blankedRecordTitle);
+      final blank = dance(deletedAt: permanentlyDeletedAt)
+          .copyWith(title: blankedRecordTitle);
       expect(slotDanceTitle(l10n, blank), l10n.programsBlankedDanceTitle);
       expect(
         slotDanceTitle(l10n, blank, markDeleted: true),

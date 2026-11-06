@@ -293,9 +293,8 @@ void main() {
       // A grouping paren is not a call: nothing is being passed to a function
       // the guard cannot see into, so the branches are still Text's own.
       expect(
-        scanSource(
-          "Text((failed ? 'English failure' : 'English fallback'));",
-        ).map((h) => h.$2),
+        scanSource("Text((failed ? 'English failure' : 'English fallback'));")
+            .map((h) => h.$2),
         ['English failure', 'English fallback'],
       );
       expect(

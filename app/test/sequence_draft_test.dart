@@ -200,17 +200,15 @@ void main() {
     });
 
     test('rejects a sequence with more than four steps', () {
-      final raw =
-          jsonDecode(
-                encodeDraft(
-                  snapshotOf([
-                    FigureDraft(
-                      sequenceFigures: [step('balance', 2), step('swing', 2)],
-                    ),
-                  ]),
-                ),
-              )
-              as Map<String, Object?>;
+      final raw = jsonDecode(
+        encodeDraft(
+          snapshotOf([
+            FigureDraft(
+              sequenceFigures: [step('balance', 2), step('swing', 2)],
+            ),
+          ]),
+        ),
+      ) as Map<String, Object?>;
       final children =
           ((raw['figureDrafts']! as List).single as Map)['children'] as List;
       for (var i = 0; i < 3; i++) {
@@ -220,17 +218,15 @@ void main() {
     });
 
     test('rejects a sequence directly inside a sequence', () {
-      final raw =
-          jsonDecode(
-                encodeDraft(
-                  snapshotOf([
-                    FigureDraft(
-                      sequenceFigures: [step('balance', 2), step('swing', 2)],
-                    ),
-                  ]),
-                ),
-              )
-              as Map<String, Object?>;
+      final raw = jsonDecode(
+        encodeDraft(
+          snapshotOf([
+            FigureDraft(
+              sequenceFigures: [step('balance', 2), step('swing', 2)],
+            ),
+          ]),
+        ),
+      ) as Map<String, Object?>;
       final outer = (raw['figureDrafts']! as List).single as Map;
       (outer['children'] as List)[0] = {
         ...outer,

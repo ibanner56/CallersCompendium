@@ -427,9 +427,8 @@ void main() {
   ) async {
     await _pumpPerform(tester, dance: _dance(figures: [_chain()]));
 
-    final scheme = Theme.of(
-      tester.element(find.byType(PerformCard)),
-    ).colorScheme;
+    final scheme = Theme.of(tester.element(find.byType(PerformCard)))
+        .colorScheme;
     expect(scheme, AppColorSchemes.highContrast);
     expect(scheme.brightness, Brightness.dark);
     expect(scheme.surface, AppColorSchemes.highContrast.surface);

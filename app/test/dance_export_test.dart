@@ -305,12 +305,12 @@ void main() {
           'A_dance___with_unsafe_name.json',
         ]),
       );
-      final ccSharePayload =
-          jsonDecode(staged['A_dance___with_unsafe_name.ccshare']!)
-              as Map<String, dynamic>;
-      final jsonPayload =
-          jsonDecode(staged['A_dance___with_unsafe_name.json']!)
-              as Map<String, dynamic>;
+      final ccSharePayload = jsonDecode(
+        staged['A_dance___with_unsafe_name.ccshare']!,
+      ) as Map<String, dynamic>;
+      final jsonPayload = jsonDecode(
+        staged['A_dance___with_unsafe_name.json']!,
+      ) as Map<String, dynamic>;
       ccSharePayload.remove('exportedAt');
       jsonPayload.remove('exportedAt');
       expect(ccSharePayload, jsonPayload);
@@ -939,32 +939,33 @@ void main() {
     // surfaces and render() drops, so the two genuinely differ; a spy renderer
     // asserts the export invoked renderSummary and never render() for the figure.
     // This FAILS if dance_pdf.dart reverts the call site back to render().
-    testWidgets('renders figures via renderSummary so modifiers survive (#457)', (
-      tester,
-    ) async {
-      final figure = Figure(move: 'down_the_hall', params: {'beats': 8});
-      // Guard: the chosen figure must actually differ between the two renderers,
-      // otherwise the spy assertions below would prove nothing.
-      final plain = FigureRenderer(contraTaxonomy);
-      expect(
-        plain.renderSummary(figure, Dialect.canonical),
-        isNot(equals(plain.render(figure, Dialect.canonical))),
-      );
+    testWidgets(
+      'renders figures via renderSummary so modifiers survive (#457)',
+      (tester) async {
+        final figure = Figure(move: 'down_the_hall', params: {'beats': 8});
+        // Guard: the chosen figure must actually differ between the two renderers,
+        // otherwise the spy assertions below would prove nothing.
+        final plain = FigureRenderer(contraTaxonomy);
+        expect(
+          plain.renderSummary(figure, Dialect.canonical),
+          isNot(equals(plain.render(figure, Dialect.canonical))),
+        );
 
-      final spy = _SpyRenderer();
-      final bytes = await buildDancePdf(
-        _dance(title: 'Hall Dance', figures: [figure]),
-        dialect: Dialect.canonical,
-        authorNames: const [],
-        formationLabel: 'Duple improper',
-        statusLabel: 'Active',
-        renderer: spy,
-      );
+        final spy = _SpyRenderer();
+        final bytes = await buildDancePdf(
+          _dance(title: 'Hall Dance', figures: [figure]),
+          dialect: Dialect.canonical,
+          authorNames: const [],
+          formationLabel: 'Duple improper',
+          statusLabel: 'Active',
+          renderer: spy,
+        );
 
-      expect(String.fromCharCodes(bytes.take(4)), '%PDF');
-      expect(spy.renderSummaryCalls, greaterThan(0));
-      expect(spy.renderCalls, 0);
-    });
+        expect(String.fromCharCodes(bytes.take(4)), '%PDF');
+        expect(spy.renderSummaryCalls, greaterThan(0));
+        expect(spy.renderCalls, 0);
+      },
+    );
 
     // #594: a `meanwhile` container (#590) is one figure list element, so the
     // PDF must call renderSummary() exactly ONCE for the whole container (not

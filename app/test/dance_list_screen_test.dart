@@ -1561,13 +1561,11 @@ void main() {
     expect(contraDbRequest?.filter, 'figure');
   });
 
-  testWidgets(
-    "Import from a preview uses the preview's source even after the source "
-    'toggle changes',
-    (tester) async {
-      final repos = openTestRepositories();
-      final callers = CallersBoxOnline(
-        searchFetcher: (_) async => '''
+  testWidgets("Import from a preview uses the preview's source even after the source "
+      'toggle changes', (tester) async {
+    final repos = openTestRepositories();
+    final callers = CallersBoxOnline(
+      searchFetcher: (_) async => '''
           <html><body>
           <p>Of 1 dances in the database, your query matches 1.</p>
           <table><tr>
@@ -1577,7 +1575,7 @@ void main() {
           </tr></table>
           </body></html>
         ''',
-        jsonFetcher: (_) async => '''
+      jsonFetcher: (_) async => '''
           {
             "ID":"10600","Name":"Money Musk","Authors":["Traditional"],
             "InterpretedBy":[],"Permission":"full",
@@ -1587,48 +1585,47 @@ void main() {
             "phrases":[{"name":"A1","figures":["Actives balance and swing"]}]
           }
         ''',
-      );
-      final contraDb = _RecordingContraDbOnline();
+    );
+    final contraDb = _RecordingContraDbOnline();
 
-      await _pumpScreen(
-        tester,
-        repos,
-        callersBoxOnline: callers,
-        contraDbOnline: contraDb,
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('online-search-enable')));
-      await tester.pumpAndSettle();
-      await _search(tester, 'Money Musk');
-      await _tapVisible(
-        tester,
-        find.byKey(const ValueKey('online-result-10600')),
-      );
-      expect(find.byKey(const ValueKey('import-dance')), findsOneWidget);
+    await _pumpScreen(
+      tester,
+      repos,
+      callersBoxOnline: callers,
+      contraDbOnline: contraDb,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('online-search-enable')));
+    await tester.pumpAndSettle();
+    await _search(tester, 'Money Musk');
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('online-result-10600')),
+    );
+    expect(find.byKey(const ValueKey('import-dance')), findsOneWidget);
 
-      // The preview route covers the list, so flip the source selector's
-      // handler directly: the retained list state is what `_importOnline` reads.
-      tester
-          .widget<SegmentedButton<OnlineSource>>(
-            find.byKey(
-              const ValueKey('online-source-selector'),
-              skipOffstage: false,
-            ),
-          )
-          .onSelectionChanged!({OnlineSource.contraDb});
-      await tester.pumpAndSettle();
+    // The preview route covers the list, so flip the source selector's
+    // handler directly: the retained list state is what `_importOnline` reads.
+    tester
+        .widget<SegmentedButton<OnlineSource>>(
+          find.byKey(
+            const ValueKey('online-source-selector'),
+            skipOffstage: false,
+          ),
+        )
+        .onSelectionChanged!({OnlineSource.contraDb});
+    await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const ValueKey('import-dance')));
-      await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('import-dance')));
+    await tester.pumpAndSettle();
 
-      expect(contraDb.importCalls, 0);
-      expect(find.byKey(const ValueKey('online-import-snackbar')), findsOne);
-      expect(
-        (await repos.dances.listAll()).map((d) => d.title),
-        contains('Money Musk'),
-      );
-    },
-  );
+    expect(contraDb.importCalls, 0);
+    expect(find.byKey(const ValueKey('online-import-snackbar')), findsOne);
+    expect(
+      (await repos.dances.listAll()).map((d) => d.title),
+      contains('Money Musk'),
+    );
+  });
 
   // 2026-10 behaviour audit, INTAKE-5: the import snackbar offers Undo, and
   // Undo also leaves the page of the dance it took away.
@@ -2279,6 +2276,62 @@ void main() {
     },
   );
 
+  testWidgets(
+    'choosing ContraDB removes tag rows from the Advanced query and greys '
+    'out "Has tag"',
+    (tester) async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.tags.upsert(Tag(id: 't1', name: 'smooth'));
+      await repos.dances.create(
+        _dance(id: 'a', title: 'Smooth', tagIds: const ['t1']),
+      );
+      final requests = <ContraDbSearchRequest>[];
+      final contraDb = ContraDbOnline(
+        searchFetcher: (request) async {
+          requests.add(request);
+          return '{"numberMatching":0,"dances":[]}';
+        },
+      );
+      await _pumpScreen(tester, repos, contraDbOnline: contraDb);
+      await tester.pumpAndSettle();
+
+      // A local Advanced query with a tag row and a figure row.
+      await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
+      await _tapVisible(tester, find.text('Add'));
+      await _tapVisible(tester, find.text('Has tag').last);
+      expect(find.byType(DropdownButtonFormField<String>), findsOneWidget);
+
+      // Going online with The Caller's Box leaves the (greyed-out) query alone.
+      await _tapVisible(
+        tester,
+        find.byKey(const ValueKey('online-search-enable')),
+      );
+      expect(
+        find.byType(DropdownButtonFormField<String>),
+        findsNothing,
+        reason: 'the panel is closed while The Caller\'s Box is the source',
+      );
+
+      // Choosing ContraDB drops the tag row; "Has tag" is greyed out.
+      await tester.tap(find.text('ContraDB'));
+      await tester.pumpAndSettle();
+      await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
+      expect(
+        find.byWidgetPredicate(
+          (w) =>
+              w is DropdownButtonFormField<String> &&
+              w.key is ValueKey<String> &&
+              (w.key! as ValueKey<String>).value.startsWith('tag-'),
+        ),
+        findsNothing,
+      );
+      await _tapVisible(tester, find.text('Add'));
+      expect(find.text('Has tag (not available on ContraDB)'), findsOneWidget);
+      expect(requests, isEmpty, reason: 'no empty search is sent');
+    },
+  );
+
   testWidgets('advanced builder: add a "then" sequence row', (tester) async {
     final repos = openTestRepositories();
     await repos.dances.create(_dance(id: 'a', title: 'Alpha'));
@@ -2580,52 +2633,49 @@ void main() {
 
   // ── Swipe-to-reveal Delete (issue #352) ────────────────────────────────────
 
-  testWidgets(
-    'swiping reveals a Delete button; tapping it removes the dance and shows '
-    'undo snackbar',
-    (tester) async {
-      final repos = openTestRepositories();
-      await repos.dances.create(_dance(id: 'd1', title: 'Swipe Me'));
-      await repos.dances.create(_dance(id: 'd2', title: 'Stay Here'));
+  testWidgets('swiping reveals a Delete button; tapping it removes the dance and shows '
+      'undo snackbar', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Swipe Me'));
+    await repos.dances.create(_dance(id: 'd2', title: 'Stay Here'));
 
-      await _pumpScreen(tester, repos);
-      await tester.pumpAndSettle();
+    await _pumpScreen(tester, repos);
+    await tester.pumpAndSettle();
 
-      expect(find.text('Swipe Me'), findsOneWidget);
+    expect(find.text('Swipe Me'), findsOneWidget);
 
-      // Swipe left to reveal the Delete action; the swipe alone must NOT delete.
-      await tester.drag(
-        find.byKey(const ValueKey('slidable-d1')),
-        const Offset(-300, 0),
-      );
-      await tester.pumpAndSettle();
+    // Swipe left to reveal the Delete action; the swipe alone must NOT delete.
+    await tester.drag(
+      find.byKey(const ValueKey('slidable-d1')),
+      const Offset(-300, 0),
+    );
+    await tester.pumpAndSettle();
 
-      expect(find.text('Swipe Me'), findsOneWidget);
-      var stillThere = await repos.dances.getById('d1');
-      expect(stillThere, isNotNull);
-      expect(stillThere!.deletedAt, isNull);
+    expect(find.text('Swipe Me'), findsOneWidget);
+    var stillThere = await repos.dances.getById('d1');
+    expect(stillThere, isNotNull);
+    expect(stillThere!.deletedAt, isNull);
 
-      // Tapping the revealed Delete button confirms the delete.
-      await tester.tap(find.byKey(const ValueKey('slide-delete-d1')));
-      await tester.pumpAndSettle();
+    // Tapping the revealed Delete button confirms the delete.
+    await tester.tap(find.byKey(const ValueKey('slide-delete-d1')));
+    await tester.pumpAndSettle();
 
-      // Dance is gone from the list view.
-      expect(find.text('Swipe Me'), findsNothing);
-      expect(find.text('Stay Here'), findsOneWidget);
+    // Dance is gone from the list view.
+    expect(find.text('Swipe Me'), findsNothing);
+    expect(find.text('Stay Here'), findsOneWidget);
 
-      // Undo snackbar appears.
-      expect(find.text('"Swipe Me" deleted.'), findsOneWidget);
-      expect(find.text('Undo'), findsOneWidget);
+    // Undo snackbar appears.
+    expect(find.text('"Swipe Me" deleted.'), findsOneWidget);
+    expect(find.text('Undo'), findsOneWidget);
 
-      // Dance is soft-deleted in storage, not hard-deleted.
-      final deleted = await repos.dances.getById('d1', includeDeleted: true);
-      expect(deleted, isNotNull);
-      expect(deleted!.deletedAt, isNotNull);
+    // Dance is soft-deleted in storage, not hard-deleted.
+    final deleted = await repos.dances.getById('d1', includeDeleted: true);
+    expect(deleted, isNotNull);
+    expect(deleted!.deletedAt, isNotNull);
 
-      final visible = await repos.dances.listAll();
-      expect(visible.where((d) => d.id == 'd1'), isEmpty);
-    },
-  );
+    final visible = await repos.dances.listAll();
+    expect(visible.where((d) => d.id == 'd1'), isEmpty);
+  });
 
   testWidgets('undo on the revealed-Delete snackbar restores the dance', (
     tester,

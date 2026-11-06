@@ -211,36 +211,33 @@ void main() {
     );
   });
 
-  test(
-    'a burst the database already merged leaves the window nothing to do',
-    () async {
-      // The other half of the same finding, and the reason the assertion above
-      // is not stated more strongly. Writes issued together commit close enough
-      // that drift dispatches them as a single update, so there is no burst left
-      // for a window to collapse — it cannot beat a merge the database already
-      // performed.
-      //
-      // Asserted rather than skipped, because the tempting generalisation from
-      // the test above is "a tighter burst needs the window more", and that is
-      // backwards.
-      final windowed = await _tightBurst(
-        repos: openTestRepositories(),
-        coalesce: DanceDetailData.coalesceWindow,
-      );
-      final unwindowed = await _tightBurst(
-        repos: openTestRepositories(),
-        coalesce: _noCoalescing,
-      );
+  test('a burst the database already merged leaves the window nothing to do', () async {
+    // The other half of the same finding, and the reason the assertion above
+    // is not stated more strongly. Writes issued together commit close enough
+    // that drift dispatches them as a single update, so there is no burst left
+    // for a window to collapse — it cannot beat a merge the database already
+    // performed.
+    //
+    // Asserted rather than skipped, because the tempting generalisation from
+    // the test above is "a tighter burst needs the window more", and that is
+    // backwards.
+    final windowed = await _tightBurst(
+      repos: openTestRepositories(),
+      coalesce: DanceDetailData.coalesceWindow,
+    );
+    final unwindowed = await _tightBurst(
+      repos: openTestRepositories(),
+      coalesce: _noCoalescing,
+    );
 
-      expect(
-        windowed,
-        unwindowed,
-        reason:
-            'concurrent writes arrive as one update either way. Saw '
-            'windowed=$windowed unwindowed=$unwindowed',
-      );
-    },
-  );
+    expect(
+      windowed,
+      unwindowed,
+      reason:
+          'concurrent writes arrive as one update either way. Saw '
+          'windowed=$windowed unwindowed=$unwindowed',
+    );
+  });
 }
 
 /// Subscribes, writes [writes] other dances one transaction at a time, and

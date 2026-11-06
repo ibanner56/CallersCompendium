@@ -167,9 +167,8 @@ void main() {
     );
     expect(SyncFailure.decode(failure.encode()).progressed, isTrue);
     expect(
-      SyncFailure.decode(
-        const SyncFailure(SyncFailureCause.timedOut).encode(),
-      ).progressed,
+      SyncFailure.decode(const SyncFailure(SyncFailureCause.timedOut).encode())
+          .progressed,
       isFalse,
     );
     expect(

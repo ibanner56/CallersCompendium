@@ -168,9 +168,8 @@ void main() {
     final repos = openRepos();
     await repos.dances.create(dance('d1', 'Petronella'));
     final seen = <int>[];
-    final sub = CollectionData.watch(
-      repos,
-    ).listen((d) => seen.add(d.dancesById.length));
+    final sub = CollectionData.watch(repos)
+        .listen((d) => seen.add(d.dancesById.length));
     addTearDown(sub.cancel);
     await pumpEventQueue();
     expect(seen, [1]);
@@ -688,9 +687,8 @@ void main() {
       await repos.dances.create(dance('d1', 'Petronella'));
       final snapshots = <CollectionData>[];
       var errors = 0;
-      final sub = CollectionData.watch(
-        repos,
-      ).listen(snapshots.add, onError: (Object _) => errors++);
+      final sub = CollectionData.watch(repos)
+          .listen(snapshots.add, onError: (Object _) => errors++);
       addTearDown(sub.cancel);
       await pumpEventQueue();
       expect(snapshots, hasLength(1));
@@ -765,9 +763,9 @@ void main() {
       //
       // Asserted here rather than trusted, so the guard has been shown to fire.
       expect(
-        () => const CoalesceTrailing<int>(
-          Duration(milliseconds: -1),
-        ).bind(const Stream<int>.empty()),
+        () =>
+            const CoalesceTrailing<int>(Duration(milliseconds: -1))
+                .bind(const Stream<int>.empty()),
         throwsA(isA<AssertionError>()),
       );
     });
@@ -804,11 +802,9 @@ void main() {
       //
       // Removing the short-circuit reproduces `[1, 3]` exactly.
       final seen = <int>[];
-      final sub = Stream.fromIterable([
-        1,
-        2,
-        3,
-      ]).transform(const CoalesceTrailing<int>(Duration.zero)).listen(seen.add);
+      final sub = Stream.fromIterable([1, 2, 3])
+          .transform(const CoalesceTrailing<int>(Duration.zero))
+          .listen(seen.add);
       addTearDown(sub.cancel);
       await pumpEventQueue();
 

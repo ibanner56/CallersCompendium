@@ -109,16 +109,13 @@ void main() {
     expect(archive.dances.single.rating, 4);
   });
 
-  test(
-    'the archive codec in share mode still carries them (import re-encodes)',
-    () {
-      // Pins why the strip is not in the codec: import-side re-encodes use share
-      // mode and must not lose a rating the user is importing.
-      final json = encodeArchive(
-        CompendiumArchive(exportedAt: _now, dances: [_dance()]),
-        mode: ArchiveSerializationMode.share,
-      );
-      expect(decodeArchive(json).archive.dances.single.rating, 4);
-    },
-  );
+  test('the archive codec in share mode still carries them (import re-encodes)', () {
+    // Pins why the strip is not in the codec: import-side re-encodes use share
+    // mode and must not lose a rating the user is importing.
+    final json = encodeArchive(
+      CompendiumArchive(exportedAt: _now, dances: [_dance()]),
+      mode: ArchiveSerializationMode.share,
+    );
+    expect(decodeArchive(json).archive.dances.single.rating, 4);
+  });
 }

@@ -2118,30 +2118,27 @@ void main() {
       return rows.isNotEmpty;
     }
 
-    test(
-      'the listing excludes this device, which the server does include',
-      () async {
-        final fake = _Admin();
-        final controller = await paired(fake);
+    test('the listing excludes this device, which the server does include', () async {
+      final fake = _Admin();
+      final controller = await paired(fake);
 
-        final result = await controller.listStoreDevices();
+      final result = await controller.listStoreDevices();
 
-        expect(result.outcome, SyncAdminOutcome.done);
-        expect(
-          result.devices,
-          ['peer_a', 'peer_b'],
-          reason:
-              'spec §5: a client MUST exclude its own id from the peer set, and '
-              'offering to remove this device would be a different action',
-        );
-        expect(fake.closes, 1, reason: 'the listing owns the client it built');
-        expect(
-          result.selfDeviceId,
-          'device_1',
-          reason: 'the list shows this device its own tag',
-        );
-      },
-    );
+      expect(result.outcome, SyncAdminOutcome.done);
+      expect(
+        result.devices,
+        ['peer_a', 'peer_b'],
+        reason:
+            'spec §5: a client MUST exclude its own id from the peer set, and '
+            'offering to remove this device would be a different action',
+      );
+      expect(fake.closes, 1, reason: 'the listing owns the client it built');
+      expect(
+        result.selfDeviceId,
+        'device_1',
+        reason: 'the list shows this device its own tag',
+      );
+    });
 
     test(
       'a malformed store answer is a failed listing, never a short one',

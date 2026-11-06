@@ -175,9 +175,8 @@ void main() {
       ]) {
         final repos = await seeded();
 
-        final outcome = await BackupService(
-          repos,
-        ).restoreFromJson(backupWith(glossary));
+        final outcome = await BackupService(repos)
+            .restoreFromJson(backupWith(glossary));
 
         expect(outcome.applied, isTrue, reason: '$glossary');
         expect(outcome.errors, isNotEmpty, reason: '$glossary');
@@ -332,9 +331,8 @@ void main() {
         ],
       });
 
-      final outcome = await BackupService(
-        repos,
-      ).restoreFromJson(json, mode: RestoreMode.merge);
+      final outcome = await BackupService(repos)
+          .restoreFromJson(json, mode: RestoreMode.merge);
 
       expect(outcome.applied, isTrue);
       expect(await liveIds(repos), unorderedEquals(['live', 'fromBackup']));
@@ -349,15 +347,13 @@ void main() {
       });
 
       final replaced = await seeded();
-      await BackupService(
-        replaced,
-      ).retryApplySettings(json, mode: RestoreMode.replace);
+      await BackupService(replaced)
+          .retryApplySettings(json, mode: RestoreMode.replace);
       expect(await liveIds(replaced), ['fromBackup']);
 
       final merged = await seeded();
-      await BackupService(
-        merged,
-      ).retryApplySettings(json, mode: RestoreMode.merge);
+      await BackupService(merged)
+          .retryApplySettings(json, mode: RestoreMode.merge);
       expect(await liveIds(merged), unorderedEquals(['live', 'fromBackup']));
     });
   });

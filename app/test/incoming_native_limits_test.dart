@@ -13,9 +13,8 @@ void main() {
 
   /// The integer literal assigned to [name] in [source], underscores removed.
   int literal(String source, String name) {
-    final match = RegExp(
-      '$name\\s*(?::\\s*\\w+)?\\s*=\\s*([0-9_]+)',
-    ).firstMatch(source);
+    final match = RegExp('$name\\s*(?::\\s*\\w+)?\\s*=\\s*([0-9_]+)')
+        .firstMatch(source);
     expect(match, isNotNull, reason: '$name literal not found');
     return int.parse(match!.group(1)!.replaceAll('_', ''));
   }

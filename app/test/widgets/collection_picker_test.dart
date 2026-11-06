@@ -1235,6 +1235,55 @@ void main() {
     expect(_titles(tester), ['Both']);
   });
 
+  testWidgets('choosing ContraDB removes tag rows from the Advanced query and '
+      'greys out "Has tag" in the picker', (tester) async {
+    final repos = openTestRepositories();
+    // ignore: unused_result
+    await repos.tags.upsert(Tag(id: 't1', name: 'smooth'));
+    await repos.dances.create(
+      _dance(id: 'a', title: 'Smooth', tagIds: const ['t1']),
+    );
+    await _pumpPicker(
+      tester,
+      repos,
+      onAddDance: (_) {},
+      enableOnlineSearch: true,
+      contraDbOnline: ContraDbOnline(
+        searchFetcher: (_) async => '{"numberMatching":0,"dances":[]}',
+      ),
+    );
+    await tester.pumpAndSettle();
+    final tagDropdown = find.byWidgetPredicate(
+      (w) =>
+          w is DropdownButtonFormField<String> &&
+          w.key is ValueKey<String> &&
+          (w.key! as ValueKey<String>).value.startsWith('tag-'),
+    );
+
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('picker-advanced-panel')),
+    );
+    await _tapVisible(tester, find.text('Add'));
+    await _tapVisible(tester, find.text('Has tag').last);
+    expect(tagDropdown, findsOneWidget);
+
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('picker-online-search-enable')),
+    );
+    await tester.tap(find.text('ContraDB'));
+    await tester.pumpAndSettle();
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('picker-advanced-panel')),
+    );
+
+    expect(tagDropdown, findsNothing);
+    await _tapVisible(tester, find.text('Add'));
+    expect(find.text('Has tag (not available on ContraDB)'), findsOneWidget);
+  });
+
   group('search enrichment (saved-dialect vocabulary)', () {
     // A saved dialect the user is NOT actively using (active is Larks/Robins):
     // maps role2 → follow, so "follows" should resolve to role2s via the union

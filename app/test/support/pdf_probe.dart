@@ -33,8 +33,7 @@ int pdfPageCount(Uint8List pdf) =>
 
 /// The first page's `/MediaBox` as (width, height), rounded to whole points.
 (int, int) pdfMediaBox(Uint8List pdf) {
-  final m = RegExp(
-    r'/MediaBox\s*\[\s*0\s+0\s+([\d.]+)\s+([\d.]+)\s*\]',
-  ).firstMatch(latin1.decode(pdf))!;
+  final m = RegExp(r'/MediaBox\s*\[\s*0\s+0\s+([\d.]+)\s+([\d.]+)\s*\]')
+      .firstMatch(latin1.decode(pdf))!;
   return (double.parse(m.group(1)!).round(), double.parse(m.group(2)!).round());
 }

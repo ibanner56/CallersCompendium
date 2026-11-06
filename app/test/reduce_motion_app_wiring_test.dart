@@ -42,9 +42,9 @@ void main() {
     return tester.widget<MaterialApp>(find.byType(MaterialApp));
   }
 
-  bool disableAnimationsBelowApp(WidgetTester tester) => MediaQuery.of(
-    tester.element(find.byType(Navigator).first),
-  ).disableAnimations;
+  bool disableAnimationsBelowApp(WidgetTester tester) =>
+      MediaQuery.of(tester.element(find.byType(Navigator).first))
+          .disableAnimations;
 
   testWidgets('"on" reaches MediaQuery and turns the theme cross-fade off', (
     tester,

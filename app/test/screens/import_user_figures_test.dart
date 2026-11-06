@@ -63,15 +63,16 @@ void main() {
           supportedLocales: testSupportedLocales,
           home: Builder(
             builder: (context) => ElevatedButton(
-              onPressed: () async => popped = await Navigator.of(context)
-                  .push<UserFigureImportChoices>(
-                    MaterialPageRoute(
-                      builder: (_) => ImportUserFiguresScreen(
-                        items: items,
-                        nameTaken: nameTaken,
+              onPressed: () async =>
+                  popped = await Navigator.of(context)
+                      .push<UserFigureImportChoices>(
+                        MaterialPageRoute(
+                          builder: (_) => ImportUserFiguresScreen(
+                            items: items,
+                            nameTaken: nameTaken,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
               child: const Text('open'),
             ),
           ),
@@ -209,9 +210,8 @@ void main() {
         'copy-id',
       );
       expect(
-        userFigureUseOf(
-          figuresOf((await repos.dances.getById('mine'))!).single,
-        )?.id,
+        userFigureUseOf(figuresOf((await repos.dances.getById('mine'))!).single)
+            ?.id,
         'copied',
         reason: 'only the dances the import wrote point at the copy',
       );

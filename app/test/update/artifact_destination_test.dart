@@ -7,8 +7,7 @@ void main() {
   const artifact = UpdateArtifact(
     platform: UpdatePlatform.macos,
     arch: UpdateArch.universal,
-    url:
-        'https://github.com/ibanner56/CallersCompendium/releases/download/v0.2.0/CallersCompendium-0.2.0-macos-universal.dmg',
+    url: 'https://github.com/ibanner56/CallersCompendium/releases/download/v0.2.0/CallersCompendium-0.2.0-macos-universal.dmg',
     sha256: 'abcd',
     size: 4,
   );
@@ -49,8 +48,10 @@ void main() {
   test('macOS picker returns null when the user cancels', () async {
     final destination = await pickMacosArtifactDestination(
       artifact,
-      saveLocationPicker:
-          ({required suggestedName, required acceptedTypeGroups}) async => null,
+      saveLocationPicker: ({
+        required suggestedName,
+        required acceptedTypeGroups,
+      }) async => null,
     );
 
     expect(destination, isNull);

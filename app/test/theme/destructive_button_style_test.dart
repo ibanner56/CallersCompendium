@@ -33,9 +33,8 @@ void main() {
     test('the red text button clears AA on the dialog surface ($name)', () {
       final scheme = theme.colorScheme;
       expect(
-        destructiveTextButtonStyle(
-          scheme,
-        ).foregroundColor!.resolve(<WidgetState>{}),
+        destructiveTextButtonStyle(scheme).foregroundColor!
+            .resolve(<WidgetState>{}),
         scheme.error,
       );
       expect(

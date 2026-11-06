@@ -104,18 +104,16 @@ void main() {
 
     test('numeric pre-release identifiers compare numerically (2 < 11)', () {
       expect(
-        SemVer.tryParse(
-          '1.0.0-beta.11',
-        )!.isNewerThan(SemVer.tryParse('1.0.0-beta.2')!),
+        SemVer.tryParse('1.0.0-beta.11')!
+            .isNewerThan(SemVer.tryParse('1.0.0-beta.2')!),
         isTrue,
       );
     });
 
     test('numeric identifiers rank below alphanumeric ones', () {
       expect(
-        SemVer.tryParse(
-          '1.0.0-alpha.beta',
-        )!.isNewerThan(SemVer.tryParse('1.0.0-alpha.1')!),
+        SemVer.tryParse('1.0.0-alpha.beta')!
+            .isNewerThan(SemVer.tryParse('1.0.0-alpha.1')!),
         isTrue,
       );
     });

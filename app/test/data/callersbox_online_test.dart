@@ -179,9 +179,8 @@ void main() {
       expect(params['title'], 'rory o\'more - "reel"');
       expect(params['pos_lines'], "rory o'more");
       expect(
-        Uri.parse(
-          buildCallersBoxSearchUrl('', author: 'Tom O’Brien'),
-        ).queryParameters['author'],
+        Uri.parse(buildCallersBoxSearchUrl('', author: 'Tom O’Brien'))
+            .queryParameters['author'],
         "tom o'brien",
       );
     });
@@ -635,9 +634,8 @@ void main() {
       final online = CallersBoxOnline(
         searchFetcher: (_) async => _mixedTierResultsHtml,
       );
-      final r = (await online.search(
-        const OnlineSearchQuery(title: 'moon'),
-      )).single;
+      final r = (await online.search(const OnlineSearchQuery(title: 'moon')))
+          .single;
       expect(r.source, OnlineSource.callersBox);
       expect(r.author, 'Luke Donforth');
       expect(r.formation, 'Duple Minor - Improper');
@@ -1134,268 +1132,241 @@ void main() {
       },
     );
 
-    test(
-      'confident match + variation resolution: new dance created, existing unchanged',
-      () async {
-        // "Import as a variation" is the headline path from #797 — the reporter
-        // ended up with two copies because the importer created a duplicate
-        // silently. Variation is the opt-in form of that: a second dance is
-        // created, but the existing one is left intact (id, tags, rating all
-        // preserved). This is the mirror of the link test, which documents the
-        // deliberate data-loss; here there is no data-loss on the existing dance.
-        final repos = openTestRepositories();
-        final existing = await seedDance(repos, rating: 4);
+    test('confident match + variation resolution: new dance created, existing unchanged', () async {
+      // "Import as a variation" is the headline path from #797 — the reporter
+      // ended up with two copies because the importer created a duplicate
+      // silently. Variation is the opt-in form of that: a second dance is
+      // created, but the existing one is left intact (id, tags, rating all
+      // preserved). This is the mirror of the link test, which documents the
+      // deliberate data-loss; here there is no data-loss on the existing dance.
+      final repos = openTestRepositories();
+      final existing = await seedDance(repos, rating: 4);
 
-        final plan = ambiguousPlan(
-          candidateId: existing.id,
-          figures: [customFigure('partners balance and swing')], // different
-        );
-        final result = await CallersBoxOnline().import(
-          repos,
-          plan,
-          ambiguousResolution: DedupeResolution.variation(
-            existing.id,
-            linkBack: true,
-          ),
-          now: now,
-        );
+      final plan = ambiguousPlan(
+        candidateId: existing.id,
+        figures: [customFigure('partners balance and swing')], // different
+      );
+      final result = await CallersBoxOnline().import(
+        repos,
+        plan,
+        ambiguousResolution: DedupeResolution.variation(
+          existing.id,
+          linkBack: true,
+        ),
+        now: now,
+      );
 
-        // A new dance was created (the variation).
-        expect(result.kind, OnlineImportKind.created);
-        final saved = await repos.dances.listAll();
-        expect(saved, hasLength(2));
-        // The existing dance is unchanged — id, rating all intact.
-        final unchanged = await repos.dances.getById(existing.id);
-        expect(unchanged, isNotNull);
-        expect(unchanged!.rating, 4); // not overwritten
-      },
-    );
+      // A new dance was created (the variation).
+      expect(result.kind, OnlineImportKind.created);
+      final saved = await repos.dances.listAll();
+      expect(saved, hasLength(2));
+      // The existing dance is unchanged — id, rating all intact.
+      final unchanged = await repos.dances.getById(existing.id);
+      expect(unchanged, isNotNull);
+      expect(unchanged!.rating, 4); // not overwritten
+    });
 
-    test(
-      'confident match + link resolution: preserves dance id and the existing rating when the record carries none',
-      () async {
-        // Link replaces the existing dance's content with the incoming draft,
-        // but a record that carries no rating (Caller's Box never does) leaves
-        // the caller's own rating alone (maintainer decision, 2026-10-30).
-        // The dance id is preserved so program-slot calling history still
-        // references the same dance (call history is derived, not stored on
-        // the dance record).
-        final repos = openTestRepositories();
-        final existing = await seedDance(repos, rating: 4);
+    test('confident match + link resolution: preserves dance id and the existing rating when the record carries none', () async {
+      // Link replaces the existing dance's content with the incoming draft,
+      // but a record that carries no rating (Caller's Box never does) leaves
+      // the caller's own rating alone (maintainer decision, 2026-10-30).
+      // The dance id is preserved so program-slot calling history still
+      // references the same dance (call history is derived, not stored on
+      // the dance record).
+      final repos = openTestRepositories();
+      final existing = await seedDance(repos, rating: 4);
 
-        final plan = ambiguousPlan(
-          candidateId: existing.id,
-          figures: [customFigure('partners balance and swing')], // different
-        );
-        await CallersBoxOnline().import(
-          repos,
-          plan,
-          ambiguousResolution: DedupeResolution.link(existing.id),
-          now: now,
-        );
+      final plan = ambiguousPlan(
+        candidateId: existing.id,
+        figures: [customFigure('partners balance and swing')], // different
+      );
+      await CallersBoxOnline().import(
+        repos,
+        plan,
+        ambiguousResolution: DedupeResolution.link(existing.id),
+        now: now,
+      );
 
-        final updated = await repos.dances.getById(existing.id);
-        expect(updated, isNotNull);
-        // Content was replaced...
-        expect(figuresOf(updated!), isNot(figuresOf(existing)));
-        // ...but the rating the draft does not carry was kept.
-        expect(updated.rating, 4);
-      },
-    );
+      final updated = await repos.dances.getById(existing.id);
+      expect(updated, isNotNull);
+      // Content was replaced...
+      expect(figuresOf(updated!), isNot(figuresOf(existing)));
+      // ...but the rating the draft does not carry was kept.
+      expect(updated.rating, 4);
+    });
 
-    test(
-      'confident match + link resolution: a rating the record carries overwrites the existing one',
-      () async {
-        final repos = openTestRepositories();
-        final existing = await seedDance(repos, rating: 4);
+    test('confident match + link resolution: a rating the record carries overwrites the existing one', () async {
+      final repos = openTestRepositories();
+      final existing = await seedDance(repos, rating: 4);
 
-        final base = ambiguousPlan(
-          candidateId: existing.id,
-          figures: [customFigure('partners balance and swing')],
-        );
-        final plan = ImportRecordPlan(
-          draft: StructuredDraft(
-            dance: base.draft.dance.copyWith(rating: 2),
-            raw: base.draft.raw,
-            issues: base.draft.issues,
-            authorNames: base.draft.authorNames,
-          ),
-          verdict: base.verdict,
-        );
-        await CallersBoxOnline().import(
-          repos,
-          plan,
-          ambiguousResolution: DedupeResolution.link(existing.id),
-          now: now,
-        );
+      final base = ambiguousPlan(
+        candidateId: existing.id,
+        figures: [customFigure('partners balance and swing')],
+      );
+      final plan = ImportRecordPlan(
+        draft: StructuredDraft(
+          dance: base.draft.dance.copyWith(rating: 2),
+          raw: base.draft.raw,
+          issues: base.draft.issues,
+          authorNames: base.draft.authorNames,
+        ),
+        verdict: base.verdict,
+      );
+      await CallersBoxOnline().import(
+        repos,
+        plan,
+        ambiguousResolution: DedupeResolution.link(existing.id),
+        now: now,
+      );
 
-        expect((await repos.dances.getById(existing.id))!.rating, 2);
-      },
-    );
+      expect((await repos.dances.getById(existing.id))!.rating, 2);
+    });
 
-    test(
-      'confident match + identical figures + different source: returns needsConfirmationIdentical, nothing written (red-run)',
-      () async {
-        // RED (naive regression): removing the `else if (sources differ)` guard
-        // restores the duplicate() fallthrough, creating a second dance →
-        // hasLength(2). GREEN: import() returns needsConfirmationIdentical and
-        // writes nothing.
-        // Existing dance has ContraDB provenance; incoming plan is Caller's Box
-        // → sources genuinely differ, so the cross-source dialog fires.
-        final repos = openTestRepositories();
-        final existing = await seedDance(
-          repos,
-          provenanceSource: ProvenanceSource.contradb,
-        );
+    test('confident match + identical figures + different source: returns needsConfirmationIdentical, nothing written (red-run)', () async {
+      // RED (naive regression): removing the `else if (sources differ)` guard
+      // restores the duplicate() fallthrough, creating a second dance →
+      // hasLength(2). GREEN: import() returns needsConfirmationIdentical and
+      // writes nothing.
+      // Existing dance has ContraDB provenance; incoming plan is Caller's Box
+      // → sources genuinely differ, so the cross-source dialog fires.
+      final repos = openTestRepositories();
+      final existing = await seedDance(
+        repos,
+        provenanceSource: ProvenanceSource.contradb,
+      );
 
-        final plan = ambiguousPlan(
-          candidateId: existing.id,
-          figures: [customFigure('neighbors balance and swing')], // SAME
-        );
-        final result = await CallersBoxOnline().import(repos, plan);
+      final plan = ambiguousPlan(
+        candidateId: existing.id,
+        figures: [customFigure('neighbors balance and swing')], // SAME
+      );
+      final result = await CallersBoxOnline().import(repos, plan);
 
-        expect(result.kind, OnlineImportKind.needsConfirmationIdentical);
-        expect(result.danceId, existing.id);
-        // Nothing written — user must confirm before we commit.
-        final saved = await repos.dances.listAll();
-        expect(saved, hasLength(1));
-      },
-    );
+      expect(result.kind, OnlineImportKind.needsConfirmationIdentical);
+      expect(result.danceId, existing.id);
+      // Nothing written — user must confirm before we commit.
+      final saved = await repos.dances.listAll();
+      expect(saved, hasLength(1));
+    });
 
-    test(
-      'an undecodable existing transcription never compares as identical (#1347)',
-      () async {
-        // The trap this guards: mapping an undecodable side to an empty list
-        // made BOTH sides empty when the incoming dance legitimately has no
-        // figures, so `figuresCanonicallyIdentical` returned true and the flow
-        // skipped confirmation — acting on a comparison that was impossible.
-        final repos = openTestRepositories();
-        final existing = await seedDance(
-          repos,
-          provenanceSource: ProvenanceSource.contradb,
-        );
-        await repos.db.customStatement(
-          'UPDATE dances SET figures_json = ? WHERE id = ?',
-          ['[{"kind":', existing.id],
-        );
+    test('an undecodable existing transcription never compares as identical (#1347)', () async {
+      // The trap this guards: mapping an undecodable side to an empty list
+      // made BOTH sides empty when the incoming dance legitimately has no
+      // figures, so `figuresCanonicallyIdentical` returned true and the flow
+      // skipped confirmation — acting on a comparison that was impossible.
+      final repos = openTestRepositories();
+      final existing = await seedDance(
+        repos,
+        provenanceSource: ProvenanceSource.contradb,
+      );
+      await repos.db.customStatement(
+        'UPDATE dances SET figures_json = ? WHERE id = ?',
+        ['[{"kind":', existing.id],
+      );
 
-        // Incoming draft carries NO figures, which is what makes the empty-list
-        // mapping collide with the undecodable side.
-        final plan = ambiguousPlan(candidateId: existing.id, figures: const []);
-        final result = await CallersBoxOnline().import(repos, plan);
+      // Incoming draft carries NO figures, which is what makes the empty-list
+      // mapping collide with the undecodable side.
+      final plan = ambiguousPlan(candidateId: existing.id, figures: const []);
+      final result = await CallersBoxOnline().import(repos, plan);
 
-        expect(
-          result.kind,
-          OnlineImportKind.needsConfirmation,
-          reason: 'an unreadable side cannot be compared, so the user decides',
-        );
-        final saved = await repos.dances.listAll();
-        expect(saved, hasLength(1), reason: 'nothing written without consent');
-      },
-    );
+      expect(
+        result.kind,
+        OnlineImportKind.needsConfirmation,
+        reason: 'an unreadable side cannot be compared, so the user decides',
+      );
+      final saved = await repos.dances.listAll();
+      expect(saved, hasLength(1), reason: 'nothing written without consent');
+    });
 
-    test(
-      'confident match + identical figures + same source: falls through to duplicate (no prompt)',
-      () async {
-        // A same-source re-import with a drifted externalId produces an
-        // ambiguous verdict (not reimport) but must NOT trigger the
-        // cross-source dialog. Guard: existing.provenance.source == incoming
-        // source → falls through to DedupeResolution.duplicate().
-        final repos = openTestRepositories();
-        final existing = await seedDance(
-          repos,
-          provenanceSource: ProvenanceSource.callersbox,
-        );
+    test('confident match + identical figures + same source: falls through to duplicate (no prompt)', () async {
+      // A same-source re-import with a drifted externalId produces an
+      // ambiguous verdict (not reimport) but must NOT trigger the
+      // cross-source dialog. Guard: existing.provenance.source == incoming
+      // source → falls through to DedupeResolution.duplicate().
+      final repos = openTestRepositories();
+      final existing = await seedDance(
+        repos,
+        provenanceSource: ProvenanceSource.callersbox,
+      );
 
-        final plan = ambiguousPlan(
-          candidateId: existing.id,
-          figures: [customFigure('neighbors balance and swing')], // SAME
-        );
-        final result = await CallersBoxOnline().import(repos, plan);
+      final plan = ambiguousPlan(
+        candidateId: existing.id,
+        figures: [customFigure('neighbors balance and swing')], // SAME
+      );
+      final result = await CallersBoxOnline().import(repos, plan);
 
-        // Falls through: no prompt, second copy created.
-        expect(result.kind, isNot(OnlineImportKind.needsConfirmationIdentical));
-        expect(result.kind, isNot(OnlineImportKind.needsConfirmation));
-        final saved = await repos.dances.listAll();
-        expect(saved, hasLength(2));
-      },
-    );
+      // Falls through: no prompt, second copy created.
+      expect(result.kind, isNot(OnlineImportKind.needsConfirmationIdentical));
+      expect(result.kind, isNot(OnlineImportKind.needsConfirmation));
+      final saved = await repos.dances.listAll();
+      expect(saved, hasLength(2));
+    });
 
-    test(
-      'confident match + identical figures + null provenance (hand-entered): prompts, writes nothing',
-      () async {
-        // A hand-entered dance has null provenance. It used to fall through to
-        // a silent second copy, because the dialog then said "from a different
-        // source". Its wording now names no source, so a hand-entered match
-        // asks like any other (INTAKE-5).
-        final repos = openTestRepositories();
-        // seedDance with no provenanceSource → provenance == null
-        final existing = await seedDance(repos);
+    test('confident match + identical figures + null provenance (hand-entered): prompts, writes nothing', () async {
+      // A hand-entered dance has null provenance. It used to fall through to
+      // a silent second copy, because the dialog then said "from a different
+      // source". Its wording now names no source, so a hand-entered match
+      // asks like any other (INTAKE-5).
+      final repos = openTestRepositories();
+      // seedDance with no provenanceSource → provenance == null
+      final existing = await seedDance(repos);
 
-        final plan = ambiguousPlan(
-          candidateId: existing.id,
-          figures: [customFigure('neighbors balance and swing')], // SAME
-        );
-        final result = await CallersBoxOnline().import(repos, plan);
+      final plan = ambiguousPlan(
+        candidateId: existing.id,
+        figures: [customFigure('neighbors balance and swing')], // SAME
+      );
+      final result = await CallersBoxOnline().import(repos, plan);
 
-        expect(result.kind, OnlineImportKind.needsConfirmationIdentical);
-        expect(result.danceId, existing.id);
-        final saved = await repos.dances.listAll();
-        expect(saved, hasLength(1), reason: 'nothing written without consent');
-      },
-    );
+      expect(result.kind, OnlineImportKind.needsConfirmationIdentical);
+      expect(result.danceId, existing.id);
+      final saved = await repos.dances.listAll();
+      expect(saved, hasLength(1), reason: 'nothing written without consent');
+    });
 
-    test(
-      'confident match + identical figures + link resolution: updates existing, no second dance',
-      () async {
-        // User chose "Same dance" in the cross-source duplicate dialog (issue
-        // #811). The existing dance is linked to the incoming record; no second
-        // dance is created.
-        final repos = openTestRepositories();
-        final existing = await seedDance(
-          repos,
-          rating: 4,
-          provenanceSource: ProvenanceSource.contradb,
-        );
+    test('confident match + identical figures + link resolution: updates existing, no second dance', () async {
+      // User chose "Same dance" in the cross-source duplicate dialog (issue
+      // #811). The existing dance is linked to the incoming record; no second
+      // dance is created.
+      final repos = openTestRepositories();
+      final existing = await seedDance(
+        repos,
+        rating: 4,
+        provenanceSource: ProvenanceSource.contradb,
+      );
 
-        final plan = ambiguousPlan(
-          candidateId: existing.id,
-          figures: [customFigure('neighbors balance and swing')], // SAME
-        );
-        final result = await CallersBoxOnline().import(
-          repos,
-          plan,
-          ambiguousResolution: DedupeResolution.link(existing.id),
-          now: now,
-        );
+      final plan = ambiguousPlan(
+        candidateId: existing.id,
+        figures: [customFigure('neighbors balance and swing')], // SAME
+      );
+      final result = await CallersBoxOnline().import(
+        repos,
+        plan,
+        ambiguousResolution: DedupeResolution.link(existing.id),
+        now: now,
+      );
 
-        expect(result.kind, OnlineImportKind.created);
-        final saved = await repos.dances.listAll();
-        // Only the original dance exists — the incoming record updated it.
-        expect(saved, hasLength(1));
-        // The dance id is preserved (program slots still reference it).
-        expect(saved.first.id, existing.id);
-      },
-    );
+      expect(result.kind, OnlineImportKind.created);
+      final saved = await repos.dances.listAll();
+      // Only the original dance exists — the incoming record updated it.
+      expect(saved, hasLength(1));
+      // The dance id is preserved (program slots still reference it).
+      expect(saved.first.id, existing.id);
+    });
 
-    test(
-      'confident match but candidate absent from repos: falls through to duplicate (regression)',
-      () async {
-        // If the candidate dance has been deleted from repos, the detection
-        // block is bypassed and the import falls through to duplicate().
-        final repos = openTestRepositories();
+    test('confident match but candidate absent from repos: falls through to duplicate (regression)', () async {
+      // If the candidate dance has been deleted from repos, the detection
+      // block is bypassed and the import falls through to duplicate().
+      final repos = openTestRepositories();
 
-        final plan = ambiguousPlan(
-          candidateId: 'nonexistent-dance-id',
-          figures: [customFigure('partners balance and swing')],
-        );
-        await CallersBoxOnline().import(repos, plan);
+      final plan = ambiguousPlan(
+        candidateId: 'nonexistent-dance-id',
+        figures: [customFigure('partners balance and swing')],
+      );
+      await CallersBoxOnline().import(repos, plan);
 
-        // One new dance created (fell through to duplicate behavior).
-        final saved = await repos.dances.listAll();
-        expect(saved, hasLength(1));
-      },
-    );
+      // One new dance created (fell through to duplicate behavior).
+      final saved = await repos.dances.listAll();
+      expect(saved, hasLength(1));
+    });
   });
 
   group('onlineImportMessage', () {

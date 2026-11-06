@@ -966,6 +966,13 @@ class _DanceListScreenState extends State<DanceListScreen>
     }
   }
 
+  /// Removes tag rows from the Advanced query when the source now searched
+  /// cannot carry a tag (ContraDB has none): one left behind would make the
+  /// search fail. Call inside `setState`, once online mode is on.
+  void _dropTagRowsIfUnsupported() {
+    if (_onlineSource.hidesAdvancedTags) removeBuilderTags(_advancedRoot);
+  }
+
   /// Toggles online search mode. Turning it on runs an immediate search if a
   /// query is present; turning it off clears the online results and restores the
   /// local list.
@@ -975,6 +982,7 @@ class _DanceListScreenState extends State<DanceListScreen>
     _onlineSeq++;
     setState(() {
       _onlineEnabled = value;
+      if (value) _dropTagRowsIfUnsupported();
       _onlineError = null;
       if (value) {
         // Selection is a local-collection feature: do not leave a local
@@ -1009,6 +1017,7 @@ class _DanceListScreenState extends State<DanceListScreen>
     _onlineSeq++;
     setState(() {
       _onlineSource = source;
+      if (_onlineEnabled) _dropTagRowsIfUnsupported();
       _onlineResults = const [];
       _onlineError = null;
       _onlineSearching = false;
@@ -3176,6 +3185,9 @@ class _DanceListScreenState extends State<DanceListScreen>
       dialect: _dialect,
       sectionLabels: data.sectionLabels,
       tags: data.tags,
+      tagsUnavailableFor: _onlineEnabled && _onlineSource.hidesAdvancedTags
+          ? _onlineSource.label
+          : null,
       onChanged: _onAdvancedChanged,
     );
   }

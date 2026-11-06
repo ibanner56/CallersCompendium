@@ -22,6 +22,7 @@ class AdvancedQueryBuilder extends StatelessWidget {
     required this.sectionLabels,
     required this.tags,
     required this.onChanged,
+    this.tagsUnavailableFor,
   });
 
   final BuilderGroup root;
@@ -40,6 +41,12 @@ class AdvancedQueryBuilder extends StatelessWidget {
   final List<Tag> tags;
   final VoidCallback onChanged;
 
+  /// The name of the source being searched when that source cannot carry a tag
+  /// condition (ContraDB has no tags), or `null` when tags are available. The
+  /// "Has tag" entry is then shown greyed out, saying why, and the screen has
+  /// already removed any tag rows.
+  final String? tagsUnavailableFor;
+
   @override
   Widget build(BuildContext context) {
     return _GroupView(
@@ -48,6 +55,7 @@ class AdvancedQueryBuilder extends StatelessWidget {
       dialect: dialect,
       sectionLabels: sectionLabels,
       tags: tags,
+      tagsUnavailableFor: tagsUnavailableFor,
       onChanged: onChanged,
       onRemove: null,
       depth: 0,
@@ -62,6 +70,7 @@ class _GroupView extends StatelessWidget {
     required this.dialect,
     required this.sectionLabels,
     required this.tags,
+    required this.tagsUnavailableFor,
     required this.onChanged,
     required this.onRemove,
     required this.depth,
@@ -72,6 +81,7 @@ class _GroupView extends StatelessWidget {
   final Dialect dialect;
   final List<String> sectionLabels;
   final List<Tag> tags;
+  final String? tagsUnavailableFor;
   final VoidCallback onChanged;
   final VoidCallback? onRemove;
   final int depth;
@@ -153,6 +163,7 @@ class _GroupView extends StatelessWidget {
               child: _AddMenu(
                 id: group.id,
                 offerTag: tags.isNotEmpty,
+                tagsUnavailableFor: tagsUnavailableFor,
                 onAdd: (node) {
                   group.children.add(node);
                   onChanged();
@@ -175,6 +186,7 @@ class _GroupView extends StatelessWidget {
           dialect: dialect,
           sectionLabels: sectionLabels,
           tags: tags,
+          tagsUnavailableFor: tagsUnavailableFor,
           onChanged: onChanged,
           onRemove: remove,
           depth: depth + 1,
@@ -221,10 +233,15 @@ class _AddMenu extends StatelessWidget {
   const _AddMenu({
     required this.id,
     required this.offerTag,
+    required this.tagsUnavailableFor,
     required this.onAdd,
   });
 
   final String id;
+
+  /// Non-null when the searched source cannot carry a tag: "Has tag" is then
+  /// shown but disabled, naming that source, instead of being omitted.
+  final String? tagsUnavailableFor;
 
   /// Whether "Has tag" is offered. False when there is no tag to pick, so the
   /// menu never adds a row that cannot be filled in (mirrors the Tag facet,
@@ -249,7 +266,14 @@ class _AddMenu extends StatelessWidget {
           value: 'figure',
           child: Text(l10n.collectionQueryHasFigure),
         ),
-        if (offerTag)
+        if (tagsUnavailableFor case final source?)
+          PopupMenuItem(
+            key: ValueKey('add-tag-unavailable-$id'),
+            value: 'tag',
+            enabled: false,
+            child: Text(l10n.collectionQueryHasTagUnavailable(source)),
+          )
+        else if (offerTag)
           PopupMenuItem(value: 'tag', child: Text(l10n.collectionQueryHasTag)),
         PopupMenuItem(
           value: 'then',

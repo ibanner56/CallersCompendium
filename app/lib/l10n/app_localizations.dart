@@ -7215,6 +7215,12 @@ abstract class AppLocalizations {
   /// **'Has tag'**
   String get collectionQueryHasTag;
 
+  /// The Has tag entry of the Advanced query Add menu while an online source without tags is searched: shown greyed out, naming the source, instead of being offered.
+  ///
+  /// In en, this message translates to:
+  /// **'Has tag (not available on {source})'**
+  String collectionQueryHasTagUnavailable(String source);
+
   /// Accessibility label of the tag dropdown on an Advanced-query 'Has tag' row.
   ///
   /// In en, this message translates to:

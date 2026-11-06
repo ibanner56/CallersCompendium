@@ -182,14 +182,13 @@ void main() {
     final c = controller(
       repos,
       manifestBody: _manifest(),
-      downloader:
-          (
-            artifact, {
-            required destination,
-            client,
-            onProgress,
-            cancelToken,
-          }) async => DownloadOutcome.networkError('offline'),
+      downloader: (
+        artifact, {
+        required destination,
+        client,
+        onProgress,
+        cancelToken,
+      }) async => DownloadOutcome.networkError('offline'),
       handoff: (file, platform) async {
         handoffs.add(_HandoffCall(file, platform));
         return HandoffResult.launched;
@@ -577,14 +576,13 @@ void main() {
         final c = controller(
           repos,
           manifestBody: _manifest(),
-          downloader:
-              (
-                artifact, {
-                required destination,
-                client,
-                onProgress,
-                cancelToken,
-              }) async => throw StateError('boom'),
+          downloader: (
+            artifact, {
+            required destination,
+            client,
+            onProgress,
+            cancelToken,
+          }) async => throw StateError('boom'),
         );
         addTearDown(c.dispose);
         await c.load();

@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/widgets/figure_table.dart';
 import 'package:compendium_app/src/widgets/warnings_card.dart';
+
 import '../support/l10n_harness.dart';
 
 /// The dance detail view shows the editor's beat-mismatch warning, in the

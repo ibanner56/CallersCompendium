@@ -140,13 +140,12 @@ void main() {
       '{"canonical":true}',
       'dance.json',
       isDesktop: () => true,
-      saveLocationPicker:
-          ({
-            suggestedName,
-            acceptedTypeGroups,
-            initialDirectory,
-            canCreateDirectories,
-          }) async => null,
+      saveLocationPicker: ({
+        suggestedName,
+        acceptedTypeGroups,
+        initialDirectory,
+        canCreateDirectories,
+      }) async => null,
       stageFile: (json, fileName) async {
         staged = true;
         return XFile('/tmp/$fileName');
@@ -206,13 +205,12 @@ void main() {
       'dance.json',
       isDesktop: () => true,
       isMacOS: () => true,
-      saveLocationPicker:
-          ({
-            suggestedName,
-            acceptedTypeGroups,
-            initialDirectory,
-            canCreateDirectories,
-          }) async => FileSaveLocation(path),
+      saveLocationPicker: ({
+        suggestedName,
+        acceptedTypeGroups,
+        initialDirectory,
+        canCreateDirectories,
+      }) async => FileSaveLocation(path),
     );
 
     expect(result!.path, path);

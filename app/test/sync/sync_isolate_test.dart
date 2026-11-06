@@ -1565,9 +1565,8 @@ Future<void> _postTerminal(
   Map<String, Object?> message,
 ) async {
   final acknowledgement = ReceivePort();
-  syncPassResultPort(
-    request,
-  ).send({...message, 'ack': acknowledgement.sendPort});
+  syncPassResultPort(request)
+      .send({...message, 'ack': acknowledgement.sendPort});
   await acknowledgement.first;
   acknowledgement.close();
 }

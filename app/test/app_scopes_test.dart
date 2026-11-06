@@ -120,9 +120,9 @@ void main() {
   tearDown(() => defaultBackupCodecRunner = runBackupCodecOnIsolate);
 
   /// The real scope types, read from the mounted app after [bootApp].
-  List<Type> realScopeTypes(WidgetTester tester) =>
-      (tester.state(find.byType(CompendiumApp)) as AppScopeTypesSource)
-          .appScopeTypes;
+  List<Type> realScopeTypes(WidgetTester tester) => (tester.state(
+    find.byType(CompendiumApp),
+  ) as AppScopeTypesSource).appScopeTypes;
 
   Future<void> bootApp(WidgetTester tester) async {
     await tester.binding.setSurfaceSize(const Size(1200, 900));

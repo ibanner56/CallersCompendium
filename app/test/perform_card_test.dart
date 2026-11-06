@@ -128,9 +128,8 @@ void main() {
             builder: (context, setState) {
               setScale = setState;
               return MediaQuery(
-                data: MediaQuery.of(
-                  context,
-                ).copyWith(textScaler: TextScaler.linear(systemScale)),
+                data: MediaQuery.of(context)
+                    .copyWith(textScaler: TextScaler.linear(systemScale)),
                 child: Scaffold(
                   body: FormationColorsScope(
                     controller: c,
@@ -271,29 +270,23 @@ void main() {
   ScrollPosition scrollPosition(WidgetTester tester) =>
       tester.state<ScrollableState>(find.byType(Scrollable).first).position;
 
-  testWidgets(
-    'auto-size shrinks a tall card to fit a smaller-than-fullscreen window '
-    'without scrolling (issue #527)',
-    (tester) async {
-      addTearDown(() => tester.binding.setSurfaceSize(null));
-      final c = await _controllerWith(null);
+  testWidgets('auto-size shrinks a tall card to fit a smaller-than-fullscreen window '
+      'without scrolling (issue #527)', (tester) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final c = await _controllerWith(null);
 
-      // A window well below full screen — the reported repro. Before the fix the
-      // auto-fit search was floored at the manual large-print scale (1.0) and
-      // could not shrink the card, so the trailing section (calling notes / B
-      // figures) fell off the viewport and was unreachable.
-      await pumpAutoSized(tester, tallDance(), const Size(720, 620), c);
+    // A window well below full screen — the reported repro. Before the fix the
+    // auto-fit search was floored at the manual large-print scale (1.0) and
+    // could not shrink the card, so the trailing section (calling notes / B
+    // figures) fell off the viewport and was unreachable.
+    await pumpAutoSized(tester, tallDance(), const Size(720, 620), c);
 
-      expect(tester.takeException(), isNull);
-      // The whole card fits: nothing to scroll.
-      expect(scrollPosition(tester).maxScrollExtent, lessThan(1.0));
-      // …and the last section is actually laid out and visible.
-      expect(
-        find.textContaining('robins chain across the set.'),
-        findsOneWidget,
-      );
-    },
-  );
+    expect(tester.takeException(), isNull);
+    // The whole card fits: nothing to scroll.
+    expect(scrollPosition(tester).maxScrollExtent, lessThan(1.0));
+    // …and the last section is actually laid out and visible.
+    expect(find.textContaining('robins chain across the set.'), findsOneWidget);
+  });
 
   testWidgets(
     'auto-size keeps the whole card reachable by scrolling when even the '

@@ -215,9 +215,8 @@ void main() {
     'a newer backupVersion or newer core schemaVersion sets newerSchema',
     () {
       expect(
-        decodeBackup(
-          '{"backupVersion": 999, "core": {}, "app": {}}',
-        ).newerSchema,
+        decodeBackup('{"backupVersion": 999, "core": {}, "app": {}}')
+            .newerSchema,
         isTrue,
       );
       expect(

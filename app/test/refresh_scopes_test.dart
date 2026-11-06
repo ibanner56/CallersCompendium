@@ -652,50 +652,47 @@ void main() {
     },
   );
 
-  testWidgets(
-    "gaps 6 and 7: editing a dance's level updates a program summary that is "
-    'already mounted and rendering it',
-    (tester) async {
-      final repos = openTestRepos();
-      await repos.dances.create(
-        dance(id: 'd1', title: 'Alpha', level: DanceLevel.beginner),
-      );
-      await repos.programs.create(
-        program(
-          id: 'p1',
-          title: 'Friday Night',
-          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
-        ),
-      );
-      await pump(
-        tester,
-        repos,
-        ProgramSummaryPane(
-          programId: 'p1',
-          onOpenBuilder: () {},
-          onDeleted: () {},
-          onNavigateTo: (_) {},
-        ),
-      );
+  testWidgets("gaps 6 and 7: editing a dance's level updates a program summary that is "
+      'already mounted and rendering it', (tester) async {
+    final repos = openTestRepos();
+    await repos.dances.create(
+      dance(id: 'd1', title: 'Alpha', level: DanceLevel.beginner),
+    );
+    await repos.programs.create(
+      program(
+        id: 'p1',
+        title: 'Friday Night',
+        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+      ),
+    );
+    await pump(
+      tester,
+      repos,
+      ProgramSummaryPane(
+        programId: 'p1',
+        onOpenBuilder: () {},
+        onDeleted: () {},
+        onNavigateTo: (_) {},
+      ),
+    );
 
-      // Fixture check: the pane renders the level, so a change to it is visible.
-      expect(find.textContaining('Beginner'), findsWidgets);
+    // Fixture check: the pane renders the level, so a change to it is visible.
+    expect(find.textContaining('Beginner'), findsWidgets);
 
-      // The dance is edited from a screen this pane pushed (its slot rows open
-      // DanceDetailScreen, which opens the editor); the write must reach the
-      // already-mounted summary directly from the watched tables.
-      await repos.dances.update(
-        (await repos.dances.getById('d1'))!.copyWith(
-          difficultyLevelId: DifficultyLevel.intermediateId,
-          updatedAt: now.add(const Duration(days: 1)),
-        ),
-      );
-      await tester.pumpAndSettle();
+    // The dance is edited from a screen this pane pushed (its slot rows open
+    // DanceDetailScreen, which opens the editor); the write must reach the
+    // already-mounted summary directly from the watched tables.
+    await repos.dances.update(
+      (await repos.dances.getById('d1'))!.copyWith(
+        difficultyLevelId: DifficultyLevel.intermediateId,
+        updatedAt: now.add(const Duration(days: 1)),
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      expect(find.textContaining('Intermediate'), findsWidgets);
-      expect(find.textContaining('Beginner'), findsNothing);
-    },
-  );
+    expect(find.textContaining('Intermediate'), findsWidgets);
+    expect(find.textContaining('Beginner'), findsNothing);
+  });
 
   testWidgets(
     'a program created by an import appears in a live Programs list without a '

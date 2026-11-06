@@ -20,6 +20,7 @@ import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show MethodChannel, rootBundle;
 import 'package:flutter_test/flutter_test.dart';
+
 import 'support/noop_sync_transport.dart';
 import 'support/sync_test_network.dart';
 import 'support/full_app_harness.dart';
@@ -702,34 +703,31 @@ void main() {
     },
   );
 
-  testWidgets(
-    'issue #343: a shared ContraDB program URL opens the import screen '
-    'pre-filled and auto-fetching',
-    (tester) async {
-      await tester.binding.setSurfaceSize(const Size(1200, 900));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
+  testWidgets('issue #343: a shared ContraDB program URL opens the import screen '
+      'pre-filled and auto-fetching', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      final appData = openTestAppData();
+    final appData = openTestAppData();
 
-      await tester.pumpWidget(
-        CompendiumApp(
-          appData: appData,
-          windowService: NoopWindowService(appData.repositories.settings),
-          incomingFileChannel: _FakeIncomingFileChannel(
-            initialSharedUrl: 'https://contradb.com/programs/33',
-          ),
-          // Seam-backed so the screen's auto-fetch touches no network.
-          incomingUrlFetcher: (_) async => _sharedProgramHtml,
+    await tester.pumpWidget(
+      CompendiumApp(
+        appData: appData,
+        windowService: NoopWindowService(appData.repositories.settings),
+        incomingFileChannel: _FakeIncomingFileChannel(
+          initialSharedUrl: 'https://contradb.com/programs/33',
         ),
-      );
-      await tester.pumpAndSettle();
+        // Seam-backed so the screen's auto-fetch touches no network.
+        incomingUrlFetcher: (_) async => _sharedProgramHtml,
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      // Routed to the ContraDB program import screen, pre-filled + auto-fetched.
-      expect(find.byType(ContraDbProgramImportScreen), findsOneWidget);
-      expect(find.text('https://contradb.com/programs/33'), findsOneWidget);
-      expect(find.text('Courageous Soul'), findsWidgets);
-    },
-  );
+    // Routed to the ContraDB program import screen, pre-filled + auto-fetched.
+    expect(find.byType(ContraDbProgramImportScreen), findsOneWidget);
+    expect(find.text('https://contradb.com/programs/33'), findsOneWidget);
+    expect(find.text('Courageous Soul'), findsWidgets);
+  });
 
   testWidgets(
     'issue #343: a Firefox-style "title\\nurl" share still opens the import '

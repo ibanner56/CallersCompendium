@@ -963,9 +963,8 @@ void main() {
     final first = (await repos.dances.listAll()).map((d) => d.id).toSet();
     expect(first, hasLength(2));
     // Let the first snackbar go, so the Undo below is the second import's.
-    ScaffoldMessenger.of(
-      tester.element(find.text('open')),
-    ).removeCurrentSnackBar();
+    ScaffoldMessenger.of(tester.element(find.text('open')))
+        .removeCurrentSnackBar();
     await tester.pumpAndSettle();
 
     await importOnce();

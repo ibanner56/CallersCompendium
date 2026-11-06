@@ -823,8 +823,7 @@ void main() {
         expect(
           saved.first.shareable,
           isFalse,
-          reason:
-              'field saved after toggling shareable off must have shareable=false',
+          reason: 'field saved after toggling shareable off must have shareable=false',
         );
       },
     );
