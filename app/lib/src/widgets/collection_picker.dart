@@ -13,6 +13,7 @@ import '../data/import_error_labels.dart';
 import '../data/import_io.dart';
 import '../data/online_search.dart';
 import '../data/require_event_date_for_history_scope.dart';
+import '../data/calling_history_tracking_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
 import '../data/repositories_scope.dart';
 import '../data/sort_ignore_articles_scope.dart';
@@ -222,6 +223,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
   late CompendiumRepositories _repos;
   bool _started = false;
   bool _requirePerformedForHistory = false;
+  CallingHistoryTracking _tracking = CallingHistoryTracking.defaults;
   bool _requireEventDateForHistory = false;
 
   /// Filter sections hidden in Settings → Defaults (issue #1419), mirrored from
@@ -248,6 +250,9 @@ class _CollectionPickerState extends State<CollectionPicker> {
     final requireEventDateChanged =
         _started && newRequireEventDate != _requireEventDateForHistory;
     _requireEventDateForHistory = newRequireEventDate;
+    final newTracking = callingHistoryTrackingOf(context);
+    final trackingChanged = _started && newTracking != _tracking;
+    _tracking = newTracking;
     final newIgnoreLeadingArticles = SortIgnoreArticlesScope.of(context);
     final ignoreLeadingArticlesChanged =
         _started && newIgnoreLeadingArticles != _ignoreLeadingArticles;
@@ -267,6 +272,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
       unawaited(_seedSortThenSearch());
     } else if ((requirePerformedChanged ||
             requireEventDateChanged ||
+            trackingChanged ||
             ignoreLeadingArticlesChanged ||
             facetsCleared) &&
         !_onlineEnabled) {
@@ -428,6 +434,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
         callerFilter: data.callerFilter,
         performedOnly: _requirePerformedForHistory,
         requireEventDate: _requireEventDateForHistory,
+        tracking: _tracking,
       );
       final ids = await _repos.dances.search(
         filter,
@@ -441,6 +448,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
         callerFilter: data.callerFilter,
         performedOnly: _requirePerformedForHistory,
         requireEventDate: _requireEventDateForHistory,
+        tracking: _tracking,
       );
       if (!mounted || seq != _searchSeq) return;
       final choreographerNamesOverride = {

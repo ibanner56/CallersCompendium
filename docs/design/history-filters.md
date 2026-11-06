@@ -248,6 +248,18 @@ every undated program it links, because linking bumps `updatedAt`
   a call by `COALESCE(event_date, performed_at)`. A slot with neither still counts as
   "called" for Called / Not called and for "called ×N". But no recency window
   contains it, so it is neither "recent" nor "within 3 months".
+- **Amended (maintainer, 2026-11-05):** four settings now decide which slots
+  have a recency date. *Recency only counts dated programs* (on by default) and
+  *Recency only counts slots marked performed* (follows "Require mark performed"
+  until set); a slot must pass every one that is on, and its date is
+  `COALESCE(event_date, performed_at, updated_at)`. The `updated_at` fallback is
+  reachable only with the first off, which is how a caller who wants an undated
+  program dated by its last edit gets it. The default therefore changed: a
+  performed slot in an undated program no longer falls in a window. The other
+  two settings (*History order and Last called ignore undated / not marked
+  performed*, off by default) act on the history order and the Last-called
+  sort only. They never change counts, filters or venue stats. See
+  `domain-model.md` and `CallingHistoryTracking`.
 - **Alternatives:**
   - use B1's full expression and accept the `updated_at` drift;
   - turn on "Require an event date" for the recency scope only. That drops
@@ -283,8 +295,12 @@ as `DateTime.utc(y, m, d)` like an event date.
 
 **One date expression.** B1 (#2032) added `callingHistoryDateSql` to
 `calling_history_scope.dart` (constraint 2). History order and the Last-called
-sort read it. H1 adds the recency variant beside it: the same expression
-without `updated_at`. The recency scope and the H3 chip read that variant.
+sort read it. H1 added the recency variant beside it: the same expression,
+gated so a slot that fails a switched-on recency condition has no date. As
+first built it had no `updated_at` fallback. Since 2026-11-05 it does, but only
+for a slot that passes "Recency only counts dated programs", which is off only
+when the caller turned that setting off (see the amendment under Q2). The
+recency scope and the H3 chip read that variant.
 - The two Dart copies (`effectiveDate` and `callingHistoryDisplayDate`,
   constraint 2) cannot share a SQL string. Today no test compares
   `callingHistoryDisplayDate` with either of the others. H1 adds a lockstep

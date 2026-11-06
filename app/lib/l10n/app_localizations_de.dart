@@ -3284,7 +3284,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsGeneralRequirePerformedForHistorySubtitle =>
-      'Wenn aktiviert, listet der Calling-Verlauf eines Tanzes nur Programme auf, deren Slot für diesen Tanz als aufgeführt markiert wurde. Wenn deaktiviert, erscheint ein Programm, sobald es den Tanz enthält.';
+      'Legt fest, was als gecallt zählt. Wenn aktiviert, zählen nur als aufgeführt markierte Slots überall, wo der Calling-Verlauf gelesen wird: Verlaufsliste, gecallt ×N, Gecallt-Filter und die Sortierung nach zuletzt gecallt. Wenn deaktiviert, zählt ein Slot, sobald sein Programm den Tanz enthält. Hat Vorrang vor den vier Einstellungen darunter.';
 
   @override
   String get settingsGeneralShowPerformedTogglesTitle =>
@@ -3308,7 +3308,42 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsGeneralRequireEventDateForHistorySubtitle =>
-      'Wenn aktiviert, zählt ein Programm ohne Veranstaltungsdatum erst dann zum Calling-Verlauf, wenn du ihm eines gibst. Duplizierte und empfangene Programme kommen ohne Datum an. Wenn deaktiviert, zählt ein Programm unabhängig davon, ob es ein Datum hat.';
+      'Legt fest, was als gecallt zählt. Wenn aktiviert, zählt ein Programm ohne Veranstaltungsdatum nirgends im Calling-Verlauf, bis du ihm eines gibst. Duplizierte und empfangene Programme kommen ohne Datum an. Wenn deaktiviert, zählt ein Programm unabhängig davon, ob es ein Datum hat. Hat Vorrang vor den vier Einstellungen darunter.';
+
+  @override
+  String get settingsTrackingHeader => 'Aktualität und Verlaufsreihenfolge';
+
+  @override
+  String get settingsRecencyRequireEventDateTitle =>
+      'Aktualität zählt nur Programme mit Datum';
+
+  @override
+  String get settingsRecencyRequireEventDateSubtitle =>
+      'Ändert nur die Zeitfenster des Gecallt-Filters, nie die Zählungen. Wenn aktiviert, liegt ein Programm ohne Veranstaltungsdatum in keinem Fenster, auch wenn seine Tänze weiterhin als gecallt zählen. Wenn deaktiviert, wird ein undatiertes Programm danach datiert, wann sein Slot als aufgeführt markiert wurde, sonst nach seiner letzten Bearbeitung.';
+
+  @override
+  String get settingsRecencyRequirePerformedTitle =>
+      'Aktualität zählt nur als aufgeführt markierte Slots';
+
+  @override
+  String get settingsRecencyRequirePerformedSubtitle =>
+      'Ändert nur die Zeitfenster des Gecallt-Filters, nie die Zählungen. Wenn aktiviert, liegt ein nicht als aufgeführt markierter Slot in keinem Fenster, zählt aber weiterhin als gecallt. Bis du es selbst festlegst, folgt diese Einstellung der Einstellung „aufgeführt erfordern“ weiter oben.';
+
+  @override
+  String get settingsHistoryOrderIgnoreUndatedTitle =>
+      'Verlaufsreihenfolge und Zuletzt gecallt ignorieren Programme ohne Datum';
+
+  @override
+  String get settingsHistoryOrderIgnoreUndatedSubtitle =>
+      'Ändert nur die Reihenfolge im Verlauf eines Tanzes und die Sortierung nach zuletzt gecallt, nie die Zählungen. Wenn aktiviert, steht ein Programm ohne Veranstaltungsdatum nach den datierten und liefert kein Datum für Zuletzt gecallt. Wenn deaktiviert, wird es danach einsortiert, wann sein Slot als aufgeführt markiert wurde, sonst nach seiner letzten Bearbeitung.';
+
+  @override
+  String get settingsHistoryOrderIgnoreUnperformedTitle =>
+      'Verlaufsreihenfolge und Zuletzt gecallt ignorieren nicht als aufgeführt markierte Slots';
+
+  @override
+  String get settingsHistoryOrderIgnoreUnperformedSubtitle =>
+      'Ändert nur die Reihenfolge im Verlauf eines Tanzes und die Sortierung nach zuletzt gecallt, nie die Zählungen. Wenn aktiviert, steht ein nicht als aufgeführt markierter Slot nach den übrigen und liefert kein Datum für Zuletzt gecallt. Wenn deaktiviert, wird er nach dem Datum seines Programms einsortiert.';
 
   @override
   String get settingsGeneralTrackHistoryForAllCallersTitle =>

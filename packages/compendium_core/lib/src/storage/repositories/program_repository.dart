@@ -83,14 +83,37 @@ class DanceCallingRecord {
   /// `callingHistoryDateSql`.
   DateTime get effectiveDate => eventDate ?? performedAt ?? programUpdatedAt;
 
-  /// The date a recency window gives this record: [effectiveDate] without its
-  /// last fallback, so null when the program has no event date and the slot
-  /// was never marked performed. A program's last edit is not a call (N1-3,
-  /// maintainer decision 2026-10-30).
+  /// The date the history order and the Last-called sort give this record, or
+  /// null when the record has none: [effectiveDate], unless [ignoreUndated] and
+  /// the program has no event date, or [ignoreUnperformed] and the slot was
+  /// never marked performed. The SQL side is `callingHistoryDateSql`; the two
+  /// must agree.
+  DateTime? orderingDate({
+    bool ignoreUndated = false,
+    bool ignoreUnperformed = false,
+  }) {
+    if (ignoreUndated && eventDate == null) return null;
+    if (ignoreUnperformed && performedAt == null) return null;
+    return effectiveDate;
+  }
+
+  /// The date a recency window gives this record, or null when the record is in
+  /// no window: [effectiveDate], unless [requireEventDate] and the program has
+  /// no event date, or [requirePerformed] and the slot was never marked
+  /// performed. The `updated_at` fallback therefore applies only while
+  /// [requireEventDate] is off: an edit counts as a call only when the caller
+  /// asked for undated programs to be dated by their last edit.
   ///
   /// A `CalledFilter.since` scope compares the same date, through
   /// `callingHistoryRecencyDateSql`; the two must agree.
-  DateTime? get recencyDate => eventDate ?? performedAt;
+  DateTime? recencyDate({
+    bool requireEventDate = true,
+    bool requirePerformed = false,
+  }) {
+    if (requireEventDate && eventDate == null) return null;
+    if (requirePerformed && performedAt == null) return null;
+    return effectiveDate;
+  }
 
   /// The venue this record's program was at, as the repeated-venues summary
   /// groups it, or null when the program has neither a linked record nor a
@@ -1434,17 +1457,23 @@ class ProgramRepository {
   /// record's [DanceCallingRecord.effectiveDate] (event_date, else
   /// performed_at, else updated_at) descending — the ordering never depends on
   /// `performed_at` being present (GIG-2).
+  ///
+  /// [tracking]'s `orderIgnoreUndated` and `orderIgnoreUnperformed` change only
+  /// the order: a record with no [DanceCallingRecord.orderingDate] stays in the
+  /// list, after every dated one. They never change which records are listed.
   /// Feeds the dance-detail "Calling history" section.
   Future<List<DanceCallingRecord>> callingHistoryForDance(
     String danceId, {
     bool performedOnly = false,
     bool requireEventDate = false,
     String? callerFilter,
+    CallingHistoryTracking tracking = CallingHistoryTracking.defaults,
   }) async => _callingHistoryRows(
     danceId,
     performedOnly: performedOnly,
     requireEventDate: requireEventDate,
     caller: _normalizedCallerFilter(callerFilter),
+    tracking: tracking,
   ).get().then(_callingHistoryFromRows);
 
   /// The slot/program gates that decide whether a slot is a calling-history
@@ -1503,28 +1532,36 @@ class ProgramRepository {
     required bool requireEventDate,
     required String? caller,
     bool includeVenues = false,
-  }) => _db.customSelect(
-    // Marker first: this query has two read sets, and drift's stream cache
-    // would otherwise treat both as one stream. See `watchCollectionSources`.
-    '${includeVenues ? '/* +venues */ ' : ''}'
-    'SELECT program_slots.id AS slot_id, programs.id AS program_id, '
-    'programs.title AS program_title, '
-    'programs.event_date AS event_date, programs.venue AS venue, '
-    'programs.venue_id AS venue_id, '
-    'programs.updated_at AS updated_at, '
-    'program_slots.performed_at AS performed_at '
-    'FROM program_slots '
-    'JOIN programs ON programs.id = program_slots.program_id '
-    'WHERE program_slots.dance_id = ? '
-    '${_historyScopeSql(performedOnly: performedOnly, requireEventDate: requireEventDate, caller: caller)}'
-    'AND programs.deleted_at IS NULL '
-    'ORDER BY ${callingHistoryDateSql(slotTable: 'program_slots', programTable: 'programs')} '
-    'DESC, programs.id',
-    variables: [Variable<String>(danceId), ..._callerVariables(caller)],
-    readsFrom: includeVenues
-        ? _programDerivedWithVenues
-        : _programDerivedTables,
-  );
+    CallingHistoryTracking tracking = CallingHistoryTracking.defaults,
+  }) {
+    final orderDate = callingHistoryDateSql(
+      slotTable: 'program_slots',
+      programTable: 'programs',
+      ignoreUndated: tracking.orderIgnoreUndated,
+      ignoreUnperformed: tracking.orderIgnoreUnperformed,
+    );
+    return _db.customSelect(
+      // Marker first: this query has two read sets, and drift's stream cache
+      // would otherwise treat both as one stream. See `watchCollectionSources`.
+      '${includeVenues ? '/* +venues */ ' : ''}'
+      'SELECT program_slots.id AS slot_id, programs.id AS program_id, '
+      'programs.title AS program_title, '
+      'programs.event_date AS event_date, programs.venue AS venue, '
+      'programs.venue_id AS venue_id, '
+      'programs.updated_at AS updated_at, '
+      'program_slots.performed_at AS performed_at '
+      'FROM program_slots '
+      'JOIN programs ON programs.id = program_slots.program_id '
+      'WHERE program_slots.dance_id = ? '
+      '${_historyScopeSql(performedOnly: performedOnly, requireEventDate: requireEventDate, caller: caller)}'
+      'AND programs.deleted_at IS NULL '
+      'ORDER BY ($orderDate) IS NULL, $orderDate DESC, programs.id',
+      variables: [Variable<String>(danceId), ..._callerVariables(caller)],
+      readsFrom: includeVenues
+          ? _programDerivedWithVenues
+          : _programDerivedTables,
+    );
+  }
 
   List<DanceCallingRecord> _callingHistoryFromRows(List<QueryRow> rows) => [
     for (final row in rows)
@@ -1710,6 +1747,7 @@ class ProgramRepository {
     bool performedOnly = false,
     bool requireEventDate = false,
     String? callerFilter,
+    CallingHistoryTracking tracking = CallingHistoryTracking.defaults,
   }) {
     final caller = _normalizedCallerFilter(callerFilter);
     return _callingHistoryRows(
@@ -1717,6 +1755,7 @@ class ProgramRepository {
       performedOnly: performedOnly,
       requireEventDate: requireEventDate,
       caller: caller,
+      tracking: tracking,
       // The section renders a venue label per row, resolved app-side, so it
       // must re-emit when a venue changes (issue #944). The one-shot
       // `callingHistoryForDance` above does not opt in: it has no subscriber

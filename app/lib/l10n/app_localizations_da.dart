@@ -3245,7 +3245,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsGeneralRequirePerformedForHistorySubtitle =>
-      'Når aktiveret viser en dans\' kaldshistorik kun programmer, hvis slot for den dans er markeret som fremført. Når deaktiveret vises et program, så snart det indeholder dansen.';
+      'Afgør, hvad der tæller som kaldt. Når aktiveret tæller kun slots markeret som fremført overalt, hvor kaldshistorik bruges: historiklisten, kaldt ×N, Kaldt-filteret og sorteringen efter sidst kaldt. Når deaktiveret tæller et slot, så snart dets program indeholder dansen. Har forrang over de fire indstillinger nedenfor.';
 
   @override
   String get settingsGeneralShowPerformedTogglesTitle =>
@@ -3269,7 +3269,42 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsGeneralRequireEventDateForHistorySubtitle =>
-      'Når aktiveret tæller et program uden begivenhedsdato ikke med i kaldshistorikken, før du giver det en. Duplikerede og modtagne programmer kommer uden dato. Når deaktiveret tæller et program, uanset om det har en dato.';
+      'Afgør, hvad der tæller som kaldt. Når aktiveret tæller et program uden begivenhedsdato ingen steder, hvor kaldshistorik bruges, før du giver det en. Duplikerede og modtagne programmer kommer uden dato. Når deaktiveret tæller et program, uanset om det har en dato. Har forrang over de fire indstillinger nedenfor.';
+
+  @override
+  String get settingsTrackingHeader => 'Aktualitet og historikrækkefølge';
+
+  @override
+  String get settingsRecencyRequireEventDateTitle =>
+      'Aktualitet tæller kun programmer med dato';
+
+  @override
+  String get settingsRecencyRequireEventDateSubtitle =>
+      'Ændrer kun tidsvinduerne i Kaldt-filteret, aldrig optællingerne. Når aktiveret ligger et program uden begivenhedsdato i intet vindue, selvom dets danse stadig tæller som kaldt. Når deaktiveret dateres et program uden dato efter, hvornår dets slot blev markeret som fremført, ellers efter hvornår det sidst blev redigeret.';
+
+  @override
+  String get settingsRecencyRequirePerformedTitle =>
+      'Aktualitet tæller kun slots markeret som fremført';
+
+  @override
+  String get settingsRecencyRequirePerformedSubtitle =>
+      'Ændrer kun tidsvinduerne i Kaldt-filteret, aldrig optællingerne. Når aktiveret ligger et slot, der ikke er markeret som fremført, i intet vindue, selvom det stadig tæller som kaldt. Indtil du selv vælger, følger den indstillingen om krav om fremført ovenfor.';
+
+  @override
+  String get settingsHistoryOrderIgnoreUndatedTitle =>
+      'Historikrækkefølge og sidst kaldt ignorerer programmer uden dato';
+
+  @override
+  String get settingsHistoryOrderIgnoreUndatedSubtitle =>
+      'Ændrer kun rækkefølgen i en dans\' historik og sorteringen efter sidst kaldt, aldrig optællingerne. Når aktiveret står et program uden begivenhedsdato efter dem med dato og giver ingen dato for sidst kaldt. Når deaktiveret sorteres det efter, hvornår dets slot blev markeret som fremført, ellers efter hvornår det sidst blev redigeret.';
+
+  @override
+  String get settingsHistoryOrderIgnoreUnperformedTitle =>
+      'Historikrækkefølge og sidst kaldt ignorerer slots, der ikke er markeret som fremført';
+
+  @override
+  String get settingsHistoryOrderIgnoreUnperformedSubtitle =>
+      'Ændrer kun rækkefølgen i en dans\' historik og sorteringen efter sidst kaldt, aldrig optællingerne. Når aktiveret står et slot, der ikke er markeret som fremført, efter de øvrige og giver ingen dato for sidst kaldt. Når deaktiveret sorteres det efter sit programs dato.';
 
   @override
   String get settingsGeneralTrackHistoryForAllCallersTitle =>

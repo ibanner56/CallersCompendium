@@ -103,7 +103,7 @@ export 'src/search/title_match.dart';
 export 'src/search/title_sort_key.dart';
 export 'src/search/filter.dart';
 export 'src/storage/calling_history_scope.dart'
-    show normalizeCallingHistoryCaller;
+    show CallingHistoryTracking, normalizeCallingHistoryCaller;
 export 'src/storage/duplicate_natural_key.dart' show DuplicateNaturalKeyError;
 export 'src/storage/figure_reparse.dart';
 export 'src/storage/shareable_text.dart';

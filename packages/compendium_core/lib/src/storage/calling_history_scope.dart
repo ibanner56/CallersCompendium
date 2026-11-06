@@ -1,3 +1,5 @@
+import 'package:meta/meta.dart';
+
 /// Shared caller-scope SQL semantics for calling-history queries.
 ///
 /// A non-blank caller restricts history to matching host callers and programs
@@ -33,32 +35,118 @@ String callingHistoryCallerClause(
 String callingHistoryAlternateClause({required String slotTable}) =>
     'AND (NOT $slotTable.is_alt OR $slotTable.performed_at IS NOT NULL) ';
 
-/// Returns the date a calling-history query gives one slot, over the
-/// `program_slots` alias [slotTable] and the `programs` alias [programTable].
+/// The four performance-tracking toggles that decide which slots date a
+/// recency window and which slots date the history order. They never change
+/// what counts as called: the counts, the Called filter's yes/no, venue stats
+/// and half stats are decided by the two global gates alone
+/// (`require_performed_for_history`, `require_event_date_for_history`).
+///
+/// A slot a global gate already excludes is excluded everywhere, whatever
+/// these say. Every SQL helper below has a Dart mirror on [DanceCallingRecord]
+/// that takes the same flags; the two must agree.
+@immutable
+class CallingHistoryTracking {
+  const CallingHistoryTracking({
+    this.recencyRequireEventDate = true,
+    this.recencyRequirePerformed = false,
+    this.orderIgnoreUndated = false,
+    this.orderIgnoreUnperformed = false,
+  });
+
+  /// The shipped defaults. Recency counts only dated programs; performed is
+  /// not required (the app resolves it to the global "require performed"
+  /// setting until the caller sets it); every slot orders.
+  static const CallingHistoryTracking defaults = CallingHistoryTracking();
+
+  /// Recency counts a slot only if its program has an event date.
+  final bool recencyRequireEventDate;
+
+  /// Recency counts a slot only if it is marked performed.
+  final bool recencyRequirePerformed;
+
+  /// The history order and Last called give a slot no date if its program has
+  /// no event date.
+  final bool orderIgnoreUndated;
+
+  /// The history order and Last called give a slot no date if it is not marked
+  /// performed.
+  final bool orderIgnoreUnperformed;
+
+  @override
+  bool operator ==(Object other) =>
+      other is CallingHistoryTracking &&
+      other.recencyRequireEventDate == recencyRequireEventDate &&
+      other.recencyRequirePerformed == recencyRequirePerformed &&
+      other.orderIgnoreUndated == orderIgnoreUndated &&
+      other.orderIgnoreUnperformed == orderIgnoreUnperformed;
+
+  @override
+  int get hashCode => Object.hash(
+    recencyRequireEventDate,
+    recencyRequirePerformed,
+    orderIgnoreUndated,
+    orderIgnoreUnperformed,
+  );
+}
+
+/// `COALESCE(event_date, performed_at, updated_at)` gated by the two
+/// eligibility flags: NULL for a slot that fails a switched-on condition.
+String _gatedDateSql({
+  required String slotTable,
+  required String programTable,
+  required bool needEventDate,
+  required bool needPerformed,
+}) {
+  final coalesce =
+      'COALESCE($programTable.event_date, $slotTable.performed_at, '
+      '$programTable.updated_at)';
+  final conditions = [
+    if (needEventDate) '$programTable.event_date IS NOT NULL',
+    if (needPerformed) '$slotTable.performed_at IS NOT NULL',
+  ];
+  return conditions.isEmpty
+      ? coalesce
+      : 'CASE WHEN ${conditions.join(' AND ')} THEN $coalesce END';
+}
+
+/// Returns the date the history order and the Last-called sort give one slot,
+/// over the `program_slots` alias [slotTable] and the `programs` alias
+/// [programTable], or NULL when the slot has no ordering date.
 ///
 /// The program's event date when it has one, else when the slot was marked
 /// performed, else the program's last-updated time (GIG-2, maintainer decision
-/// 2026-10-29). The Dart side of the same rule is
-/// `DanceCallingRecord.effectiveDate`; the two must agree. The history order
-/// and the Last-called sort both use this expression, so they cannot drift.
+/// 2026-10-29). With [ignoreUndated] a slot whose program has no event date has
+/// no date; with [ignoreUnperformed] a slot not marked performed has none. The
+/// list keeps such a slot, last; Last called ignores it. The Dart side of the
+/// same rule is `DanceCallingRecord.orderingDate`; the two must agree. The
+/// history order and the Last-called sort both use this expression, so they
+/// cannot drift.
 ///
 /// [slotTable] and [programTable] are internal, trusted SQL aliases, never
 /// user input.
 String callingHistoryDateSql({
   required String slotTable,
   required String programTable,
-}) =>
-    'COALESCE($programTable.event_date, $slotTable.performed_at, '
-    '$programTable.updated_at)';
+  bool ignoreUndated = false,
+  bool ignoreUnperformed = false,
+}) => _gatedDateSql(
+  slotTable: slotTable,
+  programTable: programTable,
+  needEventDate: ignoreUndated,
+  needPerformed: ignoreUnperformed,
+);
 
-/// Returns the date a recency window gives one slot: [callingHistoryDateSql]
-/// without its last fallback, the program's `updated_at`.
+/// Returns the date a recency window gives one slot, or NULL when the slot is
+/// in no window.
 ///
-/// An edit is not a call. Under the full expression, fixing a typo in an old
-/// undated program would date all its dances "this week", so a slot whose
-/// program has no event date and which was never marked performed has no
-/// recency date (NULL) and falls in no window. It still counts as called and
-/// in "called ×N" (N1-3, maintainer decision 2026-10-30). The Dart side of the
+/// A slot is eligible only if ([requireEventDate] is off or its program has an
+/// event date) and ([requirePerformed] is off or the slot is marked performed);
+/// both on means both hold. An eligible slot's date is the event date, else the
+/// performed time, else the program's `updated_at`, which is reachable only
+/// while [requireEventDate] is off: that is how an undated program shows up by
+/// its last edit. An ineligible slot still counts as called and in
+/// "called ×N"; it falls in no window (N1-3, maintainer decision 2026-10-30;
+/// the toggles are the maintainer's 2026-11-05 answer). The Dart side of the
 /// same rule is `DanceCallingRecord.recencyDate`; the two must agree.
 ///
 /// [slotTable] and [programTable] are internal, trusted SQL aliases, never
@@ -66,7 +154,14 @@ String callingHistoryDateSql({
 String callingHistoryRecencyDateSql({
   required String slotTable,
   required String programTable,
-}) => 'COALESCE($programTable.event_date, $slotTable.performed_at)';
+  bool requireEventDate = true,
+  bool requirePerformed = false,
+}) => _gatedDateSql(
+  slotTable: slotTable,
+  programTable: programTable,
+  needEventDate: requireEventDate,
+  needPerformed: requirePerformed,
+);
 
 /// The name of the SQL function that folds a program's typed venue the way
 /// [callingHistoryVenueText] does. `applyCompendiumSqliteSetup` registers it on

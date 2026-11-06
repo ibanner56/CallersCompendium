@@ -3089,7 +3089,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsGeneralRequirePerformedForHistorySubtitle =>
-      'オンにすると、ダンスのコーリング履歴には、そのダンスのスロットが「実施済み」とマークされたプログラムのみが表示されます。オフにすると、ダンスを含むプログラムがすぐに表示されます。';
+      '「コール済み」とみなす範囲を決めます。オンにすると、コーリング履歴を参照するすべての場所（履歴リスト、コール回数 ×N、コール済みフィルター、最終コール順）で、「実施済み」とマークされたスロットのみが数えられます。オフにすると、プログラムにそのダンスが含まれていればスロットが数えられます。下の4つの設定より優先されます。';
 
   @override
   String get settingsGeneralShowPerformedTogglesTitle => '「実施済み」切り替えを表示';
@@ -3111,7 +3111,40 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsGeneralRequireEventDateForHistorySubtitle =>
-      'オンにすると、イベント日のないプログラムは、日付を設定するまでコーリング履歴に含まれません。複製したプログラムや受け取ったプログラムは日付なしで追加されます。オフにすると、日付の有無にかかわらずプログラムが含まれます。';
+      '「コール済み」とみなす範囲を決めます。オンにすると、イベント日のないプログラムは、日付を設定するまでコーリング履歴を参照するどの場所でも数えられません。複製したプログラムや受け取ったプログラムは日付なしで追加されます。オフにすると、日付の有無にかかわらずプログラムが数えられます。下の4つの設定より優先されます。';
+
+  @override
+  String get settingsTrackingHeader => '新しさと履歴の並び順';
+
+  @override
+  String get settingsRecencyRequireEventDateTitle => '新しさは日付のあるプログラムのみ対象';
+
+  @override
+  String get settingsRecencyRequireEventDateSubtitle =>
+      'コール済みフィルターの期間指定にのみ影響し、回数は変わりません。オンにすると、イベント日のないプログラムはどの期間にも含まれませんが、そのダンスはコール済みとして数えられます。オフにすると、日付のないプログラムは、スロットが「実施済み」とマークされた日時、なければ最終編集日時を日付として扱います。';
+
+  @override
+  String get settingsRecencyRequirePerformedTitle => '新しさは「実施済み」のスロットのみ対象';
+
+  @override
+  String get settingsRecencyRequirePerformedSubtitle =>
+      'コール済みフィルターの期間指定にのみ影響し、回数は変わりません。オンにすると、「実施済み」とマークされていないスロットはどの期間にも含まれませんが、コール済みとして数えられます。自分で設定するまでは、上の「実施済み」必須の設定に従います。';
+
+  @override
+  String get settingsHistoryOrderIgnoreUndatedTitle =>
+      '履歴の並び順と最終コールで日付のないプログラムを無視';
+
+  @override
+  String get settingsHistoryOrderIgnoreUndatedSubtitle =>
+      'ダンスの履歴の並び順と最終コール順にのみ影響し、回数は変わりません。オンにすると、イベント日のないプログラムは日付のあるものの後ろに表示され、最終コール日にも使われません。オフにすると、スロットが「実施済み」とマークされた日時、なければ最終編集日時で並びます。';
+
+  @override
+  String get settingsHistoryOrderIgnoreUnperformedTitle =>
+      '履歴の並び順と最終コールで「実施済み」でないスロットを無視';
+
+  @override
+  String get settingsHistoryOrderIgnoreUnperformedSubtitle =>
+      'ダンスの履歴の並び順と最終コール順にのみ影響し、回数は変わりません。オンにすると、「実施済み」とマークされていないスロットは他のものの後ろに表示され、最終コール日にも使われません。オフにすると、プログラムの日付で並びます。';
 
   @override
   String get settingsGeneralTrackHistoryForAllCallersTitle =>

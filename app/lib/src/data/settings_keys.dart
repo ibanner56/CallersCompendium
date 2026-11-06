@@ -21,6 +21,28 @@ const String kRequirePerformedForHistoryKey = 'require_performed_for_history';
 /// with [kRequirePerformedForHistoryKey] and the caller scope.
 const String kRequireEventDateForHistoryKey = 'require_event_date_for_history';
 
+/// Keys for the four performance-tracking toggles. They decide which slots date
+/// a recency window and which date the history order; they never change what
+/// counts as called, which [kRequirePerformedForHistoryKey] and
+/// [kRequireEventDateForHistoryKey] alone decide, and those two override these.
+///
+/// [kRecencyRequireEventDateKey]: bool, absent means on. Recency counts only
+/// dated programs.
+const String kRecencyRequireEventDateKey = 'recency_require_event_date';
+
+/// Recency counts only slots marked performed. Bool; absent means "follow
+/// [kRequirePerformedForHistoryKey]", and a stored value (either way) wins.
+const String kRecencyRequirePerformedKey = 'recency_require_performed';
+
+/// History order and Last called ignore undated programs. Bool; absent means
+/// off.
+const String kHistoryOrderIgnoreUndatedKey = 'history_order_ignore_undated';
+
+/// History order and Last called ignore slots not marked performed. Bool;
+/// absent means off.
+const String kHistoryOrderIgnoreUnperformedKey =
+    'history_order_ignore_unperformed';
+
 /// Key used to persist the "Track calling history for all callers" General
 /// setting (issue #583). Stored as a bool; absent/unset means off (`false`).
 ///

@@ -59,7 +59,11 @@ sort by:
   programs count, and an alternate counts only once marked performed. Each
   dance is dated by its program's event date, else when its slot was marked
   performed, else when the program was last changed. Dances you have not called
-  come last.
+  come last. Two settings under
+  [Recency and history order](./settings.md#recency-and-history-order) can leave
+  undated programs, or slots not marked performed, out of this date: a dance
+  whose only calls are left out then sorts with the dances you have not called,
+  and still shows "called ×N".
 - **Best match** — how well each dance matches your words. This one is offered
   only for a short search — one or two characters — in **All fields**, with no
   **Filters**, **Advanced** or **By phrase** choices set. If Best match is
@@ -272,9 +276,13 @@ them and two more choices narrow what counts as a call:
 - **Within** — only calls in the last **1 month**, **3 months** or **6 months**,
   counted back from today, or since a date you choose with **Since a date…**.
   Programs planned for later than today count as calls, so a dance already on
-  next month's program is not "not called within 3 months". A program with no
-  event date counts by the date you marked it performed, and one with neither
-  counts as called but never as recent.
+  next month's program is not "not called within 3 months". By default only
+  programs with an event date fall in a window; a program with no event date
+  counts as called but never as recent. Two settings under
+  [Recency and history order](./settings.md#recency-and-history-order) change
+  that: turn off *Recency only counts dated programs* to date an undated program
+  by the mark-performed time or its last edit, or turn on *Recency only counts
+  slots marked performed* to skip slots you did not mark.
 
 **Not called** at a venue means "never called there", even if you called the
 dance somewhere else. **Not called** at any venue, with the window left on **Never called**,

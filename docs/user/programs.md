@@ -612,7 +612,12 @@ Calling history dates each call by the program's **event date**, however late
 you mark it. Mark Saturday's dances on Monday morning and the history still says
 Saturday. Change a program's date and its dances' history moves with it. A
 program with no event date is dated by when you marked the slot performed, or,
-if you didn't, when you last changed the program.
+if you didn't, when you last changed the program, in the history list and the
+**Last called** sort. The **Called** filter's time windows are stricter by
+default and skip undated programs. The four settings under
+[Recency and history order](./settings.md#recency-and-history-order) let you
+choose which slots date a window and which date the order; they never change
+"called ×N".
 
 A program with no event date counts too, by default. A duplicated program, or
 one another caller [sent you](./sharing.md#share-a-program-with-its-dances),

@@ -3224,9 +3224,9 @@
   "@settingsGeneralRequirePerformedForHistoryTitle": {
     "x-sourceSha256": "c229e5493c13424977f1ffd0e094821fb9822043e8210e315b0a45629debb6ee"
   },
-  "settingsGeneralRequirePerformedForHistorySubtitle": "オンにすると、ダンスのコーリング履歴には、そのダンスのスロットが「実施済み」とマークされたプログラムのみが表示されます。オフにすると、ダンスを含むプログラムがすぐに表示されます。",
+  "settingsGeneralRequirePerformedForHistorySubtitle": "「コール済み」とみなす範囲を決めます。オンにすると、コーリング履歴を参照するすべての場所（履歴リスト、コール回数 ×N、コール済みフィルター、最終コール順）で、「実施済み」とマークされたスロットのみが数えられます。オフにすると、プログラムにそのダンスが含まれていればスロットが数えられます。下の4つの設定より優先されます。",
   "@settingsGeneralRequirePerformedForHistorySubtitle": {
-    "x-sourceSha256": "d17ae60f119ebc62e2f2492687687898f584def638de5e2549510d59bf3160ec"
+    "x-sourceSha256": "d3145fcbcff60ed81348b5e51f6f14a2955414925579a05988fe7bfe0a8e01f0"
   },
   "settingsGeneralShowPerformedTogglesTitle": "「実施済み」切り替えを表示",
   "@settingsGeneralShowPerformedTogglesTitle": {
@@ -3248,9 +3248,45 @@
   "@settingsGeneralRequireEventDateForHistoryTitle": {
     "x-sourceSha256": "f62790f3e48e6bd9f8b81f3fee8782bbeba76923cdb1d175e50df7d053afe6a2"
   },
-  "settingsGeneralRequireEventDateForHistorySubtitle": "オンにすると、イベント日のないプログラムは、日付を設定するまでコーリング履歴に含まれません。複製したプログラムや受け取ったプログラムは日付なしで追加されます。オフにすると、日付の有無にかかわらずプログラムが含まれます。",
+  "settingsGeneralRequireEventDateForHistorySubtitle": "「コール済み」とみなす範囲を決めます。オンにすると、イベント日のないプログラムは、日付を設定するまでコーリング履歴を参照するどの場所でも数えられません。複製したプログラムや受け取ったプログラムは日付なしで追加されます。オフにすると、日付の有無にかかわらずプログラムが数えられます。下の4つの設定より優先されます。",
   "@settingsGeneralRequireEventDateForHistorySubtitle": {
-    "x-sourceSha256": "23e337b297b87aad7ada670e835d4b176fae90d6782c5ca898c149f64080259d"
+    "x-sourceSha256": "28cda7212851d084501c8744628b7097b330c4442b65eccc7e660c867a0b3956"
+  },
+  "settingsTrackingHeader": "新しさと履歴の並び順",
+  "@settingsTrackingHeader": {
+    "x-sourceSha256": "618f36841e967c647d75bbaeeb13d209487f073872d4c75657e09cbef7990166"
+  },
+  "settingsRecencyRequireEventDateTitle": "新しさは日付のあるプログラムのみ対象",
+  "@settingsRecencyRequireEventDateTitle": {
+    "x-sourceSha256": "afa4885654835890a138510f00989a31cc4fac88469e2c338d9779e4cb9c920a"
+  },
+  "settingsRecencyRequireEventDateSubtitle": "コール済みフィルターの期間指定にのみ影響し、回数は変わりません。オンにすると、イベント日のないプログラムはどの期間にも含まれませんが、そのダンスはコール済みとして数えられます。オフにすると、日付のないプログラムは、スロットが「実施済み」とマークされた日時、なければ最終編集日時を日付として扱います。",
+  "@settingsRecencyRequireEventDateSubtitle": {
+    "x-sourceSha256": "88fc5e9e7bff3de37dd4dceb3ea62acd98cfee6ea39a6fd91579d2d28715073f"
+  },
+  "settingsRecencyRequirePerformedTitle": "新しさは「実施済み」のスロットのみ対象",
+  "@settingsRecencyRequirePerformedTitle": {
+    "x-sourceSha256": "f8b5d7069c593cc75013127054e2d9a296ca3dae723c4a0eeba7db016ef8d9b8"
+  },
+  "settingsRecencyRequirePerformedSubtitle": "コール済みフィルターの期間指定にのみ影響し、回数は変わりません。オンにすると、「実施済み」とマークされていないスロットはどの期間にも含まれませんが、コール済みとして数えられます。自分で設定するまでは、上の「実施済み」必須の設定に従います。",
+  "@settingsRecencyRequirePerformedSubtitle": {
+    "x-sourceSha256": "93062ca7561ac7ddc88ae9943bc1179101af9e5cf5250c0d99e7268850dd734f"
+  },
+  "settingsHistoryOrderIgnoreUndatedTitle": "履歴の並び順と最終コールで日付のないプログラムを無視",
+  "@settingsHistoryOrderIgnoreUndatedTitle": {
+    "x-sourceSha256": "7005abdf4984a1921691e75edf8a5f58c6e914b3fe89eb5429ec6c623e34b3d5"
+  },
+  "settingsHistoryOrderIgnoreUndatedSubtitle": "ダンスの履歴の並び順と最終コール順にのみ影響し、回数は変わりません。オンにすると、イベント日のないプログラムは日付のあるものの後ろに表示され、最終コール日にも使われません。オフにすると、スロットが「実施済み」とマークされた日時、なければ最終編集日時で並びます。",
+  "@settingsHistoryOrderIgnoreUndatedSubtitle": {
+    "x-sourceSha256": "acd4ca4fce927041e8108e55a2093c308ae1a20099ac9175b1848b6c46e3caea"
+  },
+  "settingsHistoryOrderIgnoreUnperformedTitle": "履歴の並び順と最終コールで「実施済み」でないスロットを無視",
+  "@settingsHistoryOrderIgnoreUnperformedTitle": {
+    "x-sourceSha256": "65b733cbf8ddc085428c6eb682a5f577d3e02659265831cfcf253869b34cc150"
+  },
+  "settingsHistoryOrderIgnoreUnperformedSubtitle": "ダンスの履歴の並び順と最終コール順にのみ影響し、回数は変わりません。オンにすると、「実施済み」とマークされていないスロットは他のものの後ろに表示され、最終コール日にも使われません。オフにすると、プログラムの日付で並びます。",
+  "@settingsHistoryOrderIgnoreUnperformedSubtitle": {
+    "x-sourceSha256": "7c57f0b97a11718fdc34f1abab9ea59b8b952fa206a8d184c61f6c854b4c874d"
   },
   "settingsGeneralTrackHistoryForAllCallersTitle": "すべてのコーラーのコーリング履歴を記録する",
   "@settingsGeneralTrackHistoryForAllCallersTitle": {

@@ -388,6 +388,7 @@ class FilterCompiler {
         :final callerFilter,
         :final performedOnly,
         :final requireEventDate,
+        :final tracking,
         :final venue,
         :final since,
         :final currentProgramId,
@@ -421,7 +422,7 @@ class FilterCompiler {
         }
         if (since != null) {
           scopes.write(
-            ' AND ${callingHistoryRecencyDateSql(slotTable: 'ps', programTable: 'p')} >= ?',
+            ' AND ${callingHistoryRecencyDateSql(slotTable: 'ps', programTable: 'p', requireEventDate: tracking.recencyRequireEventDate, requirePerformed: tracking.recencyRequirePerformed)} >= ?',
           );
           binds.add(_calledSince(since));
         }

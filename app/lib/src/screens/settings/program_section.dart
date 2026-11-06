@@ -1,6 +1,8 @@
 // Part of the Settings screen, split by section. The Program section gathers
 // the program-facing preferences — venues, the programming matrix, Perform
 // mode, and calling history — that previously lived under General (issue #935).
+import 'package:compendium_core/compendium_core.dart'
+    show CallingHistoryTracking;
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
@@ -12,6 +14,7 @@ import '../../data/program_auto_commit_scope.dart';
 import '../../data/persisted_preference.dart';
 import '../../data/repositories_scope.dart';
 import '../../data/require_event_date_for_history_scope.dart';
+import '../../data/calling_history_tracking_scope.dart';
 import '../../data/require_performed_for_history_scope.dart';
 import '../../data/show_performed_toggles_scope.dart';
 import '../../data/track_history_for_all_callers_scope.dart';
@@ -227,6 +230,38 @@ class _ProgramSectionState extends State<ProgramSection> {
     await persistSetting(repos.settings, kRequireEventDateForHistoryKey, value);
   }
 
+  Future<void> _onRecencyRequireEventDateChanged(bool value) async {
+    // Same instant-notifier-then-persist pattern as the other history settings.
+    RecencyRequireEventDateScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await persistSetting(repos.settings, kRecencyRequireEventDateKey, value);
+  }
+
+  Future<void> _onRecencyRequirePerformedChanged(bool value) async {
+    // Same instant-notifier-then-persist pattern as the other history settings.
+    RecencyRequirePerformedScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await persistSetting(repos.settings, kRecencyRequirePerformedKey, value);
+  }
+
+  Future<void> _onHistoryOrderIgnoreUndatedChanged(bool value) async {
+    // Same instant-notifier-then-persist pattern as the other history settings.
+    HistoryOrderIgnoreUndatedScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await persistSetting(repos.settings, kHistoryOrderIgnoreUndatedKey, value);
+  }
+
+  Future<void> _onHistoryOrderIgnoreUnperformedChanged(bool value) async {
+    // Same instant-notifier-then-persist pattern as the other history settings.
+    HistoryOrderIgnoreUnperformedScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await persistSetting(
+      repos.settings,
+      kHistoryOrderIgnoreUnperformedKey,
+      value,
+    );
+  }
+
   Future<void> _onTrackHistoryForAllCallersChanged(bool value) async {
     // Same instant-notifier-then-persist pattern: flip the live notifier so
     // every dependent (an open Collection list or dance-detail screen)
@@ -274,6 +309,12 @@ class _ProgramSectionState extends State<ProgramSection> {
       onTrackHistoryForAllCallersChanged: _onTrackHistoryForAllCallersChanged,
       venueCallCount: VenueCallCountScope.of(context),
       onVenueCallCountChanged: _onVenueCallCountChanged,
+      tracking: callingHistoryTrackingOf(context),
+      onRecencyRequireEventDateChanged: _onRecencyRequireEventDateChanged,
+      onRecencyRequirePerformedChanged: _onRecencyRequirePerformedChanged,
+      onHistoryOrderIgnoreUndatedChanged: _onHistoryOrderIgnoreUndatedChanged,
+      onHistoryOrderIgnoreUnperformedChanged:
+          _onHistoryOrderIgnoreUnperformedChanged,
     );
   }
 }
@@ -309,6 +350,11 @@ class _ProgramView extends StatelessWidget {
     required this.onTrackHistoryForAllCallersChanged,
     required this.venueCallCount,
     required this.onVenueCallCountChanged,
+    required this.tracking,
+    required this.onRecencyRequireEventDateChanged,
+    required this.onRecencyRequirePerformedChanged,
+    required this.onHistoryOrderIgnoreUndatedChanged,
+    required this.onHistoryOrderIgnoreUnperformedChanged,
   });
 
   final bool venueEntityMode;
@@ -349,6 +395,15 @@ class _ProgramView extends StatelessWidget {
   final ValueChanged<bool> onTrackHistoryForAllCallersChanged;
   final int venueCallCount;
   final ValueChanged<int> onVenueCallCountChanged;
+
+  /// The resolved recency and history-order toggles, shown under their own
+  /// header so the two global gates above (which decide what counts) read apart
+  /// from these four (which only date and order).
+  final CallingHistoryTracking tracking;
+  final ValueChanged<bool> onRecencyRequireEventDateChanged;
+  final ValueChanged<bool> onRecencyRequirePerformedChanged;
+  final ValueChanged<bool> onHistoryOrderIgnoreUndatedChanged;
+  final ValueChanged<bool> onHistoryOrderIgnoreUnperformedChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -485,6 +540,39 @@ class _ProgramView extends StatelessWidget {
                 ),
             ],
           ),
+        ),
+        SectionHeader(title: l10n.settingsTrackingHeader),
+        SwitchListTile(
+          key: const ValueKey('general-recency-require-event-date'),
+          value: tracking.recencyRequireEventDate,
+          onChanged: onRecencyRequireEventDateChanged,
+          title: Text(l10n.settingsRecencyRequireEventDateTitle),
+          subtitle: Text(l10n.settingsRecencyRequireEventDateSubtitle),
+          isThreeLine: true,
+        ),
+        SwitchListTile(
+          key: const ValueKey('general-recency-require-performed'),
+          value: tracking.recencyRequirePerformed,
+          onChanged: onRecencyRequirePerformedChanged,
+          title: Text(l10n.settingsRecencyRequirePerformedTitle),
+          subtitle: Text(l10n.settingsRecencyRequirePerformedSubtitle),
+          isThreeLine: true,
+        ),
+        SwitchListTile(
+          key: const ValueKey('general-history-order-ignore-undated'),
+          value: tracking.orderIgnoreUndated,
+          onChanged: onHistoryOrderIgnoreUndatedChanged,
+          title: Text(l10n.settingsHistoryOrderIgnoreUndatedTitle),
+          subtitle: Text(l10n.settingsHistoryOrderIgnoreUndatedSubtitle),
+          isThreeLine: true,
+        ),
+        SwitchListTile(
+          key: const ValueKey('general-history-order-ignore-unperformed'),
+          value: tracking.orderIgnoreUnperformed,
+          onChanged: onHistoryOrderIgnoreUnperformedChanged,
+          title: Text(l10n.settingsHistoryOrderIgnoreUnperformedTitle),
+          subtitle: Text(l10n.settingsHistoryOrderIgnoreUnperformedSubtitle),
+          isThreeLine: true,
         ),
       ],
     );

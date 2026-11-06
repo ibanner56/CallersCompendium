@@ -3272,7 +3272,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsGeneralRequirePerformedForHistorySubtitle =>
-      'Als ingeschakeld, toont de callerhistorie van een dans alleen programma’s waarvan het slot voor die dans als uitgevoerd is gemarkeerd. Als uitgeschakeld, verschijnt een programma zodra het de dans bevat.';
+      'Bepaalt wat als gecalld telt. Als ingeschakeld, tellen alleen slots die als uitgevoerd zijn gemarkeerd overal waar callerhistorie wordt gelezen: de historielijst, gecalld ×N, het filter Gecalld en de sortering op laatst gecalld. Als uitgeschakeld, telt een slot zodra het programma de dans bevat. Gaat vóór de vier instellingen hieronder.';
 
   @override
   String get settingsGeneralShowPerformedTogglesTitle =>
@@ -3296,7 +3296,42 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsGeneralRequireEventDateForHistorySubtitle =>
-      'Als ingeschakeld, telt een programma zonder eventdatum pas mee voor de callerhistorie als je het een datum geeft. Gedupliceerde en ontvangen programma’s komen zonder datum binnen. Als uitgeschakeld, telt een programma mee, of het nu een datum heeft of niet.';
+      'Bepaalt wat als gecalld telt. Als ingeschakeld, telt een programma zonder eventdatum nergens mee in de callerhistorie tot je het een datum geeft. Gedupliceerde en ontvangen programma’s komen zonder datum binnen. Als uitgeschakeld, telt een programma mee, of het nu een datum heeft of niet. Gaat vóór de vier instellingen hieronder.';
+
+  @override
+  String get settingsTrackingHeader => 'Recentheid en historievolgorde';
+
+  @override
+  String get settingsRecencyRequireEventDateTitle =>
+      'Recentheid telt alleen programma’s met datum';
+
+  @override
+  String get settingsRecencyRequireEventDateSubtitle =>
+      'Wijzigt alleen de tijdvensters van het filter Gecalld, nooit de tellingen. Als ingeschakeld, valt een programma zonder eventdatum in geen enkel venster, al telt de dans nog steeds als gecalld. Als uitgeschakeld, wordt een programma zonder datum gedateerd op het moment waarop het slot als uitgevoerd is gemarkeerd, anders op het moment van de laatste bewerking.';
+
+  @override
+  String get settingsRecencyRequirePerformedTitle =>
+      'Recentheid telt alleen slots die als uitgevoerd zijn gemarkeerd';
+
+  @override
+  String get settingsRecencyRequirePerformedSubtitle =>
+      'Wijzigt alleen de tijdvensters van het filter Gecalld, nooit de tellingen. Als ingeschakeld, valt een slot dat niet als uitgevoerd is gemarkeerd in geen enkel venster, maar het telt nog steeds als gecalld. Tot je het zelf instelt, volgt dit de instelling “uitgevoerd vereisen” hierboven.';
+
+  @override
+  String get settingsHistoryOrderIgnoreUndatedTitle =>
+      'Historievolgorde en Laatst gecalld negeren programma’s zonder datum';
+
+  @override
+  String get settingsHistoryOrderIgnoreUndatedSubtitle =>
+      'Wijzigt alleen de volgorde van de historie van een dans en de sortering op laatst gecalld, nooit de tellingen. Als ingeschakeld, staat een programma zonder eventdatum na die met datum en geeft het geen datum voor Laatst gecalld. Als uitgeschakeld, wordt het gesorteerd op het moment waarop het slot als uitgevoerd is gemarkeerd, anders op de laatste bewerking.';
+
+  @override
+  String get settingsHistoryOrderIgnoreUnperformedTitle =>
+      'Historievolgorde en Laatst gecalld negeren slots die niet als uitgevoerd zijn gemarkeerd';
+
+  @override
+  String get settingsHistoryOrderIgnoreUnperformedSubtitle =>
+      'Wijzigt alleen de volgorde van de historie van een dans en de sortering op laatst gecalld, nooit de tellingen. Als ingeschakeld, staat een slot dat niet als uitgevoerd is gemarkeerd na de andere en geeft het geen datum voor Laatst gecalld. Als uitgeschakeld, wordt het gesorteerd op de datum van het programma.';
 
   @override
   String get settingsGeneralTrackHistoryForAllCallersTitle =>

@@ -15,6 +15,7 @@ import '../data/formation_colors_scope.dart';
 import '../data/related_dance_links.dart';
 import '../data/repositories_scope.dart';
 import '../data/require_event_date_for_history_scope.dart';
+import '../data/calling_history_tracking_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
 import '../data/venue_call_count_scope.dart';
@@ -240,6 +241,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   /// The last-seen value of the "require an event date" calling-history
   /// setting, tracked like [_requirePerformedForHistory].
   bool _requireEventDateForHistory = false;
+  CallingHistoryTracking _tracking = CallingHistoryTracking.defaults;
 
   /// The last-seen value of the "track calling history for all callers" setting
   /// (issue #583). Tracked so [didChangeDependencies] can reload the calling
@@ -288,6 +290,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     // reloads this whole screen to re-run one query (issue #768).
     _requirePerformedForHistory = RequirePerformedForHistoryScope.of(context);
     _requireEventDateForHistory = RequireEventDateForHistoryScope.of(context);
+    _tracking = callingHistoryTrackingOf(context);
     _trackHistoryForAllCallers = TrackHistoryForAllCallersScope.of(context);
     _venueCallCount = VenueCallCountScope.of(context);
     if (!_started) {
@@ -1439,6 +1442,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
             danceId: widget.danceId!,
             performedOnly: _requirePerformedForHistory,
             requireEventDate: _requireEventDateForHistory,
+            tracking: _tracking,
             trackAllCallers: _trackHistoryForAllCallers,
             venueCallCount: _venueCallCount,
             onOpenProgram: _openProgram,

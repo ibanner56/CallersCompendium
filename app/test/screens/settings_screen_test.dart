@@ -26,6 +26,7 @@ import 'package:compendium_app/src/data/dialect_library_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
+import '../support/tracking_settings.dart';
 import 'package:compendium_app/src/data/shorthand_mappings_controller.dart';
 import 'package:compendium_app/src/data/shorthand_mappings_scope.dart';
 import 'package:compendium_app/src/data/show_custom_figures_scope.dart';
@@ -231,53 +232,55 @@ _pumpSettings(
   addTearDown(syncController.dispose);
 
   await tester.pumpWidget(
-    MaterialApp(
-      localizationsDelegates: testLocalizationsDelegates,
-      supportedLocales: testSupportedLocales,
-      builder: (context, innerChild) {
-        final child = resetToCleanInstall == null
-            ? innerChild
-            : SyncWriterLifecycleScope(
-                resetToCleanInstall: resetToCleanInstall,
-                child: innerChild!,
-              );
-        return RepositoriesScope(
-          repositories: repos,
-          child: AppThemeScope(
-            notifier: themeNotifier,
-            child: CustomThemesScope(
-              controller: customThemes,
-              child: DialectLibraryScope(
-                controller: dialectLibrary,
-                child: ActiveDialectScope(
-                  notifier: notifier,
-                  child: RequirePerformedForHistoryScope(
-                    notifier: requirePerformedNotifier,
-                    child: TrackHistoryForAllCallersScope(
-                      notifier: trackHistoryForAllCallersNotifier,
-                      child: CanonicalDiscouragedTermsScope(
-                        notifier: canonicalDiscouragedTermsNotifier,
-                        child: SortIgnoreArticlesScope(
-                          notifier: sortIgnoreArticlesNotifier,
-                          child: UpdateScope(
-                            controller: updateController,
-                            child: SyncScope(
-                              controller: syncController,
-                              child: ShorthandMappingsScope(
-                                controller: shorthandMappings,
-                                child: WalkthroughSnippetLibraryScope(
-                                  controller: walkthroughSnippets,
-                                  child: showGlossary == null
-                                      ? child!
-                                      : ShowGlossaryScope(
-                                          notifier: showGlossary,
-                                          child: showCustomFigures == null
-                                              ? child!
-                                              : ShowCustomFiguresScope(
-                                                  notifier: showCustomFigures,
-                                                  child: child!,
-                                                ),
-                                        ),
+    TrackingScopes(
+      child: MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        builder: (context, innerChild) {
+          final child = resetToCleanInstall == null
+              ? innerChild
+              : SyncWriterLifecycleScope(
+                  resetToCleanInstall: resetToCleanInstall,
+                  child: innerChild!,
+                );
+          return RepositoriesScope(
+            repositories: repos,
+            child: AppThemeScope(
+              notifier: themeNotifier,
+              child: CustomThemesScope(
+                controller: customThemes,
+                child: DialectLibraryScope(
+                  controller: dialectLibrary,
+                  child: ActiveDialectScope(
+                    notifier: notifier,
+                    child: RequirePerformedForHistoryScope(
+                      notifier: requirePerformedNotifier,
+                      child: TrackHistoryForAllCallersScope(
+                        notifier: trackHistoryForAllCallersNotifier,
+                        child: CanonicalDiscouragedTermsScope(
+                          notifier: canonicalDiscouragedTermsNotifier,
+                          child: SortIgnoreArticlesScope(
+                            notifier: sortIgnoreArticlesNotifier,
+                            child: UpdateScope(
+                              controller: updateController,
+                              child: SyncScope(
+                                controller: syncController,
+                                child: ShorthandMappingsScope(
+                                  controller: shorthandMappings,
+                                  child: WalkthroughSnippetLibraryScope(
+                                    controller: walkthroughSnippets,
+                                    child: showGlossary == null
+                                        ? child!
+                                        : ShowGlossaryScope(
+                                            notifier: showGlossary,
+                                            child: showCustomFigures == null
+                                                ? child!
+                                                : ShowCustomFiguresScope(
+                                                    notifier: showCustomFigures,
+                                                    child: child!,
+                                                  ),
+                                          ),
+                                  ),
                                 ),
                               ),
                             ),
@@ -289,10 +292,10 @@ _pumpSettings(
                 ),
               ),
             ),
-          ),
-        );
-      },
-      home: SettingsScreen(backupSaver: backupSaver),
+          );
+        },
+        home: SettingsScreen(backupSaver: backupSaver),
+      ),
     ),
   );
   await tester.pumpAndSettle();

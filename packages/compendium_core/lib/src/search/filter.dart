@@ -243,10 +243,14 @@ class MixerFilter extends DanceFilter {
 ///   maintainer decision 2026-10-30).
 /// - [since] keeps the slots whose recency date
 ///   (`callingHistoryRecencyDateSql`: the event date, else the performed
-///   time) is on or after it. The window has no end, so a program dated next
-///   month falls in it (N1-9), and a slot with neither date falls in no window
-///   (N1-3). It must be a calendar date, `DateTime.utc(y, m, d)`, like a
+///   time, else the program's last edit; see [tracking]) is on or after it.
+///   The window has no end, so a program dated next month falls in it (N1-9),
+///   and a slot with no recency date falls in no window (N1-3). It must be a calendar date, `DateTime.utc(y, m, d)`, like a
 ///   stored event date; the compiler rejects any other value.
+/// - [tracking] says which slots have a recency date at all (its
+///   `recencyRequireEventDate` and `recencyRequirePerformed`). It narrows only
+///   [since]; whether a slot is called is decided by [performedOnly] and
+///   [requireEventDate] alone.
 /// - [currentProgramId] leaves out every slot of that program, performed or
 ///   not (N1-6), so the program being edited never counts as its own history.
 ///   Collection never sets it.
@@ -260,6 +264,7 @@ class CalledFilter extends DanceFilter {
     this.venue,
     this.since,
     this.currentProgramId,
+    this.tracking = CallingHistoryTracking.defaults,
   });
 
   final bool called;
@@ -269,6 +274,7 @@ class CalledFilter extends DanceFilter {
   final VenueKey? venue;
   final DateTime? since;
   final String? currentProgramId;
+  final CallingHistoryTracking tracking;
 }
 
 /// Which venue a program was at, as calling history groups programs: by the

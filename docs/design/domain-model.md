@@ -84,6 +84,19 @@ days after the event, or past midnight during it, does not move the call, and
 re-dating a program moves its history with no data migration (GIG-2,
 maintainer decision 2026-10-29).
 
+Four performance-tracking settings (`CallingHistoryTracking`, maintainer
+2026-11-05) change only which slots carry a date, never which slots count. The
+history order and Last called give a slot no date when "ignore undated" or
+"ignore not marked performed" is on and the slot fails it
+(`DanceCallingRecord.orderingDate`, `callingHistoryDateSql`): the slot stays in
+the list and in "called ×N", sorts after every dated one, and gives Last called
+nothing. A recency window uses `callingHistoryRecencyDateSql`, which applies the
+same `COALESCE` but only to a slot that is eligible (dated if recency requires
+an event date, performed if it requires performed), so the `updated_at` fallback
+is reachable only with "recency only counts dated programs" off. The two global
+gates (`require_event_date_for_history`, `require_performed_for_history`) still
+decide what counts and override all four.
+
 ### Figure (value object, not a table-per-move)
 ```
 {

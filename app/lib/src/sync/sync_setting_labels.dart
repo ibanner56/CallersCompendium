@@ -70,6 +70,11 @@ String? syncSettingLabel(AppLocalizations l10n, String key) => switch (key) {
   'program_dance_share_fields' => l10n.settingsDefaultsShareFieldsHeader,
   'program_matrix_columns' => l10n.settingsMatrixColumnsHeader,
   'reduce_motion' => l10n.settingsGeneralReduceMotionTitle,
+  'recency_require_event_date' => l10n.settingsRecencyRequireEventDateTitle,
+  'recency_require_performed' => l10n.settingsRecencyRequirePerformedTitle,
+  'history_order_ignore_undated' => l10n.settingsHistoryOrderIgnoreUndatedTitle,
+  'history_order_ignore_unperformed' =>
+    l10n.settingsHistoryOrderIgnoreUnperformedTitle,
   'require_event_date_for_history' =>
     l10n.settingsGeneralRequireEventDateForHistoryTitle,
   'require_performed_for_history' =>

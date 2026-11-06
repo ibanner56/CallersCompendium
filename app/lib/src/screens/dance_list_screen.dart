@@ -21,6 +21,7 @@ import '../data/import_io.dart';
 import '../data/related_dance_links.dart';
 import '../data/online_search.dart';
 import '../data/require_event_date_for_history_scope.dart';
+import '../data/calling_history_tracking_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
 import '../data/repositories_scope.dart';
 import '../data/seed_service.dart' show kBabyRoseSeedDanceId;
@@ -278,6 +279,7 @@ class _DanceListScreenState extends State<DanceListScreen>
 
   /// Whether calling-history filters use performed slots only.
   bool _requirePerformedForHistory = false;
+  CallingHistoryTracking _tracking = CallingHistoryTracking.defaults;
 
   /// Whether calling-history filters leave out programs with no event date.
   bool _requireEventDateForHistory = false;
@@ -488,6 +490,9 @@ class _DanceListScreenState extends State<DanceListScreen>
     final requireEventDateChanged =
         _started && newRequireEventDate != _requireEventDateForHistory;
     _requireEventDateForHistory = newRequireEventDate;
+    final newTracking = callingHistoryTrackingOf(context);
+    final trackingChanged = _started && newTracking != _tracking;
+    _tracking = newTracking;
 
     // A section hidden while it holds a selection would keep narrowing the list
     // with no control to clear it, so hiding it clears it (issue #1419). Only
@@ -513,7 +518,9 @@ class _DanceListScreenState extends State<DanceListScreen>
         _callerRefreshTimer?.cancel();
         _callerRefreshTimer = Timer(_callerRefreshDelay, _boot);
       }
-      if ((requirePerformedChanged || requireEventDateChanged) &&
+      if ((requirePerformedChanged ||
+              requireEventDateChanged ||
+              trackingChanged) &&
           !_onlineEnabled &&
           _data != null) {
         _runSearch();
@@ -848,6 +855,7 @@ class _DanceListScreenState extends State<DanceListScreen>
         callerFilter: data.callerFilter,
         performedOnly: _requirePerformedForHistory,
         requireEventDate: _requireEventDateForHistory,
+        tracking: _tracking,
       );
       final ids = await _repos.dances.search(
         filter,
@@ -861,6 +869,7 @@ class _DanceListScreenState extends State<DanceListScreen>
         callerFilter: data.callerFilter,
         performedOnly: _requirePerformedForHistory,
         requireEventDate: _requireEventDateForHistory,
+        tracking: _tracking,
       );
       if (!mounted || seq != _searchSeq) return;
       setState(() {

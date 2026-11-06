@@ -68,6 +68,7 @@ class CallingHistorySection extends StatefulWidget {
     required this.danceId,
     required this.performedOnly,
     this.requireEventDate = false,
+    this.tracking = CallingHistoryTracking.defaults,
     required this.trackAllCallers,
     this.venueCallCount = kVenueCallCountDefault,
     required this.onOpenProgram,
@@ -83,6 +84,10 @@ class CallingHistorySection extends StatefulWidget {
   /// "Require an event date" for calling history. Changing it changes the
   /// query, so the stream is rebuilt.
   final bool requireEventDate;
+
+  /// The history-order toggles. They change only the row order, never which
+  /// rows are listed; changing them rebuilds the stream.
+  final CallingHistoryTracking tracking;
 
   /// "Track calling history for all callers" (issue #583). Resolves to the
   /// caller filter passed to the query, so a change rebuilds the stream.
@@ -146,6 +151,7 @@ class _CallingHistorySectionState extends State<CallingHistorySection> {
     if (oldWidget.danceId != widget.danceId ||
         oldWidget.performedOnly != widget.performedOnly ||
         oldWidget.requireEventDate != widget.requireEventDate ||
+        oldWidget.tracking != widget.tracking ||
         oldWidget.trackAllCallers != widget.trackAllCallers ||
         oldWidget.repositories != widget.repositories) {
       setState(() => _history = _watch());
@@ -171,6 +177,7 @@ class _CallingHistorySectionState extends State<CallingHistorySection> {
               widget.danceId,
               performedOnly: widget.performedOnly,
               requireEventDate: widget.requireEventDate,
+              tracking: widget.tracking,
               callerFilter: callerFilter,
             )
             .map((history) {
@@ -383,7 +390,9 @@ class _CallingHistorySectionState extends State<CallingHistorySection> {
 }
 
 /// The calendar day a calling-history row shows for [record]: the day
-/// [DanceCallingRecord.effectiveDate] picks, which also orders the rows.
+/// [DanceCallingRecord.effectiveDate] picks. It orders the rows unless a
+/// history-order setting leaves the row with no
+/// [DanceCallingRecord.orderingDate], which lists it after every dated row.
 ///
 /// That is the program's event date when it has one (GIG-2, maintainer
 /// decision 2026-10-29), so marking a slot performed on the Monday after

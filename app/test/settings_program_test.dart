@@ -20,6 +20,7 @@ import 'package:compendium_app/src/screens/settings_screen.dart';
 import 'package:compendium_app/src/screens/settings/matrix_column_editor_screen.dart';
 
 import 'support/test_repositories.dart';
+import 'support/tracking_settings.dart';
 import 'support/l10n_harness.dart';
 import 'support/screen_size.dart';
 import 'support/text_scale.dart';
@@ -69,36 +70,38 @@ Future<ValueNotifier<bool>> _pumpProgram(
   addTearDown(customThemes.dispose);
 
   await tester.pumpWidget(
-    MaterialApp(
-      localizationsDelegates: testLocalizationsDelegates,
-      supportedLocales: testSupportedLocales,
-      builder: (context, child) => RepositoriesScope(
-        repositories: repos,
-        child: AppThemeScope(
-          notifier: theme,
-          child: CustomThemesScope(
-            controller: customThemes,
-            child: ActiveDialectScope(
-              notifier: dialect,
-              child: VenueEntityModeScope(
-                notifier: venueMode,
-                child: MatrixCollisionModeScope(
-                  notifier: exactBeatCollision,
-                  child: RequirePerformedForHistoryScope(
-                    notifier: requirePerformed,
-                    child: RequireEventDateForHistoryScope(
-                      notifier: eventDate,
-                      child: TrackHistoryForAllCallersScope(
-                        notifier: trackAllCallers,
-                        child: ProgramAutoCommitScope(
-                          notifier: autoCommit,
-                          child: VenueCallCountScope(
-                            notifier: venueCalls,
-                            child:
-                                (textScaleBuilder(
-                                  textScale,
-                                )?.call(context, child)) ??
-                                child!,
+    TrackingScopes(
+      child: MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        builder: (context, child) => RepositoriesScope(
+          repositories: repos,
+          child: AppThemeScope(
+            notifier: theme,
+            child: CustomThemesScope(
+              controller: customThemes,
+              child: ActiveDialectScope(
+                notifier: dialect,
+                child: VenueEntityModeScope(
+                  notifier: venueMode,
+                  child: MatrixCollisionModeScope(
+                    notifier: exactBeatCollision,
+                    child: RequirePerformedForHistoryScope(
+                      notifier: requirePerformed,
+                      child: RequireEventDateForHistoryScope(
+                        notifier: eventDate,
+                        child: TrackHistoryForAllCallersScope(
+                          notifier: trackAllCallers,
+                          child: ProgramAutoCommitScope(
+                            notifier: autoCommit,
+                            child: VenueCallCountScope(
+                              notifier: venueCalls,
+                              child:
+                                  (textScaleBuilder(
+                                    textScale,
+                                  )?.call(context, child)) ??
+                                  child!,
+                            ),
                           ),
                         ),
                       ),
@@ -109,12 +112,12 @@ Future<ValueNotifier<bool>> _pumpProgram(
             ),
           ),
         ),
-      ),
-      home: ShowPerformedTogglesScope(
-        notifier: showPerformedToggles,
-        child: MarkAllSetsStatusScope(
-          notifier: markAllSetsStatus,
-          child: const SettingsScreen(),
+        home: ShowPerformedTogglesScope(
+          notifier: showPerformedToggles,
+          child: MarkAllSetsStatusScope(
+            notifier: markAllSetsStatus,
+            child: const SettingsScreen(),
+          ),
         ),
       ),
     ),
@@ -219,6 +222,50 @@ void main() {
 
     expect(tester.widget<SwitchListTile>(tile).value, isFalse);
     expect(await repos.settings.get(kShowPerformedTogglesKey), isFalse);
+  });
+
+  testWidgets('the four tracking toggles show their defaults and persist', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpProgram(tester, repos);
+
+    final defaults = {
+      'general-recency-require-event-date': (true, kRecencyRequireEventDateKey),
+      'general-recency-require-performed': (false, kRecencyRequirePerformedKey),
+      'general-history-order-ignore-undated': (
+        false,
+        kHistoryOrderIgnoreUndatedKey,
+      ),
+      'general-history-order-ignore-unperformed': (
+        false,
+        kHistoryOrderIgnoreUnperformedKey,
+      ),
+    };
+    for (final entry in defaults.entries) {
+      final (initial, settingKey) = entry.value;
+      final tile = find.byKey(ValueKey(entry.key));
+      await tester.scrollUntilVisible(
+        tile,
+        200,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.ensureVisible(tile);
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<SwitchListTile>(tile).value,
+        initial,
+        reason: entry.key,
+      );
+      // Nothing is stored until the caller flips it.
+      expect(await repos.settings.get(settingKey), isNull, reason: entry.key);
+      await tester.tap(tile);
+      await tester.pumpAndSettle();
+      expect(tester.widget<SwitchListTile>(tile).value, !initial);
+      expect(await repos.settings.get(settingKey), !initial);
+    }
+    // The descriptions say the new rows never change the counts.
+    expect(find.textContaining('never the counts'), findsWidgets);
   });
 
   testWidgets('"Mark all performed sets the status" defaults on, and '
@@ -417,8 +464,15 @@ void main() {
     venueCalls.value = 8;
     await tester.pumpAndSettle();
 
-    expect(tester.widget<SwitchListTile>(toggle).value, isTrue);
     expect(tester.widget<DropdownButton<int>>(dropdown).value, 8);
+    // The list builds lazily and the tracking rows below the dropdown lengthen
+    // it, so bring the toggle back into view before reading it.
+    await tester.scrollUntilVisible(
+      toggle,
+      -200,
+      scrollable: find.byType(Scrollable).last,
+    );
+    expect(tester.widget<SwitchListTile>(toggle).value, isTrue);
   });
 
   testWidgets('toggling program auto-commit persists the setting', (

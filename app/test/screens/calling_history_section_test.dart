@@ -686,14 +686,14 @@ void main() {
     }
   });
 
-  // FIND-1 / N1-H1: the call date has a SQL form (`callingHistoryDateSql`,
-  // and its recency variant without `updated_at`) and two Dart forms. The core
-  // test `called_filter_scopes_test.dart` pins SQL against
-  // [DanceCallingRecord.effectiveDate] and [DanceCallingRecord.recencyDate];
-  // this pins the detail page's display date against those two, so editing
-  // any one of the three alone fails a test.
-  test('callingHistoryDisplayDate picks the same date as effectiveDate and '
-      'recencyDate, for every combination of dates', () {
+  // FIND-1: the call date has a SQL form (`callingHistoryDateSql`) and two
+  // Dart forms. The core test `called_filter_scopes_test.dart` pins the SQL
+  // against [DanceCallingRecord.effectiveDate]; this pins the detail page's
+  // display date against it, so editing either Dart copy alone fails a test.
+  // The recency date is a window date, not a display date: it is pinned against
+  // its own SQL there (`callingHistoryRecencyDateSql` and `recencyDate`).
+  test('callingHistoryDisplayDate picks the same date as effectiveDate, for '
+      'every combination of dates', () {
     final previous = callingHistoryToLocal;
     // West of UTC, so a converted instant cannot pass for an unconverted one.
     callingHistoryToLocal = (instant) =>
@@ -718,17 +718,6 @@ void main() {
           record.eventDate ?? callingHistoryToLocal(record.effectiveDate),
           reason: reason,
         );
-        if (record.recencyDate case final recency?) {
-          expect(
-            callingHistoryDisplayDate(record),
-            record.eventDate ?? callingHistoryToLocal(recency),
-            reason: reason,
-          );
-        } else {
-          // Only an undated, unperformed slot has no recency date; the page
-          // still shows it, dated by the program's last edit.
-          expect((event, performed), (null, null), reason: reason);
-        }
       }
     }
   });

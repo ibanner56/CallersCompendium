@@ -3224,9 +3224,9 @@
   "@settingsGeneralRequirePerformedForHistoryTitle": {
     "x-sourceSha256": "c229e5493c13424977f1ffd0e094821fb9822043e8210e315b0a45629debb6ee"
   },
-  "settingsGeneralRequirePerformedForHistorySubtitle": "Als ingeschakeld, toont de callerhistorie van een dans alleen programma’s waarvan het slot voor die dans als uitgevoerd is gemarkeerd. Als uitgeschakeld, verschijnt een programma zodra het de dans bevat.",
+  "settingsGeneralRequirePerformedForHistorySubtitle": "Bepaalt wat als gecalld telt. Als ingeschakeld, tellen alleen slots die als uitgevoerd zijn gemarkeerd overal waar callerhistorie wordt gelezen: de historielijst, gecalld ×N, het filter Gecalld en de sortering op laatst gecalld. Als uitgeschakeld, telt een slot zodra het programma de dans bevat. Gaat vóór de vier instellingen hieronder.",
   "@settingsGeneralRequirePerformedForHistorySubtitle": {
-    "x-sourceSha256": "d17ae60f119ebc62e2f2492687687898f584def638de5e2549510d59bf3160ec"
+    "x-sourceSha256": "d3145fcbcff60ed81348b5e51f6f14a2955414925579a05988fe7bfe0a8e01f0"
   },
   "settingsGeneralShowPerformedTogglesTitle": "Schakelaars voor ‘markeren als uitgevoerd’ tonen",
   "@settingsGeneralShowPerformedTogglesTitle": {
@@ -3248,9 +3248,45 @@
   "@settingsGeneralRequireEventDateForHistoryTitle": {
     "x-sourceSha256": "f62790f3e48e6bd9f8b81f3fee8782bbeba76923cdb1d175e50df7d053afe6a2"
   },
-  "settingsGeneralRequireEventDateForHistorySubtitle": "Als ingeschakeld, telt een programma zonder eventdatum pas mee voor de callerhistorie als je het een datum geeft. Gedupliceerde en ontvangen programma’s komen zonder datum binnen. Als uitgeschakeld, telt een programma mee, of het nu een datum heeft of niet.",
+  "settingsGeneralRequireEventDateForHistorySubtitle": "Bepaalt wat als gecalld telt. Als ingeschakeld, telt een programma zonder eventdatum nergens mee in de callerhistorie tot je het een datum geeft. Gedupliceerde en ontvangen programma’s komen zonder datum binnen. Als uitgeschakeld, telt een programma mee, of het nu een datum heeft of niet. Gaat vóór de vier instellingen hieronder.",
   "@settingsGeneralRequireEventDateForHistorySubtitle": {
-    "x-sourceSha256": "23e337b297b87aad7ada670e835d4b176fae90d6782c5ca898c149f64080259d"
+    "x-sourceSha256": "28cda7212851d084501c8744628b7097b330c4442b65eccc7e660c867a0b3956"
+  },
+  "settingsTrackingHeader": "Recentheid en historievolgorde",
+  "@settingsTrackingHeader": {
+    "x-sourceSha256": "618f36841e967c647d75bbaeeb13d209487f073872d4c75657e09cbef7990166"
+  },
+  "settingsRecencyRequireEventDateTitle": "Recentheid telt alleen programma’s met datum",
+  "@settingsRecencyRequireEventDateTitle": {
+    "x-sourceSha256": "afa4885654835890a138510f00989a31cc4fac88469e2c338d9779e4cb9c920a"
+  },
+  "settingsRecencyRequireEventDateSubtitle": "Wijzigt alleen de tijdvensters van het filter Gecalld, nooit de tellingen. Als ingeschakeld, valt een programma zonder eventdatum in geen enkel venster, al telt de dans nog steeds als gecalld. Als uitgeschakeld, wordt een programma zonder datum gedateerd op het moment waarop het slot als uitgevoerd is gemarkeerd, anders op het moment van de laatste bewerking.",
+  "@settingsRecencyRequireEventDateSubtitle": {
+    "x-sourceSha256": "88fc5e9e7bff3de37dd4dceb3ea62acd98cfee6ea39a6fd91579d2d28715073f"
+  },
+  "settingsRecencyRequirePerformedTitle": "Recentheid telt alleen slots die als uitgevoerd zijn gemarkeerd",
+  "@settingsRecencyRequirePerformedTitle": {
+    "x-sourceSha256": "f8b5d7069c593cc75013127054e2d9a296ca3dae723c4a0eeba7db016ef8d9b8"
+  },
+  "settingsRecencyRequirePerformedSubtitle": "Wijzigt alleen de tijdvensters van het filter Gecalld, nooit de tellingen. Als ingeschakeld, valt een slot dat niet als uitgevoerd is gemarkeerd in geen enkel venster, maar het telt nog steeds als gecalld. Tot je het zelf instelt, volgt dit de instelling “uitgevoerd vereisen” hierboven.",
+  "@settingsRecencyRequirePerformedSubtitle": {
+    "x-sourceSha256": "93062ca7561ac7ddc88ae9943bc1179101af9e5cf5250c0d99e7268850dd734f"
+  },
+  "settingsHistoryOrderIgnoreUndatedTitle": "Historievolgorde en Laatst gecalld negeren programma’s zonder datum",
+  "@settingsHistoryOrderIgnoreUndatedTitle": {
+    "x-sourceSha256": "7005abdf4984a1921691e75edf8a5f58c6e914b3fe89eb5429ec6c623e34b3d5"
+  },
+  "settingsHistoryOrderIgnoreUndatedSubtitle": "Wijzigt alleen de volgorde van de historie van een dans en de sortering op laatst gecalld, nooit de tellingen. Als ingeschakeld, staat een programma zonder eventdatum na die met datum en geeft het geen datum voor Laatst gecalld. Als uitgeschakeld, wordt het gesorteerd op het moment waarop het slot als uitgevoerd is gemarkeerd, anders op de laatste bewerking.",
+  "@settingsHistoryOrderIgnoreUndatedSubtitle": {
+    "x-sourceSha256": "acd4ca4fce927041e8108e55a2093c308ae1a20099ac9175b1848b6c46e3caea"
+  },
+  "settingsHistoryOrderIgnoreUnperformedTitle": "Historievolgorde en Laatst gecalld negeren slots die niet als uitgevoerd zijn gemarkeerd",
+  "@settingsHistoryOrderIgnoreUnperformedTitle": {
+    "x-sourceSha256": "65b733cbf8ddc085428c6eb682a5f577d3e02659265831cfcf253869b34cc150"
+  },
+  "settingsHistoryOrderIgnoreUnperformedSubtitle": "Wijzigt alleen de volgorde van de historie van een dans en de sortering op laatst gecalld, nooit de tellingen. Als ingeschakeld, staat een slot dat niet als uitgevoerd is gemarkeerd na de andere en geeft het geen datum voor Laatst gecalld. Als uitgeschakeld, wordt het gesorteerd op de datum van het programma.",
+  "@settingsHistoryOrderIgnoreUnperformedSubtitle": {
+    "x-sourceSha256": "7c57f0b97a11718fdc34f1abab9ea59b8b952fa206a8d184c61f6c854b4c874d"
   },
   "settingsGeneralTrackHistoryForAllCallersTitle": "Callerhistorie voor alle callers bijhouden",
   "@settingsGeneralTrackHistoryForAllCallersTitle": {

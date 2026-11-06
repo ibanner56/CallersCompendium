@@ -3302,7 +3302,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsGeneralRequirePerformedForHistorySubtitle =>
-      'Activé : l’historique d’appel d’une danse ne liste que les programmes dont le créneau pour cette danse a été marqué comme joué. Désactivé : un programme apparaît dès qu’il contient la danse.';
+      'Détermine ce qui compte comme appelé. Activé : seuls les créneaux marqués comme joués comptent partout où l’historique d’appel est lu : la liste d’historique, « appelé ×N », le filtre Appelé et le tri par dernier appel. Désactivé : un créneau compte dès que son programme contient la danse. Prioritaire sur les quatre réglages ci-dessous.';
 
   @override
   String get settingsGeneralShowPerformedTogglesTitle =>
@@ -3326,7 +3326,42 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsGeneralRequireEventDateForHistorySubtitle =>
-      'Activé : un programme sans date d’événement ne compte pas dans l’historique d’appel tant que vous ne lui en donnez pas une. Les programmes dupliqués et reçus arrivent sans date. Désactivé : un programme compte, qu’il ait une date ou non.';
+      'Détermine ce qui compte comme appelé. Activé : un programme sans date d’événement ne compte nulle part dans l’historique d’appel tant que vous ne lui en donnez pas une. Les programmes dupliqués et reçus arrivent sans date. Désactivé : un programme compte, qu’il ait une date ou non. Prioritaire sur les quatre réglages ci-dessous.';
+
+  @override
+  String get settingsTrackingHeader => 'Récence et ordre de l’historique';
+
+  @override
+  String get settingsRecencyRequireEventDateTitle =>
+      'La récence ne compte que les programmes datés';
+
+  @override
+  String get settingsRecencyRequireEventDateSubtitle =>
+      'Ne modifie que les fenêtres de temps du filtre Appelé, jamais les décomptes. Activé : un programme sans date d’événement n’entre dans aucune fenêtre, même si ses danses comptent toujours comme appelées. Désactivé : un programme sans date est daté par le moment où son créneau a été marqué comme joué, sinon par sa dernière modification.';
+
+  @override
+  String get settingsRecencyRequirePerformedTitle =>
+      'La récence ne compte que les créneaux marqués comme joués';
+
+  @override
+  String get settingsRecencyRequirePerformedSubtitle =>
+      'Ne modifie que les fenêtres de temps du filtre Appelé, jamais les décomptes. Activé : un créneau non marqué comme joué n’entre dans aucune fenêtre, mais compte toujours comme appelé. Tant que vous ne le réglez pas vous-même, ce réglage suit l’exigence « joué » ci-dessus.';
+
+  @override
+  String get settingsHistoryOrderIgnoreUndatedTitle =>
+      'L’ordre de l’historique et Dernier appel ignorent les programmes sans date';
+
+  @override
+  String get settingsHistoryOrderIgnoreUndatedSubtitle =>
+      'Ne modifie que l’ordre de l’historique d’une danse et le tri par dernier appel, jamais les décomptes. Activé : un programme sans date d’événement est listé après les programmes datés et ne donne aucune date de dernier appel. Désactivé : il est classé selon le moment où son créneau a été marqué comme joué, sinon selon sa dernière modification.';
+
+  @override
+  String get settingsHistoryOrderIgnoreUnperformedTitle =>
+      'L’ordre de l’historique et Dernier appel ignorent les créneaux non marqués comme joués';
+
+  @override
+  String get settingsHistoryOrderIgnoreUnperformedSubtitle =>
+      'Ne modifie que l’ordre de l’historique d’une danse et le tri par dernier appel, jamais les décomptes. Activé : un créneau non marqué comme joué est listé après les autres et ne donne aucune date de dernier appel. Désactivé : il est classé selon la date de son programme.';
 
   @override
   String get settingsGeneralTrackHistoryForAllCallersTitle =>
