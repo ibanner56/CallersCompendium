@@ -297,9 +297,10 @@ have their own traps — do not reinvent them:
 - Copilot findings can hide in a `<details><summary>Suppressed comments (N)</summary>`
   block in the review **body** while thread state, inline-comment count, and
   unresolved count all read zero. Read the body every round with
-  `python3 tools/ci/check_pr_review_gates.py findings <N>`, and remember the
-  reviewer login differs by endpoint (`copilot-pull-request-reviewer[bot]` on
-  `/reviews`, `Copilot` on `/comments`). Full procedure:
+  `python3 tools/ci/check_pr_review_gates.py findings <N> --reviewer copilot`,
+  and remember the reviewer login differs by endpoint
+  (`copilot-pull-request-reviewer[bot]` on `/reviews`, `Copilot` on
+  `/comments`). Full procedure:
   [code-review.md](../../../docs/dev/agents/code-review.md).
 - A Claude review (requested with the `review: claude` label, the default
   reviewer) is this skill's own output format, posted as one review per round by

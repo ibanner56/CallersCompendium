@@ -281,8 +281,9 @@ Traps:
   round re-reads the diff and re-pays the resident prompt, so per-comment pushes
   multiply the most expensive part of the cycle.
 - **Read findings through the script, not raw JSON.** `check_pr_review_gates.py
-  findings <N>` (add `--reviewer claude` for a Claude review) prints one line per finding — including the suppressed block, or for
-  Claude the latest verdict — instead of pages of paginated review JSON.
+  findings <N>` (add `--reviewer copilot` for a Copilot review) prints one line
+  per finding — with Claude's latest verdict, or for Copilot including the
+  suppressed block — instead of pages of paginated review JSON.
 - **Reply after the fix is pushed**, so the reply and the corrected code are
   visible together. Note that replies are recorded as review entries, which is
   why review-freshness must be filtered by reviewer identity
