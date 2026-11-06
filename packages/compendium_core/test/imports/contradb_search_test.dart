@@ -141,6 +141,33 @@ void main() {
     });
   });
 
+  group('parseContraDbNumberMatching', () {
+    test('reads the whole match count, not the page size', () {
+      expect(
+        parseContraDbNumberMatching(
+          '{"numberSearched":2467,"numberMatching":2372,"dances":[]}',
+        ),
+        2372,
+      );
+      expect(parseContraDbNumberMatching('{"numberMatching":0}'), 0);
+    });
+
+    test('anything else is null, never a guess', () {
+      for (final body in <String>[
+        '',
+        'not json',
+        '[]',
+        '{}',
+        '{"numberMatching":null}',
+        '{"numberMatching":"12"}',
+        '{"numberMatching":-1}',
+        '{"numberMatching":1.5}',
+      ]) {
+        expect(parseContraDbNumberMatching(body), isNull, reason: body);
+      }
+    });
+  });
+
   group('parseContraDbSearchResults', () {
     const petronella = '''
 {

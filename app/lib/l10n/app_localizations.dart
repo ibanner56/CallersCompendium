@@ -10145,6 +10145,12 @@ abstract class AppLocalizations {
   /// **'Showing {count} online results. There may be more: narrow your search to see the rest.'**
   String onlineResultCountCapped(int count);
 
+  /// Count of online search results shown above the results list when the source reports how many results matched in all and that is more than the page shown. Replaces the plain count in that case.
+  ///
+  /// In en, this message translates to:
+  /// **'Showing {count} of {total} online results. Narrow your search to see the rest.'**
+  String onlineResultCountOfTotal(int count, int total);
+
   /// Note after the online result count when an Advanced search of ContraDB had figure parameters ContraDB has no counterpart for, which were left out, so the search is not exactly the one the Advanced panel describes (usually broader, narrower under None of). Follows the count after a middle dot.
   ///
   /// In en, this message translates to:

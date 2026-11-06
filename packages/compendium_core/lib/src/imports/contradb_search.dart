@@ -258,6 +258,26 @@ List<ContraDbSearchResult> parseContraDbSearchResults(String body) {
   return results;
 }
 
+/// How many dances matched a **ContraDB** search ([body], JSON), as the
+/// response's `numberMatching` reports it, or `null` when the body is not JSON,
+/// has no such number, or carries a negative or non-integer one.
+///
+/// This is the whole match count, not the size of the returned page: it stays
+/// the same for every `offset` of the same filter, so a search that fills its
+/// page of [contraDbSearchCount] can say how many dances there are in all.
+/// Pure, like [parseContraDbSearchResults].
+int? parseContraDbNumberMatching(String body) {
+  final Object? decoded;
+  try {
+    decoded = jsonDecode(body);
+  } on FormatException {
+    return null;
+  }
+  if (decoded is! Map) return null;
+  final total = decoded['numberMatching'];
+  return total is int && total >= 0 ? total : null;
+}
+
 /// Coerces a JSON scalar to a trimmed string: `null` → empty, numbers (e.g. the
 /// integer `id`) → their canonical string, strings → trimmed. Non-scalars (a
 /// nested object/list where a scalar was expected) → empty.

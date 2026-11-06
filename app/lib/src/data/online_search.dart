@@ -61,6 +61,7 @@ class OnlineSearchResultRow {
     required this.formation,
     this.figuresAvailable = true,
     this.mayHaveMore = false,
+    this.totalMatching,
     this.advancedPartlyApplied = false,
   });
 
@@ -98,6 +99,13 @@ class OnlineSearchResultRow {
   /// the merged count can pass a page size that no single response reached.
   final bool mayHaveMore;
 
+  /// How many dances the source says matched this search in all, when it says
+  /// so (ContraDB's `numberMatching`), set on every row of the search. It can
+  /// exceed the rows shown, because the source returns one page; `null` when
+  /// the source did not say, or when several responses were merged and their
+  /// counts cannot be added without double-counting.
+  final int? totalMatching;
+
   /// Whether the Advanced query behind this row's search had figure
   /// parameters ContraDB has no counterpart for, which were left out of the
   /// ContraDB filter. The figures are still searched by their other
@@ -116,6 +124,7 @@ class OnlineSearchResultRow {
       other.formation == formation &&
       other.figuresAvailable == figuresAvailable &&
       other.mayHaveMore == mayHaveMore &&
+      other.totalMatching == totalMatching &&
       other.advancedPartlyApplied == advancedPartlyApplied;
 
   @override
@@ -127,6 +136,7 @@ class OnlineSearchResultRow {
     formation,
     figuresAvailable,
     mayHaveMore,
+    totalMatching,
     advancedPartlyApplied,
   );
 
@@ -135,6 +145,7 @@ class OnlineSearchResultRow {
       'OnlineSearchResultRow(source: $source, id: $id, name: $name, '
       'author: $author, formation: $formation, '
       'figuresAvailable: $figuresAvailable, mayHaveMore: $mayHaveMore, '
+      'totalMatching: $totalMatching, '
       'advancedPartlyApplied: $advancedPartlyApplied)';
 }
 
