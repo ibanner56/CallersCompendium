@@ -1,4 +1,5 @@
 import '../model/figure.dart';
+import '../taxonomy/dance_vocabulary.dart' show seriesDancerWords;
 import '../taxonomy/param_types.dart';
 import '../taxonomy/taxonomy.dart';
 import 'contradb_dancer_vocab.dart';
@@ -2064,6 +2065,7 @@ final List<MapEntry<String, String>> _subjectPhrases =
       // gentlespoon` arrives as `first role1`). Multi-word, so ahead of the
       // bare entries.
       ...contradbRenderedSubjectEntries(scrubFigureText),
+      ..._seriesSubjectEntries(),
       MapEntry('next neighbors', 'nextNeighbors'),
       MapEntry('previous neighbors', 'prevNeighbors'),
       // ContraDB renders the previous-neighbors set as `prev neighbors`
@@ -2085,6 +2087,20 @@ final List<MapEntry<String, String>> _subjectPhrases =
       MapEntry('2nd shadows', 'secondShadows'),
       MapEntry('shadows', 'shadows'),
     ];
+
+/// The figure display's names for the neighbour, partner and shadow series,
+/// singular and plural (`prev neighbor`, `third partners`, `second shadow`;
+/// #2121), so free-text entry reads back a figure only this reader knows.
+/// Two words each, so they sit ahead of the bare entries.
+Iterable<MapEntry<String, String>> _seriesSubjectEntries() sync* {
+  for (final MapEntry(key: noun, value: byOrdinal)
+      in seriesDancerWords.entries) {
+    for (final MapEntry(key: ordinal, value: token) in byOrdinal.entries) {
+      yield MapEntry('$ordinal $noun', token);
+      yield MapEntry('$ordinal ${noun}s', token);
+    }
+  }
+}
 
 /// Consumes a leading dancer-set subject, or returns null if none is present.
 String? _subject(_Scan s) {
