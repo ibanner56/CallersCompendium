@@ -448,6 +448,43 @@ void main() {
         },
       );
 
+      test('a param ContraDB has no counterpart for is left out, applied '
+          'for the rest, and flagged on every row', () async {
+        final requests = <ContraDbSearchRequest>[];
+        final online = ContraDbOnline(
+          searchFetcher: (request) async {
+            requests.add(request);
+            return _searchJson();
+          },
+        );
+        final rows = await online.search(
+          OnlineSearchQuery(
+            advanced: FigureFilter.leaf(
+              'swing',
+              params: const {'who': 'partners', 'endFacing': 'out'},
+            ),
+          ),
+        );
+        expect(requests.single.expression, ['figure', 'swing', 'partners']);
+        expect(rows, isNotEmpty);
+        expect(rows.every((row) => row.advancedPartlyApplied), isTrue);
+      });
+
+      test('nothing left out: the rows are not flagged', () async {
+        final rows =
+            await ContraDbOnline(
+              searchFetcher: (_) async => _searchJson(),
+            ).search(
+              OnlineSearchQuery(
+                advanced: FigureFilter.leaf(
+                  'swing',
+                  params: const {'beats': 8},
+                ),
+              ),
+            );
+        expect(rows.any((row) => row.advancedPartlyApplied), isFalse);
+      });
+
       test('a text-only query is unchanged: no expression', () async {
         final requests = await run(const OnlineSearchQuery(title: 'x'));
         expect(requests.single.expression, isNull);
@@ -458,7 +495,7 @@ void main() {
         for (final unsupported in <DanceFilter>[
           const TagFilter('t1'),
           ThenFilter(FigureLeaf('swing', section: 'A1'), FigureLeaf('chain')),
-          FigureFilter.leaf('swing', params: const {'beats': 8}),
+          FigureFilter.leaf('swing', section: 'B1'),
           AndFilter([petronella, const TagFilter('t1')]),
         ]) {
           var called = false;

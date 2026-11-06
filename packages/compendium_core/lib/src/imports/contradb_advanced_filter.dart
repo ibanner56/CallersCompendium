@@ -1,6 +1,7 @@
 import 'package:meta/meta.dart';
 
 import '../search/filter.dart';
+import 'contradb_advanced_params.dart';
 
 /// Why an Advanced [DanceFilter] cannot be sent to ContraDB.
 ///
@@ -14,9 +15,12 @@ enum ContraDbAdvancedUnsupported {
   /// this app never has.
   tag,
 
-  /// A figure condition with parameters or a phrase section. ContraDB
-  /// compares parameters by position in each move's own formal-parameter list,
-  /// which the app's named parameters are not mapped onto.
+  /// A figure condition with a phrase section (`B1`, ...). ContraDB's filter
+  /// language has no section: it is not stored as part of a figure.
+  ///
+  /// Parameters never refuse a figure: ContraDB takes them by position, each
+  /// one the app and ContraDB share is translated, and the rest are left out
+  /// and reported in [ContraDbAdvancedExpression.ignoredParams].
   figureDetail,
 
   /// A move that has no exact ContraDB counterpart: one ContraDB does not
@@ -40,9 +44,19 @@ sealed class ContraDbAdvancedTranslation {
 /// A ContraDB filter [expression] (the JSON array its `filter` parameter takes).
 @immutable
 class ContraDbAdvancedExpression extends ContraDbAdvancedTranslation {
-  const ContraDbAdvancedExpression(this.expression);
+  const ContraDbAdvancedExpression(
+    this.expression, {
+    this.ignoredParams = const <String>{},
+  });
 
   final List<Object?> expression;
+
+  /// `move.param` for each figure parameter the query set that ContraDB has no
+  /// exact counterpart for and that was therefore left out of [expression]
+  /// (for example `swing.endFacing`). The figure is still searched by its other
+  /// parameters, so the search can differ from the Advanced panel (usually
+  /// broader, narrower under a negation).
+  final Set<String> ignoredParams;
 }
 
 /// The filter has a condition ContraDB cannot express; see [reason].
@@ -82,75 +96,88 @@ class ContraDbAdvancedRefused extends ContraDbAdvancedTranslation {
 /// never sees, so it cannot know they mean what ContraDB's identically spelt
 /// move means.
 ContraDbAdvancedTranslation translateDanceFilterToContraDb(DanceFilter filter) {
-  final result = _dance(filter);
+  final walk = _Walk();
+  final result = walk.dance(filter);
   return switch (result) {
-    final List<Object?> expression => ContraDbAdvancedExpression(expression),
+    final List<Object?> expression => ContraDbAdvancedExpression(
+      expression,
+      ignoredParams: walk.ignored,
+    ),
     final ContraDbAdvancedUnsupported reason => ContraDbAdvancedRefused(reason),
     _ => throw StateError('unreachable'),
   };
 }
 
-/// Either a `List<Object?>` expression or a [ContraDbAdvancedUnsupported].
-Object _dance(DanceFilter filter) {
-  switch (filter) {
-    case AndFilter(:final children):
-      return _combine('and', children, _dance);
-    case OrFilter(:final children):
-      return _combine('or', children, _dance);
-    case NotFilter(:final child):
-      final inner = _dance(child);
-      return inner is List<Object?> ? <Object?>['no', inner] : inner;
-    case FigureFilter(:final query):
-      // `FigureFilter(FigureNot(q))` means "no figure matches q" locally.
-      if (query case FigureNot(:final child)) {
-        final inner = _figure(child);
-        return inner is List<Object?> ? <Object?>['no', inner] : inner;
-      }
-      return _figure(query);
-    case TagFilter() || UntaggedFilter():
-      return ContraDbAdvancedUnsupported.tag;
-    case ThenFilter(:final before, :final after):
-      // Both sides mean "immediately follows, wrapping from the last figure to
-      // the first", as ContraDB's `then` does (`SearchMatch#abuts?`). The
-      // operands are row-level, so a figure not under them is figurewise
-      // `not`, never the dance-level `no`.
-      return _combine('then', [before, after], _figure);
-    case FullTextFilter() ||
-        AuthorFilter() ||
-        SourceFilter() ||
-        SourceIdFilter() ||
-        TunesFilter() ||
-        FormFilter() ||
-        FormationFilter() ||
-        ProgressionFilter() ||
-        StatusFilter() ||
-        LevelFilter() ||
-        MixedLevelFilter() ||
-        MixerFilter() ||
-        CalledFilter() ||
-        RatingFilter() ||
-        CustomFieldFilter():
-      return ContraDbAdvancedUnsupported.other;
-  }
-}
+/// One translation of a filter tree. Each method returns either a
+/// `List<Object?>` expression or a [ContraDbAdvancedUnsupported].
+class _Walk {
+  /// The parameters left out of the figures translated so far.
+  final Set<String> ignored = {};
 
-Object _figure(FigureQuery query) {
-  switch (query) {
-    case FigureLeaf(:final move, :final params, :final section):
-      if (params.isNotEmpty || section != null) {
-        return ContraDbAdvancedUnsupported.figureDetail;
-      }
-      final fragment = _contraDbForCollectionMove[move];
-      return fragment == null
-          ? ContraDbAdvancedUnsupported.figureName
-          : _copy(fragment);
-    case FigureAnd(:final children):
-      return _combine('&', children, _figure);
-    case FigureOr(:final children):
-      return _combine('or', children, _figure);
-    case FigureNot(:final child):
-      final inner = _figure(child);
-      return inner is List<Object?> ? <Object?>['not', inner] : inner;
+  Object dance(DanceFilter filter) {
+    switch (filter) {
+      case AndFilter(:final children):
+        return _combine('and', children, dance);
+      case OrFilter(:final children):
+        return _combine('or', children, dance);
+      case NotFilter(:final child):
+        final inner = dance(child);
+        return inner is List<Object?> ? <Object?>['no', inner] : inner;
+      case FigureFilter(:final query):
+        // `FigureFilter(FigureNot(q))` means "no figure matches q" locally.
+        if (query case FigureNot(:final child)) {
+          final inner = figure(child);
+          return inner is List<Object?> ? <Object?>['no', inner] : inner;
+        }
+        return figure(query);
+      case TagFilter() || UntaggedFilter():
+        return ContraDbAdvancedUnsupported.tag;
+      case ThenFilter(:final before, :final after):
+        // Both sides mean "immediately follows, wrapping from the last figure
+        // to the first", as ContraDB's `then` does (`SearchMatch#abuts?`). The
+        // operands are row-level, so a figure not under them is figurewise
+        // `not`, never the dance-level `no`.
+        return _combine('then', [before, after], figure);
+      case FullTextFilter() ||
+          AuthorFilter() ||
+          SourceFilter() ||
+          SourceIdFilter() ||
+          TunesFilter() ||
+          FormFilter() ||
+          FormationFilter() ||
+          ProgressionFilter() ||
+          StatusFilter() ||
+          LevelFilter() ||
+          MixedLevelFilter() ||
+          MixerFilter() ||
+          CalledFilter() ||
+          RatingFilter() ||
+          CustomFieldFilter():
+        return ContraDbAdvancedUnsupported.other;
+    }
+  }
+
+  Object figure(FigureQuery query) {
+    switch (query) {
+      case FigureLeaf(:final move, :final params, :final section):
+        if (section != null) return ContraDbAdvancedUnsupported.figureDetail;
+        final fragment = _contraDbForCollectionMove[move];
+        if (fragment == null) return ContraDbAdvancedUnsupported.figureName;
+        if (params.isEmpty) return _copy(fragment);
+        // Parameters are translated where ContraDB has them; the rest are
+        // left out, never a reason to refuse the figure.
+        final withParams = translateContraDbFigureParams(move, params);
+        if (withParams == null) return _copy(fragment);
+        ignored.addAll(withParams.ignored);
+        return withParams.expression ?? _copy(fragment);
+      case FigureAnd(:final children):
+        return _combine('&', children, figure);
+      case FigureOr(:final children):
+        return _combine('or', children, figure);
+      case FigureNot(:final child):
+        final inner = figure(child);
+        return inner is List<Object?> ? <Object?>['not', inner] : inner;
+    }
   }
 }
 

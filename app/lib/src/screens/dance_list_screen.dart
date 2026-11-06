@@ -3188,11 +3188,17 @@ class _DanceListScreenState extends State<DanceListScreen>
     final int hidden = !online && _selectionMode && _searchError == null
         ? _selection.notShown(_shownIds)
         : 0;
-    final String label = online
+    final String countLabel = online
         ? (_onlineResults.any((row) => row.mayHaveMore)
               ? l10n.onlineResultCountCapped(count)
               : l10n.onlineResultCount(count))
         : l10n.collectionDanceCount(count);
+    // Parameters ContraDB has no counterpart for were left out of the
+    // search, so it is not exactly the one the Advanced panel describes.
+    final String label =
+        online && _onlineResults.any((row) => row.advancedPartlyApplied)
+        ? '$countLabel \u00b7 ${l10n.onlineAdvancedPartlyApplied}'
+        : countLabel;
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.md,

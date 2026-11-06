@@ -6432,6 +6432,9 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get onlineAdvancedPartlyApplied => '一部の詳細検索の条件はContraDBにないため、除外されました。';
+
+  @override
   String onlineSearchHintByPhrase(String source) {
     return '$sourceを検索するには、タイトルまたは作者を入力するか、フレーズ別のフィギュアを追加してください。';
   }
@@ -7182,7 +7185,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get importErrorContraDbUnsupportedAdvanced =>
-      'ContraDBでは、「フィギュアを含む」と「シーケンス（次に）」の条件を「すべてに一致」「いずれかに一致」「どれにも一致しない」のグループで組み合わせた詳細検索のみ実行できます。ContraDBを検索するには、タグ、フィギュアの詳細、ContraDBに完全に対応するものがない技、その他の条件を削除してください。';
+      'ContraDBでは、「フィギュアを含む」と「シーケンス（次に）」の条件を「すべてに一致」「いずれかに一致」「どれにも一致しない」のグループで組み合わせた詳細検索のみ実行できます。ContraDBを検索するには、タグ、フィギュアのセクション、ContraDBに完全に対応するものがない技、その他の条件を削除してください。';
 
   @override
   String get importErrorContraDbEmptyDanceInput =>

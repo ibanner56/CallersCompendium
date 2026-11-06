@@ -10145,6 +10145,12 @@ abstract class AppLocalizations {
   /// **'Showing {count} online results. There may be more: narrow your search to see the rest.'**
   String onlineResultCountCapped(int count);
 
+  /// Note after the online result count when an Advanced search of ContraDB had figure parameters ContraDB has no counterpart for, which were left out, so the search is not exactly the one the Advanced panel describes (usually broader, narrower under None of). Follows the count after a middle dot.
+  ///
+  /// In en, this message translates to:
+  /// **'Some Advanced conditions don\'t exist on ContraDB and were left out.'**
+  String get onlineAdvancedPartlyApplied;
+
   /// Empty-query hint for online sources that support by-phrase figure criteria.
   ///
   /// In en, this message translates to:
@@ -11159,10 +11165,10 @@ abstract class AppLocalizations {
   /// **'ContraDB Figure searches use a complete move name, such as \"box circulate\".'**
   String get importErrorContraDbUnsupportedFigure;
 
-  /// Error shown when the Advanced search has a condition ContraDB cannot run with the same meaning (a tag, a figure parameter or section, a move ContraDB has no exact match for, or a local-only filter), so the ContraDB search is not sent. Quoted names are the Advanced builder's group and row labels.
+  /// Error shown when the Advanced search has a condition ContraDB cannot run with the same meaning (a tag, a figure section, a move ContraDB has no exact match for, or a local-only filter), so the ContraDB search is not sent. Quoted names are the Advanced builder's group and row labels.
   ///
   /// In en, this message translates to:
-  /// **'ContraDB can only run Advanced searches made of \"All of\", \"Any of\", and \"None of\" groups of \"Has figure\" and \"Sequence (then)\" conditions. Remove tags, figure details, moves ContraDB has no exact match for, and other conditions to search ContraDB.'**
+  /// **'ContraDB can only run Advanced searches made of \"All of\", \"Any of\", and \"None of\" groups of \"Has figure\" and \"Sequence (then)\" conditions. Remove tags, figure sections, moves ContraDB has no exact match for, and other conditions to search ContraDB.'**
   String get importErrorContraDbUnsupportedAdvanced;
 
   /// Error shown when the ContraDB dance URL/id field is empty.

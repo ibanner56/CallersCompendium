@@ -6664,6 +6664,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get onlineAdvancedPartlyApplied =>
+      'Some Advanced conditions don\'t exist on ContraDB and were left out.';
+
+  @override
   String onlineSearchHintByPhrase(String source) {
     return 'Type a title or author, or add by-phrase figures to search $source.';
   }
@@ -7454,7 +7458,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importErrorContraDbUnsupportedAdvanced =>
-      'ContraDB can only run Advanced searches made of \"All of\", \"Any of\", and \"None of\" groups of \"Has figure\" and \"Sequence (then)\" conditions. Remove tags, figure details, moves ContraDB has no exact match for, and other conditions to search ContraDB.';
+      'ContraDB can only run Advanced searches made of \"All of\", \"Any of\", and \"None of\" groups of \"Has figure\" and \"Sequence (then)\" conditions. Remove tags, figure sections, moves ContraDB has no exact match for, and other conditions to search ContraDB.';
 
   @override
   String get importErrorContraDbEmptyDanceInput =>

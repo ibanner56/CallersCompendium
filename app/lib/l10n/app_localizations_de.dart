@@ -6773,6 +6773,10 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get onlineAdvancedPartlyApplied =>
+      'Einige erweiterte Bedingungen gibt es bei ContraDB nicht und wurden weggelassen.';
+
+  @override
   String onlineSearchHintByPhrase(String source) {
     return 'Gib einen Titel oder Autor ein oder füge Figuren für die Phrasensuche hinzu, um $source zu durchsuchen.';
   }
@@ -7569,7 +7573,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get importErrorContraDbUnsupportedAdvanced =>
-      'ContraDB kann nur erweiterte Suchen ausführen, die aus Gruppen „Alle von“, „Beliebige von“ und „Keine von“ mit „Hat Figur“- und „Sequenz (dann)“-Bedingungen bestehen. Entferne Tags, Figurdetails, Bewegungen ohne genaue Entsprechung in ContraDB und andere Bedingungen, um ContraDB zu durchsuchen.';
+      'ContraDB kann nur erweiterte Suchen ausführen, die aus Gruppen „Alle von“, „Beliebige von“ und „Keine von“ mit „Hat Figur“- und „Sequenz (dann)“-Bedingungen bestehen. Entferne Tags, Figurabschnitte, Bewegungen ohne genaue Entsprechung in ContraDB und andere Bedingungen, um ContraDB zu durchsuchen.';
 
   @override
   String get importErrorContraDbEmptyDanceInput =>

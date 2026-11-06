@@ -45,15 +45,16 @@ tree. Conforms to [ux.md](ux.md) §1 and [dialect.md](dialect.md)
    conditions in all/any/none groups and `ThenFilter` translate; `ThenFilter`
    means the same as ContraDB's `then` (the second figure immediately follows
    the first, wrapping from the last figure to the first; a dance of one
-   figure pairs that figure with itself on both sides). A tag, a figure
-   parameter or section (ContraDB compares parameters by position in each
-   move's own list), a move with no exact ContraDB counterpart or an unknown
-   move (in a figure or a `then` operand), or any
+   figure pairs that figure with itself on both sides). A tag, a phrase
+   section (ContraDB stores none), a move with no exact ContraDB counterpart
+   or an unknown move (in a figure or a `then` operand), or any
    local-only leaf makes the search refuse with
    `UrlFetchFailureReason.contraDbUnsupportedAdvanced` and send nothing: a
    condition silently dropped would answer a wider question than the panel
-   shows. This translation decision is the implementing agent's, not the
-   maintainer's.
+   shows. A figure's **parameters** do not refuse it (see *Figure
+   parameters* below). The refuse-rather-than-drop rule is the implementing
+   agent's, not the maintainer's; parameters are the one exception, by the
+   user's instruction.
 
    **Moves translate by id, through an exact table.** A figure leaf carries
    the Collection's move id (`do_si_do`), not a ContraDB name, so
@@ -117,6 +118,74 @@ tree. Conforms to [ux.md](ux.md) §1 and [dialect.md](dialect.md)
    ASCII and curly spellings as two requests and merges the rows, so up to 40
    can show, and the notice appears only if one of the two filled its page.
    Paging and a "showing N of M" total are not built.
+
+   **Figure parameters.** ContraDB takes a figure's parameters by position
+   after the move (`["figure", "swing", "partners", "*", 16]`).
+   `contradb_advanced_params.dart` maps each parameter the Collection and
+   ContraDB share onto its position and value spelling, from ContraDB's
+   `figure.js` / `param.js`, with each value mapping checked against the
+   importer on rendered figure lines (the renderings were composed by hand from
+   ContraDB's `*Words` functions, not fetched from contradb.com).
+
+   *Left out, not refused.* **Decided by the user, in the agent session that wrote this (2026-11-05; no issue or
+   comment records it, only that session):** support every
+   parameter ContraDB also has, and do not refuse a figure because some of its
+   parameters have no ContraDB counterpart. Such a parameter, or an app value
+   with no exact ContraDB value, is left out of the filter; the figure is still
+   searched by its other parameters. The translation returns the left-out names
+   (`ContraDbAdvancedExpression.ignoredParams`, `move.param`), `ContraDbOnline`
+   sets `OnlineSearchResultRow.advancedPartlyApplied` on every row, and the
+   count line adds a note after the count, because the search is then not the
+   one the panel describes: usually broader, but narrower under a negation
+   (**None of**), where a dropped condition makes the excluded set larger. The note rides on the rows, so a search that finds no
+   dances shows no note. A value of `unspecified` means "not set" and is not
+   reported. The parameters with no ContraDB counterpart, pinned by
+   `contradb_advanced_params_test.dart`: `balance.hand`, `butterfly_whirl.who`
+   and `.direction`, `circle.singleFile`, `contra_corners.custom`,
+   `figure_8.lead`, `form_long_waves.balance`/`whom`/`whomHand`, `gate.pair`/
+   `direction`/`travel`, `hey.meetTarget`/`pass2`, `mad_robin.direction`/`whom`,
+   `promenade.destination`/`singleFile`, `roll_away.halfSashay`,
+   `slice.by`/`return`, `swing.endFacing`, `turn_alone.custom`, `zig_zag.ender`.
+   Most are parameters the importer never sets (it sees only rendered prose).
+
+   *Mechanics that are easy to get wrong.* `*` means "any" at every formal
+   except a free-text one (`contra corners`, `turn alone`, position 1), which is
+   filled with `''`; an alias (`see saw`, `swat the flea`) pins its parameter
+   only when the filter has none, so an alias leaf with parameters pins it
+   itself; a position past a figure's last formal makes ContraDB raise (the
+   test checks every position against ContraDB's formal list); `beats` is the
+   last formal of each figure and is sent as an integer; `allemande` adds an
+   `allemande orbit` branch (positions of its own, no beats filter, and only for
+   a pair and a beats value of 8); `pull_by` is two ContraDB figures, each with
+   its own positions.
+
+   *Approximate on purpose, because ContraDB cannot say more.* ContraDB maps a
+   dancer to a category before comparing, so a `neighbors` filter also matches
+   stored previous, next, third and fourth neighbors, and `shadows` also second
+   shadows (over-match); the five dancer values that are only stored under
+   another category (`prevNeighbors`, `nextNeighbors`, `thirdNeighbors`,
+   `fourthNeighbors`, `secondShadows`) can never match and are left out. A hey
+   ricochet that is `true` over-matches when the first pass is not a pair. A
+   hey length of `half`, a down/up hall `forward` facing, a pass-through
+   `along`, a promenade `across` and its direction, and a long wave's `in` and
+   `balance` under-match, because the importer reads the figures ContraDB stores
+   differently as the default. A figure 8 `above` is stored two ways (`''` and
+   `above`), so it is an `or`. The `poussette` direction is **inverted** on
+   purpose (clockwise is `false`): ContraDB renders a stored `true` as "left",
+   and the importer reads "back then right" as clockwise, so the mapping that
+   round-trips through the importer is the inverted one. Whether that matches
+   the dancers' physical direction is the importer's existing decision, not this
+   one's.
+
+   *What is verified.* Positions against ContraDB's formal lists, the
+   left-out set, and every value mapping are pinned by unit tests; the opt-in
+   `tool/check_contradb_translation_live.dart` sent 30 expression shapes
+   (including one per parameter shape above) and ContraDB accepted all of them.
+   Two returned no dances (`figure 8` below and full, and `down the hall`
+   backward ending in a circle); a count of zero cannot tell a rare combination
+   from a wrong value, so that check shows only that the expressions are valid.
+   The mappings and who decided them: the per-parameter mappings are the
+   implementing agent's, from a research pass over ContraDB's source.
 4. **Injection-safe by construction.** Every user value is a bind variable;
    only a fixed vocabulary of column names, operators, and JSON key paths is
    ever interpolated, and each is validated against an allow-list.

@@ -61,6 +61,7 @@ class OnlineSearchResultRow {
     required this.formation,
     this.figuresAvailable = true,
     this.mayHaveMore = false,
+    this.advancedPartlyApplied = false,
   });
 
   /// Which source this row came from (drives the attribution line).
@@ -97,6 +98,14 @@ class OnlineSearchResultRow {
   /// the merged count can pass a page size that no single response reached.
   final bool mayHaveMore;
 
+  /// Whether the Advanced query behind this row's search had figure
+  /// parameters ContraDB has no counterpart for, which were left out of the
+  /// ContraDB filter. The figures are still searched by their other
+  /// parameters, so the results can differ from what the Advanced panel says
+  /// (usually broader, narrower under None of).
+  /// Set on every row of such a search.
+  final bool advancedPartlyApplied;
+
   @override
   bool operator ==(Object other) =>
       other is OnlineSearchResultRow &&
@@ -106,7 +115,8 @@ class OnlineSearchResultRow {
       other.author == author &&
       other.formation == formation &&
       other.figuresAvailable == figuresAvailable &&
-      other.mayHaveMore == mayHaveMore;
+      other.mayHaveMore == mayHaveMore &&
+      other.advancedPartlyApplied == advancedPartlyApplied;
 
   @override
   int get hashCode => Object.hash(
@@ -117,13 +127,15 @@ class OnlineSearchResultRow {
     formation,
     figuresAvailable,
     mayHaveMore,
+    advancedPartlyApplied,
   );
 
   @override
   String toString() =>
       'OnlineSearchResultRow(source: $source, id: $id, name: $name, '
       'author: $author, formation: $formation, '
-      'figuresAvailable: $figuresAvailable, mayHaveMore: $mayHaveMore)';
+      'figuresAvailable: $figuresAvailable, mayHaveMore: $mayHaveMore, '
+      'advancedPartlyApplied: $advancedPartlyApplied)';
 }
 
 /// A source-neutral online search request.
