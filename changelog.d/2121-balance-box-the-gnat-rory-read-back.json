@@ -3,12 +3,12 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "Typing or pasting \"neighbor balance & box the gnat\" or \"larks balance & Rory O'More right\", the way the figure list shows a box the gnat or Rory O'More with its balance, now gives that figure instead of unrecognized text. A box the gnat typed with its balance and no beat count gets 8 beats."
+      "Typing or pasting \"neighbor balance & box the gnat\" or \"larks balance & Rory O'More right\", the way the figure list shows a box the gnat or Rory O'More with its balance, now gives that figure instead of unrecognized text. A box the gnat typed with its balance and no count gets 8 beats, unless it is one of several figures on the line."
     ]
   },
   "core": {
     "fixed": [
-      "The shared figure grammar reads `<who> balance & box the gnat` (and swat the flea) with the balance set, and free-text entry gives such a box 8 beats when it is the line's only figure and the line states no count (`withBalancedBoxBeats`). The ContraDB figure reader reads `<who> balance & Rory O'More <side>` with the balance set, so free-text entry and the combined reader read it too, but the Caller's Box reader does not."
+      "The shared figure grammar reads `<who> balance & box the gnat` (and swat the flea) with the balance set, and free-text entry gives such a box 8 beats when it is the line's only figure and the line states no count of any kind (`withBalancedBoxBeats`). The ContraDB figure reader reads `<who> balance & Rory O'More <side>` with the balance set, so free-text entry and the combined reader read it too, but the Caller's Box reader does not."
     ]
   }
 }

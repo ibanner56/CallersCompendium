@@ -77,6 +77,8 @@ final RegExp _withoutHands = RegExp(
 /// `;` that produced exactly one figure, since a later clause of a `;` line is
 /// read beats-absent and a count put on it would be counted twice. A `||` or
 /// `while` line produces one meanwhile container, which is left alone.
+/// Free-text entry does not apply it to a clause it reads on its own, as it
+/// does a `;` line with a shorthand in it, for the same reason.
 List<Figure> withBalancedBoxBeats(String lineText, List<Figure> figures) {
   if (figures.length != 1 || hasTopLevelSeparator(lineText, ';')) {
     return figures;

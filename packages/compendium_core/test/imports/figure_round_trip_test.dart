@@ -137,6 +137,25 @@ void main() {
     expect(figures.last.params, isNot(contains('beats')));
   });
 
+  test('so does one beside a shorthand, read clause by clause', () {
+    final shorthands = ShorthandMappings([
+      ShorthandMapping(
+        token: 'pbs',
+        figures: [
+          testFigure(move: 'swing', params: const {'who': 'partners'}),
+        ],
+      ),
+    ]);
+    final figures = parseFreeTextFigureEntry(
+      '(24) pbs; neighbor balance & box the gnat',
+      shorthands: shorthands,
+    );
+    expect(figures.map((f) => f.move), ['swing', 'box_the_gnat']);
+    expect(figures.first.params['beats'], 24);
+    expect(figures.last.params['balance'], isTrue);
+    expect(figures.last.params, isNot(contains('beats')));
+  });
+
   test('every figure reads back from its displayed text, or is listed', () async {
     final renderer = FigureRenderer(contraTaxonomy);
     final figures = _sweep();

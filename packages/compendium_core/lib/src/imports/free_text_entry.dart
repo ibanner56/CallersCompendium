@@ -467,7 +467,7 @@ List<Figure>? _expandShorthandClauses(
       result.addAll(expansion);
       continue;
     }
-    final parsed = _parseLine(clauses[i], taxonomy, dialect);
+    final parsed = _parseLine(clauses[i], taxonomy, dialect, clause: true);
     if (parsed.isEmpty || parsed.any((f) => f.isCustom)) return null;
     result.addAll(parsed);
   }
@@ -578,7 +578,14 @@ List<String> _splitClauses(String line) {
 
 /// The ordinary (non-shorthand) path for one trimmed [trimmed] line: peel an
 /// inline count, fan out across the front-ends, and retry dialect-canonicalised.
-List<Figure> _parseLine(String trimmed, Taxonomy? taxonomy, Dialect? dialect) {
+/// [clause] is set when [trimmed] is one clause of a `;` line read clause by
+/// clause ([_expandShorthandClauses]), so it is not the whole line.
+List<Figure> _parseLine(
+  String trimmed,
+  Taxonomy? taxonomy,
+  Dialect? dialect, {
+  bool clause = false,
+}) {
   final split = _splitInlineBeats(trimmed);
   final counted = _parseCountedClauses(trimmed, taxonomy, dialect);
   if (counted != null) {
@@ -612,8 +619,10 @@ List<Figure> _parseLine(String trimmed, Taxonomy? taxonomy, Dialect? dialect) {
   }
   // A typed `(8) Box circulate` or `(8) Square through 2` reads its balance
   // from its beats as an imported one does (#1975), and a typed balance and
-  // box the gnat with no count gets the beats of its balance (#2121).
-  return withBalancedBoxBeats(trimmed, withBeatImpliedBalance(trimmed, result));
+  // box the gnat with no count gets the beats of its balance (#2121), unless
+  // it is one clause of a longer line, which leaves a clause beats-absent.
+  final balanced = withBeatImpliedBalance(trimmed, result);
+  return clause ? balanced : withBalancedBoxBeats(trimmed, balanced);
 }
 
 /// A `;` line in which some clause states a count, read so each count stays on
