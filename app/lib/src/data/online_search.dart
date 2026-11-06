@@ -184,6 +184,7 @@ class OnlineSearchQuery {
     this.phrases,
     this.advanced,
     this.requireFigures = true,
+    this.offset = 0,
   });
 
   /// A query for [text] typed under the **Search in** choice [scope], as the
@@ -250,6 +251,21 @@ class OnlineSearchQuery {
   /// import a dance with no figures (INTAKE-13, 2026-10 behaviour audit).
   /// `false` remains for a caller that genuinely wants figure-hidden rows.
   final bool requireFigures;
+
+  /// How many matches to skip, for a source that pages (ContraDB): `0` is the
+  /// first page. A source that does not page ignores it.
+  final int offset;
+
+  /// This query, asking for the page that starts at [offset].
+  OnlineSearchQuery withOffset(int offset) => OnlineSearchQuery(
+    title: title,
+    author: author,
+    figure: figure,
+    phrases: phrases,
+    advanced: advanced,
+    requireFigures: requireFigures,
+    offset: offset,
+  );
 }
 
 /// What a direct online import ended up doing (drives the result snackbar).
