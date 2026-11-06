@@ -2319,8 +2319,8 @@ void main() {
   );
 
   testWidgets(
-    'choosing ContraDB removes tag rows from the Advanced query and greys '
-    'out "Has tag"',
+    'choosing ContraDB removes tag rows from the Advanced query, greys out '
+    '"Has tag", and leaving it puts the rows back',
     (tester) async {
       final repos = openTestRepositories();
       // ignore: unused_result
@@ -2343,6 +2343,12 @@ void main() {
       await _tapVisible(tester, find.text('Add'));
       await _tapVisible(tester, find.text('Has tag').last);
       expect(find.byType(DropdownButtonFormField<String>), findsOneWidget);
+      await _tapVisible(
+        tester,
+        find.byType(DropdownButtonFormField<String>).first,
+      );
+      await tester.tap(find.text('smooth').last);
+      await tester.pumpAndSettle();
 
       // Going online with The Caller's Box leaves the query alone: turning
       // online mode off again finds the tag row still there.
@@ -2386,8 +2392,122 @@ void main() {
       await _tapVisible(tester, find.text('Add'));
       expect(find.text('Has tag (not available on ContraDB)'), findsOneWidget);
       expect(requests, isEmpty, reason: 'no empty search is sent');
+
+      // Leaving ContraDB (online mode off) restores the row with its tag.
+      await tester.tapAt(const Offset(1, 1));
+      await tester.pumpAndSettle();
+      await _tapVisible(
+        tester,
+        find.byKey(const ValueKey('online-search-enable')),
+      );
+      if (find.byType(DropdownButtonFormField<String>).evaluate().isEmpty) {
+        await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
+      }
+      expect(find.byType(DropdownButtonFormField<String>), findsOneWidget);
+      expect(find.text('smooth'), findsWidgets);
     },
   );
+
+  testWidgets(
+    'an external tag request while on ContraDB leaves online mode and '
+    'restores the tag rows',
+    (tester) async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.tags.upsert(Tag(id: 't1', name: 'smooth'));
+      await repos.dances.create(
+        _dance(id: 'a', title: 'Smooth', tagIds: const ['t1']),
+      );
+      final filterController = CollectionFilterController();
+      addTearDown(filterController.dispose);
+      final contraDb = ContraDbOnline(
+        searchFetcher: (_) async => '{"numberMatching":0,"dances":[]}',
+      );
+      await _pumpScreen(
+        tester,
+        repos,
+        contraDbOnline: contraDb,
+        filterController: filterController,
+      );
+      await tester.pumpAndSettle();
+
+      await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
+      await _tapVisible(tester, find.text('Add'));
+      await _tapVisible(tester, find.text('Has tag').last);
+      await _tapVisible(
+        tester,
+        find.byType(DropdownButtonFormField<String>).first,
+      );
+      await tester.tap(find.text('smooth').last);
+      await tester.pumpAndSettle();
+
+      await _tapVisible(
+        tester,
+        find.byKey(const ValueKey('online-search-enable')),
+      );
+      await tester.tap(find.text('ContraDB'));
+      await tester.pumpAndSettle();
+
+      // A tag tapped elsewhere in the app takes the screen back to the local
+      // library; the Advanced query's tag row comes back with it.
+      filterController.filterByTag('t1');
+      await tester.pumpAndSettle();
+      if (find.byType(DropdownButtonFormField<String>).evaluate().isEmpty) {
+        await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
+      }
+      expect(find.byType(DropdownButtonFormField<String>), findsOneWidget);
+    },
+  );
+
+  testWidgets('clearing the search on ContraDB forgets the removed tag rows', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    // ignore: unused_result
+    await repos.tags.upsert(Tag(id: 't1', name: 'smooth'));
+    await repos.dances.create(
+      _dance(id: 'a', title: 'Smooth', tagIds: const ['t1']),
+    );
+    final contraDb = ContraDbOnline(
+      searchFetcher: (_) async => '{"numberMatching":0,"dances":[]}',
+    );
+    await _pumpScreen(tester, repos, contraDbOnline: contraDb);
+    await tester.pumpAndSettle();
+
+    await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
+    await _tapVisible(tester, find.text('Add'));
+    await _tapVisible(tester, find.text('Has tag').last);
+    await _tapVisible(
+      tester,
+      find.byType(DropdownButtonFormField<String>).first,
+    );
+    await tester.tap(find.text('smooth').last);
+    await tester.pumpAndSettle();
+
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('online-search-enable')),
+    );
+    await tester.tap(find.text('ContraDB'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('collection-search-field')),
+      'x',
+    );
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+
+    // Clear the search: the query, and the rows kept for it, are gone.
+    await _tapVisible(tester, find.byIcon(Icons.clear));
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('online-search-enable')),
+    );
+    if (find.byType(DropdownButtonFormField<String>).evaluate().isEmpty) {
+      await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
+    }
+    expect(find.byType(DropdownButtonFormField<String>), findsNothing);
+  });
 
   group('ContraDB scroll paging', () {
     Future<void> openContraDb(
