@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "changed": [
-      "The move boxes in Advanced search and By phrase now suggest the same moves as the dance editor, including your dialect's own names for moves."
+      "The move boxes in Advanced search and By phrase now find moves by your dialect's own names for them, as the dance editor does."
     ]
   }
 }

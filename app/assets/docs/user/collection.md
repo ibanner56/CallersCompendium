@@ -364,8 +364,9 @@ Open the **Advanced** builder to ask about the [figures](./glossary.md#figure) �
 the moves — inside your dances. It works by stacking up rows and groups:
 
 1. Add a **Has figure** row and pick a move with the type-ahead field — start
-   typing and choose from the matches. It suggests the same moves as the dance
-   editor, including your dialect's own names for them. While **Custom Figures** is on, your own
+   typing and choose from the matches. It finds moves by the names the dance
+   editor uses, including your dialect's own names for them (alternative names
+   such as *seesaw* are not offered here). While **Custom Figures** is on, your own
    new figures are offered too, first and marked as yours; picking one finds
    the dances that use it. A use that shows its stored line instead of your
    figure's wording is not found this way — one changed on another device, one
