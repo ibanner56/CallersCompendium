@@ -285,6 +285,14 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('A sample dance on a 3 × 5 in card.'), findsOneWidget);
+      expect(
+        tester
+            .widget<Image>(
+              find.byKey(const ValueKey('calling-card-preview-image')),
+            )
+            .semanticLabel,
+        'Preview: A sample dance on a 3 × 5 in card.',
+      );
       expect(find.byKey(const ValueKey('calling-card-issues')), findsNothing);
       expect(controller(tester).text, kDefaultCallingCardLayout);
     });

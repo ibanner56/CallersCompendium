@@ -394,6 +394,10 @@ class _CallingCardLayoutEditorScreenState
           child: Image.memory(
             png,
             key: const ValueKey('calling-card-preview-image'),
+            // The caption below says what the picture is; read it with it.
+            semanticLabel:
+                '${l10n.callingCardEditorPreviewTitle}: '
+                '${l10n.callingCardEditorPreviewCaption(callingCardSizeLabel(l10n, size))}',
             fit: BoxFit.contain,
             gaplessPlayback: true,
             filterQuality: FilterQuality.medium,
