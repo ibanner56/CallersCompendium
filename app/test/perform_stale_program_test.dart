@@ -337,6 +337,94 @@ void main() {
       expect(stored.slots.map((s) => s.text), contains('Announcements'));
     });
 
+    testWidgets('with unsaved edits, a detail changed only elsewhere is not '
+        'written back stale by a later save (F11 a)', (tester) async {
+      final repos = openTestRepositories();
+      await seed(repos);
+      await pumpHome(tester, repos, const ProgramEditorScreen(programId: 'p1'));
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'Barn Dance, revised',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-program')));
+      await tester.pumpAndSettle();
+
+      // Elsewhere, the band and caller change; this builder edited neither.
+      final before = (await repos.programs.getById('p1'))!;
+      await repos.programs.update(
+        before.copyWith(
+          band: 'Remote Band',
+          caller: 'Remote Caller',
+          updatedAt: before.updatedAt.add(const Duration(minutes: 5)),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await markCurrentPerformed(tester);
+      expect(
+        find.text(l10nOf(tester).performProgramChangedElsewhere),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+
+      final stored = (await repos.programs.getById('p1'))!;
+      // The builder's own edit wins; the details it did not edit keep the
+      // change from elsewhere.
+      expect(stored.title, 'Barn Dance, revised');
+      expect(stored.band, 'Remote Band');
+      expect(stored.caller, 'Remote Caller');
+      expect(stored.slots.first.performedAt, isNotNull);
+    });
+
+    testWidgets('with the pay retyped to the same amount, a pay changed '
+        'elsewhere is not written back stale (F11 a)', (tester) async {
+      final repos = openTestRepositories();
+      await seed(repos);
+      final seeded = (await repos.programs.getById('p1'))!;
+      await repos.programs.update(
+        seeded.copyWith(payMinorUnits: 1000, payCurrency: 'USD'),
+      );
+      await pumpHome(tester, repos, const ProgramEditorScreen(programId: 'p1'));
+      await tester.tap(find.text('More details'));
+      await tester.pumpAndSettle();
+      // "10.00" retyped as "10": the same amount, so not an edit of the pay.
+      await tester.enterText(find.byKey(const ValueKey('program-pay')), '10');
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'Barn Dance, revised',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-program')));
+      await tester.pumpAndSettle();
+
+      final before = (await repos.programs.getById('p1'))!;
+      await repos.programs.update(
+        before.copyWith(
+          payMinorUnits: 2000,
+          updatedAt: before.updatedAt.add(const Duration(minutes: 5)),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await markCurrentPerformed(tester);
+      await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+
+      final stored = (await repos.programs.getById('p1'))!;
+      expect(stored.title, 'Barn Dance, revised');
+      expect(stored.payMinorUnits, 2000);
+      expect(stored.payCurrency, 'USD');
+    });
+
     testWidgets('an adjustment after a change elsewhere keeps that change, and '
         'Perform shows it and says so', (tester) async {
       final repos = openTestRepositories();

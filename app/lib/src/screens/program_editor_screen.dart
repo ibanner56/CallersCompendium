@@ -58,6 +58,7 @@ import 'dance_detail_screen.dart';
 import 'dance_reimport_flow.dart';
 import '../widgets/command_palette.dart';
 import 'perform_program_screen.dart';
+import 'recently_deleted_screen.dart';
 import '../widgets/export_guard.dart';
 import '../widgets/load_error_view.dart';
 import '../widgets/program_export_menu.dart';
@@ -1747,6 +1748,39 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     provenance: live.provenance,
   );
 
+  /// The working copy's details merged with [stored], a program that changed
+  /// elsewhere since this builder last knew it as [known], through
+  /// [_mergeUndoProgram]: a detail the person has not edited since [known]
+  /// takes the stored value; one they have edited keeps their edit. Null when
+  /// there is no [known] to tell the two apart, or the working copy is not a
+  /// valid program. A cleared title is merged as [known]'s, and reported in
+  /// `titleCleared` for the caller to clear again. `payFromElsewhere` says the
+  /// merge took the stored pay over a valid working pay.
+  ({Program program, bool titleCleared, bool payFromElsewhere})?
+  _withDetailsFromElsewhere(Program? known, Program stored) {
+    if (known == null) return null;
+    final typedTitle = _titleController.text.trim();
+    final local = _draftProgramTitled(
+      typedTitle.isEmpty ? known.title : typedTitle,
+    );
+    if (local == null) return null;
+    final program = _mergeUndoProgram(
+      atReadStart: known,
+      local: local,
+      live: stored,
+      slots: local.slots,
+    );
+    return (
+      program: program,
+      titleCleared: typedTitle.isEmpty,
+      // An unparseable amount is the person's edit, which the field keeps.
+      payFromElsewhere:
+          !_parsedPay().isInvalid &&
+          (program.payMinorUnits != local.payMinorUnits ||
+              program.payCurrency != local.payCurrency),
+    );
+  }
+
   List<ProgramSlot> _mergeUndoSlots({
     required List<ProgramSlot> atReadStart,
     required List<ProgramSlot> local,
@@ -2100,6 +2134,15 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     );
   }
 
+  /// Restores a slot's dance from Recently deleted (LIFE-8). The slot loses
+  /// its "deleted" marking when the collection snapshot lists the dance again,
+  /// as [_danceById] prefers the snapshot to [_deletedSlotDances].
+  Future<void> _restoreDeletedSlotDance(String danceId) async {
+    final dance = _danceById(danceId);
+    if (dance == null || !canRestoreSlotDance(dance)) return;
+    await restoreSlotDanceFromRecentlyDeleted(context, _repos, dance);
+  }
+
   /// The slot list's title for [danceId]: the dance's title, marked as
   /// deleted while the dance is in Recently deleted, as Perform marks it.
   /// Exports use [_titleForDance], which leaves the mark out: the band is
@@ -2339,12 +2382,19 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 // adjustment alone leaves the builder clean).
                 final dirtyNow =
                     keepDirty || (generation != _editGeneration && _dirty);
+                // With other unsaved edits, each detail this builder has not
+                // edited since [known] takes the stored value, so a later save
+                // does not write it back stale (F11 a); a detail edited here
+                // keeps the edit, even if it also changed elsewhere.
+                final merged = elsewhere && dirtyNow
+                    ? _withDetailsFromElsewhere(known, stored)
+                    : null;
                 setState(() {
                   // With nothing else unsaved, the working copy is the stored
                   // program, details included when they changed elsewhere.
                   // With other unsaved edits, the working slots take what
-                  // changed elsewhere, so a later save keeps it; the unsaved
-                  // details stay as typed. Either way this holds when a later
+                  // changed elsewhere, so a later save keeps it, and the
+                  // details merge as above. Either way this holds when a later
                   // adjustment has overtaken this write: its own write
                   // compares with this one, so it will not see the change.
                   if (generation == _editGeneration) _dirty = keepDirty;
@@ -2354,6 +2404,18 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                           ? stored
                           : stored.copyWith(slots: withElsewhere(_slots)),
                     );
+                  } else if (merged != null) {
+                    _applyProgramToEditor(
+                      merged.program.copyWith(slots: withElsewhere(_slots)),
+                      payBaseline: known,
+                      venueIdBaseline: (value: stored.venueId),
+                    );
+                    // A cleared title is the person's edit too.
+                    if (merged.titleCleared) _titleController.clear();
+                    // The pay field keeps any typed text that differs from
+                    // [known], even text that parses to [known]'s amount;
+                    // when the merge took the pay from elsewhere, show it.
+                    if (merged.payFromElsewhere) _setPayFrom(merged.program);
                   } else if (elsewhere) {
                     _slots = withElsewhere(_slots);
                   } else if (generation == _editGeneration && !keepDirty) {
@@ -2361,8 +2423,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                   }
                   _existing = stored;
                 });
-                if (elsewhere && !dirtyNow) {
-                  await _refreshLinkedVenueForId(stored.venueId);
+                if (elsewhere && (!dirtyNow || merged != null)) {
+                  await _refreshLinkedVenueForId(_venueId);
                   if (!mounted) return null;
                 }
                 if (elsewhere && dirtyNow) _scheduleAutosave();
@@ -2377,9 +2439,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 if (!write.changedUnderneath) return null;
                 // Perform shows the builder's working copy. Without other
                 // unsaved edits that is now the stored program; with them,
-                // Perform's copy takes what changed elsewhere, and the
-                // builder's unsaved edits stay as they were.
+                // Perform's copy takes what changed elsewhere: its slots, and
+                // the details as the builder merged them above.
                 if (!keepDirty) return stored;
+                if (merged != null) {
+                  return merged.program.copyWith(
+                    slots: withElsewhere(updated.slots),
+                  );
+                }
                 return updated.copyWith(slots: withElsewhere(updated.slots));
               } on Object catch (_) {
                 // export-guard: exempt — mark-performed stamp, not an export
@@ -4063,6 +4130,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             slots: _slots,
             danceTitles: _slotTitleForDance,
             isDeletedDance: (id) => _danceById(id)?.isDeleted ?? false,
+            canRestoreDance: (id) => switch (_danceById(id)) {
+              final dance? => canRestoreSlotDance(dance),
+              null => false,
+            },
+            onRestoreDeletedDance: _restoreDeletedSlotDance,
             formationFor: _formationForDance,
             mixerFor: _mixerForDance,
             dialect: _dialect,

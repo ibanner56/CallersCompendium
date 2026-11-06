@@ -38,6 +38,8 @@ class ProgramSlotListEditor extends StatefulWidget {
     required this.onRemove,
     required this.onCreateDance,
     this.isDeletedDance,
+    this.canRestoreDance,
+    this.onRestoreDeletedDance,
     this.reservedPerformedAt,
     this.dialect,
     this.canonicalizeDiscouragedTerms = false,
@@ -59,6 +61,15 @@ class ProgramSlotListEditor extends StatefulWidget {
   /// load live dances only, and shows the tombstone icon. `null` treats every
   /// dance as live.
   final bool Function(String danceId)? isDeletedDance;
+
+  /// Whether a slot's `danceId` is a dance Recently deleted can restore: one
+  /// [isDeletedDance] marks, unless another device deleted it for good.
+  /// `null` offers no Restore.
+  final bool Function(String danceId)? canRestoreDance;
+
+  /// Restores a slot's dance from Recently deleted (LIFE-8), offered on the
+  /// "…" menu of a row [canRestoreDance] accepts. `null` offers nothing.
+  final void Function(String danceId)? onRestoreDeletedDance;
 
   /// Resolves a slot's `danceId` to its [Formation], or null when the dance is
   /// unavailable. Drives the redundant formation-family row accent (issue #270)
@@ -149,6 +160,20 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
       if (!widget.slots[i].isAlt) return true; // has a preceding primary
     }
     return false;
+  }
+
+  /// [ProgramSlotListEditor.onRestoreDeletedDance] for [slot], or null when
+  /// its dance is not in Recently deleted: a live dance has nothing to restore,
+  /// and one deleted for good (purged, or blanked by another device) is gone.
+  VoidCallback? _restoreCallback(ProgramSlot slot) {
+    final danceId = slot.danceId;
+    final restore = widget.onRestoreDeletedDance;
+    if (danceId == null ||
+        restore == null ||
+        !(widget.canRestoreDance?.call(danceId) ?? false)) {
+      return null;
+    }
+    return () => restore(danceId);
   }
 
   bool _isTombstone(ProgramSlot slot) {
@@ -268,6 +293,7 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
               onTogglePerformed: () => _togglePerformed(i),
               onRemove: () => _remove(i),
               onCreateDance: () => widget.onCreateDance(i),
+              onRestoreDance: _restoreCallback(slots[i]),
               onPreviewDanceStarted:
                   widget.onPreviewDanceStarted == null ||
                       slots[i].danceId == null
@@ -428,6 +454,7 @@ class _SlotTile extends StatelessWidget {
     required this.onTogglePerformed,
     required this.onRemove,
     required this.onCreateDance,
+    this.onRestoreDance,
     this.onPreviewDanceStarted,
     this.onPreviewDanceEnded,
     this.onViewDanceDetails,
@@ -470,6 +497,10 @@ class _SlotTile extends StatelessWidget {
   /// Create a dance from this slot's note text (issue #881). Only meaningful
   /// when [_showCreateDance] gates the menu item in.
   final VoidCallback onCreateDance;
+
+  /// Restores the slot's dance from Recently deleted; non-null only while it
+  /// is there.
+  final VoidCallback? onRestoreDance;
   final VoidCallback? onPreviewDanceStarted;
   final VoidCallback? onPreviewDanceEnded;
   final VoidCallback? onViewDanceDetails;
@@ -714,6 +745,8 @@ class _SlotTile extends StatelessWidget {
                         onTogglePerformed();
                       case 'create_dance':
                         onCreateDance();
+                      case 'restore_dance':
+                        onRestoreDance?.call();
                     }
                   },
                   itemBuilder: (context) => [
@@ -798,6 +831,16 @@ class _SlotTile extends StatelessWidget {
                         contentPadding: EdgeInsets.zero,
                       ),
                     ),
+                    if (onRestoreDance != null)
+                      PopupMenuItem(
+                        key: ValueKey('slot-$index-restore-dance'),
+                        value: 'restore_dance',
+                        child: ListTile(
+                          leading: const Icon(Icons.restore_from_trash),
+                          title: Text(l10n.programsRestoreDeletedDance),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
                     if (_showCreateDance)
                       PopupMenuItem(
                         key: const ValueKey('slot-menu-create-dance'),

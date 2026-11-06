@@ -5100,6 +5100,14 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programsDeletedDanceFallback => '（削除済みダンス）';
 
   @override
+  String get programsRestoreDeletedDance => '最近削除したアイテムから復元';
+
+  @override
+  String programsRestoreDeletedDanceError(String title) {
+    return '「$title」を復元できませんでした。最近削除したアイテムに残っています。';
+  }
+
+  @override
   String get programsBlankedDanceTitle => '削除されたダンス';
 
   @override

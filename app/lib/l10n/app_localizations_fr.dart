@@ -5406,6 +5406,15 @@ class AppLocalizationsFr extends AppLocalizations {
   String get programsDeletedDanceFallback => '(danse supprimée)';
 
   @override
+  String get programsRestoreDeletedDance =>
+      'Restaurer depuis Récemment supprimées';
+
+  @override
+  String programsRestoreDeletedDanceError(String title) {
+    return 'Impossible de restaurer « $title ». La danse est toujours dans Récemment supprimées.';
+  }
+
+  @override
   String get programsBlankedDanceTitle => 'Danse supprimée';
 
   @override
