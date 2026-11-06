@@ -673,6 +673,13 @@ void main() {
         ).params['direction'],
         'clockwise',
       );
+      // A tail keeps the line from the app's display reader, so this reaches
+      // ContraDB's own poussette reader.
+      final tail = _parse(
+        'half poussette - ones pull neighbors back then left (gently)',
+      );
+      expect(tail.params['direction'], 'clockwise');
+      expect(tail.note, '(gently)');
     });
 
     test('cross trails', () {
