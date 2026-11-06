@@ -279,4 +279,30 @@ void main() {
       );
     });
   });
+
+  test('formation and level on their own, gated by their fields', () {
+    final d = dance();
+    final all = build(d, DanceShareField.values.toSet());
+    expect(all.formation, 'Becket');
+    expect(all.level, 'Intermediate');
+    final none = build(d, {DanceShareField.callingNotes});
+    expect(none.formation, isNull);
+    expect(none.level, isNull);
+    final blank = DanceCardContent.build(
+      d,
+      dialect: Dialect.larksRobins,
+      authorNames: authorNames,
+      formationLabel: '  ',
+      levelLabel: null,
+      statusLabel: 'Broken',
+      fields: DanceShareField.values.toSet(),
+    );
+    expect(blank.formation, isNull);
+    expect(blank.level, isNull);
+    expect(
+      build(d, {DanceShareField.formation}).formation,
+      'Becket',
+      reason: 'trimmed label, without the Formation: prefix',
+    );
+  });
 }

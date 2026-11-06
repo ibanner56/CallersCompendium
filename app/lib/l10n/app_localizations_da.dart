@@ -11604,4 +11604,314 @@ class AppLocalizationsDa extends AppLocalizations {
   String wordingIssueTooManyNots(String max) {
     return 'Denne betingelse sætter for mange “not” inden i hinanden: højst $max. Fjern nogle: to “not” i træk ophæver hinanden.';
   }
+
+  @override
+  String get settingsCallingCardsHeader => 'Kaldekort';
+
+  @override
+  String get settingsCallingCardsEnableTitle => 'Udskriv kaldekort';
+
+  @override
+  String get settingsCallingCardsEnableSubtitle =>
+      'Tilføjer Udskriv kaldekort til en dans\' eksportmenu og Udskriv kaldekort til et programs: ét lille kort pr. dans, sat op, som du vælger nedenfor.';
+
+  @override
+  String get settingsCallingCardsSizeTitle => 'Kortstørrelse';
+
+  @override
+  String settingsCallingCardsSizeIndexCard(String size) {
+    return 'Kartotekskort, $size';
+  }
+
+  @override
+  String settingsCallingCardsSizeIsoA(String name, String size) {
+    return '$name ($size)';
+  }
+
+  @override
+  String settingsCallingCardsSizeInches(String width, String height) {
+    return '$width × $height tommer';
+  }
+
+  @override
+  String settingsCallingCardsSizeMillimetres(String width, String height) {
+    return '$width × $height mm';
+  }
+
+  @override
+  String get settingsCallingCardsSizeCustom => 'Egen størrelse';
+
+  @override
+  String get settingsCallingCardsWidthLabel => 'Bredde';
+
+  @override
+  String get settingsCallingCardsHeightLabel => 'Højde';
+
+  @override
+  String get settingsCallingCardsUnitInches => 'Tommer';
+
+  @override
+  String get settingsCallingCardsUnitMillimetres => 'Millimeter';
+
+  @override
+  String get settingsCallingCardsSizeInvalid =>
+      'Hver side skal være fra 1 til 14 tommer (26 til 355 mm).';
+
+  @override
+  String get settingsCallingCardsLandscapeTitle => 'Liggende';
+
+  @override
+  String get settingsCallingCardsLandscapeSubtitle =>
+      'Udskriv med den lange side øverst.';
+
+  @override
+  String get settingsCallingCardsLayoutTitle => 'Kortlayout';
+
+  @override
+  String get settingsCallingCardsLayoutSubtitle =>
+      'Vælg, hvad der skal stå på hvert kort, og hvor.';
+
+  @override
+  String get callingCardEditorTitle => 'Layout for kaldekort';
+
+  @override
+  String get callingCardEditorFieldLabel => 'Layout';
+
+  @override
+  String get callingCardEditorAutosaveHint =>
+      'Ændringer gemmes, mens du skriver.';
+
+  @override
+  String get callingCardEditorReset => 'Nulstil til standard';
+
+  @override
+  String get callingCardEditorResetConfirmTitle => 'Nulstil layoutet?';
+
+  @override
+  String get callingCardEditorResetConfirmBody =>
+      'Dit layout erstattes af standardlayoutet.';
+
+  @override
+  String get callingCardEditorReplaced => 'Layout erstattet.';
+
+  @override
+  String get callingCardEditorPreviewTitle => 'Eksempel';
+
+  @override
+  String callingCardEditorPreviewCaption(String size) {
+    return 'En eksempeldans på et kort på $size.';
+  }
+
+  @override
+  String get callingCardEditorPreviewError => 'Eksemplet kunne ikke tegnes.';
+
+  @override
+  String callingCardEditorPreviewShrunk(int percent) {
+    return 'Teksten formindskes til $percent % for at passe på dette kort.';
+  }
+
+  @override
+  String get callingCardEditorPreviewOverflow =>
+      'Dette kort passer ikke engang i halv størrelse, så bunden er skåret af. Fjern en blok, eller tilføj lines= til en lang en.';
+
+  @override
+  String get callingCardEditorIssuesTitle => 'Linjer, der ikke kunne læses';
+
+  @override
+  String callingCardIssueUnknownBlock(int line, String name) {
+    return 'Linje $line: \"$name\" er ikke en blok. Blokkene står under Sådan skriver du et layout.';
+  }
+
+  @override
+  String callingCardIssueUnknownOption(int line, String name) {
+    return 'Linje $line: denne blok har ingen \"$name\"-indstilling.';
+  }
+
+  @override
+  String callingCardIssueBadValue(int line, String option, String value) {
+    return 'Linje $line: \"$value\" virker ikke til $option.';
+  }
+
+  @override
+  String callingCardIssueUnclosedQuote(int line) {
+    return 'Linje $line: et anførselstegn lukkes aldrig, så hele linjen springes over.';
+  }
+
+  @override
+  String callingCardIssueMissingText(int line) {
+    return 'Linje $line: text skal have ord i anførselstegn, fx text \"Called by me\".';
+  }
+
+  @override
+  String callingCardIssueCardNotAlone(int line) {
+    return 'Linje $line: card indstiller hele kortet og skal derfor have en linje for sig selv.';
+  }
+
+  @override
+  String callingCardIssueEmptyBlock(int line) {
+    return 'Linje $line: der står intet på den ene side af en |.';
+  }
+
+  @override
+  String get callingCardHelpTitle => 'Sådan skriver du et layout';
+
+  @override
+  String get callingCardHelpIntro =>
+      'Hver linje er én række på kortet, oppefra og ned. Begynd linjen med navnet på en blok, og tilføj så eventuelle indstillinger. Sæt | mellem blokke for at placere dem side om side. En linje, der begynder med #, er en note til dig selv og udskrives ikke.';
+
+  @override
+  String get callingCardHelpFields =>
+      'En blok udskriver kun det, dansen har, og kun felter, der er slået til under Indstillinger › Standardværdier › Delte dansefelter. En række uden noget at udskrive fylder ingenting. Når et kort er for fyldt, formindskes alt på det ensartet, så det passer, ned til halv størrelse.';
+
+  @override
+  String get callingCardHelpTapToInsert =>
+      'Tryk på et navn for at føje det til dit layout.';
+
+  @override
+  String get callingCardHelpBlocksTitle => 'Blokke';
+
+  @override
+  String get callingCardHelpOptionsTitle => 'Indstillinger';
+
+  @override
+  String get callingCardHelpExamplesTitle => 'Eksempler';
+
+  @override
+  String get callingCardHelpExampleUse => 'Brug dette layout';
+
+  @override
+  String get callingCardHelpBlockTitle => 'Dansens titel.';
+
+  @override
+  String get callingCardHelpBlockAuthors => 'Hvem der har skrevet dansen.';
+
+  @override
+  String get callingCardHelpBlockFormation =>
+      'Formationen, fx Improper eller Becket.';
+
+  @override
+  String get callingCardHelpBlockLevel => 'Dansens niveau.';
+
+  @override
+  String get callingCardHelpBlockMeta =>
+      'Formation, niveau, mixer, status og frase på én linje, hver med sin etiket.';
+
+  @override
+  String get callingCardHelpBlockFigures =>
+      'Figurerne, grupperet efter frase (A1, A2, B1, B2), med deres slag.';
+
+  @override
+  String get callingCardHelpBlockNotes => 'Dine kaldsnotes.';
+
+  @override
+  String get callingCardHelpBlockWalkthrough => 'Gennemgangen.';
+
+  @override
+  String get callingCardHelpBlockHook => 'Dansens hook.';
+
+  @override
+  String get callingCardHelpBlockTunes => 'Foreslåede melodier.';
+
+  @override
+  String get callingCardHelpBlockSources => 'Publicerede kilder.';
+
+  @override
+  String get callingCardHelpBlockProgram =>
+      'Programmets titel, når du udskriver et program.';
+
+  @override
+  String get callingCardHelpBlockNumber =>
+      'Dansens plads i programmet (1, 2, 3 eller Alternativ), når du udskriver et program.';
+
+  @override
+  String get callingCardHelpBlockText => 'Dine egne ord, i anførselstegn.';
+
+  @override
+  String get callingCardHelpBlockRule => 'En streg tværs over kortet.';
+
+  @override
+  String get callingCardHelpBlockSpace =>
+      'Et mellemrum, i punkter (72 pr. tomme).';
+
+  @override
+  String get callingCardHelpBlockCard =>
+      'Indstillinger for hele kortet: margin er afstanden til kanten, i punkter.';
+
+  @override
+  String get callingCardHelpOptionSize => 'Tekststørrelse, i punkter.';
+
+  @override
+  String get callingCardHelpOptionStyle => 'Fed eller skrå tekst.';
+
+  @override
+  String get callingCardHelpOptionAlign => 'Hvor teksten står på sin plads.';
+
+  @override
+  String get callingCardHelpOptionColor =>
+      'Tekst- eller stregfarve, som hexkode.';
+
+  @override
+  String get callingCardHelpOptionLines =>
+      'Udskriv højst så mange linjer af en lang blok.';
+
+  @override
+  String get callingCardHelpOptionLabel =>
+      'Ord foran teksten. label=\"\" udskriver ingen.';
+
+  @override
+  String get callingCardHelpOptionWidth =>
+      'I en række fylder en blok med width=2 dobbelt så meget som en med width=1.';
+
+  @override
+  String get callingCardHelpOptionFigures =>
+      'For figures: udelad slagene, figurernes egne noter, frasenavnene eller stregerne mellem fraserne.';
+
+  @override
+  String get callingCardHelpOptionThickness =>
+      'Hvor tyk en streg er, i punkter.';
+
+  @override
+  String get callingCardExampleClassic => 'Klassisk';
+
+  @override
+  String get callingCardExampleBigPrint => 'Stor skrift';
+
+  @override
+  String get callingCardExampleProgram => 'Programaften';
+
+  @override
+  String get callingCardExampleTeaching => 'Undervisningskort';
+
+  @override
+  String get callingCardSampleTitle => 'Eksempel-contra';
+
+  @override
+  String get callingCardSampleAuthor => 'A. Caller';
+
+  @override
+  String get callingCardSampleNotes =>
+      'Glid til venstre langs rækken for at rykke videre.';
+
+  @override
+  String get callingCardSampleFigureNote => 'Hold fast hele omdrejningen.';
+
+  @override
+  String get callingCardSampleProgram => 'Fredagsbal';
+
+  @override
+  String get exportPrintCallingCard => 'Udskriv kaldekort';
+
+  @override
+  String get exportPrintCallingCards => 'Udskriv kaldekort';
+
+  @override
+  String exportCallingCardsCutOff(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count kort passede ikke og er skåret af forneden.',
+      one: '1 kort passede ikke og er skåret af forneden.',
+    );
+    return '$_temp0';
+  }
 }

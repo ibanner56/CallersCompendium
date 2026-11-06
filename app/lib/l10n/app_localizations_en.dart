@@ -11560,4 +11560,310 @@ class AppLocalizationsEn extends AppLocalizations {
   String wordingIssueTooManyNots(String max) {
     return 'This condition puts too many \"not\"s inside each other: at most $max. Take some out: two \"not\"s in a row cancel out.';
   }
+
+  @override
+  String get settingsCallingCardsHeader => 'Calling cards';
+
+  @override
+  String get settingsCallingCardsEnableTitle => 'Print calling cards';
+
+  @override
+  String get settingsCallingCardsEnableSubtitle =>
+      'Adds Print calling card to a dance\'s Export menu, and Print calling cards to a program\'s: one small card per dance, laid out the way you choose below.';
+
+  @override
+  String get settingsCallingCardsSizeTitle => 'Card size';
+
+  @override
+  String settingsCallingCardsSizeIndexCard(String size) {
+    return 'Index card, $size';
+  }
+
+  @override
+  String settingsCallingCardsSizeIsoA(String name, String size) {
+    return '$name ($size)';
+  }
+
+  @override
+  String settingsCallingCardsSizeInches(String width, String height) {
+    return '$width × $height in';
+  }
+
+  @override
+  String settingsCallingCardsSizeMillimetres(String width, String height) {
+    return '$width × $height mm';
+  }
+
+  @override
+  String get settingsCallingCardsSizeCustom => 'Custom size';
+
+  @override
+  String get settingsCallingCardsWidthLabel => 'Width';
+
+  @override
+  String get settingsCallingCardsHeightLabel => 'Height';
+
+  @override
+  String get settingsCallingCardsUnitInches => 'Inches';
+
+  @override
+  String get settingsCallingCardsUnitMillimetres => 'Millimeters';
+
+  @override
+  String get settingsCallingCardsSizeInvalid =>
+      'Each side must be from 1 to 14 inches (26 to 355 mm).';
+
+  @override
+  String get settingsCallingCardsLandscapeTitle => 'Landscape';
+
+  @override
+  String get settingsCallingCardsLandscapeSubtitle =>
+      'Print with the long side across the top.';
+
+  @override
+  String get settingsCallingCardsLayoutTitle => 'Card layout';
+
+  @override
+  String get settingsCallingCardsLayoutSubtitle =>
+      'Choose what goes on each card, and where.';
+
+  @override
+  String get callingCardEditorTitle => 'Calling card layout';
+
+  @override
+  String get callingCardEditorFieldLabel => 'Layout';
+
+  @override
+  String get callingCardEditorAutosaveHint => 'Changes are saved as you type.';
+
+  @override
+  String get callingCardEditorReset => 'Reset to default';
+
+  @override
+  String get callingCardEditorResetConfirmTitle => 'Reset the layout?';
+
+  @override
+  String get callingCardEditorResetConfirmBody =>
+      'Your layout is replaced with the default one.';
+
+  @override
+  String get callingCardEditorReplaced => 'Layout replaced.';
+
+  @override
+  String get callingCardEditorPreviewTitle => 'Preview';
+
+  @override
+  String callingCardEditorPreviewCaption(String size) {
+    return 'A sample dance on a $size card.';
+  }
+
+  @override
+  String get callingCardEditorPreviewError => 'Couldn\'t draw the preview.';
+
+  @override
+  String callingCardEditorPreviewShrunk(int percent) {
+    return 'The text shrinks to $percent% to fit this card.';
+  }
+
+  @override
+  String get callingCardEditorPreviewOverflow =>
+      'This card doesn\'t fit even at half size, so its bottom is cut off. Take a block out, or add lines= to a long one.';
+
+  @override
+  String get callingCardEditorIssuesTitle => 'Lines that couldn\'t be read';
+
+  @override
+  String callingCardIssueUnknownBlock(int line, String name) {
+    return 'Line $line: \"$name\" isn\'t a block. The blocks are listed under How to write a layout.';
+  }
+
+  @override
+  String callingCardIssueUnknownOption(int line, String name) {
+    return 'Line $line: this block has no \"$name\" option.';
+  }
+
+  @override
+  String callingCardIssueBadValue(int line, String option, String value) {
+    return 'Line $line: \"$value\" doesn\'t work for $option.';
+  }
+
+  @override
+  String callingCardIssueUnclosedQuote(int line) {
+    return 'Line $line: a quotation mark is never closed, so the whole line is skipped.';
+  }
+
+  @override
+  String callingCardIssueMissingText(int line) {
+    return 'Line $line: text needs words in quotes, like text \"Called by me\".';
+  }
+
+  @override
+  String callingCardIssueCardNotAlone(int line) {
+    return 'Line $line: card sets up the whole card, so it needs a line of its own.';
+  }
+
+  @override
+  String callingCardIssueEmptyBlock(int line) {
+    return 'Line $line: there\'s nothing on one side of a |.';
+  }
+
+  @override
+  String get callingCardHelpTitle => 'How to write a layout';
+
+  @override
+  String get callingCardHelpIntro =>
+      'Each line is one row of the card, from top to bottom. Start the line with a block\'s name, then add any options. Put | between blocks to place them side by side. A line starting with # is a note to yourself and isn\'t printed.';
+
+  @override
+  String get callingCardHelpFields =>
+      'A block prints only what the dance has, and only fields turned on under Settings › Defaults › Shared dance fields. A row with nothing to print takes no space. When a card is too full, everything on it shrinks evenly to fit, down to half size.';
+
+  @override
+  String get callingCardHelpTapToInsert =>
+      'Tap a name to add it to your layout.';
+
+  @override
+  String get callingCardHelpBlocksTitle => 'Blocks';
+
+  @override
+  String get callingCardHelpOptionsTitle => 'Options';
+
+  @override
+  String get callingCardHelpExamplesTitle => 'Examples';
+
+  @override
+  String get callingCardHelpExampleUse => 'Use this layout';
+
+  @override
+  String get callingCardHelpBlockTitle => 'The dance\'s title.';
+
+  @override
+  String get callingCardHelpBlockAuthors => 'Who wrote the dance.';
+
+  @override
+  String get callingCardHelpBlockFormation =>
+      'The formation, such as Improper or Becket.';
+
+  @override
+  String get callingCardHelpBlockLevel => 'The dance\'s level.';
+
+  @override
+  String get callingCardHelpBlockMeta =>
+      'Formation, level, mixer, status and phrase on one line, each with its label.';
+
+  @override
+  String get callingCardHelpBlockFigures =>
+      'The figures, grouped by phrase (A1, A2, B1, B2), with their beats.';
+
+  @override
+  String get callingCardHelpBlockNotes => 'Your calling notes.';
+
+  @override
+  String get callingCardHelpBlockWalkthrough => 'The walkthrough.';
+
+  @override
+  String get callingCardHelpBlockHook => 'The dance\'s hook.';
+
+  @override
+  String get callingCardHelpBlockTunes => 'Suggested tunes.';
+
+  @override
+  String get callingCardHelpBlockSources => 'Published sources.';
+
+  @override
+  String get callingCardHelpBlockProgram =>
+      'The program\'s title, when you print a program.';
+
+  @override
+  String get callingCardHelpBlockNumber =>
+      'The dance\'s place in the program (1, 2, 3, or Alternate), when you print a program.';
+
+  @override
+  String get callingCardHelpBlockText => 'Words of your own, in quotes.';
+
+  @override
+  String get callingCardHelpBlockRule => 'A line across the card.';
+
+  @override
+  String get callingCardHelpBlockSpace => 'A gap, in points (72 to an inch).';
+
+  @override
+  String get callingCardHelpBlockCard =>
+      'Settings for the whole card: margin is the space around the edge, in points.';
+
+  @override
+  String get callingCardHelpOptionSize => 'Text size, in points.';
+
+  @override
+  String get callingCardHelpOptionStyle => 'Bold or slanted text.';
+
+  @override
+  String get callingCardHelpOptionAlign => 'Where the text sits in its space.';
+
+  @override
+  String get callingCardHelpOptionColor => 'Text or line color, as a hex code.';
+
+  @override
+  String get callingCardHelpOptionLines =>
+      'Print at most this many lines of a long block.';
+
+  @override
+  String get callingCardHelpOptionLabel =>
+      'Words in front of the text. label=\"\" prints none.';
+
+  @override
+  String get callingCardHelpOptionWidth =>
+      'In a row, a block with width=2 takes twice the room of one with width=1.';
+
+  @override
+  String get callingCardHelpOptionFigures =>
+      'For figures: leave out the beats, the figures\' own notes, the phrase names, or the lines between phrases.';
+
+  @override
+  String get callingCardHelpOptionThickness =>
+      'How thick a rule is, in points.';
+
+  @override
+  String get callingCardExampleClassic => 'Classic';
+
+  @override
+  String get callingCardExampleBigPrint => 'Big print';
+
+  @override
+  String get callingCardExampleProgram => 'Program night';
+
+  @override
+  String get callingCardExampleTeaching => 'Teaching card';
+
+  @override
+  String get callingCardSampleTitle => 'Sample contra';
+
+  @override
+  String get callingCardSampleAuthor => 'A. Caller';
+
+  @override
+  String get callingCardSampleNotes => 'Slide left along the line to progress.';
+
+  @override
+  String get callingCardSampleFigureNote => 'Hold on for the whole turn.';
+
+  @override
+  String get callingCardSampleProgram => 'Friday night dance';
+
+  @override
+  String get exportPrintCallingCard => 'Print calling card';
+
+  @override
+  String get exportPrintCallingCards => 'Print calling cards';
+
+  @override
+  String exportCallingCardsCutOff(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count cards didn\'t fit and are cut off at the bottom.',
+      one: '1 card didn\'t fit and is cut off at the bottom.',
+    );
+    return '$_temp0';
+  }
 }

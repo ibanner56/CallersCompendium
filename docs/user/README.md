@@ -50,6 +50,7 @@ Everything else can wait until you need it.
 | Change a dance mid-evening | [Perform mode — Adjust on the fly](perform.md#adjust-on-the-fly) |
 | Email, print, or hand off a set list | [Share, print & export](sharing.md) |
 | Send a program to another caller | [Share, print & export — Share a program with its dances](sharing.md#share-a-program-with-its-dances) |
+| Print dances on index cards to call from | [Share, print & export — Print calling cards](sharing.md#print-calling-cards) |
 | Move everything to a new device | [Backup & portability](backup-portability.md) |
 | Keep my library in step across my own devices | [Settings — Device Sync](settings.md#device-sync) |
 | Call it "larks and robins" (or anything else) | [Dialect](dialects.md) |

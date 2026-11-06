@@ -11747,4 +11747,316 @@ class AppLocalizationsFr extends AppLocalizations {
   String wordingIssueTooManyNots(String max) {
     return 'Cette condition met trop de « not » les uns dans les autres : $max au plus. Retirez-en : deux « not » qui se suivent s’annulent.';
   }
+
+  @override
+  String get settingsCallingCardsHeader => 'Fiches d’appel';
+
+  @override
+  String get settingsCallingCardsEnableTitle => 'Imprimer des fiches d’appel';
+
+  @override
+  String get settingsCallingCardsEnableSubtitle =>
+      'Ajoute « Imprimer la fiche d’appel » au menu Exporter d’une danse, et « Imprimer les fiches d’appel » à celui d’un programme : une petite fiche par danse, mise en page comme vous le choisissez ci-dessous.';
+
+  @override
+  String get settingsCallingCardsSizeTitle => 'Taille de la fiche';
+
+  @override
+  String settingsCallingCardsSizeIndexCard(String size) {
+    return 'Fiche bristol, $size';
+  }
+
+  @override
+  String settingsCallingCardsSizeIsoA(String name, String size) {
+    return '$name ($size)';
+  }
+
+  @override
+  String settingsCallingCardsSizeInches(String width, String height) {
+    return '$width × $height po';
+  }
+
+  @override
+  String settingsCallingCardsSizeMillimetres(String width, String height) {
+    return '$width × $height mm';
+  }
+
+  @override
+  String get settingsCallingCardsSizeCustom => 'Taille personnalisée';
+
+  @override
+  String get settingsCallingCardsWidthLabel => 'Largeur';
+
+  @override
+  String get settingsCallingCardsHeightLabel => 'Hauteur';
+
+  @override
+  String get settingsCallingCardsUnitInches => 'Pouces';
+
+  @override
+  String get settingsCallingCardsUnitMillimetres => 'Millimètres';
+
+  @override
+  String get settingsCallingCardsSizeInvalid =>
+      'Chaque côté doit mesurer de 1 à 14 pouces (26 à 355 mm).';
+
+  @override
+  String get settingsCallingCardsLandscapeTitle => 'Paysage';
+
+  @override
+  String get settingsCallingCardsLandscapeSubtitle =>
+      'Imprimer avec le grand côté en haut.';
+
+  @override
+  String get settingsCallingCardsLayoutTitle => 'Mise en page de la fiche';
+
+  @override
+  String get settingsCallingCardsLayoutSubtitle =>
+      'Choisissez ce qui figure sur chaque fiche, et où.';
+
+  @override
+  String get callingCardEditorTitle => 'Mise en page de la fiche d’appel';
+
+  @override
+  String get callingCardEditorFieldLabel => 'Mise en page';
+
+  @override
+  String get callingCardEditorAutosaveHint =>
+      'Les modifications sont enregistrées pendant la saisie.';
+
+  @override
+  String get callingCardEditorReset => 'Rétablir la mise en page par défaut';
+
+  @override
+  String get callingCardEditorResetConfirmTitle => 'Rétablir la mise en page ?';
+
+  @override
+  String get callingCardEditorResetConfirmBody =>
+      'Votre mise en page est remplacée par celle par défaut.';
+
+  @override
+  String get callingCardEditorReplaced => 'Mise en page remplacée.';
+
+  @override
+  String get callingCardEditorPreviewTitle => 'Aperçu';
+
+  @override
+  String callingCardEditorPreviewCaption(String size) {
+    return 'Une danse d’exemple sur une fiche de $size.';
+  }
+
+  @override
+  String get callingCardEditorPreviewError => 'Impossible d’afficher l’aperçu.';
+
+  @override
+  String callingCardEditorPreviewShrunk(int percent) {
+    return 'Le texte est réduit à $percent % pour tenir sur cette fiche.';
+  }
+
+  @override
+  String get callingCardEditorPreviewOverflow =>
+      'Cette fiche ne tient même pas à demi-taille : le bas est donc coupé. Retirez un bloc, ou ajoutez lines= à un bloc long.';
+
+  @override
+  String get callingCardEditorIssuesTitle => 'Lignes illisibles';
+
+  @override
+  String callingCardIssueUnknownBlock(int line, String name) {
+    return 'Ligne $line : « $name » n’est pas un bloc. Les blocs sont listés sous « Écrire une mise en page ».';
+  }
+
+  @override
+  String callingCardIssueUnknownOption(int line, String name) {
+    return 'Ligne $line : ce bloc n’a pas d’option « $name ».';
+  }
+
+  @override
+  String callingCardIssueBadValue(int line, String option, String value) {
+    return 'Ligne $line : « $value » ne convient pas pour $option.';
+  }
+
+  @override
+  String callingCardIssueUnclosedQuote(int line) {
+    return 'Ligne $line : un guillemet n’est jamais fermé, toute la ligne est donc ignorée.';
+  }
+
+  @override
+  String callingCardIssueMissingText(int line) {
+    return 'Ligne $line : text attend des mots entre guillemets, comme text \"Called by me\".';
+  }
+
+  @override
+  String callingCardIssueCardNotAlone(int line) {
+    return 'Ligne $line : card règle toute la fiche, il lui faut donc une ligne à elle seule.';
+  }
+
+  @override
+  String callingCardIssueEmptyBlock(int line) {
+    return 'Ligne $line : il n’y a rien d’un côté d’un |.';
+  }
+
+  @override
+  String get callingCardHelpTitle => 'Écrire une mise en page';
+
+  @override
+  String get callingCardHelpIntro =>
+      'Chaque ligne est une rangée de la fiche, de haut en bas. Commencez la ligne par le nom d’un bloc, puis ajoutez des options. Mettez | entre des blocs pour les placer côte à côte. Une ligne qui commence par # est une note pour vous et n’est pas imprimée.';
+
+  @override
+  String get callingCardHelpFields =>
+      'Un bloc n’imprime que ce que la danse contient, et seulement les champs activés dans Paramètres › Valeurs par défaut › Champs de danse partagés. Une rangée sans rien à imprimer ne prend pas de place. Quand une fiche est trop pleine, tout son contenu rétrécit uniformément pour tenir, jusqu’à la moitié de sa taille.';
+
+  @override
+  String get callingCardHelpTapToInsert =>
+      'Touchez un nom pour l’ajouter à votre mise en page.';
+
+  @override
+  String get callingCardHelpBlocksTitle => 'Blocs';
+
+  @override
+  String get callingCardHelpOptionsTitle => 'Options';
+
+  @override
+  String get callingCardHelpExamplesTitle => 'Exemples';
+
+  @override
+  String get callingCardHelpExampleUse => 'Utiliser cette mise en page';
+
+  @override
+  String get callingCardHelpBlockTitle => 'Le titre de la danse.';
+
+  @override
+  String get callingCardHelpBlockAuthors => 'Qui a écrit la danse.';
+
+  @override
+  String get callingCardHelpBlockFormation =>
+      'La formation, comme Improper ou Becket.';
+
+  @override
+  String get callingCardHelpBlockLevel => 'Le niveau de la danse.';
+
+  @override
+  String get callingCardHelpBlockMeta =>
+      'Formation, niveau, mixer, statut et phrase sur une ligne, chacun avec son libellé.';
+
+  @override
+  String get callingCardHelpBlockFigures =>
+      'Les figures, regroupées par phrase (A1, A2, B1, B2), avec leurs temps.';
+
+  @override
+  String get callingCardHelpBlockNotes => 'Vos notes d’appel.';
+
+  @override
+  String get callingCardHelpBlockWalkthrough => 'Le walkthrough.';
+
+  @override
+  String get callingCardHelpBlockHook => 'Le hook de la danse.';
+
+  @override
+  String get callingCardHelpBlockTunes => 'Les airs suggérés.';
+
+  @override
+  String get callingCardHelpBlockSources => 'Les sources publiées.';
+
+  @override
+  String get callingCardHelpBlockProgram =>
+      'Le titre du programme, quand vous imprimez un programme.';
+
+  @override
+  String get callingCardHelpBlockNumber =>
+      'La place de la danse dans le programme (1, 2, 3 ou Alternatif), quand vous imprimez un programme.';
+
+  @override
+  String get callingCardHelpBlockText => 'Vos propres mots, entre guillemets.';
+
+  @override
+  String get callingCardHelpBlockRule => 'Un trait en travers de la fiche.';
+
+  @override
+  String get callingCardHelpBlockSpace =>
+      'Un espace, en points (72 par pouce).';
+
+  @override
+  String get callingCardHelpBlockCard =>
+      'Réglages de toute la fiche : margin est l’espace autour du bord, en points.';
+
+  @override
+  String get callingCardHelpOptionSize => 'Taille du texte, en points.';
+
+  @override
+  String get callingCardHelpOptionStyle => 'Texte gras ou penché.';
+
+  @override
+  String get callingCardHelpOptionAlign =>
+      'Où le texte se place dans son espace.';
+
+  @override
+  String get callingCardHelpOptionColor =>
+      'Couleur du texte ou du trait, en code hexadécimal.';
+
+  @override
+  String get callingCardHelpOptionLines =>
+      'Imprimer au plus ce nombre de lignes d’un bloc long.';
+
+  @override
+  String get callingCardHelpOptionLabel =>
+      'Des mots devant le texte. label=\"\" n’en imprime aucun.';
+
+  @override
+  String get callingCardHelpOptionWidth =>
+      'Dans une rangée, un bloc avec width=2 prend deux fois plus de place qu’un bloc avec width=1.';
+
+  @override
+  String get callingCardHelpOptionFigures =>
+      'Pour figures : omettre les temps, les notes propres aux figures, les noms des phrases ou les traits entre les phrases.';
+
+  @override
+  String get callingCardHelpOptionThickness =>
+      'L’épaisseur d’un trait, en points.';
+
+  @override
+  String get callingCardExampleClassic => 'Classique';
+
+  @override
+  String get callingCardExampleBigPrint => 'Gros caractères';
+
+  @override
+  String get callingCardExampleProgram => 'Soirée de bal';
+
+  @override
+  String get callingCardExampleTeaching => 'Fiche pédagogique';
+
+  @override
+  String get callingCardSampleTitle => 'Contra d’exemple';
+
+  @override
+  String get callingCardSampleAuthor => 'A. Caller';
+
+  @override
+  String get callingCardSampleNotes =>
+      'Glissez à gauche le long de la ligne pour progresser.';
+
+  @override
+  String get callingCardSampleFigureNote =>
+      'Gardez la main pendant tout le tour.';
+
+  @override
+  String get callingCardSampleProgram => 'Bal du vendredi soir';
+
+  @override
+  String get exportPrintCallingCard => 'Imprimer la fiche d’appel';
+
+  @override
+  String get exportPrintCallingCards => 'Imprimer les fiches d’appel';
+
+  @override
+  String exportCallingCardsCutOff(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count fiches ne tenaient pas et sont coupées en bas.',
+      one: '1 fiche ne tenait pas et est coupée en bas.',
+    );
+    return '$_temp0';
+  }
 }

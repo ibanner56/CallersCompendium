@@ -33,6 +33,8 @@ class DanceCardContent {
     required this.tuneNames,
     this.hook,
     this.sourceLines = const [],
+    this.formation,
+    this.level,
   });
 
   /// Takes the same inputs as `danceToPlainText`.
@@ -79,6 +81,12 @@ class DanceCardContent {
       tuneNames: danceCardTuneNames(dance, fields),
       hook: gated(DanceShareField.hook, dance.hook),
       sourceLines: danceCardSourceLines(sourceLines, fields),
+      formation: fields.contains(DanceShareField.formation)
+          ? _nonBlank(formationLabel)
+          : null,
+      level: fields.contains(DanceShareField.level)
+          ? _nonBlank(levelLabel)
+          : null,
     );
   }
 
@@ -130,4 +138,18 @@ class DanceCardContent {
   /// Resolved source-citation lines (one per citation); empty when the field is
   /// deselected or the caller supplied none.
   final List<String> sourceLines;
+
+  /// The trimmed formation label on its own, without the "Formation:" label
+  /// [metaLines] gives it, for a layout that places it by itself; `null` when
+  /// the field is deselected or the label is blank.
+  final String? formation;
+
+  /// The trimmed level label on its own, as [formation]; `null` when the
+  /// field is deselected, or the dance has no level.
+  final String? level;
+}
+
+String? _nonBlank(String? value) {
+  final trimmed = value?.trim();
+  return trimmed == null || trimmed.isEmpty ? null : trimmed;
 }

@@ -764,7 +764,7 @@ useful thing you can send.
 ## Experimental
 
 The **Experimental** section holds features that are still in development —
-today, that's the **Glossary**, **Device Sync** and **Developer options**. Anything here can change
+today, that's the **Glossary**, **Calling cards**, **Device Sync** and **Developer options**. Anything here can change
 before it becomes a regular setting. Each feature sits in its own section: select its heading to
 open or close it.
 
@@ -943,6 +943,100 @@ notes to make room, then try again. Shortening or deleting is always allowed.
 Figures and notes that arrive from another device with Device Sync, or from a
 backup you restore, are always kept, even if they take you past the limit; you
 can then edit them down but not add more.
+
+### Calling cards
+
+A calling card is one dance on a small card — a 3 × 5 index card unless you
+choose otherwise — to hold while you call: the title, with the formation
+beside it and the authors under it, then the figures phrase by phrase (A1, A2, B1, B2) with
+their beats, then your calling notes. The design comes from
+[Contra Card](https://github.com/Yona-Appletree/contra-card), a tool by
+caller Yona Appletree.
+
+**Print calling cards** is **off by default**, and the section starts closed
+while it is off: select **Calling cards** to open it. Turn it on and a dance's
+**Export** menu gains **Print calling card**, and a program's gains **Print
+calling cards** — see [Print calling cards](./sharing.md#print-calling-cards).
+
+- **Card size** — an index card (3 × 5, 4 × 6 or 5 × 8 inches), A6 or A7, or
+  **Custom size**, where you type a width and height in inches or millimeters.
+  Each side can be from 1 to 14 inches (26 to 355 mm); a size outside that
+  isn't kept, and the field says so.
+- **Landscape** (on by default) — print with the long side across the top.
+  Turn it off for a card that stands upright.
+- **Card layout** — opens the layout editor, described below.
+
+#### The layout editor
+
+The layout is a few lines of text: each line is one row of the card, from top to
+bottom. A line starts with the name of a **block** — the thing it prints — and
+can add **options** after it. Put `|` between blocks to place them side by side,
+and start a line with `#` for a note to yourself. The layout every card starts
+with is:
+
+```text
+title size=16 bold width=3 | formation size=8 right width=2
+authors size=8 | level size=8 right
+rule color=#b64545 thickness=1.5
+figures size=10
+space 4
+notes size=8 lines=4
+```
+
+That reads: the title, large and bold, with the formation to its right; the
+authors, with the level to their right; a red line; the figures; a small gap;
+then up to four lines of calling notes.
+
+Beside the text, the editor shows:
+
+- **Preview** — a sample dance laid out on a card of your size, redrawn a moment
+  after you stop typing. Under it, the editor says when the text had to shrink
+  to fit, and when a card is cut off (see below).
+- **Lines that couldn't be read** — each line with a mistake, by number, and
+  what's wrong, such as `Line 2: "titel" isn't a block.` Only the mistake is
+  left out — a block that isn't one, or an option a block can't use, which then
+  keeps its usual setting — and the rest prints. A quotation mark that is never
+  closed skips its whole line.
+- **How to write a layout** — every block and option, with what it does. Tap a
+  block's name to add it on a line of its own where your cursor is, or an
+  option's name to add it after your cursor. Under **Examples** are four
+  ready-made layouts — **Classic** (the one above), **Big print**, **Program
+  night** and **Teaching card** — and **Use this layout** puts one in place of
+  yours, with **Undo** if you change your mind.
+
+Changes are saved as you type. **Reset to default** (after asking) puts the
+layout above back.
+
+The blocks are `title`, `authors`, `formation`, `level`, `meta` (formation,
+level, mixer, status and phrase on one line), `figures`, `notes` (calling
+notes), `walkthrough`, `hook`, `tunes`, `sources`, `program` and `number` (a
+program's title, and the dance's number in its set list, or **Alternate**), `text`
+(your own words in quotes, like `text "Called by me"`), `rule` (a line across),
+and `space 8` (a gap of 8 points; there are 72 points to an inch). A `card
+margin=18` line on its own sets the space around the card's edge.
+
+The options are `size=12` (text size in points), `bold`, `italic`, `left`,
+`center`, `right`, `color=#b64545`, `lines=3` (at most three lines of a long
+block), `label="Notes: "` (words in front; `label=""` for none) and `width=2`
+(in a row, twice the room of a `width=1` block). `figures` also takes
+`beats=off`, `notes=off` (the figures' own notes), `phrases=off` and
+`dividers=off` (the lines between phrases), and `rule` takes `thickness=2`.
+
+A block prints only what the dance has, and only the fields turned on under
+**Defaults** › [**Shared dance fields**](./sharing.md#choose-which-dance-fields-appear)
+— turning a field off there keeps it off your cards too. A row with nothing to
+print takes no space, so a dance with no level simply has no level.
+
+**When a card is too full**, everything on it shrinks evenly until it fits, down
+to half size. A dance that still doesn't fit is cut off at the bottom, and a
+small grey triangle at the bottom-right corner of the printed area (inside the
+margin) marks it. The preview says
+so, and printing tells you how many cards were cut off. Add `lines=` to a long
+block, take a block out, or choose a bigger card.
+
+Block and option names are always written in English, whatever language the
+app is set to; the help, the preview and the cards themselves follow your
+language and your [dialect](./dialects.md).
 
 ### Device Sync
 
