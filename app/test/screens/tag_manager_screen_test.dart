@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:compendium_app/src/data/collection_filter_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/tag_manager_screen.dart';
@@ -510,6 +511,64 @@ void main() {
       await tester.pumpAndSettle();
 
       expect((await repos.tags.getById(a))!.color, 0xFF2196F3);
+    });
+  });
+
+  group('Show dances', () {
+    Future<CollectionFilterController> pumpWithScope(
+      WidgetTester tester,
+    ) async {
+      final controller = CollectionFilterController();
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(
+        RepositoriesScope(
+          repositories: repos,
+          child: MaterialApp(
+            theme: AppTheme.light,
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            builder: (context, child) =>
+                CollectionFilterScope(controller: controller, child: child!),
+            home: const TagManagerScreen(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      return controller;
+    }
+
+    testWidgets('the menu action requests that one tag', (tester) async {
+      await tag(a, 'Alpha');
+      await tag(b, 'Beta');
+      final controller = await pumpWithScope(tester);
+
+      await act(tester, b, 'show-dances');
+
+      expect(controller.pending?.tagId, b);
+    });
+
+    testWidgets('the row sheet offers the same action', (tester) async {
+      await tag(a, 'Alpha');
+      final controller = await pumpWithScope(tester);
+
+      await tester.tap(find.byKey(const ValueKey('tag-row-$a')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Show dances'));
+      await tester.pumpAndSettle();
+
+      expect(controller.pending?.tagId, a);
+    });
+
+    testWidgets('is not offered when nothing can show the Collection', (
+      tester,
+    ) async {
+      await tag(a, 'Alpha');
+      await _pump(tester, repos);
+
+      await tester.tap(find.byKey(const ValueKey('tag-actions-$a')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Show dances'), findsNothing);
     });
   });
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -12,6 +14,7 @@ import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/screens/app_shell.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
+import 'package:compendium_app/src/screens/tag_manager_screen.dart';
 import 'package:compendium_app/src/widgets/dance_list_tile.dart';
 import 'package:compendium_app/src/update/update_controller.dart';
 import 'package:compendium_app/src/update/update_scope.dart';
@@ -525,5 +528,75 @@ void main() {
     expect(find.byKey(const ValueKey('tag-t2')), findsNothing);
     expect(_listedTitles(tester).toSet(), {'Both', 'Smooth Only'});
     expect(find.text('Filters · 1'), findsOneWidget);
+  });
+
+  // The Tags manager's "Show dances" row action (docs/design/tags-and-people.md,
+  // "The manager screens"): the same filterByTag entry a tapped chip uses.
+  Future<void> showDancesFromManager(
+    WidgetTester tester,
+    CompendiumRepositories repos,
+    Size size,
+    String tagId,
+  ) async {
+    await _pumpShell(tester, repos, size: size);
+    unawaited(
+      Navigator.of(
+        tester.element(find.byType(AppShell)),
+      ).push(MaterialPageRoute<void>(builder: (_) => const TagManagerScreen())),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(TagManagerScreen), findsOneWidget);
+    await tester.tap(find.byKey(ValueKey('tag-actions-$tagId')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(ValueKey('tag-action-show-dances-$tagId')));
+    await tester.pumpAndSettle();
+  }
+
+  for (final (name, size) in [
+    ('narrow', const Size(500, 1400)),
+    ('wide', const Size(1300, 1400)),
+  ]) {
+    testWidgets('$name: Tags manager "Show dances" pops to the Collection '
+        'filtered to that one tag', (tester) async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.tags.upsert(Tag(id: 't1', name: 'smooth'));
+      // ignore: unused_result
+      await repos.tags.upsert(Tag(id: 't2', name: 'energetic'));
+      await repos.dances.create(
+        _dance(id: 'd1', title: 'Smooth One', tagIds: const ['t1']),
+      );
+      await repos.dances.create(
+        _dance(id: 'd3', title: 'Energetic Three', tagIds: const ['t2']),
+      );
+
+      await showDancesFromManager(tester, repos, size, 't1');
+
+      expect(find.byType(TagManagerScreen), findsNothing);
+      expect(_listedTitles(tester), ['Smooth One']);
+      expect(find.text('Filters · 1'), findsOneWidget);
+    });
+  }
+
+  testWidgets('"Show dances" on a tag with no dances shows the empty result '
+      'with the tag still selected', (tester) async {
+    final repos = openTestRepositories();
+    // ignore: unused_result
+    await repos.tags.upsert(Tag(id: 't1', name: 'smooth'));
+    // ignore: unused_result
+    await repos.tags.upsert(Tag(id: 't9', name: 'unused'));
+    await repos.dances.create(
+      _dance(id: 'd1', title: 'Smooth One', tagIds: const ['t1']),
+    );
+
+    await showDancesFromManager(tester, repos, const Size(500, 1400), 't9');
+
+    expect(find.byType(TagManagerScreen), findsNothing);
+    expect(_listedTitles(tester), isEmpty);
+    expect(find.text('Filters · 1'), findsOneWidget);
+    // Not asserted: a chip for t9. The Filters panel lists only tags a live
+    // dance carries, and the next data change drops a selected tag no dance
+    // carries (retainTags). That is the Collection's existing rule for any
+    // external tag filter, and this action does not special-case it.
   });
 }

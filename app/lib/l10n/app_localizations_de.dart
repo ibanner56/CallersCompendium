@@ -2860,6 +2860,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get tagManagerNameLabel => 'Tag-Name';
 
   @override
+  String get tagManagerShowDances => 'Tänze anzeigen';
+
+  @override
   String get tagManagerColour => 'Farbe…';
 
   @override

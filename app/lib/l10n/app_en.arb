@@ -3518,6 +3518,10 @@
   "@tagManagerNameLabel": {
     "description": "Label of the name field in the Tags manager's rename dialog."
   },
+  "tagManagerShowDances": "Show dances",
+  "@tagManagerShowDances": {
+    "description": "Tags manager row action, in the ⋮ menu and the row sheet: leaves Settings and adds this tag to the Collection's filter (other filters and already selected tags are kept)."
+  },
   "tagManagerColour": "Color…",
   "@tagManagerColour": {
     "description": "Tags manager action: opens the color picker for a tag."

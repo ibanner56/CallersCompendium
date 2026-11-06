@@ -2813,6 +2813,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tagManagerNameLabel => 'Tag name';
 
   @override
+  String get tagManagerShowDances => 'Show dances';
+
+  @override
   String get tagManagerColour => 'Color…';
 
   @override

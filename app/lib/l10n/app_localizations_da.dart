@@ -2834,6 +2834,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get tagManagerNameLabel => 'Tagnavn';
 
   @override
+  String get tagManagerShowDances => 'Vis danse';
+
+  @override
   String get tagManagerColour => 'Farve…';
 
   @override

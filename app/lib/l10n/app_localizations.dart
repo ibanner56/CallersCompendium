@@ -4309,6 +4309,12 @@ abstract class AppLocalizations {
   /// **'Tag name'**
   String get tagManagerNameLabel;
 
+  /// Tags manager row action, in the ⋮ menu and the row sheet: leaves Settings and adds this tag to the Collection's filter (other filters and already selected tags are kept).
+  ///
+  /// In en, this message translates to:
+  /// **'Show dances'**
+  String get tagManagerShowDances;
+
   /// Tags manager action: opens the color picker for a tag.
   ///
   /// In en, this message translates to:

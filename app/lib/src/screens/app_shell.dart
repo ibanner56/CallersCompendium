@@ -119,10 +119,12 @@ class AppShellState extends State<AppShell> {
   }
 
   /// Reacts to an "add this tag to the Collection's filter" request: selects the
-  /// Collection destination and pops any pushed route (e.g. a full-screen dance
-  /// detail on narrow layouts) so the filtered list is visible. The live
-  /// [DanceListScreen] adds the tag to its filter by listening to the same
-  /// controller. A no-op pop on wide layouts, where detail is embedded.
+  /// Collection destination and pops any pushed route (a full-screen dance
+  /// detail on narrow layouts, or the Tags manager pushed from Settings on any
+  /// layout) so the filtered list is visible. The live [DanceListScreen] adds
+  /// the tag to its filter by listening to the same controller. On wide
+  /// layouts the pop is a no-op unless such a route is pushed, because detail
+  /// is embedded.
   void _onTagFilterRequested() {
     final request = _filterController?.pending;
     if (request == null || request.seq == _lastFilterSeq) return;
