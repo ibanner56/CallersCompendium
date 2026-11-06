@@ -61,6 +61,23 @@ void main() {
     });
   });
 
+  test('a repeat that is not the display\'s own is not read', () {
+    for (final line in [
+      // Three places repeats the first pull: same pair, balance and hand.
+      'square through three - partner balance & pull by right, then neighbor '
+          'pull by left, then shadow balance & pull by right',
+      'square through three - partner balance & pull by right, then neighbor '
+          'pull by left, then partner pull by right',
+      'square through three - partner balance & pull by right, then neighbor '
+          'pull by left, then partner balance & pull by left',
+      // Four places ends `then repeat`.
+      'square through four - partner balance & pull by right, then neighbor '
+          'pull by left',
+    ]) {
+      expect(parseContraDbFigureLine(line)?.note, isNotNull, reason: line);
+    }
+  });
+
   group('mad robin', () {
     test('reads the spin, the turn around whom and who is in front', () {
       expect(
@@ -79,6 +96,16 @@ void main() {
         'direction': 'counterclockwise',
         'who': 'unspecified',
       });
+    });
+
+    test('a turn without around, or a bare around, is not this wording', () {
+      for (final line in [
+        'mad robin clockwise 1½',
+        'mad robin around',
+        'mad robin clockwise around',
+      ]) {
+        expect(only(line).params['who'], isNot('unspecified'), reason: line);
+      }
     });
 
     test('a bare mad robin is still read by name, with its defaults', () {

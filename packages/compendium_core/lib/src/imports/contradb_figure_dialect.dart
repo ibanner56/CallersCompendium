@@ -957,6 +957,8 @@ FigureMatch? _madRobinDisplay(String text) {
   String? whom;
   if (s.eat('around')) {
     whom = _displaySubject(s);
+    // The display never writes a bare `around`: it names a turn or a whom.
+    if (turn == null && whom == null) return null;
   } else if (turn != null) {
     return null;
   }

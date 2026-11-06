@@ -8,7 +8,7 @@
   },
   "core": {
     "fixed": [
-      "The ContraDB figure reader reads the app's display wording for a square through (`_squareThroughDisplay`, the whole pull sequence, declining a second pull by the same hand), a mad robin (`_madRobinDisplay`, reading a line without the in-front clause as `who: unspecified`) and a butterfly whirl's spin. A bare `mad robin` is left to the name lookup, which gives the move's defaults."
+      "The ContraDB figure reader reads the app's display wording for a square through (`_squareThroughDisplay`, the whole pull sequence, declining a second pull by the same hand), a mad robin (`_madRobinDisplay`, reading a line without the in-front clause as `who: unspecified`) and a butterfly whirl's spin. A bare `mad robin` is left to the name lookup, which gives the move's defaults. Two import-side effects: a ContraDB square-through line in this wording is now read whole, so it no longer keeps its second pull as a note, and a `mad robin clockwise` or `mad robin 1½ around …` line, which stayed custom, is now structured."
     ]
   }
 }
