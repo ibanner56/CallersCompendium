@@ -572,8 +572,8 @@ retired. The manager lists live tags through `TagRepository.watchAll`
 dances**, which leaves Settings and opens Collection with that one tag added to
 the Tags facet. It calls `CollectionFilterController.filterByTag`, the entry a
 tapped tag chip uses, so it behaves as a chip tap does: the search text, other
-facets and sort are kept, and a tag already selected stays (a second tag
-defaults the facet to "all tags", B15). A tag with no live dances opens the
+facets and sort are kept, and tags already selected stay, so with another tag chosen the result is both
+(a second tag defaults the facet to "all tags", B15), not the row's tag alone. A tag with no live dances opens the
 ordinary empty result. It was deferred from T2 until B15 settled the rule for
 an external tag filter, then built as a follow-up. Authors and sources do not
 have it.
