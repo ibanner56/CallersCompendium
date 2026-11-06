@@ -191,6 +191,170 @@ void main() {
     );
   });
 
+  group('paging and repeats', () {
+    String page(int shown) => jsonEncode({
+      'numberMatching': shown,
+      'dances': [
+        for (var id = 1; id <= shown; id++)
+          {
+            'id': id,
+            'title': 'Dance $id',
+            'choreographer_name': '',
+            'formation': 'improper',
+          },
+      ],
+    });
+
+    test('the query\'s offset is sent on every request', () async {
+      final requests = <ContraDbSearchRequest>[];
+      final online = ContraDbOnline(
+        searchFetcher: (request) async {
+          requests.add(request);
+          return page(2);
+        },
+      );
+      await online.search(const OnlineSearchQuery(title: "Mary's", offset: 40));
+      expect(requests, hasLength(2), reason: 'both apostrophe spellings');
+      expect(requests.every((r) => r.offset == 40), isTrue);
+
+      requests.clear();
+      await online.search(
+        OnlineSearchQuery(advanced: FigureFilter.leaf('swing'), offset: 20),
+      );
+      expect(requests.single.offset, 20);
+      expect(requests.single.expression, ['figure', 'swing']);
+    });
+
+    test('withOffset keeps the query and changes only the offset', () {
+      final query = OnlineSearchQuery(
+        title: 'x',
+        advanced: FigureFilter.leaf('swing'),
+      );
+      final next = query.withOffset(20);
+      expect(next.offset, 20);
+      expect(next.title, 'x');
+      expect(next.advanced, same(query.advanced));
+      expect(next.requireFigures, query.requireFigures);
+    });
+
+    test(
+      'the same request soon after: answered without asking again',
+      () async {
+        var calls = 0;
+        var now = DateTime(2026, 11, 6, 12);
+        final online = ContraDbOnline(
+          searchFetcher: (_) async {
+            calls++;
+            return page(3);
+          },
+          clock: () => now,
+        );
+        const query = OnlineSearchQuery(title: 'x');
+
+        final first = await online.search(query);
+        now = now.add(const Duration(seconds: 59));
+        final second = await online.search(query);
+
+        expect(calls, 1);
+        expect(second, first);
+      },
+    );
+
+    test('a different offset, text or an expired window asks again', () async {
+      var calls = 0;
+      var now = DateTime(2026, 11, 6, 12);
+      final online = ContraDbOnline(
+        searchFetcher: (_) async {
+          calls++;
+          return page(3);
+        },
+        clock: () => now,
+      );
+      await online.search(const OnlineSearchQuery(title: 'x'));
+      await online.search(const OnlineSearchQuery(title: 'x', offset: 20));
+      await online.search(const OnlineSearchQuery(title: 'y', offset: 20));
+      expect(calls, 3);
+
+      now = now.add(const Duration(seconds: 61));
+      await online.search(const OnlineSearchQuery(title: 'y', offset: 20));
+      expect(calls, 4);
+    });
+
+    test(
+      'a parameter only the translation left out is part of the key',
+      () async {
+        var calls = 0;
+        final online = ContraDbOnline(
+          searchFetcher: (_) async {
+            calls++;
+            return page(2);
+          },
+        );
+        // `swing.endFacing` has no ContraDB counterpart: both queries send the
+        // same expression, but only the second is "partly applied".
+        final plain = await online.search(
+          OnlineSearchQuery(advanced: FigureFilter.leaf('swing')),
+        );
+        final withLeftOut = await online.search(
+          OnlineSearchQuery(
+            advanced: FigureFilter.leaf(
+              'swing',
+              params: const {'endFacing': 'out'},
+            ),
+          ),
+        );
+        expect(plain.any((row) => row.advancedPartlyApplied), isFalse);
+        expect(withLeftOut.every((row) => row.advancedPartlyApplied), isTrue);
+        expect(calls, 2, reason: 'not answered with the other\'s rows');
+
+        // The same edit twice in a row is the repeat that is not asked again.
+        await online.search(
+          OnlineSearchQuery(
+            advanced: FigureFilter.leaf(
+              'swing',
+              params: const {'endFacing': 'out'},
+            ),
+          ),
+        );
+        expect(calls, 2);
+      },
+    );
+
+    test('a search whose extra spelling failed is not remembered', () async {
+      var calls = 0;
+      final online = ContraDbOnline(
+        searchFetcher: (request) async {
+          calls++;
+          if (request.query.contains('\u2019')) throw Exception('down');
+          return page(2);
+        },
+      );
+      const query = OnlineSearchQuery(title: "Mary's");
+      final first = await online.search(query);
+      expect(first, isNotEmpty);
+      expect(calls, 2);
+
+      await online.search(query);
+      expect(calls, 4, reason: 'the curly spelling is asked for again');
+    });
+
+    test('a failed search is not remembered', () async {
+      var calls = 0;
+      final online = ContraDbOnline(
+        searchFetcher: (_) async {
+          calls++;
+          if (calls == 1) throw Exception('down');
+          return page(3);
+        },
+      );
+      const query = OnlineSearchQuery(title: 'x');
+      await expectLater(online.search(query), throwsException);
+      final rows = await online.search(query);
+      expect(rows, hasLength(3));
+      expect(calls, 2);
+    });
+  });
+
   group('fetchContraDbSearch', () {
     test('POSTs a title-filter JSON body to the search endpoint', () async {
       late http.Request captured;
