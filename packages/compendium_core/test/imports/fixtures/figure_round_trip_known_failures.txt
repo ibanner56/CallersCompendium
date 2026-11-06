@@ -32,24 +32,6 @@ Canonical	box_circulate	{"who":"onesRole2"}	balance & box circulate - first role
 Canonical	box_circulate	{"who":"twosRole1"}	balance & box circulate - second role1 cross while others loop right
 Canonical	box_circulate	{"who":"twosRole2"}	balance & box circulate - second role2 cross while others loop right
 Canonical	box_circulate	{"balance":false}	box circulate - role2s cross while role1s loop right
-Canonical	pass_through	{"where":"rightDiagonal"}	pass through on right diagonal
-Canonical	pass_through	{"where":"leftDiagonal"}	pass through on left diagonal
-Canonical	pass_through	{"where":"in"}	pass through facing in
-Canonical	pass_through	{"where":"out"}	pass through facing out
-Canonical	pass_through	{"where":"up"}	pass through facing up
-Canonical	pass_through	{"where":"down"}	pass through facing down
-Canonical	right_left_through	{"where":"rightDiagonal"}	right left through on right diagonal
-Canonical	right_left_through	{"where":"leftDiagonal"}	right left through on left diagonal
-Canonical	right_left_through	{"where":"in"}	right left through facing in
-Canonical	right_left_through	{"where":"out"}	right left through facing out
-Canonical	right_left_through	{"where":"up"}	right left through facing up
-Canonical	right_left_through	{"where":"down"}	right left through facing down
-Canonical	chain	{"where":"rightDiagonal"}	role2s chain on right diagonal
-Canonical	chain	{"where":"leftDiagonal"}	role2s chain on left diagonal
-Canonical	chain	{"where":"in"}	role2s chain facing in
-Canonical	chain	{"where":"out"}	role2s chain facing out
-Canonical	chain	{"where":"up"}	role2s chain facing up
-Canonical	chain	{"where":"down"}	role2s chain facing down
 Canonical	promenade	{"where":"rightDiagonal"}	partner promenade on right diagonal
 Canonical	promenade	{"where":"leftDiagonal"}	partner promenade on left diagonal
 Canonical	promenade	{"where":"in"}	partner promenade facing in
@@ -95,51 +77,6 @@ Canonical	revolving_door	{"whom":"shadows"}	revolving door - role2s take right h
 Canonical	revolving_door	{"whom":"thirdCorners"}	revolving door - role2s take right hands and drop off third corners on other side
 Canonical	revolving_door	{"whom":"opposites"}	revolving door - role2s take right hands and drop off opposites on other side
 Canonical	give_and_take	{"give":false}	role1s take partner
-Canonical	pull_by	{"where":"rightDiagonal"}	pull by right on right diagonal
-Canonical	pull_by	{"where":"leftDiagonal"}	pull by right on left diagonal
-Canonical	pull_by	{"where":"in"}	pull by right facing in
-Canonical	pull_by	{"where":"out"}	pull by right facing out
-Canonical	pull_by	{"where":"up"}	pull by right facing up
-Canonical	pull_by	{"where":"down"}	pull by right facing down
-Canonical	cross_trails	{"who":"neighbors"}	cross trails - neighbor across the set passing right shoulders, neighbor along the set passing left shoulders
-Canonical	cross_trails	{"who":"shadows"}	cross trails - shadow across the set passing right shoulders, neighbor along the set passing left shoulders
-Canonical	cross_trails	{"who":"thirdCorners"}	cross trails - third corners across the set passing right shoulders, neighbor along the set passing left shoulders
-Canonical	cross_trails	{"who":"opposites"}	cross trails - opposites across the set passing right shoulders, neighbor along the set passing left shoulders
-Canonical	cross_trails	{"where":"along"}	cross trails - partner along the set passing right shoulders, neighbor across the set passing left shoulders
-Canonical	cross_trails	{"where":"rightDiagonal"}	cross trails - partner on right diagonal passing right shoulders, neighbor passing left shoulders
-Canonical	cross_trails	{"where":"leftDiagonal"}	cross trails - partner on left diagonal passing right shoulders, neighbor passing left shoulders
-Canonical	cross_trails	{"where":"in"}	cross trails - partner facing in passing right shoulders, neighbor passing left shoulders
-Canonical	cross_trails	{"where":"out"}	cross trails - partner facing out passing right shoulders, neighbor passing left shoulders
-Canonical	cross_trails	{"where":"up"}	cross trails - partner facing up passing right shoulders, neighbor passing left shoulders
-Canonical	cross_trails	{"where":"down"}	cross trails - partner facing down passing right shoulders, neighbor passing left shoulders
-Canonical	cross_trails	{"shoulder":"left"}	cross trails - partner across the set passing left shoulders, neighbor along the set passing right shoulders
-Canonical	cross_trails	{"who2":"everyone"}	cross trails - partner across the set passing right shoulders, everyone along the set passing left shoulders
-Canonical	cross_trails	{"who2":"role1s"}	cross trails - partner across the set passing right shoulders, role1s along the set passing left shoulders
-Canonical	cross_trails	{"who2":"role2s"}	cross trails - partner across the set passing right shoulders, role2s along the set passing left shoulders
-Canonical	cross_trails	{"who2":"ones"}	cross trails - partner across the set passing right shoulders, ones along the set passing left shoulders
-Canonical	cross_trails	{"who2":"twos"}	cross trails - partner across the set passing right shoulders, twos along the set passing left shoulders
-Canonical	cross_trails	{"who2":"partners"}	cross trails - partner across the set passing right shoulders, partner along the set passing left shoulders
-Canonical	cross_trails	{"who2":"sameRoles"}	cross trails - partner across the set passing right shoulders, same roles along the set passing left shoulders
-Canonical	cross_trails	{"who2":"shadows"}	cross trails - partner across the set passing right shoulders, shadow along the set passing left shoulders
-Canonical	cross_trails	{"who2":"secondShadows"}	cross trails - partner across the set passing right shoulders, second shadow along the set passing left shoulders
-Canonical	cross_trails	{"who2":"prevNeighbors"}	cross trails - partner across the set passing right shoulders, prev neighbor along the set passing left shoulders
-Canonical	cross_trails	{"who2":"nextNeighbors"}	cross trails - partner across the set passing right shoulders, next neighbor along the set passing left shoulders
-Canonical	cross_trails	{"who2":"thirdNeighbors"}	cross trails - partner across the set passing right shoulders, third neighbor along the set passing left shoulders
-Canonical	cross_trails	{"who2":"fourthNeighbors"}	cross trails - partner across the set passing right shoulders, fourth neighbor along the set passing left shoulders
-Canonical	cross_trails	{"who2":"firstCorners"}	cross trails - partner across the set passing right shoulders, first corners along the set passing left shoulders
-Canonical	cross_trails	{"who2":"secondCorners"}	cross trails - partner across the set passing right shoulders, second corners along the set passing left shoulders
-Canonical	cross_trails	{"who2":"thirdCorners"}	cross trails - partner across the set passing right shoulders, third corners along the set passing left shoulders
-Canonical	cross_trails	{"who2":"opposites"}	cross trails - partner across the set passing right shoulders, opposites along the set passing left shoulders
-Canonical	cross_trails	{"who2":"prevPartners"}	cross trails - partner across the set passing right shoulders, prev partner along the set passing left shoulders
-Canonical	cross_trails	{"who2":"nextPartners"}	cross trails - partner across the set passing right shoulders, next partner along the set passing left shoulders
-Canonical	cross_trails	{"who2":"thirdPartners"}	cross trails - partner across the set passing right shoulders, third partner along the set passing left shoulders
-Canonical	cross_trails	{"who2":"fourthPartners"}	cross trails - partner across the set passing right shoulders, fourth partner along the set passing left shoulders
-Canonical	cross_trails	{"who2":"fifthPartners"}	cross trails - partner across the set passing right shoulders, fifth partner along the set passing left shoulders
-Canonical	cross_trails	{"who2":"centers"}	cross trails - partner across the set passing right shoulders, centers along the set passing left shoulders
-Canonical	cross_trails	{"who2":"onesRole1"}	cross trails - partner across the set passing right shoulders, first role1 along the set passing left shoulders
-Canonical	cross_trails	{"who2":"onesRole2"}	cross trails - partner across the set passing right shoulders, first role2 along the set passing left shoulders
-Canonical	cross_trails	{"who2":"twosRole1"}	cross trails - partner across the set passing right shoulders, second role1 along the set passing left shoulders
-Canonical	cross_trails	{"who2":"twosRole2"}	cross trails - partner across the set passing right shoulders, second role2 along the set passing left shoulders
 Canonical	down_the_hall	{"who":"partners"}	partner down the hall and turn as a couple
 Canonical	down_the_hall	{"who":"neighbors"}	neighbor down the hall and turn as a couple
 Canonical	down_the_hall	{"who":"shadows"}	shadow down the hall and turn as a couple
@@ -183,8 +120,6 @@ Canonical	zig_zag	{"who":"twosRole1"}	zig left zag right with second role1
 Canonical	zig_zag	{"who":"twosRole2"}	zig left zag right with second role2
 Canonical	zig_zag	{"ender":"ring"}	zig left zag right with partner into a ring
 Canonical	zig_zag	{"ender":"allemande"}	zig left zag right with partner, trailing two catching hands
-Canonical	slice	{"by":"dancer"}	slice left one dancer and straight back
-Canonical	slice	{"return":"diagonal"}	slice left and diagonal back
 Canonical	slice	{"return":"none"}	slice left
 Canonical	figure_8	{"who":"partners"}	partner half figure 8 up between others
 Canonical	figure_8	{"who":"neighbors"}	neighbor half figure 8 up between others
@@ -277,14 +212,6 @@ Canonical	square_through	{"balance":true}	square through two - partner balance &
 Canonical	square_through	{"balance":false}	square through two - partner pull by right, then neighbor pull by left
 Canonical	square_through	{"hand":"right"}	square through two - partner balance & pull by right, then neighbor pull by left
 Canonical	square_through	{"hand":"left"}	square through two - partner balance & pull by left, then neighbor pull by right
-Canonical	pass_by	{}	neighbor pass by right shoulders
-Canonical	pass_by	{"who":"partners"}	partner pass by right shoulders
-Canonical	pass_by	{"who":"neighbors"}	neighbor pass by right shoulders
-Canonical	pass_by	{"who":"shadows"}	shadow pass by right shoulders
-Canonical	pass_by	{"who":"thirdCorners"}	third corners pass by right shoulders
-Canonical	pass_by	{"who":"opposites"}	opposites pass by right shoulders
-Canonical	pass_by	{"shoulder":"right"}	neighbor pass by right shoulders
-Canonical	pass_by	{"shoulder":"left"}	neighbor pass by left shoulders
 Larks/Robins	swing	{"endFacing":"out"}	partner swing, end facing out of the set
 Larks/Robins	swing	{"endFacing":"up"}	partner swing, end facing up the hall
 Larks/Robins	swing	{"endFacing":"down"}	partner swing, end facing down the hall
@@ -312,24 +239,6 @@ Larks/Robins	box_circulate	{"who":"onesRole2"}	balance & box circulate - first r
 Larks/Robins	box_circulate	{"who":"twosRole1"}	balance & box circulate - second lark cross while others loop right
 Larks/Robins	box_circulate	{"who":"twosRole2"}	balance & box circulate - second robin cross while others loop right
 Larks/Robins	box_circulate	{"balance":false}	box circulate - robins cross while larks loop right
-Larks/Robins	pass_through	{"where":"rightDiagonal"}	pass through on right diagonal
-Larks/Robins	pass_through	{"where":"leftDiagonal"}	pass through on left diagonal
-Larks/Robins	pass_through	{"where":"in"}	pass through facing in
-Larks/Robins	pass_through	{"where":"out"}	pass through facing out
-Larks/Robins	pass_through	{"where":"up"}	pass through facing up
-Larks/Robins	pass_through	{"where":"down"}	pass through facing down
-Larks/Robins	right_left_through	{"where":"rightDiagonal"}	right left through on right diagonal
-Larks/Robins	right_left_through	{"where":"leftDiagonal"}	right left through on left diagonal
-Larks/Robins	right_left_through	{"where":"in"}	right left through facing in
-Larks/Robins	right_left_through	{"where":"out"}	right left through facing out
-Larks/Robins	right_left_through	{"where":"up"}	right left through facing up
-Larks/Robins	right_left_through	{"where":"down"}	right left through facing down
-Larks/Robins	chain	{"where":"rightDiagonal"}	robins chain on right diagonal
-Larks/Robins	chain	{"where":"leftDiagonal"}	robins chain on left diagonal
-Larks/Robins	chain	{"where":"in"}	robins chain facing in
-Larks/Robins	chain	{"where":"out"}	robins chain facing out
-Larks/Robins	chain	{"where":"up"}	robins chain facing up
-Larks/Robins	chain	{"where":"down"}	robins chain facing down
 Larks/Robins	promenade	{"where":"rightDiagonal"}	partner promenade on right diagonal
 Larks/Robins	promenade	{"where":"leftDiagonal"}	partner promenade on left diagonal
 Larks/Robins	promenade	{"where":"in"}	partner promenade facing in
@@ -375,51 +284,6 @@ Larks/Robins	revolving_door	{"whom":"shadows"}	revolving door - robins take righ
 Larks/Robins	revolving_door	{"whom":"thirdCorners"}	revolving door - robins take right hands and drop off third corners on other side
 Larks/Robins	revolving_door	{"whom":"opposites"}	revolving door - robins take right hands and drop off opposites on other side
 Larks/Robins	give_and_take	{"give":false}	larks take partner
-Larks/Robins	pull_by	{"where":"rightDiagonal"}	pull by right on right diagonal
-Larks/Robins	pull_by	{"where":"leftDiagonal"}	pull by right on left diagonal
-Larks/Robins	pull_by	{"where":"in"}	pull by right facing in
-Larks/Robins	pull_by	{"where":"out"}	pull by right facing out
-Larks/Robins	pull_by	{"where":"up"}	pull by right facing up
-Larks/Robins	pull_by	{"where":"down"}	pull by right facing down
-Larks/Robins	cross_trails	{"who":"neighbors"}	cross trails - neighbor across the set passing right shoulders, neighbor along the set passing left shoulders
-Larks/Robins	cross_trails	{"who":"shadows"}	cross trails - shadow across the set passing right shoulders, neighbor along the set passing left shoulders
-Larks/Robins	cross_trails	{"who":"thirdCorners"}	cross trails - third corners across the set passing right shoulders, neighbor along the set passing left shoulders
-Larks/Robins	cross_trails	{"who":"opposites"}	cross trails - opposites across the set passing right shoulders, neighbor along the set passing left shoulders
-Larks/Robins	cross_trails	{"where":"along"}	cross trails - partner along the set passing right shoulders, neighbor across the set passing left shoulders
-Larks/Robins	cross_trails	{"where":"rightDiagonal"}	cross trails - partner on right diagonal passing right shoulders, neighbor passing left shoulders
-Larks/Robins	cross_trails	{"where":"leftDiagonal"}	cross trails - partner on left diagonal passing right shoulders, neighbor passing left shoulders
-Larks/Robins	cross_trails	{"where":"in"}	cross trails - partner facing in passing right shoulders, neighbor passing left shoulders
-Larks/Robins	cross_trails	{"where":"out"}	cross trails - partner facing out passing right shoulders, neighbor passing left shoulders
-Larks/Robins	cross_trails	{"where":"up"}	cross trails - partner facing up passing right shoulders, neighbor passing left shoulders
-Larks/Robins	cross_trails	{"where":"down"}	cross trails - partner facing down passing right shoulders, neighbor passing left shoulders
-Larks/Robins	cross_trails	{"shoulder":"left"}	cross trails - partner across the set passing left shoulders, neighbor along the set passing right shoulders
-Larks/Robins	cross_trails	{"who2":"everyone"}	cross trails - partner across the set passing right shoulders, everyone along the set passing left shoulders
-Larks/Robins	cross_trails	{"who2":"role1s"}	cross trails - partner across the set passing right shoulders, larks along the set passing left shoulders
-Larks/Robins	cross_trails	{"who2":"role2s"}	cross trails - partner across the set passing right shoulders, robins along the set passing left shoulders
-Larks/Robins	cross_trails	{"who2":"ones"}	cross trails - partner across the set passing right shoulders, ones along the set passing left shoulders
-Larks/Robins	cross_trails	{"who2":"twos"}	cross trails - partner across the set passing right shoulders, twos along the set passing left shoulders
-Larks/Robins	cross_trails	{"who2":"partners"}	cross trails - partner across the set passing right shoulders, partner along the set passing left shoulders
-Larks/Robins	cross_trails	{"who2":"sameRoles"}	cross trails - partner across the set passing right shoulders, same roles along the set passing left shoulders
-Larks/Robins	cross_trails	{"who2":"shadows"}	cross trails - partner across the set passing right shoulders, shadow along the set passing left shoulders
-Larks/Robins	cross_trails	{"who2":"secondShadows"}	cross trails - partner across the set passing right shoulders, second shadow along the set passing left shoulders
-Larks/Robins	cross_trails	{"who2":"prevNeighbors"}	cross trails - partner across the set passing right shoulders, prev neighbor along the set passing left shoulders
-Larks/Robins	cross_trails	{"who2":"nextNeighbors"}	cross trails - partner across the set passing right shoulders, next neighbor along the set passing left shoulders
-Larks/Robins	cross_trails	{"who2":"thirdNeighbors"}	cross trails - partner across the set passing right shoulders, third neighbor along the set passing left shoulders
-Larks/Robins	cross_trails	{"who2":"fourthNeighbors"}	cross trails - partner across the set passing right shoulders, fourth neighbor along the set passing left shoulders
-Larks/Robins	cross_trails	{"who2":"firstCorners"}	cross trails - partner across the set passing right shoulders, first corners along the set passing left shoulders
-Larks/Robins	cross_trails	{"who2":"secondCorners"}	cross trails - partner across the set passing right shoulders, second corners along the set passing left shoulders
-Larks/Robins	cross_trails	{"who2":"thirdCorners"}	cross trails - partner across the set passing right shoulders, third corners along the set passing left shoulders
-Larks/Robins	cross_trails	{"who2":"opposites"}	cross trails - partner across the set passing right shoulders, opposites along the set passing left shoulders
-Larks/Robins	cross_trails	{"who2":"prevPartners"}	cross trails - partner across the set passing right shoulders, prev partner along the set passing left shoulders
-Larks/Robins	cross_trails	{"who2":"nextPartners"}	cross trails - partner across the set passing right shoulders, next partner along the set passing left shoulders
-Larks/Robins	cross_trails	{"who2":"thirdPartners"}	cross trails - partner across the set passing right shoulders, third partner along the set passing left shoulders
-Larks/Robins	cross_trails	{"who2":"fourthPartners"}	cross trails - partner across the set passing right shoulders, fourth partner along the set passing left shoulders
-Larks/Robins	cross_trails	{"who2":"fifthPartners"}	cross trails - partner across the set passing right shoulders, fifth partner along the set passing left shoulders
-Larks/Robins	cross_trails	{"who2":"centers"}	cross trails - partner across the set passing right shoulders, centers along the set passing left shoulders
-Larks/Robins	cross_trails	{"who2":"onesRole1"}	cross trails - partner across the set passing right shoulders, first lark along the set passing left shoulders
-Larks/Robins	cross_trails	{"who2":"onesRole2"}	cross trails - partner across the set passing right shoulders, first robin along the set passing left shoulders
-Larks/Robins	cross_trails	{"who2":"twosRole1"}	cross trails - partner across the set passing right shoulders, second lark along the set passing left shoulders
-Larks/Robins	cross_trails	{"who2":"twosRole2"}	cross trails - partner across the set passing right shoulders, second robin along the set passing left shoulders
 Larks/Robins	down_the_hall	{"who":"partners"}	partner down the hall and turn as a couple
 Larks/Robins	down_the_hall	{"who":"neighbors"}	neighbor down the hall and turn as a couple
 Larks/Robins	down_the_hall	{"who":"shadows"}	shadow down the hall and turn as a couple
@@ -463,8 +327,6 @@ Larks/Robins	zig_zag	{"who":"twosRole1"}	zig left zag right with second lark
 Larks/Robins	zig_zag	{"who":"twosRole2"}	zig left zag right with second robin
 Larks/Robins	zig_zag	{"ender":"ring"}	zig left zag right with partner into a ring
 Larks/Robins	zig_zag	{"ender":"allemande"}	zig left zag right with partner, trailing two catching hands
-Larks/Robins	slice	{"by":"dancer"}	slice left one dancer and straight back
-Larks/Robins	slice	{"return":"diagonal"}	slice left and diagonal back
 Larks/Robins	slice	{"return":"none"}	slice left
 Larks/Robins	figure_8	{"who":"partners"}	partner half figure 8 up between others
 Larks/Robins	figure_8	{"who":"neighbors"}	neighbor half figure 8 up between others
@@ -557,14 +419,6 @@ Larks/Robins	square_through	{"balance":true}	square through two - partner balanc
 Larks/Robins	square_through	{"balance":false}	square through two - partner pull by right, then neighbor pull by left
 Larks/Robins	square_through	{"hand":"right"}	square through two - partner balance & pull by right, then neighbor pull by left
 Larks/Robins	square_through	{"hand":"left"}	square through two - partner balance & pull by left, then neighbor pull by right
-Larks/Robins	pass_by	{}	neighbor pass by right shoulders
-Larks/Robins	pass_by	{"who":"partners"}	partner pass by right shoulders
-Larks/Robins	pass_by	{"who":"neighbors"}	neighbor pass by right shoulders
-Larks/Robins	pass_by	{"who":"shadows"}	shadow pass by right shoulders
-Larks/Robins	pass_by	{"who":"thirdCorners"}	third corners pass by right shoulders
-Larks/Robins	pass_by	{"who":"opposites"}	opposites pass by right shoulders
-Larks/Robins	pass_by	{"shoulder":"right"}	neighbor pass by right shoulders
-Larks/Robins	pass_by	{"shoulder":"left"}	neighbor pass by left shoulders
 Leads/Follows	swing	{"endFacing":"out"}	partner swing, end facing out of the set
 Leads/Follows	swing	{"endFacing":"up"}	partner swing, end facing up the hall
 Leads/Follows	swing	{"endFacing":"down"}	partner swing, end facing down the hall
@@ -598,24 +452,6 @@ Leads/Follows	box_circulate	{"hand":"right"}	balance & box circulate - follows c
 Leads/Follows	box_circulate	{"hand":"left"}	balance & box circulate - follows cross while leads loop left
 Leads/Follows	box_circulate	{"balance":true}	balance & box circulate - follows cross while leads loop right
 Leads/Follows	box_circulate	{"balance":false}	box circulate - follows cross while leads loop right
-Leads/Follows	pass_through	{"where":"rightDiagonal"}	pass through on right diagonal
-Leads/Follows	pass_through	{"where":"leftDiagonal"}	pass through on left diagonal
-Leads/Follows	pass_through	{"where":"in"}	pass through facing in
-Leads/Follows	pass_through	{"where":"out"}	pass through facing out
-Leads/Follows	pass_through	{"where":"up"}	pass through facing up
-Leads/Follows	pass_through	{"where":"down"}	pass through facing down
-Leads/Follows	right_left_through	{"where":"rightDiagonal"}	right left through on right diagonal
-Leads/Follows	right_left_through	{"where":"leftDiagonal"}	right left through on left diagonal
-Leads/Follows	right_left_through	{"where":"in"}	right left through facing in
-Leads/Follows	right_left_through	{"where":"out"}	right left through facing out
-Leads/Follows	right_left_through	{"where":"up"}	right left through facing up
-Leads/Follows	right_left_through	{"where":"down"}	right left through facing down
-Leads/Follows	chain	{"where":"rightDiagonal"}	follows chain on right diagonal
-Leads/Follows	chain	{"where":"leftDiagonal"}	follows chain on left diagonal
-Leads/Follows	chain	{"where":"in"}	follows chain facing in
-Leads/Follows	chain	{"where":"out"}	follows chain facing out
-Leads/Follows	chain	{"where":"up"}	follows chain facing up
-Leads/Follows	chain	{"where":"down"}	follows chain facing down
 Leads/Follows	promenade	{"where":"rightDiagonal"}	partner promenade on right diagonal
 Leads/Follows	promenade	{"where":"leftDiagonal"}	partner promenade on left diagonal
 Leads/Follows	promenade	{"where":"in"}	partner promenade facing in
@@ -690,53 +526,14 @@ Leads/Follows	revolving_door	{"whom":"onesRole2"}	revolving door - follows take 
 Leads/Follows	revolving_door	{"whom":"twosRole1"}	revolving door - follows take right hands and drop off second lead on other side
 Leads/Follows	revolving_door	{"whom":"twosRole2"}	revolving door - follows take right hands and drop off second follow on other side
 Leads/Follows	give_and_take	{"give":false}	leads take partner
-Leads/Follows	pull_by	{"where":"rightDiagonal"}	pull by right on right diagonal
-Leads/Follows	pull_by	{"where":"leftDiagonal"}	pull by right on left diagonal
-Leads/Follows	pull_by	{"where":"in"}	pull by right facing in
-Leads/Follows	pull_by	{"where":"out"}	pull by right facing out
-Leads/Follows	pull_by	{"where":"up"}	pull by right facing up
-Leads/Follows	pull_by	{"where":"down"}	pull by right facing down
 Leads/Follows	cross_trails	{"who":"role1s"}	cross trails - leads across the set passing right shoulders, neighbor along the set passing left shoulders
 Leads/Follows	cross_trails	{"who":"role2s"}	cross trails - follows across the set passing right shoulders, neighbor along the set passing left shoulders
-Leads/Follows	cross_trails	{"who":"neighbors"}	cross trails - neighbor across the set passing right shoulders, neighbor along the set passing left shoulders
-Leads/Follows	cross_trails	{"who":"shadows"}	cross trails - shadow across the set passing right shoulders, neighbor along the set passing left shoulders
-Leads/Follows	cross_trails	{"who":"thirdCorners"}	cross trails - third corners across the set passing right shoulders, neighbor along the set passing left shoulders
-Leads/Follows	cross_trails	{"who":"opposites"}	cross trails - opposites across the set passing right shoulders, neighbor along the set passing left shoulders
 Leads/Follows	cross_trails	{"who":"onesRole1"}	cross trails - first lead across the set passing right shoulders, neighbor along the set passing left shoulders
 Leads/Follows	cross_trails	{"who":"onesRole2"}	cross trails - first follow across the set passing right shoulders, neighbor along the set passing left shoulders
 Leads/Follows	cross_trails	{"who":"twosRole1"}	cross trails - second lead across the set passing right shoulders, neighbor along the set passing left shoulders
 Leads/Follows	cross_trails	{"who":"twosRole2"}	cross trails - second follow across the set passing right shoulders, neighbor along the set passing left shoulders
-Leads/Follows	cross_trails	{"where":"along"}	cross trails - partner along the set passing right shoulders, neighbor across the set passing left shoulders
-Leads/Follows	cross_trails	{"where":"rightDiagonal"}	cross trails - partner on right diagonal passing right shoulders, neighbor passing left shoulders
-Leads/Follows	cross_trails	{"where":"leftDiagonal"}	cross trails - partner on left diagonal passing right shoulders, neighbor passing left shoulders
-Leads/Follows	cross_trails	{"where":"in"}	cross trails - partner facing in passing right shoulders, neighbor passing left shoulders
-Leads/Follows	cross_trails	{"where":"out"}	cross trails - partner facing out passing right shoulders, neighbor passing left shoulders
-Leads/Follows	cross_trails	{"where":"up"}	cross trails - partner facing up passing right shoulders, neighbor passing left shoulders
-Leads/Follows	cross_trails	{"where":"down"}	cross trails - partner facing down passing right shoulders, neighbor passing left shoulders
-Leads/Follows	cross_trails	{"shoulder":"left"}	cross trails - partner across the set passing left shoulders, neighbor along the set passing right shoulders
-Leads/Follows	cross_trails	{"who2":"everyone"}	cross trails - partner across the set passing right shoulders, everyone along the set passing left shoulders
 Leads/Follows	cross_trails	{"who2":"role1s"}	cross trails - partner across the set passing right shoulders, leads along the set passing left shoulders
 Leads/Follows	cross_trails	{"who2":"role2s"}	cross trails - partner across the set passing right shoulders, follows along the set passing left shoulders
-Leads/Follows	cross_trails	{"who2":"ones"}	cross trails - partner across the set passing right shoulders, ones along the set passing left shoulders
-Leads/Follows	cross_trails	{"who2":"twos"}	cross trails - partner across the set passing right shoulders, twos along the set passing left shoulders
-Leads/Follows	cross_trails	{"who2":"partners"}	cross trails - partner across the set passing right shoulders, partner along the set passing left shoulders
-Leads/Follows	cross_trails	{"who2":"sameRoles"}	cross trails - partner across the set passing right shoulders, same roles along the set passing left shoulders
-Leads/Follows	cross_trails	{"who2":"shadows"}	cross trails - partner across the set passing right shoulders, shadow along the set passing left shoulders
-Leads/Follows	cross_trails	{"who2":"secondShadows"}	cross trails - partner across the set passing right shoulders, second shadow along the set passing left shoulders
-Leads/Follows	cross_trails	{"who2":"prevNeighbors"}	cross trails - partner across the set passing right shoulders, prev neighbor along the set passing left shoulders
-Leads/Follows	cross_trails	{"who2":"nextNeighbors"}	cross trails - partner across the set passing right shoulders, next neighbor along the set passing left shoulders
-Leads/Follows	cross_trails	{"who2":"thirdNeighbors"}	cross trails - partner across the set passing right shoulders, third neighbor along the set passing left shoulders
-Leads/Follows	cross_trails	{"who2":"fourthNeighbors"}	cross trails - partner across the set passing right shoulders, fourth neighbor along the set passing left shoulders
-Leads/Follows	cross_trails	{"who2":"firstCorners"}	cross trails - partner across the set passing right shoulders, first corners along the set passing left shoulders
-Leads/Follows	cross_trails	{"who2":"secondCorners"}	cross trails - partner across the set passing right shoulders, second corners along the set passing left shoulders
-Leads/Follows	cross_trails	{"who2":"thirdCorners"}	cross trails - partner across the set passing right shoulders, third corners along the set passing left shoulders
-Leads/Follows	cross_trails	{"who2":"opposites"}	cross trails - partner across the set passing right shoulders, opposites along the set passing left shoulders
-Leads/Follows	cross_trails	{"who2":"prevPartners"}	cross trails - partner across the set passing right shoulders, prev partner along the set passing left shoulders
-Leads/Follows	cross_trails	{"who2":"nextPartners"}	cross trails - partner across the set passing right shoulders, next partner along the set passing left shoulders
-Leads/Follows	cross_trails	{"who2":"thirdPartners"}	cross trails - partner across the set passing right shoulders, third partner along the set passing left shoulders
-Leads/Follows	cross_trails	{"who2":"fourthPartners"}	cross trails - partner across the set passing right shoulders, fourth partner along the set passing left shoulders
-Leads/Follows	cross_trails	{"who2":"fifthPartners"}	cross trails - partner across the set passing right shoulders, fifth partner along the set passing left shoulders
-Leads/Follows	cross_trails	{"who2":"centers"}	cross trails - partner across the set passing right shoulders, centers along the set passing left shoulders
 Leads/Follows	cross_trails	{"who2":"onesRole1"}	cross trails - partner across the set passing right shoulders, first lead along the set passing left shoulders
 Leads/Follows	cross_trails	{"who2":"onesRole2"}	cross trails - partner across the set passing right shoulders, first follow along the set passing left shoulders
 Leads/Follows	cross_trails	{"who2":"twosRole1"}	cross trails - partner across the set passing right shoulders, second lead along the set passing left shoulders
@@ -784,8 +581,6 @@ Leads/Follows	zig_zag	{"who":"twosRole1"}	zig left zag right with second lead
 Leads/Follows	zig_zag	{"who":"twosRole2"}	zig left zag right with second follow
 Leads/Follows	zig_zag	{"ender":"ring"}	zig left zag right with partner into a ring
 Leads/Follows	zig_zag	{"ender":"allemande"}	zig left zag right with partner, trailing two catching hands
-Leads/Follows	slice	{"by":"dancer"}	slice left one dancer and straight back
-Leads/Follows	slice	{"return":"diagonal"}	slice left and diagonal back
 Leads/Follows	slice	{"return":"none"}	slice left
 Leads/Follows	figure_8	{"who":"partners"}	partner half figure 8 up between others
 Leads/Follows	figure_8	{"who":"neighbors"}	neighbor half figure 8 up between others
@@ -889,14 +684,6 @@ Leads/Follows	square_through	{"balance":true}	square through two - partner balan
 Leads/Follows	square_through	{"balance":false}	square through two - partner pull by right, then neighbor pull by left
 Leads/Follows	square_through	{"hand":"right"}	square through two - partner balance & pull by right, then neighbor pull by left
 Leads/Follows	square_through	{"hand":"left"}	square through two - partner balance & pull by left, then neighbor pull by right
-Leads/Follows	pass_by	{}	neighbor pass by right shoulders
-Leads/Follows	pass_by	{"who":"partners"}	partner pass by right shoulders
-Leads/Follows	pass_by	{"who":"neighbors"}	neighbor pass by right shoulders
-Leads/Follows	pass_by	{"who":"shadows"}	shadow pass by right shoulders
-Leads/Follows	pass_by	{"who":"thirdCorners"}	third corners pass by right shoulders
-Leads/Follows	pass_by	{"who":"opposites"}	opposites pass by right shoulders
-Leads/Follows	pass_by	{"shoulder":"right"}	neighbor pass by right shoulders
-Leads/Follows	pass_by	{"shoulder":"left"}	neighbor pass by left shoulders
 Leads/Follows	form_long_waves	{"who":"role2s"}	form long waves - follows facing in, leads facing out
 Leads/Follows	form_a_long_wave	{"out":true}	leads dance out while follows dance in to a long wave in the center - balance the wave
 Leads/Follows	pass_the_ocean	{}	pass through to an ocean wave - follows catch left hands in the center, neighbors take right hands on the sides
