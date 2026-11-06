@@ -1235,8 +1235,10 @@ void main() {
     expect(_titles(tester), ['Both']);
   });
 
-  testWidgets('choosing ContraDB removes tag rows from the Advanced query and '
-      'greys out "Has tag" in the picker', (tester) async {
+  testWidgets('choosing ContraDB removes tag rows from the Advanced query, '
+      'greys out "Has tag", and leaving it restores them in the picker', (
+    tester,
+  ) async {
     final repos = openTestRepositories();
     // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't1', name: 'smooth'));
@@ -1267,6 +1269,9 @@ void main() {
     await _tapVisible(tester, find.text('Add'));
     await _tapVisible(tester, find.text('Has tag').last);
     expect(tagDropdown, findsOneWidget);
+    await _tapVisible(tester, tagDropdown);
+    await tester.tap(find.text('smooth').last);
+    await tester.pumpAndSettle();
 
     await _tapVisible(
       tester,
@@ -1282,6 +1287,82 @@ void main() {
     expect(tagDropdown, findsNothing);
     await _tapVisible(tester, find.text('Add'));
     expect(find.text('Has tag (not available on ContraDB)'), findsOneWidget);
+
+    // Leaving ContraDB (online mode off) restores the row with its tag.
+    await tester.tapAt(const Offset(1, 1));
+    await tester.pumpAndSettle();
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('picker-online-search-enable')),
+    );
+    if (tagDropdown.evaluate().isEmpty) {
+      await _tapVisible(
+        tester,
+        find.byKey(const ValueKey('picker-advanced-panel')),
+      );
+    }
+    expect(tagDropdown, findsOneWidget);
+    expect(find.text('smooth'), findsWidgets);
+  });
+
+  testWidgets('the parent turning online search off restores the tag rows in '
+      'the picker', (tester) async {
+    final repos = openTestRepositories();
+    // ignore: unused_result
+    await repos.tags.upsert(Tag(id: 't1', name: 'smooth'));
+    await repos.dances.create(
+      _dance(id: 'a', title: 'Smooth', tagIds: const ['t1']),
+    );
+    final contraDb = ContraDbOnline(
+      searchFetcher: (_) async => '{"numberMatching":0,"dances":[]}',
+    );
+    final tagDropdown = find.byWidgetPredicate(
+      (w) =>
+          w is DropdownButtonFormField<String> &&
+          w.key is ValueKey<String> &&
+          (w.key! as ValueKey<String>).value.startsWith('tag-'),
+    );
+    await _pumpPicker(
+      tester,
+      repos,
+      onAddDance: (_) {},
+      enableOnlineSearch: true,
+      contraDbOnline: contraDb,
+    );
+    await tester.pumpAndSettle();
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('picker-advanced-panel')),
+    );
+    await _tapVisible(tester, find.text('Add'));
+    await _tapVisible(tester, find.text('Has tag').last);
+    await _tapVisible(tester, tagDropdown);
+    await tester.tap(find.text('smooth').last);
+    await tester.pumpAndSettle();
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('picker-online-search-enable')),
+    );
+    await tester.tap(find.text('ContraDB'));
+    await tester.pumpAndSettle();
+    expect(tagDropdown, findsNothing);
+
+    // The parent stops offering online search: the picker is local again.
+    await _pumpPicker(
+      tester,
+      repos,
+      onAddDance: (_) {},
+      enableOnlineSearch: false,
+      contraDbOnline: contraDb,
+    );
+    await tester.pumpAndSettle();
+    if (tagDropdown.evaluate().isEmpty) {
+      await _tapVisible(
+        tester,
+        find.byKey(const ValueKey('picker-advanced-panel')),
+      );
+    }
+    expect(tagDropdown, findsOneWidget);
   });
 
   group('search enrichment (saved-dialect vocabulary)', () {

@@ -756,20 +756,75 @@ class BuilderGroup extends BuilderNode {
   }
 }
 
-/// Removes every "has tag" row from [root], at any depth, and returns how many
-/// it removed. A source that has no tags cannot carry such a condition, and a
-/// tag row left behind would keep the search from being sent.
-int removeBuilderTags(BuilderGroup root) {
-  var removed = 0;
-  root.children.removeWhere((child) {
-    if (child is BuilderTag) {
-      removed++;
-      return true;
+/// The "has tag" rows taken out of an Advanced query while a source that has no
+/// tags (ContraDB) is searched, kept so they can be put back.
+///
+/// A tag row left in the query would keep that search from being sent, so
+/// [take] removes every one, at any depth. [restoreInto] returns them, with
+/// the tag each had picked, to the group each came from and the position it
+/// had, once a source that can carry tags is searched again. A group the user
+/// has since deleted sends its rows to the top level instead.
+class RemovedTagRows {
+  final List<_RemovedTag> _rows = [];
+
+  /// How many rows are being kept.
+  int get length => _rows.length;
+  bool get isEmpty => _rows.isEmpty;
+
+  /// Removes every "has tag" row from [root], at any depth, and remembers
+  /// where each was.
+  void take(BuilderGroup root) => _take(root);
+
+  void _take(BuilderGroup group) {
+    final kept = <BuilderNode>[];
+    for (var i = 0; i < group.children.length; i++) {
+      final child = group.children[i];
+      if (child is BuilderTag) {
+        _rows.add(_RemovedTag(group.id, i, child));
+        continue;
+      }
+      if (child is BuilderGroup) _take(child);
+      kept.add(child);
     }
-    if (child is BuilderGroup) removed += removeBuilderTags(child);
-    return false;
-  });
-  return removed;
+    group.children
+      ..clear()
+      ..addAll(kept);
+  }
+
+  /// Puts every kept row back into [root] and forgets them; returns how many.
+  int restoreInto(BuilderGroup root) {
+    final count = _rows.length;
+    for (final row in _rows) {
+      final group = _findGroup(root, row.groupId) ?? root;
+      final at = row.index < group.children.length
+          ? row.index
+          : group.children.length;
+      group.children.insert(at, row.node);
+    }
+    _rows.clear();
+    return count;
+  }
+
+  /// Forgets the kept rows without restoring them (the query was cleared).
+  void clear() => _rows.clear();
+
+  static BuilderGroup? _findGroup(BuilderGroup group, String id) {
+    if (group.id == id) return group;
+    for (final child in group.children) {
+      if (child is BuilderGroup) {
+        final found = _findGroup(child, id);
+        if (found != null) return found;
+      }
+    }
+    return null;
+  }
+}
+
+class _RemovedTag {
+  const _RemovedTag(this.groupId, this.index, this.node);
+  final String groupId;
+  final int index;
+  final BuilderTag node;
 }
 
 /// A "has figure" row: a move (required), an optional section, and optional

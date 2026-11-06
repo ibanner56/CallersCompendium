@@ -215,9 +215,10 @@ query that contains a figure's section, a move ContraDB has no exact
 equivalent for, or any other filter is not sent; you see a message explaining
 this, rather than results that quietly ignore that condition. Remove those
 conditions to search ContraDB. Tags are your own and ContraDB has none, so
-choosing ContraDB removes any **Has tag** conditions from the Advanced query
-(they do not come back when you return to your own library), and **Has tag**
-is greyed out in the **Add** menu while ContraDB is the source.
+choosing ContraDB takes any **Has tag** conditions out of the Advanced query
+and **Has tag** is greyed out in the **Add** menu while ContraDB is the source.
+They go back where they were, with the tag you picked, when you return to your
+own library. Clearing the search while on ContraDB forgets them.
 
 The figure details you can pick in the Advanced panel, such as the dancers
 doing it or the hand, are sent to ContraDB where it has them. A detail ContraDB does not have, such as how a
