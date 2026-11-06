@@ -11,8 +11,10 @@ import '../data/date_format_scope.dart';
 import '../data/regional_formats.dart';
 import '../data/user_figures_scope.dart';
 import '../data/active_dialect_scope.dart';
+import '../data/calling_card_settings_scope.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/dance_share_fields_scope.dart';
+import '../export/calling_card_pdf.dart';
 import '../export/dance_source_lines.dart';
 import '../export/export_labels_l10n.dart';
 import '../export/program_pdf.dart';
@@ -23,12 +25,20 @@ import '../export/share_file.dart';
 import '../search/facet_labels.dart';
 import '../utils/safe_name.dart';
 import '../utils/slot_dance_title.dart';
+import 'calling_card_print.dart';
 import 'export_guard.dart';
 import 'program_figures_prompt_dialog.dart';
 import 'venue_contact_share_dialog.dart';
 
 /// Actions offered by the [ProgramExportMenu].
-enum _ExportAction { shareText, shareBundle, copyText, shareJson, pdf }
+enum _ExportAction {
+  shareText,
+  shareBundle,
+  copyText,
+  shareJson,
+  pdf,
+  callingCards,
+}
 
 /// Hands the shareable set list to the OS share sheet. Defaults to
 /// [SharePlus.instance.share]; overridable so tests can force a failure.
@@ -55,6 +65,9 @@ typedef PdfLayouter =
 ///   for a recipient without the app, an email attachment, or plain inspection.
 /// - **Export / print PDF** — hands a generated PDF to the OS print/save dialog
 ///   (`printing`, all platforms including Linux).
+/// - **Print calling cards** — only while Settings › Experimental › Calling
+///   cards is on, and gated on [danceFor] like the file actions: one small
+///   card per dance, primaries numbered in program order, then alternates.
 ///
 /// The two file actions are gated on [danceFor]: without a dance resolver there
 /// is nothing to embed.
@@ -571,6 +584,54 @@ class ProgramExportMenu extends StatelessWidget {
     );
   }
 
+  /// One calling card per dance [_orderedExportDances] yields, numbered by
+  /// its place among the program's primary dances; an alternate is labelled
+  /// "Alternate" instead. Resolves every context-dependent value before the
+  /// print dialog's await, as [_exportPdf] does.
+  Future<void> _printCallingCards(
+    BuildContext context,
+    ScaffoldMessengerState messenger,
+  ) {
+    final l10n = AppLocalizations.of(context);
+    final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
+    final renderer = UserFiguresScope.rendererOf(context);
+    var place = 0;
+    final entries = [
+      for (final entry in _orderedExportDances())
+        CallingCardEntry(
+          dance: entry.dance,
+          number: entry.isAlternate
+              ? l10n.exportIncludeFiguresAlternate
+              : '${++place}',
+          labels: _cardLabelsFor(
+            context,
+            entry.dance,
+            dialect: dialect,
+            renderer: renderer,
+          ),
+        ),
+    ];
+    return printCallingCards(
+      messenger: messenger,
+      l10n: l10n,
+      jobName: programPdfJobName(
+        program.title,
+        fallback: 'program',
+        eventDate: program.eventDate,
+      ),
+      entries: entries,
+      settings: CallingCardSettingsScope.of(context),
+      dialect: dialect,
+      renderer: renderer,
+      fields: DanceShareFieldsScope.of(context),
+      canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(context),
+      programTitle: program.title,
+      failureMessage: l10n.exportSetListError,
+      source: 'program_export_menu._printCallingCards',
+      pdfLayouter: pdfLayouter,
+    );
+  }
+
   Future<void> _onSelected(BuildContext context, _ExportAction action) async {
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
@@ -614,12 +675,16 @@ class ProgramExportMenu extends StatelessWidget {
           () => _exportPdf(context),
           source: 'program_export_menu._guard',
         );
+      case _ExportAction.callingCards:
+        await _printCallingCards(context, messenger);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final callingCards =
+        danceFor != null && CallingCardSettingsScope.of(context).enabled;
     return PopupMenuButton<_ExportAction>(
       key: const ValueKey('program-export-menu'),
       tooltip: l10n.exportTooltip,
@@ -679,6 +744,18 @@ class ProgramExportMenu extends StatelessWidget {
             contentPadding: EdgeInsets.zero,
           ),
         ),
+        if (callingCards)
+          PopupMenuItem<_ExportAction>(
+            key: const ValueKey('program-export-calling-cards'),
+            value: _ExportAction.callingCards,
+            // Nothing to print until the program holds a dance.
+            enabled: _orderedExportDances().isNotEmpty,
+            child: ListTile(
+              leading: const Icon(Icons.style_outlined),
+              title: Text(l10n.exportPrintCallingCards),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
       ],
     );
   }

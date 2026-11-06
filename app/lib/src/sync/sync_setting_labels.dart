@@ -86,6 +86,7 @@ String? syncSettingLabel(AppLocalizations l10n, String key) => switch (key) {
   'user_figure_shorthands' => l10n.shorthandsUserFigureSyncLabel,
   'show_glossary' => l10n.settingsExperimentalShowGlossaryTitle,
   'show_custom_figures' => l10n.settingsExperimentalShowCustomFiguresTitle,
+  'calling_card_print' => l10n.settingsCallingCardsHeader,
   'show_individual_perform_timer' =>
     l10n.settingsShowIndividualPerformTimerTitle,
   'show_program_slot_caller_notes' =>

@@ -9,6 +9,8 @@ import 'confirm_before_delete_scope.dart' show kConfirmBeforeDeleteKey;
 import 'capitalize_figures_scope.dart' show kCapitalizeFiguresKey;
 import 'decimal_turns_scope.dart' show kDecimalTurnsKey;
 import 'show_custom_figures_scope.dart' show kShowCustomFiguresKey;
+import 'calling_card_settings_scope.dart'
+    show CallingCardSettings, kCallingCardSettingsKey;
 import 'show_glossary_scope.dart' show kShowGlossaryKey;
 import 'display_defaults.dart'
     show
@@ -212,6 +214,11 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
   // boundary, so reject a wrong-shaped value here rather than persisting it and
   // relying on the reader. Only a Map that round-trips through the codec passes.
   kProgramMatrixColumnsKey: _isValidMatrixColumnConfig,
+  // Calling-card settings: a JSON object whose every field the live decoder
+  // would read as written. Its decoder repairs a bad field on its own, but a
+  // restore is a trust boundary, so a value it would have to repair is
+  // dropped here rather than persisted.
+  kCallingCardSettingsKey: CallingCardSettings.isWellFormed,
 };
 
 bool _isBool(Object? v) => v is bool;

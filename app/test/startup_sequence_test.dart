@@ -12,6 +12,7 @@ import 'package:sqlite3/sqlite3.dart' as sql;
 
 import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/main.dart';
+import 'package:compendium_app/src/data/calling_card_settings_scope.dart';
 import 'package:compendium_app/src/data/app_database.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/app_theme_scope.dart';
@@ -2577,6 +2578,19 @@ void main() {
             read: CollectionTileFieldsScope.of,
             storedResult: {CollectionTileField.authors},
             defaultValue: CollectionTileField.all,
+          ),
+          (
+            key: kCallingCardSettingsKey,
+            stored: const CallingCardSettings(
+              enabled: true,
+              layout: 'title',
+            ).toJson(),
+            read: CallingCardSettingsScope.of,
+            storedResult: const CallingCardSettings(
+              enabled: true,
+              layout: 'title',
+            ),
+            defaultValue: CallingCardSettings.defaults,
           ),
           (
             key: kProgramDanceShareFieldsKey,

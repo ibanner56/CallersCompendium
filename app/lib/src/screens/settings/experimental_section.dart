@@ -12,6 +12,7 @@ import '../../widgets/collapsible_section.dart';
 import '../../widgets/readable_width.dart';
 import '../../widgets/section_header.dart';
 import '../glossary/custom_figures_screen.dart';
+import 'calling_card_section.dart';
 import 'developer_options_section.dart';
 import 'device_sync_section.dart';
 
@@ -35,6 +36,7 @@ class ExperimentalSection extends StatelessWidget {
           child: Text(l10n.settingsExperimentalPlaceholder),
         ),
         const _GlossarySection(),
+        const CallingCardSection(),
         DeviceSyncSection(backupSaver: backupSaver),
         const DeveloperOptionsSection(),
       ],

@@ -115,6 +115,17 @@ final Map<String, DataClassification> settingsClassifications = {
   'capitalize_figures': _preference,
   'show_glossary': _preference,
   'show_custom_figures': _preference,
+  'calling_card_print': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.shareable,
+    note:
+        'Whether calling cards are offered, the card size and the card '
+        'layout: how the user likes their cards printed, which is the same '
+        'card stock on any device they own, so it travels like any '
+        'preference. The layout can hold words the user typed for a text '
+        'block; they are the user\'s own, never a third party\'s.',
+  ),
   'free_text_entry': _preference,
   'aggressive_beats_update': _preference,
   'canonical_figure_text': _preference,

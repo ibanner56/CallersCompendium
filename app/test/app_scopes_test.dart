@@ -24,6 +24,7 @@ import 'package:compendium_app/src/data/custom_themes_scope.dart';
 import 'package:compendium_app/src/data/dance_share_fields_scope.dart';
 import 'package:compendium_app/src/data/date_format_scope.dart';
 import 'package:compendium_app/src/data/capitalize_figures_scope.dart';
+import 'package:compendium_app/src/data/calling_card_settings_scope.dart';
 import 'package:compendium_app/src/data/show_custom_figures_scope.dart';
 import 'package:compendium_app/src/data/user_figures_scope.dart';
 import 'package:compendium_app/src/data/show_glossary_scope.dart';
@@ -94,6 +95,7 @@ const _expectedAppScopeTypes = <Type>[
   CapitalizeFiguresScope,
   ShowGlossaryScope,
   ShowCustomFiguresScope,
+  CallingCardSettingsScope,
   AggressiveBeatsUpdateScope,
   ConfirmBeforeDeleteScope,
   ColourDanceThemeScope,
