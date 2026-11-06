@@ -1220,8 +1220,8 @@ void main() {
     });
   });
 
-  group('removeBuilderTags', () {
-    test('removes tag rows at every depth and counts them', () {
+  group('RemovedTagRows', () {
+    test('take removes tag rows at every depth and counts them', () {
       final figure = BuilderFigure(move: 'swing');
       final then = BuilderThen();
       final inner = BuilderGroup(
@@ -1240,23 +1240,89 @@ void main() {
           BuilderTag(),
         ],
       );
+      final removed = RemovedTagRows()..take(root);
 
-      expect(removeBuilderTags(root), 3);
-
+      expect(removed.length, 3);
       expect(root.children, [figure, inner, then]);
       expect(inner.children.single, isA<BuilderFigure>());
     });
 
-    test('a query with no tag rows is left alone', () {
+    test('a query with no tag rows is left alone and restores nothing', () {
       final root = BuilderGroup(children: [BuilderFigure(move: 'swing')]);
-      expect(removeBuilderTags(root), 0);
+      final removed = RemovedTagRows()..take(root);
+      expect(removed.isEmpty, isTrue);
       expect(root.children, hasLength(1));
+      expect(removed.restoreInto(root), 0);
     });
 
-    test('a group emptied by it folds to no filter', () {
+    test('a group emptied by take folds to no filter', () {
       final root = BuilderGroup(children: [BuilderTag(tagId: 't1')]);
-      removeBuilderTags(root);
+      RemovedTagRows().take(root);
       expect(root.toFilter(), isNull);
+    });
+
+    test('restoreInto puts every row back in its place, with its tag', () {
+      final first = BuilderTag(tagId: 't1');
+      final figure = BuilderFigure(move: 'swing');
+      final deep = BuilderTag(tagId: 't2');
+      final inner = BuilderGroup(
+        kind: GroupKind.any,
+        children: [
+          BuilderFigure(move: 'chain'),
+          deep,
+        ],
+      );
+      final last = BuilderTag(tagId: 't3');
+      final root = BuilderGroup(children: [first, figure, inner, last]);
+
+      final removed = RemovedTagRows()..take(root);
+      expect((root.toFilter()! as AndFilter).children, hasLength(2));
+      expect(removed.restoreInto(root), 4 - 1);
+
+      expect(root.children, [first, figure, inner, last]);
+      expect(inner.children.last, same(deep));
+      expect((root.toFilter()! as AndFilter).children, hasLength(4));
+      expect(removed.isEmpty, isTrue, reason: 'restoring empties the keep');
+    });
+
+    test('rows added meanwhile stay; rows go back at their old index', () {
+      final tag = BuilderTag(tagId: 't1');
+      final root = BuilderGroup(
+        children: [
+          BuilderFigure(move: 'swing'),
+          tag,
+          BuilderFigure(move: 'a'),
+        ],
+      );
+      final removed = RemovedTagRows()..take(root);
+      final added = BuilderFigure(move: 'new');
+      root.children.add(added);
+
+      removed.restoreInto(root);
+
+      expect(root.children[1], same(tag));
+      expect(root.children, contains(added));
+      expect(root.children, hasLength(4));
+    });
+
+    test('a group deleted meanwhile sends its rows to the top level', () {
+      final tag = BuilderTag(tagId: 't1');
+      final inner = BuilderGroup(children: [tag]);
+      final root = BuilderGroup(children: [inner]);
+      final removed = RemovedTagRows()..take(root);
+      root.children.remove(inner);
+
+      removed.restoreInto(root);
+
+      expect(root.children, [tag]);
+    });
+
+    test('clear forgets the rows', () {
+      final root = BuilderGroup(children: [BuilderTag(tagId: 't1')]);
+      final removed = RemovedTagRows()..take(root);
+      removed.clear();
+      expect(removed.restoreInto(root), 0);
+      expect(root.children, isEmpty);
     });
   });
 

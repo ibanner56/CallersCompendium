@@ -966,11 +966,20 @@ class _DanceListScreenState extends State<DanceListScreen>
     }
   }
 
-  /// Removes tag rows from the Advanced query when the source now searched
-  /// cannot carry a tag (ContraDB has none): one left behind would make the
-  /// search fail. Call inside `setState`, once online mode is on.
-  void _dropTagRowsIfUnsupported() {
-    if (_onlineSource.hidesAdvancedTags) removeBuilderTags(_advancedRoot);
+  /// Tag rows taken out of the Advanced query while ContraDB (which has no
+  /// tags) is searched, so they can come back when it is not.
+  final _removedTags = RemovedTagRows();
+
+  /// Keeps the Advanced query's tag rows in line with the source searched: out
+  /// while it cannot carry a tag (ContraDB has none; one left in would make the
+  /// search fail), back in their place otherwise. Call inside `setState`,
+  /// after `_onlineEnabled` or `_onlineSource` changes.
+  void _syncAdvancedTagRows() {
+    if (_onlineEnabled && _onlineSource.hidesAdvancedTags) {
+      _removedTags.take(_advancedRoot);
+    } else {
+      _removedTags.restoreInto(_advancedRoot);
+    }
   }
 
   /// Toggles online search mode. Turning it on runs an immediate search if a
@@ -982,7 +991,7 @@ class _DanceListScreenState extends State<DanceListScreen>
     _onlineSeq++;
     setState(() {
       _onlineEnabled = value;
-      if (value) _dropTagRowsIfUnsupported();
+      _syncAdvancedTagRows();
       _onlineError = null;
       if (value) {
         // Selection is a local-collection feature: do not leave a local
@@ -1017,7 +1026,7 @@ class _DanceListScreenState extends State<DanceListScreen>
     _onlineSeq++;
     setState(() {
       _onlineSource = source;
-      if (_onlineEnabled) _dropTagRowsIfUnsupported();
+      _syncAdvancedTagRows();
       _onlineResults = const [];
       _onlineError = null;
       _onlineSearching = false;
@@ -1379,6 +1388,7 @@ class _DanceListScreenState extends State<DanceListScreen>
       _facets.clear();
       _byPhrase.clear();
       _advancedRoot.children.clear();
+      _removedTags.clear();
       _advancedRoot.kind = GroupKind.all;
       _onlineResults = const [];
       _onlineError = null;

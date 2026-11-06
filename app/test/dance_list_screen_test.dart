@@ -2280,8 +2280,8 @@ void main() {
   );
 
   testWidgets(
-    'choosing ContraDB removes tag rows from the Advanced query and greys '
-    'out "Has tag"',
+    'choosing ContraDB removes tag rows from the Advanced query, greys out '
+    '"Has tag", and leaving it puts the rows back',
     (tester) async {
       final repos = openTestRepositories();
       // ignore: unused_result
@@ -2304,6 +2304,12 @@ void main() {
       await _tapVisible(tester, find.text('Add'));
       await _tapVisible(tester, find.text('Has tag').last);
       expect(find.byType(DropdownButtonFormField<String>), findsOneWidget);
+      await _tapVisible(
+        tester,
+        find.byType(DropdownButtonFormField<String>).first,
+      );
+      await tester.tap(find.text('smooth').last);
+      await tester.pumpAndSettle();
 
       // Going online with The Caller's Box leaves the query alone: turning
       // online mode off again finds the tag row still there.
@@ -2347,6 +2353,19 @@ void main() {
       await _tapVisible(tester, find.text('Add'));
       expect(find.text('Has tag (not available on ContraDB)'), findsOneWidget);
       expect(requests, isEmpty, reason: 'no empty search is sent');
+
+      // Leaving ContraDB (online mode off) restores the row with its tag.
+      await tester.tapAt(const Offset(1, 1));
+      await tester.pumpAndSettle();
+      await _tapVisible(
+        tester,
+        find.byKey(const ValueKey('online-search-enable')),
+      );
+      if (find.byType(DropdownButtonFormField<String>).evaluate().isEmpty) {
+        await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
+      }
+      expect(find.byType(DropdownButtonFormField<String>), findsOneWidget);
+      expect(find.text('smooth'), findsWidgets);
     },
   );
 
