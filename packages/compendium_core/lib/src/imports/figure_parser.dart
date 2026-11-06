@@ -784,12 +784,39 @@ bool _isSameRolePair(List<String> w, int i) =>
 /// "Opposite(s)" is the opposites, unless it describes a role, side,
 /// direction, way or hand ("opposite role pull by L"). These are maintainer
 /// decisions, except "3rd"/"third", the author's extension of the ordinals.
+///
+/// It also reads the names the figure display writes (#2121): the neighbour,
+/// partner and shadow series ([seriesDancer]), `same roles`, `centers`, and
+/// `first`/`second` before a role word. Those are the implementing author's
+/// call, so that a figure reads back from its own displayed text.
 String? _takeNamedDancerAt(List<String> w, int i) {
   final word = w[i];
   final next = i + 1 < w.length ? w[i + 1] : null;
   if (word == 'new' && _neighborWords.contains(next)) {
     w.removeRange(i, i + 2);
     return 'nextNeighbors';
+  }
+  // The display's series names: `prev neighbor`, `third partner`, `second
+  // shadow` (#2121).
+  if (seriesDancer(word, next) case final series?) {
+    w.removeRange(i, i + 2);
+    return series;
+  }
+  // The display's names for the same-role pairs, the centres and one dancer
+  // (`same roles`, `centers`, `first lark`, which arrives as `first role1`),
+  // as the ContraDB reader reads them (`contradbRenderedSubjectEntries`,
+  // #2121).
+  if (word == 'same' && next == 'roles') {
+    w.removeRange(i, i + 2);
+    return 'sameRoles';
+  }
+  if (word == 'centers') {
+    w.removeAt(i);
+    return 'centers';
+  }
+  if (_singleDancers[(word, next)] case final dancer?) {
+    w.removeRange(i, i + 2);
+    return dancer;
   }
   if (_numberedCorners[word] case final corners?) {
     w.removeAt(i);
@@ -833,6 +860,15 @@ const Map<String, String> _numberedCorners = {
   '#corner1': 'firstCorners',
   '#corner2': 'opposites',
   '#corner3': 'thirdCorners',
+};
+
+/// One dancer of one couple, as the display names them once a role word is
+/// canonical (`first lark` → `first role1`).
+const Map<(String, String?), String> _singleDancers = {
+  ('first', 'role1'): 'onesRole1',
+  ('first', 'role2'): 'onesRole2',
+  ('second', 'role1'): 'twosRole1',
+  ('second', 'role2'): 'twosRole2',
 };
 
 /// The words after which "opposite" describes something rather than naming the
@@ -2949,6 +2985,10 @@ _Match? _tradePassBy(List<String> w) {
   final who = _takeDancer(w);
   if (!_consumePhrase(w, ['trade'])) return null;
   final who2 = who ?? _takeDancer(w);
+  // The trade rule was decided for men, women and neighbors (#945). The
+  // centers of a wave usually trade with a hand turn, so `centers trade` stays
+  // text rather than read as a pass by (#2121 made `centers` a subject).
+  if (who2 == 'centers') return null;
   // "trade by" is consumed here (rather than folded into a shoulder phrase)
   // because a leftover `by` with no side word (e.g. a bare "trade by") must
   // still structure, matching the plain "trade" case above.
