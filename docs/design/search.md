@@ -141,11 +141,15 @@ tree. Conforms to [ux.md](ux.md) §1 and [dialect.md](dialect.md)
    order is only approximate across page boundaries.
 
    **A repeated request is not sent again.** `ContraDbOnline` remembers the last
-   successful search (every spelling's filter, text, expression and offset) for
-   60 seconds and answers an identical one from it, because each ContraDB
-   request scans every dance. An Advanced edit that does not change the
-   expression sent (an empty row added, a group re-labelled around one
-   condition) therefore costs no request. A failed search is not remembered.
+   successful search for 60 seconds and answers an identical one from it,
+   because each ContraDB request scans every dance. "Identical" is every
+   spelling's filter, text, expression and offset **and** the parameters the
+   translation left out, because those change no expression sent but decide
+   the rows' `advancedPartlyApplied` note. An Advanced edit that changes
+   neither (an empty row added, a group re-labelled around one condition)
+   therefore costs no request. A failed search is not remembered, and neither
+   is one whose extra apostrophe spelling failed (the repeat asks for it
+   again).
    Typing, Advanced and By phrase edits were already debounced (500 ms online);
    that is unchanged.
 
