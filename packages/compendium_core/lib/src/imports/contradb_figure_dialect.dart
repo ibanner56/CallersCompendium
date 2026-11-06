@@ -1119,6 +1119,14 @@ FigureMatch? _poussetteDisplay(String text) {
   );
 }
 
+/// The dancers a figure 8's `lead` names.
+const Set<String> _figure8Leads = {
+  'onesRole1',
+  'onesRole2',
+  'twosRole1',
+  'twosRole2',
+};
+
 /// The figure 8 in the app's display wording (#2121): "WHO FRACTION figure 8
 /// up|down between OTHER | across [, LEAD leading]". A line with no
 /// direction is left to the existing readers: the display writes it for
@@ -1137,13 +1145,17 @@ FigureMatch? _figure8Display(String text) {
   } else {
     final up = s.eatPhrase('up between');
     if (!up && !s.eatPhrase('down between')) return null;
-    if (_displaySubject(s) == null && !s.eat('others')) return null;
+    // The display names the pair WHO dances between: WHO's inverse, or
+    // `others` when it has none.
+    final between = s.eat('others') ? 'others' : _displaySubject(s);
+    if (between != (invertPairDancerSet(who) ?? 'others')) return null;
     where = up ? 'above' : 'below';
   }
   String? lead;
   if (s.peek() != null) {
     lead = _displaySubject(s);
-    if (lead == null || !s.eat('leading')) return null;
+    // Only a single dancer leads; any other line is left to [_figure8].
+    if (!_figure8Leads.contains(lead) || !s.eat('leading')) return null;
   }
   if (s.peek() != null) return null;
   return FigureMatch(
@@ -1210,10 +1222,24 @@ String? _displayDirectionPhrase(_Scan s) {
 
 /// Reads a set direction the app's display writes after a move (`along`, `on
 /// right diagonal`, `facing in`; #2121) into [params]' `where`, unless one was
-/// already read.
-void _readTrailingDisplayDirection(_Scan s, Map<String, Object?> params) {
+/// already read. The display ends a clause with it, so it is read only before
+/// the end of the line, a comma, or one of [then]: `facing up the hall` is not
+/// split into `where: up` and a note.
+void _readTrailingDisplayDirection(
+  _Scan s,
+  Map<String, Object?> params, {
+  Set<String> then = const {},
+}) {
   if (params.containsKey('where')) return;
-  if (_displayDirectionPhrase(s) case final where?) params['where'] = where;
+  final save = s.pos;
+  final where = _displayDirectionPhrase(s);
+  if (where == null) return;
+  final next = s.peek();
+  if (next == null || then.contains(next) || s.previousEndsWith(',')) {
+    params['where'] = where;
+  } else {
+    s.reset(save);
+  }
 }
 
 /// The other hand or side.
@@ -1612,7 +1638,7 @@ FigureMatch? _promenade(String text) {
       s.take();
       params['where'] = dir;
     }
-    _readTrailingDisplayDirection(s, params);
+    _readTrailingDisplayDirection(s, params, then: const {'on'});
     final turn = _promenadeTurn(s);
     if (turn != null) params['direction'] = turn;
   }
@@ -1775,28 +1801,38 @@ FigureMatch? _archAndDive(String text) {
 /// known dancer-set subject — unlike the looser give=true branch — so a
 /// bare `<who> take <anything-else>` line is never force-matched; it falls
 /// through to the shared recognizer / custom fallback instead.
-FigureMatch? _giveAndTake(String text) {
+///
+/// The display's own subjects (`larks take partner`, #2121) are read only on a
+/// whole line, so a custom `role1s take partner by the right hand` is not
+/// force-matched either.
+FigureMatch? _giveAndTake(String text) =>
+    _giveAndTakeWith(text, _subject) ??
+    _giveAndTakeWith(text, _displaySubject, wholeLine: true);
+
+FigureMatch? _giveAndTakeWith(
+  String text,
+  String? Function(_Scan) subject, {
+  bool wholeLine = false,
+}) {
   final s = _Scan(text);
-  // The display's subjects too (`larks take partner`, #2121).
-  final who = _displaySubject(s);
+  final who = subject(s);
   if (who == null) return null;
+  FigureMatch? finish(Map<String, Object?> params) {
+    if (wholeLine && s.peek() != null) return null;
+    return FigureMatch('give_and_take', params: params, note: s.note());
+  }
+
   final giveSave = s.pos;
   if (s.eat('give') && s.eat('&') && s.eat('take')) {
     final params = <String, Object?>{'who': who, 'give': true};
-    final whom = _displaySubject(s);
+    final whom = subject(s);
     if (whom != null) params['whom'] = whom;
-    return FigureMatch('give_and_take', params: params, note: s.note());
+    return finish(params);
   }
   s.reset(giveSave);
   if (s.eat('take')) {
-    final whom = _displaySubject(s);
-    if (whom != null) {
-      return FigureMatch(
-        'give_and_take',
-        params: {'who': who, 'give': false, 'whom': whom},
-        note: s.note(),
-      );
-    }
+    final whom = subject(s);
+    if (whom != null) return finish({'who': who, 'give': false, 'whom': whom});
   }
   return null;
 }
@@ -2329,7 +2365,7 @@ FigureMatch? _crossTrails(String text) {
         s.eatPhrase('the set');
         params['where'] = dir;
       } else {
-        _readTrailingDisplayDirection(s, params);
+        _readTrailingDisplayDirection(s, params, then: const {'passing'});
       }
       // The display writes `passing right shoulders`.
       final shSave = s.pos;

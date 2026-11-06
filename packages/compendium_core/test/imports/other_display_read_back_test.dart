@@ -11,6 +11,12 @@ void main() {
     return figures.single;
   }
 
+  Figure imported(String line) {
+    final figures = parseFigureLinesFanOut(line);
+    expect(figures, hasLength(1), reason: line);
+    return figures.single;
+  }
+
   group('poussette', () {
     test('reads the fraction, both pairs and the turn', () {
       expect(
@@ -185,5 +191,41 @@ void main() {
     expect(f.params['direction'], 'counterclockwise');
     expect(f.params['who'], 'thirdCorners');
     expect(f.note, isNull);
+  });
+
+  group('an import keeps the readers\' looser lines as before', () {
+    test('a take naming one partner, with more after it, is not read', () {
+      for (final line in [
+        'gentlespoons take partner in ballroom position',
+        'role1s take partner by the right hand',
+      ]) {
+        expect(imported(line).isCustom, isTrue, reason: line);
+      }
+    });
+
+    test('a figure 8 led by a pair is left to ContraDB\'s reader', () {
+      final f = imported('ones half figure 8 across, partners leading');
+      expect(f.move, 'figure_8');
+      expect(f.params['where'], 'across');
+      expect(f.params.containsKey('lead'), isFalse);
+    });
+
+    test('a figure 8 between its own dancers is not the display\'s', () {
+      expect(
+        imported('ones half figure 8 up between ones').params['where'],
+        isNot('above'),
+      );
+    });
+
+    test('a facing phrase that goes on is not split into a direction', () {
+      for (final line in [
+        'partners promenade facing up the hall',
+        'pass through facing up the hall',
+      ]) {
+        final f = imported(line);
+        expect(f.params.containsKey('where'), isFalse, reason: line);
+        expect(f.note, contains('facing up the hall'), reason: line);
+      }
+    });
   });
 }
