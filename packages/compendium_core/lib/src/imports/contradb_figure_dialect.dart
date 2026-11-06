@@ -1422,11 +1422,14 @@ FigureMatch? _contraCorners(String text) {
   return FigureMatch('contra_corners', params: {'who': who}, note: s.note());
 }
 
-/// roryOMoreWords: `[balance] [<who>] Rory O'More <slide>`.
+/// roryOMoreWords: `[balance] [<who>] Rory O'More <slide>`, and the app's own
+/// display wording `<who> balance & Rory O'More <slide>` (#2121), which puts
+/// the subject before the balance as it does for a swing.
 FigureMatch? _roryOMore(String text) {
   final s = _Scan(text);
-  final balance = _eatBalanceAmp(s);
+  final leadingBalance = _eatBalanceAmp(s);
   final who = _subject(s);
+  final balance = leadingBalance || (who != null && _eatBalanceAmp(s));
   if (!s.eatPhrase("rory o'more")) return null;
   final params = <String, Object?>{'balance': balance};
   if (who != null) params['who'] = who;

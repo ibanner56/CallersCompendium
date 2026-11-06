@@ -67,3 +67,32 @@ final RegExp _withoutHands = RegExp(
   r'\bwithout\s+hands\b',
   caseSensitive: false,
 );
+
+/// Gives a lone box the gnat (or swat the flea) read with its balance and no
+/// stated count 8 beats (#2121), the author's call: the move has no beat rule
+/// for its balance, so the 4-beat default would otherwise apply, where a
+/// balanced Rory O'More gets 8 and the editor seeds a balanced box with 8.
+///
+/// Scoped as [withBeatImpliedBalance] is: only a [lineText] with no top-level
+/// `;` that produced exactly one figure, since a later clause of a `;` line is
+/// read beats-absent and a count put on it would be counted twice. A `||` or
+/// `while` line produces one meanwhile container, which is left alone.
+/// Free-text entry does not apply it to a clause it reads on its own, as it
+/// does a `;` line with a shorthand in it, for the same reason.
+List<Figure> withBalancedBoxBeats(String lineText, List<Figure> figures) {
+  if (figures.length != 1 || hasTopLevelSeparator(lineText, ';')) {
+    return figures;
+  }
+  final figure = figures.single;
+  final params = figure.params;
+  final isBox = figure.move == 'box_the_gnat' || figure.move == 'swat_the_flea';
+  if (!isBox || params['balance'] != true || params.containsKey('beats')) {
+    return figures;
+  }
+  return [
+    figure.copyWith(params: {...params, 'beats': _balancedBoxBeats}),
+  ];
+}
+
+/// The beats [withBalancedBoxBeats] gives a balanced box.
+const int _balancedBoxBeats = 8;
