@@ -308,11 +308,19 @@ taxonomy name does not shadow that move. Punctuation at the end of the line
 (`hey.`) is ignored. A name read whole wins; failing that, a dancer word
 (`ones`, `twos`, `partner(s)`, `neighbor(s)`, `everyone`, `role1s`, `role2s`)
 followed by a name reads as the move with that `who` (#1857, `neighbor pass by`).
-Only a move with a `who` param takes one; for any other (`hey` names its
-dancers in `pass1`) or an unknown word the line stays custom. Role words
-(`ravens mad robin`) are not in that list: the dancer lookup also runs on the
-retries' text above, so they keep the meaning the dialect gives them. Imports
-read none of these.
+Since #2121 the dancer may be any the figure display names before a move
+(`_dancerPhrases`): `shadow(s)`, `centers`, `opposites`, `same roles`, the
+corners, `first`/`second` before a role word, and the neighbour, partner and
+shadow series (`prev neighbor`, `third partners`, `second shadow`), so
+`third corners gate` reads back. Only a move with a `who` param takes one; for
+any other (`hey` names its dancers in `pass1`) or an unknown word the line
+stays custom. Role words (`ravens mad robin`) are not in that list: the dancer
+lookup also runs on the retries' text above, so they keep the meaning the
+dialect gives them. Last of all, a courtesy turn naming a second dancer in the
+display's wording (`partner courtesy turn larks`) is read with that dancer as
+`whom` (#2121, `readDisplayedCourtesyTurnWithWhom`). Imports read none of
+these, so an imported line still leaves a courtesy turn's `whom` out unless a
+source states it (the maintainer's decision, recorded in #2121).
 
 **Role words that are also move words.** The chokepoint does not rewrite every
 role term it finds (`RoleCanonicalizer`, `dialect/role_canonicalizer.dart`).
