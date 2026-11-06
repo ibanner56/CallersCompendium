@@ -128,7 +128,7 @@ void main() {
       () {
         for (final (line, who) in [
           ('prev neighbor swing', 'prevNeighbors'),
-          ('previous neighbors swing', 'prevNeighbors'),
+          ('previous neighbor swing', 'prevNeighbors'),
           ('next neighbour swing', 'nextNeighbors'),
           ('fourth neighbours swing', 'fourthNeighbors'),
           ('previous partner swing', 'prevPartners'),
