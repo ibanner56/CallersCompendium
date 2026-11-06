@@ -23,13 +23,31 @@ OnlineSearchResultRow _row(
 
 void main() {
   final l10n = lookupAppLocalizations(const Locale('en'));
-  String label(List<OnlineSearchResultRow> rows) =>
-      onlineResultCountLabel(l10n, rows);
+  String label(
+    List<OnlineSearchResultRow> rows, {
+    bool? hasMore,
+    bool loadFailed = false,
+  }) => onlineResultCountLabel(
+    l10n,
+    rows,
+    hasMore: hasMore ?? rows.any((row) => row.mayHaveMore),
+    loadFailed: loadFailed,
+  );
 
-  test('a total larger than what is shown says "of"', () {
+  test('a total larger than what is shown says "of", and to scroll while '
+      'more can load', () {
     expect(
-      label([_row(1, total: 143), _row(2, total: 143)]),
-      'Showing 2 of 143 online results. Narrow your search to see the rest.',
+      label([_row(1, total: 143), _row(2, total: 143)], hasMore: true),
+      'Showing 2 of 143 online results. Scroll down to load more.',
+    );
+  });
+
+  test('a total larger than what is shown, but nothing more will load by '
+      'scrolling: no hint to scroll', () {
+    // Paging ended short of the total, or a failed page waits for Try again.
+    expect(
+      label([_row(1, total: 143), _row(2, total: 143)], hasMore: false),
+      'Showing 2 of 143 online results.',
     );
   });
 
@@ -47,9 +65,45 @@ void main() {
   test('no total and a full page: the "may be more" form', () {
     expect(
       label([_row(1, mayHaveMore: true), _row(2, mayHaveMore: true)]),
-      'Showing 2 online results. There may be more: narrow your search to see '
-      'the rest.',
+      'Showing 2 online results. There may be more: scroll down to load them.',
     );
+  });
+
+  test('no total and the last page loaded: the plain count', () {
+    expect(
+      label([_row(1, mayHaveMore: true), _row(2)], hasMore: false),
+      '2 online results',
+      reason: 'an earlier full page must not keep the "may be more" form',
+    );
+  });
+
+  test(
+    'a failed page keeps what the line knew, without the hint to scroll',
+    () {
+      // Total known: the "of" line, no hint (only Try again loads more now).
+      expect(
+        label(
+          [_row(1, total: 143), _row(2, total: 143)],
+          hasMore: true,
+          loadFailed: true,
+        ),
+        'Showing 2 of 143 online results.',
+      );
+      // No total: still "there may be more", not the plain count, which would
+      // read as a complete result while Try again waits.
+      expect(
+        label(
+          [_row(1, mayHaveMore: true), _row(2, mayHaveMore: true)],
+          hasMore: true,
+          loadFailed: true,
+        ),
+        'Showing 2 online results. There may be more.',
+      );
+    },
+  );
+
+  test('nothing shown: the plain count, whatever an earlier search left', () {
+    expect(label(const [], hasMore: true), '0 online results');
   });
 
   test('no total and no full page: the plain count', () {
@@ -63,8 +117,8 @@ void main() {
         'left out.';
     expect(label([_row(1, partly: true)]), '1 online result · $note');
     expect(
-      label([_row(1, total: 5, partly: true)]),
-      'Showing 1 of 5 online results. Narrow your search to see the rest. '
+      label([_row(1, total: 5, partly: true)], hasMore: true),
+      'Showing 1 of 5 online results. Scroll down to load more. '
       '· $note',
     );
   });
