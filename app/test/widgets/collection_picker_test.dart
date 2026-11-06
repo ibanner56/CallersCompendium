@@ -10,6 +10,7 @@ import 'package:compendium_app/src/data/collection_tile_fields_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/callersbox_online.dart';
+import 'package:compendium_app/src/data/contradb_online.dart';
 import 'package:compendium_app/src/data/online_search.dart';
 import 'package:compendium_app/src/data/sort_ignore_articles_scope.dart';
 import 'package:compendium_app/src/search/dance_detail_data.dart';
@@ -1000,6 +1001,49 @@ void main() {
     );
     expect(find.text('Advanced (on)'), findsOneWidget);
     expect(_titles(tester), ['Has Petronella']);
+  });
+
+  testWidgets('a full ContraDB page says there may be more in the picker', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    final contraDb = ContraDbOnline(
+      searchFetcher: (request) async => jsonEncode({
+        'numberMatching': 20,
+        'dances': [
+          for (var i = 1; i <= 20; i++)
+            {
+              'id': i,
+              'title': 'Dance $i',
+              'choreographer_name': '',
+              'formation': 'improper',
+            },
+        ],
+      }),
+    );
+    await _pumpPicker(
+      tester,
+      repos,
+      onAddDance: (_) {},
+      enableOnlineSearch: true,
+      contraDbOnline: contraDb,
+    );
+    await tester.pumpAndSettle();
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('picker-online-search-enable')),
+    );
+    await tester.tap(find.text('ContraDB'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('picker-search')), 'x');
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+    expect(
+      find.text(
+        'Showing 20 online results. There may be more: narrow your search to see the rest.',
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('advanced builder: online ContraDB search receives the query, '

@@ -1964,6 +1964,97 @@ void main() {
   });
 
   testWidgets(
+    'a full ContraDB page says there may be more; a short one gives the '
+    'plain count',
+    (tester) async {
+      final repos = openTestRepositories();
+      String page(int n) {
+        final rows = [
+          for (var i = 1; i <= n; i++)
+            '{"id":$i,"title":"Dance $i","choreographer_name":"",'
+                '"formation":"improper"}',
+        ].join(',');
+        return '{"numberMatching":$n,"dances":[$rows]}';
+      }
+
+      final contraDb = ContraDbOnline(
+        searchFetcher: (request) async =>
+            request.query == 'full' ? page(20) : page(3),
+      );
+      await _pumpScreen(tester, repos, contraDbOnline: contraDb);
+      await tester.pumpAndSettle();
+      await _tapVisible(
+        tester,
+        find.byKey(const ValueKey('online-search-enable')),
+      );
+      await tester.tap(find.text('ContraDB'));
+      await tester.pumpAndSettle();
+
+      Future<void> search(String text) async {
+        await tester.enterText(
+          find.byKey(const ValueKey('collection-search-field')),
+          text,
+        );
+        await tester.pump(const Duration(milliseconds: 600));
+        await tester.pumpAndSettle();
+      }
+
+      await search('full');
+      expect(
+        find.text(
+          'Showing 20 online results. There may be more: narrow your search to see the rest.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('20 online results'), findsNothing);
+
+      await search('short');
+      expect(find.text('3 online results'), findsOneWidget);
+      expect(find.textContaining('There may be more'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'two short ContraDB pages merged past 20 rows do not claim there may be '
+    'more',
+    (tester) async {
+      final repos = openTestRepositories();
+      String page(int from, int n) {
+        final rows = [
+          for (var i = from; i < from + n; i++)
+            '{"id":$i,"title":"Dance $i","choreographer_name":"",'
+                '"formation":"improper"}',
+        ].join(',');
+        return '{"numberMatching":$n,"dances":[$rows]}';
+      }
+
+      // An apostrophe is searched in both spellings and the rows merged: 12
+      // from each is 24 rows, but neither response filled a page.
+      final contraDb = ContraDbOnline(
+        searchFetcher: (request) async =>
+            request.query.contains('\u2019') ? page(100, 12) : page(1, 12),
+      );
+      await _pumpScreen(tester, repos, contraDbOnline: contraDb);
+      await tester.pumpAndSettle();
+      await _tapVisible(
+        tester,
+        find.byKey(const ValueKey('online-search-enable')),
+      );
+      await tester.tap(find.text('ContraDB'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('collection-search-field')),
+        "Mary's",
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      expect(find.text('24 online results'), findsOneWidget);
+      expect(find.textContaining('There may be more'), findsNothing);
+    },
+  );
+
+  testWidgets(
     'advanced builder: online ContraDB search sends the figure query, alone '
     'and combined with the title text',
     (tester) async {

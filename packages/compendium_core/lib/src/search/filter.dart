@@ -543,7 +543,9 @@ class FigureFilter extends DanceFilter {
 /// Sequence: a figure matching [after] **immediately follows** a figure
 /// matching [before], as in ContraDB's `then`. The dance is read as a loop, so
 /// the first figure follows the last: a dance that opens and closes with an
-/// allemande matches `Then(allemande, allemande)`. Figures are compared by
+/// allemande matches `Then(allemande, allemande)`, and a dance of a single
+/// figure matches `Then(X, X)` for a figure X that satisfies both sides, as
+/// ContraDB's does (the figure follows itself). Figures are compared by
 /// `group_idx`, the next group after `before`'s (else the first), so two
 /// concurrent sides of one `meanwhile` container — which share a group — are
 /// never one-after-the-other (#748), and a figure between the two stops a

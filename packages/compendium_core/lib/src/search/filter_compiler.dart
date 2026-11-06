@@ -840,13 +840,20 @@ class FilterCompiler {
     // `_insertDerivedRows`). "The next figure" is therefore the next group that
     // exists after `a`'s (the smallest larger `group_idx`, else the smallest
     // overall: the wrap), not `group_idx + 1`, so a gap in the numbering could
-    // never hide a pair. `a.group_idx <> b.group_idx` keeps two concurrent
-    // sides of one container, which share a group, from being read as
-    // one-after-the-other in a dance that has only that one group, where the
-    // wrap would otherwise pair a group with itself.
+    // never hide a pair.
+    //
+    // A row is paired with a row of a DIFFERENT group, so two concurrent
+    // sides of one container, which share a group, are never read as
+    // one-after-the-other. The one exception is the dance ContraDB reads as
+    // a single figure: with exactly one group, `abuts?` pairs that figure
+    // with itself (`(0 + 1) % 1 == 0`), so a row may pair with ITSELF there
+    // (`a.idx = b.idx`). Two different rows of that group still do not pair.
+    // No separate count of groups is needed: `b` is forced to the next group
+    // after `a`'s, which is `a`'s own only when the dance has one group, so
+    // `a.idx = b.idx` can hold only there.
     return 'id IN (SELECT a.dance_id FROM dance_figures a '
         'JOIN dance_figures b ON a.dance_id = b.dance_id '
-        'AND a.group_idx <> b.group_idx '
+        'AND (a.group_idx <> b.group_idx OR a.idx = b.idx) '
         'AND b.group_idx = COALESCE('
         '(SELECT MIN(m.group_idx) FROM dance_figures m '
         'WHERE m.dance_id = a.dance_id AND m.group_idx > a.group_idx), '

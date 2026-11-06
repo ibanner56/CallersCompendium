@@ -599,7 +599,7 @@ void main() {
         pred(f),
         'id IN (SELECT a.dance_id FROM dance_figures a '
         'JOIN dance_figures b ON a.dance_id = b.dance_id '
-        'AND a.group_idx <> b.group_idx '
+        'AND (a.group_idx <> b.group_idx OR a.idx = b.idx) '
         'AND b.group_idx = COALESCE('
         '(SELECT MIN(m.group_idx) FROM dance_figures m '
         'WHERE m.dance_id = a.dance_id AND m.group_idx > a.group_idx), '

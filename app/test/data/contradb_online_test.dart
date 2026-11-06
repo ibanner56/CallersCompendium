@@ -59,6 +59,77 @@ const String _danceHtml = '''
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  group('a full page sets mayHaveMore on every row', () {
+    String page(Iterable<int> ids) => jsonEncode({
+      'numberMatching': ids.length,
+      'dances': [
+        for (final id in ids)
+          {
+            'id': id,
+            'title': 'Dance $id',
+            'choreographer_name': '',
+            'formation': 'improper',
+          },
+      ],
+    });
+
+    Future<List<OnlineSearchResultRow>> run(
+      OnlineSearchQuery query,
+      Future<String> Function(ContraDbSearchRequest) fetch,
+    ) => ContraDbOnline(searchFetcher: fetch).search(query);
+
+    test('exactly a page: yes; one short of a page: no', () async {
+      final full = await run(
+        const OnlineSearchQuery(title: 'x'),
+        (_) async => page(List.generate(contraDbSearchCount, (i) => i + 1)),
+      );
+      expect(full, hasLength(contraDbSearchCount));
+      expect(full.every((row) => row.mayHaveMore), isTrue);
+
+      final short = await run(
+        const OnlineSearchQuery(title: 'x'),
+        (_) async => page(List.generate(contraDbSearchCount - 1, (i) => i + 1)),
+      );
+      expect(short.every((row) => row.mayHaveMore), isFalse);
+    });
+
+    test('two short spellings that merge past a page: no', () async {
+      // 12 + 12 distinct rows is 24 >= 20, but neither response was full.
+      final rows = await run(
+        const OnlineSearchQuery(title: "Mary's"),
+        (request) async => request.query.contains('\u2019')
+            ? page(List.generate(12, (i) => 100 + i))
+            : page(List.generate(12, (i) => i + 1)),
+      );
+      expect(rows, hasLength(24));
+      expect(rows.any((row) => row.mayHaveMore), isFalse);
+    });
+
+    test(
+      'one spelling filled its page, the other did not: yes, for all',
+      () async {
+        final rows = await run(
+          const OnlineSearchQuery(title: "Mary's"),
+          (request) async => request.query.contains('\u2019')
+              ? page([500])
+              : page(List.generate(contraDbSearchCount, (i) => i + 1)),
+        );
+        expect(rows.every((row) => row.mayHaveMore), isTrue);
+      },
+    );
+
+    test('a source that is not paged never sets it', () {
+      const row = OnlineSearchResultRow(
+        source: OnlineSource.callersBox,
+        id: '1',
+        name: 'x',
+        author: '',
+        formation: '',
+      );
+      expect(row.mayHaveMore, isFalse);
+    });
+  });
+
   group('fetchContraDbSearch', () {
     test('POSTs a title-filter JSON body to the search endpoint', () async {
       late http.Request captured;

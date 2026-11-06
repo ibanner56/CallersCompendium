@@ -6386,6 +6386,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String onlineResultCountCapped(int count) {
+    return '$count件のオンライン結果を表示しています。ほかにもある可能性があります。検索条件を絞り込んでください。';
+  }
+
+  @override
   String onlineSearchHintByPhrase(String source) {
     return '$sourceを検索するには、タイトルまたは作者を入力するか、フレーズ別のフィギュアを追加してください。';
   }

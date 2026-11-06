@@ -8696,6 +8696,15 @@
       }
     }
   },
+  "onlineResultCountCapped": "Showing {count} online results. There may be more: narrow your search to see the rest.",
+  "@onlineResultCountCapped": {
+    "description": "Count of online search results shown above the results list when the source returns a limited page that this search filled, so more results may exist than are shown. Replaces the plain count in that case.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "onlineSearchHintByPhrase": "Type a title or author, or add by-phrase figures to search {source}.",
   "@onlineSearchHintByPhrase": {
     "description": "Empty-query hint for online sources that support by-phrase figure criteria.",

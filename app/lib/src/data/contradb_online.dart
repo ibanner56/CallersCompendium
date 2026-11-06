@@ -132,10 +132,17 @@ class ContraDbOnline implements OnlineSearchService {
       fetch(variants.first),
       for (final variant in variants.skip(1)) widen(variant),
     ]);
+    final pages = [
+      for (final body in bodies.nonNulls) parseContraDbSearchResults(body),
+    ];
+    // A response that came back with a whole page may have been cut off. This
+    // is judged per response: the merged count of two short pages (the two
+    // spellings of an apostrophe query) says nothing about either being full.
+    final mayHaveMore = pages.any((page) => page.length >= contraDbSearchCount);
     final seenIds = <String>{};
     final rows = [
-      for (final body in bodies.nonNulls)
-        for (final r in parseContraDbSearchResults(body))
+      for (final page in pages)
+        for (final r in page)
           if (seenIds.add(r.id))
             OnlineSearchResultRow(
               source: OnlineSource.contraDb,
@@ -143,6 +150,7 @@ class ContraDbOnline implements OnlineSearchService {
               name: r.name,
               author: r.author,
               formation: r.formation,
+              mayHaveMore: mayHaveMore,
             ),
     ];
     // Each response is already title-sorted; re-sort only a merged set, by

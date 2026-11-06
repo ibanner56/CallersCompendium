@@ -1090,7 +1090,9 @@ class _CollectionPickerState extends State<CollectionPicker> {
                     liveRegion: true,
                     child: Text(
                       _onlineEnabled
-                          ? l10n.onlineResultCount(count)
+                          ? (_onlineResults.any((row) => row.mayHaveMore)
+                                ? l10n.onlineResultCountCapped(count)
+                                : l10n.onlineResultCount(count))
                           : l10n.collectionDanceCount(count),
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
