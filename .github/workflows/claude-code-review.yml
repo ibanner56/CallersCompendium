@@ -1,6 +1,6 @@
-# Claude code review, opt-in per pull request.
+# Claude code review, requested per pull request.
 #
-# Copilot stays the default reviewer; nothing here runs on a PR unless someone
+# Claude is the default reviewer, but nothing here runs on a PR unless someone
 # with write access applies the `review: claude` label (the action rejects any
 # actor whose repository permission is not write or admin, so triage is not
 # enough). While the label is on the PR, every push by a human is reviewed
