@@ -8,7 +8,7 @@
   },
   "core": {
     "fixed": [
-      "The ContraDB figure reader reads a displayed direction after pass through, right left through, chain and pull by; the display's singular subject for pass by when its shoulder is stated; cross trails' display subjects, directions and `passing … shoulders` clauses, declining a second pass by the same shoulder; and slice's `one dancer` and return clauses. A bare `slice left` is still read at the default return, since whether ContraDB means `none` by it is not established. Leads/Follows cross trails lines that name a role (`leads across the set …`) still do not read back, as the role canonicaliser takes the role word there for a verb."
+      "The ContraDB figure reader reads a displayed direction after pass through, right left through, chain and pull by; the display's singular subject for pass by when its shoulder is stated; cross trails' display subjects, directions and `passing … shoulders` clauses, declining a second pass by the same shoulder; and slice's `one dancer` and return clauses. A bare `slice left` is still read at the default return, since whether ContraDB means `none` by it is not established. Leads/Follows cross trails lines that name a role (`leads across the set …`) still do not read back. Free-text entry reads a line as typed before it applies the dialect's role words, and here the as-typed reading already finds a cross trails with the rest kept as a note, so the role-word reading is never tried."
     ]
   }
 }
