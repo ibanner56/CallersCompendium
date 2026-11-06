@@ -2627,7 +2627,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsDefaultsShareFieldsSubtitle =>
-      'Vælg hvilke oplysninger der vises, når du deler, kopierer eller eksporterer et program eller en dans. Forfattere vises som standard; melodier er skjult, indtil du slår dem til.';
+      'Vælg hvilke oplysninger der vises, når du deler, kopierer eller eksporterer et program eller en dans. Melodier, hook og kilder er skjult, indtil du slår dem til; alt andet vises som standard.';
 
   @override
   String get settingsDefaultsShareFieldsAuthors => 'Forfattere';
@@ -3285,7 +3285,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsProgramVenueCallCountSubtitle =>
-      'Vis de øverste spillesteder, hvor en dans blev kaldt mere end én gang. Sæt til 0 for at skjule denne oversigt.';
+      'Vis de øverste spillesteder, hvor en dans blev kaldt mere end én gang. Vælg „Vis ikke“ for at skjule denne oversigt.';
 
   @override
   String settingsProgramVenueCallCountOption(num count) {

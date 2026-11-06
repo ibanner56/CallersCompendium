@@ -2651,7 +2651,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsDefaultsShareFieldsSubtitle =>
-      'Wähle aus, welche Details angezeigt werden, wenn du ein Programm oder einen Tanz teilst, kopierst oder exportierst. Autoren werden standardmäßig angezeigt; Melodien sind ausgeblendet, bis du sie aktivierst.';
+      'Wähle aus, welche Details angezeigt werden, wenn du ein Programm oder einen Tanz teilst, kopierst oder exportierst. Melodien, Hook und Quellen sind ausgeblendet, bis du sie aktivierst; alles andere wird standardmäßig angezeigt.';
 
   @override
   String get settingsDefaultsShareFieldsAuthors => 'Autoren';
@@ -3324,7 +3324,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsProgramVenueCallCountSubtitle =>
-      'Die wichtigsten Veranstaltungsorte anzeigen, an denen ein Tanz mehr als einmal aufgerufen wurde. Auf 0 setzen, um diese Übersicht auszublenden.';
+      'Die wichtigsten Veranstaltungsorte anzeigen, an denen ein Tanz mehr als einmal aufgerufen wurde. „Nicht anzeigen“ wählen, um diese Übersicht auszublenden.';
 
   @override
   String settingsProgramVenueCallCountOption(num count) {

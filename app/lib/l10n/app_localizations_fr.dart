@@ -2666,7 +2666,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsDefaultsShareFieldsSubtitle =>
-      'Choisissez les détails qui apparaissent lorsque vous partagez, copiez ou exportez un programme ou une danse. Les auteurs sont affichés par défaut ; les airs sont masqués jusqu’à ce que vous les activiez.';
+      'Choisissez les détails qui apparaissent lorsque vous partagez, copiez ou exportez un programme ou une danse. Les airs, l’accroche et les sources sont masqués jusqu’à ce que vous les activiez ; tout le reste est affiché par défaut.';
 
   @override
   String get settingsDefaultsShareFieldsAuthors => 'Auteurs';
@@ -3342,7 +3342,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsProgramVenueCallCountSubtitle =>
-      'Afficher les principaux lieux où une danse a été appelée plusieurs fois. Régler sur 0 pour masquer ce résumé.';
+      'Afficher les principaux lieux où une danse a été appelée plusieurs fois. Choisir « Ne pas afficher » pour masquer ce résumé.';
 
   @override
   String settingsProgramVenueCallCountOption(num count) {

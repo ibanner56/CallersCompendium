@@ -9,13 +9,10 @@ import 'package:flutter/widgets.dart';
 /// of the widget tree so the settings screen — a sibling of the export call
 /// sites in the navigation tree — can write to the notifier via [notifierOf].
 ///
-/// **Current state (issue #1434, this PR):** the scope is mounted at the app
-/// root and the Settings screen reads/writes it, but **no export call site
-/// reads it yet** — `ProgramExportMenu`, `DanceExportMenu`, and the
-/// dance-detail screen's export actions are wired to read
-/// [DanceShareFieldsScope.of] and pass the result into the core renderers in
-/// follow-up PRs. Toggling the Settings checkboxes this PR adds has no
-/// visible effect on any export until that wiring lands.
+/// **Who reads it:** the scope is mounted at the app root. The Settings
+/// screen reads and writes it; the dance-detail screen and
+/// `ProgramExportMenu` read it with [DanceShareFieldsScope.of] and pass the
+/// result into the core renderers for what you share, copy or export.
 ///
 /// **Reading the value:** call [DanceShareFieldsScope.of] inside `build`. It
 /// returns [DanceShareField.allExceptTunes] when no ancestor is present,
@@ -36,8 +33,8 @@ class DanceShareFieldsScope
   /// the caller rebuilds whenever the notifier changes.
   ///
   /// Returns [DanceShareField.allExceptTunes] (every field this feature's
-  /// renderers emitted unconditionally before the picker existed, minus
-  /// tunes) when there is no [DanceShareFieldsScope] ancestor, so tests and
+  /// renderers emitted unconditionally before the picker existed, minus the
+  /// opt-in tunes, hook and sources) when there is no [DanceShareFieldsScope] ancestor, so tests and
   /// call sites without the scope wired behave identically to the
   /// pre-feature state.
   static Set<DanceShareField> of(BuildContext context) {

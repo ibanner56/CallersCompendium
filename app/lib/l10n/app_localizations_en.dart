@@ -2606,7 +2606,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsDefaultsShareFieldsSubtitle =>
-      'Choose which details appear when you share, copy, or export a program or dance. Authors are shown by default; tunes are hidden until you turn them on.';
+      'Choose which details appear when you share, copy, or export a program or dance. Tunes, the hook, and sources are hidden until you turn them on; everything else is shown by default.';
 
   @override
   String get settingsDefaultsShareFieldsAuthors => 'Authors';
@@ -3261,7 +3261,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsProgramVenueCallCountSubtitle =>
-      'Show the top venues where a dance was called more than once. Set to 0 to hide this summary.';
+      'Show the top venues where a dance was called more than once. Choose Don\'t show to hide this summary.';
 
   @override
   String settingsProgramVenueCallCountOption(num count) {

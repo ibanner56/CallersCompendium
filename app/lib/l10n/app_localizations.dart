@@ -3958,7 +3958,7 @@ abstract class AppLocalizations {
   /// Subtitle describing the share-fields checkboxes (#1434).
   ///
   /// In en, this message translates to:
-  /// **'Choose which details appear when you share, copy, or export a program or dance. Authors are shown by default; tunes are hidden until you turn them on.'**
+  /// **'Choose which details appear when you share, copy, or export a program or dance. Tunes, the hook, and sources are hidden until you turn them on; everything else is shown by default.'**
   String get settingsDefaultsShareFieldsSubtitle;
 
   /// Label for the Authors share-field toggle (#1434).
@@ -5018,7 +5018,7 @@ abstract class AppLocalizations {
   /// Subtitle explaining the repeated-venue calling-history setting.
   ///
   /// In en, this message translates to:
-  /// **'Show the top venues where a dance was called more than once. Set to 0 to hide this summary.'**
+  /// **'Show the top venues where a dance was called more than once. Choose Don\'t show to hide this summary.'**
   String get settingsProgramVenueCallCountSubtitle;
 
   /// Dropdown option for the number of repeated venues shown in calling history.

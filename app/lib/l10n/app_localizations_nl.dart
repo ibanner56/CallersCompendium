@@ -2641,7 +2641,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsDefaultsShareFieldsSubtitle =>
-      'Kies welke details worden weergegeven wanneer je een programma of dans deelt, kopieert of exporteert. Auteurs worden standaard weergegeven; deuntjes zijn verborgen totdat je ze inschakelt.';
+      'Kies welke details worden weergegeven wanneer je een programma of dans deelt, kopieert of exporteert. Deuntjes, de hook en bronnen zijn verborgen totdat je ze inschakelt; al het andere wordt standaard weergegeven.';
 
   @override
   String get settingsDefaultsShareFieldsAuthors => 'Auteurs';
@@ -3312,7 +3312,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsProgramVenueCallCountSubtitle =>
-      'Toon de belangrijkste locaties waar een dans meer dan één keer is gecalld. Stel in op 0 om dit overzicht te verbergen.';
+      'Toon de belangrijkste locaties waar een dans meer dan één keer is gecalld. Kies “Niet tonen” om dit overzicht te verbergen.';
 
   @override
   String settingsProgramVenueCallCountOption(num count) {
