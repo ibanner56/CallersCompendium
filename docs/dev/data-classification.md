@@ -473,7 +473,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; classified here so the catalogue has one source of truth. `settings.value_json` is `deviceLocal` at the column level so a blanket sync cannot happen by accident — these entries decide what actually travels.
 
-**112 settings keys**: 70 shareable, 12 device-local, 28 device-scoped, 1 protocol-identifier, 1 store-address. 4 personal data by category.
+**113 settings keys**: 71 shareable, 12 device-local, 28 device-scoped, 1 protocol-identifier, 1 store-address. 4 personal data by category.
 
 | Key | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |
@@ -505,6 +505,7 @@ Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; 
 | `auto_commit_program_changes` | `dpv:NonPersonalData` | app user | shareable |  |
 | `auto_size_perform_cards` | `dpv:NonPersonalData` | app user | **device-local** | Screen-bound: whether a Perform card should fit the screen depends on the screen, like perform_text_scale below. deviceLocal, not deviceScoped: it is withheld for what it means on another screen, not for what it contains, and deviceScoped would also drop it from the user's own backups, which should give it back on restore. Per-device by the maintainer's decision (settings-sync-scope, 2026-10-29). |
 | `backup_reminder_cadence` | `dpv:NonPersonalData` | app user | shareable |  |
+| `calling_card_print` | `dpv:NonPersonalData` | app user | shareable | Whether calling cards are offered, the card size and the card layout: how the user likes their cards printed, which is the same card stock on any device they own, so it travels like any preference. The layout can hold words the user typed for a text block; they are the user's own, never a third party's. |
 | `canonical_discouraged_terms` | `dpv:NonPersonalData` | app user | shareable |  |
 | `canonical_figure_text` | `dpv:NonPersonalData` | app user | shareable |  |
 | `capitalize_figures` | `dpv:NonPersonalData` | app user | shareable |  |

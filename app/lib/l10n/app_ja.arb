@@ -11197,5 +11197,341 @@
   "wordingIssueTooManyNots": "この条件は「not」を入れ子にしすぎています。入れ子にできるのは {max} 個までです。いくつか外してください。「not」が二つ続くと打ち消し合います。",
   "@wordingIssueTooManyNots": {
     "x-sourceSha256": "1f489c691b161fb77bc3824fe650fbb1eeb6bbb57ed708c5b1bfd4e899a58f83"
+  },
+  "settingsCallingCardsHeader": "コーリングカード",
+  "@settingsCallingCardsHeader": {
+    "x-sourceSha256": "4389f7e10c996f06485184f6693fc44368c344b1fecd4943096e833d3637fa01"
+  },
+  "settingsCallingCardsEnableTitle": "コーリングカードを印刷",
+  "@settingsCallingCardsEnableTitle": {
+    "x-sourceSha256": "755d6b903e0cbd21ae1058987b652ce42fc638222a9b378256db5f43aadf95f7"
+  },
+  "settingsCallingCardsEnableSubtitle": "ダンスのエクスポートメニューに「コーリングカードを印刷」を、プログラムのエクスポートメニューに「コーリングカードをまとめて印刷」を追加します。ダンス1つにつき小さなカード1枚を、下で選んだレイアウトで印刷します。",
+  "@settingsCallingCardsEnableSubtitle": {
+    "x-sourceSha256": "8b3b5debcd7136ece474fc6d683b0bb802fe3c89bff201e6152bb56fa449b28e"
+  },
+  "settingsCallingCardsSizeTitle": "カードのサイズ",
+  "@settingsCallingCardsSizeTitle": {
+    "x-sourceSha256": "c8d980a1bc3f215a5f969f8c6c8c2d20ff974a24b271d574f1955450c50f4ee2"
+  },
+  "settingsCallingCardsSizeIndexCard": "インデックスカード（{size}）",
+  "@settingsCallingCardsSizeIndexCard": {
+    "x-sourceSha256": "bed4d4db1971a391fb37b3f1222e62a1712b95fd19e93ddabcb9c89049ece3ba"
+  },
+  "settingsCallingCardsSizeIsoA": "{name}（{size}）",
+  "@settingsCallingCardsSizeIsoA": {
+    "x-sourceSha256": "63560b35cdb18808e8b40a57a4a02989d5baa5ff0875f8d3d75423fc852fc5b9"
+  },
+  "settingsCallingCardsSizeInches": "{width} × {height} インチ",
+  "@settingsCallingCardsSizeInches": {
+    "x-sourceSha256": "fbff4f3b22a073540b20b5dfde8bebb07a7800fc3ab26e693fdba3d9c93b4513"
+  },
+  "settingsCallingCardsSizeMillimetres": "{width} × {height} mm",
+  "@settingsCallingCardsSizeMillimetres": {
+    "x-sourceSha256": "27e16187ea6d0a88c4228b94c197aeb2d8cf0bae4dfbb1b744821ce8487303d4"
+  },
+  "settingsCallingCardsSizeCustom": "カスタムサイズ",
+  "@settingsCallingCardsSizeCustom": {
+    "x-sourceSha256": "d432bb2b8200bb3a214a507a782f9bfd64fcf4eddfec99d3abe67ae6e035e8e0"
+  },
+  "settingsCallingCardsWidthLabel": "幅",
+  "@settingsCallingCardsWidthLabel": {
+    "x-sourceSha256": "3019947b6daf18b0534a15d8c7ac30ab587e36cc93fb45a6e7b750348006d620"
+  },
+  "settingsCallingCardsHeightLabel": "高さ",
+  "@settingsCallingCardsHeightLabel": {
+    "x-sourceSha256": "bfe2eca401797325bc268f93c7397554551de4274d5d73ed421ee36fe9cd3ae0"
+  },
+  "settingsCallingCardsUnitInches": "インチ",
+  "@settingsCallingCardsUnitInches": {
+    "x-sourceSha256": "9eb5a39899c34c456bf5a2c04d7cb6ee7ce72fa52a6ad94c5dafc86ac6074fd2"
+  },
+  "settingsCallingCardsUnitMillimetres": "ミリメートル",
+  "@settingsCallingCardsUnitMillimetres": {
+    "x-sourceSha256": "4b13675413ba57d4af813b38aa65ee7f498a8e8bca4b7389812572ece0935888"
+  },
+  "settingsCallingCardsSizeInvalid": "各辺は1～14インチ（25～356 mm）にしてください。",
+  "@settingsCallingCardsSizeInvalid": {
+    "x-sourceSha256": "473f2c6df3799500f78bc0d16976643294660a9b5853aaadc4fd2a4a5cdfcb16"
+  },
+  "settingsCallingCardsLandscapeTitle": "横向き",
+  "@settingsCallingCardsLandscapeTitle": {
+    "x-sourceSha256": "e658d3ae034a3dcf77eafffab7e7f78f5734e83eca41c698ed6e5fcc7e146a59"
+  },
+  "settingsCallingCardsLandscapeSubtitle": "長い辺を上にして印刷します。",
+  "@settingsCallingCardsLandscapeSubtitle": {
+    "x-sourceSha256": "58c604344d29ad7c2773a4061f94a9809c89c8b794f700add5b143a6cf46f612"
+  },
+  "settingsCallingCardsLayoutTitle": "カードのレイアウト",
+  "@settingsCallingCardsLayoutTitle": {
+    "x-sourceSha256": "f6853e95b79e5fd186406c0fd065c7e8b5b535f9973e9a42ef7d08a4d7e2b61e"
+  },
+  "settingsCallingCardsLayoutSubtitle": "各カードに何をどこに載せるかを選びます。",
+  "@settingsCallingCardsLayoutSubtitle": {
+    "x-sourceSha256": "8fbeda7fcac48111058462d6ffe14f43b8dba14e528fa8e5c8e2a90afaff2a9d"
+  },
+  "callingCardEditorTitle": "コーリングカードのレイアウト",
+  "@callingCardEditorTitle": {
+    "x-sourceSha256": "2e5b5a3d231b80c9ddc038c6417827ca7e4f30ba2f4f0a34dfe100e7531cc8b0"
+  },
+  "callingCardEditorFieldLabel": "レイアウト",
+  "@callingCardEditorFieldLabel": {
+    "x-sourceSha256": "a511909161e1b84fb81b52028fc2ce79525a96b40ccda823caa4a66ee64772b5"
+  },
+  "callingCardEditorAutosaveHint": "変更は入力中に保存されます。",
+  "@callingCardEditorAutosaveHint": {
+    "x-sourceSha256": "483427fc34d9f1a990e2d3eefe863041eeefd80a8a838945699e298876ef2a27"
+  },
+  "callingCardEditorReset": "デフォルトに戻す",
+  "@callingCardEditorReset": {
+    "x-sourceSha256": "bc5b45ae7b60692ade0bb26ebe5b6830f150d97134153e3c3091882eb72e7c25"
+  },
+  "callingCardEditorResetConfirmTitle": "レイアウトを戻しますか？",
+  "@callingCardEditorResetConfirmTitle": {
+    "x-sourceSha256": "7bd474f39d5e953b0589e59e614ffa6b16ae7f362d89e1b9200e37526b2a0e9b"
+  },
+  "callingCardEditorResetConfirmBody": "現在のレイアウトはデフォルトのレイアウトに置き換えられます。",
+  "@callingCardEditorResetConfirmBody": {
+    "x-sourceSha256": "1c494771aea86c1cdc82c615eeb322e5ab676e13bb146cb18a06fecb6fbf9974"
+  },
+  "callingCardEditorReplaced": "レイアウトを置き換えました。",
+  "@callingCardEditorReplaced": {
+    "x-sourceSha256": "55fd370a771bca2178750a9cae4dac41d679919d6cf9ef628b83c87777fa0c34"
+  },
+  "callingCardEditorPreviewTitle": "プレビュー",
+  "@callingCardEditorPreviewTitle": {
+    "x-sourceSha256": "324b134f57c70c729ae3dc4d298bb451656717d70523e942c1ce667b8024ea07"
+  },
+  "callingCardEditorPreviewCaption": "{size}のカードに載せたサンプルのダンス。",
+  "@callingCardEditorPreviewCaption": {
+    "x-sourceSha256": "40134c56f8e0720038cee8181ad11ee68f86d52c7ff6b7235f7d04cfb050e30e"
+  },
+  "callingCardEditorPreviewError": "プレビューを表示できませんでした。",
+  "@callingCardEditorPreviewError": {
+    "x-sourceSha256": "c6a4540584074c857b121c1f5d8249c0112e616b6bbf22e4e57f0840fff65fc9"
+  },
+  "callingCardEditorPreviewShrunk": "このカードに収めるため、文字を{percent}%に縮小しています。",
+  "@callingCardEditorPreviewShrunk": {
+    "x-sourceSha256": "230ae1c9595b92e9fa525f37f1826fa67cba54de68d4f3b48ce69c0f0264a72e"
+  },
+  "callingCardEditorPreviewOverflow": "このカードは半分の大きさにしても収まらないため、下の部分が切れています。ブロックを1つ減らすか、長いブロックに lines= を付けてください。",
+  "@callingCardEditorPreviewOverflow": {
+    "x-sourceSha256": "dcd5638b7154e4a811a4e03fba556c51aa511480d2e044279dc9fe49b2a07398"
+  },
+  "callingCardEditorIssuesTitle": "読み取れなかった行",
+  "@callingCardEditorIssuesTitle": {
+    "x-sourceSha256": "9b75235db6369cf647e5269b0e3ad0ca49422fd6162661c5c5514b82ed2ce190"
+  },
+  "callingCardIssueUnknownBlock": "{line}行目：「{name}」はブロックではありません。ブロックの一覧は「レイアウトの書き方」にあります。",
+  "@callingCardIssueUnknownBlock": {
+    "x-sourceSha256": "3c67c0733ad3feffeed5a026d9edce00ffd0d2221bc4636299ee73a93e5fcc4a"
+  },
+  "callingCardIssueUnknownOption": "{line}行目：このブロックに「{name}」オプションはありません。",
+  "@callingCardIssueUnknownOption": {
+    "x-sourceSha256": "fbdea12044bbcac317be4697ec87c75559d414731ff3da47dd89dea85fc2e1af"
+  },
+  "callingCardIssueBadValue": "{line}行目：「{value}」は{option}には使えません。",
+  "@callingCardIssueBadValue": {
+    "x-sourceSha256": "684bd8850dc83f6f955ef11f1494a5c8410b8a9842e695f93d9dbe5bbff1c871"
+  },
+  "callingCardIssueUnclosedQuote": "{line}行目：引用符が閉じられていないため、この行全体を飛ばします。",
+  "@callingCardIssueUnclosedQuote": {
+    "x-sourceSha256": "744543984ad6f8604a26348baf4f88121f4b95425bbd0c6b227249b4666fc973"
+  },
+  "callingCardIssueMissingText": "{line}行目：text には引用符で囲んだ言葉が必要です（例：text \"Called by me\"）。",
+  "@callingCardIssueMissingText": {
+    "x-sourceSha256": "e94c1eb3b5b641d8ecd9803279710d55e902e1afa29fef5a6e03b9960bc4e535"
+  },
+  "callingCardIssueCardNotAlone": "{line}行目：card はカード全体を設定するため、1行に単独で書いてください。",
+  "@callingCardIssueCardNotAlone": {
+    "x-sourceSha256": "bf89b476c226adf952ca2e4ca5401cb3cdb3e7dc2c36c58d176b6db45555076f"
+  },
+  "callingCardIssueEmptyBlock": "{line}行目：| の片側に何もありません。",
+  "@callingCardIssueEmptyBlock": {
+    "x-sourceSha256": "a444c4cc5f3d444f9ee1c5266ff187f84b97fb50c7ef086297b16163d4a4281c"
+  },
+  "callingCardHelpTitle": "レイアウトの書き方",
+  "@callingCardHelpTitle": {
+    "x-sourceSha256": "a2d0cf3795a85e7b59995bb3ad5c4bfa67290de4aa88007fee7c67f20e2aa337"
+  },
+  "callingCardHelpIntro": "1行がカードの1段で、上から下へ並びます。行の最初にブロック名を書き、続けてオプションを付けます。ブロックの間に | を入れると横に並びます。# で始まる行は自分用のメモで、印刷されません。",
+  "@callingCardHelpIntro": {
+    "x-sourceSha256": "1fc414b6856b8f60298e2c8fcdbd13b7778331ea234dc45a73e4de36ea3e55c6"
+  },
+  "callingCardHelpFields": "ブロックはダンスにある情報だけを印刷し、「設定 › デフォルト › 共有するダンス項目」でオンになっている項目だけを印刷します。印刷する内容がない段は場所を取りません。カードに収まりきらないときは、すべてが同じ割合で縮小され、最小で半分の大きさになります。",
+  "@callingCardHelpFields": {
+    "x-sourceSha256": "b284fb19a00074faa966d7bc361cfe6cc9b48f03915178541e0b989af2ce6f63"
+  },
+  "callingCardHelpTapToInsert": "名前をタップすると、レイアウトに追加されます。",
+  "@callingCardHelpTapToInsert": {
+    "x-sourceSha256": "4e23bba82e7274ee05dac9a9f2ee66ba334aeade075f402583f5b9b114321222"
+  },
+  "callingCardHelpBlocksTitle": "ブロック",
+  "@callingCardHelpBlocksTitle": {
+    "x-sourceSha256": "1cd5a6687bb76e3926f8c89a9fb290cd17d893ca944899952322d3fb5c9896d3"
+  },
+  "callingCardHelpOptionsTitle": "オプション",
+  "@callingCardHelpOptionsTitle": {
+    "x-sourceSha256": "d0db8b5e364b6989e4b8f38a2b3846b87d99a51c1592ebf35d21cc66405a8e39"
+  },
+  "callingCardHelpExamplesTitle": "例",
+  "@callingCardHelpExamplesTitle": {
+    "x-sourceSha256": "e68ee04dff59551b7d1ae07a2f8a00dc61d841628948da3d2781630706a05e92"
+  },
+  "callingCardHelpExampleUse": "このレイアウトを使う",
+  "@callingCardHelpExampleUse": {
+    "x-sourceSha256": "e1b4b7fa4cfd7f7196a06a27fc5ac5a662cba04e60b3326165d614b3d5f8924b"
+  },
+  "callingCardHelpBlockTitle": "ダンスのタイトル。",
+  "@callingCardHelpBlockTitle": {
+    "x-sourceSha256": "5d5fe3e0ea5489236a7644326e57abae2a692cd5c127e7e594c6f2d0848c68cc"
+  },
+  "callingCardHelpBlockAuthors": "ダンスの作者。",
+  "@callingCardHelpBlockAuthors": {
+    "x-sourceSha256": "9cfbd8aba0a013c5676fe67625a5c40e1ae9efb9b03e589675302355901f410c"
+  },
+  "callingCardHelpBlockFormation": "フォーメーション（Improper、Becket など）。",
+  "@callingCardHelpBlockFormation": {
+    "x-sourceSha256": "af51087792efe9413a9bcc497b7ecd6c998447c5f1e0be602386fcbfcbd2dfc2"
+  },
+  "callingCardHelpBlockLevel": "ダンスのレベル。",
+  "@callingCardHelpBlockLevel": {
+    "x-sourceSha256": "cc745f2a1c5def9eddb4feb48fdc54d44af4baf5d94cdb399b4f8cb81d732629"
+  },
+  "callingCardHelpBlockMeta": "フォーメーション、レベル、ミキサー、ステータス、フレーズを、それぞれのラベル付きで1行に。",
+  "@callingCardHelpBlockMeta": {
+    "x-sourceSha256": "1928a9d33c4ba8624ec07f3fca1ea6e98c0a289f9874f6f63a0307d616555f75"
+  },
+  "callingCardHelpBlockFigures": "フレーズ（A1、A2、B1、B2）ごとにまとめたフィギュアと、その拍数。",
+  "@callingCardHelpBlockFigures": {
+    "x-sourceSha256": "b997a702c0d398fe95724d2317082254978be5305b3f4b00af9006e9e307d9c9"
+  },
+  "callingCardHelpBlockNotes": "コーリングノート。",
+  "@callingCardHelpBlockNotes": {
+    "x-sourceSha256": "37ea466016ef613f0827b3dd1e47e5fa54069d83912a2b25cf5e0045c9683e14"
+  },
+  "callingCardHelpBlockWalkthrough": "ウォークスルー。",
+  "@callingCardHelpBlockWalkthrough": {
+    "x-sourceSha256": "5e241bc691e735c43329130cd0155c38ca3ff17c61d7deecde4153184972f32c"
+  },
+  "callingCardHelpBlockHook": "ダンスのフック。",
+  "@callingCardHelpBlockHook": {
+    "x-sourceSha256": "520758437501d6c159a10f12b97f860ca0c72eed9d6b893ea6034d4a8a0704dd"
+  },
+  "callingCardHelpBlockTunes": "おすすめの曲。",
+  "@callingCardHelpBlockTunes": {
+    "x-sourceSha256": "9d9117d4a84bbfd795ad02799b1d8bd99a57de95e9ef31268e99c398e65ac906"
+  },
+  "callingCardHelpBlockSources": "出典。",
+  "@callingCardHelpBlockSources": {
+    "x-sourceSha256": "99d48003420f548b3163885b84ab57882e3b50ccd95b08260d8b0928f6045295"
+  },
+  "callingCardHelpBlockProgram": "プログラムを印刷するときの、プログラムのタイトル。",
+  "@callingCardHelpBlockProgram": {
+    "x-sourceSha256": "60b8c9c27cbc17a9b41c7b62e7b46407ea436e08c755aff12467f938fba2a608"
+  },
+  "callingCardHelpBlockNumber": "プログラムを印刷するときの、プログラム内でのダンスの順番（1、2、3、または代替）。",
+  "@callingCardHelpBlockNumber": {
+    "x-sourceSha256": "8f8f656b53ee8af05379e0c2966cabb28198177f25470c53a05b5605be8d15c6"
+  },
+  "callingCardHelpBlockText": "引用符で囲んだ自分の言葉。",
+  "@callingCardHelpBlockText": {
+    "x-sourceSha256": "ff71b4f7eca428b6c5612c00e35b24d68e549348880ef396530ed075e02578be"
+  },
+  "callingCardHelpBlockRule": "カードを横切る線。",
+  "@callingCardHelpBlockRule": {
+    "x-sourceSha256": "69a9b8f50bc40d9f55ea404283041ec6889398dc9d1242f6b1f154c306b8f0c3"
+  },
+  "callingCardHelpBlockSpace": "ポイント単位の余白（1インチ＝72ポイント）。",
+  "@callingCardHelpBlockSpace": {
+    "x-sourceSha256": "adf52ef1ab3c9e55c95a9161f59ef30913de8ffaa3ee127d6c9379187a15f46c"
+  },
+  "callingCardHelpBlockCard": "カード全体の設定：margin はふちの余白（ポイント単位）です。",
+  "@callingCardHelpBlockCard": {
+    "x-sourceSha256": "3ff7fed63650d9ff2058db2a560b8b4cd97f05163aa189fa71f3cee48cdf9c90"
+  },
+  "callingCardHelpOptionSize": "文字の大きさ（ポイント単位）。",
+  "@callingCardHelpOptionSize": {
+    "x-sourceSha256": "408faf07f29685f286715afa12bd7e78d5f4d5e3e75a1694f0f482e5927107f6"
+  },
+  "callingCardHelpOptionStyle": "太字または斜体。",
+  "@callingCardHelpOptionStyle": {
+    "x-sourceSha256": "e458e391df6b3154c1e9c6229c151ed53213ac8bbc38de0d485d361ab318e432"
+  },
+  "callingCardHelpOptionAlign": "文字を置く位置。",
+  "@callingCardHelpOptionAlign": {
+    "x-sourceSha256": "448a1ef1ccf77370305f5d6604c8ced1682f781cc2250469325dbfd2e31f7f41"
+  },
+  "callingCardHelpOptionColor": "文字や線の色（16進コード）。",
+  "@callingCardHelpOptionColor": {
+    "x-sourceSha256": "2ee97c37c46212335d33b2454706916df1761af47547b3bf986546d17992e6c4"
+  },
+  "callingCardHelpOptionLines": "長いブロックを印刷する最大行数。",
+  "@callingCardHelpOptionLines": {
+    "x-sourceSha256": "aa0c58d46c3b4c183884c05e7843fed979cce44a1863159f7cfc8a2fb4704de5"
+  },
+  "callingCardHelpOptionLabel": "本文の前に付ける言葉。label=\"\" で何も付けません。",
+  "@callingCardHelpOptionLabel": {
+    "x-sourceSha256": "09a33e6db9355096ce26e26c994a62fd5e6ee4d9a4b6928f5f85c6da3fe63064"
+  },
+  "callingCardHelpOptionWidth": "1つの段の中で、width=2 のブロックは width=1 のブロックの2倍の幅を取ります。",
+  "@callingCardHelpOptionWidth": {
+    "x-sourceSha256": "0afe737da572d0c30038301980dd7d55bc4a700c34f9be9dd54a0bedf7bf0a5d"
+  },
+  "callingCardHelpOptionFigures": "figures 用：拍数、フィギュアごとのメモ、フレーズ名、フレーズ間の線を省きます。",
+  "@callingCardHelpOptionFigures": {
+    "x-sourceSha256": "78f5e1ff429d848df5d1d3e64e2631540427c45a28e44d6ad6abe705d9e2b630"
+  },
+  "callingCardHelpOptionThickness": "線の太さ（ポイント単位）。",
+  "@callingCardHelpOptionThickness": {
+    "x-sourceSha256": "7c3439a68a0edf549f66111934480518f86afaf023d35b8797cb5174a76685ca"
+  },
+  "callingCardExampleClassic": "クラシック",
+  "@callingCardExampleClassic": {
+    "x-sourceSha256": "ae25d6481fc1741ffee4a95cd05de7b6375f7e1b0c63c006640b366094f2c4a9"
+  },
+  "callingCardExampleBigPrint": "大きな文字",
+  "@callingCardExampleBigPrint": {
+    "x-sourceSha256": "90f3e2000b4512c92738f6cb1cc5d37bd91114b60732cee0411047ad05be6249"
+  },
+  "callingCardExampleProgram": "プログラムの夜",
+  "@callingCardExampleProgram": {
+    "x-sourceSha256": "72714c2154db14e1a58fcd18d0f7f4d5be8ef7104300191cb9e07488bb1507fe"
+  },
+  "callingCardExampleTeaching": "ティーチング用",
+  "@callingCardExampleTeaching": {
+    "x-sourceSha256": "2526cf914aed5b47efd76d925ad4e9af3219fde0a352a51950b04fa0e1812a30"
+  },
+  "callingCardSampleTitle": "サンプル・コントラ",
+  "@callingCardSampleTitle": {
+    "x-sourceSha256": "5ff17063c71490b96024bd7879e63851b63573a4afcc8167d45f49e6e97c861f"
+  },
+  "callingCardSampleAuthor": "A. コーラー",
+  "@callingCardSampleAuthor": {
+    "x-sourceSha256": "c9a0e7c1c8c025311d9ab7f333593766c6a94fb906d45e6b6e93e62509d6bd19"
+  },
+  "callingCardSampleNotes": "列に沿って左へスライドして進みます。",
+  "@callingCardSampleNotes": {
+    "x-sourceSha256": "51c4b3123032984a633f547c199f1d13d523170e543a31a6ab2c9ffd807a2e12"
+  },
+  "callingCardSampleFigureNote": "回り終えるまで手を離さずに。",
+  "@callingCardSampleFigureNote": {
+    "x-sourceSha256": "25e52785f1e5eece2552c5b4d2357539ae12bc65b7cd44d5463c460f08ac5898"
+  },
+  "callingCardSampleProgram": "金曜の夜のダンス",
+  "@callingCardSampleProgram": {
+    "x-sourceSha256": "568be71ab062516a6d6ac140daec450ca1559cd8fa2205162a448f001da18dba"
+  },
+  "exportPrintCallingCard": "コーリングカードを印刷",
+  "@exportPrintCallingCard": {
+    "x-sourceSha256": "2d4922c9aad38491099cad7b25bb1c878b0afef64be88382bea38caabcef80a1"
+  },
+  "exportPrintCallingCards": "コーリングカードをまとめて印刷",
+  "@exportPrintCallingCards": {
+    "x-sourceSha256": "755d6b903e0cbd21ae1058987b652ce42fc638222a9b378256db5f43aadf95f7"
+  },
+  "exportCallingCardsCutOff": "{count, plural, other{{count}枚のカードが収まらず、下の部分が切れています。}}",
+  "@exportCallingCardsCutOff": {
+    "x-sourceSha256": "b025c9efc4e669393a66c90e01c55ac6efbec97d37648335a1f21e420849592a"
   }
 }

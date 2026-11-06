@@ -17250,7 +17250,7 @@ abstract class AppLocalizations {
   /// Help: what gates a block, and what happens when a card is too full.
   ///
   /// In en, this message translates to:
-  /// **'A block prints only what the dance has, and only fields turned on under Settings › Defaults (the dance fields in shared cards). A row with nothing to print takes no space. When a card is too full, everything on it shrinks evenly to fit, down to half size.'**
+  /// **'A block prints only what the dance has, and only fields turned on under Settings › Defaults › Shared dance fields. A row with nothing to print takes no space. When a card is too full, everything on it shrinks evenly to fit, down to half size.'**
   String get callingCardHelpFields;
 
   /// Help: the block and option names below can be tapped to insert them.

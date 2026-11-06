@@ -11681,21 +11681,21 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String get settingsCallingCardsHeader => 'Calling cards';
+  String get settingsCallingCardsHeader => 'Callkaarten';
 
   @override
-  String get settingsCallingCardsEnableTitle => 'Print calling cards';
+  String get settingsCallingCardsEnableTitle => 'Callkaarten afdrukken';
 
   @override
   String get settingsCallingCardsEnableSubtitle =>
-      'Adds Print calling card to a dance\'s Export menu, and Print calling cards to a program\'s: one small card per dance, laid out the way you choose below.';
+      'Voegt Callkaart afdrukken toe aan het exportmenu van een dans, en Callkaarten afdrukken aan dat van een programma: één kleine kaart per dans, opgemaakt zoals je hieronder kiest.';
 
   @override
-  String get settingsCallingCardsSizeTitle => 'Card size';
+  String get settingsCallingCardsSizeTitle => 'Kaartformaat';
 
   @override
   String settingsCallingCardsSizeIndexCard(String size) {
-    return 'Index card, $size';
+    return 'Systeemkaart, $size';
   }
 
   @override
@@ -11705,7 +11705,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String settingsCallingCardsSizeInches(String width, String height) {
-    return '$width × $height in';
+    return '$width × $height inch';
   }
 
   @override
@@ -11714,274 +11714,281 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String get settingsCallingCardsSizeCustom => 'Custom size';
+  String get settingsCallingCardsSizeCustom => 'Eigen formaat';
 
   @override
-  String get settingsCallingCardsWidthLabel => 'Width';
+  String get settingsCallingCardsWidthLabel => 'Breedte';
 
   @override
-  String get settingsCallingCardsHeightLabel => 'Height';
+  String get settingsCallingCardsHeightLabel => 'Hoogte';
 
   @override
-  String get settingsCallingCardsUnitInches => 'Inches';
+  String get settingsCallingCardsUnitInches => 'Inch';
 
   @override
-  String get settingsCallingCardsUnitMillimetres => 'Millimetres';
+  String get settingsCallingCardsUnitMillimetres => 'Millimeter';
 
   @override
   String get settingsCallingCardsSizeInvalid =>
-      'Each side must be from 1 to 14 inches (25 to 356 mm).';
+      'Elke zijde moet tussen 1 en 14 inch (25 tot 356 mm) liggen.';
 
   @override
-  String get settingsCallingCardsLandscapeTitle => 'Landscape';
+  String get settingsCallingCardsLandscapeTitle => 'Liggend';
 
   @override
   String get settingsCallingCardsLandscapeSubtitle =>
-      'Print with the long side across the top.';
+      'Afdrukken met de lange zijde bovenaan.';
 
   @override
-  String get settingsCallingCardsLayoutTitle => 'Card layout';
+  String get settingsCallingCardsLayoutTitle => 'Kaartopmaak';
 
   @override
   String get settingsCallingCardsLayoutSubtitle =>
-      'Choose what goes on each card, and where.';
+      'Kies wat er op elke kaart komt, en waar.';
 
   @override
-  String get callingCardEditorTitle => 'Calling card layout';
+  String get callingCardEditorTitle => 'Opmaak van de callkaart';
 
   @override
-  String get callingCardEditorFieldLabel => 'Layout';
+  String get callingCardEditorFieldLabel => 'Opmaak';
 
   @override
-  String get callingCardEditorAutosaveHint => 'Changes are saved as you type.';
+  String get callingCardEditorAutosaveHint =>
+      'Wijzigingen worden opgeslagen terwijl je typt.';
 
   @override
-  String get callingCardEditorReset => 'Reset to default';
+  String get callingCardEditorReset => 'Standaard herstellen';
 
   @override
-  String get callingCardEditorResetConfirmTitle => 'Reset the layout?';
+  String get callingCardEditorResetConfirmTitle => 'Opmaak herstellen?';
 
   @override
   String get callingCardEditorResetConfirmBody =>
-      'Your layout is replaced with the default one.';
+      'Je opmaak wordt vervangen door de standaardopmaak.';
 
   @override
-  String get callingCardEditorReplaced => 'Layout replaced.';
+  String get callingCardEditorReplaced => 'Opmaak vervangen.';
 
   @override
-  String get callingCardEditorPreviewTitle => 'Preview';
+  String get callingCardEditorPreviewTitle => 'Voorbeeld';
 
   @override
   String callingCardEditorPreviewCaption(String size) {
-    return 'A sample dance on a $size card.';
+    return 'Een voorbeelddans op een kaart van $size.';
   }
 
   @override
-  String get callingCardEditorPreviewError => 'Couldn\'t draw the preview.';
+  String get callingCardEditorPreviewError =>
+      'Het voorbeeld kon niet worden getekend.';
 
   @override
   String callingCardEditorPreviewShrunk(int percent) {
-    return 'The text shrinks to $percent% to fit this card.';
+    return 'De tekst wordt verkleind tot $percent% om op deze kaart te passen.';
   }
 
   @override
   String get callingCardEditorPreviewOverflow =>
-      'This card doesn\'t fit even at half size, so its bottom is cut off. Take a block out, or add lines= to a long one.';
+      'Deze kaart past zelfs op halve grootte niet, dus de onderkant is afgesneden. Haal een blok weg, of voeg lines= toe aan een lang blok.';
 
   @override
-  String get callingCardEditorIssuesTitle => 'Lines that couldn\'t be read';
+  String get callingCardEditorIssuesTitle =>
+      'Regels die niet gelezen konden worden';
 
   @override
   String callingCardIssueUnknownBlock(int line, String name) {
-    return 'Line $line: \"$name\" isn\'t a block. The blocks are listed under How to write a layout.';
+    return 'Regel $line: \"$name\" is geen blok. De blokken staan onder Zo schrijf je een opmaak.';
   }
 
   @override
   String callingCardIssueUnknownOption(int line, String name) {
-    return 'Line $line: this block has no \"$name\" option.';
+    return 'Regel $line: dit blok heeft geen optie \"$name\".';
   }
 
   @override
   String callingCardIssueBadValue(int line, String option, String value) {
-    return 'Line $line: \"$value\" doesn\'t work for $option.';
+    return 'Regel $line: \"$value\" werkt niet voor $option.';
   }
 
   @override
   String callingCardIssueUnclosedQuote(int line) {
-    return 'Line $line: a quotation mark is never closed, so the whole line is skipped.';
+    return 'Regel $line: een aanhalingsteken wordt nooit gesloten, dus de hele regel wordt overgeslagen.';
   }
 
   @override
   String callingCardIssueMissingText(int line) {
-    return 'Line $line: text needs words in quotes, like text \"Called by me\".';
+    return 'Regel $line: text heeft woorden tussen aanhalingstekens nodig, zoals text \"Called by me\".';
   }
 
   @override
   String callingCardIssueCardNotAlone(int line) {
-    return 'Line $line: card sets up the whole card, so it needs a line of its own.';
+    return 'Regel $line: card stelt de hele kaart in en heeft dus een eigen regel nodig.';
   }
 
   @override
   String callingCardIssueEmptyBlock(int line) {
-    return 'Line $line: there\'s nothing on one side of a |.';
+    return 'Regel $line: aan één kant van een | staat niets.';
   }
 
   @override
-  String get callingCardHelpTitle => 'How to write a layout';
+  String get callingCardHelpTitle => 'Zo schrijf je een opmaak';
 
   @override
   String get callingCardHelpIntro =>
-      'Each line is one row of the card, from top to bottom. Start the line with a block\'s name, then add any options. Put | between blocks to place them side by side. A line starting with # is a note to yourself and isn\'t printed.';
+      'Elke regel is één rij van de kaart, van boven naar beneden. Begin de regel met de naam van een blok en voeg daarna eventuele opties toe. Zet | tussen blokken om ze naast elkaar te plaatsen. Een regel die met # begint, is een notitie voor jezelf en wordt niet afgedrukt.';
 
   @override
   String get callingCardHelpFields =>
-      'A block prints only what the dance has, and only fields turned on under Settings › Defaults (the dance fields in shared cards). A row with nothing to print takes no space. When a card is too full, everything on it shrinks evenly to fit, down to half size.';
+      'Een blok drukt alleen af wat de dans heeft, en alleen velden die aanstaan onder Instellingen › Standaardwaarden › Gedeelde dansvelden. Een rij zonder iets om af te drukken neemt geen ruimte in. Als een kaart te vol is, wordt alles erop gelijkmatig verkleind tot het past, tot halve grootte.';
 
   @override
   String get callingCardHelpTapToInsert =>
-      'Tap a name to add it to your layout.';
+      'Tik op een naam om die aan je opmaak toe te voegen.';
 
   @override
-  String get callingCardHelpBlocksTitle => 'Blocks';
+  String get callingCardHelpBlocksTitle => 'Blokken';
 
   @override
-  String get callingCardHelpOptionsTitle => 'Options';
+  String get callingCardHelpOptionsTitle => 'Opties';
 
   @override
-  String get callingCardHelpExamplesTitle => 'Examples';
+  String get callingCardHelpExamplesTitle => 'Voorbeelden';
 
   @override
-  String get callingCardHelpExampleUse => 'Use this layout';
+  String get callingCardHelpExampleUse => 'Deze opmaak gebruiken';
 
   @override
-  String get callingCardHelpBlockTitle => 'The dance\'s title.';
+  String get callingCardHelpBlockTitle => 'De titel van de dans.';
 
   @override
-  String get callingCardHelpBlockAuthors => 'Who wrote the dance.';
+  String get callingCardHelpBlockAuthors => 'Wie de dans heeft geschreven.';
 
   @override
   String get callingCardHelpBlockFormation =>
-      'The formation, such as Improper or Becket.';
+      'De opstelling, zoals Improper of Becket.';
 
   @override
-  String get callingCardHelpBlockLevel => 'The dance\'s level.';
+  String get callingCardHelpBlockLevel => 'Het niveau van de dans.';
 
   @override
   String get callingCardHelpBlockMeta =>
-      'Formation, level, mixer, status and phrase on one line, each with its label.';
+      'Opstelling, niveau, mixer, status en frase op één regel, elk met zijn label.';
 
   @override
   String get callingCardHelpBlockFigures =>
-      'The figures, grouped by phrase (A1, A2, B1, B2), with their beats.';
+      'De figuren, gegroepeerd per frase (A1, A2, B1, B2), met hun tellen.';
 
   @override
-  String get callingCardHelpBlockNotes => 'Your calling notes.';
+  String get callingCardHelpBlockNotes => 'Je callnotities.';
 
   @override
-  String get callingCardHelpBlockWalkthrough => 'The walkthrough.';
+  String get callingCardHelpBlockWalkthrough => 'De walkthrough.';
 
   @override
-  String get callingCardHelpBlockHook => 'The dance\'s hook.';
+  String get callingCardHelpBlockHook => 'De hook van de dans.';
 
   @override
-  String get callingCardHelpBlockTunes => 'Suggested tunes.';
+  String get callingCardHelpBlockTunes => 'Voorgestelde melodieën.';
 
   @override
-  String get callingCardHelpBlockSources => 'Published sources.';
+  String get callingCardHelpBlockSources => 'Gepubliceerde bronnen.';
 
   @override
   String get callingCardHelpBlockProgram =>
-      'The program\'s title, when you print a program.';
+      'De titel van het programma, als je een programma afdrukt.';
 
   @override
   String get callingCardHelpBlockNumber =>
-      'The dance\'s place in the program (1, 2, 3, or Alternate), when you print a program.';
+      'De plaats van de dans in het programma (1, 2, 3 of Alternatief), als je een programma afdrukt.';
 
   @override
-  String get callingCardHelpBlockText => 'Words of your own, in quotes.';
+  String get callingCardHelpBlockText =>
+      'Je eigen woorden, tussen aanhalingstekens.';
 
   @override
-  String get callingCardHelpBlockRule => 'A line across the card.';
+  String get callingCardHelpBlockRule => 'Een lijn over de kaart.';
 
   @override
-  String get callingCardHelpBlockSpace => 'A gap, in points (72 to an inch).';
+  String get callingCardHelpBlockSpace =>
+      'Een witruimte, in punten (72 per inch).';
 
   @override
   String get callingCardHelpBlockCard =>
-      'Settings for the whole card: margin is the space around the edge, in points.';
+      'Instellingen voor de hele kaart: margin is de ruimte langs de rand, in punten.';
 
   @override
-  String get callingCardHelpOptionSize => 'Text size, in points.';
+  String get callingCardHelpOptionSize => 'Tekstgrootte, in punten.';
 
   @override
-  String get callingCardHelpOptionStyle => 'Bold or slanted text.';
+  String get callingCardHelpOptionStyle => 'Vette of schuine tekst.';
 
   @override
-  String get callingCardHelpOptionAlign => 'Where the text sits in its space.';
+  String get callingCardHelpOptionAlign =>
+      'Waar de tekst in zijn ruimte staat.';
 
   @override
-  String get callingCardHelpOptionColor => 'Text or line color, as a hex code.';
+  String get callingCardHelpOptionColor => 'Tekst- of lijnkleur, als hexcode.';
 
   @override
   String get callingCardHelpOptionLines =>
-      'Print at most this many lines of a long block.';
+      'Druk hooguit zoveel regels van een lang blok af.';
 
   @override
   String get callingCardHelpOptionLabel =>
-      'Words in front of the text. label=\"\" prints none.';
+      'Woorden vóór de tekst. label=\"\" drukt er geen af.';
 
   @override
   String get callingCardHelpOptionWidth =>
-      'In a row, a block with width=2 takes twice the room of one with width=1.';
+      'In een rij neemt een blok met width=2 twee keer zoveel ruimte in als een met width=1.';
 
   @override
   String get callingCardHelpOptionFigures =>
-      'For figures: leave out the beats, the figures\' own notes, the phrase names, or the lines between phrases.';
+      'Voor figures: laat de tellen, de eigen notities van de figuren, de frasenamen of de lijnen tussen de frasen weg.';
 
   @override
   String get callingCardHelpOptionThickness =>
-      'How thick a rule is, in points.';
+      'Hoe dik een lijn is, in punten.';
 
   @override
-  String get callingCardExampleClassic => 'Classic';
+  String get callingCardExampleClassic => 'Klassiek';
 
   @override
-  String get callingCardExampleBigPrint => 'Big print';
+  String get callingCardExampleBigPrint => 'Grote letters';
 
   @override
-  String get callingCardExampleProgram => 'Program night';
+  String get callingCardExampleProgram => 'Programma-avond';
 
   @override
-  String get callingCardExampleTeaching => 'Teaching card';
+  String get callingCardExampleTeaching => 'Leskaart';
 
   @override
-  String get callingCardSampleTitle => 'Sample Contra';
+  String get callingCardSampleTitle => 'Voorbeeldcontra';
 
   @override
   String get callingCardSampleAuthor => 'A. Caller';
 
   @override
-  String get callingCardSampleNotes => 'Slide left along the line to progress.';
+  String get callingCardSampleNotes =>
+      'Schuif naar links langs de rij om door te schuiven.';
 
   @override
-  String get callingCardSampleFigureNote => 'Hold on for the whole turn.';
+  String get callingCardSampleFigureNote => 'Houd vast voor de hele draai.';
 
   @override
-  String get callingCardSampleProgram => 'Friday Night Dance';
+  String get callingCardSampleProgram => 'Vrijdagavonddans';
 
   @override
-  String get exportPrintCallingCard => 'Print calling card';
+  String get exportPrintCallingCard => 'Callkaart afdrukken';
 
   @override
-  String get exportPrintCallingCards => 'Print calling cards';
+  String get exportPrintCallingCards => 'Callkaarten afdrukken';
 
   @override
   String exportCallingCardsCutOff(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count cards didn\'t fit and are cut off at the bottom.',
-      one: '1 card didn\'t fit and is cut off at the bottom.',
+      other: '$count kaarten pasten niet en zijn onderaan afgesneden.',
+      one: '1 kaart paste niet en is onderaan afgesneden.',
     );
     return '$_temp0';
   }

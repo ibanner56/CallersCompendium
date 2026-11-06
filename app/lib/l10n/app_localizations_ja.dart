@@ -11153,31 +11153,31 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get settingsCallingCardsHeader => 'Calling cards';
+  String get settingsCallingCardsHeader => 'コーリングカード';
 
   @override
-  String get settingsCallingCardsEnableTitle => 'Print calling cards';
+  String get settingsCallingCardsEnableTitle => 'コーリングカードを印刷';
 
   @override
   String get settingsCallingCardsEnableSubtitle =>
-      'Adds Print calling card to a dance\'s Export menu, and Print calling cards to a program\'s: one small card per dance, laid out the way you choose below.';
+      'ダンスのエクスポートメニューに「コーリングカードを印刷」を、プログラムのエクスポートメニューに「コーリングカードをまとめて印刷」を追加します。ダンス1つにつき小さなカード1枚を、下で選んだレイアウトで印刷します。';
 
   @override
-  String get settingsCallingCardsSizeTitle => 'Card size';
+  String get settingsCallingCardsSizeTitle => 'カードのサイズ';
 
   @override
   String settingsCallingCardsSizeIndexCard(String size) {
-    return 'Index card, $size';
+    return 'インデックスカード（$size）';
   }
 
   @override
   String settingsCallingCardsSizeIsoA(String name, String size) {
-    return '$name ($size)';
+    return '$name（$size）';
   }
 
   @override
   String settingsCallingCardsSizeInches(String width, String height) {
-    return '$width × $height in';
+    return '$width × $height インチ';
   }
 
   @override
@@ -11186,274 +11186,263 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get settingsCallingCardsSizeCustom => 'Custom size';
+  String get settingsCallingCardsSizeCustom => 'カスタムサイズ';
 
   @override
-  String get settingsCallingCardsWidthLabel => 'Width';
+  String get settingsCallingCardsWidthLabel => '幅';
 
   @override
-  String get settingsCallingCardsHeightLabel => 'Height';
+  String get settingsCallingCardsHeightLabel => '高さ';
 
   @override
-  String get settingsCallingCardsUnitInches => 'Inches';
+  String get settingsCallingCardsUnitInches => 'インチ';
 
   @override
-  String get settingsCallingCardsUnitMillimetres => 'Millimetres';
+  String get settingsCallingCardsUnitMillimetres => 'ミリメートル';
 
   @override
-  String get settingsCallingCardsSizeInvalid =>
-      'Each side must be from 1 to 14 inches (25 to 356 mm).';
+  String get settingsCallingCardsSizeInvalid => '各辺は1～14インチ（25～356 mm）にしてください。';
 
   @override
-  String get settingsCallingCardsLandscapeTitle => 'Landscape';
+  String get settingsCallingCardsLandscapeTitle => '横向き';
 
   @override
-  String get settingsCallingCardsLandscapeSubtitle =>
-      'Print with the long side across the top.';
+  String get settingsCallingCardsLandscapeSubtitle => '長い辺を上にして印刷します。';
 
   @override
-  String get settingsCallingCardsLayoutTitle => 'Card layout';
+  String get settingsCallingCardsLayoutTitle => 'カードのレイアウト';
 
   @override
-  String get settingsCallingCardsLayoutSubtitle =>
-      'Choose what goes on each card, and where.';
+  String get settingsCallingCardsLayoutSubtitle => '各カードに何をどこに載せるかを選びます。';
 
   @override
-  String get callingCardEditorTitle => 'Calling card layout';
+  String get callingCardEditorTitle => 'コーリングカードのレイアウト';
 
   @override
-  String get callingCardEditorFieldLabel => 'Layout';
+  String get callingCardEditorFieldLabel => 'レイアウト';
 
   @override
-  String get callingCardEditorAutosaveHint => 'Changes are saved as you type.';
+  String get callingCardEditorAutosaveHint => '変更は入力中に保存されます。';
 
   @override
-  String get callingCardEditorReset => 'Reset to default';
+  String get callingCardEditorReset => 'デフォルトに戻す';
 
   @override
-  String get callingCardEditorResetConfirmTitle => 'Reset the layout?';
+  String get callingCardEditorResetConfirmTitle => 'レイアウトを戻しますか？';
 
   @override
   String get callingCardEditorResetConfirmBody =>
-      'Your layout is replaced with the default one.';
+      '現在のレイアウトはデフォルトのレイアウトに置き換えられます。';
 
   @override
-  String get callingCardEditorReplaced => 'Layout replaced.';
+  String get callingCardEditorReplaced => 'レイアウトを置き換えました。';
 
   @override
-  String get callingCardEditorPreviewTitle => 'Preview';
+  String get callingCardEditorPreviewTitle => 'プレビュー';
 
   @override
   String callingCardEditorPreviewCaption(String size) {
-    return 'A sample dance on a $size card.';
+    return '$sizeのカードに載せたサンプルのダンス。';
   }
 
   @override
-  String get callingCardEditorPreviewError => 'Couldn\'t draw the preview.';
+  String get callingCardEditorPreviewError => 'プレビューを表示できませんでした。';
 
   @override
   String callingCardEditorPreviewShrunk(int percent) {
-    return 'The text shrinks to $percent% to fit this card.';
+    return 'このカードに収めるため、文字を$percent%に縮小しています。';
   }
 
   @override
   String get callingCardEditorPreviewOverflow =>
-      'This card doesn\'t fit even at half size, so its bottom is cut off. Take a block out, or add lines= to a long one.';
+      'このカードは半分の大きさにしても収まらないため、下の部分が切れています。ブロックを1つ減らすか、長いブロックに lines= を付けてください。';
 
   @override
-  String get callingCardEditorIssuesTitle => 'Lines that couldn\'t be read';
+  String get callingCardEditorIssuesTitle => '読み取れなかった行';
 
   @override
   String callingCardIssueUnknownBlock(int line, String name) {
-    return 'Line $line: \"$name\" isn\'t a block. The blocks are listed under How to write a layout.';
+    return '$line行目：「$name」はブロックではありません。ブロックの一覧は「レイアウトの書き方」にあります。';
   }
 
   @override
   String callingCardIssueUnknownOption(int line, String name) {
-    return 'Line $line: this block has no \"$name\" option.';
+    return '$line行目：このブロックに「$name」オプションはありません。';
   }
 
   @override
   String callingCardIssueBadValue(int line, String option, String value) {
-    return 'Line $line: \"$value\" doesn\'t work for $option.';
+    return '$line行目：「$value」は$optionには使えません。';
   }
 
   @override
   String callingCardIssueUnclosedQuote(int line) {
-    return 'Line $line: a quotation mark is never closed, so the whole line is skipped.';
+    return '$line行目：引用符が閉じられていないため、この行全体を飛ばします。';
   }
 
   @override
   String callingCardIssueMissingText(int line) {
-    return 'Line $line: text needs words in quotes, like text \"Called by me\".';
+    return '$line行目：text には引用符で囲んだ言葉が必要です（例：text \"Called by me\"）。';
   }
 
   @override
   String callingCardIssueCardNotAlone(int line) {
-    return 'Line $line: card sets up the whole card, so it needs a line of its own.';
+    return '$line行目：card はカード全体を設定するため、1行に単独で書いてください。';
   }
 
   @override
   String callingCardIssueEmptyBlock(int line) {
-    return 'Line $line: there\'s nothing on one side of a |.';
+    return '$line行目：| の片側に何もありません。';
   }
 
   @override
-  String get callingCardHelpTitle => 'How to write a layout';
+  String get callingCardHelpTitle => 'レイアウトの書き方';
 
   @override
   String get callingCardHelpIntro =>
-      'Each line is one row of the card, from top to bottom. Start the line with a block\'s name, then add any options. Put | between blocks to place them side by side. A line starting with # is a note to yourself and isn\'t printed.';
+      '1行がカードの1段で、上から下へ並びます。行の最初にブロック名を書き、続けてオプションを付けます。ブロックの間に | を入れると横に並びます。# で始まる行は自分用のメモで、印刷されません。';
 
   @override
   String get callingCardHelpFields =>
-      'A block prints only what the dance has, and only fields turned on under Settings › Defaults (the dance fields in shared cards). A row with nothing to print takes no space. When a card is too full, everything on it shrinks evenly to fit, down to half size.';
+      'ブロックはダンスにある情報だけを印刷し、「設定 › デフォルト › 共有するダンス項目」でオンになっている項目だけを印刷します。印刷する内容がない段は場所を取りません。カードに収まりきらないときは、すべてが同じ割合で縮小され、最小で半分の大きさになります。';
 
   @override
-  String get callingCardHelpTapToInsert =>
-      'Tap a name to add it to your layout.';
+  String get callingCardHelpTapToInsert => '名前をタップすると、レイアウトに追加されます。';
 
   @override
-  String get callingCardHelpBlocksTitle => 'Blocks';
+  String get callingCardHelpBlocksTitle => 'ブロック';
 
   @override
-  String get callingCardHelpOptionsTitle => 'Options';
+  String get callingCardHelpOptionsTitle => 'オプション';
 
   @override
-  String get callingCardHelpExamplesTitle => 'Examples';
+  String get callingCardHelpExamplesTitle => '例';
 
   @override
-  String get callingCardHelpExampleUse => 'Use this layout';
+  String get callingCardHelpExampleUse => 'このレイアウトを使う';
 
   @override
-  String get callingCardHelpBlockTitle => 'The dance\'s title.';
+  String get callingCardHelpBlockTitle => 'ダンスのタイトル。';
 
   @override
-  String get callingCardHelpBlockAuthors => 'Who wrote the dance.';
+  String get callingCardHelpBlockAuthors => 'ダンスの作者。';
 
   @override
-  String get callingCardHelpBlockFormation =>
-      'The formation, such as Improper or Becket.';
+  String get callingCardHelpBlockFormation => 'フォーメーション（Improper、Becket など）。';
 
   @override
-  String get callingCardHelpBlockLevel => 'The dance\'s level.';
+  String get callingCardHelpBlockLevel => 'ダンスのレベル。';
 
   @override
   String get callingCardHelpBlockMeta =>
-      'Formation, level, mixer, status and phrase on one line, each with its label.';
+      'フォーメーション、レベル、ミキサー、ステータス、フレーズを、それぞれのラベル付きで1行に。';
 
   @override
   String get callingCardHelpBlockFigures =>
-      'The figures, grouped by phrase (A1, A2, B1, B2), with their beats.';
+      'フレーズ（A1、A2、B1、B2）ごとにまとめたフィギュアと、その拍数。';
 
   @override
-  String get callingCardHelpBlockNotes => 'Your calling notes.';
+  String get callingCardHelpBlockNotes => 'コーリングノート。';
 
   @override
-  String get callingCardHelpBlockWalkthrough => 'The walkthrough.';
+  String get callingCardHelpBlockWalkthrough => 'ウォークスルー。';
 
   @override
-  String get callingCardHelpBlockHook => 'The dance\'s hook.';
+  String get callingCardHelpBlockHook => 'ダンスのフック。';
 
   @override
-  String get callingCardHelpBlockTunes => 'Suggested tunes.';
+  String get callingCardHelpBlockTunes => 'おすすめの曲。';
 
   @override
-  String get callingCardHelpBlockSources => 'Published sources.';
+  String get callingCardHelpBlockSources => '出典。';
 
   @override
-  String get callingCardHelpBlockProgram =>
-      'The program\'s title, when you print a program.';
+  String get callingCardHelpBlockProgram => 'プログラムを印刷するときの、プログラムのタイトル。';
 
   @override
   String get callingCardHelpBlockNumber =>
-      'The dance\'s place in the program (1, 2, 3, or Alternate), when you print a program.';
+      'プログラムを印刷するときの、プログラム内でのダンスの順番（1、2、3、または代替）。';
 
   @override
-  String get callingCardHelpBlockText => 'Words of your own, in quotes.';
+  String get callingCardHelpBlockText => '引用符で囲んだ自分の言葉。';
 
   @override
-  String get callingCardHelpBlockRule => 'A line across the card.';
+  String get callingCardHelpBlockRule => 'カードを横切る線。';
 
   @override
-  String get callingCardHelpBlockSpace => 'A gap, in points (72 to an inch).';
+  String get callingCardHelpBlockSpace => 'ポイント単位の余白（1インチ＝72ポイント）。';
 
   @override
-  String get callingCardHelpBlockCard =>
-      'Settings for the whole card: margin is the space around the edge, in points.';
+  String get callingCardHelpBlockCard => 'カード全体の設定：margin はふちの余白（ポイント単位）です。';
 
   @override
-  String get callingCardHelpOptionSize => 'Text size, in points.';
+  String get callingCardHelpOptionSize => '文字の大きさ（ポイント単位）。';
 
   @override
-  String get callingCardHelpOptionStyle => 'Bold or slanted text.';
+  String get callingCardHelpOptionStyle => '太字または斜体。';
 
   @override
-  String get callingCardHelpOptionAlign => 'Where the text sits in its space.';
+  String get callingCardHelpOptionAlign => '文字を置く位置。';
 
   @override
-  String get callingCardHelpOptionColor => 'Text or line color, as a hex code.';
+  String get callingCardHelpOptionColor => '文字や線の色（16進コード）。';
 
   @override
-  String get callingCardHelpOptionLines =>
-      'Print at most this many lines of a long block.';
+  String get callingCardHelpOptionLines => '長いブロックを印刷する最大行数。';
 
   @override
-  String get callingCardHelpOptionLabel =>
-      'Words in front of the text. label=\"\" prints none.';
+  String get callingCardHelpOptionLabel => '本文の前に付ける言葉。label=\"\" で何も付けません。';
 
   @override
   String get callingCardHelpOptionWidth =>
-      'In a row, a block with width=2 takes twice the room of one with width=1.';
+      '1つの段の中で、width=2 のブロックは width=1 のブロックの2倍の幅を取ります。';
 
   @override
   String get callingCardHelpOptionFigures =>
-      'For figures: leave out the beats, the figures\' own notes, the phrase names, or the lines between phrases.';
+      'figures 用：拍数、フィギュアごとのメモ、フレーズ名、フレーズ間の線を省きます。';
 
   @override
-  String get callingCardHelpOptionThickness =>
-      'How thick a rule is, in points.';
+  String get callingCardHelpOptionThickness => '線の太さ（ポイント単位）。';
 
   @override
-  String get callingCardExampleClassic => 'Classic';
+  String get callingCardExampleClassic => 'クラシック';
 
   @override
-  String get callingCardExampleBigPrint => 'Big print';
+  String get callingCardExampleBigPrint => '大きな文字';
 
   @override
-  String get callingCardExampleProgram => 'Program night';
+  String get callingCardExampleProgram => 'プログラムの夜';
 
   @override
-  String get callingCardExampleTeaching => 'Teaching card';
+  String get callingCardExampleTeaching => 'ティーチング用';
 
   @override
-  String get callingCardSampleTitle => 'Sample Contra';
+  String get callingCardSampleTitle => 'サンプル・コントラ';
 
   @override
-  String get callingCardSampleAuthor => 'A. Caller';
+  String get callingCardSampleAuthor => 'A. コーラー';
 
   @override
-  String get callingCardSampleNotes => 'Slide left along the line to progress.';
+  String get callingCardSampleNotes => '列に沿って左へスライドして進みます。';
 
   @override
-  String get callingCardSampleFigureNote => 'Hold on for the whole turn.';
+  String get callingCardSampleFigureNote => '回り終えるまで手を離さずに。';
 
   @override
-  String get callingCardSampleProgram => 'Friday Night Dance';
+  String get callingCardSampleProgram => '金曜の夜のダンス';
 
   @override
-  String get exportPrintCallingCard => 'Print calling card';
+  String get exportPrintCallingCard => 'コーリングカードを印刷';
 
   @override
-  String get exportPrintCallingCards => 'Print calling cards';
+  String get exportPrintCallingCards => 'コーリングカードをまとめて印刷';
 
   @override
   String exportCallingCardsCutOff(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count cards didn\'t fit and are cut off at the bottom.',
-      one: '1 card didn\'t fit and is cut off at the bottom.',
+      other: '$count枚のカードが収まらず、下の部分が切れています。',
     );
     return '$_temp0';
   }
