@@ -781,8 +781,10 @@ class _FigureEditor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final move = _move;
     final paramSpecs = move?.params ?? const <String, ParamSpec>{};
+    final any = figure.isAnyFigure;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -791,20 +793,37 @@ class _FigureEditor extends StatelessWidget {
           runSpacing: 4,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            SizedBox(
-              width: 200,
-              child: _MoveField(
-                key: ValueKey('move-${figure.id}'),
+            // "Any figure" has no move, section or parameters to choose.
+            if (!any) ...[
+              SizedBox(
+                width: 200,
+                child: _MoveField(
+                  key: ValueKey('move-${figure.id}'),
+                  figure: figure,
+                  taxonomy: taxonomy,
+                  dialect: dialect,
+                  onChanged: onChanged,
+                ),
+              ),
+              _SectionDropdown(
                 figure: figure,
-                taxonomy: taxonomy,
-                dialect: dialect,
+                sectionLabels: sectionLabels,
                 onChanged: onChanged,
               ),
-            ),
-            _SectionDropdown(
-              figure: figure,
-              sectionLabels: sectionLabels,
-              onChanged: onChanged,
+            ],
+            FilterChip(
+              key: ValueKey('any-figure-${figure.id}'),
+              label: Text(l10n.collectionQueryAnyFigure),
+              selected: any,
+              onSelected: (selected) {
+                figure.isAnyFigure = selected;
+                if (selected) {
+                  figure.move = null;
+                  figure.section = null;
+                  figure.params.clear();
+                }
+                onChanged();
+              },
             ),
           ],
         ),

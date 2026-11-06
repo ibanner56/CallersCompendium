@@ -7221,6 +7221,12 @@ abstract class AppLocalizations {
   /// **'Has tag (not available on {source})'**
   String collectionQueryHasTagUnavailable(String source);
 
+  /// Toggle on an Advanced-query figure row: the row asks for any figure at all instead of a chosen move, so a sequence can read swing, then anything. Matches every figure.
+  ///
+  /// In en, this message translates to:
+  /// **'Any figure'**
+  String get collectionQueryAnyFigure;
+
   /// Accessibility label of the tag dropdown on an Advanced-query 'Has tag' row.
   ///
   /// In en, this message translates to:

@@ -290,6 +290,60 @@ void main() {
   // _ThenRow basic rendering
   // -------------------------------------------------------------------------
 
+  group('"Any figure" on a figure row', () {
+    testWidgets('the chip makes the row ask for any figure, and hides the '
+        'move field and section', (tester) async {
+      final row = BuilderFigure(move: 'swing', section: 'A1');
+      final root = BuilderGroup(children: [row]);
+      var changes = 0;
+      await _pump(
+        tester,
+        root: root,
+        sectionLabels: const ['A1'],
+        onChanged: () => changes++,
+      );
+      expect(find.byKey(ValueKey('move-${row.id}')), findsOneWidget);
+
+      await tester.tap(find.byKey(ValueKey('any-figure-${row.id}')));
+      await tester.pumpAndSettle();
+
+      expect(row.isAnyFigure, isTrue);
+      expect(row.move, isNull, reason: 'the old move is dropped');
+      expect(row.section, isNull);
+      expect(changes, 1);
+      expect(find.byKey(ValueKey('move-${row.id}')), findsNothing);
+      expect(
+        tester
+            .widget<FilterChip>(find.byKey(ValueKey('any-figure-${row.id}')))
+            .selected,
+        isTrue,
+      );
+      expect((root.toFilter()! as FigureFilter).query, same(anyFigure));
+    });
+
+    testWidgets('tapping the chip again brings the move field back', (
+      tester,
+    ) async {
+      final row = BuilderFigure(isAnyFigure: true);
+      final root = BuilderGroup(children: [row]);
+      await _pump(tester, root: root);
+      expect(find.byKey(ValueKey('move-${row.id}')), findsNothing);
+
+      await tester.tap(find.byKey(ValueKey('any-figure-${row.id}')));
+      await tester.pumpAndSettle();
+
+      expect(row.isAnyFigure, isFalse);
+      expect(find.byKey(ValueKey('move-${row.id}')), findsOneWidget);
+      expect(root.toFilter(), isNull, reason: 'no move chosen yet');
+    });
+
+    testWidgets('each side of a then has the chip', (tester) async {
+      final root = BuilderGroup(children: [BuilderThen()]);
+      await _pump(tester, root: root);
+      expect(find.text('Any figure'), findsNWidgets(2));
+    });
+  });
+
   group('_ThenRow basic rendering', () {
     testWidgets('renders First / then / Later labels', (tester) async {
       final root = BuilderGroup(children: [BuilderThen()]);
@@ -830,7 +884,10 @@ void _paramChoiceTests() {
               'model and keep filtering',
         );
         // What the UI promises and what the query does now agree.
-        expect(figure.toFigureQuery()?.params, isNot(contains('hand')));
+        expect(
+          (figure.toFigureQuery() as FigureLeaf?)?.params,
+          isNot(contains('hand')),
+        );
       },
     );
   });

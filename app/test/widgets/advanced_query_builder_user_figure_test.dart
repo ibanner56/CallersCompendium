@@ -127,7 +127,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(row.move, customMove);
     expect(row.params, {userFigureRefKey: 'zoom-id'});
-    final leaf = row.toFigureQuery()!;
+    final leaf = row.toFigureQuery()! as FigureLeaf;
     expect(leaf.move, customMove);
     expect(leaf.params, {userFigureRefKey: 'zoom-id'});
   });

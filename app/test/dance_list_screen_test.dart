@@ -2656,6 +2656,36 @@ void main() {
     });
   });
 
+  testWidgets('an "Any figure" row on ContraDB sends ContraDB\'s wildcard', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    final requests = <ContraDbSearchRequest>[];
+    final contraDb = ContraDbOnline(
+      searchFetcher: (request) async {
+        requests.add(request);
+        return '{"numberMatching":0,"dances":[]}';
+      },
+    );
+    await _pumpScreen(tester, repos, contraDbOnline: contraDb);
+    await tester.pumpAndSettle();
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('online-search-enable')),
+    );
+    await tester.tap(find.text('ContraDB'));
+    await tester.pumpAndSettle();
+
+    await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
+    await _tapVisible(tester, find.text('Add'));
+    await _tapVisible(tester, find.text('Has figure'));
+    await _tapVisible(tester, find.text('Any figure'));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+
+    expect(requests.single.expression, ['figure', '*']);
+  });
+
   testWidgets('advanced builder: add a "then" sequence row', (tester) async {
     final repos = openTestRepositories();
     await repos.dances.create(_dance(id: 'a', title: 'Alpha'));

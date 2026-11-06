@@ -78,6 +78,7 @@ class ContraDbAdvancedRefused extends ContraDbAdvancedTranslation {
 /// | [OrFilter] | `["or", …]` |
 /// | [NotFilter] | `["no", …]` (the dance does not match the operand) |
 /// | [FigureFilter] over a [FigureLeaf] | `["figure", <move>]` |
+/// | [anyFigure] (an empty [FigureAnd]) | `["figure", "*"]` (any figure) |
 /// | [FigureAnd] (same figure) | `["&", …]` (figurewise and) |
 /// | [FigureOr] | `["or", …]` |
 /// | [FigureNot] under [FigureFilter] | `["no", …]` ("no figure matches") |
@@ -184,6 +185,9 @@ class _Walk {
         ignored.addAll(withParams.ignored);
         final expression = withParams.expression ?? fragment;
         return orbitless ? _withoutOrbit(expression) : _copy(expression);
+      case FigureAnd(children: []):
+        // [anyFigure]: ContraDB's wildcard, which matches every figure.
+        return <Object?>['figure', '*'];
       case FigureAnd(:final children):
         return _combine('&', children, (c) => figure(c, negated: negated));
       case FigureOr(:final children):
