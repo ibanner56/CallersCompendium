@@ -93,6 +93,11 @@ def test_any_other_changed_line_does_not() -> None:
     assert not _bump(
         _yml("on: issue_comment", "jobs:", "        uses: someone/else@" + NEW, "        with: {}")
     )
+    # Re-indenting the pin line, or making it a new sequence item, changes the
+    # YAML structure even though both lines are pins.
+    for prefix in ["      - uses: ", "          uses: ", "\tuses: "]:
+        moved = prefix + "anthropics/claude-code-action@" + NEW + " # v1.0.300"
+        assert not _bump(_yml("on: issue_comment", "jobs:", moved, "        with: {}")), prefix
 
 
 def test_an_added_or_dropped_line_does_not() -> None:

@@ -107,7 +107,8 @@ def pin_moves(before: bytes, after: bytes) -> set[bytes] | None:
     ``None`` unless that is the only change.
 
     Every line of [after] must equal the same line of [before], except pin
-    lines that were pins before and are pins after (compared as bytes, split on
+    lines that were pins before and are pins after, with the same bytes up to
+    the SHA, so indentation and a `- ` marker cannot change (compared as bytes, split on
     ``\\n`` only). An unchanged file moves nothing: the empty set.
     """
     old_lines = before.split(b"\n")
@@ -121,6 +122,10 @@ def pin_moves(before: bytes, after: bytes) -> set[bytes] | None:
         old_pin = _ACTION_PIN.fullmatch(old)
         new_pin = _ACTION_PIN.fullmatch(new)
         if not old_pin or not new_pin:
+            return None
+        # Everything before the SHA (indentation, a `- ` marker) must stay put:
+        # changing it moves the line to another place in the YAML structure.
+        if old[: old_pin.start(1)] != new[: new_pin.start(1)]:
             return None
         moved.add(new_pin.group(1))
     return moved
