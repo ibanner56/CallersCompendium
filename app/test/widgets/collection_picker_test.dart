@@ -1305,6 +1305,66 @@ void main() {
     expect(find.text('smooth'), findsWidgets);
   });
 
+  testWidgets('the parent turning online search off restores the tag rows in '
+      'the picker', (tester) async {
+    final repos = openTestRepositories();
+    // ignore: unused_result
+    await repos.tags.upsert(Tag(id: 't1', name: 'smooth'));
+    await repos.dances.create(
+      _dance(id: 'a', title: 'Smooth', tagIds: const ['t1']),
+    );
+    final contraDb = ContraDbOnline(
+      searchFetcher: (_) async => '{"numberMatching":0,"dances":[]}',
+    );
+    final tagDropdown = find.byWidgetPredicate(
+      (w) =>
+          w is DropdownButtonFormField<String> &&
+          w.key is ValueKey<String> &&
+          (w.key! as ValueKey<String>).value.startsWith('tag-'),
+    );
+    await _pumpPicker(
+      tester,
+      repos,
+      onAddDance: (_) {},
+      enableOnlineSearch: true,
+      contraDbOnline: contraDb,
+    );
+    await tester.pumpAndSettle();
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('picker-advanced-panel')),
+    );
+    await _tapVisible(tester, find.text('Add'));
+    await _tapVisible(tester, find.text('Has tag').last);
+    await _tapVisible(tester, tagDropdown);
+    await tester.tap(find.text('smooth').last);
+    await tester.pumpAndSettle();
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('picker-online-search-enable')),
+    );
+    await tester.tap(find.text('ContraDB'));
+    await tester.pumpAndSettle();
+    expect(tagDropdown, findsNothing);
+
+    // The parent stops offering online search: the picker is local again.
+    await _pumpPicker(
+      tester,
+      repos,
+      onAddDance: (_) {},
+      enableOnlineSearch: false,
+      contraDbOnline: contraDb,
+    );
+    await tester.pumpAndSettle();
+    if (tagDropdown.evaluate().isEmpty) {
+      await _tapVisible(
+        tester,
+        find.byKey(const ValueKey('picker-advanced-panel')),
+      );
+    }
+    expect(tagDropdown, findsOneWidget);
+  });
+
   group('search enrichment (saved-dialect vocabulary)', () {
     // A saved dialect the user is NOT actively using (active is Larks/Robins):
     // maps role2 → follow, so "follows" should resolve to role2s via the union

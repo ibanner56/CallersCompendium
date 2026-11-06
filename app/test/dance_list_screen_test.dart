@@ -2369,6 +2369,57 @@ void main() {
     },
   );
 
+  testWidgets(
+    'an external tag request while on ContraDB leaves online mode and '
+    'restores the tag rows',
+    (tester) async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.tags.upsert(Tag(id: 't1', name: 'smooth'));
+      await repos.dances.create(
+        _dance(id: 'a', title: 'Smooth', tagIds: const ['t1']),
+      );
+      final filterController = CollectionFilterController();
+      addTearDown(filterController.dispose);
+      final contraDb = ContraDbOnline(
+        searchFetcher: (_) async => '{"numberMatching":0,"dances":[]}',
+      );
+      await _pumpScreen(
+        tester,
+        repos,
+        contraDbOnline: contraDb,
+        filterController: filterController,
+      );
+      await tester.pumpAndSettle();
+
+      await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
+      await _tapVisible(tester, find.text('Add'));
+      await _tapVisible(tester, find.text('Has tag').last);
+      await _tapVisible(
+        tester,
+        find.byType(DropdownButtonFormField<String>).first,
+      );
+      await tester.tap(find.text('smooth').last);
+      await tester.pumpAndSettle();
+
+      await _tapVisible(
+        tester,
+        find.byKey(const ValueKey('online-search-enable')),
+      );
+      await tester.tap(find.text('ContraDB'));
+      await tester.pumpAndSettle();
+
+      // A tag tapped elsewhere in the app takes the screen back to the local
+      // library; the Advanced query's tag row comes back with it.
+      filterController.filterByTag('t1');
+      await tester.pumpAndSettle();
+      if (find.byType(DropdownButtonFormField<String>).evaluate().isEmpty) {
+        await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
+      }
+      expect(find.byType(DropdownButtonFormField<String>), findsOneWidget);
+    },
+  );
+
   testWidgets('clearing the search on ContraDB forgets the removed tag rows', (
     tester,
   ) async {

@@ -294,6 +294,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
       _onlineSeq++;
       setState(() {
         _onlineEnabled = false;
+        _syncAdvancedTagRows();
         _ftsScope = _localFtsScope;
         _onlineResults = const [];
         _onlineError = null;

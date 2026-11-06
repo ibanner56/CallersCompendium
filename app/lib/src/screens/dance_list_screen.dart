@@ -582,6 +582,7 @@ class _DanceListScreenState extends State<DanceListScreen>
     setState(() {
       _ftsScope = _localFtsScope;
       _onlineEnabled = false;
+      _syncAdvancedTagRows();
       // Invalidate any in-flight online search so a late response can't
       // repopulate _onlineResults/_onlineError after we've left online mode.
       _onlineSeq++;
