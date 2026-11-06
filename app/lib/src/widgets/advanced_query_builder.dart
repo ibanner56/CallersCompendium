@@ -845,7 +845,11 @@ class _MoveField extends StatelessWidget {
         userFigureName,
         dialect,
       ),
-      final move => taxonomy.resolve(move)?.displayName ?? move,
+      // In the active dialect, as the suggestion that set it read.
+      final move =>
+        taxonomy.resolve(move) == null
+            ? move
+            : FigureRenderer(taxonomy).displayMoveName(move, dialect),
     };
     return MoveTypeAheadField(
       initialText: current,

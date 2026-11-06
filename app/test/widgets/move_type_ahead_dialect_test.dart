@@ -44,13 +44,15 @@ void main() {
       final row = BuilderFigure();
       await pumpHost(
         tester,
-        AdvancedQueryBuilder(
-          root: BuilderGroup(children: [row]),
-          taxonomy: contraTaxonomy,
-          dialect: dialect ?? Dialect.canonical,
-          sectionLabels: const [],
-          tags: const [],
-          onChanged: () {},
+        StatefulBuilder(
+          builder: (context, setState) => AdvancedQueryBuilder(
+            root: BuilderGroup(children: [row]),
+            taxonomy: contraTaxonomy,
+            dialect: dialect ?? Dialect.canonical,
+            sectionLabels: const [],
+            tags: const [],
+            onChanged: () => setState(() {}),
+          ),
         ),
         textScale: textScale,
       );
@@ -74,6 +76,11 @@ void main() {
       await tester.tap(option);
       await tester.pumpAndSettle();
       expect(row.move, 'swing');
+      // The resting text keeps reading in the dialect after the pick.
+      final input = tester.widget<TextField>(
+        find.byKey(ValueKey('has-figure-${row.id}-input')),
+      );
+      expect(input.controller!.text, 'buzz');
     });
 
     testWidgets('with no dialect, a dialect-only name finds nothing', (
