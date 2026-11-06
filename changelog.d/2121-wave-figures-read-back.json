@@ -1,0 +1,14 @@
+{
+  "id": "2121-wave-figures-read-back",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Typing or pasting a pass the ocean, form short waves, form long waves or form a long wave the way the figure list shows it now gives that figure, with its dancers, hands, direction and balance, instead of unrecognized text or a different move. For example, \"pass through to an ocean wave - robins catch left hands in the center, neighbors take right hands on the sides\" is a pass the ocean, not a pass through."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "The ContraDB figure reader also reads the app's display wording for `pass_the_ocean`, `form_short_waves`, `form_long_waves` (with `facing`, the pair held and the balance) and an in-place `form_a_long_wave`, and its `dance in to a long wave` subject takes `third corners` and `opposites`. The display's direction phrases moved to `displayDirectionPhrases` in `dance_vocabulary.dart`, which the renderer and the readers share."
+    ]
+  }
+}

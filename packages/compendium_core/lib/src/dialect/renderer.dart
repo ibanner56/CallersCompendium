@@ -1,4 +1,5 @@
 import '../model/figure.dart';
+import '../taxonomy/dance_vocabulary.dart' show displayDirectionPhrases;
 import '../taxonomy/gate_facing.dart';
 import '../taxonomy/move_def.dart';
 import '../taxonomy/param_opposites.dart';
@@ -2352,18 +2353,11 @@ class FigureRenderer {
   /// hand or shoulder beside it ("pull by right on left diagonal", "pull by
   /// right facing in"). `across` and `along` read as themselves. The
   /// canonical render keeps the humanized token ("right diagonal"), so the
-  /// FTS/dedupe text is unchanged. An unexpected value humanizes.
-  static const Map<String, String> _directionPhrases = {
-    'rightDiagonal': 'on right diagonal',
-    'leftDiagonal': 'on left diagonal',
-    'in': 'facing in',
-    'out': 'facing out',
-    'up': 'facing up',
-    'down': 'facing down',
-  };
-
+  /// FTS/dedupe text is unchanged. An unexpected value humanizes. The phrases
+  /// are [displayDirectionPhrases], which the figure readers share so a
+  /// displayed direction reads back (#2121).
   static String _displayDirection(Object? value) => value is String
-      ? _directionPhrases[value] ?? _humanize(value)
+      ? displayDirectionPhrases[value] ?? _humanize(value)
       : _displayScalar(value);
 
   /// Swing `endFacing` values that render an ending-facing clause (issue #543).
