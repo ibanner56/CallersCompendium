@@ -87,4 +87,93 @@ void main() {
       {'balance': true, 'who': 'partners', 'hand': 'left'},
     );
   });
+
+  group('swing', () {
+    test('reads the displayed ending facing', () {
+      expect(only('partner balance & swing, end facing up the hall').params, {
+        'who': 'partners',
+        'prefix': 'balance',
+        'endFacing': 'up',
+      });
+      expect(only('neighbor swing, end facing along the set').params, {
+        'who': 'neighbors',
+        'endFacing': 'along',
+      });
+    });
+
+    test('a facing with more after it is not this wording', () {
+      final f = only('partner swing, end facing up the hall gently');
+      expect(f.params['endFacing'], isNot('up'));
+    });
+  });
+
+  test('a promenade reads its displayed direction', () {
+    for (final (line, where) in [
+      ('partner promenade on left diagonal', 'leftDiagonal'),
+      ('partner promenade facing down', 'down'),
+      ('partner promenade across', 'across'),
+    ]) {
+      final f = only(line);
+      expect(f.move, 'promenade', reason: line);
+      expect(f.params['where'], where, reason: line);
+      expect(f.note, isNull, reason: line);
+    }
+  });
+
+  test('a revolving door reads the display\'s subjects', () {
+    expect(
+      only(
+        'revolving door - third corners take right hands and drop off '
+        'neighbor on other side',
+      ).params,
+      {'who': 'thirdCorners', 'hand': 'right', 'whom': 'neighbors'},
+    );
+  });
+
+  test('a take without the give reads its displayed partner', () {
+    expect(only('role1s take partner').params, {
+      'who': 'role1s',
+      'whom': 'partners',
+      'give': false,
+    });
+  });
+
+  group('halls', () {
+    test('read a displayed subject and forward then backward', () {
+      final who = only('third corners down the hall and turn as a couple');
+      expect(who.params['who'], 'thirdCorners');
+      expect(who.params['ender'], 'turnCouple');
+      final facing = only(
+        'up the hall forward then backward and bend into a ring',
+      );
+      expect(facing.params['facing'], 'forwardThenBackward');
+      expect(facing.params['ender'], 'circle');
+      expect(facing.note, isNull);
+    });
+
+    test('bend the line is still left as a note', () {
+      // ContraDB's own test pins this phrase as a note; reading it is a scope
+      // decision this batch does not take.
+      final f = only('down the hall and bend the line');
+      expect(f.params['ender'], isNot('bendTheLine'));
+    });
+  });
+
+  test('a single file circle reads as one', () {
+    expect(only('single file circle left 3 places').params, {
+      'direction': 'left',
+      'singleFile': true,
+      'places': 3,
+    });
+  });
+
+  test('a facing star reads counterclockwise and the display\'s subjects', () {
+    final f = only(
+      'facing star counterclockwise 3 places with third corners putting '
+      'their right hands in and backing up',
+    );
+    expect(f.params['direction'], 'counterclockwise');
+    expect(f.params['who'], 'thirdCorners');
+    expect(f.note, isNull);
+  });
 }

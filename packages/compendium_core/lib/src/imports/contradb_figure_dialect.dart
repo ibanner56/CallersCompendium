@@ -238,6 +238,7 @@ Figure? parseContraDbFigureLine(
 /// `balance`).
 const List<FigureMatch? Function(String)> _recognizers =
     <FigureMatch? Function(String)>[
+      _swingEndFacingDisplay,
       _swing,
       _passTheOcean,
       _passTheOceanDisplay,
@@ -484,7 +485,9 @@ FigureMatch? _allemande(String text) {
   return FigureMatch('allemande', params: params, note: s.note());
 }
 
-/// circle (generic renderer): `circle {left|right} {n} places`.
+/// circle (generic renderer): `circle {left|right} {n} places`, and the app's
+/// display of a single-file circle, `single file circle {left|right} …`
+/// (#2121).
 ///
 /// Issue #634: ContraDB free text occasionally phrases a single-file
 /// circulation around the ring as `promenade single file around the
@@ -509,11 +512,15 @@ FigureMatch? _circle(String text) {
   }
   s.reset(singleFileSave);
 
+  final singleFile = s.eatPhrase('single file');
   if (!s.eat('circle')) return null;
   final turn = _leftRight(s.peek());
   if (turn == null) return null;
   s.take();
-  final params = <String, Object?>{'direction': turn};
+  final params = <String, Object?>{
+    'direction': turn,
+    if (singleFile) 'singleFile': true,
+  };
   _eatPlaces(s, params);
   return FigureMatch('circle', params: params, note: s.note());
 }
@@ -1145,6 +1152,30 @@ FigureMatch? _figure8Display(String text) {
   );
 }
 
+/// A swing with its ending facing, in the app's display wording (#2121):
+/// "WHO [balance & | meltdown] swing, end facing FACING". Only a whole line
+/// with the facing is read, so every other swing line is left to [_swing] and
+/// the shared grammar.
+FigureMatch? _swingEndFacingDisplay(String text) {
+  final s = _Scan(text);
+  final who = _displaySubject(s);
+  if (who == null) return null;
+  String? prefix;
+  if (s.eat('meltdown')) {
+    prefix = 'meltdown';
+  } else if (s.eat('balance')) {
+    if (!s.eat('&')) return null;
+    prefix = 'balance';
+  }
+  if (!s.eat('swing') || !s.eatPhrase('end facing')) return null;
+  final endFacing = _displayFacing(s);
+  if (endFacing == null || s.peek() != null) return null;
+  return FigureMatch(
+    'swing',
+    params: {'who': who, 'prefix': ?prefix, 'endFacing': endFacing},
+  );
+}
+
 /// A subject as the app's display writes it (#2121): any [_subject], the
 /// singular the display uses for a pair (`neighbor`, `partner`, `shadow`), or
 /// a corner pairing ContraDB does not name (`third corners`, `opposites`).
@@ -1581,6 +1612,7 @@ FigureMatch? _promenade(String text) {
       s.take();
       params['where'] = dir;
     }
+    _readTrailingDisplayDirection(s, params);
     final turn = _promenadeTurn(s);
     if (turn != null) params['direction'] = turn;
   }
@@ -1745,18 +1777,19 @@ FigureMatch? _archAndDive(String text) {
 /// through to the shared recognizer / custom fallback instead.
 FigureMatch? _giveAndTake(String text) {
   final s = _Scan(text);
-  final who = _subject(s);
+  // The display's subjects too (`larks take partner`, #2121).
+  final who = _displaySubject(s);
   if (who == null) return null;
   final giveSave = s.pos;
   if (s.eat('give') && s.eat('&') && s.eat('take')) {
     final params = <String, Object?>{'who': who, 'give': true};
-    final whom = _subject(s);
+    final whom = _displaySubject(s);
     if (whom != null) params['whom'] = whom;
     return FigureMatch('give_and_take', params: params, note: s.note());
   }
   s.reset(giveSave);
   if (s.eat('take')) {
-    final whom = _subject(s);
+    final whom = _displaySubject(s);
     if (whom != null) {
       return FigureMatch(
         'give_and_take',
@@ -2190,7 +2223,8 @@ FigureMatch? _revolvingDoor(String text) {
   final params = <String, Object?>{};
   final save = s.pos;
   if (s.eat('-')) {
-    final who = _subject(s);
+    // The display's subjects too (#2121).
+    final who = _displaySubject(s);
     if (who != null && s.eat('take')) {
       params['who'] = who;
       final hand = _leftRight(s.peek());
@@ -2199,7 +2233,7 @@ FigureMatch? _revolvingDoor(String text) {
         params['hand'] = hand;
       }
       if (s.eatPhrase('hands and drop off')) {
-        final whom = _subject(s);
+        final whom = _displaySubject(s);
         if (whom != null) {
           params['whom'] = whom;
           s.eatPhrase('on other side');
@@ -2218,7 +2252,7 @@ FigureMatch? _facingStar(String text) {
   final s = _Scan(text);
   if (!s.eatPhrase('facing star')) return null;
   final params = <String, Object?>{};
-  final turn = _spinDir(s);
+  final turn = _displaySpin(s);
   if (turn != null) params['direction'] = turn;
   final n = int.tryParse(s.peek() ?? '');
   if (n != null) {
@@ -2231,7 +2265,8 @@ FigureMatch? _facingStar(String text) {
     }
   }
   if (s.eat('with')) {
-    final who = _subject(s);
+    // The display's subjects too (#2121).
+    final who = _displaySubject(s);
     if (who != null) params['who'] = who;
     if (s.eatPhrase('putting their')) {
       if (_leftRight(s.peek()) != null) s.take();
@@ -2339,7 +2374,8 @@ FigureMatch? _upTheHall(String text) => _hall(text, 'up', 'up_the_hall');
 /// FACING [and ENDER]".
 FigureMatch? _hall(String text, String dir, String moveId) {
   final s = _Scan(text);
-  final who = _subject(s);
+  // The display's subjects too (#2121).
+  final who = _displaySubject(s);
   if (!s.eat(dir)) return null;
   if (!s.eat('the')) return null;
   final String moving;
@@ -2518,11 +2554,12 @@ String? _spinDir(_Scan s) {
 
 /// Consumes a down/up-the-hall facing phrase.
 String? _hallFacing(_Scan s) {
-  final save = s.pos;
   if (s.eat('forward')) {
+    final save = s.pos;
     if (s.eat('and') && s.eat('back')) return 'forwardThenBackward';
     s.reset(save);
-    s.eat('forward');
+    // The display's wording of it (#2121).
+    if (s.eatPhrase('then backward')) return 'forwardThenBackward';
     return 'forward';
   }
   if (s.eat('backward') || s.eat('backing')) return 'backward';

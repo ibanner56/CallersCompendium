@@ -5,94 +5,18 @@
 #
 # One figure per line, tab-separated: dialect, move, the params set on it (JSON),
 # and the text it displays as.
-Canonical	swing	{"endFacing":"out"}	partner swing, end facing out of the set
-Canonical	swing	{"endFacing":"up"}	partner swing, end facing up the hall
-Canonical	swing	{"endFacing":"down"}	partner swing, end facing down the hall
-Canonical	swing	{"endFacing":"along"}	partner swing, end facing along the set
 Canonical	box_circulate	{"balance":false}	box circulate - role2s cross while role1s loop right
-Canonical	promenade	{"where":"rightDiagonal"}	partner promenade on right diagonal
-Canonical	promenade	{"where":"leftDiagonal"}	partner promenade on left diagonal
-Canonical	promenade	{"where":"in"}	partner promenade facing in
-Canonical	promenade	{"where":"out"}	partner promenade facing out
-Canonical	promenade	{"where":"up"}	partner promenade facing up
-Canonical	promenade	{"where":"down"}	partner promenade facing down
 Canonical	mad_robin	{"who":"unspecified"}	mad robin
-Canonical	revolving_door	{"who":"thirdCorners"}	revolving door - third corners take right hands and drop off partner on other side
-Canonical	revolving_door	{"who":"opposites"}	revolving door - opposites take right hands and drop off partner on other side
-Canonical	revolving_door	{"whom":"neighbors"}	revolving door - role2s take right hands and drop off neighbor on other side
-Canonical	revolving_door	{"whom":"shadows"}	revolving door - role2s take right hands and drop off shadow on other side
-Canonical	revolving_door	{"whom":"thirdCorners"}	revolving door - role2s take right hands and drop off third corners on other side
-Canonical	revolving_door	{"whom":"opposites"}	revolving door - role2s take right hands and drop off opposites on other side
-Canonical	give_and_take	{"give":false}	role1s take partner
-Canonical	down_the_hall	{"who":"partners"}	partner down the hall and turn as a couple
-Canonical	down_the_hall	{"who":"neighbors"}	neighbor down the hall and turn as a couple
-Canonical	down_the_hall	{"who":"shadows"}	shadow down the hall and turn as a couple
-Canonical	down_the_hall	{"who":"thirdCorners"}	third corners down the hall and turn as a couple
-Canonical	down_the_hall	{"who":"opposites"}	opposites down the hall and turn as a couple
 Canonical	down_the_hall	{"ender":"bendTheLine"}	down the hall and bend the line
-Canonical	down_the_hall	{"facing":"forwardThenBackward"}	down the hall forward then backward and turn as a couple
-Canonical	up_the_hall	{"who":"partners"}	partner up the hall and bend into a ring
-Canonical	up_the_hall	{"who":"neighbors"}	neighbor up the hall and bend into a ring
-Canonical	up_the_hall	{"who":"shadows"}	shadow up the hall and bend into a ring
-Canonical	up_the_hall	{"who":"thirdCorners"}	third corners up the hall and bend into a ring
-Canonical	up_the_hall	{"who":"opposites"}	opposites up the hall and bend into a ring
 Canonical	up_the_hall	{"ender":"bendTheLine"}	up the hall and bend the line
-Canonical	up_the_hall	{"facing":"forwardThenBackward"}	up the hall forward then backward and bend into a ring
 Canonical	slice	{"return":"none"}	slice left
 Canonical	figure_8	{"where":"none"}	ones half figure 8
-Canonical	circle	{"singleFile":true}	single file circle left 3 places
-Canonical	facing_star	{"who":"partners"}	facing star clockwise 3 places with partner putting their left hands in and backing up
-Canonical	facing_star	{"who":"neighbors"}	facing star clockwise 3 places with neighbor putting their left hands in and backing up
-Canonical	facing_star	{"who":"shadows"}	facing star clockwise 3 places with shadow putting their left hands in and backing up
-Canonical	facing_star	{"who":"thirdCorners"}	facing star clockwise 3 places with third corners putting their left hands in and backing up
-Canonical	facing_star	{"who":"opposites"}	facing star clockwise 3 places with opposites putting their left hands in and backing up
-Canonical	facing_star	{"direction":"counterclockwise"}	facing star counterclockwise 3 places with ones putting their right hands in and backing up
-Larks/Robins	swing	{"endFacing":"out"}	partner swing, end facing out of the set
-Larks/Robins	swing	{"endFacing":"up"}	partner swing, end facing up the hall
-Larks/Robins	swing	{"endFacing":"down"}	partner swing, end facing down the hall
-Larks/Robins	swing	{"endFacing":"along"}	partner swing, end facing along the set
 Larks/Robins	box_circulate	{"balance":false}	box circulate - robins cross while larks loop right
-Larks/Robins	promenade	{"where":"rightDiagonal"}	partner promenade on right diagonal
-Larks/Robins	promenade	{"where":"leftDiagonal"}	partner promenade on left diagonal
-Larks/Robins	promenade	{"where":"in"}	partner promenade facing in
-Larks/Robins	promenade	{"where":"out"}	partner promenade facing out
-Larks/Robins	promenade	{"where":"up"}	partner promenade facing up
-Larks/Robins	promenade	{"where":"down"}	partner promenade facing down
 Larks/Robins	mad_robin	{"who":"unspecified"}	mad robin
-Larks/Robins	revolving_door	{"who":"thirdCorners"}	revolving door - third corners take right hands and drop off partner on other side
-Larks/Robins	revolving_door	{"who":"opposites"}	revolving door - opposites take right hands and drop off partner on other side
-Larks/Robins	revolving_door	{"whom":"neighbors"}	revolving door - robins take right hands and drop off neighbor on other side
-Larks/Robins	revolving_door	{"whom":"shadows"}	revolving door - robins take right hands and drop off shadow on other side
-Larks/Robins	revolving_door	{"whom":"thirdCorners"}	revolving door - robins take right hands and drop off third corners on other side
-Larks/Robins	revolving_door	{"whom":"opposites"}	revolving door - robins take right hands and drop off opposites on other side
-Larks/Robins	give_and_take	{"give":false}	larks take partner
-Larks/Robins	down_the_hall	{"who":"partners"}	partner down the hall and turn as a couple
-Larks/Robins	down_the_hall	{"who":"neighbors"}	neighbor down the hall and turn as a couple
-Larks/Robins	down_the_hall	{"who":"shadows"}	shadow down the hall and turn as a couple
-Larks/Robins	down_the_hall	{"who":"thirdCorners"}	third corners down the hall and turn as a couple
-Larks/Robins	down_the_hall	{"who":"opposites"}	opposites down the hall and turn as a couple
 Larks/Robins	down_the_hall	{"ender":"bendTheLine"}	down the hall and bend the line
-Larks/Robins	down_the_hall	{"facing":"forwardThenBackward"}	down the hall forward then backward and turn as a couple
-Larks/Robins	up_the_hall	{"who":"partners"}	partner up the hall and bend into a ring
-Larks/Robins	up_the_hall	{"who":"neighbors"}	neighbor up the hall and bend into a ring
-Larks/Robins	up_the_hall	{"who":"shadows"}	shadow up the hall and bend into a ring
-Larks/Robins	up_the_hall	{"who":"thirdCorners"}	third corners up the hall and bend into a ring
-Larks/Robins	up_the_hall	{"who":"opposites"}	opposites up the hall and bend into a ring
 Larks/Robins	up_the_hall	{"ender":"bendTheLine"}	up the hall and bend the line
-Larks/Robins	up_the_hall	{"facing":"forwardThenBackward"}	up the hall forward then backward and bend into a ring
 Larks/Robins	slice	{"return":"none"}	slice left
 Larks/Robins	figure_8	{"where":"none"}	ones half figure 8
-Larks/Robins	circle	{"singleFile":true}	single file circle left 3 places
-Larks/Robins	facing_star	{"who":"partners"}	facing star clockwise 3 places with partner putting their left hands in and backing up
-Larks/Robins	facing_star	{"who":"neighbors"}	facing star clockwise 3 places with neighbor putting their left hands in and backing up
-Larks/Robins	facing_star	{"who":"shadows"}	facing star clockwise 3 places with shadow putting their left hands in and backing up
-Larks/Robins	facing_star	{"who":"thirdCorners"}	facing star clockwise 3 places with third corners putting their left hands in and backing up
-Larks/Robins	facing_star	{"who":"opposites"}	facing star clockwise 3 places with opposites putting their left hands in and backing up
-Larks/Robins	facing_star	{"direction":"counterclockwise"}	facing star counterclockwise 3 places with ones putting their right hands in and backing up
-Leads/Follows	swing	{"endFacing":"out"}	partner swing, end facing out of the set
-Leads/Follows	swing	{"endFacing":"up"}	partner swing, end facing up the hall
-Leads/Follows	swing	{"endFacing":"down"}	partner swing, end facing down the hall
-Leads/Follows	swing	{"endFacing":"along"}	partner swing, end facing along the set
 Leads/Follows	box_circulate	{}	balance & box circulate - follows cross while leads loop right
 Leads/Follows	box_circulate	{"who":"role1s"}	balance & box circulate - leads cross while follows loop right
 Leads/Follows	box_circulate	{"who":"role2s"}	balance & box circulate - follows cross while leads loop right
@@ -104,16 +28,8 @@ Leads/Follows	box_circulate	{"hand":"right"}	balance & box circulate - follows c
 Leads/Follows	box_circulate	{"hand":"left"}	balance & box circulate - follows cross while leads loop left
 Leads/Follows	box_circulate	{"balance":true}	balance & box circulate - follows cross while leads loop right
 Leads/Follows	box_circulate	{"balance":false}	box circulate - follows cross while leads loop right
-Leads/Follows	promenade	{"where":"rightDiagonal"}	partner promenade on right diagonal
-Leads/Follows	promenade	{"where":"leftDiagonal"}	partner promenade on left diagonal
-Leads/Follows	promenade	{"where":"in"}	partner promenade facing in
-Leads/Follows	promenade	{"where":"out"}	partner promenade facing out
-Leads/Follows	promenade	{"where":"up"}	partner promenade facing up
-Leads/Follows	promenade	{"where":"down"}	partner promenade facing down
 Leads/Follows	mad_robin	{"who":"unspecified"}	mad robin
 Leads/Follows	revolving_door	{"who":"role1s"}	revolving door - leads take right hands and drop off partner on other side
-Leads/Follows	revolving_door	{"who":"thirdCorners"}	revolving door - third corners take right hands and drop off partner on other side
-Leads/Follows	revolving_door	{"who":"opposites"}	revolving door - opposites take right hands and drop off partner on other side
 Leads/Follows	revolving_door	{"who":"onesRole1"}	revolving door - first lead take right hands and drop off partner on other side
 Leads/Follows	revolving_door	{"who":"onesRole2"}	revolving door - first follow take right hands and drop off partner on other side
 Leads/Follows	revolving_door	{"who":"twosRole1"}	revolving door - second lead take right hands and drop off partner on other side
@@ -146,7 +62,6 @@ Leads/Follows	revolving_door	{"whom":"onesRole1"}	revolving door - follows take 
 Leads/Follows	revolving_door	{"whom":"onesRole2"}	revolving door - follows take right hands and drop off first follow on other side
 Leads/Follows	revolving_door	{"whom":"twosRole1"}	revolving door - follows take right hands and drop off second lead on other side
 Leads/Follows	revolving_door	{"whom":"twosRole2"}	revolving door - follows take right hands and drop off second follow on other side
-Leads/Follows	give_and_take	{"give":false}	leads take partner
 Leads/Follows	cross_trails	{"who":"role1s"}	cross trails - leads across the set passing right shoulders, neighbor along the set passing left shoulders
 Leads/Follows	cross_trails	{"who":"role2s"}	cross trails - follows across the set passing right shoulders, neighbor along the set passing left shoulders
 Leads/Follows	cross_trails	{"who":"onesRole1"}	cross trails - first lead across the set passing right shoulders, neighbor along the set passing left shoulders
@@ -159,20 +74,8 @@ Leads/Follows	cross_trails	{"who2":"onesRole1"}	cross trails - partner across th
 Leads/Follows	cross_trails	{"who2":"onesRole2"}	cross trails - partner across the set passing right shoulders, first follow along the set passing left shoulders
 Leads/Follows	cross_trails	{"who2":"twosRole1"}	cross trails - partner across the set passing right shoulders, second lead along the set passing left shoulders
 Leads/Follows	cross_trails	{"who2":"twosRole2"}	cross trails - partner across the set passing right shoulders, second follow along the set passing left shoulders
-Leads/Follows	down_the_hall	{"who":"partners"}	partner down the hall and turn as a couple
-Leads/Follows	down_the_hall	{"who":"neighbors"}	neighbor down the hall and turn as a couple
-Leads/Follows	down_the_hall	{"who":"shadows"}	shadow down the hall and turn as a couple
-Leads/Follows	down_the_hall	{"who":"thirdCorners"}	third corners down the hall and turn as a couple
-Leads/Follows	down_the_hall	{"who":"opposites"}	opposites down the hall and turn as a couple
 Leads/Follows	down_the_hall	{"ender":"bendTheLine"}	down the hall and bend the line
-Leads/Follows	down_the_hall	{"facing":"forwardThenBackward"}	down the hall forward then backward and turn as a couple
-Leads/Follows	up_the_hall	{"who":"partners"}	partner up the hall and bend into a ring
-Leads/Follows	up_the_hall	{"who":"neighbors"}	neighbor up the hall and bend into a ring
-Leads/Follows	up_the_hall	{"who":"shadows"}	shadow up the hall and bend into a ring
-Leads/Follows	up_the_hall	{"who":"thirdCorners"}	third corners up the hall and bend into a ring
-Leads/Follows	up_the_hall	{"who":"opposites"}	opposites up the hall and bend into a ring
 Leads/Follows	up_the_hall	{"ender":"bendTheLine"}	up the hall and bend the line
-Leads/Follows	up_the_hall	{"facing":"forwardThenBackward"}	up the hall forward then backward and bend into a ring
 Leads/Follows	zig_zag	{"who":"role1s"}	zig left zag right with leads
 Leads/Follows	zig_zag	{"who":"role2s"}	zig left zag right with follows
 Leads/Follows	zig_zag	{"who":"onesRole1"}	zig left zag right with first lead
@@ -217,19 +120,12 @@ Leads/Follows	poussette	{"whom":"onesRole2"}	half poussette - leads pull first f
 Leads/Follows	poussette	{"whom":"twosRole1"}	half poussette - leads pull second lead back then left
 Leads/Follows	poussette	{"whom":"twosRole2"}	half poussette - leads pull second follow back then left
 Leads/Follows	poussette	{"direction":"counterclockwise"}	half poussette - leads pull neighbor back then right
-Leads/Follows	circle	{"singleFile":true}	single file circle left 3 places
 Leads/Follows	facing_star	{"who":"role1s"}	facing star clockwise 3 places with leads putting their left hands in and backing up
 Leads/Follows	facing_star	{"who":"role2s"}	facing star clockwise 3 places with follows putting their left hands in and backing up
-Leads/Follows	facing_star	{"who":"partners"}	facing star clockwise 3 places with partner putting their left hands in and backing up
-Leads/Follows	facing_star	{"who":"neighbors"}	facing star clockwise 3 places with neighbor putting their left hands in and backing up
-Leads/Follows	facing_star	{"who":"shadows"}	facing star clockwise 3 places with shadow putting their left hands in and backing up
-Leads/Follows	facing_star	{"who":"thirdCorners"}	facing star clockwise 3 places with third corners putting their left hands in and backing up
-Leads/Follows	facing_star	{"who":"opposites"}	facing star clockwise 3 places with opposites putting their left hands in and backing up
 Leads/Follows	facing_star	{"who":"onesRole1"}	facing star clockwise 3 places with first lead putting their left hands in and backing up
 Leads/Follows	facing_star	{"who":"onesRole2"}	facing star clockwise 3 places with first follow putting their left hands in and backing up
 Leads/Follows	facing_star	{"who":"twosRole1"}	facing star clockwise 3 places with second lead putting their left hands in and backing up
 Leads/Follows	facing_star	{"who":"twosRole2"}	facing star clockwise 3 places with second follow putting their left hands in and backing up
-Leads/Follows	facing_star	{"direction":"counterclockwise"}	facing star counterclockwise 3 places with ones putting their right hands in and backing up
 Leads/Follows	form_long_waves	{"who":"role2s"}	form long waves - follows facing in, leads facing out
 Leads/Follows	form_a_long_wave	{"out":true}	leads dance out while follows dance in to a long wave in the center - balance the wave
 Leads/Follows	pass_the_ocean	{}	pass through to an ocean wave - follows catch left hands in the center, neighbors take right hands on the sides
