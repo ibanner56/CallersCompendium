@@ -230,9 +230,10 @@ figure on ContraDB, so a search for a move inside it can differ from the same
 search in your own library. The app asks ContraDB for only the first 20
 matching dances (a title or author with an apostrophe in it is searched in
 both spellings, so a few more can show), so a broad search such as one move
-on its own shows only part of the answer. When ContraDB sends back a full
-list, the line above the results says there may be more: add conditions to
-narrow it.
+on its own shows only part of the answer. When ContraDB says how many dances
+matched in all, the line above the results shows it, for example "Showing 20
+of 143 online results": add conditions to narrow it. When it does not say,
+a full list is marked as possibly incomplete instead.
 
 ## Narrow things down with filters
 

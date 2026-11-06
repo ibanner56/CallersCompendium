@@ -1,0 +1,14 @@
+{
+  "id": "contradb-result-total",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "A ContraDB search with more matches than the 20 shown now says how many matched in all, for example \"Showing 20 of 143 online results\"."
+    ]
+  },
+  "core": {
+    "added": [
+      "parseContraDbNumberMatching reads the whole match count from a ContraDB search response."
+    ]
+  }
+}

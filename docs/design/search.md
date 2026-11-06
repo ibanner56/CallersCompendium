@@ -110,14 +110,20 @@ tree. Conforms to [ux.md](ux.md) §1 and [dialect.md](dialect.md)
 
    **Results are the first 20.** The app asks ContraDB for
    `titleA` order and requests `contraDbSearchCount` (20) with offset 0, and
-   reads no further pages. The response's `numberMatching` is not read either,
-   so the app cannot say how many matched; it knows only that a response that
-   filled the page may have been cut off (`OnlineSearchResultRow.mayHaveMore`,
-   judged per response), and then the count line above the results says there
-   may be more instead of giving a plain count. An apostrophe query sends the
-   ASCII and curly spellings as two requests and merges the rows, so up to 40
-   can show, and the notice appears only if one of the two filled its page.
-   Paging and a "showing N of M" total are not built.
+   reads no further pages. The response's `numberMatching` is the whole match
+   count and does not change with the offset (checked live on 2026-11-06), so
+   `parseContraDbNumberMatching` reads it and `ContraDbOnline` puts it on every
+   row (`OnlineSearchResultRow.totalMatching`). `onlineResultCountLabel` then
+   says "Showing 20 of 143 online results" when the total exceeds what is
+   shown, and the plain count when it does not (a page that is exactly full of
+   exactly that many matches is complete). The total is used only when one
+   response answered: an apostrophe query sends the ASCII and curly spellings
+   as two requests and merges the rows, so up to 40 can show, and their totals
+   are not added because a dance matching both spellings would count twice.
+   With no total (a merged query, a response without `numberMatching`, or a
+   malformed one) the fallback is the earlier rule: a response that filled the
+   page may have been cut off (`mayHaveMore`, judged per response), and the
+   count line says there may be more. Paging is not built.
 
    **Figure parameters.** ContraDB takes a figure's parameters by position
    after the move (`["figure", "swing", "partners", "*", 16]`).
@@ -181,9 +187,18 @@ tree. Conforms to [ux.md](ux.md) §1 and [dialect.md](dialect.md)
    left-out set, and every value mapping are pinned by unit tests; the opt-in
    `tool/check_contradb_translation_live.dart` sent 30 expression shapes
    (including one per parameter shape above) and ContraDB accepted all of them.
-   Two returned no dances (`figure 8` below and full, and `down the hall`
-   backward ending in a circle); a count of zero cannot tell a rare combination
-   from a wrong value, so that check shows only that the expressions are valid.
+   On 2026-11-06 the script was extended to print the figure text ContraDB
+   matched, and the implementing agent read it for each shape: the text agreed
+   with the condition (for example "full figure 8", "circle left 4 places",
+   "wrist grip", "ladles ricochet", "do si do 1½"). Two shapes return no dances
+   (`figure 8` below and full, and `down the hall` backward ending in a
+   circle); each of their conditions alone does match (9 below, 2 full, 4
+   circle, 2 backward), so those are rare combinations, not wrong values. The
+   poussette direction was checked the same way: ContraDB's `true` renders
+   "back then left" (53 dances) and `false` renders "back then right" (24), as
+   the inverted mapping assumes. This is a reading of rendered text by the
+   agent, not an automated test, and it does not settle which way the dancers
+   physically move.
    The mappings and who decided them: the per-parameter mappings are the
    implementing agent's, from a research pass over ContraDB's source.
 4. **Injection-safe by construction.** Every user value is a bind variable;
