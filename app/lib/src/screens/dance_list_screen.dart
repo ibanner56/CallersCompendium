@@ -19,6 +19,7 @@ import '../data/display_defaults.dart';
 import '../data/import_error_labels.dart';
 import '../data/import_io.dart';
 import '../data/related_dance_links.dart';
+import '../data/online_paging.dart';
 import '../data/online_search.dart';
 import '../data/require_event_date_for_history_scope.dart';
 import '../data/calling_history_tracking_scope.dart';
@@ -61,6 +62,7 @@ import '../widgets/facet_panel.dart';
 import '../widgets/load_error_view.dart';
 import '../widgets/online_import_dialogs.dart';
 import '../widgets/online_import_snack_bar.dart';
+import '../widgets/online_more_footer.dart';
 import '../widgets/online_result_count.dart';
 import '../widgets/online_result_tile.dart';
 import '../widgets/online_search_toggle.dart';
@@ -416,6 +418,17 @@ class _DanceListScreenState extends State<DanceListScreen>
   OnlineSource _onlineSource = OnlineSource.callersBox;
   bool _onlineEnabled = false;
   List<OnlineSearchResultRow> _onlineResults = const [];
+
+  // Paging through a source that pages (ContraDB). `_onlineQuery` is the
+  // query behind `_onlineResults`; `_onlinePagesLoaded` how many pages of it
+  // are in; `_onlinePagingSeq` the `_onlineSeq` they belong to, so a page for a
+  // search that has since been replaced is dropped.
+  OnlineSearchQuery? _onlineQuery;
+  int _onlinePagesLoaded = 1;
+  int _onlinePagingSeq = -1;
+  bool _onlineHasMore = false;
+  bool _onlineLoadingMore = false;
+  bool _onlineMoreFailed = false;
   bool _onlineSearching = false;
   String? _onlineError;
   int _onlineSeq = 0;
@@ -1066,6 +1079,55 @@ class _DanceListScreenState extends State<DanceListScreen>
   /// Runs a live search against the active online source for the current query
   /// text and/or by-phrase figures. Guarded by a sequence number so a slow
   /// response can't overwrite a newer query.
+  /// Fetches the next page of the current online search and appends it. Called
+  /// by the list's last item once the end is near; one request at a time, and
+  /// a page for a search that has since been replaced is dropped.
+  Future<void> _loadMoreOnline() async {
+    final base = _onlineQuery;
+    if (base == null ||
+        !_onlineHasMore ||
+        _onlineLoadingMore ||
+        _onlineMoreFailed ||
+        _onlinePagingSeq != _onlineSeq) {
+      return;
+    }
+    final seq = _onlineSeq;
+    setState(() => _onlineLoadingMore = true);
+    try {
+      final page = await _online.search(
+        base.withOffset(_onlinePagesLoaded * contraDbSearchCount),
+      );
+      if (!mounted || seq != _onlineSeq) return;
+      final merged = appendOnlinePage(_onlineResults, page);
+      setState(() {
+        final grew = merged.length > _onlineResults.length;
+        _onlineResults = merged;
+        _onlinePagesLoaded++;
+        _onlineHasMore = grew && onlineHasMore(merged, page);
+        _onlineLoadingMore = false;
+      });
+    } on Object catch (error, stackTrace) {
+      if (!mounted || seq != _onlineSeq) return;
+      if (error is UrlFetchException) {
+        logCaughtError(
+          error,
+          stackTrace,
+          source: 'dance_list_screen._loadMoreOnline',
+        );
+      } else {
+        logCaughtErrorTypeOnly(
+          error,
+          stackTrace,
+          source: 'dance_list_screen._loadMoreOnline',
+        );
+      }
+      setState(() {
+        _onlineLoadingMore = false;
+        _onlineMoreFailed = true;
+      });
+    }
+  }
+
   Future<void> _runOnlineSearch() async {
     final query = OnlineSearchQuery.forScope(
       _ftsController.text,
@@ -1093,6 +1155,12 @@ class _DanceListScreenState extends State<DanceListScreen>
       setState(() {
         _onlineResults = results;
         _onlineSearching = false;
+        _onlineQuery = query;
+        _onlinePagesLoaded = 1;
+        _onlinePagingSeq = seq;
+        _onlineHasMore = onlineHasMore(results, results);
+        _onlineLoadingMore = false;
+        _onlineMoreFailed = false;
       });
     } on UrlFetchException catch (error, stackTrace) {
       if (!mounted || seq != _onlineSeq) return;
@@ -3203,7 +3271,7 @@ class _DanceListScreenState extends State<DanceListScreen>
         ? _selection.notShown(_shownIds)
         : 0;
     final String label = online
-        ? onlineResultCountLabel(l10n, _onlineResults)
+        ? onlineResultCountLabel(l10n, _onlineResults, hasMore: _onlineHasMore)
         : l10n.collectionDanceCount(count);
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -3310,9 +3378,22 @@ class _DanceListScreenState extends State<DanceListScreen>
         ),
       );
     }
+    final showFooter = _onlineHasMore || _onlineMoreFailed;
     return SliverList.builder(
-      itemCount: _onlineResults.length,
+      itemCount: _onlineResults.length + (showFooter ? 1 : 0),
       itemBuilder: (context, index) {
+        if (index == _onlineResults.length) {
+          return OnlineMoreFooter(
+            key: ValueKey('online-more-${_onlineResults.length}'),
+            failed: _onlineMoreFailed,
+            failedMessage: l10n.onlineSearchFailed(_onlineSource.label),
+            onLoad: _loadMoreOnline,
+            onRetry: () {
+              setState(() => _onlineMoreFailed = false);
+              _loadMoreOnline();
+            },
+          );
+        }
         final result = _onlineResults[index];
         return OnlineResultTile(
           key: ValueKey('online-result-${result.id}'),

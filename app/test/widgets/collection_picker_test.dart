@@ -8,6 +8,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:compendium_app/src/data/collection_facets_scope.dart';
 import 'package:compendium_app/src/data/collection_tile_fields_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
+import 'package:compendium_app/src/data/import_io.dart'
+    show ContraDbSearchFetcher, ContraDbSearchRequest;
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/callersbox_online.dart';
 import 'package:compendium_app/src/data/contradb_online.dart';
@@ -381,6 +383,40 @@ class _TotalContraDb extends ContraDbOnline {
       totalMatching: 5,
     ),
   ];
+}
+
+/// A ContraDB source of [total] dances that answers by offset, one page of 20
+/// at a time, and counts the requests it served.
+class _PagedContraDb extends ContraDbOnline {
+  _PagedContraDb._(this.requests, ContraDbSearchFetcher fetcher)
+    : super(searchFetcher: fetcher);
+
+  factory _PagedContraDb({
+    required int total,
+    bool Function(ContraDbSearchRequest request)? failWhen,
+  }) {
+    final requests = <ContraDbSearchRequest>[];
+    return _PagedContraDb._(requests, (request) async {
+      requests.add(request);
+      if (failWhen != null && failWhen(request)) throw Exception('down');
+      final from = request.offset;
+      final to = (from + 20) < total ? from + 20 : total;
+      return jsonEncode({
+        'numberMatching': total,
+        'dances': [
+          for (var id = from + 1; id <= to; id++)
+            {
+              'id': id,
+              'title': 'Dance ${id.toString().padLeft(3, '0')}',
+              'choreographer_name': '',
+              'formation': 'improper',
+            },
+        ],
+      });
+    });
+  }
+
+  final List<ContraDbSearchRequest> requests;
 }
 
 void main() {
@@ -1282,6 +1318,94 @@ void main() {
     expect(tagDropdown, findsNothing);
     await _tapVisible(tester, find.text('Add'));
     expect(find.text('Has tag (not available on ContraDB)'), findsOneWidget);
+  });
+
+  group('ContraDB scroll paging in the picker', () {
+    Future<void> openContraDb(
+      WidgetTester tester,
+      _PagedContraDb contraDb,
+    ) async {
+      final repos = openTestRepositories();
+      // A short window: the end of the first page is off screen until the test
+      // scrolls to it.
+      await _pumpPicker(
+        tester,
+        repos,
+        onAddDance: (_) {},
+        enableOnlineSearch: true,
+        contraDbOnline: contraDb,
+        surfaceSize: const Size(800, 600),
+      );
+      await tester.pumpAndSettle();
+      await _tapVisible(
+        tester,
+        find.byKey(const ValueKey('picker-online-search-enable')),
+      );
+      await tester.tap(find.text('ContraDB'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('picker-search')),
+        'dance',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> scrollToEnd(WidgetTester tester) async {
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -4000));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> scrollToTop(WidgetTester tester) async {
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, 8000));
+      await tester.pumpAndSettle();
+    }
+
+    String of(int shown) =>
+        'Showing $shown of 45 online results. Narrow your search to see the '
+        'rest.';
+
+    testWidgets('scrolling to the end loads the next page, until all are in', (
+      tester,
+    ) async {
+      final contraDb = _PagedContraDb(total: 45);
+      await openContraDb(tester, contraDb);
+      expect(contraDb.requests, hasLength(1));
+      expect(find.text(of(20)), findsOneWidget);
+
+      await scrollToEnd(tester);
+      expect(contraDb.requests.map((r) => r.offset), [0, 20]);
+      await scrollToEnd(tester);
+      expect(contraDb.requests.map((r) => r.offset), [0, 20, 40]);
+      await scrollToTop(tester);
+      expect(find.text('45 online results'), findsOneWidget);
+
+      await scrollToEnd(tester);
+      expect(contraDb.requests, hasLength(3), reason: 'nothing left to ask');
+    });
+
+    testWidgets('a failed page shows a retry; retrying loads it', (
+      tester,
+    ) async {
+      var fail = true;
+      final contraDb = _PagedContraDb(
+        total: 45,
+        failWhen: (request) => fail && request.offset == 20,
+      );
+      await openContraDb(tester, contraDb);
+
+      await scrollToEnd(tester);
+      expect(find.byKey(const ValueKey('online-more-retry')), findsOneWidget);
+      await scrollToEnd(tester);
+      expect(contraDb.requests, hasLength(2));
+
+      fail = false;
+      await tester.tap(find.byKey(const ValueKey('online-more-retry')));
+      await tester.pumpAndSettle();
+      expect(contraDb.requests.map((r) => r.offset), [0, 20, 20]);
+      await scrollToTop(tester);
+      expect(find.text(of(40)), findsOneWidget);
+    });
   });
 
   group('search enrichment (saved-dialect vocabulary)', () {

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart';
 
@@ -31,17 +33,31 @@ class ContraDbOnline implements OnlineSearchService {
   ContraDbOnline({
     ContraDbSearchFetcher? searchFetcher,
     UrlFetcher? htmlFetcher,
-  }) : _searchFetcher =
+    DateTime Function()? clock,
+  }) : _clock = clock ?? DateTime.now,
+       _searchFetcher =
            searchFetcher ??
            ((request) => fetchContraDbSearch(
              request.query,
              filter: request.filter,
              expression: request.expression,
+             offset: request.offset,
            )),
        _htmlFetcher = htmlFetcher ?? fetchImportUrl;
 
   final ContraDbSearchFetcher _searchFetcher;
   final UrlFetcher _htmlFetcher;
+  final DateTime Function() _clock;
+
+  /// How long the last successful search answers an identical request without
+  /// asking ContraDB again. ContraDB scans every dance for each request, so a
+  /// repeat (an Advanced edit that did not change the expression sent, a page
+  /// scrolled back to) should not cost one.
+  static const Duration _repeatWindow = Duration(seconds: 60);
+
+  String? _lastKey;
+  DateTime? _lastAt;
+  List<OnlineSearchResultRow> _lastRows = const [];
 
   @override
   OnlineSource get source => OnlineSource.contraDb;
@@ -106,14 +122,40 @@ class ContraDbOnline implements OnlineSearchService {
     // ContraDB's dance-level `and`; either alone is sent as it is.
     ContraDbSearchRequest requestFor(String variant) {
       if (advanced == null) {
-        return ContraDbSearchRequest(query: variant, filter: filter);
+        return ContraDbSearchRequest(
+          query: variant,
+          filter: filter,
+          offset: query.offset,
+        );
       }
-      if (!hasText) return ContraDbSearchRequest.expression(advanced);
+      if (!hasText) {
+        return ContraDbSearchRequest.expression(advanced, offset: query.offset);
+      }
       return ContraDbSearchRequest.expression(<Object?>[
         'and',
         <Object?>[filter, variant],
         advanced,
-      ]);
+      ], offset: query.offset);
+    }
+
+    // The same request again, soon after it was answered: answer from that.
+    final key = jsonEncode([
+      for (final variant in variants)
+        () {
+          final request = requestFor(variant);
+          return [
+            request.filter,
+            request.query,
+            request.expression,
+            request.offset,
+          ];
+        }(),
+    ]);
+    final lastAt = _lastAt;
+    if (key == _lastKey &&
+        lastAt != null &&
+        _clock().difference(lastAt) < _repeatWindow) {
+      return List.of(_lastRows);
     }
 
     Future<String> fetch(String variant) => _searchFetcher(requestFor(variant));
@@ -172,6 +214,9 @@ class ContraDbOnline implements OnlineSearchService {
         return byTitle != 0 ? byTitle : a.id.compareTo(b.id);
       });
     }
+    _lastKey = key;
+    _lastAt = _clock();
+    _lastRows = List.of(rows);
     return rows;
   }
 

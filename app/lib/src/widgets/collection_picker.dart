@@ -11,6 +11,7 @@ import '../data/collection_tile_fields_scope.dart';
 import '../data/contradb_online.dart';
 import '../data/import_error_labels.dart';
 import '../data/import_io.dart';
+import '../data/online_paging.dart';
 import '../data/online_search.dart';
 import '../data/require_event_date_for_history_scope.dart';
 import '../data/calling_history_tracking_scope.dart';
@@ -30,6 +31,7 @@ import 'collection_search_controls.dart';
 import 'dance_list_tile.dart';
 import 'facet_panel.dart';
 import 'online_import_dialogs.dart';
+import 'online_more_footer.dart';
 import 'online_result_count.dart';
 import 'online_result_tile.dart';
 import 'online_search_toggle.dart';
@@ -205,6 +207,17 @@ class _CollectionPickerState extends State<CollectionPicker> {
   OnlineSource _onlineSource = OnlineSource.callersBox;
   bool _onlineEnabled = false;
   List<OnlineSearchResultRow> _onlineResults = const [];
+
+  // Paging through a source that pages (ContraDB). `_onlineQuery` is the
+  // query behind `_onlineResults`; `_onlinePagesLoaded` how many pages of it
+  // are in; `_onlinePagingSeq` the `_onlineSeq` they belong to, so a page for a
+  // search that has since been replaced is dropped.
+  OnlineSearchQuery? _onlineQuery;
+  int _onlinePagesLoaded = 1;
+  int _onlinePagingSeq = -1;
+  bool _onlineHasMore = false;
+  bool _onlineLoadingMore = false;
+  bool _onlineMoreFailed = false;
   bool _onlineSearching = false;
   String? _onlineError;
   String? _onlineImportError;
@@ -685,6 +698,55 @@ class _CollectionPickerState extends State<CollectionPicker> {
     }
   }
 
+  /// Fetches the next page of the current online search and appends it. Called
+  /// by the list's last item once the end is near; one request at a time, and
+  /// a page for a search that has since been replaced is dropped.
+  Future<void> _loadMoreOnline() async {
+    final base = _onlineQuery;
+    if (base == null ||
+        !_onlineHasMore ||
+        _onlineLoadingMore ||
+        _onlineMoreFailed ||
+        _onlinePagingSeq != _onlineSeq) {
+      return;
+    }
+    final seq = _onlineSeq;
+    setState(() => _onlineLoadingMore = true);
+    try {
+      final page = await _online.search(
+        base.withOffset(_onlinePagesLoaded * contraDbSearchCount),
+      );
+      if (!mounted || seq != _onlineSeq) return;
+      final merged = appendOnlinePage(_onlineResults, page);
+      setState(() {
+        final grew = merged.length > _onlineResults.length;
+        _onlineResults = merged;
+        _onlinePagesLoaded++;
+        _onlineHasMore = grew && onlineHasMore(merged, page);
+        _onlineLoadingMore = false;
+      });
+    } on Object catch (error, stackTrace) {
+      if (!mounted || seq != _onlineSeq) return;
+      if (error is UrlFetchException) {
+        logCaughtError(
+          error,
+          stackTrace,
+          source: 'collection_picker._loadMoreOnline',
+        );
+      } else {
+        logCaughtErrorTypeOnly(
+          error,
+          stackTrace,
+          source: 'collection_picker._loadMoreOnline',
+        );
+      }
+      setState(() {
+        _onlineLoadingMore = false;
+        _onlineMoreFailed = true;
+      });
+    }
+  }
+
   Future<void> _runOnlineSearch() async {
     final query = OnlineSearchQuery.forScope(
       _ftsController.text,
@@ -715,6 +777,12 @@ class _CollectionPickerState extends State<CollectionPicker> {
       setState(() {
         _onlineResults = results;
         _onlineSearching = false;
+        _onlineQuery = query;
+        _onlinePagesLoaded = 1;
+        _onlinePagingSeq = seq;
+        _onlineHasMore = onlineHasMore(results, results);
+        _onlineLoadingMore = false;
+        _onlineMoreFailed = false;
       });
     } on UrlFetchException catch (error, stackTrace) {
       if (!mounted || seq != _onlineSeq) return;
@@ -1112,7 +1180,11 @@ class _CollectionPickerState extends State<CollectionPicker> {
                     liveRegion: true,
                     child: Text(
                       _onlineEnabled
-                          ? onlineResultCountLabel(l10n, _onlineResults)
+                          ? onlineResultCountLabel(
+                              l10n,
+                              _onlineResults,
+                              hasMore: _onlineHasMore,
+                            )
                           : l10n.collectionDanceCount(count),
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
@@ -1318,8 +1390,10 @@ class _CollectionPickerState extends State<CollectionPicker> {
         ),
       );
     }
+    final showFooter = _onlineHasMore || _onlineMoreFailed;
+    final leading = _onlineImportError == null ? 0 : 1;
     return SliverList.builder(
-      itemCount: _onlineResults.length + (_onlineImportError == null ? 0 : 1),
+      itemCount: _onlineResults.length + leading + (showFooter ? 1 : 0),
       itemBuilder: (context, index) {
         if (_onlineImportError != null && index == 0) {
           return Padding(
@@ -1327,7 +1401,19 @@ class _CollectionPickerState extends State<CollectionPicker> {
             child: Text(_onlineImportError!, textAlign: TextAlign.center),
           );
         }
-        final resultIndex = index - (_onlineImportError == null ? 0 : 1);
+        if (index == _onlineResults.length + leading) {
+          return OnlineMoreFooter(
+            key: ValueKey('online-more-${_onlineResults.length}'),
+            failed: _onlineMoreFailed,
+            failedMessage: l10n.onlineSearchFailed(_onlineSource.label),
+            onLoad: _loadMoreOnline,
+            onRetry: () {
+              setState(() => _onlineMoreFailed = false);
+              _loadMoreOnline();
+            },
+          );
+        }
+        final resultIndex = index - leading;
         final result = _onlineResults[resultIndex];
         return Semantics(
           button: true,

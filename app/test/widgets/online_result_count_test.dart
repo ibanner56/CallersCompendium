@@ -23,8 +23,12 @@ OnlineSearchResultRow _row(
 
 void main() {
   final l10n = lookupAppLocalizations(const Locale('en'));
-  String label(List<OnlineSearchResultRow> rows) =>
-      onlineResultCountLabel(l10n, rows);
+  String label(List<OnlineSearchResultRow> rows, {bool? hasMore}) =>
+      onlineResultCountLabel(
+        l10n,
+        rows,
+        hasMore: hasMore ?? rows.any((row) => row.mayHaveMore),
+      );
 
   test('a total larger than what is shown says "of"', () {
     expect(
@@ -49,6 +53,14 @@ void main() {
       label([_row(1, mayHaveMore: true), _row(2, mayHaveMore: true)]),
       'Showing 2 online results. There may be more: narrow your search to see '
       'the rest.',
+    );
+  });
+
+  test('no total and the last page loaded: the plain count', () {
+    expect(
+      label([_row(1, mayHaveMore: true), _row(2)], hasMore: false),
+      '2 online results',
+      reason: 'an earlier full page must not keep the "may be more" form',
     );
   });
 
