@@ -1,0 +1,14 @@
+{
+  "id": "2121-balance-box-the-gnat-rory-read-back",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Typing or pasting a box the gnat or Rory O'More with its balance, worded as the app shows it (\"neighbor balance & box the gnat\", \"larks balance & Rory O'More right\"), now gives that figure instead of unrecognized text. Imported lines worded this way are read too."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "The figure readers read `<who> balance & box the gnat` (and swat the flea) and `<who> balance & Rory O'More <side>`, the display's own wording, with the balance set."
+    ]
+  }
+}

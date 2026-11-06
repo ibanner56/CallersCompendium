@@ -1604,8 +1604,14 @@ _Match? _revolvingDoor(List<String> w) {
   return _Match('revolving_door', {'who': ?who2, 'hand': ?hand, 'whom': ?whom});
 }
 
+/// `<who> box the gnat`, and `<who> balance & box the gnat`, the display's
+/// own wording for a box with its balance (#2121). The balance is read only
+/// where it leads the line once the subject is taken out, as in the display;
+/// a line that does not state one leaves the flag absent, so it stays
+/// unbalanced.
 _Match? _boxTheGnat(List<String> w) {
   final who = _takeDancer(w);
+  final balance = _consumeLeading(w, ['balance', 'and']);
   final swat = _consumePhrase(w, ['swat', 'the', 'flea']);
   final box = _consumePhrase(w, ['box', 'the', 'gnat']);
   if (!swat && !box) return null;
@@ -1613,7 +1619,12 @@ _Match? _boxTheGnat(List<String> w) {
   _dropFiller(w);
   if (w.isNotEmpty) return null;
   final moveId = swat ? 'swat_the_flea' : 'box_the_gnat';
-  return _Match(moveId, {'who': who2 ?? 'partners'}, null, who2 == null);
+  return _Match(
+    moveId,
+    {'who': who2 ?? 'partners', if (balance) 'balance': true},
+    null,
+    who2 == null,
+  );
 }
 
 // ContraDB `box circulate`. A single "box circulate" line states no balance, so
