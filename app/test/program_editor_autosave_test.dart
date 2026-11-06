@@ -146,6 +146,20 @@ class _RecordingSink implements CrashLogSink {
   }
 }
 
+/// Whether the builder would let Back leave without asking: false while it
+/// holds unsaved edits. The Save button's label no longer says so (#2107), so
+/// tests read the editor's own [PopScope] instead.
+bool _editorCanPop(WidgetTester tester) => tester
+    .widget<PopScope<Object?>>(
+      find
+          .descendant(
+            of: find.byType(ProgramEditorScreen),
+            matching: find.byWidgetPredicate((w) => w is PopScope<Object?>),
+          )
+          .first,
+    )
+    .canPop;
+
 void main() {
   // -------------------------------------------------------------------------
   // Codec
@@ -1264,11 +1278,9 @@ void main() {
       expect(_titleText(tester), 'Second title');
       expect(find.text(Program.breakSlotText), findsOneWidget);
       expect(
-        find.descendant(
-          of: find.byKey(const ValueKey('save-program')),
-          matching: find.text('Save'),
-        ),
-        findsOneWidget,
+        _editorCanPop(tester),
+        isFalse,
+        reason: 'the builder still holds unsaved edits',
       );
 
       delayed.settings.releaseRemove();
@@ -1407,11 +1419,9 @@ void main() {
 
         expect(await failing.repos.programs.listAll(), isEmpty);
         expect(
-          find.descendant(
-            of: find.byKey(const ValueKey('save-program')),
-            matching: find.text('Save'),
-          ),
-          findsOneWidget,
+          _editorCanPop(tester),
+          isFalse,
+          reason: 'the builder still holds unsaved edits',
         );
         expect(failing.programs.attempts, 1);
 

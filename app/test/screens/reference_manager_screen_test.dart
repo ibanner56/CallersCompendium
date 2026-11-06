@@ -166,6 +166,33 @@ void main() {
       expect((await repos.dances.getById('d1'))!.authorIds, [a]);
     });
 
+    testWidgets('Edit details to another author\'s name in other case offers '
+        'the merge, as Rename does, instead of saving a second author', (
+      tester,
+    ) async {
+      await author(Choreographer(id: a, name: 'Gene Hubert'));
+      await author(Choreographer(id: b, name: 'Gene Hurbert'));
+      await dance('d1', authors: [b]);
+      await _pump(tester, repos, screen);
+
+      await act(tester, 'author', b, 'details');
+      await tester.enterText(key('choreographer-name-field'), 'gene hubert');
+      await tester.tap(key('choreographer-save'));
+      await tester.pumpAndSettle();
+
+      expect(key('library-merge-offer'), findsOneWidget);
+      // Nothing is written until the user chooses.
+      expect((await repos.choreographers.getById(b))!.name, 'Gene Hurbert');
+
+      await tester.tap(key('library-merge-offer-merge'));
+      await tester.pumpAndSettle();
+
+      // One author is left, under the name typed, as Rename's merge does.
+      final live = await repos.choreographers.listAll();
+      expect(live.map((c) => (c.id, c.name)), [(a, 'gene hubert')]);
+      expect((await repos.dances.getById('d1'))!.authorIds, [a]);
+    });
+
     testWidgets('Merge into asks first when it would drop a detail, and '
         'Cancel writes nothing', (tester) async {
       await author(Choreographer(id: a, name: 'Gene Hubert', notes: 'caller'));

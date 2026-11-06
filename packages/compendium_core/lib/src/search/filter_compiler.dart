@@ -117,7 +117,8 @@ String _figureMatchWithoutRoleTokens(String table, {required bool prefix}) =>
 /// Dialect canonicalization happens at this boundary, once, before any bind is
 /// produced: full-text queries and role-valued figure params are run through
 /// [canonicalizeText], and move names are mapped back through the active
-/// dialect's move substitutions — mirroring how data was canonicalized on the
+/// dialect's move substitutions (except a built-in move id, which binds as
+/// given: see [_canonicalizeMove]) — mirroring how data was canonicalized on the
 /// way in, so a dialect user's query matches the canonical tokens stored in
 /// the derived indexes.
 ///
@@ -908,8 +909,15 @@ class FilterCompiler {
 
   /// Canonicalizes a move name via the active dialect's (reversed) move
   /// substitutions. Unknown/unmapped names pass through unchanged.
-  String _canonicalizeMove(String move) =>
-      _moveReverse[move.toLowerCase()] ?? move;
+  ///
+  /// A built-in move's id names that move and is never mapped: the type-aheads
+  /// store ids, and a dialect may call another move by a built-in id's word
+  /// (`{swing: 'chain'}`). Mapping the id would make picking the built-in chain
+  /// search swings, and leave chain itself unsearchable under that dialect.
+  String _canonicalizeMove(String move) {
+    if (taxonomy?.moves.containsKey(move) ?? false) return move;
+    return _moveReverse[move.toLowerCase()] ?? move;
+  }
 
   /// Prepares a figure-param value for binding against `json_extract`'s
   /// natural typing. Role-valued strings are canonicalized; booleans compare

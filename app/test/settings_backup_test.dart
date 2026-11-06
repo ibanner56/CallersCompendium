@@ -19,6 +19,8 @@ import 'package:compendium_app/src/data/backup_document.dart'
 import 'package:compendium_app/src/data/backup_service.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/custom_themes_scope.dart';
+import 'package:compendium_app/src/data/date_format_scope.dart';
+import 'package:compendium_app/src/data/regional_formats.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/soft_delete_retention.dart'
     show kSoftDeleteRetentionDefaultDays, kSoftDeleteRetentionKey;
@@ -31,6 +33,7 @@ import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:drift/native.dart' show NativeDatabase;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/intl.dart' show DateFormat;
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:share_plus/share_plus.dart' show ShareResult, ShareResultStatus;
@@ -94,8 +97,11 @@ Future<void> _pumpGeneral(
   Future<void> Function()? afterRestore,
   Size surface = const Size(1200, 2200),
   double textScale = 1,
+  DateFormatSetting dateFormat = DateFormatSetting.system,
 }) async {
   await setScreenSize(tester, surface);
+  final dateFormatNotifier = ValueNotifier<DateFormatSetting>(dateFormat);
+  addTearDown(dateFormatNotifier.dispose);
 
   final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);
   final theme = ValueNotifier<AppThemeSelection>(AppThemeSelection.system);
@@ -114,7 +120,10 @@ Future<void> _pumpGeneral(
         notifier: theme,
         child: CustomThemesScope(
           controller: customThemes,
-          child: ActiveDialectScope(notifier: dialect, child: inner),
+          child: ActiveDialectScope(
+            notifier: dialect,
+            child: DateFormatScope(notifier: dateFormatNotifier, child: inner),
+          ),
         ),
       ),
     );
@@ -211,6 +220,25 @@ void main() {
       expect(find.text('Backup exported.'), findsOneWidget);
     },
   );
+
+  testWidgets('Last backup reads in the Regional date format', (tester) async {
+    final repos = openTestRepositories();
+    final at = DateTime.utc(2026, 7, 15, 12);
+    await repos.settings.set(kLastBackupAtKey, at.toIso8601String());
+    await _pumpGeneral(
+      tester,
+      repos,
+      dateFormat: const DateFormatSetting(DateFormatPref.dmy),
+    );
+    expect(
+      find.text(
+        AppLocalizationsEn().backupLastBackupDate(
+          DateFormat('dd/MM/yyyy').format(at.toLocal()),
+        ),
+      ),
+      findsOneWidget,
+    );
+  });
 
   testWidgets(
     'dismissing the phone share sheet shows no success and stamps nothing',
@@ -873,7 +901,14 @@ void main() {
     expect(big.length, greaterThan(5 * 1000 * 1000));
 
     final repos = openTestRepositories();
-    await _pumpGeneral(tester, repos, picker: () async => big);
+    await _pumpGeneral(
+      tester,
+      repos,
+      picker: () async => big,
+      // The file's date follows the Regional date setting, as every date the
+      // app stamps does.
+      dateFormat: const DateFormatSetting(DateFormatPref.ymd),
+    );
 
     await tester.tap(find.byKey(const ValueKey('backup-restore-button')));
     await tester.pumpAndSettle();
@@ -889,9 +924,7 @@ void main() {
     expect(
       find.text(
         AppLocalizationsEn().backupFileSummary(
-          MaterialLocalizations.of(
-            tester.element(find.byKey(const ValueKey('restore-file-summary'))),
-          ).formatMediumDate(DateTime.utc(2026, 7, 15).toLocal()),
+          DateFormat('yyyy-MM-dd').format(DateTime.utc(2026, 7, 15).toLocal()),
           50,
           0,
           backupMegabytes(big.length),

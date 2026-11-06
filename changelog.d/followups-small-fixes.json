@@ -5,7 +5,7 @@
     "fixed": [
       "A tap outside the compound matrix column dialog no longer discards the steps or label you chose or typed in it.",
       "The program editor's Copy set list and PDF exports now name the authors of a dance in Recently deleted when one of them is in Recently deleted too, in credit order, as the program summary and Perform already do.",
-      "A custom field with a whole-number value shows as 3, not 3.0, on the dance detail screen and in the dance list's custom columns.",
+      "A custom field with a whole-number value shows as 3, not 3.0, on the dance detail screen, in the dance list's custom columns and in the dance editor.",
       "Danish: the Defaults settings now say \"taktslag\" where they mean beats, instead of \"takter\". A native speaker has not reviewed these strings yet."
     ]
   }

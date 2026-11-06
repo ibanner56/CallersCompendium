@@ -788,7 +788,7 @@ class DanceEditorController extends ChangeNotifier {
       if (def.type == CustomFieldType.text ||
           def.type == CustomFieldType.number) {
         customTextControllers[def.id] = LingoTextEditingController(
-          text: customValues[def.id]?.toString() ?? '',
+          text: _customFieldText(customValues[def.id]),
           dialect: _activeDialect,
         );
       }
@@ -866,6 +866,67 @@ class DanceEditorController extends ChangeNotifier {
   /// key.
   void clearPendingDraft() {
     _pendingDraft = null;
+  }
+
+  /// [draft]'s authors and tags as they stand now, for a draft restored in a
+  /// later session: each id through the merge aliases to the author or tag it
+  /// became, in the order one merge leaves a stored dance
+  /// ([mergedReferenceOrder]), and those no longer live dropped; a tag staged
+  /// in the draft stays. Several merges made at different times can come back
+  /// in another order than the stored dance's, since `id_aliases` does not
+  /// record when each happened. Between the session that saved
+  /// the draft and this one, the Authors or Tags manager may have merged or
+  /// deleted one, and saving the draft as written would credit a deleted row,
+  /// which the dance then hides.
+  /// [replaceAuthors] does this for a draft that is open during the merge.
+  Future<EditorSnapshot> withLiveReferences(EditorSnapshot draft) async {
+    Future<List<String>> live(
+      List<String> ids,
+      SyncRecordKind kind,
+      Future<bool> Function(String id) isLive,
+    ) async {
+      final survivorOf = <String, String>{};
+      for (final id in ids) {
+        try {
+          final current = await _repos.syncLocal.resolveAlias(
+            kind: kind,
+            recordId: id,
+          );
+          if (current != id) survivorOf[id] = current;
+        } catch (error, stackTrace) {
+          // A cyclic alias: keep the id as written, and let liveness decide.
+          logCaughtError(
+            error,
+            stackTrace,
+            source: 'dance_editor_controller.withLiveReferences',
+          );
+        }
+      }
+      final out = <String>[];
+      for (final id in mergedReferenceOrder(ids, survivorOf)) {
+        if (await isLive(id)) out.add(id);
+      }
+      return out;
+    }
+
+    final authors = await live(
+      draft.authorIds,
+      SyncRecordKind.choreographer,
+      (id) async => await _repos.choreographers.getById(id) != null,
+    );
+    // A staged tag exists only in the draft until Save creates it.
+    final staged = {for (final tag in draft.stagedTags) tag.id};
+    final tags = await live(
+      draft.tagIds,
+      SyncRecordKind.tag,
+      (id) async =>
+          staged.contains(id) || await _repos.tags.getById(id) != null,
+    );
+    if (listEquals(authors, draft.authorIds) &&
+        listEquals(tags, draft.tagIds)) {
+      return draft;
+    }
+    return draft.copyWith(authorIds: authors, tagIds: tags);
   }
 
   /// Applies a restored draft snapshot and resets the undo stack so the restored
@@ -1098,7 +1159,7 @@ class DanceEditorController extends ChangeNotifier {
       if (def.type == CustomFieldType.text ||
           def.type == CustomFieldType.number) {
         final controller = customTextControllers[def.id];
-        final newText = customValues[def.id]?.toString() ?? '';
+        final newText = _customFieldText(customValues[def.id]);
         if (controller != null && controller.text != newText) {
           controller.text = newText;
         }
@@ -1507,23 +1568,23 @@ class DanceEditorController extends ChangeNotifier {
   }
 
   /// Credits [to] wherever the draft, or any step of its undo history,
-  /// credits one of [from]: the authors a merge combined into [to]. The first
-  /// credit keeps its position and later duplicates go, as the merge does to
-  /// the stored dances.
+  /// credits one of [from]: the authors a merge combined into [to]. The order
+  /// comes out as the merge leaves the stored dance (`rewriteLocalReferences`,
+  /// one merged-away author at a time in id order): a list already crediting
+  /// [to] keeps [to] where it is and drops the merged-away credit; otherwise
+  /// the first merged-away credit takes [to]'s name in its position.
   ///
   /// Not an edit of the draft, so it pushes no undo step: the merge has its
   /// own Undo, and undoing the draft must not bring back a merged-away id.
   /// Returns what [restoreAuthors] needs to put it all back when that Undo
   /// runs.
   AuthorReplacement replaceAuthors(Set<String> from, String to) {
-    List<String> replaced(List<String> ids) {
-      final out = <String>[];
-      for (final id in ids) {
-        final mapped = from.contains(id) ? to : id;
-        if (!out.contains(mapped)) out.add(mapped);
-      }
-      return out;
-    }
+    final survivorOf = {
+      for (final id in from)
+        if (id != to) id: to,
+    };
+    List<String> replaced(List<String> ids) =>
+        mergedReferenceOrder(ids, survivorOf);
 
     final history = Map<EditorSnapshot, EditorSnapshot>.identity();
     _undoStack.mapAll((snapshot) {
@@ -2179,4 +2240,40 @@ final class AuthorReplacement {
 
   /// Each rewritten undo step, by identity, to the step it replaced.
   final Map<EditorSnapshot, EditorSnapshot> _history;
+}
+
+/// A custom text or number field's box text for its stored [value]: a whole
+/// number reads "3", as the dance's own screens show it, not "3.0".
+String _customFieldText(Object? value) => switch (value) {
+  null => '',
+  final num number => customNumberText(number),
+  _ => value.toString(),
+};
+
+/// [ids] with each merged-away id in [survivorOf] replaced by its survivor, in
+/// the order a merge leaves a stored dance's join rows
+/// (`rewriteLocalReferences`, one merged-away id at a time in id order): a
+/// list already holding the survivor keeps it where it is and drops the
+/// merged-away id; otherwise the first merged-away id takes the survivor's
+/// name in its position. Shared by an open editor's merge
+/// ([DanceEditorController.replaceAuthors]) and a restored draft
+/// ([DanceEditorController.withLiveReferences]), so the two cannot disagree.
+List<String> mergedReferenceOrder(
+  List<String> ids,
+  Map<String, String> survivorOf,
+) {
+  final out = List<String>.of(ids);
+  final losers = survivorOf.keys.toList()..sort();
+  for (final loser in losers) {
+    final survivor = survivorOf[loser]!;
+    final at = out.indexOf(loser);
+    if (at < 0) continue;
+    if (out.contains(survivor)) {
+      out.removeAt(at);
+    } else {
+      out[at] = survivor;
+    }
+    out.remove(loser);
+  }
+  return out;
 }

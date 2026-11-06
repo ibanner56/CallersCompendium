@@ -203,11 +203,12 @@ class EditorSnapshot {
     this.baseUpdatedAt,
   });
 
-  /// A copy with the given figure state, authors and draft stamps in place of
-  /// this snapshot's. Everything else is shared, which is safe because every
+  /// A copy with the given figure state, authors, tags and draft stamps in
+  /// place of this snapshot's. Everything else is shared, which is safe because every
   /// field is immutable.
   EditorSnapshot copyWith({
     List<String>? authorIds,
+    List<String>? tagIds,
     List<FigureDraftSnapshot>? figureDrafts,
     Dialect? textDialect,
     DateTime? savedAt,
@@ -232,7 +233,7 @@ class EditorSnapshot {
     authorIds: authorIds == null
         ? this.authorIds
         : List.unmodifiable(authorIds),
-    tagIds: tagIds,
+    tagIds: tagIds == null ? this.tagIds : List.unmodifiable(tagIds),
     tunes: tunes,
     links: links,
     sourceCitations: sourceCitations,

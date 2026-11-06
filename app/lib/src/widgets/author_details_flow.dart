@@ -159,7 +159,11 @@ final class AuthorDetailsMerged extends AuthorDetailsOutcome {
 /// Opens the author details dialog for [existing] and saves what it returns.
 ///
 /// When the new name is another live author's, offers the merge
-/// ([offerAuthorMerge]) instead of refusing it. **Keep editing** re-opens the
+/// ([offerAuthorMerge]) instead of refusing it. "The same name" is the app's
+/// own match ([ReferenceEditRepository.nameMatches], which ignores case and
+/// spacing), as the Authors manager's Rename uses, not only the byte-exact
+/// clash the database refuses: renaming to "ada lovelace" beside a live "Ada
+/// Lovelace" offers the merge rather than leaving two of her. **Keep editing** re-opens the
 /// dialog with what was typed. When only a deleted author holds the name, the
 /// rename goes through [ReferenceEditRepository.rename], which frees a
 /// tombstone's name rather than refusing it, as the Authors manager's Rename
@@ -178,65 +182,73 @@ Future<AuthorDetailsOutcome?> editAuthorDetails(
     if (!context.mounted) return null;
     final updated = await ChoreographerDetailsDialog.show(context, draft);
     if (updated == null || !context.mounted) return null;
-    try {
-      // Safe discard: `updated` carries the id of the already-persisted
-      // `existing` row, so tombstone adoption cannot redirect the id.
-      // ignore: unused_result
-      await repos.choreographers.upsert(updated, localUserEdit: true);
-      return AuthorDetailsSaved(
-        await repos.choreographers.getById(existing.id) ?? updated,
-      );
-    } on DuplicateNaturalKeyError {
-      // diagnostics: silent — not a failure: the name is taken, and the
-      // merge offer below is the answer to it; rethrown when it is not.
-      final liveIds = [
-        for (final match in await repos.references.nameMatches(
-          ReferenceKind.author,
-          updated.name,
-          excludeId: existing.id,
-        ))
-          if (!match.deleted) match.id,
-      ];
-      if (liveIds.isEmpty) {
-        // Only a deleted author holds the name: `upsert` refuses to take a
-        // tombstone's name, and `rename` frees it first. The dialog's other
-        // details are then saved under the new name, in the same transaction.
-        await repos.transaction(() async {
-          final _ = await repos.references.rename(
-            ReferenceKind.author,
-            existing.id,
-            updated.name,
-          );
-          final renamed = await repos.choreographers.getById(existing.id);
-          if (renamed == null) return;
-          final details = updated.copyWith(name: renamed.name);
-          if (details == renamed) return;
-          // ignore: unused_result
-          await repos.choreographers.upsert(details, localUserEdit: true);
-        });
+    Future<List<String>> liveHolders() async => [
+      for (final match in await repos.references.nameMatches(
+        ReferenceKind.author,
+        updated.name,
+        excludeId: existing.id,
+      ))
+        if (!match.deleted) match.id,
+    ];
+    // A name that differs from a live author's only in case or spacing is not
+    // a byte-exact clash, so `upsert` would write it and leave two of them.
+    var liveIds = updated.name == existing.name
+        ? const <String>[]
+        : await liveHolders();
+    if (liveIds.isEmpty) {
+      try {
+        // Safe discard: `updated` carries the id of the already-persisted
+        // `existing` row, so tombstone adoption cannot redirect the id.
+        // ignore: unused_result
+        await repos.choreographers.upsert(updated, localUserEdit: true);
         return AuthorDetailsSaved(
           await repos.choreographers.getById(existing.id) ?? updated,
         );
+      } on DuplicateNaturalKeyError {
+        // diagnostics: silent — not a failure: the name is taken, and the
+        // merge offer below is the answer to it; rethrown when it is not.
+        liveIds = await liveHolders();
       }
-      if (!context.mounted) return null;
-      final merge = await offerAuthorMerge(
-        context,
-        repos,
-        fromName: existing.name,
-        from: updated,
-        typedName: updated.name,
-        liveIds: liveIds,
-        beforeMerge: () async {
-          final stored = await repos.choreographers.getById(existing.id);
-          if (stored == null) return;
-          final details = updated.copyWith(name: stored.name);
-          if (details == stored) return;
-          // ignore: unused_result
-          await repos.choreographers.upsert(details, localUserEdit: true);
-        },
-      );
-      if (merge != null) return AuthorDetailsMerged(merge);
-      draft = updated;
     }
+    if (liveIds.isEmpty) {
+      // Only a deleted author holds the name: `upsert` refuses to take a
+      // tombstone's name, and `rename` frees it first. The dialog's other
+      // details are then saved under the new name, in the same transaction.
+      await repos.transaction(() async {
+        final _ = await repos.references.rename(
+          ReferenceKind.author,
+          existing.id,
+          updated.name,
+        );
+        final renamed = await repos.choreographers.getById(existing.id);
+        if (renamed == null) return;
+        final details = updated.copyWith(name: renamed.name);
+        if (details == renamed) return;
+        // ignore: unused_result
+        await repos.choreographers.upsert(details, localUserEdit: true);
+      });
+      return AuthorDetailsSaved(
+        await repos.choreographers.getById(existing.id) ?? updated,
+      );
+    }
+    if (!context.mounted) return null;
+    final merge = await offerAuthorMerge(
+      context,
+      repos,
+      fromName: existing.name,
+      from: updated,
+      typedName: updated.name,
+      liveIds: liveIds,
+      beforeMerge: () async {
+        final stored = await repos.choreographers.getById(existing.id);
+        if (stored == null) return;
+        final details = updated.copyWith(name: stored.name);
+        if (details == stored) return;
+        // ignore: unused_result
+        await repos.choreographers.upsert(details, localUserEdit: true);
+      },
+    );
+    if (merge != null) return AuthorDetailsMerged(merge);
+    draft = updated;
   }
 }

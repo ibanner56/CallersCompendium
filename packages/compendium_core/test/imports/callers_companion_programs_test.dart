@@ -132,6 +132,47 @@ void main() {
     );
   });
 
+  test('an impossible ISO date is left unset, not rolled over', () {
+    for (final raw in ['2021-02-30', '2024-13-01']) {
+      final result = build(
+        _archive([
+          CcSet(
+            recordId: '7',
+            location: 'Hall',
+            eventDate: raw,
+            items: const [],
+          ),
+        ]),
+      );
+      final program = result.programs.single;
+      expect(program.eventDate, isNull, reason: raw);
+      expect(program.title, 'Hall', reason: raw);
+      expect(
+        result.issues.any((i) => i.code == 'cc_program_unparsed_date'),
+        isTrue,
+        reason: raw,
+      );
+    }
+  });
+
+  test('an ISO date keeps the day written, whatever offset follows', () {
+    for (final (raw, day) in [
+      ('2024-04-20', 20),
+      ('2024-04-20T23:30-05:00', 20),
+      ('2024-04-20T00:30+09:00', 20),
+      ('20240420', 20),
+    ]) {
+      final result = build(
+        _archive([CcSet(recordId: '7', eventDate: raw, items: const [])]),
+      );
+      expect(
+        result.programs.single.eventDate,
+        DateTime.utc(2024, 4, day),
+        reason: raw,
+      );
+    }
+  });
+
   test('synthesises a title when the set has none', () {
     final result = build(_archive([CcSet(recordId: '42', items: const [])]));
     expect(result.programs.single.title, "Caller's Companion set #42");

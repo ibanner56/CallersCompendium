@@ -415,6 +415,20 @@ class _EditorHostState extends State<_EditorHost> {
       const SizedBox(key: ValueKey('editor-sentinel'));
 }
 
+/// Whether the builder would let Back leave without asking: false while it
+/// holds unsaved edits. The Save button's label no longer says so (#2107), so
+/// tests read the editor's own [PopScope] instead.
+bool _editorCanPop(WidgetTester tester) => tester
+    .widget<PopScope<Object?>>(
+      find
+          .descendant(
+            of: find.byType(ProgramEditorScreen),
+            matching: find.byWidgetPredicate((w) => w is PopScope<Object?>),
+          )
+          .first,
+    )
+    .canPop;
+
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
@@ -4685,11 +4699,9 @@ void main() {
       expect(saved!.title, 'Night');
       expect(saved.slots.single.performedAt, isNull);
       expect(
-        find.descendant(
-          of: find.byKey(const ValueKey('save-program')),
-          matching: find.text('Save'),
-        ),
-        findsOneWidget,
+        _editorCanPop(tester),
+        isFalse,
+        reason: 'the builder still holds unsaved edits',
       );
       await tester.tap(find.byKey(const ValueKey('save-program')));
       await tester.pumpAndSettle();
@@ -6301,7 +6313,7 @@ void main() {
         reason: 'the unsaved Performed status must not stamp the program',
       );
 
-      // The builder still holds the unsaved edits, and says so.
+      // The builder still holds the unsaved edits, and Back would ask first.
       expect(
         tester
             .widget<TextFormField>(find.byKey(const ValueKey('program-title')))
@@ -6310,11 +6322,9 @@ void main() {
         'Renamed',
       );
       expect(
-        find.descendant(
-          of: find.byKey(const ValueKey('save-program')),
-          matching: find.text('Save'),
-        ),
-        findsOneWidget,
+        _editorCanPop(tester),
+        isFalse,
+        reason: 'the builder still holds unsaved edits',
       );
       final draft = await repos.settings.get('program_editor_draft:p1');
       expect(draft, contains('Renamed'));

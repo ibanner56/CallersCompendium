@@ -222,10 +222,32 @@ bool _balanceAfterCirculate(Iterable<Figure> figures) => figures.any(
 
 /// A balance, or one word and a balance (`wave balance`, `Neighbor balance`),
 /// opening a note or following a comma, `;`, dash, `and` or `then` in it.
-/// `no balance` and `without balance` say there is none.
+/// `no balance` and `without balance` say there is none, and `with balance`
+/// and a `balance first` that ends its clause that the box circulate's own
+/// balance is there; `balance first corners` is a balance after it.
 final RegExp _balanceInNote = RegExp(
   r'(?:^|[,;\-\u2013]|\band\b|\bthen\b)\s*(?:and\s+)?(?:then\s+)?'
-  r'(?!(?:no|without)\s)(?:\w+\s+)?balance\b',
+  r'(?!(?:no|without|with)\s)(?:\w+\s+)?balance\b'
+  r'(?!\s+first\s*(?:$|[,;.)\-\u2013]))',
+  caseSensitive: false,
+);
+
+/// [f] with `balance: false` when it is a box circulate whose note says there
+/// is no balance (`Box circulate, no balance`). An absent flag renders as a
+/// balance, and a line's 8 beats would turn it on (`withBeatImpliedBalance`),
+/// so the note alone would be contradicted.
+Figure _noBalanceWhereStated(Figure f) {
+  if (f.move != 'box_circulate' ||
+      f.params.containsKey('balance') ||
+      f.note == null ||
+      !_noBalanceInNote.hasMatch(f.note!)) {
+    return f;
+  }
+  return f.copyWith(params: {...f.params, 'balance': false});
+}
+
+final RegExp _noBalanceInNote = RegExp(
+  r'\b(?:no|without)\s+(?:a\s+)?balance\b',
   caseSensitive: false,
 );
 
@@ -669,7 +691,8 @@ Figure? parseFigureLineFanOut(
   if (noteWin == null && customFallback == null && demoted) {
     return _demotedCustom(rawText, beats, progression);
   }
-  return noteWin ?? customFallback;
+  final win = noteWin;
+  return win != null ? _noBalanceWhereStated(win) : customFallback;
 }
 
 /// Parses a free-text figure line — possibly a `;`-compound — by fanning OUT
@@ -775,5 +798,8 @@ List<Figure> parseFigureLinesFanOut(
     // custom itself: build the same whole-line import-gap custom they would.
     return [_demotedCustom(rawText, beats, progression)];
   }
-  return noteWin ?? customFallback ?? const [];
+  final win = noteWin;
+  return win != null
+      ? win.map(_noBalanceWhereStated).toList()
+      : customFallback ?? const [];
 }

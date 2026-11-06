@@ -244,9 +244,12 @@ nothing touches your collection until you commit there — so an import can neve
 quietly overwrite your work. The review lists every dance it found, with its
 author, formation, source, how much of it was read as structured figures, and
 any notes about it; you decide for each one whether to bring it in or skip it.
-It does not show the original text or the figures. Where a row offers **Import
-and edit** (not for a shared file, or for a pasted title that matched more than
-one dance), it imports that one dance right away and opens it in the editor. The [Imports & migration guide](./imports.md) walks
+It does not show the original text, and shows figures only where an incoming
+dance is a version of one you already have: then it lists the figure lines that
+differ. Where a row offers **Import and edit** (not when the file brings a
+program, or tags and other library details along with its dances, and not for a
+pasted title that matched more than one dance), it imports that one dance right
+away and opens it in the editor. The [Imports & migration guide](./imports.md) walks
 through each source step by step.
 
 ## Calling in your own words

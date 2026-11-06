@@ -167,6 +167,22 @@ void main() {
     expect(await indexedCustomValues('d2'), '2.5');
   });
 
+  test('a whole number past 2^63 is indexed as its own digits', () async {
+    // `toInt` clamps from 2^63 on the VM, so 1e20 once indexed as
+    // 9223372036854775807, the same text as every other huge value.
+    final rating = CustomFieldDef(
+      id: 'f-rating',
+      key: 'rating',
+      label: 'Rating',
+      type: CustomFieldType.number,
+    );
+    await upsertDef(rating);
+    await createDance('d1', [
+      CustomFieldValue(fieldId: 'f-rating', value: 1e20),
+    ]);
+    expect(await indexedCustomValues('d1'), '100000000000000000000');
+  });
+
   test('a tombstone adopted under a recreated field leaves a trashed dance\'s '
       'index as a rebuild writes it', () async {
     await upsertDef(textField());

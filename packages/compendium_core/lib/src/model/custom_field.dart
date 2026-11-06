@@ -25,6 +25,21 @@ num? parseFiniteNumber(String raw) {
   return parsed;
 }
 
+/// A custom number as text, the way a caller types it: a whole number reads
+/// "3", never the "3.0" `double.toString` gives (numbers are stored as REAL,
+/// so they come back as doubles). It drops that trailing ".0" rather than
+/// converting with `toInt`, which clamps from 2^63 on the VM and would read
+/// every such value as 9223372036854775807; a number `toString` already writes
+/// in exponent form ("1e+21") keeps it. The search index, the dance screens
+/// and the editor all write numbers through this one function.
+String customNumberText(num value) {
+  if (value == 0) return '0';
+  final text = value.toString();
+  return value is double && text.endsWith('.0')
+      ? text.substring(0, text.length - 2)
+      : text;
+}
+
 /// Returns whether [value] is safe to persist as a custom number.
 bool isFiniteCustomFieldNumber(Object value) =>
     value is num && value.isFinite && value.toDouble().isFinite;

@@ -1036,4 +1036,34 @@ void main() {
       expect(c.binds, ['swing']);
     });
   });
+  group('a dialect name equal to a built-in move id (FIND-4)', () {
+    final clash = Dialect(name: 'Clash', moves: const {'swing': 'chain'});
+
+    test('the built-in id searches its own move', () {
+      for (final compiler in [
+        FilterCompiler(clash, null, contraTaxonomy),
+        // A saved, inactive dialect feeds the same reverse map.
+        FilterCompiler(
+          null,
+          SearchEnrichment.fromDialects([clash]),
+          contraTaxonomy,
+        ),
+      ]) {
+        expect(compiler.compile(FigureFilter.leaf('chain')).binds, ['chain']);
+        expect(compiler.compile(FigureFilter.leaf('swing')).binds, ['swing']);
+      }
+    });
+
+    test('a dialect-only name still maps to its move', () {
+      final buzz = Dialect(name: 'Buzz', moves: const {'swing': 'buzz'});
+      expect(
+        FilterCompiler(
+          buzz,
+          null,
+          contraTaxonomy,
+        ).compile(FigureFilter.leaf('Buzz')).binds,
+        ['swing'],
+      );
+    });
+  });
 }

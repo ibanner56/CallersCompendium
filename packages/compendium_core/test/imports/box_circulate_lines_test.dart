@@ -64,6 +64,24 @@ void main() {
           final f = single(line);
           expect(f.move, 'box_circulate', reason: line);
           expect(f.note, contains('balance'), reason: line);
+          // The line says there is none, so its 8 beats do not turn the flag
+          // on, and the flag is set because an absent one renders a balance.
+          expect(f.params['balance'], isFalse, reason: line);
+        }
+      });
+
+      test('a balance said to be there or to come first is no balance after '
+          'the circulate', () {
+        for (final line in [
+          'Box circulate with balance',
+          'Box circulate, with balance',
+          // Free-text entry keeps a note that opens with a move's name as
+          // text anyway (`_noteIsLeftover`), whatever the box circulate's rule.
+          if (path == 'fan-out') 'Box circulate - balance first',
+        ]) {
+          final f = single(line);
+          expect(f.move, 'box_circulate', reason: line);
+          expect(f.params['balance'], isNot(isFalse), reason: line);
         }
       });
 
@@ -78,6 +96,10 @@ void main() {
           'Box circulate, balance the ring',
           'Box circulate to a wave, balance the wave',
           'Box circulate to a wave and balance the wave',
+          // `first` names whom or when, not that the balance comes first.
+          'Box circulate and balance first corners',
+          'Box circulate - balance first time',
+          'Box circulate then balance first couples',
         ]) {
           expect(single(line).isCustom, isTrue, reason: line);
         }
@@ -108,6 +130,7 @@ void main() {
       for (final line in [
         '(8) Box circulate, balance the wave',
         '(8) Box circulate to a wave, balance the wave',
+        '(8) Box circulate and balance first corners',
       ]) {
         expect((await _ccFigures(line)).single.isCustom, isTrue, reason: line);
       }

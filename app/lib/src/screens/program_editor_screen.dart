@@ -4070,7 +4070,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     return Form(
       key: _formKey,
       child: ListView(
-        keyboardDismissBehavior: kTextEntryKeyboardDismiss,
+        keyboardDismissBehavior: textEntryKeyboardDismiss(),
         // The bottom inset lets the last slot scroll clear of the Save FAB.
         padding: const EdgeInsets.fromLTRB(
           AppSpacing.md,

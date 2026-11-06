@@ -2193,8 +2193,11 @@ bool _startsWith(List<String> w, List<String> phrase) {
 
 /// Caller's Companion's `Balance wave and slide to the right` is one Rory
 /// O'More with its balance, and so is `Balance and slide` (maintainer decision
-/// 11 on #1975); `Balance long wave and slide` is the same with the long wave
-/// as the note, and a line that names who slides (`… and Larks slide to the
+/// 11 on #1975). Requiring the side is the author's call (#2088): a bare
+/// `Balance and slide` is declined here and reads as a balance noting
+/// `and slide`, because a Rory O'More's `slide` defaults to `right`, which would
+/// invent a direction the line never gave. `Balance long wave and slide` is the
+/// same with the long wave as the note, and a line that names who slides (`… and Larks slide to the
 /// right`) is not read (maintainer decisions). Reading `Balance wave of 4 and
 /// slide` the same way, and not reading anything after the side, is the
 /// author's call.

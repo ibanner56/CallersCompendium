@@ -3157,7 +3157,7 @@ void main() {
 
       // The help line describes typed lines, not a whole-text custom.
       expect(find.textContaining('typing a whole line'), findsOneWidget);
-      expect(find.textContaining('unmatched text becomes'), findsNothing);
+      expect(find.textContaining('with its default values'), findsNothing);
 
       await tester.enterText(
         find.byKey(const ValueKey('title-field')),
