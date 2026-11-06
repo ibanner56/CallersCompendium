@@ -387,6 +387,10 @@ the moves — inside your dances. It works by stacking up rows and groups:
    *then* a swing." Only a move directly after the first counts, not one later
    in the dance. A dance is treated as a loop, so the first move counts as
    coming right after the last one.
+5. On any figure row, including either side of a **Sequence (then)**, switch on
+   **Any figure** instead of choosing a move: "a swing *then* anything," or
+   "anything *then* a chain." The row has no move, section or parameters to set.
+   On ContraDB it is sent as ContraDB's own "any figure".
 
 Rows live inside groups set to **All of**, **Any of**, or **None of** — match
 every row, any row, or no row — and a **Condition group** can sit inside another,
