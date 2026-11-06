@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
@@ -33,16 +34,16 @@ import '../test_package_root.dart';
 const _knownFailuresPath =
     'test/imports/fixtures/figure_round_trip_known_failures.txt';
 
-/// One figure for each of [taxonomy]'s moves at its defaults, then one per
-/// value of each param a closed domain can enumerate (beats, rotations, places
-/// and free text are left at their defaults).
-List<Figure> _sweep(Taxonomy taxonomy) => [
-  for (final move in taxonomy.moves.values)
+/// One figure for each of [contraTaxonomy]'s moves at its defaults, then one
+/// per value of each param a closed domain can enumerate (beats, rotations,
+/// places and free text are left at their defaults).
+List<Figure> _sweep() => [
+  for (final move in contraTaxonomy.moves.values)
     if (move.id != customMove) ...[
-      Figure(move: move.id),
+      testFigure(move: move.id),
       for (final MapEntry(key: name, value: spec) in move.params.entries)
         for (final value in _domain(spec))
-          Figure(move: move.id, params: {name: value}),
+          testFigure(move: move.id, params: {name: value}),
     ],
 ];
 
@@ -87,12 +88,15 @@ void main() {
   group('a subject before the balance reads back (#2121)', () {
     final renderer = FigureRenderer(contraTaxonomy);
     final cases = [
-      Figure(move: 'box_the_gnat', params: {'balance': true}),
-      Figure(move: 'box_the_gnat', params: {'who': 'role2s', 'balance': true}),
-      Figure(move: 'swat_the_flea', params: {'balance': true}),
+      testFigure(move: 'box_the_gnat', params: {'balance': true}),
+      testFigure(
+        move: 'box_the_gnat',
+        params: {'who': 'role2s', 'balance': true},
+      ),
+      testFigure(move: 'swat_the_flea', params: {'balance': true}),
       for (final who in ['role1s', 'role2s', 'centers', 'ones', 'twos'])
         for (final slide in ['left', 'right'])
-          Figure(
+          testFigure(
             move: 'rory_o_more',
             params: {'who': who, 'slide': slide, 'balance': true},
           ),
@@ -114,9 +118,16 @@ void main() {
     }
   });
 
+  test('a box read with its balance is 8 beats unless the line says', () {
+    Figure read(String line) => parseFreeTextFigureEntry(line).single;
+    expect(read('neighbor balance & box the gnat').params['beats'], 8);
+    expect(read('(16) neighbor balance & box the gnat').params['beats'], 16);
+    expect(read('neighbor box the gnat').params, isNot(contains('beats')));
+  });
+
   test('every figure reads back from its displayed text, or is listed', () async {
     final renderer = FigureRenderer(contraTaxonomy);
-    final figures = _sweep(contraTaxonomy);
+    final figures = _sweep();
     // Guards the sweep itself: an empty or shrunken sweep would pass vacuously.
     expect(figures.length, greaterThan(1500), reason: 'the sweep shrank');
 

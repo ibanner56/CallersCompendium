@@ -1609,6 +1609,12 @@ _Match? _revolvingDoor(List<String> w) {
 /// where it leads the line once the subject is taken out, as in the display;
 /// a line that does not state one leaves the flag absent, so it stays
 /// unbalanced.
+///
+/// A box read with its balance is 8 beats unless the line states a count
+/// (a stated count replaces it, see [parseFigureLine]). The move has no beat
+/// rule for its balance, so without this the 4-beat default would apply to a
+/// balance and box, where a balanced Rory O'More gets 8 and the editor seeds
+/// a balanced box with 8 (the author's call on #2121).
 _Match? _boxTheGnat(List<String> w) {
   final who = _takeDancer(w);
   final balance = _consumeLeading(w, ['balance', 'and']);
@@ -1621,11 +1627,17 @@ _Match? _boxTheGnat(List<String> w) {
   final moveId = swat ? 'swat_the_flea' : 'box_the_gnat';
   return _Match(
     moveId,
-    {'who': who2 ?? 'partners', if (balance) 'balance': true},
+    {
+      'who': who2 ?? 'partners',
+      if (balance) ...{'balance': true, 'beats': _balancedBoxBeats},
+    },
     null,
     who2 == null,
   );
 }
+
+/// The beats of a box the gnat read with its balance and no stated count.
+const int _balancedBoxBeats = 8;
 
 // ContraDB `box circulate`. A single "box circulate" line states no balance, so
 // the recognizer leaves the `balance` flag absent; an importer sets it from the

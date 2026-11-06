@@ -305,6 +305,9 @@ final Taxonomy contraTaxonomy = Taxonomy(
         'hand': ParamSpec(ParamKind.handedness, defaultValue: 'right'),
         // v10: a preceding balance line folds in here via the CallersBox
         // cross-line merge (swat_the_flea inherits this through its target).
+        // A single `<who> balance & box the gnat` line, the display's own
+        // wording, also reads as balanced, at 8 beats when it states no count
+        // (`_boxTheGnat` in figure_parser.dart, #2121).
         // No paramBeats: box_the_gnat's beats stay on the deferral list.
         // Entry seeds a balanced, 8-beat box (v38): authors usually balance. A
         // figure that omits `balance` is still unbalanced.
