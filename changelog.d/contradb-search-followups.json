@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "added": [
-      "When a ContraDB search fills its first page of 20 results, the line above the results now says there may be more and to narrow your search, instead of giving a plain count."
+      "When a ContraDB search fills its first page of 20 results and ContraDB does not say how many matched in all, the line above the results now says there may be more and to narrow your search, instead of giving a plain count."
     ],
     "changed": [
       "A Sequence (then) row now matches a dance made of a single figure when that figure fits both sides, as ContraDB does."

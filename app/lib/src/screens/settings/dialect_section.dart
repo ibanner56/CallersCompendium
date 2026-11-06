@@ -21,7 +21,7 @@ class DialectSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ReadableListView(
-      keyboardDismissBehavior: kTextEntryKeyboardDismiss,
+      keyboardDismissBehavior: textEntryKeyboardDismiss(),
       children: [
         _DialectLibrarySection(controller: DialectLibraryScope.of(context)),
         const SizedBox(height: AppSpacing.lg),

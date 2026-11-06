@@ -314,7 +314,7 @@ class _LibraryManagerListState extends State<LibraryManagerList> {
                       ],
                     )
                   : ListView.builder(
-                      keyboardDismissBehavior: kTextEntryKeyboardDismiss,
+                      keyboardDismissBehavior: textEntryKeyboardDismiss(),
                       padding: padding.copyWith(bottom: AppSpacing.lg),
                       itemCount: visible.length,
                       itemBuilder: (context, index) =>

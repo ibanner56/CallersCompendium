@@ -267,7 +267,7 @@ class DanceEditorForm extends StatelessWidget {
       key: formKey,
       child: ReadableListView(
         controller: scrollController,
-        keyboardDismissBehavior: kTextEntryKeyboardDismiss,
+        keyboardDismissBehavior: textEntryKeyboardDismiss(),
         // Section headers carry their own padding; each section's content is
         // wrapped in horizontal AppSpacing.md so headers align with the fields
         // they label. A trailing gap lets the last section scroll clear of the

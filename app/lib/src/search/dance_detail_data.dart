@@ -301,18 +301,12 @@ String formatCustomFieldValue(AppLocalizations l10n, Object value) {
 }
 
 /// A custom field's stored [value] as text. Numbers are stored as doubles, so a
-/// whole one (3.0) reads as 3; anything else, a fractional or out-of-range
-/// number included, is shown by `toString()`. Shared by the dance detail screen
-/// and the dance list's custom columns.
-String customValueText(Object value) {
-  if (value is num &&
-      value.isFinite &&
-      value == value.truncateToDouble() &&
-      value.abs() < 1e15) {
-    return value.toInt().toString();
-  }
-  return value.toString();
-}
+/// whole one (3.0) reads as 3 ([customNumberText]); anything else, a
+/// fractional number or one `toString` writes in exponent form (`1e+21`)
+/// included, is shown by `toString()`.
+/// Shared by the dance detail screen and the dance list's custom columns.
+String customValueText(Object value) =>
+    value is num ? customNumberText(value) : value.toString();
 
 /// Indexes other dances' titles so they can be recognised inside this dance's
 /// free text (hook / calling notes) and rendered as tappable cross-reference

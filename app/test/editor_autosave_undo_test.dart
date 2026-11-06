@@ -1215,6 +1215,42 @@ void main() {
       expect(_titleText(tester), 'Pending Draft');
     });
 
+    testWidgets('a draft restored after its author was merged saves the '
+        'author it was merged into', (tester) async {
+      const s = '00000000-0000-4000-8000-00000000000a';
+      const l = '00000000-0000-4000-8000-00000000000b';
+      const x = '00000000-0000-4000-8000-00000000000c';
+      final repos = openTestRepositories();
+      for (final (id, name) in [(s, 'Ann'), (l, 'Bea'), (x, 'Cat')]) {
+        // ignore: unused_result
+        await repos.choreographers.upsert(Choreographer(id: id, name: name));
+      }
+      await repos.dances.create(_dance(id: 'd99', title: 'D99'));
+      await repos.settings.set(
+        'editor_draft:d99',
+        encodeDraft(_snap(title: 'Pending').copyWith(authorIds: [l, x])),
+      );
+      // The Authors manager merges l into s before the draft is restored.
+      // ignore: unused_result
+      await repos.references.merge(
+        ReferenceKind.author,
+        intoId: s,
+        otherIds: [l],
+      );
+
+      await _pumpEditor(tester, repos, danceId: 'd99');
+      await tester.tap(find.byKey(const ValueKey('draft-restore')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      final saved = await repos.dances.getById('d99');
+      expect(saved!.title, 'Pending');
+      // Saved as written, the draft would credit the tombstoned l, which the
+      // dance then hides, leaving only x.
+      expect(saved.authorIds, [s, x]);
+    });
+
     testWidgets('corrupt draft is silently discarded — no dialog', (
       tester,
     ) async {

@@ -216,8 +216,8 @@ equivalent for, or any other filter is not sent; you see a message explaining
 this, rather than results that quietly ignore that condition. Remove those
 conditions to search ContraDB.
 
-A figure's details, such as its beats or the dancers doing it, are sent to
-ContraDB where it has them. A detail ContraDB does not have, such as how a
+The figure details you can pick in the Advanced panel, such as the dancers
+doing it or the hand, are sent to ContraDB where it has them. A detail ContraDB does not have, such as how a
 swing ends, is left out, and the line above the results says so: that search
 usually finds more dances than the one you described (fewer, if the figure is
 under **None of**). A few details also match a little more

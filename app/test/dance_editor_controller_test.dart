@@ -648,6 +648,45 @@ void main() {
     expect(dance.createdAt, now);
   });
 
+  test('a stored whole number opens in its box as "3", not "3.0"', () async {
+    final repos = openTestRepositories();
+    final def = CustomFieldDef(
+      id: 'f-num',
+      key: 'number',
+      label: 'Number',
+      type: CustomFieldType.number,
+    );
+    for (final (stored, shown) in [
+      (3.0, '3'),
+      (2.5, '2.5'),
+      (1e20, '100000000000000000000'),
+    ]) {
+      final controller = DanceEditorController(
+        repositories: repos,
+        danceId: 'd1',
+        dialect: Dialect.larksRobins,
+      );
+      addTearDown(controller.dispose);
+      await controller.load(
+        dance: Dance(
+          id: 'd1',
+          title: 'Numbered',
+          customFields: [CustomFieldValue(fieldId: 'f-num', value: stored)],
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+        fieldDefs: [def],
+      );
+      expect(
+        controller.customTextControllers['f-num']!.text,
+        shown,
+        reason: '$stored',
+      );
+      // Opening it is no edit: the box parses back to the stored value.
+      expect(controller.collectCustomFields().single.value, stored);
+    }
+  });
+
   test('collectCustomFields ignores non-finite number input', () async {
     final repos = openTestRepositories();
     final def = CustomFieldDef(
@@ -2872,8 +2911,8 @@ void main() {
   });
 
   group('replaceAuthors (an author merge, T3)', () {
-    test('credits the survivor in the draft and in every undo step, keeping '
-        'the first position and dropping the duplicate', () async {
+    test('credits the survivor in the draft and in every undo step, dropping '
+        'the duplicate', () async {
       final repos = openTestRepositories();
       final controller = await newDanceController(repos);
       addTearDown(controller.dispose);
@@ -2883,7 +2922,9 @@ void main() {
       controller.addAuthor('survivor');
 
       final replacement = controller.replaceAuthors({'loser'}, 'survivor');
-      expect(controller.authorIds, ['survivor', 'other']);
+      // The draft already credits the survivor, so it keeps its place and the
+      // merged-away credit goes, as the stored dance's join rows do.
+      expect(controller.authorIds, ['other', 'survivor']);
 
       // Undoing past the merge must not bring the merged-away id back.
       controller.undo();
@@ -2892,13 +2933,177 @@ void main() {
       expect(controller.authorIds, ['survivor']);
       controller.redo();
       controller.redo();
-      expect(controller.authorIds, ['survivor', 'other']);
+      expect(controller.authorIds, ['other', 'survivor']);
 
       // The merge's Undo puts the draft and its history back.
       controller.restoreAuthors(replacement);
       expect(controller.authorIds, ['loser', 'other', 'survivor']);
       controller.undo();
       expect(controller.authorIds, ['loser', 'other']);
+    });
+
+    test(
+      'leaves the draft in the order the merge leaves the stored dance',
+      () async {
+        // Ids sort in this order, so `s` survives every merge here.
+        const s = '00000000-0000-4000-8000-00000000000a';
+        const l1 = '00000000-0000-4000-8000-00000000000b';
+        const l2 = '00000000-0000-4000-8000-00000000000c';
+        const x = '00000000-0000-4000-8000-00000000000d';
+        final cases = <({List<String> credits, Set<String> merged})>[
+          (credits: [l1, x, s], merged: {l1}),
+          (credits: [s, x, l1], merged: {l1}),
+          (credits: [l2, x, l1], merged: {l1, l2}),
+          (credits: [l1, x, l2], merged: {l1, l2}),
+          (credits: [l2, s, x, l1], merged: {l1, l2}),
+        ];
+        for (final c in cases) {
+          final repos = openTestRepositories();
+          final t0 = DateTime.utc(2026, 10, 1);
+          for (final (id, name) in [
+            (s, 'Ann'),
+            (l1, 'Bea'),
+            (l2, 'Cat'),
+            (x, 'Dot'),
+          ]) {
+            // ignore: unused_result
+            await repos.choreographers.upsert(
+              Choreographer(id: id, name: name),
+              at: t0,
+            );
+          }
+          await repos.dances.create(
+            Dance(
+              id: 'd',
+              title: 'D',
+              authorIds: c.credits,
+              createdAt: t0,
+              updatedAt: t0,
+            ),
+          );
+          // ignore: unused_result
+          await repos.references.merge(
+            ReferenceKind.author,
+            intoId: s,
+            otherIds: c.merged,
+          );
+          final stored = (await repos.dances.getById('d'))!.authorIds;
+
+          final controller = await newDanceController(repos);
+          addTearDown(controller.dispose);
+          for (final id in c.credits) {
+            controller.addAuthor(id);
+          }
+          final _ = controller.replaceAuthors(c.merged, s);
+          expect(controller.authorIds, stored, reason: '${c.credits}');
+        }
+      },
+    );
+
+    test('a draft restored after its author was merged or deleted credits '
+        'who is live now', () async {
+      const s = '00000000-0000-4000-8000-00000000000a';
+      const l = '00000000-0000-4000-8000-00000000000b';
+      const gone = '00000000-0000-4000-8000-00000000000c';
+      const tagKeep = '00000000-0000-4000-8000-0000000000aa';
+      const tagLose = '00000000-0000-4000-8000-0000000000ab';
+      const tagStaged = '00000000-0000-4000-8000-0000000000ac';
+      final repos = openTestRepositories();
+      final t0 = DateTime.utc(2026, 10, 1);
+      for (final (id, name) in [(s, 'Ann'), (l, 'Bea'), (gone, 'Cat')]) {
+        // ignore: unused_result
+        await repos.choreographers.upsert(
+          Choreographer(id: id, name: name),
+          at: t0,
+        );
+      }
+      for (final (id, name) in [(tagKeep, 'easy'), (tagLose, 'Easy one')]) {
+        // ignore: unused_result
+        await repos.tags.upsert(
+          Tag(id: id, name: name),
+          at: t0,
+        );
+      }
+
+      // The session that saved the draft credits l and gone, and the two
+      // tags, plus one staged in the draft.
+      final controller = await newDanceController(repos);
+      addTearDown(controller.dispose);
+      controller.addAuthor(l);
+      controller.addAuthor(gone);
+      controller.addAuthor(s);
+      controller.addTag(tagLose);
+      controller.stageTag(Tag(id: tagStaged, name: 'new'));
+      controller.addTag(tagStaged);
+      final draft = controller.captureSnapshot();
+
+      // Before this session restores it, the managers merge l into s and the
+      // tags together, and delete gone.
+      // ignore: unused_result
+      await repos.references.merge(
+        ReferenceKind.author,
+        intoId: s,
+        otherIds: [l],
+      );
+      // ignore: unused_result
+      await repos.references.merge(
+        ReferenceKind.tag,
+        intoId: tagKeep,
+        otherIds: [tagLose],
+      );
+      // ignore: unused_result
+      await repos.references.deleteUnused(ReferenceKind.author, gone);
+
+      final current = await controller.withLiveReferences(draft);
+      expect(current.authorIds, [s]);
+      expect(current.tagIds, [tagKeep, tagStaged]);
+      // Nothing else in the draft changes.
+      expect(current.title, draft.title);
+      expect(current.stagedTags, draft.stagedTags);
+    });
+
+    test(
+      'a restored draft orders a merged author as the merge left the dance',
+      () async {
+        const s = '00000000-0000-4000-8000-00000000000a';
+        const l = '00000000-0000-4000-8000-00000000000b';
+        const x = '00000000-0000-4000-8000-00000000000c';
+        final repos = openTestRepositories();
+        for (final (id, name) in [(s, 'Ann'), (l, 'Bea'), (x, 'Cat')]) {
+          // ignore: unused_result
+          await repos.choreographers.upsert(Choreographer(id: id, name: name));
+        }
+        final controller = await newDanceController(repos);
+        addTearDown(controller.dispose);
+        for (final id in [l, x, s]) {
+          controller.addAuthor(id);
+        }
+        final draft = controller.captureSnapshot();
+        // ignore: unused_result
+        await repos.references.merge(
+          ReferenceKind.author,
+          intoId: s,
+          otherIds: [l],
+        );
+        // The dance already credits s, so s keeps its place and l goes, as the
+        // stored dance's rows and an open editor's replaceAuthors do.
+        expect((await controller.withLiveReferences(draft)).authorIds, [x, s]);
+      },
+    );
+
+    test('a draft whose references are all live comes back as it is', () async {
+      final repos = openTestRepositories();
+      final controller = await newDanceController(repos);
+      addTearDown(controller.dispose);
+      const a = '00000000-0000-4000-8000-00000000000a';
+      // ignore: unused_result
+      await repos.choreographers.upsert(Choreographer(id: a, name: 'Ann'));
+      controller.addAuthor(a);
+      final draft = controller.captureSnapshot();
+      expect(
+        identical(await controller.withLiveReferences(draft), draft),
+        isTrue,
+      );
     });
 
     test('restoreAuthors leaves a draft edited since the merge', () async {

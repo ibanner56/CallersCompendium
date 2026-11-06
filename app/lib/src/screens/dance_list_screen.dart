@@ -2887,7 +2887,7 @@ class _DanceListScreenState extends State<DanceListScreen>
               ),
             },
             child: CustomScrollView(
-              keyboardDismissBehavior: kTextEntryKeyboardDismiss,
+              keyboardDismissBehavior: textEntryKeyboardDismiss(),
               slivers: [
                 SliverList(
                   delegate: SliverChildListDelegate([

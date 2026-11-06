@@ -157,28 +157,60 @@ class _Walk {
     }
   }
 
-  Object figure(FigureQuery query) {
+  /// [negated] is true under an odd number of figure-level `not`s, where a
+  /// figure must match only if every row of the Collection's group does.
+  /// That differs from the positive reading for one move: `allemande` asks
+  /// ContraDB for `allemande orbit` too, because the importer turns that figure
+  /// into `meanwhile[allemande, orbit]`, a group holding an allemande. Under a
+  /// `not` the orbit row is not an allemande, so the group still matches
+  /// `not allemande` locally; ContraDB must then be asked for the plain
+  /// `allemande` alone, or `not` would rule the orbit figure out.
+  Object figure(FigureQuery query, {bool negated = false}) {
     switch (query) {
       case FigureLeaf(:final move, :final params, :final section):
         if (section != null) return ContraDbAdvancedUnsupported.figureDetail;
         final fragment = _contraDbForCollectionMove[move];
         if (fragment == null) return ContraDbAdvancedUnsupported.figureName;
-        if (params.isEmpty) return _copy(fragment);
+        final orbitless = negated && move == 'allemande';
+        if (params.isEmpty) {
+          return orbitless ? _withoutOrbit(fragment) : _copy(fragment);
+        }
         // Parameters are translated where ContraDB has them; the rest are
         // left out, never a reason to refuse the figure.
         final withParams = translateContraDbFigureParams(move, params);
-        if (withParams == null) return _copy(fragment);
+        if (withParams == null) {
+          return orbitless ? _withoutOrbit(fragment) : _copy(fragment);
+        }
         ignored.addAll(withParams.ignored);
-        return withParams.expression ?? _copy(fragment);
+        final expression = withParams.expression ?? fragment;
+        return orbitless ? _withoutOrbit(expression) : _copy(expression);
       case FigureAnd(:final children):
-        return _combine('&', children, figure);
+        return _combine('&', children, (c) => figure(c, negated: negated));
       case FigureOr(:final children):
-        return _combine('or', children, figure);
+        return _combine('or', children, (c) => figure(c, negated: negated));
       case FigureNot(:final child):
-        final inner = figure(child);
+        final inner = figure(child, negated: !negated);
         return inner is List<Object?> ? <Object?>['not', inner] : inner;
     }
   }
+}
+
+/// [expression] (an `allemande` translation) without its `allemande orbit`
+/// alternative: `['or', allemande, orbit]` becomes the allemande branch. One
+/// with no orbit branch (a dancer or beats value no orbit can have) is copied
+/// as it is.
+List<Object?> _withoutOrbit(List<Object?> expression) {
+  if (expression.length == 3 && expression[0] == 'or') {
+    final orbit = expression[2];
+    if (orbit is List<Object?> &&
+        orbit.length >= 2 &&
+        orbit[0] == 'figure' &&
+        orbit[1] == 'allemande orbit') {
+      final main = expression[1];
+      if (main is List<Object?>) return _copy(main);
+    }
+  }
+  return _copy(expression);
 }
 
 /// A mutable deep copy of a const expression fragment.

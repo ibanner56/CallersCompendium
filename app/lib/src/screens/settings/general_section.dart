@@ -22,11 +22,13 @@ import '../../data/backup_service.dart';
 import '../../data/confirm_before_delete_scope.dart';
 import '../../data/import_io.dart';
 import '../../data/reduce_motion_scope.dart';
+import '../../data/regional_formats.dart';
 import '../../data/persisted_preference.dart';
 import '../../data/repositories_scope.dart';
 import '../../data/soft_delete_retention.dart';
 import '../../data/sort_ignore_articles_scope.dart';
 import '../../data/verbose_figure_rendering_scope.dart';
+import '../../data/date_format_scope.dart';
 import '../../data/decimal_turns_scope.dart';
 import '../../data/capitalize_figures_scope.dart';
 import '../../diagnostics/error_log.dart';
@@ -687,7 +689,7 @@ class _GeneralView extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return ReadableListView(
-      keyboardDismissBehavior: kTextEntryKeyboardDismiss,
+      keyboardDismissBehavior: textEntryKeyboardDismiss(),
       children: [
         SectionHeader(title: l10n.settingsGeneralLibraryHeader),
         SwitchListTile(
@@ -847,9 +849,12 @@ class _GeneralView extends StatelessWidget {
     final lastBackupLabel = lastBackupAt == null
         ? l10n.backupLastBackupNever
         : l10n.backupLastBackupDate(
-            MaterialLocalizations.of(
-              context,
-            ).formatMediumDate(lastBackupAt!.toLocal()),
+            formatEventDate(
+              lastBackupAt!.toLocal(),
+              DateFormatScope.of(context),
+              MaterialLocalizations.of(context),
+              l10n,
+            ),
           );
     return [
       SettingsActionRow(
@@ -1068,9 +1073,12 @@ class _RestoreBackupDialogState extends State<_RestoreBackupDialog> {
     } else {
       final core = read.document.core;
       text = l10n.backupFileSummary(
-        MaterialLocalizations.of(
-          context,
-        ).formatMediumDate(read.document.createdAt.toLocal()),
+        formatEventDate(
+          read.document.createdAt.toLocal(),
+          DateFormatScope.of(context),
+          MaterialLocalizations.of(context),
+          l10n,
+        ),
         core.dances.where((d) => d.deletedAt == null).length,
         core.programs.where((p) => p.deletedAt == null).length,
         backupMegabytes(_sizeBytes!),

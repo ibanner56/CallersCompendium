@@ -2004,7 +2004,10 @@ has to be judged in its own context.
   - The shared recognizer reads the Rory O'More (`_balanceAndSlide`) and the
     short waves (`_formShortWaves`), so imports and typed figures agree.
     `Balance wave of 4 and slide` reads as the Rory O'More too (decision 11
-    itself names `Balance and slide`); anything after the side keeps the line
+    itself names `Balance and slide`). Requiring the side, so that a bare
+    `Balance and slide` stays a balance noting `and slide`, is the author's
+    call (#2088), not the maintainer's: the Rory O'More's `slide` defaults to
+    `right` and would invent a direction the line never gave. Anything after the side keeps the line
     text, as the role-named slide does. Free-text entry,
     which demotes a note naming another move, leaves the long-wave line text.
   - `make a short wave`, `make a wave of four` and `form wave of 4` read as
@@ -2047,7 +2050,14 @@ has to be judged in its own context.
   The author's calls:
   - The rule covers any balance written after it (`balance the ring`,
     `Neighbor balance`), one after a bracket, and one later in the note (`Box
-    circulate to a wave, balance the wave`), but not `no balance`.
+    circulate to a wave, balance the wave`), but not a note that says there
+    is none (`no balance`, `without balance`) or that the box circulate's own
+    balance is there (`with balance`, a `balance first` that ends its clause;
+    `balance first corners` is a balance after it). A box circulate whose
+    note says there is no balance is given `balance: false`
+    (`_noBalanceWhereStated`), because an absent flag renders as a balance and
+    a line's 8 beats would turn it on. Free-text entry still keeps `balance
+    first` as text, as it keeps any note that opens with a move's name.
   - Without the fan-out's reading, a Caller's Companion import splits the line
     at the comma when the balance reads alone, as any comma line: `(8) Box
     circulate, balance the ring` is a box circulate in 4 then a ring balance in
