@@ -242,6 +242,8 @@ const List<FigureMatch? Function(String)> _recognizers =
       _passTheOceanDisplay,
       _formAShortWave,
       _formShortWavesDisplay,
+      // Ahead of [_formLongWaves], which takes any tail as its note and so
+      // would read the display's clause as a note.
       _formLongWavesDisplay,
       _formLongWaves,
       _hey,
@@ -689,6 +691,9 @@ FigureMatch? _passTheOceanDisplay(String text) {
   s.take();
   if (!s.eatPhrase('hands on the sides')) return null;
   final balance = s.eatPhrase('and balance');
+  // Only the display's whole line: a tail would ride as a note the params
+  // may contradict (`…, balance` with no balance read).
+  if (s.peek() != null) return null;
   return FigureMatch(
     'pass_the_ocean',
     params: {
@@ -698,7 +703,6 @@ FigureMatch? _passTheOceanDisplay(String text) {
       'centerHand': centerHand,
       'sides': sides,
     },
-    note: s.note(),
   );
 }
 
@@ -721,6 +725,9 @@ FigureMatch? _formShortWavesDisplay(String text) {
   s.take();
   if (!s.eatPhrase('on the sides')) return null;
   final balance = s.eatPhrase('- and balance');
+  // Only the display's whole line: a tail would ride as a note the params
+  // may contradict (`…, balance` with no balance read).
+  if (s.peek() != null) return null;
   return FigureMatch(
     'form_short_waves',
     params: {
@@ -729,7 +736,6 @@ FigureMatch? _formShortWavesDisplay(String text) {
       'centerHand': centerHand,
       'sides': sides,
     },
-    note: s.note(),
   );
 }
 
@@ -761,23 +767,28 @@ FigureMatch? _formLongWavesDisplay(String text) {
   if (!s.eatPhrase('facing out')) return null;
   params['who'] = who;
   if (s.eatPhrase('- and balance')) params['balance'] = true;
-  return FigureMatch('form_long_waves', params: params, note: s.note());
+  // Only the display's whole line: a tail would ride as a note the params
+  // may contradict (`…, balance` with no balance read).
+  if (s.peek() != null) return null;
+  return FigureMatch('form_long_waves', params: params);
 }
 
-/// form_a_long_wave that dances neither in nor out, in the app's display
-/// wording (#2121): "WHO form a long wave in the center [- balance the
-/// wave]". ContraDB writes no such line; [_formALongWave] reads its three
-/// forms.
+/// form_a_long_wave that dances neither in nor out (#2121): "WHO form a long
+/// wave in the center [- balance the wave]", as the app's display and
+/// ContraDB both write it. [_formALongWave] reads the three forms that dance
+/// in or out.
 FigureMatch? _formALongWaveInPlace(String text) {
   final s = _Scan(text);
   final who = _displaySubject(s);
   if (who == null) return null;
   if (!s.eatPhrase('form a long wave in the center')) return null;
   final balance = s.eat('-') && s.eatPhrase('balance the wave');
+  // Only the display's whole line: a tail would ride as a note the params
+  // may contradict (`…, balance` with no balance read).
+  if (s.peek() != null) return null;
   return FigureMatch(
     'form_a_long_wave',
     params: {'who': who, 'in': false, 'out': false, 'balance': balance},
-    note: s.note(),
   );
 }
 

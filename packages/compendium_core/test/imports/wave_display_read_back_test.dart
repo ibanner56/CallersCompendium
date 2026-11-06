@@ -90,6 +90,22 @@ void main() {
     });
   });
 
+  test('words after the display\'s line keep it as text, not a note', () {
+    // A note would contradict the params read (`balance: false` beside a
+    // note saying `balance`).
+    for (final line in [
+      'role2s form a long wave in the center, balance',
+      'form short waves - role1s by the left in the center, role2s by the '
+          'right on the sides and balance',
+    ]) {
+      expect(
+        parseFigureLinesFanOut(line).single.isCustom,
+        isTrue,
+        reason: line,
+      );
+    }
+  });
+
   test('a long wave formed in place reads as neither in nor out', () {
     final f = only('role2s form a long wave in the center - balance the wave');
     expect(f.move, 'form_a_long_wave');
