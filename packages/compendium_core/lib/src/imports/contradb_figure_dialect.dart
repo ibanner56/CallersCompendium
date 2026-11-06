@@ -797,11 +797,11 @@ FigureMatch? _formALongWaveInPlace(String text) {
   );
 }
 
-/// The gate in the app's display wording (#2121): "[SUBJECT] [mirror] gate
-/// [OBJECT [OBJECT]] [clockwise|counterclockwise] [TURN] [, WHOM forward] [to
-/// face FACING]", in the order the renderer writes them. Every slot is
-/// optional, as the display leaves an unstated one out, and only the whole
-/// line is read. The display spells `counterclockwise` as one word, which
+/// The gate in the app's display wording (#2121), in the order the renderer
+/// writes its slots: a subject, `mirror`, `gate`, up to two objects,
+/// `clockwise` or `counterclockwise`, a turn, ", WHOM forward", and "to face
+/// FACING". Every slot but `gate` is optional, as the display leaves an
+/// unstated one out, and only the whole line is read. The display spells `counterclockwise` as one word, which
 /// ContraDB's `_spinDir` does not read, so it is read here.
 ///
 /// The subject is `who` or `pair`, which the display words alike. A line that
