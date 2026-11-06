@@ -2369,7 +2369,7 @@ class FigureRenderer {
   /// The DISPLAY-ONLY " facing …" clause a swing appends for a non-default
   /// [endFacing] (issue #543), or the empty string for the default `in`, an
   /// unknown token, or a non-String value. The wording reuses
-  /// [_gateFacingPhrases] ("up the hall" / "down the hall" / "out of the set" /
+  /// [displayFacingPhrases] ("up the hall" / "down the hall" / "out of the set" /
   /// "along the set").
   static String _swingEndFacingClause(Object? endFacing) {
     if (endFacing is! String || !_swingRenderedEndFacings.contains(endFacing)) {

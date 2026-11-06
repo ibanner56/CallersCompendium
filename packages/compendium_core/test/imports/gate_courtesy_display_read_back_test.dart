@@ -40,6 +40,25 @@ void main() {
       });
     });
 
+    test('the forward clause comes before the facing, as displayed', () {
+      expect(typed('gate, ones forward to face up the hall').params, {
+        'whom': 'ones',
+        'endFacing': 'up',
+      });
+      expect(
+        typed(
+          'neighbor gate clockwise ¾, ones forward to face up the hall',
+        ).params,
+        {
+          'pair': 'neighbors',
+          'direction': 'clockwise',
+          'travel': 0.75,
+          'whom': 'ones',
+          'endFacing': 'up',
+        },
+      );
+    });
+
     test('a subject the display names reads by name', () {
       expect(typed('third corners gate').params, {'who': 'thirdCorners'});
       expect(typed('same roles gate').params, {'who': 'sameRoles'});
@@ -68,6 +87,8 @@ void main() {
       });
     });
 
+    // Pins today's reading while the maintainer decides whether `whom` is
+    // read (#2121); no reader in this batch reads it.
     test('a second dancer is still not read as whom', () {
       expect(typed('partner courtesy turn role1s').isCustom, isTrue);
     });

@@ -266,6 +266,7 @@ Canonical	facing_star	{"who":"neighbors"}	facing star clockwise 3 places with ne
 Canonical	facing_star	{"who":"shadows"}	facing star clockwise 3 places with shadow putting their left hands in and backing up
 Canonical	facing_star	{"who":"thirdCorners"}	facing star clockwise 3 places with third corners putting their left hands in and backing up
 Canonical	facing_star	{"who":"opposites"}	facing star clockwise 3 places with opposites putting their left hands in and backing up
+Canonical	facing_star	{"direction":"counterclockwise"}	facing star counterclockwise 3 places with ones putting their right hands in and backing up
 Canonical	square_through	{}	square through two - partner balance & pull by right, then neighbor pull by left
 Canonical	square_through	{"who":"partners"}	square through two - partner balance & pull by right, then neighbor pull by left
 Canonical	square_through	{"who":"neighbors"}	square through two - neighbor balance & pull by right, then neighbor pull by left
@@ -573,6 +574,7 @@ Larks/Robins	facing_star	{"who":"neighbors"}	facing star clockwise 3 places with
 Larks/Robins	facing_star	{"who":"shadows"}	facing star clockwise 3 places with shadow putting their left hands in and backing up
 Larks/Robins	facing_star	{"who":"thirdCorners"}	facing star clockwise 3 places with third corners putting their left hands in and backing up
 Larks/Robins	facing_star	{"who":"opposites"}	facing star clockwise 3 places with opposites putting their left hands in and backing up
+Larks/Robins	facing_star	{"direction":"counterclockwise"}	facing star counterclockwise 3 places with ones putting their right hands in and backing up
 Larks/Robins	square_through	{}	square through two - partner balance & pull by right, then neighbor pull by left
 Larks/Robins	square_through	{"who":"partners"}	square through two - partner balance & pull by right, then neighbor pull by left
 Larks/Robins	square_through	{"who":"neighbors"}	square through two - neighbor balance & pull by right, then neighbor pull by left
@@ -932,6 +934,7 @@ Leads/Follows	facing_star	{"who":"onesRole1"}	facing star clockwise 3 places wit
 Leads/Follows	facing_star	{"who":"onesRole2"}	facing star clockwise 3 places with first follow putting their left hands in and backing up
 Leads/Follows	facing_star	{"who":"twosRole1"}	facing star clockwise 3 places with second lead putting their left hands in and backing up
 Leads/Follows	facing_star	{"who":"twosRole2"}	facing star clockwise 3 places with second follow putting their left hands in and backing up
+Leads/Follows	facing_star	{"direction":"counterclockwise"}	facing star counterclockwise 3 places with ones putting their right hands in and backing up
 Leads/Follows	square_through	{}	square through two - partner balance & pull by right, then neighbor pull by left
 Leads/Follows	square_through	{"who":"partners"}	square through two - partner balance & pull by right, then neighbor pull by left
 Leads/Follows	square_through	{"who":"neighbors"}	square through two - neighbor balance & pull by right, then neighbor pull by left

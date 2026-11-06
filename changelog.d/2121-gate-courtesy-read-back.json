@@ -3,12 +3,12 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "Typing or pasting a gate the way the figure list shows it now gives that gate, with its direction, turn, ending facing and who walks forward (\"gate counterclockwise\", \"gate to face up the hall\", \"neighbor gate, larks forward\"), and a courtesy turn with its ending facing (\"partner courtesy turn to face second shadow\") reads back too. Any dancers the figure list names can now come before a move's name (\"third corners gate\", \"same roles arch and dive\")."
+      "Typing or pasting a gate the way the figure list shows it now gives that gate, with its direction, turn, ending facing and who walks forward (\"gate counterclockwise\", \"gate to face up the hall\", \"neighbor gate, larks forward\"); a gate that names dancers and a direction but not the turn (\"neighbor gate clockwise\") is still not read, as before, and a courtesy turn with its ending facing (\"partner courtesy turn to face second shadow\") reads back too. Any dancers the figure list names can now come before a move's name (\"third corners gate\", \"same roles arch and dive\")."
     ]
   },
   "core": {
     "fixed": [
-      "The ContraDB figure reader reads the app's display wording for a gate (`_gateDisplay`) and a courtesy turn's `to face` clause, and its spin reader takes the one-word `counterclockwise`. A gate line that states only a subject, or a Caller's Box shape without both direction and turn, is left to the existing readers, so imports read those as before. Free-text entry's dancer-before-a-name lookup takes every subject the display writes. The display's facing phrases moved to `displayFacingPhrases` in `dance_vocabulary.dart`, shared by the renderer and the readers."
+      "The ContraDB figure reader reads the app's display wording for a gate (`_gateDisplay`) and a courtesy turn's `to face` clause, reading the display's one-word `counterclockwise` there. A gate line that states only a subject, or a Caller's Box shape without both direction and turn, is left to the existing readers, so imports read those as before. Free-text entry's dancer-before-a-name lookup takes every subject the display writes. The display's facing phrases moved to `displayFacingPhrases` in `dance_vocabulary.dart`, shared by the renderer and the readers."
     ]
   }
 }

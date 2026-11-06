@@ -798,9 +798,11 @@ FigureMatch? _formALongWaveInPlace(String text) {
 }
 
 /// The gate in the app's display wording (#2121): "[SUBJECT] [mirror] gate
-/// [OBJECT [OBJECT]] [clockwise|counterclockwise] [TURN] [to face FACING] [,
-/// WHOM forward]". Every slot is optional, as the display leaves an unstated
-/// one out, and only the whole line is read.
+/// [OBJECT [OBJECT]] [clockwise|counterclockwise] [TURN] [, WHOM forward] [to
+/// face FACING]", in the order the renderer writes them. Every slot is
+/// optional, as the display leaves an unstated one out, and only the whole
+/// line is read. The display spells `counterclockwise` as one word, which
+/// ContraDB's `_spinDir` does not read, so it is read here.
 ///
 /// The subject is `who` or `pair`, which the display words alike. A line that
 /// states a rotation (mirror, a spin or a turn) is The Caller's Box shape, whose
@@ -826,14 +828,12 @@ FigureMatch? _gateDisplay(String text) {
   // the move are the forward clause, not an object.
   String? forward;
   if (objects.length == 1 && s.eat('forward')) forward = objects.removeLast();
-  final spin = mirror ? null : _spinDir(s);
+  final spin = mirror
+      ? null
+      : (_spinDir(s) ??
+            (s.eat('counterclockwise') ? 'counterclockwise' : null));
   final turn = _rotation(s.peek());
   if (turn != null) s.take();
-  String? facing;
-  if (s.eatPhrase('to face')) {
-    facing = _displayFacing(s);
-    if (facing == null) return null;
-  }
   if (objects.isEmpty && forward == null) {
     final save = s.pos;
     forward = _displaySubject(s);
@@ -841,6 +841,11 @@ FigureMatch? _gateDisplay(String text) {
       forward = null;
       s.reset(save);
     }
+  }
+  String? facing;
+  if (s.eatPhrase('to face')) {
+    facing = _displayFacing(s);
+    if (facing == null) return null;
   }
   if (s.peek() != null) return null;
   final rotated = mirror || spin != null || turn != null;
@@ -2198,12 +2203,9 @@ FigureMatch? _formALongWave(String text) {
 }
 
 /// Consumes a spin-direction word, returning `clockwise`/`counterclockwise`.
-/// ContraDB hyphenates `counter-clockwise`; the app's display writes it as one
-/// word (#2121).
 String? _spinDir(_Scan s) {
   if (s.eat('clockwise')) return 'clockwise';
   if (s.eat('counter-clockwise')) return 'counterclockwise';
-  if (s.eat('counterclockwise')) return 'counterclockwise';
   final save = s.pos;
   if (s.eat('counter') && s.eat('clockwise')) return 'counterclockwise';
   s.reset(save);
