@@ -125,6 +125,18 @@ void main() {
     expect(read('neighbor box the gnat').params, isNot(contains('beats')));
   });
 
+  test('a balanced box in a later clause adds no beats to the line', () {
+    // A later clause is read beats-absent: 8 beats on it would be counted on
+    // top of the line's 24.
+    final figures = parseFreeTextFigureEntry(
+      '(24) partner swing; neighbor balance & box the gnat',
+    );
+    expect(figures.map((f) => f.move), ['swing', 'box_the_gnat']);
+    expect(figures.first.params['beats'], 24);
+    expect(figures.last.params['balance'], isTrue);
+    expect(figures.last.params, isNot(contains('beats')));
+  });
+
   test('every figure reads back from its displayed text, or is listed', () async {
     final renderer = FigureRenderer(contraTaxonomy);
     final figures = _sweep();

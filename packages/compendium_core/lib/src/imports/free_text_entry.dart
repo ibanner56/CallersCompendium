@@ -611,8 +611,9 @@ List<Figure> _parseLine(String trimmed, Taxonomy? taxonomy, Dialect? dialect) {
     return [_typedCustom(trimmed, split.beats)];
   }
   // A typed `(8) Box circulate` or `(8) Square through 2` reads its balance
-  // from its beats as an imported one does (#1975).
-  return withBeatImpliedBalance(trimmed, result);
+  // from its beats as an imported one does (#1975), and a typed balance and
+  // box the gnat with no count gets the beats of its balance (#2121).
+  return withBalancedBoxBeats(trimmed, withBeatImpliedBalance(trimmed, result));
 }
 
 /// A `;` line in which some clause states a count, read so each count stays on
