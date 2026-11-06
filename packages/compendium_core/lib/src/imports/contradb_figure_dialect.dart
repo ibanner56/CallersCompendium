@@ -589,6 +589,7 @@ FigureMatch? _chain(String text) {
     'hand': statedHand ?? chainHandForWho(who),
   };
   if (dir != null) params['where'] = dir;
+  _readTrailingDisplayDirection(s, params);
   return FigureMatch('chain', params: params, note: s.note());
 }
 
@@ -974,6 +975,14 @@ String? _displayDirectionPhrase(_Scan s) {
   return null;
 }
 
+/// Reads a set direction the app's display writes after a move (`along`, `on
+/// right diagonal`, `facing in`; #2121) into [params]' `where`, unless one was
+/// already read.
+void _readTrailingDisplayDirection(_Scan s, Map<String, Object?> params) {
+  if (params.containsKey('where')) return;
+  if (_displayDirectionPhrase(s) case final where?) params['where'] = where;
+}
+
 /// The other hand or side.
 String _otherSide(String side) => side == 'left' ? 'right' : 'left';
 
@@ -1262,6 +1271,7 @@ FigureMatch? _rightLeftThrough(String text) {
     params['where'] = dir;
   }
   if (!s.eatPhrase('right left through')) return null;
+  _readTrailingDisplayDirection(s, params);
   return FigureMatch('right_left_through', params: params, note: s.note());
 }
 
@@ -1657,11 +1667,16 @@ String? _singleDancer(_Scan s) {
 /// pass by (generic renderer): `<who> pass by [<side> shoulders]`.
 FigureMatch? _passBy(String text) {
   final s = _Scan(text);
-  final who = _subject(s);
+  // The display's subjects too (`neighbor`, #2121), but only with the shoulder
+  // the display always writes: `neighbor pass by` alone stays as it was, text
+  // in an import (free text reads it by name).
+  final contraDbWho = _subject(s);
+  final who = contraDbWho ?? _displaySubject(s);
   if (who == null) return null;
   if (!s.eatPhrase('pass by')) return null;
   final params = <String, Object?>{'who': who};
   final side = _shoulderPhrase(s);
+  if (side == null && contraDbWho == null) return null;
   if (side != null) params['shoulder'] = side;
   return FigureMatch('pass_by', params: params, note: s.note());
 }
@@ -1714,6 +1729,7 @@ FigureMatch? _passThrough(String text) {
     s.take();
     params['where'] = dir;
   }
+  _readTrailingDisplayDirection(s, params);
   return FigureMatch('pass_through', params: params, note: s.note());
 }
 
@@ -1748,6 +1764,7 @@ FigureMatch? _pullByDirection(String text) {
     s.take();
     params['where'] = dir;
   }
+  _readTrailingDisplayDirection(s, params);
   return FigureMatch('pull_by', params: params, note: s.note());
 }
 
@@ -1937,7 +1954,21 @@ FigureMatch? _slice(String text) {
   final slide = _leftRight(s.peek());
   if (slide == null) return null;
   s.take();
-  return FigureMatch('slice', params: {'slice': slide}, note: s.note());
+  // The display's increment and return clauses (#2121). A line without a
+  // return clause is left at the default: whether ContraDB means `none` by
+  // that, as the app's display does, is not established, so a bare `slice
+  // left` is not read as `none`.
+  final by = s.eatPhrase('one dancer') ? 'dancer' : null;
+  final ret = s.eatPhrase('and straight back')
+      ? 'straight'
+      : s.eatPhrase('and diagonal back')
+      ? 'diagonal'
+      : null;
+  return FigureMatch(
+    'slice',
+    params: {'slice': slide, 'by': ?by, 'return': ?ret},
+    note: s.note(),
+  );
 }
 
 /// revolvingDoorWords. Renders as: "revolving door - WHO take HAND hands and
@@ -2036,7 +2067,10 @@ FigureMatch? _crossTrails(String text) {
   if (!s.eatPhrase('cross trails')) return null;
   final params = <String, Object?>{};
   if (s.eat('-')) {
-    final who = _subject(s);
+    // The display's subjects and directions too (#2121): a pair in the
+    // singular, and `on right diagonal`/`facing in` for the first pair, after
+    // which the second pair states no direction.
+    final who = _displaySubject(s);
     if (who != null) {
       params['who'] = who;
       final dir = _direction(s.peek());
@@ -2044,17 +2078,39 @@ FigureMatch? _crossTrails(String text) {
         s.take();
         s.eatPhrase('the set');
         params['where'] = dir;
+      } else {
+        _readTrailingDisplayDirection(s, params);
       }
+      // The display writes `passing right shoulders`.
+      final shSave = s.pos;
+      s.eat('passing');
       final sh = _shoulderPhrase(s);
-      if (sh != null) params['shoulder'] = sh;
-      final who2 = _subject(s);
+      if (sh != null) {
+        params['shoulder'] = sh;
+      } else {
+        s.reset(shSave);
+      }
+      final who2 = _displaySubject(s);
       if (who2 != null) {
         params['who2'] = who2;
         if (_direction(s.peek()) != null) {
           s.take();
           s.eatPhrase('the set');
         }
-        _shoulderPhrase(s);
+        final sh2Save = s.pos;
+        s.eat('passing');
+        final sh2 = _shoulderPhrase(s);
+        if (sh2 == null) {
+          s.reset(sh2Save);
+        } else if (sh == null) {
+          // Only the first shoulder is stored and the second is its opposite,
+          // so a line stating only the second states the first too.
+          params['shoulder'] = _otherSide(sh2);
+        } else if (sh2 == sh) {
+          // Trails cross by opposite shoulders, and only the first is stored:
+          // a second pass by the same shoulder would be silently changed.
+          return null;
+        }
       }
     }
   }
