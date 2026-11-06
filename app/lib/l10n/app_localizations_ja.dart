@@ -4512,6 +4512,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get collectionQueryHasTag => 'タグあり';
 
   @override
+  String collectionQueryHasTagUnavailable(String source) {
+    return 'タグあり（$sourceでは使えません）';
+  }
+
+  @override
   String get collectionQueryTagLabel => 'タグ';
 
   @override

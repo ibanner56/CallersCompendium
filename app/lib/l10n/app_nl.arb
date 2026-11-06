@@ -4728,6 +4728,10 @@
   "@collectionQueryHasTag": {
     "x-sourceSha256": "3008551423e334c114420e5067df270bf1dded620b84c542cb55c92032d30928"
   },
+  "collectionQueryHasTagUnavailable": "Heeft tag (niet beschikbaar bij {source})",
+  "@collectionQueryHasTagUnavailable": {
+    "x-sourceSha256": "18e4424aa3663308c5152e43447b34630155897ff4c2a28d726e245a80c5a7ff"
+  },
   "collectionQueryTagLabel": "Tag",
   "@collectionQueryTagLabel": {
     "x-sourceSha256": "1503916a2ab2b0fd6768d3455fd8f2d9aa3b31333a8507dadcad983704a975d7"

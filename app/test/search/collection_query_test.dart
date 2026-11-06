@@ -1220,6 +1220,46 @@ void main() {
     });
   });
 
+  group('removeBuilderTags', () {
+    test('removes tag rows at every depth and counts them', () {
+      final figure = BuilderFigure(move: 'swing');
+      final then = BuilderThen();
+      final inner = BuilderGroup(
+        kind: GroupKind.any,
+        children: [
+          BuilderTag(tagId: 't2'),
+          BuilderFigure(move: 'chain'),
+        ],
+      );
+      final root = BuilderGroup(
+        children: [
+          BuilderTag(tagId: 't1'),
+          figure,
+          inner,
+          then,
+          BuilderTag(),
+        ],
+      );
+
+      expect(removeBuilderTags(root), 3);
+
+      expect(root.children, [figure, inner, then]);
+      expect(inner.children.single, isA<BuilderFigure>());
+    });
+
+    test('a query with no tag rows is left alone', () {
+      final root = BuilderGroup(children: [BuilderFigure(move: 'swing')]);
+      expect(removeBuilderTags(root), 0);
+      expect(root.children, hasLength(1));
+    });
+
+    test('a group emptied by it folds to no filter', () {
+      final root = BuilderGroup(children: [BuilderTag(tagId: 't1')]);
+      removeBuilderTags(root);
+      expect(root.toFilter(), isNull);
+    });
+  });
+
   group('BuilderTag', () {
     test('a picked tag folds to a TagFilter', () {
       final f = BuilderTag(tagId: 't1').toFilter();

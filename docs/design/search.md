@@ -791,7 +791,7 @@ tree. This section specifies the mapping; the widget shipped as
 | **Multiple facets selected** | `AndFilter([...leaves])` — the common case |
 | Advanced ▸ boolean group | `AndFilter` / `OrFilter` / `NotFilter` group nodes |
 | Advanced ▸ figure row | `FigureFilter(query)` with move + param + section pickers |
-| Advanced ▸ tag row | `TagFilter(tagId)` — a tag picker offering the tags carried by a live dance; two rows in an all-of group AND their tags, as the facet's **All tags** does; rows can also mix with figure rows and sit under none-of |
+| Advanced ▸ tag row | `TagFilter(tagId)` — a tag picker offering the tags carried by a live dance; two rows in an all-of group AND their tags, as the facet's **All tags** does; rows can also mix with figure rows and sit under none-of. Against ContraDB (no tags) the **Has tag** entry is greyed out and naming the source, and choosing ContraDB removes existing tag rows (`removeBuilderTags`, `OnlineSource.hidesAdvancedTags`); the translator still refuses a tag as a safeguard. Wiping and greying out was the user's instruction on 2026-11-06, in the agent session that wrote it (no issue or comment records it). That the removal is permanent, with no restore on returning to the local library and no notice, is the implementing agent's choice and not yet ratified by the maintainer. |
 | Advanced ▸ sequence row ("X then Y") | `ThenFilter(before, after)` — both operands are `FigureQuery` |
 
 - **Common case**: the facet chips compose into a flat `AndFilter` of leaves. No tree

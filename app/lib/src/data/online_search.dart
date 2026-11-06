@@ -21,13 +21,20 @@ enum OnlineSource {
     label: "Caller's Box",
     supportsByPhrase: true,
     supportsAdvanced: false,
+    supportsAdvancedTags: false,
   ),
-  contraDb(label: 'ContraDB', supportsByPhrase: false, supportsAdvanced: true);
+  contraDb(
+    label: 'ContraDB',
+    supportsByPhrase: false,
+    supportsAdvanced: true,
+    supportsAdvancedTags: false,
+  );
 
   const OnlineSource({
     required this.label,
     required this.supportsByPhrase,
     required this.supportsAdvanced,
+    required this.supportsAdvancedTags,
   });
 
   /// Short name for the source selector (e.g. the SegmentedButton segment).
@@ -43,6 +50,16 @@ enum OnlineSource {
   /// translated onto it (`translateDanceFilterToContraDb`); The Caller's Box
   /// has only fixed form fields, so its Advanced panel stays greyed out.
   final bool supportsAdvanced;
+
+  /// Whether this source's Advanced search can carry a "has tag" condition.
+  /// Tags are this app's own: ContraDB has none, so a tag cannot be translated
+  /// and the builder greys the control out and drops tag rows. Moot for The
+  /// Caller's Box, whose Advanced panel is off altogether.
+  final bool supportsAdvancedTags;
+
+  /// Whether the Advanced builder must not offer or keep tag rows while this
+  /// source is the one searched: it takes the Advanced query but not tags.
+  bool get hidesAdvancedTags => supportsAdvanced && !supportsAdvancedTags;
 }
 
 /// A source-neutral online search result row.

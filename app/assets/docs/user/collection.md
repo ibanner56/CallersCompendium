@@ -211,10 +211,13 @@ On ContraDB, **Advanced** searches the archive with the same **All of**,
 **Any of**, and **None of** groups of **Has figure** and **Sequence (then)**
 conditions you use on your own library, and its results must also match any
 text in the search box. ContraDB cannot run every condition the same way, so a
-query that contains a tag, a figure's section, a move ContraDB has no exact
+query that contains a figure's section, a move ContraDB has no exact
 equivalent for, or any other filter is not sent; you see a message explaining
 this, rather than results that quietly ignore that condition. Remove those
-conditions to search ContraDB.
+conditions to search ContraDB. Tags are your own and ContraDB has none, so
+choosing ContraDB removes any **Has tag** conditions from the Advanced query
+(they do not come back when you return to your own library), and **Has tag**
+is greyed out in the **Add** menu while ContraDB is the source.
 
 A figure's details, such as its beats or the dancers doing it, are sent to
 ContraDB where it has them. A detail ContraDB does not have, such as how a
