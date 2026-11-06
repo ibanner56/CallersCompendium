@@ -13,7 +13,9 @@ import 'package:flutter_test/flutter_test.dart';
 /// new display of a dance cannot quietly show stale wording.
 const Map<String, int> _allowed = {
   // A fallback for a caller that passes no renderer; every caller passes the
-  // live one (`DanceExportActions`, `ProgramExportMenu`).
+  // live one (`DanceExportActions`, `ProgramExportMenu`; for calling cards,
+  // through `printCallingCards`).
+  'lib/src/export/calling_card_pdf.dart': 1,
   'lib/src/export/dance_pdf.dart': 1,
   'lib/src/export/program_pdf.dart': 1,
   // Built-in moves' names and examples, the user's glossary text.

@@ -19,7 +19,9 @@ import '../../export/calling_card_pdf.dart';
 import '../../export/calling_card_sample.dart';
 import '../../export/export_labels_l10n.dart';
 import '../../search/facet_labels.dart';
+import '../../theme/app_shapes.dart';
 import '../../theme/app_spacing.dart';
+import '../../widgets/app_bar_text_action.dart';
 import 'calling_card_labels.dart';
 
 /// Turns a one-page PDF into a PNG of its first page at [dpi]. Defaults to
@@ -269,10 +271,11 @@ class _CallingCardLayoutEditorScreenState
       appBar: AppBar(
         title: Text(l10n.callingCardEditorTitle),
         actions: [
-          TextButton(
+          AppBarTextAction(
             key: const ValueKey('calling-card-reset'),
+            label: l10n.callingCardEditorReset,
+            icon: Icons.restart_alt,
             onPressed: _confirmReset,
-            child: Text(l10n.callingCardEditorReset),
           ),
         ],
       ),
@@ -517,7 +520,7 @@ class _CallingCardLayoutEditorScreenState
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: theme.colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: AppShapes.borderRadiusSmall,
         ),
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.sm),
