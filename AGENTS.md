@@ -49,7 +49,7 @@ Before merging, run:
 python3 tools/ci/check_pr_review_gates.py all <PR> --closes <ISSUE>...
 ```
 
-which checks review freshness against the reviewer's own latest entry,
+which checks review freshness against the reviewer's own latest review,
 unresolved threads (with `totalCount`, so truncation is visible), CI status on
 the current head, and that the PR closes exactly the issues you named. Details
 and failure modes: [docs/dev/agents/merging.md](docs/dev/agents/merging.md).

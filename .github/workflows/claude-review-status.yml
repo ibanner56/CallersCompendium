@@ -14,7 +14,9 @@
 # claude-code-review.yml (docs/dev/agents/code-review.md).
 #
 # This is a separate workflow because a PR that edits claude-code-review.yml may
-# change nothing else (the `Claude workflow isolation` job), and the labels,
+# change nothing else, unless its whole change bumps the action's pin and
+# claude.yml moves its pin to match (the `Claude workflow isolation` job), and
+# the labels,
 # docs and this file belong in one reviewable change.
 #
 # Safety: no checkout and no PR code runs. The review body is untrusted text; it

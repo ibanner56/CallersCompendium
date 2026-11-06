@@ -246,6 +246,14 @@ Traps:
   the workflow that invoked it, so a PR that edits `claude.yml` is still
   reviewed
   ([`check_claude_workflow_isolation.py`](../../../tools/ci/check_claude_workflow_isolation.py)).
+  The one exception is a bump of `anthropics/claude-code-action`, which both
+  workflows pin: when the review workflow's whole change moves that pin to one
+  commit, `claude.yml` may ride along if its only change moves its own pin to
+  the same commit. Dependabot opens
+  such a bump as a PR of its own (`exclude-patterns` in
+  [`dependabot.yml`](../../../.github/dependabot.yml)), so it passes the gate;
+  like any change to the review workflow it gets no Claude review, so read it
+  yourself before merging.
 - **Draft PRs and fork PRs are skipped.** Fork runs receive no secrets. For a
   draft, mark it ready (`ready_for_review` starts a round).
 - **The login is `claude[bot]` on both `/reviews` and `/comments`**, unlike

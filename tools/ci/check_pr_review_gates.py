@@ -308,19 +308,37 @@ def _login(entry: dict[str, Any]) -> str:
 def gate_review(
     fetcher: Any, pr: int, reviewer: Reviewer = CLAUDE
 ) -> tuple[bool, list[str]]:
-    """The reviewer's latest review must be on the commit being merged."""
+    """The reviewer's latest review must be on the commit being merged.
+
+    For Claude, only an entry carrying a ``## Review verdict:`` line is a
+    review round. A reply to an inline thread records an empty review entry on
+    the head, and ``claude.yml`` (the ``@claude`` assistant) posts as
+    ``claude[bot]`` too: either would otherwise pass a head no round reviewed,
+    the #842 author-reply trap again. ``gate_findings`` reads the verdict by the
+    same rule.
+    """
     head = _head_sha(fetcher, pr)
     reviewed = [
         r for r in _reviews(fetcher, pr) if _login(r) == reviewer.review_login
     ]
+    others = ", ".join(
+        f"--reviewer {name}" for name, r in REVIEWERS.items() if r != reviewer
+    )
     if not reviewed:
-        others = ", ".join(
-            f"--reviewer {name}" for name, r in REVIEWERS.items() if r != reviewer
-        )
         return False, [
             f"no review by {reviewer.review_login} (an unreviewed PR fails "
             f"closed; if another reviewer was requested, pass {others})"
         ]
+    if reviewer == CLAUDE:
+        entries = len(reviewed)
+        reviewed = [r for r in reviewed if VERDICT_LINE.search(r.get("body") or "")]
+        if not reviewed:
+            return False, [
+                f"no review round by {reviewer.review_login}: none of its "
+                f"{entries} review entr{'y' if entries == 1 else 'ies'} carries "
+                "a `## Review verdict:` line (a reply to an inline thread or a "
+                "claude.yml answer is not a review; an unreviewed PR fails closed)"
+            ]
     latest = reviewed[-1].get("commit_id") or ""
     if latest != head:
         return False, [

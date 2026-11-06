@@ -461,8 +461,9 @@ symlink you can point your editor/PATH at — see the FVM docs.)
    python3 tools/ci/check_pr_review_gates.py all <PR> --closes <ISSUE>...
    ```
 
-   which checks review freshness against the reviewer's own latest entry
-   (Claude by default, the review the `review: claude` label requests; add
+   which checks review freshness against the reviewer's own latest review
+   (Claude by default, the review the `review: claude` label requests, read from
+   its latest entry with a `## Review verdict:` line; add
    `--reviewer copilot` if you requested Copilot instead), unresolved threads (with `totalCount`, so a truncated page is visible),
    for a Claude review that its latest `## Review verdict:` is not `BLOCK`,
    checks on the current head, and that the PR closes exactly the issues you

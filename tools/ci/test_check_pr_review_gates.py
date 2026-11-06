@@ -57,6 +57,10 @@ def review(login: str, commit: str, body: str = "") -> dict[str, Any]:
     return {"user": {"login": login}, "commit_id": commit, "body": body}
 
 
+# A Claude round's body opens with its verdict (.github/skills/code-review).
+APPROVE_BODY = "## Review verdict: APPROVE\n\nNo findings."
+
+
 def pull(head: str = HEAD) -> dict[str, Any]:
     return {"head": {"sha": head}}
 
@@ -134,7 +138,7 @@ def test_claude_freshness_ignores_a_copilot_review_on_head() -> None:
         {
             "pulls/1": pull(),
             "pulls/1/reviews": [
-                [review(CLAUDE.review_login, STALE), review(COPILOT_LOGIN, HEAD)]
+                [review(CLAUDE.review_login, STALE, APPROVE_BODY), review(COPILOT_LOGIN, HEAD)]
             ],
         }
     )
@@ -147,10 +151,51 @@ def test_claude_freshness_passes_on_its_own_review_at_head() -> None:
     fetcher = FakeFetcher(
         {
             "pulls/1": pull(),
-            "pulls/1/reviews": [[review(CLAUDE.review_login, HEAD)]],
+            "pulls/1/reviews": [[review(CLAUDE.review_login, HEAD, APPROVE_BODY)]],
         }
     )
     ok, lines = gates.gate_review(fetcher, 1, CLAUDE)
+    assert ok, lines
+
+
+def test_claude_freshness_ignores_an_entry_with_no_verdict_on_head() -> None:
+    """A reply to an inline thread, or a claude.yml answer, records a
+    claude[bot] review entry on the head; it is not a review round (#842's
+    author-reply trap, by Claude's own login)."""
+    fetcher = FakeFetcher(
+        {
+            "pulls/1": pull(),
+            "pulls/1/reviews": [
+                [
+                    review(CLAUDE.review_login, STALE, APPROVE_BODY),
+                    review(CLAUDE.review_login, HEAD, "Fixed, thanks."),
+                    review(CLAUDE.review_login, HEAD),
+                ]
+            ],
+        }
+    )
+    ok, lines = gates.gate_review(fetcher, 1, CLAUDE)
+    assert not ok, lines
+    assert STALE[:8] in lines[0], lines
+
+
+def test_claude_freshness_fails_closed_with_no_round_at_all() -> None:
+    fetcher = FakeFetcher(
+        {
+            "pulls/1": pull(),
+            "pulls/1/reviews": [[review(CLAUDE.review_login, HEAD, "@claude answer")]],
+        }
+    )
+    ok, lines = gates.gate_review(fetcher, 1, CLAUDE)
+    assert not ok, lines
+    assert "Review verdict" in lines[0], lines
+
+
+def test_copilot_freshness_needs_no_verdict() -> None:
+    fetcher = FakeFetcher(
+        {"pulls/1": pull(), "pulls/1/reviews": [[review(COPILOT_LOGIN, HEAD)]]}
+    )
+    ok, lines = gates.gate_review(fetcher, 1, COPILOT)
     assert ok, lines
 
 
@@ -169,7 +214,7 @@ def test_default_reviewer_is_claude_so_a_copilot_review_does_not_count() -> None
     claude_only = FakeFetcher(
         {
             "pulls/1": pull(),
-            "pulls/1/reviews": [[review(CLAUDE.review_login, HEAD)]],
+            "pulls/1/reviews": [[review(CLAUDE.review_login, HEAD, APPROVE_BODY)]],
         }
     )
     ok, lines = gates.gate_review(claude_only, 1)
@@ -329,7 +374,7 @@ def test_run_gates_passes_the_reviewer_to_both_review_gates() -> None:
     fetcher = FakeFetcher(
         {
             "pulls/1": pull(),
-            "pulls/1/reviews": [[review(CLAUDE.review_login, HEAD)]],
+            "pulls/1/reviews": [[review(CLAUDE.review_login, HEAD, APPROVE_BODY)]],
             "pulls/1/comments": [[]],
         }
     )

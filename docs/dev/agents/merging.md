@@ -60,7 +60,14 @@ reasoning below when a gate fails, or when you are checking by hand.
   The login above is Copilot's. For a Claude review it is `claude[bot]`; the
   script reads Claude's by default and takes `--reviewer copilot` rather than a
   login
-  ([code-review.md](code-review.md#choosing-a-reviewer)).
+  ([code-review.md](code-review.md#choosing-a-reviewer)). Filtering by login is
+  not enough for Claude: a reply to an inline thread and a `claude.yml` answer
+  also record `claude[bot]` review entries, carrying the head, so the script
+  takes Claude's latest entry that carries a `## Review verdict:` line, the
+  same rule `findings` reads the verdict by. By hand, add
+  `select(.body // "" | test("(^|\n)#{1,6}[ \t]*Review verdict:"))` to the
+  filter (jq's `^` matches only at the start of the body, so the `\n` stands in
+  for Python's multiline mode).
 
   `--slurp` wraps all pages into an outer array, so `.[][]` flattens them and
   `last` reliably picks the reviewer's latest entry across pages. (`--slurp` is
