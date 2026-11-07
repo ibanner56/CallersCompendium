@@ -4734,6 +4734,9 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String get collectionQueryAnyFigure => 'Enhver figur';
+
+  @override
   String get collectionQueryTagLabel => 'Tag';
 
   @override

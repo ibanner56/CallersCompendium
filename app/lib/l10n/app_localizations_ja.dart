@@ -4517,6 +4517,9 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get collectionQueryAnyFigure => '任意のフィギュア';
+
+  @override
   String get collectionQueryTagLabel => 'タグ';
 
   @override

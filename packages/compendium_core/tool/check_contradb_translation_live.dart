@@ -90,6 +90,9 @@ Future<void> main() async {
     }),
     'then': ThenFilter(FigureLeaf('swing'), FigureLeaf('chain')),
     'then (wrap)': ThenFilter(FigureLeaf('chain'), FigureLeaf('swing')),
+    'any figure': FigureFilter(anyFigure),
+    'then (any figure, swing)': ThenFilter(anyFigure, FigureLeaf('swing')),
+    'then (swing, any figure)': ThenFilter(FigureLeaf('swing'), anyFigure),
   };
 
   final client = HttpClient();

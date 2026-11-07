@@ -189,6 +189,33 @@ void main() {
       );
     });
 
+    test('any figure is ContraDB\'s wildcard, alone and as a then operand', () {
+      expect(expression(FigureFilter(anyFigure)), ['figure', '*']);
+      expect(expression(ThenFilter(anyFigure, FigureLeaf('swing'))), [
+        'then',
+        ['figure', '*'],
+        ['figure', 'swing'],
+      ]);
+      expect(expression(ThenFilter(FigureLeaf('swing'), anyFigure)), [
+        'then',
+        ['figure', 'swing'],
+        ['figure', '*'],
+      ]);
+      // "No figure at all", and a figurewise not of any figure.
+      expect(expression(FigureFilter(FigureNot(anyFigure))), [
+        'no',
+        ['figure', '*'],
+      ]);
+      expect(
+        expression(FigureFilter(FigureAnd([anyFigure, FigureLeaf('swing')]))),
+        [
+          '&',
+          ['figure', '*'],
+          ['figure', 'swing'],
+        ],
+      );
+    });
+
     test('then: the second immediately follows the first', () {
       expect(expression(ThenFilter(FigureLeaf('swing'), FigureLeaf('chain'))), [
         'then',
