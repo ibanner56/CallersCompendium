@@ -313,24 +313,26 @@ Figure _withUnreadCount(Figure figure, String token) => figure.copyWith(
 /// and the re-parse upgrade use neither.
 ///
 /// When a [dialect] is supplied, the line is parsed RAW first and the
-/// dialect-canonicalised line is tried only if the raw parse is all-custom, or
-/// reads a move but leaves a note or an unread part, in which case the retry is
-/// taken only if it reads the whole line (#2121): the user's role words (`Follows chain` under [Dialect.leadsFollows]) are not in
+/// dialect-canonicalised line is tried only if the raw parse reads no move: the
+/// user's role words (`Follows chain` under [Dialect.leadsFollows]) are not in
 /// the always-on legacy synonym set the parser's scrub applies, so they miss
 /// raw but parse once [canonicalizeText] maps them back to `role1`/`role2`.
-/// Raw goes first because a dialect term can also be a MOVE word — `lead` in
-/// `ones lead down the hall`. The canonicaliser keeps such a verb when its
-/// neighbours show it is one (`RoleCanonicalizer`), but a line that parses as
-/// typed should never depend on that judgement. When the retry
-/// also misses, the built-in discouraged role terms are read by their meaning
-/// (`ravens chain` → a `role2s` chain), as user-glossary text is read
-/// ([canonicalizeGlossaryText]), so a role word the [dialect] claims keeps the
-/// dialect's meaning; this retry runs with no [dialect] too. When every retry
-/// misses, the raw result is returned, so the custom is not
-/// dialect-canonicalised here. It is not verbatim either: the parser's import
-/// scrub (`scrubFigureText`) has already run over it, and the editor
-/// canonicalises custom text against the active dialect when the dance is
-/// saved. With no [dialect], the dialect retry is skipped; the other steps
+/// Since #2121 it is also tried when the raw parse reads a move but leaves a
+/// note or an unread part (`half poussette - leads pull neighbor back then
+/// left` kept `- leads pull …` as a note); then the retry is taken only if it
+/// reads the whole line. Raw goes first because a dialect term can also be a
+/// MOVE word — `lead` in `ones lead down the hall`. The canonicaliser keeps
+/// such a verb when its neighbours show it is one (`RoleCanonicalizer`), but a
+/// line that parses as typed should never depend on that judgement. When that
+/// retry does not settle the line either, the built-in discouraged role terms
+/// are read by their meaning (`ravens chain` → a `role2s` chain), as
+/// user-glossary text is read ([canonicalizeGlossaryText]), so a role word the
+/// [dialect] claims keeps the dialect's meaning; this retry runs with no
+/// [dialect] too. When every retry misses, the raw result is returned, so the
+/// custom is not dialect-canonicalised here. It is not verbatim either: the
+/// parser's import scrub (`scrubFigureText`) has already run over it, and the
+/// editor canonicalises custom text against the active dialect when the dance
+/// is saved. With no [dialect], the dialect retry is skipped; the other steps
 /// still run.
 ///
 /// Before parsing, an optional inline beat count is peeled off the line and
@@ -753,7 +755,10 @@ List<Figure> _parseSplit(
     taxonomy: taxonomy,
     demoteNoteTails: true,
   );
-  bool missed(List<Figure> fs) => fs.every((f) => f.isCustom);
+  // A container counts as a miss when nothing inside it was read
+  // (`leads swing while follows chain` as typed is two unread halves).
+  bool missed(Iterable<Figure> fs) =>
+      fs.every((f) => f.isCustom || (f.isContainer && missed(f.subFigures)));
   // Spoken turn amounts first (`once and a half` → `1 1/2`): the grammar would
   // read `once` and keep `and a half` as a note, so this cannot wait for a
   // miss. Only a reading that accounts for the whole line is taken, so the

@@ -48,11 +48,24 @@ void main() {
     expect(f.note, contains('leads pull neighbor'));
   });
 
-  test('a line read whole as typed keeps that reading', () {
-    // `lead` is the move word here, not the role.
-    final f = only('ones lead down the hall');
-    expect(f.isCustom, isFalse);
-    expect(f.params['who'], isNot('role1s'));
+  test('a role-word reading with a part still unread does not replace one', () {
+    // As typed, the swing is read and the second half is not. The role-word
+    // reading reads no more of the line, so the unread half keeps the words
+    // as typed.
+    final f = only('ones swing while follows do a little jig');
+    expect(f.isContainer, isTrue);
+    expect(f.subFigures.first.params['who'], 'ones');
+    expect(f.subFigures.last.isCustom, isTrue);
+    expect(f.subFigures.last.params['text'], contains('follows'));
+  });
+
+  test('a line whose parts are all unread as typed takes the role words', () {
+    // As typed, both halves of the meanwhile are unread, which is a miss, so
+    // the role-word reading that reads the swing is taken.
+    final f = only('leads swing while follows do a little jig');
+    expect(f.isContainer, isTrue);
+    expect(f.subFigures.first.move, 'swing');
+    expect(f.subFigures.first.params['who'], 'role1s');
   });
 
   test('with no dialect, the role words are not applied', () {
