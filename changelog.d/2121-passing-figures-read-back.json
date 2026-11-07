@@ -3,12 +3,12 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "Typing or pasting a pass through, right left through, chain or pull by with a direction the way the figure list shows it (\"pass through on right diagonal\", \"pull by right facing in\") now keeps the direction instead of dropping it. A pass by, a cross trails and a slice read back with their dancers, shoulders, directions and slice details too, for example \"neighbor pass by left shoulders\" and \"slice right one dancer and diagonal back\". In the Leads/Follows wording, a cross trails line that names the leads or the follows is not read yet."
+      "Typing or pasting a pass through, right left through, chain or pull by with a direction the way the figure list shows it (\"pass through on right diagonal\", \"pull by right facing in\") now keeps the direction instead of dropping it. A pass by, a cross trails and a slice read back with their dancers, shoulders, directions and slice details too, for example \"neighbor pass by left shoulders\" and \"slice right one dancer and diagonal back\"."
     ]
   },
   "core": {
     "fixed": [
-      "The ContraDB figure reader reads a displayed direction after pass through, right left through, chain and pull by; the display's singular subject for pass by when its shoulder is stated; cross trails' display subjects, directions and `passing … shoulders` clauses, declining a second pass by the same shoulder; and slice's `one dancer` and return clauses. A bare `slice left` is still read at the default return, since whether ContraDB means `none` by it is not established. Leads/Follows cross trails lines that name a role (`leads across the set …`) still do not read back. Free-text entry reads a line as typed before it applies the dialect's role words, and here the as-typed reading already finds a cross trails with the rest kept as a note, so the role-word reading is never tried."
+      "The ContraDB figure reader reads a displayed direction after pass through, right left through, chain and pull by; the display's singular subject for pass by when its shoulder is stated; cross trails' display subjects, directions and `passing … shoulders` clauses, declining a second pass by the same shoulder; and slice's `one dancer` and return clauses. A bare `slice left` is still read at the default return, since whether ContraDB means `none` by it is not established."
     ]
   }
 }
