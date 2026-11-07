@@ -1,0 +1,14 @@
+{
+  "id": "2121-leads-follows-read-back",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "In the Leads/Follows wording, typing or pasting a figure the way the figure list shows it now gives that figure when the line names the leads or the follows: a poussette, revolving door, box circulate, zig-zag, facing star, figure 8, cross trails, pass the ocean, form long waves or form a long wave. Before, these lines kept the role words as a note, or did not read at all."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "Free-text entry (`parseFreeTextFigureEntry`) tries the dialect's role words not only when the line as typed reads no move, but also when it reads one only by leaving a note or an unread part; the role-word reading is then taken only if it reads the whole line, so a line read as typed keeps that reading unless the role words account for all of it. A Leads/Follows line such as `half poussette - leads pull neighbor back then left` read as a bare poussette with the rest as a note, because `leads` is not one of the built-in role words the import scrub knows; `leads dance out while follows dance in …` split into two unread halves. Both now read back, which leaves only the deliberate exceptions in the Leads/Follows round-trip list. Imports are unchanged: they do not apply a dialect."
+    ]
+  }
+}

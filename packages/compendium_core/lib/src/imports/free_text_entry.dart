@@ -313,8 +313,9 @@ Figure _withUnreadCount(Figure figure, String token) => figure.copyWith(
 /// and the re-parse upgrade use neither.
 ///
 /// When a [dialect] is supplied, the line is parsed RAW first and the
-/// dialect-canonicalised line is tried only if the raw parse is all-custom: the
-/// user's role words (`Follows chain` under [Dialect.leadsFollows]) are not in
+/// dialect-canonicalised line is tried only if the raw parse is all-custom, or
+/// reads a move but leaves a note or an unread part, in which case the retry is
+/// taken only if it reads the whole line (#2121): the user's role words (`Follows chain` under [Dialect.leadsFollows]) are not in
 /// the always-on legacy synonym set the parser's scrub applies, so they miss
 /// raw but parse once [canonicalizeText] maps them back to `role1`/`role2`.
 /// Raw goes first because a dialect term can also be a MOVE word — `lead` in
@@ -764,11 +765,19 @@ List<Figure> _parseSplit(
     if (!missed(read) && !_anyNote(read)) return read;
   }
   final raw = attempt(split.text);
-  if (raw.isEmpty || !missed(raw)) return raw;
-  // Retries, each only on a miss: the dialect's role words, then the built-in
-  // discouraged role terms by their meaning (`ravens` → `role2s`), read as
-  // user-glossary text is (`canonicalizeGlossaryText`), so a role word the
-  // dialect claims keeps the dialect's meaning.
+  if (raw.isEmpty) return raw;
+  // Retries: the dialect's role words, then the built-in discouraged role
+  // terms by their meaning (`ravens` → `role2s`), read as user-glossary text
+  // is (`canonicalizeGlossaryText`), so a role word the dialect claims keeps
+  // the dialect's meaning. On a miss the first reading that finds a move is
+  // taken. When the line as typed found a move but did not read all of it — a
+  // note (`half poussette - leads pull neighbor back then left` keeps `- leads
+  // pull …`) or an unread part (`leads dance out while follows dance in …`
+  // splits into two unread halves) — a retry is taken only if it reads the
+  // whole line (#2121). So a line read as typed keeps that reading unless the
+  // role words account for all of it.
+  final rawMissed = missed(raw);
+  if (!rawMissed && _readsWholeLine(raw)) return raw;
   final tried = {split.text};
   final readTexts = <String>[];
   for (final retry in [
@@ -778,8 +787,10 @@ List<Figure> _parseSplit(
     if (!tried.add(retry)) continue;
     readTexts.add(retry);
     final retried = attempt(retry);
-    if (!missed(retried)) return retried;
+    if (missed(retried)) continue;
+    if (rawMissed || _readsWholeLine(retried)) return retried;
   }
+  if (!rawMissed) return raw;
   // Last, the line as a move's name (`hey.`, `mad robin`), alone or after a
   // dancer (`neighbor pass by`): only when no parse read it, so a line the
   // grammar reads keeps every fact it states. A role word in the dancer's place
@@ -825,6 +836,16 @@ Figure? _displayedCourtesyTurn(String text, int beats, Taxonomy taxonomy) {
       .any((i) => i.severity == ValidationSeverity.error);
   return invalid ? null : figure;
 }
+
+/// Whether [figures] account for their whole line: none of them, and no figure
+/// inside one, is custom or carries a note.
+bool _readsWholeLine(Iterable<Figure> figures) =>
+    !_anyNote(figures) && !_anyCustom(figures);
+
+/// Whether any of [figures], or any figure inside one, is custom.
+bool _anyCustom(Iterable<Figure> figures) => figures.any(
+  (f) => f.isCustom || (f.isContainer && _anyCustom(f.subFigures)),
+);
 
 /// Whether any of [figures], or any figure inside one, carries a note.
 bool _anyNote(Iterable<Figure> figures) => figures.any(
