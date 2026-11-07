@@ -271,6 +271,7 @@ const List<FigureMatch? Function(String)> _recognizers =
       _giveAndTake,
       _rollAway,
       _turnAlone,
+      _madRobinDisplay,
       _madRobin,
       _passBy,
       _tradeBy,
@@ -293,6 +294,7 @@ const List<FigureMatch? Function(String)> _recognizers =
       _downTheHall,
       _upTheHall,
       _figure8,
+      _squareThroughDisplay,
       _squareThrough,
       _formALongWave,
       _formALongWaveInPlace,
@@ -829,10 +831,7 @@ FigureMatch? _gateDisplay(String text) {
   // the move are the forward clause, not an object.
   String? forward;
   if (objects.length == 1 && s.eat('forward')) forward = objects.removeLast();
-  final spin = mirror
-      ? null
-      : (_spinDir(s) ??
-            (s.eat('counterclockwise') ? 'counterclockwise' : null));
+  final spin = mirror ? null : _displaySpin(s);
   final turn = _rotation(s.peek());
   if (turn != null) s.take();
   if (objects.isEmpty && forward == null) {
@@ -914,8 +913,7 @@ FigureMatch? readDisplayedCourtesyTurnWithWhom(String text) {
   if (who == null || !s.eatPhrase('courtesy turn')) return null;
   final whom = _displaySubject(s);
   if (whom == null) return null;
-  final direction =
-      _spinDir(s) ?? (s.eat('counterclockwise') ? 'counterclockwise' : null);
+  final direction = _displaySpin(s);
   String? endFacing;
   if (s.eatPhrase('to face')) {
     endFacing = _displaySubject(s);
@@ -942,6 +940,100 @@ String? _displayFacing(_Scan s) {
   }
   return null;
 }
+
+/// The mad robin in the app's display wording (#2121), in the renderer's
+/// order: `mad robin`, a spin, "TURN around WHOM" (either side may be absent),
+/// and ", WHO in front". The display leaves the in-front clause out when `who`
+/// is unspecified, so a line without it states `who: unspecified`. A bare
+/// `mad robin` states nothing this wording adds and is left to the existing
+/// readers; only the whole line is read.
+FigureMatch? _madRobinDisplay(String text) {
+  final s = _Scan(text);
+  if (!s.eatPhrase('mad robin')) return null;
+  final direction = _displaySpin(s);
+  final save = s.pos;
+  final turn = _rotation(s.peek());
+  if (turn != null) s.take();
+  String? whom;
+  if (s.eat('around')) {
+    // `around,` ends a turn with no whom: what follows the comma is the
+    // in-front clause, not whom it turns around.
+    if (!s.previousTokenEndsWith(',')) whom = _displaySubject(s);
+    // The display never writes a bare `around`: it names a turn or a whom.
+    if (turn == null && whom == null) return null;
+  } else if (turn != null) {
+    return null;
+  }
+  final around = s.pos != save;
+  String? who;
+  if (s.peek() != null) {
+    who = _displaySubject(s);
+    if (who == null || !s.eatPhrase('in front')) return null;
+  }
+  if (s.peek() != null) return null;
+  if (direction == null && !around && who == null) return null;
+  return FigureMatch(
+    'mad_robin',
+    params: {
+      'direction': ?direction,
+      'travel': ?turn,
+      'whom': ?whom,
+      'who': who ?? ParamVocab.unspecified,
+    },
+  );
+}
+
+/// The square through in the app's display wording (#2121): "square through
+/// PLACES - WHO [balance &] pull by HAND, then WHO2 pull by HAND2", then for
+/// three places ", then WHO [balance &] pull by HAND" again and for four ",
+/// then repeat". The display derives HAND2 from HAND and repeats the first
+/// pull, so a line where those disagree is not this wording. A line without
+/// `balance &` states `balance: false` (the move's default is true). Only the
+/// whole line is read.
+FigureMatch? _squareThroughDisplay(String text) {
+  final s = _Scan(text);
+  if (!s.eatPhrase('square through')) return null;
+  const placeWords = {'two': 2, 'three': 3, 'four': 4};
+  final places = placeWords[s.peek()];
+  if (places == null) return null;
+  s.take();
+  if (!s.eat('-')) return null;
+  final who = _displaySubject(s);
+  if (who == null) return null;
+  final balance = _eatBalanceAmp(s);
+  if (!s.eatPhrase('pull by')) return null;
+  final hand = _leftRight(s.peek());
+  if (hand == null) return null;
+  s.take();
+  if (!s.eat('then')) return null;
+  final who2 = _displaySubject(s);
+  if (who2 == null || !s.eatPhrase('pull by')) return null;
+  if (s.peek() != _otherSide(hand)) return null;
+  s.take();
+  if (places == 3) {
+    if (!s.eat('then') || _displaySubject(s) != who) return null;
+    if (_eatBalanceAmp(s) != balance || !s.eatPhrase('pull by')) return null;
+    if (!s.eat(hand)) return null;
+  } else if (places == 4) {
+    if (!s.eatPhrase('then repeat')) return null;
+  }
+  if (s.peek() != null) return null;
+  return FigureMatch(
+    'square_through',
+    params: {
+      'places': places,
+      'who': who,
+      'balance': balance,
+      'hand': hand,
+      'who2': who2,
+    },
+  );
+}
+
+/// A spin direction as the app's display writes it, `clockwise` or the
+/// one-word `counterclockwise`, besides ContraDB's own spellings ([_spinDir]).
+String? _displaySpin(_Scan s) =>
+    _spinDir(s) ?? (s.eat('counterclockwise') ? 'counterclockwise' : null);
 
 /// A subject as the app's display writes it (#2121): any [_subject], the
 /// singular the display uses for a pair (`neighbor`, `partner`, `shadow`), or
@@ -1478,7 +1570,14 @@ FigureMatch? _californiaTwirl(String text) {
 FigureMatch? _butterflyWhirl(String text) {
   final s = _Scan(text);
   if (!s.eatPhrase('butterfly whirl')) return null;
-  return FigureMatch('butterfly_whirl', note: s.note());
+  // The app's display writes the spin after the move (`butterfly whirl
+  // clockwise`, one word; #2121).
+  final direction = _displaySpin(s);
+  return FigureMatch(
+    'butterfly_whirl',
+    params: {'direction': ?direction},
+    note: s.note(),
+  );
 }
 
 /// stand still (generic renderer): `stand still`.
