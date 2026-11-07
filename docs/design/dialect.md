@@ -295,9 +295,14 @@ known synonyms/legacy terms (gypsy → shoulder round) back to canonical
 vocabulary, and flags ambiguities inline ("lingo line" underlining: recognized
 terms underlined, discouraged terms struck through, unknown terms plain).
 Free-text figure entry parses the typed line as written first and canonicalises
-against the active dialect only on a parse miss, so a dialect term that is also
-a move word (`lead` in "ones lead down the hall") keeps parsing as the move.
-On a second miss it reads the built-in discouraged role terms by their meaning,
+against the active dialect only when that reading does not account for the
+whole line: on a parse miss, or (since #2121) when it found a move only by
+leaving a note or an unread part, as `half poussette - leads pull neighbor back
+then left` did. In the second case the role-word reading is taken only if it
+reads the whole line. So a dialect term that is also a move word (`lead` in
+"ones lead down the hall") keeps parsing as the move, and a line read as typed
+keeps that reading unless the role words account for all of it. After that it
+reads the built-in discouraged role terms by their meaning,
 as user-glossary text is read (`canonicalizeGlossaryText`): `ravens chain` is a
 `role2s` chain, unless the active dialect's own role word is or holds the term,
 which keeps the dialect's meaning. Only when every parse misses is the line
