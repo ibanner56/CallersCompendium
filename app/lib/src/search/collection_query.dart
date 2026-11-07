@@ -827,9 +827,10 @@ class _RemovedTag {
   final BuilderTag node;
 }
 
-/// A "has figure" row: a move (required), an optional section, and optional
-/// named params. Folds to a [FigureFilter] leaf, or a [FigureLeaf] when used as
-/// a [ThenFilter] operand (via [BuilderFigureNode]).
+/// A "has figure" row: a move, an optional section and optional named params,
+/// or, with [isAnyFigure], any figure at all. Folds to a [FigureFilter] over a
+/// [FigureLeaf] (or [anyFigure]), and to that query alone when used as a
+/// [ThenFilter] operand (via [BuilderFigureNode]).
 class BuilderFigure extends BuilderNode implements BuilderFigureNode {
   BuilderFigure({
     this.move,
