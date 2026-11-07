@@ -1,7 +1,7 @@
 import '../model/figure.dart';
 import '../taxonomy/contra_taxonomy.dart';
 import '../taxonomy/dance_vocabulary.dart'
-    show displayDirectionPhrases, seriesDancerWords;
+    show displayDirectionPhrases, displayFacingPhrases, seriesDancerWords;
 import '../taxonomy/param_types.dart';
 import '../taxonomy/taxonomy.dart';
 import 'contradb_dancer_vocab.dart';
@@ -271,11 +271,16 @@ const List<FigureMatch? Function(String)> _recognizers =
       _giveAndTake,
       _rollAway,
       _turnAlone,
+      _madRobinDisplay,
       _madRobin,
       _passBy,
       _tradeBy,
       _passThrough,
       _pullByDancers,
+      // Ahead of [_gate]: ContraDB's own wording (`to face up the set`) is not
+      // the display's, so it falls through to [_gate] whole.
+      _gateDisplay,
+      _courtesyTurnFacingDisplay,
       _gate,
       _contraCorners,
       _zigZag,
@@ -289,6 +294,7 @@ const List<FigureMatch? Function(String)> _recognizers =
       _downTheHall,
       _upTheHall,
       _figure8,
+      _squareThroughDisplay,
       _squareThrough,
       _formALongWave,
       _formALongWaveInPlace,
@@ -585,6 +591,7 @@ FigureMatch? _chain(String text) {
     'hand': statedHand ?? chainHandForWho(who),
   };
   if (dir != null) params['where'] = dir;
+  _readTrailingDisplayDirection(s, params);
   return FigureMatch('chain', params: params, note: s.note());
 }
 
@@ -793,6 +800,241 @@ FigureMatch? _formALongWaveInPlace(String text) {
   );
 }
 
+/// The gate in the app's display wording (#2121), in the order the renderer
+/// writes its slots: a subject, `mirror`, `gate`, up to two objects,
+/// `clockwise` or `counterclockwise`, a turn, ", WHOM forward", and "to face
+/// FACING". Every slot but `gate` is optional, as the display leaves an
+/// unstated one out, and only the whole line is read. The display spells `counterclockwise` as one word, which
+/// ContraDB's `_spinDir` does not read, so it is read here.
+///
+/// The subject is `who` or `pair`, which the display words alike. A line that
+/// states a rotation (mirror, a spin or a turn) is The Caller's Box shape, whose
+/// subject is the pair you gate with, as the shared grammar reads it; any
+/// other is ContraDB's shape, whose subject is `who`. A "WHOM forward" clause
+/// is written only when the subject is the pair. Of the objects, the display
+/// writes the pair before `whom`; a lone object is read as `whom`, as
+/// ContraDB's `<who> gate <whom>` is.
+///
+/// A line with nothing beyond a subject, and a Caller's Box shape that leaves
+/// out the direction or the turn, are left to the readers that already decide
+/// them.
+FigureMatch? _gateDisplay(String text) {
+  final s = _Scan(text);
+  final subject = _displaySubject(s);
+  final mirror = s.eat('mirror');
+  if (!s.eat('gate')) return null;
+  final objects = <String>[
+    if (subject != null)
+      for (var i = 0; i < 2; i++) ?_displaySubject(s),
+  ];
+  // `neighbor gate, larks forward`: with nothing between, the dancers after
+  // the move are the forward clause, not an object.
+  String? forward;
+  if (objects.length == 1 && s.eat('forward')) forward = objects.removeLast();
+  final spin = mirror ? null : _displaySpin(s);
+  final turn = _rotation(s.peek());
+  if (turn != null) s.take();
+  if (objects.isEmpty && forward == null) {
+    final save = s.pos;
+    forward = _displaySubject(s);
+    if (forward != null && !s.eat('forward')) {
+      forward = null;
+      s.reset(save);
+    }
+  }
+  String? facing;
+  if (s.eatPhrase('to face')) {
+    facing = _displayFacing(s);
+    if (facing == null) return null;
+  }
+  if (s.peek() != null) return null;
+  final rotated = mirror || spin != null || turn != null;
+  // A bare `gate`, or one with only a subject, states nothing this wording
+  // adds: it is left to the readers that already decide it (an import keeps
+  // `Partner gate` as text; free text reads it by name).
+  if (objects.isEmpty && !rotated && facing == null && forward == null) {
+    return null;
+  }
+  // A subject with a rotation is The Caller's Box shape, which the shared
+  // grammar reads only when it states the direction AND the turn, never
+  // filling in either (`Partner gate counterclockwise` stays text). The same
+  // rule holds here, so an import reads that line as it did before.
+  final rotationStated = (mirror || spin != null) && turn != null;
+  if (subject != null && objects.isEmpty && rotated && !rotationStated) {
+    return null;
+  }
+  final subjectIsPair = forward != null || (objects.isEmpty && rotated);
+  return FigureMatch(
+    'gate',
+    params: {
+      subjectIsPair ? 'pair' : 'who': ?subject,
+      if (objects.length == 2) ...{'pair': objects[0], 'whom': objects[1]},
+      if (objects.length == 1) 'whom': objects[0],
+      'whom': ?forward,
+      if (mirror) 'direction': 'mirror' else 'direction': ?spin,
+      'travel': ?turn,
+      'endFacing': ?facing,
+    },
+  );
+}
+
+/// A courtesy turn with its ending facing, in the app's display wording
+/// (#2121): "SUBJECT courtesy turn [clockwise|counterclockwise] to face
+/// DANCER". The shared grammar reads The Caller's Box's `face N2`; the display
+/// writes `to face` and any dancer, singular for a pair. Only a whole line
+/// with the facing is read, so every other courtesy turn line is left to the
+/// shared grammar. The two-dancer form (`partner courtesy turn larks`) names
+/// `whom`, which the shared grammar deliberately does not read; nor does this.
+FigureMatch? _courtesyTurnFacingDisplay(String text) {
+  final s = _Scan(text);
+  final who = _displaySubject(s);
+  if (who == null || !s.eatPhrase('courtesy turn')) return null;
+  final direction = _spinDir(s);
+  if (!s.eatPhrase('to face')) return null;
+  final endFacing = _displaySubject(s);
+  if (endFacing == null || s.peek() != null) return null;
+  return FigureMatch(
+    'courtesy_turn',
+    params: {'who': who, 'direction': ?direction, 'endFacing': endFacing},
+  );
+}
+
+/// A courtesy turn that names `whom`, in the app's display wording: "SUBJECT
+/// courtesy turn WHOM [spin] [to face DANCER]". Only free-text entry calls it
+/// (`parseFreeTextFigureEntry`), so a figure the app displays reads back; it
+/// is not one of this reader's recognizers, so no import reads a second dancer
+/// from a source line. That split is the maintainer's decision of 2026-11-06,
+/// recorded in #2121's Status section; it keeps the shared grammar's earlier
+/// ruling that an import leaves `whom` out unless a source states it. Only the
+/// whole line is read.
+FigureMatch? readDisplayedCourtesyTurnWithWhom(String text) {
+  final s = _Scan(text);
+  final who = _displaySubject(s);
+  if (who == null || !s.eatPhrase('courtesy turn')) return null;
+  final whom = _displaySubject(s);
+  if (whom == null) return null;
+  final direction = _displaySpin(s);
+  String? endFacing;
+  if (s.eatPhrase('to face')) {
+    endFacing = _displaySubject(s);
+    if (endFacing == null) return null;
+  }
+  if (s.peek() != null) return null;
+  return FigureMatch(
+    'courtesy_turn',
+    params: {
+      'who': who,
+      'whom': whom,
+      'direction': ?direction,
+      'endFacing': ?endFacing,
+    },
+  );
+}
+
+/// A set-relative facing as the app's display words it, one of
+/// [displayFacingPhrases] (#2121).
+String? _displayFacing(_Scan s) {
+  for (final MapEntry(key: token, value: phrase)
+      in displayFacingPhrases.entries) {
+    if (s.eatPhrase(phrase)) return token;
+  }
+  return null;
+}
+
+/// The mad robin in the app's display wording (#2121), in the renderer's
+/// order: `mad robin`, a spin, "TURN around WHOM" (either side may be absent),
+/// and ", WHO in front". The display leaves the in-front clause out when `who`
+/// is unspecified, so a line without it states `who: unspecified`. A bare
+/// `mad robin` states nothing this wording adds and is left to the existing
+/// readers; only the whole line is read.
+FigureMatch? _madRobinDisplay(String text) {
+  final s = _Scan(text);
+  if (!s.eatPhrase('mad robin')) return null;
+  final direction = _displaySpin(s);
+  final save = s.pos;
+  final turn = _rotation(s.peek());
+  if (turn != null) s.take();
+  String? whom;
+  if (s.eat('around')) {
+    // `around,` ends a turn with no whom: what follows the comma is the
+    // in-front clause, not whom it turns around.
+    if (!s.previousTokenEndsWith(',')) whom = _displaySubject(s);
+    // The display never writes a bare `around`: it names a turn or a whom.
+    if (turn == null && whom == null) return null;
+  } else if (turn != null) {
+    return null;
+  }
+  final around = s.pos != save;
+  String? who;
+  if (s.peek() != null) {
+    who = _displaySubject(s);
+    if (who == null || !s.eatPhrase('in front')) return null;
+  }
+  if (s.peek() != null) return null;
+  if (direction == null && !around && who == null) return null;
+  return FigureMatch(
+    'mad_robin',
+    params: {
+      'direction': ?direction,
+      'travel': ?turn,
+      'whom': ?whom,
+      'who': who ?? ParamVocab.unspecified,
+    },
+  );
+}
+
+/// The square through in the app's display wording (#2121): "square through
+/// PLACES - WHO [balance &] pull by HAND, then WHO2 pull by HAND2", then for
+/// three places ", then WHO [balance &] pull by HAND" again and for four ",
+/// then repeat". The display derives HAND2 from HAND and repeats the first
+/// pull, so a line where those disagree is not this wording. A line without
+/// `balance &` states `balance: false` (the move's default is true). Only the
+/// whole line is read.
+FigureMatch? _squareThroughDisplay(String text) {
+  final s = _Scan(text);
+  if (!s.eatPhrase('square through')) return null;
+  const placeWords = {'two': 2, 'three': 3, 'four': 4};
+  final places = placeWords[s.peek()];
+  if (places == null) return null;
+  s.take();
+  if (!s.eat('-')) return null;
+  final who = _displaySubject(s);
+  if (who == null) return null;
+  final balance = _eatBalanceAmp(s);
+  if (!s.eatPhrase('pull by')) return null;
+  final hand = _leftRight(s.peek());
+  if (hand == null) return null;
+  s.take();
+  if (!s.eat('then')) return null;
+  final who2 = _displaySubject(s);
+  if (who2 == null || !s.eatPhrase('pull by')) return null;
+  if (s.peek() != _otherSide(hand)) return null;
+  s.take();
+  if (places == 3) {
+    if (!s.eat('then') || _displaySubject(s) != who) return null;
+    if (_eatBalanceAmp(s) != balance || !s.eatPhrase('pull by')) return null;
+    if (!s.eat(hand)) return null;
+  } else if (places == 4) {
+    if (!s.eatPhrase('then repeat')) return null;
+  }
+  if (s.peek() != null) return null;
+  return FigureMatch(
+    'square_through',
+    params: {
+      'places': places,
+      'who': who,
+      'balance': balance,
+      'hand': hand,
+      'who2': who2,
+    },
+  );
+}
+
+/// A spin direction as the app's display writes it, `clockwise` or the
+/// one-word `counterclockwise`, besides ContraDB's own spellings ([_spinDir]).
+String? _displaySpin(_Scan s) =>
+    _spinDir(s) ?? (s.eat('counterclockwise') ? 'counterclockwise' : null);
+
 /// A subject as the app's display writes it (#2121): any [_subject], the
 /// singular the display uses for a pair (`neighbor`, `partner`, `shadow`), or
 /// a corner pairing ContraDB does not name (`third corners`, `opposites`).
@@ -823,6 +1065,14 @@ String? _displayDirectionPhrase(_Scan s) {
     if (s.eatPhrase(phrase)) return token;
   }
   return null;
+}
+
+/// Reads a set direction the app's display writes after a move (`along`, `on
+/// right diagonal`, `facing in`; #2121) into [params]' `where`, unless one was
+/// already read.
+void _readTrailingDisplayDirection(_Scan s, Map<String, Object?> params) {
+  if (params.containsKey('where')) return;
+  if (_displayDirectionPhrase(s) case final where?) params['where'] = where;
 }
 
 /// The other hand or side.
@@ -1113,6 +1363,7 @@ FigureMatch? _rightLeftThrough(String text) {
     params['where'] = dir;
   }
   if (!s.eatPhrase('right left through')) return null;
+  _readTrailingDisplayDirection(s, params);
   return FigureMatch('right_left_through', params: params, note: s.note());
 }
 
@@ -1319,7 +1570,14 @@ FigureMatch? _californiaTwirl(String text) {
 FigureMatch? _butterflyWhirl(String text) {
   final s = _Scan(text);
   if (!s.eatPhrase('butterfly whirl')) return null;
-  return FigureMatch('butterfly_whirl', note: s.note());
+  // The app's display writes the spin after the move (`butterfly whirl
+  // clockwise`, one word; #2121).
+  final direction = _displaySpin(s);
+  return FigureMatch(
+    'butterfly_whirl',
+    params: {'direction': ?direction},
+    note: s.note(),
+  );
 }
 
 /// stand still (generic renderer): `stand still`.
@@ -1508,11 +1766,16 @@ String? _singleDancer(_Scan s) {
 /// pass by (generic renderer): `<who> pass by [<side> shoulders]`.
 FigureMatch? _passBy(String text) {
   final s = _Scan(text);
-  final who = _subject(s);
+  // The display's subjects too (`neighbor`, #2121), but only with the shoulder
+  // the display always writes: `neighbor pass by` alone stays as it was, text
+  // in an import (free text reads it by name).
+  final contraDbWho = _subject(s);
+  final who = contraDbWho ?? _displaySubject(s);
   if (who == null) return null;
   if (!s.eatPhrase('pass by')) return null;
   final params = <String, Object?>{'who': who};
   final side = _shoulderPhrase(s);
+  if (side == null && contraDbWho == null) return null;
   if (side != null) params['shoulder'] = side;
   return FigureMatch('pass_by', params: params, note: s.note());
 }
@@ -1565,6 +1828,7 @@ FigureMatch? _passThrough(String text) {
     s.take();
     params['where'] = dir;
   }
+  _readTrailingDisplayDirection(s, params);
   return FigureMatch('pass_through', params: params, note: s.note());
 }
 
@@ -1599,6 +1863,7 @@ FigureMatch? _pullByDirection(String text) {
     s.take();
     params['where'] = dir;
   }
+  _readTrailingDisplayDirection(s, params);
   return FigureMatch('pull_by', params: params, note: s.note());
 }
 
@@ -1788,7 +2053,21 @@ FigureMatch? _slice(String text) {
   final slide = _leftRight(s.peek());
   if (slide == null) return null;
   s.take();
-  return FigureMatch('slice', params: {'slice': slide}, note: s.note());
+  // The display's increment and return clauses (#2121). A line without a
+  // return clause is left at the default: whether ContraDB means `none` by
+  // that, as the app's display does, is not established, so a bare `slice
+  // left` is not read as `none`.
+  final by = s.eatPhrase('one dancer') ? 'dancer' : null;
+  final ret = s.eatPhrase('and straight back')
+      ? 'straight'
+      : s.eatPhrase('and diagonal back')
+      ? 'diagonal'
+      : null;
+  return FigureMatch(
+    'slice',
+    params: {'slice': slide, 'by': ?by, 'return': ?ret},
+    note: s.note(),
+  );
 }
 
 /// revolvingDoorWords. Renders as: "revolving door - WHO take HAND hands and
@@ -1887,7 +2166,10 @@ FigureMatch? _crossTrails(String text) {
   if (!s.eatPhrase('cross trails')) return null;
   final params = <String, Object?>{};
   if (s.eat('-')) {
-    final who = _subject(s);
+    // The display's subjects and directions too (#2121): a pair in the
+    // singular, and `on right diagonal`/`facing in` for the first pair, after
+    // which the second pair states no direction.
+    final who = _displaySubject(s);
     if (who != null) {
       params['who'] = who;
       final dir = _direction(s.peek());
@@ -1895,17 +2177,39 @@ FigureMatch? _crossTrails(String text) {
         s.take();
         s.eatPhrase('the set');
         params['where'] = dir;
+      } else {
+        _readTrailingDisplayDirection(s, params);
       }
+      // The display writes `passing right shoulders`.
+      final shSave = s.pos;
+      s.eat('passing');
       final sh = _shoulderPhrase(s);
-      if (sh != null) params['shoulder'] = sh;
-      final who2 = _subject(s);
+      if (sh != null) {
+        params['shoulder'] = sh;
+      } else {
+        s.reset(shSave);
+      }
+      final who2 = _displaySubject(s);
       if (who2 != null) {
         params['who2'] = who2;
         if (_direction(s.peek()) != null) {
           s.take();
           s.eatPhrase('the set');
         }
-        _shoulderPhrase(s);
+        final sh2Save = s.pos;
+        s.eat('passing');
+        final sh2 = _shoulderPhrase(s);
+        if (sh2 == null) {
+          s.reset(sh2Save);
+        } else if (sh == null) {
+          // Only the first shoulder is stored and the second is its opposite,
+          // so a line stating only the second states the first too.
+          params['shoulder'] = _otherSide(sh2);
+        } else if (sh2 == sh) {
+          // Trails cross by opposite shoulders, and only the first is stored:
+          // a second pass by the same shoulder would be silently changed.
+          return null;
+        }
       }
     }
   }

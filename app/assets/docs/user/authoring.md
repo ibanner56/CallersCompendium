@@ -156,8 +156,10 @@ in capitals or not, with or without a full stop, comma or exclamation mark
 after it (`hey.`). Your dialect's own name for a move works too. A name on its
 own gives the figure with its usual options, which you can then change.
 Put `ones`, `twos`, `partners`, `neighbors`, `everyone`, `role1s`, `role2s` (or
-the singular `partner` or `neighbor`) in front of the name of a move that takes
-dancers and they are the dancers: `neighbor pass by`, `ones arch and dive`. A
+the singular `partner` or `neighbor`), or any other dancers the way the figure
+list names them (`same roles`, `third corners`, `prev neighbor`), in front of
+the name of a move that takes dancers and they are the dancers: `neighbor pass
+by`, `ones arch and dive`, `third corners gate`. A
 move that does not take dancers that way (`hey`, `slice`), a word the app does
 not know in the dancer's place, or anything else on the line stays an unrecognized
 figure unless the line is read as above. The app also reads `hey for four`,

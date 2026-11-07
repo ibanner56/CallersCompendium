@@ -5095,7 +5095,7 @@
 {"in":"Shift Happens","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Shift Happens\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"by: Rick Mohr","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"by: Rick Mohr\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"introduces moves: slice , gyre , slide along set","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"introduces moves: slice , gyre , slide along set\"},\"customOrigin\":\"importGap\"}]"}
-{"in":"slice left and straight back","fanOut":"[{\"schemaVersion\":1,\"move\":\"slice\",\"params\":{\"slice\":\"left\"},\"note\":\"and straight back\"}]"}
+{"in":"slice left and straight back","fanOut":"[{\"schemaVersion\":1,\"move\":\"slice\",\"params\":{\"slice\":\"left\",\"return\":\"straight\"}}]"}
 {"in":"partners swing (find partner in adjacent hey )","fanOut":"[{\"schemaVersion\":1,\"move\":\"swing\",\"params\":{\"who\":\"partners\"},\"note\":\"(find partner in adjacent hey )\"}]"}
 {"in":"partners gyre once","fanOut":"[{\"schemaVersion\":1,\"move\":\"shoulder_round\",\"params\":{\"who\":\"partners\",\"travel\":1.0}}]"}
 {"in":"slide left along set ⁋","fanOut":"[{\"schemaVersion\":1,\"move\":\"slide_along_set\",\"params\":{\"slide\":\"left\"},\"note\":\"⁋\"}]"}
