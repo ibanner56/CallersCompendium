@@ -1220,6 +1220,45 @@ void main() {
     });
   });
 
+  group('BuilderFigure: any figure', () {
+    test('an any-figure row is complete and folds to the any-figure query', () {
+      final row = BuilderFigure(isAnyFigure: true);
+      expect(row.isComplete, isTrue);
+      final f = row.toFilter();
+      expect(f, isA<FigureFilter>());
+      expect((f! as FigureFilter).query, same(anyFigure));
+    });
+
+    test('a row with a move and no any-figure flag is unchanged', () {
+      final row = BuilderFigure(move: 'swing');
+      expect(row.isAnyFigure, isFalse);
+      expect(
+        ((row.toFilter()! as FigureFilter).query as FigureLeaf).move,
+        'swing',
+      );
+    });
+
+    test('any figure on either side of a then completes it', () {
+      final before =
+          BuilderThen(
+                before: BuilderFigure(isAnyFigure: true),
+                after: BuilderFigure(move: 'swing'),
+              ).toFilter()!
+              as ThenFilter;
+      expect(before.before, same(anyFigure));
+      expect((before.after as FigureLeaf).move, 'swing');
+
+      final after =
+          BuilderThen(
+                before: BuilderFigure(move: 'swing'),
+                after: BuilderFigure(isAnyFigure: true),
+              ).toFilter()!
+              as ThenFilter;
+      expect((after.before as FigureLeaf).move, 'swing');
+      expect(after.after, same(anyFigure));
+    });
+  });
+
   group('RemovedTagRows', () {
     test('take removes tag rows at every depth and counts them', () {
       final figure = BuilderFigure(move: 'swing');

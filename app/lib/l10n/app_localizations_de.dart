@@ -4782,6 +4782,9 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get collectionQueryAnyFigure => 'Beliebige Figur';
+
+  @override
   String get collectionQueryTagLabel => 'Tag';
 
   @override

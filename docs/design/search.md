@@ -313,7 +313,18 @@ sealed FigureQuery
   FigureAnd(List<FigureQuery>)   // all match the SAME figure row
   FigureOr(List<FigureQuery>)    // any matches the same figure row
   FigureNot(FigureQuery)         // this figure row does NOT match
+
+const anyFigure = FigureAnd([])  // matches every figure row
 ```
+
+`anyFigure` is the empty `FigureAnd`, which the compiler already reads as true
+(no clause to fail), given a name so the builder can offer it. A dance matches
+`FigureFilter(anyFigure)` when it has at least one figure, and `Then(anyFigure,
+x)` is "x, after whatever figure comes before it", wrapping from the last
+figure to the first like any other `then`. ContraDB has the same thing,
+`["figure", "*"]` (`filter_dances.rb`, the `'*' == filter_move` wildcard), and
+the translator maps one to the other; checked live on 2026-11-06 that
+`then(any figure, swing)` matches exactly the dances `swing` alone does.
 
 Rationale for the split (see *Open questions* for the flagged decision): a
 `ThenFilter` asks "does a figure matching Y immediately follow a figure matching X",
@@ -831,7 +842,7 @@ tree. This section specifies the mapping; the widget shipped as
 | One-tap facet: Custom field | `CustomFieldFilter(def, op, value)` — `def` is a `CustomFieldDef`; `op` is a `CustomFieldOp` |
 | **Multiple facets selected** | `AndFilter([...leaves])` — the common case |
 | Advanced ▸ boolean group | `AndFilter` / `OrFilter` / `NotFilter` group nodes |
-| Advanced ▸ figure row | `FigureFilter(query)` with move + param + section pickers |
+| Advanced ▸ figure row | `FigureFilter(query)` with move + param + section pickers, or the **Any figure** chip (`BuilderFigure.isAnyFigure`, folding to `anyFigure`, with no move, section or params) |
 | Advanced ▸ tag row | `TagFilter(tagId)` — a tag picker offering the tags carried by a live dance; two rows in an all-of group AND their tags, as the facet's **All tags** does; rows can also mix with figure rows and sit under none-of. Against ContraDB (no tags) the **Has tag** entry is greyed out and naming the source, and choosing ContraDB takes existing tag rows out (`RemovedTagRows.take`, `OnlineSource.hidesAdvancedTags`) and returns them, with the tag picked, to the group and position they came from when the source no longer hides tags (online mode off, or another source); a group deleted meanwhile sends its rows to the top level, and clearing the search forgets them. The translator still refuses a tag as a safeguard. Wiping and greying out was the user's instruction on 2026-11-06, and so was restoring the rows afterwards ("I'd like a restore"), both in the agent session that wrote it; no issue or comment records them. Giving no notice when the rows are taken out is the implementing agent's choice and not yet ratified by the maintainer. |
 | Advanced ▸ sequence row ("X then Y") | `ThenFilter(before, after)` — both operands are `FigureQuery` |
 

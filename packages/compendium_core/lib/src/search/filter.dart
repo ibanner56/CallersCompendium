@@ -610,6 +610,15 @@ class FigureAnd extends FigureQuery {
   final List<FigureQuery> children;
 }
 
+/// Any figure at all: it matches every figure row, so a dance matches it when
+/// it has at least one figure, and `Then(anyFigure, x)` is "x, after whatever
+/// figure comes before it". It is the empty [FigureAnd] (no clause to fail),
+/// which the compiler already reads as true.
+///
+/// ContraDB's filter language has the same thing, `["figure", "*"]`, and
+/// starts a `then` with it on both sides.
+const FigureQuery anyFigure = FigureAnd([]);
+
 /// Any of [children] matches the **same** figure row (`OR` of clauses).
 @immutable
 class FigureOr extends FigureQuery {

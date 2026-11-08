@@ -4732,6 +4732,10 @@
   "@collectionQueryHasTagUnavailable": {
     "x-sourceSha256": "18e4424aa3663308c5152e43447b34630155897ff4c2a28d726e245a80c5a7ff"
   },
+  "collectionQueryAnyFigure": "Enhver figur",
+  "@collectionQueryAnyFigure": {
+    "x-sourceSha256": "79e2eb907b17e6963dfabfd6328b361eb02913830c58a1bd53372f68df8541f8"
+  },
   "collectionQueryTagLabel": "Tag",
   "@collectionQueryTagLabel": {
     "x-sourceSha256": "1503916a2ab2b0fd6768d3455fd8f2d9aa3b31333a8507dadcad983704a975d7"
