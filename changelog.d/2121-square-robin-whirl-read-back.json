@@ -1,0 +1,14 @@
+{
+  "id": "2121-square-robin-whirl-read-back",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Typing or pasting a square through, mad robin or butterfly whirl the way the figure list shows it now gives that figure: \"square through two - neighbor balance & pull by left, then shadow pull by right\", \"mad robin clockwise 1½ around neighbor, robins in front\" and \"butterfly whirl counterclockwise\" keep their dancers, hands, balance, turn and spin. A bare \"mad robin\" still gives the move with its usual options."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "The ContraDB figure reader reads the app's display wording for a square through (`_squareThroughDisplay`, the whole pull sequence, declining a second pull by the same hand), a mad robin (`_madRobinDisplay`, reading a line without the in-front clause as `who: unspecified`) and a butterfly whirl's spin. A bare `mad robin` is left to the name lookup, which gives the move's defaults. Two import-side effects: a ContraDB square-through line in this wording is now read whole, so it no longer keeps what followed the first pull's hand (`pull by left`, or `pull by left, then repeat` for four places) as a note; and a mad robin line without an in-front clause (`mad robin clockwise`, `mad robin 1½ around`, `… around neighbor`), which stayed custom, is now structured with `who: unspecified`."
+    ]
+  }
+}

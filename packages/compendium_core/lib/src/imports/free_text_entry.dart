@@ -6,6 +6,7 @@ import '../taxonomy/taxonomy.dart';
 import '../validation/validation.dart';
 import 'beat_implied_balance.dart';
 import 'callersbox_figure_dialect.dart' show hasTopLevelSeparator;
+import 'contradb_figure_dialect.dart' show readDisplayedCourtesyTurnWithWhom;
 import 'figure_front_end_fan_out.dart';
 import 'figure_text_scrub.dart';
 import 'shorthand_mappings.dart';
@@ -312,23 +313,26 @@ Figure _withUnreadCount(Figure figure, String token) => figure.copyWith(
 /// and the re-parse upgrade use neither.
 ///
 /// When a [dialect] is supplied, the line is parsed RAW first and the
-/// dialect-canonicalised line is tried only if the raw parse is all-custom: the
+/// dialect-canonicalised line is tried only if the raw parse reads no move: the
 /// user's role words (`Follows chain` under [Dialect.leadsFollows]) are not in
 /// the always-on legacy synonym set the parser's scrub applies, so they miss
 /// raw but parse once [canonicalizeText] maps them back to `role1`/`role2`.
-/// Raw goes first because a dialect term can also be a MOVE word — `lead` in
-/// `ones lead down the hall`. The canonicaliser keeps such a verb when its
-/// neighbours show it is one (`RoleCanonicalizer`), but a line that parses as
-/// typed should never depend on that judgement. When the retry
-/// also misses, the built-in discouraged role terms are read by their meaning
-/// (`ravens chain` → a `role2s` chain), as user-glossary text is read
-/// ([canonicalizeGlossaryText]), so a role word the [dialect] claims keeps the
-/// dialect's meaning; this retry runs with no [dialect] too. When every retry
-/// misses, the raw result is returned, so the custom is not
-/// dialect-canonicalised here. It is not verbatim either: the parser's import
-/// scrub (`scrubFigureText`) has already run over it, and the editor
-/// canonicalises custom text against the active dialect when the dance is
-/// saved. With no [dialect], the dialect retry is skipped; the other steps
+/// Since #2121 it is also tried when the raw parse reads a move but leaves a
+/// note or an unread part (`half poussette - leads pull neighbor back then
+/// left` kept `- leads pull …` as a note); then the retry is taken only if it
+/// reads the whole line. Raw goes first because a dialect term can also be a
+/// MOVE word — `lead` in `ones lead down the hall`. The canonicaliser keeps
+/// such a verb when its neighbours show it is one (`RoleCanonicalizer`), but a
+/// line that parses as typed should never depend on that judgement. When that
+/// retry does not settle the line either, the built-in discouraged role terms
+/// are read by their meaning (`ravens chain` → a `role2s` chain), as
+/// user-glossary text is read ([canonicalizeGlossaryText]), so a role word the
+/// [dialect] claims keeps the dialect's meaning; this retry runs with no
+/// [dialect] too. When every retry misses, the raw result is returned, so the
+/// custom is not dialect-canonicalised here. It is not verbatim either: the
+/// parser's import scrub (`scrubFigureText`) has already run over it, and the
+/// editor canonicalises custom text against the active dialect when the dance
+/// is saved. With no [dialect], the dialect retry is skipped; the other steps
 /// still run.
 ///
 /// Before parsing, an optional inline beat count is peeled off the line and
@@ -751,7 +755,10 @@ List<Figure> _parseSplit(
     taxonomy: taxonomy,
     demoteNoteTails: true,
   );
-  bool missed(List<Figure> fs) => fs.every((f) => f.isCustom);
+  // A container counts as a miss when nothing inside it was read
+  // (`leads swing while follows chain` as typed is two unread halves).
+  bool missed(Iterable<Figure> fs) =>
+      fs.every((f) => f.isCustom || (f.isContainer && missed(f.subFigures)));
   // Spoken turn amounts first (`once and a half` → `1 1/2`): the grammar would
   // read `once` and keep `and a half` as a note, so this cannot wait for a
   // miss. Only a reading that accounts for the whole line is taken, so the
@@ -763,11 +770,19 @@ List<Figure> _parseSplit(
     if (!missed(read) && !_anyNote(read)) return read;
   }
   final raw = attempt(split.text);
-  if (raw.isEmpty || !missed(raw)) return raw;
-  // Retries, each only on a miss: the dialect's role words, then the built-in
-  // discouraged role terms by their meaning (`ravens` → `role2s`), read as
-  // user-glossary text is (`canonicalizeGlossaryText`), so a role word the
-  // dialect claims keeps the dialect's meaning.
+  if (raw.isEmpty) return raw;
+  // Retries: the dialect's role words, then the built-in discouraged role
+  // terms by their meaning (`ravens` → `role2s`), read as user-glossary text
+  // is (`canonicalizeGlossaryText`), so a role word the dialect claims keeps
+  // the dialect's meaning. On a miss the first reading that finds a move is
+  // taken. When the line as typed found a move but did not read all of it — a
+  // note (`half poussette - leads pull neighbor back then left` keeps `- leads
+  // pull …`) or an unread part (`leads dance out while follows dance in …`
+  // splits into two unread halves) — a retry is taken only if it reads the
+  // whole line (#2121). So a line read as typed keeps that reading unless the
+  // role words account for all of it.
+  final rawMissed = missed(raw);
+  if (!rawMissed && _readsWholeLine(raw)) return raw;
   final tried = {split.text};
   final readTexts = <String>[];
   for (final retry in [
@@ -777,8 +792,10 @@ List<Figure> _parseSplit(
     if (!tried.add(retry)) continue;
     readTexts.add(retry);
     final retried = attempt(retry);
-    if (!missed(retried)) return retried;
+    if (missed(retried)) continue;
+    if (rawMissed || _readsWholeLine(retried)) return retried;
   }
+  if (!rawMissed) return raw;
   // Last, the line as a move's name (`hey.`, `mad robin`), alone or after a
   // dancer (`neighbor pass by`): only when no parse read it, so a line the
   // grammar reads keeps every fact it states. A role word in the dancer's place
@@ -801,9 +818,39 @@ List<Figure> _parseSplit(
             ),
           )
           .nonNulls
+          .firstOrNull ??
+      [split.text, ...readTexts]
+          .map((text) => _displayedCourtesyTurn(text, split.beats, names))
+          .nonNulls
           .firstOrNull;
   return named == null ? raw : [named];
 }
+
+/// A courtesy turn naming `whom` as the app displays one (#2121), read only
+/// here so imports keep leaving `whom` out ([readDisplayedCourtesyTurnWithWhom]
+/// says why). A figure [taxonomy] rejects is a miss.
+Figure? _displayedCourtesyTurn(String text, int beats, Taxonomy taxonomy) {
+  final match = readDisplayedCourtesyTurnWithWhom(text);
+  if (match == null) return null;
+  final figure = Figure(
+    move: match.moveId,
+    params: {...match.params, if (beats > 0) 'beats': beats},
+  );
+  final invalid = taxonomy
+      .validateFigure(figure)
+      .any((i) => i.severity == ValidationSeverity.error);
+  return invalid ? null : figure;
+}
+
+/// Whether [figures] account for their whole line: none of them, and no figure
+/// inside one, is custom or carries a note.
+bool _readsWholeLine(Iterable<Figure> figures) =>
+    !_anyNote(figures) && !_anyCustom(figures);
+
+/// Whether any of [figures], or any figure inside one, is custom.
+bool _anyCustom(Iterable<Figure> figures) => figures.any(
+  (f) => f.isCustom || (f.isContainer && _anyCustom(f.subFigures)),
+);
 
 /// Whether any of [figures], or any figure inside one, carries a note.
 bool _anyNote(Iterable<Figure> figures) => figures.any(

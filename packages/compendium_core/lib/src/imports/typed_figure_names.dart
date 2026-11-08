@@ -1,5 +1,6 @@
 import '../dialect/dialect.dart';
 import '../model/figure.dart';
+import '../taxonomy/dance_vocabulary.dart' show seriesDancerWords;
 import '../taxonomy/taxonomy.dart';
 import '../validation/validation.dart';
 import 'contradb_dancer_vocab.dart';
@@ -142,26 +143,49 @@ final RegExp _trailingPunctuation = RegExp(r'[\s.,;:!]+$');
 String _typedKey(String text) =>
     _nameKey(text).replaceFirst(_trailingPunctuation, '');
 
-/// The dancer words a line may start with, each mapped to the canonical set it
-/// names. A subset of [contradbDancerVocab], whose tokens it reuses: the role
-/// words (`gents`, `ravens`, …) are left out because they are discouraged
-/// terms whose meaning the active dialect may claim, which free text resolves
-/// by [canonicalizeGlossaryText] (see [figureFromTypedDancerName]), and the
-/// multi-word and corner sets because no move name is typed after one.
-final Map<String, String> _dancerWords = {
-  for (final word in const [
-    'everyone',
-    'ones',
-    'twos',
-    'partners',
-    'partner',
-    'neighbors',
-    'neighbor',
-    'role1s',
-    'role2s',
-  ])
-    word: contradbDancerVocab[word]!,
-};
+/// The dancers a line may start with, each mapped to the canonical set it
+/// names, longest phrase first. The single words are a subset of
+/// [contradbDancerVocab], whose tokens they reuse: the role words (`gents`,
+/// `ravens`, …) are left out because they are discouraged terms whose meaning
+/// the active dialect may claim, which free text resolves by
+/// [canonicalizeGlossaryText] (see [figureFromTypedDancerName]). The rest are
+/// the subjects the figure display writes before a move's name (`same roles
+/// gate`, `third corners gate`, `prev neighbor gate`, `first role1 gate` once
+/// a role word is canonical), so a figure read by name reads back (#2121).
+final List<MapEntry<String, String>> _dancerPhrases = [
+  ...{
+    for (final word in const [
+      'everyone',
+      'ones',
+      'twos',
+      'partners',
+      'partner',
+      'neighbors',
+      'neighbor',
+      'role1s',
+      'role2s',
+    ])
+      word: contradbDancerVocab[word]!,
+    'shadow': 'shadows',
+    'shadows': 'shadows',
+    'centers': 'centers',
+    'opposites': 'opposites',
+    'same roles': 'sameRoles',
+    'first corners': 'firstCorners',
+    'second corners': 'secondCorners',
+    'third corners': 'thirdCorners',
+    'first role1': 'onesRole1',
+    'first role2': 'onesRole2',
+    'second role1': 'twosRole1',
+    'second role2': 'twosRole2',
+    for (final MapEntry(key: noun, value: byOrdinal)
+        in seriesDancerWords.entries)
+      for (final MapEntry(key: ordinal, value: token) in byOrdinal.entries) ...{
+        '$ordinal $noun': token,
+        '$ordinal ${noun}s': token,
+      },
+  }.entries,
+]..sort((a, b) => b.key.length.compareTo(a.key.length));
 
 /// The figure [text] names when the whole line is a move's name, or a dancer
 /// and a move's name, else `null`.
@@ -175,7 +199,7 @@ final Map<String, String> _dancerWords = {
 /// anything else on the line is a miss. A name read whole wins over the same
 /// words read as a dancer and a name.
 ///
-/// The dancer form is one of [_dancerWords] then a name (`neighbor pass by`,
+/// The dancer form is one of [_dancerPhrases] then a name (`neighbor pass by`,
 /// `ones arch and dive`): the figure's `who` is that dancer set. A move with no
 /// `who` (`neighbor slice`), or a set the taxonomy rejects for the move, is a
 /// miss (validation rejects the unknown param), and so is an unknown word in
@@ -242,11 +266,16 @@ Figure? _dancerFigure(
   Taxonomy taxonomy,
   Dialect? dialect,
 ) {
-  final space = key.indexOf(' ');
-  if (space < 0) return null;
-  final who = _dancerWords[key.substring(0, space)];
-  if (who == null) return null;
-  final named = _lookup(key.substring(space + 1), taxonomy, dialect);
+  final dancer = _dancerPhrases
+      .where((e) => key.startsWith('${e.key} '))
+      .firstOrNull;
+  if (dancer == null) return null;
+  final who = dancer.value;
+  final named = _lookup(
+    key.substring(dancer.key.length + 1),
+    taxonomy,
+    dialect,
+  );
   if (named == null || named.params.containsKey('who')) return null;
   return _figureFor(
     (move: named.move, params: {...named.params, 'who': who}),
