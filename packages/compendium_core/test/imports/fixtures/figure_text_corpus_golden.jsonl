@@ -2576,7 +2576,7 @@
 {"in":"facing star","fanOut":"[{\"schemaVersion\":1,\"move\":\"facing_star\"}]"}
 {"in":"facing star clockwise 3 places with ones putting their right hands in and backing up","fanOut":"[{\"schemaVersion\":1,\"move\":\"facing_star\",\"params\":{\"direction\":\"clockwise\",\"places\":3,\"who\":\"ones\"}}]"}
 {"in":"poussette","fanOut":"[{\"schemaVersion\":1,\"move\":\"poussette\"}]"}
-{"in":"half poussette - ones pull neighbors back then right","fanOut":"[{\"schemaVersion\":1,\"move\":\"poussette\",\"params\":{\"fraction\":\"half\",\"who\":\"ones\",\"whom\":\"neighbors\",\"direction\":\"clockwise\"}}]"}
+{"in":"half poussette - ones pull neighbors back then right","fanOut":"[{\"schemaVersion\":1,\"move\":\"poussette\",\"params\":{\"fraction\":\"half\",\"who\":\"ones\",\"whom\":\"neighbors\",\"direction\":\"counterclockwise\"}}]"}
 {"in":"cross trails - partners across the set right shoulders, neighbors along the set left shoulders","fanOut":"[{\"schemaVersion\":1,\"move\":\"cross_trails\",\"params\":{\"who\":\"partners\",\"where\":\"across\",\"shoulder\":\"right\",\"who2\":\"neighbors\"}}]"}
 {"in":"down the hall forward","fanOut":"[{\"schemaVersion\":1,\"move\":\"down_the_hall\",\"params\":{\"moving\":\"all\",\"facing\":\"forward\",\"ender\":\"none\"}}]"}
 {"in":"all","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"all\"},\"customOrigin\":\"importGap\"}]"}

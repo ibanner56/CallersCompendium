@@ -171,21 +171,10 @@ Object? _slide(Object? v) => switch (v) {
 };
 
 /// A spin where ContraDB stores `true` for clockwise (`facing star`,
-/// `promenade`).
+/// `promenade`, `poussette`).
 Object? _spinClockwise(Object? v) => switch (v) {
   'clockwise' => true,
   'counterclockwise' => false,
-  _ => _skip,
-};
-
-/// `poussette` is inverted on purpose: ContraDB renders a stored `true` as
-/// "left" and `false` as "right", and the importer reads "back then right" as
-/// clockwise, so the mapping that round-trips through the importer is
-/// clockwise -> `false`. Whether that matches the dancers' physical direction
-/// is the importer's existing decision, not this file's.
-Object? _spinPoussette(Object? v) => switch (v) {
-  'clockwise' => false,
-  'counterclockwise' => true,
   _ => _skip,
 };
 
@@ -637,7 +626,11 @@ final Map<String, List<_Alt>> _alts = {
       'fraction': const _P(0, _fraction),
       'who': const _P(1, _dancer),
       'whom': const _P(2, _dancer),
-      'direction': const _P(3, _spinPoussette),
+      // ContraDB stores a clockwise poussette as `true` and writes it "back
+      // then left", which the importer reads as clockwise since #2121 (it read
+      // the sides the other way round before, and this mapping was inverted
+      // to match).
+      'direction': const _P(3, _spinClockwise),
       'beats': _beatsPos(4),
     }),
   ],

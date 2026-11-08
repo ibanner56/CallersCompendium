@@ -2280,13 +2280,9 @@ _Match? _promenade(List<String> w) {
   if (!_consumePhrase(w, ['promenade'])) return null;
   final who2 = who ?? _takeDancer(w);
   // Consume an optional trailing direction (promenade's `where` param). Prior to
-  // this it was never consumed, so any directed promenade fell to custom.
-  String? dir;
-  if (_consumePhrase(w, ['across'])) {
-    dir = 'across';
-  } else if (_consumePhrase(w, ['along'])) {
-    dir = 'along';
-  }
+  // this it was never consumed, so any directed promenade fell to custom. The
+  // display's diagonal and facing phrases are read too (#2121).
+  final dir = _takeDirection(w);
   final turn = _takeSpinDirection(w);
   _dropFiller(w);
   if (w.isNotEmpty) return null;
