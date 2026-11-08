@@ -121,4 +121,50 @@ void main() {
       expect(outcome.figures.every((f) => f.isCustom), isTrue);
     });
   });
+
+  group('the display\'s dancer names (#2121)', () {
+    test(
+      'a series name reads singular or plural, with `previous` or `prev`',
+      () {
+        for (final (line, who) in [
+          ('prev neighbor swing', 'prevNeighbors'),
+          ('previous neighbor swing', 'prevNeighbors'),
+          ('next neighbour swing', 'nextNeighbors'),
+          ('fourth neighbours swing', 'fourthNeighbors'),
+          ('previous partner swing', 'prevPartners'),
+          ('fifth partners swing', 'fifthPartners'),
+          ('second shadows swing', 'secondShadows'),
+        ]) {
+          final f = only(line);
+          expect(f.move, 'swing', reason: line);
+          expect(f.params['who'], who, reason: line);
+        }
+      },
+    );
+
+    test('`centers trade` stays text: centers trade with a hand turn', () {
+      expect(only('centers trade').isCustom, isTrue);
+      expect(only('neighbors trade').move, 'pass_by');
+    });
+
+    test('`second neighbor` and `second partner` name no set', () {
+      // The display never writes them, and which set they mean is unsettled.
+      expect(only('second neighbor swing').isCustom, isTrue);
+      expect(only('second partner swing').isCustom, isTrue);
+    });
+
+    test('same roles, centers and one dancer read on a move the ContraDB '
+        'reader does not know', () {
+      for (final (line, who) in [
+        ('same roles dosido once', 'sameRoles'),
+        ('centers two hand turn once', 'centers'),
+        ('first role1 orbit clockwise 1/2', 'onesRole1'),
+        ('second role2 dosido once', 'twosRole2'),
+      ]) {
+        final f = only(line);
+        expect(f.isCustom, isFalse, reason: line);
+        expect(f.params['who'], who, reason: line);
+      }
+    });
+  });
 }

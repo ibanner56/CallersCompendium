@@ -827,14 +827,16 @@ class _RemovedTag {
   final BuilderTag node;
 }
 
-/// A "has figure" row: a move (required), an optional section, and optional
-/// named params. Folds to a [FigureFilter] leaf, or a [FigureLeaf] when used as
-/// a [ThenFilter] operand (via [BuilderFigureNode]).
+/// A "has figure" row: a move, an optional section and optional named params,
+/// or, with [isAnyFigure], any figure at all. Folds to a [FigureFilter] over a
+/// [FigureLeaf] (or [anyFigure]), and to that query alone when used as a
+/// [ThenFilter] operand (via [BuilderFigureNode]).
 class BuilderFigure extends BuilderNode implements BuilderFigureNode {
   BuilderFigure({
     this.move,
     this.section,
     Map<String, Object?>? params,
+    this.isAnyFigure = false,
     super.id,
   }) : params = params ?? {};
 
@@ -842,7 +844,12 @@ class BuilderFigure extends BuilderNode implements BuilderFigureNode {
   String? section;
   final Map<String, Object?> params;
 
-  bool get isComplete => (move ?? '').trim().isNotEmpty;
+  /// Whether this row asks for any figure at all ([anyFigure]) instead of a
+  /// move, so "swing, then anything" can be written. Such a row has no move,
+  /// section or parameters.
+  bool isAnyFigure;
+
+  bool get isComplete => isAnyFigure || (move ?? '').trim().isNotEmpty;
 
   Map<String, Object?> get _cleanParams => {
     for (final e in params.entries)
@@ -850,14 +857,17 @@ class BuilderFigure extends BuilderNode implements BuilderFigureNode {
   };
 
   @override
-  FigureLeaf? toFigureQuery() => isComplete
-      ? FigureLeaf(move!.trim(), params: _cleanParams, section: section)
-      : null;
+  FigureQuery? toFigureQuery() {
+    if (isAnyFigure) return anyFigure;
+    return (move ?? '').trim().isNotEmpty
+        ? FigureLeaf(move!.trim(), params: _cleanParams, section: section)
+        : null;
+  }
 
   @override
   DanceFilter? toFilter() {
-    final leaf = toFigureQuery();
-    return leaf == null ? null : FigureFilter(leaf);
+    final query = toFigureQuery();
+    return query == null ? null : FigureFilter(query);
   }
 }
 

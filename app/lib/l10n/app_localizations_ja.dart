@@ -4517,6 +4517,9 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get collectionQueryAnyFigure => '任意のフィギュア';
+
+  @override
   String get collectionQueryTagLabel => 'タグ';
 
   @override
@@ -6436,12 +6439,22 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String onlineResultCountCapped(int count) {
-    return '$count件のオンライン結果を表示しています。ほかにもある可能性があります。検索条件を絞り込んでください。';
+    return '$count件のオンライン結果を表示しています。ほかにもある可能性があります。下にスクロールすると読み込みます。';
   }
 
   @override
   String onlineResultCountOfTotal(int count, int total) {
-    return '$total件中$count件のオンライン結果を表示しています。検索条件を絞り込んでください。';
+    return '$total件中$count件のオンライン結果を表示しています。下にスクロールすると続きを読み込みます。';
+  }
+
+  @override
+  String onlineResultCountOfTotalStopped(int count, int total) {
+    return '$total件中$count件のオンライン結果を表示しています。';
+  }
+
+  @override
+  String onlineResultCountMaybeMore(int count) {
+    return '$count件のオンライン結果を表示しています。ほかにもある可能性があります。';
   }
 
   @override

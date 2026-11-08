@@ -1,0 +1,14 @@
+{
+  "id": "2121-dancer-names-read-back",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Typing or pasting a figure whose dancers are named the way the figure list names them now gives that figure instead of unrecognized text: \"prev neighbor swing\", \"third partner allemande left once\", \"second shadow balance\", \"same roles dosido once\", \"centers two hand turn once\", \"first lark two hand turn once\". An imported \"Next Neighbor Left Shoulder Round\" is read too."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "The shared figure grammar reads the display's dancer names as subjects: the neighbour, partner and shadow series (`prev neighbor`, `next partners`, `second shadow`, from `seriesDancerWords` in `dance_vocabulary.dart`), `same roles`, `centers`, and `first`/`second` before a role word. The ContraDB figure reader reads the series names too. A plain `centers trade`, with no side, is still not read as a pass by in the shared grammar."
+    ]
+  }
+}

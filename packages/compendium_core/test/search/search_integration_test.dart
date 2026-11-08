@@ -1356,6 +1356,104 @@ void main() {
     });
   });
 
+  group('sequence: any figure', () {
+    Future<void> seed() async {
+      await dances.create(
+        _dance(
+          id: 'two',
+          title: 'Two',
+          figures: [
+            Figure(move: 'swing', params: const {'who': 'partners'}),
+            Figure(move: 'petronella', params: const {'beats': 16}),
+          ],
+        ),
+      );
+      await dances.create(
+        _dance(
+          id: 'plain',
+          title: 'Plain',
+          figures: [
+            Figure(move: 'chain', params: const {'beats': 8}),
+            Figure(move: 'balance', params: const {'beats': 16}),
+          ],
+        ),
+      );
+      await dances.create(
+        _dance(
+          id: 'solo',
+          title: 'Solo',
+          figures: [
+            Figure(move: 'swing', params: const {'who': 'partners'}),
+          ],
+        ),
+      );
+      await dances.create(_dance(id: 'empty', title: 'Empty', figures: []));
+    }
+
+    test('a dance matches any figure when it has at least one', () async {
+      await seed();
+      expect(
+        await dances.search(FigureFilter(anyFigure)),
+        unorderedEquals(['two', 'plain', 'solo']),
+      );
+      // "No figure at all": only the dance without any.
+      expect(await dances.search(FigureFilter(FigureNot(anyFigure))), [
+        'empty',
+      ]);
+    });
+
+    test('Then(any, x): x, after whatever figure comes before it', () async {
+      await seed();
+      Future<List<String>> then(FigureQuery a, FigureQuery b) =>
+          dances.search(ThenFilter(a, b));
+
+      // petronella follows swing; swing follows petronella across the wrap.
+      expect(
+        await then(anyFigure, FigureLeaf('petronella')),
+        unorderedEquals(['two']),
+      );
+      expect(
+        await then(anyFigure, FigureLeaf('swing')),
+        unorderedEquals(['two', 'solo']),
+      );
+      expect(await then(anyFigure, FigureLeaf('allemande')), isEmpty);
+    });
+
+    test('Then(x, any): x, then whatever figure follows it', () async {
+      await seed();
+      Future<List<String>> then(FigureQuery a, FigureQuery b) =>
+          dances.search(ThenFilter(a, b));
+
+      expect(
+        await then(FigureLeaf('swing'), anyFigure),
+        unorderedEquals(['two', 'solo']),
+      );
+      expect(
+        await then(FigureLeaf('petronella'), anyFigure),
+        unorderedEquals(['two']),
+      );
+      expect(await then(FigureLeaf('allemande'), anyFigure), isEmpty);
+    });
+
+    test('a lone figure is its own neighbour, as in ContraDB, and Then(any, '
+        'any) needs only one figure', () async {
+      await seed();
+      expect(
+        await dances.search(ThenFilter(anyFigure, anyFigure)),
+        unorderedEquals(['two', 'plain', 'solo']),
+      );
+      // `solo` has one figure, so swing abuts itself either way round.
+      expect(
+        await dances.search(ThenFilter(FigureLeaf('swing'), anyFigure)),
+        contains('solo'),
+      );
+      expect(
+        await dances.search(ThenFilter(anyFigure, FigureLeaf('swing'))),
+        contains('solo'),
+      );
+    });
+  });
+
   group('sequence: Then vs concurrent meanwhile (#748)', () {
     // A `meanwhile` container is flattened per side (#590) onto consecutive
     // `idx`, but its sides share one `group_idx`. `Then` correlates on

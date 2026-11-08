@@ -67,6 +67,61 @@ const Map<String, String> dancerWords = {
   'w2': 'twosRole2',
 };
 
+/// The neighbour, partner and shadow series as the figure display names them
+/// (#2121): an ordinal, then the relationship (`prev neighbor`, `third
+/// partner`, `second shadow`). Keyed by the relationship's singular, then by
+/// the ordinal. Read with [seriesDancer], which also takes the plural and the
+/// British spelling.
+///
+/// These are two-word names: neither word alone names the set, and `next`,
+/// `third` and `second` are ordinary words elsewhere in a call. `previous` is
+/// read as `prev` (ContraDB's JSON API spells the previous neighbors that
+/// way). `second neighbor` and `second partner` are
+/// not listed: the display never writes them, and which set they mean is not
+/// settled (ContraDB's `2nd neighbors` is the next neighbours).
+const Map<String, Map<String, String>> seriesDancerWords = {
+  'neighbor': {
+    'prev': 'prevNeighbors',
+    'previous': 'prevNeighbors',
+    'next': 'nextNeighbors',
+    'third': 'thirdNeighbors',
+    'fourth': 'fourthNeighbors',
+  },
+  'partner': {
+    'prev': 'prevPartners',
+    'previous': 'prevPartners',
+    'next': 'nextPartners',
+    'third': 'thirdPartners',
+    'fourth': 'fourthPartners',
+    'fifth': 'fifthPartners',
+  },
+  'shadow': {'second': 'secondShadows'},
+};
+
+/// The dancer set [ordinal] then [relationship] names in [seriesDancerWords],
+/// or `null`. [relationship] may be singular or plural, and `neighbour` is
+/// read as `neighbor`; both words are lowercase.
+String? seriesDancer(String ordinal, String? relationship) {
+  if (relationship == null) return null;
+  var noun = relationship.replaceFirst('neighbour', 'neighbor');
+  if (noun.endsWith('s')) noun = noun.substring(0, noun.length - 1);
+  return seriesDancerWords[noun]?[ordinal];
+}
+
+/// How the figure display words a set direction (`ParamKind.direction`) that
+/// does not read as itself: a diagonal reads "on right diagonal" and a facing
+/// direction "facing in". `across` and `along` read as themselves. The display
+/// (`FigureRenderer`) writes these and the figure readers read them back
+/// (#2121), so the two cannot drift apart.
+const Map<String, String> displayDirectionPhrases = {
+  'rightDiagonal': 'on right diagonal',
+  'leftDiagonal': 'on left diagonal',
+  'in': 'facing in',
+  'out': 'facing out',
+  'up': 'facing up',
+  'down': 'facing down',
+};
+
 /// Qualifiers that, followed by `neighbor`/`neighbors`, name the `sameRoles`
 /// dancer set ("Same-role neighbor do-si-do" → `do_si_do(who: sameRoles)`).
 ///

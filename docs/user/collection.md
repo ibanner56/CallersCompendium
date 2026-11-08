@@ -231,13 +231,15 @@ also includes the previous and next neighbors.
 ContraDB stores some dances differently from how this app reads them. A figure
 someone typed in as free text (such as "ones swing while twos circle") is one
 figure on ContraDB, so a search for a move inside it can differ from the same
-search in your own library. The app asks ContraDB for only the first 20
-matching dances (a title or author with an apostrophe in it is searched in
-both spellings, so a few more can show), so a broad search such as one move
-on its own shows only part of the answer. When ContraDB says how many dances
-matched in all, the line above the results shows it, for example "Showing 20
-of 143 online results": add conditions to narrow it. When it does not say,
-a full list is marked as possibly incomplete instead.
+search in your own library. The app asks ContraDB for 20 matching dances at a
+time and loads the next 20 as you scroll toward the end of the list, so a broad
+search such as one move on its own can be read right through. While more remain,
+the line above the results says how many are shown out of how many ContraDB
+matched, for example "Showing 40 of 143 online results", and a slow or failed
+page shows a **Try again** button at the end of the list. A title or author
+with an apostrophe in it is searched in both spellings, and then ContraDB does
+not give one total, so the line says there may be more instead. Repeating the
+same search within a minute does not ask ContraDB again.
 
 ## Narrow things down with filters
 
@@ -385,6 +387,10 @@ the moves — inside your dances. It works by stacking up rows and groups:
    *then* a swing." Only a move directly after the first counts, not one later
    in the dance. A dance is treated as a loop, so the first move counts as
    coming right after the last one.
+5. On any figure row, including either side of a **Sequence (then)**, switch on
+   **Any figure** instead of choosing a move: "a swing *then* anything," or
+   "anything *then* a chain." The row has no move, section or parameters to set.
+   On ContraDB it is sent as ContraDB's own "any figure".
 
 Rows live inside groups set to **All of**, **Any of**, or **None of** — match
 every row, any row, or no row — and a **Condition group** can sit inside another,

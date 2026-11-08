@@ -6579,7 +6579,7 @@
 {"in":"Swing through: N alle R 1/2, Larks alle L 1/2","scrub":"Swing through: N alle R 1/2, role1s alle L 1/2","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Swing through: N alle R 1/2, role1s alle L 1/2\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Circle Left 1.0 (or LLFB)","fanOut":"[{\"schemaVersion\":1,\"move\":\"circle\",\"params\":{\"direction\":\"left\",\"places\":4},\"note\":\"or LLFB\"}]"}
 {"in":"New Neighbor Do-si-do to short wave","scrub":"New Neighbor do si do to short wave","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"New Neighbor do si do to short wave\"},\"customOrigin\":\"importGap\"}]"}
-{"in":"Next Neighbor Left Shoulder Round","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Next Neighbor Left Shoulder Round\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"Next Neighbor Left Shoulder Round","fanOut":"[{\"schemaVersion\":1,\"move\":\"shoulder_round\",\"params\":{\"who\":\"nextNeighbors\",\"shoulder\":\"left\"}}]"}
 {"in":"Original Neighbor swing","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Original Neighbor swing\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Larks Give & Take (Larks pull P)","scrub":"role1s Give & Take (role1s pull P)","fanOut":"[{\"schemaVersion\":1,\"move\":\"give_and_take\",\"params\":{\"who\":\"role1s\",\"give\":true},\"note\":\"(role1s pull P)\"}]"}
 {"in":"Larks allemande Left 1.5, scoop N","scrub":"role1s allemande Left 1.5, scoop N","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"role1s allemande Left 1.5, scoop N\"},\"customOrigin\":\"importGap\"}]"}

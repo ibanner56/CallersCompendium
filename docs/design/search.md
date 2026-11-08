@@ -111,22 +111,55 @@ tree. Conforms to [ux.md](ux.md) §1 and [dialect.md](dialect.md)
    that a bad name would be rejected. It shows that ContraDB accepts the expressions, not that the dances it
    returns are the right ones.
 
-   **Results are the first 20.** The app asks ContraDB for
-   `titleA` order and requests `contraDbSearchCount` (20) with offset 0, and
-   reads no further pages. The response's `numberMatching` is the whole match
+   **Results come 20 at a time, as the list is scrolled.** The app asks ContraDB
+   for `titleA` order, `contraDbSearchCount` (20) rows per request. The first
+   request has offset 0; the list's last item (`OnlineMoreFooter`) is built only
+   once the end of the list is near the viewport, and then asks for the next page
+   (`OnlineSearchQuery.withOffset(pages * 20)`, `_loadMoreOnline` in the
+   Collection and the picker). One page is in flight at a time; a page for a
+   search that has since been replaced is dropped by the same sequence number as
+   the first page; a page that adds no new row ends it (`appendOnlinePage`,
+   `onlineHasMore`); a failed page shows a retry instead of asking again.
+   Whether more remain is the total when the source gave one (fewer rows shown
+   than that), else whether the page just fetched was full. The response's `numberMatching` is the whole match
    count and does not change with the offset (checked live on 2026-11-06), so
    `parseContraDbNumberMatching` reads it and `ContraDbOnline` puts it on every
    row (`OnlineSearchResultRow.totalMatching`). `onlineResultCountLabel` then
    says "Showing 20 of 143 online results" when the total exceeds what is
    shown, and the plain count when it does not (a page that is exactly full of
-   exactly that many matches is complete). The total is used only when one
-   response answered: an apostrophe query sends the ASCII and curly spellings
-   as two requests and merges the rows, so up to 40 can show, and their totals
-   are not added because a dance matching both spellings would count twice.
-   With no total (a merged query, a response without `numberMatching`, or a
-   malformed one) the fallback is the earlier rule: a response that filled the
-   page may have been cut off (`mayHaveMore`, judged per response), and the
-   count line says there may be more. Paging is not built.
+   exactly that many matches is complete). "Scroll down to load more" follows
+   the "of" line only while scrolling can load more: once paging has ended
+   short of the total, or a page has failed and waits for its Try again
+   button, the line has no such hint.
+
+   The total is used only when one response answered: an apostrophe query
+   sends the ASCII and curly spellings as two requests and merges the rows, so
+   up to 40 can show, and their totals are not added because a dance matching
+   both spellings would count twice. With no total (a merged query, a response
+   without `numberMatching`, or a malformed one) the fallback is the earlier
+   rule: a response that filled the page may have been cut off
+   (`mayHaveMore`, judged per response), and the count line says there may be
+   more ("There may be more: scroll down to load them", or just "There may be
+   more." after a failed page, so it never reads as a complete result while
+   Try again waits). Whether more may remain (`hasMore`) is taken from the
+   latest page only, so an earlier full page does not keep the wording once
+   the last one is in; `onlineResultCountLabel` takes that and `loadFailed` as
+   separate facts. An apostrophe query pages both spellings at the same offset
+   and merges each page's rows in as they arrive; rows are title-sorted within
+   a page, so the order is only approximate across page boundaries.
+
+   **A repeated request is not sent again.** `ContraDbOnline` remembers the last
+   successful search for 60 seconds and answers an identical one from it,
+   because each ContraDB request scans every dance. "Identical" is every
+   spelling's filter, text, expression and offset **and** the parameters the
+   translation left out, because those change no expression sent but decide
+   the rows' `advancedPartlyApplied` note. An Advanced edit that changes
+   neither (an empty row added, a group re-labelled around one condition)
+   therefore costs no request. A failed search is not remembered, and neither
+   is one whose extra apostrophe spelling failed (the repeat asks for it
+   again).
+   Typing, Advanced and By phrase edits were already debounced (500 ms online);
+   that is unchanged.
 
    **Figure parameters.** ContraDB takes a figure's parameters by position
    after the move (`["figure", "swing", "partners", "*", 16]`).
@@ -280,7 +313,18 @@ sealed FigureQuery
   FigureAnd(List<FigureQuery>)   // all match the SAME figure row
   FigureOr(List<FigureQuery>)    // any matches the same figure row
   FigureNot(FigureQuery)         // this figure row does NOT match
+
+const anyFigure = FigureAnd([])  // matches every figure row
 ```
+
+`anyFigure` is the empty `FigureAnd`, which the compiler already reads as true
+(no clause to fail), given a name so the builder can offer it. A dance matches
+`FigureFilter(anyFigure)` when it has at least one figure, and `Then(anyFigure,
+x)` is "x, after whatever figure comes before it", wrapping from the last
+figure to the first like any other `then`. ContraDB has the same thing,
+`["figure", "*"]` (`filter_dances.rb`, the `'*' == filter_move` wildcard), and
+the translator maps one to the other; checked live on 2026-11-06 that
+`then(any figure, swing)` matches exactly the dances `swing` alone does.
 
 Rationale for the split (see *Open questions* for the flagged decision): a
 `ThenFilter` asks "does a figure matching Y immediately follow a figure matching X",
@@ -798,7 +842,7 @@ tree. This section specifies the mapping; the widget shipped as
 | One-tap facet: Custom field | `CustomFieldFilter(def, op, value)` — `def` is a `CustomFieldDef`; `op` is a `CustomFieldOp` |
 | **Multiple facets selected** | `AndFilter([...leaves])` — the common case |
 | Advanced ▸ boolean group | `AndFilter` / `OrFilter` / `NotFilter` group nodes |
-| Advanced ▸ figure row | `FigureFilter(query)` with move + param + section pickers |
+| Advanced ▸ figure row | `FigureFilter(query)` with move + param + section pickers, or the **Any figure** chip (`BuilderFigure.isAnyFigure`, folding to `anyFigure`, with no move, section or params) |
 | Advanced ▸ tag row | `TagFilter(tagId)` — a tag picker offering the tags carried by a live dance; two rows in an all-of group AND their tags, as the facet's **All tags** does; rows can also mix with figure rows and sit under none-of. Against ContraDB (no tags) the **Has tag** entry is greyed out and naming the source, and choosing ContraDB takes existing tag rows out (`RemovedTagRows.take`, `OnlineSource.hidesAdvancedTags`) and returns them, with the tag picked, to the group and position they came from when the source no longer hides tags (online mode off, or another source); a group deleted meanwhile sends its rows to the top level, and clearing the search forgets them. The translator still refuses a tag as a safeguard. Wiping and greying out was the user's instruction on 2026-11-06, and so was restoring the rows afterwards ("I'd like a restore"), both in the agent session that wrote it; no issue or comment records them. Giving no notice when the rows are taken out is the implementing agent's choice and not yet ratified by the maintainer. |
 | Advanced ▸ sequence row ("X then Y") | `ThenFilter(before, after)` — both operands are `FigureQuery` |
 

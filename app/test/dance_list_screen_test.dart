@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -230,6 +232,41 @@ class _TotalContraDb extends ContraDbOnline {
       totalMatching: 5,
     ),
   ];
+}
+
+/// A ContraDB source of [total] dances that answers by offset, one page of 20
+/// at a time, and counts the requests it served.
+class _PagedContraDb extends ContraDbOnline {
+  _PagedContraDb._(this.requests, ContraDbSearchFetcher fetcher, int total)
+    : super(searchFetcher: fetcher);
+
+  factory _PagedContraDb({
+    required int total,
+    bool reportTotal = true,
+    bool Function(ContraDbSearchRequest request)? failWhen,
+  }) {
+    final requests = <ContraDbSearchRequest>[];
+    return _PagedContraDb._(requests, (request) async {
+      requests.add(request);
+      if (failWhen != null && failWhen(request)) throw Exception('down');
+      final from = request.offset;
+      final to = (from + 20) < total ? from + 20 : total;
+      return jsonEncode({
+        if (reportTotal) 'numberMatching': total,
+        'dances': [
+          for (var id = from + 1; id <= to; id++)
+            {
+              'id': id,
+              'title': 'Dance ${id.toString().padLeft(3, '0')}',
+              'choreographer_name': '',
+              'formation': 'improper',
+            },
+        ],
+      });
+    }, total);
+  }
+
+  final List<ContraDbSearchRequest> requests;
 }
 
 void main() {
@@ -2015,6 +2052,10 @@ void main() {
       );
       await _pumpScreen(tester, repos, contraDbOnline: contraDb);
       await tester.pumpAndSettle();
+      // A short window, so the end of the page is off screen and the next page
+      // is not fetched: this test is about the count line for a full page.
+      await tester.binding.setSurfaceSize(const Size(800, 600));
+      await tester.pumpAndSettle();
       await _tapVisible(
         tester,
         find.byKey(const ValueKey('online-search-enable')),
@@ -2034,7 +2075,7 @@ void main() {
       await search('full');
       expect(
         find.text(
-          'Showing 20 online results. There may be more: narrow your search to see the rest.',
+          'Showing 20 online results. There may be more: scroll down to load them.',
         ),
         findsOneWidget,
       );
@@ -2078,9 +2119,8 @@ void main() {
     },
   );
 
-  testWidgets('a ContraDB search with more matches than shown says "of N"', (
-    tester,
-  ) async {
+  testWidgets('a ContraDB search that stops short of its total says "of N" '
+      'without a hint to scroll', (tester) async {
     final repos = openTestRepositories();
     await _pumpScreen(tester, repos, contraDbOnline: _TotalContraDb());
     await tester.pumpAndSettle();
@@ -2098,9 +2138,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.text(
-        'Showing 1 of 5 online results. Narrow your search to see the rest.',
-      ),
+      // This source answers every page with the same row, so paging adds
+      // nothing and stops short of the total: no hint to scroll.
+      find.text('Showing 1 of 5 online results.'),
       findsOneWidget,
     );
   });
@@ -2468,6 +2508,182 @@ void main() {
       await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
     }
     expect(find.byType(DropdownButtonFormField<String>), findsNothing);
+  });
+
+  group('ContraDB scroll paging', () {
+    Future<void> openContraDb(
+      WidgetTester tester,
+      _PagedContraDb contraDb,
+    ) async {
+      final repos = openTestRepositories();
+      await _pumpScreen(tester, repos, contraDbOnline: contraDb);
+      await tester.pumpAndSettle();
+      // A short window: the first page does not fill it twice over, so the
+      // end of the list is off screen until the test scrolls to it.
+      await tester.binding.setSurfaceSize(const Size(800, 600));
+      await tester.pumpAndSettle();
+      await _tapVisible(
+        tester,
+        find.byKey(const ValueKey('online-search-enable')),
+      );
+      await tester.tap(find.text('ContraDB'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('collection-search-field')),
+        'dance',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> scrollToEnd(WidgetTester tester) async {
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -4000));
+      await tester.pumpAndSettle();
+    }
+
+    // The count line is the first item of the scroll view, so it is only built
+    // while the top is in view.
+    Future<void> scrollToTop(WidgetTester tester) async {
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, 8000));
+      await tester.pumpAndSettle();
+    }
+
+    String of(int shown) =>
+        'Showing $shown of 45 online results. Scroll down to load more.';
+
+    testWidgets('scrolling to the end loads the next page, until all are in', (
+      tester,
+    ) async {
+      final contraDb = _PagedContraDb(total: 45);
+      await openContraDb(tester, contraDb);
+
+      expect(contraDb.requests, hasLength(1));
+      expect(find.text(of(20)), findsOneWidget);
+      expect(find.text('Dance 021'), findsNothing);
+
+      await scrollToEnd(tester);
+      expect(contraDb.requests.map((r) => r.offset), [0, 20]);
+      await scrollToTop(tester);
+      expect(find.text(of(40)), findsOneWidget);
+
+      await scrollToEnd(tester);
+      expect(contraDb.requests.map((r) => r.offset), [0, 20, 40]);
+      await scrollToTop(tester);
+      expect(find.text('45 online results'), findsOneWidget);
+
+      await scrollToEnd(tester);
+      expect(contraDb.requests, hasLength(3), reason: 'nothing left to ask');
+      expect(find.byKey(const ValueKey('online-more-loading')), findsNothing);
+    });
+
+    testWidgets('a short result never asks for a second page', (tester) async {
+      final contraDb = _PagedContraDb(total: 7);
+      await openContraDb(tester, contraDb);
+      expect(find.text('7 online results'), findsOneWidget);
+      await scrollToEnd(tester);
+      expect(contraDb.requests, hasLength(1));
+    });
+
+    testWidgets('a failed page shows a retry; retrying loads it', (
+      tester,
+    ) async {
+      var fail = true;
+      final contraDb = _PagedContraDb(
+        total: 45,
+        failWhen: (request) => fail && request.offset == 20,
+      );
+      await openContraDb(tester, contraDb);
+
+      await scrollToEnd(tester);
+      expect(find.byKey(const ValueKey('online-more-retry')), findsOneWidget);
+      expect(contraDb.requests.map((r) => r.offset), [0, 20]);
+
+      // Nothing more is asked while the failure stands, and the count line no
+      // longer tells the user to scroll: only Try again loads more.
+      await scrollToEnd(tester);
+      expect(contraDb.requests, hasLength(2));
+      await scrollToTop(tester);
+      expect(find.text('Showing 20 of 45 online results.'), findsOneWidget);
+      await scrollToEnd(tester);
+
+      fail = false;
+      await tester.tap(find.byKey(const ValueKey('online-more-retry')));
+      await tester.pumpAndSettle();
+      expect(contraDb.requests.map((r) => r.offset), [0, 20, 20]);
+      expect(find.byKey(const ValueKey('online-more-retry')), findsNothing);
+      await scrollToTop(tester);
+      expect(find.text(of(40)), findsOneWidget);
+    });
+
+    testWidgets('a failed page with no total still says there may be more', (
+      tester,
+    ) async {
+      final contraDb = _PagedContraDb(
+        total: 45,
+        reportTotal: false,
+        failWhen: (request) => request.offset == 20,
+      );
+      await openContraDb(tester, contraDb);
+
+      await scrollToEnd(tester);
+      expect(find.byKey(const ValueKey('online-more-retry')), findsOneWidget);
+      await scrollToTop(tester);
+      expect(
+        find.text('Showing 20 online results. There may be more.'),
+        findsOneWidget,
+        reason: 'the plain count would read as a complete result',
+      );
+    });
+
+    testWidgets('a new search starts again from the first page', (
+      tester,
+    ) async {
+      final contraDb = _PagedContraDb(total: 45);
+      await openContraDb(tester, contraDb);
+      await scrollToEnd(tester);
+      expect(contraDb.requests.map((r) => r.offset), [0, 20]);
+      await scrollToTop(tester);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('collection-search-field')),
+        'dances',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      expect(contraDb.requests.map((r) => r.offset), [0, 20, 0]);
+      expect(find.text(of(20)), findsOneWidget);
+    });
+  });
+
+  testWidgets('an "Any figure" row on ContraDB sends ContraDB\'s wildcard', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    final requests = <ContraDbSearchRequest>[];
+    final contraDb = ContraDbOnline(
+      searchFetcher: (request) async {
+        requests.add(request);
+        return '{"numberMatching":0,"dances":[]}';
+      },
+    );
+    await _pumpScreen(tester, repos, contraDbOnline: contraDb);
+    await tester.pumpAndSettle();
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('online-search-enable')),
+    );
+    await tester.tap(find.text('ContraDB'));
+    await tester.pumpAndSettle();
+
+    await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
+    await _tapVisible(tester, find.text('Add'));
+    await _tapVisible(tester, find.text('Has figure'));
+    await _tapVisible(tester, find.text('Any figure'));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+
+    expect(requests.single.expression, ['figure', '*']);
   });
 
   testWidgets('advanced builder: add a "then" sequence row', (tester) async {
