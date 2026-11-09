@@ -63,15 +63,25 @@ Future<void> _pump(WidgetTester tester, ThemeData theme, List<Widget> rows) =>
       ),
     );
 
-/// The left side of the border the row's [ListTile] paints, or null when it
-/// paints none.
-BorderSide? _bar(WidgetTester tester, Finder row) {
+/// The [SelectedRowBorder] the row's [ListTile] hands its `Ink`, or null when
+/// it paints the plain theme shape.
+SelectedRowBorder? _bar(WidgetTester tester, Finder row) {
   final ink = tester.widget<Ink>(
     find.descendant(of: row, matching: find.byType(Ink)).first,
   );
   final shape = (ink.decoration! as ShapeDecoration).shape;
-  if (shape is! Border) return null;
-  return shape.left == BorderSide.none ? null : shape.left;
+  return shape is SelectedRowBorder ? shape : null;
+}
+
+/// The row's title starts at the same x whether or not the row is selected:
+/// [Ink] pads its child by its shape's dimensions, so a bar with width would
+/// push the selected row's content across.
+void _expectNoShift(WidgetTester tester, String unselected, String selected) {
+  expect(
+    tester.getTopLeft(find.text(selected)).dx,
+    tester.getTopLeft(find.text(unselected)).dx,
+    reason: 'selecting a row must not move its content',
+  );
 }
 
 Color? _textColor(WidgetTester tester, Finder row, String text) {
@@ -95,10 +105,7 @@ void main() {
 
   themes.forEach((name, theme) {
     final scheme = theme.colorScheme;
-    final expectedBar = BorderSide(
-      color: scheme.primary,
-      width: selectedRowBarWidth,
-    );
+    final expectedBar = SelectedRowBorder(color: scheme.primary);
 
     group('selected split-pane row ($name)', () {
       testWidgets('a dance row: primary bar and primary title, the others '
@@ -125,6 +132,45 @@ void main() {
         expect(
           _textColor(tester, unselected, 'Dance a'),
           isNot(scheme.primary),
+        );
+        _expectNoShift(tester, 'Dance a', 'Dance b');
+      });
+
+      testWidgets('the bar is painted down the leading edge, and only on the '
+          'selected row', (tester) async {
+        await _pump(tester, theme, [
+          DanceListTile(
+            key: const ValueKey('a'),
+            entry: _dance('a'),
+            onTap: () {},
+          ),
+          DanceListTile(
+            key: const ValueKey('b'),
+            entry: _dance('b'),
+            onTap: () {},
+            selected: true,
+          ),
+        ]);
+        final ink = Material.of(
+          tester.element(find.byKey(const ValueKey('b'))),
+        );
+        final row = tester.getRect(
+          find.descendant(
+            of: find.byKey(const ValueKey('b')),
+            matching: find.byType(ListTile),
+          ),
+        );
+        expect(
+          ink as RenderObject,
+          paints..rect(
+            rect: Rect.fromLTWH(
+              row.left,
+              row.top,
+              selectedRowBarWidth,
+              row.height,
+            ),
+            color: scheme.primary,
+          ),
         );
       });
 
@@ -161,6 +207,7 @@ void main() {
         ]);
         expect(_bar(tester, find.byKey(const ValueKey('b'))), expectedBar);
         expect(_bar(tester, find.byKey(const ValueKey('a'))), isNull);
+        _expectNoShift(tester, 'Program a', 'Program b');
       });
 
       testWidgets('an online result row', (tester) async {
@@ -174,11 +221,19 @@ void main() {
         ]);
         expect(_bar(tester, find.byKey(const ValueKey('b'))), expectedBar);
         expect(_bar(tester, find.byKey(const ValueKey('a'))), isNull);
+        _expectNoShift(tester, 'Online a', 'Online b');
       });
     });
   });
 
   test('an unselected row keeps the theme shape', () {
     expect(selectedRowShape(AppTheme.light.colorScheme, selected: false), null);
+  });
+
+  test('the bar takes no layout space', () {
+    expect(
+      const SelectedRowBorder(color: Colors.black).dimensions,
+      EdgeInsets.zero,
+    );
   });
 }
