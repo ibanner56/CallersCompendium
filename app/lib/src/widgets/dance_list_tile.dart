@@ -10,6 +10,7 @@ import '../data/require_performed_for_history_scope.dart';
 import '../data/formation_colors_scope.dart';
 import '../models/dance_list_entry.dart';
 import '../search/facet_labels.dart';
+import '../theme/selected_row.dart';
 import '../theme/set_list_accents.dart';
 import 'program_status_chip.dart';
 import 'right_click_menu.dart';
@@ -24,8 +25,8 @@ import 'tag_chip.dart';
 /// When [selectionMode] is true (Collection batch-tag multi-select,
 /// `docs/design/ux.md` §1) the leading avatar is replaced by a [Checkbox]
 /// reflecting [selectedForBatch]; the row is also marked
-/// [ListTile.selected] so the state is conveyed by a checkmark **and** a
-/// highlight (never color alone), and the trailing chevron is hidden. Tapping
+/// [selected] so the state is conveyed by a checkmark **and** the selected-row
+/// bar (never color alone), and the trailing chevron is hidden. Tapping
 /// the row (via [onTap]) toggles selection; [onLongPress] lets a caller enter
 /// selection mode from a normal (non-selection) row.
 class DanceListTile extends StatelessWidget {
@@ -59,7 +60,9 @@ class DanceListTile extends StatelessWidget {
   final VoidCallback? onLongPress;
 
   /// Whether this tile is the currently selected row (e.g. in split-pane mode,
-  /// or the selected-for-batch row while [selectionMode] is active).
+  /// or the selected-for-batch row while [selectionMode] is active). A
+  /// selected row has a primary bar down its left edge ([selectedRowShape])
+  /// and a primary title (issue #2156).
   final bool selected;
 
   /// Whether the list is in batch multi-select mode. When true the leading
@@ -137,6 +140,7 @@ class DanceListTile extends StatelessWidget {
     final renderer = FigureRenderer(contraTaxonomy);
     final tile = ListTile(
       selected: selected,
+      shape: selectedRowShape(theme.colorScheme, selected: selected),
       visualDensity: VisualDensity.compact,
       onLongPress: onLongPress,
       leading: selectionMode
@@ -157,7 +161,14 @@ class DanceListTile extends StatelessWidget {
                 child: Icon(danceFormIcon(dance.form), size: 20),
               ),
             ),
-      title: Text(dance.title, style: theme.textTheme.titleMedium),
+      // The explicit style carries its own colour, which would hide
+      // ListTile's selected colour, so the selected title is set to it here.
+      title: Text(
+        dance.title,
+        style: theme.textTheme.titleMedium?.copyWith(
+          color: selected ? theme.colorScheme.primary : null,
+        ),
+      ),
       subtitle: Padding(
         padding: const EdgeInsets.only(top: 4),
         child: Wrap(

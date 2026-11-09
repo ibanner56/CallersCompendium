@@ -514,6 +514,11 @@ review it without having to find it in the list — on a tablet or desktop, wher
 the list and detail pane are side by side. On a phone the editor closes and
 returns you to the list.
 
+With the list and detail pane side by side, the dance open in the detail pane is
+marked in the list by a colored bar down its left edge, and its title is in the
+same color, so you can keep your place while you work down a filtered list. The
+Programs list and online search results mark the open row the same way.
+
 **[Write & edit dances](./authoring.md)** is the full guide to the editor:
 figures, meanwhile groups, walkthroughs, credits, drafts, and undo. The
 [Getting started guide](./getting-started.md#add-your-first-dance) walks through
@@ -670,8 +675,8 @@ saved, the app says so and leaves your selection in place so you can try again;
 if an **Undo** can't be completed, it says that too, and nothing is left
 half-undone. Undoing **Edit custom field** puts back only the field you changed,
 so anything else you have edited in the meantime stays as it is. Selected rows are marked
-with a checkmark and a highlight — never color alone — so the selection is clear
-however you are reading the screen.
+with a checkmark and a colored bar down the row's left edge — never color alone —
+so the selection is clear however you are reading the screen.
 
 ## Jump straight to a dance or program
 

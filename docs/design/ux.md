@@ -21,7 +21,11 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
 - **Phones/tablets**: bottom navigation (Collection, Programs, Glossary when
   turned on, Settings, Guide);
   Perform is a mode, not a tab — entered explicitly, exits back to context.
-- **Desktop**: left nav rail; list/detail split panes; global search shortcut
+- **Desktop**: left nav rail; list/detail split panes, where the row open in
+  the detail pane carries a `primary` bar down its left edge (plus a `primary`
+  title; `selectedRowShape`, issue #2156 — a bar and not a fill, because the
+  gallery palettes leave text no contrast to spare for a fill under it);
+  global search shortcut
   (Ctrl/Cmd-K); and a desktop keyboard map (PLAT-7), bound to Control and
   Command alike (in a macOS text field Ctrl-F and Ctrl-N keep moving the
   cursor): Ctrl/Cmd-S saves the open dance or program editor,
