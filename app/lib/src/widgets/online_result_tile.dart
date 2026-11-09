@@ -47,7 +47,7 @@ class OnlineResultTile extends StatelessWidget {
     return ListTile(
       leading: const Icon(Icons.cloud_outlined),
       selected: selected,
-      shape: selectedRowShape(theme.colorScheme, selected: selected),
+      shape: selectedRowShape(context, selected: selected),
       title: Text(result.name),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

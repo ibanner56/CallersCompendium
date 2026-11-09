@@ -53,15 +53,24 @@ OnlineSearchResultRow _online(String id) => OnlineSearchResultRow(
   formation: 'Becket',
 );
 
-Future<void> _pump(WidgetTester tester, ThemeData theme, List<Widget> rows) =>
-    tester.pumpWidget(
-      MaterialApp(
-        theme: theme,
-        localizationsDelegates: testLocalizationsDelegates,
-        supportedLocales: testSupportedLocales,
-        home: Scaffold(body: ListView(children: rows)),
+Future<void> _pump(
+  WidgetTester tester,
+  ThemeData theme,
+  List<Widget> rows, {
+  TextDirection textDirection = TextDirection.ltr,
+}) => tester.pumpWidget(
+  MaterialApp(
+    theme: theme,
+    localizationsDelegates: testLocalizationsDelegates,
+    supportedLocales: testSupportedLocales,
+    home: Scaffold(
+      body: Directionality(
+        textDirection: textDirection,
+        child: ListView(children: rows),
       ),
-    );
+    ),
+  ),
+);
 
 /// The [SelectedRowBorder] the row's [ListTile] hands its `Ink`, or null when
 /// it paints the plain theme shape.
@@ -105,7 +114,10 @@ void main() {
 
   themes.forEach((name, theme) {
     final scheme = theme.colorScheme;
-    final expectedBar = SelectedRowBorder(color: scheme.primary);
+    final expectedBar = SelectedRowBorder(
+      color: scheme.primary,
+      base: theme.listTileTheme.shape!,
+    );
 
     group('selected split-pane row ($name)', () {
       testWidgets('a dance row: primary bar and primary title, the others '
@@ -136,43 +148,43 @@ void main() {
         _expectNoShift(tester, 'Dance a', 'Dance b');
       });
 
-      testWidgets('the bar is painted down the leading edge, and only on the '
-          'selected row', (tester) async {
-        await _pump(tester, theme, [
-          DanceListTile(
-            key: const ValueKey('a'),
-            entry: _dance('a'),
-            onTap: () {},
-          ),
-          DanceListTile(
-            key: const ValueKey('b'),
-            entry: _dance('b'),
-            onTap: () {},
-            selected: true,
-          ),
-        ]);
-        final ink = Material.of(
-          tester.element(find.byKey(const ValueKey('b'))),
-        );
-        final row = tester.getRect(
-          find.descendant(
-            of: find.byKey(const ValueKey('b')),
-            matching: find.byType(ListTile),
-          ),
-        );
-        expect(
-          ink as RenderObject,
-          paints..rect(
-            rect: Rect.fromLTWH(
-              row.left,
-              row.top,
-              selectedRowBarWidth,
-              row.height,
+      for (final direction in TextDirection.values) {
+        testWidgets('the bar is painted down the leading edge '
+            '(${direction.name})', (tester) async {
+          await _pump(tester, theme, [
+            DanceListTile(
+              key: const ValueKey('b'),
+              entry: _dance('b'),
+              onTap: () {},
+              selected: true,
             ),
-            color: scheme.primary,
-          ),
-        );
-      });
+          ], textDirection: direction);
+          final ink = Material.of(
+            tester.element(find.byKey(const ValueKey('b'))),
+          );
+          final row = tester.getRect(
+            find.descendant(
+              of: find.byKey(const ValueKey('b')),
+              matching: find.byType(ListTile),
+            ),
+          );
+          final leadingX = direction == TextDirection.ltr
+              ? row.left
+              : row.right - selectedRowBarWidth;
+          expect(
+            ink as RenderObject,
+            paints..rect(
+              rect: Rect.fromLTWH(
+                leadingX,
+                row.top,
+                selectedRowBarWidth,
+                row.height,
+              ),
+              color: scheme.primary,
+            ),
+          );
+        });
+      }
 
       testWidgets('a checked row in batch selection mode has the bar as well '
           'as its checkbox', (tester) async {
@@ -226,14 +238,19 @@ void main() {
     });
   });
 
-  test('an unselected row keeps the theme shape', () {
-    expect(selectedRowShape(AppTheme.light.colorScheme, selected: false), null);
-  });
-
-  test('the bar takes no layout space', () {
-    expect(
-      const SelectedRowBorder(color: Colors.black).dimensions,
-      EdgeInsets.zero,
+  testWidgets('the bar takes the shape an unselected row would, so a '
+      'different list-tile theme shape is followed', (tester) async {
+    const stadium = StadiumBorder();
+    final theme = AppTheme.light.copyWith(
+      listTileTheme: AppTheme.light.listTileTheme.copyWith(shape: stadium),
     );
+    await _pump(tester, theme, [
+      ProgramListTile(
+        key: const ValueKey('b'),
+        program: _program('b'),
+        selected: true,
+      ),
+    ]);
+    expect(_bar(tester, find.byKey(const ValueKey('b')))?.base, stadium);
   });
 }

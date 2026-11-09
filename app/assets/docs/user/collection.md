@@ -426,6 +426,13 @@ never hidden behind a visual-only cue.
 
 Selecting a dance opens its detail view — the full picture of a single dance.
 
+On a tablet or desktop, where the list and detail pane are side by side, the
+dance open in the detail pane is marked in the list by a colored bar down its
+left edge, and its title is in the same color, so you can keep your place while
+you work down a filtered list. The Programs list and online search results mark
+the open row the same way. While you are [selecting dances](#change-many-dances-at-once),
+the bar marks the dances you have checked instead.
+
 *The dance detail view with figures grouped into sections and a toggle between
 your dialect and neutral wording.*
 
@@ -513,11 +520,6 @@ When you save, the dance is immediately selected in the detail pane so you can
 review it without having to find it in the list — on a tablet or desktop, where
 the list and detail pane are side by side. On a phone the editor closes and
 returns you to the list.
-
-With the list and detail pane side by side, the dance open in the detail pane is
-marked in the list by a colored bar down its left edge, and its title is in the
-same color, so you can keep your place while you work down a filtered list. The
-Programs list and online search results mark the open row the same way.
 
 **[Write & edit dances](./authoring.md)** is the full guide to the editor:
 figures, meanwhile groups, walkthroughs, credits, drafts, and undo. The

@@ -65,7 +65,7 @@ class ProgramListTile extends StatelessWidget {
 
     final tile = ListTile(
       selected: selected,
-      shape: selectedRowShape(theme.colorScheme, selected: selected),
+      shape: selectedRowShape(context, selected: selected),
       title: Text(program.title),
       subtitle: Padding(
         padding: const EdgeInsets.only(top: 4),

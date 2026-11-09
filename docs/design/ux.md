@@ -24,7 +24,9 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
 - **Desktop**: left nav rail; list/detail split panes, where the row open in
   the detail pane carries a `primary` bar down its left edge (plus a `primary`
   title; `selectedRowShape`, issue #2156 — a bar and not a fill, because the
-  gallery palettes leave text no contrast to spare for a fill under it);
+  gallery palettes leave text no contrast to spare for a fill under it). In
+  Collection batch selection mode the bar marks the checked rows instead, on
+  every width;
   global search shortcut
   (Ctrl/Cmd-K); and a desktop keyboard map (PLAT-7), bound to Control and
   Command alike (in a macOS text field Ctrl-F and Ctrl-N keep moving the
