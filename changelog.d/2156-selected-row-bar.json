@@ -1,0 +1,9 @@
+{
+  "id": "2156-selected-row-bar",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "On a tablet or desktop, where the list and detail pane are side by side, the dance open in the detail pane is now marked in the list by a colored bar down its left edge and a colored title, so you can see at a glance which one you are looking at. Programs and online search results mark the open row the same way. While you are selecting dances, on any screen size, the dances you have checked get the bar as well as their checkmark."
+    ]
+  }
+}

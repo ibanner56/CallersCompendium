@@ -426,6 +426,13 @@ never hidden behind a visual-only cue.
 
 Selecting a dance opens its detail view — the full picture of a single dance.
 
+On a tablet or desktop, where the list and detail pane are side by side, the
+dance open in the detail pane is marked in the list by a colored bar down its
+left edge, and its title is in the same color, so you can keep your place while
+you work down a filtered list. The Programs list and online search results mark
+the open row the same way. While you are [selecting dances](#change-many-dances-at-once),
+the bar marks the dances you have checked instead.
+
 *The dance detail view with figures grouped into sections and a toggle between
 your dialect and neutral wording.*
 
@@ -670,8 +677,8 @@ saved, the app says so and leaves your selection in place so you can try again;
 if an **Undo** can't be completed, it says that too, and nothing is left
 half-undone. Undoing **Edit custom field** puts back only the field you changed,
 so anything else you have edited in the meantime stays as it is. Selected rows are marked
-with a checkmark and a highlight — never color alone — so the selection is clear
-however you are reading the screen.
+with a checkmark and a colored bar down the row's left edge — never color alone —
+so the selection is clear however you are reading the screen.
 
 ## Jump straight to a dance or program
 

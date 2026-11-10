@@ -4,6 +4,7 @@ import '../../l10n/app_localizations.dart';
 import '../data/online_search.dart';
 import '../data/online_search_labels.dart';
 import '../theme/app_spacing.dart';
+import '../theme/selected_row.dart';
 
 /// One online search result row: the dance title, its author and formation, and
 /// a subtle per-source "From … (online)" attribution.
@@ -31,7 +32,8 @@ class OnlineResultTile extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
 
-  /// Whether this row is the currently previewed result (split-pane highlight).
+  /// Whether this row is the currently previewed result: a split-pane
+  /// highlight, a primary bar down the row's left edge ([selectedRowShape]).
   final bool selected;
 
   @override
@@ -45,6 +47,7 @@ class OnlineResultTile extends StatelessWidget {
     return ListTile(
       leading: const Icon(Icons.cloud_outlined),
       selected: selected,
+      shape: selectedRowShape(context, selected: selected),
       title: Text(result.name),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

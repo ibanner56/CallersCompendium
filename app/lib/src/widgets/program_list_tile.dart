@@ -5,12 +5,14 @@ import '../../l10n/app_localizations.dart';
 import '../data/date_format_scope.dart';
 import '../data/regional_formats.dart';
 import '../data/venue_label.dart';
+import '../theme/selected_row.dart';
 import 'program_status_chip.dart';
 import 'right_click_menu.dart';
 
 /// One Programs list row: title, event date, venue, planned dance count
 /// ([Program.plannedDanceCount]), and a status chip (icon+text). Tapping calls
-/// [onTap]; [selected] highlights the row in split-pane mode. Mirrors
+/// [onTap]; [selected] highlights the row in split-pane mode with a primary bar
+/// down its left edge ([selectedRowShape]). Mirrors
 /// `DanceListTile` (`docs/design/ux.md` §4).
 class ProgramListTile extends StatelessWidget {
   const ProgramListTile({
@@ -63,6 +65,7 @@ class ProgramListTile extends StatelessWidget {
 
     final tile = ListTile(
       selected: selected,
+      shape: selectedRowShape(context, selected: selected),
       title: Text(program.title),
       subtitle: Padding(
         padding: const EdgeInsets.only(top: 4),
