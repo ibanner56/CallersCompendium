@@ -117,4 +117,30 @@ void main() {
       expect(read.single.params.containsKey(fractionAmountParam), isFalse);
     });
   });
+
+  group('re-import diff key', () {
+    final tax = contraTaxonomy;
+    Figure f8(Map<String, Object?> p) => Figure(move: 'figure_8', params: p);
+
+    test('a stated amount distinguishes two other figure 8s', () {
+      expect(
+        figureCanonicalKey(f8({'fraction': 'other', 'amount': 1.5}), tax),
+        isNot(figureCanonicalKey(f8({'fraction': 'other', 'amount': 2}), tax)),
+      );
+    });
+
+    test('a stale amount under a named fraction is not a difference', () {
+      expect(
+        figureCanonicalKey(f8({'fraction': 'half', 'amount': 2}), tax),
+        figureCanonicalKey(f8({'fraction': 'half'}), tax),
+      );
+    });
+
+    test('a figure with no amount keys as it did before v39', () {
+      expect(
+        figureCanonicalKey(f8({'fraction': 'other'}), tax),
+        isNot(contains('amount')),
+      );
+    });
+  });
 }

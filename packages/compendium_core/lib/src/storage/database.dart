@@ -305,6 +305,14 @@ const String taxonomyV37CanonicalRebuildDoneKey =
 const String taxonomyV38CanonicalRebuildDoneKey =
     '__taxonomy_v38_canonical_rebuild_done__';
 
+/// Settings key for the one-time canonical/FTS rebuild owed by taxonomy v39
+/// (#2120). A figure 8 or poussette fraction of `other` now reads its sibling
+/// `amount` and, when it states none, renders as an unstated amount instead of
+/// the bare word "other", which changes the canonical text of every stored
+/// such figure without changing its source JSON.
+const String taxonomyV39CanonicalRebuildDoneKey =
+    '__taxonomy_v39_canonical_rebuild_done__';
+
 /// Settings key for the one-time canonical/FTS rebuild owed by the modifier
 /// container structural tokens. Existing figures gain searchable canonical
 /// container text without changing their source JSON.

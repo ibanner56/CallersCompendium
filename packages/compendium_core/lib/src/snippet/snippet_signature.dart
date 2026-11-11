@@ -33,7 +33,11 @@ String migrateFigureSnippetSignature(String signature) {
     },
     'dir': 'where',
     'half': 'fraction',
-    'amount': 'travel',
+    // Only orbit ever had a legacy `amount` (`Taxonomy._v35ParamRenames`).
+    // Since taxonomy v39 a figure 8 or poussette has an `amount` of its own
+    // (#2120), and conflict keys pass through here on every load whatever
+    // their version, so the rename must not reach those moves.
+    if (migratedMove == 'orbit') 'amount': 'travel',
     'face': 'endFacing',
     'hand': migratedMove == 'form_long_waves' ? 'whomHand' : 'hand',
   };
@@ -106,6 +110,17 @@ String? figureSnippetSignature(Figure figure, Taxonomy taxonomy) {
   if (salient.isEmpty) return def.id;
 
   final effective = taxonomy.effectiveParams(figure);
+  // An `other` fraction's amount (#2120) is not in the template, but it is
+  // what the line shows in place of the fraction: a 1½ and a 2 figure 8 are
+  // different figures. Only a STATED amount joins, so the key of every figure
+  // that could be stored before taxonomy v39 is unchanged and no signature
+  // version bump (with its migration of every stored key) is owed.
+  if (def.params.containsKey(fractionAmountParam) &&
+      statedFractionAmount(effective) != null) {
+    salient
+      ..add(fractionAmountParam)
+      ..sort();
+  }
   final parts = <String>[];
   for (final name in salient) {
     final value = effective[name];
