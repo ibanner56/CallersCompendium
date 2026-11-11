@@ -1773,8 +1773,6 @@ class _CompendiumAppState extends State<CompendiumApp>
     if (context == null || !context.mounted) return false;
 
     final l10n = AppLocalizations.of(context);
-    final sentence = snapshotCauseSentence(l10n, failure.cause);
-    final causeBlock = sentence.isEmpty ? '' : '\n\n$sentence';
     final proceed = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -1783,7 +1781,7 @@ class _CompendiumAppState extends State<CompendiumApp>
         child: AlertDialog(
           icon: const Icon(Icons.warning_amber_outlined),
           title: Text(l10n.migrationSnapshotConsentTitle),
-          content: Text(l10n.migrationSnapshotConsentBody(causeBlock)),
+          content: Text(migrationSnapshotConsentBody(l10n, failure)),
           actions: [
             // Safest choice is the default: Quit, autofocused so a keyboard
             // Enter/confirm aborts rather than proceeding without a backup.

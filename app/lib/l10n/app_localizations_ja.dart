@@ -186,6 +186,18 @@ class AppLocalizationsJa extends AppLocalizations {
       '自動バックアップフォルダに書き込めませんでした。';
 
   @override
+  String get migrationSnapshotCauseDatabaseInUse =>
+      '別のアプリがライブラリを開いているため、今バックアップを作成すると最新の変更が含まれません。ライブラリを開いている他のアプリをすべて閉じてから、もう一度お試しください。';
+
+  @override
+  String get migrationSnapshotInUseConsentBody =>
+      '保存データを変更する前に、Caller’s Compendiumは自動バックアップを作成し、問題が起きても変更を元に戻せるようにします。現在、別のアプリがライブラリを開いているため、今バックアップを作成すると最新の変更が含まれません。\n\nバックアップなしで続行して変更が中断されると、一部のダンスやプログラムが失われる可能性があります。Caller’s Compendiumを終了し、ライブラリを開いている他のアプリをすべて閉じてから、Caller’s Compendiumを再度開いてもう一度お試しください。';
+
+  @override
+  String get migrationSnapshotInUseAbortedMessage =>
+      '別のアプリがライブラリを開いているため、保存データを変更する前の自動バックアップに最新の変更が含まれなくなります。そのため、Caller’s Compendiumを起動できませんでした。ライブラリを開いている他のアプリをすべて閉じてから、Caller’s Compendiumを再度開いてください。あるいは、再度開いてバックアップなしで続行することもできます。';
+
+  @override
   String get migrationSnapshotConsentTitle => 'データをバックアップできませんでした';
 
   @override

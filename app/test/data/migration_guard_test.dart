@@ -220,6 +220,18 @@ void main() {
     );
   });
 
+  test('classifies a database in use apart from disk and folder failures', () {
+    expect(
+      classifySnapshotFailure(const SnapshotDatabaseInUse('/x')),
+      SnapshotFailureCause.databaseInUse,
+    );
+    // A plain busy FileSystemException carries no OS error to classify by.
+    expect(
+      classifySnapshotFailure(const FileSystemException('busy', '/x')),
+      SnapshotFailureCause.unknown,
+    );
+  });
+
   group('a reader that pins the WAL during the snapshot', () {
     // A WAL-mode file whose newest commit lives only in the `-wal`, behind a
     // read transaction another connection opened before that commit. The
@@ -292,7 +304,10 @@ void main() {
       // to the user through the #442 path instead of copying.
       expect(copies, isEmpty);
       expect(thrown, isA<MigrationSnapshotAborted>());
-      expect(seen?.error, isA<FileSystemException>());
+      // Classified as its own cause, so the dialog says to close the other
+      // program rather than to free space.
+      expect(seen?.error, isA<SnapshotDatabaseInUse>());
+      expect(seen?.cause, SnapshotFailureCause.databaseInUse);
     });
 
     test('takes the copy when the reader already sees every commit', () async {

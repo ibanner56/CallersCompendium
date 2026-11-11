@@ -152,8 +152,9 @@ class DatabaseDowngradeError implements Exception {
 /// The most likely reason a pre-migration snapshot could not be written, so the
 /// consent surface can name the probable cause in plain language. Classified by
 /// [classifySnapshotFailure] (invoked from [runMigrationPreflight]) from the
-/// underlying [FileSystemException]'s OS error code; never trusts raw exception
-/// text for control flow.
+/// error's type ([SnapshotDatabaseInUse]) or the underlying
+/// [FileSystemException]'s OS error code; never trusts raw exception text for
+/// control flow.
 enum SnapshotFailureCause {
   /// The volume holding the database has no room for the snapshot copy
   /// (`ENOSPC` / Windows disk-full codes).
@@ -163,8 +164,33 @@ enum SnapshotFailureCause {
   /// (`EACCES`/`EPERM`/`EROFS`/`ENOTDIR` / Windows access-denied).
   unwritableBackupsDir,
 
+  /// Another connection, normally another program with the library open,
+  /// holds a read transaction that keeps the WAL checkpoint from folding in
+  /// the newest commits, so a copy would miss them ([SnapshotDatabaseInUse]).
+  /// The remedy is to close that program, not to free space.
+  databaseInUse,
+
   /// Anything else (a WAL checkpoint failure, an unexpected I/O error, …).
   unknown,
+}
+
+/// Thrown by the pre-snapshot checkpoint when another connection keeps it
+/// from folding every commit into the main file, even after a brief retry:
+/// a byte copy would silently miss those commits. Classified as
+/// [SnapshotFailureCause.databaseInUse].
+///
+/// Its [toString] names the condition but not [path], so a crash log carrying
+/// it holds no filesystem path.
+final class SnapshotDatabaseInUse implements Exception {
+  const SnapshotDatabaseInUse(this.path);
+
+  /// The database file whose WAL could not be checkpointed.
+  final String path;
+
+  @override
+  String toString() =>
+      'SnapshotDatabaseInUse: another connection keeps the WAL checkpoint '
+      'from finishing';
 }
 
 /// Describes a failed pre-migration snapshot attempt, handed to the injected
@@ -213,7 +239,8 @@ typedef SnapshotFailureDecision =
 ///
 /// Fail-closed, mirroring [DatabaseDowngradeError]: the migration must NOT run,
 /// so no schema change happens and the file is left intact for the user to back
-/// up manually / free disk / fix permissions before reopening the app.
+/// up manually / free disk / fix permissions / close another app that has the
+/// library open before reopening the app.
 class MigrationSnapshotAborted implements Exception {
   const MigrationSnapshotAborted(this.failure);
 
@@ -383,14 +410,16 @@ Future<void> runMigrationPreflight({
   }
 }
 
-/// Classifies a snapshot [error] into a [SnapshotFailureCause] using the
-/// platform error code first (locale-independent) and the OS message only as a
+/// Classifies a snapshot [error] into a [SnapshotFailureCause]: a
+/// [SnapshotDatabaseInUse] by its type, then a [FileSystemException] by the
+/// platform error code (locale-independent), with the OS message only as a
 /// fallback. Never trusts message text for anything but a coarse hint.
 ///
 /// Exposed so the below-floor backup-before-reset flow (AppBootstrap's
 /// Back up + reset action) can classify its own snapshot failures with the same
 /// logic, rather than duplicating the OS-code table.
 SnapshotFailureCause classifySnapshotFailure(Object error) {
+  if (error is SnapshotDatabaseInUse) return SnapshotFailureCause.databaseInUse;
   if (error is FileSystemException) {
     final code = error.osError?.errorCode;
     // Disk full: POSIX ENOSPC (28); Windows ERROR_DISK_FULL (112) /
@@ -1131,7 +1160,7 @@ int readUserVersion(String path) {
 /// The WAL is folded into the main file first (`wal_checkpoint(TRUNCATE)`) so
 /// the byte copy is a complete, self-contained database. If another connection
 /// keeps the checkpoint from folding in every commit, this throws a
-/// [FileSystemException] rather than copy a main file that lacks some (see
+/// [SnapshotDatabaseInUse] rather than copy a main file that lacks some (see
 /// [_checkpoint]); [runMigrationPreflight] hands that to the user as any other
 /// snapshot failure.
 ///
@@ -1258,7 +1287,8 @@ const Duration _checkpointRetryDelay = Duration(milliseconds: 100);
 /// than the WAL holds. Copying the main file then would miss those commits
 /// without any error. So the row is read, the checkpoint is retried briefly
 /// (yielding between attempts, so the loading screen keeps painting), and a
-/// WAL still incomplete after that throws, so the caller fails closed instead.
+/// WAL still incomplete after that throws [SnapshotDatabaseInUse], so the
+/// caller fails closed instead.
 ///
 /// `busy` alone is too strict: TRUNCATE also reports it when every frame is
 /// already in the main file and only the reset of the WAL was blocked (a
@@ -1279,10 +1309,7 @@ Future<void> _checkpoint(String path) async {
         return;
       }
       if (attempt == _checkpointAttempts) {
-        throw FileSystemException(
-          'WAL checkpoint is blocked (database busy)',
-          path,
-        );
+        throw SnapshotDatabaseInUse(path);
       }
       await Future<void>.delayed(_checkpointRetryDelay);
     }

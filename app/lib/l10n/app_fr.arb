@@ -188,6 +188,18 @@
   "@migrationSnapshotCauseUnwritableBackupsDir": {
     "x-sourceSha256": "11d37c8a9cf6e85eea185322cc5783fca284153fe736b0dbd270a11a574af838"
   },
+  "migrationSnapshotCauseDatabaseInUse": "Une autre application a ouvert votre bibliothèque : une sauvegarde faite maintenant ne contiendrait pas vos dernières modifications. Fermez toute autre application qui a ouvert votre bibliothèque, puis réessayez.",
+  "@migrationSnapshotCauseDatabaseInUse": {
+    "x-sourceSha256": "9fe556f07fca5ab643b841d48a8f5d28c912b29f755e37ac1178a1a88191136b"
+  },
+  "migrationSnapshotInUseConsentBody": "Avant de modifier vos données enregistrées, Caller’s Compendium crée une sauvegarde automatique afin que les modifications puissent être annulées en cas de problème. Une autre application a ouvert votre bibliothèque en ce moment : une sauvegarde faite maintenant ne contiendrait pas vos dernières modifications.\n\nSi vous continuez sans sauvegarde et que les modifications sont interrompues, certaines de vos danses ou de vos programmes pourraient être perdus. Vous pouvez quitter, fermer toute autre application qui a ouvert votre bibliothèque et rouvrir Caller’s Compendium pour réessayer.",
+  "@migrationSnapshotInUseConsentBody": {
+    "x-sourceSha256": "20d61ed5b8415eeca3265d2534032a65b34f4808d11bdd6e2df58f7689ad5fc5"
+  },
+  "migrationSnapshotInUseAbortedMessage": "Caller’s Compendium n'a pas démarré car une autre application a ouvert votre bibliothèque : la sauvegarde automatique faite avant la modification de vos données enregistrées ne contiendrait pas vos dernières modifications. Fermez toute autre application qui a ouvert votre bibliothèque, puis rouvrez Caller’s Compendium — ou rouvrez-le et choisissez de continuer sans sauvegarde.",
+  "@migrationSnapshotInUseAbortedMessage": {
+    "x-sourceSha256": "807eb23829aafdccc4616f33502179af13af6b1f6bf14eca55dc0696b087fb7a"
+  },
   "migrationSnapshotConsentTitle": "Impossible de sauvegarder vos données",
   "@migrationSnapshotConsentTitle": {
     "x-sourceSha256": "809b2d6dbd0aae49496f566c318ff23d50bf7ffd3fa9dc0a81a49bd78b153d1c"

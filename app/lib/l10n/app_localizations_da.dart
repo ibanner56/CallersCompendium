@@ -193,6 +193,18 @@ class AppLocalizationsDa extends AppLocalizations {
       'Der kunne ikke skrives til den automatiske sikkerhedskopimappe.';
 
   @override
+  String get migrationSnapshotCauseDatabaseInUse =>
+      'En anden app har dit bibliotek åbent, så en sikkerhedskopi lavet nu ville mangle dine seneste ændringer. Luk alle andre apps, der har dit bibliotek åbent, og prøv derefter igen.';
+
+  @override
+  String get migrationSnapshotInUseConsentBody =>
+      'Før der foretages ændringer i dine gemte data, opretter Caller’s Compendium en automatisk sikkerhedskopi, så ændringerne kan fortrydes, hvis noget går galt. En anden app har dit bibliotek åbent lige nu, så en sikkerhedskopi lavet nu ville mangle dine seneste ændringer.\n\nHvis du fortsætter uden en sikkerhedskopi, og ændringerne afbrydes, kan nogle af dine danse eller programmer gå tabt. Du kan afslutte, lukke alle andre apps, der har dit bibliotek åbent, og åbne Caller’s Compendium igen for at prøve igen.';
+
+  @override
+  String get migrationSnapshotInUseAbortedMessage =>
+      'Caller’s Compendium startede ikke, fordi en anden app har dit bibliotek åbent, så den automatiske sikkerhedskopi, der laves før ændringer i dine gemte data, ville mangle dine seneste ændringer. Luk alle andre apps, der har dit bibliotek åbent, og åbn derefter Caller’s Compendium igen — eller åbn den igen og vælg at fortsætte uden en sikkerhedskopi.';
+
+  @override
   String get migrationSnapshotConsentTitle =>
       'Kunne ikke sikkerhedskopiere dine data';
 

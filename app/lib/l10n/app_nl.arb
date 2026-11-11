@@ -188,6 +188,18 @@
   "@migrationSnapshotCauseUnwritableBackupsDir": {
     "x-sourceSha256": "11d37c8a9cf6e85eea185322cc5783fca284153fe736b0dbd270a11a574af838"
   },
+  "migrationSnapshotCauseDatabaseInUse": "Een andere app heeft je bibliotheek geopend, dus een back-up die nu wordt gemaakt, zou je laatste wijzigingen missen. Sluit elke andere app die je bibliotheek geopend heeft en probeer het dan opnieuw.",
+  "@migrationSnapshotCauseDatabaseInUse": {
+    "x-sourceSha256": "9fe556f07fca5ab643b841d48a8f5d28c912b29f755e37ac1178a1a88191136b"
+  },
+  "migrationSnapshotInUseConsentBody": "Voordat je opgeslagen gegevens worden gewijzigd, maakt Caller’s Compendium een automatische back-up zodat de wijzigingen ongedaan kunnen worden gemaakt als er iets misgaat. Een andere app heeft je bibliotheek nu geopend, dus een back-up die nu wordt gemaakt, zou je laatste wijzigingen missen.\n\nAls je zonder back-up doorgaat en de wijzigingen worden onderbroken, kunnen sommige van je dansen of programma’s verloren gaan. Je kunt afsluiten, elke andere app sluiten die je bibliotheek geopend heeft, en Caller’s Compendium opnieuw openen om het nog eens te proberen.",
+  "@migrationSnapshotInUseConsentBody": {
+    "x-sourceSha256": "20d61ed5b8415eeca3265d2534032a65b34f4808d11bdd6e2df58f7689ad5fc5"
+  },
+  "migrationSnapshotInUseAbortedMessage": "Caller’s Compendium is niet gestart omdat een andere app je bibliotheek geopend heeft, waardoor de automatische back-up die vóór het wijzigen van je opgeslagen gegevens wordt gemaakt, je laatste wijzigingen zou missen. Sluit elke andere app die je bibliotheek geopend heeft en open Caller’s Compendium dan opnieuw — of open het opnieuw en kies om zonder back-up door te gaan.",
+  "@migrationSnapshotInUseAbortedMessage": {
+    "x-sourceSha256": "807eb23829aafdccc4616f33502179af13af6b1f6bf14eca55dc0696b087fb7a"
+  },
   "migrationSnapshotConsentTitle": "Kon je gegevens niet back-uppen",
   "@migrationSnapshotConsentTitle": {
     "x-sourceSha256": "809b2d6dbd0aae49496f566c318ff23d50bf7ffd3fa9dc0a81a49bd78b153d1c"

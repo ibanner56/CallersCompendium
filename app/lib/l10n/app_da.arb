@@ -188,6 +188,18 @@
   "@migrationSnapshotCauseUnwritableBackupsDir": {
     "x-sourceSha256": "11d37c8a9cf6e85eea185322cc5783fca284153fe736b0dbd270a11a574af838"
   },
+  "migrationSnapshotCauseDatabaseInUse": "En anden app har dit bibliotek åbent, så en sikkerhedskopi lavet nu ville mangle dine seneste ændringer. Luk alle andre apps, der har dit bibliotek åbent, og prøv derefter igen.",
+  "@migrationSnapshotCauseDatabaseInUse": {
+    "x-sourceSha256": "9fe556f07fca5ab643b841d48a8f5d28c912b29f755e37ac1178a1a88191136b"
+  },
+  "migrationSnapshotInUseConsentBody": "Før der foretages ændringer i dine gemte data, opretter Caller’s Compendium en automatisk sikkerhedskopi, så ændringerne kan fortrydes, hvis noget går galt. En anden app har dit bibliotek åbent lige nu, så en sikkerhedskopi lavet nu ville mangle dine seneste ændringer.\n\nHvis du fortsætter uden en sikkerhedskopi, og ændringerne afbrydes, kan nogle af dine danse eller programmer gå tabt. Du kan afslutte, lukke alle andre apps, der har dit bibliotek åbent, og åbne Caller’s Compendium igen for at prøve igen.",
+  "@migrationSnapshotInUseConsentBody": {
+    "x-sourceSha256": "20d61ed5b8415eeca3265d2534032a65b34f4808d11bdd6e2df58f7689ad5fc5"
+  },
+  "migrationSnapshotInUseAbortedMessage": "Caller’s Compendium startede ikke, fordi en anden app har dit bibliotek åbent, så den automatiske sikkerhedskopi, der laves før ændringer i dine gemte data, ville mangle dine seneste ændringer. Luk alle andre apps, der har dit bibliotek åbent, og åbn derefter Caller’s Compendium igen — eller åbn den igen og vælg at fortsætte uden en sikkerhedskopi.",
+  "@migrationSnapshotInUseAbortedMessage": {
+    "x-sourceSha256": "807eb23829aafdccc4616f33502179af13af6b1f6bf14eca55dc0696b087fb7a"
+  },
   "migrationSnapshotConsentTitle": "Kunne ikke sikkerhedskopiere dine data",
   "@migrationSnapshotConsentTitle": {
     "x-sourceSha256": "809b2d6dbd0aae49496f566c318ff23d50bf7ffd3fa9dc0a81a49bd78b153d1c"

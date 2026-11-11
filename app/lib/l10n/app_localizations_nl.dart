@@ -194,6 +194,18 @@ class AppLocalizationsNl extends AppLocalizations {
       'Naar de automatische back-upmap kon niet worden geschreven.';
 
   @override
+  String get migrationSnapshotCauseDatabaseInUse =>
+      'Een andere app heeft je bibliotheek geopend, dus een back-up die nu wordt gemaakt, zou je laatste wijzigingen missen. Sluit elke andere app die je bibliotheek geopend heeft en probeer het dan opnieuw.';
+
+  @override
+  String get migrationSnapshotInUseConsentBody =>
+      'Voordat je opgeslagen gegevens worden gewijzigd, maakt Caller’s Compendium een automatische back-up zodat de wijzigingen ongedaan kunnen worden gemaakt als er iets misgaat. Een andere app heeft je bibliotheek nu geopend, dus een back-up die nu wordt gemaakt, zou je laatste wijzigingen missen.\n\nAls je zonder back-up doorgaat en de wijzigingen worden onderbroken, kunnen sommige van je dansen of programma’s verloren gaan. Je kunt afsluiten, elke andere app sluiten die je bibliotheek geopend heeft, en Caller’s Compendium opnieuw openen om het nog eens te proberen.';
+
+  @override
+  String get migrationSnapshotInUseAbortedMessage =>
+      'Caller’s Compendium is niet gestart omdat een andere app je bibliotheek geopend heeft, waardoor de automatische back-up die vóór het wijzigen van je opgeslagen gegevens wordt gemaakt, je laatste wijzigingen zou missen. Sluit elke andere app die je bibliotheek geopend heeft en open Caller’s Compendium dan opnieuw — of open het opnieuw en kies om zonder back-up door te gaan.';
+
+  @override
   String get migrationSnapshotConsentTitle => 'Kon je gegevens niet back-uppen';
 
   @override

@@ -188,6 +188,18 @@
   "@migrationSnapshotCauseUnwritableBackupsDir": {
     "x-sourceSha256": "11d37c8a9cf6e85eea185322cc5783fca284153fe736b0dbd270a11a574af838"
   },
+  "migrationSnapshotCauseDatabaseInUse": "Eine andere App hat deine Bibliothek geöffnet, daher würden einer jetzt erstellten Sicherung deine neuesten Änderungen fehlen. Schließe alle anderen Apps, die deine Bibliothek geöffnet haben, und versuche es dann erneut.",
+  "@migrationSnapshotCauseDatabaseInUse": {
+    "x-sourceSha256": "9fe556f07fca5ab643b841d48a8f5d28c912b29f755e37ac1178a1a88191136b"
+  },
+  "migrationSnapshotInUseConsentBody": "Bevor deine gespeicherten Daten geändert werden, erstellt Caller’s Compendium eine automatische Sicherung, damit sich die Änderungen rückgängig machen lassen, falls etwas schiefgeht. Gerade hat eine andere App deine Bibliothek geöffnet, daher würden einer jetzt erstellten Sicherung deine neuesten Änderungen fehlen.\n\nWenn du ohne Sicherung fortfährst und die Änderungen unterbrochen werden, könnten einige deiner Tänze oder Programme verloren gehen. Du kannst Caller’s Compendium beenden, alle anderen Apps schließen, die deine Bibliothek geöffnet haben, und Caller’s Compendium dann erneut öffnen, um es noch einmal zu versuchen.",
+  "@migrationSnapshotInUseConsentBody": {
+    "x-sourceSha256": "20d61ed5b8415eeca3265d2534032a65b34f4808d11bdd6e2df58f7689ad5fc5"
+  },
+  "migrationSnapshotInUseAbortedMessage": "Caller’s Compendium wurde nicht gestartet, weil eine andere App deine Bibliothek geöffnet hat, sodass der automatischen Sicherung vor Änderungen an deinen gespeicherten Daten deine neuesten Änderungen fehlen würden. Schließe alle anderen Apps, die deine Bibliothek geöffnet haben, und öffne Caller’s Compendium dann erneut – oder öffne es erneut und fahre ohne Sicherung fort.",
+  "@migrationSnapshotInUseAbortedMessage": {
+    "x-sourceSha256": "807eb23829aafdccc4616f33502179af13af6b1f6bf14eca55dc0696b087fb7a"
+  },
   "migrationSnapshotConsentTitle": "Sicherung deiner Daten fehlgeschlagen",
   "@migrationSnapshotConsentTitle": {
     "x-sourceSha256": "809b2d6dbd0aae49496f566c318ff23d50bf7ffd3fa9dc0a81a49bd78b153d1c"

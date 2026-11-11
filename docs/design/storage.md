@@ -1110,31 +1110,38 @@ by opening drift — and compares it to the running `kCompendiumSchemaVersion`:
   (below), never copying. A `busy` result whose WAL frames were all checkpointed
   (`log == checkpointed`) is accepted: TRUNCATE reports busy whenever it cannot
   reset the WAL, including for a reader that already sees every commit, and the
-  main file is complete then. The failure reaches the dialog with an unknown
-  cause, so its advice (free up space, fix the backups folder) does not name the
-  real remedy, closing the other program; a dedicated cause and wording are a
-  possible follow-up. Copying the `-wal` beside the main file instead was
-  rejected: the two files are not copied atomically, the restore steps would
-  have to carry both, and a writer could append between the two reads. No holder
-  inside the app has been found: on launch the preflight runs before the app's
-  drift connection opens and before sync starts; Retry closes the app's
-  connection and disposes the sync coordinator first, which waits for any
-  running pass, and a pass closes its isolate's own connection when it ends; and
-  a second desktop instance hands off and exits before reaching the preflight.
-  So the holder would be another process, such as a SQLite browser left open on
-  the file.
+  main file is complete then. The checkpoint throws `SnapshotDatabaseInUse`,
+  classified as `SnapshotFailureCause.databaseInUse` (the maintainer chose on
+  2026-11-11 to add it in this change rather than a follow-up; the PR
+  description records it), so the consent dialog and the terminal screen use
+  their own copy, telling the user to close any other app that has the library
+  open, instead of the generic advice to free up space or fix the backups
+  folder; the below-floor reset flow appends the matching cause sentence. Only a
+  checkpoint that stays incomplete is classified this way: another app holding a
+  write or exclusive lock makes the pragma itself fail (`SQLITE_BUSY`), and a
+  Windows sharing violation on the copy is an OS error with no in-use code, so
+  both still reach the dialog as an unknown cause. Copying the `-wal` beside the
+  main file instead was rejected: the two files are not copied atomically, the
+  restore steps would have to carry both, and a writer could append between the
+  two reads. No holder inside the app has been found: on launch the preflight
+  runs before the app's drift connection opens and before sync starts; Retry
+  closes the app's connection and disposes the sync coordinator first, which
+  waits for any running pass, and a pass closes its isolate's own connection
+  when it ends; and a second desktop instance hands off and exits before
+  reaching the preflight. So the holder would be another process, such as a
+  SQLite browser left open on the file.
 
   **If the snapshot fails, the preflight fails closed** (issue #442). A backup
-  that cannot be written (disk full, unwritable `db_backups`, a checkpoint
-  that fails or stays busy) previously logged and migrated anyway; it now
-  instead surfaces a
-  blocking consent dialog that explains the data-loss risk and names the likely
-  cause (low storage / unwritable backups folder). The user chooses **Quit**
-  (the default — abort so they can free space, fix permissions, or take a manual
+  that cannot be written (disk full, unwritable `db_backups`, a checkpoint that
+  fails or stays busy) previously logged and migrated anyway; it now instead
+  surfaces a blocking consent dialog that explains the data-loss risk and names
+  the likely cause (low storage / unwritable backups folder / another app has
+  the library open, above). The user chooses **Quit** (the default — abort so
+  they can free space, fix permissions, close the other app, or take a manual
   backup first) or **Proceed without a backup**. Without an explicit "proceed"
   the migration is aborted (`MigrationSnapshotAborted`, rendered on a
-  non-retryable `AppBootstrap` screen, mirroring the downgrade guard) so a failed
-  upgrade can never become an unrecoverable one. A successful snapshot is
+  non-retryable `AppBootstrap` screen, mirroring the downgrade guard) so a
+  failed upgrade can never become an unrecoverable one. A successful snapshot is
   unchanged — no prompt.
 
   **Restoring a pre-migration snapshot:** quit the app, replace the live

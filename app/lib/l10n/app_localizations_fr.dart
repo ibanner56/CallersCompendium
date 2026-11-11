@@ -196,6 +196,18 @@ class AppLocalizationsFr extends AppLocalizations {
       'Impossible d\'écrire dans le dossier de sauvegardes automatiques.';
 
   @override
+  String get migrationSnapshotCauseDatabaseInUse =>
+      'Une autre application a ouvert votre bibliothèque : une sauvegarde faite maintenant ne contiendrait pas vos dernières modifications. Fermez toute autre application qui a ouvert votre bibliothèque, puis réessayez.';
+
+  @override
+  String get migrationSnapshotInUseConsentBody =>
+      'Avant de modifier vos données enregistrées, Caller’s Compendium crée une sauvegarde automatique afin que les modifications puissent être annulées en cas de problème. Une autre application a ouvert votre bibliothèque en ce moment : une sauvegarde faite maintenant ne contiendrait pas vos dernières modifications.\n\nSi vous continuez sans sauvegarde et que les modifications sont interrompues, certaines de vos danses ou de vos programmes pourraient être perdus. Vous pouvez quitter, fermer toute autre application qui a ouvert votre bibliothèque et rouvrir Caller’s Compendium pour réessayer.';
+
+  @override
+  String get migrationSnapshotInUseAbortedMessage =>
+      'Caller’s Compendium n\'a pas démarré car une autre application a ouvert votre bibliothèque : la sauvegarde automatique faite avant la modification de vos données enregistrées ne contiendrait pas vos dernières modifications. Fermez toute autre application qui a ouvert votre bibliothèque, puis rouvrez Caller’s Compendium — ou rouvrez-le et choisissez de continuer sans sauvegarde.';
+
+  @override
   String get migrationSnapshotConsentTitle =>
       'Impossible de sauvegarder vos données';
 

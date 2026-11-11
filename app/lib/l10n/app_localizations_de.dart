@@ -192,6 +192,18 @@ class AppLocalizationsDe extends AppLocalizations {
       'Der automatische Sicherungsordner konnte nicht beschrieben werden.';
 
   @override
+  String get migrationSnapshotCauseDatabaseInUse =>
+      'Eine andere App hat deine Bibliothek geöffnet, daher würden einer jetzt erstellten Sicherung deine neuesten Änderungen fehlen. Schließe alle anderen Apps, die deine Bibliothek geöffnet haben, und versuche es dann erneut.';
+
+  @override
+  String get migrationSnapshotInUseConsentBody =>
+      'Bevor deine gespeicherten Daten geändert werden, erstellt Caller’s Compendium eine automatische Sicherung, damit sich die Änderungen rückgängig machen lassen, falls etwas schiefgeht. Gerade hat eine andere App deine Bibliothek geöffnet, daher würden einer jetzt erstellten Sicherung deine neuesten Änderungen fehlen.\n\nWenn du ohne Sicherung fortfährst und die Änderungen unterbrochen werden, könnten einige deiner Tänze oder Programme verloren gehen. Du kannst Caller’s Compendium beenden, alle anderen Apps schließen, die deine Bibliothek geöffnet haben, und Caller’s Compendium dann erneut öffnen, um es noch einmal zu versuchen.';
+
+  @override
+  String get migrationSnapshotInUseAbortedMessage =>
+      'Caller’s Compendium wurde nicht gestartet, weil eine andere App deine Bibliothek geöffnet hat, sodass der automatischen Sicherung vor Änderungen an deinen gespeicherten Daten deine neuesten Änderungen fehlen würden. Schließe alle anderen Apps, die deine Bibliothek geöffnet haben, und öffne Caller’s Compendium dann erneut – oder öffne es erneut und fahre ohne Sicherung fort.';
+
+  @override
   String get migrationSnapshotConsentTitle =>
       'Sicherung deiner Daten fehlgeschlagen';
 

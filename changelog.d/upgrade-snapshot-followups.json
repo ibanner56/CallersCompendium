@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "The app no longer saves a recovery snapshot that is missing your most recent changes when another program is reading your library at that moment. It asks you what to do instead, as it does when a snapshot can't be saved."
+      "The app no longer saves a recovery snapshot that is missing your most recent changes when another program is reading your library at that moment. It asks you what to do instead, and tells you to close the other program and reopen the app."
     ]
   }
 }

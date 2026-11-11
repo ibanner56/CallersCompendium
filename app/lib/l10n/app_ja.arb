@@ -188,6 +188,18 @@
   "@migrationSnapshotCauseUnwritableBackupsDir": {
     "x-sourceSha256": "11d37c8a9cf6e85eea185322cc5783fca284153fe736b0dbd270a11a574af838"
   },
+  "migrationSnapshotCauseDatabaseInUse": "別のアプリがライブラリを開いているため、今バックアップを作成すると最新の変更が含まれません。ライブラリを開いている他のアプリをすべて閉じてから、もう一度お試しください。",
+  "@migrationSnapshotCauseDatabaseInUse": {
+    "x-sourceSha256": "9fe556f07fca5ab643b841d48a8f5d28c912b29f755e37ac1178a1a88191136b"
+  },
+  "migrationSnapshotInUseConsentBody": "保存データを変更する前に、Caller’s Compendiumは自動バックアップを作成し、問題が起きても変更を元に戻せるようにします。現在、別のアプリがライブラリを開いているため、今バックアップを作成すると最新の変更が含まれません。\n\nバックアップなしで続行して変更が中断されると、一部のダンスやプログラムが失われる可能性があります。Caller’s Compendiumを終了し、ライブラリを開いている他のアプリをすべて閉じてから、Caller’s Compendiumを再度開いてもう一度お試しください。",
+  "@migrationSnapshotInUseConsentBody": {
+    "x-sourceSha256": "20d61ed5b8415eeca3265d2534032a65b34f4808d11bdd6e2df58f7689ad5fc5"
+  },
+  "migrationSnapshotInUseAbortedMessage": "別のアプリがライブラリを開いているため、保存データを変更する前の自動バックアップに最新の変更が含まれなくなります。そのため、Caller’s Compendiumを起動できませんでした。ライブラリを開いている他のアプリをすべて閉じてから、Caller’s Compendiumを再度開いてください。あるいは、再度開いてバックアップなしで続行することもできます。",
+  "@migrationSnapshotInUseAbortedMessage": {
+    "x-sourceSha256": "807eb23829aafdccc4616f33502179af13af6b1f6bf14eca55dc0696b087fb7a"
+  },
   "migrationSnapshotConsentTitle": "データをバックアップできませんでした",
   "@migrationSnapshotConsentTitle": {
     "x-sourceSha256": "809b2d6dbd0aae49496f566c318ff23d50bf7ffd3fa9dc0a81a49bd78b153d1c"

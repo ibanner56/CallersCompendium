@@ -392,6 +392,24 @@ abstract class AppLocalizations {
   /// **'The automatic backups folder could not be written to.'**
   String get migrationSnapshotCauseUnwritableBackupsDir;
 
+  /// Plain-language sentences naming the cause of a failed automatic backup and its remedy: another program (for example a database viewer) has the app's data file open and is reading it, so a copy would be missing recent changes. Appended to the 'backup failed' message of the reset flow. Must tell the user to close the other program, not to free space. Say "app", not "program": in this app a program is a dance set list.
+  ///
+  /// In en, this message translates to:
+  /// **'Another app has your library open, so a backup made now would miss your latest changes. Close any other app that has your library open, then try again.'**
+  String get migrationSnapshotCauseDatabaseInUse;
+
+  /// Body of the blocking dialog asking whether to change saved data (a schema upgrade or a one-time data repair) without a recoverable backup, shown when the backup failed because another program has the app's data file open. Keep the wording true for both an upgrade and a repair. The remedy is closing the other program, not freeing space. Say "app", not "program": in this app a program is a dance set list.
+  ///
+  /// In en, this message translates to:
+  /// **'Before making changes to your saved data, Caller\'s Compendium makes an automatic backup so the changes can be undone if something goes wrong. Another app has your library open right now, so a backup made now would miss your latest changes.\n\nIf you continue without a backup and the changes are interrupted, some of your dances or programs could be lost. You can quit, close any other app that has your library open, and reopen Caller\'s Compendium to try again.'**
+  String get migrationSnapshotInUseConsentBody;
+
+  /// Terminal startup-screen message shown when the automatic backup taken before a schema upgrade or a one-time data repair failed because another program has the app's data file open, and the user declined to proceed without one. No Retry is offered: the user reopens the app. Say "app", not "program": in this app a program is a dance set list.
+  ///
+  /// In en, this message translates to:
+  /// **'Caller\'s Compendium didn\'t start because another app has your library open, so the automatic backup made before changing your saved data would miss your latest changes. Close any other app that has your library open, then reopen Caller\'s Compendium — or reopen it and choose to continue without a backup.'**
+  String get migrationSnapshotInUseAbortedMessage;
+
   /// Title of the blocking dialog asking whether to change saved data (a schema upgrade or a one-time data repair) without a recoverable backup after the automatic backup failed.
   ///
   /// In en, this message translates to:

@@ -2950,6 +2950,62 @@ void main() {
     },
   );
 
+  testWidgets('a snapshot refused because another app has the library '
+      'open says to close it, in the dialog and on the terminal screen', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final appData = openTestAppData();
+    final failure = SnapshotFailure(
+      fromVersion: 2,
+      toVersion: 2,
+      cause: SnapshotFailureCause.databaseInUse,
+      error: const SnapshotDatabaseInUse('/x/compendium.sqlite'),
+    );
+
+    await tester.pumpWidget(
+      CompendiumApp(
+        appData: appData,
+        windowService: NoopWindowService(appData.repositories.settings),
+        migrationPreflight: (onSnapshotFailure) async {
+          final proceed = await onSnapshotFailure(failure);
+          if (!proceed) throw MigrationSnapshotAborted(failure);
+        },
+        integrityCheck: () async => true,
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    // The dialog names the real remedy and not the disk/folder advice.
+    expect(find.text('Couldn\'t back up your data'), findsOneWidget);
+    expect(
+      find.textContaining('Another app has your library open'),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('close any other app that has your library open'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('free up space'), findsNothing);
+
+    await tester.tap(find.text('Quit'));
+    await tester.pumpAndSettle();
+
+    // The dialog is gone; the terminal screen gives the same remedy.
+    expect(find.text('Couldn\'t back up your data'), findsNothing);
+    expect(
+      find.textContaining('Close any other app that has your library'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Free up space'), findsNothing);
+    expect(find.byIcon(Icons.lock_outline), findsOneWidget);
+    expect(find.byType(AppShell), findsNothing);
+  });
+
   testWidgets(
     'a failed pre-migration snapshot with Quit aborts to a non-retryable '
     'screen, before any schema change (issue #442)',

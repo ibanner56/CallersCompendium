@@ -192,6 +192,18 @@ class AppLocalizationsEn extends AppLocalizations {
       'The automatic backups folder could not be written to.';
 
   @override
+  String get migrationSnapshotCauseDatabaseInUse =>
+      'Another app has your library open, so a backup made now would miss your latest changes. Close any other app that has your library open, then try again.';
+
+  @override
+  String get migrationSnapshotInUseConsentBody =>
+      'Before making changes to your saved data, Caller\'s Compendium makes an automatic backup so the changes can be undone if something goes wrong. Another app has your library open right now, so a backup made now would miss your latest changes.\n\nIf you continue without a backup and the changes are interrupted, some of your dances or programs could be lost. You can quit, close any other app that has your library open, and reopen Caller\'s Compendium to try again.';
+
+  @override
+  String get migrationSnapshotInUseAbortedMessage =>
+      'Caller\'s Compendium didn\'t start because another app has your library open, so the automatic backup made before changing your saved data would miss your latest changes. Close any other app that has your library open, then reopen Caller\'s Compendium — or reopen it and choose to continue without a backup.';
+
+  @override
   String get migrationSnapshotConsentTitle => 'Couldn\'t back up your data';
 
   @override
