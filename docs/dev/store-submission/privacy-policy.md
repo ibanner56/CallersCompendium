@@ -165,11 +165,11 @@ they can still be published, but deleting the store requests immediate removal.
 If physical removal fails, a durable cleanup record retries it on later requests
 and hourly sweeps.
 The access log's derived sync storage path, and the identifiers of what was
-read, become eligible for nulling 30 days after access and are nulled by the
+requested, become eligible for nulling 30 days after access and are nulled by the
 next hourly sweep; it retains a timestamp-only aggregate row after that, and
-for each item requested only its time and kind. Ordinary diagnostic events become eligible for
-removal after 30 days and are removed by the next hourly sweep. They contain no
-content or bearer credentials.
+for each item requested only its time and kind. Ordinary diagnostic events
+become eligible for removal after 30 days and are removed by the next hourly
+sweep. They contain no content or bearer credentials.
 
 ### 8. Open source
 

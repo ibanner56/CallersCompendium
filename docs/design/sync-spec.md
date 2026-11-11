@@ -5246,7 +5246,7 @@ item's content.
 | --- | --- |
 | `kind` | `manifest` or `blob`. Retained. |
 | `id_key` | As above. Nulled after 30 days. |
-| `epoch` | The store epoch read. Nulled with `id_key`. |
+| `epoch` | The store epoch requested; when none is, the current epoch, recorded after the lookup and before any read (null if the store is not found). Nulled with `id_key`. |
 | `device_id` | The device whose manifest was read; null for a blob. Nulled with `id_key`. |
 | `hash` | The blob read; null for a manifest. Nulled with `id_key`, because a content hash can confirm a guessed record. |
 | `accessed_at` | Retained. |

@@ -499,7 +499,7 @@ curl --noproxy '*' --silent --show-error --max-time 15 \
   indexing, orphan-blob reconcile, or pending-deletion retry), so it is safe to
   run against the live volume and neither blocks nor is blocked by the running
   server's writes to `athenaeum.sqlite`. Only the break-glass log database is
-  written, which is where the audit row goes. The running server's retention
+  written, which is where the audit rows go. The running server's retention
   sweep writes that database too, so each side waits up to 250 ms for the
   other; past that, this command exits with `break-glass read failed` (re-run
   it) or the sweep reports a `break_glass_retention` failure. It never creates
