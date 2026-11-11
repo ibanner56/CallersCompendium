@@ -465,7 +465,13 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
 
   Future<void> _softDelete(Program program, List<String> focusAfter) async {
     _pendingFocusIds = focusAfter;
-    await _repos.programs.softDelete(program.id, at: DateTime.now().toUtc());
+    try {
+      await _repos.programs.softDelete(program.id, at: DateTime.now().toUtc());
+    } catch (_) {
+      // Nothing was deleted, so no later snapshot should move focus.
+      _pendingFocusIds = const [];
+      rethrow;
+    }
     if (!mounted) return;
     final l10n = AppLocalizations.of(context);
     // No optimistic removal: the soft delete is a write to `programs`, so the

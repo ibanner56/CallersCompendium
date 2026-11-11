@@ -12,8 +12,9 @@ import '../../l10n/app_localizations.dart';
 /// keyboard, which a barrier does not: a text field that held focus when
 /// closing began would otherwise keep taking keystrokes that could no longer be
 /// saved (A11Y-6). Closing is not cancellable, so the app below stays excluded
-/// for good. Excluding focus unfocuses without clearing text, so what was typed
-/// before the overlay is still in its controller for the draft flush.
+/// for good. Excluding focus unfocuses without clearing text. The unfocus lands on
+/// the next frame, so a field that commits on blur does so after the draft
+/// flush has read the editors; before this nothing blurred at all.
 class AppClosingOverlay extends StatelessWidget {
   const AppClosingOverlay({
     required this.closing,

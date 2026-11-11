@@ -2852,13 +2852,22 @@ class _DanceListScreenState extends State<DanceListScreen>
     // row's at the end of the list, the search field when none is left), so
     // the next Tab continues from where the user was instead of restarting at
     // the app bar. The snackbar's Undo is not the target: it is transient and
-    // sits outside the list's traversal order. The move only happens if focus
-    // was actually dropped, so a mouse user's focus is never stolen.
-    final removedAt = _results.indexWhere((e) => e.dance.id == danceId);
+    // sits outside the list's traversal order. The move only happens for a
+    // keyboard user whose focus was actually dropped ([restoreFocusToRowMenu]),
+    // so a mouse or touch user, or focus that has since moved, is left alone.
+    // "Next" is in display order, which differs from `_results` order when a
+    // category grouping is active.
+    final shown = [
+      for (final item in _buildGroupedItems() ?? const <_CollectionListItem>[])
+        if (item is _DanceRowItem) item.entry.dance.id,
+    ];
+    final order = shown.isNotEmpty
+        ? shown
+        : [for (final e in _results) e.dance.id];
+    final removedAt = order.indexOf(danceId);
     final neighbours = [
-      if (removedAt >= 0 && removedAt + 1 < _results.length)
-        _results[removedAt + 1].dance.id,
-      if (removedAt > 0) _results[removedAt - 1].dance.id,
+      if (removedAt >= 0 && removedAt + 1 < order.length) order[removedAt + 1],
+      if (removedAt > 0) order[removedAt - 1],
     ];
     setState(() => _results.removeWhere((e) => e.dance.id == danceId));
     WidgetsBinding.instance.addPostFrameCallback((_) {

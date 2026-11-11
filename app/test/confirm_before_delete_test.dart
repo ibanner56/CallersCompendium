@@ -596,6 +596,17 @@ void main() {
   });
 
   group('focus after deleting a row from its ⋮ menu (A11Y-5)', () {
+    // The deletes below stand in for a keyboard user's, so keep the app in
+    // keyboard navigation mode (a tap would switch it to touch mode).
+    setUp(() {
+      FocusManager.instance.highlightStrategy =
+          FocusHighlightStrategy.alwaysTraditional;
+    });
+    tearDown(() {
+      FocusManager.instance.highlightStrategy =
+          FocusHighlightStrategy.automatic;
+    });
+
     /// The id of the row whose ⋮ button holds focus, or null.
     String? focusedMenuOf(String prefix) {
       final context = FocusManager.instance.primaryFocus?.context;
@@ -693,13 +704,13 @@ void main() {
       expect(focusedMenuOf('dance-actions-'), 'd2');
     });
 
-    testWidgets('dances: focus the user moved elsewhere is left alone', (
+    testWidgets('dances: a touch user\'s swipe-delete moves no focus', (
       tester,
     ) async {
+      FocusManager.instance.highlightStrategy =
+          FocusHighlightStrategy.alwaysTouch;
       final repos = await threeDances();
       await _pumpDanceList(tester, repos, confirmBeforeDelete: false);
-      await tester.tap(find.byKey(const ValueKey('collection-search-field')));
-      await tester.pumpAndSettle();
       await tester.drag(
         find.byKey(const ValueKey('slidable-d2')),
         const Offset(-300, 0),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-/// Whether keyboard focus has been dropped, or is about to be: nothing lasting
-/// holds it.
+/// Whether a keyboard user's focus has been dropped, or is about to be: the app
+/// is in keyboard navigation mode and nothing lasting holds focus.
 ///
 /// Removing the focused widget from the tree (a deleted list row, with the ⋮
 /// button inside it) leaves the primary focus on a detached node or on a scope
@@ -9,6 +9,12 @@ import 'package:flutter/material.dart';
 /// sits on a live, traversable widget is never "lost", so a caller can use this
 /// to avoid stealing it from wherever the user has since moved it.
 bool keyboardFocusIsLost() {
+  // Only a keyboard (or switch/AT) user has focus to lose. A mouse or touch
+  // user has nothing focused as a matter of course, and moving focus for them
+  // would raise a soft keyboard or announce a button nobody was on.
+  if (FocusManager.instance.highlightMode != FocusHighlightMode.traditional) {
+    return false;
+  }
   final focus = FocusManager.instance.primaryFocus;
   if (focus == null || focus is FocusScopeNode) return true;
   final context = focus.context;
