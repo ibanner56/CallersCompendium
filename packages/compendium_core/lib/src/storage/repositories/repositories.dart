@@ -806,6 +806,74 @@ class CompendiumRepositories {
   }) => _migration ??= _runMigration(onDerivedRebuildProgress);
   Future<void>? _migration;
 
+  /// The completion markers of every one-time repair [ensureMigrated] can
+  /// run, each mapped to the `value_json` it must hold for that repair to
+  /// count as done in this build, or to null when the marker's presence alone
+  /// is enough.
+  ///
+  /// A repair is **owed** when its marker is absent, tombstoned, or holds a
+  /// different value. The app's migration preflight
+  /// (`runMigrationPreflight` in `app/lib/src/data/migration_guard.dart`) reads
+  /// these keys before the database opens and snapshots the file when any
+  /// repair is owed, because several of these passes rewrite `figures_json`
+  /// and shareable text in place on a file whose `user_version` does not
+  /// change (UPGRADE-1). Markers, not schema bumps, are how repairs ship in a
+  /// PATCH release (`docs/dev/releasing.md`), so a version-only check misses
+  /// them.
+  ///
+  /// The values mirror each sweep's own gate in [_runMigration]: presence for
+  /// most, the exact rule version for [sectionRuleVersionKey], the literal
+  /// `true` for [taxonomyV35FigureNormalizationDoneKey], and string equality
+  /// with the live scope for [shareableTextNormalisationScopeKey], so a
+  /// registry change that widens the normalisation scope is owed too.
+  ///
+  /// Index-only repairs are listed as well as the ones that rewrite source
+  /// rows: the preflight cannot tell which a future marker will be, and the
+  /// cost is one snapshot per release that adds a marker.
+  ///
+  /// Deliberately **not** listed:
+  ///
+  /// * [derivedRebuildRequiredKey] — its presence means a rebuild of derived
+  ///   rows (regenerated from source) is owed, not a source rewrite. A sweep
+  ///   that sets it mid-pass has its own marker here, still absent; its other
+  ///   writers (the open-time FTS repair, the `normalisation_skips` retry
+  ///   below) only schedule a rebuild.
+  /// * Recorded `normalisation_skips` entries, retried on every open while
+  ///   they remain. They are ordinary-use state rather than an upgrade's debt,
+  ///   and treating them as owed would snapshot on every launch.
+  /// * `promoteRetainedSyncFields`, which is not marker-gated. It does move
+  ///   kept sync fields into source records, but only on the first open after
+  ///   an upgrade that starts syncing such a field, and owing it cannot be
+  ///   told from the rows alone without decoding them: a soft-deleted record's
+  ///   kept part stays put on every open, so its table being non-empty is no
+  ///   signal.
+  ///
+  /// `test/storage/owed_repairs_test.dart` fails if a sweep writes a marker
+  /// this map does not list, if a fully migrated database still reads as
+  /// owing anything here, or if a stale value reads as owed when the sweep
+  /// would skip it (or the reverse).
+  Map<String, String?> get oneTimeRepairMarkers => {
+    purgeCorruptionRepairDoneKey: null,
+    sectionRuleVersionKey: '"$kSectionRuleVersion"',
+    inversePairNormalisationDoneKey: null,
+    starPromenadeHandRemovalDoneKey: null,
+    gripSingleFileCanonicalInclusionDoneKey: null,
+    promenadeTurnCircleWordingCanonicalRebuildDoneKey: null,
+    compactDosidoSeesawCanonicalRebuildDoneKey: null,
+    taxonomyV33CanonicalRebuildDoneKey: null,
+    taxonomyV34CanonicalRebuildDoneKey: null,
+    taxonomyV35FigureNormalizationDoneKey: 'true',
+    modifierContainerCanonicalRebuildDoneKey: null,
+    taxonomyV37CanonicalRebuildDoneKey: null,
+    taxonomyV38CanonicalRebuildDoneKey: null,
+    chainHandBackfillDoneKey: null,
+    callersBoxRollAwayRoleRepairDoneKey: null,
+    shareableTextNormalisationScopeKey: _normalisationScope,
+    normalisationDerivedIndexRepairDoneKey: null,
+    customFieldIndexRepairDoneKey: null,
+    customNumberIndexRepairDoneKey: null,
+  };
+
   /// Writes a one-shot migration-sweep marker so drift's watchers see it.
   ///
   /// Five sweeps in this file record completion the same way. Routing them

@@ -25,6 +25,8 @@ Future<void> main(List<String> arguments) async {
   final config = AthenaeumConfig(
     dataDirectory: directory.path,
     pepper: List<int>.filled(32, 0x42),
+    // A bench on a nearly full dev disk measures throughput, not the floor.
+    minFreeBytes: 0,
   );
   final app = AthenaeumApp(
     config: config,

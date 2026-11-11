@@ -195,6 +195,37 @@ def main() -> int:
         check("unchanged taxonomy needs no note",
               unchanged_taxonomy.returncode == 0, unchanged_taxonomy.stderr)
 
+        # A new one-time repair marker, with neither version moving: a PATCH
+        # release shipping a repair as a settings marker.
+        marker = "const String k = '__example_repair_done__';\n"
+        write(repo, DATABASE, database(20) + marker)
+        write(repo, Path("app/CHANGELOG.md"), changelog(
+            unreleased="### Added\n\n",
+            released="### Fixed\n\n- A repair.\n",
+            core="0.2.0",
+        ))
+        marker_missing = run("--version", "0.2.0-beta", "--previous-ref",
+                             "v0.2.0-beta", cwd=repo)
+        check("a new repair marker without a note is rejected",
+              marker_missing.returncode == 1, marker_missing.stderr)
+        check("the repair error names the marker",
+              "__example_repair_done__" in marker_missing.stderr,
+              marker_missing.stderr)
+
+        write(repo, Path("app/CHANGELOG.md"), changelog(
+            unreleased="### Added\n\n",
+            released=(
+                "### Data / Migrations\n\n"
+                "- A one-time pass rewrites stored figures on first launch.\n"
+            ),
+            core="0.2.0",
+        ))
+        marker_noted = run("--version", "0.2.0-beta", "--previous-ref",
+                           "v0.2.0-beta", cwd=repo)
+        check("a new repair marker with a note passes",
+              marker_noted.returncode == 0, marker_noted.stderr)
+        write(repo, DATABASE, database(20))
+
         invalid_beta = run("--version", "0.2.0-beta.1", cwd=repo)
         check("beta counters are rejected", invalid_beta.returncode != 0,
               invalid_beta.stderr)
