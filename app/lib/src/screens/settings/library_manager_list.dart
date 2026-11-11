@@ -262,40 +262,53 @@ class _LibraryManagerListState extends State<LibraryManagerList> {
                     onSelected: (selected) =>
                         setState(() => _notUsedOnly = selected),
                   ),
-                  const Spacer(),
-                  PopupMenuButton<LibraryManagerSort>(
-                    key: ValueKey('$prefix-sort'),
-                    tooltip: l10n.libraryManagerSortTooltip,
-                    initialValue: _sort,
-                    onSelected: (sort) => setState(() => _sort = sort),
-                    itemBuilder: (_) => [
-                      CheckedPopupMenuItem(
-                        key: ValueKey('$prefix-sort-name'),
-                        value: LibraryManagerSort.name,
-                        checked: _sort == LibraryManagerSort.name,
-                        child: Text(l10n.libraryManagerSortByName),
-                      ),
-                      CheckedPopupMenuItem(
-                        key: ValueKey('$prefix-sort-count'),
-                        value: LibraryManagerSort.danceCount,
-                        checked: _sort == LibraryManagerSort.danceCount,
-                        child: Text(l10n.libraryManagerSortByDanceCount),
-                      ),
-                    ],
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppSpacing.xs),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.sort),
-                          const SizedBox(width: AppSpacing.xxs),
-                          Text(switch (_sort) {
-                            LibraryManagerSort.name =>
-                              l10n.libraryManagerSortByName,
-                            LibraryManagerSort.danceCount =>
-                              l10n.libraryManagerSortByDanceCount,
-                          }),
+                  // Expanded + end-aligned (not Spacer + Flexible, which would
+                  // split the free width): the sort label may shrink and wrap
+                  // at large text instead of overflowing the row.
+                  Expanded(
+                    child: Align(
+                      alignment: AlignmentDirectional.centerEnd,
+                      child: PopupMenuButton<LibraryManagerSort>(
+                        key: ValueKey('$prefix-sort'),
+                        tooltip: l10n.libraryManagerSortTooltip,
+                        initialValue: _sort,
+                        onSelected: (sort) => setState(() => _sort = sort),
+                        itemBuilder: (_) => [
+                          CheckedPopupMenuItem(
+                            key: ValueKey('$prefix-sort-name'),
+                            value: LibraryManagerSort.name,
+                            checked: _sort == LibraryManagerSort.name,
+                            child: Text(l10n.libraryManagerSortByName),
+                          ),
+                          CheckedPopupMenuItem(
+                            key: ValueKey('$prefix-sort-count'),
+                            value: LibraryManagerSort.danceCount,
+                            checked: _sort == LibraryManagerSort.danceCount,
+                            child: Text(l10n.libraryManagerSortByDanceCount),
+                          ),
                         ],
+                        child: Padding(
+                          padding: const EdgeInsets.all(AppSpacing.xs),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.sort),
+                              const SizedBox(width: AppSpacing.xxs),
+                              Flexible(
+                                child: Text(
+                                  switch (_sort) {
+                                    LibraryManagerSort.name =>
+                                      l10n.libraryManagerSortByName,
+                                    LibraryManagerSort.danceCount =>
+                                      l10n.libraryManagerSortByDanceCount,
+                                  },
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ),

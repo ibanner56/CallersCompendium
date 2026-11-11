@@ -337,14 +337,20 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
       padding: const EdgeInsets.fromLTRB(16, 4, 8, 8),
       child: Row(
         children: [
-          Semantics(
-            header: true,
-            child: Text(
-              l10n.performAdjustProgram,
-              style: theme.textTheme.titleLarge,
+          // Expanded (not Flexible, which would leave Done next to the title):
+          // the title takes the free width, so Done stays at the trailing edge,
+          // and at large text it wraps instead of pushing Done off-screen
+          // (dismissing the sheet any other way discards the edits).
+          Expanded(
+            child: Semantics(
+              header: true,
+              child: Text(
+                l10n.performAdjustProgram,
+                style: theme.textTheme.titleLarge,
+              ),
             ),
           ),
-          const Spacer(),
+          const SizedBox(width: 8),
           FilledButton(
             key: const ValueKey('adjust-done'),
             onPressed: () =>
