@@ -287,6 +287,35 @@ void main() {
       expect(f.note, 'with nextNeighbors');
     });
 
+    // The note `with nextNeighbors` must not read as a leftover or a balance
+    // after the circulate, or the fan-out would demote the figure and a
+    // re-parse of a stored custom would leave it custom (#2160).
+    group('a bracketed circulate through the fan-out', () {
+      const line = '(8) Circulate: women cross, men loop right [with N2]';
+      void expectBracketedCirculate(Figure f) {
+        expect(f.move, 'box_circulate');
+        expect(f.params['who'], 'role2s');
+        expect(f.params['hand'], 'right');
+        expect(f.note, 'with nextNeighbors');
+      }
+
+      test('free-text entry reads it', () {
+        expectBracketedCirculate(parseFreeTextFigureEntry(line).single);
+      });
+
+      test('a stored import-gap custom of it upgrades, then is stable', () {
+        final original = customFigure(
+          'Circulate: women cross, men loop right [with N2]',
+          beats: 8,
+          origin: CustomOrigin.importGap,
+        );
+        final once = reparseImportGapFigures([original]);
+        expect(once.upgradedCount, 1);
+        expectBracketedCirculate(once.figures.single);
+        expect(reparseImportGapFigures(once.figures).upgradedCount, 0);
+      });
+    });
+
     for (final line in const [
       // Unresolvable dancer, or a head other than with/around.
       'Circulate: women cross, men loop right [with phantom]',
