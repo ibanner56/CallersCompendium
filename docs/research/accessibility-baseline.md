@@ -49,6 +49,10 @@ baseline is AA:
 - Drag-and-drop (program reordering) must have a non-drag alternative
   (WCAG 2.5.7): move up/down buttons or cut/paste reordering.
 - Touch targets ≥ 24×24 px minimum, 44×44 pt preferred on touch surfaces.
+- No time-based interactions as the only route to an action. A sustained primary
+  press may be an optional shortcut only when a visible, keyboard-operable,
+  non-timed equivalent provides the same capability; Program **View details**
+  previews are the explicit exception.
 
 Automated check: `app/test/a11y_guidelines_test.dart` pumps the full app through
 the core screens and runs Flutter's `labeledTapTargetGuideline`, a 24×24 px
@@ -56,10 +60,6 @@ tap-target minimum (this baseline's floor, not Android's 48), and a RenderFlex
 overflow sweep at 360 and 412 dp with 2.0× text and the bundled fonts. It does
 not replace the manual screen-reader and Dynamic Type passes in
 `docs/dev/release-checklist.md`.
-- No time-based interactions as the only route to an action. A sustained primary
-  press may be an optional shortcut only when a visible, keyboard-operable,
-  non-timed equivalent provides the same capability; Program **View details**
-  previews are the explicit exception.
 
 ### Understandable
 - Consistent navigation and terminology across screens; user's dialect applied

@@ -1,4 +1,4 @@
-// Flutter's accessibility guidelines, run against the real app (A11Y-7).
+// Flutter's accessibility guidelines, run against the real app .
 //
 // `docs/research/accessibility-baseline.md` promises automated checks; until
 // now no test ran `meetsGuideline`. Each case here pumps the full app once,
@@ -6,7 +6,7 @@
 // ways:
 //
 //  1. `labeledTapTargetGuideline` — every tappable semantics node has a label
-//     (catches an inert, unlabelled extra stop such as A11Y-1's right-click
+//     (catches an inert, unlabelled extra stop such as an right-click
 //     recogniser).
 //  2. A 24×24 px minimum tap target — the baseline's own floor (WCAG 2.5.8),
 //     not Android's 48.
@@ -125,44 +125,48 @@ void _screen(
     final appData = await _seed();
     await _setSize(tester, _phone);
     final semantics = tester.ensureSemantics();
-    await tester.pumpWidget(
-      CompendiumApp(
-        appData: appData,
-        windowService: NoopWindowService(appData.repositories.settings),
-        integrityCheck: () async => true,
-      ),
-    );
-    await tester.pumpAndSettle();
-    await navigate(tester);
-    expect(tester.takeException(), isNull, reason: 'navigating to $name');
-    // Guards against a sweep that quietly checks the wrong screen.
-    expect(landedOn, findsWidgets, reason: 'did not reach $name');
-
-    await expectLater(tester, meetsGuideline(labeledTapTargetGuideline));
-    await expectLater(tester, meetsGuideline(_minimumTapTarget));
-
-    final overflows = <String>[];
-    tester.platformDispatcher.textScaleFactorTestValue = 2.0;
-    for (final size in [_phone, _bigPhone]) {
-      final errors = await _collectErrors(() => _setSize(tester, size));
-      overflows.addAll([
-        for (final e in errors)
-          if (e.contains('overflowed')) '${size.width.toInt()}dp: $e',
-      ]);
-      // Anything that is not an overflow is a real failure of its own.
-      expect(
-        errors.where((e) => !e.contains('overflowed')),
-        isEmpty,
-        reason: '$name at ${size.width.toInt()}dp, 2.0x',
+    try {
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: NoopWindowService(appData.repositories.settings),
+          integrityCheck: () async => true,
+        ),
       );
+      await tester.pumpAndSettle();
+      await navigate(tester);
+      expect(tester.takeException(), isNull, reason: 'navigating to $name');
+      // Guards against a sweep that quietly checks the wrong screen.
+      expect(landedOn, findsWidgets, reason: 'did not reach $name');
+
+      await expectLater(tester, meetsGuideline(labeledTapTargetGuideline));
+      await expectLater(tester, meetsGuideline(_minimumTapTarget));
+
+      final overflows = <String>[];
+      tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+      for (final size in [_phone, _bigPhone]) {
+        final errors = await _collectErrors(() => _setSize(tester, size));
+        overflows.addAll([
+          for (final e in errors)
+            if (e.contains('overflowed')) '${size.width.toInt()}dp: $e',
+        ]);
+        // Anything that is not an overflow is a real failure of its own.
+        expect(
+          errors.where((e) => !e.contains('overflowed')),
+          isEmpty,
+          reason: '$name at ${size.width.toInt()}dp, 2.0x',
+        );
+      }
+      expect(overflows, isEmpty, reason: '$name overflows at 2.0x text');
+      if (atLargeText != null) {
+        await _setSize(tester, _phone);
+        await atLargeText(tester);
+      }
+    } finally {
+      // Disposed in the body: the framework checks handles before teardowns
+      // run, and a failing expect must not leak the handle.
+      semantics.dispose();
     }
-    expect(overflows, isEmpty, reason: '$name overflows at 2.0x text');
-    if (atLargeText != null) {
-      await _setSize(tester, _phone);
-      await atLargeText(tester);
-    }
-    // Disposed in the body: the framework checks handles before teardowns run.
-    semantics.dispose();
   });
 }
 
@@ -224,7 +228,7 @@ void main() {
     },
     landedOn: find.byKey(const ValueKey('adjust-done')),
     atLargeText: (tester) async {
-      // A11Y-2: Done was pushed past the right edge of a 360dp screen. Closing
+      // Done was pushed past the right edge of a 360dp screen. Closing
       // the sheet any other way discards the edits, so Done must stay reachable.
       final done = find.byKey(const ValueKey('adjust-done'));
       expect(done.hitTestable(), findsOneWidget);
@@ -232,6 +236,9 @@ void main() {
     },
   );
 
+  // The form is a lazy list, so on a 780dp surface this sees only its first
+  // screenful; the Type and Formation dropdowns are covered on a tall surface
+  // by `dance_editor_narrow_test.dart`.
   _screen('Dance editor', (tester) async {
     await _tapKey(tester, 'new-dance');
   }, landedOn: find.byType(DanceEditorScreen));
@@ -242,7 +249,7 @@ void main() {
     ).push(MaterialPageRoute<void>(builder: (_) => const TagManagerScreen()));
     await tester.pumpAndSettle();
     // The longest sort label ("by dance count") is the one that overflowed
-    // the filter row (A11Y-4).
+    // the filter row .
     await _tapKey(tester, 'tag-sort');
     await _tapKey(tester, 'tag-sort-count');
   }, landedOn: find.byType(TagManagerScreen));

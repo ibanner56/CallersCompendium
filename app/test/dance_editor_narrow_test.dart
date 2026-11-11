@@ -14,7 +14,7 @@ void main() {
   // #1868: the Ahem test font overflowed the formation dropdown by 152px; with
   // the real fonts only the Progression dropdown (half a row) overflowed.
   //
-  // A11Y-3: at larger text the Type and Formation dropdowns overflowed too (74
+  // At larger text the Type and Formation dropdowns overflowed too (74
   // px at 1.5x and 188 px at 2.0x on a 360dp phone) until they were expanded.
   for (final scale in [1.0, 1.5, 2.0]) {
     testWidgets('dance editor form fits at 360dp, ${scale}x text, real fonts', (

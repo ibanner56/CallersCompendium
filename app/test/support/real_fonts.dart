@@ -6,8 +6,8 @@ import 'package:flutter/services.dart';
 /// a widget test measures text with real glyph widths.
 ///
 /// The default Ahem test font draws every glyph as a full-em box, which
-/// roughly doubles some overflows and hides others (it misled the first fix
-/// for #1877). Any test that asserts "this fits" at a given width or text
+/// roughly doubles some overflows and hides others (it misled an earlier
+/// dance-editor fix). Any test that asserts "this fits" at a given width or text
 /// scale needs the real fonts. Call it before pumping; run from the `app`
 /// directory, which `flutter test` does.
 Future<void> loadBundledFonts() async {
