@@ -957,8 +957,9 @@ requirements, not deployment taste, and each has a concrete failure mode:
   already refuses a plaintext endpoint (spec §8), but the things that reach a
   public port are not all conforming clients, and the sync ID travels on
   every request and cannot be taken back once someone else has it — so one
-  plaintext call puts the store's address in the clear for good, until every
-  device moves to a new phrase.
+  plaintext call puts the store's address in the clear for good: moving every
+  device to a new phrase stops using it, and only deleting the store removes
+  what it holds.
 
 - **The per-IP rate limit must see the real client address.** The server binds
   loopback, so its socket peer is the proxy on *every* request. A server that

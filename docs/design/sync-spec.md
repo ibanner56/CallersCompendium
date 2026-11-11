@@ -1900,7 +1900,7 @@ is the same total, unrecoverable disclosure that a plaintext request would be --
 not because the address is a secret, but because §8 makes holding it the whole
 of the read, write and `DELETE` capability.
 
-### 5.1 Authentication
+### 5.1 Carrying the sync ID
 
 The sync ID travels in the `Authorization` request header using the `Bearer`
 scheme. It MUST NOT appear in a URL. The header and scheme are how a request
@@ -1942,8 +1942,8 @@ now names the `Bearer` value instead, following the maintainer's decision of
 2026-11-11, quoted at §6.14 item 2, that nothing here should imply the store ID
 is authentication material of any kind. What a client sends, what a server
 decodes, and when it answers `401` are unchanged. The same substitution is made
-in §5.4's outcome table and in §9's test vectors. The heading keeps its name
-because ADR-004 unit tracking refers to the section by it.*
+in §5.4's outcome table and in §9's test vectors. The heading, "5.1
+Authentication", is renamed for the same reason.*
 
 Because the encoding is applied *after* normalisation and unwound *before* the
 HMAC, the storage key is a function of the normalised ID alone. The encoding
@@ -2558,8 +2558,8 @@ guess cost something.
 
 *Amended 2026-11-11: wording only, following the maintainer's decision quoted
 at §6.14 item 2. "Correctly-authenticated requests" is now "requests that
-resolve an existing store" — the set it always meant, and the wording §9's
-vector for this rule already used. The requirement is unchanged.*
+resolve an existing store" — the set the rule's second clause already
+implied, and the wording §9's vector for this rule already used. The requirement is unchanged.*
 
 ## 6. Client conformance
 
@@ -4747,7 +4747,10 @@ this document is invisible to it by construction.
    authentication material of any kind." It now says what happens when someone
    else has the ID: it cannot be taken back, and whoever still has the old ID
    keeps access to the old store until wipe removes it.
-   Someone else having it is a supported case (§3.3), not an incident. Nothing
+   Handing it to someone to sync with is a supported case (§3.3), not an
+   incident. The 2026-09-23 note's remark that §2 and §5.1 reserve
+   "credential" for the header encoding no longer holds: neither uses the word
+   for it now. Nothing
    the pairing flow must disclose has changed: no recovery, no revocation, the
    full capability of whoever holds the ID, and that moving devices to a new ID
    and wipe are complementary.*
@@ -6066,8 +6069,8 @@ archive carries entity rows with no settings representation of any kind (the
 backup document, the one export that carries settings at all, excludes
 `sync_id` by name rather than by class — see *Configuration egress* above); and
 no server or proxy log line contains it, checked against the response to a
-request that fails store resolution (§5.4) as well as one that succeeds
-(mutation: log the request line verbatim — the failing case is the one a naive implementation
+request answered `401` as well as one that succeeds (mutation: log the
+request line verbatim — the failing case is the one a naive implementation
 logs, because it is the one an operator wants to debug).
 
 **Reconciliation.** Converges from both sides (mutation: keep the local row).

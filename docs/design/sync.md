@@ -4116,7 +4116,7 @@ DELETE FROM stores WHERE last_seen < (now - 30 days);
 
 then cascades manifests, blob refs and blob files.
 
-`last_seen` is updated by **any** accepted request for the store, so this
+`last_seen` is updated by **any** request that resolves the store, so this
 is a rolling TTL on activity rather than an absolute age cap: a store synced
 weekly persists indefinitely, and that is intended.
 

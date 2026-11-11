@@ -185,28 +185,28 @@ requests per store per second with a burst of 600, 10 failures per IP per
 minute, a burst of 20 failures per IP, 1,000 failures per minute server-wide,
 and 60 store creations per minute. There is deliberately no server-wide
 request limit (spec §5.4); `server/tool/load_test.dart` measures what the host
-sustains. A saturated server-wide failure budget must not block authenticated
-access to an existing store.
+sustains. A saturated server-wide failure budget must not block requests that
+resolve an existing store.
 
 Use a no-redirect probe after every Apache change in a direct-origin or staging
 deployment:
 
 ```sh
-ATHENAEUM_CREDENTIAL='encoded-credential-for-a-new-disposable-store' \
+ATHENAEUM_CREDENTIAL='encoded-sync-id-of-a-new-disposable-store' \
   ATHENAEUM_APACHE_CONFIG=/etc/apache2/sites-enabled/athenaeum.conf \
   sh server/deploy/smoke_test.sh sync.example.invalid
 curl --max-time 10 --max-redirs 0 --include http://sync.example.invalid/v1/store
 curl --max-time 10 --include https://sync.example.invalid/v1/store
 ```
 
-The credential must be new and belong to a disposable test store; the script
+The encoded sync ID must be new and belong to a disposable test store; the script
 deletes stores it creates. If cleanup is rate-limited after the failure-budget
 probe, it retries after the rolling 60-second window before reporting failure.
 The first request must be a refusal (not 3xx and not an Athenaeum response).
 The script then exercises real client buckets and
 forwarded-header overwrite through Apache, the 1,000-failure and 60-creation
 budgets, the inclusive 16 MiB boundary, compressed-body preservation, and
-authenticated Athenaeum create/lookup responses over HTTPS with
+Athenaeum create/lookup responses over HTTPS with
 `Strict-Transport-Security`. The harness also inspects the active vhost
 configuration to ensure no request decompression directive is enabled;
 the successful gzip upload then exercises the backend's own gzip decoder.
@@ -445,8 +445,8 @@ curl --noproxy '*' --silent --show-error --max-time 15 \
 
 - **Logs:** retain only the redacted Apache access/error logs and container
   stderr according to the host's retention policy. The safe access format
-  excludes request targets and headers, so sync IDs and credentials are not
-  written. Restrict log access to operators.
+  excludes request targets and headers, so sync IDs, in plain or encoded
+  form, are not written. Restrict log access to operators.
 - **Alerts:** route JSON lines with `alert.kind` of `quota_exhaustion` or
   `sweep_failure` from container stderr to the on-call notification path. The
   reference path is the email forwarder installed in step 6 of the first
@@ -455,7 +455,7 @@ curl --noproxy '*' --silent --show-error --max-time 15 \
   Repeated alerts with the same kind, source, and exception type are limited to
   one notification per minute; the next notification includes the aggregate
   count. Payloads contain only a category, source, exception type, and optional
-  count; they never contain user content, bearer credentials, sync IDs, or
+  count; they never contain user content, sync IDs (plain or encoded), or
   device IDs.
 - **Quota probe:** in a staging deployment, create data until the service
   returns `507`, record the UTC timestamp and alert/incident URL, then remove
@@ -465,8 +465,8 @@ curl --noproxy '*' --silent --show-error --max-time 15 \
   `sweep_failure` alert reaches a human, record the timestamp and incident URL,
   then repeat without the injected failure to verify removal.
 - **Retention:** after the sweep, query the disposable store and expect
-  "not found". Search ordinary access/error/container logs for its credential,
-  sync ID, and content; all must be absent.
+  "not found". Search ordinary access/error/container logs for its sync ID, plain
+  and encoded, and its content; all must be absent.
 - **Break-glass:** obtain an incident/ticket approval before access. Record the
   operator, reason, approval reference, and UTC time in the ticket, then use
   the supported command below. It accepts the raw sync ID on stdin, writes the
