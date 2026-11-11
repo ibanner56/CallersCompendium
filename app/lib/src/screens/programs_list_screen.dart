@@ -778,12 +778,12 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
                       key: ValueKey('slide-delete-${program.id}'),
                       onPressed: (_) =>
                           _softDelete(program, _neighbourIds(sorted, index)),
-                      backgroundColor: Theme.of(context)
-                          .colorScheme
-                          .errorContainer,
-                      foregroundColor: Theme.of(context)
-                          .colorScheme
-                          .onErrorContainer,
+                      backgroundColor: Theme.of(
+                        context,
+                      ).colorScheme.errorContainer,
+                      foregroundColor: Theme.of(
+                        context,
+                      ).colorScheme.onErrorContainer,
                       icon: Icons.delete_outline,
                       label: l10n.commonDelete,
                     ),
