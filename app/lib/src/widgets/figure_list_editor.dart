@@ -1749,6 +1749,21 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
         widget.draft.params['beats'] = beatsSpec.defaultValue;
       }
     }
+    _seedSequenceStepBeats();
+  }
+
+  /// A free-text step of a sequence saved before #795 carries no count, which
+  /// the step would show as the default but save as nothing, undercounting the
+  /// sequence. Seed it here, before the first build, so the total already
+  /// agrees; seeding is not an edit, so it reports nothing to the host.
+  void _seedSequenceStepBeats() {
+    final beatsSpec = widget.taxonomy.resolve(customMove)?.params['beats'];
+    if (beatsSpec == null) return;
+    for (final step in widget.draft.sequenceFigures ?? const <FigureDraft>[]) {
+      if (step.move == customMove && !step.params.containsKey('beats')) {
+        step.params['beats'] = beatsSpec.defaultValue;
+      }
+    }
   }
 
   /// The snippet text currently shown for this figure: the per-dance override
@@ -3828,22 +3843,6 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
     _showNote = widget.draft.note.trim().isNotEmpty;
     _showWordingOverride =
         widget.draft.wordingOverride?.trim().isNotEmpty ?? false;
-    // A free-text step saved before #795 carries no count, which the step
-    // would show as the default but save as nothing, undercounting the
-    // sequence. Seed it as a top-level row does; not a user override.
-    if (widget.role == _ChildRole.step &&
-        widget.draft.move == customMove &&
-        !widget.draft.params.containsKey('beats')) {
-      final def = widget.taxonomy.resolve(customMove);
-      if (def?.params['beats'] case final beatsSpec?) {
-        widget.draft.params['beats'] = beatsSpec.defaultValue;
-        // The sequence's total was drawn before this step seeded its count;
-        // have the row redraw so the total agrees with what will be saved.
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) widget.onChanged();
-        });
-      }
-    }
   }
 
   void _selectMove(String moveId) {

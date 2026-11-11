@@ -11,10 +11,13 @@ import '../support/l10n_harness.dart';
 /// entry, row-menu grouping, the steps' own beats and total, and the
 /// four-step and one-phrase limits.
 class _Host extends StatefulWidget {
-  const _Host({required this.drafts, required this.phrase});
+  const _Host({required this.drafts, required this.phrase, this.onEdit});
 
   final List<FigureDraft> drafts;
   final PhraseStructure phrase;
+
+  /// Called for every edit the editor reports to its host.
+  final VoidCallback? onEdit;
 
   @override
   State<_Host> createState() => _HostState();
@@ -49,7 +52,10 @@ class _HostState extends State<_Host> {
             drafts: widget.drafts,
             taxonomy: contraTaxonomy,
             phraseStructure: widget.phrase,
-            onChanged: () => setState(() {}),
+            onChanged: () {
+              widget.onEdit?.call();
+              setState(() {});
+            },
             onAdd: () => setState(() => widget.drafts.add(FigureDraft())),
             onAddSequence: () {
               final draft = FigureDraft(
@@ -77,6 +83,7 @@ Future<void> _pump(
   WidgetTester tester,
   List<FigureDraft> drafts, {
   PhraseStructure phrase = PhraseStructure.standard,
+  VoidCallback? onEdit,
 }) async {
   const size = Size(1200, 2400);
   await tester.binding.setSurfaceSize(size);
@@ -85,7 +92,9 @@ Future<void> _pump(
     tester.view.resetPhysicalSize();
     return tester.binding.setSurfaceSize(null);
   });
-  await tester.pumpWidget(_Host(drafts: drafts, phrase: phrase));
+  await tester.pumpWidget(
+    _Host(drafts: drafts, phrase: phrase, onEdit: onEdit),
+  );
   await tester.pumpAndSettle();
 }
 
@@ -191,9 +200,12 @@ void main() {
     final drafts = [
       FigureDraft(sequenceFigures: [_step('balance', 4), custom]),
     ];
-    await _pump(tester, drafts);
+    var edits = 0;
+    await _pump(tester, drafts, onEdit: () => edits++);
     await _open(tester, 0);
 
+    // Seeding is not an edit: opening a row must not mark the dance dirty.
+    expect(edits, 0);
     expect(custom.params['beats'], isNotNull);
     expect(find.text('${drafts.single.beats} beats in total'), findsOneWidget);
     expect(drafts.single.beats, greaterThan(4));
