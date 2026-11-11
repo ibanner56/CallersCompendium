@@ -1,9 +1,0 @@
-{
-  "id": "search-move-typeaheads-dialect",
-  "user_visible": true,
-  "app": {
-    "changed": [
-      "The move boxes in Advanced search and By phrase now find moves by your dialect's own names for them, as the dance editor does."
-    ]
-  }
-}

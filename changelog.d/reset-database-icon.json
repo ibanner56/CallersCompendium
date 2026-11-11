@@ -1,9 +1,0 @@
-{
-  "id": "reset-database-icon",
-  "user_visible": true,
-  "app": {
-    "changed": [
-      "The Reset database option in Developer options now has a warning icon in place of the trash can."
-    ]
-  }
-}
