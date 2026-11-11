@@ -3158,10 +3158,9 @@ FigureMatch? _circulate(String scrubbed) {
     bracketNote = _canonicalSquareBracketNote(body);
     def = bracket[1]!.trim();
   }
-  // Whatever bracket text is left is not one clause-final bracket: a second
-  // one, an unbalanced one, one with text after it, or one before the loop.
-  if (def.contains('[') || def.contains(']')) return null;
-
+  // Any bracket text left in [def] (a second bracket, an unbalanced one, one
+  // with text after it, one before the loop) is rejected below: the cross and
+  // loop clauses must match their anchored regexes and resolve to dancers.
   final comma = def.indexOf(',');
   if (comma == -1 || def.indexOf(',', comma + 1) != -1) return null;
 
