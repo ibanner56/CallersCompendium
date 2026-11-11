@@ -379,7 +379,7 @@ void main() {
         expect(figure.params['hand'], 'right');
         expect(figure.params['balance'], isTrue);
         expect(figure.params['beats'], 8);
-        expect(figure.note, contains(note));
+        expect(figure.note, note);
       });
     }
 

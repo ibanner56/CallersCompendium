@@ -261,7 +261,10 @@ void main() {
 
     // #2160: a clause-final `[with <dancer>]` / `[around <dancer>]` bracket
     // after the loop clause. The figure keeps who/hand; the note is the
-    // bracket's canonical text only (maintainer-approved for #2160).
+    // bracket's canonical text only. That differs from #2160's suggestion (the
+    // raw bracket kept in the note, as before #1218) and from a bracketless
+    // line, whose note is the definition; it was chosen while implementing
+    // #2160, not decided on the issue.
     const bracketAccepted = <String, String>{
       'Circulate: women cross, men loop right [with N2]': 'with nextNeighbors',
       'Circulate: women cross, men loop right [with shadow]': 'with shadows',

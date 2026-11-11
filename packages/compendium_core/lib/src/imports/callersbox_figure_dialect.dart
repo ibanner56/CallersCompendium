@@ -3118,7 +3118,8 @@ String _otherShoulder(String s) => s == 'right' ? 'left' : 'right';
 /// of four`), i.e. the balance-and-box-circulate figure. This pre-recognizer
 /// maps such a line onto [box_circulate]; the crossing subject becomes `who`,
 /// an explicit loop direction becomes `hand`, and the scrubbed/canonicalized
-/// definition is retained in the figure `note`. The CallersBox cross-line merge
+/// definition is retained in the figure `note` (unless a trailing bracket
+/// replaces it, below). The CallersBox cross-line merge
 /// then folds a preceding balance line into `balance: true` (box_circulate is
 /// a balance-merge target).
 ///
