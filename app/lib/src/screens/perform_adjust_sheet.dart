@@ -141,12 +141,11 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
             (slot.danceId == null && slot.isPurgedDance != false) ||
             !CanonicalDiscouragedTermsScope.of(context)
         ? rawText
-        : FigureRenderer(
-            contraTaxonomy,
-          ).renderFreeTextWithCanonicalDiscouragedTerms(
-            rawText,
-            widget.dialect,
-          );
+        : FigureRenderer(contraTaxonomy)
+              .renderFreeTextWithCanonicalDiscouragedTerms(
+                rawText,
+                widget.dialect,
+              );
     if (text != null && text.isNotEmpty) return text;
     return l10n.performUntitledSlot;
   }
@@ -337,14 +336,18 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
       padding: const EdgeInsets.fromLTRB(16, 4, 8, 8),
       child: Row(
         children: [
-          Semantics(
-            header: true,
-            child: Text(
-              l10n.performAdjustProgram,
-              style: theme.textTheme.titleLarge,
+          // Flexible, so at large text the title wraps instead of pushing Done
+          // off-screen (dismissing the sheet any other way discards the edits).
+          Flexible(
+            child: Semantics(
+              header: true,
+              child: Text(
+                l10n.performAdjustProgram,
+                style: theme.textTheme.titleLarge,
+              ),
             ),
           ),
-          const Spacer(),
+          const SizedBox(width: 8),
           FilledButton(
             key: const ValueKey('adjust-done'),
             onPressed: () =>
