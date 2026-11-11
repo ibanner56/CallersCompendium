@@ -3828,6 +3828,17 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
     _showNote = widget.draft.note.trim().isNotEmpty;
     _showWordingOverride =
         widget.draft.wordingOverride?.trim().isNotEmpty ?? false;
+    // A free-text step saved before #795 carries no count, which the step
+    // would show as the default but save as nothing, undercounting the
+    // sequence. Seed it as a top-level row does; not a user override.
+    if (widget.role == _ChildRole.step &&
+        widget.draft.move == customMove &&
+        !widget.draft.params.containsKey('beats')) {
+      final def = widget.taxonomy.resolve(customMove);
+      if (def?.params['beats'] case final beatsSpec?) {
+        widget.draft.params['beats'] = beatsSpec.defaultValue;
+      }
+    }
   }
 
   void _selectMove(String moveId) {
@@ -4109,6 +4120,29 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
                 )
               else if (def.params.isNotEmpty)
                 _buildSideParams(context, def),
+              // A free-text step of a sequence owns its count, as a
+              // top-level custom row does (#795): its beats add into the
+              // sequence's total, so they are shown. A meanwhile side or
+              // modifier child stays hidden — the group's count rules.
+              if (draft.move == customMove &&
+                  userFigureId == null &&
+                  widget.role == _ChildRole.step)
+                if (def.params['beats'] case final beatsSpec?) ...[
+                  const SizedBox(height: 8),
+                  FigureParamEditor(
+                    keyPrefix: widget.keyPrefix,
+                    paramKey: 'beats',
+                    spec: beatsSpec,
+                    dialect: widget.dialect,
+                    mixer: widget.mixer,
+                    value: draft.params['beats'] ?? beatsSpec.defaultValue,
+                    onChanged: (v) {
+                      draft.params['beats'] = v;
+                      draft.beatsTouched = true;
+                      widget.onChanged();
+                    },
+                  ),
+                ],
               const SizedBox(height: 8),
               _buildSideNote(context),
               if (widget.showWordingOverride)

@@ -156,6 +156,66 @@ void main() {
     expect(drafts.single.toFigure()!.beats, 16);
   });
 
+  testWidgets('a free-text step edits its own beats like any other step', (
+    tester,
+  ) async {
+    final custom = FigureDraft(
+      move: customMove,
+      params: {'text': 'funky thing', 'beats': 8},
+      beatsTouched: true,
+    );
+    final drafts = [
+      FigureDraft(sequenceFigures: [_step('balance', 4), custom]),
+    ];
+    await _pump(tester, drafts);
+    await _open(tester, 0);
+
+    expect(find.text('12 beats in total'), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const ValueKey('figure-0-side-1-beats')),
+      '4',
+    );
+    await tester.pumpAndSettle();
+
+    expect(custom.params['beats'], 4);
+    expect(find.text('8 beats in total'), findsOneWidget);
+    final built = drafts.single.toFigure()!;
+    expect(built.beats, 8);
+    expect(built.subFigures.last.params['beats'], 4);
+  });
+
+  testWidgets('a free-text step with no stored count is seeded, not zeroed', (
+    tester,
+  ) async {
+    final custom = FigureDraft(move: customMove, params: {'text': 'old line'});
+    final drafts = [
+      FigureDraft(sequenceFigures: [_step('balance', 4), custom]),
+    ];
+    await _pump(tester, drafts);
+    await _open(tester, 0);
+
+    expect(custom.params['beats'], isNotNull);
+    expect(drafts.single.toFigure()!.subFigures.last.beats, custom.beats);
+    expect(custom.beats, greaterThan(0));
+  });
+
+  testWidgets('a free-text meanwhile side still shows no beats of its own', (
+    tester,
+  ) async {
+    final drafts = [
+      FigureDraft(
+        meanwhileSides: [
+          _step('balance', 4),
+          FigureDraft(move: customMove, params: {'text': 'x', 'beats': 8}),
+        ],
+      ),
+    ];
+    await _pump(tester, drafts);
+    await _open(tester, 0);
+
+    expect(find.byKey(const ValueKey('figure-0-side-1-beats')), findsNothing);
+  });
+
   testWidgets('a sequence stops at four steps', (tester) async {
     final drafts = [
       FigureDraft(
