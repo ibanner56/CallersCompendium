@@ -1059,7 +1059,7 @@ by opening drift — and compares it to the running `kCompendiumSchemaVersion`:
   privacy-registry change that widens the normalisation pass is covered. Such a
   snapshot is named `pre-v<running>` because no schema change is pending. A
   fully repaired file reads every marker as done and does not snapshot, so an
-  ordinary launch costs one short raw read, plus a listing of `db_backups`
+  ordinary launch costs one short raw read, plus two listings of `db_backups`
   for a pin to release (below). Markers that cannot be read at all
   are treated as owed, so the failure mode is an extra snapshot rather than a
   repair with none. Not covered: retries of recorded `normalisation_skips`
@@ -1079,44 +1079,54 @@ by opening drift — and compares it to the running `kCompendiumSchemaVersion`:
   attempt never pins another while one exists, and a `db_backups` that exists
   but cannot be listed counts as holding one, so it never gathers a pin per
   launch. The pin is released as soon as the debt clears: by the app, in the
-  same session, once `ensureMigrated` succeeds, and as a backstop by any launch
-  at the running version that owes no repair. The same-session release is what
-  lets a later build that owes a *new* repair pin its own first copy rather
-  than find the old pin still there. Release renames the pinned copy into the
-  ordinary rotation and prunes that to 5 by modification time, which the
-  rename keeps, so the released copy goes only once 5 newer ones exist. A
-  schema bump that owes no repair neither pins nor releases, so its retention
-  is unchanged. The pin lives only
-  in the file name: no setting or column records it, so there is nothing to
-  classify or to keep out of backups. Relocation moves a pinned copy with the
-  other snapshots.
+  same session, once `ensureMigrated` succeeds, and as a backstop by any
+  preflight at the running version that owes no repair. The same-session
+  release is what lets a later build that owes a *new* repair pin its own
+  first copy rather than find the old pin still there; if that release fails
+  (a file lock, say) and the next launch owes a new repair, the stale pin is
+  kept and nothing new is pinned. Release renames the pinned copy into the
+  ordinary rotation and stamps it with the current time, so it is the newest
+  there and survives the next 4 snapshots instead of being pruned the moment
+  its repair first completes, when a botched repair would first show. On a
+  schema bump that owes no repair the preflight neither pins nor releases, so
+  its retention is unchanged. A build at the same schema version that does not
+  know a newer build's repair (an older PATCH, sideloaded) reads it as not
+  owed and releases that build's pin. The pin lives only in the file name: no
+  setting or column records it, so there is nothing to classify or to keep out
+  of backups. Relocation moves a pinned copy with the other snapshots.
+
+  Every snapshot is copied under a `.partial` name and renamed into place, so
+  a copy cut short by a crash or force-quit never counts as a snapshot, least
+  of all as a pin that nothing would replace; the next snapshot deletes such
+  leftovers.
 
   **The copy is refused rather than taken incomplete.** The checkpoint pragma
   does not throw when another connection is in the way: a reader whose read
   transaction began before the newest commits stops it short of them, and it
   says so only in its result row (`busy` = 1). A byte copy of the main file
   would then silently lack those commits. So the preflight reads that row,
-  retries a few times over about half a second, and treats a WAL still busy as
-  a snapshot failure (below), never copying. A `busy` result whose WAL frames
-  were all checkpointed (`log == checkpointed`) is accepted: TRUNCATE reports
-  busy whenever it cannot reset the WAL, including for a reader that already
-  sees every commit, and the main file is complete then. The failure reaches
-  the dialog with an unknown cause, so its advice (free up space, fix the
-  backups folder) does not name the real remedy, closing the other program;
-  a dedicated cause and wording are a possible follow-up. Copying the `-wal` beside the main
-  file instead was rejected: the two files are not copied atomically, the
-  restore steps would have to carry both, and a writer could append between
-  the two reads. No holder inside the app has been found: on launch the
-  preflight runs before the app's drift connection opens and before sync
-  starts; Retry closes the app's connection and disposes the sync coordinator
-  first, which waits for any running pass, and a pass closes its isolate's own
-  connection when it ends; and a second desktop instance hands off and exits
-  before reaching the preflight. So the holder would be another process, such
-  as a SQLite browser left open on the file.
+  retries for about 0.4 s, and treats a WAL still busy as a snapshot failure
+  (below), never copying. A `busy` result whose WAL frames were all checkpointed
+  (`log == checkpointed`) is accepted: TRUNCATE reports busy whenever it cannot
+  reset the WAL, including for a reader that already sees every commit, and the
+  main file is complete then. The failure reaches the dialog with an unknown
+  cause, so its advice (free up space, fix the backups folder) does not name the
+  real remedy, closing the other program; a dedicated cause and wording are a
+  possible follow-up. Copying the `-wal` beside the main file instead was
+  rejected: the two files are not copied atomically, the restore steps would
+  have to carry both, and a writer could append between the two reads. No holder
+  inside the app has been found: on launch the preflight runs before the app's
+  drift connection opens and before sync starts; Retry closes the app's
+  connection and disposes the sync coordinator first, which waits for any
+  running pass, and a pass closes its isolate's own connection when it ends; and
+  a second desktop instance hands off and exits before reaching the preflight.
+  So the holder would be another process, such as a SQLite browser left open on
+  the file.
 
   **If the snapshot fails, the preflight fails closed** (issue #442). A backup
   that cannot be written (disk full, unwritable `db_backups`, a checkpoint
-  that fails or stays busy) previously logged and migrated anyway; it now instead surfaces a
+  that fails or stays busy) previously logged and migrated anyway; it now
+  instead surfaces a
   blocking consent dialog that explains the data-loss risk and names the likely
   cause (low storage / unwritable backups folder). The user chooses **Quit**
   (the default — abort so they can free space, fix permissions, or take a manual

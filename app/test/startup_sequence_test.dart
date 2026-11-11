@@ -700,6 +700,31 @@ void main() {
     },
   );
 
+  testWidgets('a pin release that throws is logged and does not stop the app '
+      'opening', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final sink = _RecordingCrashLogSink();
+    installCaughtErrorLog(sink);
+    addTearDown(resetCaughtErrorLogForTesting);
+
+    final appData = openTestAppData();
+    await tester.pumpWidget(
+      CompendiumApp(
+        appData: appData,
+        windowService: NoopWindowService(appData.repositories.settings),
+        releaseRepairSnapshotPin: () async =>
+            throw const FileSystemException('locked'),
+        integrityCheck: () async => true,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AppShell), findsOneWidget);
+    expect(sink.sources, contains('startup.release_snapshot_pin'));
+  });
+
   testWidgets('a failed integrity check warns the user but still opens the app '
       '(Stage 1.7)', (tester) async {
     await tester.binding.setSurfaceSize(const Size(1200, 900));

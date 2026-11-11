@@ -192,6 +192,34 @@ void main() {
     expect(names, hasLength(2));
   });
 
+  test('a checkpoint result counts as complete only when every WAL frame is '
+      'in the main file', () {
+    // Finished, or not a WAL database.
+    expect(
+      checkpointLeftMainFileComplete(busy: 0, log: 3, checkpointed: 3),
+      isTrue,
+    );
+    expect(
+      checkpointLeftMainFileComplete(busy: 0, log: -1, checkpointed: -1),
+      isTrue,
+    );
+    // Only the WAL's reset was blocked: every frame was copied back.
+    expect(
+      checkpointLeftMainFileComplete(busy: 1, log: 3, checkpointed: 3),
+      isTrue,
+    );
+    // A reader behind the newest commit stopped it short.
+    expect(
+      checkpointLeftMainFileComplete(busy: 1, log: 3, checkpointed: 2),
+      isFalse,
+    );
+    // It could not run at all: nothing is known to be copied.
+    expect(
+      checkpointLeftMainFileComplete(busy: 1, log: -1, checkpointed: -1),
+      isFalse,
+    );
+  });
+
   group('a reader that pins the WAL during the snapshot', () {
     // A WAL-mode file whose newest commit lives only in the `-wal`, behind a
     // read transaction another connection opened before that commit. The
@@ -712,21 +740,47 @@ void main() {
 
       await repairSucceeds(dbFile);
 
-      // The next launch owes nothing: no new copy, no pin left, and the
-      // released copy (the oldest) is pruned with the rotation back to
-      // [retain].
+      // The next launch owes nothing: no new copy and no pin left. The
+      // released copy counts as the newest, so the rotation is pruned back to
+      // [retain] by dropping the oldest *later* attempt, and the clean copy
+      // survives the moment its repair first completes.
       await launch();
       expect(pinned(), isEmpty);
       expect(snapshots(), hasLength(retain));
-      final names = snapshots().map((f) => p.basename(f.path));
-      expect(names, isNot(contains(pinnedName)));
-      expect(
-        names,
-        isNot(
-          contains(
+      final released = snapshots().singleWhere(
+        (f) =>
+            p.basename(f.path) ==
             pinnedName.replaceFirst('.pinned.sqlite.bak', '.sqlite.bak'),
-          ),
+      );
+      expect(hasPartialSweep(released), isFalse);
+    });
+
+    test('a copy cut short by a crash is never taken for a pin', () async {
+      final dbFile = await createLibrary(owing: chainHandBackfillDoneKey);
+      snapshotDir.createSync();
+      // What a force-quit during the copy leaves behind.
+      final leftover = File(
+        p.join(
+          snapshotDir.path,
+          'compendium.pre-v$kCompendiumSchemaVersion-x.pinned.sqlite.bak'
+          '.partial',
         ),
+      )..writeAsBytesSync(const [1, 2, 3]);
+
+      await runMigrationPreflight(
+        dbFile: dbFile,
+        snapshotDir: snapshotDir,
+        runningSchemaVersion: kCompendiumSchemaVersion,
+        repairMarkers: repairMarkers,
+      );
+
+      // This launch's copy is the pin, complete, and the leftover is gone.
+      expect(leftover.existsSync(), isFalse);
+      final pin = pinned().single;
+      expect(hasMarker(pin.path, chainHandBackfillDoneKey), isFalse);
+      expect(
+        snapshotDir.listSync().map((e) => p.basename(e.path)),
+        everyElement(isNot(endsWith('.partial'))),
       );
     });
 

@@ -443,9 +443,10 @@ class CompendiumApp extends StatefulWidget {
   /// so the snapshot [migrationPreflight] pinned for an outstanding repair
   /// debt is released into the ordinary rotation now, not on the next launch,
   /// where a newer build owing a new repair would otherwise find the old pin
-  /// and not pin its own first copy. Best effort: a failure is logged and the
-  /// next launch's preflight releases it instead. Injected from [main]; left
-  /// `null` in tests that don't exercise it.
+  /// and not pin its own first copy. Best effort: a failure is logged, and the
+  /// next launch's preflight releases it if that launch owes no repair (one
+  /// that owes a new repair keeps the stale pin and pins nothing new). Injected
+  /// from [main]; left `null` in tests that don't exercise it.
   final Future<void> Function()? releaseRepairSnapshotPin;
 
   /// Once-per-launch data-integrity probe (`PRAGMA quick_check`), run after the
@@ -1831,8 +1832,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     try {
       await widget.releaseRepairSnapshotPin?.call();
     } catch (error, stackTrace) {
-      // Never fatal: the pin only keeps one extra copy until the next launch's
-      // preflight releases it.
+      // Never fatal: a stale pin only keeps one extra copy.
       logCaughtError(error, stackTrace, source: 'startup.release_snapshot_pin');
     }
     // First-run seed (issue: "first launch is never empty"): insert exactly one

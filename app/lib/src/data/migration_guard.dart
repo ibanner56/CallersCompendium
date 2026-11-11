@@ -237,9 +237,9 @@ class MigrationSnapshotAborted implements Exception {
 /// 3. **Backup-before-migrate** — if an upgrade is pending (file version <
 ///    running), **or** a one-time repair this build knows is still owed (see
 ///    [repairMarkers]), snapshot the file into [snapshotDir] first (retaining
-///    the newest [retain], plus at most one pinned copy), so a botched migration or repair is recoverable.
-///    The first snapshot taken while a repair is owed is **pinned** (see
-///    below). This step is
+///    the newest [retain], plus at most one pinned copy), so a botched
+///    migration or repair is recoverable. The first snapshot taken while a
+///    repair is owed is **pinned** (see below). This step is
 ///    **fail-CLOSED**: if the snapshot cannot be written, the migration is
 ///    *not* allowed to silently proceed. Instead the failure is classified into
 ///    a [SnapshotFailure] and handed to [onSnapshotFailure], which returns the
@@ -274,14 +274,17 @@ class MigrationSnapshotAborted implements Exception {
 ///
 /// The pin is released as soon as the debt clears: by the app, through
 /// [releaseRepairSnapshotPin], once `ensureMigrated` has succeeded in the same
-/// session, and as a backstop by any launch at the running version that owes
-/// no repair. Releasing in the same session matters: otherwise a later build
-/// owing a new repair would find the old pin still there and not pin its own
-/// first copy. Release renames the pinned copy into the ordinary rotation,
-/// which is then pruned to [retain] by modification time (the pinned copy
-/// keeps its own, so it goes only if [retain] newer copies exist). A
-/// schema-bump launch that owes no repair neither pins nor releases. The pin
-/// lives only in the file name; nothing is persisted in the database.
+/// session, and as a backstop by any preflight at the running version that
+/// owes no repair (which also covers a crash between the two). Releasing in
+/// the same session matters: otherwise a later build owing a new repair would
+/// find the old pin still there and not pin its own first copy. Release
+/// renames the pinned copy into the ordinary rotation and stamps it with the
+/// current time, so it is the newest there and outlives the next [retain] - 1
+/// snapshots, rather than being pruned the moment the repair first completes.
+/// On a schema bump that owes no repair, the preflight neither pins nor
+/// releases. The pin lives only in the file name; nothing is persisted in the
+/// database. A build at the same schema version that does not know a newer
+/// build's repair reads it as not owed, and releases that build's pin.
 ///
 /// This reads the file with a short-lived `package:sqlite3` connection (which
 /// is WAL-aware, unlike reading the header bytes directly) and never opens the
@@ -1158,13 +1161,61 @@ Future<File> snapshotBeforeMigrate({
     dest = File(p.join(snapshotDir.path, '$base-$collision$suffix'));
     collision++;
   }
-  await dbFile.copy(dest.path);
+  // Copy under a name no snapshot pattern matches, then rename: a copy cut
+  // short by a crash or force-quit must never pass for a snapshot, least of
+  // all a pinned one, which nothing would ever prune or replace. A partial
+  // copy left by such a crash is removed first.
+  await _removePartialCopies(snapshotDir);
+  final partial = File('${dest.path}$_partialSuffix');
+  try {
+    await dbFile.copy(partial.path);
+    await partial.rename(dest.path);
+  } on Object {
+    // diagnostics: silent — rethrown; the caller reports the snapshot failure.
+    try {
+      if (partial.existsSync()) await partial.delete();
+    } on FileSystemException {
+      // diagnostics: silent — removed by the next snapshot instead.
+    }
+    rethrow;
+  }
 
   await _pruneSnapshots(snapshotDir, retain);
   return dest;
 }
 
+/// Suffix of a snapshot still being copied; see [snapshotBeforeMigrate].
+const String _partialSuffix = '.partial';
+
+/// Deletes copies an interrupted [snapshotBeforeMigrate] left in [dir].
+Future<void> _removePartialCopies(Directory dir) async {
+  for (final entry in dir.listSync(followLinks: false)) {
+    final name = p.basename(entry.path);
+    if (entry is File &&
+        name.startsWith(_snapshotPrefix) &&
+        name.endsWith('$_snapshotSuffix$_partialSuffix')) {
+      try {
+        await entry.delete();
+      } on FileSystemException {
+        // diagnostics: silent — a leftover partial copy is never read.
+      }
+    }
+  }
+}
+
 DateTime _utcNow() => DateTime.now().toUtc();
+
+/// Whether a `wal_checkpoint(TRUNCATE)` result row (`busy`, `log`,
+/// `checkpointed`) leaves every committed transaction in the main database
+/// file: either it finished (`busy` 0), or every frame in the WAL was copied
+/// back and only the WAL's reset was blocked. A row of -1s means the
+/// checkpoint could not run at all, so nothing is known to be copied.
+@visibleForTesting
+bool checkpointLeftMainFileComplete({
+  required int busy,
+  required int log,
+  required int checkpointed,
+}) => busy == 0 || (log >= 0 && checkpointed == log);
 
 /// How many times [_checkpoint] tries before giving up on a busy WAL.
 const int _checkpointAttempts = 5;
@@ -1195,10 +1246,13 @@ Future<void> _checkpoint(String path) async {
   try {
     for (var attempt = 1; ; attempt++) {
       final row = db.select('PRAGMA wal_checkpoint(TRUNCATE)').first.values;
-      final busy = row[0];
-      final log = row[1] as int;
-      final checkpointed = row[2] as int;
-      if (busy == 0 || (log >= 0 && checkpointed == log)) return;
+      if (checkpointLeftMainFileComplete(
+        busy: row[0] as int,
+        log: row[1] as int,
+        checkpointed: row[2] as int,
+      )) {
+        return;
+      }
       if (attempt == _checkpointAttempts) {
         throw FileSystemException(
           'WAL checkpoint is blocked (database busy)',
@@ -1405,6 +1459,9 @@ Future<void> _releasePinnedSnapshot(Directory dir, int retain) async {
         dest = File('$stem-released$n$_snapshotSuffix');
       }
       await file.rename(dest.path);
+      // Count it as new: kept through the next [retain] - 1 snapshots, so
+      // the clean copy outlives the moment its repair first completes.
+      await dest.setLastModified(DateTime.now());
     }
     await _pruneSnapshots(dir, retain);
   } on FileSystemException {
