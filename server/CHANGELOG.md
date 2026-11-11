@@ -8,6 +8,24 @@ the app and of `compendium_core`; version headings below refer to
 
 ## [Unreleased]
 
+### Fixed
+
+- **Manual deploy step:** the reference vhost (`server/deploy/athenaeum.conf`)
+  now sets `ProxyAddHeaders Off` in the TLS vhost. Without it, mod_proxy's
+  default appends a second `X-Forwarded-For` entry after the one
+  `RequestHeader set` writes from `CONN_REMOTE_ADDR`. That entry is
+  `REMOTE_ADDR` after any host-level `mod_remoteip` rewrite, and the server
+  reads the rightmost entry, so on a host with `mod_remoteip` enabled the
+  rate-limit key was the remoteip-resolved address rather than the socket peer.
+  Existing hosts must add the line by hand: see "Existing hosts" under "Proxy
+  and security contract" in `docs/dev/athenaeum-operations.md`. No server code,
+  schema or wire change.
+- `server/deploy/smoke_test.sh` refuses a vhost without `ProxyAddHeaders Off`,
+  and checks that forged `X-Forwarded-For`, `X-Real-IP`, `CF-Connecting-IP`,
+  `True-Client-IP`, `X-Client-IP` and vhost-named `RemoteIPHeader` values
+  cannot change a client's rate-limit key. Before, it could not tell an
+  overwritten header from an appended one.
+
 ## [0.3.3] - 2026-11-02
 
 ### Changed

@@ -86,6 +86,20 @@ if ! awk '
   exit 1
 fi
 
+# mod_proxy appends its own X-Forwarded-For entry unless this is off, and that
+# entry is REMOTE_ADDR after any mod_remoteip rewrite: the rightmost entry, the
+# one the server reads. Behind a host without remoteip the appended entry equals
+# the one RequestHeader set, so no request below could tell the two apart.
+if ! awk '
+  /^[[:space:]]*#/ { next }
+  /^[[:space:]]*ProxyAddHeaders[[:space:]]+[Oo]ff[[:space:]]*$/ { found = 1 }
+  /^[[:space:]]*ProxyAddHeaders[[:space:]]+[Oo]n[[:space:]]*$/ { on = 1 }
+  END { exit(found && !on ? 0 : 1) }
+' "$apache_config"; then
+  echo "active Apache vhost must contain ProxyAddHeaders Off (and not On)" >&2
+  exit 1
+fi
+
 expect_status() {
   expected=$1
   label=$2
@@ -177,6 +191,27 @@ expect_status 429 "loopback client A alternate forwarded value" \
   --header 'X-Forwarded-For: 203.0.113.1' \
   --header 'Authorization: Bearer malformed' \
   "${https_url}/v1/store"
+# Client A's failure bucket is empty now, so every request it sends is refused
+# whatever key the server derives for it, unless the key is not 127.0.0.2. A
+# 401 here means a forged client address reached the server's key: Apache let
+# mod_remoteip resolve it from that header and appended the result. The
+# headers probed are the usual remoteip sources plus any RemoteIPHeader the
+# active vhost names. These requests are refused before they spend a failure,
+# so the refill timing below is unchanged.
+remoteip_headers=$(awk '
+  /^[[:space:]]*#/ { next }
+  tolower($1) == "remoteipheader" && NF >= 2 { print $2 }
+' "$apache_config")
+probe=0
+for forged_header in X-Forwarded-For X-Real-IP CF-Connecting-IP \
+  True-Client-IP X-Client-IP $remoteip_headers; do
+  probe=$((probe + 1))
+  expect_status 429 "loopback client A forged ${forged_header}" \
+    --interface 127.0.0.2 \
+    --header "${forged_header}: 192.0.2.${probe}" \
+    --header 'Authorization: Bearer malformed' \
+    "${https_url}/v1/store"
+done
 sleep 6
 expect_status 401 "loopback client A refill" \
   --interface 127.0.0.2 \
