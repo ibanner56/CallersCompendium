@@ -26,8 +26,9 @@ final FigureRenderer _renderer = FigureRenderer(contraTaxonomy);
 
 final RegExp _lineBreaks = RegExp('\r\n|[\r\n\u2028\u2029]');
 
-/// The parameter kinds a custom figure may declare: every kind a figure's
-/// slot can have, except beats, which are the parts' own (#709).
+/// The parameter kinds a figure of your own may declare: every kind a built-in
+/// figure's slot can have, except beats, which are the parts' own (#709), plus
+/// [ParamKind.number], which no slot has and so a combination does not offer.
 const List<ParamKind> compoundParamKinds = [
   ParamKind.dancerSet,
   ParamKind.dancerPair,

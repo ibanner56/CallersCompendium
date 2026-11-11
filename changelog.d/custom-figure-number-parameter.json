@@ -5,5 +5,10 @@
     "added": [
       "A figure of your own can now have a plain number parameter (0 to 99) that reads as the digits alone. The existing places parameter always adds the word \"place\" or \"places\"."
     ]
+  },
+  "core": {
+    "added": [
+      "Add `ParamKind.number`, a whole number 0–99 rendered as its digits alone."
+    ]
   }
 }
