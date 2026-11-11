@@ -766,7 +766,11 @@ class _CollectionPickerState extends State<CollectionPicker> {
       advanced: _effectiveAdvanced(),
     );
     if (query.isEmpty) {
+      // Also supersedes a search or page still in flight, which would
+      // otherwise land on the cleared list.
+      _onlineSeq++;
       setState(() {
+        _onlineLoadingMore = false;
         _onlineResults = const [];
         _onlineError = null;
         _onlineImportError = null;
@@ -779,6 +783,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
     setState(() {
       _onlineResults = const [];
       _onlineSearching = true;
+      _onlineLoadingMore = false;
       _onlineError = null;
       _onlineImportError = null;
     });
@@ -1415,7 +1420,9 @@ class _CollectionPickerState extends State<CollectionPicker> {
         }
         if (index == _onlineResults.length + leading) {
           return OnlineMoreFooter(
-            key: ValueKey('online-more-${_onlineResults.length}'),
+            key: ValueKey(
+              'online-more-$_onlinePagingSeq-${_onlineResults.length}',
+            ),
             failed: _onlineMoreFailed,
             failedMessage: l10n.onlineSearchFailed(_onlineSource.label),
             onLoad: _loadMoreOnline,

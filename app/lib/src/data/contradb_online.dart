@@ -165,10 +165,16 @@ class ContraDbOnline implements OnlineSearchService {
     }
 
     Future<String> fetch(String variant) => _searchFetcher(requestFor(variant));
-    // Only the first (ASCII) spelling decides whether the search failed. The
-    // curly spelling is a widening: if it alone fails, the search returns what
-    // it would have returned before that spelling was sent at all.
+    // On the first page only the first (ASCII) spelling decides whether the
+    // search failed. The curly spelling is a widening: if it alone fails, the
+    // search returns what it would have returned before that spelling was sent
+    // at all. A later page cannot do that: both spellings are paged at the same
+    // offset, so a page that lost one would be counted as loaded and the
+    // missing spelling's rows at that offset would never be asked for again.
+    // There a failed spelling fails the page, and the caller shows Try again.
+    final firstPage = query.offset == 0;
     Future<String?> widen(String variant) async {
+      if (!firstPage) return fetch(variant);
       try {
         return await fetch(variant);
       } on Exception {
