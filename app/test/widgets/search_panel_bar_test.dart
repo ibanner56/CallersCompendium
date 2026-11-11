@@ -274,6 +274,19 @@ void main() {
       // A stretched chip's label stays centred rather than hugging its start.
       final label = tester.getRect(find.text('Alpha'));
       expect(label.center.dx, closeTo(a.center.dx, 8), reason: 'width $width');
+      // The slot's size is not what the eye sees: the painted chip body must
+      // fill it too, so spare width is padding inside the chip rather than gaps
+      // between chips that stayed at their natural width.
+      for (final key in [_a, _b]) {
+        final slot = tester.getRect(find.byKey(key));
+        final body = tester.getRect(
+          find
+              .descendant(of: find.byKey(key), matching: find.byType(Material))
+              .first,
+        );
+        expect(body.left, closeTo(slot.left, 0.01), reason: '$key at $width');
+        expect(body.right, closeTo(slot.right, 0.01), reason: '$key at $width');
+      }
     }
   });
 
