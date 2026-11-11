@@ -8,6 +8,49 @@ the app and of `compendium_core`; version headings below refer to
 
 ## [Unreleased]
 
+### Added
+
+- Large-body requests — manifest `PUT`, blob `PUT` (single and batch) and
+  `POST /v1/blobs/missing` — are counted while in flight: 4 per client address,
+  then `429` with `Retry-After: 5`, and 16 server-wide, then `503` with
+  `Retry-After: 5`. Before, nothing limited how many such bodies the server held
+  in memory at once; 40 stalled 15 MB manifest uploads took it from 169 MB to
+  740 MB resident. Set with `--max-large-bodies-per-ip` and
+  `--max-large-bodies`, or `ATHENAEUM_MAX_LARGE_BODIES_PER_IP` and
+  `ATHENAEUM_MAX_LARGE_BODIES`. Such a body must arrive whole within 60
+  seconds or the server closes the connection and frees the slot, so a client
+  trickling its body, or falling silent part-way, cannot hold one longer. The
+  server-wide cap refusing a request raises a new `capacity_exhaustion` alert,
+  which the updated `server/deploy/athenaeum-alert-email` forwards.
+- A free-space floor: blob and manifest uploads answer `507` while the data
+  directory's filesystem has less than 1 GiB free (`--min-free-bytes` or
+  `ATHENAEUM_MIN_FREE_BYTES`; `0` turns it off). Lookups, downloads, deletes
+  and a manifest upload no larger than the device's stored one keep working
+  below it, so a user can still shrink a device's share by turning on *Skip
+  unused imported dances*. **Upgrade note:** on a host
+  already below the floor, every upload answers `507` from the first start;
+  check free space before deploying. It raises a `quota_exhaustion` alert with `source`
+  `free_space_floor`. Free space is read with `statvfs(3)` through `dart:ffi`
+  on 64-bit Linux; elsewhere the server says at startup that it cannot read it,
+  and admits every write. The server now depends on `package:ffi` directly.
+- A per-address store-creation limit in front of the server-wide 60 a minute:
+  5 per client address (an IPv4 address or an IPv6 /64), refilled at 5 an hour.
+  One address could previously spend the whole server-wide budget and hold
+  every other first pairing out for the rest of the minute.
+
+### Changed
+
+- A blob `GET` streams the blob file 64 KiB at a time, with a
+  `Content-Length`, instead of reading it whole into the response.
+- A manifest `GET` streams the manifest from SQLite 1 MiB at a time as the
+  client reads it, with a `Content-Length`, instead of reading it whole into
+  the response. 40 unread `GET`s of a 15 MB manifest took the server from
+  170 MB to 746 MB resident; they now leave it at 123 MB. A manifest replaced
+  or unreadable part-way through ends the response early, and the client fails
+  the request as on a dropped connection.
+
+No schema, stored-format or wire-format change; no version constant changed.
+
 ## [0.3.3] - 2026-11-02
 
 ### Changed

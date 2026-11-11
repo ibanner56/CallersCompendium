@@ -2158,12 +2158,15 @@ void main() {
 
   test('creation cap does not hide an existing-store conflict', () async {
     expect((await _send('POST', '/v1/store', syncId: syncId)).statusCode, 201);
+    // One creation per address, so the server-wide row is what refuses the
+    // last one and not the per-address row in front of it (spec §5.4).
     for (var attempt = 0; attempt < maxStoreCreationsPerMinute - 1; attempt++) {
       expect(
         (await _send(
           'POST',
           '/v1/store',
           syncId: 'creation-$attempt-café-staple',
+          headers: {'x-test-ip': 'creator-$attempt'},
         )).statusCode,
         201,
       );
@@ -2173,6 +2176,7 @@ void main() {
         'POST',
         '/v1/store',
         syncId: 'over-cap-café-staple',
+        headers: {'x-test-ip': 'creator-over-cap'},
       )).statusCode,
       429,
     );

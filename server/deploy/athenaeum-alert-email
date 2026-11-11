@@ -7,7 +7,8 @@ set -u
 
 while IFS= read -r line; do
   case $line in
-    *'"kind":"quota_exhaustion"'* | *'"kind":"sweep_failure"'*) ;;
+    *'"kind":"quota_exhaustion"'* | *'"kind":"sweep_failure"'* | \
+      *'"kind":"capacity_exhaustion"'*) ;;
     *) continue ;;
   esac
   kind=$(printf '%s\n' "$line" | sed -n 's/.*"kind":"\([^"]*\)".*/\1/p')

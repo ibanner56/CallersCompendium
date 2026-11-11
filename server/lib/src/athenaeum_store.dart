@@ -556,6 +556,46 @@ class AthenaeumStore {
     );
   }
 
+  /// The etag and byte size of a stored manifest, without reading its body:
+  /// SQLite answers `length()` of a blob from the record header.
+  ManifestHead? manifestHead(String idKey, String epoch, String deviceId) {
+    final rows = _database.select(
+      'SELECT etag, length(body) AS size FROM manifests '
+      'WHERE id_key = ? AND epoch = ? AND device_id = ?',
+      [idKey, epoch, deviceId],
+    );
+    if (rows.isEmpty) return null;
+    return ManifestHead(
+      etag: rows.single['etag'] as String,
+      size: rows.single['size'] as int,
+    );
+  }
+
+  /// Up to [length] bytes of a stored manifest's body from byte [offset], or
+  /// null when the manifest stored there is no longer the one tagged [etag].
+  ///
+  /// Each call is its own statement, so a manifest replaced between two calls
+  /// is detected by its etag rather than read half from each body.
+  Uint8List? manifestChunk(
+    String idKey,
+    String epoch,
+    String deviceId, {
+    required String etag,
+    required int offset,
+    required int length,
+  }) {
+    final rows = _database.select(
+      'SELECT substr(body, ?, ?) AS chunk FROM manifests '
+      'WHERE id_key = ? AND epoch = ? AND device_id = ? AND etag = ?',
+      [offset + 1, length, idKey, epoch, deviceId, etag],
+    );
+    if (rows.isEmpty) return null;
+    final chunk = rows.single['chunk'];
+    if (chunk is Uint8List) return chunk;
+    if (chunk is List<int>) return Uint8List.fromList(chunk);
+    return null;
+  }
+
   /// Stores one device's manifest. [referencedHashes] are the blob hashes its
   /// `records` name, which the caller has already decoded; they become the
   /// rows GC reads instead of the body, in the same transaction.
@@ -1685,6 +1725,13 @@ class ManifestRow {
   final String etag;
   final int writtenAt;
   final Uint8List body;
+}
+
+class ManifestHead {
+  const ManifestHead({required this.etag, required this.size});
+
+  final String etag;
+  final int size;
 }
 
 class BlobRef {
