@@ -3747,6 +3747,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'La restauration remplace tout le contenu actuel de l’application — votre collection, programmes, dialectes, thèmes et paramètres — par le contenu de la sauvegarde. Cette action est irréversible.';
 
   @override
+  String get backupRestoreDialogSyncNote =>
+      'Cet appareil est connecté à la synchronisation des appareils. Tout ce que la synchronisation transmet et qui a été modifié après cette sauvegarde sur un appareil avec lequel vous synchronisez reviendra de cet appareil à la prochaine synchronisation, y compris les modifications faites ici et déjà synchronisées. Tout le reste prend la version de la sauvegarde.';
+
+  @override
   String get backupChooseFileAction => 'Choisir un fichier…';
 
   @override

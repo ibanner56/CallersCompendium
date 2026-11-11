@@ -3708,6 +3708,10 @@
   "@backupRestoreDialogBody": {
     "x-sourceSha256": "ff51802a21a8219092f0aaebcde7ad04aebb7aa77bf34404915dc4e39b24b83e"
   },
+  "backupRestoreDialogSyncNote": "Dit apparaat is verbonden met apparaatsynchronisatie. Alles wat apparaatsynchronisatie meeneemt en na het maken van deze back-up is gewijzigd op een apparaat waarmee je synchroniseert, komt bij de volgende synchronisatie terug van dat apparaat, ook wijzigingen die hier zijn gemaakt en al zijn gesynchroniseerd. Al het andere krijgt de versie uit de back-up.",
+  "@backupRestoreDialogSyncNote": {
+    "x-sourceSha256": "79ad56b6871d887a13d6c4c1c2625aad3c140d3b98ef2845e174d1c7fd56c995"
+  },
   "backupChooseFileAction": "Bestand kiezen…",
   "@backupChooseFileAction": {
     "x-sourceSha256": "5c6623857cc7b764cdf1eecad5b2f0f54184bebca4aa2d7f3bbdcedf6a8929d1"

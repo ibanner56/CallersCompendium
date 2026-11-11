@@ -3513,6 +3513,10 @@ class AppLocalizationsJa extends AppLocalizations {
       '復元すると、アプリの現在の内容（コレクション、プログラム、ダイアレクト、テーマ、設定）がすべてバックアップの内容に置き換えられます。この操作は元に戻せません。';
 
   @override
+  String get backupRestoreDialogSyncNote =>
+      'このデバイスはデバイス同期に接続されています。デバイス同期で共有される内容のうち、このバックアップの作成後に同期先のデバイスで変更されたもの（このデバイスで変更して同期済みのものを含む）は、次回の同期でそのデバイスから戻ってきます。それ以外はバックアップの内容になります。';
+
+  @override
   String get backupChooseFileAction => 'ファイルを選択…';
 
   @override

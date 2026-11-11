@@ -3661,6 +3661,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Restoring replaces everything currently in the app — your collection, programs, dialects, themes, and settings — with the backup\'s contents. This cannot be undone.';
 
   @override
+  String get backupRestoreDialogSyncNote =>
+      'This device is connected to Device Sync. Anything Device Sync carries that was changed after this backup was made, on any device you sync with, comes back from that device at the next sync, including changes made here and already synced. Everything else takes the backup\'s version.';
+
+  @override
   String get backupChooseFileAction => 'Choose file…';
 
   @override

@@ -3718,6 +3718,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Herstellen vervangt alles in de app — je collectie, programma’s, dialecten, thema’s en instellingen — met de inhoud van de back-up. Dit kan niet ongedaan worden gemaakt.';
 
   @override
+  String get backupRestoreDialogSyncNote =>
+      'Dit apparaat is verbonden met apparaatsynchronisatie. Alles wat apparaatsynchronisatie meeneemt en na het maken van deze back-up is gewijzigd op een apparaat waarmee je synchroniseert, komt bij de volgende synchronisatie terug van dat apparaat, ook wijzigingen die hier zijn gemaakt en al zijn gesynchroniseerd. Al het andere krijgt de versie uit de back-up.';
+
+  @override
   String get backupChooseFileAction => 'Bestand kiezen…';
 
   @override

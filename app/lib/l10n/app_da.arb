@@ -3708,6 +3708,10 @@
   "@backupRestoreDialogBody": {
     "x-sourceSha256": "ff51802a21a8219092f0aaebcde7ad04aebb7aa77bf34404915dc4e39b24b83e"
   },
+  "backupRestoreDialogSyncNote": "Denne enhed er forbundet til enhedssynkronisering. Alt, hvad enhedssynkronisering overfører, og som er ændret efter denne sikkerhedskopi blev lavet på en enhed, du synkroniserer med, kommer tilbage fra den enhed ved næste synkronisering – også ændringer foretaget her og allerede synkroniseret. Alt andet får sikkerhedskopiens version.",
+  "@backupRestoreDialogSyncNote": {
+    "x-sourceSha256": "79ad56b6871d887a13d6c4c1c2625aad3c140d3b98ef2845e174d1c7fd56c995"
+  },
   "backupChooseFileAction": "Vælg fil…",
   "@backupChooseFileAction": {
     "x-sourceSha256": "5c6623857cc7b764cdf1eecad5b2f0f54184bebca4aa2d7f3bbdcedf6a8929d1"

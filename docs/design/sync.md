@@ -3678,13 +3678,13 @@ entirely.** `ArchiveRestorer` writes every entity through unconditional
 and is right for what restore is: putting a device back to a known state.
 
 Left alone, the two features contradict each other. A user restores a backup
-taken before X was deleted and synced away. X returns as a live row carrying its
-old `updatedAt` and no `existenceAt`, while the sync baseline — a separate table
-restore never touches — still records X as a tombstone. The next pass reads local
-as `changed`, remote as `same`, and the table says **upload**, unconditionally.
-Peers correctly refuse it, since the backup's `updatedAt` predates the deletion
-and its `existenceAt` predates the deletion, so it does not reverse
-network-wide. But
+taken before X was deleted and synced away. X returns as a live row whose stamps
+are no later than the backup (see *What a restore stamps* below), while the
+sync baseline — a separate table restore never touches — still records X as a
+tombstone. The next pass reads local as `changed`, remote as `same`, and the
+table says **upload**, unconditionally. Peers correctly refuse it, since the
+restored `updatedAt` and `existenceAt` both predate the deletion, so it does not
+reverse network-wide. But
 the restoring device now shows X alive **permanently, diverged from every peer,
 with no error and no path back**.
 
@@ -3732,6 +3732,57 @@ never fire. **After a restore, pending rows are revalidated against the restored
 data**: one whose record no longer exists is dropped, and one whose record is now
 uncited applies immediately rather than waiting for an event that has already
 happened.
+
+#### What a restore stamps
+
+The paragraphs above lean on one property: a restored record's stamps are no
+later than the backup. Until SYNC-1 that held only for dances and programs,
+whose archived form carries its own `updatedAt`. Every other kind's archived
+form carries no timestamp, so restore stamped those rows **now**: the reference
+kinds (tags, authors, venues, published sources, custom fields, difficulty
+levels), every setting it set or removed, and every glossary entry and figure
+note it wrote or deleted. The fresh attach then resolved each
+`changed`/`changed` pair by the higher stamp, and the restore's always won.
+Restoring a month-old backup on one device undid, on every device, the tag and
+venue renames and deletions, the glossary edits and the settings changes made
+elsewhere in that month, with nothing queued for review and nothing shown.
+
+The maintainer chose to stamp a restore's writes with **the backup's creation
+time** instead (spec §6.11, amended 2026-11-11). That gives every kind the
+property dances already had: anything changed on any device after the backup
+wins at the next sync and comes back, and the backup wins over anything older.
+It works for backups already written, because the app has always recorded when
+a backup was made (`createdAt`, and the same instant in the core archive's
+`exportedAt`), so the backup format did not change.
+
+Three details carry the weight:
+
+- **The existence stamp is not causal.** Everywhere else a transition must stamp
+  above the value it supersedes, so a revival outranks the deletion before it.
+  A restore is not a transition on this device's timeline; it puts back what
+  the backup vouches for at the time it was made. A causal floor would lift a
+  restored revival above a peer's later deletion — exactly the defect.
+  `applyRestoredExistence` therefore writes the backup's time even when that is
+  below the row's previous `existenceAt`. A replace restore clears the library
+  kinds first, so for them there is no previous value; it matters for settings,
+  glossary entries and figure notes, whose rows a restore overwrites in place.
+- **A future-dated backup is clamped to now.** A fast clock or a hand-edited
+  file could otherwise outrank every edit made after the restore, and a stamp
+  more than a day ahead is refused by peers outright (§6.9).
+- **A backup with no readable creation time stamps at the epoch**, so every
+  peer's copy wins — the safe direction when nothing says how old it is.
+- **The settings retry drops the baseline again.** When the settings step
+  fails after the core commits, the app offers a retry that can come long
+  after a sync pass has run. That pass's baseline already holds the peers'
+  newer values, so backup-dated writes over it read as local changes, peers
+  refuse them, and the device would stay diverged with nothing reported. The
+  retry therefore drops the baseline and runs under the same sync-writer
+  lifecycle as the restore.
+
+The cost is the one the restore dialog now states when the device is paired:
+with sync on, a restore cannot take back a change that another device holds,
+including a change made on this device and already synced. It returns this
+device to the backup, then sync returns everything newer.
 
 A user who genuinely wants the restored version to win can delete and re-enter
 the record, or restore it from Recently Deleted once the deletion applies — both

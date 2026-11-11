@@ -9,6 +9,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../theme/destructive_button_style.dart';
 import 'settings_keys.dart';
 import '../../data/sync_writer_lifecycle_scope.dart';
+import '../../sync/sync_scope.dart';
 import '../../data/backup_document.dart'
     show
         BackupReadResult,
@@ -383,7 +384,14 @@ class _GeneralSectionState extends State<GeneralSection> {
       // localized — the raw exception is logged (debug-guarded) inside the
       // service, never shown here (CWE-209).
       if (outcome.settingsFailed) {
-        _showSettingsRestoreFailed(messenger, l10n, repos, read, onRestored);
+        _showSettingsRestoreFailed(
+          messenger,
+          l10n,
+          repos,
+          read,
+          onRestored,
+          runWrite,
+        );
         return;
       }
       messenger.showSnackBar(
@@ -429,6 +437,7 @@ class _GeneralSectionState extends State<GeneralSection> {
     CompendiumRepositories repos,
     BackupReadResult read,
     Future<void> Function()? onRestored,
+    SyncWriterCallback? runWrite,
   ) {
     messenger.clearSnackBars();
     messenger.showSnackBar(
@@ -439,7 +448,14 @@ class _GeneralSectionState extends State<GeneralSection> {
           label: l10n.backupRestoreSettingsRetryAction,
           onPressed: () {
             unawaited(
-              _retrySettingsRestore(messenger, l10n, repos, read, onRestored),
+              _retrySettingsRestore(
+                messenger,
+                l10n,
+                repos,
+                read,
+                onRestored,
+                runWrite,
+              ),
             );
           },
         ),
@@ -461,18 +477,31 @@ class _GeneralSectionState extends State<GeneralSection> {
     CompendiumRepositories repos,
     BackupReadResult read,
     Future<void> Function()? onRestored,
+    SyncWriterCallback? runWrite,
   ) async {
     try {
-      // The restore this retries runs in the default mode, replace.
-      final outcome = await BackupService(
-        repos,
-      ).retryApplySettingsFrom(read, mode: RestoreMode.replace);
+      // The restore this retries runs in the default mode, replace. The retry
+      // drops the sync baseline, so it is serialized with Device Sync as the
+      // restore is (sync-spec §6.11).
+      final outcome = await _runRestoreLifecycle(
+        runWrite: runWrite,
+        operation: () => BackupService(
+          repos,
+        ).retryApplySettingsFrom(read, mode: RestoreMode.replace),
+      );
       // Only refresh when something was actually applied.
       if (outcome.applied && onRestored != null) await onRestored();
       if (!mounted) return;
       if (outcome.applied) _refreshSoftDeleteRetention();
       if (outcome.settingsFailed) {
-        _showSettingsRestoreFailed(messenger, l10n, repos, read, onRestored);
+        _showSettingsRestoreFailed(
+          messenger,
+          l10n,
+          repos,
+          read,
+          onRestored,
+          runWrite,
+        );
         return;
       }
       if (!outcome.applied) {
@@ -507,7 +536,14 @@ class _GeneralSectionState extends State<GeneralSection> {
       logCaughtError(e, st, source: 'general_section._retrySettingsRestore');
       if (kDebugMode) debugPrint('Backup settings retry failed: $e\n$st');
       if (!mounted) return;
-      _showSettingsRestoreFailed(messenger, l10n, repos, read, onRestored);
+      _showSettingsRestoreFailed(
+        messenger,
+        l10n,
+        repos,
+        read,
+        onRestored,
+        runWrite,
+      );
     }
   }
 
@@ -1114,6 +1150,17 @@ class _RestoreBackupDialogState extends State<_RestoreBackupDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(l10n.backupRestoreDialogBody),
+            // A restore is stamped at the backup's creation time, so on a
+            // paired device anything changed since on a synced device wins at
+            // the next sync and comes back (SYNC-1, sync-spec §6.11). Paired
+            // rather than enabled: turning sync back on later syncs the same.
+            if (SyncScope.maybeOf(context)?.paired ?? false) ...[
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                l10n.backupRestoreDialogSyncNote,
+                key: const ValueKey('restore-sync-note'),
+              ),
+            ],
             const SizedBox(height: AppSpacing.md),
             OutlinedButton.icon(
               key: const ValueKey('restore-choose-file'),
