@@ -260,6 +260,9 @@ Future<void> main(List<String> args) async {
         crashReporter: crashReporter,
         migrationPreflight: (onSnapshotFailure) => runMigrationPreflightForApp(
           runningSchemaVersion: kCompendiumSchemaVersion,
+          // Read from the unopened facade: the scope marker's expected value
+          // comes from the schema and the privacy registry, not the file.
+          repairMarkers: appData.repositories.oneTimeRepairMarkers,
           onSnapshotFailure: onSnapshotFailure,
         ),
         seedInitialCollection: (repos) => SeedService(repos).ensureSeeded(),
@@ -418,7 +421,7 @@ class CompendiumApp extends StatefulWidget {
   /// forces the database open (see `migration_guard.dart`): it guards against
   /// opening a file written by a newer build (throws [DatabaseDowngradeError],
   /// routed to the [AppBootstrap] error screen) and snapshots the file before a
-  /// pending upgrade migration. It is handed a [SnapshotFailureDecision] seam so
+  /// pending upgrade migration or an owed one-time repair. It is handed a [SnapshotFailureDecision] seam so
   /// that, when the pre-migration snapshot fails, it can ask the user whether to
   /// proceed without a backup or abort (issue #442) — the app supplies
   /// [_CompendiumAppState._confirmProceedWithoutBackup], which pumps a blocking
@@ -1795,8 +1798,9 @@ class _CompendiumAppState extends State<CompendiumApp>
     // Data-safety preflight, before anything opens the database (Phase 7):
     // move a database an earlier build left in a legacy location into place,
     // refuse to open a file written by a newer build (routes to the error
-    // screen) and snapshot the file before a pending upgrade migration. Runs
-    // first so no drift open — including the window restore below — precedes it.
+    // screen) and snapshot the file before a pending upgrade migration or a
+    // one-time repair `ensureMigrated` still owes. Runs first so no drift
+    // open — including the window restore below — precedes it.
     if (widget.migrationPreflight != null) {
       await widget.migrationPreflight!(_confirmProceedWithoutBackup);
     }

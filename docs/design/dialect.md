@@ -295,9 +295,14 @@ known synonyms/legacy terms (gypsy → shoulder round) back to canonical
 vocabulary, and flags ambiguities inline ("lingo line" underlining: recognized
 terms underlined, discouraged terms struck through, unknown terms plain).
 Free-text figure entry parses the typed line as written first and canonicalises
-against the active dialect only on a parse miss, so a dialect term that is also
-a move word (`lead` in "ones lead down the hall") keeps parsing as the move.
-On a second miss it reads the built-in discouraged role terms by their meaning,
+against the active dialect only when that reading does not account for the
+whole line: on a parse miss, or (since #2121) when it found a move only by
+leaving a note or an unread part, as `half poussette - leads pull neighbor back
+then left` did. In the second case the role-word reading is taken only if it
+reads the whole line. So a dialect term that is also a move word (`lead` in
+"ones lead down the hall") keeps parsing as the move, and a line read as typed
+keeps that reading unless the role words account for all of it. After that it
+reads the built-in discouraged role terms by their meaning,
 as user-glossary text is read (`canonicalizeGlossaryText`): `ravens chain` is a
 `role2s` chain, unless the active dialect's own role word is or holds the term,
 which keeps the dialect's meaning. Only when every parse misses is the line
@@ -308,11 +313,19 @@ taxonomy name does not shadow that move. Punctuation at the end of the line
 (`hey.`) is ignored. A name read whole wins; failing that, a dancer word
 (`ones`, `twos`, `partner(s)`, `neighbor(s)`, `everyone`, `role1s`, `role2s`)
 followed by a name reads as the move with that `who` (#1857, `neighbor pass by`).
-Only a move with a `who` param takes one; for any other (`hey` names its
-dancers in `pass1`) or an unknown word the line stays custom. Role words
-(`ravens mad robin`) are not in that list: the dancer lookup also runs on the
-retries' text above, so they keep the meaning the dialect gives them. Imports
-read none of these.
+Since #2121 the dancer may be any the figure display names before a move
+(`_dancerPhrases`): `shadow(s)`, `centers`, `opposites`, `same roles`, the
+corners, `first`/`second` before a role word, and the neighbour, partner and
+shadow series (`prev neighbor`, `third partners`, `second shadow`), so
+`third corners gate` reads back. Only a move with a `who` param takes one; for
+any other (`hey` names its dancers in `pass1`) or an unknown word the line
+stays custom. Role words (`ravens mad robin`) are not in that list: the dancer
+lookup also runs on the retries' text above, so they keep the meaning the
+dialect gives them. Last of all, a courtesy turn naming a second dancer in the
+display's wording (`partner courtesy turn larks`) is read with that dancer as
+`whom` (#2121, `readDisplayedCourtesyTurnWithWhom`). Imports read none of
+these, so an imported line still leaves a courtesy turn's `whom` out unless a
+source states it (the maintainer's decision, recorded in #2121).
 
 **Role words that are also move words.** The chokepoint does not rewrite every
 role term it finds (`RoleCanonicalizer`, `dialect/role_canonicalizer.dart`).

@@ -1,9 +1,0 @@
-{
-  "id": "contradb-tag-controls",
-  "user_visible": true,
-  "app": {
-    "changed": [
-      "Choosing ContraDB as the online source now removes \"Has tag\" conditions from the Advanced query and greys out \"Has tag\" in the Add menu, instead of leaving a tag behind that made the ContraDB search fail."
-    ]
-  }
-}

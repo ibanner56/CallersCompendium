@@ -1047,6 +1047,32 @@ by opening drift — and compares it to the running `kCompendiumSchemaVersion`:
   that hasn't been migrated to that schema yet, whereas a byte copy is
   schema-agnostic and the highest-fidelity rollback for a botched migration.
 
+  **A one-time repair still owed also snapshots** (UPGRADE-1). The marker-gated
+  sweeps in `CompendiumRepositories.ensureMigrated` run after the preflight on
+  every open, and several rewrite `figures_json` or shareable text in place
+  without moving `user_version` — repairs ship as settings markers rather than
+  schema bumps, because a PATCH release may not bump the schema. So the
+  preflight also reads each sweep's completion marker
+  (`CompendiumRepositories.oneTimeRepairMarkers`, raw `package:sqlite3`, before
+  drift opens) and snapshots a file at the running version when any is absent,
+  tombstoned or stale — including the shareable-text scope marker, so a
+  privacy-registry change that widens the normalisation pass is covered. Such a
+  snapshot is named `pre-v<running>` because no schema change is pending. A
+  fully repaired file reads every marker as done and does not snapshot, so an
+  ordinary launch costs one short raw read. Markers that cannot be read at all
+  are treated as owed, so the failure mode is an extra snapshot rather than a
+  repair with none. Not covered: retries of recorded `normalisation_skips`
+  entries, which are ordinary-use state that would snapshot on every launch,
+  and `promoteRetainedSyncFields`, whose debt cannot be told from its rows
+  without decoding them.
+
+  Known limit: a repair that keeps failing meets the same debt on every launch
+  and Retry, and snapshots each time. Sweeps commit separately (the derived
+  rebuild in chunks), so after the retention count of failed attempts the copy
+  from before the first attempt can be pruned, leaving only copies taken after
+  some sweeps had committed. This build does not start while a sweep fails, so
+  what is lost is the clean pre-repair state rather than later edits.
+
   **If the snapshot fails, the preflight fails closed** (issue #442). A backup
   that cannot be written (disk full, unwritable `db_backups`, checkpoint
   failure) previously logged and migrated anyway; it now instead surfaces a
@@ -1064,7 +1090,9 @@ by opening drift — and compares it to the running `kCompendiumSchemaVersion`:
   `.sqlite.bak` (renaming it back to `compendium.sqlite`), and relaunch. Because
   the snapshot is stamped at the older `user_version`, opening it with the build
   that created the backup migrates it forward again; if the migration itself was
-  the problem, open it with the matching older app version instead.
+  the problem, open it with the matching older app version instead. A
+  repair-only snapshot lacks the repair's marker, so the same build runs the
+  repair again on relaunch.
 
 **The four terminal startup screens (amendment, 2026-10-30).** The downgrade,
 below-floor, snapshot-aborted and relocation-blocked outcomes above each render

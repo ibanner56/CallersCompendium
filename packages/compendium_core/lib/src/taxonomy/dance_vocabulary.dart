@@ -122,6 +122,18 @@ const Map<String, String> displayDirectionPhrases = {
   'down': 'facing down',
 };
 
+/// How the figure display words a set-relative facing (a gate's or a swing's
+/// ending facing): "up the hall", "into the set". The display
+/// (`FigureRenderer`) writes these and the figure readers read them back
+/// (#2121).
+const Map<String, String> displayFacingPhrases = {
+  'in': 'into the set',
+  'out': 'out of the set',
+  'up': 'up the hall',
+  'down': 'down the hall',
+  'along': 'along the set',
+};
+
 /// Qualifiers that, followed by `neighbor`/`neighbors`, name the `sameRoles`
 /// dancer set ("Same-role neighbor do-si-do" → `do_si_do(who: sameRoles)`).
 ///

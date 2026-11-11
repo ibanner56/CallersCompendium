@@ -107,6 +107,7 @@ export 'src/storage/calling_history_scope.dart'
 export 'src/storage/duplicate_natural_key.dart' show DuplicateNaturalKeyError;
 export 'src/storage/figure_reparse.dart';
 export 'src/storage/shareable_text.dart';
+export 'src/storage/owed_repairs.dart';
 export 'src/search/filter_compiler.dart';
 export 'src/search/fts_query.dart';
 export 'src/search/search_enrichment.dart';

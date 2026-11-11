@@ -304,24 +304,27 @@ void main() {
       expect(ignoredBy('petronella', {'beats': 0}), {'petronella.beats'});
     });
 
-    test('poussette direction is inverted so it round-trips the importer', () {
-      expect(leaf('poussette', {'direction': 'clockwise'}), [
-        'figure',
-        'poussette',
-        '*',
-        '*',
-        '*',
-        false,
-      ]);
-      expect(leaf('poussette', {'direction': 'counterclockwise'}), [
-        'figure',
-        'poussette',
-        '*',
-        '*',
-        '*',
-        true,
-      ]);
-    });
+    test(
+      'poussette clockwise is ContraDB\'s true, as the importer reads it',
+      () {
+        expect(leaf('poussette', {'direction': 'clockwise'}), [
+          'figure',
+          'poussette',
+          '*',
+          '*',
+          '*',
+          true,
+        ]);
+        expect(leaf('poussette', {'direction': 'counterclockwise'}), [
+          'figure',
+          'poussette',
+          '*',
+          '*',
+          '*',
+          false,
+        ]);
+      },
+    );
 
     test('a free-text formal is filled with an empty string, not *', () {
       expect(leaf('contra_corners', {'beats': 16}), [
