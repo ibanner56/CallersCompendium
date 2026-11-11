@@ -9,9 +9,15 @@ import 'package:compendium_app/src/data/single_instance_guard.dart'
 import 'package:compendium_core/compendium_core.dart'
     show
         CompendiumDatabase,
+        CompendiumRepositories,
+        SettingsRepository,
         applyCompendiumSqliteSetup,
+        chainHandBackfillDoneKey,
+        purgeCorruptionRepairDoneKey,
+        contraTaxonomy,
         kCompendiumSchemaVersion,
         kMinSupportedSchemaVersion;
+import 'package:drift/native.dart' show NativeDatabase;
 import 'package:drift_flutter/drift_flutter.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
@@ -88,6 +94,7 @@ void main() {
           dbFile: dbFile,
           snapshotDir: snapshotDir,
           runningSchemaVersion: kCompendiumSchemaVersion,
+          repairMarkers: const {},
         ),
         throwsA(isA<DatabaseDowngradeError>()),
       );
@@ -111,6 +118,7 @@ void main() {
       dbFile: dbFile,
       snapshotDir: snapshotDir,
       runningSchemaVersion: kCompendiumSchemaVersion,
+      repairMarkers: const {},
     );
 
     final snapshots = snapshotDir
@@ -143,6 +151,7 @@ void main() {
         dbFile: dbFile,
         snapshotDir: snapshotDir,
         runningSchemaVersion: kCompendiumSchemaVersion,
+        repairMarkers: const {},
         retain: retain,
         now: () => tick = tick.add(const Duration(seconds: 1)),
       );
@@ -168,6 +177,7 @@ void main() {
         dbFile: dbFile,
         snapshotDir: snapshotDir,
         runningSchemaVersion: kCompendiumSchemaVersion,
+        repairMarkers: const {},
         now: () => fixed,
       );
     }
@@ -202,6 +212,7 @@ void main() {
           dbFile: dbFile,
           snapshotDir: unwritableDir,
           runningSchemaVersion: kCompendiumSchemaVersion,
+          repairMarkers: const {},
           onSnapshotFailure: (failure) async {
             seen = failure;
             return true; // user explicitly opts to proceed without a backup
@@ -241,6 +252,7 @@ void main() {
           dbFile: dbFile,
           snapshotDir: unwritableDir,
           runningSchemaVersion: kCompendiumSchemaVersion,
+          repairMarkers: const {},
           onSnapshotFailure: (failure) async {
             asked = true;
             return false; // user chooses Quit
@@ -275,6 +287,7 @@ void main() {
           dbFile: dbFile,
           snapshotDir: unwritableDir,
           runningSchemaVersion: kCompendiumSchemaVersion,
+          repairMarkers: const {},
         ),
         throwsA(isA<MigrationSnapshotAborted>()),
       );
@@ -296,6 +309,7 @@ void main() {
         dbFile: dbFile,
         snapshotDir: snapshotDir,
         runningSchemaVersion: kCompendiumSchemaVersion,
+        repairMarkers: const {},
         onSnapshotFailure: (failure) async {
           asked = true;
           return false;
@@ -322,6 +336,7 @@ void main() {
         dbFile: File(p.join(dir.path, 'nope.sqlite')),
         snapshotDir: snapshotDir,
         runningSchemaVersion: kCompendiumSchemaVersion,
+        repairMarkers: const {},
       );
       expect(snapshotDir.existsSync(), isFalse);
 
@@ -332,6 +347,7 @@ void main() {
         dbFile: empty,
         snapshotDir: snapshotDir,
         runningSchemaVersion: kCompendiumSchemaVersion,
+        repairMarkers: const {},
       );
       expect(snapshotDir.existsSync(), isFalse);
 
@@ -342,10 +358,179 @@ void main() {
         dbFile: match,
         snapshotDir: snapshotDir,
         runningSchemaVersion: kCompendiumSchemaVersion,
+        repairMarkers: const {},
       );
       expect(snapshotDir.existsSync(), isFalse);
     },
   );
+
+  group('a one-time repair still owed at the running version (UPGRADE-1)', () {
+    // What this build's sweeps expect to find, read from an unopened facade as
+    // `main.dart` does.
+    late Map<String, String?> repairMarkers;
+    late CompendiumDatabase probe;
+
+    setUp(() {
+      probe = CompendiumDatabase(NativeDatabase.memory());
+      repairMarkers = CompendiumRepositories(
+        probe,
+        contraTaxonomy,
+      ).oneTimeRepairMarkers;
+    });
+    tearDown(() => probe.close());
+
+    /// A real library at the running schema version, fully migrated, then
+    /// optionally missing [owing]'s marker — the state a PATCH release that
+    /// ships a new sweep meets on its first launch.
+    Future<File> createLibrary({String? owing}) async {
+      final file = File(p.join(dir.path, 'compendium.sqlite'));
+      final db = CompendiumDatabase(
+        NativeDatabase(file, setup: applyCompendiumSqliteSetup),
+      );
+      try {
+        await CompendiumRepositories(db, contraTaxonomy).ensureMigrated();
+        if (owing != null) {
+          await db.customStatement('DELETE FROM settings WHERE key = ?', [
+            owing,
+          ]);
+        }
+      } finally {
+        await db.close();
+      }
+      expect(readUserVersion(file.path), kCompendiumSchemaVersion);
+      return file;
+    }
+
+    bool hasMarker(String path, String key) {
+      final db = sql.sqlite3.open(path);
+      try {
+        return db.select('SELECT 1 FROM settings WHERE key = ?', [
+          key,
+        ]).isNotEmpty;
+      } finally {
+        db.close();
+      }
+    }
+
+    List<File> snapshots() => snapshotDir.existsSync()
+        ? snapshotDir
+              .listSync()
+              .whereType<File>()
+              .where((f) => p.basename(f.path).endsWith('.sqlite.bak'))
+              .toList()
+        : const [];
+
+    test('snapshots the file before the repair runs', () async {
+      final dbFile = await createLibrary(owing: chainHandBackfillDoneKey);
+
+      await runMigrationPreflight(
+        dbFile: dbFile,
+        snapshotDir: snapshotDir,
+        runningSchemaVersion: kCompendiumSchemaVersion,
+        repairMarkers: repairMarkers,
+      );
+
+      final snap = snapshots().single;
+      expect(
+        p.basename(snap.path),
+        startsWith('compendium.pre-v$kCompendiumSchemaVersion-'),
+      );
+      // The snapshot is the pre-repair state…
+      expect(hasMarker(snap.path, chainHandBackfillDoneKey), isFalse);
+
+      // …and the repair still runs after it, as `_startupSequence` does next.
+      final db = CompendiumDatabase(
+        NativeDatabase(dbFile, setup: applyCompendiumSqliteSetup),
+      );
+      await CompendiumRepositories(db, contraTaxonomy).ensureMigrated();
+      await db.close();
+      expect(hasMarker(dbFile.path, chainHandBackfillDoneKey), isTrue);
+
+      // Once repaired, the next launch takes no further snapshot.
+      await runMigrationPreflight(
+        dbFile: dbFile,
+        snapshotDir: snapshotDir,
+        runningSchemaVersion: kCompendiumSchemaVersion,
+        repairMarkers: repairMarkers,
+      );
+      expect(snapshots(), hasLength(1));
+    });
+
+    test('a tombstoned marker is owed, as the sweep reads it', () async {
+      final dbFile = await createLibrary();
+      final db = CompendiumDatabase(
+        NativeDatabase(dbFile, setup: applyCompendiumSqliteSetup),
+      );
+      // `remove` tombstones: the row stays, with `deleted_at` set.
+      await SettingsRepository(db).remove(purgeCorruptionRepairDoneKey);
+      await db.close();
+      expect(hasMarker(dbFile.path, purgeCorruptionRepairDoneKey), isTrue);
+
+      await runMigrationPreflight(
+        dbFile: dbFile,
+        snapshotDir: snapshotDir,
+        runningSchemaVersion: kCompendiumSchemaVersion,
+        repairMarkers: repairMarkers,
+      );
+
+      expect(snapshots(), hasLength(1));
+    });
+
+    test('takes no snapshot of a fully repaired file', () async {
+      final dbFile = await createLibrary();
+
+      await runMigrationPreflight(
+        dbFile: dbFile,
+        snapshotDir: snapshotDir,
+        runningSchemaVersion: kCompendiumSchemaVersion,
+        repairMarkers: repairMarkers,
+      );
+
+      expect(snapshotDir.existsSync(), isFalse);
+    });
+
+    test('a snapshot that cannot be written still gates the repair on the '
+        "user's decision", () async {
+      final dbFile = await createLibrary(owing: chainHandBackfillDoneKey);
+      final blocker = File(p.join(dir.path, 'blocker'));
+      await blocker.writeAsString('not a directory');
+      final unwritableDir = Directory(p.join(blocker.path, 'db_backups'));
+
+      SnapshotFailure? seen;
+      await expectLater(
+        runMigrationPreflight(
+          dbFile: dbFile,
+          snapshotDir: unwritableDir,
+          runningSchemaVersion: kCompendiumSchemaVersion,
+          repairMarkers: repairMarkers,
+          onSnapshotFailure: (failure) async {
+            seen = failure;
+            return false; // the user chooses Quit
+          },
+        ),
+        throwsA(isA<MigrationSnapshotAborted>()),
+      );
+
+      // Asked, with the file's own version on both sides: no schema change is
+      // pending, only the repair.
+      expect(seen?.fromVersion, kCompendiumSchemaVersion);
+      expect(seen?.toVersion, kCompendiumSchemaVersion);
+      // The preflight threw, so `_startupSequence` never reaches
+      // `ensureMigrated`, and the repair is still owed.
+      expect(hasMarker(dbFile.path, chainHandBackfillDoneKey), isFalse);
+
+      // With no seam to ask, it fails closed as the schema path does.
+      await expectLater(
+        runMigrationPreflight(
+          dbFile: dbFile,
+          snapshotDir: unwritableDir,
+          runningSchemaVersion: kCompendiumSchemaVersion,
+          repairMarkers: repairMarkers,
+        ),
+        throwsA(isA<MigrationSnapshotAborted>()),
+      );
+    });
+  });
 
   test('refuses a DB stamped below the supported floor, leaving it untouched '
       '(issue #841)', () async {
@@ -360,6 +545,7 @@ void main() {
         dbFile: dbFile,
         snapshotDir: snapshotDir,
         runningSchemaVersion: kCompendiumSchemaVersion,
+        repairMarkers: const {},
       ),
       throwsA(isA<DatabaseBelowFloorError>()),
     );
@@ -371,6 +557,7 @@ void main() {
         dbFile: dbFile,
         snapshotDir: snapshotDir,
         runningSchemaVersion: kCompendiumSchemaVersion,
+        repairMarkers: const {},
       );
     } on DatabaseBelowFloorError catch (e) {
       thrown = e;
@@ -407,6 +594,7 @@ void main() {
         dbFile: dbFile,
         snapshotDir: snapshotDir,
         runningSchemaVersion: kCompendiumSchemaVersion,
+        repairMarkers: const {},
       );
     } catch (e) {
       thrown = e;
