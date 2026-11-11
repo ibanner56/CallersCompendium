@@ -259,6 +259,60 @@ void main() {
       expect(f.params['text'], 'Circulate: role2s cross, role2s loop right');
     });
 
+    // #2160: a clause-final `[with <dancer>]` / `[around <dancer>]` bracket
+    // after the loop clause. The figure keeps who/hand; the note is the
+    // bracket's canonical text only (maintainer-approved for #2160).
+    const bracketAccepted = <String, String>{
+      'Circulate: women cross, men loop right [with N2]': 'with nextNeighbors',
+      'Circulate: women cross, men loop right [with shadow]': 'with shadows',
+      'Circulate: women cross, men loop right [around N2]':
+          'around nextNeighbors',
+    };
+    bracketAccepted.forEach((line, note) {
+      test('"$line" → box_circulate, note "$note"', () {
+        final f = _parse(line);
+        expect(f!.move, 'box_circulate');
+        expect(f.isCustom, isFalse);
+        expect(f.params['who'], 'role2s');
+        expect(f.params['hand'], 'right');
+        expect(f.note, note);
+      });
+    });
+
+    test('a bracketed circulate without a loop side leaves hand unset', () {
+      final f = _parse('Circulate: men cross, women loop [with N2]');
+      expect(f!.move, 'box_circulate');
+      expect(f.params['who'], 'role1s');
+      expect(f.params.containsKey('hand'), isFalse);
+      expect(f.note, 'with nextNeighbors');
+    });
+
+    for (final line in const [
+      // Unresolvable dancer, or a head other than with/around.
+      'Circulate: women cross, men loop right [with phantom]',
+      'Circulate: women cross, men loop right [around phantom]',
+      'Circulate: women cross, men loop right [beside N2]',
+      'Circulate: women cross, men loop right [optional]',
+      'Circulate: women cross, men loop right []',
+      // More than one bracket, nested/unbalanced, or text after the bracket.
+      'Circulate: women cross, men loop right [with N2] trailing',
+      'Circulate: women cross, men loop right [with N2] [with N3]',
+      'Circulate: women cross, men loop right [[with N2]',
+      'Circulate: women cross, men loop right [with N2]]',
+      'Circulate: women cross, men loop right [with N2',
+      'Circulate: women [with N2] cross, men loop right',
+      // The #1218 guards still apply with a bracket present.
+      'Circulate: women cross, women loop right [with N2]',
+      'Circulate: women cross, men right [with N2]',
+      'Circulate: women cross, unknown loop right [with N2]',
+      'Circulate: partners cross, unknown loop right [with N2]',
+      'Circulate: women cross, men loop right garbage [with N2]',
+    ]) {
+      test('"$line" stays custom', () {
+        expect(_parse(line)!.isCustom, isTrue);
+      });
+    }
+
     test('balance ring + circulate folds balance into box_circulate', () {
       // The adapter cross-line merge folds a preceding balance line; here we
       // assert the circulate clause itself structures so the fold has a target.
