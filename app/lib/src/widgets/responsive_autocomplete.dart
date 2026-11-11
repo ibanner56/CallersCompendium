@@ -447,8 +447,8 @@ class _ResponsiveAutocompleteState<T extends Object>
     return Semantics(
       button: true,
       // A label, not a hint: with an empty field nothing else supplies a
-      // name, and a button with only a hint fails
-      // `labeledTapTargetGuideline`.
+      // name, and Flutter's labeled-tap-target guideline fails a button that
+      // has only a hint.
       label: widget.sheetSemanticLabel,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,

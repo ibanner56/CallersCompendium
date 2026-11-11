@@ -141,11 +141,12 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
             (slot.danceId == null && slot.isPurgedDance != false) ||
             !CanonicalDiscouragedTermsScope.of(context)
         ? rawText
-        : FigureRenderer(contraTaxonomy)
-              .renderFreeTextWithCanonicalDiscouragedTerms(
-                rawText,
-                widget.dialect,
-              );
+        : FigureRenderer(
+            contraTaxonomy,
+          ).renderFreeTextWithCanonicalDiscouragedTerms(
+            rawText,
+            widget.dialect,
+          );
     if (text != null && text.isNotEmpty) return text;
     return l10n.performUntitledSlot;
   }

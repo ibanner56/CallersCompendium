@@ -48,6 +48,7 @@ Future<AppData> _seed() async {
   final appData = openTestAppData();
   final repos = appData.repositories;
   final stamp = DateTime.utc(2026, 1, 1);
+  // ignore: unused_result
   await repos.choreographers.upsert(
     Choreographer(id: 'c1', name: 'Gene Hubert'),
   );
@@ -69,6 +70,7 @@ Future<AppData> _seed() async {
       ),
     );
   }
+  // ignore: unused_result
   await repos.tags.upsert(Tag(id: 't1', name: 'chestnut'));
   await repos.programs.create(
     Program(
