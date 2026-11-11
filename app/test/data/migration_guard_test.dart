@@ -267,6 +267,44 @@ void main() {
       expect(seen?.error, isA<FileSystemException>());
     });
 
+    test('takes the copy when the reader already sees every commit', () async {
+      // A reader at the newest snapshot still blocks TRUNCATE's reset of the
+      // WAL (busy = 1), but every frame is in the main file by then.
+      reader
+        ..execute('ROLLBACK')
+        ..execute('BEGIN')
+        ..select('SELECT count(*) FROM t');
+
+      await runMigrationPreflight(
+        dbFile: dbFile,
+        snapshotDir: snapshotDir,
+        runningSchemaVersion: kCompendiumSchemaVersion,
+        repairMarkers: const {},
+      );
+
+      final copy = snapshotDir.listSync().whereType<File>().single;
+      expect(rowsIn(copy.path), ['checkpointed', 'only in the WAL']);
+    });
+
+    test('waits briefly for a reader that lets go', () async {
+      // Well inside the retry window, and after the first attempt.
+      final release = Future<void>.delayed(
+        const Duration(milliseconds: 250),
+        () => reader.execute('ROLLBACK'),
+      );
+
+      await runMigrationPreflight(
+        dbFile: dbFile,
+        snapshotDir: snapshotDir,
+        runningSchemaVersion: kCompendiumSchemaVersion,
+        repairMarkers: const {},
+      );
+      await release;
+
+      final copy = snapshotDir.listSync().whereType<File>().single;
+      expect(rowsIn(copy.path), ['checkpointed', 'only in the WAL']);
+    });
+
     test('takes a complete copy once the reader lets go', () async {
       reader.execute('ROLLBACK');
 
@@ -643,6 +681,14 @@ void main() {
       expect(ordinary.every(hasPartialSweep), isTrue);
     });
 
+    Future<void> repairSucceeds(File dbFile) async {
+      final db = CompendiumDatabase(
+        NativeDatabase(dbFile, setup: applyCompendiumSqliteSetup),
+      );
+      await CompendiumRepositories(db, contraTaxonomy).ensureMigrated();
+      await db.close();
+    }
+
     test('the pin is released once the repair succeeds', () async {
       final dbFile = await createLibrary(owing: chainHandBackfillDoneKey);
       const retain = 2;
@@ -656,39 +702,87 @@ void main() {
         now: () => tick = tick.add(const Duration(seconds: 1)),
       );
 
-      await launch();
+      // A pinned copy, then a full rotation of later failed attempts.
+      for (var attempt = 0; attempt <= retain; attempt++) {
+        await launch();
+        commitPartOfTheRepair(dbFile, attempt);
+      }
       final pinnedName = p.basename(pinned().single.path);
-      // One failed attempt, then a second launch adds an ordinary copy.
-      commitPartOfTheRepair(dbFile, 0);
-      await launch();
-      expect(pinned(), hasLength(1));
-      expect(snapshots(), hasLength(2));
+      expect(snapshots(), hasLength(retain + 1));
 
-      // The repair succeeds, as `_startupSequence` runs it next.
-      final db = CompendiumDatabase(
-        NativeDatabase(dbFile, setup: applyCompendiumSqliteSetup),
-      );
-      await CompendiumRepositories(db, contraTaxonomy).ensureMigrated();
-      await db.close();
+      await repairSucceeds(dbFile);
 
-      // The next launch owes nothing: no new copy, and the pinned one joins
-      // the ordinary rotation under its unpinned name.
+      // The next launch owes nothing: no new copy, no pin left, and the
+      // released copy (the oldest) is pruned with the rotation back to
+      // [retain].
       await launch();
       expect(pinned(), isEmpty);
+      expect(snapshots(), hasLength(retain));
+      final names = snapshots().map((f) => p.basename(f.path));
+      expect(names, isNot(contains(pinnedName)));
       expect(
-        snapshots().map((f) => p.basename(f.path)),
-        unorderedMatches([
-          pinnedName.replaceFirst('.pinned.sqlite.bak', '.sqlite.bak'),
-          isNot(contains('.pinned')),
-        ]),
+        names,
+        isNot(
+          contains(
+            pinnedName.replaceFirst('.pinned.sqlite.bak', '.sqlite.bak'),
+          ),
+        ),
+      );
+    });
+
+    test('released while the repair is fresh, a pin is moved into the '
+        'rotation, not deleted', () async {
+      final dbFile = await createLibrary(owing: chainHandBackfillDoneKey);
+      await runMigrationPreflight(
+        dbFile: dbFile,
+        snapshotDir: snapshotDir,
+        runningSchemaVersion: kCompendiumSchemaVersion,
+        repairMarkers: repairMarkers,
+      );
+      final pinnedName = p.basename(pinned().single.path);
+      await repairSucceeds(dbFile);
+
+      await releaseRepairSnapshotPin(snapshotDir: snapshotDir);
+
+      expect(pinned(), isEmpty);
+      expect(snapshots().map((f) => p.basename(f.path)), [
+        pinnedName.replaceFirst('.pinned.sqlite.bak', '.sqlite.bak'),
+      ]);
+    });
+
+    test('a later build owing a new repair pins its own first copy, once the '
+        'app released the last pin', () async {
+      const retain = 2;
+      var tick = DateTime.utc(2026, 11, 11);
+      Future<void> launch(File dbFile) => runMigrationPreflight(
+        dbFile: dbFile,
+        snapshotDir: snapshotDir,
+        runningSchemaVersion: kCompendiumSchemaVersion,
+        repairMarkers: repairMarkers,
+        retain: retain,
+        now: () => tick = tick.add(const Duration(seconds: 1)),
       );
 
-      // A later debt pins afresh.
-      await createLibrary(owing: chainHandBackfillDoneKey);
-      await launch();
-      expect(pinned(), hasLength(1));
-      // And the released copy now counts toward [retain] like any other.
-      expect(snapshots(), hasLength(retain + 1));
+      // Build A: owes one repair, pins, and the repair succeeds in the same
+      // session, where the app releases the pin.
+      var dbFile = await createLibrary(owing: chainHandBackfillDoneKey);
+      await launch(dbFile);
+      await repairSucceeds(dbFile);
+      await releaseRepairSnapshotPin(snapshotDir: snapshotDir, retain: retain);
+
+      // Build B, next launch: owes a different repair, which keeps failing.
+      dbFile = await createLibrary(owing: purgeCorruptionRepairDoneKey);
+      for (var attempt = 0; attempt < retain + 2; attempt++) {
+        await launch(dbFile);
+        commitPartOfTheRepair(dbFile, attempt);
+      }
+
+      // B's first copy is the one pinned: clean of B's partial sweeps and
+      // still lacking B's marker.
+      final first = pinned().single;
+      expect(p.basename(first.path), contains('20261111T000002'));
+      expect(hasPartialSweep(first), isFalse);
+      expect(hasMarker(first.path, purgeCorruptionRepairDoneKey), isFalse);
     });
 
     test('a schema bump that owes a repair pins its copy; one that owes none '

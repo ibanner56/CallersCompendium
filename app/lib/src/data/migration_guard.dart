@@ -260,7 +260,8 @@ class MigrationSnapshotAborted implements Exception {
 /// safety copy (UPGRADE-1), so a file at the running version still snapshots
 /// when any marker is absent, tombstoned or stale. A fully repaired file reads
 /// every marker as done and does not snapshot. Pass an empty map only where no
-/// repair can follow the preflight.
+/// repair can follow the preflight; an empty map also owes nothing, so it
+/// releases a pin (below).
 ///
 /// **Pinning.** A repair that keeps failing meets the same debt on every launch
 /// and Retry and snapshots each time, while its sweeps commit separately; with
@@ -268,12 +269,19 @@ class MigrationSnapshotAborted implements Exception {
 /// after [retain] more attempts, leaving only copies taken after some sweeps
 /// had committed. So when a repair is owed (on either path) and [snapshotDir]
 /// holds no pinned copy, the snapshot is taken as a pinned copy, which pruning
-/// skips: at most one pinned copy, plus [retain] ordinary ones. The pin is
-/// released when a launch at the running version owes no repair: the pinned
-/// copy is renamed into the ordinary rotation (the oldest there, so the first
-/// pruned) and the rotation is pruned to [retain]. A schema-bump launch that
-/// owes no repair neither pins nor releases. The pin lives only in the file
-/// name; nothing is persisted in the database.
+/// skips: at most one pinned copy, plus [retain] ordinary ones. A folder that
+/// cannot be listed counts as holding one, so no further pin is taken there.
+///
+/// The pin is released as soon as the debt clears: by the app, through
+/// [releaseRepairSnapshotPin], once `ensureMigrated` has succeeded in the same
+/// session, and as a backstop by any launch at the running version that owes
+/// no repair. Releasing in the same session matters: otherwise a later build
+/// owing a new repair would find the old pin still there and not pin its own
+/// first copy. Release renames the pinned copy into the ordinary rotation,
+/// which is then pruned to [retain] by modification time (the pinned copy
+/// keeps its own, so it goes only if [retain] newer copies exist). A
+/// schema-bump launch that owes no repair neither pins nor releases. The pin
+/// lives only in the file name; nothing is persisted in the database.
 ///
 /// This reads the file with a short-lived `package:sqlite3` connection (which
 /// is WAL-aware, unlike reading the header bytes directly) and never opens the
@@ -319,8 +327,9 @@ Future<void> runMigrationPreflight({
   } else {
     owed = _owedRepairs(dbFile.path, repairMarkers);
     // At the running version with every repair done: nothing will rewrite the
-    // file, so no snapshot — this is the path of every ordinary launch. Any
-    // repair debt has cleared, so a copy pinned for it is released.
+    // file, so no snapshot — this is the path of every ordinary launch, which
+    // also lists [snapshotDir] here. Any repair debt has cleared, so a copy
+    // pinned for it is released (normally the app already did, last session).
     if (owed.isEmpty) {
       await _releasePinnedSnapshot(snapshotDir, retain);
       return;
@@ -1117,8 +1126,8 @@ int readUserVersion(String path) {
 ///
 /// The WAL is folded into the main file first (`wal_checkpoint(TRUNCATE)`) so
 /// the byte copy is a complete, self-contained database. If another connection
-/// keeps the checkpoint from finishing, this throws a [FileSystemException]
-/// rather than copy a main file that lacks the WAL's commits (see
+/// keeps the checkpoint from folding in every commit, this throws a
+/// [FileSystemException] rather than copy a main file that lacks some (see
 /// [_checkpoint]); [runMigrationPreflight] hands that to the user as any other
 /// snapshot failure.
 ///
@@ -1168,19 +1177,28 @@ const Duration _checkpointRetryDelay = Duration(milliseconds: 100);
 ///
 /// The pragma does not throw when another connection is in the way: a reader
 /// whose read transaction began before the newest commits stops the checkpoint
-/// short of them, and the pragma reports that only in its result row (`busy`
-/// is 1). Copying the main file then would miss those commits without any
-/// error. So the row is read, the checkpoint is retried briefly (yielding
-/// between attempts, so the loading screen keeps painting), and a WAL still
-/// busy after that throws, so the caller fails closed instead.
+/// short of them, and the pragma reports that only in its result row
+/// (`busy, log, checkpointed`): `busy` is 1 and fewer frames were checkpointed
+/// than the WAL holds. Copying the main file then would miss those commits
+/// without any error. So the row is read, the checkpoint is retried briefly
+/// (yielding between attempts, so the loading screen keeps painting), and a
+/// WAL still incomplete after that throws, so the caller fails closed instead.
 ///
-/// A database not in WAL mode reports `busy` 0 and has nothing to fold in.
+/// `busy` alone is too strict: TRUNCATE also reports it when every frame is
+/// already in the main file and only the reset of the WAL was blocked (a
+/// reader at the newest snapshot, or a writer with nothing committed yet).
+/// That main file is complete, so `log == checkpointed` is accepted too.
+///
+/// A database not in WAL mode reports `0, -1, -1` and has nothing to fold in.
 Future<void> _checkpoint(String path) async {
   final db = sql.sqlite3.open(path);
   try {
     for (var attempt = 1; ; attempt++) {
-      final row = db.select('PRAGMA wal_checkpoint(TRUNCATE)').first;
-      if (row.values.first == 0) return;
+      final row = db.select('PRAGMA wal_checkpoint(TRUNCATE)').first.values;
+      final busy = row[0];
+      final log = row[1] as int;
+      final checkpointed = row[2] as int;
+      if (busy == 0 || (log >= 0 && checkpointed == log)) return;
       if (attempt == _checkpointAttempts) {
         throw FileSystemException(
           'WAL checkpoint is blocked (database busy)',
@@ -1345,17 +1363,27 @@ List<File> _pinnedSnapshots(Directory dir) => [
       if (entry is File && _isPinned(p.basename(entry.path))) entry,
 ];
 
-/// Whether [dir] already holds a pinned snapshot. A directory that cannot be
-/// listed reads as holding none: at worst one extra copy is pinned, and the
-/// snapshot's own write will fail on the same directory anyway.
+/// Whether [dir] already holds a pinned snapshot. A directory that exists but
+/// cannot be listed reads as holding one, so this copy is not pinned: a pin
+/// there could never be found again, by this check or by a release, and one
+/// would pile up per launch.
 Future<bool> _hasPinnedSnapshot(Directory dir) async {
   try {
     return _pinnedSnapshots(dir).isNotEmpty;
   } on FileSystemException {
-    // diagnostics: silent — an unlistable folder fails the snapshot itself next.
-    return false;
+    // diagnostics: silent — the copy is still taken, only not pinned.
+    return true;
   }
 }
+
+/// Releases the snapshot pinned for a one-time repair debt in [snapshotDir],
+/// once that debt has cleared: the app calls this after `ensureMigrated`
+/// succeeds. See [runMigrationPreflight]. Best effort; never throws a
+/// [FileSystemException].
+Future<void> releaseRepairSnapshotPin({
+  required Directory snapshotDir,
+  int retain = kDefaultSnapshotRetention,
+}) => _releasePinnedSnapshot(snapshotDir, retain);
 
 /// Moves every pinned snapshot in [dir] into the ordinary rotation and prunes
 /// it to [retain]. Best effort: this runs on every ordinary launch, which must

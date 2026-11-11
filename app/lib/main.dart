@@ -264,6 +264,14 @@ Future<void> main(List<String> args) async {
           repairMarkers: appData.repositories.oneTimeRepairMarkers,
           onSnapshotFailure: onSnapshotFailure,
         ),
+        releaseRepairSnapshotPin: () async {
+          final dbFile = await resolveDatabaseFile();
+          await releaseRepairSnapshotPin(
+            snapshotDir: Directory(
+              p.join(dbFile.parent.path, kDatabaseBackupsDirName),
+            ),
+          );
+        },
         seedInitialCollection: (repos) => SeedService(repos).ensureSeeded(),
         incomingFileChannel: incomingFileChannel,
         installPlatformMenuBar:
@@ -323,6 +331,7 @@ class CompendiumApp extends StatefulWidget {
     required this.windowService,
     this.initialRequirePerformedForHistory = false,
     this.migrationPreflight,
+    this.releaseRepairSnapshotPin,
     this.integrityCheck,
     this.backupSaver,
     this.crashReporter,
@@ -429,6 +438,15 @@ class CompendiumApp extends StatefulWidget {
   /// [integrityCheck].
   final Future<void> Function(SnapshotFailureDecision onSnapshotFailure)?
   migrationPreflight;
+
+  /// Run once `ensureMigrated` has succeeded: every one-time repair is done,
+  /// so the snapshot [migrationPreflight] pinned for an outstanding repair
+  /// debt is released into the ordinary rotation now, not on the next launch,
+  /// where a newer build owing a new repair would otherwise find the old pin
+  /// and not pin its own first copy. Best effort: a failure is logged and the
+  /// next launch's preflight releases it instead. Injected from [main]; left
+  /// `null` in tests that don't exercise it.
+  final Future<void> Function()? releaseRepairSnapshotPin;
 
   /// Once-per-launch data-integrity probe (`PRAGMA quick_check`), run after the
   /// first frame so a large database does not delay the first screen. Returns
@@ -1810,6 +1828,13 @@ class _CompendiumAppState extends State<CompendiumApp>
       onDerivedRebuildProgress: (progress) =>
           _derivedRebuildProgress.value = progress,
     );
+    try {
+      await widget.releaseRepairSnapshotPin?.call();
+    } catch (error, stackTrace) {
+      // Never fatal: the pin only keeps one extra copy until the next launch's
+      // preflight releases it.
+      logCaughtError(error, stackTrace, source: 'startup.release_snapshot_pin');
+    }
     // First-run seed (issue: "first launch is never empty"): insert exactly one
     // seed dance on a fresh, empty install so the collection is never empty,
     // and never again thereafter (idempotent via a settings latch; safe to skip

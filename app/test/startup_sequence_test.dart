@@ -650,10 +650,12 @@ void main() {
         [derivedRebuildRequiredKey, 'true'],
       );
 
+      var pinReleases = 0;
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
           windowService: NoopWindowService(appData.repositories.settings),
+          releaseRepairSnapshotPin: () async => pinReleases++,
           // Retry now reopens the database (see the failed-open test above), so
           // it asks for a replacement AppData rather than reusing the failed
           // one; hand it a fresh healthy in-memory one instead of the real
@@ -676,6 +678,8 @@ void main() {
       expect(find.text('Retry'), findsOneWidget);
       expect(find.byType(AppShell), findsNothing);
       expect(appData.repositories.rebuildAttempts, 1);
+      // The repair debt has not cleared, so a pinned pre-repair copy stays.
+      expect(pinReleases, 0);
 
       // Retry rebuilds the database-backed world from appDataFactory; the fresh
       // healthy AppData migrates cleanly and the app recovers.
@@ -687,6 +691,8 @@ void main() {
         findsNothing,
       );
       expect(find.byType(AppShell), findsOneWidget);
+      // ensureMigrated succeeded: the pin is released in this session.
+      expect(pinReleases, 1);
       // The flaky instance is no longer in use after Retry, so its attempt
       // count stays at 1; the cross-instance `== 2` assertion this test used to
       // make (same AppData re-run) no longer describes Retry.

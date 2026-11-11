@@ -1059,7 +1059,8 @@ by opening drift — and compares it to the running `kCompendiumSchemaVersion`:
   privacy-registry change that widens the normalisation pass is covered. Such a
   snapshot is named `pre-v<running>` because no schema change is pending. A
   fully repaired file reads every marker as done and does not snapshot, so an
-  ordinary launch costs one short raw read. Markers that cannot be read at all
+  ordinary launch costs one short raw read, plus a listing of `db_backups`
+  for a pin to release (below). Markers that cannot be read at all
   are treated as owed, so the failure mode is an extra snapshot rather than a
   repair with none. Not covered: retries of recorded `normalisation_skips`
   entries, which are ordinary-use state that would snapshot on every launch,
@@ -1074,12 +1075,18 @@ by opening drift — and compares it to the running `kCompendiumSchemaVersion`:
   committed. So the first snapshot taken while any repair is owed — on a
   repair-only launch or a schema bump — is written as
   `compendium.pre-v<from>-<UTC-timestamp>.pinned.sqlite.bak`, which pruning
-  skips: at most one pinned copy beside the newest 5 ordinary ones, and a later
-  attempt never pins another while one exists. The pin is released by the
-  first launch at the running version that owes no repair: the pinned copy is
-  renamed into the ordinary rotation (where, being the oldest, it is the first
-  pruned) and the rotation is pruned to 5. A schema bump that owes no repair
-  neither pins nor releases, so its retention is unchanged. The pin lives only
+  skips: at most one pinned copy beside the newest 5 ordinary ones. A later
+  attempt never pins another while one exists, and a `db_backups` that exists
+  but cannot be listed counts as holding one, so it never gathers a pin per
+  launch. The pin is released as soon as the debt clears: by the app, in the
+  same session, once `ensureMigrated` succeeds, and as a backstop by any launch
+  at the running version that owes no repair. The same-session release is what
+  lets a later build that owes a *new* repair pin its own first copy rather
+  than find the old pin still there. Release renames the pinned copy into the
+  ordinary rotation and prunes that to 5 by modification time, which the
+  rename keeps, so the released copy goes only once 5 newer ones exist. A
+  schema bump that owes no repair neither pins nor releases, so its retention
+  is unchanged. The pin lives only
   in the file name: no setting or column records it, so there is nothing to
   classify or to keep out of backups. Relocation moves a pinned copy with the
   other snapshots.
@@ -1090,7 +1097,13 @@ by opening drift — and compares it to the running `kCompendiumSchemaVersion`:
   says so only in its result row (`busy` = 1). A byte copy of the main file
   would then silently lack those commits. So the preflight reads that row,
   retries a few times over about half a second, and treats a WAL still busy as
-  a snapshot failure (below), never copying. Copying the `-wal` beside the main
+  a snapshot failure (below), never copying. A `busy` result whose WAL frames
+  were all checkpointed (`log == checkpointed`) is accepted: TRUNCATE reports
+  busy whenever it cannot reset the WAL, including for a reader that already
+  sees every commit, and the main file is complete then. The failure reaches
+  the dialog with an unknown cause, so its advice (free up space, fix the
+  backups folder) does not name the real remedy, closing the other program;
+  a dedicated cause and wording are a possible follow-up. Copying the `-wal` beside the main
   file instead was rejected: the two files are not copied atomically, the
   restore steps would have to carry both, and a writer could append between
   the two reads. No holder inside the app has been found: on launch the
