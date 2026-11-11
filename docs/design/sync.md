@@ -4236,7 +4236,7 @@ policy rather than capability — and the policy is enforced by making access
 leave a record.
 
 Break-glass access for abuse investigation writes to a **separate database**,
-not the store's, holding exactly two things:
+not the store's. Each access writes one row holding exactly two things:
 
 | Column | |
 | --- | --- |
@@ -4255,6 +4255,13 @@ can link entries for one store, so it cannot be held indefinitely under the same
 reasoning that bounds everything else here. After 30 days `id_key` is nulled,
 leaving a timestamp-only row.
 
+Each access also records **what** it read, before reading it: one device's
+manifest, by device ID, or one blob, by hash, with the epoch (spec §7.4,
+`break_glass_reads`). The content itself is never recorded. Those identifiers
+are as linkable as the path, and a blob hash can confirm a guessed record, so
+they are nulled with it after 30 days, leaving only the time and whether a
+manifest or a blob was read.
+
 The split is deliberate, because the audit value is two different things:
 
 - *"Did the operator open store X?"* — store-linked, and expires on schedule.
@@ -4264,8 +4271,8 @@ The split is deliberate, because the audit value is two different things:
 The second is what matters for accountability over time, and it is the one that
 costs nothing to keep.
 
-The log is deliberately minimal: it records **that** access happened and to
-which store, not why. Justification lives in whatever incident process wraps it,
+The log is deliberately minimal: it records **that** access happened, to
+which store, and which items were read, not why. Justification lives in whatever incident process wraps it,
 not in a field nobody validates.
 
 It is a **separate database** so that reaping a store cannot destroy the evidence

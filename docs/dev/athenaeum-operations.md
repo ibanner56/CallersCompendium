@@ -469,14 +469,30 @@ curl --noproxy '*' --silent --show-error --max-time 15 \
   sync ID, and content; all must be absent.
 - **Break-glass:** obtain an incident/ticket approval before access. Record the
   operator, reason, approval reference, and UTC time in the ticket, then use
-  the supported command below. It accepts the raw sync ID on stdin, writes the
-  separate audit row before looking up the store or reading the requested
-  manifest, and writes only the manifest bytes to stdout:
+  the supported command below; never read the blob directory or SQLite
+  directly, because that bypasses the audit. It accepts the raw sync ID on
+  stdin and reads exactly one item per run: one device's manifest
+  (`--break-glass-device-id <device-id>`) or one blob
+  (`--break-glass-blob <hash>`), in the store's current epoch unless
+  `--break-glass-epoch <epoch>` names another. The blob hashes a device holds
+  are the `records` values of its manifest, so read the manifest first. Before
+  looking up the store, the command writes, in one transaction, the access row
+  (`break_glass_access`: derived `id_key`, time) and a row naming the item
+  (`break_glass_reads`: `manifest` or `blob`, `id_key`, epoch, device ID or
+  blob hash, time); when no epoch was given it then records the current one.
+  If either write fails it exits `1` without reading anything. The audit never
+  holds the item's content. It writes only the item's bytes to stdout:
   ```sh
   printf '%s\n' "$SYNC_ID" | docker exec -i athenaeum \
     /opt/athenaeum/bin/athenaeum --data-dir /var/lib/athenaeum --break-glass \
     --break-glass-device-id device-one > /secure/incident/manifest.bin
+  printf '%s\n' "$SYNC_ID" | docker exec -i athenaeum \
+    /opt/athenaeum/bin/athenaeum --data-dir /var/lib/athenaeum --break-glass \
+    --break-glass-blob "$BLOB_HASH" > /secure/incident/blob.bin
   ```
+  Options that do not name exactly one valid item (both or neither of
+  `--break-glass-device-id` and `--break-glass-blob`, a malformed device ID,
+  hash, or epoch) exit `2` before the sync ID is read, and record nothing.
   The command is a **read**: it opens `athenaeum.sqlite` read-only and runs
   none of the server's startup work (no schema or index creation, manifest
   indexing, orphan-blob reconcile, or pending-deletion retry), so it is safe to
@@ -494,8 +510,14 @@ curl --noproxy '*' --silent --show-error --max-time 15 \
   no `-wal`/`-shm`.
   Use a secure terminal and output path; do not put the sync ID or returned
   content in shell history, ordinary logs, or chat. Inspect the separate
-  break-glass database for exactly one row with the derived `id_key` and
-  timestamp. Never write this audit row to the ordinary store.
+  break-glass database for one `break_glass_access` row and one
+  `break_glass_reads` row per run, with the derived `id_key`, the item read,
+  and the timestamp. Never write these audit rows to the ordinary store. Then
+  add an entry to
+  [`docs/user/breakglass-access-record.md`](../user/breakglass-access-record.md)
+  saying what was read by kind and count, not by hash or device ID, and never
+  its content. After 30 days the hourly sweep nulls the `id_key`, epoch,
+  device ID, and hash of both tables' rows, leaving the time and the kind.
 - **Lost ID:** a lost sync ID cannot be recovered by design. Verify ownership
   through the normal support process, explain that the server stores only a
   one-way derived key, and direct the user to create a new store.
@@ -515,6 +537,12 @@ once, so it takes longer than later starts; afterwards it reads only manifests
 an earlier image wrote, which is what a rollback followed by a fresh upgrade
 leaves behind. Rolling back is safe without further steps: the earlier image
 ignores the index, and the next upgrade rebuilds whatever it changed.
+
+An image older than the `break_glass_reads` table ignores that table, so while
+it runs its sweep does not null the table's `id_key`, epoch, device ID, or
+hash after 30 days. The next upgrade's first sweep nulls every row then past
+the period. Do not leave a host on such an image for longer than the period
+after a break-glass read.
 
 The release workflow performs this upgrade itself: its `deploy_server` job builds
 `callers-compendium-athenaeum:<version>` from the tagged commit and swaps the

@@ -5229,12 +5229,30 @@ promises are stated over the store and the log is not part of it.
 
 ### 7.4 Break-glass access log
 
-Break-glass access MUST write to a **separate database** holding exactly:
+Break-glass access MUST write to a **separate database** holding exactly two
+tables. `break_glass_access` has one row per access:
 
 | Column | Retention |
 | --- | --- |
 | `id_key` | Derived sync storage path: `HMAC-SHA256(pepper, syncID)`, never plaintext. Nulled after 30 days. |
 | `accessed_at` | Retained. |
+
+`break_glass_reads` names what that access read, one row per item: one
+device's manifest or one blob. It never holds the item's content.
+
+| Column | Retention |
+| --- | --- |
+| `kind` | `manifest` or `blob`. Retained. |
+| `id_key` | As above. Nulled after 30 days. |
+| `epoch` | The store epoch read. Nulled with `id_key`. |
+| `device_id` | The device whose manifest was read; null for a blob. Nulled with `id_key`. |
+| `hash` | The blob read; null for a manifest. Nulled with `id_key`, because a content hash can confirm a guessed record. |
+| `accessed_at` | Retained. |
+
+Both rows MUST be written, in one transaction, before the store is looked up
+or any byte is read, and a failure to write them MUST abort the access. All
+content reads go through this command; there is no other audited path to a
+manifest or a blob.
 
 Separate so that reaping a store cannot destroy evidence of access to it. Its
 retention is therefore not the 30-day disuse TTL and MUST be stated in the
@@ -5244,7 +5262,9 @@ The break-glass command is a read, run as a second process against the live
 volume. It opens the store database read-only and performs none of the startup
 work of §7.3 (schema and index creation, manifest indexing, orphan-blob
 reconcile, pending-deletion retry), which assume no other process is writing;
-only the break-glass log database is opened for writing. The server's own
+only the break-glass log database is opened for writing. When no epoch is
+requested, the command records the store's current epoch on the read row after
+the lookup and before reading, and aborts if it cannot. The server's own
 connection waits a short, bounded time (250 ms) for a competing writer rather
 than failing at once, and no longer, because a wait stalls every request on a
 single-isolate server (#1917).
