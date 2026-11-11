@@ -36,6 +36,7 @@ String compoundParamKindLabel(AppLocalizations l10n, ParamKind kind) =>
       ParamKind.fraction => l10n.compoundParamKindFraction,
       ParamKind.rotation => l10n.compoundParamKindRotation,
       ParamKind.places => l10n.compoundParamKindPlaces,
+      ParamKind.number => l10n.compoundParamKindNumber,
       ParamKind.beats => l10n.compoundParamKindBeats,
       ParamKind.flag => l10n.compoundParamKindFlag,
       ParamKind.choice => l10n.compoundParamKindChoice,

@@ -184,6 +184,7 @@ List<String>? figureParamChoices(ParamSpec spec) {
       return spec.choices;
     case ParamKind.rotation:
     case ParamKind.places:
+    case ParamKind.number:
     case ParamKind.beats:
     case ParamKind.text:
     case ParamKind.flag:

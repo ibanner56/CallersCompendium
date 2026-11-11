@@ -11440,6 +11440,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get compoundParamKindPlaces => 'Plätze';
 
   @override
+  String get compoundParamKindNumber => 'Zahl';
+
+  @override
   String get compoundParamKindBeats => 'Schläge';
 
   @override

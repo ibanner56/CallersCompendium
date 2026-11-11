@@ -38,6 +38,7 @@ const List<ParamKind> compoundParamKinds = [
   ParamKind.fraction,
   ParamKind.rotation,
   ParamKind.places,
+  ParamKind.number,
   ParamKind.flag,
   ParamKind.choice,
   ParamKind.text,

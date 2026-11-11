@@ -10860,6 +10860,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get compoundParamKindPlaces => '位置の数';
 
   @override
+  String get compoundParamKindNumber => '数';
+
+  @override
   String get compoundParamKindBeats => '拍数';
 
   @override

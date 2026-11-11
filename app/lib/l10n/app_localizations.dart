@@ -16652,6 +16652,12 @@ abstract class AppLocalizations {
   /// **'places'**
   String get compoundParamKindPlaces;
 
+  /// The kind of a custom figure's parameter: a plain whole number with no unit word (unlike places). Lowercase; also used inside sentences.
+  ///
+  /// In en, this message translates to:
+  /// **'number'**
+  String get compoundParamKindNumber;
+
   /// The kind of a custom figure's parameter: beats. Lowercase; also used inside sentences.
   ///
   /// In en, this message translates to:

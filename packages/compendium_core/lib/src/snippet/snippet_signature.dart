@@ -195,6 +195,7 @@ Object? _coerceSignatureValue(ParamSpec spec, String token) {
     case ParamKind.rotation:
       return num.tryParse(token);
     case ParamKind.places:
+    case ParamKind.number:
     case ParamKind.beats:
       return int.tryParse(token);
     case ParamKind.flag:
