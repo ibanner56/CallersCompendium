@@ -12,6 +12,7 @@ dependencies:
   compendium_core:
     path: ../packages/compendium_core
   crypto: ^3.0.7
+  ffi: ^2.1.0
   path: ^1.9.1
   shelf: ^1.4.2
   sqlite3: ^3.7.0
