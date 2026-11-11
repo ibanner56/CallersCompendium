@@ -2857,7 +2857,9 @@ void main() {
           expect(
             find.text(
               'Another device is using a newer version of the app. Update the '
-              'app on this device to receive its changes.',
+              'app on this device to receive its changes.'
+              ' Editing something here that it changed, before you update, may '
+              'discard its changes.',
             ),
             findsOneWidget,
           );
@@ -2885,7 +2887,9 @@ void main() {
           expect(
             find.text(
               'Another device is using a newer version of the app. Update the '
-              'app on this device to receive 3 dances.',
+              'app on this device to receive 3 dances.'
+              ' Editing them here before you update may discard the other '
+              "device's changes to them.",
             ),
             findsOneWidget,
           );
@@ -2943,7 +2947,9 @@ void main() {
           expect(
             find.text(
               'Another device is using a newer version of the app. Update the '
-              'app on this device to receive 2 programs, 1 setting.',
+              'app on this device to receive 2 programs, 1 setting.'
+              ' Editing them here before you update may discard the other '
+              "device's changes to them.",
             ),
             findsOneWidget,
           );
