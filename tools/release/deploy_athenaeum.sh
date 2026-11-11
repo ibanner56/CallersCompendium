@@ -16,6 +16,9 @@
 # It refuses to replace a newer release with an older one (see below), so
 # recovering an old tag cannot roll the server back.
 #
+# The image is built from `git archive <sha>`, not from the checkout's working
+# tree, so local edits or untracked files on the host never reach it.
+#
 # Any failure exits non-zero, which fails the release before the mobile uploads
 # and the update manifest. The image is built BEFORE the running container is
 # touched, so a broken build leaves the previous release serving. A failure after
@@ -88,10 +91,17 @@ if [ "$(git rev-parse HEAD)" != "$sha" ]; then
   exit 1
 fi
 
-sudo -n docker build \
-  --file server/Dockerfile \
-  --tag "$image" \
-  .
+# Build from the commit, not the working tree. `git archive` emits exactly the
+# tree $sha records, so a local edit, an untracked file, or an ignored build
+# output left in the checkout cannot reach the image while the line at the end
+# reports $sha as serving. The tar arrives as the build context on stdin
+# (`docker build -`), where --file names a path inside it; pipefail fails the
+# deploy if either side fails.
+git archive --format=tar "$sha" |
+  sudo -n docker build \
+    --file server/Dockerfile \
+    --tag "$image" \
+    -
 
 if sudo -n docker container inspect "$container" >/dev/null 2>&1; then
   sudo -n docker stop "$container"
