@@ -604,9 +604,9 @@
   "@settingsSyncIdCopy": {
     "x-sourceSha256": "4e70e2c8f3f09f4c76638dbc8a93ff15a49da24b7f781c1e83ac084d8d421b29"
   },
-  "settingsSyncIdCopied": "Synchronisatiezin gekopieerd. Hij geeft toegang tot je opslag, dus plak hem alleen op een apparaat dat van jou is.",
+  "settingsSyncIdCopied": "Synchronisatiezin gekopieerd. Iedereen die hem heeft, kan je gedeelde bibliotheek openen, dus plak hem alleen op een apparaat dat van jou is.",
   "@settingsSyncIdCopied": {
-    "x-sourceSha256": "81d9cf47c8df0aa7ab1264a4810a2a14b4eb11efcb8fb40108d0095f52be1c17"
+    "x-sourceSha256": "4a9bd6708b5e26c6e1d09963fe725d9e570d770f9616d8eae0f1b40df2f4803d"
   },
   "settingsSyncIdCaution": "Voer hem in op je andere apparaat om dat te verbinden. Daar staat je gedeelde bibliotheek, dus iedereen die hem heeft, kan die bibliotheek openen: alles lezen wat je synchroniseert, daarvan op elk verbonden apparaat iets wijzigen of verwijderen, en de hele opslag van de server verwijderen. Overstappen op een andere zin betekent alle apparaten ernaartoe verplaatsen.",
   "@settingsSyncIdCaution": {

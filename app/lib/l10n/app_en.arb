@@ -824,9 +824,9 @@
   "@settingsSyncIdCopy": {
     "description": "Tooltip of the button that copies the sync phrase to the clipboard."
   },
-  "settingsSyncIdCopied": "Sync phrase copied. It unlocks your store, so paste it only on a device you own.",
+  "settingsSyncIdCopied": "Sync phrase copied. Anyone who has it can open your shared library, so paste it only on a device you own.",
   "@settingsSyncIdCopied": {
-    "description": "Snackbar confirming the sync phrase was copied, restating what having it lets someone do. Describe behaviour only: the phrase is where the shared library lives, not a password guarding it, and the glossary reserves 'credential' for the header encoding. Keep this consistent with @settingsSyncIdCaution below, which must not drift from it."
+    "description": "Snackbar confirming the sync phrase was copied, restating what having it lets someone do. Describe behaviour only: the phrase is where the shared library lives — its address — so do not write 'unlock', 'key', 'access', 'credential' or 'password'. Keep this consistent with @settingsSyncIdCaution below, which must not drift from it."
   },
   "settingsSyncIdCaution": "Enter this on your other device to connect it. It is where your shared library lives, so anyone who has it can open that library: read everything you sync, change or delete any of it on every connected device, and delete the whole store from the server. Moving to a different phrase means moving every device to it.",
   "@settingsSyncIdCaution": {

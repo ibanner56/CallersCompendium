@@ -643,7 +643,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsSyncIdCopied =>
-      'Synkroniseringssætning kopieret. Den giver adgang til dit lager, så indsæt den kun på en enhed, du selv ejer.';
+      'Synkroniseringssætning kopieret. Enhver, der har den, kan åbne dit delte bibliotek, så indsæt den kun på en enhed, du selv ejer.';
 
   @override
   String get settingsSyncIdCaution =>

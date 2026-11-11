@@ -604,9 +604,9 @@
   "@settingsSyncIdCopy": {
     "x-sourceSha256": "4e70e2c8f3f09f4c76638dbc8a93ff15a49da24b7f781c1e83ac084d8d421b29"
   },
-  "settingsSyncIdCopied": "Synkroniseringssætning kopieret. Den giver adgang til dit lager, så indsæt den kun på en enhed, du selv ejer.",
+  "settingsSyncIdCopied": "Synkroniseringssætning kopieret. Enhver, der har den, kan åbne dit delte bibliotek, så indsæt den kun på en enhed, du selv ejer.",
   "@settingsSyncIdCopied": {
-    "x-sourceSha256": "81d9cf47c8df0aa7ab1264a4810a2a14b4eb11efcb8fb40108d0095f52be1c17"
+    "x-sourceSha256": "4a9bd6708b5e26c6e1d09963fe725d9e570d770f9616d8eae0f1b40df2f4803d"
   },
   "settingsSyncIdCaution": "Indtast den på din anden enhed for at forbinde den. Det er dér, dit delte bibliotek ligger, så enhver, der har den, kan åbne det bibliotek: læse alt, hvad du synkroniserer, ændre eller slette hvad som helst af det på alle forbundne enheder og slette hele lageret fra serveren. At skifte til en anden sætning betyder at flytte alle enheder til den.",
   "@settingsSyncIdCaution": {

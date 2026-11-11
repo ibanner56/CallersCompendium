@@ -615,7 +615,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsSyncIdCopied =>
-      '同期フレーズをコピーしました。ストアを開けるものなので、自分のデバイスにのみ貼り付けてください。';
+      '同期フレーズをコピーしました。これを持つ人は誰でも共有ライブラリを開けるため、自分のデバイスにのみ貼り付けてください。';
 
   @override
   String get settingsSyncIdCaution =>

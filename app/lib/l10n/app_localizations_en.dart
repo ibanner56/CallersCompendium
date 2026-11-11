@@ -640,7 +640,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsSyncIdCopied =>
-      'Sync phrase copied. It unlocks your store, so paste it only on a device you own.';
+      'Sync phrase copied. Anyone who has it can open your shared library, so paste it only on a device you own.';
 
   @override
   String get settingsSyncIdCaution =>

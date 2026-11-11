@@ -604,9 +604,9 @@
   "@settingsSyncIdCopy": {
     "x-sourceSha256": "4e70e2c8f3f09f4c76638dbc8a93ff15a49da24b7f781c1e83ac084d8d421b29"
   },
-  "settingsSyncIdCopied": "Phrase de synchronisation copiée. Elle donne accès à votre espace : ne la collez que sur un appareil qui vous appartient.",
+  "settingsSyncIdCopied": "Phrase de synchronisation copiée. Quiconque la détient peut ouvrir votre bibliothèque partagée : ne la collez que sur un appareil qui vous appartient.",
   "@settingsSyncIdCopied": {
-    "x-sourceSha256": "81d9cf47c8df0aa7ab1264a4810a2a14b4eb11efcb8fb40108d0095f52be1c17"
+    "x-sourceSha256": "4a9bd6708b5e26c6e1d09963fe725d9e570d770f9616d8eae0f1b40df2f4803d"
   },
   "settingsSyncIdCaution": "Saisissez-la sur votre autre appareil pour le connecter. C'est là que se trouve votre bibliothèque partagée : quiconque la détient peut donc ouvrir cette bibliothèque, lire tout ce que vous synchronisez, en modifier ou en supprimer n'importe quelle partie sur tous les appareils connectés, et supprimer l'espace entier du serveur. Changer de phrase suppose de faire passer tous les appareils à la nouvelle.",
   "@settingsSyncIdCaution": {

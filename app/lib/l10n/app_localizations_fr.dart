@@ -655,7 +655,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsSyncIdCopied =>
-      'Phrase de synchronisation copiée. Elle donne accès à votre espace : ne la collez que sur un appareil qui vous appartient.';
+      'Phrase de synchronisation copiée. Quiconque la détient peut ouvrir votre bibliothèque partagée : ne la collez que sur un appareil qui vous appartient.';
 
   @override
   String get settingsSyncIdCaution =>

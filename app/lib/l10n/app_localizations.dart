@@ -1016,10 +1016,10 @@ abstract class AppLocalizations {
   /// **'Copy sync phrase'**
   String get settingsSyncIdCopy;
 
-  /// Snackbar confirming the sync phrase was copied, restating what having it lets someone do. Describe behaviour only: the phrase is where the shared library lives, not a password guarding it, and the glossary reserves 'credential' for the header encoding. Keep this consistent with @settingsSyncIdCaution below, which must not drift from it.
+  /// Snackbar confirming the sync phrase was copied, restating what having it lets someone do. Describe behaviour only: the phrase is where the shared library lives — its address — so do not write 'unlock', 'key', 'access', 'credential' or 'password'. Keep this consistent with @settingsSyncIdCaution below, which must not drift from it.
   ///
   /// In en, this message translates to:
-  /// **'Sync phrase copied. It unlocks your store, so paste it only on a device you own.'**
+  /// **'Sync phrase copied. Anyone who has it can open your shared library, so paste it only on a device you own.'**
   String get settingsSyncIdCopied;
 
   /// Caution under the sync-phrase row: what it is for, and what having it lets anyone do (spec §6.14 item 2, §8). Must name deletion and the store-wide wipe as well as reading and changing — this is the same disclosure the pairing flow makes, on the surface that shows the phrase itself, and the two must not drift. Keep the same framing as the pairing disclosures: the phrase is where the library is, not a password guarding it. Describe behaviour only; say nothing about how the value is classified internally.

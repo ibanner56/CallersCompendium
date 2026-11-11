@@ -604,9 +604,9 @@
   "@settingsSyncIdCopy": {
     "x-sourceSha256": "4e70e2c8f3f09f4c76638dbc8a93ff15a49da24b7f781c1e83ac084d8d421b29"
   },
-  "settingsSyncIdCopied": "Synchronisierungsphrase kopiert. Sie öffnet deinen Speicher – füge sie nur auf einem Gerät ein, das dir gehört.",
+  "settingsSyncIdCopied": "Synchronisierungsphrase kopiert. Jeder, der sie hat, kann deine geteilte Bibliothek öffnen – füge sie nur auf einem Gerät ein, das dir gehört.",
   "@settingsSyncIdCopied": {
-    "x-sourceSha256": "81d9cf47c8df0aa7ab1264a4810a2a14b4eb11efcb8fb40108d0095f52be1c17"
+    "x-sourceSha256": "4a9bd6708b5e26c6e1d09963fe725d9e570d770f9616d8eae0f1b40df2f4803d"
   },
   "settingsSyncIdCaution": "Gib sie auf deinem anderen Gerät ein, um es zu verbinden. Dort liegt deine geteilte Bibliothek, also kann jeder, der sie hat, diese Bibliothek öffnen: alles lesen, was du synchronisierst, davon auf jedem verbundenen Gerät beliebiges ändern oder löschen und den gesamten Speicher vom Server löschen. Zu einer anderen Phrase zu wechseln heißt, alle Geräte auf sie umzustellen.",
   "@settingsSyncIdCaution": {

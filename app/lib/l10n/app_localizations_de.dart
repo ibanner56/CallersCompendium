@@ -645,7 +645,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsSyncIdCopied =>
-      'Synchronisierungsphrase kopiert. Sie öffnet deinen Speicher – füge sie nur auf einem Gerät ein, das dir gehört.';
+      'Synchronisierungsphrase kopiert. Jeder, der sie hat, kann deine geteilte Bibliothek öffnen – füge sie nur auf einem Gerät ein, das dir gehört.';
 
   @override
   String get settingsSyncIdCaution =>

@@ -604,9 +604,9 @@
   "@settingsSyncIdCopy": {
     "x-sourceSha256": "4e70e2c8f3f09f4c76638dbc8a93ff15a49da24b7f781c1e83ac084d8d421b29"
   },
-  "settingsSyncIdCopied": "同期フレーズをコピーしました。ストアを開けるものなので、自分のデバイスにのみ貼り付けてください。",
+  "settingsSyncIdCopied": "同期フレーズをコピーしました。これを持つ人は誰でも共有ライブラリを開けるため、自分のデバイスにのみ貼り付けてください。",
   "@settingsSyncIdCopied": {
-    "x-sourceSha256": "81d9cf47c8df0aa7ab1264a4810a2a14b4eb11efcb8fb40108d0095f52be1c17"
+    "x-sourceSha256": "4a9bd6708b5e26c6e1d09963fe725d9e570d770f9616d8eae0f1b40df2f4803d"
   },
   "settingsSyncIdCaution": "もう一方のデバイスでこれを入力すると接続できます。共有ライブラリはそこにあるため、これを持つ人は誰でもそのライブラリを開き、同期しているすべての内容を閲覧し、接続されたすべてのデバイス上でその内容を変更または削除し、ストア全体をサーバーから削除できます。別のフレーズに変えるには、すべてのデバイスをそちらへ移す必要があります。",
   "@settingsSyncIdCaution": {

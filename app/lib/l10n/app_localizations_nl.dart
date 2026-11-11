@@ -646,7 +646,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsSyncIdCopied =>
-      'Synchronisatiezin gekopieerd. Hij geeft toegang tot je opslag, dus plak hem alleen op een apparaat dat van jou is.';
+      'Synchronisatiezin gekopieerd. Iedereen die hem heeft, kan je gedeelde bibliotheek openen, dus plak hem alleen op een apparaat dat van jou is.';
 
   @override
   String get settingsSyncIdCaution =>

@@ -25,6 +25,17 @@
   each entry there gives its reason. The accepted text
   below is left as written. Read "settings included" as "the `shareable`
   settings".
+- **Amended (2026-11-11)**: wording only, by the maintainer's decision that
+  the wording "should be changed to remove any implication that the store id
+  is authentication material of any kind", following #1380's
+  reclassification of the sync ID as `storeAddress`. Sentences in this record
+  that called the sync ID a credential or bearer token, or spoke of it leaking
+  or being disclosed, are reworded in place to describe it as the store's
+  address: whoever has it can reach the store, it cannot be taken back once
+  someone else has it, and to stop using it a user sets up a new phrase on each
+  device (and deletes the store to remove its contents at once). No decision,
+  requirement or described behaviour changed. The decision was relayed for
+  #2164, whose description records it.
 - **Roadmap item**: Amends the v1 non-goals list in `docs/ROADMAP.md` (removing
   "cloud sync") and supersedes the Later-milestones item "Optional
   device-to-device sync, beyond Apple-native AirDrop support". Referenced by
@@ -292,15 +303,16 @@ all that is required. This is deliberate: it is what makes the design work with
 no accounts and no sign-in, and it is what allows two people to share a
 collection if they choose (below) — a user is *expected* to hand the phrase to
 someone they want to sync with. It is therefore not a secret, and must not be
-described as one. It also means there is no recovery if it is lost and no
-revocation if it leaks.
+described as one. It also means there is no recovery if it is lost, and it
+cannot be taken back once someone else has it: to stop using it, set up a new
+phrase on each device.
 
 > **Amended 2026-10-02.** **A device ID belongs to one attachment, not to one
 > installation** (@ibanner56's ruling, recorded with the change that implements
 > it). It was minted once and kept across detach, so it followed a device into
 > every store it ever joined and to every server, self-hosted ones included.
-> That defeated this design's own remedy for a leaked phrase: moving every
-> device to a new sync ID left their device IDs unchanged, so anyone able to
+> That defeated this design's own remedy for a phrase someone else has: moving
+> every device to a new sync ID left their device IDs unchanged, so anyone able to
 > read the server could link the abandoned store to its replacement. Detach and
 > wipe now erase the device ID with the sync ID, pairing erases any value an
 > earlier attachment left behind, and every attach mints a new one (spec §3.3).
@@ -903,8 +915,8 @@ in its configuration.
 **Six requirements on whatever proxy is used.** These are conformance
 requirements, not deployment taste, and each has a concrete failure mode:
 
-- **`Authorization` must reach the backend unmodified.** The sync ID travels as
-  the bearer token in that header (spec §5.1). A proxy that consumes or
+- **`Authorization` must reach the backend unmodified.** The sync ID travels in
+  that header under the `Bearer` scheme (spec §5.1). A proxy that consumes or
   strips it makes every request `401` with no obvious cause. Apache's
   `mod_proxy_http` forwards it; the hazard is adding an auth directive to
   that vhost later, or fronting the service with CGI/FPM, which needs
@@ -921,17 +933,18 @@ requirements, not deployment taste, and each has a concrete failure mode:
   on the receiver by design. Inflating at the proxy moves a security control
   to a component that does not implement it.
 
-- **The credential must never be logged.** Common log formats record the
+- **The sync ID must never be logged.** Common log formats record the
   request line and status, not headers, so this holds by default; the risk is
   someone adding `%{Authorization}i` (or nginx's `$http_authorization`) to a
-  debug format and writing live credentials to disk. The vhost should carry a
+  debug format and writing live sync IDs to disk. The vhost should carry a
   comment saying so, because the omission is invisible.
 
 - **`/v1` must not be served over plaintext.** A plaintext request to `/v1` is
-  refused outright — not redirected. The credential is disclosed by the
-  plaintext request itself; what a redirect adds is that a client which
-  follows it *and retains* the credential across the hop syncs successfully,
-  so the misconfiguration never surfaces and every run repeats the disclosure.
+  refused outright — not redirected. The sync ID has already crossed the
+  network in the clear in the plaintext request itself; what a redirect adds
+  is that a client which follows it *and retains* the sync ID across the hop
+  syncs successfully, so the misconfiguration never surfaces and every run
+  sends it in the clear again.
   One that strips gets a `401` instead, and which of the two reaches a
   deployment is not something its operator can see. Refusal fails visibly for
   both. The `https` origin also sends `Strict-Transport-Security`, which is
@@ -942,9 +955,10 @@ requirements, not deployment taste, and each has a concrete failure mode:
   plaintext port. A `ProxyPass` written outside a vhost, or pasted into both,
   exposes the API on both and nothing in either response says so. The client
   already refuses a plaintext endpoint (spec §8), but the things that reach a
-  public port are not all conforming clients, and the sync ID is a bearer
-  credential on every request with no rotation and no revocation — so one
-  plaintext call is a complete and permanent disclosure.
+  public port are not all conforming clients, and the sync ID travels on
+  every request and cannot be taken back once someone else has it — so one
+  plaintext call puts the store's address in the clear for good, until every
+  device moves to a new phrase.
 
 - **The per-IP rate limit must see the real client address.** The server binds
   loopback, so its socket peer is the proxy on *every* request. A server that
@@ -1150,11 +1164,11 @@ makes self-hosting materially harder, which constraint 4 forbids.
   but merging is last-writer-wins with no attribution and no prompt. If two
   people edit the same dance, one edit disappears silently. This must be said at
   pairing time, not discovered.
-- **The sync ID has no recovery and no revocation.** Lose the ID and the
-  store is unreachable; leak it and there is no way to take the ID back, so
-  continuing to sync means moving to a new ID on every device. That alone does
-  not answer the leak, because it leaves the old store readable by whoever holds
-  the phrase — wipe is what removes the content, and it is the only remedy that
+- **The sync ID has no recovery and cannot be taken back.** Lose the ID and the
+  store is unreachable; once someone else has it there is no way to take the ID
+  back, so to stop using that address, set up a new phrase on every device.
+  That alone does not remove what the store holds, because it leaves the old
+  store readable by whoever has the phrase — wipe is what removes the content, and it is the only remedy that
   acts at once (§5.3). The two are complementary, not alternatives.
 - **Device Sync is not backup.** With a 30-day-of-disuse TTL the store is a relay with
   a grace period, not an archive. The file backup remains the recovery path and the UI
@@ -1613,9 +1627,9 @@ makes self-hosting materially harder, which constraint 4 forbids.
   > second, can also fail it; the clean-up then skips, which costs one
   > leftover entry, never data.
 - **Any holder of the sync ID can impersonate a device or wipe the store.**
-  Manifest `PUT` accepts a caller-chosen device id, and the same bearer
-  authorises `DELETE /v1/store`. This is inherent to the bearer model rather than
-  an oversight, and it is stated here as explicitly as the read-access case
+  Manifest `PUT` accepts a caller-chosen device id, and the same sync ID is
+  all `DELETE /v1/store` asks for. This is inherent to the one-address model
+  rather than an oversight, and it is stated here as explicitly as the read-access case
   because the write-access case is the one that destroys data.
 - **A deletion can sit unapplied on another device indefinitely.** Because the
   referential guards are kept, a device that still cites a deleted choreographer,
@@ -1679,16 +1693,16 @@ makes self-hosting materially harder, which constraint 4 forbids.
   The log lives in a **separate database** — so reaping a store cannot destroy
   the record of access to it — and holds two fields: the derived sync-ID key and
   a timestamp. Never the plaintext ID: the store deliberately avoids holding the
-  credential in the clear, and a plaintext log would undo that while outliving
+  sync ID in the clear, and a plaintext log would undo that while outliving
   the stores it describes.
 - **Identifiers are derived with HMAC, not a bare hash.** A bare SHA-256 of a
   sync ID is weak *because the ID is deliberately low-entropy*: at the ~2⁴⁰
   reference strength for user-chosen IDs, exhausting the space is minutes of
-  commodity GPU time, so a stolen database would yield working credentials. The
-  ruling that the strength score only warns strengthens this argument rather
-  than weakening it — a user-chosen ID may sit *below* 2⁴⁰, so the derived
+  commodity GPU time, so a stolen database would yield the sync IDs
+  themselves. The ruling that the strength score only warns strengthens this
+  argument rather than weakening it — a user-chosen ID may sit *below* 2⁴⁰, so the derived
   identifier is the only thing standing between a database leak and a working
-  credential. Keys are therefore
+  sync ID. Keys are therefore
   `HMAC-SHA256(pepper, syncID)` with the pepper held in server configuration and
   never in the database. This is server-side only — the client computes no MAC
   and never holds the pepper. **Rotation is a store migration, not a config
