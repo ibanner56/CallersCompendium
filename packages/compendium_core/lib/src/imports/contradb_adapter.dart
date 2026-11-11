@@ -389,7 +389,11 @@ class ContraDbAdapter implements SourceAdapter {
         );
         continue;
       }
-      params[spec.name] = converted;
+      if (converted is _ParamGroup) {
+        params.addAll(converted.params);
+      } else {
+        params[spec.name] = converted;
+      }
     }
 
     if (paramList.length > specs.length) {
@@ -663,6 +667,13 @@ typedef _Conv = Object? Function(Object? raw);
 /// One positional parameter in a ContraDB move's `parameter_values`: our
 /// named [name] and a [convert] that maps the ContraDB value into our
 /// vocabulary (returning `null` when it cannot convert cleanly).
+/// A conversion that sets several params from one positional value: a
+/// fraction amount sets `fraction` and `amount` together (#2120).
+final class _ParamGroup {
+  const _ParamGroup(this.params);
+  final Map<String, Object?> params;
+}
+
 class _PosParam {
   const _PosParam(this.name, this.convert);
   final String name;
@@ -767,14 +778,18 @@ Object? _places(Object? raw) {
   return places;
 }
 
+/// ContraDB `half_or_full`. ContraDB itself writes only 0.5 and 1.0 (its
+/// `stringParamHalfOrFullNotN` throws on anything else), so any other number
+/// is foreign data. A quarter step up to 2½ keeps its amount, as `other` with
+/// [fractionAmountParam] when no named value states it (#2120); a number
+/// outside that domain is still not a named fraction, so it is `other` with
+/// no amount, which reads as unstated rather than as a guess.
 Object? _fraction(Object? raw) {
   final n = _asNum(raw);
   if (n != null) {
-    if (n == 0.25) return 'quarter';
-    if (n == 0.5) return 'half';
-    if (n == 0.75) return 'threeQuarter';
-    if (n == 1 || n == 1.0) return 'full';
-    return 'other';
+    final params = fractionParamsForAmount(n);
+    if (params == null) return 'other';
+    return params.length == 1 ? params['fraction'] : _ParamGroup(params);
   }
   final s = _asString(raw)?.trim().toLowerCase().replaceAll(RegExp(r'\s+'), '');
   switch (s) {

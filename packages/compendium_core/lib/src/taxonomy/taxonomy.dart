@@ -161,7 +161,7 @@ class Taxonomy {
     if (paramBeats != null &&
         !normalized.params.containsKey('beats') &&
         !(alias?.pinnedParams.containsKey('beats') ?? false)) {
-      final derived = paramBeats.byValue[effective[paramBeats.param]];
+      final derived = paramBeats.derive(effective);
       if (derived != null) effective['beats'] = derived;
     }
     return effective;
@@ -407,7 +407,10 @@ class Taxonomy {
     if (goodBeats != null &&
         goodBeats.isNotEmpty &&
         beats is int &&
-        !goodBeats.contains(beats)) {
+        !goodBeats.contains(beats) &&
+        // A count the move's own value-driven rule derives is typical for the
+        // value stated (a 1½ figure 8 is 24 beats, #2120).
+        def.paramBeats?.derive(figure.params) != beats) {
       issues.add(
         ValidationIssue(
           severity: ValidationSeverity.warning,

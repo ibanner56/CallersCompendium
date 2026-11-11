@@ -1258,15 +1258,26 @@ class FigureRenderer {
         slots[name] = '';
         continue;
       }
-      final value = _renderValue(
-        name,
-        params[name],
-        def.params[name],
-        dialect,
-        verbose,
-        decimals,
-        forCanonical,
-      );
+      // A fraction reads its sibling amount while it is `other` (#2120).
+      final value = def.params[name]?.kind == ParamKind.fraction
+          ? _renderFraction(
+              name,
+              params,
+              def.params[name],
+              dialect,
+              verbose,
+              decimals,
+              forCanonical: forCanonical,
+            )
+          : _renderValue(
+              name,
+              params[name],
+              def.params[name],
+              dialect,
+              verbose,
+              decimals,
+              forCanonical,
+            );
       // DISPLAY-ONLY: tag the exact end of the primary subject token as it is
       // emitted, so an assumed marker can be spliced at the subject's true
       // position rather than by searching the finished line (which misfires
@@ -2563,14 +2574,13 @@ class FigureRenderer {
     // expands above/below into the direction plus the opposite pair.
     'figure_8': (r, def, params, dialect, verbose, decimals) {
       final who = r._subjectWho(params, dialect);
-      final half = r._renderValue(
-        'half',
-        params['fraction'],
+      final half = r._renderFraction(
+        'fraction',
+        params,
         def.params['fraction'],
         dialect,
         verbose,
         decimals,
-        false,
       );
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
       final direction = params['where'];
@@ -2969,7 +2979,16 @@ class FigureRenderer {
     // half/full fraction word leads the clause.
     'poussette': (r, def, params, dialect, verbose, decimals) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
-      final half = _displayScalar(params['fraction']);
+      // The same fraction words as figure 8, verbose included (#2120: this
+      // line used to humanize the raw token, "three quarter poussette").
+      final half = r._renderFraction(
+        'fraction',
+        params,
+        def.params['fraction'],
+        dialect,
+        verbose,
+        decimals,
+      );
       final swho = r._displaySubject(params['who'], dialect, plural: true);
       final swhom = r._displaySubject(params['whom'], dialect);
       final turn = params['direction'];
@@ -3846,6 +3865,79 @@ class FigureRenderer {
       return '${_formatNumber(turns)} times';
     }
     return '$wholeWord and $fracWord times';
+  }
+
+  /// The words for the [ParamKind.fraction] param [name] of a figure with
+  /// [params] (#2120). A named fraction renders as [_renderValue] renders it.
+  /// `other` reads its sibling amount ([statedFractionAmount]): `1½` (`1.5`
+  /// with decimals, `one and a half` verbose). An `other` that states none
+  /// says so, `an unstated amount of` on display and `unstated amount` in
+  /// canonical text, never the bare token "other", which read as nonsense
+  /// ("ones other figure 8").
+  String _renderFraction(
+    String name,
+    Map<String, Object?> params,
+    ParamSpec? spec,
+    Dialect dialect,
+    bool verbose,
+    bool decimals, {
+    bool forCanonical = false,
+  }) {
+    final value = params[name];
+    if (value != 'other') {
+      return _renderValue(
+        name,
+        value,
+        spec,
+        dialect,
+        verbose,
+        decimals,
+        forCanonical,
+      );
+    }
+    final amount = statedFractionAmount(params, fractionParam: name);
+    if (amount == null) {
+      return forCanonical ? 'unstated amount' : 'an unstated amount of';
+    }
+    if (verbose) return _formatFractionAmountVerbose(amount);
+    if (decimals && !forCanonical && amount % 1 != 0) {
+      return _formatNumber(amount);
+    }
+    return _formatFractionAmount(amount);
+  }
+
+  /// A fraction amount in notation glyphs: `1¼`, `1½`, `2½`. A whole amount
+  /// is spelled out (`two`): a line that opens with a bare number reads it
+  /// as a beat count (`2 poussette` is a 2-beat poussette), and the poussette
+  /// line opens with its fraction. Unlike [_formatRotation] it never says
+  /// `once`/`twice`, which would misread as a count of figures.
+  static String _formatFractionAmount(num amount) {
+    final whole = amount ~/ 1;
+    if (amount == whole) return _numberWord(whole);
+    final glyph = switch (amount - whole) {
+      0.25 => '¼',
+      0.5 => '½',
+      0.75 => '¾',
+      _ => null,
+    };
+    if (glyph == null) return _formatNumber(amount);
+    return whole == 0 ? glyph : '$whole$glyph';
+  }
+
+  /// A fraction amount spoken: `one and a half`, `two`, `two and a quarter`.
+  static String _formatFractionAmountVerbose(num amount) {
+    final whole = amount ~/ 1;
+    final part = switch (amount - whole) {
+      0 => '',
+      0.25 => 'a quarter',
+      0.5 => 'a half',
+      0.75 => 'three quarters',
+      _ => null,
+    };
+    if (part == null) return _formatNumber(amount);
+    if (whole == 0) return part;
+    final wholeWord = _numberWord(whole);
+    return part.isEmpty ? wholeWord : '$wholeWord and $part';
   }
 
   /// Spelled-out fraction words for [ParamKind.fraction], avoiding the

@@ -44,6 +44,13 @@ List<Figure> _sweep() => [
       for (final MapEntry(key: name, value: spec) in move.params.entries)
         for (final value in _domain(spec))
           testFigure(move: move.id, params: {name: value}),
+      // Each amount an `other` fraction can state (#2120).
+      if (move.params[fractionAmountParam] != null)
+        for (var amount = 1.25; amount <= 2.5; amount += 0.25)
+          testFigure(
+            move: move.id,
+            params: {'fraction': 'other', fractionAmountParam: amount},
+          ),
     ],
 ];
 
