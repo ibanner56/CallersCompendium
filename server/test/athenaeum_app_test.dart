@@ -2528,6 +2528,125 @@ void main() {
     expect(blobFile.existsSync(), isFalse);
   });
 
+  test('a request drains as many cleanup jobs as its time budget allows, '
+      'not a fixed few', () async {
+    final customDirectory = await Directory.systemTemp.createTemp(
+      'athenaeum-request-retry-budget-',
+    );
+    final customConfig = AthenaeumConfig(
+      dataDirectory: customDirectory.path,
+      pepper: List<int>.filled(32, 0x42),
+    );
+    // A clock that never advances: the budget is never spent.
+    final customStore = AthenaeumStore(
+      config: customConfig,
+      elapsed: () => Duration.zero,
+    );
+    final customApp = AthenaeumApp(config: customConfig, store: customStore);
+    addTearDown(() async {
+      customStore.close();
+      await customDirectory.delete(recursive: true);
+    });
+    const queued = 4 * maxPendingDeletionRetriesPerRequest;
+    for (var index = 0; index < queued; index++) {
+      customStore.database.execute(
+        'INSERT INTO blob_deletion_jobs (id_key, epoch, hash, queued_at) '
+        'VALUES (?, ?, ?, ?)',
+        ['e' * 64, 'f' * 32, index.toRadixString(16).padLeft(64, '0'), 0],
+      );
+    }
+
+    final response = await customApp.call(
+      Request(
+        'GET',
+        Uri.parse('http://127.0.0.1/v1/store'),
+        headers: {'authorization': 'Bearer ${encodeSyncCredential(syncId)}'},
+      ),
+    );
+    expect(response.statusCode, 404);
+    expect(
+      customStore.database.select('SELECT 1 FROM blob_deletion_jobs'),
+      isEmpty,
+    );
+  });
+
+  group('request cleanup', () {
+    late Directory directory;
+    late AthenaeumConfig config;
+    setUp(() async {
+      directory = await Directory.systemTemp.createTemp(
+        'athenaeum-request-retry-bounds-',
+      );
+      config = AthenaeumConfig(
+        dataDirectory: directory.path,
+        pepper: List<int>.filled(32, 0x42),
+      );
+    });
+    tearDown(() => directory.delete(recursive: true));
+
+    Future<void> request(AthenaeumStore store) async {
+      final response = await AthenaeumApp(config: config, store: store).call(
+        Request(
+          'GET',
+          Uri.parse('http://127.0.0.1/v1/store'),
+          headers: {'authorization': 'Bearer ${encodeSyncCredential(syncId)}'},
+        ),
+      );
+      expect(response.statusCode, 404);
+    }
+
+    void queue(AthenaeumStore store, int count) {
+      for (var index = 0; index < count; index++) {
+        final hash = index.toRadixString(16).padLeft(64, '0');
+        store.blobFile('e' * 64, 'f' * 32, hash)
+          ..createSync(recursive: true)
+          ..writeAsBytesSync([1]);
+        store.database.execute(
+          'INSERT INTO blob_deletion_jobs (id_key, epoch, hash, queued_at) '
+          'VALUES (?, ?, ?, ?)',
+          ['e' * 64, 'f' * 32, hash, 0],
+        );
+      }
+    }
+
+    int queued(AthenaeumStore store) =>
+        store.database
+                .select('SELECT COUNT(*) AS n FROM blob_deletion_jobs')
+                .single['n']
+            as int;
+
+    test('stops once its time budget is spent', () async {
+      // Every job takes longer than the whole budget.
+      var elapsed = Duration.zero;
+      final store = AthenaeumStore(
+        config: config,
+        elapsed: () => elapsed += requestPendingDeletionBudget,
+      );
+      addTearDown(store.close);
+      queue(store, 10);
+      await request(store);
+      expect(queued(store), 9);
+    });
+
+    test('stops at the first job that fails, which keeps failing', () async {
+      var attempts = 0;
+      final store = AthenaeumStore(
+        config: config,
+        elapsed: () => Duration.zero,
+        deleteFile: (_) {
+          attempts++;
+          throw const FileSystemException('injected');
+        },
+      );
+      addTearDown(store.close);
+      queue(store, 10);
+      attempts = 0;
+      await request(store);
+      expect(attempts, 1);
+      expect(queued(store), 10);
+    });
+  });
+
   test(
     'blob PUT reports 404 when the store is deleted during body read',
     () async {
@@ -3429,7 +3548,7 @@ void main() {
     },
   );
 
-  test('sweep controller cancels its hourly callback on shutdown', () {
+  test('sweep controller cancels its hourly callback on shutdown', () async {
     final timer = _FakeTimer();
     late void Function() fire;
     var sweeps = 0;
@@ -3458,44 +3577,127 @@ void main() {
     );
     controller.start();
     fire();
+    await controller.running;
     expect(sweeps, 1);
     expect(app.store.lookup(expiredIdKey), isNull);
-    controller.stop();
+    await controller.stop();
     expect(timer.isActive, isFalse);
     fire();
     expect(sweeps, 1);
   });
 
-  test('sweep controller contains callback failures and emits an alert', () {
-    final timer = _FakeTimer();
-    late void Function() fire;
-    var attempts = 0;
-    final alerts = <AthenaeumOperationalAlert>[];
-    final controller = AthenaeumSweepController(
-      app.store,
-      sweep: () {
-        attempts++;
-        if (attempts == 1) throw StateError('injected sweep failure');
-      },
-      alertSink: alerts.add,
-      schedule: (interval, callback) {
-        fire = () {
-          if (timer.isActive) callback(timer);
-        };
-        return timer;
-      },
-    );
-    controller.start();
-    fire();
-    fire();
-    expect(attempts, 2);
-    expect(alerts.single.toJson(), {
-      'kind': 'sweep_failure',
-      'source': 'hourly_sweep',
-      'errorType': 'StateError',
-    });
-    controller.stop();
-  });
+  test(
+    'sweep controller contains callback failures and emits an alert',
+    () async {
+      final timer = _FakeTimer();
+      late void Function() fire;
+      var attempts = 0;
+      final alerts = <AthenaeumOperationalAlert>[];
+      final controller = AthenaeumSweepController(
+        app.store,
+        sweep: () {
+          attempts++;
+          if (attempts == 1) throw StateError('injected sweep failure');
+        },
+        alertSink: alerts.add,
+        schedule: (interval, callback) {
+          fire = () {
+            if (timer.isActive) callback(timer);
+          };
+          return timer;
+        },
+      );
+      controller.start();
+      fire();
+      await controller.running;
+      fire();
+      await controller.running;
+      expect(attempts, 2);
+      expect(alerts.single.toJson(), {
+        'kind': 'sweep_failure',
+        'source': 'hourly_sweep',
+        'errorType': 'StateError',
+      });
+      await controller.stop();
+    },
+  );
+
+  test(
+    'stopping the sweep controller stops its sweep at the next slice',
+    () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'athenaeum-sweep-stop-',
+      );
+      final config = AthenaeumConfig(
+        dataDirectory: directory.path,
+        pepper: List<int>.filled(32, 0x42),
+      );
+      // Every unit of the sweep spends its whole slice.
+      var elapsed = Duration.zero;
+      final store = AthenaeumStore(
+        config: config,
+        elapsed: () => elapsed += const Duration(seconds: 1),
+      );
+      addTearDown(() async {
+        store.close();
+        await directory.delete(recursive: true);
+      });
+      final idKeys = [for (var index = 0; index < 5; index++) '$index' * 64];
+      for (final idKey in idKeys) {
+        store.create(idKey);
+      }
+      store.database.execute('UPDATE stores SET last_seen = 0');
+      final timer = _FakeTimer();
+      late void Function() fire;
+      final controller = AthenaeumSweepController(
+        store,
+        schedule: (interval, callback) {
+          fire = () => callback(timer);
+          return timer;
+        },
+      );
+      controller.start();
+      fire();
+      await controller.stop();
+      expect(idKeys.where((idKey) => store.lookup(idKey) != null), isNotEmpty);
+    },
+  );
+
+  test(
+    'sweep controller does not start a sweep while one is running',
+    () async {
+      final timer = _FakeTimer();
+      late void Function() fire;
+      var started = 0;
+      var release = Completer<void>();
+      final controller = AthenaeumSweepController(
+        app.store,
+        sweep: () {
+          started++;
+          return release.future;
+        },
+        schedule: (interval, callback) {
+          fire = () {
+            if (timer.isActive) callback(timer);
+          };
+          return timer;
+        },
+      );
+      controller.start();
+      fire();
+      fire();
+      expect(started, 1);
+      release.complete();
+      await controller.running;
+      release = Completer<void>();
+      fire();
+      expect(started, 2);
+      final stopped = controller.stop();
+      release.complete();
+      await stopped;
+      expect(controller.running, isNull);
+    },
+  );
 }
 
 extension on HttpClientResponse {

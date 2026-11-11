@@ -27,9 +27,9 @@ the app and of `compendium_core`; version headings below refer to
   `ATHENAEUM_MIN_FREE_BYTES`; `0` turns it off). Lookups, downloads, deletes
   and a manifest upload no larger than the device's stored one keep working
   below it, so a user can still shrink a device's share by turning on *Skip
-  unused imported dances*. **Upgrade note:** on a host
-  already below the floor, every upload answers `507` from the first start;
-  check free space before deploying. It raises a `quota_exhaustion` alert with `source`
+  unused imported dances*. **Upgrade note:** on a host already below the
+  floor, every upload answers `507` from the first start; check free space
+  before deploying. It raises a `quota_exhaustion` alert with `source`
   `free_space_floor`. Free space is read with `statvfs(3)` through `dart:ffi`
   on 64-bit Linux; elsewhere the server says at startup that it cannot read it,
   and admits every write. The server now depends on `package:ffi` directly.
@@ -49,7 +49,36 @@ the app and of `compendium_core`; version headings below refer to
   or unreadable part-way through ends the response early, and the client fails
   the request as on a dropped connection.
 
-No schema, stored-format or wire-format change; no version constant changed.
+### Fixed
+
+- After a large deletion — a caller dropping an old imported library, or
+  turning on `sync_exclude_imports` near quota — every quota check re-read
+  each queued blob deletion from the filesystem, and `PUT /v1/blobs/batch`
+  did so once per new blob, on the server's single isolate. Measured on a
+  4-CPU container with 20,000 queued deletions, each quota check took about
+  1 s and a 50-blob batch 56 s, past the client's 30 s deadline, stalling
+  every other request meanwhile; they now take under 1 ms and under 50 ms. Pending deletions are
+  now charged from a running per-store total, adjusted as jobs are queued and
+  run, and a batch reads it once. The cost moves to the garbage collection
+  that queues the deletions, which stats each queued file once, so the
+  manifest `PUT` that drops a large library takes longer, once: 1.7 s rather
+  than 0.6 s for 20,000 blobs in the same measurement. The total is
+  derived from the filesystem after a restart and after a change the server
+  cannot account for file by file; a pending file removed by hand while the
+  server runs stays charged until then.
+- The cleanup each request runs before it is served now drains as many jobs
+  as fit in its 50 ms budget, rather than stopping at 16, so while a backlog
+  lasts each request can spend up to about 50 ms on it. It stops at the first
+  job whose filesystem removal fails, so a job that keeps failing costs each
+  request one attempt rather than the whole budget.
+- The hourly sweep no longer blocks the server for its whole run, which grew
+  with the number of stores. It runs in slices of about 50 ms and yields between them, does
+  not start while the previous sweep is still running, and reaps a store only
+  if it is still past the disuse TTL when its own deletion runs. Shutdown
+  stops a sweep in progress at its next slice before closing the database.
+
+The server limits above change no schema, stored format or wire format, and
+no version constant.
 
 ## [0.3.3] - 2026-11-02
 

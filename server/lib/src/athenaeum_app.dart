@@ -19,7 +19,7 @@ typedef AthenaeumOperationalAlertSink =
     void Function(AthenaeumOperationalAlert alert);
 typedef AthenaeumPeriodicTimer =
     Timer Function(Duration interval, void Function(Timer timer) callback);
-typedef AthenaeumSweep = void Function();
+typedef AthenaeumSweep = FutureOr<void> Function();
 
 // The request-rate rows of spec §5.4, refilled per second. The failure and
 // server-wide creation budgets beside them stay per minute
@@ -162,40 +162,64 @@ class AthenaeumSweepController {
     this.store, {
     AthenaeumPeriodicTimer? schedule,
     this.interval = const Duration(hours: 1),
-    AthenaeumSweep? sweep,
+    this.sweep,
     AthenaeumOperationalAlertSink? alertSink,
   }) : _schedule = schedule ?? Timer.periodic,
-       _sweep = sweep ?? store.sweep,
        _alertLimiter = _OperationalAlertLimiter(
          alertSink ?? _writeOperationalAlert,
        );
 
   final AthenaeumStore store;
   final AthenaeumPeriodicTimer _schedule;
-  final AthenaeumSweep _sweep;
+
+  /// Null for the store's own sweep, [AthenaeumStore.sweepInSlices], which
+  /// yields between slices so requests are served while it runs.
+  final AthenaeumSweep? sweep;
   final _OperationalAlertLimiter _alertLimiter;
   final Duration interval;
   Timer? _timer;
+  Future<void>? _running;
+
+  /// The sweep in progress, if any. Completes when it does; never with an
+  /// error, which is reported as a `sweep_failure` alert instead.
+  Future<void>? get running => _running;
 
   void start() {
     _timer ??= _schedule(interval, (_) {
-      try {
-        _sweep();
-      } catch (error) {
-        _alertLimiter.add(
-          AthenaeumOperationalAlert(
-            kind: 'sweep_failure',
-            source: 'hourly_sweep',
-            errorType: error.runtimeType.toString(),
-          ),
-        );
-      }
+      // A sweep that outlasts the interval is not overlapped by the next.
+      if (_running != null) return;
+      final running = _runSweep();
+      _running = running;
+      running.whenComplete(() {
+        if (identical(_running, running)) _running = null;
+      });
     });
   }
 
-  void stop() {
+  Future<void> _runSweep() async {
+    try {
+      final sweep = this.sweep;
+      await (sweep == null
+          ? store.sweepInSlices(shouldStop: () => _timer == null)
+          : sweep());
+    } catch (error) {
+      _alertLimiter.add(
+        AthenaeumOperationalAlert(
+          kind: 'sweep_failure',
+          source: 'hourly_sweep',
+          errorType: error.runtimeType.toString(),
+        ),
+      );
+    }
+  }
+
+  /// Stops scheduling sweeps, and stops the one in progress at its next
+  /// slice. The returned future completes once it has stopped, after which
+  /// the store may be closed.
+  Future<void> stop() {
     _timer?.cancel();
     _timer = null;
+    return _running ?? Future<void>.value();
   }
 }
 
@@ -355,8 +379,16 @@ class AthenaeumApp {
       }
     }
     try {
+      // Synchronous, so holding a slot across it lets no other request in
+      // meanwhile; it only lengthens this request's hold by at most the
+      // cleanup budget. A request refused a slot above skips it, as a request
+      // refused by the request budget does.
       try {
-        store.retryPendingDeletions(maxDuration: requestPendingDeletionBudget);
+        store.retryPendingDeletions(
+          maxJobs: maxBudgetedPendingDeletionRetriesPerRequest,
+          maxDuration: requestPendingDeletionBudget,
+          stopAtFailure: true,
+        );
       } on Object catch (error) {
         stderr.writeln(
           'Athenaeum request cleanup retry failed (${error.runtimeType})',

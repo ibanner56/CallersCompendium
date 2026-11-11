@@ -80,8 +80,9 @@ Future<void> main(List<String> arguments) async {
   );
   late StreamSubscription<ProcessSignal> shutdownSubscription;
   shutdownSubscription = ProcessSignal.sigterm.watch().listen((_) async {
-    sweeper.stop();
+    final sweepStopped = sweeper.stop();
     await server.close(force: true);
+    await sweepStopped;
     app.store.close();
     await shutdownSubscription.cancel();
     exit(0);

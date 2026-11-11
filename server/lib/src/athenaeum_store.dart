@@ -52,6 +52,19 @@ const int maxFailedResolutionsServerWide = 1000;
 const int maxPendingDeletionRetriesPerRequest = 16;
 const int maxPendingDeletionRetriesPerSweep = 1000;
 
+/// The job cap for the cleanup each API request runs before it is served.
+/// [requestPendingDeletionBudget] is what bounds that cleanup; this cap only
+/// bounds the rows read for it, so a request drains as many jobs as fit in the
+/// budget rather than stopping at [maxPendingDeletionRetriesPerRequest].
+const int maxBudgetedPendingDeletionRetriesPerRequest =
+    maxPendingDeletionRetriesPerSweep;
+
+/// How long the hourly sweep runs before it yields to the event loop, so that
+/// requests are served between its slices. Checked between units of work (one
+/// store's deletion, one epoch's garbage collection, one cleanup job), so a
+/// unit that has started always finishes.
+const Duration sweepSliceBudget = Duration(milliseconds: 50);
+
 /// Wall-clock budget for the cleanup a single request performs. The job-count
 /// cap alone does not bound latency: one directory job is a recursive delete.
 /// The budget is checked between jobs, so a job that has started always
@@ -206,6 +219,30 @@ class AthenaeumStore {
   final AthenaeumOperationalFailureSink? operationalFailureSink;
   final AthenaeumQuotaLimits quotaLimits;
   final int diagnosticRowLimit;
+
+  /// Each store's pending-deletion usage, as [_scanPendingDeletionUsage] last
+  /// derived it from the queues and the filesystem, kept current since by the
+  /// changes this process makes: enqueue and dequeue adjust it, a new ref
+  /// removes its own file from it, and a change it cannot account for exactly
+  /// (a directory job, a filesystem failure part way through, an upload that
+  /// rolled back after writing) drops the entry so the next read rescans.
+  ///
+  /// Not persisted: a restart starts empty, so files changed by hand while the
+  /// server is down are read afresh. Files changed by hand while it runs are
+  /// not seen until the entry is next dropped.
+  final Map<String, _DeletionUsage> _pendingUsage = {};
+  int _pendingDeletionScans = 0;
+
+  /// How many times a store's pending-deletion usage has been derived from the
+  /// filesystem rather than read from the running total. Each derivation costs
+  /// time in proportion to the store's pending deletions, synchronously; a
+  /// quota check must not pay it per request, let alone per blob.
+  int get pendingDeletionScans => _pendingDeletionScans;
+
+  /// Drops every store's running pending-deletion total, so the next quota
+  /// read derives it afresh. Tests use it to compare the running total with a
+  /// scan.
+  void forgetPendingDeletionUsage() => _pendingUsage.clear();
 
   static sqlite3.Database _openDatabase(String dataDirectory) {
     Directory(dataDirectory).createSync(recursive: true);
@@ -403,6 +440,7 @@ class AthenaeumStore {
         final epoch = p.basename(epochDirectory.path);
         if (!_epochPattern.hasMatch(epoch)) continue;
         _queueOrphansInEpoch(idKey, epoch, epochDirectory, queuedAt);
+        _pendingUsage.remove(idKey);
       }
     }
   }
@@ -528,7 +566,7 @@ class AthenaeumStore {
       'SELECT COALESCE(SUM(size), 0) AS bytes FROM blob_refs WHERE id_key = ?',
       [store.idKey],
     );
-    final pending = _pendingDeletionUsage(store.idKey);
+    final pending = _pendingDeletionTotals(store.idKey);
     return StoreMetadata(
       epoch: store.epoch,
       devices: [for (final row in deviceRows) row['device_id'] as String],
@@ -670,7 +708,7 @@ class AthenaeumStore {
             as int;
     final used =
         max(current.bytesUsed, blobBytes) +
-        _pendingDeletionUsage(idKey).bytes +
+        _pendingDeletionTotals(idKey).bytes +
         _manifestBytes(
           idKey,
           excludingEpoch: current.epoch,
@@ -809,6 +847,16 @@ class AthenaeumStore {
           if (candidates.isEmpty) break;
         }
       }
+      // What the queued files add to the store's pending usage, worked out
+      // only while it has a running total to add to. A directory job for the
+      // epoch already counts its files, so that case rescans instead.
+      var queued = _pendingUsage.containsKey(idKey)
+          ? const _DeletionUsage()
+          : null;
+      if (queued != null && candidates.isNotEmpty) {
+        if (_directoryJobExists(idKey, epoch)) queued = null;
+      }
+      final listings = <String, Map<String, List<File>>>{};
       for (final row in stale) {
         final hash = row['hash'] as String;
         if (!candidates.contains(hash)) continue;
@@ -822,6 +870,22 @@ class AthenaeumStore {
           '(id_key, epoch, hash, queued_at) VALUES (?, ?, ?, ?)',
           [idKey, epoch, hash, _clock().millisecondsSinceEpoch ~/ 1000],
         );
+        final jobIsNew = _database.updatedRows > 0;
+        if (queued != null) {
+          // The ref was live, so its file was not counted; it is now. Its
+          // temporary files were counted already if a job was queued before.
+          queued = queued.add(usage: _fileUsage(blobFile(idKey, epoch, hash)));
+          if (jobIsNew) {
+            for (final file in _listedTemporaryBlobFiles(
+              listings,
+              idKey,
+              epoch,
+              hash,
+            )) {
+              queued = queued!.add(usage: _fileUsage(file));
+            }
+          }
+        }
         _database.execute(
           'UPDATE stores SET bytes_used = MAX(0, bytes_used - ?) '
           'WHERE id_key = ? AND epoch = ?',
@@ -830,6 +894,11 @@ class AthenaeumStore {
       }
       _database.execute('COMMIT');
       inTransaction = false;
+      if (queued == null) {
+        if (candidates.isNotEmpty) _pendingUsage.remove(idKey);
+      } else {
+        _adjustPendingUsage(idKey, queued);
+      }
       if (retryMaxJobs != null) {
         retryPendingBlobDeletions(maxJobs: retryMaxJobs);
       }
@@ -863,8 +932,37 @@ class AthenaeumStore {
     }
   }
 
+  /// Runs the whole hourly sweep at once. [sweepInSlices] is the same work,
+  /// yielding to the event loop as it goes; the server runs that.
   void sweep({DateTime? now}) {
-    final current = now ?? _clock();
+    for (final _ in _sweepSteps(now ?? _clock())) {}
+  }
+
+  /// The hourly sweep, run in slices of about [sliceBudget] with a yield to
+  /// the event loop between them, so requests are served while it runs. The
+  /// sweep's work is units that each read and change state in their own
+  /// transaction, so what a request does between slices cannot be undone by
+  /// one: a store touched since the sweep listed it is not deleted, and a
+  /// cleanup job already run is skipped. A store or epoch created mid-sweep
+  /// waits for the next one. Stops between slices once [shouldStop] returns
+  /// true.
+  Future<void> sweepInSlices({
+    DateTime? now,
+    Duration sliceBudget = sweepSliceBudget,
+    bool Function()? shouldStop,
+  }) async {
+    var sliceStarted = _elapsed();
+    for (final _ in _sweepSteps(now ?? _clock())) {
+      if (_elapsed() - sliceStarted < sliceBudget) continue;
+      await Future<void>.delayed(Duration.zero);
+      if (shouldStop?.call() ?? false) return;
+      sliceStarted = _elapsed();
+    }
+  }
+
+  /// The sweep, one step per unit of work. Failures are reported and do not
+  /// stop the steps after them.
+  Iterable<void> _sweepSteps(DateTime current) sync* {
     final cutoff =
         current.subtract(storeDisuseTtl).millisecondsSinceEpoch ~/ 1000;
     final expired = _database
@@ -873,10 +971,11 @@ class AthenaeumStore {
         .toList();
     for (final idKey in expired) {
       try {
-        deleteStore(idKey, retryGlobal: false);
+        deleteStore(idKey, retryGlobal: false, lastSeenBefore: cutoff);
       } on Object catch (error) {
         _reportOperationalFailure('store_deletion', error);
       }
+      yield null;
     }
     final epochs = _database.select(
       'SELECT id_key, epoch FROM blob_refs '
@@ -893,6 +992,7 @@ class AthenaeumStore {
       } on Object catch (error) {
         _reportOperationalFailure('garbage_collection', error);
       }
+      yield null;
     }
     try {
       purgeExpiredBreakGlassAccess(now: current);
@@ -904,13 +1004,20 @@ class AthenaeumStore {
     } on Object catch (error) {
       _reportOperationalFailure('diagnostic_retention', error);
     }
-    try {
-      retryPendingDeletions(
-        maxJobs: maxPendingDeletionRetriesPerSweep,
-        reportFailures: true,
-      );
-    } on Object catch (error) {
-      _reportOperationalFailure('deletion_retry', error);
+    yield null;
+    final retries = _pendingDeletionRetrySteps(
+      maxJobs: maxPendingDeletionRetriesPerSweep,
+      reportFailures: true,
+    ).iterator;
+    while (true) {
+      try {
+        if (!retries.moveNext()) break;
+      } on Object catch (error) {
+        // As before slicing, a job that throws ends this sweep's retries.
+        _reportOperationalFailure('deletion_retry', error);
+        break;
+      }
+      yield null;
     }
   }
 
@@ -959,12 +1066,73 @@ class AthenaeumStore {
     return min(maxBlobBytes, quotaLimits.maxBytes - bytesUsed);
   }
 
+  /// The store's pending-deletion usage, as a PUT of [excludingHash] into
+  /// [excludingEpoch] would see it: that blob's own pending file, if any, is
+  /// left out, since the upload replaces it.
   _DeletionUsage _pendingDeletionUsage(
     String idKey, {
-    String? excludingEpoch,
-    String? excludingHash,
+    required String excludingEpoch,
+    required String excludingHash,
   }) {
-    final excluded = {?excludingHash};
+    final totals = _pendingDeletionTotals(idKey);
+    if (totals.isEmpty) return totals;
+    return totals.subtract(
+      _countedPendingFile(idKey, excludingEpoch, excludingHash),
+    );
+  }
+
+  /// The store's pending-deletion usage: the running total, or a scan when
+  /// there is none.
+  _DeletionUsage _pendingDeletionTotals(String idKey) =>
+      _pendingUsage[idKey] ??= _scanPendingDeletionUsage(idKey);
+
+  /// Adds [delta] to [idKey]'s running total, if it has one. A total that
+  /// would go negative has drifted from the filesystem, so it is dropped and
+  /// rescanned rather than clamped.
+  void _adjustPendingUsage(String idKey, _DeletionUsage delta) {
+    final current = _pendingUsage[idKey];
+    if (current == null) return;
+    final next = current.add(usage: delta);
+    if (next.blobs < 0 || next.bytes < 0) {
+      _pendingUsage.remove(idKey);
+    } else {
+      _pendingUsage[idKey] = next;
+    }
+  }
+
+  /// What [_scanPendingDeletionUsage] counts for the final blob file of
+  /// [hash] in [epoch]: the file, if it exists, has no live ref, and is
+  /// queued for deletion by a blob job or its epoch's directory job.
+  _DeletionUsage _countedPendingFile(String idKey, String epoch, String hash) {
+    if (blobRef(idKey, epoch, hash) != null) return const _DeletionUsage();
+    final queued = _database.select(
+      'SELECT 1 FROM blob_deletion_jobs '
+      'WHERE id_key = ? AND epoch = ? AND hash = ? '
+      'UNION ALL SELECT 1 FROM deletion_jobs WHERE id_key = ? AND epoch = ? '
+      'LIMIT 1',
+      [idKey, epoch, hash, idKey, epoch],
+    );
+    if (queued.isEmpty) return const _DeletionUsage();
+    return _fileUsage(blobFile(idKey, epoch, hash));
+  }
+
+  bool _directoryJobExists(String idKey, String epoch) => _database.select(
+    'SELECT 1 FROM deletion_jobs WHERE id_key = ? AND epoch = ?',
+    [idKey, epoch],
+  ).isNotEmpty;
+
+  static _DeletionUsage _fileUsage(File file) {
+    final stat = file.statSync();
+    if (stat.type != FileSystemEntityType.file) return const _DeletionUsage();
+    return _DeletionUsage(blobs: 1, bytes: stat.size);
+  }
+
+  /// Derives the store's pending-deletion usage from the queues and the
+  /// filesystem: every file a queued job will delete, counted once. Costs time
+  /// in proportion to the store's queued jobs; [_pendingDeletionTotals] keeps
+  /// the result so that quota checks do not repeat it.
+  _DeletionUsage _scanPendingDeletionUsage(String idKey) {
+    _pendingDeletionScans++;
     var usage = const _DeletionUsage();
     final accountedPaths = <String>{};
     final directoryRows = _database.select(
@@ -984,27 +1152,36 @@ class AthenaeumStore {
           blobFile(idKey, row['epoch'] as String, row['hash'] as String).path,
         );
       }
-      if (excludingEpoch != null) {
-        for (final hash in excluded) {
-          accountedPaths.add(blobFile(idKey, excludingEpoch, hash).path);
-        }
-      }
     }
     final rows = _database.select(
-      'SELECT epoch, hash FROM blob_deletion_jobs WHERE id_key = ?',
+      'SELECT jobs.epoch AS epoch, jobs.hash AS hash, '
+      'refs.hash IS NOT NULL AS live '
+      'FROM blob_deletion_jobs AS jobs '
+      'LEFT JOIN blob_refs AS refs ON refs.id_key = jobs.id_key '
+      'AND refs.epoch = jobs.epoch AND refs.hash = jobs.hash '
+      'WHERE jobs.id_key = ?',
       [idKey],
     );
+    final listings = <String, Map<String, List<File>>>{};
     for (final row in rows) {
       final epoch = row['epoch'] as String;
       final hash = row['hash'] as String;
-      final isExcluded = epoch == excludingEpoch && excluded.contains(hash);
-      if (!isExcluded && blobRef(idKey, epoch, hash) == null) {
+      if (row['live'] == 0) {
         final file = blobFile(idKey, epoch, hash);
-        if (file.existsSync() && accountedPaths.add(file.path)) {
-          usage = usage.add(bytes: file.lengthSync(), blobs: 1);
+        if (!accountedPaths.contains(file.path)) {
+          final fileUsage = _fileUsage(file);
+          if (!fileUsage.isEmpty) {
+            accountedPaths.add(file.path);
+            usage = usage.add(usage: fileUsage);
+          }
         }
       }
-      for (final file in _temporaryBlobFiles(idKey, epoch, hash)) {
+      for (final file in _listedTemporaryBlobFiles(
+        listings,
+        idKey,
+        epoch,
+        hash,
+      )) {
         if (accountedPaths.add(file.path)) {
           usage = usage.add(bytes: file.lengthSync(), blobs: 1);
         }
@@ -1129,11 +1306,13 @@ class AthenaeumStore {
                 [idKey],
               ).single['bytes']
               as int;
-      final pending = _pendingDeletionUsage(
-        idKey,
-        excludingEpoch: epoch,
-        excludingHash: hash,
-      );
+      final totals = _pendingDeletionTotals(idKey);
+      // This blob's own pending file, which the upload replaces and its ref
+      // stops counting as pending.
+      final own = totals.isEmpty
+          ? const _DeletionUsage()
+          : _countedPendingFile(idKey, epoch, hash);
+      final pending = totals.subtract(own);
       final bytesUsed =
           max(current.bytesUsed, aggregateBytes) +
           pending.bytes +
@@ -1163,11 +1342,15 @@ class AthenaeumStore {
       );
       _database.execute('COMMIT');
       inTransaction = false;
+      _adjustPendingUsage(idKey, own.negated);
       return true;
     } catch (error) {
       try {
         if (inTransaction) _database.execute('ROLLBACK');
       } finally {
+        // Publishing may have replaced a pending file that the cleanup below
+        // then deletes, so the running total no longer matches the disk.
+        if (temporary != null) _pendingUsage.remove(idKey);
         if (published && file != null && file.existsSync()) {
           file.deleteSync();
         }
@@ -1220,14 +1403,11 @@ class AthenaeumStore {
       // asking, since a single PUT leaves out its own hash's pending file.
       var bytesUsed =
           max(current.bytesUsed, aggregateBytes) + _manifestBytes(idKey);
-      // With nothing pending, which is the usual case, every blob's pending
-      // usage is zero and is computed once. Otherwise each new blob's is
-      // computed as its own PUT would compute it, against the rows this
-      // batch has already inserted.
-      final nothingPending = _pendingDeletionUsage(
-        idKey,
-        excludingEpoch: epoch,
-      ).isEmpty;
+      // Pending usage is read once for the batch. Each new blob's is then what
+      // its own PUT would see: less its own pending file, and less those of
+      // the blobs this batch has already stored, whose refs are now live.
+      final totals = _pendingDeletionTotals(idKey);
+      var stored = const _DeletionUsage();
       var full = false;
       var added = 0;
       final now = _clock().millisecondsSinceEpoch ~/ 1000;
@@ -1256,13 +1436,10 @@ class AthenaeumStore {
           statuses.add(507);
           continue;
         }
-        final pending = nothingPending
+        final own = totals.isEmpty
             ? const _DeletionUsage()
-            : _pendingDeletionUsage(
-                idKey,
-                excludingEpoch: epoch,
-                excludingHash: hash,
-              );
+            : _countedPendingFile(idKey, epoch, hash);
+        final pending = totals.subtract(stored).subtract(own);
         if (count + pending.blobs >= quotaLimits.maxBlobs ||
             bytesUsed + pending.bytes > quotaLimits.maxBytes - body.length) {
           full = true;
@@ -1283,6 +1460,7 @@ class AthenaeumStore {
         count++;
         bytesUsed += body.length;
         added += body.length;
+        stored = stored.add(usage: own);
         statuses.add(201);
       }
       _database.execute(
@@ -1292,11 +1470,14 @@ class AthenaeumStore {
       );
       _database.execute('COMMIT');
       inTransaction = false;
+      _adjustPendingUsage(idKey, stored.negated);
       return statuses;
     } catch (error) {
       try {
         if (inTransaction) _database.execute('ROLLBACK');
       } finally {
+        // As in [putBlob]: a replaced pending file may be deleted below.
+        if (temporaries.isNotEmpty) _pendingUsage.remove(idKey);
         for (final file in written) {
           if (file.existsSync()) file.deleteSync();
         }
@@ -1335,7 +1516,15 @@ class AthenaeumStore {
 
   sqlite3.Database get diagnosticDatabase => _diagnosticDatabase;
 
-  void deleteStore(String idKey, {bool retryGlobal = true}) {
+  /// Deletes the store and queues its blob directories for removal. With
+  /// [lastSeenBefore], a Unix time in seconds, deletes it only if it was last
+  /// seen before then, read in the same transaction: the sweep's check, which
+  /// a request between its slices may have made stale.
+  void deleteStore(
+    String idKey, {
+    bool retryGlobal = true,
+    int? lastSeenBefore,
+  }) {
     late final String epoch;
     late final Set<String> epochs;
     var inTransaction = false;
@@ -1343,8 +1532,9 @@ class AthenaeumStore {
       _database.execute('BEGIN IMMEDIATE');
       inTransaction = true;
       final rows = _database.select(
-        'SELECT epoch FROM stores WHERE id_key = ?',
-        [idKey],
+        'SELECT epoch FROM stores WHERE id_key = ? '
+        'AND (? IS NULL OR last_seen < ?)',
+        [idKey, lastSeenBefore, lastSeenBefore],
       );
       if (rows.isEmpty) {
         _database.execute('ROLLBACK');
@@ -1379,6 +1569,7 @@ class AthenaeumStore {
       _database.execute('DELETE FROM stores WHERE id_key = ?', [idKey]);
       _database.execute('COMMIT');
       inTransaction = false;
+      _pendingUsage.remove(idKey);
     } catch (error) {
       try {
         if (inTransaction) _database.execute('ROLLBACK');
@@ -1408,14 +1599,40 @@ class AthenaeumStore {
     }
   }
 
-  void retryPendingDeletions({
+  /// Runs up to [maxJobs] queued cleanup jobs, directory jobs first, and
+  /// returns how many ran. With [maxDuration], stops once that much time has
+  /// passed; it is checked between jobs, so at least one job runs and a job
+  /// that has started always finishes. With [stopAtFailure], stops after the
+  /// first job whose filesystem removal fails: that job is requeued, and one
+  /// that keeps failing must not cost every request its whole budget.
+  int retryPendingDeletions({
     int maxJobs = maxPendingDeletionRetriesPerRequest,
     bool reportFailures = false,
     Duration? maxDuration,
+    bool stopAtFailure = false,
   }) {
     final started = _elapsed();
-    bool budgetSpent() =>
-        maxDuration != null && _elapsed() - started >= maxDuration;
+    var ran = 0;
+    for (final completed in _pendingDeletionRetrySteps(
+      maxJobs: maxJobs,
+      reportFailures: reportFailures,
+    )) {
+      ran++;
+      if (stopAtFailure && !completed) break;
+      if (maxDuration != null && _elapsed() - started >= maxDuration) break;
+    }
+    return ran;
+  }
+
+  /// One step per job run. The rows are read before the first job of each
+  /// queue, so a job that fails and is requeued is not retried again by the
+  /// same call. Each job re-reads its own state in its own transaction, so the
+  /// caller may let other work run between steps. Each step is whether the
+  /// job's filesystem removal succeeded, or had nothing to do.
+  Iterable<bool> _pendingDeletionRetrySteps({
+    required int maxJobs,
+    required bool reportFailures,
+  }) sync* {
     final rows = _database.select(
       'SELECT id_key, epoch FROM deletion_jobs '
       'ORDER BY queued_at, rowid LIMIT ?',
@@ -1423,24 +1640,23 @@ class AthenaeumStore {
     );
     var ran = 0;
     for (final row in rows) {
-      if (ran > 0 && budgetSpent()) return;
-      final idKey = row['id_key'] as String;
-      final epoch = row['epoch'] as String;
-      _retryPendingDirectory(idKey, epoch, reportFailure: reportFailures);
+      final completed = _retryPendingDirectory(
+        row['id_key'] as String,
+        row['epoch'] as String,
+        reportFailure: reportFailures,
+      );
       ran++;
+      yield completed;
     }
-    if (ran > 0 && budgetSpent()) return;
     // maxJobs caps the whole call, not each queue.
     if (ran >= maxJobs) return;
-    retryPendingBlobDeletions(
+    yield* _blobDeletionRetrySteps(
       maxJobs: maxJobs - ran,
       reportFailures: reportFailures,
-      budgetSpent: maxDuration == null ? null : budgetSpent,
-      jobsAlreadyRun: ran,
     );
   }
 
-  void _retryPendingDirectory(
+  bool _retryPendingDirectory(
     String idKey,
     String epoch, {
     bool reportFailure = false,
@@ -1449,6 +1665,12 @@ class AthenaeumStore {
     try {
       _database.execute('BEGIN IMMEDIATE');
       inTransaction = true;
+      if (!_directoryJobExists(idKey, epoch)) {
+        // Run since it was read: by a request between sweep slices.
+        _database.execute('COMMIT');
+        inTransaction = false;
+        return true;
+      }
       final refs = _database.select(
         'SELECT 1 FROM manifests WHERE id_key = ? AND epoch = ? '
         'UNION SELECT 1 FROM blob_refs WHERE id_key = ? AND epoch = ? LIMIT 1',
@@ -1463,8 +1685,11 @@ class AthenaeumStore {
           ') WHERE id_key = ? AND epoch = ?',
           [idKey, epoch],
         );
-        return;
+        return true;
       }
+      // A directory's files are counted by walking it, which a dequeue does
+      // not repeat: whether it is deleted whole or in part, rescan.
+      _pendingUsage.remove(idKey);
       try {
         _deleteDirectory(Directory(p.join(blobDirectory.path, idKey, epoch)));
       } on FileSystemException catch (error) {
@@ -1479,7 +1704,7 @@ class AthenaeumStore {
           ') WHERE id_key = ? AND epoch = ?',
           [idKey, epoch],
         );
-        return;
+        return false;
       }
       _database.execute(
         'DELETE FROM blob_deletion_jobs WHERE id_key = ? AND epoch = ?',
@@ -1491,6 +1716,7 @@ class AthenaeumStore {
       );
       _database.execute('COMMIT');
       inTransaction = false;
+      return true;
     } catch (error) {
       try {
         if (inTransaction) _database.execute('ROLLBACK');
@@ -1503,63 +1729,110 @@ class AthenaeumStore {
   void retryPendingBlobDeletions({
     int maxJobs = maxPendingDeletionRetriesPerRequest,
     bool reportFailures = false,
-    bool Function()? budgetSpent,
-    int jobsAlreadyRun = 0,
   }) {
-    var ran = jobsAlreadyRun;
+    for (final _ in _blobDeletionRetrySteps(
+      maxJobs: maxJobs,
+      reportFailures: reportFailures,
+    )) {}
+  }
+
+  Iterable<bool> _blobDeletionRetrySteps({
+    required int maxJobs,
+    required bool reportFailures,
+  }) sync* {
     final rows = _database.select(
       'SELECT id_key, epoch, hash FROM blob_deletion_jobs '
       'ORDER BY queued_at, rowid LIMIT ?',
       [maxJobs],
     );
     for (final row in rows) {
-      if (ran > 0 && budgetSpent != null && budgetSpent()) return;
-      ran++;
-      final idKey = row['id_key'] as String;
-      final epoch = row['epoch'] as String;
-      final hash = row['hash'] as String;
-      _validateHash(hash);
-      var inTransaction = false;
-      try {
-        _database.execute('BEGIN IMMEDIATE');
-        inTransaction = true;
-        final currentRef = blobRef(idKey, epoch, hash);
-        try {
-          if (currentRef == null) {
-            final file = blobFile(idKey, epoch, hash);
-            if (file.existsSync()) _deleteFile(file);
-          }
-          for (final file in _temporaryBlobFiles(idKey, epoch, hash)) {
-            _deleteFile(file);
-          }
-        } on FileSystemException catch (error) {
-          _database.execute('ROLLBACK');
-          inTransaction = false;
-          if (reportFailures) {
-            _reportOperationalFailure('blob_deletion_retry', error);
-          }
-          _database.execute(
-            'UPDATE blob_deletion_jobs SET queued_at = ('
-            'SELECT COALESCE(MAX(queued_at), -1) + 1 '
-            'FROM blob_deletion_jobs'
-            ') WHERE id_key = ? AND epoch = ? AND hash = ?',
-            [idKey, epoch, hash],
-          );
-          continue;
-        }
-        _database.execute(
-          'DELETE FROM blob_deletion_jobs '
-          'WHERE id_key = ? AND epoch = ? AND hash = ?',
-          [idKey, epoch, hash],
-        );
+      yield _retryPendingBlob(
+        row['id_key'] as String,
+        row['epoch'] as String,
+        row['hash'] as String,
+        reportFailures: reportFailures,
+      );
+    }
+  }
+
+  bool _retryPendingBlob(
+    String idKey,
+    String epoch,
+    String hash, {
+    required bool reportFailures,
+  }) {
+    _validateHash(hash);
+    var inTransaction = false;
+    try {
+      _database.execute('BEGIN IMMEDIATE');
+      inTransaction = true;
+      final jobExists = _database.select(
+        'SELECT 1 FROM blob_deletion_jobs '
+        'WHERE id_key = ? AND epoch = ? AND hash = ?',
+        [idKey, epoch, hash],
+      ).isNotEmpty;
+      if (!jobExists) {
+        // Run since it was read: by a request between sweep slices.
         _database.execute('COMMIT');
         inTransaction = false;
-      } catch (error) {
-        try {
-          if (inTransaction) _database.execute('ROLLBACK');
-        } finally {
-          rethrow;
+        return true;
+      }
+      final currentRef = blobRef(idKey, epoch, hash);
+      // What the job's files count toward the store's pending usage, which
+      // stops once the job is gone. With a directory job for the epoch the
+      // files are counted by walking it instead, so that case rescans.
+      _DeletionUsage? dequeued;
+      if (_pendingUsage.containsKey(idKey) &&
+          !_directoryJobExists(idKey, epoch)) {
+        dequeued = const _DeletionUsage();
+      } else {
+        _pendingUsage.remove(idKey);
+      }
+      try {
+        if (currentRef == null) {
+          final file = blobFile(idKey, epoch, hash);
+          final usage = _fileUsage(file);
+          if (!usage.isEmpty) {
+            dequeued = dequeued?.add(usage: usage);
+            _deleteFile(file);
+          }
         }
+        for (final file in _temporaryBlobFiles(idKey, epoch, hash).toList()) {
+          dequeued = dequeued?.add(usage: _fileUsage(file));
+          _deleteFile(file);
+        }
+      } on FileSystemException catch (error) {
+        _database.execute('ROLLBACK');
+        inTransaction = false;
+        // Some of the job's files may be gone and some not.
+        _pendingUsage.remove(idKey);
+        if (reportFailures) {
+          _reportOperationalFailure('blob_deletion_retry', error);
+        }
+        _database.execute(
+          'UPDATE blob_deletion_jobs SET queued_at = ('
+          'SELECT COALESCE(MAX(queued_at), -1) + 1 '
+          'FROM blob_deletion_jobs'
+          ') WHERE id_key = ? AND epoch = ? AND hash = ?',
+          [idKey, epoch, hash],
+        );
+        return false;
+      }
+      _database.execute(
+        'DELETE FROM blob_deletion_jobs '
+        'WHERE id_key = ? AND epoch = ? AND hash = ?',
+        [idKey, epoch, hash],
+      );
+      _database.execute('COMMIT');
+      inTransaction = false;
+      if (dequeued != null) _adjustPendingUsage(idKey, dequeued.negated);
+      return true;
+    } catch (error) {
+      try {
+        _pendingUsage.remove(idKey);
+        if (inTransaction) _database.execute('ROLLBACK');
+      } finally {
+        rethrow;
       }
     }
   }
@@ -1573,6 +1846,34 @@ class AthenaeumStore {
   static Duration Function() _monotonicElapsed() {
     final stopwatch = Stopwatch()..start();
     return () => stopwatch.elapsed;
+  }
+
+  /// The temporary upload files of every hash in one shard directory, read
+  /// with one listing. Callers that ask about many hashes keep the result per
+  /// directory, so a directory holding many queued blobs is listed once rather
+  /// than once per blob; it is only valid while nothing in it changes.
+  static Map<String, List<File>> _temporaryFilesByHash(Directory directory) {
+    final byHash = <String, List<File>>{};
+    if (!directory.existsSync()) return byHash;
+    for (final file in directory.listSync().whereType<File>()) {
+      final match = _temporaryBlobPattern.firstMatch(p.basename(file.path));
+      if (match != null) (byHash[match.group(1)!] ??= []).add(file);
+    }
+    return byHash;
+  }
+
+  /// [_temporaryBlobFiles], reading each shard directory once per [listings].
+  List<File> _listedTemporaryBlobFiles(
+    Map<String, Map<String, List<File>>> listings,
+    String idKey,
+    String epoch,
+    String hash,
+  ) {
+    final directory = blobFile(idKey, epoch, hash).parent;
+    final byHash = listings[directory.path] ??= _temporaryFilesByHash(
+      directory,
+    );
+    return byHash[hash] ?? const [];
   }
 
   Iterable<File> _temporaryBlobFiles(String idKey, String epoch, String hash) {
@@ -1654,6 +1955,11 @@ class _DeletionUsage {
   final int bytes;
 
   bool get isEmpty => blobs == 0 && bytes == 0;
+
+  _DeletionUsage get negated => _DeletionUsage(blobs: -blobs, bytes: -bytes);
+
+  _DeletionUsage subtract(_DeletionUsage other) =>
+      _DeletionUsage(blobs: blobs - other.blobs, bytes: bytes - other.bytes);
 
   _DeletionUsage add({_DeletionUsage? usage, int blobs = 0, int bytes = 0}) =>
       _DeletionUsage(
