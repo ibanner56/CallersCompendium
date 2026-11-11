@@ -143,23 +143,24 @@ class _PublishedCollectionCatalogState
 
   Future<void> _import(PublishedCollectionEntry entry) async {
     if (!entry.isSupported || _loadingEntry != null) return;
-    // Defence in depth for SUPPLY-2: the button is disabled for an entry older
-    // than what is already imported, but a stale retry or any other route here
-    // must not roll a newer imported collection back.
-    final status = await _statusFor(entry);
-    if (!mounted ||
-        isOlderThanImportedPublishedVersion(
-          entry.version,
-          status?.importedVersion,
-        )) {
-      return;
-    }
     setState(() {
       _loadingEntry = entry;
       _archiveError = null;
       _archiveErrorEntry = null;
     });
     try {
+      // Defence in depth for SUPPLY-2: the button is disabled for an entry
+      // older than what is imported, but any other route here must not roll a
+      // newer imported collection back. Checked after _loadingEntry is set so
+      // a second tap cannot slip in while the status loads.
+      final status = await _statusFor(entry);
+      if (!mounted ||
+          isOlderThanImportedPublishedVersion(
+            entry.version,
+            status?.importedVersion,
+          )) {
+        return;
+      }
       final bytes = await _service.fetchArchive(entry);
       if (!mounted) return;
       await widget.onImport(entry, bytes);

@@ -595,6 +595,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     // Refuse to roll a newer imported collection back (SUPPLY-2). The catalog
     // already disables such entries; this covers any other route here.
     if (await _isOlderThanImported(entry.id, entry.version)) return;
+    if (!mounted) return;
     final metadata = PublishedCollectionMetadata(
       collectionId: entry.id,
       collectionVersion: entry.version,
@@ -634,10 +635,17 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// its generic "could not read" state and nothing is planned or written.
   Future<void> _planPublishedSeed(PublishedCollectionSeed seed) async {
     final metadata = seed.metadata;
-    if (await _isOlderThanImported(
-      metadata.collectionId,
-      metadata.collectionVersion,
-    )) {
+    var older = false;
+    try {
+      older = await _isOlderThanImported(
+        metadata.collectionId,
+        metadata.collectionVersion,
+      );
+    } catch (_) {
+      // The local lookup failing must not strand the screen; planning carries
+      // on as it did before this guard existed.
+    }
+    if (older) {
       if (!mounted) return;
       setState(() {
         _planError = StateError('older than imported published collection');

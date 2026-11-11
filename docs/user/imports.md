@@ -185,7 +185,7 @@ see where the dances came from.
    and the same review flow lets you skip items you do not want.
 
 The catalog shows only the newest version of each collection, and a version
-older than the one you already imported cannot be imported over it.
+older than the one you already imported cannot be imported from the catalog.
 
 Importing a newer version of a collection you already have offers
 **Re-import onto** for its dances, which updates only their figures, formation

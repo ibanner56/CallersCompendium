@@ -1308,7 +1308,11 @@ re-import. Catalog text that is displayed and persisted into provenance
 stripped with `sanitizeImportedText(allowLineBreaks: false)` at parse time,
 as on every other import path; a value that is empty after stripping is
 refused. The catalog is expected to list only current versions as a matter of
-repository hygiene; the client enforces latest-only regardless.
+repository hygiene; the client enforces latest-only regardless. The guard
+covers the catalog and standalone-seed routes only: an archive pasted or opened
+through the generic import sources carries no collection version and is not
+checked. A publisher who withdraws a bad newest version must republish a higher
+version number, since users who imported it cannot move back to an older one.
 
 ### 5. A list of titles (#823)
 
