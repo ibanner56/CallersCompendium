@@ -475,7 +475,8 @@ curl --noproxy '*' --silent --show-error --max-time 15 \
   (`--break-glass-device-id <device-id>`) or one blob
   (`--break-glass-blob <hash>`), in the store's current epoch unless
   `--break-glass-epoch <epoch>` names another. The blob hashes a device holds
-  are the `records` values of its manifest, so read the manifest first. Before
+  are the values inside its manifest's `records` map (kind, then record ID,
+  then hash; spec §4.5), so read the manifest first. Before
   looking up the store, the command writes, in one transaction, the access row
   (`break_glass_access`: derived `id_key`, time) and a row naming the item
   (`break_glass_reads`: `manifest` or `blob`, `id_key`, epoch, device ID or
@@ -516,8 +517,9 @@ curl --noproxy '*' --silent --show-error --max-time 15 \
   add an entry to
   [`docs/user/breakglass-access-record.md`](../user/breakglass-access-record.md)
   saying what was read by kind and count, not by hash or device ID, and never
-  its content. After 30 days the hourly sweep nulls the `id_key`, epoch,
-  device ID, and hash of both tables' rows, leaving the time and the kind.
+  its content. After 30 days the hourly sweep nulls the `id_key` of the
+  access row and the `id_key`, epoch, device ID, and hash of the read row,
+  leaving the time and, on the read row, the kind.
 - **Lost ID:** a lost sync ID cannot be recovered by design. Verify ownership
   through the normal support process, explain that the server stores only a
   one-way derived key, and direct the user to create a new store.

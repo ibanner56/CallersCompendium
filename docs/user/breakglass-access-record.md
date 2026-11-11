@@ -6,7 +6,8 @@ Each record says what was read, by kind and count (for example "one device's
 manifest and 12 blobs"). It never records what those items contain, nor a sync
 ID, credential, device ID, blob hash, or secure output path: this page is
 permanent, while the server's own break-glass log, which does name the device
-ID and blob hashes read, nulls them after 30 days.
+ID and blob hashes read, nulls them after 30 days. Entries made before the
+**Accessed** field existed are left as they were written.
 
 ## [YYYY-MM-DD] Entry Title
 
@@ -22,6 +23,5 @@ ID and blob hashes read, nulls them after 30 days.
 - **Operator:** ibanner56
 - **Reason:** ADR-004/W16 verification of break-glass access and its separate audit log
 - **Scope:** One disposable Athenaeum store and its `device-one` manifest
-- **Accessed:** One device's manifest
 - **Executed at (UTC):** `2026-09-09T06:20:00Z`
 - **Notes:** Initial break-glass testing and process design, verifying the live sync host.

@@ -13,8 +13,10 @@ import 'athenaeum_schema.dart';
 
 typedef DirectoryDelete = void Function(Directory directory);
 typedef FileDelete = void Function(File file);
-typedef AthenaeumOperationalFailureSink =
-    void Function(String source, Object error);
+typedef AthenaeumOperationalFailureSink = void Function(
+  String source,
+  Object error,
+);
 
 class AthenaeumQuotaLimits {
   const AthenaeumQuotaLimits({
@@ -148,11 +150,12 @@ class AthenaeumStore {
   /// opened `OpenMode.readOnly`, and none of the full constructor's startup
   /// work runs (no schema or index creation, no manifest indexing, no orphan
   /// blob reconcile, no pending-deletion retry). Under WAL a reader never
-  /// blocks the server's writer. Only `lookup` and `manifest` are meant to be
-  /// called on it; any write to the store database throws.
+  /// blocks the server's writer. Only the reads `runBreakGlass` makes
+  /// (`lookup`, `manifest`, `breakGlassBlob`) are meant to be called on it; any
+  /// write to the store database throws.
   ///
   /// The break-glass log database stays writable, because
-  /// [recordBreakGlassAccess] must still record the access there. The
+  /// [recordBreakGlassRead] must still record the access there. The
   /// diagnostics database is not opened at all (an in-memory stand-in keeps
   /// the field non-null), so the live one is never touched.
   ///
@@ -981,16 +984,6 @@ class AthenaeumStore {
       );
     }
     return usage;
-  }
-
-  void recordBreakGlassAccess(String syncId, {DateTime? accessedAt}) {
-    final now = accessedAt ?? _clock();
-    purgeExpiredBreakGlassAccess(now: now);
-    final idKey = deriveIncomingSyncIdKey(syncId, config.pepper);
-    _breakGlassDatabase.execute(
-      'INSERT INTO break_glass_access (id_key, accessed_at) VALUES (?, ?)',
-      [idKey, now.millisecondsSinceEpoch ~/ 1000],
-    );
   }
 
   /// Audits one `--break-glass` read before it happens: the store's

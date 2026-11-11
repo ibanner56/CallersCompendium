@@ -40,7 +40,8 @@ stdin and reads exactly one item per run: one device's manifest
 store's current epoch unless `--break-glass-epoch` names another. Before it
 looks the store up it records, in the separate break-glass database, an access
 row and a row naming what it is about to read (manifest and device ID, or blob
-and hash, with the epoch); if that write fails it reads nothing. It never
+and hash, with the requested epoch); when no epoch was requested it records the
+current one after the lookup. If either write fails it reads nothing. It never
 records the content. Then it writes the item's bytes to stdout:
 
 ```sh

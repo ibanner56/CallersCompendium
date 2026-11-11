@@ -11,8 +11,8 @@ import 'athenaeum_store.dart';
 ///
 /// [read] names what is read; [syncIdLine] is the raw sync ID the operator
 /// supplied on stdin. Returns the process exit code: `0` when the bytes were
-/// written, `2` for unusable input (nothing is opened or recorded), and `1`
-/// for any failure after that, reported to [errors] by error type only so no
+/// written, `2` for empty input (nothing is opened or recorded), and `1` for
+/// any failure after that, an invalid sync ID included, reported to [errors] by error type only so no
 /// sync ID, key, or content reaches a terminal log.
 ///
 /// The order is the audit contract (`docs/dev/athenaeum-operations.md`,

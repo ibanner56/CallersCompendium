@@ -221,8 +221,10 @@ const Map<String, DataClassification> serverFieldClassifications = {
     subject: DataSubject.none,
     egress: EgressClass.deviceScoped,
     note:
-        'Random per-connection device ID whose manifest was read; an audit '
-        'copy, never served, and nulled with id_key after 30 days.',
+        'Random per-connection device ID whose manifest was read. Unlike the '
+        'protocolIdentifier copies in manifest_refs and indexed_manifests, '
+        'this audit copy is never served or used to route a request, so it is '
+        'deviceScoped; nulled with id_key after 30 days.',
   ),
   'break_glass_reads.hash': DataClassification(
     term: DpvTerm.nonPersonal,
