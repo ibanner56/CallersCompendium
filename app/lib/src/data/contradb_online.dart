@@ -70,7 +70,9 @@ class ContraDbOnline implements OnlineSearchService {
   /// before the request. Title and author text containing an apostrophe or
   /// double quote is searched in both its ASCII and its curly spelling
   /// ([contraDbTitleQueryVariants]) — two requests — and the rows are merged
-  /// by id; a failure of the curly request alone is ignored. Throws a typed
+  /// by id; on the first page a failure of the curly request alone is ignored,
+  /// while on a later page (`offset > 0`) it fails the search like any other
+  /// fetch failure, so the caller shows Try again. Throws a typed
   /// [UrlFetchException] on any other fetch
   /// failure, unsupported Figure input, or when there is nothing to search.
   @override
