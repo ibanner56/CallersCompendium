@@ -257,9 +257,12 @@ class _PanelToggle extends StatelessWidget {
         // The chevron already adds space at the end of the label.
         padding: const EdgeInsets.symmetric(horizontal: 4),
         labelPadding: const EdgeInsetsDirectional.only(start: 4, end: 0),
-        // Centred, because the row stretches the chip past its natural width.
+        // Fills the label slot (no widthFactor), so the chip's visible body grows
+        // to the width the row gives it: the spare width becomes padding either
+        // side of the centred label, not gaps between natural-width chips. A
+        // widthFactor of 1 would make the chip shrink back to its natural width
+        // and sit centred in the stretched tap target.
         label: Center(
-          widthFactor: 1,
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
