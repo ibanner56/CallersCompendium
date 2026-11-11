@@ -4375,7 +4375,8 @@ below keep the address hard to discover; none of them turns it into a password
 (maintainer decision, 2026-11-11, recorded in the description of #2164):
 
 - Generated IDs are four EFF-wordlist words, ~2⁵². At 1,000 guesses/second an
-  exhaustive search is ~10⁵ years; rate limiting makes it far worse.
+  exhaustive search is ~10⁵ years. The bound rests on this entropy alone: rate
+  limits bound load, not guessing (sync-spec §8, *Enumeration*).
 - **Two checks, not one, and they are enforced in different places.** The
   **format** is fixed at four hyphen-separated words, which rejects
   `isaac-banner-dances` structurally, and is enforced on **both** sides — the
