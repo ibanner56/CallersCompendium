@@ -112,6 +112,7 @@ void _screen(
   String name,
   Future<void> Function(WidgetTester tester) navigate, {
   required Finder landedOn,
+  Future<void> Function(WidgetTester tester)? atLargeText,
 }) {
   testWidgets(name, (tester) async {
     await loadBundledFonts();
@@ -156,6 +157,10 @@ void _screen(
       );
     }
     expect(overflows, isEmpty, reason: '$name overflows at 2.0x text');
+    if (atLargeText != null) {
+      await _setSize(tester, _phone);
+      await atLargeText(tester);
+    }
     // Disposed in the body: the framework checks handles before teardowns run.
     semantics.dispose();
   });
@@ -208,13 +213,24 @@ void main() {
     await _tapKey(tester, 'summary-perform');
   }, landedOn: find.byType(PerformProgramScreen));
 
-  _screen('Perform, Adjust sheet', (tester) async {
-    await _openProgramSummary(tester);
-    await _tapKey(tester, 'summary-perform');
-    // On a phone Adjust lives in the toolbar's overflow menu.
-    await _tapKey(tester, 'perform-overflow-menu');
-    await _tapKey(tester, 'perform-adjust-menu');
-  }, landedOn: find.byKey(const ValueKey('adjust-done')));
+  _screen(
+    'Perform, Adjust sheet',
+    (tester) async {
+      await _openProgramSummary(tester);
+      await _tapKey(tester, 'summary-perform');
+      // On a phone Adjust lives in the toolbar's overflow menu.
+      await _tapKey(tester, 'perform-overflow-menu');
+      await _tapKey(tester, 'perform-adjust-menu');
+    },
+    landedOn: find.byKey(const ValueKey('adjust-done')),
+    atLargeText: (tester) async {
+      // A11Y-2: Done was pushed past the right edge of a 360dp screen. Closing
+      // the sheet any other way discards the edits, so Done must stay reachable.
+      final done = find.byKey(const ValueKey('adjust-done'));
+      expect(done.hitTestable(), findsOneWidget);
+      expect(tester.getRect(done).right, lessThanOrEqualTo(_phone.width));
+    },
+  );
 
   _screen('Dance editor', (tester) async {
     await _tapKey(tester, 'new-dance');
