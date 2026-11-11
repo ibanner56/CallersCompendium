@@ -446,7 +446,10 @@ class _ResponsiveAutocompleteState<T extends Object>
     // collapsing it has no visible effect for the user.
     return Semantics(
       button: true,
-      hint: widget.sheetSemanticLabel,
+      // A label, not a hint: with an empty field nothing else supplies a
+      // name, and a button with only a hint fails
+      // `labeledTapTargetGuideline`.
+      label: widget.sheetSemanticLabel,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: _openSheet,
