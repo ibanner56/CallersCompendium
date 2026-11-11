@@ -59,6 +59,7 @@ List<Object?> _domain(ParamSpec spec) => switch (spec.kind) {
   ParamKind.dancerPair => spec.choices ?? ParamVocab.dancerSets,
   ParamKind.rotation ||
   ParamKind.places ||
+  ParamKind.number ||
   ParamKind.beats ||
   ParamKind.text => const [],
 };
