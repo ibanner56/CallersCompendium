@@ -337,9 +337,11 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
       padding: const EdgeInsets.fromLTRB(16, 4, 8, 8),
       child: Row(
         children: [
-          // Flexible, so at large text the title wraps instead of pushing Done
-          // off-screen (dismissing the sheet any other way discards the edits).
-          Flexible(
+          // Expanded (not Flexible, which would leave Done next to the title):
+          // the title takes the free width, so Done stays at the trailing edge,
+          // and at large text it wraps instead of pushing Done off-screen
+          // (dismissing the sheet any other way discards the edits).
+          Expanded(
             child: Semantics(
               header: true,
               child: Text(

@@ -227,6 +227,12 @@ void main() {
       // On a phone Adjust lives in the toolbar's overflow menu.
       await _tapKey(tester, 'perform-overflow-menu');
       await _tapKey(tester, 'perform-adjust-menu');
+      // At normal text Done sits at the trailing edge (the header's 8dp padding
+      // from the right of the 360dp screen), not beside the title.
+      expect(
+        tester.getRect(find.byKey(const ValueKey('adjust-done'))).right,
+        closeTo(_phone.width - 8, 1),
+      );
     },
     landedOn: find.byKey(const ValueKey('adjust-done')),
     atLargeText: (tester) async {
