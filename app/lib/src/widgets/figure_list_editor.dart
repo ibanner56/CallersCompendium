@@ -3837,6 +3837,11 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
       final def = widget.taxonomy.resolve(customMove);
       if (def?.params['beats'] case final beatsSpec?) {
         widget.draft.params['beats'] = beatsSpec.defaultValue;
+        // The sequence's total was drawn before this step seeded its count;
+        // have the row redraw so the total agrees with what will be saved.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) widget.onChanged();
+        });
       }
     }
   }

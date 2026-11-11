@@ -195,6 +195,8 @@ void main() {
     await _open(tester, 0);
 
     expect(custom.params['beats'], isNotNull);
+    expect(find.text('${drafts.single.beats} beats in total'), findsOneWidget);
+    expect(drafts.single.beats, greaterThan(4));
     expect(drafts.single.toFigure()!.subFigures.last.beats, custom.beats);
     expect(custom.beats, greaterThan(0));
   });
