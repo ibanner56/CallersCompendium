@@ -132,7 +132,12 @@ class _PublishedCollectionCatalogState
       : _statusByEntry.putIfAbsent((entry.id, entry.version), () async {
           try {
             return await widget.statusLoader!(entry.id, entry.version);
-          } catch (_) {
+          } catch (error, stackTrace) {
+            logCaughtErrorTypeOnly(
+              error,
+              stackTrace,
+              source: 'published_collection_catalog_screen._statusFutureFor',
+            );
             return null;
           }
         });

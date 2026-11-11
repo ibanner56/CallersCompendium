@@ -641,7 +641,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         metadata.collectionId,
         metadata.collectionVersion,
       );
-    } catch (_) {
+    } catch (error, stackTrace) {
+      logCaughtErrorTypeOnly(
+        error,
+        stackTrace,
+        source: 'import_review_screen._planPublishedSeed',
+      );
       // The local lookup failing must not strand the screen; planning carries
       // on as it did before this guard existed.
     }
