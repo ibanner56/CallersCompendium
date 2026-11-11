@@ -765,7 +765,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String settingsSyncNoticeNewerVersionItems(String items) {
-    return 'En anden enhed bruger en nyere version af appen. Opdater appen på denne enhed for at modtage $items. Hvis du redigerer dem her, før du opdaterer, går den anden enheds ændringer i dem tabt.';
+    return 'En anden enhed bruger en nyere version af appen. Opdater appen på denne enhed for at modtage $items. Hvis du redigerer dem her, før du opdaterer, kan den anden enheds ændringer i dem gå tabt.';
   }
 
   @override
@@ -891,7 +891,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsSyncNoticeNewerVersionUncounted =>
-      'En anden enhed bruger en nyere version af appen. Opdater appen på denne enhed for at modtage dens ændringer. Hvis du her redigerer noget, den har ændret, før du opdaterer, går dens ændringer tabt.';
+      'En anden enhed bruger en nyere version af appen. Opdater appen på denne enhed for at modtage dens ændringer. Hvis du her redigerer noget, den har ændret, før du opdaterer, kan dens ændringer gå tabt.';
 
   @override
   String settingsSyncNoticeKeptNewerItems(String items) {

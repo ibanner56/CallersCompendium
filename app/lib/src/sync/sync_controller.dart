@@ -515,6 +515,19 @@ class SyncController extends ChangeNotifier {
   /// explanation-then-confirm decision (spec §6.3 step 1, §6.14 item 6).
   bool get replacementPending => _replacementPending;
 
+  /// Whether a [confirmReplacement] the gate let through is still running.
+  ///
+  /// [replacementPending] stays true until that attempt completes, and the
+  /// controller notifies in between — when it takes the pass in flight — so a
+  /// surface that asks the question whenever the decision is pending would
+  /// ask it again about the attempt it is waiting on. Read it to stay closed
+  /// until the outcome is known. Cleared before the attempt's final
+  /// notification, so an attempt that did not complete is asked about again
+  /// at once, and one that did is not. Kept here rather than on the widget so
+  /// a surface built while the attempt is in flight sees it too.
+  bool get confirmingReplacement => _confirmingReplacement;
+  bool _confirmingReplacement = false;
+
   /// Whether the status surface should warn that the store is approaching the
   /// disuse expiry.
   bool get expiryApproaching {
@@ -830,8 +843,9 @@ class SyncController extends ChangeNotifier {
   /// Every caller MUST consult this **before** taking [_inFlight] and notifying:
   /// a suppressed attempt must leave the controller bit-identical, and the
   /// replacement dialog re-shows itself on any notification while the decision
-  /// is pending — so a gate that notified first would cover the very setting it
-  /// is routing the user to.
+  /// is pending and no confirmation is running ([confirmingReplacement]) — so
+  /// a gate that notified first would cover the very setting it is routing the
+  /// user to.
   Future<SyncGateOutcome?> _connectionGate({required bool manual}) async {
     final network = await _classifier.current();
     if (network == SyncNetworkKind.offline) {
@@ -1035,6 +1049,7 @@ class SyncController extends ChangeNotifier {
     // resume interval like any pass [trigger] starts.
     _lastPassStartedAt = _now();
     _inFlight++;
+    _confirmingReplacement = true;
     _notify();
     try {
       SyncPassResult result;
@@ -1084,6 +1099,7 @@ class SyncController extends ChangeNotifier {
       return SyncGateOutcome.ran;
     } finally {
       _endPass();
+      _confirmingReplacement = false;
       _notify();
     }
   }

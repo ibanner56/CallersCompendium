@@ -720,9 +720,9 @@
   "@settingsSyncQuotaExcludeImports": {
     "x-sourceSha256": "13a7925e9cdd2fc7f1329229f1ad3416bdd1f24f9edba254e9c3bd209e576ccb"
   },
-  "settingsSyncNoticeNewerVersionItems": "Ein anderes Gerät verwendet eine neuere Version der App. Aktualisiere die App auf diesem Gerät, um {items} zu erhalten. Wenn du sie hier vor dem Aktualisieren bearbeitest, gehen die Änderungen des anderen Geräts daran verloren.",
+  "settingsSyncNoticeNewerVersionItems": "Ein anderes Gerät verwendet eine neuere Version der App. Aktualisiere die App auf diesem Gerät, um {items} zu erhalten. Wenn du sie hier vor dem Aktualisieren bearbeitest, können die Änderungen des anderen Geräts daran verloren gehen.",
   "@settingsSyncNoticeNewerVersionItems": {
-    "x-sourceSha256": "6487478b31abf6e877da1b4fc54eb0c2a35dba760e7126422f7b69a8c9c73ec5"
+    "x-sourceSha256": "044b9538159b2d04fcd0feee8d85845fd0e4fe9f324f0b85d66408112f366c39"
   },
   "settingsSyncNoticeCountDance": "{count, plural, =1{1 Tanz} other{{count} Tänze}}",
   "@settingsSyncNoticeCountDance": {
@@ -768,9 +768,9 @@
   "@settingsSyncNoticeCountFigureNote": {
     "x-sourceSha256": "d8a9a1a4ceb2c8d27210fecff6147fdceaceb98a415748dabd9f42851eb3176a"
   },
-  "settingsSyncNoticeNewerVersionUncounted": "Ein anderes Gerät verwendet eine neuere Version der App. Aktualisiere die App auf diesem Gerät, um seine Änderungen zu erhalten. Wenn du vor dem Aktualisieren hier etwas bearbeitest, das es geändert hat, gehen seine Änderungen verloren.",
+  "settingsSyncNoticeNewerVersionUncounted": "Ein anderes Gerät verwendet eine neuere Version der App. Aktualisiere die App auf diesem Gerät, um seine Änderungen zu erhalten. Wenn du vor dem Aktualisieren hier etwas bearbeitest, das es geändert hat, können seine Änderungen verloren gehen.",
   "@settingsSyncNoticeNewerVersionUncounted": {
-    "x-sourceSha256": "fa65b153ac7798e6462614f9080dd6a41936a438502cfa54edc2cf3a4361d477"
+    "x-sourceSha256": "d36a094b45665db591c56fd810a2b0fb4f9ff257a8b2b9f51678e1fcde85fce6"
   },
   "settingsSyncNoticeKeptNewerItems": "Für eine neuere Version der App aufbewahrt: {items}. Sie werden weiter synchronisiert, mit Details, die diese Version nicht anzeigen kann. Aktualisiere die App auf diesem Gerät, um sie zu sehen.",
   "@settingsSyncNoticeKeptNewerItems": {

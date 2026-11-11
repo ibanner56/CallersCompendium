@@ -760,7 +760,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String settingsSyncNoticeNewerVersionItems(String items) {
-    return 'Another device is using a newer version of the app. Update the app on this device to receive $items. Editing them here before you update discards the other device\'s changes to them.';
+    return 'Another device is using a newer version of the app. Update the app on this device to receive $items. Editing them here before you update may discard the other device\'s changes to them.';
   }
 
   @override
@@ -886,7 +886,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsSyncNoticeNewerVersionUncounted =>
-      'Another device is using a newer version of the app. Update the app on this device to receive its changes. Editing something here that it changed, before you update, discards its changes.';
+      'Another device is using a newer version of the app. Update the app on this device to receive its changes. Editing something here that it changed, before you update, may discard its changes.';
 
   @override
   String settingsSyncNoticeKeptNewerItems(String items) {

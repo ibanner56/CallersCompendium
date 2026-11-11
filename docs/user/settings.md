@@ -1066,10 +1066,11 @@ Sync is off and open while it is on.
   arrives. That one is a warning, says
   how many of each kind of record are waiting when it can tell (for example "2
   programs, 1 setting"), lists only those records, and is fixed by updating the
-  app on this device. Until you do, don't edit those records here: this device
-  still has its older copy, and an edit makes that the newer one, so it replaces
-  the other device's changes everywhere — the notice says so too; when records here carry other details a newer version
-  of the app added, which this version keeps and shares back unchanged so they
+  app on this device. Until you do, avoid editing those records here: this
+  device still has its older copy, and an edit makes that the newer one, so for
+  most records it replaces the other device's changes everywhere. The notice
+  says so too. There is also a notice when records here carry other details a
+  newer version of the app added, which this version keeps and shares back unchanged so they
   aren't lost when you edit the record here — that one is information only, the
   records still sync, and updating the app shows the details; when records from
   another device couldn't be used and were skipped; when another device's clock
@@ -1271,13 +1272,13 @@ removed — the app can't tell which. You have three choices:
   phrase got there first, this device joins that store instead.
 - **Not now** — see below.
 
-Reconnecting re-sends
-your whole library, so it follows **Sync only on Wi-Fi** like everything else:
-on mobile data with that setting on, nothing is sent and the app points you at
-the setting, with the question still waiting once you're back on Wi-Fi. If a
-reconnection doesn't go through, the question comes back and says so, and you
-can try again or leave it. Declining makes no network request and leaves the choice for later. Sync then **pauses**: the
-status says so and keeps saying so, and automatic syncs stop running rather
+Reconnecting re-sends your whole library, so it follows **Sync only on Wi-Fi**
+like everything else: on mobile data with that setting on, nothing is sent and
+the app points you at the setting, with the question still waiting once you're
+back on Wi-Fi. If a reconnection doesn't go through, the question comes back
+and says so, and you can try again or leave it. Declining makes no network
+request and leaves the choice for later. Sync then **pauses**: the status says
+so and keeps saying so, and automatic syncs stop running rather
 than asking again every time. Nothing is lost while it is paused. When you
 want to decide, choose **Sync now** in this section — that reopens the same
 question, and the paused line goes once a sync completes.
@@ -1324,9 +1325,9 @@ meant to keep:
 - **Both changes have the same time** — the same setting changed in the same
   second on two devices, say. Neither is newer, so both versions stay as they
   are until you choose.
-- **A whole set kept in one setting** — your dialects, custom themes, figure
-  shorthands, shorthands for combinations, shorthands for your own figures, or
-  walkthrough snippets, changed on both a laptop and a phone. Taking the newer
+- **A whole set kept in one setting** — your dialects, custom themes,
+  walkthrough snippets, or one of your sets of shorthands, changed on both a
+  laptop and a phone. Taking the newer
   one would throw away the other device's whole set, so the app asks however
   far apart the two changes were (see below).
 

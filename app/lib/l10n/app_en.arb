@@ -964,9 +964,9 @@
   "@settingsSyncQuotaExcludeImports": {
     "description": "Button under settingsSyncQuotaNearlyFull. Turns on the setting titled settingsSyncExcludeImportsTitle, which stops this device uploading imported dances nothing else uses. Shown only while that setting is off."
   },
-  "settingsSyncNoticeNewerVersionItems": "Another device is using a newer version of the app. Update the app on this device to receive {items}. Editing them here before you update discards the other device's changes to them.",
+  "settingsSyncNoticeNewerVersionItems": "Another device is using a newer version of the app. Update the app on this device to receive {items}. Editing them here before you update may discard the other device's changes to them.",
   "@settingsSyncNoticeNewerVersionItems": {
-    "description": "Device Sync notice when another device shared items this version of the app cannot read: in a newer format, or carrying details this version cannot keep (for example new figure details). {items} is a list of counts by kind, built from the settingsSyncNoticeCount* strings joined with settingsSyncNoticeListSeparator, for example \"3 programs, 1 setting\". The remedy is always updating the app on THIS device. The last sentence is a warning, not advice to wait: this device still holds its own older copy of those records, and an edit here gives that copy a newer date, so it replaces the other device's version everywhere (spec §6.3 step 4, newer edit wins).",
+    "description": "Device Sync notice when another device shared items this version of the app cannot read: in a newer format, or carrying details this version cannot keep (for example new figure details). {items} is a list of counts by kind, built from the settingsSyncNoticeCount* strings joined with settingsSyncNoticeListSeparator, for example \"3 programs, 1 setting\". The remedy is always updating the app on THIS device. The last sentence is a warning, not advice to wait: this device still holds its own older copy of those records, and an edit here gives that copy a newer date, so for most records it replaces the other device's version everywhere (spec §6.3 step 4, newer edit wins). 'may' is deliberate: for the few settings that hold a whole collection (dialects, themes, shorthand sets, walkthrough snippets) the app asks instead.",
     "placeholders": {
       "items": {
         "type": "String",
@@ -1084,9 +1084,9 @@
       }
     }
   },
-  "settingsSyncNoticeNewerVersionUncounted": "Another device is using a newer version of the app. Update the app on this device to receive its changes. Editing something here that it changed, before you update, discards its changes.",
+  "settingsSyncNoticeNewerVersionUncounted": "Another device is using a newer version of the app. Update the app on this device to receive its changes. Editing something here that it changed, before you update, may discard its changes.",
   "@settingsSyncNoticeNewerVersionUncounted": {
-    "description": "Variant of settingsSyncNoticeNewerVersionItems used when this device cannot tell how many items are waiting: the other device's list of what it shares is itself in the newer format, or it shares a kind of data this version does not know. The last sentence carries the same warning as settingsSyncNoticeNewerVersionItems: editing here, before updating, a record the newer device changed replaces that device's version. 'it' is the other device."
+    "description": "Variant of settingsSyncNoticeNewerVersionItems used when this device cannot tell how many items are waiting: the other device's list of what it shares is itself in the newer format, or it shares a kind of data this version does not know. The last sentence carries the same hedged warning as settingsSyncNoticeNewerVersionItems: editing here, before updating, a record the newer device changed may replace that device's version. 'it' is the other device."
   },
   "settingsSyncNoticeKeptNewerItems": "Kept for a newer version of the app: {items}. These still sync, with details this version can't show. Update the app on this device to see them.",
   "@settingsSyncNoticeKeptNewerItems": {
@@ -2136,7 +2136,7 @@
   },
   "settingsSyncReplacementNewPhrase": "Set up with a new phrase",
   "@settingsSyncReplacementNewPhrase": {
-    "description": "Primary button of the missing-store dialog: disconnects this device from the missing store's phrase and opens the Connect flow, where the user creates a new store or connects to one another device already set up. Sends nothing to the old address. 'Set up a new phrase' in settingsSyncReplacementBody refers to this button."
+    "description": "Primary button of the missing-store dialog: disconnects this device from the missing store's phrase and opens the Connect flow, where the user creates a new store or connects to one another device already set up. Creates nothing at the old address. 'Set up a new phrase' in settingsSyncReplacementBody refers to this button."
   },
   "settingsSyncReplacementCancel": "Not now",
   "@settingsSyncReplacementCancel": {

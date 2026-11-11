@@ -720,9 +720,9 @@
   "@settingsSyncQuotaExcludeImports": {
     "x-sourceSha256": "13a7925e9cdd2fc7f1329229f1ad3416bdd1f24f9edba254e9c3bd209e576ccb"
   },
-  "settingsSyncNoticeNewerVersionItems": "En anden enhed bruger en nyere version af appen. Opdater appen på denne enhed for at modtage {items}. Hvis du redigerer dem her, før du opdaterer, går den anden enheds ændringer i dem tabt.",
+  "settingsSyncNoticeNewerVersionItems": "En anden enhed bruger en nyere version af appen. Opdater appen på denne enhed for at modtage {items}. Hvis du redigerer dem her, før du opdaterer, kan den anden enheds ændringer i dem gå tabt.",
   "@settingsSyncNoticeNewerVersionItems": {
-    "x-sourceSha256": "6487478b31abf6e877da1b4fc54eb0c2a35dba760e7126422f7b69a8c9c73ec5"
+    "x-sourceSha256": "044b9538159b2d04fcd0feee8d85845fd0e4fe9f324f0b85d66408112f366c39"
   },
   "settingsSyncNoticeCountDance": "{count, plural, =1{1 dans} other{{count} danse}}",
   "@settingsSyncNoticeCountDance": {
@@ -768,9 +768,9 @@
   "@settingsSyncNoticeCountFigureNote": {
     "x-sourceSha256": "d8a9a1a4ceb2c8d27210fecff6147fdceaceb98a415748dabd9f42851eb3176a"
   },
-  "settingsSyncNoticeNewerVersionUncounted": "En anden enhed bruger en nyere version af appen. Opdater appen på denne enhed for at modtage dens ændringer. Hvis du her redigerer noget, den har ændret, før du opdaterer, går dens ændringer tabt.",
+  "settingsSyncNoticeNewerVersionUncounted": "En anden enhed bruger en nyere version af appen. Opdater appen på denne enhed for at modtage dens ændringer. Hvis du her redigerer noget, den har ændret, før du opdaterer, kan dens ændringer gå tabt.",
   "@settingsSyncNoticeNewerVersionUncounted": {
-    "x-sourceSha256": "fa65b153ac7798e6462614f9080dd6a41936a438502cfa54edc2cf3a4361d477"
+    "x-sourceSha256": "d36a094b45665db591c56fd810a2b0fb4f9ff257a8b2b9f51678e1fcde85fce6"
   },
   "settingsSyncNoticeKeptNewerItems": "Gemt til en nyere version af appen: {items}. De synkroniseres stadig, med detaljer denne version ikke kan vise. Opdater appen på denne enhed for at se dem.",
   "@settingsSyncNoticeKeptNewerItems": {

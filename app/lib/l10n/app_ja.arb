@@ -720,9 +720,9 @@
   "@settingsSyncQuotaExcludeImports": {
     "x-sourceSha256": "13a7925e9cdd2fc7f1329229f1ad3416bdd1f24f9edba254e9c3bd209e576ccb"
   },
-  "settingsSyncNoticeNewerVersionItems": "別のデバイスで新しいバージョンのアプリが使われています。{items}を受け取るには、このデバイスのアプリを更新してください。更新する前にここでそれらを編集すると、別のデバイスでの変更は失われます。",
+  "settingsSyncNoticeNewerVersionItems": "別のデバイスで新しいバージョンのアプリが使われています。{items}を受け取るには、このデバイスのアプリを更新してください。更新する前にここでそれらを編集すると、別のデバイスでの変更が失われることがあります。",
   "@settingsSyncNoticeNewerVersionItems": {
-    "x-sourceSha256": "6487478b31abf6e877da1b4fc54eb0c2a35dba760e7126422f7b69a8c9c73ec5"
+    "x-sourceSha256": "044b9538159b2d04fcd0feee8d85845fd0e4fe9f324f0b85d66408112f366c39"
   },
   "settingsSyncNoticeCountDance": "{count, plural, other{ダンス{count}件}}",
   "@settingsSyncNoticeCountDance": {
@@ -768,9 +768,9 @@
   "@settingsSyncNoticeCountFigureNote": {
     "x-sourceSha256": "d8a9a1a4ceb2c8d27210fecff6147fdceaceb98a415748dabd9f42851eb3176a"
   },
-  "settingsSyncNoticeNewerVersionUncounted": "別のデバイスで新しいバージョンのアプリが使われています。その変更を受け取るには、このデバイスのアプリを更新してください。更新する前に、そのデバイスが変更したものをここで編集すると、その変更は失われます。",
+  "settingsSyncNoticeNewerVersionUncounted": "別のデバイスで新しいバージョンのアプリが使われています。その変更を受け取るには、このデバイスのアプリを更新してください。更新する前に、そのデバイスが変更したものをここで編集すると、その変更が失われることがあります。",
   "@settingsSyncNoticeNewerVersionUncounted": {
-    "x-sourceSha256": "fa65b153ac7798e6462614f9080dd6a41936a438502cfa54edc2cf3a4361d477"
+    "x-sourceSha256": "d36a094b45665db591c56fd810a2b0fb4f9ff257a8b2b9f51678e1fcde85fce6"
   },
   "settingsSyncNoticeKeptNewerItems": "新しいバージョンのアプリのために保持しています：{items}。このバージョンでは表示できない詳細を含めたまま、引き続き同期されます。表示するには、このデバイスのアプリを更新してください。",
   "@settingsSyncNoticeKeptNewerItems": {

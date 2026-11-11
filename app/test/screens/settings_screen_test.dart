@@ -5502,6 +5502,11 @@ void main() {
           );
           await tester.pumpAndSettle();
           expect(transport.createStoreCalls, 1);
+          expect(
+            find.byKey(const ValueKey('sync-replacement-dialog')),
+            findsNothing,
+            reason: 'a completed Reconnect does not ask again',
+          );
         },
       );
 
@@ -5642,6 +5647,68 @@ void main() {
           await tester.tap(find.byKey(const ValueKey('sync-now')));
           await tester.pumpAndSettle();
           expect(transport.createStoreCalls, 1, reason: 'no second POST');
+          expect(
+            find.byKey(const ValueKey('sync-replacement-dialog')),
+            findsNothing,
+          );
+        },
+      );
+
+      // The decision stays pending until the Reconnect completes, and the
+      // controller notifies in between. A dialog shown then stayed on screen
+      // after a success, where Not now paused the sync that had just
+      // recovered. It stays closed while the attempt runs, and comes back
+      // only for an attempt that did not complete.
+      testWidgets(
+        'the dialog stays closed while a Reconnect runs, and does not come '
+        'back after it completes',
+        (tester) async {
+          final transport = ControllableSyncTransport();
+          final release = Completer<void>();
+          final harness = await _pumpSettings(tester);
+          await harness.repos.settings.set('sync_id', 'configured-store-id-f');
+          final controller = SyncScope.of(
+            tester.element(find.byType(SettingsScreen)),
+          );
+          await controller.setEnabled(true);
+          await controller.load();
+
+          _syncCoordinator = SyncCoordinator(
+            syncId: 'configured',
+            deviceId: 'device',
+            store: CompendiumSyncCoordinatorStore(harness.repos),
+            transport: transport,
+            passOperation: ({initialStore}) async {
+              if (transport.createStoreCalls == 0) {
+                return const SyncPassResult(SyncPassStatus.replacementRequired);
+              }
+              await release.future;
+              return const SyncPassResult(SyncPassStatus.completed);
+            },
+          );
+          addTearDown(_syncCoordinator!.dispose);
+          controller.attachCoordinator(_syncCoordinator);
+          await openExperimental(tester);
+
+          await tester.tap(find.byKey(const ValueKey('sync-now')));
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.byKey(const ValueKey('sync-replacement-confirm')),
+          );
+          await tester.pumpAndSettle();
+
+          expect(controller.confirmingReplacement, isTrue);
+          expect(controller.replacementPending, isTrue);
+          expect(
+            find.byKey(const ValueKey('sync-replacement-dialog')),
+            findsNothing,
+            reason: 'not asked again about the attempt in flight',
+          );
+
+          release.complete();
+          await tester.pumpAndSettle();
+          expect(controller.confirmingReplacement, isFalse);
+          expect(controller.replacementPending, isFalse);
           expect(
             find.byKey(const ValueKey('sync-replacement-dialog')),
             findsNothing,

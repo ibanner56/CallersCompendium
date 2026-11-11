@@ -769,7 +769,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String settingsSyncNoticeNewerVersionItems(String items) {
-    return 'Ein anderes Gerät verwendet eine neuere Version der App. Aktualisiere die App auf diesem Gerät, um $items zu erhalten. Wenn du sie hier vor dem Aktualisieren bearbeitest, gehen die Änderungen des anderen Geräts daran verloren.';
+    return 'Ein anderes Gerät verwendet eine neuere Version der App. Aktualisiere die App auf diesem Gerät, um $items zu erhalten. Wenn du sie hier vor dem Aktualisieren bearbeitest, können die Änderungen des anderen Geräts daran verloren gehen.';
   }
 
   @override
@@ -895,7 +895,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsSyncNoticeNewerVersionUncounted =>
-      'Ein anderes Gerät verwendet eine neuere Version der App. Aktualisiere die App auf diesem Gerät, um seine Änderungen zu erhalten. Wenn du vor dem Aktualisieren hier etwas bearbeitest, das es geändert hat, gehen seine Änderungen verloren.';
+      'Ein anderes Gerät verwendet eine neuere Version der App. Aktualisiere die App auf diesem Gerät, um seine Änderungen zu erhalten. Wenn du vor dem Aktualisieren hier etwas bearbeitest, das es geändert hat, können seine Änderungen verloren gehen.';
 
   @override
   String settingsSyncNoticeKeptNewerItems(String items) {

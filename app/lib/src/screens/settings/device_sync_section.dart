@@ -107,16 +107,6 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
   /// unrelated pass can never be reported as this dialog's.
   bool _replacementConfirmAttempted = false;
 
-  /// True from the tap on Reconnect until [SyncController.confirmReplacement]
-  /// returns. The controller notifies while the decision is still pending —
-  /// when it takes the pass in flight, and in its `finally` — and the dialog
-  /// re-shows itself on any such notification. Without this, a confirmation
-  /// that *succeeded* left a re-shown dialog on screen, asking again about a
-  /// store this device had just re-created or adopted: Reconnect then sent a
-  /// second `POST`, and Not now paused a sync that had just recovered. The
-  /// outcome is shown once the call returns instead ([_confirmReplacement]).
-  bool _replacementConfirmInFlight = false;
-
   /// The sync phrase currently shown in the clear, or null while it is
   /// masked. Holding the phrase rather than a bool means a reveal cannot
   /// survive the phrase changing underneath it — detaching and pairing with a
@@ -156,13 +146,19 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
   /// requires confirmation before replacing it. Cancel makes no network call.
   /// The primary action moves this device to a new phrase instead
   /// ([_setUpNewPhrase]); Reconnect is the replacement itself.
+  ///
+  /// Not shown while a Reconnect is still running
+  /// ([SyncController.confirmingReplacement]): the decision stays pending until
+  /// it completes, and a dialog shown in between stayed on screen after a
+  /// success — where Not now paused the sync that had just recovered, and
+  /// Reconnect reported a failure that had not happened.
   void _maybeShowReplacementDialog() {
     final controller = _controller;
     if (!mounted ||
         controller == null ||
         !controller.replacementPending ||
-        _replacementDialogShowing ||
-        _replacementConfirmInFlight) {
+        controller.confirmingReplacement ||
+        _replacementDialogShowing) {
       return;
     }
     _replacementDialogShowing = true;
@@ -180,10 +176,9 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
         // barrier-dismissible-false barrier, so it has to be said here.
         //
         // Built against the live controller rather than a value read when the
-        // dialog opened, so the line always reflects the latest pass. The
-        // dialog is not re-shown while a confirmation is in flight
-        // ([_replacementConfirmInFlight]); it comes back once that returns,
-        // and only if the decision is still pending.
+        // dialog opened, so the line reflects the latest pass. The dialog is
+        // re-shown by the attempt's final notification, which the controller
+        // sends with the result already recorded.
         content: ListenableBuilder(
           listenable: controller,
           builder: (builderContext, _) {
@@ -198,10 +193,10 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
             // those races unexplained — the same defect this line exists to
             // fix, one layer in.
             //
-            // `running` excludes the notification the controller sends when it
-            // *takes* the pass in flight: `lastResult` is still the pass that
-            // raised this dialog at that point, and reporting it would call
-            // the attempt failed while it is still running.
+            // `running` excludes any moment a pass is in flight — another
+            // trigger's, or this attempt's before its result: `lastResult` is
+            // then still the pass that raised this dialog, and reporting it
+            // would call the attempt failed while it is still running.
             final result = controller.lastResult;
             final lastAttemptFailed =
                 _replacementConfirmAttempted &&
@@ -281,21 +276,9 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
     // outcome as this confirmation's. A deferral is explained by the routing
     // message below, never by the failure line.
     _replacementConfirmAttempted = true;
-    _replacementConfirmInFlight = true;
-    final SyncGateOutcome outcome;
-    try {
-      outcome = await controller.confirmReplacement();
-    } finally {
-      _replacementConfirmInFlight = false;
-    }
+    final outcome = await controller.confirmReplacement();
     if (!mounted) return;
     if (outcome != SyncGateOutcome.ran) _replacementConfirmAttempted = false;
-    // A confirmation that ran but did not complete leaves the decision
-    // pending: bring the question back now, with the failure line. One the
-    // gate stopped stays closed, so the routing message and the *Sync only on
-    // WiFi* tile behind it are reachable; the decision waits for a later
-    // trigger, as before.
-    if (outcome == SyncGateOutcome.ran) _maybeShowReplacementDialog();
     final message = _gateMessage(l10n, outcome);
     if (message != null) {
       messenger?.showSnackBar(SnackBar(content: Text(message)));
@@ -304,8 +287,8 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
 
   /// Leaves the missing store's address for a new one: disconnects this
   /// device, then opens the pairing flow, where the user creates a new store
-  /// or connects to one another device has already set up. Sends no `POST`
-  /// for the old address.
+  /// or connects to one another device has already set up. Creates nothing at
+  /// the old address (detach's best-effort clean-up may still look there).
   ///
   /// Declines first, so the decision is resolved before [SyncController.detach]
   /// notifies — otherwise a notification while `replacementPending` still

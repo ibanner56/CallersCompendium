@@ -1190,10 +1190,10 @@ abstract class AppLocalizations {
   /// **'Skip unused imported dances'**
   String get settingsSyncQuotaExcludeImports;
 
-  /// Device Sync notice when another device shared items this version of the app cannot read: in a newer format, or carrying details this version cannot keep (for example new figure details). {items} is a list of counts by kind, built from the settingsSyncNoticeCount* strings joined with settingsSyncNoticeListSeparator, for example "3 programs, 1 setting". The remedy is always updating the app on THIS device. The last sentence is a warning, not advice to wait: this device still holds its own older copy of those records, and an edit here gives that copy a newer date, so it replaces the other device's version everywhere (spec §6.3 step 4, newer edit wins).
+  /// Device Sync notice when another device shared items this version of the app cannot read: in a newer format, or carrying details this version cannot keep (for example new figure details). {items} is a list of counts by kind, built from the settingsSyncNoticeCount* strings joined with settingsSyncNoticeListSeparator, for example "3 programs, 1 setting". The remedy is always updating the app on THIS device. The last sentence is a warning, not advice to wait: this device still holds its own older copy of those records, and an edit here gives that copy a newer date, so for most records it replaces the other device's version everywhere (spec §6.3 step 4, newer edit wins). 'may' is deliberate: for the few settings that hold a whole collection (dialects, themes, shorthand sets, walkthrough snippets) the app asks instead.
   ///
   /// In en, this message translates to:
-  /// **'Another device is using a newer version of the app. Update the app on this device to receive {items}. Editing them here before you update discards the other device\'s changes to them.'**
+  /// **'Another device is using a newer version of the app. Update the app on this device to receive {items}. Editing them here before you update may discard the other device\'s changes to them.'**
   String settingsSyncNoticeNewerVersionItems(String items);
 
   /// One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many dances are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.
@@ -1262,10 +1262,10 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{your notes on 1 figure} other{your notes on {count} figures}}'**
   String settingsSyncNoticeCountFigureNote(int count);
 
-  /// Variant of settingsSyncNoticeNewerVersionItems used when this device cannot tell how many items are waiting: the other device's list of what it shares is itself in the newer format, or it shares a kind of data this version does not know. The last sentence carries the same warning as settingsSyncNoticeNewerVersionItems: editing here, before updating, a record the newer device changed replaces that device's version. 'it' is the other device.
+  /// Variant of settingsSyncNoticeNewerVersionItems used when this device cannot tell how many items are waiting: the other device's list of what it shares is itself in the newer format, or it shares a kind of data this version does not know. The last sentence carries the same hedged warning as settingsSyncNoticeNewerVersionItems: editing here, before updating, a record the newer device changed may replace that device's version. 'it' is the other device.
   ///
   /// In en, this message translates to:
-  /// **'Another device is using a newer version of the app. Update the app on this device to receive its changes. Editing something here that it changed, before you update, discards its changes.'**
+  /// **'Another device is using a newer version of the app. Update the app on this device to receive its changes. Editing something here that it changed, before you update, may discard its changes.'**
   String get settingsSyncNoticeNewerVersionUncounted;
 
   /// Informational Device Sync notice (not a problem): records on this device carry details that a newer version of the app added. This version keeps those details and syncs them back unchanged, but cannot display them. {items} is a list of counts by kind built from the settingsSyncNoticeCount* strings, for example "3 programs, 1 setting".
@@ -2420,7 +2420,7 @@ abstract class AppLocalizations {
   /// **'Reconnect'**
   String get settingsSyncReplacementConfirm;
 
-  /// Primary button of the missing-store dialog: disconnects this device from the missing store's phrase and opens the Connect flow, where the user creates a new store or connects to one another device already set up. Sends nothing to the old address. 'Set up a new phrase' in settingsSyncReplacementBody refers to this button.
+  /// Primary button of the missing-store dialog: disconnects this device from the missing store's phrase and opens the Connect flow, where the user creates a new store or connects to one another device already set up. Creates nothing at the old address. 'Set up a new phrase' in settingsSyncReplacementBody refers to this button.
   ///
   /// In en, this message translates to:
   /// **'Set up with a new phrase'**
