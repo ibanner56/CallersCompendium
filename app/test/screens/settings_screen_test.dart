@@ -5665,6 +5665,11 @@ void main() {
         (tester) async {
           final transport = ControllableSyncTransport();
           final release = Completer<void>();
+          // Released on failure too, so a red run ends instead of hanging on
+          // the held pass.
+          addTearDown(() {
+            if (!release.isCompleted) release.complete();
+          });
           final harness = await _pumpSettings(tester);
           await harness.repos.settings.set('sync_id', 'configured-store-id-f');
           final controller = SyncScope.of(
