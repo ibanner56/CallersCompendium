@@ -331,6 +331,32 @@ void main() {
       );
     });
 
+    test('a number\'s default is a whole number from 0 to 99', () {
+      Set<String> withDefault(Object value) => codes(
+        definitionWith([
+          UserFigureParam(
+            key: 'n',
+            kind: ParamKind.number,
+            defaultValue: value,
+          ),
+        ], template: '{n}'),
+      );
+      for (final ok in [0, 7, 99]) {
+        expect(
+          withDefault(ok),
+          isNot(contains(UserFigureIssueCodes.badDefault)),
+          reason: '$ok',
+        );
+      }
+      for (final bad in [-1, 100, 'three']) {
+        expect(
+          withDefault(bad),
+          contains(UserFigureIssueCodes.badDefault),
+          reason: '$bad',
+        );
+      }
+    });
+
     test('refuses a template or a text default over its length bound', () {
       expect(
         codes(definitionWith([], template: '{move} ${'x' * 520}')),

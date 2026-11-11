@@ -1193,10 +1193,19 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
                           ),
                           items: [
                             for (final kind in compoundParamKinds)
-                              DropdownMenuItem(
-                                value: kind,
-                                child: Text(compoundParamKindLabel(l10n, kind)),
-                              ),
+                              // A plain number fills no built-in move's slot
+                              // (a compound's parameter must match the slot's
+                              // kind), so only a figure of your own offers it;
+                              // a row already holding one keeps its entry.
+                              if (kind != ParamKind.number ||
+                                  _kind == UserGlossaryEntryKind.customFigure ||
+                                  row.kind == ParamKind.number)
+                                DropdownMenuItem(
+                                  value: kind,
+                                  child: Text(
+                                    compoundParamKindLabel(l10n, kind),
+                                  ),
+                                ),
                           ],
                           onChanged: (kind) {
                             if (kind == null) return;

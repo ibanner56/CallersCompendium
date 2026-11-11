@@ -440,6 +440,26 @@ void main() {
     String? reads(String condition) =>
         checkWording('[if $condition then x]', tricky).stored;
 
+    test('a number is tested as a whole number from 0 to 99', () {
+      final counted = renderer.userFigureWordingVocabulary(
+        UserFigureDefinition(
+          template: '{move}',
+          defaultBeats: 8,
+          params: [UserFigureParam(key: 'count', kind: ParamKind.number)],
+        ),
+        larks,
+      );
+      String? number(String test) =>
+          checkWording('[if count is $test then x]', counted).stored;
+
+      // Zero and values past a beat count's 64 are in range, unlike places.
+      expect(number('more than 0'), isNotNull);
+      expect(number('more than 70'), isNotNull);
+      expect(number('more than 99'), isNotNull);
+      expect(number('more than 100'), isNull);
+      expect(number('more than 2.5'), isNull);
+    });
+
     test('each has the one reading its place gives it', () {
       expect(
         reads(
