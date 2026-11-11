@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
@@ -591,6 +592,157 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(await repos.programs.listAll(), isEmpty);
+    });
+  });
+
+  group('focus after deleting a row from its ⋮ menu (A11Y-5)', () {
+    /// The id of the row whose ⋮ button holds focus, or null.
+    String? focusedMenuOf(String prefix) {
+      final context = FocusManager.instance.primaryFocus?.context;
+      if (context == null) return null;
+      String? id;
+      context.visitAncestorElements((e) {
+        final key = e.widget.key;
+        if (key is ValueKey<String> && key.value.startsWith(prefix)) {
+          id = key.value.substring(prefix.length);
+          return false;
+        }
+        return true;
+      });
+      return id;
+    }
+
+    Future<void> deleteViaMenu(
+      WidgetTester tester,
+      String menuKey,
+      String deleteKey,
+    ) async {
+      await tester.tap(find.byKey(ValueKey(menuKey)));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(ValueKey(deleteKey)));
+      await tester.pumpAndSettle();
+    }
+
+    Future<CompendiumRepositories> threeDances() async {
+      final repos = openTestRepositories();
+      for (final (id, title) in [
+        ('d1', 'Alpha'),
+        ('d2', 'Bravo'),
+        ('d3', 'Charlie'),
+      ]) {
+        await repos.dances.create(_dance(id, title));
+      }
+      return repos;
+    }
+
+    testWidgets('dances: focus moves to the next row\'s ⋮ button', (
+      tester,
+    ) async {
+      final repos = await threeDances();
+      await _pumpDanceList(tester, repos, confirmBeforeDelete: false);
+
+      await deleteViaMenu(tester, 'dance-actions-d2', 'dance-action-delete');
+
+      expect(find.text('Bravo'), findsNothing);
+      expect(focusedMenuOf('dance-actions-'), 'd3');
+    });
+
+    testWidgets('dances: deleting the last row focuses the previous one', (
+      tester,
+    ) async {
+      final repos = await threeDances();
+      await _pumpDanceList(tester, repos, confirmBeforeDelete: false);
+
+      await deleteViaMenu(tester, 'dance-actions-d3', 'dance-action-delete');
+
+      expect(focusedMenuOf('dance-actions-'), 'd2');
+    });
+
+    testWidgets('dances: deleting the only row focuses the search field', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance('d1', 'Alpha'));
+      await _pumpDanceList(tester, repos, confirmBeforeDelete: false);
+
+      await deleteViaMenu(tester, 'dance-actions-d1', 'dance-action-delete');
+
+      expect(
+        FocusManager.instance.primaryFocus!.context!
+            .findAncestorWidgetOfExactType<TextField>()
+            ?.key,
+        const ValueKey('collection-search-field'),
+      );
+    });
+
+    testWidgets('dances: Undo puts focus back on the restored row', (
+      tester,
+    ) async {
+      final repos = await threeDances();
+      await _pumpDanceList(tester, repos, confirmBeforeDelete: false);
+      await deleteViaMenu(tester, 'dance-actions-d2', 'dance-action-delete');
+
+      // Keyboard-focus the snackbar's Undo, as Tab would, then press it.
+      final undo = find.byType(SnackBarAction);
+      Focus.maybeOf(tester.element(find.text('Undo')))!.requestFocus();
+      await tester.pump();
+      await tester.tap(undo);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Bravo'), findsOneWidget);
+      expect(focusedMenuOf('dance-actions-'), 'd2');
+    });
+
+    testWidgets('dances: focus the user moved elsewhere is left alone', (
+      tester,
+    ) async {
+      final repos = await threeDances();
+      await _pumpDanceList(tester, repos, confirmBeforeDelete: false);
+      await tester.tap(find.byKey(const ValueKey('collection-search-field')));
+      await tester.pumpAndSettle();
+      await tester.drag(
+        find.byKey(const ValueKey('slidable-d2')),
+        const Offset(-300, 0),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('slide-delete-d2')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Bravo'), findsNothing);
+      expect(focusedMenuOf('dance-actions-'), isNull);
+    });
+
+    testWidgets('programs: focus moves to the next row\'s ⋮ button', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      for (final (id, title) in [
+        ('p1', 'Alpha'),
+        ('p2', 'Bravo'),
+        ('p3', 'Charlie'),
+      ]) {
+        await repos.programs.create(_program(id, title));
+      }
+      await _pumpProgramsList(tester, repos, confirmBeforeDelete: false);
+      final order = [
+        for (final e
+            in find
+                .byType(Slidable)
+                .evaluate()
+                .map((e) => (e.widget.key! as ValueKey<String>).value))
+          e,
+      ];
+      // Sorted order decides "next"; delete the middle row of whatever it is.
+      final middle = order[1].substring('slidable-'.length);
+      final next = order[2].substring('slidable-'.length);
+
+      await deleteViaMenu(
+        tester,
+        'program-actions-$middle',
+        'program-action-delete',
+      );
+
+      expect(focusedMenuOf('program-actions-'), next);
     });
   });
 }

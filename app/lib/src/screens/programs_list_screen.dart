@@ -13,6 +13,7 @@ import '../search/program_sort.dart';
 import '../search/program_sort_labels.dart';
 import '../theme/app_spacing.dart';
 import '../utils/confirm_delete.dart';
+import '../utils/row_focus.dart';
 import '../utils/shortcut_platform.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/empty_state.dart';
@@ -327,7 +328,33 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
       _venuesById = snapshot.venuesById;
       _loadError = null;
     });
+    final focusIds = _pendingFocusIds;
+    if (focusIds.isEmpty) return;
+    _pendingFocusIds = const [];
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      restoreFocusToRowMenu(
+        context,
+        candidateKeys: [
+          for (final id in focusIds) ValueKey('program-actions-$id'),
+        ],
+      );
+    });
   }
+
+  /// Programs, nearest first, whose ⋮ button should take focus when the next
+  /// list snapshot lands: the neighbours of a deleted row (next, else
+  /// previous), or the restored row after an Undo. A deleted row leaves the
+  /// tree only when the stream re-emits, so focus cannot be moved before then.
+  /// See [restoreFocusToRowMenu] for when it is actually moved.
+  List<String> _pendingFocusIds = const [];
+
+  /// The ids to refocus once `sorted[index]` is deleted: the next row, else the
+  /// previous one.
+  List<String> _neighbourIds(List<Program> sorted, int index) => [
+    if (index + 1 < sorted.length) sorted[index + 1].id,
+    if (index > 0) sorted[index - 1].id,
+  ];
 
   /// Day-precision event dates (time-of-day dropped) for the "this week"
   /// header strip's markers (ROADMAP G.8's first-day-of-week consumer).
@@ -436,7 +463,8 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     }
   }
 
-  Future<void> _softDelete(Program program) async {
+  Future<void> _softDelete(Program program, List<String> focusAfter) async {
+    _pendingFocusIds = focusAfter;
     await _repos.programs.softDelete(program.id, at: DateTime.now().toUtc());
     if (!mounted) return;
     final l10n = AppLocalizations.of(context);
@@ -466,6 +494,9 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
       undoFailedMessage: l10n.commonUndoFailed,
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
       onUndo: () async {
+        // A plain field write, safe on a disposed State, and not a `mounted`
+        // guard on the restore itself (see above).
+        _pendingFocusIds = [program.id];
         await _repos.programs.restore(program.id, at: DateTime.now().toUtc());
         // No `mounted` check and no context read, and nothing captured above
         // to bump: the restore is a write and the stream carries it, to this
@@ -745,13 +776,14 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
                   children: [
                     SlidableAction(
                       key: ValueKey('slide-delete-${program.id}'),
-                      onPressed: (_) => _softDelete(program),
-                      backgroundColor: Theme.of(
-                        context,
-                      ).colorScheme.errorContainer,
-                      foregroundColor: Theme.of(
-                        context,
-                      ).colorScheme.onErrorContainer,
+                      onPressed: (_) =>
+                          _softDelete(program, _neighbourIds(sorted, index)),
+                      backgroundColor: Theme.of(context)
+                          .colorScheme
+                          .errorContainer,
+                      foregroundColor: Theme.of(context)
+                          .colorScheme
+                          .onErrorContainer,
                       icon: Icons.delete_outline,
                       label: l10n.commonDelete,
                     ),
@@ -778,7 +810,10 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
                         programId: program.id,
                         repositories: _repos,
                       )) {
-                        await _softDelete(program);
+                        await _softDelete(
+                          program,
+                          _neighbourIds(sorted, index),
+                        );
                       }
                     } finally {
                       _deletingIds.remove(program.id);

@@ -42,6 +42,7 @@ import '../theme/app_spacing.dart';
 import '../theme/destructive_button_style.dart';
 import '../theme/keyboard_dismiss.dart';
 import '../utils/confirm_delete.dart';
+import '../utils/row_focus.dart';
 import '../utils/shortcut_platform.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/add_to_program_sheet.dart';
@@ -2846,7 +2847,30 @@ class _DanceListScreenState extends State<DanceListScreen>
     // reload (the full _boot() is expensive). On undo, trigger a full reload.
     if (!mounted) return;
     final l10n = AppLocalizations.of(context);
+    // The row, and the ⋮ button that may hold keyboard focus, are about to
+    // leave the tree. Focus goes to the next row's ⋮ button (the previous
+    // row's at the end of the list, the search field when none is left), so
+    // the next Tab continues from where the user was instead of restarting at
+    // the app bar. The snackbar's Undo is not the target: it is transient and
+    // sits outside the list's traversal order. The move only happens if focus
+    // was actually dropped, so a mouse user's focus is never stolen.
+    final removedAt = _results.indexWhere((e) => e.dance.id == danceId);
+    final neighbours = [
+      if (removedAt >= 0 && removedAt + 1 < _results.length)
+        _results[removedAt + 1].dance.id,
+      if (removedAt > 0) _results[removedAt - 1].dance.id,
+    ];
     setState(() => _results.removeWhere((e) => e.dance.id == danceId));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      restoreFocusToRowMenu(
+        context,
+        candidateKeys: [
+          for (final id in neighbours) ValueKey('dance-actions-$id'),
+        ],
+        fallback: _ftsFocusNode,
+      );
+    });
     showUndoSnackBar(
       ScaffoldMessenger.of(context),
       key: const ValueKey('list-deleted-snackbar'),
@@ -2856,7 +2880,18 @@ class _DanceListScreenState extends State<DanceListScreen>
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
       onUndo: () async {
         await _repos.dances.restore(danceId, at: DateTime.now().toUtc());
-        if (mounted) await _boot();
+        if (!mounted) return;
+        await _boot();
+        // Pressing Undo dismisses the snackbar that held focus; put it on the
+        // restored row if the reload left it nowhere. No fallback: a restored
+        // row that is not built (scrolled away) is not worth pulling focus to.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          restoreFocusToRowMenu(
+            context,
+            candidateKeys: [ValueKey('dance-actions-$danceId')],
+          );
+        });
       },
     );
   }
