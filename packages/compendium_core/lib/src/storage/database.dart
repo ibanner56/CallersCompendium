@@ -279,7 +279,9 @@ const String compactDosidoSeesawCanonicalRebuildDoneKey =
 
 /// Settings key for the one-time canonical/FTS rebuild owed by taxonomy v33.
 /// The v33 defaults and figure-eight canonical template change effective
-/// canonical text for existing figures without rewriting their source JSON.
+/// canonical text for existing figures. The pass also rewrites source JSON in
+/// one case: it drops the old parser's explicit `partners` subject from
+/// assumed bare `box_circulate` figures, so the new default can apply.
 const String taxonomyV33CanonicalRebuildDoneKey =
     '__taxonomy_v33_canonical_rebuild_done__';
 

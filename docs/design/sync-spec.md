@@ -2256,7 +2256,11 @@ already holds is still `200` after that point. And a batch checks each blob's
 hash and allow-list before the quota, so a malformed or refused blob is `400`
 or `422` even in a full store, where its single `PUT` checks the quota first
 and is `507`. A blob answered `200` or `201` is stored
-whatever the batch's other results are.
+whatever the batch's other results are. Below the server's free-space floor
+(§5.4), every blob that passes its hash and allow-list checks is `507`, one the
+store already holds included, as its single `PUT` would be, and the batch
+stores nothing; the response is still a `200`, so a client reads that `507` as
+the refusal that stops its upload and not as a server without the route.
 
 As on the batch read, the status of the whole response is about the whole
 request: a store that does not resolve is `404` and counts as a failed
@@ -2300,8 +2304,9 @@ malformed hash, and one that serves only the batch read answers `405`.
 | `413` | Payload exceeds a cap. A `POST /v1/blobs/batch` naming more than 200 hashes is `413`; a *response* reaching its byte cap is not an error, and lists the rest as not sent (§5.2). A `PUT /v1/blobs/batch` carrying more than 50 blobs, or a blob over the blob cap, is `413`. |
 | `415` | Body media type is not the one the endpoint expects (optional; see §5.1). |
 | `422` | Payload rejected by the allow-list. In a `PUT /v1/blobs/batch` this and every other refusal of one blob is a result inside a `200` (§5.2). |
-| `429` | Rate limited. `Retry-After` set. |
-| `507` | Store quota exhausted. |
+| `429` | Rate limited. `Retry-After` set. Also a client holding its share of large-body requests in flight (§5.4). |
+| `503` | The server is handling as many large-body requests as it allows at once (§5.4). `Retry-After` set; transient. |
+| `507` | Store quota exhausted, or the server's storage below its free-space floor (§5.4). |
 
 **Deleting a manifest is idempotent, and deleting a store is not.** `DELETE
 /v1/manifests/{deviceId}` MUST return `204` whether or not a manifest existed
@@ -2332,6 +2337,9 @@ number of elements in a request body such as §5.4's hashes-per-request cap — 
 store, and **devices per store**, so the 33rd device attaching receives `507`
 rather than `413` or `429`. A client MUST surface `507` to the user and MUST NOT
 retry it without user action, since nothing the client does alone clears it.
+The same holds for the `507` of the free-space floor (§5.4), which is a
+server-wide condition and not the store's: only the operator clears it, and the
+client has no way to tell the two apart.
 
 That last rule has one qualification the client MUST honour. §7.3 keeps
 unreferenced blobs for a 24-hour grace window, so space freed by deleting
@@ -2367,9 +2375,13 @@ Every limit MUST be enforced before allocation, streaming-abort style.
 | Request rate, per store (`id_key`) | 15/second, burst 600 |
 | **Failed store resolutions**, per client IP | 10/minute, burst 20 |
 | **Failed store resolutions**, server-wide | 1,000/minute |
+| Store creations (`201` from `POST /v1/store`), per client IP | 5, refilled at 5/hour |
 | Store creations (`201` from `POST /v1/store`), server-wide | 60/minute |
+| Large-body requests in flight, per client IP | 4; one more is `429` with `Retry-After` |
+| Large-body requests in flight, server-wide | 16; one more is `503` with `Retry-After` |
+| Free space on the filesystem holding the server's data | blob and manifest writes are `507` below 1 GiB |
 
-**The client IP is keyed by network, not by every address, for IPv6.** The two
+**The client IP is keyed by network, not by every address, for IPv6.** The
 per-client-IP rows count an IPv4 client per address and an IPv6 client per
 **/64**. A subscriber is normally delegated a /64 or more and can present 2⁶⁴
 distinct source addresses inside it, so a per-address key would hand an IPv6
@@ -2522,15 +2534,120 @@ row matters for the same reason in the opposite direction: without it, `POST`
 becomes the oracle that `GET` used to be, since "already exists" is as
 informative as "found".
 
-**The creation row bounds storage rather than guessing.** Every `POST` that
-succeeds costs a row that lives until §7.3 reaps it, and no per-ID limiter
-engages because each creation uses a fresh `id_key`. Honest creation happens
-once per store in its lifetime, so 60/minute is several orders of magnitude
-above legitimate demand and still caps live empty stores at roughly 2.6 million
-against the 30-day TTL. Without this row the failure budget alone would leave
-creation unbounded, because a *successful* creation is not a failure and must
-not be counted as one — an honest first pairing would otherwise consume the same
-budget as an attack.
+**The creation rows bound store rows rather than guessing, and not bytes.**
+Every `POST` that succeeds costs a row that lives until §7.3 reaps it, and no
+per-ID limiter engages because each creation uses a fresh `id_key`. Honest
+creation happens once per store in its lifetime, so 60/minute is several orders
+of magnitude above legitimate demand and still caps live empty stores at roughly
+2.6 million against the 30-day TTL. Without this row the failure budget alone
+would leave creation unbounded, because a *successful* creation is not a failure
+and must not be counted as one — an honest first pairing would otherwise consume
+the same budget as an attack. An earlier version of this paragraph said the row
+bounds *storage*. It bounds rows: each store it admits may still fill its own
+byte quota, so what the server-wide row protects is the store table and the
+sweep that walks it, and the bytes on disk are bounded only by the free-space
+floor below (amended 2026-11-11, with the floor).
+
+**The per-client-IP creation row is in front of the server-wide one.** The
+server-wide row is one window every address shares, so without a share per
+address one client could spend all of it — sixty creations, then `429` for
+every honest first pairing anywhere for the rest of the minute. A request the
+per-IP row refuses is not charged to the server-wide row, and one the
+server-wide row refuses gives its per-IP token back, so an address is charged
+only for stores it actually created. A burst of 5, refilled at 5 an hour,
+covers a household pairing and then replacing a store (§6.3 step 1) with room
+to spare; past it, `Retry-After` is the time to the next token, about twelve
+minutes. Behind carrier-grade NAT every subscriber sharing one IPv4 address
+shares one share, so a first pairing there can wait for a token; that is
+accepted, because creation is once per store and the wait is bounded. The
+server-wide row stays because the per-IP row binds nothing against
+a client holding many addresses — a /48 holds 65,536 /64s — and is what still
+bounds the store table then. Both values are the change author's choice
+(2026-11-11), and an operator may tune them with the rest.
+
+**Large-body requests are counted while they are in flight.** A manifest `PUT`
+and `POST /v1/blobs/missing` may carry 16 MB, a `PUT /v1/blobs/batch` 2 MB and a
+blob `PUT` 1 MB, and the reference server holds each body in memory while it
+reads, decodes and stores it. The request-rate rows count requests, not
+requests in flight, so they do not bound that memory: one address may start
+some 600 requests in a minute (the burst of 300 and 5 a second after it), and a
+client that sends its body slowly keeps each one open. Measured on the reference
+server before these rows (2026-11-11), 40 stalled 15 MB manifest `PUT`s took its
+resident memory from 169 MB to 740 MB, and 40 unread `GET`s of a 15 MB manifest
+from 170 MB to 746 MB, held there until the connections closed. With these rows
+and the streamed `GET`s below, the same `PUT`s ended at 137 MB from one address
+and 362 MB from 40, and the `GET`s at 123 MB.
+
+A server MUST bound how many it holds at once, per client IP and server-wide,
+and refuse one past either bound before reading its body: past the client's own
+share with `429`, past the server's with `503`, both with `Retry-After`. Other
+requests are not counted — their bodies are capped at 64 KB or absent — so a
+lookup, a read or a delete is never refused by these rows. A counted request's
+body MUST arrive whole within a deadline, or the server stops reading it,
+releases its slot and closes the connection; without one, a client that
+trickles its body, or sends part of it and falls silent, holds its slot for as
+long as the proxy lets it, and a handful of addresses doing so would hold every
+upload on the server out. The reference server closes the connection without a
+response, so the client sees a dropped connection rather than a status. Its
+deadline is 60 seconds, twice the reference client's 30-second request
+deadline, so it never cuts off a request that client is still waiting on.
+
+The reference server also answers a manifest `GET` and a blob `GET` from storage
+a chunk at a time as the client reads it, rather than holding the body whole
+until it is sent, so a client that stops reading pins about one chunk. A
+manifest `GET` is not a snapshot: each chunk is read afresh, and if the device
+replaces its manifest before the last chunk is read, the response ends short
+rather than splicing two manifests, and the reader fails the request as it
+would on a dropped connection. A reader on a slow link fetching a large
+manifest from a device that publishes often can therefore fail more than once;
+the change author accepted that over holding every manifest being sent in
+memory, since the next attempt starts again with the then-current manifest.
+
+The server-wide row refuses honest uploads while it is full, which is the cost
+§5.4 rejected for a server-wide *request* limit (above). It is accepted here
+because the alternative is not a slow server but an exhausted one, which
+refuses everyone everything; because it engages only on large-body requests,
+after each address's share, so it takes several addresses each holding its
+whole share to fill it; and because the body deadline bounds how long any
+request can hold a slot. It does not stop an attacker with many addresses — a
+/48 holds 65,536 /64s — from keeping it full by sending slow bodies one after
+another, any more than the server-wide creation row stops one from spending
+its creations; it turns what would be a server out of memory into uploads
+refused for as long as the attack lasts, with lookups, reads and deletes
+unaffected, and the reference server raises an operational alert when it
+engages. A client refused it treats the `503` as transient and retries by
+itself (§6.12). The values, 4 per client IP and 16 server-wide, are the change
+author's choice (2026-11-11): the reference client sends one request at a time,
+so 4 leaves room for a few devices behind one address, and 16 holds the worst
+case near 256 MB of bodies. An operator may change them.
+
+**The free-space floor keeps a full disk from becoming an outage** (amended
+2026-11-11). Every quota above is per store, and creating a store needs only a
+structurally valid sync ID, so nothing per store bounds the bytes all stores
+together write. When the disk fills, every SQLite write fails for everyone,
+including the `last_seen` write every request makes, and the server stops
+answering correctly at all. So a server MUST refuse blob and manifest writes
+with `507` while the filesystem holding its data has less free space than a
+floor, and MUST keep serving reads and deletes below it. It MUST still admit a
+manifest `PUT` no larger than the manifest that device already has stored:
+a manifest that drops entries without naming any new blob — the one a device
+publishes after the user turns on *Skip unused imported dances*, which is the
+advice the reference client gives with a `507`, or after records are erased
+outright — is how a user shrinks what a device holds in the store, and refusing
+it would leave `DELETE /v1/manifests/{deviceId}` and `DELETE /v1/store` as the
+only remedies, where §5.3 forbids offering the destructive one first. Deleting
+a record does not shrink anything below the floor: it publishes a tombstone,
+which is a new blob, and that upload is refused like any other. A
+store's other requests — creation, lookup, `POST /v1/blobs/missing` — write at
+most a row and are not refused. A server that cannot read its free space admits
+the write: the floor is a margin ahead of a full disk, and refusing every upload
+because the margin cannot be measured would be an outage of its own. A floor,
+rather than a server-wide byte quota or a cap on live stores, was the
+maintainer's (@ibanner56's) choice among the remedies the 2026-11 server audit
+put to them; the rule's details and the reference server's default of 1 GiB
+are the change author's. That default is four times what its large-body
+requests in flight can write at once, so writes already past the check cannot
+take the disk to empty; an operator may change it, or set it to zero.
 
 These specific values are my choice, not a derivation from anything in the
 design; what is derived is the *shape* — that the limit which matters counts
@@ -6362,12 +6479,47 @@ passes every test that exercises malformed `Bearer` values). The complementary
 mutation is to count successful resolutions too, which throttles an honest
 device's ordinary polling and is caught by the success run.
 
-**The creation cap bounds storage independently of the failure budget**: a run
-of successful creations is refused at the §5.4 rate while an unrelated existing
-store still resolves (mutation: fold creation into the failure budget, so a
-single honest first pairing consumes the guessing allowance, or drop the cap
-entirely, so an attacker converts an unbounded creation right into stored rows
-the sweep only reaches 30 days later).
+**The creation cap bounds store rows independently of the failure budget**: a
+run of successful creations is refused at the §5.4 rate while an unrelated
+existing store still resolves (mutation: fold creation into the failure budget,
+so a single honest first pairing consumes the guessing allowance, or drop the
+cap entirely, so an attacker converts an unbounded creation right into stored
+rows the sweep only reaches 30 days later).
+
+**One address cannot spend the creations every address shares**: an address
+past its per-client-IP share is refused while another address still creates,
+an IPv6 address shares its /64's share, a refusal by the per-IP row leaves the
+server-wide row unspent, and a creation that fails gives the address its token
+back (mutations: drop the per-IP row, which lets one address hold every honest
+first pairing out for the rest of the minute; charge the server-wide row before
+the per-IP one; drop the refund).
+
+**Large-body requests in flight are bounded per address and server-wide**:
+with a request of each counted route held open mid-body, one more from the same
+address is `429` with `Retry-After` while another address is served, a lookup
+from the first address is not refused, one past the server-wide cap is `503`
+with `Retry-After`, and a slot is free again once its request ends, by
+completing, by failing part-way, or by a body that does not arrive within the
+deadline, whether it trickles in or stops arriving altogether, plain or gzip
+(mutations: count nothing, which is the server these rows were added to; read a
+body without a deadline, which lets one trickling client keep its slot; count
+the body's bytes in an `async*` generator, whose cancel waits on a client that
+has fallen silent). A manifest `GET` reads the manifest a bounded chunk
+at a time as the response is consumed, and a manifest replaced, or a read that
+fails, part-way through is a response cut short that the client fails rather
+than a body spliced from two manifests or ended cleanly (mutations: answer from
+one whole read; end the stream without an error). A blob `GET` likewise
+streams its file, and a file gone part-way fails the stream with an error that
+names no path (mutations: read the file whole; let the file error escape).
+
+**The free-space floor refuses writes and nothing else**: below the floor a
+blob `PUT`, a manifest `PUT` and every checked blob of a batch upload are
+`507` and store nothing, while lookups, blob and manifest `GET`s,
+`POST /v1/blobs/missing` and deletes succeed; a manifest `PUT` no larger than
+the device's stored manifest is admitted and a larger one is not; a floor of
+zero is never read, and a reading that fails admits the write (mutations: never
+refuse, the server before the floor; refuse every manifest `PUT`, which leaves
+a user only deletes to free space with; admit a larger replacement).
 
 **User-visible sync obligations.** With `sync_exclude_imports` on, an imported
 dance that no published record cites is absent from this device's manifest,

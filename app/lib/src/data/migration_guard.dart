@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:compendium_core/compendium_core.dart'
-    show kMinSupportedSchemaVersion;
+    show kMinSupportedSchemaVersion, owedOneTimeRepairs;
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart' as sql;
@@ -228,8 +228,10 @@ class MigrationSnapshotAborted implements Exception {
 ///    open / migrate. The migration steps for those versions are retired; the
 ///    recovery path is a one-time bridge release, not a downgrade or a wipe.
 /// 3. **Backup-before-migrate** — if an upgrade is pending (file version <
-///    running), snapshot the file into [snapshotDir] first (retaining the
-///    newest [retain]), so a botched migration is recoverable. This step is
+///    running), **or** a one-time repair this build knows is still owed (see
+///    [repairMarkers]), snapshot the file into [snapshotDir] first (retaining
+///    the newest [retain]), so a botched migration or repair is recoverable.
+///    This step is
 ///    **fail-CLOSED**: if the snapshot cannot be written, the migration is
 ///    *not* allowed to silently proceed. Instead the failure is classified into
 ///    a [SnapshotFailure] and handed to [onSnapshotFailure], which returns the
@@ -241,6 +243,17 @@ class MigrationSnapshotAborted implements Exception {
 /// A missing file (fresh install) or an uninitialized file (`user_version == 0`,
 /// which drift will populate via `onCreate`) is a no-op.
 ///
+/// [repairMarkers] is `CompendiumRepositories.oneTimeRepairMarkers`: each
+/// one-time repair's completion marker in `settings`, mapped to the value it
+/// must hold (or null for presence). `ensureMigrated` runs those repairs after
+/// this preflight, and several rewrite `figures_json` and shareable text in
+/// place without changing `user_version` — repairs ship as markers, not schema
+/// bumps, in a PATCH release. A version-only check would let them run with no
+/// safety copy (UPGRADE-1), so a file at the running version still snapshots
+/// when any marker is absent, tombstoned or stale. A fully repaired file reads
+/// every marker as done and does not snapshot. Pass an empty map only where no
+/// repair can follow the preflight.
+///
 /// This reads the file with a short-lived `package:sqlite3` connection (which
 /// is WAL-aware, unlike reading the header bytes directly) and never opens the
 /// drift database, so no migration is triggered here.
@@ -248,6 +261,7 @@ Future<void> runMigrationPreflight({
   required File dbFile,
   required Directory snapshotDir,
   required int runningSchemaVersion,
+  required Map<String, String?> repairMarkers,
   int retain = kDefaultSnapshotRetention,
   DateTime Function() now = _utcNow,
   SnapshotFailureDecision? onSnapshotFailure,
@@ -277,43 +291,49 @@ Future<void> runMigrationPreflight({
         bridgeTag: bridgeTagFor(fileVersion),
       );
     }
-    // Symmetric with the downgrade guard above: both are fail-CLOSED. The
-    // pre-migration snapshot is a recoverability safety net; if it can't be
-    // written (disk full, unwritable db_backups, checkpoint failure) we must
-    // NOT silently migrate, because a botched upgrade would then be
-    // unrecoverable. We gate the migration on an explicit user decision
-    // ([onSnapshotFailure]); absent a decision — or a decision to decline — we
-    // abort (issue #442).
-    try {
-      await snapshotBeforeMigrate(
-        dbFile: dbFile,
-        snapshotDir: snapshotDir,
-        fromVersion: fileVersion,
-        retain: retain,
-        timestamp: now(),
+  } else {
+    final owed = _owedRepairs(dbFile.path, repairMarkers);
+    // At the running version with every repair done: nothing will rewrite the
+    // file, so no snapshot — this is the path of every ordinary launch.
+    if (owed.isEmpty) return;
+  }
+
+  // Symmetric with the downgrade guard above: both are fail-CLOSED. The
+  // pre-migration snapshot is a recoverability safety net; if it can't be
+  // written (disk full, unwritable db_backups, checkpoint failure) we must
+  // NOT silently migrate, because a botched upgrade would then be
+  // unrecoverable. We gate the migration on an explicit user decision
+  // ([onSnapshotFailure]); absent a decision — or a decision to decline — we
+  // abort (issue #442).
+  try {
+    await snapshotBeforeMigrate(
+      dbFile: dbFile,
+      snapshotDir: snapshotDir,
+      fromVersion: fileVersion,
+      retain: retain,
+      timestamp: now(),
+    );
+  } on Object catch (error) {
+    // diagnostics: silent — pre-migration snapshot failed; returns SnapshotFailure to caller (bootstrap infrastructure, not UI).
+    final failure = SnapshotFailure(
+      fromVersion: fileVersion,
+      toVersion: runningSchemaVersion,
+      cause: classifySnapshotFailure(error),
+      error: error,
+    );
+    // No seam to ask the user (e.g. a headless/test caller that opted out) is
+    // treated as a decline: fail closed rather than assume consent.
+    final proceed = onSnapshotFailure == null
+        ? false
+        : await onSnapshotFailure(failure);
+    if (!proceed) {
+      throw MigrationSnapshotAborted(failure);
+    }
+    if (kDebugMode) {
+      debugPrint(
+        'Migration preflight: pre-migration snapshot failed; user chose to '
+        'proceed without a backup: $error',
       );
-    } on Object catch (error) {
-      // diagnostics: silent — pre-migration snapshot failed; returns SnapshotFailure to caller (bootstrap infrastructure, not UI).
-      final failure = SnapshotFailure(
-        fromVersion: fileVersion,
-        toVersion: runningSchemaVersion,
-        cause: classifySnapshotFailure(error),
-        error: error,
-      );
-      // No seam to ask the user (e.g. a headless/test caller that opted out) is
-      // treated as a decline: fail closed rather than assume consent.
-      final proceed = onSnapshotFailure == null
-          ? false
-          : await onSnapshotFailure(failure);
-      if (!proceed) {
-        throw MigrationSnapshotAborted(failure);
-      }
-      if (kDebugMode) {
-        debugPrint(
-          'Migration preflight: pre-migration snapshot failed; user chose to '
-          'proceed without a backup: $error',
-        );
-      }
     }
   }
 }
@@ -980,6 +1000,7 @@ Future<void> _discard(List<File> files) async {
 /// [resolveDatabaseLocations], so tests can drive each platform's relocation.
 Future<void> runMigrationPreflightForApp({
   required int runningSchemaVersion,
+  required Map<String, String?> repairMarkers,
   SnapshotFailureDecision? onSnapshotFailure,
   String? operatingSystem,
 }) async {
@@ -1005,8 +1026,44 @@ Future<void> runMigrationPreflightForApp({
     dbFile: dbFile,
     snapshotDir: snapshotDir,
     runningSchemaVersion: runningSchemaVersion,
+    repairMarkers: repairMarkers,
     onSnapshotFailure: onSnapshotFailure,
   );
+}
+
+/// The keys of [repairMarkers] whose one-time repair the database at [path]
+/// still owes, read with a short-lived `package:sqlite3` connection so drift
+/// never opens the file here (same reasoning as [readUserVersion]).
+///
+/// Tombstoned markers are filtered out exactly as every sweep's own gate
+/// filters them (`deleted_at IS NULL`). A file whose markers cannot be read at
+/// all — no `settings` table, say — is treated as owing every repair: the cost
+/// of being wrong that way is one extra snapshot, and the other way is a repair
+/// with no safety copy.
+List<String> _owedRepairs(String path, Map<String, String?> repairMarkers) {
+  if (repairMarkers.isEmpty) return const [];
+  final keys = repairMarkers.keys.toList();
+  final placeholders = List.filled(keys.length, '?').join(', ');
+  final db = sql.sqlite3.open(path);
+  try {
+    final rows = db.select(
+      'SELECT key, value_json FROM settings '
+      'WHERE key IN ($placeholders) AND deleted_at IS NULL',
+      keys,
+    );
+    return owedOneTimeRepairs(
+      expected: repairMarkers,
+      live: {
+        for (final row in rows)
+          row['key'] as String: row['value_json'] as String,
+      },
+    );
+  } on sql.SqliteException {
+    // diagnostics: silent — unreadable markers are treated as owed, which only snapshots.
+    return keys;
+  } finally {
+    db.close();
+  }
 }
 
 /// Reads the persisted `PRAGMA user_version` of the SQLite file at [path]

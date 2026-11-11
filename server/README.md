@@ -31,6 +31,23 @@ variable**: command-line arguments are visible to every other user on the host
 (`ps -o args`), so `--pepper` leaks the deployment secret on a shared machine.
 Use it only where nothing else can see the process list.
 
+### Server-wide limits
+
+Three limits protect the server as a whole rather than one store (sync spec
+§5.4). Each is a command-line option, which falls back to the environment
+variable shown and then to the default:
+
+| Option | Variable | Default | Past it |
+| --- | --- | --- | --- |
+| `--min-free-bytes` | `ATHENAEUM_MIN_FREE_BYTES` | `1073741824` (1 GiB) | Blob and manifest writes answer `507` while the data directory's filesystem has less free space than this, except a manifest no larger than the one that device already has. Reads and deletes still work. `0` turns it off. |
+| `--max-large-bodies` | `ATHENAEUM_MAX_LARGE_BODIES` | `16` | A manifest `PUT`, blob `PUT` (single or batch) or `POST /v1/blobs/missing` answers `503` with `Retry-After` while this many are in flight. |
+| `--max-large-bodies-per-ip` | `ATHENAEUM_MAX_LARGE_BODIES_PER_IP` | `4` | The same requests answer `429` with `Retry-After` while their client address has this many in flight. |
+
+Those requests' bodies must also arrive whole within 60 seconds, or the
+server closes the connection. Free space is read with `statvfs(3)` on 64-bit Linux. On any other
+platform the server cannot read it, says so on stderr at startup, and admits
+every write.
+
 ### Break-glass reads
 
 After incident approval, use the supported break-glass command rather than
@@ -153,7 +170,8 @@ Add `--shipped-request-limits` to run with the shipped request-rate limits
 instead of lifting them, each worker as its own client address, to see where
 they refuse. The fixture stores' per-store buckets carry over between steps, and
 workers retry a `429` at once rather than after a minute as the app does; the
-failure and creation budgets stay lifted.
+failure and creation budgets, the large-body caps and the free-space floor stay
+lifted.
 
 Run it on the hardware you deploy to, with `--data-dir` on the disk the server
 will use. Every request that reaches a store commits a SQLite write and every blob

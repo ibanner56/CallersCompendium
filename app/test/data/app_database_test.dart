@@ -167,6 +167,7 @@ void main() {
 
       await runMigrationPreflightForApp(
         runningSchemaVersion: kCompendiumSchemaVersion,
+        repairMarkers: const {},
         operatingSystem: os,
       );
 
@@ -195,6 +196,7 @@ void main() {
       await expectLater(
         runMigrationPreflightForApp(
           runningSchemaVersion: kCompendiumSchemaVersion,
+          repairMarkers: const {},
           operatingSystem: os,
         ),
         throwsA(
@@ -220,6 +222,7 @@ void main() {
     await expectLater(
       runMigrationPreflightForApp(
         runningSchemaVersion: kCompendiumSchemaVersion,
+        repairMarkers: const {},
         operatingSystem: 'windows',
       ),
       throwsA(
@@ -243,6 +246,7 @@ void main() {
       );
       await runMigrationPreflightForApp(
         runningSchemaVersion: kCompendiumSchemaVersion,
+        repairMarkers: const {},
         operatingSystem: 'linux',
       );
     },

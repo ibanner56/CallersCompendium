@@ -86,8 +86,8 @@ Future<void> main(List<String> arguments) async {
           'them, each worker of each step as its own client address, to see '
           'where they refuse. The fixture stores\' per-store buckets carry '
           'over between steps, and workers retry a 429 at once rather than '
-          'after a minute as the app does. The failure and creation budgets '
-          'stay lifted.',
+          'after a minute as the app does. The failure and creation budgets, '
+          'the large-body caps and the free-space floor stay lifted.',
     )
     ..addFlag('json', negatable: false, help: 'Print results as JSON lines.')
     ..addFlag('help', abbr: 'h', negatable: false);
@@ -624,6 +624,8 @@ class _ServerHandle {
       perIpFailureBurst: _unlimited,
       serverWideFailuresPerMinute: _unlimited,
       creationsPerMinute: _unlimited,
+      perIpCreationBurst: _unlimited,
+      perIpCreationsPerHour: _unlimitedRate,
     );
     // The shipped request-rate rows; the defaults the fields fall back to.
     const shippedRequests = AthenaeumBudgetLimits(
@@ -631,11 +633,20 @@ class _ServerHandle {
       perIpFailureBurst: _unlimited,
       serverWideFailuresPerMinute: _unlimited,
       creationsPerMinute: _unlimited,
+      perIpCreationBurst: _unlimited,
+      perIpCreationsPerHour: _unlimitedRate,
     );
     final app = AthenaeumApp(
+      // The large-body caps and the free-space floor are lifted in both
+      // modes, as the failure and creation budgets are: the tool measures
+      // throughput, and its workers share one address unless
+      // --shipped-request-limits gives each its own.
       config: AthenaeumConfig(
         dataDirectory: dataDirectory,
         pepper: List<int>.generate(32, (i) => i),
+        minFreeBytes: 0,
+        maxLargeBodiesInFlight: _unlimited,
+        maxLargeBodiesInFlightPerIp: _unlimited,
       ),
       clientAddressResolver: (request) =>
           request.headers[_clientAddressHeader] ?? 'load-test',
