@@ -184,6 +184,9 @@ see where the dances came from.
 4. Confirm the import when you are ready. Nothing is added until you commit it,
    and the same review flow lets you skip items you do not want.
 
+The catalog shows only the newest version of each collection, and a version
+older than the one you already imported cannot be imported over it.
+
 Importing a newer version of a collection you already have offers
 **Re-import onto** for its dances, which updates only their figures, formation
 and progression, as for any other source (see

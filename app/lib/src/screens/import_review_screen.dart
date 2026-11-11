@@ -573,6 +573,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     );
   }
 
+  Future<bool> _isOlderThanImported(String id, String version) async {
+    final status = await _publishedCollectionStatus(id, version);
+    return isOlderThanImportedPublishedVersion(version, status.importedVersion);
+  }
+
   Future<List<CollectionImportEvent>>? _publishedImportEvents;
   Future<Map<(String, String), int>>? _publishedHeldCounts;
 
@@ -587,6 +592,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       );
     }
     service.verifyArchiveBytes(entry, archiveBytes);
+    // Refuse to roll a newer imported collection back (SUPPLY-2). The catalog
+    // already disables such entries; this covers any other route here.
+    if (await _isOlderThanImported(entry.id, entry.version)) return;
     final metadata = PublishedCollectionMetadata(
       collectionId: entry.id,
       collectionVersion: entry.version,
@@ -621,6 +629,25 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     await _plan();
   }
 
+  /// Plans a standalone verified seed unless it is older than the imported
+  /// version of the same collection (SUPPLY-2), in which case the review shows
+  /// its generic "could not read" state and nothing is planned or written.
+  Future<void> _planPublishedSeed(PublishedCollectionSeed seed) async {
+    final metadata = seed.metadata;
+    if (await _isOlderThanImported(
+      metadata.collectionId,
+      metadata.collectionVersion,
+    )) {
+      if (!mounted) return;
+      setState(() {
+        _planError = StateError('older than imported published collection');
+        _phase = _Phase.review;
+      });
+      return;
+    }
+    await _plan();
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -632,7 +659,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       if (published != null) {
         _pasteController.text = published.json;
         _sourceUri = null;
-        _plan();
+        _planPublishedSeed(published);
       } else if (bundle != null) {
         // Share-target intake (issue #432): the bundle was already decoded and
         // validated Dart-side. Seed it and plan immediately so the user lands
