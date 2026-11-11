@@ -180,7 +180,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String migrationSnapshotAbortedMessage(String cause) {
-    return 'Caller\'s Compendium didn\'t start because it couldn\'t create an automatic backup before upgrading your saved data. ${cause}Free up space (or fix the backups folder), then reopen the app — or reopen and choose to continue without a backup.';
+    return 'Caller\'s Compendium didn\'t start because it couldn\'t create an automatic backup before making changes to your saved data. ${cause}Free up space (or fix the backups folder), then reopen the app — or reopen and choose to continue without a backup.';
   }
 
   @override
@@ -196,7 +196,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String migrationSnapshotConsentBody(String cause) {
-    return 'Before upgrading your saved data to a new format, Caller\'s Compendium makes an automatic backup so a failed upgrade can be undone. That backup couldn\'t be created this time.$cause\n\nIf you continue without a backup and the upgrade is interrupted, some of your dances or programs could be lost. You can quit, free up space (or fix the backups folder), and reopen the app to try again.';
+    return 'Before making changes to your saved data, Caller\'s Compendium makes an automatic backup so the changes can be undone if something goes wrong. That backup couldn\'t be created this time.$cause\n\nIf you continue without a backup and the changes are interrupted, some of your dances or programs could be lost. You can quit, free up space (or fix the backups folder), and reopen the app to try again.';
   }
 
   @override

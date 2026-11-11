@@ -182,7 +182,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String migrationSnapshotAbortedMessage(String cause) {
-    return 'Caller’s Compendium is niet gestart omdat er geen automatische back-up kon worden gemaakt voordat je opgeslagen gegevens werden bijgewerkt. ${cause}Maak ruimte vrij (of herstel de back-upmap) en open de app dan opnieuw — of open opnieuw en kies om zonder back-up door te gaan.';
+    return 'Caller’s Compendium is niet gestart omdat er geen automatische back-up kon worden gemaakt voordat je opgeslagen gegevens werden gewijzigd. ${cause}Maak ruimte vrij (of herstel de back-upmap) en open de app dan opnieuw — of open opnieuw en kies om zonder back-up door te gaan.';
   }
 
   @override
@@ -198,7 +198,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String migrationSnapshotConsentBody(String cause) {
-    return 'Voordat je opgeslagen gegevens naar een nieuw formaat worden bijgewerkt, maakt Caller’s Compendium een automatische back-up zodat een mislukte update ongedaan kan worden gemaakt. Die back-up kon deze keer niet worden gemaakt.$cause\n\nAls je zonder back-up doorgaat en de update wordt onderbroken, kunnen sommige van je dansen of programma’s verloren gaan. Je kunt afsluiten, ruimte vrijmaken (of de back-upmap herstellen) en de app opnieuw openen om het nog eens te proberen.';
+    return 'Voordat je opgeslagen gegevens worden gewijzigd, maakt Caller’s Compendium een automatische back-up zodat de wijzigingen ongedaan kunnen worden gemaakt als er iets misgaat. Die back-up kon deze keer niet worden gemaakt.$cause\n\nAls je zonder back-up doorgaat en de wijzigingen worden onderbroken, kunnen sommige van je dansen of programma’s verloren gaan. Je kunt afsluiten, ruimte vrijmaken (of de back-upmap herstellen) en de app opnieuw openen om het nog eens te proberen.';
   }
 
   @override

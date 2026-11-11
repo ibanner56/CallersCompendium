@@ -374,10 +374,10 @@ abstract class AppLocalizations {
     String date,
   );
 
-  /// Terminal startup-screen message shown when a pre-migration backup could not be created and the user declined to proceed without one. {cause} is an optional trailing sentence (already ends with a space) naming the likely cause, or empty when unknown.
+  /// Terminal startup-screen message shown when the automatic backup taken before a schema upgrade or a one-time data repair could not be created and the user declined to proceed without one. {cause} is an optional trailing sentence (already ends with a space) naming the likely cause, or empty when unknown.
   ///
   /// In en, this message translates to:
-  /// **'Caller\'s Compendium didn\'t start because it couldn\'t create an automatic backup before upgrading your saved data. {cause}Free up space (or fix the backups folder), then reopen the app — or reopen and choose to continue without a backup.'**
+  /// **'Caller\'s Compendium didn\'t start because it couldn\'t create an automatic backup before making changes to your saved data. {cause}Free up space (or fix the backups folder), then reopen the app — or reopen and choose to continue without a backup.'**
   String migrationSnapshotAbortedMessage(String cause);
 
   /// Plain-language sentence naming the likely cause of a failed pre-migration backup: the device is low on storage. Embedded into the snapshot-failure copy.
@@ -392,25 +392,25 @@ abstract class AppLocalizations {
   /// **'The automatic backups folder could not be written to.'**
   String get migrationSnapshotCauseUnwritableBackupsDir;
 
-  /// Title of the blocking dialog asking whether to upgrade saved data without a recoverable backup after the automatic backup failed.
+  /// Title of the blocking dialog asking whether to change saved data (a schema upgrade or a one-time data repair) without a recoverable backup after the automatic backup failed.
   ///
   /// In en, this message translates to:
   /// **'Couldn\'t back up your data'**
   String get migrationSnapshotConsentTitle;
 
-  /// Body of the blocking dialog asking whether to upgrade saved data without a recoverable backup. {cause} is an optional block (already prefixed with two newlines) naming the likely cause, or empty when unknown.
+  /// Body of the blocking dialog asking whether to change saved data (a schema upgrade or a one-time data repair) without a recoverable backup. Keep the wording true for both. {cause} is an optional block (already prefixed with two newlines) naming the likely cause, or empty when unknown.
   ///
   /// In en, this message translates to:
-  /// **'Before upgrading your saved data to a new format, Caller\'s Compendium makes an automatic backup so a failed upgrade can be undone. That backup couldn\'t be created this time.{cause}\n\nIf you continue without a backup and the upgrade is interrupted, some of your dances or programs could be lost. You can quit, free up space (or fix the backups folder), and reopen the app to try again.'**
+  /// **'Before making changes to your saved data, Caller\'s Compendium makes an automatic backup so the changes can be undone if something goes wrong. That backup couldn\'t be created this time.{cause}\n\nIf you continue without a backup and the changes are interrupted, some of your dances or programs could be lost. You can quit, free up space (or fix the backups folder), and reopen the app to try again.'**
   String migrationSnapshotConsentBody(String cause);
 
-  /// Button that safely aborts startup rather than upgrading saved data without a recoverable backup.
+  /// Button that safely aborts startup rather than changing saved data without a recoverable backup.
   ///
   /// In en, this message translates to:
   /// **'Quit'**
   String get migrationSnapshotConsentQuit;
 
-  /// Button that proceeds with the data upgrade even though no recoverable backup could be made.
+  /// Button that proceeds with the change to saved data (a schema upgrade or a one-time data repair) even though no recoverable backup could be made.
   ///
   /// In en, this message translates to:
   /// **'Proceed without a backup'**

@@ -175,7 +175,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String migrationSnapshotAbortedMessage(String cause) {
-    return '保存データをアップグレードする前に自動バックアップを作成できなかったため、Caller’s Compendiumを起動できませんでした。$cause空き容量を確保する（またはバックアップフォルダを修復する）か、アプリを再度開いてください。あるいは、再度開いてバックアップなしで続行することもできます。';
+    return '保存データを変更する前に自動バックアップを作成できなかったため、Caller’s Compendiumを起動できませんでした。$cause空き容量を確保する（またはバックアップフォルダを修復する）か、アプリを再度開いてください。あるいは、再度開いてバックアップなしで続行することもできます。';
   }
 
   @override
@@ -190,7 +190,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String migrationSnapshotConsentBody(String cause) {
-    return '保存データを新しい形式にアップグレードする前に、Caller’s Compendiumは自動バックアップを作成し、アップグレードに失敗しても元に戻せるようにします。今回はそのバックアップを作成できませんでした。$cause\n\nバックアップなしで続行してアップグレードが中断されると、一部のダンスやプログラムが失われる可能性があります。アプリを終了し、空き容量を確保（またはバックアップフォルダを修復）してから、アプリを再度開いてもう一度お試しください。';
+    return '保存データを変更する前に、Caller’s Compendiumは自動バックアップを作成し、問題が起きても変更を元に戻せるようにします。今回はそのバックアップを作成できませんでした。$cause\n\nバックアップなしで続行して変更が中断されると、一部のダンスやプログラムが失われる可能性があります。アプリを終了し、空き容量を確保（またはバックアップフォルダを修復）してから、アプリを再度開いてもう一度お試しください。';
   }
 
   @override

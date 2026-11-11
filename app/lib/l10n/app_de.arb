@@ -176,9 +176,9 @@
   "@migrationRelocationCopyDetails": {
     "x-sourceSha256": "26e7cdb8f7afe2d471212d37420ffa8e966adf5a0462a26ad7f411bd473f9c18"
   },
-  "migrationSnapshotAbortedMessage": "Caller’s Compendium wurde nicht gestartet, weil vor der Aktualisierung deiner gespeicherten Daten keine automatische Sicherung erstellt werden konnte. {cause}Schaffe Speicherplatz (oder repariere den Sicherungsordner) und öffne die App dann erneut – oder öffne sie erneut und fahre ohne Sicherung fort.",
+  "migrationSnapshotAbortedMessage": "Caller’s Compendium wurde nicht gestartet, weil vor Änderungen an deinen gespeicherten Daten keine automatische Sicherung erstellt werden konnte. {cause}Schaffe Speicherplatz (oder repariere den Sicherungsordner) und öffne die App dann erneut – oder öffne sie erneut und fahre ohne Sicherung fort.",
   "@migrationSnapshotAbortedMessage": {
-    "x-sourceSha256": "701d5476b4f7a24c13676a3f0663490c45e4cae71dc03fb5183c1686d57d2d68"
+    "x-sourceSha256": "373045547ba04d4776d51ddeecf26c38f485afc7bc47aed67ac4fbac1d3622f4"
   },
   "migrationSnapshotCauseDiskFull": "Auf deinem Gerät ist offenbar wenig Speicherplatz frei.",
   "@migrationSnapshotCauseDiskFull": {
@@ -192,9 +192,9 @@
   "@migrationSnapshotConsentTitle": {
     "x-sourceSha256": "809b2d6dbd0aae49496f566c318ff23d50bf7ffd3fa9dc0a81a49bd78b153d1c"
   },
-  "migrationSnapshotConsentBody": "Bevor deine gespeicherten Daten in ein neues Format aktualisiert werden, erstellt Caller’s Compendium eine automatische Sicherung, damit eine fehlgeschlagene Aktualisierung rückgängig gemacht werden kann. Diese Sicherung konnte diesmal nicht erstellt werden.{cause}\n\nWenn du ohne Sicherung fortfährst und die Aktualisierung unterbrochen wird, könnten einige deiner Tänze oder Programme verloren gehen. Du kannst die App beenden, Speicherplatz schaffen (oder den Sicherungsordner reparieren) und sie erneut öffnen, um es noch einmal zu versuchen.",
+  "migrationSnapshotConsentBody": "Bevor deine gespeicherten Daten geändert werden, erstellt Caller’s Compendium eine automatische Sicherung, damit sich die Änderungen rückgängig machen lassen, falls etwas schiefgeht. Diese Sicherung konnte diesmal nicht erstellt werden.{cause}\n\nWenn du ohne Sicherung fortfährst und die Änderungen unterbrochen werden, könnten einige deiner Tänze oder Programme verloren gehen. Du kannst die App beenden, Speicherplatz schaffen (oder den Sicherungsordner reparieren) und sie erneut öffnen, um es noch einmal zu versuchen.",
   "@migrationSnapshotConsentBody": {
-    "x-sourceSha256": "1d1216f082332d05fe4421d65e1dd546566adcd5971dd5c6d22a012f40dd3f8d"
+    "x-sourceSha256": "58443cc689fbdcd885acb4babbe96daccdd52c3dc6d63c0d728af76094461a3b"
   },
   "migrationSnapshotConsentQuit": "Beenden",
   "@migrationSnapshotConsentQuit": {

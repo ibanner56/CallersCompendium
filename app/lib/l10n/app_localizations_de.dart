@@ -180,7 +180,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String migrationSnapshotAbortedMessage(String cause) {
-    return 'Caller’s Compendium wurde nicht gestartet, weil vor der Aktualisierung deiner gespeicherten Daten keine automatische Sicherung erstellt werden konnte. ${cause}Schaffe Speicherplatz (oder repariere den Sicherungsordner) und öffne die App dann erneut – oder öffne sie erneut und fahre ohne Sicherung fort.';
+    return 'Caller’s Compendium wurde nicht gestartet, weil vor Änderungen an deinen gespeicherten Daten keine automatische Sicherung erstellt werden konnte. ${cause}Schaffe Speicherplatz (oder repariere den Sicherungsordner) und öffne die App dann erneut – oder öffne sie erneut und fahre ohne Sicherung fort.';
   }
 
   @override
@@ -197,7 +197,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String migrationSnapshotConsentBody(String cause) {
-    return 'Bevor deine gespeicherten Daten in ein neues Format aktualisiert werden, erstellt Caller’s Compendium eine automatische Sicherung, damit eine fehlgeschlagene Aktualisierung rückgängig gemacht werden kann. Diese Sicherung konnte diesmal nicht erstellt werden.$cause\n\nWenn du ohne Sicherung fortfährst und die Aktualisierung unterbrochen wird, könnten einige deiner Tänze oder Programme verloren gehen. Du kannst die App beenden, Speicherplatz schaffen (oder den Sicherungsordner reparieren) und sie erneut öffnen, um es noch einmal zu versuchen.';
+    return 'Bevor deine gespeicherten Daten geändert werden, erstellt Caller’s Compendium eine automatische Sicherung, damit sich die Änderungen rückgängig machen lassen, falls etwas schiefgeht. Diese Sicherung konnte diesmal nicht erstellt werden.$cause\n\nWenn du ohne Sicherung fortfährst und die Änderungen unterbrochen werden, könnten einige deiner Tänze oder Programme verloren gehen. Du kannst die App beenden, Speicherplatz schaffen (oder den Sicherungsordner reparieren) und sie erneut öffnen, um es noch einmal zu versuchen.';
   }
 
   @override

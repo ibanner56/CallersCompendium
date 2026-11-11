@@ -181,7 +181,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String migrationSnapshotAbortedMessage(String cause) {
-    return 'Caller’s Compendium startede ikke, fordi der ikke kunne oprettes en automatisk sikkerhedskopi, før dine gemte data blev opgraderet. ${cause}Frigør plads (eller reparer sikkerhedskopimappen), og åbn derefter appen igen — eller åbn igen og vælg at fortsætte uden en sikkerhedskopi.';
+    return 'Caller’s Compendium startede ikke, fordi der ikke kunne oprettes en automatisk sikkerhedskopi, før der blev foretaget ændringer i dine gemte data. ${cause}Frigør plads (eller reparer sikkerhedskopimappen), og åbn derefter appen igen — eller åbn igen og vælg at fortsætte uden en sikkerhedskopi.';
   }
 
   @override
@@ -198,7 +198,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String migrationSnapshotConsentBody(String cause) {
-    return 'Før dine gemte data opgraderes til et nyt format, opretter Caller’s Compendium en automatisk sikkerhedskopi, så en mislykket opgradering kan fortrydes. Den sikkerhedskopi kunne ikke oprettes denne gang.$cause\n\nHvis du fortsætter uden en sikkerhedskopi, og opgraderingen afbrydes, kan nogle af dine danse eller programmer gå tabt. Du kan afslutte, frigøre plads (eller reparere sikkerhedskopimappen) og åbne appen igen for at prøve igen.';
+    return 'Før der foretages ændringer i dine gemte data, opretter Caller’s Compendium en automatisk sikkerhedskopi, så ændringerne kan fortrydes, hvis noget går galt. Den sikkerhedskopi kunne ikke oprettes denne gang.$cause\n\nHvis du fortsætter uden en sikkerhedskopi, og ændringerne afbrydes, kan nogle af dine danse eller programmer gå tabt. Du kan afslutte, frigøre plads (eller reparere sikkerhedskopimappen) og åbne appen igen for at prøve igen.';
   }
 
   @override

@@ -176,9 +176,9 @@
   "@migrationRelocationCopyDetails": {
     "x-sourceSha256": "26e7cdb8f7afe2d471212d37420ffa8e966adf5a0462a26ad7f411bd473f9c18"
   },
-  "migrationSnapshotAbortedMessage": "保存データをアップグレードする前に自動バックアップを作成できなかったため、Caller’s Compendiumを起動できませんでした。{cause}空き容量を確保する（またはバックアップフォルダを修復する）か、アプリを再度開いてください。あるいは、再度開いてバックアップなしで続行することもできます。",
+  "migrationSnapshotAbortedMessage": "保存データを変更する前に自動バックアップを作成できなかったため、Caller’s Compendiumを起動できませんでした。{cause}空き容量を確保する（またはバックアップフォルダを修復する）か、アプリを再度開いてください。あるいは、再度開いてバックアップなしで続行することもできます。",
   "@migrationSnapshotAbortedMessage": {
-    "x-sourceSha256": "701d5476b4f7a24c13676a3f0663490c45e4cae71dc03fb5183c1686d57d2d68"
+    "x-sourceSha256": "373045547ba04d4776d51ddeecf26c38f485afc7bc47aed67ac4fbac1d3622f4"
   },
   "migrationSnapshotCauseDiskFull": "デバイスの空き容量が不足しているようです。",
   "@migrationSnapshotCauseDiskFull": {
@@ -192,9 +192,9 @@
   "@migrationSnapshotConsentTitle": {
     "x-sourceSha256": "809b2d6dbd0aae49496f566c318ff23d50bf7ffd3fa9dc0a81a49bd78b153d1c"
   },
-  "migrationSnapshotConsentBody": "保存データを新しい形式にアップグレードする前に、Caller’s Compendiumは自動バックアップを作成し、アップグレードに失敗しても元に戻せるようにします。今回はそのバックアップを作成できませんでした。{cause}\n\nバックアップなしで続行してアップグレードが中断されると、一部のダンスやプログラムが失われる可能性があります。アプリを終了し、空き容量を確保（またはバックアップフォルダを修復）してから、アプリを再度開いてもう一度お試しください。",
+  "migrationSnapshotConsentBody": "保存データを変更する前に、Caller’s Compendiumは自動バックアップを作成し、問題が起きても変更を元に戻せるようにします。今回はそのバックアップを作成できませんでした。{cause}\n\nバックアップなしで続行して変更が中断されると、一部のダンスやプログラムが失われる可能性があります。アプリを終了し、空き容量を確保（またはバックアップフォルダを修復）してから、アプリを再度開いてもう一度お試しください。",
   "@migrationSnapshotConsentBody": {
-    "x-sourceSha256": "1d1216f082332d05fe4421d65e1dd546566adcd5971dd5c6d22a012f40dd3f8d"
+    "x-sourceSha256": "58443cc689fbdcd885acb4babbe96daccdd52c3dc6d63c0d728af76094461a3b"
   },
   "migrationSnapshotConsentQuit": "終了",
   "@migrationSnapshotConsentQuit": {
