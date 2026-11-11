@@ -223,8 +223,9 @@ the next time you open the app.
 
 ## Backups happen automatically too
 
-Before an app update changes how your data is stored, the app saves its
-own recovery snapshot on your device. There's nothing to press and
+Before an app update changes how your data is stored, or runs a one-time
+repair over your saved dances, the app saves its own recovery snapshot on
+your device. There's nothing to press and
 nothing to manage — it's an extra safety net across updates.
 
 This snapshot is a bonus, not a replacement. Your own exported backups are
