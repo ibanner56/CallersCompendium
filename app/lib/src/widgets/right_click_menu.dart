@@ -19,6 +19,10 @@ class RightClickMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => GestureDetector(
+    // A right-click has no screen-reader equivalent (the ⋮ button is the
+    // accessible route). Without this, the recogniser's `tap` action makes
+    // every row an extra, unlabelled and inert focus stop.
+    excludeFromSemantics: true,
     onSecondaryTap: () => _findMenu(context)?.showButtonMenu(),
     child: child,
   );
