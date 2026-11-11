@@ -1,9 +1,0 @@
-{
-  "id": "contradb-tag-restore",
-  "user_visible": true,
-  "app": {
-    "changed": [
-      "Tag conditions taken out of the Advanced query while you search ContraDB now come back, with the tag you picked, when you return to your own library."
-    ]
-  }
-}

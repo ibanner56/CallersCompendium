@@ -36,6 +36,102 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-11-10
+
+### Added
+
+- The Advanced builder can ask for any figure instead of a chosen move, on a figure row or on either side of a Sequence (then), so "a swing then anything" can be searched, in your library and on ContraDB.
+- The Advanced panel now sends the figure details you can pick there, such as the dancers or the hand, to ContraDB where ContraDB has them. A detail ContraDB doesn't have is left out, and the line above the results says some Advanced conditions were left out.
+- You can use the Advanced panel while searching ContraDB online: groups of figure conditions (all of, any of, none of) and Sequence (then) rows find dances by the figures they contain, alone or together with the text you typed. A query with something ContraDB cannot run, such as a tag, tells you so instead of searching with it left out.
+- A ContraDB search with more matches than the 20 shown now says how many matched in all, for example "Showing 20 of 143 online results".
+- A ContraDB search now loads 20 results at a time and fetches the next 20 as you scroll toward the end of the list, with a Try again button if a page fails.
+- When a ContraDB search fills its first page of 20 results and ContraDB does not say how many matched in all, the line above the results now says there may be more and to narrow your search, instead of giving a plain count.
+- On a computer, Ctrl-A (Cmd-A on a Mac) selects every dance in the Collection's current results while the keyboard focus is in the list. In the search box it still selects the text.
+- The card that shows while the sample dance is your only dance now has a Browse published collections button.
+- Performing a single dance, the arrow keys and Page Up / Page Down now scroll a long card, as they do in a program.
+- A program slot whose dance is in Recently deleted now offers Restore: from the slot's … menu in the program builder, or from the Restore button on its row in the program summary. Perform mode does not offer it.
+- A tag's menu in the Tags manager has Show dances, which closes Settings and adds that tag to your collection's filter.
+- Four new settings under Settings > Program > Recency and history order control how calling history is dated: whether the Called filter's time windows count only dated programs, whether they count only slots marked performed, and whether the history order and the Last called sort ignore undated programs or slots not marked performed. They only change dating and order, never "called x N" or which dances count as called.
+
+### Changed
+
+- The Filters, By phrase and Advanced buttons above the Collection now share the full width of the screen instead of leaving a gap at the end of the row.
+- A figure with details no longer stops an Advanced search of ContraDB. Only a tag, a section, or a move ContraDB has no exact match for still does, and the message now says "section" instead of "details".
+- A Sequence (then) row now finds a move that comes directly after the first one, the way ContraDB does, instead of any move that comes later in the dance. The dance counts as a loop, so the first move comes right after the last one.
+- The message shown when ContraDB cannot run an Advanced query now says some moves have no exact match on ContraDB, since a few moves it does have are refused too.
+- Repeating an identical ContraDB search within a minute no longer asks ContraDB again.
+- A Sequence (then) row now matches a dance made of a single figure when that figure fits both sides, as ContraDB does.
+- Choosing ContraDB as the online source now removes "Has tag" conditions from the Advanced query and greys out "Has tag" in the Add menu, instead of leaving a tag behind that made the ContraDB search fail.
+- Tag conditions taken out of the Advanced query while you search ContraDB now come back, with the tag you picked, when you return to your own library.
+- English text now uses plain straight quotes and apostrophes ("like this" and don't) instead of curly ones.
+- Going back from the import review screen before you have imported asks whether to discard the import, instead of throwing the list away without asking.
+- After you import an online dance as the Same dance as one you already had, the message says Updated instead of Imported.
+- Setting a level or rating, adding or clearing tunes, or editing a custom field on a very large selection of dances takes less time.
+- Importing a ContraDB program now brings in a dance you already have under the same name and author, but with different figures, as a variation of yours, linked back to it, instead of as a separate copy.
+- In the Add to program sheet, the title is hidden while the keyboard is up, so "Create a new program with this dance" stays in view even at large text sizes.
+- When you choose a file to import that isn't a share file or readable text, the message now says so, and explains how to resave a text file as UTF-8.
+- On Windows, the app no longer opens a share file that sits inside a folder linked to another location (a symbolic link or junction), the same way it already refuses a link to the file itself.
+- Adding or removing a tag on many dances at once reads the selected dances in one step instead of one by one, so it is much faster on a large selection.
+- You can see the program editor's Save button always reads "Save", no longer switching to "Save changes" while you have unsaved edits.
+- The Reset database option in Developer options now has a warning icon in place of the trash can.
+- The move boxes in Advanced search and By phrase now find moves by your dialect's own names for them, as the dance editor does.
+- By default the Called filter's time windows ("within 3 months") now count only programs that have an event date, so a slot marked performed in an undated program no longer falls in a window. To date an undated program by when its slot was marked performed, or else by its last edit, turn off "Recency only counts dated programs" in Settings > Program.
+- The descriptions of "Require mark performed" and "Require an event date" now say they decide what counts as called and override the new settings.
+- On a program's own screen, Export, Mark all performed, Duplicate and Delete are now in the top bar next to the title "Program", and the program's name has its own line below. On narrow screens, the last three stay in the ⋮ menu.
+
+### Fixed
+
+- Typing or pasting "neighbor balance & box the gnat" or "larks balance & Rory O'More right", the way the figure list shows a box the gnat or Rory O'More with its balance, now gives that figure instead of unrecognized text. A box the gnat typed with its balance and no count gets 8 beats, unless it is one of several figures on the line.
+- Typing or pasting a figure whose dancers are named the way the figure list names them now gives that figure instead of unrecognized text: "prev neighbor swing", "third partner allemande left once", "second shadow balance", "same roles dosido once", "centers two hand turn once", "first lark two hand turn once". An imported "Next Neighbor Left Shoulder Round" is read too.
+- Typing or pasting a gate the way the figure list shows it now gives that gate, with its direction, turn, ending facing and who walks forward ("gate counterclockwise", "gate to face up the hall", "neighbor gate, larks forward"); a gate that names dancers and a direction but not the turn ("neighbor gate clockwise") is still not read, as before, and a courtesy turn reads back with its ending facing and the dancers it turns, as the figure list shows them ("partner courtesy turn to face second shadow", "partner courtesy turn larks"). An imported line that names a second dancer is still not read as one, as before. Any dancers the figure list names can now come before a move's name ("third corners gate", "same roles arch and dive").
+- Typing or pasting a hey, circular hey or dolphin hey the way the figure list shows it now gives that figure: a hey keeps its direction ("robins start a half hey on right diagonal - …") and its partial length ("… - until someone meets"), a full circular hey shown as "circular hey, neighbors pass right across" is read as the full four changes, and "dolphin hey - start with neighbor passing first lark by right shoulders" is a dolphin hey.
+- In the Leads/Follows wording, typing or pasting a figure the way the figure list shows it now gives that figure when the line names the leads or the follows: a poussette, revolving door, box circulate, zig-zag, facing star, figure 8, cross trails, pass the ocean, form long waves or form a long wave. Before, these lines kept the role words as a note, or did not read at all.
+- Typing or pasting a poussette, zig-zag, figure 8 or box circulate the way the figure list shows it now gives that figure, with its dancers, fraction, direction, ender and who leads. So does a swing with the way it ends facing, a promenade on a diagonal or facing a way, a single file circle, a facing star counterclockwise, and a revolving door, give and take, down the hall or up the hall that names third corners, opposites or a single neighbor, partner or shadow; "forward then backward" in a hall figure is read too. "Bend the line" at the end of a hall figure is still kept as a note. A poussette imported from ContraDB now turns the way ContraDB says: "back then left" is clockwise. The import read it the other way round before, so a ContraDB poussette you imported earlier may show the opposite turn; importing that dance again corrects it. Searching ContraDB for a poussette's direction now finds the direction you chose.
+- Typing or pasting a pass through, right left through, chain or pull by with a direction the way the figure list shows it ("pass through on right diagonal", "pull by right facing in") now keeps the direction instead of dropping it. A pass by, a cross trails and a slice read back with their dancers, shoulders, directions and slice details too, for example "neighbor pass by left shoulders" and "slice right one dancer and diagonal back".
+- Typing or pasting a square through, mad robin or butterfly whirl the way the figure list shows it now gives that figure: "square through two - neighbor balance & pull by left, then shadow pull by right", "mad robin clockwise 1½ around neighbor, robins in front" and "butterfly whirl counterclockwise" keep their dancers, hands, balance, turn and spin. A bare "mad robin" still gives the move with its usual options.
+- Typing or pasting a pass the ocean, form short waves, form long waves or form a long wave the way the figure list shows it now gives that figure, with its dancers, hands, direction and balance, instead of unrecognized text or a different move. For example, "pass through to an ocean wave - robins catch left hands in the center, neighbors take right hands on the sides" is a pass the ocean, not a pass through. The whole line "robins form a long wave in the center", which was read as the robins dancing in to the wave with a balance, is now read as forming the wave in place, as the figure list means it.
+- On a tablet or desktop, where the list and detail pane are side by side, the dance open in the detail pane is now marked in the list by a colored bar down its left edge and a colored title, so you can see at a glance which one you are looking at. Programs and online search results mark the open row the same way. While you are selecting dances, on any screen size, the dances you have checked get the bar as well as their checkmark.
+- On a Windows, macOS or Linux computer, scrolling a list with a trackpad no longer takes the focus out of the box you are typing in, so Quick search's arrow keys and Enter keep working while you scroll its results. Dragging a list on an Android or iOS phone or tablet still puts the on-screen keyboard away.
+- When you delete a program, the number of dances that lose it from their calling history no longer counts a dance that was already permanently deleted.
+- With a dialect that calls a move by another built-in move's name, picking the built-in move in Advanced or By phrase now searches that move, not the dialect's.
+- Renaming an author in Edit details to another author's name written with different capitals or spacing now offers to merge them, as Rename does, instead of saving a second author.
+- After you merge authors while a dance is open in the editor, the editor lists the dance's authors in the order the merge saved.
+- Restoring an unsaved dance draft after one of its authors or tags was merged now credits the author or tag it was merged into, and leaves out one that was deleted, instead of saving a credit that never shows.
+- A Caller's Companion program whose date does not exist, such as 2021-02-30, is imported with no event date and a warning, instead of on a different day.
+- An imported or typed "Box circulate with balance" reads as a box circulate again, and "Box circulate, no balance" no longer gets its balance turned on.
+- The Last backup date and the date of a backup file you pick to restore now follow your Regional date format.
+- The Advanced panel now works for moves of more than one word, such as do si do and box circulate, when searching ContraDB online. Before, every such move was refused.
+- You can see a pull by with a direction read "pull by right across", not "pull by across right", and a slide along the set read "slide left along set", not "slide along set left". A dialect that renames the slide keeps its own name, with the side after it.
+- You can see a direction read the same way on every built-in figure that shows one: "pull by right on left diagonal", "robins chain facing in", "robins start a half hey along", "pass through to an ocean wave on right diagonal". Cross trails says "passing" before the shoulders: "partner across the set passing right shoulders". A balance before a Rory O'More now follows its dancers: "larks balance & Rory O'More right". A wording of your own that uses {where} shows these words too; a figure of your own keeps the plain direction.
+- You can see dancers read in the plural where the verb that follows is plural, such as "neighbors take right hands on the sides" in pass the ocean, and in revolving door, box circulate, poussette, hey and form a long wave. A dancer named in front of a move still reads in the singular, as in "neighbor swing". In a wording of your own for revolving door, box circulate, poussette or hey, {who} now reads in the plural too, and so does {subject} for form a long wave.
+- Sharing a program whose slot cites a dance permanently deleted on another device now sends that slot as the words "Deleted dance" instead of an empty dance titled "—", and the PDF's figure pages leave that dance out.
+- If Check for updates can't reach the server, the update it found earlier is no longer forgotten. The banner and the download stay available, and the status line says the check failed.
+- You can type a move name into a figure's Move box in a combination or shorthand and tap Save without pressing Enter: the move is kept, as it already was in the dance editor.
+- Saving a dance with a missing title or other invalid field now scrolls to the first field that needs fixing.
+- A tap outside the parameterized matrix column dialog no longer discards what you chose or typed in it.
+- Importing a program from ContraDB now links a slot to a dance you already have, when The Caller's Box fallback finds one with the same figures, instead of leaving the dance as a note.
+- With venues turned on, re-importing a Caller's Companion file onto a program whose venue was removed entirely now links the program's location to a venue again instead of keeping a dead link.
+- Saving a dialect you were editing no longer adds a second copy if it was renamed meanwhile, or brings it back if it was deleted; you see a message that your changes weren't saved.
+- Restoring a dance or program from Recently deleted no longer says "restored" when another device had permanently deleted it in the meantime.
+- Searching custom number fields no longer matches a stray "0" for whole numbers such as 3, and a trashed dance's search entry no longer keeps text from a custom field that was deleted and recreated.
+- The Advanced query builder's figure rows, section menus and parameter menus fit a 360 dp phone at large text sizes; long section names are shortened instead of running off the screen.
+- Device Sync notices and the sync pairing screen's disclosures now sit in tinted boxes with an icon, like other notices in the app.
+- Perform's Jump to slot list numbers dances only, matching your set list: a break takes no number.
+- Copied and PDF set lists now name the authors of a dance in Recently deleted when one of them is in Recently deleted too, in credit order, as Perform already did.
+- A new program now offers back the unsaved draft you saved last, not whichever draft sorts first.
+- Draft-saved times, Device Sync's last-synced time and sync conflict dates now follow your Regional date format instead of always using the app language's month names. The database copy dates on the startup recovery screen use your device region's date.
+- A tap outside the compound matrix column dialog no longer discards the steps or label you chose or typed in it.
+- The program editor's Copy set list and PDF exports now name the authors of a dance in Recently deleted when one of them is in Recently deleted too, in credit order, as the program summary and Perform already do.
+- A custom field with a whole-number value shows as 3, not 3.0, on the dance detail screen, in the dance list's custom columns and in the dance editor.
+- Danish: the Defaults settings now say "taktslag" where they mean beats, instead of "takter". A native speaker has not reviewed these strings yet.
+- A program slot whose dance was permanently deleted on another device now reads "Deleted dance" in the builder, the summary, Perform mode and the set lists you print, copy or share, instead of a dash.
+- With Device Sync, a "renamed onto a name this device already uses" review no longer stays in the list after the clash has gone, for example once you rename one of the two by hand.
+- With Device Sync, when another device changes a custom field's type or removes one of its choices, the dances in Recently deleted on this device lose the values that no longer fit, as they already did on the device that made the change. Before, such a dance could fail to restore.
+- Permanently deleting a dance or program, by hand or when its time in Recently deleted runs out, now also removes any Device Sync review still waiting about it, which held a copy of its content.
+- When Perform found a program changed elsewhere while the builder held unsaved edits, saving the builder later put back the old title, band or other details you had not edited. Those details now keep the change from elsewhere, and the ones you edited keep your edit.
+- The hint under Settings › Defaults › Shared dance fields now says that tunes, the hook and sources are hidden until you turn them on and everything else is shown by default. It used to mention only authors and tunes.
+- The hint for repeated venues under Settings › Program now tells you to choose Don't show to hide the summary, the option's name in the list, instead of setting it to 0.
+
 ## [0.9.0] - 2026-11-02
 
 ### Added

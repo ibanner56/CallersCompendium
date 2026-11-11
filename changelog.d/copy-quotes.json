@@ -1,9 +1,0 @@
-{
-  "id": "copy-quotes",
-  "user_visible": true,
-  "app": {
-    "changed": [
-      "English text now uses plain straight quotes and apostrophes (\"like this\" and don't) instead of curly ones."
-    ]
-  }
-}
