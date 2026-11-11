@@ -5578,6 +5578,18 @@ at §6.14 item 2. The threat model said "inherent to the bearer model", and the
 redirect rule above said "while still carrying the credential" where it now
 says "the `Authorization` header". Both requirements are unchanged.*
 
+**What these protections are for.** The enumeration bound below, the strength
+warning for a chosen ID, the failure budget (§5.4), and keeping the ID out of
+logs, URLs and the status surface all make a store's address hard to
+*discover*, the way an unlisted link is hard to find. None of them makes the ID
+a password or a credential: whoever has the address may use it (§3.3), and
+there is nothing to sign in to.
+
+*Amended 2026-11-11: paragraph added. The maintainer decided on 2026-11-11 to
+keep these protections exactly as specified and to describe them as making
+store addresses hard to discover ("hard-to-guess address"), not as protecting
+a secret. No requirement changed.*
+
 **Enumeration.** Guessing is bounded by the ID's own strength — guaranteed for a
 generated ID, warned about but not guaranteed for a chosen one — and by the
 **identifier entropy**. No rate limit carries it. An attacker enumerating sync

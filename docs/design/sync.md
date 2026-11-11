@@ -4368,7 +4368,10 @@ entirely to who has its sync ID.
 ...can read, modify and delete the whole collection. That is inherent to a
 single store address that is all a request needs, with no accounts, and
 ADR-004 accepts it. What the design does is make an address hard to find by
-guessing, not limit what holding one allows:
+guessing, not limit what holding one allows — like an unlisted link, which
+anyone who has it can open, but which is hard to come across. The protections
+below keep the address hard to discover; none of them turns it into a password
+(maintainer decision, 2026-11-11):
 
 - Generated IDs are four EFF-wordlist words, ~2⁵². At 1,000 guesses/second an
   exhaustive search is ~10⁵ years; rate limiting makes it far worse.
