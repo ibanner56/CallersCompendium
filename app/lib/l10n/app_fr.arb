@@ -680,13 +680,13 @@
   "@settingsSyncFailureRateLimitedAdvice": {
     "x-sourceSha256": "66f91724ff9a8ff9962da293dd168113c17ab48d52ea4ddebda07803709cd530"
   },
-  "settingsSyncFailureStoreFull": "Votre espace a utilisé toute la place autorisée par le serveur de synchronisation.",
+  "settingsSyncFailureStoreFull": "Le serveur de synchronisation ne peut pas stocker davantage pour le moment.",
   "@settingsSyncFailureStoreFull": {
-    "x-sourceSha256": "18dea407dfb731dd13ec988fd58ef55a6711674a25fd2c59b07439bd365c5f92"
+    "x-sourceSha256": "fe85d2f9042026db6856474a66938efc4cec13086b431081b1bd36c120ee6bc1"
   },
-  "settingsSyncFailureStoreFullAdvice": "Les modifications de cet appareil ne pourront pas être enregistrées tant qu’il n’y aura pas de place. Activer Ignorer les danses importées inutilisées réduit ce que cet appareil envoie. Si vous utilisez votre propre serveur, augmentez sa limite de stockage.",
+  "settingsSyncFailureStoreFullAdvice": "Les modifications de cet appareil ne pourront pas être enregistrées tant qu’il n’y aura pas de place. Activer Ignorer les danses importées inutilisées peut réduire ce que cet appareil envoie. Si vous utilisez votre propre serveur, augmentez sa limite de stockage ou libérez de l’espace disque.",
   "@settingsSyncFailureStoreFullAdvice": {
-    "x-sourceSha256": "8118c7463bdf1d540145735a494d7b6c9748386039bda9c0f6789e3403b86548"
+    "x-sourceSha256": "389af930898c6dac228225a1fc6fa29b71671614d807ac1449ff857f628b3a9b"
   },
   "settingsSyncFailureTooLarge": "Un élément que cet appareil a tenté d’envoyer dépasse la taille acceptée par le serveur de synchronisation.",
   "@settingsSyncFailureTooLarge": {

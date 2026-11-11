@@ -680,13 +680,13 @@
   "@settingsSyncFailureRateLimitedAdvice": {
     "x-sourceSha256": "66f91724ff9a8ff9962da293dd168113c17ab48d52ea4ddebda07803709cd530"
   },
-  "settingsSyncFailureStoreFull": "Je opslag heeft alle ruimte gebruikt die de synchronisatieserver toestaat.",
+  "settingsSyncFailureStoreFull": "De synchronisatieserver kan nu even niets meer opslaan.",
   "@settingsSyncFailureStoreFull": {
-    "x-sourceSha256": "18dea407dfb731dd13ec988fd58ef55a6711674a25fd2c59b07439bd365c5f92"
+    "x-sourceSha256": "fe85d2f9042026db6856474a66938efc4cec13086b431081b1bd36c120ee6bc1"
   },
-  "settingsSyncFailureStoreFullAdvice": "Wijzigingen van dit apparaat kunnen pas worden opgeslagen als er ruimte is. Als je Ongebruikte geïmporteerde dansen overslaan aanzet, uploadt dit apparaat minder. Als je een eigen server gebruikt, verhoog dan de opslaglimiet.",
+  "settingsSyncFailureStoreFullAdvice": "Wijzigingen van dit apparaat kunnen pas worden opgeslagen als er ruimte is. Als je Ongebruikte geïmporteerde dansen overslaan aanzet, kan dit apparaat minder uploaden. Als je een eigen server gebruikt, verhoog dan de opslaglimiet of maak schijfruimte vrij.",
   "@settingsSyncFailureStoreFullAdvice": {
-    "x-sourceSha256": "8118c7463bdf1d540145735a494d7b6c9748386039bda9c0f6789e3403b86548"
+    "x-sourceSha256": "389af930898c6dac228225a1fc6fa29b71671614d807ac1449ff857f628b3a9b"
   },
   "settingsSyncFailureTooLarge": "Iets wat dit apparaat probeerde te uploaden is groter dan de synchronisatieserver accepteert.",
   "@settingsSyncFailureTooLarge": {

@@ -722,11 +722,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsSyncFailureStoreFull =>
-      'Your store has used all the space the sync server allows.';
+      'The sync server can\'t store more right now.';
 
   @override
   String get settingsSyncFailureStoreFullAdvice =>
-      'Changes from this device can\'t be stored until there is room. Turning on Skip unused imported dances cuts what this device uploads. If you run your own server, raise its storage limit.';
+      'Changes from this device can\'t be stored until there is room. Turning on Skip unused imported dances can cut what this device uploads. If you run your own server, raise its storage limit or free up disk space.';
 
   @override
   String get settingsSyncFailureTooLarge =>

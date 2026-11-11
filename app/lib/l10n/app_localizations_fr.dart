@@ -740,11 +740,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsSyncFailureStoreFull =>
-      'Votre espace a utilisé toute la place autorisée par le serveur de synchronisation.';
+      'Le serveur de synchronisation ne peut pas stocker davantage pour le moment.';
 
   @override
   String get settingsSyncFailureStoreFullAdvice =>
-      'Les modifications de cet appareil ne pourront pas être enregistrées tant qu’il n’y aura pas de place. Activer Ignorer les danses importées inutilisées réduit ce que cet appareil envoie. Si vous utilisez votre propre serveur, augmentez sa limite de stockage.';
+      'Les modifications de cet appareil ne pourront pas être enregistrées tant qu’il n’y aura pas de place. Activer Ignorer les danses importées inutilisées peut réduire ce que cet appareil envoie. Si vous utilisez votre propre serveur, augmentez sa limite de stockage ou libérez de l’espace disque.';
 
   @override
   String get settingsSyncFailureTooLarge =>

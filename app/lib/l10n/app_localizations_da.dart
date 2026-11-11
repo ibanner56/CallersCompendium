@@ -726,11 +726,11 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsSyncFailureStoreFull =>
-      'Dit lager har brugt al den plads, synkroniseringsserveren tillader.';
+      'Synkroniseringsserveren kan ikke gemme mere lige nu.';
 
   @override
   String get settingsSyncFailureStoreFullAdvice =>
-      'Ændringer fra denne enhed kan ikke gemmes, før der er plads. Hvis du slår Spring ubrugte importerede danse over til, uploader denne enhed mindre. Hvis du kører din egen server, så hæv dens lagergrænse.';
+      'Ændringer fra denne enhed kan ikke gemmes, før der er plads. Hvis du slår Spring ubrugte importerede danse over til, kan denne enhed uploade mindre. Hvis du kører din egen server, så hæv dens lagergrænse eller frigør diskplads.';
 
   @override
   String get settingsSyncFailureTooLarge =>

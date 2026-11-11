@@ -730,11 +730,11 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsSyncFailureStoreFull =>
-      'Dein Speicher hat den gesamten Platz belegt, den der Synchronisierungsserver erlaubt.';
+      'Der Synchronisierungsserver kann gerade nichts mehr speichern.';
 
   @override
   String get settingsSyncFailureStoreFullAdvice =>
-      'Änderungen von diesem Gerät können erst gespeichert werden, wenn wieder Platz ist. Wenn du Ungenutzte importierte Tänze überspringen einschaltest, lädt dieses Gerät weniger hoch. Wenn du einen eigenen Server betreibst, erhöhe sein Speicherlimit.';
+      'Änderungen von diesem Gerät können erst gespeichert werden, wenn wieder Platz ist. Wenn du Ungenutzte importierte Tänze überspringen einschaltest, kann dieses Gerät weniger hochladen. Wenn du einen eigenen Server betreibst, erhöhe sein Speicherlimit oder schaffe Speicherplatz.';
 
   @override
   String get settingsSyncFailureTooLarge =>

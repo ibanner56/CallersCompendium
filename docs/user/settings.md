@@ -1020,7 +1020,7 @@ Sync is off and open while it is on.
   you're curious. If this goes on for weeks, the expiry warning below is what
   tells you.
 - **When a sync fails for a reason you need to deal with**, the status shows a
-  warning and says why: your store is out of space, something was too large to
+  warning and says why: the sync server can't store more right now (your store is over its allowance, or the server itself is short of space), something was too large to
   upload, the server refused what was sent or didn't accept the sync phrase, it
   sent a reply the app couldn't use, another device's latest list was missing
   or unreadable during a first connection (a problem on the server's side

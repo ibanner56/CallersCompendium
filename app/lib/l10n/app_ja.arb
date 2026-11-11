@@ -680,13 +680,13 @@
   "@settingsSyncFailureRateLimitedAdvice": {
     "x-sourceSha256": "66f91724ff9a8ff9962da293dd168113c17ab48d52ea4ddebda07803709cd530"
   },
-  "settingsSyncFailureStoreFull": "ストアが同期サーバーで使える容量をすべて使い切りました。",
+  "settingsSyncFailureStoreFull": "同期サーバーは現在、これ以上保存できません。",
   "@settingsSyncFailureStoreFull": {
-    "x-sourceSha256": "18dea407dfb731dd13ec988fd58ef55a6711674a25fd2c59b07439bd365c5f92"
+    "x-sourceSha256": "fe85d2f9042026db6856474a66938efc4cec13086b431081b1bd36c120ee6bc1"
   },
-  "settingsSyncFailureStoreFullAdvice": "空きができるまで、このデバイスの変更は保存できません。「未使用の取り込んだダンスをスキップ」をオンにすると、このデバイスがアップロードする量を減らせます。独自のサーバーを運用している場合は、ストレージの上限を引き上げてください。",
+  "settingsSyncFailureStoreFullAdvice": "空きができるまで、このデバイスの変更は保存できません。「未使用の取り込んだダンスをスキップ」をオンにすると、このデバイスがアップロードする量を減らせる場合があります。独自のサーバーを運用している場合は、ストレージの上限を引き上げるか、ディスクの空き容量を確保してください。",
   "@settingsSyncFailureStoreFullAdvice": {
-    "x-sourceSha256": "8118c7463bdf1d540145735a494d7b6c9748386039bda9c0f6789e3403b86548"
+    "x-sourceSha256": "389af930898c6dac228225a1fc6fa29b71671614d807ac1449ff857f628b3a9b"
   },
   "settingsSyncFailureTooLarge": "このデバイスがアップロードしようとしたデータが、同期サーバーで受け付けられるサイズを超えています。",
   "@settingsSyncFailureTooLarge": {

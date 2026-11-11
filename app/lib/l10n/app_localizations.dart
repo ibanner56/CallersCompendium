@@ -1130,16 +1130,16 @@ abstract class AppLocalizations {
   /// **'It has had too many requests in a short time. Wait a few minutes before trying again.'**
   String get settingsSyncFailureRateLimitedAdvice;
 
-  /// Device Sync failure reason, one sentence, shown under "Last sync failed." on the status surface and in pairing, device-list and toolbar errors. Used when the server answered 507: the store's storage quota is exhausted. Must not suggest deleting the store (spec §5.3 forbids offering a wipe as the first response to a 507). 'Skip unused imported dances' is the exact title of the setting settingsSyncExcludeImportsTitle.
+  /// Device Sync failure reason, one sentence, shown under "Last sync failed." on the status surface and in pairing, device-list and toolbar errors. Used when the server answered 507, which means either this store is over its quota or the whole server is low on storage; the app can't tell which, so the sentence must be true of both and must not blame the user's store. Must not suggest deleting the store (spec §5.3 forbids offering a wipe as the first response to a 507). 'Skip unused imported dances' is the exact title of the setting settingsSyncExcludeImportsTitle.
   ///
   /// In en, this message translates to:
-  /// **'Your store has used all the space the sync server allows.'**
+  /// **'The sync server can\'t store more right now.'**
   String get settingsSyncFailureStoreFull;
 
-  /// What the user can do about settingsSyncFailureStoreFull, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions ("above", "below").
+  /// What the user can do about settingsSyncFailureStoreFull, shown right after it. It covers both a per-store quota and a server that is low on disk space. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions ("above", "below").
   ///
   /// In en, this message translates to:
-  /// **'Changes from this device can\'t be stored until there is room. Turning on Skip unused imported dances cuts what this device uploads. If you run your own server, raise its storage limit.'**
+  /// **'Changes from this device can\'t be stored until there is room. Turning on Skip unused imported dances can cut what this device uploads. If you run your own server, raise its storage limit or free up disk space.'**
   String get settingsSyncFailureStoreFullAdvice;
 
   /// Device Sync failure reason, one sentence, shown under "Last sync failed." on the status surface and in pairing, device-list and toolbar errors. Used when the server answered 413 Payload Too Large. 'Skip unused imported dances' is the exact title of the setting settingsSyncExcludeImportsTitle.
