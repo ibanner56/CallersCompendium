@@ -926,7 +926,7 @@
   },
   "settingsSyncFailureStoreFull": "The sync server can't store more right now.",
   "@settingsSyncFailureStoreFull": {
-    "description": "Device Sync failure reason, one sentence, shown under \"Last sync failed.\" on the status surface and in pairing, device-list and toolbar errors. Used when the server answered 507, which means either this store is over its quota or the whole server is low on storage; the app can't tell which, so the sentence must be true of both and must not blame the user's store. Must not suggest deleting the store (spec §5.3 forbids offering a wipe as the first response to a 507). 'Skip unused imported dances' is the exact title of the setting settingsSyncExcludeImportsTitle."
+    "description": "Device Sync failure reason, one sentence, shown under \"Last sync failed.\" on the status surface and in pairing, device-list and toolbar errors. Used when the server answered 507, which can mean this store is over its quota or, on newer servers, that the whole server is low on storage; the app can't tell which, so the sentence must be true of both and must not blame the user's store. Must not suggest deleting the store (spec §5.3 forbids offering a wipe as the first response to a 507). 'Skip unused imported dances' is the exact title of the setting settingsSyncExcludeImportsTitle."
   },
   "settingsSyncFailureStoreFullAdvice": "Changes from this device can't be stored until there is room. Turning on Skip unused imported dances can cut what this device uploads. If you run your own server, raise its storage limit or free up disk space.",
   "@settingsSyncFailureStoreFullAdvice": {

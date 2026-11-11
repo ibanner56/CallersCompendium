@@ -3159,7 +3159,7 @@ buys nothing and creates one more way for a conforming client to be turned away.
 | `415` | Unsupported `Content-Type` (optional; see below). |
 | `422` | **Payload rejected by the allow-list** — a key not classified `shareable` for that kind was present. |
 | `429` | Rate limited. `Retry-After` set. |
-| `507` | Store quota exhausted. |
+| `507` | Store quota exhausted. A server may also answer it when the whole server is low on storage; the client cannot tell which and shows one neutral message either way. |
 
 There is deliberately **no distinct "expired" status.** An earlier draft had a
 `410` for it. The decisive objection is unchanged: for the server to tell

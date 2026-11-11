@@ -1130,7 +1130,7 @@ abstract class AppLocalizations {
   /// **'It has had too many requests in a short time. Wait a few minutes before trying again.'**
   String get settingsSyncFailureRateLimitedAdvice;
 
-  /// Device Sync failure reason, one sentence, shown under "Last sync failed." on the status surface and in pairing, device-list and toolbar errors. Used when the server answered 507, which means either this store is over its quota or the whole server is low on storage; the app can't tell which, so the sentence must be true of both and must not blame the user's store. Must not suggest deleting the store (spec §5.3 forbids offering a wipe as the first response to a 507). 'Skip unused imported dances' is the exact title of the setting settingsSyncExcludeImportsTitle.
+  /// Device Sync failure reason, one sentence, shown under "Last sync failed." on the status surface and in pairing, device-list and toolbar errors. Used when the server answered 507, which can mean this store is over its quota or, on newer servers, that the whole server is low on storage; the app can't tell which, so the sentence must be true of both and must not blame the user's store. Must not suggest deleting the store (spec §5.3 forbids offering a wipe as the first response to a 507). 'Skip unused imported dances' is the exact title of the setting settingsSyncExcludeImportsTitle.
   ///
   /// In en, this message translates to:
   /// **'The sync server can\'t store more right now.'**

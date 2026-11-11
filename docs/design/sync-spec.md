@@ -2284,7 +2284,7 @@ malformed hash, and one that serves only the batch read answers `405`.
 | `415` | Body media type is not the one the endpoint expects (optional; see §5.1). |
 | `422` | Payload rejected by the allow-list. In a `PUT /v1/blobs/batch` this and every other refusal of one blob is a result inside a `200` (§5.2). |
 | `429` | Rate limited. `Retry-After` set. |
-| `507` | Store quota exhausted. |
+| `507` | Store quota exhausted. A server may also answer it when the whole server is low on storage; the client cannot tell which and shows one neutral message either way. |
 
 **Deleting a manifest is idempotent, and deleting a store is not.** `DELETE
 /v1/manifests/{deviceId}` MUST return `204` whether or not a manifest existed
