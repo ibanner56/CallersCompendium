@@ -216,7 +216,7 @@ remoteip_headers=$(
     [ -r "$file" ] || continue
     awk '
       /^[[:space:]]*#/ { next }
-      tolower($1) == "remoteipheader" && NF >= 2 { gsub(/"/, "", $2); print $2 }
+      tolower($1) == "remoteipheader" && NF >= 2 { gsub(/["\047]/, "", $2); print $2 }
     ' "$file"
   done | sort -u
 )
