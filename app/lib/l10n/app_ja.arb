@@ -720,9 +720,9 @@
   "@settingsSyncQuotaExcludeImports": {
     "x-sourceSha256": "13a7925e9cdd2fc7f1329229f1ad3416bdd1f24f9edba254e9c3bd209e576ccb"
   },
-  "settingsSyncNoticeNewerVersionItems": "別のデバイスで新しいバージョンのアプリが使われています。{items}を受け取るには、このデバイスのアプリを更新してください。",
+  "settingsSyncNoticeNewerVersionItems": "別のデバイスで新しいバージョンのアプリが使われています。{items}を受け取るには、このデバイスのアプリを更新してください。更新する前にここでそれらを編集すると、別のデバイスでの変更は失われます。",
   "@settingsSyncNoticeNewerVersionItems": {
-    "x-sourceSha256": "c061cd9ea119307dd18d17b41b95b3b27ccb4d893770063dd44683589422d5bb"
+    "x-sourceSha256": "6487478b31abf6e877da1b4fc54eb0c2a35dba760e7126422f7b69a8c9c73ec5"
   },
   "settingsSyncNoticeCountDance": "{count, plural, other{ダンス{count}件}}",
   "@settingsSyncNoticeCountDance": {
@@ -768,9 +768,9 @@
   "@settingsSyncNoticeCountFigureNote": {
     "x-sourceSha256": "d8a9a1a4ceb2c8d27210fecff6147fdceaceb98a415748dabd9f42851eb3176a"
   },
-  "settingsSyncNoticeNewerVersionUncounted": "別のデバイスで新しいバージョンのアプリが使われています。その変更を受け取るには、このデバイスのアプリを更新してください。",
+  "settingsSyncNoticeNewerVersionUncounted": "別のデバイスで新しいバージョンのアプリが使われています。その変更を受け取るには、このデバイスのアプリを更新してください。更新する前に、そのデバイスが変更したものをここで編集すると、その変更は失われます。",
   "@settingsSyncNoticeNewerVersionUncounted": {
-    "x-sourceSha256": "ca371c7f36b6a2ca97e5fb9d8cd18cc2909af04e2973dec1a999d4e7a50fb339"
+    "x-sourceSha256": "fa65b153ac7798e6462614f9080dd6a41936a438502cfa54edc2cf3a4361d477"
   },
   "settingsSyncNoticeKeptNewerItems": "新しいバージョンのアプリのために保持しています：{items}。このバージョンでは表示できない詳細を含めたまま、引き続き同期されます。表示するには、このデバイスのアプリを更新してください。",
   "@settingsSyncNoticeKeptNewerItems": {
@@ -1316,9 +1316,9 @@
   "@settingsSyncWipeConfirmTitle": {
     "x-sourceSha256": "77701b6008c7d87383a3c1c7c4316c52219e81baddc39c3438c1879315408645"
   },
-  "settingsSyncWipeConfirmBody": "ストアの内容がサーバーからすべて削除され、すべてのデバイスに一度に影響します。この操作は取り消せません。ライブラリはこのデバイスにも他のデバイスにもそのまま残りますが、同期を通じて他のデバイスにしか届いていなかったものは、ここには届きません。このデバイスは接続を解除し、同期フレーズを削除します。他のデバイスは次回の同期でストアがなくなっていることに気づき、新しく作成するかどうかを尋ねます。同期フレーズが他人に見られた場合はこれを使ってください。相手が読める内容をただちに取り除ける唯一の方法です。",
+  "settingsSyncWipeConfirmBody": "ストアの内容がサーバーからすべて削除され、すべてのデバイスに一度に影響します。この操作は取り消せません。ライブラリはこのデバイスにも他のデバイスにもそのまま残りますが、同期を通じて他のデバイスにしか届いていなかったものは、ここには届きません。このデバイスは接続を解除し、同期フレーズを削除します。他のデバイスは次回の同期でストアがなくなっていることに気づき、新しいフレーズの設定を提案します。このストアのアドレスを使うのをやめたいときに使ってください。ストアの内容をただちに取り除ける唯一の方法です。同期を続けるには、各デバイスで新しいフレーズを設定してください。古いフレーズで再接続すると、同じアドレスに新しいストアが再び作られます。",
   "@settingsSyncWipeConfirmBody": {
-    "x-sourceSha256": "4d32b4cd7be210b3280e49bc954adf9a14e397ffe46431644f05b822ad637f89"
+    "x-sourceSha256": "921009f64e9ea349743941accd380cb8adfcc095e26e0ac5f57e2cf615e84e55"
   },
   "settingsSyncWipeConfirmAction": "ストアを削除",
   "@settingsSyncWipeConfirmAction": {
@@ -1528,17 +1528,21 @@
   "@settingsSyncPairingCompletePending": {
     "x-sourceSha256": "daa70b1721d468f073882e6c3bdc9f5a406d491f004bb1191ed459c2e5c8a0f3"
   },
-  "settingsSyncReplacementTitle": "このストアに再接続しますか?",
+  "settingsSyncReplacementTitle": "このストアはもう存在しません",
   "@settingsSyncReplacementTitle": {
-    "x-sourceSha256": "f89fdb596df9ab804d25c9d81cdcb95707abeeb722b1a682329b6dae9434e3a0"
+    "x-sourceSha256": "d4368e41c5a2c1c88b4400914724b42f0a2525e5fa4eba0cd12c23b5d79eb115"
   },
-  "settingsSyncReplacementBody": "このデバイスが同期していたストアはもう存在しません。非アクティブにより期限切れになったか、削除された可能性があります。再接続すると、同じフレーズで新しいストアが作成され、最初から再同期します。",
+  "settingsSyncReplacementBody": "このデバイスが同期していたストアはもう存在しません。非アクティブにより期限切れになったか、削除された可能性があります。このストアのアドレスを使うのをやめるには、新しいフレーズを設定してください。このデバイスは接続を解除し、その後、新しいストアを作成するか、別のデバイスで設定したストアに接続します。これをすべてのデバイスで行ってください。「再接続」を選ぶと、同じアドレスに同じフレーズで新しいストアが作成され、ライブラリ全体がそこへ送られます。別のデバイスがすでにそうしている場合は、このデバイスはそのストアに参加します。",
   "@settingsSyncReplacementBody": {
-    "x-sourceSha256": "07cb10775fa00e7289a2eb07b808633107fa1dac86c31f3cf54d9470f32a8806"
+    "x-sourceSha256": "685cd71b9351ac070e3487f7b6028bd883be772f091e542d10b093db3cc3fbcd"
   },
   "settingsSyncReplacementConfirm": "再接続",
   "@settingsSyncReplacementConfirm": {
     "x-sourceSha256": "bf8a9eab9e7e141bfb81f0ca9244a5f68f476ed0b57f03538410417298169d18"
+  },
+  "settingsSyncReplacementNewPhrase": "新しいフレーズで設定",
+  "@settingsSyncReplacementNewPhrase": {
+    "x-sourceSha256": "851c453dd3a4f21a28d18633c1915a39aaf0fe34fdc559d1a12df86fe0bc9aa2"
   },
   "settingsSyncReplacementCancel": "今はしない",
   "@settingsSyncReplacementCancel": {

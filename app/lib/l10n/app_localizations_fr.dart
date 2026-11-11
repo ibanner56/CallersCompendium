@@ -779,7 +779,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String settingsSyncNoticeNewerVersionItems(String items) {
-    return 'Un autre appareil utilise une version plus récente de l’application. Mettez à jour l’application sur cet appareil pour recevoir $items.';
+    return 'Un autre appareil utilise une version plus récente de l’application. Mettez à jour l’application sur cet appareil pour recevoir $items. Si vous les modifiez ici avant la mise à jour, les modifications de l’autre appareil sur ces éléments sont perdues.';
   }
 
   @override
@@ -905,7 +905,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsSyncNoticeNewerVersionUncounted =>
-      'Un autre appareil utilise une version plus récente de l’application. Mettez à jour l’application sur cet appareil pour recevoir ses modifications.';
+      'Un autre appareil utilise une version plus récente de l’application. Mettez à jour l’application sur cet appareil pour recevoir ses modifications. Si vous modifiez ici, avant la mise à jour, un élément qu’il a modifié, ses modifications sont perdues.';
 
   @override
   String settingsSyncNoticeKeptNewerItems(String items) {
@@ -1549,7 +1549,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsSyncWipeConfirmBody =>
-      'Tout ce que contient l\'espace est supprimé du serveur, pour tous les appareils à la fois, et cette action est irréversible. Votre bibliothèque reste sur cet appareil et sur chacun de vos autres appareils — mais tout ce qui n\'était parvenu à un autre appareil que par la synchronisation n\'arrivera pas ici. Cet appareil se déconnecte et oublie sa phrase de synchronisation ; vos autres appareils constateront la disparition de l\'espace à leur prochaine synchronisation et demanderont s\'il faut en créer un nouveau. Utilisez cette option si quelqu\'un d\'autre a vu votre phrase de synchronisation : c\'est la seule chose qui supprime immédiatement ce qu\'il peut lire.';
+      'Tout ce que contient l\'espace est supprimé du serveur, pour tous les appareils à la fois, et cette action est irréversible. Votre bibliothèque reste sur cet appareil et sur chacun de vos autres appareils — mais tout ce qui n\'était parvenu à un autre appareil que par la synchronisation n\'arrivera pas ici. Cet appareil se déconnecte et oublie sa phrase de synchronisation ; vos autres appareils constateront la disparition de l\'espace à leur prochaine synchronisation et proposeront de configurer une nouvelle phrase. Utilisez cette option si vous voulez cesser d\'utiliser l\'adresse de cet espace : c\'est la seule chose qui supprime immédiatement ce que contient l\'espace. Pour continuer à synchroniser, configurez une nouvelle phrase sur chaque appareil — se reconnecter avec l\'ancienne recrée un espace à la même adresse.';
 
   @override
   String get settingsSyncWipeConfirmAction => 'Supprimer l\'espace';
@@ -1748,14 +1748,18 @@ class AppLocalizationsFr extends AppLocalizations {
       'Votre bibliothèque est connectée. La première synchronisation n\'a pas encore eu lieu ; elle se fera à la prochaine synchronisation de cet appareil.';
 
   @override
-  String get settingsSyncReplacementTitle => 'Reconnecter cet espace ?';
+  String get settingsSyncReplacementTitle => 'Cet espace n\'existe plus';
 
   @override
   String get settingsSyncReplacementBody =>
-      'L\'espace avec lequel cet appareil se synchronisait n\'existe plus. Il a peut-être expiré par inactivité, ou il a peut-être été supprimé. Se reconnecter crée un nouvel espace avec la même phrase et resynchronise depuis le début.';
+      'L\'espace avec lequel cet appareil se synchronisait n\'existe plus. Il a peut-être expiré par inactivité, ou il a peut-être été supprimé. Pour cesser d\'utiliser l\'adresse de cet espace, configurez une nouvelle phrase : cet appareil se déconnecte, puis vous créez un nouvel espace ou vous vous connectez à un espace configuré sur un autre appareil. Faites-le sur chacun de vos appareils. « Se reconnecter » crée au contraire un nouvel espace à la même adresse, avec la même phrase, et y envoie toute votre bibliothèque ; si un autre appareil l\'a déjà fait, cet appareil rejoint cet espace.';
 
   @override
   String get settingsSyncReplacementConfirm => 'Se reconnecter';
+
+  @override
+  String get settingsSyncReplacementNewPhrase =>
+      'Configurer avec une nouvelle phrase';
 
   @override
   String get settingsSyncReplacementCancel => 'Pas maintenant';

@@ -728,7 +728,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String settingsSyncNoticeNewerVersionItems(String items) {
-    return '別のデバイスで新しいバージョンのアプリが使われています。$itemsを受け取るには、このデバイスのアプリを更新してください。';
+    return '別のデバイスで新しいバージョンのアプリが使われています。$itemsを受け取るには、このデバイスのアプリを更新してください。更新する前にここでそれらを編集すると、別のデバイスでの変更は失われます。';
   }
 
   @override
@@ -843,7 +843,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsSyncNoticeNewerVersionUncounted =>
-      '別のデバイスで新しいバージョンのアプリが使われています。その変更を受け取るには、このデバイスのアプリを更新してください。';
+      '別のデバイスで新しいバージョンのアプリが使われています。その変更を受け取るには、このデバイスのアプリを更新してください。更新する前に、そのデバイスが変更したものをここで編集すると、その変更は失われます。';
 
   @override
   String settingsSyncNoticeKeptNewerItems(String items) {
@@ -1450,7 +1450,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsSyncWipeConfirmBody =>
-      'ストアの内容がサーバーからすべて削除され、すべてのデバイスに一度に影響します。この操作は取り消せません。ライブラリはこのデバイスにも他のデバイスにもそのまま残りますが、同期を通じて他のデバイスにしか届いていなかったものは、ここには届きません。このデバイスは接続を解除し、同期フレーズを削除します。他のデバイスは次回の同期でストアがなくなっていることに気づき、新しく作成するかどうかを尋ねます。同期フレーズが他人に見られた場合はこれを使ってください。相手が読める内容をただちに取り除ける唯一の方法です。';
+      'ストアの内容がサーバーからすべて削除され、すべてのデバイスに一度に影響します。この操作は取り消せません。ライブラリはこのデバイスにも他のデバイスにもそのまま残りますが、同期を通じて他のデバイスにしか届いていなかったものは、ここには届きません。このデバイスは接続を解除し、同期フレーズを削除します。他のデバイスは次回の同期でストアがなくなっていることに気づき、新しいフレーズの設定を提案します。このストアのアドレスを使うのをやめたいときに使ってください。ストアの内容をただちに取り除ける唯一の方法です。同期を続けるには、各デバイスで新しいフレーズを設定してください。古いフレーズで再接続すると、同じアドレスに新しいストアが再び作られます。';
 
   @override
   String get settingsSyncWipeConfirmAction => 'ストアを削除';
@@ -1637,14 +1637,17 @@ class AppLocalizationsJa extends AppLocalizations {
       'ライブラリが接続されました。最初の同期はまだ実行されていません。このデバイスが次に同期するときに実行されます。';
 
   @override
-  String get settingsSyncReplacementTitle => 'このストアに再接続しますか?';
+  String get settingsSyncReplacementTitle => 'このストアはもう存在しません';
 
   @override
   String get settingsSyncReplacementBody =>
-      'このデバイスが同期していたストアはもう存在しません。非アクティブにより期限切れになったか、削除された可能性があります。再接続すると、同じフレーズで新しいストアが作成され、最初から再同期します。';
+      'このデバイスが同期していたストアはもう存在しません。非アクティブにより期限切れになったか、削除された可能性があります。このストアのアドレスを使うのをやめるには、新しいフレーズを設定してください。このデバイスは接続を解除し、その後、新しいストアを作成するか、別のデバイスで設定したストアに接続します。これをすべてのデバイスで行ってください。「再接続」を選ぶと、同じアドレスに同じフレーズで新しいストアが作成され、ライブラリ全体がそこへ送られます。別のデバイスがすでにそうしている場合は、このデバイスはそのストアに参加します。';
 
   @override
   String get settingsSyncReplacementConfirm => '再接続';
+
+  @override
+  String get settingsSyncReplacementNewPhrase => '新しいフレーズで設定';
 
   @override
   String get settingsSyncReplacementCancel => '今はしない';

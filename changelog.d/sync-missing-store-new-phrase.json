@@ -1,0 +1,13 @@
+{
+  "id": "sync-missing-store-new-phrase",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "When a Device Sync store is no longer there, the main choice is now Set up with a new phrase, which disconnects this device and opens Connect. Reconnect, which creates a new store at the same address, is the second choice. Deleting the store now explains that, to keep syncing somewhere else, you set up a new phrase on each device.",
+      "The notice that another device uses a newer version of the app now warns that editing those records here before you update discards that device's changes to them."
+    ],
+    "fixed": [
+      "After a successful Reconnect for a Device Sync store that was no longer there, the question no longer comes straight back. Answering it again could create the store twice, or pause sync that had just started working again."
+    ]
+  }
+}
