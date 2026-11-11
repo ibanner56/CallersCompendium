@@ -1,0 +1,11 @@
+{
+  "id": "upgrade-snapshot-followups",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "If a one-time repair of your saved data keeps failing, the app now keeps the recovery snapshot it took before the first attempt, instead of eventually replacing it with later copies, until the repair succeeds.",
+      "The app no longer saves a recovery snapshot that is missing your most recent changes when another program has the database open. It asks you what to do instead, as it does when a snapshot can't be saved.",
+      "The message shown when the app can't save a recovery snapshot no longer says your data is being upgraded to a new format when it is only being repaired."
+    ]
+  }
+}

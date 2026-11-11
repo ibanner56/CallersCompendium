@@ -1066,16 +1066,44 @@ by opening drift — and compares it to the running `kCompendiumSchemaVersion`:
   and `promoteRetainedSyncFields`, whose debt cannot be told from its rows
   without decoding them.
 
-  Known limit: a repair that keeps failing meets the same debt on every launch
-  and Retry, and snapshots each time. Sweeps commit separately (the derived
-  rebuild in chunks), so after the retention count of failed attempts the copy
-  from before the first attempt can be pruned, leaving only copies taken after
-  some sweeps had committed. This build does not start while a sweep fails, so
-  what is lost is the clean pre-repair state rather than later edits.
+  **The first copy of a repair debt is pinned.** A repair that keeps failing
+  meets the same debt on every launch and Retry, and snapshots each time.
+  Sweeps commit separately (the derived rebuild in chunks), so with plain
+  retention the copy from before the first attempt would be pruned after five
+  more failed attempts, leaving only copies taken after some sweeps had
+  committed. So the first snapshot taken while any repair is owed — on a
+  repair-only launch or a schema bump — is written as
+  `compendium.pre-v<from>-<UTC-timestamp>.pinned.sqlite.bak`, which pruning
+  skips: at most one pinned copy beside the newest 5 ordinary ones, and a later
+  attempt never pins another while one exists. The pin is released by the
+  first launch at the running version that owes no repair: the pinned copy is
+  renamed into the ordinary rotation (where, being the oldest, it is the first
+  pruned) and the rotation is pruned to 5. A schema bump that owes no repair
+  neither pins nor releases, so its retention is unchanged. The pin lives only
+  in the file name: no setting or column records it, so there is nothing to
+  classify or to keep out of backups. Relocation moves a pinned copy with the
+  other snapshots.
+
+  **The copy is refused rather than taken incomplete.** The checkpoint pragma
+  does not throw when another connection is in the way: a reader whose read
+  transaction began before the newest commits stops it short of them, and it
+  says so only in its result row (`busy` = 1). A byte copy of the main file
+  would then silently lack those commits. So the preflight reads that row,
+  retries a few times over about half a second, and treats a WAL still busy as
+  a snapshot failure (below), never copying. Copying the `-wal` beside the main
+  file instead was rejected: the two files are not copied atomically, the
+  restore steps would have to carry both, and a writer could append between
+  the two reads. No holder inside the app has been found: on launch the
+  preflight runs before the app's drift connection opens and before sync
+  starts; Retry closes the app's connection and disposes the sync coordinator
+  first, which waits for any running pass, and a pass closes its isolate's own
+  connection when it ends; and a second desktop instance hands off and exits
+  before reaching the preflight. So the holder would be another process, such
+  as a SQLite browser left open on the file.
 
   **If the snapshot fails, the preflight fails closed** (issue #442). A backup
-  that cannot be written (disk full, unwritable `db_backups`, checkpoint
-  failure) previously logged and migrated anyway; it now instead surfaces a
+  that cannot be written (disk full, unwritable `db_backups`, a checkpoint
+  that fails or stays busy) previously logged and migrated anyway; it now instead surfaces a
   blocking consent dialog that explains the data-loss risk and names the likely
   cause (low storage / unwritable backups folder). The user chooses **Quit**
   (the default — abort so they can free space, fix permissions, or take a manual

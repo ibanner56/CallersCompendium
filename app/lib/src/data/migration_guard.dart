@@ -17,10 +17,17 @@ import 'single_instance_guard.dart'
 const String kDatabaseBackupsDirName = 'db_backups';
 
 /// How many pre-migration snapshots to retain by default (oldest are pruned).
+/// A copy pinned for an outstanding repair debt is kept beside these, outside
+/// the count; see [runMigrationPreflight].
 const int kDefaultSnapshotRetention = 5;
 
 const String _snapshotPrefix = 'compendium.pre-v';
 const String _snapshotSuffix = '.sqlite.bak';
+
+/// Marks a pinned snapshot (`compendium.pre-v<from>-<ts>.pinned.sqlite.bak`):
+/// the first copy taken for a one-time repair debt, kept outside the retention
+/// count until the debt clears. See [runMigrationPreflight].
+const String _pinnedSuffix = '.pinned$_snapshotSuffix';
 
 /// Thrown by [runMigrationPreflight] when the on-disk database was written by a
 /// build *older* than the minimum supported schema version floor
@@ -230,8 +237,9 @@ class MigrationSnapshotAborted implements Exception {
 /// 3. **Backup-before-migrate** — if an upgrade is pending (file version <
 ///    running), **or** a one-time repair this build knows is still owed (see
 ///    [repairMarkers]), snapshot the file into [snapshotDir] first (retaining
-///    the newest [retain]), so a botched migration or repair is recoverable.
-///    This step is
+///    the newest [retain], plus at most one pinned copy), so a botched migration or repair is recoverable.
+///    The first snapshot taken while a repair is owed is **pinned** (see
+///    below). This step is
 ///    **fail-CLOSED**: if the snapshot cannot be written, the migration is
 ///    *not* allowed to silently proceed. Instead the failure is classified into
 ///    a [SnapshotFailure] and handed to [onSnapshotFailure], which returns the
@@ -253,6 +261,19 @@ class MigrationSnapshotAborted implements Exception {
 /// when any marker is absent, tombstoned or stale. A fully repaired file reads
 /// every marker as done and does not snapshot. Pass an empty map only where no
 /// repair can follow the preflight.
+///
+/// **Pinning.** A repair that keeps failing meets the same debt on every launch
+/// and Retry and snapshots each time, while its sweeps commit separately; with
+/// plain retention, the copy from before the first attempt would be pruned
+/// after [retain] more attempts, leaving only copies taken after some sweeps
+/// had committed. So when a repair is owed (on either path) and [snapshotDir]
+/// holds no pinned copy, the snapshot is taken as a pinned copy, which pruning
+/// skips: at most one pinned copy, plus [retain] ordinary ones. The pin is
+/// released when a launch at the running version owes no repair: the pinned
+/// copy is renamed into the ordinary rotation (the oldest there, so the first
+/// pruned) and the rotation is pruned to [retain]. A schema-bump launch that
+/// owes no repair neither pins nor releases. The pin lives only in the file
+/// name; nothing is persisted in the database.
 ///
 /// This reads the file with a short-lived `package:sqlite3` connection (which
 /// is WAL-aware, unlike reading the header bytes directly) and never opens the
@@ -279,6 +300,7 @@ Future<void> runMigrationPreflight({
     );
   }
 
+  final List<String> owed;
   if (fileVersion < runningSchemaVersion) {
     // Below-floor check: if the file version is retired (below the supported
     // floor), migration steps no longer exist for it. Throw
@@ -291,11 +313,18 @@ Future<void> runMigrationPreflight({
         bridgeTag: bridgeTagFor(fileVersion),
       );
     }
+    // Read only to decide whether this snapshot is pinned; a schema bump
+    // snapshots either way.
+    owed = _owedRepairs(dbFile.path, repairMarkers);
   } else {
-    final owed = _owedRepairs(dbFile.path, repairMarkers);
+    owed = _owedRepairs(dbFile.path, repairMarkers);
     // At the running version with every repair done: nothing will rewrite the
-    // file, so no snapshot — this is the path of every ordinary launch.
-    if (owed.isEmpty) return;
+    // file, so no snapshot — this is the path of every ordinary launch. Any
+    // repair debt has cleared, so a copy pinned for it is released.
+    if (owed.isEmpty) {
+      await _releasePinnedSnapshot(snapshotDir, retain);
+      return;
+    }
   }
 
   // Symmetric with the downgrade guard above: both are fail-CLOSED. The
@@ -312,6 +341,9 @@ Future<void> runMigrationPreflight({
       fromVersion: fileVersion,
       retain: retain,
       timestamp: now(),
+      // Only the first copy of a debt: a later attempt's copy has some sweeps
+      // committed and joins the ordinary rotation.
+      pin: owed.isNotEmpty && !await _hasPinnedSnapshot(snapshotDir),
     );
   } on Object catch (error) {
     // diagnostics: silent — pre-migration snapshot failed; returns SnapshotFailure to caller (bootstrap infrastructure, not UI).
@@ -1084,26 +1116,37 @@ int readUserVersion(String path) {
 /// directory to the newest [retain] snapshots. Returns the snapshot file.
 ///
 /// The WAL is folded into the main file first (`wal_checkpoint(TRUNCATE)`) so
-/// the byte copy is a complete, self-contained database.
+/// the byte copy is a complete, self-contained database. If another connection
+/// keeps the checkpoint from finishing, this throws a [FileSystemException]
+/// rather than copy a main file that lacks the WAL's commits (see
+/// [_checkpoint]); [runMigrationPreflight] hands that to the user as any other
+/// snapshot failure.
+///
+/// With [pin], the copy is named as a pinned snapshot, which pruning skips; the
+/// caller decides when to pin and [runMigrationPreflight] releases it.
 Future<File> snapshotBeforeMigrate({
   required File dbFile,
   required Directory snapshotDir,
   required int fromVersion,
   required DateTime timestamp,
   int retain = kDefaultSnapshotRetention,
+  bool pin = false,
 }) async {
   await snapshotDir.create(recursive: true);
-  _checkpoint(dbFile.path);
+  await _checkpoint(dbFile.path);
 
   // Disambiguate collisions: microsecond timestamps make same-name snapshots
   // vanishingly unlikely, but a retry loop *could* still land in the same
   // microsecond, so fall back to an incrementing suffix rather than silently
   // overwriting a previous backup.
   final base = '$_snapshotPrefix$fromVersion-${_formatTimestamp(timestamp)}';
-  var dest = File(p.join(snapshotDir.path, '$base$_snapshotSuffix'));
+  final suffix = pin ? _pinnedSuffix : _snapshotSuffix;
+  var dest = File(p.join(snapshotDir.path, '$base$suffix'));
   var collision = 1;
-  while (await dest.exists()) {
-    dest = File(p.join(snapshotDir.path, '$base-$collision$_snapshotSuffix'));
+  // A pinned and an ordinary copy of the same instant never share a name, but
+  // checking both keeps a later release's rename from colliding.
+  while (await dest.exists() || await _unpinnedName(dest).exists()) {
+    dest = File(p.join(snapshotDir.path, '$base-$collision$suffix'));
     collision++;
   }
   await dbFile.copy(dest.path);
@@ -1114,12 +1157,38 @@ Future<File> snapshotBeforeMigrate({
 
 DateTime _utcNow() => DateTime.now().toUtc();
 
+/// How many times [_checkpoint] tries before giving up on a busy WAL.
+const int _checkpointAttempts = 5;
+
+/// The pause between [_checkpoint]'s attempts.
+const Duration _checkpointRetryDelay = Duration(milliseconds: 100);
+
 /// Checkpoints (and truncates) the WAL so all committed data lives in the main
 /// database file, making a plain file copy a complete snapshot.
-void _checkpoint(String path) {
+///
+/// The pragma does not throw when another connection is in the way: a reader
+/// whose read transaction began before the newest commits stops the checkpoint
+/// short of them, and the pragma reports that only in its result row (`busy`
+/// is 1). Copying the main file then would miss those commits without any
+/// error. So the row is read, the checkpoint is retried briefly (yielding
+/// between attempts, so the loading screen keeps painting), and a WAL still
+/// busy after that throws, so the caller fails closed instead.
+///
+/// A database not in WAL mode reports `busy` 0 and has nothing to fold in.
+Future<void> _checkpoint(String path) async {
   final db = sql.sqlite3.open(path);
   try {
-    db.execute('PRAGMA wal_checkpoint(TRUNCATE)');
+    for (var attempt = 1; ; attempt++) {
+      final row = db.select('PRAGMA wal_checkpoint(TRUNCATE)').first;
+      if (row.values.first == 0) return;
+      if (attempt == _checkpointAttempts) {
+        throw FileSystemException(
+          'WAL checkpoint is blocked (database busy)',
+          path,
+        );
+      }
+      await Future<void>.delayed(_checkpointRetryDelay);
+    }
   } finally {
     db.close();
   }
@@ -1250,10 +1319,73 @@ String _formatTimestamp(DateTime t) {
       '${three(u.millisecond)}${three(u.microsecond)}Z';
 }
 
+/// Any automatic snapshot, pinned or not: what relocation moves.
 bool _isSnapshot(String basename) =>
     basename.startsWith(_snapshotPrefix) && basename.endsWith(_snapshotSuffix);
 
-/// Deletes the oldest snapshots so at most [retain] remain. Ordering is by
+bool _isPinned(String basename) =>
+    _isSnapshot(basename) && basename.endsWith(_pinnedSuffix);
+
+/// [file] with its pinned marker removed (itself when not pinned).
+File _unpinnedName(File file) {
+  final name = p.basename(file.path);
+  if (!name.endsWith(_pinnedSuffix)) return file;
+  return File(
+    p.join(
+      file.parent.path,
+      '${name.substring(0, name.length - _pinnedSuffix.length)}'
+      '$_snapshotSuffix',
+    ),
+  );
+}
+
+List<File> _pinnedSnapshots(Directory dir) => [
+  if (dir.existsSync())
+    for (final entry in dir.listSync(followLinks: false))
+      if (entry is File && _isPinned(p.basename(entry.path))) entry,
+];
+
+/// Whether [dir] already holds a pinned snapshot. A directory that cannot be
+/// listed reads as holding none: at worst one extra copy is pinned, and the
+/// snapshot's own write will fail on the same directory anyway.
+Future<bool> _hasPinnedSnapshot(Directory dir) async {
+  try {
+    return _pinnedSnapshots(dir).isNotEmpty;
+  } on FileSystemException {
+    // diagnostics: silent — an unlistable folder fails the snapshot itself next.
+    return false;
+  }
+}
+
+/// Moves every pinned snapshot in [dir] into the ordinary rotation and prunes
+/// it to [retain]. Best effort: this runs on every ordinary launch, which must
+/// not fail over a backup folder, and a pin that stays only keeps one copy.
+Future<void> _releasePinnedSnapshot(Directory dir, int retain) async {
+  try {
+    final pinned = _pinnedSnapshots(dir);
+    if (pinned.isEmpty) return;
+    for (final file in pinned) {
+      // [snapshotBeforeMigrate] never pins a name whose unpinned form exists,
+      // but a copy placed by hand could still collide: never overwrite it.
+      final released = _unpinnedName(file);
+      final stem = released.path.substring(
+        0,
+        released.path.length - _snapshotSuffix.length,
+      );
+      var dest = released;
+      for (var n = 1; dest.existsSync(); n++) {
+        dest = File('$stem-released$n$_snapshotSuffix');
+      }
+      await file.rename(dest.path);
+    }
+    await _pruneSnapshots(dir, retain);
+  } on FileSystemException {
+    // diagnostics: silent — best effort; the pin is retried on the next launch.
+  }
+}
+
+/// Deletes the oldest snapshots so at most [retain] remain, leaving a pinned
+/// snapshot alone (it is outside the count). Ordering is by
 /// modified time, with the (lexicographically sortable, timestamped) filename
 /// as a deterministic tie-breaker so coarse-resolution filesystems that give
 /// several snapshots the same mtime never prune out of order.
@@ -1261,7 +1393,8 @@ Future<void> _pruneSnapshots(Directory dir, int retain) async {
   if (retain < 0) return;
   final snapshots = <(File, DateTime)>[];
   await for (final entry in dir.list()) {
-    if (entry is File && _isSnapshot(p.basename(entry.path))) {
+    final name = p.basename(entry.path);
+    if (entry is File && _isSnapshot(name) && !_isPinned(name)) {
       snapshots.add((entry, (await entry.stat()).modified));
     }
   }
