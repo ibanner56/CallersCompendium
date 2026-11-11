@@ -89,6 +89,26 @@ class FigureParamEditor extends StatelessWidget {
         return _dropdown(context, spec.choices ?? ParamVocab.directions);
       case ParamKind.choice:
         return _dropdown(context, spec.choices ?? const []);
+      case ParamKind.rotation when paramKey == fractionAmountParam:
+        // The amount an `other` fraction states (#2120). Shown only while the
+        // fraction is `other`, and picking `other` seeds it, so an `other`
+        // with none is a row from before taxonomy v39: it asks for an amount,
+        // in the error colour, and nothing is filled in until the caller
+        // steps one. It starts past `full` and offers no Clear: an amount a
+        // named fraction states is that fraction, and `other` always states
+        // one.
+        final amount = isFractionAmount(value) ? value! as num : null;
+        return _RotationStepper(
+          fieldKey: _key,
+          label: figureParamKeyLabel(l10n, paramKey, moveId: moveId),
+          value: amount,
+          min: _fractionAmountMin,
+          firstStep: kFractionOtherSeedAmount.toDouble(),
+          needsChoice: amount == null,
+          formatValue: (n) =>
+              l10n.danceEditorFractionAmountValue(_RotationStepper._format(n)),
+          onChanged: onChanged,
+        );
       case ParamKind.rotation:
         // A rotation spec may opt into the `unspecified` sentinel by listing it
         // in `choices` (taxonomy v22's `gate.turn`: ContraDB's gate states no
@@ -272,7 +292,12 @@ class FigureParamEditor extends StatelessWidget {
           for (final choice in selectable)
             DropdownMenuItem(
               value: choice,
-              child: Text(figureParamChoiceLabel(l10n, spec, dialect, choice)),
+              child: Text(
+                // Picking `other` reveals the amount stepper (#2120).
+                spec.kind == ParamKind.fraction && choice == 'other'
+                    ? l10n.figureParamFractionOtherPick
+                    : figureParamChoiceLabel(l10n, spec, dialect, choice),
+              ),
             ),
         ],
         onChanged: (v) {
@@ -313,6 +338,10 @@ class FigureParamEditor extends StatelessWidget {
   }
 }
 
+/// The smallest amount the fraction amount stepper offers: the first quarter
+/// step past `full`, the last amount a named fraction states.
+const double _fractionAmountMin = 1.25;
+
 class _RotationStepper extends StatelessWidget {
   const _RotationStepper({
     required this.fieldKey,
@@ -321,6 +350,9 @@ class _RotationStepper extends StatelessWidget {
     required this.onChanged,
     this.allowsUnset = false,
     this.needsChoice = false,
+    this.min = _domainMin,
+    this.firstStep = _domainMin,
+    this.formatValue,
   });
 
   final String fieldKey;
@@ -340,18 +372,29 @@ class _RotationStepper extends StatelessWidget {
   final bool needsChoice;
   final ValueChanged<Object?> onChanged;
 
-  static const double _min = 0.25;
+  static const double _domainMin = 0.25;
   static const double _max = 2.5;
   static const double _step = 0.25;
+
+  /// The lowest amount offered: the rotation domain's, unless a narrower one
+  /// is asked for (a fraction amount, which starts past `full`).
+  final double min;
+
+  /// The amount a first nudge lands on from no amount.
+  final double firstStep;
+
+  /// How an amount is shown; a count of turns when null.
+  final String Function(num)? formatValue;
 
   static String _format(num n) =>
       n == n.roundToDouble() ? n.toInt().toString() : n.toString();
 
-  /// The amount a first nudge lands on from the unset state. Deliberately the
-  /// domain minimum rather than a "typical" value: stepping UP from the floor
-  /// is an unambiguous user action, whereas seeding a plausible middle value
-  /// would be the app guessing choreography.
-  static const double _firstStep = _min;
+  // The amount a first nudge lands on from the unset state is, for a turn,
+  // deliberately the domain minimum ([firstStep]'s default) rather than a
+  // "typical" value: stepping UP from the floor is an unambiguous user action,
+  // whereas seeding a plausible middle value would be the app guessing
+  // choreography. A fraction amount has no floor of its own to step from that
+  // is not a named fraction, so it lands on the editor's seed (1½) instead.
 
   @override
   Widget build(BuildContext context) {
@@ -373,10 +416,9 @@ class _RotationStepper extends StatelessWidget {
               visualDensity: VisualDensity.compact,
               // Disabled while unset: there is nothing to decrement, and
               // stepping DOWN into a value would read as "the app picked one".
-              onPressed: (current != null && current > _min)
-                  ? () => onChanged(
-                      (current - _step).clamp(_min, _max).toDouble(),
-                    )
+              onPressed: (current != null && current > min)
+                  ? () =>
+                        onChanged((current - _step).clamp(min, _max).toDouble())
                   : null,
             ),
             Text(
@@ -384,7 +426,8 @@ class _RotationStepper extends StatelessWidget {
                   ? (needsChoice
                         ? l10n.danceEditorParamChooseValue
                         : l10n.danceEditorParamNotStated)
-                  : l10n.danceEditorTurnCount(current, _format(current)),
+                  : (formatValue?.call(current) ??
+                        l10n.danceEditorTurnCount(current, _format(current))),
               key: ValueKey('$fieldKey-value'),
               style: current == null
                   ? theme.textTheme.bodyMedium?.copyWith(
@@ -403,11 +446,10 @@ class _RotationStepper extends StatelessWidget {
               // From the unset state the first nudge ADOPTS a value — an
               // explicit user action, never an implicit default.
               onPressed: current == null
-                  ? () => onChanged(_firstStep)
+                  ? () => onChanged(firstStep)
                   : current < _max
-                  ? () => onChanged(
-                      (current + _step).clamp(_min, _max).toDouble(),
-                    )
+                  ? () =>
+                        onChanged((current + _step).clamp(min, _max).toDouble())
                   : null,
             ),
             // Only offered when the param can actually represent "not stated",

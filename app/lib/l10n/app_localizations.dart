@@ -13742,6 +13742,24 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{{formatted} turn} other{{formatted} turns}}'**
   String danceEditorTurnCount(num count, String formatted);
 
+  /// The amount of a figure 8 or poussette whose fraction is 'other amount', shown in the figure parameter editor: how many times through the figure, e.g. 1.5×.
+  ///
+  /// In en, this message translates to:
+  /// **'{amount}×'**
+  String danceEditorFractionAmountValue(String amount);
+
+  /// The fraction value of a figure 8 or poussette that none of quarter, half, three quarter or full states; its amount is stated separately. Shown in search filters and wherever the value is named on its own.
+  ///
+  /// In en, this message translates to:
+  /// **'other amount'**
+  String get figureParamFractionOther;
+
+  /// The same fraction value as figureParamFractionOther, as a choice in the dance editor's fraction menu: picking it shows a field for the amount, hence the ellipsis.
+  ///
+  /// In en, this message translates to:
+  /// **'other amount…'**
+  String get figureParamFractionOtherPick;
+
   /// Generic 'Back' affordance shared across screens.
   ///
   /// In en, this message translates to:

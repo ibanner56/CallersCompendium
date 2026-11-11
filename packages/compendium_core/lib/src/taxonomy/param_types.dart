@@ -248,6 +248,20 @@ String? chainHandForWho(String who) {
 /// amount, never as a guessed one.
 const String fractionAmountParam = 'amount';
 
+/// Whether a figure of the user's own offers [choice] for a fraction
+/// argument whose value is [current] (#2120): every fraction but `other`,
+/// whose amount an argument cannot carry through to the move it fills. One
+/// already chosen is still offered, so it is shown rather than hidden, and it
+/// still validates: only the offer stops.
+bool userFigureOffersFraction(String choice, Object? current) =>
+    choice != 'other' || current == 'other';
+
+/// Whether an editor leaves the param [key] out for a figure with [params]:
+/// [fractionAmountParam] while the fraction is not `other`, the only value
+/// that reads it (#2120). An absent fraction is the spec default, `half`.
+bool hidesFractionAmount(String key, Map<String, Object?> params) =>
+    key == fractionAmountParam && params['fraction'] != 'other';
+
 /// The amount the editor seeds when a caller picks `other` (#2120): one and a
 /// half, the commonest amount no named fraction states.
 const num kFractionOtherSeedAmount = 1.5;

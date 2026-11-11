@@ -277,6 +277,11 @@ String figureParamChoiceLabel(
   if (choice == ParamVocab.unspecified && paramAdmitsUnspecified(spec)) {
     return l10n.danceEditorParamNotStated;
   }
+  // A fraction of `other` states its amount in a sibling param (#2120); as a
+  // value on its own it means "some amount no named fraction states".
+  if (spec.kind == ParamKind.fraction && choice == 'other') {
+    return l10n.figureParamFractionOther;
+  }
   final isDancerKind =
       spec.kind == ParamKind.dancerSet || spec.kind == ParamKind.dancerPair;
   return isDancerKind

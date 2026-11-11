@@ -9402,6 +9402,17 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String danceEditorFractionAmountValue(String amount) {
+    return '$amount×';
+  }
+
+  @override
+  String get figureParamFractionOther => 'andere hoeveelheid';
+
+  @override
+  String get figureParamFractionOtherPick => 'andere hoeveelheid…';
+
+  @override
   String get commonBack => 'Terug';
 
   @override

@@ -9463,6 +9463,17 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String danceEditorFractionAmountValue(String amount) {
+    return '$amount×';
+  }
+
+  @override
+  String get figureParamFractionOther => 'autre quantité';
+
+  @override
+  String get figureParamFractionOtherPick => 'autre quantité…';
+
+  @override
   String get commonBack => 'Retour';
 
   @override

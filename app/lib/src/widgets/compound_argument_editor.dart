@@ -134,7 +134,11 @@ class CompoundArgumentEditor extends StatelessWidget {
         defaultValue: null,
         choices: switch (param.kind) {
           _ when listed && allowed != null => [
-            for (final v in allowed) ?(v is String ? v : null),
+            for (final v in allowed)
+              if (v is String &&
+                  (param.kind != ParamKind.fraction ||
+                      userFigureOffersFraction(v, value)))
+                v,
           ],
           // Listing the sentinel is how a rotation admits "not stated": its
           // stepper then shows that state, and offers Clear, rather than 1.

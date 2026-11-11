@@ -1123,6 +1123,102 @@ void main() {
     });
   });
 
+  group('fraction amount (#2120, taxonomy v39)', () {
+    testWidgets('the amount shows only for other, which seeds and keeps one', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[
+        FigureDraft.fromFigure(
+          Figure(
+            move: 'figure_8',
+            params: const {'fraction': 'half', 'where': 'above', 'beats': 8},
+          ),
+        ),
+      ];
+      await _pump(tester, drafts);
+      await _openFigure(tester, 0);
+      await tester.tap(find.byKey(const ValueKey('figure-0-more-options')));
+      await tester.pumpAndSettle();
+
+      // A named fraction: no amount field.
+      expect(find.byKey(const ValueKey('figure-0-amount-value')), findsNothing);
+
+      // Picking "other amount…" stores other WITH an amount, never without.
+      await _selectDropdownOption(tester, 'figure-0-fraction', 'other amount…');
+      expect(drafts.single.params['fraction'], 'other');
+      expect(drafts.single.params['amount'], 1.5);
+      expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('figure-0-amount-value')))
+            .data,
+        '1.5×',
+      );
+
+      // Stepping the amount up. (Beats derived from the amount are pinned in
+      // core's param_change_rules_test; this figure states its beats, which
+      // the editor keeps as the caller's own.)
+      await tester.tap(find.byKey(const ValueKey('figure-0-amount-inc')));
+      await tester.pumpAndSettle();
+      expect(drafts.single.params['amount'], 1.75);
+
+      // Back to a named fraction: the field goes and the amount with it.
+      await _selectDropdownOption(tester, 'figure-0-fraction', 'full');
+      expect(find.byKey(const ValueKey('figure-0-amount-value')), findsNothing);
+      expect(drafts.single.params.containsKey('amount'), isFalse);
+    });
+
+    testWidgets('the stepper never steps down into a named fraction', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[
+        FigureDraft.fromFigure(
+          Figure(
+            move: 'poussette',
+            params: const {'fraction': 'other', 'amount': 1.25, 'beats': 6},
+          ),
+        ),
+      ];
+      await _pump(tester, drafts);
+      await _openFigure(tester, 0);
+      await tester.tap(find.byKey(const ValueKey('figure-0-more-options')));
+      await tester.pumpAndSettle();
+      final dec = tester.widget<IconButton>(
+        find.byKey(const ValueKey('figure-0-amount-dec')),
+      );
+      expect(dec.onPressed, isNull);
+    });
+
+    testWidgets('a legacy other with no amount asks for one, filling nothing', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[
+        FigureDraft.fromFigure(
+          Figure(
+            move: 'figure_8',
+            params: const {'fraction': 'other', 'where': 'above', 'beats': 8},
+          ),
+        ),
+      ];
+      await _pump(tester, drafts);
+      await _openFigure(tester, 0);
+      await tester.tap(find.byKey(const ValueKey('figure-0-more-options')));
+      await tester.pumpAndSettle();
+
+      final label = tester.widget<Text>(
+        find.byKey(const ValueKey('figure-0-amount-value')),
+      );
+      expect(label.data, 'choose a value');
+      // Opening the editor stores nothing on the caller's behalf.
+      expect(drafts.single.params.containsKey('amount'), isFalse);
+      expect(drafts.single.params['fraction'], 'other');
+
+      // The first step adopts the seed amount, not the 1¼ floor.
+      await tester.tap(find.byKey(const ValueKey('figure-0-amount-inc')));
+      await tester.pumpAndSettle();
+      expect(drafts.single.params['amount'], 1.5);
+    });
+  });
+
   group('promenade direction/destination visibility & reset (#989, v30)', () {
     testWidgets('direction resets outside the across/along plane', (
       tester,

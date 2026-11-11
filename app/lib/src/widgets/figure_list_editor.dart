@@ -3424,7 +3424,12 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
   Widget _buildParams(BuildContext context, MoveDef def) {
     final l10n = AppLocalizations.of(context);
     final draft = widget.draft;
-    var entries = def.params.entries.toList();
+    // A fraction's `amount` (#2120) is read only while the fraction is
+    // `other`, so it is offered only then; core's `applyParamChange` seeds it
+    // when `other` is picked and drops it when a named fraction is.
+    var entries = def.params.entries
+        .where((e) => !hidesFractionAmount(e.key, draft.params))
+        .toList();
     // issue #576: hey's `meetTarget` is meaningful only for the two partial
     // lengths — surface it in the editor ONLY when `length ∈ {lessThanHalf,
     // betweenHalfAndFull}`, so the field never appears for half/full heys (and
@@ -4169,6 +4174,8 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
     final isStep = widget.role == _ChildRole.step;
     final entries = def.params.entries
         .where((e) => isStep || e.key != 'beats')
+        // As for a top-level figure: the amount only while `other` (#2120).
+        .where((e) => !hidesFractionAmount(e.key, draft.params))
         .toList(growable: false);
     if (entries.isEmpty) return const SizedBox.shrink();
     return Wrap(
