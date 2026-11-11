@@ -26,6 +26,34 @@ the app and of `compendium_core`; version headings below refer to
   not nulled until this version runs again. Options that do not name exactly
   one valid item now exit `2` before the sync ID is read.
 
+### Fixed
+
+- After a large deletion — a caller dropping an old imported library, or
+  turning on `sync_exclude_imports` near quota — every quota check re-read
+  each queued blob deletion from the filesystem, and `PUT /v1/blobs/batch`
+  did so once per new blob, on the server's single isolate. Measured on a
+  4-CPU container with 20,000 queued deletions, each quota check took about
+  1 s and a 50-blob batch 56 s, past the client's 30 s deadline, stalling
+  every other request meanwhile; they now take under 1 ms and under 50 ms. Pending deletions are
+  now charged from a running per-store total, adjusted as jobs are queued and
+  run, and a batch reads it once. The cost moves to the garbage collection
+  that queues the deletions, which stats each queued file once, so the
+  manifest `PUT` that drops a large library takes longer, once: 1.7 s rather
+  than 0.6 s for 20,000 blobs in the same measurement. The total is
+  derived from the filesystem after a restart and after a change the server
+  cannot account for file by file; a pending file removed by hand while the
+  server runs stays charged until then.
+- The cleanup each request runs before it is served now drains as many jobs
+  as fit in its 50 ms budget, rather than stopping at 16, so while a backlog
+  lasts each request can spend up to about 50 ms on it. It stops at the first
+  job whose filesystem removal fails, so a job that keeps failing costs each
+  request one attempt rather than the whole budget.
+- The hourly sweep no longer blocks the server for its whole run, which grew
+  with the number of stores. It runs in slices of about 50 ms and yields between them, does
+  not start while the previous sweep is still running, and reaps a store only
+  if it is still past the disuse TTL when its own deletion runs. Shutdown
+  stops a sweep in progress at its next slice before closing the database.
+
 ## [0.3.3] - 2026-11-02
 
 ### Changed

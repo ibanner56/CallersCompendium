@@ -78,10 +78,31 @@ document root before enabling the vhost. The reference vhost is
 Store deletion removes the epoch directory immediately when possible; a
 durable cleanup record retries failed filesystem removal in a larger bounded
 batch on requests and server start, and the hourly sweep drains the remainder.
-Request-path retry is bounded by a total job count (shared by the directory and blob queues) and a 50 ms monotonic-clock budget
-checked between jobs (at least one job always runs, and a job that has started
-always finishes, so one very large directory can still take longer). Request-path
-retry failures are isolated so they do not change protocol responses.
+Request-path retry runs until a 50 ms monotonic-clock budget is spent, checked
+between jobs (at least one job always runs, and a job that has started always
+finishes, so one very large directory can still take longer), up to 1,000 jobs
+shared by the directory and blob queues. While a backlog lasts, each request
+therefore spends up to about 50 ms draining it before it is served. It stops
+at the first job whose filesystem removal fails, which is requeued, so a job
+that keeps failing costs each request one attempt rather than the whole
+budget. Request-path retry failures are isolated so they do not change
+protocol responses.
+Quota checks charge each store for its pending physical files from a running
+per-store total, adjusted as jobs are queued and run, rather than re-reading
+the deletion queue and the filesystem on every check. Queuing a store's
+garbage therefore stats each queued file once, inside the collection: a
+manifest `PUT` that drops many blobs takes correspondingly longer, once. The
+total is derived from the filesystem once per store after a restart, and
+again after a change the server cannot account for file by file (a directory
+job, a cleanup that fails part way, an upload that fails after writing its
+file); each derivation takes time in proportion to that store's pending
+deletions. A pending file removed by hand while the server runs is not seen
+until the next derivation, so it stays charged against the store's quota until
+then, at the latest until a restart.
+The hourly sweep runs in slices of about 50 ms and yields between them, so
+requests are served while it runs; a sweep still running when the next is due
+is not overlapped. A store is reaped only if it is still past the disuse TTL
+when its own deletion runs, so a request between slices keeps it.
 Startup reconciliation also queues crash-orphaned final blob files and temporary
 upload artifacts for the same cleanup path; it walks one store epoch at a time
 and queues each epoch in a single transaction, but still runs before the server

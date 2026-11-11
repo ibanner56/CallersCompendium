@@ -213,10 +213,18 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
  result (e.g. search count, save confirmation).
 - [ ] **Text-scaling / reflow — Gate.** Set the platform's largest supported
  text-scaling setting and repeat: Collection list, Dance detail/card, Program
- builder, Settings. On **Android**, set font scale to **2.0×**; on **iOS**,
+ builder, Settings, the Dance editor (the Formation and Type dropdowns), Perform
+ and its Adjust sheet (Done stays on screen), and the Tags manager (sort by
+ dance count). On **Android**, set font scale to **2.0×**; on **iOS**,
  set Dynamic Type to its **largest accessibility size**. **Pass**: no text is
  clipped, truncated without a way to reveal the rest, or overlapping other
  content; layouts reflow instead of overflowing off-screen.
+ (`app/test/a11y_guidelines_test.dart` sweeps the Collection, Programs list,
+ summary and builder, Perform and its Adjust sheet, the Dance editor's first
+ screenful, and the Tags manager at 2.0× on 360 and 412 dp with the real fonts.
+ It does not cover Dance detail/card or Settings, and the editor's
+ Type/Formation dropdowns are covered only by `dance_editor_narrow_test.dart`.
+ It supplements this gate, not replaces it.)
 - [ ] **Keyboard-only navigation (desktop) — Gate.** On a desktop build
  (macOS/Linux/Windows), unplug/ignore the mouse and complete the same core
  flows using Tab/Shift+Tab/Enter/Arrow keys only. **Pass**: every interactive
