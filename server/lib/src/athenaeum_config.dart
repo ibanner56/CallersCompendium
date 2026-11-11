@@ -60,8 +60,9 @@ class AthenaeumConfig {
   /// Forwarded client-address headers are trusted only when the socket peer is
   /// loopback. This is enabled for the Apache-on-host deployment topology.
   /// When trusted, the *rightmost* `X-Forwarded-For` entry is used, because it
-  /// is the one the proxy added; earlier entries are client-supplied. Proxies
-  /// must still overwrite the header (single hop), as the deployment docs say.
+  /// is the one the proxy wrote; earlier entries are client-supplied. Proxies
+  /// must still overwrite the header (single hop), as the deployment docs say:
+  /// an entry the proxy appends is trusted whatever it was derived from.
   final bool trustForwardedHeadersFromLoopback;
 
   static List<int> _decodePepper(String value) {

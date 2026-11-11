@@ -960,8 +960,12 @@ requirements, not deployment taste, and each has a concrete failure mode:
   worse than having no limit at all, because an attacker sets a fresh value per
   request and buys unlimited guesses while an honest shared-NAT user is still
   throttled. Both failure directions are silent. As defence in depth the server
-  reads only the rightmost entry of the header, so an appending proxy cannot
-  let a client choose its own key. See spec §7.5, requirement 6.
+  reads only the rightmost entry of the header, so a client-supplied prefix
+  cannot choose the key. That is all it defends against: whatever the proxy
+  itself appends is trusted, so a proxy that appends an address it resolved
+  from another client-supplied header (Apache's default `ProxyAddHeaders On`
+  after `mod_remoteip`, for one) still lets the client choose. See spec §7.5,
+  requirement 6.
 
 **On the backend port.** `127.0.0.1:33333` sits inside Linux's default ephemeral
 range (`32768–60999`), so the kernel may transiently assign it as an outbound

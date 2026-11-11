@@ -20,10 +20,10 @@ the app and of `compendium_core`; version headings below refer to
   Existing hosts must add the line by hand: see "Existing hosts" under "Proxy
   and security contract" in `docs/dev/athenaeum-operations.md`. No server code,
   schema or wire change.
-- `server/deploy/smoke_test.sh` refuses a vhost without `ProxyAddHeaders Off`,
-  and checks that forged `X-Forwarded-For`, `X-Real-IP`, `CF-Connecting-IP`,
-  `True-Client-IP`, `X-Client-IP` and vhost-named `RemoteIPHeader` values
-  cannot change a client's rate-limit key. Before, it could not tell an
+- `server/deploy/smoke_test.sh` refuses a configuration whose TLS vhost lacks
+  `ProxyAddHeaders Off`, and checks that forged `X-Forwarded-For`, `X-Real-IP`,
+  `CF-Connecting-IP`, `True-Client-IP`, `X-Client-IP` and any configured
+  `RemoteIPHeader` values cannot change a client's rate-limit key. Before, it could not tell an
   overwritten header from an appended one.
 
 ## [0.3.3] - 2026-11-02

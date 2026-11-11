@@ -90,13 +90,18 @@ fi
 # entry is REMOTE_ADDR after any mod_remoteip rewrite: the rightmost entry, the
 # one the server reads. Behind a host without remoteip the appended entry equals
 # the one RequestHeader set, so no request below could tell the two apart.
+# Directive names and values are case-insensitive; only the TLS vhost proxies
+# /v1/, so that is where it must be.
 if ! awk '
   /^[[:space:]]*#/ { next }
-  /^[[:space:]]*ProxyAddHeaders[[:space:]]+[Oo]ff[[:space:]]*$/ { found = 1 }
-  /^[[:space:]]*ProxyAddHeaders[[:space:]]+[Oo]n[[:space:]]*$/ { on = 1 }
+  { line = tolower($0) }
+  line ~ /^[[:space:]]*<virtualhost[^>]*:443>/ { tls = 1; next }
+  line ~ /^[[:space:]]*<\/virtualhost>/ { tls = 0; next }
+  tls && line ~ /^[[:space:]]*proxyaddheaders[[:space:]]+off[[:space:]]*$/ { found = 1 }
+  tls && line ~ /^[[:space:]]*proxyaddheaders[[:space:]]+on[[:space:]]*$/ { on = 1 }
   END { exit(found && !on ? 0 : 1) }
 ' "$apache_config"; then
-  echo "active Apache vhost must contain ProxyAddHeaders Off (and not On)" >&2
+  echo "active Apache TLS vhost must contain ProxyAddHeaders Off (and not On)" >&2
   exit 1
 fi
 
@@ -191,26 +196,63 @@ expect_status 429 "loopback client A alternate forwarded value" \
   --header 'X-Forwarded-For: 203.0.113.1' \
   --header 'Authorization: Bearer malformed' \
   "${https_url}/v1/store"
-# Client A's failure bucket is empty now, so every request it sends is refused
-# whatever key the server derives for it, unless the key is not 127.0.0.2. A
-# 401 here means a forged client address reached the server's key: Apache let
-# mod_remoteip resolve it from that header and appended the result. The
-# headers probed are the usual remoteip sources plus any RemoteIPHeader the
-# active vhost names. These requests are refused before they spend a failure,
-# so the refill timing below is unchanged.
-remoteip_headers=$(awk '
-  /^[[:space:]]*#/ { next }
-  tolower($1) == "remoteipheader" && NF >= 2 { print $2 }
-' "$apache_config")
+# Client A's failure bucket is now (nearly) empty, so a request it sends is
+# refused whatever forwarded header it carries, unless the server keys it on
+# an address other than 127.0.0.2: that is what Apache appending a
+# mod_remoteip-resolved X-Forwarded-For entry would do. The headers probed are
+# the usual remoteip sources plus any RemoteIPHeader in the vhost or in the
+# host's enabled Apache configuration.
+#
+# The bucket refills one failure every 6 s from client A's first failure, so on
+# a slow host a probe can also be accepted by a refilled token. A forged key
+# has a fresh bucket of 20, so a second request with the same value is accepted
+# too; a refilled token is spent, so the second is refused. Only two accepted
+# requests in a row fail the check. A refilled token spent here is a real
+# failure, counted in extra_failures for the server-wide budget below.
+apache_root=${ATHENAEUM_APACHE_ROOT:-/etc/apache2}
+remoteip_headers=$(
+  for file in "$apache_config" "$apache_root"/conf-enabled/*.conf \
+    "$apache_root"/mods-enabled/*.conf; do
+    [ -r "$file" ] || continue
+    awk '
+      /^[[:space:]]*#/ { next }
+      tolower($1) == "remoteipheader" && NF >= 2 { print $2 }
+    ' "$file"
+  done | sort -u
+)
+probe_status() {
+  curl_local --silent --show-error --max-time 10 --max-redirs 0 \
+    --output /dev/null --write-out '%{http_code}' \
+    --interface 127.0.0.2 \
+    --header "$1" \
+    --header 'Authorization: Bearer malformed' \
+    "${https_url}/v1/store"
+}
+extra_failures=0
 probe=0
 for forged_header in X-Forwarded-For X-Real-IP CF-Connecting-IP \
   True-Client-IP X-Client-IP $remoteip_headers; do
   probe=$((probe + 1))
-  expect_status 429 "loopback client A forged ${forged_header}" \
-    --interface 127.0.0.2 \
-    --header "${forged_header}: 192.0.2.${probe}" \
-    --header 'Authorization: Bearer malformed' \
-    "${https_url}/v1/store"
+  forged="${forged_header}: 192.0.2.${probe}"
+  status=$(probe_status "$forged")
+  case "$status" in
+    429) ;;
+    401)
+      extra_failures=$((extra_failures + 1))
+      again=$(probe_status "$forged")
+      if [ "$again" = 401 ]; then
+        echo "loopback client A forged ${forged_header}: a client-supplied address chose the rate-limit key" >&2
+        exit 1
+      elif [ "$again" != 429 ]; then
+        echo "loopback client A forged ${forged_header} repeat: expected HTTP 429, got ${again}" >&2
+        exit 1
+      fi
+      ;;
+    *)
+      echo "loopback client A forged ${forged_header}: expected HTTP 429, got ${status}" >&2
+      exit 1
+      ;;
+  esac
 done
 sleep 6
 expect_status 401 "loopback client A refill" \
@@ -230,8 +272,10 @@ expect_status 401 "independent loopback client B" \
   "${https_url}/v1/store"
 echo "proxy address/header overwrite: passed"
 
-echo "checking remaining server-wide failure budget (978 after 22 prior failures)"
-for index in $(seq 0 977); do
+prior_failures=$((22 + extra_failures))
+remaining_failures=$((1000 - prior_failures))
+echo "checking remaining server-wide failure budget (${remaining_failures} after ${prior_failures} prior failures)"
+for index in $(seq 0 $((remaining_failures - 1))); do
   third=$((index / 254 + 1))
   fourth=$((index % 254 + 1))
   expect_status 401 "server-wide failure ${index}" \
