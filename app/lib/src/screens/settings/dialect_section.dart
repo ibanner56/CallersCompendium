@@ -1,7 +1,6 @@
 // Part of the Settings screen, split by section (Stage-7 item 7.2).
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
-
 import '../../data/dialect_library_controller.dart';
 import '../../data/dialect_library_scope.dart';
 import '../../../l10n/app_localizations.dart';
