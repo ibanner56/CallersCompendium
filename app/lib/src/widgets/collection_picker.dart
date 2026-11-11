@@ -766,11 +766,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
       advanced: _effectiveAdvanced(),
     );
     if (query.isEmpty) {
-      // Also supersedes a search or page still in flight, which would
-      // otherwise land on the cleared list.
-      _onlineSeq++;
       setState(() {
-        _onlineLoadingMore = false;
         _onlineResults = const [];
         _onlineError = null;
         _onlineImportError = null;
@@ -783,7 +779,6 @@ class _CollectionPickerState extends State<CollectionPicker> {
     setState(() {
       _onlineResults = const [];
       _onlineSearching = true;
-      _onlineLoadingMore = false;
       _onlineError = null;
       _onlineImportError = null;
     });

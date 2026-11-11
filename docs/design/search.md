@@ -153,7 +153,9 @@ tree. Conforms to [ux.md](ux.md) §1 and [dialect.md](dialect.md)
    paging for the new one. After the first page a failed spelling fails the
    page (Try again), because both spellings page at the same offset and a page
    that quietly lost one would be counted as loaded, ending paging early or
-   leaving a hole; on the first page only the ASCII spelling decides failure.
+   leaving a hole. The first page still tolerates a failed curly spelling (only
+   the ASCII spelling decides failure there), so its curly rows can be missing
+   if that one request failed; that is the earlier, deliberate behaviour.
 
    **A repeated request is not sent again.** `ContraDbOnline` remembers the last
    successful search for 60 seconds and answers an identical one from it,

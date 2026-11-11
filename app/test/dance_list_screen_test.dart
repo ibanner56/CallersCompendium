@@ -2723,6 +2723,35 @@ void main() {
         'dancer@20',
       ]);
     });
+
+    testWidgets('clearing the search drops a page still in flight', (
+      tester,
+    ) async {
+      final hold = Completer<void>();
+      final contraDb = _PagedContraDb(
+        total: 45,
+        holdWhen: (request) => request.query == 'dance' && request.offset == 20
+            ? hold.future
+            : null,
+      );
+      await openContraDb(tester, contraDb);
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -4000));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 2));
+      expect(contraDb.requests.map((r) => r.offset), [0, 20]);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('collection-search-field')),
+        '',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pump();
+      hold.complete(); // lands after the box was cleared
+      await tester.pumpAndSettle();
+
+      // The late page must not merge its rows into the cleared list.
+      expect(find.textContaining('Dance 0'), findsNothing);
+    });
   });
 
   testWidgets('an "Any figure" row on ContraDB sends ContraDB\'s wildcard', (
