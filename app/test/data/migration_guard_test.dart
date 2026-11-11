@@ -755,7 +755,8 @@ void main() {
       expect(hasPartialSweep(released), isFalse);
     });
 
-    test('a copy cut short by a crash is never taken for a pin', () async {
+    test('a partial copy a crash left behind is removed and not counted as a '
+        'pin', () async {
       final dbFile = await createLibrary(owing: chainHandBackfillDoneKey);
       snapshotDir.createSync();
       // What a force-quit during the copy leaves behind.

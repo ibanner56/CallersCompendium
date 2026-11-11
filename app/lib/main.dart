@@ -1832,7 +1832,8 @@ class _CompendiumAppState extends State<CompendiumApp>
     try {
       await widget.releaseRepairSnapshotPin?.call();
     } catch (error, stackTrace) {
-      // Never fatal: a stale pin only keeps one extra copy.
+      // Never fatal: a stale pin keeps one extra copy, and until a launch owing
+      // nothing releases it, stops a newer repair debt pinning its own.
       logCaughtError(error, stackTrace, source: 'startup.release_snapshot_pin');
     }
     // First-run seed (issue: "first launch is never empty"): insert exactly one

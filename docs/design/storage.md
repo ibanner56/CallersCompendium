@@ -1086,19 +1086,20 @@ by opening drift — and compares it to the running `kCompendiumSchemaVersion`:
   (a file lock, say) and the next launch owes a new repair, the stale pin is
   kept and nothing new is pinned. Release renames the pinned copy into the
   ordinary rotation and stamps it with the current time, so it is the newest
-  there and survives the next 4 snapshots instead of being pruned the moment
-  its repair first completes, when a botched repair would first show. On a
-  schema bump that owes no repair the preflight neither pins nor releases, so
+  there and survives at least the next 4 snapshots instead of being pruned the
+  moment its repair first completes, when a botched repair would first show.
+  On a schema bump that owes no repair the preflight neither pins nor releases, so
   its retention is unchanged. A build at the same schema version that does not
   know a newer build's repair (an older PATCH, sideloaded) reads it as not
   owed and releases that build's pin. The pin lives only in the file name: no
   setting or column records it, so there is nothing to classify or to keep out
   of backups. Relocation moves a pinned copy with the other snapshots.
 
-  Every snapshot is copied under a `.partial` name and renamed into place, so
-  a copy cut short by a crash or force-quit never counts as a snapshot, least
-  of all as a pin that nothing would replace; the next snapshot deletes such
-  leftovers.
+  Every snapshot is copied under a `.partial` name, flushed to disk, and
+  renamed into place (retrying briefly, for a scanner holding the new file on
+  Windows), so a copy cut short by a crash, force-quit or power loss never
+  counts as a snapshot, least of all as a pin that nothing would replace; the
+  next snapshot deletes such leftovers.
 
   **The copy is refused rather than taken incomplete.** The checkpoint pragma
   does not throw when another connection is in the way: a reader whose read

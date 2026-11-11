@@ -279,8 +279,9 @@ class MigrationSnapshotAborted implements Exception {
 /// the same session matters: otherwise a later build owing a new repair would
 /// find the old pin still there and not pin its own first copy. Release
 /// renames the pinned copy into the ordinary rotation and stamps it with the
-/// current time, so it is the newest there and outlives the next [retain] - 1
-/// snapshots, rather than being pruned the moment the repair first completes.
+/// current time, so it is the newest there and outlives at least the next
+/// [retain] - 1 snapshots (on platforms where a copy keeps its source's mtime,
+/// more), rather than being pruned the moment the repair first completes.
 /// On a schema bump that owes no repair, the preflight neither pins nor
 /// releases. The pin lives only in the file name; nothing is persisted in the
 /// database. A build at the same schema version that does not know a newer
@@ -1161,15 +1162,23 @@ Future<File> snapshotBeforeMigrate({
     dest = File(p.join(snapshotDir.path, '$base-$collision$suffix'));
     collision++;
   }
-  // Copy under a name no snapshot pattern matches, then rename: a copy cut
-  // short by a crash or force-quit must never pass for a snapshot, least of
-  // all a pinned one, which nothing would ever prune or replace. A partial
-  // copy left by such a crash is removed first.
+  // Copy under a name no snapshot pattern matches, flush it to disk, then
+  // rename: a copy cut short by a crash, a force-quit or a power loss must
+  // never pass for a snapshot, least of all a pinned one, which nothing would
+  // ever prune or replace. Without the flush, a filesystem may persist the
+  // rename before the data. A partial copy left by such a crash is removed
+  // first.
   await _removePartialCopies(snapshotDir);
   final partial = File('${dest.path}$_partialSuffix');
   try {
     await dbFile.copy(partial.path);
-    await partial.rename(dest.path);
+    final handle = await partial.open(mode: FileMode.append);
+    try {
+      await handle.flush();
+    } finally {
+      await handle.close();
+    }
+    await _renameWithRetry(partial, dest);
   } on Object {
     // diagnostics: silent — rethrown; the caller reports the snapshot failure.
     try {
@@ -1182,6 +1191,22 @@ Future<File> snapshotBeforeMigrate({
 
   await _pruneSnapshots(snapshotDir, retain);
   return dest;
+}
+
+/// Renames [from] to [to], retrying briefly: on Windows a scanner that opened
+/// the freshly written file (antivirus, indexing) makes the move fail with a
+/// sharing violation until it lets go.
+Future<void> _renameWithRetry(File from, File to) async {
+  for (var attempt = 1; ; attempt++) {
+    try {
+      await from.rename(to.path);
+      return;
+    } on FileSystemException {
+      // diagnostics: silent — retried, then rethrown to the snapshot failure.
+      if (attempt == _checkpointAttempts) rethrow;
+      await Future<void>.delayed(_checkpointRetryDelay);
+    }
+  }
 }
 
 /// Suffix of a snapshot still being copied; see [snapshotBeforeMigrate].
@@ -1418,14 +1443,14 @@ List<File> _pinnedSnapshots(Directory dir) => [
 ];
 
 /// Whether [dir] already holds a pinned snapshot. A directory that exists but
-/// cannot be listed reads as holding one, so this copy is not pinned: a pin
-/// there could never be found again, by this check or by a release, and one
-/// would pile up per launch.
+/// cannot be listed reads as holding one, so no pin is asked for: a pin there
+/// could never be found again, by this check or by a release. (The snapshot
+/// itself then fails closed, as [snapshotBeforeMigrate] lists [dir] too.)
 Future<bool> _hasPinnedSnapshot(Directory dir) async {
   try {
     return _pinnedSnapshots(dir).isNotEmpty;
   } on FileSystemException {
-    // diagnostics: silent — the copy is still taken, only not pinned.
+    // diagnostics: silent — the snapshot's own listing reports the failure.
     return true;
   }
 }
@@ -1459,13 +1484,19 @@ Future<void> _releasePinnedSnapshot(Directory dir, int retain) async {
         dest = File('$stem-released$n$_snapshotSuffix');
       }
       await file.rename(dest.path);
-      // Count it as new: kept through the next [retain] - 1 snapshots, so
-      // the clean copy outlives the moment its repair first completes.
-      await dest.setLastModified(DateTime.now());
+      // Count it as new, so the clean copy outlives the moment its repair
+      // first completes. If this fails the copy keeps its own, older time and
+      // ages out with the rotation as any ordinary copy does.
+      try {
+        await dest.setLastModified(DateTime.now());
+      } on FileSystemException {
+        // diagnostics: silent — only the copy's place in the rotation.
+      }
     }
     await _pruneSnapshots(dir, retain);
   } on FileSystemException {
-    // diagnostics: silent — best effort; the pin is retried on the next launch.
+    // diagnostics: silent — best effort; a pin whose rename failed is
+    // retried by the next release.
   }
 }
 
@@ -1484,8 +1515,9 @@ Future<void> _pruneSnapshots(Directory dir, int retain) async {
     }
   }
   if (snapshots.length <= retain) return;
-  // Oldest first; the copy just written has the newest mtime, so recency order
-  // is correct even when snapshots span multiple `fromVersion`s.
+  // Oldest first, by mtime, so recency order is correct even when snapshots
+  // span multiple `fromVersion`s. A just-written copy is among the newest; a
+  // released pin is stamped with the time of its release.
   snapshots.sort((a, b) {
     final byMtime = a.$2.compareTo(b.$2);
     if (byMtime != 0) return byMtime;
