@@ -1,37 +1,37 @@
 {
   "manifestSchemaVersion": 1,
   "channel": "beta",
-  "version": "0.9.0-beta",
-  "releaseNotesUrl": "https://github.com/ibanner56/CallersCompendium/releases/tag/v0.9.0-beta",
-  "pubDate": "2026-11-02T18:27:13Z",
+  "version": "0.9.1-beta",
+  "releaseNotesUrl": "https://github.com/ibanner56/CallersCompendium/releases/tag/v0.9.1-beta",
+  "pubDate": "2026-11-11T01:15:26Z",
   "artifacts": [
     {
       "platform": "android",
       "arch": "universal",
-      "url": "https://github.com/ibanner56/CallersCompendium/releases/download/v0.9.0-beta/CallersCompendium-0.9.0-beta-android-universal.apk",
-      "sha256": "f100082a2bd460fe038151578b282c051f2ea96077716f2ddfb89a9bc48fc145",
-      "size": 111338793
+      "url": "https://github.com/ibanner56/CallersCompendium/releases/download/v0.9.1-beta/CallersCompendium-0.9.1-beta-android-universal.apk",
+      "sha256": "f7a687ad8dc2db89e4709ef58941deae19545ed4a0378fb7554dcdd08a9230e1",
+      "size": 111620441
     },
     {
       "platform": "linux",
       "arch": "x64",
-      "url": "https://github.com/ibanner56/CallersCompendium/releases/download/v0.9.0-beta/CallersCompendium-0.9.0-beta-linux-x64.AppImage",
-      "sha256": "9ed9929917fa7469b43f00081abdc337129455273ba208082d3cb820c8e4a61b",
-      "size": 22649336
+      "url": "https://github.com/ibanner56/CallersCompendium/releases/download/v0.9.1-beta/CallersCompendium-0.9.1-beta-linux-x64.AppImage",
+      "sha256": "8f9114610a0cdc3d7b384b8479a43e688133bc316d15e137de582903fa206087",
+      "size": 22387192
     },
     {
       "platform": "macos",
       "arch": "universal",
-      "url": "https://github.com/ibanner56/CallersCompendium/releases/download/v0.9.0-beta/CallersCompendium-0.9.0-beta-macos-universal.dmg",
-      "sha256": "3136dda99893aaafc5579ea52edecfde13b435591d18022550c15762ea3ba855",
-      "size": 41731414
+      "url": "https://github.com/ibanner56/CallersCompendium/releases/download/v0.9.1-beta/CallersCompendium-0.9.1-beta-macos-universal.dmg",
+      "sha256": "d10bd98ae6b36febacf44d38467fd5e40d55468adbfb2026acf3edfa8b9ec1a3",
+      "size": 41575841
     },
     {
       "platform": "windows",
       "arch": "x64",
-      "url": "https://github.com/ibanner56/CallersCompendium/releases/download/v0.9.0-beta/CallersCompendium-0.9.0-beta-windows-x64.exe",
-      "sha256": "cb12f7bff3744483156fb8539ee3c6caa589362582a65c96c59f50dfa0337e5b",
-      "size": 20820104
+      "url": "https://github.com/ibanner56/CallersCompendium/releases/download/v0.9.1-beta/CallersCompendium-0.9.1-beta-windows-x64.exe",
+      "sha256": "daa4e9e7955d3c60bbe64fc49dc159f280cd56630a7f9ac437ef78b3e773e55d",
+      "size": 20525800
     }
   ],
   "codename": "End Effects"
