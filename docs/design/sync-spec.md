@@ -5237,8 +5237,10 @@ tables. `break_glass_access` has one row per access:
 | `id_key` | Derived sync storage path: `HMAC-SHA256(pepper, syncID)`, never plaintext. Nulled after 30 days. |
 | `accessed_at` | Retained. |
 
-`break_glass_reads` names what that access read, one row per item: one
-device's manifest or one blob. It never holds the item's content.
+`break_glass_reads` names what that access requested, one row per item: one
+device's manifest or one blob. It is written before the lookup, so a request
+for a store or item that does not exist is recorded too. It never holds the
+item's content.
 
 | Column | Retention |
 | --- | --- |

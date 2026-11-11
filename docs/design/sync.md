@@ -4255,7 +4255,8 @@ can link entries for one store, so it cannot be held indefinitely under the same
 reasoning that bounds everything else here. After 30 days `id_key` is nulled,
 leaving a timestamp-only row.
 
-Each access also records **what** it read, before reading it: one device's
+Each access also records **what** it is about to read, before reading it (so a
+request for something that does not exist is recorded too): one device's
 manifest, by device ID, or one blob, by hash, with the epoch (spec §7.4,
 `break_glass_reads`). The content itself is never recorded. Those identifiers
 are as linkable as the path, and a blob hash can confirm a guessed record, so

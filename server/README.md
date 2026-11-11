@@ -100,7 +100,7 @@ Unreferenced blobs remain temporary roots for 24 hours so an in-flight upload
 can be published safely; manifest publication collects expired blobs across all
 persisted epochs, and `DELETE /v1/store` bypasses that grace period. The
 break-glass access database makes a derived sync storage path, and the epoch,
-device ID, and blob hash of each item read, eligible for nulling after 30 days
+device ID, and blob hash of each item requested, eligible for nulling after 30 days
 and nulls them by the next hourly sweep, then retains only each access's
 timestamp and whether a manifest or a blob was read.
 Ordinary diagnostic events become eligible for removal after 30 days and are

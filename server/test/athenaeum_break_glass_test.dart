@@ -259,6 +259,62 @@ void main() {
     });
   });
 
+  test('the resolved epoch is recorded once, on an unresolved row only', () {
+    final store = AthenaeumStore.breakGlass(config: config);
+    addTearDown(store.close);
+    final unresolved = store.recordBreakGlassRead(
+      syncId,
+      BreakGlassRead.blob(hash: blobHash),
+    );
+    final explicit = store.recordBreakGlassRead(
+      syncId,
+      BreakGlassRead.blob(hash: blobHash, epoch: epoch),
+    );
+    store.resolveBreakGlassReadEpoch(unresolved, epoch);
+    // A second resolution, an explicit epoch, or a missing row is a caller
+    // bug; reading on after it would leave the audit out of step.
+    expect(
+      () => store.resolveBreakGlassReadEpoch(unresolved, 'f' * 32),
+      throwsStateError,
+    );
+    expect(
+      () => store.resolveBreakGlassReadEpoch(explicit, 'f' * 32),
+      throwsStateError,
+    );
+    expect(
+      () => store.resolveBreakGlassReadEpoch(explicit + 100, epoch),
+      throwsStateError,
+    );
+  });
+
+  test('the retention sweep unlinks access and read rows together or not '
+      'at all', () {
+    final now = DateTime.utc(2026, 11, 11, 12);
+    final store = AthenaeumStore.breakGlass(config: config);
+    addTearDown(store.close);
+    store.recordBreakGlassRead(
+      syncId,
+      BreakGlassRead.blob(hash: blobHash, epoch: epoch),
+      accessedAt: now.subtract(const Duration(days: 31)),
+    );
+    store.breakGlassDatabase.execute(
+      'CREATE TRIGGER fail_reads BEFORE UPDATE ON break_glass_reads '
+      "BEGIN SELECT RAISE(ABORT, 'injected'); END",
+    );
+    expect(
+      () => store.purgeExpiredBreakGlassAccess(now: now),
+      throwsA(isA<SqliteException>()),
+    );
+    // The access row's key survives with the read row's, so the access can
+    // still be matched to what it read; neither was unlinked alone.
+    expect(
+      store.breakGlassDatabase
+          .select('SELECT id_key FROM break_glass_access')
+          .single['id_key'],
+      idKey(),
+    );
+  });
+
   test('a read names exactly one valid item', () {
     expect(
       () => BreakGlassRead.blob(hash: 'not-a-hash'),
