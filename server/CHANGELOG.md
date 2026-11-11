@@ -23,7 +23,8 @@ the app and of `compendium_core`; version headings below refer to
 - `server/deploy/smoke_test.sh` refuses a configuration whose TLS vhost lacks
   `ProxyAddHeaders Off`, and checks that forged `X-Forwarded-For`, `X-Real-IP`,
   `CF-Connecting-IP`, `True-Client-IP`, `X-Client-IP` and any configured
-  `RemoteIPHeader` values cannot change a client's rate-limit key. Before, it could not tell an
+  `RemoteIPHeader` values sent from a loopback client cannot change its
+  rate-limit key. Before, it could not tell an
   overwritten header from an appended one.
 
 ## [0.3.3] - 2026-11-02

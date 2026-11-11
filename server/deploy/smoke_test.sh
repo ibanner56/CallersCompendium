@@ -90,12 +90,12 @@ fi
 # entry is REMOTE_ADDR after any mod_remoteip rewrite: the rightmost entry, the
 # one the server reads. Behind a host without remoteip the appended entry equals
 # the one RequestHeader set, so no request below could tell the two apart.
-# Directive names and values are case-insensitive; only the TLS vhost proxies
-# /v1/, so that is where it must be.
-if ! awk '
+# Directive names and values are case-insensitive; only the TLS vhost (the one
+# on the HTTPS port under test) proxies /v1/, so that is where it must be.
+if ! awk -v port="$https_port" '
   /^[[:space:]]*#/ { next }
   { line = tolower($0) }
-  line ~ /^[[:space:]]*<virtualhost[^>]*:443>/ { tls = 1; next }
+  line ~ ("^[[:space:]]*<virtualhost[^>]*:" port ">") { tls = 1; next }
   line ~ /^[[:space:]]*<\/virtualhost>/ { tls = 0; next }
   tls && line ~ /^[[:space:]]*proxyaddheaders[[:space:]]+off[[:space:]]*$/ { found = 1 }
   tls && line ~ /^[[:space:]]*proxyaddheaders[[:space:]]+on[[:space:]]*$/ { on = 1 }
@@ -216,7 +216,7 @@ remoteip_headers=$(
     [ -r "$file" ] || continue
     awk '
       /^[[:space:]]*#/ { next }
-      tolower($1) == "remoteipheader" && NF >= 2 { print $2 }
+      tolower($1) == "remoteipheader" && NF >= 2 { gsub(/"/, "", $2); print $2 }
     ' "$file"
   done | sort -u
 )

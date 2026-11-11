@@ -229,7 +229,10 @@ exercises real client buckets and forwarded-header overwrite through Apache
 (including forged `X-Forwarded-For`, `X-Real-IP`, `CF-Connecting-IP`,
 `True-Client-IP`, `X-Client-IP`, and any `RemoteIPHeader` named in the vhost or
 in `conf-enabled/` or `mods-enabled/` under `ATHENAEUM_APACHE_ROOT`, default
-`/etc/apache2`; none of them may change the rate-limit key), the 1,000-failure and 60-creation
+`/etc/apache2`; sent from a loopback client, none of them may change its
+rate-limit key. That probe can only fail where `mod_remoteip` trusts loopback,
+so the `ProxyAddHeaders Off` check is the guard for hosts that trust only CDN
+ranges), the 1,000-failure and 60-creation
 budgets, the inclusive 16 MiB boundary, compressed-body preservation, and
 authenticated Athenaeum create/lookup responses over HTTPS with
 `Strict-Transport-Security`. The harness also inspects the active vhost
