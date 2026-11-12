@@ -29,7 +29,8 @@ hand-rolled versions read as PASS when they should have failed:
                 fails or is unanswerable, so one invocation reports the whole
                 picture rather than costing a round trip per gate.
 
-Output is one line per gate: ``PASS <gate>: <evidence>``,
+Output is an optional ``repo: <owner/name> (from <source>)`` line (printed when
+``--repo`` is not given), then one line per gate: ``PASS <gate>: <evidence>``,
 ``FAIL <gate>: <what is wrong>``, or ``SKIP <gate>: <why it is unanswerable>``.
 A red run should cost a few hundred tokens to
 act on, not a few thousand to read.
@@ -43,6 +44,9 @@ pass ``--reviewer copilot`` if you requested Copilot instead.
 Exit codes: 0 all gates pass, 1 at least one gate failed, 2 at least one gate
 could not be answered (bad input, or ``gh`` missing or unauthenticated). 2
 dominates 1, so an environment problem never reads as a clean run.
+
+The repository is ``--repo``, else ``GITHUB_REPOSITORY``, else the git remote
+(no GraphQL, so it works in Claude Code sessions), else ``gh repo view``.
 
 Where the environment refuses GraphQL outright (Claude Code cloud sessions
 answer ``gh api graphql`` with HTTP 403), ``threads`` and ``closes`` answer from
@@ -60,6 +64,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -183,7 +188,78 @@ class GitHubFetcher:
         return json.loads(out)
 
 
-def detect_repo() -> str:
+_SLUG = r"[A-Za-z0-9_.-]+"
+# scp-style (`git@github.com:owner/name.git`) or a URL (`https://`, `ssh://`,
+# and the proxy-style `http://host:port/git/owner/name` some sandboxes use).
+# The path must be exactly `owner/name`, optionally behind one `git/` segment:
+# `https://github.com/o/r/pulls` or a bare local path is not a slug.
+_REMOTE_PATTERNS = (
+    re.compile(rf"^[\w.-]+@[\w.-]+:/?({_SLUG})/({_SLUG})/?$"),
+    re.compile(rf"^[A-Za-z][A-Za-z0-9+.-]*://[^/]+/(?:git/)?({_SLUG})/({_SLUG})/?$"),
+)
+
+
+def _slug(owner: str, name: str) -> str | None:
+    if name.lower().endswith(".git"):
+        name = name[: -len(".git")]
+    for part in (owner, name):
+        if not part or part in (".", "..") or part.lower().endswith(".git"):
+            return None
+    return f"{owner}/{name}"
+
+
+def parse_remote_url(url: str) -> str | None:
+    """`owner/name` from a git remote URL, or None when it has no such shape."""
+    url = url.strip()
+    for pattern in _REMOTE_PATTERNS:
+        match = pattern.match(url)
+        if match:
+            return _slug(*match.groups())
+    return None
+
+
+def _git(args: Sequence[str]) -> str:
+    try:
+        result = subprocess.run(
+            ["git", *args], check=False, capture_output=True, encoding="utf-8"
+        )
+    except FileNotFoundError:  # pragma: no cover - environment
+        return ""
+    return result.stdout.strip() if result.returncode == 0 else ""
+
+
+def _repo_from_git() -> tuple[str, str] | None:
+    """`(owner/name, remote name)` from `upstream`, the branch's remote, or `origin`.
+
+    `upstream` goes first because that is the fork convention (and what `gh`
+    ranks highest): in a fork clone the PR lives on the base repo. Uses no
+    GitHub API, so it works where GraphQL is refused.
+    """
+    branch = _git(["symbolic-ref", "--quiet", "--short", "HEAD"])
+    tracked = _git(["config", "--get", f"branch.{branch}.remote"]) if branch else ""
+    for name in dict.fromkeys(["upstream", tracked, "origin"]):
+        if not name or name == ".":
+            continue
+        slug = parse_remote_url(_git(["remote", "get-url", name]))
+        if slug:
+            return slug, name
+    return None
+
+
+def detect_repo_with_source() -> tuple[str, str]:
+    """Resolve `owner/name` without GraphQL (refused in Claude Code sessions).
+
+    Returns the repo and where it came from. Order: `GITHUB_REPOSITORY`, the
+    git remote (`upstream`, else the branch's tracking remote, else `origin`),
+    then `gh repo view`. Pass `--repo` to override.
+    """
+    env_repo = os.environ.get("GITHUB_REPOSITORY", "").strip()
+    env_match = re.fullmatch(rf"({_SLUG})/({_SLUG})", env_repo)
+    if env_match and _slug(*env_match.groups()) == env_repo:
+        return env_repo, "GITHUB_REPOSITORY"
+    from_git = _repo_from_git()
+    if from_git:
+        return from_git[0], f"git remote {from_git[1]}"
     try:
         result = subprocess.run(
             ["gh", "repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"],
@@ -195,7 +271,11 @@ def detect_repo() -> str:
         raise GateError("the `gh` CLI is not installed; pass --repo owner/name") from exc
     if result.returncode != 0 or not result.stdout.strip():
         raise GateError("could not detect the repository; pass --repo owner/name")
-    return result.stdout.strip()
+    return result.stdout.strip(), "gh repo view"
+
+
+def detect_repo() -> str:
+    return detect_repo_with_source()[0]
 
 
 # --------------------------------------------------------------------------- #
@@ -710,7 +790,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             "requested Copilot instead"
         ),
     )
-    parser.add_argument("--repo", help="owner/name (default: detected via gh)")
+    parser.add_argument(
+        "--repo",
+        help="owner/name (default: GITHUB_REPOSITORY, the git remote, then gh)",
+    )
     args = parser.parse_args(argv)
 
     names = list(ALL_ORDER) if args.gate == "all" else [args.gate]
@@ -724,7 +807,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 2
 
     try:
-        repo = args.repo or detect_repo()
+        if args.repo:
+            repo = args.repo
+        else:
+            repo, source = detect_repo_with_source()
+            # Say which repo was checked: a wrong guess must not be silent.
+            print(f"repo: {repo} (from {source}; --repo overrides)")
     except GateError as exc:
         print(f"SKIP: {exc}")
         return 2

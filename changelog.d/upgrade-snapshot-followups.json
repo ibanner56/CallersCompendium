@@ -1,9 +1,0 @@
-{
-  "id": "upgrade-snapshot-followups",
-  "user_visible": true,
-  "app": {
-    "fixed": [
-      "The app no longer saves a recovery snapshot that is missing your most recent changes when another app has your library open at that moment. It asks you what to do instead, and tells you to close that app and reopen Caller's Compendium."
-    ]
-  }
-}

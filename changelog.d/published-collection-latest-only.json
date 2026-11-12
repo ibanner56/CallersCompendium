@@ -1,9 +1,0 @@
-{
-  "id": "published-collection-latest-only",
-  "user_visible": true,
-  "app": {
-    "fixed": [
-      "The published-collection catalog now offers only the newest version of each collection, and an older version can no longer be imported over a newer one you already have. Text from the catalog is also cleaned of invisible direction-override characters before it is shown or recorded."
-    ]
-  }
-}

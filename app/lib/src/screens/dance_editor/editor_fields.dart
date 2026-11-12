@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../search/facet_labels.dart';
 import '../../theme/app_spacing.dart';
+import '../../widgets/dropdown_selection.dart';
 
 class FieldLabel extends StatelessWidget {
   const FieldLabel(this.text, {super.key});
@@ -167,6 +168,15 @@ class LevelDropdown extends StatelessWidget {
     return DropdownButtonFormField<DifficultyLevel?>(
       key: const ValueKey('level-field'),
       initialValue: value,
+      // Level names are user-editable: fill the slot, ellipsize the closed
+      // field, and let the open menu wrap so a long name can be read.
+      isExpanded: true,
+      itemHeight: null,
+      selectedItemBuilder: ellipsizedSelection([
+        l10n.danceEditorLevelUnspecified,
+        for (final v in levels ?? DifficultyLevel.shipped)
+          danceLevelLabel(l10n, v),
+      ]),
       decoration: InputDecoration(labelText: l10n.danceEditorLevelLabel),
       items: [
         DropdownMenuItem<DifficultyLevel?>(
@@ -319,6 +329,7 @@ class _PartialDateFieldState extends State<PartialDateField> {
               child: DropdownButtonFormField<int?>(
                 key: ValueKey('${widget.fieldKey}-month'),
                 initialValue: _month,
+                isExpanded: true,
                 decoration: InputDecoration(
                   labelText: l10n.danceEditorMonthLabel,
                 ),
@@ -327,7 +338,10 @@ class _PartialDateFieldState extends State<PartialDateField> {
                   for (var m = 1; m <= 12; m++)
                     DropdownMenuItem<int?>(
                       value: m,
-                      child: Text(_monthLabel(l10n, m)),
+                      child: Text(
+                        _monthLabel(l10n, m),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                 ],
                 onChanged: year == null
@@ -350,6 +364,7 @@ class _PartialDateFieldState extends State<PartialDateField> {
               child: DropdownButtonFormField<int?>(
                 key: ValueKey('${widget.fieldKey}-day'),
                 initialValue: _day,
+                isExpanded: true,
                 decoration: InputDecoration(
                   labelText: l10n.danceEditorDayLabel,
                 ),
