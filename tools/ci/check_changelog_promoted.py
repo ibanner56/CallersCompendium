@@ -15,6 +15,11 @@ from compile_changelog_fragments import FragmentError, fragment_paths
 
 SCHEMA_CONSTANT = "kCompendiumSchemaVersion"
 TAXONOMY_CONSTANT = "contraTaxonomyVersion"
+# A one-time repair's completion marker, by the naming convention every sweep
+# in `CompendiumRepositories.ensureMigrated` follows. A new one means the
+# release runs a pass over stored figures or text on upgrade, schema bump or
+# not, so the notes must say what it does.
+_DONE_MARKER = re.compile(r"'(__[a-z0-9_]+_done__)'")
 _CORE = r"(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)"
 _SELECTED_VERSION = re.compile(rf"^(?P<core>{_CORE})(?:-beta)?$")
 
@@ -54,7 +59,7 @@ def _schema_version(source: str) -> int | None:
     return _constant_version(source, SCHEMA_CONSTANT)
 
 
-def _previous_constant_version(ref: str, path: Path, constant: str) -> int | None:
+def _previous_source(ref: str, path: Path) -> str:
     result = subprocess.run(
         ["git", "show", f"{ref}:{path.as_posix()}"],
         check=False,
@@ -63,7 +68,11 @@ def _previous_constant_version(ref: str, path: Path, constant: str) -> int | Non
     )
     if result.returncode:
         raise ValueError(f"could not read {path} at previous ref {ref!r}")
-    return _constant_version(result.stdout, constant)
+    return result.stdout
+
+
+def _previous_constant_version(ref: str, path: Path, constant: str) -> int | None:
+    return _constant_version(_previous_source(ref, path), constant)
 
 
 def _previous_schema_version(ref: str, database: Path) -> int | None:
@@ -87,22 +96,27 @@ def _unreleased_has_items(changelog: str) -> bool:
     )
 
 
-def _migration_reaches(
-    section: str | None, target_version: int, keyword: str = "schema"
-) -> bool:
+def _data_migrations(section: str | None) -> str | None:
     if section is None:
-        return False
+        return None
     migration = re.search(
         r"^###[ \t]+Data\s*/\s*Migrations[ \t]*$(.*?)(?=^#{1,3}[ \t]+\S|\Z)",
         section,
         flags=re.IGNORECASE | re.MULTILINE | re.DOTALL,
     )
+    return None if migration is None else migration.group(1)
+
+
+def _migration_reaches(
+    section: str | None, target_version: int, keyword: str = "schema"
+) -> bool:
+    migration = _data_migrations(section)
     if migration is None:
         return False
     ends = re.findall(
         rf"\b{keyword}\b[^\n]*?(?:\bfrom\b[^\n]*?\bto\b|→|->)\s*"
         r"(?:version\s*)?(\d+)\b",
-        migration.group(1),
+        migration,
         flags=re.IGNORECASE,
     )
     return str(target_version) in ends
@@ -166,7 +180,41 @@ def validate(
             previous_ref=previous_ref,
         )
     )
+    errors.extend(
+        _repair_marker_errors(
+            changelog_text=changelog_text,
+            core=core,
+            schema_source=schema_source,
+            previous_source=_previous_source(previous_ref, database),
+        )
+    )
     return errors
+
+
+def _repair_marker_errors(
+    *, changelog_text: str, core: str, schema_source: str, previous_source: str,
+) -> list[str]:
+    """A new one-time repair needs a Data / Migrations note.
+
+    Repairs ship as settings markers rather than schema bumps (a PATCH release
+    may not bump the schema), so neither version range above notices one. The
+    gate cannot judge the prose; it requires the section to exist and to be
+    non-empty, and the runbook says what it must describe.
+    """
+    added = sorted(
+        set(_DONE_MARKER.findall(schema_source))
+        - set(_DONE_MARKER.findall(previous_source))
+    )
+    if not added:
+        return []
+    migration = _data_migrations(_section(changelog_text, core))
+    if migration is not None and migration.strip():
+        return []
+    return [
+        f"new one-time repair marker(s) since the previous release "
+        f"({', '.join(added)}), but ## [{core}] has no Data / Migrations "
+        f"section describing what the pass does to stored data."
+    ]
 
 
 def _pending_fragments(directory: Path) -> list[str]:
@@ -183,11 +231,12 @@ def _taxonomy_errors(
     *, changelog_text: str, core: str, taxonomy: Path | None,
     previous_ref: str,
 ) -> list[str]:
-    """Taxonomy moves are user-visible even though nothing migrates.
+    """Taxonomy moves are user-visible even though the constant migrates nothing.
 
     ``contraTaxonomyVersion`` is a documentary marker — nothing reads it at
     runtime — but a bump means dances are categorised or matched differently,
-    which users notice. The runbook requires it in Data / Migrations alongside
+    which users notice. Any pass over stored data that ships with it is gated
+    by its own marker, checked by ``_repair_marker_errors``. The runbook requires it in Data / Migrations alongside
     the schema range.
     """
     if taxonomy is None or not taxonomy.exists():
@@ -255,8 +304,8 @@ def main(argv: list[str] | None = None) -> int:
             print(f"::error::{error}", file=sys.stderr)
         return 1
     print(
-        "OK: CHANGELOG compilation, heading count, and schema/taxonomy notes "
-        "are current."
+        "OK: CHANGELOG compilation, heading count, and schema/taxonomy/repair "
+        "notes are current."
     )
     return 0
 

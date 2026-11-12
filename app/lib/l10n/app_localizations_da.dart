@@ -643,7 +643,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsSyncIdCopied =>
-      'Synkroniseringssætning kopieret. Den giver adgang til dit lager, så indsæt den kun på en enhed, du selv ejer.';
+      'Synkroniseringssætning kopieret. Enhver, der har den, kan åbne dit delte bibliotek, så indsæt den kun på en enhed, du selv ejer.';
 
   @override
   String get settingsSyncIdCaution =>
@@ -765,7 +765,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String settingsSyncNoticeNewerVersionItems(String items) {
-    return 'En anden enhed bruger en nyere version af appen. Opdater appen på denne enhed for at modtage $items.';
+    return 'En anden enhed bruger en nyere version af appen. Opdater appen på denne enhed for at modtage $items. Hvis du redigerer dem her, før du opdaterer, kan den anden enheds ændringer i dem gå tabt.';
   }
 
   @override
@@ -891,7 +891,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsSyncNoticeNewerVersionUncounted =>
-      'En anden enhed bruger en nyere version af appen. Opdater appen på denne enhed for at modtage dens ændringer.';
+      'En anden enhed bruger en nyere version af appen. Opdater appen på denne enhed for at modtage dens ændringer. Hvis du her redigerer noget, den har ændret, før du opdaterer, kan dens ændringer gå tabt.';
 
   @override
   String settingsSyncNoticeKeptNewerItems(String items) {
@@ -1531,7 +1531,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsSyncWipeConfirmBody =>
-      'Alt, hvad lageret indeholder, slettes fra serveren, for alle enheder på én gang, og det kan ikke fortrydes. Dit bibliotek bliver på denne enhed og på hver af dine andre enheder — men alt, der kun nogensinde var nået frem til en anden enhed via synkronisering, kommer ikke hertil. Denne enhed afbryder forbindelsen og glemmer sin synkroniseringssætning; dine andre enheder vil opdage, at lageret er væk, næste gang de synkroniserer, og vil spørge, om der skal oprettes et nyt. Brug det, hvis din synkroniseringssætning er blevet set af andre: Det er det eneste, der straks fjerner det, de kan læse.';
+      'Alt, hvad lageret indeholder, slettes fra serveren, for alle enheder på én gang, og det kan ikke fortrydes. Dit bibliotek bliver på denne enhed og på hver af dine andre enheder — men alt, der kun nogensinde var nået frem til en anden enhed via synkronisering, kommer ikke hertil. Denne enhed afbryder forbindelsen og glemmer sin synkroniseringssætning; dine andre enheder vil opdage, at lageret er væk, næste gang de synkroniserer, og vil tilbyde at konfigurere en ny sætning. Brug det, når du vil holde op med at bruge dette lagers adresse: Det er det eneste, der straks fjerner det, lageret indeholder. For at blive ved med at synkronisere skal du konfigurere en ny sætning på hver enhed — genforbinder du med den gamle, kommer der et nyt lager på samme adresse igen.';
 
   @override
   String get settingsSyncWipeConfirmAction => 'Slet lageret';
@@ -1728,14 +1728,17 @@ class AppLocalizationsDa extends AppLocalizations {
       'Dit bibliotek er forbundet. Den første synkronisering er ikke kørt endnu; den kører, næste gang denne enhed synkroniserer.';
 
   @override
-  String get settingsSyncReplacementTitle => 'Genforbind dette lager?';
+  String get settingsSyncReplacementTitle => 'Dette lager findes ikke længere';
 
   @override
   String get settingsSyncReplacementBody =>
-      'Lageret, denne enhed plejede at synkronisere med, findes ikke længere. Det kan være udløbet på grund af inaktivitet, eller det kan være blevet fjernet. Genforbindelse opretter et nyt lager med samme sætning og synkroniserer forfra.';
+      'Lageret, denne enhed plejede at synkronisere med, findes ikke længere. Det kan være udløbet på grund af inaktivitet, eller det kan være blevet fjernet. For at holde op med at bruge dette lagers adresse skal du konfigurere en ny sætning: Denne enhed afbryder forbindelsen, og derefter opretter du et nyt lager eller forbinder til et, du har konfigureret på en anden enhed. Gør det på hver af dine enheder. Genforbind opretter i stedet et nyt lager på samme adresse, med samme sætning, og sender hele dit bibliotek dertil; hvis en anden enhed allerede har gjort det, slutter denne enhed sig til det lager.';
 
   @override
   String get settingsSyncReplacementConfirm => 'Genforbind';
+
+  @override
+  String get settingsSyncReplacementNewPhrase => 'Konfigurer med en ny sætning';
 
   @override
   String get settingsSyncReplacementCancel => 'Ikke nu';

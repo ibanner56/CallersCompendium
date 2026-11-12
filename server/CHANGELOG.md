@@ -8,6 +8,78 @@ the app and of `compendium_core`; version headings below refer to
 
 ## [Unreleased]
 
+### Added
+
+- Large-body requests — manifest `PUT`, blob `PUT` (single and batch) and
+  `POST /v1/blobs/missing` — are counted while in flight: 4 per client address,
+  then `429` with `Retry-After: 5`, and 16 server-wide, then `503` with
+  `Retry-After: 5`. Before, nothing limited how many such bodies the server held
+  in memory at once; 40 stalled 15 MB manifest uploads took it from 169 MB to
+  740 MB resident. Set with `--max-large-bodies-per-ip` and
+  `--max-large-bodies`, or `ATHENAEUM_MAX_LARGE_BODIES_PER_IP` and
+  `ATHENAEUM_MAX_LARGE_BODIES`. Such a body must arrive whole within 60
+  seconds or the server closes the connection and frees the slot, so a client
+  trickling its body, or falling silent part-way, cannot hold one longer. The
+  server-wide cap refusing a request raises a new `capacity_exhaustion` alert,
+  which the updated `server/deploy/athenaeum-alert-email` forwards.
+- A free-space floor: blob and manifest uploads answer `507` while the data
+  directory's filesystem has less than 1 GiB free (`--min-free-bytes` or
+  `ATHENAEUM_MIN_FREE_BYTES`; `0` turns it off). Lookups, downloads, deletes
+  and a manifest upload no larger than the device's stored one keep working
+  below it, so a user can still shrink a device's share by turning on *Skip
+  unused imported dances*. **Upgrade note:** on a host already below the
+  floor, every upload answers `507` from the first start; check free space
+  before deploying. It raises a `quota_exhaustion` alert with `source`
+  `free_space_floor`. Free space is read with `statvfs(3)` through `dart:ffi`
+  on 64-bit Linux; elsewhere the server says at startup that it cannot read it,
+  and admits every write. The server now depends on `package:ffi` directly.
+- A per-address store-creation limit in front of the server-wide 60 a minute:
+  5 per client address (an IPv4 address or an IPv6 /64), refilled at 5 an hour.
+  One address could previously spend the whole server-wide budget and hold
+  every other first pairing out for the rest of the minute.
+
+### Changed
+
+- A blob `GET` streams the blob file 64 KiB at a time, with a
+  `Content-Length`, instead of reading it whole into the response.
+- A manifest `GET` streams the manifest from SQLite 1 MiB at a time as the
+  client reads it, with a `Content-Length`, instead of reading it whole into
+  the response. 40 unread `GET`s of a 15 MB manifest took the server from
+  170 MB to 746 MB resident; they now leave it at 123 MB. A manifest replaced
+  or unreadable part-way through ends the response early, and the client fails
+  the request as on a dropped connection.
+
+### Fixed
+
+- After a large deletion — a caller dropping an old imported library, or
+  turning on `sync_exclude_imports` near quota — every quota check re-read
+  each queued blob deletion from the filesystem, and `PUT /v1/blobs/batch`
+  did so once per new blob, on the server's single isolate. Measured on a
+  4-CPU container with 20,000 queued deletions, each quota check took about
+  1 s and a 50-blob batch 56 s, past the client's 30 s deadline, stalling
+  every other request meanwhile; they now take under 1 ms and under 50 ms. Pending deletions are
+  now charged from a running per-store total, adjusted as jobs are queued and
+  run, and a batch reads it once. The cost moves to the garbage collection
+  that queues the deletions, which stats each queued file once, so the
+  manifest `PUT` that drops a large library takes longer, once: 1.7 s rather
+  than 0.6 s for 20,000 blobs in the same measurement. The total is
+  derived from the filesystem after a restart and after a change the server
+  cannot account for file by file; a pending file removed by hand while the
+  server runs stays charged until then.
+- The cleanup each request runs before it is served now drains as many jobs
+  as fit in its 50 ms budget, rather than stopping at 16, so while a backlog
+  lasts each request can spend up to about 50 ms on it. It stops at the first
+  job whose filesystem removal fails, so a job that keeps failing costs each
+  request one attempt rather than the whole budget.
+- The hourly sweep no longer blocks the server for its whole run, which grew
+  with the number of stores. It runs in slices of about 50 ms and yields between them, does
+  not start while the previous sweep is still running, and reaps a store only
+  if it is still past the disuse TTL when its own deletion runs. Shutdown
+  stops a sweep in progress at its next slice before closing the database.
+
+The server limits above change no schema, stored format or wire format, and
+no version constant.
+
 ## [0.3.3] - 2026-11-02
 
 ### Changed

@@ -110,7 +110,7 @@ sudo -n docker run --detach \
 
 # `docker run --detach` succeeds as soon as the container exists, so a server
 # that crashes on start (a bad migration, a missing pepper) would otherwise pass.
-# Wait for the credential-free liveness endpoint, then confirm the container is
+# Wait for the liveness endpoint (which takes no sync ID), then confirm the container is
 # the one just started and has not been restarting.
 ready=false
 for ((attempt = 1; attempt <= heartbeat_attempts; attempt++)); do

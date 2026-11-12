@@ -646,7 +646,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsSyncIdCopied =>
-      'Synchronisatiezin gekopieerd. Hij geeft toegang tot je opslag, dus plak hem alleen op een apparaat dat van jou is.';
+      'Synchronisatiezin gekopieerd. Iedereen die hem heeft, kan je gedeelde bibliotheek openen, dus plak hem alleen op een apparaat dat van jou is.';
 
   @override
   String get settingsSyncIdCaution =>
@@ -770,7 +770,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String settingsSyncNoticeNewerVersionItems(String items) {
-    return 'Een ander apparaat gebruikt een nieuwere versie van de app. Werk de app op dit apparaat bij om $items te ontvangen.';
+    return 'Een ander apparaat gebruikt een nieuwere versie van de app. Werk de app op dit apparaat bij om $items te ontvangen. Als je ze hier bewerkt voordat je bijwerkt, kunnen de wijzigingen van het andere apparaat daarin verloren gaan.';
   }
 
   @override
@@ -896,7 +896,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsSyncNoticeNewerVersionUncounted =>
-      'Een ander apparaat gebruikt een nieuwere versie van de app. Werk de app op dit apparaat bij om de wijzigingen ervan te ontvangen.';
+      'Een ander apparaat gebruikt een nieuwere versie van de app. Werk de app op dit apparaat bij om de wijzigingen ervan te ontvangen. Als je hier iets bewerkt dat het heeft gewijzigd voordat je bijwerkt, kunnen de wijzigingen ervan verloren gaan.';
 
   @override
   String settingsSyncNoticeKeptNewerItems(String items) {
@@ -1542,7 +1542,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsSyncWipeConfirmBody =>
-      'Alles wat de opslag bevat wordt van de server verwijderd, voor alle apparaten tegelijk, en dit kan niet ongedaan worden gemaakt. Je bibliotheek blijft op dit apparaat en op elk van je andere apparaten staan — maar alles wat alleen via synchronisatie op een ander apparaat terecht was gekomen, komt hier niet aan. Dit apparaat wordt losgekoppeld en vergeet zijn synchronisatiezin; je andere apparaten zullen bij de volgende synchronisatie merken dat de opslag weg is en vragen of er een nieuwe moet komen. Gebruik dit als iemand anders je synchronisatiezin heeft gezien: het is het enige dat meteen weghaalt wat die persoon kan lezen.';
+      'Alles wat de opslag bevat wordt van de server verwijderd, voor alle apparaten tegelijk, en dit kan niet ongedaan worden gemaakt. Je bibliotheek blijft op dit apparaat en op elk van je andere apparaten staan — maar alles wat alleen via synchronisatie op een ander apparaat terecht was gekomen, komt hier niet aan. Dit apparaat wordt losgekoppeld en vergeet zijn synchronisatiezin; je andere apparaten zullen bij de volgende synchronisatie merken dat de opslag weg is en aanbieden een nieuwe zin in te stellen. Gebruik dit als je het adres van deze opslag niet meer wilt gebruiken: het is het enige dat meteen weghaalt wat de opslag bevat. Om te blijven synchroniseren stel je op elk apparaat een nieuwe zin in — opnieuw verbinden met de oude zet weer een nieuwe opslag op hetzelfde adres.';
 
   @override
   String get settingsSyncWipeConfirmAction => 'Opslag verwijderen';
@@ -1739,14 +1739,17 @@ class AppLocalizationsNl extends AppLocalizations {
       'Je bibliotheek is verbonden. De eerste synchronisatie is nog niet gedraaid; hij draait de volgende keer dat dit apparaat synchroniseert.';
 
   @override
-  String get settingsSyncReplacementTitle => 'Deze opslag opnieuw verbinden?';
+  String get settingsSyncReplacementTitle => 'Deze opslag bestaat niet meer';
 
   @override
   String get settingsSyncReplacementBody =>
-      'De opslag waarmee dit apparaat synchroniseerde, bestaat niet meer. Mogelijk is deze verlopen door inactiviteit, of is deze verwijderd. Opnieuw verbinden maakt een nieuwe opslag met dezelfde zin en synchroniseert helemaal opnieuw.';
+      'De opslag waarmee dit apparaat synchroniseerde, bestaat niet meer. Mogelijk is deze verlopen door inactiviteit, of is deze verwijderd. Om het adres van deze opslag niet meer te gebruiken, stel je een nieuwe zin in: dit apparaat wordt losgekoppeld, en daarna maak je een nieuwe opslag of verbind je met een opslag die je op een ander apparaat hebt ingesteld. Doe dit op elk van je apparaten. Opnieuw verbinden maakt in plaats daarvan een nieuwe opslag op hetzelfde adres, met dezelfde zin, en stuurt je hele bibliotheek daarheen; als een ander apparaat dat al heeft gedaan, sluit dit apparaat zich bij die opslag aan.';
 
   @override
   String get settingsSyncReplacementConfirm => 'Opnieuw verbinden';
+
+  @override
+  String get settingsSyncReplacementNewPhrase => 'Instellen met een nieuwe zin';
 
   @override
   String get settingsSyncReplacementCancel => 'Niet nu';

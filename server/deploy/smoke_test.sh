@@ -4,7 +4,7 @@ set -eu
 host=${1:?usage: smoke_test.sh <host> [https-port] [http-port]}
 https_port=${2:-443}
 http_port=${3:-80}
-credential=${ATHENAEUM_CREDENTIAL:?set ATHENAEUM_CREDENTIAL to a new encoded sync credential}
+credential=${ATHENAEUM_CREDENTIAL:?set ATHENAEUM_CREDENTIAL to a new store's encoded sync ID}
 http_body=$(mktemp)
 status_body=$(mktemp)
 health_body=$(mktemp)
@@ -52,7 +52,7 @@ cleanup() {
     done < "$created_credentials"
   fi
   if [ -s "$cleanup_failures" ]; then
-    echo "cleanup incomplete; credentials retained in $cleanup_failures" >&2
+    echo "cleanup incomplete; encoded sync IDs retained in $cleanup_failures" >&2
   else
     rm -f "$cleanup_failures"
   fi
@@ -229,20 +229,42 @@ encode_id() {
   printf '%s' "$1" | base64 | tr '+/' '-_' | tr -d '=[:space:]'
 }
 
-echo "checking store-creation budget (60 successes, 61st refusal)"
-for index in $(seq 1 59); do
+echo "checking per-IP store-creation budget (5 successes, 6th refusal)"
+for index in $(seq 1 5); do
+  token=$(encode_id "w16-smoke-${run_id}ip${index}-store")
+  printf '%s\n' "$token" >> "$created_credentials"
+  expect_status 201 "per-IP store creation ${index}" \
+    --interface 127.3.0.1 \
+    --request POST --header "Authorization: Bearer ${token}" \
+    "${https_url}/v1/store"
+done
+ip_extra_token=$(encode_id "w16-overip${run_id}-budget-store")
+printf '%s\n' "$ip_extra_token" >> "$created_credentials"
+expect_status 429 "per-IP store creation budget" \
+  --interface 127.3.0.1 \
+  --request POST --header "Authorization: Bearer ${ip_extra_token}" \
+  "${https_url}/v1/store"
+echo "per-IP store-creation budget: passed"
+
+# The HTTPS create above and the five per-IP successes are 6 of the 60; the
+# per-IP refusal is not charged to the server-wide budget. One creation per
+# address from here, so the server-wide budget is what refuses the 61st.
+echo "checking server-wide store-creation budget (60 successes, 61st refusal)"
+for index in $(seq 1 54); do
   token=$(encode_id "w16-smoke-${run_id}${index}-store")
   printf '%s\n' "$token" >> "$created_credentials"
   expect_status 201 "store creation ${index}" \
+    --interface "127.3.1.${index}" \
     --request POST --header "Authorization: Bearer ${token}" \
     "${https_url}/v1/store"
 done
 extra_token=$(encode_id "w16-over${run_id}-budget-store")
 printf '%s\n' "$extra_token" >> "$created_credentials"
 expect_status 429 "store creation budget" \
+  --interface 127.3.2.1 \
   --request POST --header "Authorization: Bearer ${extra_token}" \
   "${https_url}/v1/store"
-echo "store-creation budget: passed"
+echo "server-wide store-creation budget: passed"
 
 https_get_status=$(
   curl_local --silent --show-error --max-time 10 --max-redirs 0 \
@@ -260,7 +282,7 @@ if [ -z "$hsts_max_age" ] || [ "$hsts_max_age" -lt 15552000 ]; then
   echo "HSTS max-age is below the six-month minimum" >&2
   exit 1
 fi
-echo "authenticated HTTPS create/lookup and HSTS: passed"
+echo "HTTPS create/lookup and HSTS: passed"
 
 if grep -Eiq 'mod_deflate|SetInputFilter|RequestHeader[[:space:]]+.*Content-Encoding' "$apache_config"; then
   echo "active Apache vhost contains a request decompression directive" >&2

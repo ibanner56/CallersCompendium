@@ -573,6 +573,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     );
   }
 
+  Future<bool> _isOlderThanImported(String id, String version) async {
+    final status = await _publishedCollectionStatus(id, version);
+    return isOlderThanImportedPublishedVersion(version, status.importedVersion);
+  }
+
   Future<List<CollectionImportEvent>>? _publishedImportEvents;
   Future<Map<(String, String), int>>? _publishedHeldCounts;
 
@@ -587,6 +592,21 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       );
     }
     service.verifyArchiveBytes(entry, archiveBytes);
+    // Refuse to roll a newer imported collection back (SUPPLY-2). The catalog
+    // already disables such entries; this covers any other route here.
+    var older = false;
+    try {
+      older = await _isOlderThanImported(entry.id, entry.version);
+    } catch (error, stackTrace) {
+      // Fail open, as in _planPublishedSeed: an unreadable local status must
+      // not turn into an unhandled error that blocks the import.
+      logCaughtErrorTypeOnly(
+        error,
+        stackTrace,
+        source: 'import_review_screen._selectPublishedCollection',
+      );
+    }
+    if (older || !mounted) return;
     final metadata = PublishedCollectionMetadata(
       collectionId: entry.id,
       collectionVersion: entry.version,
@@ -621,6 +641,37 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     await _plan();
   }
 
+  /// Plans a standalone verified seed unless it is older than the imported
+  /// version of the same collection (SUPPLY-2), in which case the review shows
+  /// its generic "could not read" state and nothing is planned or written.
+  Future<void> _planPublishedSeed(PublishedCollectionSeed seed) async {
+    final metadata = seed.metadata;
+    var older = false;
+    try {
+      older = await _isOlderThanImported(
+        metadata.collectionId,
+        metadata.collectionVersion,
+      );
+    } catch (error, stackTrace) {
+      logCaughtErrorTypeOnly(
+        error,
+        stackTrace,
+        source: 'import_review_screen._planPublishedSeed',
+      );
+      // The local lookup failing must not strand the screen; planning carries
+      // on as it did before this guard existed.
+    }
+    if (older) {
+      if (!mounted) return;
+      setState(() {
+        _planError = StateError('older than imported published collection');
+        _phase = _Phase.review;
+      });
+      return;
+    }
+    await _plan();
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -632,7 +683,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       if (published != null) {
         _pasteController.text = published.json;
         _sourceUri = null;
-        _plan();
+        _planPublishedSeed(published);
       } else if (bundle != null) {
         // Share-target intake (issue #432): the bundle was already decoded and
         // validated Dart-side. Seed it and plan immediately so the user lands
