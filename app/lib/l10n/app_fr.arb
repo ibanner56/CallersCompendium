@@ -176,9 +176,9 @@
   "@migrationRelocationCopyDetails": {
     "x-sourceSha256": "26e7cdb8f7afe2d471212d37420ffa8e966adf5a0462a26ad7f411bd473f9c18"
   },
-  "migrationSnapshotAbortedMessage": "Caller’s Compendium n'a pas démarré car une sauvegarde automatique n'a pas pu être créée avant la mise à niveau de vos données enregistrées. {cause}Libérez de l'espace (ou réparez le dossier de sauvegardes), puis rouvrez l'application — ou rouvrez-la et choisissez de continuer sans sauvegarde.",
+  "migrationSnapshotAbortedMessage": "Caller’s Compendium n'a pas démarré car une sauvegarde automatique n'a pas pu être créée avant la modification de vos données enregistrées. {cause}Libérez de l'espace (ou réparez le dossier de sauvegardes), puis rouvrez l'application — ou rouvrez-la et choisissez de continuer sans sauvegarde.",
   "@migrationSnapshotAbortedMessage": {
-    "x-sourceSha256": "701d5476b4f7a24c13676a3f0663490c45e4cae71dc03fb5183c1686d57d2d68"
+    "x-sourceSha256": "373045547ba04d4776d51ddeecf26c38f485afc7bc47aed67ac4fbac1d3622f4"
   },
   "migrationSnapshotCauseDiskFull": "Votre appareil semble manquer d'espace de stockage.",
   "@migrationSnapshotCauseDiskFull": {
@@ -188,13 +188,25 @@
   "@migrationSnapshotCauseUnwritableBackupsDir": {
     "x-sourceSha256": "11d37c8a9cf6e85eea185322cc5783fca284153fe736b0dbd270a11a574af838"
   },
+  "migrationSnapshotCauseDatabaseInUse": "Une autre application a ouvert votre bibliothèque : une sauvegarde faite maintenant ne contiendrait pas vos dernières modifications. Fermez toute autre application qui a ouvert votre bibliothèque, puis réessayez.",
+  "@migrationSnapshotCauseDatabaseInUse": {
+    "x-sourceSha256": "9fe556f07fca5ab643b841d48a8f5d28c912b29f755e37ac1178a1a88191136b"
+  },
+  "migrationSnapshotInUseConsentBody": "Avant de modifier vos données enregistrées, Caller’s Compendium crée une sauvegarde automatique afin que les modifications puissent être annulées en cas de problème. Une autre application a ouvert votre bibliothèque en ce moment : une sauvegarde faite maintenant ne contiendrait pas vos dernières modifications.\n\nSi vous continuez sans sauvegarde et que les modifications sont interrompues, certaines de vos danses ou de vos programmes pourraient être perdus. Vous pouvez quitter, fermer toute autre application qui a ouvert votre bibliothèque et rouvrir Caller’s Compendium pour réessayer.",
+  "@migrationSnapshotInUseConsentBody": {
+    "x-sourceSha256": "20d61ed5b8415eeca3265d2534032a65b34f4808d11bdd6e2df58f7689ad5fc5"
+  },
+  "migrationSnapshotInUseAbortedMessage": "Caller’s Compendium n'a pas démarré car une autre application a ouvert votre bibliothèque : la sauvegarde automatique faite avant la modification de vos données enregistrées ne contiendrait pas vos dernières modifications. Fermez toute autre application qui a ouvert votre bibliothèque, puis rouvrez Caller’s Compendium — ou rouvrez-le et choisissez de continuer sans sauvegarde.",
+  "@migrationSnapshotInUseAbortedMessage": {
+    "x-sourceSha256": "807eb23829aafdccc4616f33502179af13af6b1f6bf14eca55dc0696b087fb7a"
+  },
   "migrationSnapshotConsentTitle": "Impossible de sauvegarder vos données",
   "@migrationSnapshotConsentTitle": {
     "x-sourceSha256": "809b2d6dbd0aae49496f566c318ff23d50bf7ffd3fa9dc0a81a49bd78b153d1c"
   },
-  "migrationSnapshotConsentBody": "Avant de mettre à niveau vos données enregistrées vers un nouveau format, Caller’s Compendium crée une sauvegarde automatique afin qu'une mise à niveau échouée puisse être annulée. Cette sauvegarde n'a pas pu être créée cette fois.{cause}\n\nSi vous continuez sans sauvegarde et que la mise à niveau est interrompue, certaines de vos danses ou de vos programmes pourraient être perdus. Vous pouvez quitter, libérer de l'espace (ou réparer le dossier de sauvegardes) et rouvrir l'application pour réessayer.",
+  "migrationSnapshotConsentBody": "Avant de modifier vos données enregistrées, Caller’s Compendium crée une sauvegarde automatique afin que les modifications puissent être annulées en cas de problème. Cette sauvegarde n'a pas pu être créée cette fois.{cause}\n\nSi vous continuez sans sauvegarde et que les modifications sont interrompues, certaines de vos danses ou de vos programmes pourraient être perdus. Vous pouvez quitter, libérer de l'espace (ou réparer le dossier de sauvegardes) et rouvrir l'application pour réessayer.",
   "@migrationSnapshotConsentBody": {
-    "x-sourceSha256": "1d1216f082332d05fe4421d65e1dd546566adcd5971dd5c6d22a012f40dd3f8d"
+    "x-sourceSha256": "58443cc689fbdcd885acb4babbe96daccdd52c3dc6d63c0d728af76094461a3b"
   },
   "migrationSnapshotConsentQuit": "Quitter",
   "@migrationSnapshotConsentQuit": {

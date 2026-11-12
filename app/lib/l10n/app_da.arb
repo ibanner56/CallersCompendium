@@ -176,9 +176,9 @@
   "@migrationRelocationCopyDetails": {
     "x-sourceSha256": "26e7cdb8f7afe2d471212d37420ffa8e966adf5a0462a26ad7f411bd473f9c18"
   },
-  "migrationSnapshotAbortedMessage": "Caller’s Compendium startede ikke, fordi der ikke kunne oprettes en automatisk sikkerhedskopi, før dine gemte data blev opgraderet. {cause}Frigør plads (eller reparer sikkerhedskopimappen), og åbn derefter appen igen — eller åbn igen og vælg at fortsætte uden en sikkerhedskopi.",
+  "migrationSnapshotAbortedMessage": "Caller’s Compendium startede ikke, fordi der ikke kunne oprettes en automatisk sikkerhedskopi, før der blev foretaget ændringer i dine gemte data. {cause}Frigør plads (eller reparer sikkerhedskopimappen), og åbn derefter appen igen — eller åbn igen og vælg at fortsætte uden en sikkerhedskopi.",
   "@migrationSnapshotAbortedMessage": {
-    "x-sourceSha256": "701d5476b4f7a24c13676a3f0663490c45e4cae71dc03fb5183c1686d57d2d68"
+    "x-sourceSha256": "373045547ba04d4776d51ddeecf26c38f485afc7bc47aed67ac4fbac1d3622f4"
   },
   "migrationSnapshotCauseDiskFull": "Din enhed ser ud til at have lidt ledig lagerplads.",
   "@migrationSnapshotCauseDiskFull": {
@@ -188,13 +188,25 @@
   "@migrationSnapshotCauseUnwritableBackupsDir": {
     "x-sourceSha256": "11d37c8a9cf6e85eea185322cc5783fca284153fe736b0dbd270a11a574af838"
   },
+  "migrationSnapshotCauseDatabaseInUse": "En anden app har dit bibliotek åbent, så en sikkerhedskopi lavet nu ville mangle dine seneste ændringer. Luk alle andre apps, der har dit bibliotek åbent, og prøv derefter igen.",
+  "@migrationSnapshotCauseDatabaseInUse": {
+    "x-sourceSha256": "9fe556f07fca5ab643b841d48a8f5d28c912b29f755e37ac1178a1a88191136b"
+  },
+  "migrationSnapshotInUseConsentBody": "Før der foretages ændringer i dine gemte data, opretter Caller’s Compendium en automatisk sikkerhedskopi, så ændringerne kan fortrydes, hvis noget går galt. En anden app har dit bibliotek åbent lige nu, så en sikkerhedskopi lavet nu ville mangle dine seneste ændringer.\n\nHvis du fortsætter uden en sikkerhedskopi, og ændringerne afbrydes, kan nogle af dine danse eller programmer gå tabt. Du kan afslutte, lukke alle andre apps, der har dit bibliotek åbent, og åbne Caller’s Compendium igen for at prøve igen.",
+  "@migrationSnapshotInUseConsentBody": {
+    "x-sourceSha256": "20d61ed5b8415eeca3265d2534032a65b34f4808d11bdd6e2df58f7689ad5fc5"
+  },
+  "migrationSnapshotInUseAbortedMessage": "Caller’s Compendium startede ikke, fordi en anden app har dit bibliotek åbent, så den automatiske sikkerhedskopi, der laves før ændringer i dine gemte data, ville mangle dine seneste ændringer. Luk alle andre apps, der har dit bibliotek åbent, og åbn derefter Caller’s Compendium igen — eller åbn den igen og vælg at fortsætte uden en sikkerhedskopi.",
+  "@migrationSnapshotInUseAbortedMessage": {
+    "x-sourceSha256": "807eb23829aafdccc4616f33502179af13af6b1f6bf14eca55dc0696b087fb7a"
+  },
   "migrationSnapshotConsentTitle": "Kunne ikke sikkerhedskopiere dine data",
   "@migrationSnapshotConsentTitle": {
     "x-sourceSha256": "809b2d6dbd0aae49496f566c318ff23d50bf7ffd3fa9dc0a81a49bd78b153d1c"
   },
-  "migrationSnapshotConsentBody": "Før dine gemte data opgraderes til et nyt format, opretter Caller’s Compendium en automatisk sikkerhedskopi, så en mislykket opgradering kan fortrydes. Den sikkerhedskopi kunne ikke oprettes denne gang.{cause}\n\nHvis du fortsætter uden en sikkerhedskopi, og opgraderingen afbrydes, kan nogle af dine danse eller programmer gå tabt. Du kan afslutte, frigøre plads (eller reparere sikkerhedskopimappen) og åbne appen igen for at prøve igen.",
+  "migrationSnapshotConsentBody": "Før der foretages ændringer i dine gemte data, opretter Caller’s Compendium en automatisk sikkerhedskopi, så ændringerne kan fortrydes, hvis noget går galt. Den sikkerhedskopi kunne ikke oprettes denne gang.{cause}\n\nHvis du fortsætter uden en sikkerhedskopi, og ændringerne afbrydes, kan nogle af dine danse eller programmer gå tabt. Du kan afslutte, frigøre plads (eller reparere sikkerhedskopimappen) og åbne appen igen for at prøve igen.",
   "@migrationSnapshotConsentBody": {
-    "x-sourceSha256": "1d1216f082332d05fe4421d65e1dd546566adcd5971dd5c6d22a012f40dd3f8d"
+    "x-sourceSha256": "58443cc689fbdcd885acb4babbe96daccdd52c3dc6d63c0d728af76094461a3b"
   },
   "migrationSnapshotConsentQuit": "Afslut",
   "@migrationSnapshotConsentQuit": {

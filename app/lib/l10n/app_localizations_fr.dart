@@ -184,7 +184,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String migrationSnapshotAbortedMessage(String cause) {
-    return 'Caller’s Compendium n\'a pas démarré car une sauvegarde automatique n\'a pas pu être créée avant la mise à niveau de vos données enregistrées. ${cause}Libérez de l\'espace (ou réparez le dossier de sauvegardes), puis rouvrez l\'application — ou rouvrez-la et choisissez de continuer sans sauvegarde.';
+    return 'Caller’s Compendium n\'a pas démarré car une sauvegarde automatique n\'a pas pu être créée avant la modification de vos données enregistrées. ${cause}Libérez de l\'espace (ou réparez le dossier de sauvegardes), puis rouvrez l\'application — ou rouvrez-la et choisissez de continuer sans sauvegarde.';
   }
 
   @override
@@ -196,12 +196,24 @@ class AppLocalizationsFr extends AppLocalizations {
       'Impossible d\'écrire dans le dossier de sauvegardes automatiques.';
 
   @override
+  String get migrationSnapshotCauseDatabaseInUse =>
+      'Une autre application a ouvert votre bibliothèque : une sauvegarde faite maintenant ne contiendrait pas vos dernières modifications. Fermez toute autre application qui a ouvert votre bibliothèque, puis réessayez.';
+
+  @override
+  String get migrationSnapshotInUseConsentBody =>
+      'Avant de modifier vos données enregistrées, Caller’s Compendium crée une sauvegarde automatique afin que les modifications puissent être annulées en cas de problème. Une autre application a ouvert votre bibliothèque en ce moment : une sauvegarde faite maintenant ne contiendrait pas vos dernières modifications.\n\nSi vous continuez sans sauvegarde et que les modifications sont interrompues, certaines de vos danses ou de vos programmes pourraient être perdus. Vous pouvez quitter, fermer toute autre application qui a ouvert votre bibliothèque et rouvrir Caller’s Compendium pour réessayer.';
+
+  @override
+  String get migrationSnapshotInUseAbortedMessage =>
+      'Caller’s Compendium n\'a pas démarré car une autre application a ouvert votre bibliothèque : la sauvegarde automatique faite avant la modification de vos données enregistrées ne contiendrait pas vos dernières modifications. Fermez toute autre application qui a ouvert votre bibliothèque, puis rouvrez Caller’s Compendium — ou rouvrez-le et choisissez de continuer sans sauvegarde.';
+
+  @override
   String get migrationSnapshotConsentTitle =>
       'Impossible de sauvegarder vos données';
 
   @override
   String migrationSnapshotConsentBody(String cause) {
-    return 'Avant de mettre à niveau vos données enregistrées vers un nouveau format, Caller’s Compendium crée une sauvegarde automatique afin qu\'une mise à niveau échouée puisse être annulée. Cette sauvegarde n\'a pas pu être créée cette fois.$cause\n\nSi vous continuez sans sauvegarde et que la mise à niveau est interrompue, certaines de vos danses ou de vos programmes pourraient être perdus. Vous pouvez quitter, libérer de l\'espace (ou réparer le dossier de sauvegardes) et rouvrir l\'application pour réessayer.';
+    return 'Avant de modifier vos données enregistrées, Caller’s Compendium crée une sauvegarde automatique afin que les modifications puissent être annulées en cas de problème. Cette sauvegarde n\'a pas pu être créée cette fois.$cause\n\nSi vous continuez sans sauvegarde et que les modifications sont interrompues, certaines de vos danses ou de vos programmes pourraient être perdus. Vous pouvez quitter, libérer de l\'espace (ou réparer le dossier de sauvegardes) et rouvrir l\'application pour réessayer.';
   }
 
   @override

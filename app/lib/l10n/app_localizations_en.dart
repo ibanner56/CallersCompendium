@@ -180,7 +180,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String migrationSnapshotAbortedMessage(String cause) {
-    return 'Caller\'s Compendium didn\'t start because it couldn\'t create an automatic backup before upgrading your saved data. ${cause}Free up space (or fix the backups folder), then reopen the app — or reopen and choose to continue without a backup.';
+    return 'Caller\'s Compendium didn\'t start because it couldn\'t create an automatic backup before making changes to your saved data. ${cause}Free up space (or fix the backups folder), then reopen the app — or reopen and choose to continue without a backup.';
   }
 
   @override
@@ -192,11 +192,23 @@ class AppLocalizationsEn extends AppLocalizations {
       'The automatic backups folder could not be written to.';
 
   @override
+  String get migrationSnapshotCauseDatabaseInUse =>
+      'Another app has your library open, so a backup made now would miss your latest changes. Close any other app that has your library open, then try again.';
+
+  @override
+  String get migrationSnapshotInUseConsentBody =>
+      'Before making changes to your saved data, Caller\'s Compendium makes an automatic backup so the changes can be undone if something goes wrong. Another app has your library open right now, so a backup made now would miss your latest changes.\n\nIf you continue without a backup and the changes are interrupted, some of your dances or programs could be lost. You can quit, close any other app that has your library open, and reopen Caller\'s Compendium to try again.';
+
+  @override
+  String get migrationSnapshotInUseAbortedMessage =>
+      'Caller\'s Compendium didn\'t start because another app has your library open, so the automatic backup made before changing your saved data would miss your latest changes. Close any other app that has your library open, then reopen Caller\'s Compendium — or reopen it and choose to continue without a backup.';
+
+  @override
   String get migrationSnapshotConsentTitle => 'Couldn\'t back up your data';
 
   @override
   String migrationSnapshotConsentBody(String cause) {
-    return 'Before upgrading your saved data to a new format, Caller\'s Compendium makes an automatic backup so a failed upgrade can be undone. That backup couldn\'t be created this time.$cause\n\nIf you continue without a backup and the upgrade is interrupted, some of your dances or programs could be lost. You can quit, free up space (or fix the backups folder), and reopen the app to try again.';
+    return 'Before making changes to your saved data, Caller\'s Compendium makes an automatic backup so the changes can be undone if something goes wrong. That backup couldn\'t be created this time.$cause\n\nIf you continue without a backup and the changes are interrupted, some of your dances or programs could be lost. You can quit, free up space (or fix the backups folder), and reopen the app to try again.';
   }
 
   @override

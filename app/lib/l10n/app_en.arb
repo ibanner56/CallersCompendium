@@ -215,9 +215,9 @@
       }
     }
   },
-  "migrationSnapshotAbortedMessage": "Caller's Compendium didn't start because it couldn't create an automatic backup before upgrading your saved data. {cause}Free up space (or fix the backups folder), then reopen the app — or reopen and choose to continue without a backup.",
+  "migrationSnapshotAbortedMessage": "Caller's Compendium didn't start because it couldn't create an automatic backup before making changes to your saved data. {cause}Free up space (or fix the backups folder), then reopen the app — or reopen and choose to continue without a backup.",
   "@migrationSnapshotAbortedMessage": {
-    "description": "Terminal startup-screen message shown when a pre-migration backup could not be created and the user declined to proceed without one. {cause} is an optional trailing sentence (already ends with a space) naming the likely cause, or empty when unknown.",
+    "description": "Terminal startup-screen message shown when the automatic backup taken before a schema upgrade or a one-time data repair could not be created and the user declined to proceed without one. {cause} is an optional trailing sentence (already ends with a space) naming the likely cause, or empty when unknown.",
     "placeholders": {
       "cause": {
         "type": "String",
@@ -233,13 +233,25 @@
   "@migrationSnapshotCauseUnwritableBackupsDir": {
     "description": "Plain-language sentence naming the likely cause of a failed pre-migration backup: the backups folder is not writable. Embedded into the snapshot-failure copy."
   },
+  "migrationSnapshotCauseDatabaseInUse": "Another app has your library open, so a backup made now would miss your latest changes. Close any other app that has your library open, then try again.",
+  "@migrationSnapshotCauseDatabaseInUse": {
+    "description": "Plain-language sentences naming the cause of a failed automatic backup and its remedy: another program (for example a database viewer) has the app's data file open and is reading it, so a copy would be missing recent changes. Appended to the 'backup failed' message of the reset flow. Must tell the user to close the other program, not to free space. Say \"app\", not \"program\": in this app a program is a dance set list."
+  },
+  "migrationSnapshotInUseConsentBody": "Before making changes to your saved data, Caller's Compendium makes an automatic backup so the changes can be undone if something goes wrong. Another app has your library open right now, so a backup made now would miss your latest changes.\n\nIf you continue without a backup and the changes are interrupted, some of your dances or programs could be lost. You can quit, close any other app that has your library open, and reopen Caller's Compendium to try again.",
+  "@migrationSnapshotInUseConsentBody": {
+    "description": "Body of the blocking dialog asking whether to change saved data (a schema upgrade or a one-time data repair) without a recoverable backup, shown when the backup failed because another program has the app's data file open. Keep the wording true for both an upgrade and a repair. The remedy is closing the other program, not freeing space. Say \"app\", not \"program\": in this app a program is a dance set list."
+  },
+  "migrationSnapshotInUseAbortedMessage": "Caller's Compendium didn't start because another app has your library open, so the automatic backup made before changing your saved data would miss your latest changes. Close any other app that has your library open, then reopen Caller's Compendium — or reopen it and choose to continue without a backup.",
+  "@migrationSnapshotInUseAbortedMessage": {
+    "description": "Terminal startup-screen message shown when the automatic backup taken before a schema upgrade or a one-time data repair failed because another program has the app's data file open, and the user declined to proceed without one. No Retry is offered: the user reopens the app. Say \"app\", not \"program\": in this app a program is a dance set list."
+  },
   "migrationSnapshotConsentTitle": "Couldn't back up your data",
   "@migrationSnapshotConsentTitle": {
-    "description": "Title of the blocking dialog asking whether to upgrade saved data without a recoverable backup after the automatic backup failed."
+    "description": "Title of the blocking dialog asking whether to change saved data (a schema upgrade or a one-time data repair) without a recoverable backup after the automatic backup failed."
   },
-  "migrationSnapshotConsentBody": "Before upgrading your saved data to a new format, Caller's Compendium makes an automatic backup so a failed upgrade can be undone. That backup couldn't be created this time.{cause}\n\nIf you continue without a backup and the upgrade is interrupted, some of your dances or programs could be lost. You can quit, free up space (or fix the backups folder), and reopen the app to try again.",
+  "migrationSnapshotConsentBody": "Before making changes to your saved data, Caller's Compendium makes an automatic backup so the changes can be undone if something goes wrong. That backup couldn't be created this time.{cause}\n\nIf you continue without a backup and the changes are interrupted, some of your dances or programs could be lost. You can quit, free up space (or fix the backups folder), and reopen the app to try again.",
   "@migrationSnapshotConsentBody": {
-    "description": "Body of the blocking dialog asking whether to upgrade saved data without a recoverable backup. {cause} is an optional block (already prefixed with two newlines) naming the likely cause, or empty when unknown.",
+    "description": "Body of the blocking dialog asking whether to change saved data (a schema upgrade or a one-time data repair) without a recoverable backup. Keep the wording true for both. {cause} is an optional block (already prefixed with two newlines) naming the likely cause, or empty when unknown.",
     "placeholders": {
       "cause": {
         "type": "String",
@@ -249,11 +261,11 @@
   },
   "migrationSnapshotConsentQuit": "Quit",
   "@migrationSnapshotConsentQuit": {
-    "description": "Button that safely aborts startup rather than upgrading saved data without a recoverable backup."
+    "description": "Button that safely aborts startup rather than changing saved data without a recoverable backup."
   },
   "migrationSnapshotConsentProceed": "Proceed without a backup",
   "@migrationSnapshotConsentProceed": {
-    "description": "Button that proceeds with the data upgrade even though no recoverable backup could be made."
+    "description": "Button that proceeds with the change to saved data (a schema upgrade or a one-time data repair) even though no recoverable backup could be made."
   },
   "migrationBelowFloorHeadline": "This data is from a version too old to open",
   "@migrationBelowFloorHeadline": {

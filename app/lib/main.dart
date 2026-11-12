@@ -264,6 +264,14 @@ Future<void> main(List<String> args) async {
           repairMarkers: appData.repositories.oneTimeRepairMarkers,
           onSnapshotFailure: onSnapshotFailure,
         ),
+        releaseRepairSnapshotPin: () async {
+          final dbFile = await resolveDatabaseFile();
+          await releaseRepairSnapshotPin(
+            snapshotDir: Directory(
+              p.join(dbFile.parent.path, kDatabaseBackupsDirName),
+            ),
+          );
+        },
         seedInitialCollection: (repos) => SeedService(repos).ensureSeeded(),
         incomingFileChannel: incomingFileChannel,
         installPlatformMenuBar:
@@ -323,6 +331,7 @@ class CompendiumApp extends StatefulWidget {
     required this.windowService,
     this.initialRequirePerformedForHistory = false,
     this.migrationPreflight,
+    this.releaseRepairSnapshotPin,
     this.integrityCheck,
     this.backupSaver,
     this.crashReporter,
@@ -429,6 +438,16 @@ class CompendiumApp extends StatefulWidget {
   /// [integrityCheck].
   final Future<void> Function(SnapshotFailureDecision onSnapshotFailure)?
   migrationPreflight;
+
+  /// Run once `ensureMigrated` has succeeded: every one-time repair is done,
+  /// so the snapshot [migrationPreflight] pinned for an outstanding repair
+  /// debt is released into the ordinary rotation now, not on the next launch,
+  /// where a newer build owing a new repair would otherwise find the old pin
+  /// and not pin its own first copy. Best effort: a failure is logged, and the
+  /// next launch's preflight releases it if that launch owes no repair (one
+  /// that owes a new repair keeps the stale pin and pins nothing new). Injected
+  /// from [main]; left `null` in tests that don't exercise it.
+  final Future<void> Function()? releaseRepairSnapshotPin;
 
   /// Once-per-launch data-integrity probe (`PRAGMA quick_check`), run after the
   /// first frame so a large database does not delay the first screen. Returns
@@ -1754,8 +1773,6 @@ class _CompendiumAppState extends State<CompendiumApp>
     if (context == null || !context.mounted) return false;
 
     final l10n = AppLocalizations.of(context);
-    final sentence = snapshotCauseSentence(l10n, failure.cause);
-    final causeBlock = sentence.isEmpty ? '' : '\n\n$sentence';
     final proceed = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -1764,7 +1781,7 @@ class _CompendiumAppState extends State<CompendiumApp>
         child: AlertDialog(
           icon: const Icon(Icons.warning_amber_outlined),
           title: Text(l10n.migrationSnapshotConsentTitle),
-          content: Text(l10n.migrationSnapshotConsentBody(causeBlock)),
+          content: Text(migrationSnapshotConsentBody(l10n, failure)),
           actions: [
             // Safest choice is the default: Quit, autofocused so a keyboard
             // Enter/confirm aborts rather than proceeding without a backup.
@@ -1810,6 +1827,13 @@ class _CompendiumAppState extends State<CompendiumApp>
       onDerivedRebuildProgress: (progress) =>
           _derivedRebuildProgress.value = progress,
     );
+    try {
+      await widget.releaseRepairSnapshotPin?.call();
+    } catch (error, stackTrace) {
+      // Never fatal: a stale pin keeps one extra copy, and until a launch owing
+      // nothing releases it, stops a newer repair debt pinning its own.
+      logCaughtError(error, stackTrace, source: 'startup.release_snapshot_pin');
+    }
     // First-run seed (issue: "first launch is never empty"): insert exactly one
     // seed dance on a fresh, empty install so the collection is never empty,
     // and never again thereafter (idempotent via a settings latch; safe to skip

@@ -192,6 +192,177 @@ void main() {
     expect(names, hasLength(2));
   });
 
+  test('a checkpoint result counts as complete only when every WAL frame is '
+      'in the main file', () {
+    // Finished, or not a WAL database.
+    expect(
+      checkpointLeftMainFileComplete(busy: 0, log: 3, checkpointed: 3),
+      isTrue,
+    );
+    expect(
+      checkpointLeftMainFileComplete(busy: 0, log: -1, checkpointed: -1),
+      isTrue,
+    );
+    // Only the WAL's reset was blocked: every frame was copied back.
+    expect(
+      checkpointLeftMainFileComplete(busy: 1, log: 3, checkpointed: 3),
+      isTrue,
+    );
+    // A reader behind the newest commit stopped it short.
+    expect(
+      checkpointLeftMainFileComplete(busy: 1, log: 3, checkpointed: 2),
+      isFalse,
+    );
+    // It could not run at all: nothing is known to be copied.
+    expect(
+      checkpointLeftMainFileComplete(busy: 1, log: -1, checkpointed: -1),
+      isFalse,
+    );
+  });
+
+  test('classifies a database in use apart from disk and folder failures', () {
+    expect(
+      classifySnapshotFailure(const SnapshotDatabaseInUse('/x')),
+      SnapshotFailureCause.databaseInUse,
+    );
+    // A plain busy FileSystemException carries no OS error to classify by.
+    expect(
+      classifySnapshotFailure(const FileSystemException('busy', '/x')),
+      SnapshotFailureCause.unknown,
+    );
+  });
+
+  group('a reader that pins the WAL during the snapshot', () {
+    // A WAL-mode file whose newest commit lives only in the `-wal`, behind a
+    // read transaction another connection opened before that commit. The
+    // checkpoint cannot fold that commit in while the reader holds its older
+    // snapshot, so a plain copy of the main file would silently miss it.
+    late File dbFile;
+    late sql.Database reader;
+    late sql.Database writer;
+
+    setUp(() {
+      dbFile = File(p.join(dir.path, 'compendium.sqlite'));
+      _createFixture(
+        dbFile.path,
+        userVersion: kCompendiumSchemaVersion - 1,
+        seedValue: 'checkpointed',
+      );
+      writer = sql.sqlite3.open(dbFile.path)
+        ..execute('PRAGMA journal_mode = WAL')
+        // Keep the commit below in the WAL: no automatic checkpoint.
+        ..execute('PRAGMA wal_autocheckpoint = 0');
+      reader = sql.sqlite3.open(dbFile.path)
+        ..execute('BEGIN')
+        ..select('SELECT count(*) FROM t');
+      writer.execute('INSERT INTO t (v) VALUES (?)', ['only in the WAL']);
+    });
+    tearDown(() {
+      if (reader.autocommit == false) reader.execute('ROLLBACK');
+      reader.close();
+      writer.close();
+    });
+
+    List<String> rowsIn(String path) {
+      final db = sql.sqlite3.open(path);
+      try {
+        return [
+          for (final row in db.select('SELECT v FROM t ORDER BY id'))
+            row['v'] as String,
+        ];
+      } finally {
+        db.close();
+      }
+    }
+
+    test('refuses the copy rather than take an incomplete one', () async {
+      SnapshotFailure? seen;
+      Object? thrown;
+      try {
+        await runMigrationPreflight(
+          dbFile: dbFile,
+          snapshotDir: snapshotDir,
+          runningSchemaVersion: kCompendiumSchemaVersion,
+          repairMarkers: const {},
+          onSnapshotFailure: (failure) async {
+            seen = failure;
+            return false;
+          },
+        );
+      } on MigrationSnapshotAborted catch (error) {
+        thrown = error;
+      }
+
+      final copies = snapshotDir.existsSync()
+          ? snapshotDir.listSync().whereType<File>().toList()
+          : const <File>[];
+      // Whatever happened, no copy that lacks the WAL-only commit survives…
+      for (final copy in copies) {
+        expect(rowsIn(copy.path), ['checkpointed', 'only in the WAL']);
+      }
+      // …and with the reader still holding its snapshot, the preflight goes
+      // to the user through the #442 path instead of copying.
+      expect(copies, isEmpty);
+      expect(thrown, isA<MigrationSnapshotAborted>());
+      // Classified as its own cause, so the dialog says to close the other
+      // program rather than to free space.
+      expect(seen?.error, isA<SnapshotDatabaseInUse>());
+      expect(seen?.cause, SnapshotFailureCause.databaseInUse);
+    });
+
+    test('takes the copy when the reader already sees every commit', () async {
+      // A reader at the newest snapshot still blocks TRUNCATE's reset of the
+      // WAL (busy = 1), but every frame is in the main file by then.
+      reader
+        ..execute('ROLLBACK')
+        ..execute('BEGIN')
+        ..select('SELECT count(*) FROM t');
+
+      await runMigrationPreflight(
+        dbFile: dbFile,
+        snapshotDir: snapshotDir,
+        runningSchemaVersion: kCompendiumSchemaVersion,
+        repairMarkers: const {},
+      );
+
+      final copy = snapshotDir.listSync().whereType<File>().single;
+      expect(rowsIn(copy.path), ['checkpointed', 'only in the WAL']);
+    });
+
+    test('waits briefly for a reader that lets go', () async {
+      // Well inside the retry window, and after the first attempt.
+      final release = Future<void>.delayed(
+        const Duration(milliseconds: 250),
+        () => reader.execute('ROLLBACK'),
+      );
+
+      await runMigrationPreflight(
+        dbFile: dbFile,
+        snapshotDir: snapshotDir,
+        runningSchemaVersion: kCompendiumSchemaVersion,
+        repairMarkers: const {},
+      );
+      await release;
+
+      final copy = snapshotDir.listSync().whereType<File>().single;
+      expect(rowsIn(copy.path), ['checkpointed', 'only in the WAL']);
+    });
+
+    test('takes a complete copy once the reader lets go', () async {
+      reader.execute('ROLLBACK');
+
+      await runMigrationPreflight(
+        dbFile: dbFile,
+        snapshotDir: snapshotDir,
+        runningSchemaVersion: kCompendiumSchemaVersion,
+        repairMarkers: const {},
+      );
+
+      final copy = snapshotDir.listSync().whereType<File>().single;
+      expect(rowsIn(copy.path), ['checkpointed', 'only in the WAL']);
+    });
+  });
+
   test(
     'consults the decision callback on snapshot failure and proceeds only on '
     'explicit consent (issue #442 fail-closed)',
@@ -489,6 +660,239 @@ void main() {
       expect(snapshotDir.existsSync(), isFalse);
     });
 
+    List<File> pinned() => [
+      for (final f in snapshots())
+        if (p.basename(f.path).endsWith('.pinned.sqlite.bak')) f,
+    ];
+
+    /// What one failing launch leaves behind: a sweep that committed before a
+    /// later one threw. Stands in for the repair's partial progress.
+    void commitPartOfTheRepair(File dbFile, int attempt) {
+      final db = sql.sqlite3.open(dbFile.path);
+      try {
+        db.execute("INSERT INTO settings (key, value_json) VALUES (?, '1')", [
+          '__test_partial_sweep_$attempt',
+        ]);
+      } finally {
+        db.close();
+      }
+    }
+
+    bool hasPartialSweep(File copy) {
+      final db = sql.sqlite3.open(copy.path);
+      try {
+        return db
+            .select(
+              "SELECT 1 FROM settings WHERE key LIKE '__test_partial_sweep_%'",
+            )
+            .isNotEmpty;
+      } finally {
+        db.close();
+      }
+    }
+
+    test('a repair that keeps failing keeps the copy from before its first '
+        'attempt', () async {
+      final dbFile = await createLibrary(owing: chainHandBackfillDoneKey);
+      const retain = 3;
+      var tick = DateTime.utc(2026, 11, 11);
+
+      // More failed launches than the rotation holds.
+      for (var attempt = 0; attempt < retain + 3; attempt++) {
+        await runMigrationPreflight(
+          dbFile: dbFile,
+          snapshotDir: snapshotDir,
+          runningSchemaVersion: kCompendiumSchemaVersion,
+          repairMarkers: repairMarkers,
+          retain: retain,
+          now: () => tick = tick.add(const Duration(seconds: 1)),
+        );
+        commitPartOfTheRepair(dbFile, attempt);
+      }
+
+      // The first copy is still there, pinned, and is the clean one…
+      final first = pinned().single;
+      expect(p.basename(first.path), contains('20261111T000001'));
+      expect(hasPartialSweep(first), isFalse);
+      expect(hasMarker(first.path, chainHandBackfillDoneKey), isFalse);
+      // …beside a rotation still pruned to [retain], of later copies.
+      final ordinary = [
+        for (final f in snapshots())
+          if (f.path != first.path) f,
+      ];
+      expect(ordinary, hasLength(retain));
+      expect(ordinary.every(hasPartialSweep), isTrue);
+    });
+
+    Future<void> repairSucceeds(File dbFile) async {
+      final db = CompendiumDatabase(
+        NativeDatabase(dbFile, setup: applyCompendiumSqliteSetup),
+      );
+      await CompendiumRepositories(db, contraTaxonomy).ensureMigrated();
+      await db.close();
+    }
+
+    test('the pin is released once the repair succeeds', () async {
+      final dbFile = await createLibrary(owing: chainHandBackfillDoneKey);
+      const retain = 2;
+      var tick = DateTime.utc(2026, 11, 11);
+      Future<void> launch() => runMigrationPreflight(
+        dbFile: dbFile,
+        snapshotDir: snapshotDir,
+        runningSchemaVersion: kCompendiumSchemaVersion,
+        repairMarkers: repairMarkers,
+        retain: retain,
+        now: () => tick = tick.add(const Duration(seconds: 1)),
+      );
+
+      // A pinned copy, then a full rotation of later failed attempts.
+      for (var attempt = 0; attempt <= retain; attempt++) {
+        await launch();
+        commitPartOfTheRepair(dbFile, attempt);
+      }
+      final pinnedName = p.basename(pinned().single.path);
+      expect(snapshots(), hasLength(retain + 1));
+
+      await repairSucceeds(dbFile);
+
+      // The next launch owes nothing: no new copy and no pin left. The
+      // released copy counts as the newest, so the rotation is pruned back to
+      // [retain] by dropping the oldest *later* attempt, and the clean copy
+      // survives the moment its repair first completes.
+      await launch();
+      expect(pinned(), isEmpty);
+      expect(snapshots(), hasLength(retain));
+      final released = snapshots().singleWhere(
+        (f) =>
+            p.basename(f.path) ==
+            pinnedName.replaceFirst('.pinned.sqlite.bak', '.sqlite.bak'),
+      );
+      expect(hasPartialSweep(released), isFalse);
+    });
+
+    test('a partial copy a crash left behind is removed and not counted as a '
+        'pin', () async {
+      final dbFile = await createLibrary(owing: chainHandBackfillDoneKey);
+      snapshotDir.createSync();
+      // What a force-quit during the copy leaves behind.
+      final leftover = File(
+        p.join(
+          snapshotDir.path,
+          'compendium.pre-v$kCompendiumSchemaVersion-x.pinned.sqlite.bak'
+          '.partial',
+        ),
+      )..writeAsBytesSync(const [1, 2, 3]);
+
+      await runMigrationPreflight(
+        dbFile: dbFile,
+        snapshotDir: snapshotDir,
+        runningSchemaVersion: kCompendiumSchemaVersion,
+        repairMarkers: repairMarkers,
+      );
+
+      // This launch's copy is the pin, complete, and the leftover is gone.
+      expect(leftover.existsSync(), isFalse);
+      final pin = pinned().single;
+      expect(hasMarker(pin.path, chainHandBackfillDoneKey), isFalse);
+      expect(
+        snapshotDir.listSync().map((e) => p.basename(e.path)),
+        everyElement(isNot(endsWith('.partial'))),
+      );
+    });
+
+    test('released while the repair is fresh, a pin is moved into the '
+        'rotation, not deleted', () async {
+      final dbFile = await createLibrary(owing: chainHandBackfillDoneKey);
+      await runMigrationPreflight(
+        dbFile: dbFile,
+        snapshotDir: snapshotDir,
+        runningSchemaVersion: kCompendiumSchemaVersion,
+        repairMarkers: repairMarkers,
+      );
+      final pinnedName = p.basename(pinned().single.path);
+      await repairSucceeds(dbFile);
+
+      await releaseRepairSnapshotPin(snapshotDir: snapshotDir);
+
+      expect(pinned(), isEmpty);
+      expect(snapshots().map((f) => p.basename(f.path)), [
+        pinnedName.replaceFirst('.pinned.sqlite.bak', '.sqlite.bak'),
+      ]);
+    });
+
+    test('a later build owing a new repair pins its own first copy, once the '
+        'app released the last pin', () async {
+      const retain = 2;
+      var tick = DateTime.utc(2026, 11, 11);
+      Future<void> launch(File dbFile) => runMigrationPreflight(
+        dbFile: dbFile,
+        snapshotDir: snapshotDir,
+        runningSchemaVersion: kCompendiumSchemaVersion,
+        repairMarkers: repairMarkers,
+        retain: retain,
+        now: () => tick = tick.add(const Duration(seconds: 1)),
+      );
+
+      // Build A: owes one repair, pins, and the repair succeeds in the same
+      // session, where the app releases the pin.
+      var dbFile = await createLibrary(owing: chainHandBackfillDoneKey);
+      await launch(dbFile);
+      await repairSucceeds(dbFile);
+      await releaseRepairSnapshotPin(snapshotDir: snapshotDir, retain: retain);
+
+      // Build B, next launch: owes a different repair, which keeps failing.
+      dbFile = await createLibrary(owing: purgeCorruptionRepairDoneKey);
+      for (var attempt = 0; attempt < retain + 2; attempt++) {
+        await launch(dbFile);
+        commitPartOfTheRepair(dbFile, attempt);
+      }
+
+      // B's first copy is the one pinned: clean of B's partial sweeps and
+      // still lacking B's marker.
+      final first = pinned().single;
+      expect(p.basename(first.path), contains('20261111T000002'));
+      expect(hasPartialSweep(first), isFalse);
+      expect(hasMarker(first.path, purgeCorruptionRepairDoneKey), isFalse);
+    });
+
+    test('a schema bump that owes a repair pins its copy; one that owes none '
+        'is retained as before', () async {
+      const retain = 2;
+      var tick = DateTime.utc(2026, 11, 11);
+      final dbFile = File(p.join(dir.path, 'compendium.sqlite'));
+      // No `settings` table: every marker reads as owed.
+      _createFixture(dbFile.path, userVersion: kCompendiumSchemaVersion - 1);
+
+      for (var i = 0; i < retain + 2; i++) {
+        await runMigrationPreflight(
+          dbFile: dbFile,
+          snapshotDir: snapshotDir,
+          runningSchemaVersion: kCompendiumSchemaVersion,
+          repairMarkers: const {},
+          retain: retain,
+          now: () => tick = tick.add(const Duration(seconds: 1)),
+        );
+      }
+      // Nothing owed: the ordinary rotation, unchanged.
+      expect(pinned(), isEmpty);
+      expect(snapshots(), hasLength(retain));
+
+      for (var i = 0; i < retain + 2; i++) {
+        await runMigrationPreflight(
+          dbFile: dbFile,
+          snapshotDir: snapshotDir,
+          runningSchemaVersion: kCompendiumSchemaVersion,
+          repairMarkers: repairMarkers,
+          retain: retain,
+          now: () => tick = tick.add(const Duration(seconds: 1)),
+        );
+      }
+      // Owed: exactly one pinned copy, the first, beside [retain] others.
+      expect(pinned(), hasLength(1));
+      expect(snapshots(), hasLength(retain + 1));
+      expect(p.basename(pinned().single.path), contains('20261111T000005'));
+    });
+
     test('a snapshot that cannot be written still gates the repair on the '
         "user's decision", () async {
       final dbFile = await createLibrary(owing: chainHandBackfillDoneKey);
@@ -774,6 +1178,10 @@ void main() {
       File(
         p.join(legacyBackups.path, 'compendium.pre-v6-x.sqlite.bak'),
       ).writeAsBytesSync(const [1, 2, 3]);
+      // A copy pinned for an outstanding repair moves with the rest.
+      File(
+        p.join(legacyBackups.path, 'compendium.pre-v6-y.pinned.sqlite.bak'),
+      ).writeAsBytesSync(const [4, 5]);
       File(p.join(legacyBackups.path, 'notes.txt')).writeAsStringSync('mine');
 
       final moved = await relocateLegacyDatabase(
@@ -797,6 +1205,12 @@ void main() {
           p.join(targetBackups.path, 'compendium.pre-v6-x.sqlite.bak'),
         ).readAsBytesSync(),
         const [1, 2, 3],
+      );
+      expect(
+        File(
+          p.join(targetBackups.path, 'compendium.pre-v6-y.pinned.sqlite.bak'),
+        ).readAsBytesSync(),
+        const [4, 5],
       );
       // Only our own snapshots move: a stranger's file in Documents stays.
       expect(
