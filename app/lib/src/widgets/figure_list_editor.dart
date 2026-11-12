@@ -3478,10 +3478,22 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     }
     // Progressive disclosure: >3 params → first 3 inline, rest behind a
     // collapsed "More options" disclosure. ≤3 params → all inline, no toggle.
-    final hasMore = entries.length > 3;
-    final inline = hasMore ? entries.take(3).toList() : entries;
+    // A fraction's amount (#2120) stays in the same section as its fraction,
+    // so picking "other amount…" from an inline fraction (a poussette's)
+    // shows the stepper it reveals rather than hiding it behind the toggle.
+    var inlineCount = 3;
+    final fractionAt = entries.indexWhere((e) => e.key == 'fraction');
+    if (fractionAt >= 0 &&
+        fractionAt < inlineCount &&
+        fractionAt + 1 < entries.length &&
+        entries[fractionAt + 1].key == fractionAmountParam &&
+        fractionAt + 1 >= inlineCount) {
+      inlineCount = fractionAt + 2;
+    }
+    final hasMore = entries.length > inlineCount;
+    final inline = hasMore ? entries.take(inlineCount).toList() : entries;
     final extra = hasMore
-        ? entries.sublist(3)
+        ? entries.sublist(inlineCount)
         : const <MapEntry<String, ParamSpec>>[];
 
     Widget paramWrap(List<MapEntry<String, ParamSpec>> items) => Wrap(

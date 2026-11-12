@@ -1167,6 +1167,49 @@ void main() {
       expect(drafts.single.params.containsKey('amount'), isFalse);
     });
 
+    testWidgets('a poussette shows the amount beside its inline fraction', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[
+        FigureDraft.fromFigure(
+          Figure(
+            move: 'poussette',
+            params: const {'fraction': 'half', 'beats': 6},
+          ),
+        ),
+      ];
+      await _pump(tester, drafts);
+      await _openFigure(tester, 0);
+      // Without expanding "More options": the fraction is inline here, and
+      // the amount it reveals must be too.
+      await _selectDropdownOption(tester, 'figure-0-fraction', 'other amount…');
+      expect(
+        find.byKey(const ValueKey('figure-0-amount-value')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a legacy poussette asks for its amount without expanding', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[
+        FigureDraft.fromFigure(
+          Figure(
+            move: 'poussette',
+            params: const {'fraction': 'other', 'beats': 6},
+          ),
+        ),
+      ];
+      await _pump(tester, drafts);
+      await _openFigure(tester, 0);
+      expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('figure-0-amount-value')))
+            .data,
+        'choose a value',
+      );
+    });
+
     testWidgets('the stepper never steps down into a named fraction', (
       tester,
     ) async {
