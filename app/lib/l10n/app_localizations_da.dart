@@ -11332,6 +11332,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get compoundParamKindPlaces => 'pladser';
 
   @override
+  String get compoundParamKindNumber => 'antal';
+
+  @override
   String get compoundParamKindBeats => 'slag';
 
   @override

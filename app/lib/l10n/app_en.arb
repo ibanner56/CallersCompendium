@@ -14912,6 +14912,10 @@
   "@compoundParamKindPlaces": {
     "description": "The kind of a custom figure's parameter: places. Lowercase; also used inside sentences."
   },
+  "compoundParamKindNumber": "number",
+  "@compoundParamKindNumber": {
+    "description": "The kind of a custom figure's parameter: a plain whole number with no unit word (unlike places). Lowercase; also used inside sentences."
+  },
   "compoundParamKindBeats": "beats",
   "@compoundParamKindBeats": {
     "description": "The kind of a custom figure's parameter: beats. Lowercase; also used inside sentences."

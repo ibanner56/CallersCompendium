@@ -123,6 +123,17 @@ class FigureParamEditor extends StatelessWidget {
           max: 64,
           onChanged: onChanged,
         );
+      case ParamKind.number:
+        return _IntField(
+          fieldKey: _key,
+          label: figureParamKeyLabel(l10n, paramKey, moveId: moveId),
+          value: value is int
+              ? value! as int
+              : (spec.defaultValue is int ? spec.defaultValue! as int : 0),
+          min: 0,
+          max: 99,
+          onChanged: onChanged,
+        );
       case ParamKind.places:
         return _IntField(
           fieldKey: _key,

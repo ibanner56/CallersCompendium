@@ -11476,6 +11476,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get compoundParamKindPlaces => 'places';
 
   @override
+  String get compoundParamKindNumber => 'nombre';
+
+  @override
   String get compoundParamKindBeats => 'temps';
 
   @override

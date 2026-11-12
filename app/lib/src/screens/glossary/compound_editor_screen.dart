@@ -26,8 +26,9 @@ final FigureRenderer _renderer = FigureRenderer(contraTaxonomy);
 
 final RegExp _lineBreaks = RegExp('\r\n|[\r\n\u2028\u2029]');
 
-/// The parameter kinds a custom figure may declare: every kind a figure's
-/// slot can have, except beats, which are the parts' own (#709).
+/// The parameter kinds a figure of your own may declare: every kind a built-in
+/// figure's slot can have, except beats, which are the parts' own (#709), plus
+/// [ParamKind.number], which no slot has and so a combination does not offer.
 const List<ParamKind> compoundParamKinds = [
   ParamKind.dancerSet,
   ParamKind.dancerPair,
@@ -38,6 +39,7 @@ const List<ParamKind> compoundParamKinds = [
   ParamKind.fraction,
   ParamKind.rotation,
   ParamKind.places,
+  ParamKind.number,
   ParamKind.flag,
   ParamKind.choice,
   ParamKind.text,
@@ -1192,10 +1194,19 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
                           ),
                           items: [
                             for (final kind in compoundParamKinds)
-                              DropdownMenuItem(
-                                value: kind,
-                                child: Text(compoundParamKindLabel(l10n, kind)),
-                              ),
+                              // A plain number fills no built-in move's slot
+                              // (a compound's parameter must match the slot's
+                              // kind), so only a figure of your own offers it;
+                              // a row already holding one keeps its entry.
+                              if (kind != ParamKind.number ||
+                                  _kind == UserGlossaryEntryKind.customFigure ||
+                                  row.kind == ParamKind.number)
+                                DropdownMenuItem(
+                                  value: kind,
+                                  child: Text(
+                                    compoundParamKindLabel(l10n, kind),
+                                  ),
+                                ),
                           ],
                           onChanged: (kind) {
                             if (kind == null) return;

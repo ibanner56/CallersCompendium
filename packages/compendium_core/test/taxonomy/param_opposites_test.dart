@@ -83,6 +83,7 @@ void main() {
       {0.5: null, 1.0: null, u: null},
     ),
     ParamKind.places: (OppositeCoverage.none, {1: null, 4: null}),
+    ParamKind.number: (OppositeCoverage.none, {0: null, 7: null, 99: null}),
     ParamKind.beats: (OppositeCoverage.none, {0: null, 8: null}),
     ParamKind.choice: (OppositeCoverage.none, {'left': null, 'right': null}),
     ParamKind.text: (OppositeCoverage.none, {'anything': null}),

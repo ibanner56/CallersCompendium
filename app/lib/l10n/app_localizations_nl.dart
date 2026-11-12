@@ -11407,6 +11407,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get compoundParamKindPlaces => 'plaatsen';
 
   @override
+  String get compoundParamKindNumber => 'getal';
+
+  @override
   String get compoundParamKindBeats => 'beats';
 
   @override

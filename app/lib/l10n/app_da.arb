@@ -11006,6 +11006,10 @@
   "@compoundParamKindPlaces": {
     "x-sourceSha256": "a48fcb713243b3d460ca7f05e4e4e5ef1cd4d8ce4981ce20cdd3e98a39d4fd38"
   },
+  "compoundParamKindNumber": "antal",
+  "@compoundParamKindNumber": {
+    "x-sourceSha256": "12886f9d00055adf24c40579e22d31b2b45f2023f892954ffd5567beb60825f8"
+  },
   "compoundParamKindBeats": "slag",
   "@compoundParamKindBeats": {
     "x-sourceSha256": "d5803722f3983afbfa30b24a1ea991d1b2cb78805311b360128269ef495105af"

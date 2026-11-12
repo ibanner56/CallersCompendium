@@ -47,6 +47,43 @@ void main() {
   Figure use(Map<String, Object?> args, {String text = 'stored line'}) =>
       userFigureUseFigure(id: 'zoom-id', args: args, text: text);
 
+  test('a number reads as its digits, where places adds its own word', () {
+    UserFigureCatalog catalogOf(String kind) => UserFigureCatalog.fromEntries([
+      entry(
+        id: 'count-id',
+        name: 'count',
+        payload: {
+          'form': 'contra',
+          'template': '{move} {n}',
+          'defaultBeats': 4,
+          'params': [
+            {'key': 'n', 'kind': kind},
+          ],
+        },
+      ),
+    ]);
+    String show(String kind, int n) =>
+        FigureRenderer(contraTaxonomy, userFigures: catalogOf(kind)).render(
+          userFigureUseFigure(id: 'count-id', args: {'n': n}, text: 'stored'),
+          Dialect.larksRobins,
+        );
+
+    expect(show('number', 3), 'count 3');
+    expect(show('number', 1), 'count 1');
+    expect(show('places', 3), 'count 3 places');
+    expect(show('places', 1), 'count 1 place');
+  });
+
+  test('a number is a whole number from 0 to 99', () {
+    const spec = ParamSpec(ParamKind.number, defaultValue: null);
+    for (final ok in [0, 1, 99]) {
+      expect(spec.validate(ok), isTrue, reason: '$ok');
+    }
+    for (final bad in [-1, 100, 1.5, '3', true, null]) {
+      expect(spec.validate(bad), isFalse, reason: '$bad');
+    }
+  });
+
   test('a direction reads as the figure\'s own template words it', () {
     // Built-in moves word a direction as a call ("on right diagonal",
     // "facing in"); a figure of your own supplies its own words around the

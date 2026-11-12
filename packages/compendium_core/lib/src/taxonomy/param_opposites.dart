@@ -40,6 +40,7 @@ abstract final class ParamOpposites {
     // flag has no opposite a caller would name.
     ParamKind.rotation ||
     ParamKind.places ||
+    ParamKind.number ||
     ParamKind.fraction ||
     ParamKind.beats ||
     ParamKind.text ||
@@ -126,6 +127,7 @@ Set<Object>? paramDomain(ParamSpec spec) {
         ParamVocab.unspecified,
     },
     ParamKind.places => {for (var i = 1; i <= 10; i++) i},
+    ParamKind.number => {for (var i = 0; i <= 99; i++) i},
     ParamKind.beats => {for (var i = 0; i <= 64; i++) i},
     ParamKind.flag => {true, false},
     ParamKind.text => null,
