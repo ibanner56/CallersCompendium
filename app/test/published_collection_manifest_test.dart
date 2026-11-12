@@ -54,6 +54,47 @@ void main() {
     );
   });
 
+  test('strips bidi and control characters from displayed text (SUPPLY-4)', () {
+    const rlo = '\u202E';
+    Map<String, Object?> entry({String title = 'FODA'}) => {
+      'id': 'foda',
+      'version': '1.0.0',
+      'title': title,
+      'archiveUrl': 'https://analect.callerscompendium.com/c.json',
+      'archiveBytes': 8,
+      'sha256': 'a' * 64,
+      'danceCount': 1,
+      'license': 'CC${rlo}0',
+      'permission': {
+        'grantor': 'G${rlo}r',
+        'holder': 'H${rlo}h',
+        'basis': 'B${rlo}b',
+        'license': 'CC${rlo}0',
+        'fields': ['com${rlo}mentary'],
+      },
+    };
+    PublishedCollectionManifest parse(Map<String, Object?> e) =>
+        PublishedCollectionManifest.parse(
+          jsonEncode({
+            'manifestSchema': {'major': 1, 'minor': 0},
+            'minReaderVersion': '0.1.0',
+            'collections': [e],
+          }),
+          readerVersion: SemVerForTest.current,
+        );
+    final parsed = parse(entry(title: 'Bad${rlo}Title')).collections.single;
+    expect(parsed.title, 'BadTitle');
+    expect(parsed.license, 'CC0');
+    expect(parsed.permission.license, 'CC0');
+    expect(parsed.permission.declaration, isNot(contains(rlo)));
+    expect(parsed.permission.fields, ['commentary']);
+    // A string that is nothing but stripped characters is refused.
+    expect(
+      () => parse(entry(title: rlo)),
+      throwsA(isA<PublishedCollectionFormatException>()),
+    );
+  });
+
   test('rejects unsupported schema major before accepting entries', () {
     expect(
       () => PublishedCollectionManifest.parse(
