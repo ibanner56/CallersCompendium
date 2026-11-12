@@ -1084,6 +1084,42 @@ def test_detect_repo_uses_tracking_remote_then_origin() -> None:
         assert gates.detect_repo() == "o/r"
 
 
+def test_detect_repo_prefers_upstream_remote_in_a_fork_clone() -> None:
+    urls = {"upstream": "https://github.com/o/r", "origin": "https://github.com/me/r"}
+
+    def git(a: Any) -> str:
+        if a[0] == "symbolic-ref":
+            return "feat"
+        if a[0] == "config":
+            return "origin"
+        return urls.get(a[2], "")
+
+    with _patched({"GITHUB_REPOSITORY": None}, git, _gh_forbidden):
+        assert gates.detect_repo_with_source() == ("o/r", "git remote upstream")
+
+
+def test_main_prints_the_detected_repo_and_its_source() -> None:
+    answers = {"symbolic-ref": "", "remote": "https://github.com/o/r"}
+    lines: list[str] = []
+    saved = gates.run_gates
+    gates.run_gates = lambda *a, **k: 0
+    real_print = print
+    try:
+        with _patched(
+            {"GITHUB_REPOSITORY": None}, lambda a: answers.get(a[0], ""), _gh_forbidden
+        ):
+            import builtins
+
+            builtins.print = lambda *a, **k: lines.append(" ".join(map(str, a)))
+            try:
+                gates.main(["threads", "1"])
+            finally:
+                builtins.print = real_print
+    finally:
+        gates.run_gates = saved
+    assert any(l.startswith("repo: o/r (from git remote ") for l in lines), lines
+
+
 def test_detect_repo_ignores_invalid_environment_value() -> None:
     answers = {"symbolic-ref": "", "remote": "https://github.com/o/r"}
     with _patched({"GITHUB_REPOSITORY": "./.."}, lambda a: answers.get(a[0], ""), _gh_forbidden):

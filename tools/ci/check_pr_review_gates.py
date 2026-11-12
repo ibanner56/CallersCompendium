@@ -227,36 +227,38 @@ def _git(args: Sequence[str]) -> str:
     return result.stdout.strip() if result.returncode == 0 else ""
 
 
-def _repo_from_git() -> str | None:
-    """The repo named by the current branch's remote, else `origin`.
+def _repo_from_git() -> tuple[str, str] | None:
+    """`(owner/name, remote name)` from `upstream`, the branch's remote, or `origin`.
 
-    Uses no GitHub API, so it works where GraphQL is refused.
+    `upstream` goes first because that is the fork convention (and what `gh`
+    ranks highest): in a fork clone the PR lives on the base repo. Uses no
+    GitHub API, so it works where GraphQL is refused.
     """
     branch = _git(["symbolic-ref", "--quiet", "--short", "HEAD"])
-    remote = _git(["config", "--get", f"branch.{branch}.remote"]) if branch else ""
-    for name in dict.fromkeys([remote, "origin"]):
+    tracked = _git(["config", "--get", f"branch.{branch}.remote"]) if branch else ""
+    for name in dict.fromkeys(["upstream", tracked, "origin"]):
         if not name or name == ".":
             continue
         slug = parse_remote_url(_git(["remote", "get-url", name]))
         if slug:
-            return slug
+            return slug, name
     return None
 
 
-def detect_repo() -> str:
+def detect_repo_with_source() -> tuple[str, str]:
     """Resolve `owner/name` without GraphQL (refused in Claude Code sessions).
 
-    Order: `GITHUB_REPOSITORY`, the git remote (the branch's tracking remote,
-    else `origin`), then `gh repo view`. In a fork checkout whose remote is the
-    fork, the remote wins over `gh`'s base-repo default; pass `--repo` there.
+    Returns the repo and where it came from. Order: `GITHUB_REPOSITORY`, the
+    git remote (`upstream`, else the branch's tracking remote, else `origin`),
+    then `gh repo view`. Pass `--repo` to override.
     """
     env_repo = os.environ.get("GITHUB_REPOSITORY", "").strip()
     owner, _, name = env_repo.partition("/")
     if env_repo and _slug(owner, name) == env_repo:
-        return env_repo
+        return env_repo, "GITHUB_REPOSITORY"
     from_git = _repo_from_git()
     if from_git:
-        return from_git
+        return from_git[0], f"git remote {from_git[1]}"
     try:
         result = subprocess.run(
             ["gh", "repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"],
@@ -268,7 +270,11 @@ def detect_repo() -> str:
         raise GateError("the `gh` CLI is not installed; pass --repo owner/name") from exc
     if result.returncode != 0 or not result.stdout.strip():
         raise GateError("could not detect the repository; pass --repo owner/name")
-    return result.stdout.strip()
+    return result.stdout.strip(), "gh repo view"
+
+
+def detect_repo() -> str:
+    return detect_repo_with_source()[0]
 
 
 # --------------------------------------------------------------------------- #
@@ -800,7 +806,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 2
 
     try:
-        repo = args.repo or detect_repo()
+        if args.repo:
+            repo = args.repo
+        else:
+            repo, source = detect_repo_with_source()
+            # Say which repo was checked: a wrong guess must not be silent.
+            print(f"repo: {repo} (from {source}; --repo overrides)")
     except GateError as exc:
         print(f"SKIP: {exc}")
         return 2

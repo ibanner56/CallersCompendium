@@ -107,9 +107,10 @@ labels the evidence line "via REST":
   GitHub.
 
 Repository detection needs no GraphQL either: it reads `--repo`, then
-`GITHUB_REPOSITORY`, then the git remote (the branch's tracking remote, else
-`origin`), and only then asks `gh repo view`. In a fork checkout whose remote is
-the fork, pass `--repo` for the upstream.
+`GITHUB_REPOSITORY`, then the git remote (`upstream`, else the branch's tracking
+remote, else `origin`), and only then asks `gh repo view`. It prints the repo and
+its source on the first line; check that it is the repo the PR is on, and pass
+`--repo` if not.
 
 Any other GraphQL failure (timeout, auth, rate limit) is still a SKIP, and exit
 2 still means a gate went unanswered.
