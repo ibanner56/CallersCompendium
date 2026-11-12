@@ -594,8 +594,19 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     service.verifyArchiveBytes(entry, archiveBytes);
     // Refuse to roll a newer imported collection back (SUPPLY-2). The catalog
     // already disables such entries; this covers any other route here.
-    if (await _isOlderThanImported(entry.id, entry.version)) return;
-    if (!mounted) return;
+    var older = false;
+    try {
+      older = await _isOlderThanImported(entry.id, entry.version);
+    } catch (error, stackTrace) {
+      // Fail open, as in _planPublishedSeed: an unreadable local status must
+      // not turn into an unhandled error that blocks the import.
+      logCaughtErrorTypeOnly(
+        error,
+        stackTrace,
+        source: 'import_review_screen._selectPublishedCollection',
+      );
+    }
+    if (older || !mounted) return;
     final metadata = PublishedCollectionMetadata(
       collectionId: entry.id,
       collectionVersion: entry.version,
