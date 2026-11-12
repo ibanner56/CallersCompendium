@@ -5,6 +5,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/lingo_text_editing_controller.dart';
 import 'choice_option.dart' show AddChoiceResult;
+import '../../widgets/dropdown_selection.dart';
 import 'lingo_discouraged_hint.dart';
 
 /// Renders the editor control for a single [CustomFieldDef], dispatching on its
@@ -108,6 +109,11 @@ class CustomFieldEditor extends StatelessWidget {
         final dropdown = DropdownButtonFormField<String?>(
           key: ValueKey('custom-${def.id}-choice'),
           initialValue: currentValue as String?,
+          // A user-typed option is unbounded: fill the slot, ellipsize the
+          // closed field, and let the open menu wrap so it can be read.
+          isExpanded: true,
+          itemHeight: null,
+          selectedItemBuilder: ellipsizedSelection(['—', ...?def.choices]),
           decoration: InputDecoration(labelText: def.label),
           items: [
             const DropdownMenuItem(value: null, child: Text('—')),
