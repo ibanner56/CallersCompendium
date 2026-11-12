@@ -704,11 +704,11 @@ class AppLocalizationsJa extends AppLocalizations {
       '短時間にリクエストが多すぎました。数分待ってから、もう一度お試しください。';
 
   @override
-  String get settingsSyncFailureStoreFull => 'ストアが同期サーバーで使える容量をすべて使い切りました。';
+  String get settingsSyncFailureStoreFull => '同期サーバーは現在、これ以上保存できません。';
 
   @override
   String get settingsSyncFailureStoreFullAdvice =>
-      '空きができるまで、このデバイスの変更は保存できません。「未使用の取り込んだダンスをスキップ」をオンにすると、このデバイスがアップロードする量を減らせます。独自のサーバーを運用している場合は、ストレージの上限を引き上げてください。';
+      '空きができるまで、このデバイスの変更は保存できません。「未使用の取り込んだダンスをスキップ」をオンにすると、このデバイスがアップロードする量を減らせる場合があります。独自のサーバーを運用している場合は、ストレージの上限を引き上げるか、ディスクの空き容量を確保してください。';
 
   @override
   String get settingsSyncFailureTooLarge =>

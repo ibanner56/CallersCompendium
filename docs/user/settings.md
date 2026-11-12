@@ -1020,7 +1020,8 @@ Sync is off and open while it is on.
   you're curious. If this goes on for weeks, the expiry warning below is what
   tells you.
 - **When a sync fails for a reason you need to deal with**, the status shows a
-  warning and says why: your store is out of space, something was too large to
+  warning and says why: the sync server can't store more right now (for
+  example, your store is over the space it allows), something was too large to
   upload, the server refused what was sent or didn't accept the sync phrase, it
   sent a reply the app couldn't use, another device's latest list was missing
   or unreadable during a first connection (a problem on the server's side
@@ -1032,8 +1033,9 @@ Sync is off and open while it is on.
   on the Caller's Compendium server it means this version of the app is newer
   than the server, your changes are saved here, and they'll sync once the
   server is updated; on a server you run yourself, it asks you to update that
-  server. These are not retried by themselves, because waiting won't fix
-  them. The **Sync now** button on the Collection, Programs and Glossary pages reports a
+  server. These are not retried by themselves: waiting alone usually won't
+  fix them, and when the sync server is full it is up to you to try again
+  later. The **Sync now** button on the Collection, Programs and Glossary pages reports a
   failed sync the same way — calmly or with the reason — so you don't need to
   come here to find out.
 - **Copy details** sits beside every warning. It puts a short code on the

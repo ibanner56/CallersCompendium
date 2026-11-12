@@ -743,11 +743,11 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsSyncFailureStoreFull =>
-      'Je opslag heeft alle ruimte gebruikt die de synchronisatieserver toestaat.';
+      'De synchronisatieserver kan nu even niets meer opslaan.';
 
   @override
   String get settingsSyncFailureStoreFullAdvice =>
-      'Wijzigingen van dit apparaat kunnen pas worden opgeslagen als er ruimte is. Als je Ongebruikte geïmporteerde dansen overslaan aanzet, uploadt dit apparaat minder. Als je een eigen server gebruikt, verhoog dan de opslaglimiet.';
+      'Wijzigingen van dit apparaat kunnen pas worden opgeslagen als er ruimte is. Als je Ongebruikte geïmporteerde dansen overslaan aanzet, kan dit apparaat minder uploaden. Als je een eigen server gebruikt, verhoog dan de opslaglimiet of maak schijfruimte vrij.';
 
   @override
   String get settingsSyncFailureTooLarge =>

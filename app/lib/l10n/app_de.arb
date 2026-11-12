@@ -692,13 +692,13 @@
   "@settingsSyncFailureRateLimitedAdvice": {
     "x-sourceSha256": "66f91724ff9a8ff9962da293dd168113c17ab48d52ea4ddebda07803709cd530"
   },
-  "settingsSyncFailureStoreFull": "Dein Speicher hat den gesamten Platz belegt, den der Synchronisierungsserver erlaubt.",
+  "settingsSyncFailureStoreFull": "Der Synchronisierungsserver kann gerade nichts mehr speichern.",
   "@settingsSyncFailureStoreFull": {
-    "x-sourceSha256": "18dea407dfb731dd13ec988fd58ef55a6711674a25fd2c59b07439bd365c5f92"
+    "x-sourceSha256": "fe85d2f9042026db6856474a66938efc4cec13086b431081b1bd36c120ee6bc1"
   },
-  "settingsSyncFailureStoreFullAdvice": "Änderungen von diesem Gerät können erst gespeichert werden, wenn wieder Platz ist. Wenn du Ungenutzte importierte Tänze überspringen einschaltest, lädt dieses Gerät weniger hoch. Wenn du einen eigenen Server betreibst, erhöhe sein Speicherlimit.",
+  "settingsSyncFailureStoreFullAdvice": "Änderungen von diesem Gerät können erst gespeichert werden, wenn wieder Platz ist. Wenn du Ungenutzte importierte Tänze überspringen einschaltest, kann dieses Gerät weniger hochladen. Wenn du einen eigenen Server betreibst, erhöhe sein Speicherlimit oder schaffe Speicherplatz.",
   "@settingsSyncFailureStoreFullAdvice": {
-    "x-sourceSha256": "8118c7463bdf1d540145735a494d7b6c9748386039bda9c0f6789e3403b86548"
+    "x-sourceSha256": "389af930898c6dac228225a1fc6fa29b71671614d807ac1449ff857f628b3a9b"
   },
   "settingsSyncFailureTooLarge": "Etwas, das dieses Gerät hochladen wollte, ist größer, als der Synchronisierungsserver annimmt.",
   "@settingsSyncFailureTooLarge": {
