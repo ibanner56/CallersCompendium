@@ -75,6 +75,7 @@ import 'src/data/sort_ignore_articles_scope.dart';
 import 'src/data/verbose_figure_rendering_scope.dart';
 import 'src/data/capitalize_figures_scope.dart';
 import 'src/data/show_custom_figures_scope.dart';
+import 'src/data/calling_card_settings_scope.dart';
 import 'src/data/show_glossary_scope.dart';
 import 'src/data/decimal_turns_scope.dart';
 import 'src/data/canonical_discouraged_terms_scope.dart';
@@ -691,6 +692,12 @@ class _CompendiumAppState extends State<CompendiumApp>
     defaultValue: false,
     decode: (Object? v) => v is bool ? v : false,
     encode: (v) => v,
+  );
+  final _callingCardSettingsNotifier = PreferenceNotifier<CallingCardSettings>(
+    key: kCallingCardSettingsKey,
+    defaultValue: CallingCardSettings.defaults,
+    decode: CallingCardSettings.fromJson,
+    encode: (v) => v.toJson(),
   );
   final _aggressiveBeatsUpdateNotifier = PreferenceNotifier<bool>(
     key: kAggressiveBeatsUpdateKey,
@@ -1347,6 +1354,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     _capitalizeFiguresNotifier,
     _showGlossaryNotifier,
     _showCustomFiguresNotifier,
+    _callingCardSettingsNotifier,
     _aggressiveBeatsUpdateNotifier,
     _confirmBeforeDeleteNotifier,
     _venueEntityModeNotifier,
@@ -2214,6 +2222,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     _capitalizeFiguresNotifier.dispose();
     _showGlossaryNotifier.dispose();
     _showCustomFiguresNotifier.dispose();
+    _callingCardSettingsNotifier.dispose();
     _aggressiveBeatsUpdateNotifier.dispose();
     _confirmBeforeDeleteNotifier.dispose();
     _venueEntityModeNotifier.dispose();
@@ -2875,6 +2884,10 @@ class _CompendiumAppState extends State<CompendiumApp>
     (child) => ShowGlossaryScope(notifier: _showGlossaryNotifier, child: child),
     (child) => ShowCustomFiguresScope(
       notifier: _showCustomFiguresNotifier,
+      child: child,
+    ),
+    (child) => CallingCardSettingsScope(
+      notifier: _callingCardSettingsNotifier,
       child: child,
     ),
     (child) => AggressiveBeatsUpdateScope(

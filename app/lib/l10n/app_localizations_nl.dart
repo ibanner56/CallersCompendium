@@ -11711,4 +11711,317 @@ class AppLocalizationsNl extends AppLocalizations {
   String wordingIssueTooManyNots(String max) {
     return 'Deze voorwaarde zet te veel “not” in elkaar: hoogstens $max. Haal er een paar weg: twee “not” achter elkaar heffen elkaar op.';
   }
+
+  @override
+  String get settingsCallingCardsHeader => 'Callkaarten';
+
+  @override
+  String get settingsCallingCardsEnableTitle => 'Callkaarten afdrukken';
+
+  @override
+  String get settingsCallingCardsEnableSubtitle =>
+      'Voegt Callkaart afdrukken toe aan het exportmenu van een dans, en Callkaarten afdrukken aan dat van een programma: één kleine kaart per dans, opgemaakt zoals je hieronder kiest.';
+
+  @override
+  String get settingsCallingCardsSizeTitle => 'Kaartformaat';
+
+  @override
+  String settingsCallingCardsSizeIndexCard(String size) {
+    return 'Systeemkaart, $size';
+  }
+
+  @override
+  String settingsCallingCardsSizeIsoA(String name, String size) {
+    return '$name ($size)';
+  }
+
+  @override
+  String settingsCallingCardsSizeInches(String width, String height) {
+    return '$width × $height inch';
+  }
+
+  @override
+  String settingsCallingCardsSizeMillimetres(String width, String height) {
+    return '$width × $height mm';
+  }
+
+  @override
+  String get settingsCallingCardsSizeCustom => 'Eigen formaat';
+
+  @override
+  String get settingsCallingCardsWidthLabel => 'Breedte';
+
+  @override
+  String get settingsCallingCardsHeightLabel => 'Hoogte';
+
+  @override
+  String get settingsCallingCardsUnitInches => 'Inch';
+
+  @override
+  String get settingsCallingCardsUnitMillimetres => 'Millimeter';
+
+  @override
+  String get settingsCallingCardsSizeInvalid =>
+      'Elke zijde moet tussen 1 en 14 inch (26 tot 355 mm) liggen.';
+
+  @override
+  String get settingsCallingCardsLandscapeTitle => 'Liggend';
+
+  @override
+  String get settingsCallingCardsLandscapeSubtitle =>
+      'Afdrukken met de lange zijde bovenaan.';
+
+  @override
+  String get settingsCallingCardsLayoutTitle => 'Kaartopmaak';
+
+  @override
+  String get settingsCallingCardsLayoutSubtitle =>
+      'Kies wat er op elke kaart komt, en waar.';
+
+  @override
+  String get callingCardEditorTitle => 'Opmaak van de callkaart';
+
+  @override
+  String get callingCardEditorFieldLabel => 'Opmaak';
+
+  @override
+  String get callingCardEditorAutosaveHint =>
+      'Wijzigingen worden opgeslagen terwijl je typt.';
+
+  @override
+  String get callingCardEditorReset => 'Standaard herstellen';
+
+  @override
+  String get callingCardEditorResetConfirmTitle => 'Opmaak herstellen?';
+
+  @override
+  String get callingCardEditorResetConfirmBody =>
+      'Je opmaak wordt vervangen door de standaardopmaak.';
+
+  @override
+  String get callingCardEditorReplaced => 'Opmaak vervangen.';
+
+  @override
+  String get callingCardEditorPreviewTitle => 'Voorbeeld';
+
+  @override
+  String callingCardEditorPreviewCaption(String size) {
+    return 'Een voorbeelddans op een kaart van $size.';
+  }
+
+  @override
+  String get callingCardEditorPreviewError =>
+      'Het voorbeeld kon niet worden getekend.';
+
+  @override
+  String callingCardEditorPreviewShrunk(int percent) {
+    return 'De tekst wordt verkleind tot $percent% om op deze kaart te passen.';
+  }
+
+  @override
+  String get callingCardEditorPreviewOverflow =>
+      'Deze kaart past zelfs op halve grootte niet, dus de onderkant is afgesneden. Haal een blok weg, of voeg lines= toe aan een lang blok.';
+
+  @override
+  String get callingCardEditorIssuesTitle =>
+      'Regels die niet gelezen konden worden';
+
+  @override
+  String callingCardIssueUnknownBlock(int line, String name) {
+    return 'Regel $line: \"$name\" is geen blok. De blokken staan onder Zo schrijf je een opmaak.';
+  }
+
+  @override
+  String callingCardIssueUnknownOption(int line, String name) {
+    return 'Regel $line: dit blok heeft geen optie \"$name\".';
+  }
+
+  @override
+  String callingCardIssueBadValue(int line, String option, String value) {
+    return 'Regel $line: \"$value\" werkt niet voor $option.';
+  }
+
+  @override
+  String callingCardIssueUnclosedQuote(int line) {
+    return 'Regel $line: een aanhalingsteken wordt nooit gesloten, dus de hele regel wordt overgeslagen.';
+  }
+
+  @override
+  String callingCardIssueMissingText(int line) {
+    return 'Regel $line: text heeft woorden tussen aanhalingstekens nodig, zoals text \"Called by me\".';
+  }
+
+  @override
+  String callingCardIssueCardNotAlone(int line) {
+    return 'Regel $line: card stelt de hele kaart in en heeft dus een eigen regel nodig.';
+  }
+
+  @override
+  String callingCardIssueEmptyBlock(int line) {
+    return 'Regel $line: aan één kant van een | staat niets.';
+  }
+
+  @override
+  String get callingCardHelpTitle => 'Zo schrijf je een opmaak';
+
+  @override
+  String get callingCardHelpIntro =>
+      'Elke regel is één rij van de kaart, van boven naar beneden. Begin de regel met de naam van een blok en voeg daarna eventuele opties toe. Zet | tussen blokken om ze naast elkaar te plaatsen. Een regel die met # begint, is een notitie voor jezelf en wordt niet afgedrukt.';
+
+  @override
+  String get callingCardHelpFields =>
+      'Een blok drukt alleen af wat de dans heeft, en alleen velden die aanstaan onder Instellingen › Standaardwaarden › Gedeelde dansvelden. Een rij zonder iets om af te drukken neemt geen ruimte in. Als een kaart te vol is, wordt alles erop gelijkmatig verkleind tot het past, tot halve grootte.';
+
+  @override
+  String get callingCardHelpTapToInsert =>
+      'Tik op een naam om die aan je opmaak toe te voegen.';
+
+  @override
+  String get callingCardHelpBlocksTitle => 'Blokken';
+
+  @override
+  String get callingCardHelpOptionsTitle => 'Opties';
+
+  @override
+  String get callingCardHelpExamplesTitle => 'Voorbeelden';
+
+  @override
+  String get callingCardHelpExampleUse => 'Deze opmaak gebruiken';
+
+  @override
+  String get callingCardHelpBlockTitle => 'De titel van de dans.';
+
+  @override
+  String get callingCardHelpBlockAuthors => 'Wie de dans heeft geschreven.';
+
+  @override
+  String get callingCardHelpBlockFormation =>
+      'De opstelling, zoals Improper of Becket.';
+
+  @override
+  String get callingCardHelpBlockLevel => 'Het niveau van de dans.';
+
+  @override
+  String get callingCardHelpBlockMeta =>
+      'Opstelling, niveau, mixer, status en frase op één regel, elk met zijn label.';
+
+  @override
+  String get callingCardHelpBlockFigures =>
+      'De figuren, gegroepeerd per frase (A1, A2, B1, B2), met hun tellen.';
+
+  @override
+  String get callingCardHelpBlockNotes => 'Je callnotities.';
+
+  @override
+  String get callingCardHelpBlockWalkthrough => 'De walkthrough.';
+
+  @override
+  String get callingCardHelpBlockHook => 'De hook van de dans.';
+
+  @override
+  String get callingCardHelpBlockTunes => 'Voorgestelde melodieën.';
+
+  @override
+  String get callingCardHelpBlockSources => 'Gepubliceerde bronnen.';
+
+  @override
+  String get callingCardHelpBlockProgram =>
+      'De titel van het programma, als je een programma afdrukt.';
+
+  @override
+  String get callingCardHelpBlockNumber =>
+      'De plaats van de dans in het programma (1, 2, 3 of Alternatief), als je een programma afdrukt.';
+
+  @override
+  String get callingCardHelpBlockText =>
+      'Je eigen woorden, tussen aanhalingstekens.';
+
+  @override
+  String get callingCardHelpBlockRule => 'Een lijn over de kaart.';
+
+  @override
+  String get callingCardHelpBlockSpace =>
+      'Een witruimte, in punten (72 per inch).';
+
+  @override
+  String get callingCardHelpBlockCard =>
+      'Instellingen voor de hele kaart: margin is de ruimte langs de rand, in punten.';
+
+  @override
+  String get callingCardHelpOptionSize => 'Tekstgrootte, in punten.';
+
+  @override
+  String get callingCardHelpOptionStyle => 'Vette of schuine tekst.';
+
+  @override
+  String get callingCardHelpOptionAlign =>
+      'Waar de tekst in zijn ruimte staat.';
+
+  @override
+  String get callingCardHelpOptionColor => 'Tekst- of lijnkleur, als hexcode.';
+
+  @override
+  String get callingCardHelpOptionLines =>
+      'Druk hooguit zoveel regels van een lang blok af.';
+
+  @override
+  String get callingCardHelpOptionLabel =>
+      'Woorden vóór de tekst. label=\"\" drukt er geen af.';
+
+  @override
+  String get callingCardHelpOptionWidth =>
+      'In een rij neemt een blok met width=2 twee keer zoveel ruimte in als een met width=1.';
+
+  @override
+  String get callingCardHelpOptionFigures =>
+      'Voor figures: laat de tellen, de eigen notities van de figuren, de frasenamen of de lijnen tussen de frasen weg.';
+
+  @override
+  String get callingCardHelpOptionThickness =>
+      'Hoe dik een lijn is, in punten.';
+
+  @override
+  String get callingCardExampleClassic => 'Klassiek';
+
+  @override
+  String get callingCardExampleBigPrint => 'Grote letters';
+
+  @override
+  String get callingCardExampleProgram => 'Programma-avond';
+
+  @override
+  String get callingCardExampleTeaching => 'Leskaart';
+
+  @override
+  String get callingCardSampleTitle => 'Voorbeeldcontra';
+
+  @override
+  String get callingCardSampleAuthor => 'A. Caller';
+
+  @override
+  String get callingCardSampleNotes =>
+      'Schuif naar links langs de rij om door te schuiven.';
+
+  @override
+  String get callingCardSampleFigureNote => 'Houd vast voor de hele draai.';
+
+  @override
+  String get callingCardSampleProgram => 'Vrijdagavonddans';
+
+  @override
+  String get exportPrintCallingCard => 'Callkaart afdrukken';
+
+  @override
+  String get exportPrintCallingCards => 'Callkaarten afdrukken';
+
+  @override
+  String exportCallingCardsCutOff(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count kaarten pasten niet en zijn onderaan afgesneden.',
+      one: '1 kaart paste niet en is onderaan afgesneden.',
+    );
+    return '$_temp0';
+  }
 }

@@ -15629,5 +15629,453 @@
         "example": "64"
       }
     }
+  },
+  "settingsCallingCardsHeader": "Calling cards",
+  "@settingsCallingCardsHeader": {
+    "description": "Experimental settings section heading for printing dances as small calling cards (index cards a caller holds while calling). Also names the setting in a Device Sync conflict."
+  },
+  "settingsCallingCardsEnableTitle": "Print calling cards",
+  "@settingsCallingCardsEnableTitle": {
+    "description": "Switch title: offer calling-card printing in the Export menus."
+  },
+  "settingsCallingCardsEnableSubtitle": "Adds Print calling card to a dance's Export menu, and Print calling cards to a program's: one small card per dance, laid out the way you choose below.",
+  "@settingsCallingCardsEnableSubtitle": {
+    "description": "Subtitle of the calling-cards switch."
+  },
+  "settingsCallingCardsSizeTitle": "Card size",
+  "@settingsCallingCardsSizeTitle": {
+    "description": "Row title: the size of paper each calling card prints on."
+  },
+  "settingsCallingCardsSizeIndexCard": "Index card, {size}",
+  "@settingsCallingCardsSizeIndexCard": {
+    "description": "A calling-card size choice: a standard index card. size is a measurement such as 3 × 5 in.",
+    "placeholders": {
+      "size": {
+        "type": "String",
+        "example": "3 × 5 in"
+      }
+    }
+  },
+  "settingsCallingCardsSizeIsoA": "{name} ({size})",
+  "@settingsCallingCardsSizeIsoA": {
+    "description": "A calling-card size choice: an ISO paper size. name is the paper name (A6), size its measurement (105 × 148 mm).",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "A6"
+      },
+      "size": {
+        "type": "String",
+        "example": "105 × 148 mm"
+      }
+    }
+  },
+  "settingsCallingCardsSizeInches": "{width} × {height} in",
+  "@settingsCallingCardsSizeInches": {
+    "description": "A card measurement in inches, short side first.",
+    "placeholders": {
+      "width": {
+        "type": "String",
+        "example": "3"
+      },
+      "height": {
+        "type": "String",
+        "example": "5"
+      }
+    }
+  },
+  "settingsCallingCardsSizeMillimetres": "{width} × {height} mm",
+  "@settingsCallingCardsSizeMillimetres": {
+    "description": "A card measurement in millimeters, short side first.",
+    "placeholders": {
+      "width": {
+        "type": "String",
+        "example": "105"
+      },
+      "height": {
+        "type": "String",
+        "example": "148"
+      }
+    }
+  },
+  "settingsCallingCardsSizeCustom": "Custom size",
+  "@settingsCallingCardsSizeCustom": {
+    "description": "A calling-card size choice: enter your own width and height."
+  },
+  "settingsCallingCardsWidthLabel": "Width",
+  "@settingsCallingCardsWidthLabel": {
+    "description": "Text field label: custom card width."
+  },
+  "settingsCallingCardsHeightLabel": "Height",
+  "@settingsCallingCardsHeightLabel": {
+    "description": "Text field label: custom card height."
+  },
+  "settingsCallingCardsUnitInches": "Inches",
+  "@settingsCallingCardsUnitInches": {
+    "description": "Unit choice for a custom card size."
+  },
+  "settingsCallingCardsUnitMillimetres": "Millimeters",
+  "@settingsCallingCardsUnitMillimetres": {
+    "description": "Unit choice for a custom card size."
+  },
+  "settingsCallingCardsSizeInvalid": "Each side must be from 1 to 14 inches (26 to 355 mm).",
+  "@settingsCallingCardsSizeInvalid": {
+    "description": "Error under the custom card size fields when a side is out of range or not a number."
+  },
+  "settingsCallingCardsLandscapeTitle": "Landscape",
+  "@settingsCallingCardsLandscapeTitle": {
+    "description": "Switch title: print calling cards with the long side across."
+  },
+  "settingsCallingCardsLandscapeSubtitle": "Print with the long side across the top.",
+  "@settingsCallingCardsLandscapeSubtitle": {
+    "description": "Subtitle of the calling-card Landscape switch."
+  },
+  "settingsCallingCardsLayoutTitle": "Card layout",
+  "@settingsCallingCardsLayoutTitle": {
+    "description": "Row that opens the calling-card layout editor."
+  },
+  "settingsCallingCardsLayoutSubtitle": "Choose what goes on each card, and where.",
+  "@settingsCallingCardsLayoutSubtitle": {
+    "description": "Subtitle of the row that opens the calling-card layout editor."
+  },
+  "callingCardEditorTitle": "Calling card layout",
+  "@callingCardEditorTitle": {
+    "description": "Title of the screen where the user edits the calling-card layout text."
+  },
+  "callingCardEditorFieldLabel": "Layout",
+  "@callingCardEditorFieldLabel": {
+    "description": "Label of the text field holding the calling-card layout."
+  },
+  "callingCardEditorAutosaveHint": "Changes are saved as you type.",
+  "@callingCardEditorAutosaveHint": {
+    "description": "Helper text under the calling-card layout field."
+  },
+  "callingCardEditorReset": "Reset to default",
+  "@callingCardEditorReset": {
+    "description": "Button: replace the calling-card layout with the default one."
+  },
+  "callingCardEditorResetConfirmTitle": "Reset the layout?",
+  "@callingCardEditorResetConfirmTitle": {
+    "description": "Title of the dialog confirming a reset of the calling-card layout."
+  },
+  "callingCardEditorResetConfirmBody": "Your layout is replaced with the default one.",
+  "@callingCardEditorResetConfirmBody": {
+    "description": "Body of the dialog confirming a reset of the calling-card layout."
+  },
+  "callingCardEditorReplaced": "Layout replaced.",
+  "@callingCardEditorReplaced": {
+    "description": "Snack bar after an example layout replaced the user's; offers Undo."
+  },
+  "callingCardEditorPreviewTitle": "Preview",
+  "@callingCardEditorPreviewTitle": {
+    "description": "Heading over the live preview of a calling card."
+  },
+  "callingCardEditorPreviewCaption": "A sample dance on a {size} card.",
+  "@callingCardEditorPreviewCaption": {
+    "description": "Caption under the calling-card preview. size is the card measurement, such as 3 × 5 in.",
+    "placeholders": {
+      "size": {
+        "type": "String",
+        "example": "3 × 5 in"
+      }
+    }
+  },
+  "callingCardEditorPreviewError": "Couldn't draw the preview.",
+  "@callingCardEditorPreviewError": {
+    "description": "Shown in place of the calling-card preview when it could not be rendered."
+  },
+  "callingCardEditorPreviewShrunk": "The text shrinks to {percent}% to fit this card.",
+  "@callingCardEditorPreviewShrunk": {
+    "description": "Under the calling-card preview: the card's content was scaled down to fit.",
+    "placeholders": {
+      "percent": {
+        "type": "int",
+        "example": "80"
+      }
+    }
+  },
+  "callingCardEditorPreviewOverflow": "This card doesn't fit even at half size, so its bottom is cut off. Take a block out, or add lines= to a long one.",
+  "@callingCardEditorPreviewOverflow": {
+    "description": "Under the calling-card preview: the content is too long for the card even when shrunk. Block and option names in this text (title, figures, size=, label=, and the like) are the layout language's own: keep them in English."
+  },
+  "callingCardEditorIssuesTitle": "Lines that couldn't be read",
+  "@callingCardEditorIssuesTitle": {
+    "description": "Heading over the list of problems in the calling-card layout. Those lines are left off the card."
+  },
+  "callingCardIssueUnknownBlock": "Line {line}: \"{name}\" isn't a block. The blocks are listed under How to write a layout.",
+  "@callingCardIssueUnknownBlock": {
+    "description": "Layout problem: the first word of a part of a line is not a block name. name is what was written.",
+    "placeholders": {
+      "line": {
+        "type": "int",
+        "example": "3"
+      },
+      "name": {
+        "type": "String",
+        "example": "titel"
+      }
+    }
+  },
+  "callingCardIssueUnknownOption": "Line {line}: this block has no \"{name}\" option.",
+  "@callingCardIssueUnknownOption": {
+    "description": "Layout problem: an option the block does not take. name is what was written.",
+    "placeholders": {
+      "line": {
+        "type": "int",
+        "example": "3"
+      },
+      "name": {
+        "type": "String",
+        "example": "bold"
+      }
+    }
+  },
+  "callingCardIssueBadValue": "Line {line}: \"{value}\" doesn't work for {option}.",
+  "@callingCardIssueBadValue": {
+    "description": "Layout problem: an option was given a value it does not accept. option is the option name (size), value what was written (huge).",
+    "placeholders": {
+      "line": {
+        "type": "int",
+        "example": "3"
+      },
+      "option": {
+        "type": "String",
+        "example": "size"
+      },
+      "value": {
+        "type": "String",
+        "example": "huge"
+      }
+    }
+  },
+  "callingCardIssueUnclosedQuote": "Line {line}: a quotation mark is never closed, so the whole line is skipped.",
+  "@callingCardIssueUnclosedQuote": {
+    "description": "Layout problem: an opening double quote with no closing one.",
+    "placeholders": {
+      "line": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "callingCardIssueMissingText": "Line {line}: text needs words in quotes, like text \"Called by me\".",
+  "@callingCardIssueMissingText": {
+    "description": "Layout problem: a text block with nothing to print. Block and option names in this text (title, figures, size=, label=, and the like) are the layout language's own: keep them in English.",
+    "placeholders": {
+      "line": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "callingCardIssueCardNotAlone": "Line {line}: card sets up the whole card, so it needs a line of its own.",
+  "@callingCardIssueCardNotAlone": {
+    "description": "Layout problem: the card block shares a line with other blocks. Block and option names in this text (title, figures, size=, label=, and the like) are the layout language's own: keep them in English.",
+    "placeholders": {
+      "line": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "callingCardIssueEmptyBlock": "Line {line}: there's nothing on one side of a |.",
+  "@callingCardIssueEmptyBlock": {
+    "description": "Layout problem: a | separator with nothing before or after it.",
+    "placeholders": {
+      "line": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "callingCardHelpTitle": "How to write a layout",
+  "@callingCardHelpTitle": {
+    "description": "Heading of the in-editor help for the calling-card layout language."
+  },
+  "callingCardHelpIntro": "Each line is one row of the card, from top to bottom. Start the line with a block's name, then add any options. Put | between blocks to place them side by side. A line starting with # is a note to yourself and isn't printed.",
+  "@callingCardHelpIntro": {
+    "description": "Help: how the layout text is read."
+  },
+  "callingCardHelpFields": "A block prints only what the dance has, and only fields turned on under Settings › Defaults › Shared dance fields. A row with nothing to print takes no space. When a card is too full, everything on it shrinks evenly to fit, down to half size.",
+  "@callingCardHelpFields": {
+    "description": "Help: what gates a block, and what happens when a card is too full."
+  },
+  "callingCardHelpTapToInsert": "Tap a name to add it to your layout.",
+  "@callingCardHelpTapToInsert": {
+    "description": "Help: the block and option names below can be tapped to insert them."
+  },
+  "callingCardHelpBlocksTitle": "Blocks",
+  "@callingCardHelpBlocksTitle": {
+    "description": "Help heading: the list of things a layout line can print."
+  },
+  "callingCardHelpOptionsTitle": "Options",
+  "@callingCardHelpOptionsTitle": {
+    "description": "Help heading: the list of options a block can take."
+  },
+  "callingCardHelpExamplesTitle": "Examples",
+  "@callingCardHelpExamplesTitle": {
+    "description": "Help heading: ready-made layouts."
+  },
+  "callingCardHelpExampleUse": "Use this layout",
+  "@callingCardHelpExampleUse": {
+    "description": "Button: replace the user's layout with this example."
+  },
+  "callingCardHelpBlockTitle": "The dance's title.",
+  "@callingCardHelpBlockTitle": {
+    "description": "Help: what the title block prints."
+  },
+  "callingCardHelpBlockAuthors": "Who wrote the dance.",
+  "@callingCardHelpBlockAuthors": {
+    "description": "Help: what the authors block prints."
+  },
+  "callingCardHelpBlockFormation": "The formation, such as Improper or Becket.",
+  "@callingCardHelpBlockFormation": {
+    "description": "Help: what the formation block prints."
+  },
+  "callingCardHelpBlockLevel": "The dance's level.",
+  "@callingCardHelpBlockLevel": {
+    "description": "Help: what the level block prints."
+  },
+  "callingCardHelpBlockMeta": "Formation, level, mixer, status and phrase on one line, each with its label.",
+  "@callingCardHelpBlockMeta": {
+    "description": "Help: what the meta block prints."
+  },
+  "callingCardHelpBlockFigures": "The figures, grouped by phrase (A1, A2, B1, B2), with their beats.",
+  "@callingCardHelpBlockFigures": {
+    "description": "Help: what the figures block prints."
+  },
+  "callingCardHelpBlockNotes": "Your calling notes.",
+  "@callingCardHelpBlockNotes": {
+    "description": "Help: what the notes block prints."
+  },
+  "callingCardHelpBlockWalkthrough": "The walkthrough.",
+  "@callingCardHelpBlockWalkthrough": {
+    "description": "Help: what the walkthrough block prints."
+  },
+  "callingCardHelpBlockHook": "The dance's hook.",
+  "@callingCardHelpBlockHook": {
+    "description": "Help: what the hook block prints."
+  },
+  "callingCardHelpBlockTunes": "Suggested tunes.",
+  "@callingCardHelpBlockTunes": {
+    "description": "Help: what the tunes block prints."
+  },
+  "callingCardHelpBlockSources": "Published sources.",
+  "@callingCardHelpBlockSources": {
+    "description": "Help: what the sources block prints."
+  },
+  "callingCardHelpBlockProgram": "The program's title, when you print a program.",
+  "@callingCardHelpBlockProgram": {
+    "description": "Help: what the program block prints."
+  },
+  "callingCardHelpBlockNumber": "The dance's place in the program (1, 2, 3, or Alternate), when you print a program.",
+  "@callingCardHelpBlockNumber": {
+    "description": "Help: what the number block prints. Alternate is the export label for an alternate dance."
+  },
+  "callingCardHelpBlockText": "Words of your own, in quotes.",
+  "@callingCardHelpBlockText": {
+    "description": "Help: what the text block prints."
+  },
+  "callingCardHelpBlockRule": "A line across the card.",
+  "@callingCardHelpBlockRule": {
+    "description": "Help: what the rule block prints."
+  },
+  "callingCardHelpBlockSpace": "A gap, in points (72 to an inch).",
+  "@callingCardHelpBlockSpace": {
+    "description": "Help: what the space block does."
+  },
+  "callingCardHelpBlockCard": "Settings for the whole card: margin is the space around the edge, in points.",
+  "@callingCardHelpBlockCard": {
+    "description": "Help: what the card line does. Block and option names in this text (title, figures, size=, label=, and the like) are the layout language's own: keep them in English."
+  },
+  "callingCardHelpOptionSize": "Text size, in points.",
+  "@callingCardHelpOptionSize": {
+    "description": "Help: the size option."
+  },
+  "callingCardHelpOptionStyle": "Bold or slanted text.",
+  "@callingCardHelpOptionStyle": {
+    "description": "Help: the bold and italic options."
+  },
+  "callingCardHelpOptionAlign": "Where the text sits in its space.",
+  "@callingCardHelpOptionAlign": {
+    "description": "Help: the left, center and right options."
+  },
+  "callingCardHelpOptionColor": "Text or line color, as a hex code.",
+  "@callingCardHelpOptionColor": {
+    "description": "Help: the color option."
+  },
+  "callingCardHelpOptionLines": "Print at most this many lines of a long block.",
+  "@callingCardHelpOptionLines": {
+    "description": "Help: the lines option."
+  },
+  "callingCardHelpOptionLabel": "Words in front of the text. label=\"\" prints none.",
+  "@callingCardHelpOptionLabel": {
+    "description": "Help: the label option. Block and option names in this text (title, figures, size=, label=, and the like) are the layout language's own: keep them in English."
+  },
+  "callingCardHelpOptionWidth": "In a row, a block with width=2 takes twice the room of one with width=1.",
+  "@callingCardHelpOptionWidth": {
+    "description": "Help: the width option. Block and option names in this text (title, figures, size=, label=, and the like) are the layout language's own: keep them in English."
+  },
+  "callingCardHelpOptionFigures": "For figures: leave out the beats, the figures' own notes, the phrase names, or the lines between phrases.",
+  "@callingCardHelpOptionFigures": {
+    "description": "Help: the figures block's on/off options."
+  },
+  "callingCardHelpOptionThickness": "How thick a rule is, in points.",
+  "@callingCardHelpOptionThickness": {
+    "description": "Help: the thickness option."
+  },
+  "callingCardExampleClassic": "Classic",
+  "@callingCardExampleClassic": {
+    "description": "Name of the default example calling-card layout."
+  },
+  "callingCardExampleBigPrint": "Big print",
+  "@callingCardExampleBigPrint": {
+    "description": "Name of an example calling-card layout with large text."
+  },
+  "callingCardExampleProgram": "Program night",
+  "@callingCardExampleProgram": {
+    "description": "Name of an example calling-card layout numbered for printing a program."
+  },
+  "callingCardExampleTeaching": "Teaching card",
+  "@callingCardExampleTeaching": {
+    "description": "Name of an example calling-card layout with the walkthrough."
+  },
+  "callingCardSampleTitle": "Sample contra",
+  "@callingCardSampleTitle": {
+    "description": "Title of the made-up dance the calling-card preview shows."
+  },
+  "callingCardSampleAuthor": "A. Caller",
+  "@callingCardSampleAuthor": {
+    "description": "Author name of the made-up dance the calling-card preview shows."
+  },
+  "callingCardSampleNotes": "Slide left along the line to progress.",
+  "@callingCardSampleNotes": {
+    "description": "Calling notes of the made-up dance the calling-card preview shows."
+  },
+  "callingCardSampleFigureNote": "Hold on for the whole turn.",
+  "@callingCardSampleFigureNote": {
+    "description": "A figure note on the made-up dance the calling-card preview shows."
+  },
+  "callingCardSampleProgram": "Friday night dance",
+  "@callingCardSampleProgram": {
+    "description": "Program title the calling-card preview shows for the program block."
+  },
+  "exportPrintCallingCard": "Print calling card",
+  "@exportPrintCallingCard": {
+    "description": "Export-menu item: print this dance as a small calling card."
+  },
+  "exportPrintCallingCards": "Print calling cards",
+  "@exportPrintCallingCards": {
+    "description": "Export-menu item: print every dance in the program as a small calling card."
+  },
+  "exportCallingCardsCutOff": "{count, plural, =1{1 card didn't fit and is cut off at the bottom.} other{{count} cards didn't fit and are cut off at the bottom.}}",
+  "@exportCallingCardsCutOff": {
+    "description": "Snack bar after printing calling cards when some were too long for the card even when shrunk.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
   }
 }

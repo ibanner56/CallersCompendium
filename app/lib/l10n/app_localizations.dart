@@ -17054,6 +17054,510 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This condition puts too many \"not\"s inside each other: at most {max}. Take some out: two \"not\"s in a row cancel out.'**
   String wordingIssueTooManyNots(String max);
+
+  /// Experimental settings section heading for printing dances as small calling cards (index cards a caller holds while calling). Also names the setting in a Device Sync conflict.
+  ///
+  /// In en, this message translates to:
+  /// **'Calling cards'**
+  String get settingsCallingCardsHeader;
+
+  /// Switch title: offer calling-card printing in the Export menus.
+  ///
+  /// In en, this message translates to:
+  /// **'Print calling cards'**
+  String get settingsCallingCardsEnableTitle;
+
+  /// Subtitle of the calling-cards switch.
+  ///
+  /// In en, this message translates to:
+  /// **'Adds Print calling card to a dance\'s Export menu, and Print calling cards to a program\'s: one small card per dance, laid out the way you choose below.'**
+  String get settingsCallingCardsEnableSubtitle;
+
+  /// Row title: the size of paper each calling card prints on.
+  ///
+  /// In en, this message translates to:
+  /// **'Card size'**
+  String get settingsCallingCardsSizeTitle;
+
+  /// A calling-card size choice: a standard index card. size is a measurement such as 3 × 5 in.
+  ///
+  /// In en, this message translates to:
+  /// **'Index card, {size}'**
+  String settingsCallingCardsSizeIndexCard(String size);
+
+  /// A calling-card size choice: an ISO paper size. name is the paper name (A6), size its measurement (105 × 148 mm).
+  ///
+  /// In en, this message translates to:
+  /// **'{name} ({size})'**
+  String settingsCallingCardsSizeIsoA(String name, String size);
+
+  /// A card measurement in inches, short side first.
+  ///
+  /// In en, this message translates to:
+  /// **'{width} × {height} in'**
+  String settingsCallingCardsSizeInches(String width, String height);
+
+  /// A card measurement in millimeters, short side first.
+  ///
+  /// In en, this message translates to:
+  /// **'{width} × {height} mm'**
+  String settingsCallingCardsSizeMillimetres(String width, String height);
+
+  /// A calling-card size choice: enter your own width and height.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom size'**
+  String get settingsCallingCardsSizeCustom;
+
+  /// Text field label: custom card width.
+  ///
+  /// In en, this message translates to:
+  /// **'Width'**
+  String get settingsCallingCardsWidthLabel;
+
+  /// Text field label: custom card height.
+  ///
+  /// In en, this message translates to:
+  /// **'Height'**
+  String get settingsCallingCardsHeightLabel;
+
+  /// Unit choice for a custom card size.
+  ///
+  /// In en, this message translates to:
+  /// **'Inches'**
+  String get settingsCallingCardsUnitInches;
+
+  /// Unit choice for a custom card size.
+  ///
+  /// In en, this message translates to:
+  /// **'Millimeters'**
+  String get settingsCallingCardsUnitMillimetres;
+
+  /// Error under the custom card size fields when a side is out of range or not a number.
+  ///
+  /// In en, this message translates to:
+  /// **'Each side must be from 1 to 14 inches (26 to 355 mm).'**
+  String get settingsCallingCardsSizeInvalid;
+
+  /// Switch title: print calling cards with the long side across.
+  ///
+  /// In en, this message translates to:
+  /// **'Landscape'**
+  String get settingsCallingCardsLandscapeTitle;
+
+  /// Subtitle of the calling-card Landscape switch.
+  ///
+  /// In en, this message translates to:
+  /// **'Print with the long side across the top.'**
+  String get settingsCallingCardsLandscapeSubtitle;
+
+  /// Row that opens the calling-card layout editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Card layout'**
+  String get settingsCallingCardsLayoutTitle;
+
+  /// Subtitle of the row that opens the calling-card layout editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose what goes on each card, and where.'**
+  String get settingsCallingCardsLayoutSubtitle;
+
+  /// Title of the screen where the user edits the calling-card layout text.
+  ///
+  /// In en, this message translates to:
+  /// **'Calling card layout'**
+  String get callingCardEditorTitle;
+
+  /// Label of the text field holding the calling-card layout.
+  ///
+  /// In en, this message translates to:
+  /// **'Layout'**
+  String get callingCardEditorFieldLabel;
+
+  /// Helper text under the calling-card layout field.
+  ///
+  /// In en, this message translates to:
+  /// **'Changes are saved as you type.'**
+  String get callingCardEditorAutosaveHint;
+
+  /// Button: replace the calling-card layout with the default one.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset to default'**
+  String get callingCardEditorReset;
+
+  /// Title of the dialog confirming a reset of the calling-card layout.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset the layout?'**
+  String get callingCardEditorResetConfirmTitle;
+
+  /// Body of the dialog confirming a reset of the calling-card layout.
+  ///
+  /// In en, this message translates to:
+  /// **'Your layout is replaced with the default one.'**
+  String get callingCardEditorResetConfirmBody;
+
+  /// Snack bar after an example layout replaced the user's; offers Undo.
+  ///
+  /// In en, this message translates to:
+  /// **'Layout replaced.'**
+  String get callingCardEditorReplaced;
+
+  /// Heading over the live preview of a calling card.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview'**
+  String get callingCardEditorPreviewTitle;
+
+  /// Caption under the calling-card preview. size is the card measurement, such as 3 × 5 in.
+  ///
+  /// In en, this message translates to:
+  /// **'A sample dance on a {size} card.'**
+  String callingCardEditorPreviewCaption(String size);
+
+  /// Shown in place of the calling-card preview when it could not be rendered.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t draw the preview.'**
+  String get callingCardEditorPreviewError;
+
+  /// Under the calling-card preview: the card's content was scaled down to fit.
+  ///
+  /// In en, this message translates to:
+  /// **'The text shrinks to {percent}% to fit this card.'**
+  String callingCardEditorPreviewShrunk(int percent);
+
+  /// Under the calling-card preview: the content is too long for the card even when shrunk. Block and option names in this text (title, figures, size=, label=, and the like) are the layout language's own: keep them in English.
+  ///
+  /// In en, this message translates to:
+  /// **'This card doesn\'t fit even at half size, so its bottom is cut off. Take a block out, or add lines= to a long one.'**
+  String get callingCardEditorPreviewOverflow;
+
+  /// Heading over the list of problems in the calling-card layout. Those lines are left off the card.
+  ///
+  /// In en, this message translates to:
+  /// **'Lines that couldn\'t be read'**
+  String get callingCardEditorIssuesTitle;
+
+  /// Layout problem: the first word of a part of a line is not a block name. name is what was written.
+  ///
+  /// In en, this message translates to:
+  /// **'Line {line}: \"{name}\" isn\'t a block. The blocks are listed under How to write a layout.'**
+  String callingCardIssueUnknownBlock(int line, String name);
+
+  /// Layout problem: an option the block does not take. name is what was written.
+  ///
+  /// In en, this message translates to:
+  /// **'Line {line}: this block has no \"{name}\" option.'**
+  String callingCardIssueUnknownOption(int line, String name);
+
+  /// Layout problem: an option was given a value it does not accept. option is the option name (size), value what was written (huge).
+  ///
+  /// In en, this message translates to:
+  /// **'Line {line}: \"{value}\" doesn\'t work for {option}.'**
+  String callingCardIssueBadValue(int line, String option, String value);
+
+  /// Layout problem: an opening double quote with no closing one.
+  ///
+  /// In en, this message translates to:
+  /// **'Line {line}: a quotation mark is never closed, so the whole line is skipped.'**
+  String callingCardIssueUnclosedQuote(int line);
+
+  /// Layout problem: a text block with nothing to print. Block and option names in this text (title, figures, size=, label=, and the like) are the layout language's own: keep them in English.
+  ///
+  /// In en, this message translates to:
+  /// **'Line {line}: text needs words in quotes, like text \"Called by me\".'**
+  String callingCardIssueMissingText(int line);
+
+  /// Layout problem: the card block shares a line with other blocks. Block and option names in this text (title, figures, size=, label=, and the like) are the layout language's own: keep them in English.
+  ///
+  /// In en, this message translates to:
+  /// **'Line {line}: card sets up the whole card, so it needs a line of its own.'**
+  String callingCardIssueCardNotAlone(int line);
+
+  /// Layout problem: a | separator with nothing before or after it.
+  ///
+  /// In en, this message translates to:
+  /// **'Line {line}: there\'s nothing on one side of a |.'**
+  String callingCardIssueEmptyBlock(int line);
+
+  /// Heading of the in-editor help for the calling-card layout language.
+  ///
+  /// In en, this message translates to:
+  /// **'How to write a layout'**
+  String get callingCardHelpTitle;
+
+  /// Help: how the layout text is read.
+  ///
+  /// In en, this message translates to:
+  /// **'Each line is one row of the card, from top to bottom. Start the line with a block\'s name, then add any options. Put | between blocks to place them side by side. A line starting with # is a note to yourself and isn\'t printed.'**
+  String get callingCardHelpIntro;
+
+  /// Help: what gates a block, and what happens when a card is too full.
+  ///
+  /// In en, this message translates to:
+  /// **'A block prints only what the dance has, and only fields turned on under Settings › Defaults › Shared dance fields. A row with nothing to print takes no space. When a card is too full, everything on it shrinks evenly to fit, down to half size.'**
+  String get callingCardHelpFields;
+
+  /// Help: the block and option names below can be tapped to insert them.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a name to add it to your layout.'**
+  String get callingCardHelpTapToInsert;
+
+  /// Help heading: the list of things a layout line can print.
+  ///
+  /// In en, this message translates to:
+  /// **'Blocks'**
+  String get callingCardHelpBlocksTitle;
+
+  /// Help heading: the list of options a block can take.
+  ///
+  /// In en, this message translates to:
+  /// **'Options'**
+  String get callingCardHelpOptionsTitle;
+
+  /// Help heading: ready-made layouts.
+  ///
+  /// In en, this message translates to:
+  /// **'Examples'**
+  String get callingCardHelpExamplesTitle;
+
+  /// Button: replace the user's layout with this example.
+  ///
+  /// In en, this message translates to:
+  /// **'Use this layout'**
+  String get callingCardHelpExampleUse;
+
+  /// Help: what the title block prints.
+  ///
+  /// In en, this message translates to:
+  /// **'The dance\'s title.'**
+  String get callingCardHelpBlockTitle;
+
+  /// Help: what the authors block prints.
+  ///
+  /// In en, this message translates to:
+  /// **'Who wrote the dance.'**
+  String get callingCardHelpBlockAuthors;
+
+  /// Help: what the formation block prints.
+  ///
+  /// In en, this message translates to:
+  /// **'The formation, such as Improper or Becket.'**
+  String get callingCardHelpBlockFormation;
+
+  /// Help: what the level block prints.
+  ///
+  /// In en, this message translates to:
+  /// **'The dance\'s level.'**
+  String get callingCardHelpBlockLevel;
+
+  /// Help: what the meta block prints.
+  ///
+  /// In en, this message translates to:
+  /// **'Formation, level, mixer, status and phrase on one line, each with its label.'**
+  String get callingCardHelpBlockMeta;
+
+  /// Help: what the figures block prints.
+  ///
+  /// In en, this message translates to:
+  /// **'The figures, grouped by phrase (A1, A2, B1, B2), with their beats.'**
+  String get callingCardHelpBlockFigures;
+
+  /// Help: what the notes block prints.
+  ///
+  /// In en, this message translates to:
+  /// **'Your calling notes.'**
+  String get callingCardHelpBlockNotes;
+
+  /// Help: what the walkthrough block prints.
+  ///
+  /// In en, this message translates to:
+  /// **'The walkthrough.'**
+  String get callingCardHelpBlockWalkthrough;
+
+  /// Help: what the hook block prints.
+  ///
+  /// In en, this message translates to:
+  /// **'The dance\'s hook.'**
+  String get callingCardHelpBlockHook;
+
+  /// Help: what the tunes block prints.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggested tunes.'**
+  String get callingCardHelpBlockTunes;
+
+  /// Help: what the sources block prints.
+  ///
+  /// In en, this message translates to:
+  /// **'Published sources.'**
+  String get callingCardHelpBlockSources;
+
+  /// Help: what the program block prints.
+  ///
+  /// In en, this message translates to:
+  /// **'The program\'s title, when you print a program.'**
+  String get callingCardHelpBlockProgram;
+
+  /// Help: what the number block prints. Alternate is the export label for an alternate dance.
+  ///
+  /// In en, this message translates to:
+  /// **'The dance\'s place in the program (1, 2, 3, or Alternate), when you print a program.'**
+  String get callingCardHelpBlockNumber;
+
+  /// Help: what the text block prints.
+  ///
+  /// In en, this message translates to:
+  /// **'Words of your own, in quotes.'**
+  String get callingCardHelpBlockText;
+
+  /// Help: what the rule block prints.
+  ///
+  /// In en, this message translates to:
+  /// **'A line across the card.'**
+  String get callingCardHelpBlockRule;
+
+  /// Help: what the space block does.
+  ///
+  /// In en, this message translates to:
+  /// **'A gap, in points (72 to an inch).'**
+  String get callingCardHelpBlockSpace;
+
+  /// Help: what the card line does. Block and option names in this text (title, figures, size=, label=, and the like) are the layout language's own: keep them in English.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings for the whole card: margin is the space around the edge, in points.'**
+  String get callingCardHelpBlockCard;
+
+  /// Help: the size option.
+  ///
+  /// In en, this message translates to:
+  /// **'Text size, in points.'**
+  String get callingCardHelpOptionSize;
+
+  /// Help: the bold and italic options.
+  ///
+  /// In en, this message translates to:
+  /// **'Bold or slanted text.'**
+  String get callingCardHelpOptionStyle;
+
+  /// Help: the left, center and right options.
+  ///
+  /// In en, this message translates to:
+  /// **'Where the text sits in its space.'**
+  String get callingCardHelpOptionAlign;
+
+  /// Help: the color option.
+  ///
+  /// In en, this message translates to:
+  /// **'Text or line color, as a hex code.'**
+  String get callingCardHelpOptionColor;
+
+  /// Help: the lines option.
+  ///
+  /// In en, this message translates to:
+  /// **'Print at most this many lines of a long block.'**
+  String get callingCardHelpOptionLines;
+
+  /// Help: the label option. Block and option names in this text (title, figures, size=, label=, and the like) are the layout language's own: keep them in English.
+  ///
+  /// In en, this message translates to:
+  /// **'Words in front of the text. label=\"\" prints none.'**
+  String get callingCardHelpOptionLabel;
+
+  /// Help: the width option. Block and option names in this text (title, figures, size=, label=, and the like) are the layout language's own: keep them in English.
+  ///
+  /// In en, this message translates to:
+  /// **'In a row, a block with width=2 takes twice the room of one with width=1.'**
+  String get callingCardHelpOptionWidth;
+
+  /// Help: the figures block's on/off options.
+  ///
+  /// In en, this message translates to:
+  /// **'For figures: leave out the beats, the figures\' own notes, the phrase names, or the lines between phrases.'**
+  String get callingCardHelpOptionFigures;
+
+  /// Help: the thickness option.
+  ///
+  /// In en, this message translates to:
+  /// **'How thick a rule is, in points.'**
+  String get callingCardHelpOptionThickness;
+
+  /// Name of the default example calling-card layout.
+  ///
+  /// In en, this message translates to:
+  /// **'Classic'**
+  String get callingCardExampleClassic;
+
+  /// Name of an example calling-card layout with large text.
+  ///
+  /// In en, this message translates to:
+  /// **'Big print'**
+  String get callingCardExampleBigPrint;
+
+  /// Name of an example calling-card layout numbered for printing a program.
+  ///
+  /// In en, this message translates to:
+  /// **'Program night'**
+  String get callingCardExampleProgram;
+
+  /// Name of an example calling-card layout with the walkthrough.
+  ///
+  /// In en, this message translates to:
+  /// **'Teaching card'**
+  String get callingCardExampleTeaching;
+
+  /// Title of the made-up dance the calling-card preview shows.
+  ///
+  /// In en, this message translates to:
+  /// **'Sample contra'**
+  String get callingCardSampleTitle;
+
+  /// Author name of the made-up dance the calling-card preview shows.
+  ///
+  /// In en, this message translates to:
+  /// **'A. Caller'**
+  String get callingCardSampleAuthor;
+
+  /// Calling notes of the made-up dance the calling-card preview shows.
+  ///
+  /// In en, this message translates to:
+  /// **'Slide left along the line to progress.'**
+  String get callingCardSampleNotes;
+
+  /// A figure note on the made-up dance the calling-card preview shows.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold on for the whole turn.'**
+  String get callingCardSampleFigureNote;
+
+  /// Program title the calling-card preview shows for the program block.
+  ///
+  /// In en, this message translates to:
+  /// **'Friday night dance'**
+  String get callingCardSampleProgram;
+
+  /// Export-menu item: print this dance as a small calling card.
+  ///
+  /// In en, this message translates to:
+  /// **'Print calling card'**
+  String get exportPrintCallingCard;
+
+  /// Export-menu item: print every dance in the program as a small calling card.
+  ///
+  /// In en, this message translates to:
+  /// **'Print calling cards'**
+  String get exportPrintCallingCards;
+
+  /// Snack bar after printing calling cards when some were too long for the card even when shrunk.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 card didn\'t fit and is cut off at the bottom.} other{{count} cards didn\'t fit and are cut off at the bottom.}}'**
+  String exportCallingCardsCutOff(int count);
 }
 
 class _AppLocalizationsDelegate

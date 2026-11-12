@@ -5,6 +5,8 @@ import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/calling_card_settings_scope.dart';
+import '../export/calling_card_pdf.dart';
 import '../export/dance_pdf.dart';
 import '../export/dance_share_bundle.dart';
 import '../export/dance_source_lines.dart';
@@ -12,6 +14,7 @@ import '../export/export_labels_l10n.dart';
 import '../export/json_export.dart';
 import '../export/share_file.dart';
 import '../utils/safe_name.dart';
+import 'calling_card_print.dart';
 import 'export_guard.dart';
 
 /// Hands the shareable card to the OS share sheet. Defaults to
@@ -26,7 +29,7 @@ typedef PdfLayouter =
       required LayoutCallback onLayout,
     });
 
-/// The five dance export actions, implemented once for both the wide-layout
+/// The dance export actions, implemented once for both the wide-layout
 /// [DanceExportMenu] and the phone-width overflow menu in `DanceDetailScreen`.
 ///
 /// The two surfaces used to carry their own copies of this wiring, which drifted
@@ -248,4 +251,36 @@ class DanceExportActions {
       ),
     );
   }, source: 'dance_export_actions.exportPdf');
+
+  /// Prints the dance as one calling card, sized and laid out by [settings]
+  /// (Settings › Experimental › Calling cards).
+  Future<void> printCallingCard(
+    ScaffoldMessengerState messenger,
+    AppLocalizations l10n,
+    CallingCardSettings settings,
+  ) => printCallingCards(
+    messenger: messenger,
+    l10n: l10n,
+    jobName: sanitizeExportName(dance.title, fallback: 'dance'),
+    entries: [
+      CallingCardEntry(
+        dance: dance,
+        labels: (
+          authorNames: authorNames,
+          formationLabel: formationLabel,
+          levelLabel: levelLabel,
+          statusLabel: statusLabel,
+          sourceLines: _sourceLines(l10n),
+        ),
+      ),
+    ],
+    settings: settings,
+    dialect: dialect,
+    renderer: renderer,
+    fields: fields,
+    canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+    failureMessage: l10n.exportDanceError,
+    source: 'dance_export_actions.printCallingCard',
+    pdfLayouter: pdfLayouter,
+  );
 }

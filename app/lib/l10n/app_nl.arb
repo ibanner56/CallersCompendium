@@ -11229,5 +11229,341 @@
   "wordingIssueTooManyNots": "Deze voorwaarde zet te veel “not” in elkaar: hoogstens {max}. Haal er een paar weg: twee “not” achter elkaar heffen elkaar op.",
   "@wordingIssueTooManyNots": {
     "x-sourceSha256": "1f489c691b161fb77bc3824fe650fbb1eeb6bbb57ed708c5b1bfd4e899a58f83"
+  },
+  "settingsCallingCardsHeader": "Callkaarten",
+  "@settingsCallingCardsHeader": {
+    "x-sourceSha256": "4389f7e10c996f06485184f6693fc44368c344b1fecd4943096e833d3637fa01"
+  },
+  "settingsCallingCardsEnableTitle": "Callkaarten afdrukken",
+  "@settingsCallingCardsEnableTitle": {
+    "x-sourceSha256": "755d6b903e0cbd21ae1058987b652ce42fc638222a9b378256db5f43aadf95f7"
+  },
+  "settingsCallingCardsEnableSubtitle": "Voegt Callkaart afdrukken toe aan het exportmenu van een dans, en Callkaarten afdrukken aan dat van een programma: één kleine kaart per dans, opgemaakt zoals je hieronder kiest.",
+  "@settingsCallingCardsEnableSubtitle": {
+    "x-sourceSha256": "8b3b5debcd7136ece474fc6d683b0bb802fe3c89bff201e6152bb56fa449b28e"
+  },
+  "settingsCallingCardsSizeTitle": "Kaartformaat",
+  "@settingsCallingCardsSizeTitle": {
+    "x-sourceSha256": "c8d980a1bc3f215a5f969f8c6c8c2d20ff974a24b271d574f1955450c50f4ee2"
+  },
+  "settingsCallingCardsSizeIndexCard": "Systeemkaart, {size}",
+  "@settingsCallingCardsSizeIndexCard": {
+    "x-sourceSha256": "bed4d4db1971a391fb37b3f1222e62a1712b95fd19e93ddabcb9c89049ece3ba"
+  },
+  "settingsCallingCardsSizeIsoA": "{name} ({size})",
+  "@settingsCallingCardsSizeIsoA": {
+    "x-sourceSha256": "63560b35cdb18808e8b40a57a4a02989d5baa5ff0875f8d3d75423fc852fc5b9"
+  },
+  "settingsCallingCardsSizeInches": "{width} × {height} inch",
+  "@settingsCallingCardsSizeInches": {
+    "x-sourceSha256": "fbff4f3b22a073540b20b5dfde8bebb07a7800fc3ab26e693fdba3d9c93b4513"
+  },
+  "settingsCallingCardsSizeMillimetres": "{width} × {height} mm",
+  "@settingsCallingCardsSizeMillimetres": {
+    "x-sourceSha256": "27e16187ea6d0a88c4228b94c197aeb2d8cf0bae4dfbb1b744821ce8487303d4"
+  },
+  "settingsCallingCardsSizeCustom": "Eigen formaat",
+  "@settingsCallingCardsSizeCustom": {
+    "x-sourceSha256": "d432bb2b8200bb3a214a507a782f9bfd64fcf4eddfec99d3abe67ae6e035e8e0"
+  },
+  "settingsCallingCardsWidthLabel": "Breedte",
+  "@settingsCallingCardsWidthLabel": {
+    "x-sourceSha256": "3019947b6daf18b0534a15d8c7ac30ab587e36cc93fb45a6e7b750348006d620"
+  },
+  "settingsCallingCardsHeightLabel": "Hoogte",
+  "@settingsCallingCardsHeightLabel": {
+    "x-sourceSha256": "bfe2eca401797325bc268f93c7397554551de4274d5d73ed421ee36fe9cd3ae0"
+  },
+  "settingsCallingCardsUnitInches": "Inch",
+  "@settingsCallingCardsUnitInches": {
+    "x-sourceSha256": "9eb5a39899c34c456bf5a2c04d7cb6ee7ce72fa52a6ad94c5dafc86ac6074fd2"
+  },
+  "settingsCallingCardsUnitMillimetres": "Millimeter",
+  "@settingsCallingCardsUnitMillimetres": {
+    "x-sourceSha256": "f222baf08e531ee9fa48d44c9e3b8d5082c53da6fde5918db35a5273d5760f76"
+  },
+  "settingsCallingCardsSizeInvalid": "Elke zijde moet tussen 1 en 14 inch (26 tot 355 mm) liggen.",
+  "@settingsCallingCardsSizeInvalid": {
+    "x-sourceSha256": "9944182c6d8907d1fd9814fc42a3670a84cfb754da70920f47d132752657a6dd"
+  },
+  "settingsCallingCardsLandscapeTitle": "Liggend",
+  "@settingsCallingCardsLandscapeTitle": {
+    "x-sourceSha256": "e658d3ae034a3dcf77eafffab7e7f78f5734e83eca41c698ed6e5fcc7e146a59"
+  },
+  "settingsCallingCardsLandscapeSubtitle": "Afdrukken met de lange zijde bovenaan.",
+  "@settingsCallingCardsLandscapeSubtitle": {
+    "x-sourceSha256": "58c604344d29ad7c2773a4061f94a9809c89c8b794f700add5b143a6cf46f612"
+  },
+  "settingsCallingCardsLayoutTitle": "Kaartopmaak",
+  "@settingsCallingCardsLayoutTitle": {
+    "x-sourceSha256": "f6853e95b79e5fd186406c0fd065c7e8b5b535f9973e9a42ef7d08a4d7e2b61e"
+  },
+  "settingsCallingCardsLayoutSubtitle": "Kies wat er op elke kaart komt, en waar.",
+  "@settingsCallingCardsLayoutSubtitle": {
+    "x-sourceSha256": "8fbeda7fcac48111058462d6ffe14f43b8dba14e528fa8e5c8e2a90afaff2a9d"
+  },
+  "callingCardEditorTitle": "Opmaak van de callkaart",
+  "@callingCardEditorTitle": {
+    "x-sourceSha256": "2e5b5a3d231b80c9ddc038c6417827ca7e4f30ba2f4f0a34dfe100e7531cc8b0"
+  },
+  "callingCardEditorFieldLabel": "Opmaak",
+  "@callingCardEditorFieldLabel": {
+    "x-sourceSha256": "a511909161e1b84fb81b52028fc2ce79525a96b40ccda823caa4a66ee64772b5"
+  },
+  "callingCardEditorAutosaveHint": "Wijzigingen worden opgeslagen terwijl je typt.",
+  "@callingCardEditorAutosaveHint": {
+    "x-sourceSha256": "483427fc34d9f1a990e2d3eefe863041eeefd80a8a838945699e298876ef2a27"
+  },
+  "callingCardEditorReset": "Standaard herstellen",
+  "@callingCardEditorReset": {
+    "x-sourceSha256": "bc5b45ae7b60692ade0bb26ebe5b6830f150d97134153e3c3091882eb72e7c25"
+  },
+  "callingCardEditorResetConfirmTitle": "Opmaak herstellen?",
+  "@callingCardEditorResetConfirmTitle": {
+    "x-sourceSha256": "7bd474f39d5e953b0589e59e614ffa6b16ae7f362d89e1b9200e37526b2a0e9b"
+  },
+  "callingCardEditorResetConfirmBody": "Je opmaak wordt vervangen door de standaardopmaak.",
+  "@callingCardEditorResetConfirmBody": {
+    "x-sourceSha256": "1c494771aea86c1cdc82c615eeb322e5ab676e13bb146cb18a06fecb6fbf9974"
+  },
+  "callingCardEditorReplaced": "Opmaak vervangen.",
+  "@callingCardEditorReplaced": {
+    "x-sourceSha256": "55fd370a771bca2178750a9cae4dac41d679919d6cf9ef628b83c87777fa0c34"
+  },
+  "callingCardEditorPreviewTitle": "Voorbeeld",
+  "@callingCardEditorPreviewTitle": {
+    "x-sourceSha256": "324b134f57c70c729ae3dc4d298bb451656717d70523e942c1ce667b8024ea07"
+  },
+  "callingCardEditorPreviewCaption": "Een voorbeelddans op een kaart van {size}.",
+  "@callingCardEditorPreviewCaption": {
+    "x-sourceSha256": "40134c56f8e0720038cee8181ad11ee68f86d52c7ff6b7235f7d04cfb050e30e"
+  },
+  "callingCardEditorPreviewError": "Het voorbeeld kon niet worden getekend.",
+  "@callingCardEditorPreviewError": {
+    "x-sourceSha256": "c6a4540584074c857b121c1f5d8249c0112e616b6bbf22e4e57f0840fff65fc9"
+  },
+  "callingCardEditorPreviewShrunk": "De tekst wordt verkleind tot {percent}% om op deze kaart te passen.",
+  "@callingCardEditorPreviewShrunk": {
+    "x-sourceSha256": "230ae1c9595b92e9fa525f37f1826fa67cba54de68d4f3b48ce69c0f0264a72e"
+  },
+  "callingCardEditorPreviewOverflow": "Deze kaart past zelfs op halve grootte niet, dus de onderkant is afgesneden. Haal een blok weg, of voeg lines= toe aan een lang blok.",
+  "@callingCardEditorPreviewOverflow": {
+    "x-sourceSha256": "dcd5638b7154e4a811a4e03fba556c51aa511480d2e044279dc9fe49b2a07398"
+  },
+  "callingCardEditorIssuesTitle": "Regels die niet gelezen konden worden",
+  "@callingCardEditorIssuesTitle": {
+    "x-sourceSha256": "9b75235db6369cf647e5269b0e3ad0ca49422fd6162661c5c5514b82ed2ce190"
+  },
+  "callingCardIssueUnknownBlock": "Regel {line}: \"{name}\" is geen blok. De blokken staan onder Zo schrijf je een opmaak.",
+  "@callingCardIssueUnknownBlock": {
+    "x-sourceSha256": "3c67c0733ad3feffeed5a026d9edce00ffd0d2221bc4636299ee73a93e5fcc4a"
+  },
+  "callingCardIssueUnknownOption": "Regel {line}: dit blok heeft geen optie \"{name}\".",
+  "@callingCardIssueUnknownOption": {
+    "x-sourceSha256": "fbdea12044bbcac317be4697ec87c75559d414731ff3da47dd89dea85fc2e1af"
+  },
+  "callingCardIssueBadValue": "Regel {line}: \"{value}\" werkt niet voor {option}.",
+  "@callingCardIssueBadValue": {
+    "x-sourceSha256": "684bd8850dc83f6f955ef11f1494a5c8410b8a9842e695f93d9dbe5bbff1c871"
+  },
+  "callingCardIssueUnclosedQuote": "Regel {line}: een aanhalingsteken wordt nooit gesloten, dus de hele regel wordt overgeslagen.",
+  "@callingCardIssueUnclosedQuote": {
+    "x-sourceSha256": "744543984ad6f8604a26348baf4f88121f4b95425bbd0c6b227249b4666fc973"
+  },
+  "callingCardIssueMissingText": "Regel {line}: text heeft woorden tussen aanhalingstekens nodig, zoals text \"Called by me\".",
+  "@callingCardIssueMissingText": {
+    "x-sourceSha256": "e94c1eb3b5b641d8ecd9803279710d55e902e1afa29fef5a6e03b9960bc4e535"
+  },
+  "callingCardIssueCardNotAlone": "Regel {line}: card stelt de hele kaart in en heeft dus een eigen regel nodig.",
+  "@callingCardIssueCardNotAlone": {
+    "x-sourceSha256": "bf89b476c226adf952ca2e4ca5401cb3cdb3e7dc2c36c58d176b6db45555076f"
+  },
+  "callingCardIssueEmptyBlock": "Regel {line}: aan één kant van een | staat niets.",
+  "@callingCardIssueEmptyBlock": {
+    "x-sourceSha256": "a444c4cc5f3d444f9ee1c5266ff187f84b97fb50c7ef086297b16163d4a4281c"
+  },
+  "callingCardHelpTitle": "Zo schrijf je een opmaak",
+  "@callingCardHelpTitle": {
+    "x-sourceSha256": "a2d0cf3795a85e7b59995bb3ad5c4bfa67290de4aa88007fee7c67f20e2aa337"
+  },
+  "callingCardHelpIntro": "Elke regel is één rij van de kaart, van boven naar beneden. Begin de regel met de naam van een blok en voeg daarna eventuele opties toe. Zet | tussen blokken om ze naast elkaar te plaatsen. Een regel die met # begint, is een notitie voor jezelf en wordt niet afgedrukt.",
+  "@callingCardHelpIntro": {
+    "x-sourceSha256": "1fc414b6856b8f60298e2c8fcdbd13b7778331ea234dc45a73e4de36ea3e55c6"
+  },
+  "callingCardHelpFields": "Een blok drukt alleen af wat de dans heeft, en alleen velden die aanstaan onder Instellingen › Standaardwaarden › Gedeelde dansvelden. Een rij zonder iets om af te drukken neemt geen ruimte in. Als een kaart te vol is, wordt alles erop gelijkmatig verkleind tot het past, tot halve grootte.",
+  "@callingCardHelpFields": {
+    "x-sourceSha256": "b284fb19a00074faa966d7bc361cfe6cc9b48f03915178541e0b989af2ce6f63"
+  },
+  "callingCardHelpTapToInsert": "Tik op een naam om die aan je opmaak toe te voegen.",
+  "@callingCardHelpTapToInsert": {
+    "x-sourceSha256": "4e23bba82e7274ee05dac9a9f2ee66ba334aeade075f402583f5b9b114321222"
+  },
+  "callingCardHelpBlocksTitle": "Blokken",
+  "@callingCardHelpBlocksTitle": {
+    "x-sourceSha256": "1cd5a6687bb76e3926f8c89a9fb290cd17d893ca944899952322d3fb5c9896d3"
+  },
+  "callingCardHelpOptionsTitle": "Opties",
+  "@callingCardHelpOptionsTitle": {
+    "x-sourceSha256": "d0db8b5e364b6989e4b8f38a2b3846b87d99a51c1592ebf35d21cc66405a8e39"
+  },
+  "callingCardHelpExamplesTitle": "Voorbeelden",
+  "@callingCardHelpExamplesTitle": {
+    "x-sourceSha256": "e68ee04dff59551b7d1ae07a2f8a00dc61d841628948da3d2781630706a05e92"
+  },
+  "callingCardHelpExampleUse": "Deze opmaak gebruiken",
+  "@callingCardHelpExampleUse": {
+    "x-sourceSha256": "e1b4b7fa4cfd7f7196a06a27fc5ac5a662cba04e60b3326165d614b3d5f8924b"
+  },
+  "callingCardHelpBlockTitle": "De titel van de dans.",
+  "@callingCardHelpBlockTitle": {
+    "x-sourceSha256": "5d5fe3e0ea5489236a7644326e57abae2a692cd5c127e7e594c6f2d0848c68cc"
+  },
+  "callingCardHelpBlockAuthors": "Wie de dans heeft geschreven.",
+  "@callingCardHelpBlockAuthors": {
+    "x-sourceSha256": "9cfbd8aba0a013c5676fe67625a5c40e1ae9efb9b03e589675302355901f410c"
+  },
+  "callingCardHelpBlockFormation": "De opstelling, zoals Improper of Becket.",
+  "@callingCardHelpBlockFormation": {
+    "x-sourceSha256": "af51087792efe9413a9bcc497b7ecd6c998447c5f1e0be602386fcbfcbd2dfc2"
+  },
+  "callingCardHelpBlockLevel": "Het niveau van de dans.",
+  "@callingCardHelpBlockLevel": {
+    "x-sourceSha256": "cc745f2a1c5def9eddb4feb48fdc54d44af4baf5d94cdb399b4f8cb81d732629"
+  },
+  "callingCardHelpBlockMeta": "Opstelling, niveau, mixer, status en frase op één regel, elk met zijn label.",
+  "@callingCardHelpBlockMeta": {
+    "x-sourceSha256": "1928a9d33c4ba8624ec07f3fca1ea6e98c0a289f9874f6f63a0307d616555f75"
+  },
+  "callingCardHelpBlockFigures": "De figuren, gegroepeerd per frase (A1, A2, B1, B2), met hun tellen.",
+  "@callingCardHelpBlockFigures": {
+    "x-sourceSha256": "b997a702c0d398fe95724d2317082254978be5305b3f4b00af9006e9e307d9c9"
+  },
+  "callingCardHelpBlockNotes": "Je callnotities.",
+  "@callingCardHelpBlockNotes": {
+    "x-sourceSha256": "37ea466016ef613f0827b3dd1e47e5fa54069d83912a2b25cf5e0045c9683e14"
+  },
+  "callingCardHelpBlockWalkthrough": "De walkthrough.",
+  "@callingCardHelpBlockWalkthrough": {
+    "x-sourceSha256": "5e241bc691e735c43329130cd0155c38ca3ff17c61d7deecde4153184972f32c"
+  },
+  "callingCardHelpBlockHook": "De hook van de dans.",
+  "@callingCardHelpBlockHook": {
+    "x-sourceSha256": "520758437501d6c159a10f12b97f860ca0c72eed9d6b893ea6034d4a8a0704dd"
+  },
+  "callingCardHelpBlockTunes": "Voorgestelde melodieën.",
+  "@callingCardHelpBlockTunes": {
+    "x-sourceSha256": "9d9117d4a84bbfd795ad02799b1d8bd99a57de95e9ef31268e99c398e65ac906"
+  },
+  "callingCardHelpBlockSources": "Gepubliceerde bronnen.",
+  "@callingCardHelpBlockSources": {
+    "x-sourceSha256": "99d48003420f548b3163885b84ab57882e3b50ccd95b08260d8b0928f6045295"
+  },
+  "callingCardHelpBlockProgram": "De titel van het programma, als je een programma afdrukt.",
+  "@callingCardHelpBlockProgram": {
+    "x-sourceSha256": "60b8c9c27cbc17a9b41c7b62e7b46407ea436e08c755aff12467f938fba2a608"
+  },
+  "callingCardHelpBlockNumber": "De plaats van de dans in het programma (1, 2, 3 of Alternatief), als je een programma afdrukt.",
+  "@callingCardHelpBlockNumber": {
+    "x-sourceSha256": "8f8f656b53ee8af05379e0c2966cabb28198177f25470c53a05b5605be8d15c6"
+  },
+  "callingCardHelpBlockText": "Je eigen woorden, tussen aanhalingstekens.",
+  "@callingCardHelpBlockText": {
+    "x-sourceSha256": "ff71b4f7eca428b6c5612c00e35b24d68e549348880ef396530ed075e02578be"
+  },
+  "callingCardHelpBlockRule": "Een lijn over de kaart.",
+  "@callingCardHelpBlockRule": {
+    "x-sourceSha256": "69a9b8f50bc40d9f55ea404283041ec6889398dc9d1242f6b1f154c306b8f0c3"
+  },
+  "callingCardHelpBlockSpace": "Een witruimte, in punten (72 per inch).",
+  "@callingCardHelpBlockSpace": {
+    "x-sourceSha256": "adf52ef1ab3c9e55c95a9161f59ef30913de8ffaa3ee127d6c9379187a15f46c"
+  },
+  "callingCardHelpBlockCard": "Instellingen voor de hele kaart: margin is de ruimte langs de rand, in punten.",
+  "@callingCardHelpBlockCard": {
+    "x-sourceSha256": "3ff7fed63650d9ff2058db2a560b8b4cd97f05163aa189fa71f3cee48cdf9c90"
+  },
+  "callingCardHelpOptionSize": "Tekstgrootte, in punten.",
+  "@callingCardHelpOptionSize": {
+    "x-sourceSha256": "408faf07f29685f286715afa12bd7e78d5f4d5e3e75a1694f0f482e5927107f6"
+  },
+  "callingCardHelpOptionStyle": "Vette of schuine tekst.",
+  "@callingCardHelpOptionStyle": {
+    "x-sourceSha256": "e458e391df6b3154c1e9c6229c151ed53213ac8bbc38de0d485d361ab318e432"
+  },
+  "callingCardHelpOptionAlign": "Waar de tekst in zijn ruimte staat.",
+  "@callingCardHelpOptionAlign": {
+    "x-sourceSha256": "448a1ef1ccf77370305f5d6604c8ced1682f781cc2250469325dbfd2e31f7f41"
+  },
+  "callingCardHelpOptionColor": "Tekst- of lijnkleur, als hexcode.",
+  "@callingCardHelpOptionColor": {
+    "x-sourceSha256": "2ee97c37c46212335d33b2454706916df1761af47547b3bf986546d17992e6c4"
+  },
+  "callingCardHelpOptionLines": "Druk hooguit zoveel regels van een lang blok af.",
+  "@callingCardHelpOptionLines": {
+    "x-sourceSha256": "aa0c58d46c3b4c183884c05e7843fed979cce44a1863159f7cfc8a2fb4704de5"
+  },
+  "callingCardHelpOptionLabel": "Woorden vóór de tekst. label=\"\" drukt er geen af.",
+  "@callingCardHelpOptionLabel": {
+    "x-sourceSha256": "09a33e6db9355096ce26e26c994a62fd5e6ee4d9a4b6928f5f85c6da3fe63064"
+  },
+  "callingCardHelpOptionWidth": "In een rij neemt een blok met width=2 twee keer zoveel ruimte in als een met width=1.",
+  "@callingCardHelpOptionWidth": {
+    "x-sourceSha256": "0afe737da572d0c30038301980dd7d55bc4a700c34f9be9dd54a0bedf7bf0a5d"
+  },
+  "callingCardHelpOptionFigures": "Voor figures: laat de tellen, de eigen notities van de figuren, de frasenamen of de lijnen tussen de frasen weg.",
+  "@callingCardHelpOptionFigures": {
+    "x-sourceSha256": "78f5e1ff429d848df5d1d3e64e2631540427c45a28e44d6ad6abe705d9e2b630"
+  },
+  "callingCardHelpOptionThickness": "Hoe dik een lijn is, in punten.",
+  "@callingCardHelpOptionThickness": {
+    "x-sourceSha256": "7c3439a68a0edf549f66111934480518f86afaf023d35b8797cb5174a76685ca"
+  },
+  "callingCardExampleClassic": "Klassiek",
+  "@callingCardExampleClassic": {
+    "x-sourceSha256": "ae25d6481fc1741ffee4a95cd05de7b6375f7e1b0c63c006640b366094f2c4a9"
+  },
+  "callingCardExampleBigPrint": "Grote letters",
+  "@callingCardExampleBigPrint": {
+    "x-sourceSha256": "90f3e2000b4512c92738f6cb1cc5d37bd91114b60732cee0411047ad05be6249"
+  },
+  "callingCardExampleProgram": "Programma-avond",
+  "@callingCardExampleProgram": {
+    "x-sourceSha256": "72714c2154db14e1a58fcd18d0f7f4d5be8ef7104300191cb9e07488bb1507fe"
+  },
+  "callingCardExampleTeaching": "Leskaart",
+  "@callingCardExampleTeaching": {
+    "x-sourceSha256": "2526cf914aed5b47efd76d925ad4e9af3219fde0a352a51950b04fa0e1812a30"
+  },
+  "callingCardSampleTitle": "Voorbeeldcontra",
+  "@callingCardSampleTitle": {
+    "x-sourceSha256": "63f43e020d1ef5398fa1761b8732ee7284114685a2571d0fb7656f64ff86b81c"
+  },
+  "callingCardSampleAuthor": "A. Caller",
+  "@callingCardSampleAuthor": {
+    "x-sourceSha256": "c9a0e7c1c8c025311d9ab7f333593766c6a94fb906d45e6b6e93e62509d6bd19"
+  },
+  "callingCardSampleNotes": "Schuif naar links langs de rij om door te schuiven.",
+  "@callingCardSampleNotes": {
+    "x-sourceSha256": "51c4b3123032984a633f547c199f1d13d523170e543a31a6ab2c9ffd807a2e12"
+  },
+  "callingCardSampleFigureNote": "Houd vast voor de hele draai.",
+  "@callingCardSampleFigureNote": {
+    "x-sourceSha256": "25e52785f1e5eece2552c5b4d2357539ae12bc65b7cd44d5463c460f08ac5898"
+  },
+  "callingCardSampleProgram": "Vrijdagavonddans",
+  "@callingCardSampleProgram": {
+    "x-sourceSha256": "1c44b293f67e813324b41c48515cc7a6c7c0b0b2532929d6c74b53f65847009d"
+  },
+  "exportPrintCallingCard": "Callkaart afdrukken",
+  "@exportPrintCallingCard": {
+    "x-sourceSha256": "2d4922c9aad38491099cad7b25bb1c878b0afef64be88382bea38caabcef80a1"
+  },
+  "exportPrintCallingCards": "Callkaarten afdrukken",
+  "@exportPrintCallingCards": {
+    "x-sourceSha256": "755d6b903e0cbd21ae1058987b652ce42fc638222a9b378256db5f43aadf95f7"
+  },
+  "exportCallingCardsCutOff": "{count, plural, =1{1 kaart paste niet en is onderaan afgesneden.} other{{count} kaarten pasten niet en zijn onderaan afgesneden.}}",
+  "@exportCallingCardsCutOff": {
+    "x-sourceSha256": "b025c9efc4e669393a66c90e01c55ac6efbec97d37648335a1f21e420849592a"
   }
 }
