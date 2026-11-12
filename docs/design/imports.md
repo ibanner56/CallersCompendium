@@ -1520,8 +1520,9 @@ shared reading", "becomes an unrecognized figure") over the bare verb.
 
 Which is which, derived from the code rather than from memory:
 
-- `tcbFigureFrontEnd` registers **nineteen** pre-recognizers: `_hey`,
-  `_circulate`, `_handBalanceSquareThrough`, `_squareThroughPassList`,
+- `tcbFigureFrontEnd` registers **twenty-one** pre-recognizers: `_hey`,
+  `_circulate`, `_waveBalanceCirculate`, `_circulateCrossBracket`,
+  `_handBalanceSquareThrough`, `_squareThroughPassList`,
   `_balanceHandAnnotation`, `_balancePairHandAnnotation`, `_gateAnnotation`,
   `_courtesyTurnAnnotation`, `_walkForwardAnnotation`, `_chainAnnotation`,
   `_starPromenadeAnnotation`, `_promenadeAnnotation`,
@@ -2069,6 +2070,20 @@ has to be judged in its own context.
     has no reading for a box circulate whose note holds a balance, at its
     start or after a comma, `;`, dash, `and` or `then`
     (`_balanceAfterCirculate`), for imports and typed figures alike.
+
+  **Caller's Box `Circulate:` and a trailing bracket (#2160):** this is the
+  Caller's Box colon form (`_circulate`), not the Caller's Companion forms
+  above. `Circulate: Women cross, men loop right [with N2]` is a box circulate
+  with `who` and `hand`, so the preceding balance folds into it as it does
+  without the bracket. The bracket must be the one `[…]` that ends the line and
+  must say `with` or `around` and a dancer the strict resolver accepts
+  (`[with N2]`, `[with shadow]`, `[around N2]`). `[with phantom]`, any other
+  head, a second bracket, text after the bracket and the non-inverse or
+  malformed definitions that decline without a bracket all stay text. The
+  figure's note is then the bracket's canonical text (`with nextNeighbors`)
+  and not the definition, which `who` and `hand` already carry; a line with no
+  bracket keeps the definition as its note, as before. (#2160 suggested keeping
+  the raw bracket in the note; this reading does not.)
 
   The author's calls:
   - The rule covers any balance written after it (`balance the ring`,
