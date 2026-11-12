@@ -60,6 +60,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -183,7 +184,69 @@ class GitHubFetcher:
         return json.loads(out)
 
 
+_SLUG = r"[A-Za-z0-9_.-]+"
+_REPO_SLUG = re.compile(rf"^{_SLUG}/{_SLUG}$")
+# scp-style (`git@github.com:owner/name.git`) or a URL (`https://`, `ssh://`,
+# and the proxy-style `http://host:port/git/owner/name` some sandboxes use).
+# Only the last two path segments are read, and only from a URL or scp-style
+# remote -- a bare local path is never mistaken for a slug.
+_REMOTE_PATTERNS = (
+    re.compile(rf"^[\w.-]+@[\w.-]+:(?:/)?(?:.*/)?({_SLUG})/({_SLUG})/?$"),
+    re.compile(rf"^[A-Za-z][A-Za-z0-9+.-]*://[^/]+/(?:.*/)?({_SLUG})/({_SLUG})/?$"),
+)
+
+
+def parse_remote_url(url: str) -> str | None:
+    """`owner/name` from a git remote URL, or None when it has no such shape."""
+    url = url.strip()
+    for pattern in _REMOTE_PATTERNS:
+        match = pattern.match(url)
+        if match:
+            owner, name = match.groups()
+            if name.endswith(".git"):
+                name = name[: -len(".git")]
+            if owner and name and name not in (".", ".."):
+                return f"{owner}/{name}"
+    return None
+
+
+def _git(args: Sequence[str]) -> str:
+    try:
+        result = subprocess.run(
+            ["git", *args], check=False, capture_output=True, encoding="utf-8"
+        )
+    except FileNotFoundError:  # pragma: no cover - environment
+        return ""
+    return result.stdout.strip() if result.returncode == 0 else ""
+
+
+def _repo_from_git() -> str | None:
+    """The repo named by the current branch's remote, else `origin`.
+
+    Uses no GitHub API, so it works where GraphQL is refused.
+    """
+    branch = _git(["symbolic-ref", "--quiet", "--short", "HEAD"])
+    remote = _git(["config", "--get", f"branch.{branch}.remote"]) if branch else ""
+    for name in dict.fromkeys([remote, "origin"]):
+        if not name or name == ".":
+            continue
+        slug = parse_remote_url(_git(["remote", "get-url", name]))
+        if slug:
+            return slug
+    return None
+
+
 def detect_repo() -> str:
+    """Resolve `owner/name` without GraphQL (refused in Claude Code sessions).
+
+    Order: `GITHUB_REPOSITORY`, the git remote, then `gh repo view`.
+    """
+    env_repo = os.environ.get("GITHUB_REPOSITORY", "").strip()
+    if _REPO_SLUG.match(env_repo):
+        return env_repo
+    from_git = _repo_from_git()
+    if from_git:
+        return from_git
     try:
         result = subprocess.run(
             ["gh", "repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"],
@@ -710,7 +773,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "requested Copilot instead"
         ),
     )
-    parser.add_argument("--repo", help="owner/name (default: detected via gh)")
+    parser.add_argument("--repo", help="owner/name (default: GITHUB_REPOSITORY, the git remote, then gh)")
     args = parser.parse_args(argv)
 
     names = list(ALL_ORDER) if args.gate == "all" else [args.gate]

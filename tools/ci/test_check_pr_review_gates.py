@@ -1003,6 +1003,85 @@ def test_cli_requires_explicit_closes_intent() -> None:
     assert code == 2
 
 
+# --- detect_repo: no GraphQL ------------------------------------------------ #
+
+import contextlib
+import os
+import subprocess
+
+
+@contextlib.contextmanager
+def _patched(env: dict[str, str | None], git: Any, run: Any):
+    saved_env = {k: os.environ.get(k) for k in env}
+    saved = (gates._git, gates.subprocess.run)
+    for k, v in env.items():
+        if v is None:
+            os.environ.pop(k, None)
+        else:
+            os.environ[k] = v
+    gates._git, gates.subprocess.run = git, run
+    try:
+        yield
+    finally:
+        gates._git, gates.subprocess.run = saved
+        for k, v in saved_env.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+
+
+def _gh_forbidden(*a: Any, **k: Any) -> None:
+    raise AssertionError("gh must not be consulted")
+
+
+def test_parse_remote_url_shapes() -> None:
+    p = gates.parse_remote_url
+    want = "ibanner56/CallersCompendium"
+    assert p("https://github.com/ibanner56/CallersCompendium") == want
+    assert p("https://github.com/ibanner56/CallersCompendium.git") == want
+    assert p("git@github.com:ibanner56/CallersCompendium.git") == want
+    assert p("ssh://git@github.com/ibanner56/CallersCompendium") == want
+    assert p("http://local_proxy@127.0.0.1:41234/git/ibanner56/CallersCompendium") == want
+    assert p("https://github.com/ibanner56/CallersCompendium/") == want
+
+
+def test_parse_remote_url_rejects_non_shapes() -> None:
+    p = gates.parse_remote_url
+    assert p("/home/user/CallersCompendium") is None
+    assert p("CallersCompendium") is None
+    assert p("https://github.com/CallersCompendium") is None
+    assert p("") is None
+
+
+def test_detect_repo_prefers_environment() -> None:
+    with _patched({"GITHUB_REPOSITORY": "o/r"}, lambda a: "", _gh_forbidden):
+        assert gates.detect_repo() == "o/r"
+
+
+def test_detect_repo_uses_git_remote_without_gh() -> None:
+    answers = {"symbolic-ref": "main", "config": "", "remote": "git@github.com:o/r.git"}
+    with _patched({"GITHUB_REPOSITORY": None}, lambda a: answers[a[0]], _gh_forbidden):
+        assert gates.detect_repo() == "o/r"
+
+
+def test_detect_repo_falls_back_to_gh_then_errors() -> None:
+    out = {"rc": 0, "text": "x/y\n"}
+
+    def fake_run(*a: Any, **k: Any) -> Any:
+        return subprocess.CompletedProcess(a, out["rc"], out["text"], "")
+
+    with _patched({"GITHUB_REPOSITORY": None}, lambda a: "", fake_run):
+        assert gates.detect_repo() == "x/y"
+        out.update(rc=1, text="")
+        try:
+            gates.detect_repo()
+        except gates.GateError as exc:
+            assert "pass --repo" in str(exc)
+        else:
+            raise AssertionError("expected GateError")
+
+
 def main() -> int:
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for test in tests:
@@ -1013,3 +1092,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+
