@@ -1033,8 +1033,9 @@ Sync is off and open while it is on.
   on the Caller's Compendium server it means this version of the app is newer
   than the server, your changes are saved here, and they'll sync once the
   server is updated; on a server you run yourself, it asks you to update that
-  server. These are not retried by themselves, because waiting won't fix
-  them. The **Sync now** button on the Collection, Programs and Glossary pages reports a
+  server. These are not retried by themselves: waiting alone usually won't
+  fix them, and when the sync server is full it is up to you to try again
+  later. The **Sync now** button on the Collection, Programs and Glossary pages reports a
   failed sync the same way — calmly or with the reason — so you don't need to
   come here to find out.
 - **Copy details** sits beside every warning. It puts a short code on the
