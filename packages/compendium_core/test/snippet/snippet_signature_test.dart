@@ -143,7 +143,8 @@ void main() {
 
   group('an other fraction amount (#2120)', () {
     final renderer = FigureRenderer(tax);
-    Figure f8(Map<String, Object?> p) => Figure(move: 'figure_8', params: p);
+    Figure f8(Map<String, Object?> p) =>
+        testFigure(move: 'figure_8', params: p);
 
     test('a stated amount joins the signature', () {
       expect(

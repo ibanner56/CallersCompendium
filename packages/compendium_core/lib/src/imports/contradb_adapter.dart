@@ -779,8 +779,9 @@ Object? _places(Object? raw) {
   return places;
 }
 
-/// ContraDB `half_or_full`. ContraDB itself writes only 0.5 and 1.0 (its
-/// `stringParamHalfOrFullNotN` throws on anything else), so any other number
+/// ContraDB `half_or_full`. ContraDB itself writes only 0.5 and 1.0 (the
+/// half-or-full stringifier in its libfigure `param.js` throws on anything
+/// else), so any other number
 /// is foreign data. A quarter step up to 2½ keeps its amount, as `other` with
 /// [fractionAmountParam] when no named value states it (#2120); a number
 /// outside that domain is still not a named fraction, so it is `other` with

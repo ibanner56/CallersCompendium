@@ -2,6 +2,7 @@
 // its amount in the sibling `amount` param, and an `other` that states none
 // reads as an unstated amount instead of the bare token "other".
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -9,9 +10,9 @@ void main() {
   final larks = Dialect.larksRobins;
 
   Figure figure8(Map<String, Object?> params) =>
-      Figure(move: 'figure_8', params: {'where': 'none', ...params});
+      testFigure(move: 'figure_8', params: {'where': 'none', ...params});
   Figure poussette(Map<String, Object?> params) =>
-      Figure(move: 'poussette', params: params);
+      testFigure(move: 'poussette', params: params);
 
   test('contraTaxonomyVersion is 39', () {
     expect(contraTaxonomyVersion, 39);
@@ -31,7 +32,7 @@ void main() {
 
       test('$move with other and an amount validates cleanly', () {
         final issues = contraTaxonomy.validateFigure(
-          Figure(move: move, params: {'fraction': 'other', 'amount': 1.5}),
+          testFigure(move: move, params: {'fraction': 'other', 'amount': 1.5}),
         );
         expect(issues.where((i) => i.code != 'atypical_beats'), isEmpty);
       });

@@ -3,6 +3,7 @@
 import 'dart:convert';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:test/test.dart';
 
 import '../figures_support.dart';
@@ -91,7 +92,7 @@ void main() {
     ]) {
       for (final move in ['figure_8', 'poussette']) {
         test('$move $params', () {
-          final figure = Figure(
+          final figure = testFigure(
             move: move,
             params: {if (move == 'figure_8') 'where': 'above', ...params},
           );
@@ -110,7 +111,7 @@ void main() {
 
     for (final move in ['figure_8', 'poussette']) {
       test('$move with decimals reads back', () {
-        final figure = Figure(
+        final figure = testFigure(
           move: move,
           params: {
             if (move == 'figure_8') 'where': 'above',
@@ -145,7 +146,8 @@ void main() {
 
   group('re-import diff key', () {
     final tax = contraTaxonomy;
-    Figure f8(Map<String, Object?> p) => Figure(move: 'figure_8', params: p);
+    Figure f8(Map<String, Object?> p) =>
+        testFigure(move: 'figure_8', params: p);
 
     test('a stated amount distinguishes two other figure 8s', () {
       expect(
