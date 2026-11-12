@@ -127,8 +127,27 @@ class SettingsRepository {
   /// path and says nothing about normalisation. Only a pair of keys that
   /// collides under the **sanitiser** still raises, since no sanitised form of
   /// the object keeps both entries.
-  Future<void> set(String key, Object? value, {DateTime? at}) {
-    final now = resolveStamp(at);
+  Future<void> set(String key, Object? value, {DateTime? at}) =>
+      _set(key, value, at: resolveStamp(at), restored: false);
+
+  /// [set] for a backup restore: [at] is the backup's creation time, and the
+  /// row's existence is stamped there too ([applyRestoredExistence]) rather
+  /// than causally, so a change another device made to [key] after the backup
+  /// wins at the next sync instead of being overwritten everywhere (SYNC-1).
+  /// Only the restore calls this.
+  Future<void> setFromRestore(
+    String key,
+    Object? value, {
+    required DateTime at,
+  }) => _set(key, value, at: resolveStamp(at), restored: true);
+
+  Future<void> _set(
+    String key,
+    Object? value, {
+    required DateTime at,
+    required bool restored,
+  }) {
+    final now = at;
     var storedValue = value;
     var collided = false;
     if (classifySettingsKey(key)?.egress == EgressClass.shareable) {
@@ -161,16 +180,45 @@ class SettingsRepository {
           recordId: key,
         );
       }
-      await applyUpsertExistence(
-        _db,
-        table: _db.settings,
-        keyColumn: 'key',
-        key: key,
-        at: now,
-      );
+      if (restored) {
+        await applyRestoredExistence(
+          _db,
+          table: _db.settings,
+          keyColumn: 'key',
+          key: key,
+          at: now,
+          deleted: false,
+        );
+      } else {
+        await applyUpsertExistence(
+          _db,
+          table: _db.settings,
+          keyColumn: 'key',
+          key: key,
+          at: now,
+        );
+      }
       _recordWrite(key);
     });
   }
+
+  /// Tombstones [key] for a backup restore that does not hold it, stamped at
+  /// the backup's creation time [at] ([applyRestoredExistence]) rather than
+  /// causally. A key another device set after the backup therefore comes back
+  /// at the next sync instead of being removed everywhere (SYNC-1). A key that
+  /// is not set is left alone. Only the restore calls this.
+  Future<void> removeFromRestore(String key, {required DateTime at}) =>
+      _db.transaction(() async {
+        await applyRestoredExistence(
+          _db,
+          table: _db.settings,
+          keyColumn: 'key',
+          key: key,
+          at: resolveStamp(at),
+          deleted: true,
+        );
+        _recordWrite(key);
+      });
 
   /// Returns the decoded value for [key], or `null` if unset. Note this
   /// cannot distinguish "unset" from "explicitly set to JSON `null`" — use

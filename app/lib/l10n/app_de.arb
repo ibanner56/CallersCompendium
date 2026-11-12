@@ -616,9 +616,9 @@
   "@settingsSyncIdCopy": {
     "x-sourceSha256": "4e70e2c8f3f09f4c76638dbc8a93ff15a49da24b7f781c1e83ac084d8d421b29"
   },
-  "settingsSyncIdCopied": "Synchronisierungsphrase kopiert. Sie öffnet deinen Speicher – füge sie nur auf einem Gerät ein, das dir gehört.",
+  "settingsSyncIdCopied": "Synchronisierungsphrase kopiert. Jeder, der sie hat, kann deine geteilte Bibliothek öffnen – füge sie nur auf einem Gerät ein, das dir gehört.",
   "@settingsSyncIdCopied": {
-    "x-sourceSha256": "81d9cf47c8df0aa7ab1264a4810a2a14b4eb11efcb8fb40108d0095f52be1c17"
+    "x-sourceSha256": "4a9bd6708b5e26c6e1d09963fe725d9e570d770f9616d8eae0f1b40df2f4803d"
   },
   "settingsSyncIdCaution": "Gib sie auf deinem anderen Gerät ein, um es zu verbinden. Dort liegt deine geteilte Bibliothek, also kann jeder, der sie hat, diese Bibliothek öffnen: alles lesen, was du synchronisierst, davon auf jedem verbundenen Gerät beliebiges ändern oder löschen und den gesamten Speicher vom Server löschen. Zu einer anderen Phrase zu wechseln heißt, alle Geräte auf sie umzustellen.",
   "@settingsSyncIdCaution": {
@@ -732,9 +732,9 @@
   "@settingsSyncQuotaExcludeImports": {
     "x-sourceSha256": "13a7925e9cdd2fc7f1329229f1ad3416bdd1f24f9edba254e9c3bd209e576ccb"
   },
-  "settingsSyncNoticeNewerVersionItems": "Ein anderes Gerät verwendet eine neuere Version der App. Aktualisiere die App auf diesem Gerät, um {items} zu erhalten.",
+  "settingsSyncNoticeNewerVersionItems": "Ein anderes Gerät verwendet eine neuere Version der App. Aktualisiere die App auf diesem Gerät, um {items} zu erhalten. Wenn du sie hier vor dem Aktualisieren bearbeitest, können die Änderungen des anderen Geräts daran verloren gehen.",
   "@settingsSyncNoticeNewerVersionItems": {
-    "x-sourceSha256": "c061cd9ea119307dd18d17b41b95b3b27ccb4d893770063dd44683589422d5bb"
+    "x-sourceSha256": "044b9538159b2d04fcd0feee8d85845fd0e4fe9f324f0b85d66408112f366c39"
   },
   "settingsSyncNoticeCountDance": "{count, plural, =1{1 Tanz} other{{count} Tänze}}",
   "@settingsSyncNoticeCountDance": {
@@ -780,9 +780,9 @@
   "@settingsSyncNoticeCountFigureNote": {
     "x-sourceSha256": "d8a9a1a4ceb2c8d27210fecff6147fdceaceb98a415748dabd9f42851eb3176a"
   },
-  "settingsSyncNoticeNewerVersionUncounted": "Ein anderes Gerät verwendet eine neuere Version der App. Aktualisiere die App auf diesem Gerät, um seine Änderungen zu erhalten.",
+  "settingsSyncNoticeNewerVersionUncounted": "Ein anderes Gerät verwendet eine neuere Version der App. Aktualisiere die App auf diesem Gerät, um seine Änderungen zu erhalten. Wenn du vor dem Aktualisieren hier etwas bearbeitest, das es geändert hat, können seine Änderungen verloren gehen.",
   "@settingsSyncNoticeNewerVersionUncounted": {
-    "x-sourceSha256": "ca371c7f36b6a2ca97e5fb9d8cd18cc2909af04e2973dec1a999d4e7a50fb339"
+    "x-sourceSha256": "d36a094b45665db591c56fd810a2b0fb4f9ff257a8b2b9f51678e1fcde85fce6"
   },
   "settingsSyncNoticeKeptNewerItems": "Für eine neuere Version der App aufbewahrt: {items}. Sie werden weiter synchronisiert, mit Details, die diese Version nicht anzeigen kann. Aktualisiere die App auf diesem Gerät, um sie zu sehen.",
   "@settingsSyncNoticeKeptNewerItems": {
@@ -1328,9 +1328,9 @@
   "@settingsSyncWipeConfirmTitle": {
     "x-sourceSha256": "77701b6008c7d87383a3c1c7c4316c52219e81baddc39c3438c1879315408645"
   },
-  "settingsSyncWipeConfirmBody": "Alles, was der Speicher enthält, wird vom Server gelöscht, für alle Geräte auf einmal, und das lässt sich nicht rückgängig machen. Deine Bibliothek bleibt auf diesem Gerät und auf jedem deiner anderen Geräte – aber alles, was bisher nur über die Synchronisierung auf ein anderes Gerät gelangt war, kommt hier nicht mehr an. Dieses Gerät wird getrennt und vergisst seine Synchronisierungsphrase; deine anderen Geräte finden den Speicher beim nächsten Synchronisieren nicht mehr vor und fragen, ob ein neuer angelegt werden soll. Nutze das, wenn deine Synchronisierungsphrase jemand anderem bekannt geworden ist: Es ist das Einzige, was sofort entfernt, was diese Person lesen kann.",
+  "settingsSyncWipeConfirmBody": "Alles, was der Speicher enthält, wird vom Server gelöscht, für alle Geräte auf einmal, und das lässt sich nicht rückgängig machen. Deine Bibliothek bleibt auf diesem Gerät und auf jedem deiner anderen Geräte – aber alles, was bisher nur über die Synchronisierung auf ein anderes Gerät gelangt war, kommt hier nicht mehr an. Dieses Gerät wird getrennt und vergisst seine Synchronisierungsphrase; deine anderen Geräte finden den Speicher beim nächsten Synchronisieren nicht mehr vor und bieten an, eine neue Phrase einzurichten. Nutze das, wenn du die Adresse dieses Speichers nicht mehr verwenden willst: Es ist das Einzige, was sofort entfernt, was der Speicher enthält. Um weiter zu synchronisieren, richte auf jedem Gerät eine neue Phrase ein – erneutes Verbinden mit der alten legt wieder einen neuen Speicher unter derselben Adresse an.",
   "@settingsSyncWipeConfirmBody": {
-    "x-sourceSha256": "4d32b4cd7be210b3280e49bc954adf9a14e397ffe46431644f05b822ad637f89"
+    "x-sourceSha256": "921009f64e9ea349743941accd380cb8adfcc095e26e0ac5f57e2cf615e84e55"
   },
   "settingsSyncWipeConfirmAction": "Speicher löschen",
   "@settingsSyncWipeConfirmAction": {
@@ -1540,17 +1540,21 @@
   "@settingsSyncPairingCompletePending": {
     "x-sourceSha256": "daa70b1721d468f073882e6c3bdc9f5a406d491f004bb1191ed459c2e5c8a0f3"
   },
-  "settingsSyncReplacementTitle": "Diesen Speicher neu verbinden?",
+  "settingsSyncReplacementTitle": "Dieser Speicher ist nicht mehr vorhanden",
   "@settingsSyncReplacementTitle": {
-    "x-sourceSha256": "f89fdb596df9ab804d25c9d81cdcb95707abeeb722b1a682329b6dae9434e3a0"
+    "x-sourceSha256": "d4368e41c5a2c1c88b4400914724b42f0a2525e5fa4eba0cd12c23b5d79eb115"
   },
-  "settingsSyncReplacementBody": "Der Speicher, mit dem dieses Gerät synchronisiert hat, ist nicht mehr vorhanden. Er könnte durch Inaktivität abgelaufen oder entfernt worden sein. Erneutes Verbinden erstellt einen neuen Speicher mit derselben Phrase und synchronisiert von vorn.",
+  "settingsSyncReplacementBody": "Der Speicher, mit dem dieses Gerät synchronisiert hat, ist nicht mehr vorhanden. Er könnte durch Inaktivität abgelaufen oder entfernt worden sein. Um die Adresse dieses Speichers nicht mehr zu verwenden, richte eine neue Phrase ein: Dieses Gerät wird getrennt, und du erstellst danach einen neuen Speicher oder verbindest dich mit einem, den du auf einem anderen Gerät eingerichtet hast. Mach das auf jedem deiner Geräte. „Neu verbinden“ erstellt stattdessen einen neuen Speicher unter derselben Adresse, mit derselben Phrase, und sendet deine ganze Bibliothek dorthin; hat ein anderes Gerät das schon getan, tritt dieses Gerät diesem Speicher bei.",
   "@settingsSyncReplacementBody": {
-    "x-sourceSha256": "07cb10775fa00e7289a2eb07b808633107fa1dac86c31f3cf54d9470f32a8806"
+    "x-sourceSha256": "685cd71b9351ac070e3487f7b6028bd883be772f091e542d10b093db3cc3fbcd"
   },
   "settingsSyncReplacementConfirm": "Neu verbinden",
   "@settingsSyncReplacementConfirm": {
     "x-sourceSha256": "bf8a9eab9e7e141bfb81f0ca9244a5f68f476ed0b57f03538410417298169d18"
+  },
+  "settingsSyncReplacementNewPhrase": "Mit neuer Phrase einrichten",
+  "@settingsSyncReplacementNewPhrase": {
+    "x-sourceSha256": "851c453dd3a4f21a28d18633c1915a39aaf0fe34fdc559d1a12df86fe0bc9aa2"
   },
   "settingsSyncReplacementCancel": "Jetzt nicht",
   "@settingsSyncReplacementCancel": {
@@ -3719,6 +3723,10 @@
   "backupRestoreDialogBody": "Bei der Wiederherstellung wird alles in der App – Ihre Sammlung, Programme, Dialekte, Designs und Einstellungen – durch den Inhalt der Sicherung ersetzt. Dies kann nicht rückgängig gemacht werden.",
   "@backupRestoreDialogBody": {
     "x-sourceSha256": "ff51802a21a8219092f0aaebcde7ad04aebb7aa77bf34404915dc4e39b24b83e"
+  },
+  "backupRestoreDialogSyncNote": "Dieses Gerät ist mit der Gerätesynchronisierung verbunden. Alles, was die Gerätesynchronisierung überträgt und nach dieser Sicherung auf einem Gerät geändert wurde, mit dem Sie synchronisieren, kommt bei der nächsten Synchronisierung von diesem Gerät zurück – auch hier vorgenommene und bereits synchronisierte Änderungen. Alles andere erhält die Version der Sicherung.",
+  "@backupRestoreDialogSyncNote": {
+    "x-sourceSha256": "79ad56b6871d887a13d6c4c1c2625aad3c140d3b98ef2845e174d1c7fd56c995"
   },
   "backupChooseFileAction": "Datei auswählen…",
   "@backupChooseFileAction": {

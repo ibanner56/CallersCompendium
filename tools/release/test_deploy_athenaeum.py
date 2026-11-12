@@ -2,7 +2,8 @@
 """Drive tools/release/deploy_athenaeum.sh against a local origin and stub docker.
 
 The script runs on the production host, so the properties worth pinning are the
-ones that protect it: it builds the commit the tag names (not main), it never
+ones that protect it: it builds the commit the tag names (not main, and not
+whatever else is in the host's working tree), it never
 touches the running container if the build fails, it fails when the new server
 does not come up, and it rejects arguments that are not a SHA and a release
 version before running anything.
@@ -40,7 +41,10 @@ def _setup(tmp: Path) -> tuple[Path, str, str]:
     _git(seed, "config", "user.email", "seed@example.com")
     _git(seed, "config", "user.name", "Seed")
     (seed / "marker.txt").write_text("tagged\n", encoding="utf-8")
-    _git(seed, "add", "marker.txt")
+    # Unchanged by the later commit, so a local edit to it survives checkout.
+    (seed / "stable.txt").write_text("committed\n", encoding="utf-8")
+    (seed / ".gitignore").write_text("ignored.txt\n", encoding="utf-8")
+    _git(seed, "add", "marker.txt", "stable.txt", ".gitignore")
     _git(seed, "commit", "--quiet", "-m", "tagged")
     tagged = _git(seed, "rev-parse", "HEAD")
     (seed / "marker.txt").write_text("later\n", encoding="utf-8")
@@ -71,14 +75,31 @@ def _run(
     _write_stub(stubs / "sudo", '[ "$1" = "-n" ] && shift\nexec "$@"\n')
     # Fed on stdin like the real `ssh ... bash -s`; the docker stub drains stdin,
     # so a script that is not parsed whole loses its tail and fails below.
-    # `docker build` also records which commit the checkout was on, so the test
-    # can assert the image was built from the tagged tree.
+    # `docker build` also records what its build context held, so the test can
+    # assert the image was built from the tagged tree and nothing else. A `-`
+    # context is a tar on stdin; any other is a directory.
     _write_stub(
         stubs / "docker",
         f"""echo "docker $*" >> '{log}'
-cat > /dev/null  # a stdin reader must not swallow the rest of the script
+# A stdin reader must not swallow the rest of the script, so every call drains
+# stdin; `docker build -` drains it by reading the tar context from it.
+[ "$1" = build ] || cat > /dev/null
 case "$1" in
-  build) echo "tree=$(cat marker.txt)" >> '{log}' ;;
+  build)
+    for last in "$@"; do :; done
+    if [ "$last" = - ]; then
+      ctx=$(mktemp -d)
+      tar -xf - -C "$ctx" || exit 1
+    else
+      cat > /dev/null
+      ctx=$last
+    fi
+    echo "tree=$(cat "$ctx/marker.txt")" >> '{log}'
+    echo "stable=$(cat "$ctx/stable.txt")" >> '{log}'
+    for extra in untracked.txt ignored.txt; do
+      [ -e "$ctx/$extra" ] && echo "context has $extra" >> '{log}'
+    done
+    ;;
   container) [ "{int(existing_container)}" = 1 ] || exit 1 ;;
   inspect) case "$*" in
     *RestartCount*) echo '{inspect if inspect is not None else "true callers-compendium-athenaeum:" + version + " 0"}' ;;
@@ -137,6 +158,22 @@ def main() -> None:
         ):
             assert flag in run_call, (flag, run_call)
         assert any(c.startswith("curl ") for c in calls), calls
+
+        # Local state in the host checkout never reaches the image: a
+        # non-conflicting edit to a tracked file, an untracked file, and an
+        # ignored file all survive `git checkout`, and the build must see none
+        # of them.
+        (host / "stable.txt").write_text("edited on the host\n", encoding="utf-8")
+        (host / "untracked.txt").write_text("stray\n", encoding="utf-8")
+        (host / "ignored.txt").write_text("build output\n", encoding="utf-8")
+        res, calls = _run(tmp, host, tagged, "0.7.0-beta")
+        assert res.returncode == 0, res.stdout + res.stderr
+        assert _git(host, "rev-parse", "HEAD") == tagged
+        assert "tree=tagged" in calls and "stable=committed" in calls, calls
+        assert not any(c.startswith("context has ") for c in calls), calls
+        (host / "untracked.txt").unlink()
+        (host / "ignored.txt").unlink()
+        _git(host, "checkout", "--", "stable.txt")
 
         # A first deploy has no container to stop; that must not be an error.
         res, calls = _run(tmp, host, tagged, "0.7.0", existing_container=False)

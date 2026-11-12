@@ -652,7 +652,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsSyncIdCopied =>
-      'Sync phrase copied. It unlocks your store, so paste it only on a device you own.';
+      'Sync phrase copied. Anyone who has it can open your shared library, so paste it only on a device you own.';
 
   @override
   String get settingsSyncIdCaution =>
@@ -772,7 +772,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String settingsSyncNoticeNewerVersionItems(String items) {
-    return 'Another device is using a newer version of the app. Update the app on this device to receive $items.';
+    return 'Another device is using a newer version of the app. Update the app on this device to receive $items. Editing them here before you update may discard the other device\'s changes to them.';
   }
 
   @override
@@ -898,7 +898,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsSyncNoticeNewerVersionUncounted =>
-      'Another device is using a newer version of the app. Update the app on this device to receive its changes.';
+      'Another device is using a newer version of the app. Update the app on this device to receive its changes. Editing something here that it changed, before you update, may discard its changes.';
 
   @override
   String settingsSyncNoticeKeptNewerItems(String items) {
@@ -1534,7 +1534,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsSyncWipeConfirmBody =>
-      'Everything the store holds is deleted from the server, for every device at once, and this can\'t be undone. Your library stays on this device and on each of your other devices — but anything that had only ever reached another device through syncing will not arrive here. This device disconnects and forgets its sync phrase; your other devices will find the store gone the next time they sync, and will ask whether to start a new one. Use this if your sync phrase has been seen by someone else: it is the only thing that removes what they can read straight away.';
+      'Everything the store holds is deleted from the server, for every device at once, and this can\'t be undone. Your library stays on this device and on each of your other devices — but anything that had only ever reached another device through syncing will not arrive here. This device disconnects and forgets its sync phrase; your other devices will find the store gone the next time they sync, and will offer to set up a new phrase. Use this when you want to stop using this store\'s address: it is the only thing that removes what the store holds straight away. To keep syncing, set up a new phrase on each device — reconnecting with the old one puts a new store back at the same address.';
 
   @override
   String get settingsSyncWipeConfirmAction => 'Delete the store';
@@ -1729,14 +1729,17 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your library is connected. The first sync hasn\'t run yet; it will run the next time this device syncs.';
 
   @override
-  String get settingsSyncReplacementTitle => 'Reconnect this store?';
+  String get settingsSyncReplacementTitle => 'This store is no longer there';
 
   @override
   String get settingsSyncReplacementBody =>
-      'The store this device used to sync with is no longer there. It may have expired through inactivity, or it may have been removed. Reconnecting creates a new store with the same phrase and re-syncs from scratch.';
+      'The store this device used to sync with is no longer there. It may have expired through inactivity, or it may have been removed. To stop using this store\'s address, set up a new phrase: this device disconnects, and you then create a new store or connect to one you\'ve set up on another device. Do this on each of your devices. Reconnect instead creates a new store at the same address, with the same phrase, and sends your whole library there; if another device has already done that, this device joins that store.';
 
   @override
   String get settingsSyncReplacementConfirm => 'Reconnect';
+
+  @override
+  String get settingsSyncReplacementNewPhrase => 'Set up with a new phrase';
 
   @override
   String get settingsSyncReplacementCancel => 'Not now';
@@ -3671,6 +3674,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get backupRestoreDialogBody =>
       'Restoring replaces everything currently in the app — your collection, programs, dialects, themes, and settings — with the backup\'s contents. This cannot be undone.';
+
+  @override
+  String get backupRestoreDialogSyncNote =>
+      'This device is connected to Device Sync. Anything Device Sync carries that was changed after this backup was made, on any device you sync with, comes back from that device at the next sync, including changes made here and already synced. Everything else takes the backup\'s version.';
 
   @override
   String get backupChooseFileAction => 'Choose file…';

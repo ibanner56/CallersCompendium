@@ -7,8 +7,11 @@ import '../../l10n/app_localizations.dart';
 /// A list builds its items lazily, so this is built only once the end of the
 /// list is near the viewport: that is the cue to fetch the next page, which
 /// [onLoad] does (once, after the first frame). Give it a key that changes with
-/// the number of rows, so each new page builds a fresh footer and a page that
-/// still leaves the end in view asks for the next one.
+/// every page **and** with every new search (the search's sequence number plus
+/// the number of rows): each new page builds a fresh footer, so a page that
+/// still leaves the end in view asks for the next one, and a new search whose
+/// first page is as long as the old list does not inherit a footer that has
+/// already asked (or failed), which would spin without ever loading.
 ///
 /// While [failed] it asks for nothing and shows [failedMessage] with a retry
 /// button instead, so a source that is down is not asked again in a loop.

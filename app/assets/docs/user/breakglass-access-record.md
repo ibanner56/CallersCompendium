@@ -2,7 +2,9 @@
 
 This file records operator access events for the hosted sync service.
 Every breakglass action must be accompanied by an access record below.
-No sync ID, credential, manifest content, or secure output path is recorded here.
+No sync ID (a store's address, in any form, including its encoded `Authorization`
+header value), operator credential, manifest content, or secure output path is
+recorded here.
 
 ## [YYYY-MM-DD] Entry Title
 

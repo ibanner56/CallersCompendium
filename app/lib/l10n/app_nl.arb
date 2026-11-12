@@ -616,9 +616,9 @@
   "@settingsSyncIdCopy": {
     "x-sourceSha256": "4e70e2c8f3f09f4c76638dbc8a93ff15a49da24b7f781c1e83ac084d8d421b29"
   },
-  "settingsSyncIdCopied": "Synchronisatiezin gekopieerd. Hij geeft toegang tot je opslag, dus plak hem alleen op een apparaat dat van jou is.",
+  "settingsSyncIdCopied": "Synchronisatiezin gekopieerd. Iedereen die hem heeft, kan je gedeelde bibliotheek openen, dus plak hem alleen op een apparaat dat van jou is.",
   "@settingsSyncIdCopied": {
-    "x-sourceSha256": "81d9cf47c8df0aa7ab1264a4810a2a14b4eb11efcb8fb40108d0095f52be1c17"
+    "x-sourceSha256": "4a9bd6708b5e26c6e1d09963fe725d9e570d770f9616d8eae0f1b40df2f4803d"
   },
   "settingsSyncIdCaution": "Voer hem in op je andere apparaat om dat te verbinden. Daar staat je gedeelde bibliotheek, dus iedereen die hem heeft, kan die bibliotheek openen: alles lezen wat je synchroniseert, daarvan op elk verbonden apparaat iets wijzigen of verwijderen, en de hele opslag van de server verwijderen. Overstappen op een andere zin betekent alle apparaten ernaartoe verplaatsen.",
   "@settingsSyncIdCaution": {
@@ -732,9 +732,9 @@
   "@settingsSyncQuotaExcludeImports": {
     "x-sourceSha256": "13a7925e9cdd2fc7f1329229f1ad3416bdd1f24f9edba254e9c3bd209e576ccb"
   },
-  "settingsSyncNoticeNewerVersionItems": "Een ander apparaat gebruikt een nieuwere versie van de app. Werk de app op dit apparaat bij om {items} te ontvangen.",
+  "settingsSyncNoticeNewerVersionItems": "Een ander apparaat gebruikt een nieuwere versie van de app. Werk de app op dit apparaat bij om {items} te ontvangen. Als je ze hier bewerkt voordat je bijwerkt, kunnen de wijzigingen van het andere apparaat daarin verloren gaan.",
   "@settingsSyncNoticeNewerVersionItems": {
-    "x-sourceSha256": "c061cd9ea119307dd18d17b41b95b3b27ccb4d893770063dd44683589422d5bb"
+    "x-sourceSha256": "044b9538159b2d04fcd0feee8d85845fd0e4fe9f324f0b85d66408112f366c39"
   },
   "settingsSyncNoticeCountDance": "{count, plural, =1{1 dans} other{{count} dansen}}",
   "@settingsSyncNoticeCountDance": {
@@ -780,9 +780,9 @@
   "@settingsSyncNoticeCountFigureNote": {
     "x-sourceSha256": "d8a9a1a4ceb2c8d27210fecff6147fdceaceb98a415748dabd9f42851eb3176a"
   },
-  "settingsSyncNoticeNewerVersionUncounted": "Een ander apparaat gebruikt een nieuwere versie van de app. Werk de app op dit apparaat bij om de wijzigingen ervan te ontvangen.",
+  "settingsSyncNoticeNewerVersionUncounted": "Een ander apparaat gebruikt een nieuwere versie van de app. Werk de app op dit apparaat bij om de wijzigingen ervan te ontvangen. Als je hier iets bewerkt dat het heeft gewijzigd voordat je bijwerkt, kunnen de wijzigingen ervan verloren gaan.",
   "@settingsSyncNoticeNewerVersionUncounted": {
-    "x-sourceSha256": "ca371c7f36b6a2ca97e5fb9d8cd18cc2909af04e2973dec1a999d4e7a50fb339"
+    "x-sourceSha256": "d36a094b45665db591c56fd810a2b0fb4f9ff257a8b2b9f51678e1fcde85fce6"
   },
   "settingsSyncNoticeKeptNewerItems": "Bewaard voor een nieuwere versie van de app: {items}. Deze worden nog steeds gesynchroniseerd, met details die deze versie niet kan tonen. Werk de app op dit apparaat bij om ze te zien.",
   "@settingsSyncNoticeKeptNewerItems": {
@@ -1328,9 +1328,9 @@
   "@settingsSyncWipeConfirmTitle": {
     "x-sourceSha256": "77701b6008c7d87383a3c1c7c4316c52219e81baddc39c3438c1879315408645"
   },
-  "settingsSyncWipeConfirmBody": "Alles wat de opslag bevat wordt van de server verwijderd, voor alle apparaten tegelijk, en dit kan niet ongedaan worden gemaakt. Je bibliotheek blijft op dit apparaat en op elk van je andere apparaten staan — maar alles wat alleen via synchronisatie op een ander apparaat terecht was gekomen, komt hier niet aan. Dit apparaat wordt losgekoppeld en vergeet zijn synchronisatiezin; je andere apparaten zullen bij de volgende synchronisatie merken dat de opslag weg is en vragen of er een nieuwe moet komen. Gebruik dit als iemand anders je synchronisatiezin heeft gezien: het is het enige dat meteen weghaalt wat die persoon kan lezen.",
+  "settingsSyncWipeConfirmBody": "Alles wat de opslag bevat wordt van de server verwijderd, voor alle apparaten tegelijk, en dit kan niet ongedaan worden gemaakt. Je bibliotheek blijft op dit apparaat en op elk van je andere apparaten staan — maar alles wat alleen via synchronisatie op een ander apparaat terecht was gekomen, komt hier niet aan. Dit apparaat wordt losgekoppeld en vergeet zijn synchronisatiezin; je andere apparaten zullen bij de volgende synchronisatie merken dat de opslag weg is en aanbieden een nieuwe zin in te stellen. Gebruik dit als je het adres van deze opslag niet meer wilt gebruiken: het is het enige dat meteen weghaalt wat de opslag bevat. Om te blijven synchroniseren stel je op elk apparaat een nieuwe zin in — opnieuw verbinden met de oude zet weer een nieuwe opslag op hetzelfde adres.",
   "@settingsSyncWipeConfirmBody": {
-    "x-sourceSha256": "4d32b4cd7be210b3280e49bc954adf9a14e397ffe46431644f05b822ad637f89"
+    "x-sourceSha256": "921009f64e9ea349743941accd380cb8adfcc095e26e0ac5f57e2cf615e84e55"
   },
   "settingsSyncWipeConfirmAction": "Opslag verwijderen",
   "@settingsSyncWipeConfirmAction": {
@@ -1540,17 +1540,21 @@
   "@settingsSyncPairingCompletePending": {
     "x-sourceSha256": "daa70b1721d468f073882e6c3bdc9f5a406d491f004bb1191ed459c2e5c8a0f3"
   },
-  "settingsSyncReplacementTitle": "Deze opslag opnieuw verbinden?",
+  "settingsSyncReplacementTitle": "Deze opslag bestaat niet meer",
   "@settingsSyncReplacementTitle": {
-    "x-sourceSha256": "f89fdb596df9ab804d25c9d81cdcb95707abeeb722b1a682329b6dae9434e3a0"
+    "x-sourceSha256": "d4368e41c5a2c1c88b4400914724b42f0a2525e5fa4eba0cd12c23b5d79eb115"
   },
-  "settingsSyncReplacementBody": "De opslag waarmee dit apparaat synchroniseerde, bestaat niet meer. Mogelijk is deze verlopen door inactiviteit, of is deze verwijderd. Opnieuw verbinden maakt een nieuwe opslag met dezelfde zin en synchroniseert helemaal opnieuw.",
+  "settingsSyncReplacementBody": "De opslag waarmee dit apparaat synchroniseerde, bestaat niet meer. Mogelijk is deze verlopen door inactiviteit, of is deze verwijderd. Om het adres van deze opslag niet meer te gebruiken, stel je een nieuwe zin in: dit apparaat wordt losgekoppeld, en daarna maak je een nieuwe opslag of verbind je met een opslag die je op een ander apparaat hebt ingesteld. Doe dit op elk van je apparaten. Opnieuw verbinden maakt in plaats daarvan een nieuwe opslag op hetzelfde adres, met dezelfde zin, en stuurt je hele bibliotheek daarheen; als een ander apparaat dat al heeft gedaan, sluit dit apparaat zich bij die opslag aan.",
   "@settingsSyncReplacementBody": {
-    "x-sourceSha256": "07cb10775fa00e7289a2eb07b808633107fa1dac86c31f3cf54d9470f32a8806"
+    "x-sourceSha256": "685cd71b9351ac070e3487f7b6028bd883be772f091e542d10b093db3cc3fbcd"
   },
   "settingsSyncReplacementConfirm": "Opnieuw verbinden",
   "@settingsSyncReplacementConfirm": {
     "x-sourceSha256": "bf8a9eab9e7e141bfb81f0ca9244a5f68f476ed0b57f03538410417298169d18"
+  },
+  "settingsSyncReplacementNewPhrase": "Instellen met een nieuwe zin",
+  "@settingsSyncReplacementNewPhrase": {
+    "x-sourceSha256": "851c453dd3a4f21a28d18633c1915a39aaf0fe34fdc559d1a12df86fe0bc9aa2"
   },
   "settingsSyncReplacementCancel": "Niet nu",
   "@settingsSyncReplacementCancel": {
@@ -3719,6 +3723,10 @@
   "backupRestoreDialogBody": "Herstellen vervangt alles in de app — je collectie, programma’s, dialecten, thema’s en instellingen — met de inhoud van de back-up. Dit kan niet ongedaan worden gemaakt.",
   "@backupRestoreDialogBody": {
     "x-sourceSha256": "ff51802a21a8219092f0aaebcde7ad04aebb7aa77bf34404915dc4e39b24b83e"
+  },
+  "backupRestoreDialogSyncNote": "Dit apparaat is verbonden met apparaatsynchronisatie. Alles wat apparaatsynchronisatie meeneemt en na het maken van deze back-up is gewijzigd op een apparaat waarmee je synchroniseert, komt bij de volgende synchronisatie terug van dat apparaat, ook wijzigingen die hier zijn gemaakt en al zijn gesynchroniseerd. Al het andere krijgt de versie uit de back-up.",
+  "@backupRestoreDialogSyncNote": {
+    "x-sourceSha256": "79ad56b6871d887a13d6c4c1c2625aad3c140d3b98ef2845e174d1c7fd56c995"
   },
   "backupChooseFileAction": "Bestand kiezen…",
   "@backupChooseFileAction": {

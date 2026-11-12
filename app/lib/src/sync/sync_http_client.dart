@@ -137,7 +137,8 @@ class SyncTransportException implements Exception {
   String toString() => 'SyncTransportException: $message';
 }
 
-/// An authenticated, endpoint-isolated HTTP client for Device Sync.
+/// An endpoint-isolated HTTP client for Device Sync that addresses every
+/// request to one store by sending its sync ID.
 class SyncHttpClient {
   SyncHttpClient({
     required Uri endpoint,
@@ -304,11 +305,12 @@ class SyncHttpClient {
   /// state the caller asked for rather than a failure.
   Future<SyncHttpResponse> deleteStore() => request('DELETE', 'store');
 
-  /// Sends one authenticated request under `/v1`.
+  /// Sends one request to this client's store under `/v1`.
   ///
-  /// Redirects are followed manually so authorization is never sent to a
-  /// foreign origin. The default [IOClient] uses the platform certificate and
-  /// hostname verifier and does not install an override.
+  /// Redirects are followed manually so the `Authorization` header, which
+  /// carries the sync ID, is never sent to a foreign origin. The default
+  /// [IOClient] uses the platform certificate and hostname verifier and does
+  /// not install an override.
   Future<SyncHttpResponse> request(
     String method,
     String relativePath, {

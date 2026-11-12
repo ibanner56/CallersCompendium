@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:compendium_core/compendium_core.dart' show sanitizeImportedText;
+
 import '../update/semver.dart';
 import 'published_collection_config.dart';
 
@@ -49,11 +51,20 @@ class PublishedCollectionPermission {
 
   factory PublishedCollectionPermission.fromJson(Object? raw) {
     final map = _object(raw, 'permission');
-    final grantor = _boundedString(map, 'grantor', 200);
-    final holder = _boundedString(map, 'holder', 200);
-    final basis = _boundedString(map, 'basis', 200);
-    final license = _boundedString(map, 'license', 200);
-    final fields = _stringList(map['fields'], 'permission.fields', 100, 40);
+    final grantor = _displayString(map, 'grantor', 200);
+    final holder = _displayString(map, 'holder', 200);
+    final basis = _displayString(map, 'basis', 200);
+    final license = _displayString(map, 'license', 200);
+    // Shown in the catalog and persisted in the declaration, so sanitised like
+    // the other permission text (SUPPLY-4).
+    final fields = _stringList(map['fields'], 'permission.fields', 100, 40)
+        .map((f) => sanitizeImportedText(f, allowLineBreaks: false).trim())
+        .toList();
+    if (fields.any((f) => f.isEmpty)) {
+      throw const PublishedCollectionFormatException(
+        'permission.fields contains an invalid string',
+      );
+    }
     if (fields.toSet().length != fields.length) {
       throw const PublishedCollectionFormatException(
         'permission.fields contains duplicates',
@@ -117,6 +128,36 @@ int comparePublishedCollectionVersions(String a, String b) {
   if (parsedB != null) return -1;
   return a.compareTo(b);
 }
+
+/// The newest entry of each collection id, in first-seen order of the ids.
+///
+/// The catalog may list several versions of one id, but only the newest is
+/// offered for import: re-importing an older version over a newer imported one
+/// would silently roll corrected figures back (SUPPLY-2).
+List<PublishedCollectionEntry> latestPublishedCollectionEntries(
+  Iterable<PublishedCollectionEntry> entries,
+) {
+  final latest = <String, PublishedCollectionEntry>{};
+  for (final entry in entries) {
+    final current = latest[entry.id];
+    if (current == null ||
+        comparePublishedCollectionVersions(entry.version, current.version) >
+            0) {
+      latest[entry.id] = entry;
+    }
+  }
+  return List.unmodifiable(latest.values);
+}
+
+/// Whether importing [version] would replace a newer already-imported
+/// [importedVersion] of the same collection (SUPPLY-2). An equal version is
+/// allowed: it is a plain re-import.
+bool isOlderThanImportedPublishedVersion(
+  String version,
+  String? importedVersion,
+) =>
+    importedVersion != null &&
+    comparePublishedCollectionVersions(version, importedVersion) < 0;
 
 class PublishedCollectionManifest {
   const PublishedCollectionManifest({
@@ -200,7 +241,7 @@ class PublishedCollectionManifest {
     final map = _object(raw, 'collection');
     final id = _identifier(map, 'id');
     final version = _identifier(map, 'version');
-    final title = _boundedString(map, 'title', 200);
+    final title = _displayString(map, 'title', 200);
     final archiveUrl = _httpsUrl(map, 'archiveUrl');
     final archiveBytes = _positiveInt(map, 'archiveBytes');
     if (archiveBytes > kMaxPublishedCollectionArchiveBytes) {
@@ -215,7 +256,7 @@ class PublishedCollectionManifest {
       );
     }
     final danceCount = _positiveInt(map, 'danceCount', allowZero: true);
-    final license = _boundedString(map, 'license', 200);
+    final license = _displayString(map, 'license', 200);
     final permission = PublishedCollectionPermission.fromJson(
       map['permission'],
     );
@@ -279,6 +320,24 @@ String _boundedString(Map<String, Object?> map, String key, int maxLength) {
     );
   }
   return value.trim();
+}
+
+/// A [_boundedString] for text that is displayed and persisted into provenance.
+///
+/// Stripped with [sanitizeImportedText] like every other import path, so a
+/// bidi override or control character in a signed catalog cannot spoof the
+/// licence or title. Stripping (not rejecting) is deliberate: one bad glyph in
+/// one entry must not take the whole signed catalog offline. The result must
+/// still be non-empty, so a string made only of stripped characters is refused.
+String _displayString(Map<String, Object?> map, String key, int maxLength) {
+  final raw = _boundedString(map, key, maxLength);
+  final clean = sanitizeImportedText(raw, allowLineBreaks: false).trim();
+  if (clean.isEmpty) {
+    throw PublishedCollectionFormatException(
+      '$key must contain displayable text',
+    );
+  }
+  return clean;
 }
 
 String _identifier(Map<String, Object?> map, String key) {

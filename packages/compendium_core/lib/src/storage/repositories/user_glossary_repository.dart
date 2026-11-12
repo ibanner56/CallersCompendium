@@ -237,14 +237,30 @@ class UserGlossaryRepository {
   /// data back, where the budget exists to stop the glossary growing past what
   /// can be exported. A glossary a restore leaves over the budget can be
   /// edited down and pruned, not grown. Every per-field bound still applies.
-  /// Only the restore calls this; the editor goes through [upsert].
-  Future<void> upsertFromRestore(UserGlossaryEntry entry) =>
-      _upsert(entry, enforceBudget: false);
+  /// The editor goes through [upsert].
+  ///
+  /// A backup restore MUST pass [backupCreatedAt], the backup's creation time.
+  /// The entry's `updatedAt`, and its existence when the write creates or
+  /// revives it, are then stamped there ([applyRestoredExistence]) rather than
+  /// now, so an entry another device changed or deleted after the backup wins
+  /// at the next sync instead of being overwritten everywhere (SYNC-1).
+  /// Without it the write is stamped now and causally, as an edit is: that is
+  /// for putting back this device's own entry, as a shared import's Undo does.
+  Future<void> upsertFromRestore(
+    UserGlossaryEntry entry, {
+    DateTime? backupCreatedAt,
+  }) => _upsert(
+    entry,
+    at: backupCreatedAt,
+    enforceBudget: false,
+    restored: backupCreatedAt != null,
+  );
 
   Future<void> _upsert(
     UserGlossaryEntry entry, {
     DateTime? at,
     required bool enforceBudget,
+    bool restored = false,
   }) async {
     final now = resolveStamp(at);
     if (!_isSyncableIdentifier(entry.id)) {
@@ -313,13 +329,24 @@ class UserGlossaryRepository {
               updatedAt: Value(now),
             ),
           );
-      await applyUpsertExistence(
-        _db,
-        table: _db.userGlossaryEntries,
-        keyColumn: 'id',
-        key: entry.id,
-        at: now,
-      );
+      if (restored) {
+        await applyRestoredExistence(
+          _db,
+          table: _db.userGlossaryEntries,
+          keyColumn: 'id',
+          key: entry.id,
+          at: now,
+          deleted: false,
+        );
+      } else {
+        await applyUpsertExistence(
+          _db,
+          table: _db.userGlossaryEntries,
+          keyColumn: 'id',
+          key: entry.id,
+          at: now,
+        );
+      }
       // Measured on what is stored, after the write, so what is counted is
       // what the backup will carry (not a second computation of it); throwing
       // rolls the whole write back. Before the user-figure hook, so a refused
@@ -434,15 +461,38 @@ class UserGlossaryRepository {
         await _softDelete(id, at: at);
       });
 
-  Future<void> _softDelete(String id, {DateTime? at}) async {
-    await stampExistenceTransition(
-      _db,
-      table: _db.userGlossaryEntries,
-      keyColumn: 'id',
-      key: id,
-      at: resolveStamp(at),
-      deleted: true,
-    );
+  /// Deletes entry [id] softly for a backup restore that does not hold it,
+  /// stamped at the backup's creation time [at] ([applyRestoredExistence])
+  /// rather than causally, so an entry another device created or changed
+  /// after the backup comes back at the next sync instead of being deleted
+  /// everywhere (SYNC-1). Only the restore calls this.
+  Future<void> deleteFromRestore(String id, {required DateTime at}) =>
+      _db.transaction(() => _softDelete(id, at: at, restored: true));
+
+  Future<void> _softDelete(
+    String id, {
+    DateTime? at,
+    bool restored = false,
+  }) async {
+    if (restored) {
+      await applyRestoredExistence(
+        _db,
+        table: _db.userGlossaryEntries,
+        keyColumn: 'id',
+        key: id,
+        at: resolveStamp(at),
+        deleted: true,
+      );
+    } else {
+      await stampExistenceTransition(
+        _db,
+        table: _db.userGlossaryEntries,
+        keyColumn: 'id',
+        key: id,
+        at: resolveStamp(at),
+        deleted: true,
+      );
+    }
     final row = await (_db.select(
       _db.userGlossaryEntries,
     )..where((t) => t.id.equals(id))).getSingleOrNull();
@@ -641,14 +691,28 @@ class FigureNoteRepository {
   /// [set] for restoring a backup, which is not held to [maxBytes], for the
   /// reason [UserGlossaryRepository.upsertFromRestore] gives. The length bound
   /// still applies. Only the restore calls this.
-  Future<void> setFromRestore(String figureId, String notes) =>
-      _set(figureId, notes, enforceBudget: false);
+  ///
+  /// [backupCreatedAt] is the backup's creation time, which the backup restore
+  /// MUST pass; it is stamped as for [UserGlossaryRepository.upsertFromRestore]
+  /// (SYNC-1). Without it the write is stamped now and causally.
+  Future<void> setFromRestore(
+    String figureId,
+    String notes, {
+    DateTime? backupCreatedAt,
+  }) => _set(
+    figureId,
+    notes,
+    at: backupCreatedAt,
+    enforceBudget: false,
+    restored: backupCreatedAt != null,
+  );
 
   Future<void> _set(
     String figureId,
     String notes, {
     DateTime? at,
     required bool enforceBudget,
+    bool restored = false,
   }) async {
     final now = resolveStamp(at);
     if (!_isSyncableIdentifier(figureId)) throw const FigureNoteInvalid();
@@ -656,7 +720,11 @@ class FigureNoteRepository {
     if (text.length > maxUserGlossaryTextLength) {
       throw const FigureNoteInvalid();
     }
-    if (text.isEmpty) return delete(figureId, at: now);
+    if (text.isEmpty) {
+      return restored
+          ? deleteFromRestore(figureId, at: now)
+          : delete(figureId, at: now);
+    }
     await _db.transaction(() async {
       final before = enforceBudget
           ? await _rowBytes(_db, figureId: figureId)
@@ -670,13 +738,24 @@ class FigureNoteRepository {
               updatedAt: Value(now),
             ),
           );
-      await applyUpsertExistence(
-        _db,
-        table: _db.figureNotes,
-        keyColumn: 'figure_id',
-        key: figureId,
-        at: now,
-      );
+      if (restored) {
+        await applyRestoredExistence(
+          _db,
+          table: _db.figureNotes,
+          keyColumn: 'figure_id',
+          key: figureId,
+          at: now,
+          deleted: false,
+        );
+      } else {
+        await applyUpsertExistence(
+          _db,
+          table: _db.figureNotes,
+          keyColumn: 'figure_id',
+          key: figureId,
+          at: now,
+        );
+      }
       // Measured after the write, on what is stored; throwing rolls it back.
       if (!enforceBudget) return;
       final after = await _glossaryBytes(_db, figureId: figureId);
@@ -710,6 +789,20 @@ class FigureNoteRepository {
   /// Deletes the note on [figureId] softly. A no-op when there is none.
   Future<void> delete(String figureId, {DateTime? at}) =>
       stampExistenceTransition(
+        _db,
+        table: _db.figureNotes,
+        keyColumn: 'figure_id',
+        key: figureId,
+        at: resolveStamp(at),
+        deleted: true,
+      );
+
+  /// Deletes the note on [figureId] softly for a backup restore that does not
+  /// hold it, stamped at the backup's creation time [at] rather than causally,
+  /// as [UserGlossaryRepository.deleteFromRestore] is (SYNC-1). A no-op when
+  /// there is none. Only the restore calls this.
+  Future<void> deleteFromRestore(String figureId, {required DateTime at}) =>
+      applyRestoredExistence(
         _db,
         table: _db.figureNotes,
         keyColumn: 'figure_id',

@@ -1,0 +1,14 @@
+{
+  "id": "sync-1-restore-stamps-backup-time",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Restoring an older backup on a device that uses Device Sync no longer undoes, on all your devices, the changes you made elsewhere since the backup. Tags, authors and venues renamed or deleted, and glossary terms, figure notes and synced settings changed, on another device now come back from it at the next sync, and the restore dialog says so when this device is connected."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "ArchiveRestorer.restore takes backupCreatedAt and stamps the records it writes there, clamped to now, instead of at restore time; SettingsRepository.setFromRestore/removeFromRestore and the glossary and figure-note restore writes stamp the same way, with a non-causal existence stamp (sync-spec §6.11, amended 2026-11-11)."
+    ]
+  }
+}

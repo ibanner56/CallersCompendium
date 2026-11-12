@@ -72,7 +72,8 @@ class SyncId {
     }
   }
 
-  /// The normalized ID that is used for authentication and storage.
+  /// The normalized ID: what addresses the store, and what its storage key is
+  /// derived from.
   final String value;
 
   /// The normalized words in [value].

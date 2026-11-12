@@ -505,6 +505,31 @@ void main() {
       expect(results.map((r) => r.id), ['7']);
     });
 
+    test('a failed curly request on a later page fails the page', () async {
+      // Both spellings page at the same offset: a page that lost one would be
+      // counted as loaded and that spelling's rows there never asked for again.
+      var failCurly = true;
+      final online = ContraDbOnline(
+        searchFetcher: (request) async {
+          if (request.query.contains('’') && request.offset > 0 && failCurly) {
+            throw const UrlFetchException(
+              UrlFetchFailureReason.contraDbHttpStatus,
+              statusCode: 500,
+            );
+          }
+          return _searchJson(id: '7', title: "Anna's Reel");
+        },
+      );
+      const first = OnlineSearchQuery(title: "anna's");
+      expect((await online.search(first)).map((r) => r.id), ['7']);
+      await expectLater(
+        online.search(first.withOffset(20)),
+        throwsA(isA<UrlFetchException>()),
+      );
+      failCurly = false;
+      expect(await online.search(first.withOffset(20)), isNotEmpty);
+    });
+
     test('a failed ASCII request still fails the search', () async {
       final online = ContraDbOnline(
         searchFetcher: (request) async {

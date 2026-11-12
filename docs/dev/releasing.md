@@ -440,7 +440,9 @@ refuses if the running container is a newer release than this tag, then:
 1. fetches that exact commit into `/opt/CallersCompendium` and checks it out
    detached (the tag's commit, not whatever `main` is now);
 2. builds `callers-compendium-athenaeum:<version>` (`0.7.0-beta`, the tag without
-   its `v`) from `server/Dockerfile`: **before** touching the running container,
+   its `v`) from `server/Dockerfile`, with `git archive <sha>` as the build
+   context, so local edits or untracked files in the host checkout never reach
+   the image: **before** touching the running container,
    so a failed build leaves the previous release serving;
 3. stops and removes the `athenaeum` container, and starts the new image with the
    flags in [the operations runbook](athenaeum-operations.md);
