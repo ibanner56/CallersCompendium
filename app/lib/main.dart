@@ -259,8 +259,19 @@ Future<void> main(List<String> args) async {
         crashReporter: crashReporter,
         migrationPreflight: (onSnapshotFailure) => runMigrationPreflightForApp(
           runningSchemaVersion: kCompendiumSchemaVersion,
+          // Read from the unopened facade: the scope marker's expected value
+          // comes from the schema and the privacy registry, not the file.
+          repairMarkers: appData.repositories.oneTimeRepairMarkers,
           onSnapshotFailure: onSnapshotFailure,
         ),
+        releaseRepairSnapshotPin: () async {
+          final dbFile = await resolveDatabaseFile();
+          await releaseRepairSnapshotPin(
+            snapshotDir: Directory(
+              p.join(dbFile.parent.path, kDatabaseBackupsDirName),
+            ),
+          );
+        },
         seedInitialCollection: (repos) => SeedService(repos).ensureSeeded(),
         incomingFileChannel: incomingFileChannel,
         installPlatformMenuBar:
@@ -320,6 +331,7 @@ class CompendiumApp extends StatefulWidget {
     required this.windowService,
     this.initialRequirePerformedForHistory = false,
     this.migrationPreflight,
+    this.releaseRepairSnapshotPin,
     this.integrityCheck,
     this.backupSaver,
     this.crashReporter,
@@ -417,7 +429,7 @@ class CompendiumApp extends StatefulWidget {
   /// forces the database open (see `migration_guard.dart`): it guards against
   /// opening a file written by a newer build (throws [DatabaseDowngradeError],
   /// routed to the [AppBootstrap] error screen) and snapshots the file before a
-  /// pending upgrade migration. It is handed a [SnapshotFailureDecision] seam so
+  /// pending upgrade migration or an owed one-time repair. It is handed a [SnapshotFailureDecision] seam so
   /// that, when the pre-migration snapshot fails, it can ask the user whether to
   /// proceed without a backup or abort (issue #442) — the app supplies
   /// [_CompendiumAppState._confirmProceedWithoutBackup], which pumps a blocking
@@ -426,6 +438,16 @@ class CompendiumApp extends StatefulWidget {
   /// [integrityCheck].
   final Future<void> Function(SnapshotFailureDecision onSnapshotFailure)?
   migrationPreflight;
+
+  /// Run once `ensureMigrated` has succeeded: every one-time repair is done,
+  /// so the snapshot [migrationPreflight] pinned for an outstanding repair
+  /// debt is released into the ordinary rotation now, not on the next launch,
+  /// where a newer build owing a new repair would otherwise find the old pin
+  /// and not pin its own first copy. Best effort: a failure is logged, and the
+  /// next launch's preflight releases it if that launch owes no repair (one
+  /// that owes a new repair keeps the stale pin and pins nothing new). Injected
+  /// from [main]; left `null` in tests that don't exercise it.
+  final Future<void> Function()? releaseRepairSnapshotPin;
 
   /// Once-per-launch data-integrity probe (`PRAGMA quick_check`), run after the
   /// first frame so a large database does not delay the first screen. Returns
@@ -1751,8 +1773,6 @@ class _CompendiumAppState extends State<CompendiumApp>
     if (context == null || !context.mounted) return false;
 
     final l10n = AppLocalizations.of(context);
-    final sentence = snapshotCauseSentence(l10n, failure.cause);
-    final causeBlock = sentence.isEmpty ? '' : '\n\n$sentence';
     final proceed = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -1761,7 +1781,7 @@ class _CompendiumAppState extends State<CompendiumApp>
         child: AlertDialog(
           icon: const Icon(Icons.warning_amber_outlined),
           title: Text(l10n.migrationSnapshotConsentTitle),
-          content: Text(l10n.migrationSnapshotConsentBody(causeBlock)),
+          content: Text(migrationSnapshotConsentBody(l10n, failure)),
           actions: [
             // Safest choice is the default: Quit, autofocused so a keyboard
             // Enter/confirm aborts rather than proceeding without a backup.
@@ -1787,8 +1807,9 @@ class _CompendiumAppState extends State<CompendiumApp>
     // Data-safety preflight, before anything opens the database (Phase 7):
     // move a database an earlier build left in a legacy location into place,
     // refuse to open a file written by a newer build (routes to the error
-    // screen) and snapshot the file before a pending upgrade migration. Runs
-    // first so no drift open — including the window restore below — precedes it.
+    // screen) and snapshot the file before a pending upgrade migration or a
+    // one-time repair `ensureMigrated` still owes. Runs first so no drift
+    // open — including the window restore below — precedes it.
     if (widget.migrationPreflight != null) {
       await widget.migrationPreflight!(_confirmProceedWithoutBackup);
     }
@@ -1806,6 +1827,13 @@ class _CompendiumAppState extends State<CompendiumApp>
       onDerivedRebuildProgress: (progress) =>
           _derivedRebuildProgress.value = progress,
     );
+    try {
+      await widget.releaseRepairSnapshotPin?.call();
+    } catch (error, stackTrace) {
+      // Never fatal: a stale pin keeps one extra copy, and until a launch owing
+      // nothing releases it, stops a newer repair debt pinning its own.
+      logCaughtError(error, stackTrace, source: 'startup.release_snapshot_pin');
+    }
     // First-run seed (issue: "first launch is never empty"): insert exactly one
     // seed dance on a fresh, empty install so the collection is never empty,
     // and never again thereafter (idempotent via a settings latch; safe to skip

@@ -31,6 +31,23 @@ variable**: command-line arguments are visible to every other user on the host
 (`ps -o args`), so `--pepper` leaks the deployment secret on a shared machine.
 Use it only where nothing else can see the process list.
 
+### Server-wide limits
+
+Three limits protect the server as a whole rather than one store (sync spec
+§5.4). Each is a command-line option, which falls back to the environment
+variable shown and then to the default:
+
+| Option | Variable | Default | Past it |
+| --- | --- | --- | --- |
+| `--min-free-bytes` | `ATHENAEUM_MIN_FREE_BYTES` | `1073741824` (1 GiB) | Blob and manifest writes answer `507` while the data directory's filesystem has less free space than this, except a manifest no larger than the one that device already has. Reads and deletes still work. `0` turns it off. |
+| `--max-large-bodies` | `ATHENAEUM_MAX_LARGE_BODIES` | `16` | A manifest `PUT`, blob `PUT` (single or batch) or `POST /v1/blobs/missing` answers `503` with `Retry-After` while this many are in flight. |
+| `--max-large-bodies-per-ip` | `ATHENAEUM_MAX_LARGE_BODIES_PER_IP` | `4` | The same requests answer `429` with `Retry-After` while their client address has this many in flight. |
+
+Those requests' bodies must also arrive whole within 60 seconds, or the
+server closes the connection. Free space is read with `statvfs(3)` on 64-bit Linux. On any other
+platform the server cannot read it, says so on stderr at startup, and admits
+every write.
+
 ### Break-glass reads
 
 After incident approval, use the supported break-glass command rather than
@@ -58,7 +75,7 @@ For production, reserve port `33333` on the Linux host and run the container
 with host networking. Apache must proxy only HTTPS `/v1/` requests to
 `127.0.0.1:33333`; the plaintext `:80` vhost must refuse `/v1` rather than
 redirecting it. The reference vhost serves the static status page at `/` from
-`/var/www/athenaeum`, proxies the credential-free `/heartbeat` liveness check,
+`/var/www/athenaeum`, proxies the `/heartbeat` liveness check (which takes no sync ID),
 and proxies the API under `/v1/` only over HTTPS. Install the status page and
 its [`deploy/status/icon.svg`](deploy/status/icon.svg) app icon at that
 document root before enabling the vhost. The reference vhost is
@@ -68,10 +85,31 @@ document root before enabling the vhost. The reference vhost is
 Store deletion removes the epoch directory immediately when possible; a
 durable cleanup record retries failed filesystem removal in a larger bounded
 batch on requests and server start, and the hourly sweep drains the remainder.
-Request-path retry is bounded by a total job count (shared by the directory and blob queues) and a 50 ms monotonic-clock budget
-checked between jobs (at least one job always runs, and a job that has started
-always finishes, so one very large directory can still take longer). Request-path
-retry failures are isolated so they do not change protocol responses.
+Request-path retry runs until a 50 ms monotonic-clock budget is spent, checked
+between jobs (at least one job always runs, and a job that has started always
+finishes, so one very large directory can still take longer), up to 1,000 jobs
+shared by the directory and blob queues. While a backlog lasts, each request
+therefore spends up to about 50 ms draining it before it is served. It stops
+at the first job whose filesystem removal fails, which is requeued, so a job
+that keeps failing costs each request one attempt rather than the whole
+budget. Request-path retry failures are isolated so they do not change
+protocol responses.
+Quota checks charge each store for its pending physical files from a running
+per-store total, adjusted as jobs are queued and run, rather than re-reading
+the deletion queue and the filesystem on every check. Queuing a store's
+garbage therefore stats each queued file once, inside the collection: a
+manifest `PUT` that drops many blobs takes correspondingly longer, once. The
+total is derived from the filesystem once per store after a restart, and
+again after a change the server cannot account for file by file (a directory
+job, a cleanup that fails part way, an upload that fails after writing its
+file); each derivation takes time in proportion to that store's pending
+deletions. A pending file removed by hand while the server runs is not seen
+until the next derivation, so it stays charged against the store's quota until
+then, at the latest until a restart.
+The hourly sweep runs in slices of about 50 ms and yields between them, so
+requests are served while it runs; a sweep still running when the next is due
+is not overlapped. A store is reaped only if it is still past the disuse TTL
+when its own deletion runs, so a request between slices keeps it.
 Startup reconciliation also queues crash-orphaned final blob files and temporary
 upload artifacts for the same cleanup path; it walks one store epoch at a time
 and queues each epoch in a single transaction, but still runs before the server
@@ -85,7 +123,7 @@ file without charging quota again. Every pending physical file remains
 charged against recreated-store quotas, and an epoch that gains a stale upload is
 preserved until its refs are gone. Store deletion also prioritizes all
 directories belonging to that store before background retries.
-Stores are reaped after 30 days without an authenticated request.
+Stores are reaped after 30 days without a request addressed to them by sync ID.
 Unreferenced blobs remain temporary roots for 24 hours so an in-flight upload
 can be published safely; manifest publication collects expired blobs across all
 persisted epochs, and `DELETE /v1/store` bypasses that grace period. The
@@ -93,8 +131,9 @@ break-glass access database makes a derived sync storage path eligible for nulli
 after 30 days and nulls it by the next hourly sweep, then retains only its
 timestamp.
 Ordinary diagnostic events become eligible for removal after 30 days and are
-removed by the next hourly sweep; unauthenticated failures are not persisted,
-and the diagnostic store is capped at 10,000 rows with a timestamp index.
+removed by the next hourly sweep; failures that do not name an existing store
+are not persisted, and the diagnostic store is capped at 10,000 rows with a
+timestamp index.
 
 ## Load testing
 
@@ -131,10 +170,11 @@ Add `--shipped-request-limits` to run with the shipped request-rate limits
 instead of lifting them, each worker as its own client address, to see where
 they refuse. The fixture stores' per-store buckets carry over between steps, and
 workers retry a `429` at once rather than after a minute as the app does; the
-failure and creation budgets stay lifted.
+failure and creation budgets, the large-body caps and the free-space floor stay
+lifted.
 
 Run it on the hardware you deploy to, with `--data-dir` on the disk the server
-will use. Every authenticated request commits a SQLite write and every blob
+will use. Every request that reaches a store commits a SQLite write and every blob
 upload also flushes a file, so disk sync latency dominates and a tmpfs directory
 does not represent a real disk. A supplied `--data-dir` is left in place
 afterwards; delete it once you have the numbers.

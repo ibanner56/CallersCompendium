@@ -1047,16 +1047,101 @@ by opening drift — and compares it to the running `kCompendiumSchemaVersion`:
   that hasn't been migrated to that schema yet, whereas a byte copy is
   schema-agnostic and the highest-fidelity rollback for a botched migration.
 
+  **A one-time repair still owed also snapshots** (UPGRADE-1). The marker-gated
+  sweeps in `CompendiumRepositories.ensureMigrated` run after the preflight on
+  every open, and several rewrite `figures_json` or shareable text in place
+  without moving `user_version` — repairs ship as settings markers rather than
+  schema bumps, because a PATCH release may not bump the schema. So the
+  preflight also reads each sweep's completion marker
+  (`CompendiumRepositories.oneTimeRepairMarkers`, raw `package:sqlite3`, before
+  drift opens) and snapshots a file at the running version when any is absent,
+  tombstoned or stale — including the shareable-text scope marker, so a
+  privacy-registry change that widens the normalisation pass is covered. Such a
+  snapshot is named `pre-v<running>` because no schema change is pending. A
+  fully repaired file reads every marker as done and does not snapshot, so an
+  ordinary launch costs one short raw read, plus two listings of `db_backups`
+  for a pin to release (below). Markers that cannot be read at all
+  are treated as owed, so the failure mode is an extra snapshot rather than a
+  repair with none. Not covered: retries of recorded `normalisation_skips`
+  entries, which are ordinary-use state that would snapshot on every launch,
+  and `promoteRetainedSyncFields`, whose debt cannot be told from its rows
+  without decoding them.
+
+  **The first copy of a repair debt is pinned.** A repair that keeps failing
+  meets the same debt on every launch and Retry, and snapshots each time.
+  Sweeps commit separately (the derived rebuild in chunks), so with plain
+  retention the copy from before the first attempt would be pruned after five
+  more failed attempts, leaving only copies taken after some sweeps had
+  committed. So the first snapshot taken while any repair is owed — on a
+  repair-only launch or a schema bump — is written as
+  `compendium.pre-v<from>-<UTC-timestamp>.pinned.sqlite.bak`, which pruning
+  skips: at most one pinned copy beside the newest 5 ordinary ones. A later
+  attempt never pins another while one exists, and a `db_backups` that exists
+  but cannot be listed counts as holding one, so it never gathers a pin per
+  launch. The pin is released as soon as the debt clears: by the app, in the
+  same session, once `ensureMigrated` succeeds, and as a backstop by any
+  preflight at the running version that owes no repair. The same-session
+  release is what lets a later build that owes a *new* repair pin its own
+  first copy rather than find the old pin still there; if that release fails
+  (a file lock, say) and the next launch owes a new repair, the stale pin is
+  kept and nothing new is pinned. Release renames the pinned copy into the
+  ordinary rotation and stamps it with the current time, so it is the newest
+  there and survives at least the next 4 snapshots instead of being pruned the
+  moment its repair first completes, when a botched repair would first show.
+  On a schema bump that owes no repair the preflight neither pins nor releases, so
+  its retention is unchanged. A build at the same schema version that does not
+  know a newer build's repair (an older PATCH, sideloaded) reads it as not
+  owed and releases that build's pin. The pin lives only in the file name: no
+  setting or column records it, so there is nothing to classify or to keep out
+  of backups. Relocation moves a pinned copy with the other snapshots.
+
+  Every snapshot is copied under a `.partial` name, flushed to disk, and
+  renamed into place (retrying briefly, for a scanner holding the new file on
+  Windows), so a copy cut short by a crash, force-quit or power loss never
+  counts as a snapshot, least of all as a pin that nothing would replace; the
+  next snapshot deletes such leftovers.
+
+  **The copy is refused rather than taken incomplete.** The checkpoint pragma
+  does not throw when another connection is in the way: a reader whose read
+  transaction began before the newest commits stops it short of them, and it
+  says so only in its result row (`busy` = 1). A byte copy of the main file
+  would then silently lack those commits. So the preflight reads that row,
+  retries for about 0.4 s, and treats a WAL still busy as a snapshot failure
+  (below), never copying. A `busy` result whose WAL frames were all checkpointed
+  (`log == checkpointed`) is accepted: TRUNCATE reports busy whenever it cannot
+  reset the WAL, including for a reader that already sees every commit, and the
+  main file is complete then. The checkpoint throws `SnapshotDatabaseInUse`,
+  classified as `SnapshotFailureCause.databaseInUse` (the maintainer chose on
+  2026-11-11 to add it in this change rather than a follow-up; the PR
+  description records it), so the consent dialog and the terminal screen use
+  their own copy, telling the user to close any other app that has the library
+  open, instead of the generic advice to free up space or fix the backups
+  folder; the below-floor reset flow appends the matching cause sentence. Only a
+  checkpoint that stays incomplete is classified this way: another app holding a
+  write or exclusive lock makes the pragma itself fail (`SQLITE_BUSY`), and a
+  Windows sharing violation on the copy is an OS error with no in-use code, so
+  both still reach the dialog as an unknown cause. Copying the `-wal` beside the
+  main file instead was rejected: the two files are not copied atomically, the
+  restore steps would have to carry both, and a writer could append between the
+  two reads. No holder inside the app has been found: on launch the preflight
+  runs before the app's drift connection opens and before sync starts; Retry
+  closes the app's connection and disposes the sync coordinator first, which
+  waits for any running pass, and a pass closes its isolate's own connection
+  when it ends; and a second desktop instance hands off and exits before
+  reaching the preflight. So the holder would be another process, such as a
+  SQLite browser left open on the file.
+
   **If the snapshot fails, the preflight fails closed** (issue #442). A backup
-  that cannot be written (disk full, unwritable `db_backups`, checkpoint
-  failure) previously logged and migrated anyway; it now instead surfaces a
-  blocking consent dialog that explains the data-loss risk and names the likely
-  cause (low storage / unwritable backups folder). The user chooses **Quit**
-  (the default — abort so they can free space, fix permissions, or take a manual
+  that cannot be written (disk full, unwritable `db_backups`, a checkpoint that
+  fails or stays busy) previously logged and migrated anyway; it now instead
+  surfaces a blocking consent dialog that explains the data-loss risk and names
+  the likely cause (low storage / unwritable backups folder / another app has
+  the library open, above). The user chooses **Quit** (the default — abort so
+  they can free space, fix permissions, close the other app, or take a manual
   backup first) or **Proceed without a backup**. Without an explicit "proceed"
   the migration is aborted (`MigrationSnapshotAborted`, rendered on a
-  non-retryable `AppBootstrap` screen, mirroring the downgrade guard) so a failed
-  upgrade can never become an unrecoverable one. A successful snapshot is
+  non-retryable `AppBootstrap` screen, mirroring the downgrade guard) so a
+  failed upgrade can never become an unrecoverable one. A successful snapshot is
   unchanged — no prompt.
 
   **Restoring a pre-migration snapshot:** quit the app, replace the live
@@ -1064,7 +1149,9 @@ by opening drift — and compares it to the running `kCompendiumSchemaVersion`:
   `.sqlite.bak` (renaming it back to `compendium.sqlite`), and relaunch. Because
   the snapshot is stamped at the older `user_version`, opening it with the build
   that created the backup migrates it forward again; if the migration itself was
-  the problem, open it with the matching older app version instead.
+  the problem, open it with the matching older app version instead. A
+  repair-only snapshot lacks the repair's marker, so the same build runs the
+  repair again on relaunch.
 
 **The four terminal startup screens (amendment, 2026-10-30).** The downgrade,
 below-floor, snapshot-aborted and relocation-blocked outcomes above each render

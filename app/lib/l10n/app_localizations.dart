@@ -374,10 +374,10 @@ abstract class AppLocalizations {
     String date,
   );
 
-  /// Terminal startup-screen message shown when a pre-migration backup could not be created and the user declined to proceed without one. {cause} is an optional trailing sentence (already ends with a space) naming the likely cause, or empty when unknown.
+  /// Terminal startup-screen message shown when the automatic backup taken before a schema upgrade or a one-time data repair could not be created and the user declined to proceed without one. {cause} is an optional trailing sentence (already ends with a space) naming the likely cause, or empty when unknown.
   ///
   /// In en, this message translates to:
-  /// **'Caller\'s Compendium didn\'t start because it couldn\'t create an automatic backup before upgrading your saved data. {cause}Free up space (or fix the backups folder), then reopen the app — or reopen and choose to continue without a backup.'**
+  /// **'Caller\'s Compendium didn\'t start because it couldn\'t create an automatic backup before making changes to your saved data. {cause}Free up space (or fix the backups folder), then reopen the app — or reopen and choose to continue without a backup.'**
   String migrationSnapshotAbortedMessage(String cause);
 
   /// Plain-language sentence naming the likely cause of a failed pre-migration backup: the device is low on storage. Embedded into the snapshot-failure copy.
@@ -392,25 +392,43 @@ abstract class AppLocalizations {
   /// **'The automatic backups folder could not be written to.'**
   String get migrationSnapshotCauseUnwritableBackupsDir;
 
-  /// Title of the blocking dialog asking whether to upgrade saved data without a recoverable backup after the automatic backup failed.
+  /// Plain-language sentences naming the cause of a failed automatic backup and its remedy: another program (for example a database viewer) has the app's data file open and is reading it, so a copy would be missing recent changes. Appended to the 'backup failed' message of the reset flow. Must tell the user to close the other program, not to free space. Say "app", not "program": in this app a program is a dance set list.
+  ///
+  /// In en, this message translates to:
+  /// **'Another app has your library open, so a backup made now would miss your latest changes. Close any other app that has your library open, then try again.'**
+  String get migrationSnapshotCauseDatabaseInUse;
+
+  /// Body of the blocking dialog asking whether to change saved data (a schema upgrade or a one-time data repair) without a recoverable backup, shown when the backup failed because another program has the app's data file open. Keep the wording true for both an upgrade and a repair. The remedy is closing the other program, not freeing space. Say "app", not "program": in this app a program is a dance set list.
+  ///
+  /// In en, this message translates to:
+  /// **'Before making changes to your saved data, Caller\'s Compendium makes an automatic backup so the changes can be undone if something goes wrong. Another app has your library open right now, so a backup made now would miss your latest changes.\n\nIf you continue without a backup and the changes are interrupted, some of your dances or programs could be lost. You can quit, close any other app that has your library open, and reopen Caller\'s Compendium to try again.'**
+  String get migrationSnapshotInUseConsentBody;
+
+  /// Terminal startup-screen message shown when the automatic backup taken before a schema upgrade or a one-time data repair failed because another program has the app's data file open, and the user declined to proceed without one. No Retry is offered: the user reopens the app. Say "app", not "program": in this app a program is a dance set list.
+  ///
+  /// In en, this message translates to:
+  /// **'Caller\'s Compendium didn\'t start because another app has your library open, so the automatic backup made before changing your saved data would miss your latest changes. Close any other app that has your library open, then reopen Caller\'s Compendium — or reopen it and choose to continue without a backup.'**
+  String get migrationSnapshotInUseAbortedMessage;
+
+  /// Title of the blocking dialog asking whether to change saved data (a schema upgrade or a one-time data repair) without a recoverable backup after the automatic backup failed.
   ///
   /// In en, this message translates to:
   /// **'Couldn\'t back up your data'**
   String get migrationSnapshotConsentTitle;
 
-  /// Body of the blocking dialog asking whether to upgrade saved data without a recoverable backup. {cause} is an optional block (already prefixed with two newlines) naming the likely cause, or empty when unknown.
+  /// Body of the blocking dialog asking whether to change saved data (a schema upgrade or a one-time data repair) without a recoverable backup. Keep the wording true for both. {cause} is an optional block (already prefixed with two newlines) naming the likely cause, or empty when unknown.
   ///
   /// In en, this message translates to:
-  /// **'Before upgrading your saved data to a new format, Caller\'s Compendium makes an automatic backup so a failed upgrade can be undone. That backup couldn\'t be created this time.{cause}\n\nIf you continue without a backup and the upgrade is interrupted, some of your dances or programs could be lost. You can quit, free up space (or fix the backups folder), and reopen the app to try again.'**
+  /// **'Before making changes to your saved data, Caller\'s Compendium makes an automatic backup so the changes can be undone if something goes wrong. That backup couldn\'t be created this time.{cause}\n\nIf you continue without a backup and the changes are interrupted, some of your dances or programs could be lost. You can quit, free up space (or fix the backups folder), and reopen the app to try again.'**
   String migrationSnapshotConsentBody(String cause);
 
-  /// Button that safely aborts startup rather than upgrading saved data without a recoverable backup.
+  /// Button that safely aborts startup rather than changing saved data without a recoverable backup.
   ///
   /// In en, this message translates to:
   /// **'Quit'**
   String get migrationSnapshotConsentQuit;
 
-  /// Button that proceeds with the data upgrade even though no recoverable backup could be made.
+  /// Button that proceeds with the change to saved data (a schema upgrade or a one-time data repair) even though no recoverable backup could be made.
   ///
   /// In en, this message translates to:
   /// **'Proceed without a backup'**
@@ -1016,10 +1034,10 @@ abstract class AppLocalizations {
   /// **'Copy sync phrase'**
   String get settingsSyncIdCopy;
 
-  /// Snackbar confirming the sync phrase was copied, restating what having it lets someone do. Describe behaviour only: the phrase is where the shared library lives, not a password guarding it, and the glossary reserves 'credential' for the header encoding. Keep this consistent with @settingsSyncIdCaution below, which must not drift from it.
+  /// Snackbar confirming the sync phrase was copied, restating what having it lets someone do. Describe behaviour only: the phrase is where the shared library lives — its address — so do not write 'unlock', 'key', 'access', 'credential' or 'password'. Keep this consistent with @settingsSyncIdCaution below, which must not drift from it.
   ///
   /// In en, this message translates to:
-  /// **'Sync phrase copied. It unlocks your store, so paste it only on a device you own.'**
+  /// **'Sync phrase copied. Anyone who has it can open your shared library, so paste it only on a device you own.'**
   String get settingsSyncIdCopied;
 
   /// Caution under the sync-phrase row: what it is for, and what having it lets anyone do (spec §6.14 item 2, §8). Must name deletion and the store-wide wipe as well as reading and changing — this is the same disclosure the pairing flow makes, on the surface that shows the phrase itself, and the two must not drift. Keep the same framing as the pairing disclosures: the phrase is where the library is, not a password guarding it. Describe behaviour only; say nothing about how the value is classified internally.
@@ -1190,10 +1208,10 @@ abstract class AppLocalizations {
   /// **'Skip unused imported dances'**
   String get settingsSyncQuotaExcludeImports;
 
-  /// Device Sync notice when another device shared items this version of the app cannot read: in a newer format, or carrying details this version cannot keep (for example new figure details). {items} is a list of counts by kind, built from the settingsSyncNoticeCount* strings joined with settingsSyncNoticeListSeparator, for example "3 programs, 1 setting". The remedy is always updating the app on THIS device.
+  /// Device Sync notice when another device shared items this version of the app cannot read: in a newer format, or carrying details this version cannot keep (for example new figure details). {items} is a list of counts by kind, built from the settingsSyncNoticeCount* strings joined with settingsSyncNoticeListSeparator, for example "3 programs, 1 setting". The remedy is always updating the app on THIS device. The last sentence is a warning, not advice to wait: this device still holds its own older copy of those records, and an edit here gives that copy a newer date, so for most records it replaces the other device's version everywhere (spec §6.3 step 4, newer edit wins). 'may' is deliberate: for the few settings that hold a whole collection (dialects, themes, shorthand sets, walkthrough snippets) the app asks instead.
   ///
   /// In en, this message translates to:
-  /// **'Another device is using a newer version of the app. Update the app on this device to receive {items}.'**
+  /// **'Another device is using a newer version of the app. Update the app on this device to receive {items}. Editing them here before you update may discard the other device\'s changes to them.'**
   String settingsSyncNoticeNewerVersionItems(String items);
 
   /// One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many dances are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.
@@ -1262,10 +1280,10 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{your notes on 1 figure} other{your notes on {count} figures}}'**
   String settingsSyncNoticeCountFigureNote(int count);
 
-  /// Variant of settingsSyncNoticeNewerVersionItems used when this device cannot tell how many items are waiting: the other device's list of what it shares is itself in the newer format, or it shares a kind of data this version does not know.
+  /// Variant of settingsSyncNoticeNewerVersionItems used when this device cannot tell how many items are waiting: the other device's list of what it shares is itself in the newer format, or it shares a kind of data this version does not know. The last sentence carries the same hedged warning as settingsSyncNoticeNewerVersionItems: editing here, before updating, a record the newer device changed may replace that device's version. 'it' is the other device.
   ///
   /// In en, this message translates to:
-  /// **'Another device is using a newer version of the app. Update the app on this device to receive its changes.'**
+  /// **'Another device is using a newer version of the app. Update the app on this device to receive its changes. Editing something here that it changed, before you update, may discard its changes.'**
   String get settingsSyncNoticeNewerVersionUncounted;
 
   /// Informational Device Sync notice (not a problem): records on this device carry details that a newer version of the app added. This version keeps those details and syncs them back unchanged, but cannot display them. {items} is a list of counts by kind built from the settingsSyncNoticeCount* strings, for example "3 programs, 1 setting".
@@ -2084,10 +2102,10 @@ abstract class AppLocalizations {
   /// **'Delete this store from the server?'**
   String get settingsSyncWipeConfirmTitle;
 
-  /// Body of the Device Sync wipe confirmation: irreversible, affects every device, keeps local libraries, detaches this device, and is the immediate remedy for a leaked sync phrase (spec §5.3).
+  /// Body of the Device Sync wipe confirmation: irreversible, affects every device, keeps local libraries, detaches this device, and is the only thing that removes the store's contents at once (spec §5.3). Moving every device to a new phrase is the complementary step (spec §6.14 item 2): neither is presented as the whole answer. The phrase is the store's address, not a password or credential: do not use 'leaked', 'stolen', 'compromised' or account vocabulary.
   ///
   /// In en, this message translates to:
-  /// **'Everything the store holds is deleted from the server, for every device at once, and this can\'t be undone. Your library stays on this device and on each of your other devices — but anything that had only ever reached another device through syncing will not arrive here. This device disconnects and forgets its sync phrase; your other devices will find the store gone the next time they sync, and will ask whether to start a new one. Use this if your sync phrase has been seen by someone else: it is the only thing that removes what they can read straight away.'**
+  /// **'Everything the store holds is deleted from the server, for every device at once, and this can\'t be undone. Your library stays on this device and on each of your other devices — but anything that had only ever reached another device through syncing will not arrive here. This device disconnects and forgets its sync phrase; your other devices will find the store gone the next time they sync, and will offer to set up a new phrase. Use this when you want to stop using this store\'s address: it is the only thing that removes what the store holds straight away. To keep syncing, set up a new phrase on each device — reconnecting with the old one puts a new store back at the same address.'**
   String get settingsSyncWipeConfirmBody;
 
   /// Confirm button of the Device Sync wipe dialog.
@@ -2330,7 +2348,7 @@ abstract class AppLocalizations {
   /// **'There is no copy of this phrase, and no taking it back'**
   String get settingsSyncPairingCredentialTitle;
 
-  /// Body of the no-recovery/no-undo disclosure (spec §6.14 item 2). Must NOT say moving every device to a new phrase is the only fix for a leaked one: that was true before Device Sync could delete the store, and it leaves the old store readable by whoever kept the old phrase. Wipe is the only in-band remedy that acts at once (spec §5.3); the two are complementary, not alternatives. Avoid 'password reset' and any other account vocabulary — the phrase is where the library is, not a secret in front of it. Key name says 'Credential' for historical reasons; do not follow it.
+  /// Body of the no-recovery/no-undo disclosure (spec §6.14 item 2). Must NOT say moving every device to a new phrase is the only fix once someone else has the phrase: that was true before Device Sync could delete the store, and it leaves the old store readable by whoever kept the old phrase. Wipe is the only in-band remedy that acts at once (spec §5.3); the two are complementary, not alternatives. Avoid 'password reset' and any other account vocabulary — the phrase is where the library is, not a secret in front of it. Key name says 'Credential' for historical reasons; do not follow it.
   ///
   /// In en, this message translates to:
   /// **'Nothing else anywhere knows this phrase, so if you lose it the library at that address stays where it is and no one can reach it again. Telling someone the phrase also can\'t be untold. Moving your devices to a new phrase only starts a second library somewhere else: the first one is still there, and anyone who kept the old phrase can still open and change it. Deleting the store is the only thing that takes it away at once.'**
@@ -2402,23 +2420,29 @@ abstract class AppLocalizations {
   /// **'Your library is connected. The first sync hasn\'t run yet; it will run the next time this device syncs.'**
   String get settingsSyncPairingCompletePending;
 
-  /// Title of the dialog shown when a previously used sync store is missing.
+  /// Title of the dialog shown when a previously used sync store is missing. States the fact; the three choices are the dialog's buttons.
   ///
   /// In en, this message translates to:
-  /// **'Reconnect this store?'**
+  /// **'This store is no longer there'**
   String get settingsSyncReplacementTitle;
 
-  /// Body of the missing-previously-used-collection dialog (spec §6.14 item 6): explains the collection may have expired or been removed, without asserting which.
+  /// Body of the missing-previously-used-collection dialog (spec §6.14 item 6): explains the collection may have expired or been removed, without asserting which. Then explains the two ways on: a new phrase (the primary button, settingsSyncReplacementNewPhrase), which leaves this store's address; and Reconnect (settingsSyncReplacementConfirm), which re-creates a store at the same address, or joins it if another device holding the phrase already re-created it. The phrase is the store's address, not a password or credential: do not use 'leaked', 'stolen', 'compromised' or account vocabulary.
   ///
   /// In en, this message translates to:
-  /// **'The store this device used to sync with is no longer there. It may have expired through inactivity, or it may have been removed. Reconnecting creates a new store with the same phrase and re-syncs from scratch.'**
+  /// **'The store this device used to sync with is no longer there. It may have expired through inactivity, or it may have been removed. To stop using this store\'s address, set up a new phrase: this device disconnects, and you then create a new store or connect to one you\'ve set up on another device. Do this on each of your devices. Reconnect instead creates a new store at the same address, with the same phrase, and sends your whole library there; if another device has already done that, this device joins that store.'**
   String get settingsSyncReplacementBody;
 
-  /// Button that confirms replacement of a missing previously used store.
+  /// Second button of the missing-store dialog: re-creates the store at the same address (same phrase) and re-syncs from scratch. Must match the word 'Reconnect' used in settingsSyncReplacementBody.
   ///
   /// In en, this message translates to:
   /// **'Reconnect'**
   String get settingsSyncReplacementConfirm;
+
+  /// Primary button of the missing-store dialog: disconnects this device from the missing store's phrase and opens the Connect flow, where the user creates a new store or connects to one another device already set up. Creates nothing at the old address. 'Set up a new phrase' in settingsSyncReplacementBody refers to this button.
+  ///
+  /// In en, this message translates to:
+  /// **'Set up with a new phrase'**
+  String get settingsSyncReplacementNewPhrase;
 
   /// Button that cancels replacement; makes no network call and leaves the decision available later.
   ///
@@ -5680,6 +5704,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Restoring replaces everything currently in the app — your collection, programs, dialects, themes, and settings — with the backup\'s contents. This cannot be undone.'**
   String get backupRestoreDialogBody;
+
+  /// Shown in the restore-from-backup dialog only while this device is paired with a Device Sync store. Restored records are stamped at the backup's creation time, so anything changed since on a synced device wins at the next sync and comes back here.
+  ///
+  /// In en, this message translates to:
+  /// **'This device is connected to Device Sync. Anything Device Sync carries that was changed after this backup was made, on any device you sync with, comes back from that device at the next sync, including changes made here and already synced. Everything else takes the backup\'s version.'**
+  String get backupRestoreDialogSyncNote;
 
   /// Button label in the restore-from-backup dialog that opens a file chooser.
   ///

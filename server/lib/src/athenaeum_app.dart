@@ -9,6 +9,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:shelf/shelf.dart';
 
 import 'athenaeum_config.dart';
+import 'athenaeum_disk.dart';
 import 'athenaeum_store.dart';
 
 typedef ClientAddressResolver = String Function(Request request);
@@ -18,10 +19,11 @@ typedef AthenaeumOperationalAlertSink =
     void Function(AthenaeumOperationalAlert alert);
 typedef AthenaeumPeriodicTimer =
     Timer Function(Duration interval, void Function(Timer timer) callback);
-typedef AthenaeumSweep = void Function();
+typedef AthenaeumSweep = FutureOr<void> Function();
 
 // The request-rate rows of spec §5.4, refilled per second. The failure and
-// creation budgets beside them stay per minute (athenaeum_store.dart).
+// server-wide creation budgets beside them stay per minute
+// (athenaeum_store.dart); the per-address creation row is per hour (below).
 const double maxGeneralRequestsPerIpPerSecond = 5;
 const int maxGeneralRequestsPerIpBurst = 300;
 const double maxGeneralRequestsPerStorePerSecond = 15;
@@ -39,6 +41,26 @@ const int defaultBlobBatchHashesPerToken = 20;
 /// against well under a tenth of a millisecond.
 const int defaultBlobUploadBlobsPerToken = 10;
 const int _maxTrackedRequestBuckets = 10000;
+
+/// Store creations one client address (an IPv4 address, or an IPv6 /64) may
+/// make: a burst of this many, refilled at [maxStoreCreationsPerIpPerHour]
+/// (spec §5.4). Charged before the server-wide row, so one address cannot
+/// spend the creations every other address shares.
+const int maxStoreCreationsPerIpBurst = 5;
+const double maxStoreCreationsPerIpPerHour = 5;
+
+/// The `Retry-After` on a large-body request refused because too many are
+/// already in flight (spec §5.4). Short, because a slot frees as soon as a
+/// request ahead of it has been read and stored.
+const Duration largeBodyRetryAfter = Duration(seconds: 5);
+
+/// How many bytes of a stored manifest one read takes while a manifest `GET`
+/// streams it. Each read loads the row's body inside SQLite, so smaller chunks
+/// cost more time per byte: a 14 MiB manifest streamed in 1 MiB chunks cost
+/// about 50 ms of reads, in 64 KiB chunks about 530 ms, against 10 ms read
+/// whole. 1 MiB keeps what a client that stops reading can pin in memory to
+/// about one chunk, where the whole body used to be held until it was sent.
+const int manifestResponseChunkBytes = 1024 * 1024;
 
 void _writeOperationalAlert(AthenaeumOperationalAlert alert) {
   stderr.writeln(jsonEncode({'alert': alert.toJson()}));
@@ -140,40 +162,64 @@ class AthenaeumSweepController {
     this.store, {
     AthenaeumPeriodicTimer? schedule,
     this.interval = const Duration(hours: 1),
-    AthenaeumSweep? sweep,
+    this.sweep,
     AthenaeumOperationalAlertSink? alertSink,
   }) : _schedule = schedule ?? Timer.periodic,
-       _sweep = sweep ?? store.sweep,
        _alertLimiter = _OperationalAlertLimiter(
          alertSink ?? _writeOperationalAlert,
        );
 
   final AthenaeumStore store;
   final AthenaeumPeriodicTimer _schedule;
-  final AthenaeumSweep _sweep;
+
+  /// Null for the store's own sweep, [AthenaeumStore.sweepInSlices], which
+  /// yields between slices so requests are served while it runs.
+  final AthenaeumSweep? sweep;
   final _OperationalAlertLimiter _alertLimiter;
   final Duration interval;
   Timer? _timer;
+  Future<void>? _running;
+
+  /// The sweep in progress, if any. Completes when it does; never with an
+  /// error, which is reported as a `sweep_failure` alert instead.
+  Future<void>? get running => _running;
 
   void start() {
     _timer ??= _schedule(interval, (_) {
-      try {
-        _sweep();
-      } catch (error) {
-        _alertLimiter.add(
-          AthenaeumOperationalAlert(
-            kind: 'sweep_failure',
-            source: 'hourly_sweep',
-            errorType: error.runtimeType.toString(),
-          ),
-        );
-      }
+      // A sweep that outlasts the interval is not overlapped by the next.
+      if (_running != null) return;
+      final running = _runSweep();
+      _running = running;
+      running.whenComplete(() {
+        if (identical(_running, running)) _running = null;
+      });
     });
   }
 
-  void stop() {
+  Future<void> _runSweep() async {
+    try {
+      final sweep = this.sweep;
+      await (sweep == null
+          ? store.sweepInSlices(shouldStop: () => _timer == null)
+          : sweep());
+    } catch (error) {
+      _alertLimiter.add(
+        AthenaeumOperationalAlert(
+          kind: 'sweep_failure',
+          source: 'hourly_sweep',
+          errorType: error.runtimeType.toString(),
+        ),
+      );
+    }
+  }
+
+  /// Stops scheduling sweeps, and stops the one in progress at its next
+  /// slice. The returned future completes once it has stopped, after which
+  /// the store may be closed.
+  Future<void> stop() {
     _timer?.cancel();
     _timer = null;
+    return _running ?? Future<void>.value();
   }
 }
 
@@ -197,10 +243,14 @@ class AthenaeumBudgetLimits {
     this.perIpFailureBurst = maxFailedResolutionsPerIpBurst,
     this.serverWideFailuresPerMinute = maxFailedResolutionsServerWide,
     this.creationsPerMinute = maxStoreCreationsPerMinute,
+    this.perIpCreationBurst = maxStoreCreationsPerIpBurst,
+    this.perIpCreationsPerHour = maxStoreCreationsPerIpPerHour,
     this.blobBatchHashesPerToken = defaultBlobBatchHashesPerToken,
     this.blobUploadBlobsPerToken = defaultBlobUploadBlobsPerToken,
   }) : assert(blobBatchHashesPerToken > 0),
-       assert(blobUploadBlobsPerToken > 0);
+       assert(blobUploadBlobsPerToken > 0),
+       assert(perIpCreationBurst > 0),
+       assert(perIpCreationsPerHour > 0);
 
   final double perIpRequestsPerSecond;
   final int perIpRequestBurst;
@@ -210,6 +260,12 @@ class AthenaeumBudgetLimits {
   final int perIpFailureBurst;
   final int serverWideFailuresPerMinute;
   final int creationsPerMinute;
+
+  /// See [maxStoreCreationsPerIpBurst].
+  final int perIpCreationBurst;
+
+  /// See [maxStoreCreationsPerIpPerHour].
+  final double perIpCreationsPerHour;
 
   /// See [defaultBlobBatchHashesPerToken].
   final int blobBatchHashesPerToken;
@@ -227,7 +283,12 @@ class AthenaeumApp {
     DateTime Function()? clock,
     AthenaeumDiagnosticLogger? diagnosticLogger,
     AthenaeumOperationalAlertSink? alertSink,
+    this._freeSpaceProbe = statvfsAvailableBytes,
   }) : config = config,
+       _largeBodies = _LargeBodySlots(
+         serverWide: config.maxLargeBodiesInFlight,
+         perIp: config.maxLargeBodiesInFlightPerIp,
+       ),
        _clientAddressResolver =
            clientAddressResolver ??
            ((request) => _defaultClientAddress(
@@ -241,7 +302,10 @@ class AthenaeumApp {
          clock: clock ?? DateTime.now,
        ),
        _failureBudget = _FailureBudget(budgetLimits),
-       _creationBudget = _CreationBudget(budgetLimits) {
+       _creationBudget = _CreationBudget(
+         budgetLimits,
+         clock: clock ?? DateTime.now,
+       ) {
     _alertSink = alertSink ?? _writeOperationalAlert;
     _alertLimiter = _OperationalAlertLimiter(_alertSink);
     this.store =
@@ -275,6 +339,8 @@ class AthenaeumApp {
   final _RequestBudget _requestBudget;
   final _FailureBudget _failureBudget;
   final _CreationBudget _creationBudget;
+  final AthenaeumFreeSpaceProbe _freeSpaceProbe;
+  final _LargeBodySlots _largeBodies;
   late final AthenaeumOperationalAlertSink _alertSink;
   late final _OperationalAlertLimiter _alertLimiter;
   late final AthenaeumDiagnosticLogger _diagnosticLogger;
@@ -294,39 +360,116 @@ class AthenaeumApp {
     if (segments.length < 2 || segments.first != 'v1') {
       return _jsonResponse(404, {'error': 'not found'});
     }
-    if (!_requestBudget.allowClient(_clientAddressResolver(request))) {
+    final address = _clientAddressResolver(request);
+    if (!_requestBudget.allowClient(address)) {
       return _rateLimitedResponse();
     }
-    try {
-      store.retryPendingDeletions(maxDuration: requestPendingDeletionBudget);
-    } on Object catch (error) {
-      stderr.writeln(
-        'Athenaeum request cleanup retry failed (${error.runtimeType})',
-      );
+    // Taken before the route runs and held until it has answered, so it
+    // covers the body being read, decoded and stored (spec §5.4). A route that
+    // refuses early, before reading the body, gives its slot straight back.
+    final largeBody = _isLargeBodyRequest(request.method, segments);
+    if (largeBody) {
+      final refusal = _largeBodies.tryAcquire(address);
+      if (refusal != null) {
+        // The server-wide cap engaging is worth an operator's attention: it
+        // is either load the defaults were not sized for, or clients holding
+        // slots open. One client at its own share is not.
+        if (refusal.statusCode == 503) _alertLimiter.add(_largeBodyCapAlert);
+        return refusal;
+      }
     }
     try {
-      return switch (segments[1]) {
-        'store' => await _storeRoute(request, segments),
-        'manifests' => await _manifestRoute(request, segments),
-        'blobs' => await _blobRoute(request, segments),
-        _ => _jsonResponse(404, {'error': 'not found'}),
-      };
-    } on _RequestFailure catch (error) {
-      if (error.status == 507) {
-        _alertLimiter.add(
-          const AthenaeumOperationalAlert(
-            kind: 'quota_exhaustion',
-            source: 'request',
-            errorType: 'StoreQuotaExceeded',
-          ),
+      // Synchronous, so holding a slot across it lets no other request in
+      // meanwhile; it only lengthens this request's hold by at most the
+      // cleanup budget. A request refused a slot above skips it, as a request
+      // refused by the request budget does.
+      try {
+        store.retryPendingDeletions(
+          maxJobs: maxBudgetedPendingDeletionRetriesPerRequest,
+          maxDuration: requestPendingDeletionBudget,
+          stopAtFailure: true,
+        );
+      } on Object catch (error) {
+        stderr.writeln(
+          'Athenaeum request cleanup retry failed (${error.runtimeType})',
         );
       }
-      _logFailure(request, error);
-      return _jsonResponse(error.status, {'error': error.message});
-    } on Object catch (error) {
-      return _unexpectedFailure(error);
+      try {
+        return switch (segments[1]) {
+          'store' => await _storeRoute(request, segments),
+          'manifests' => await _manifestRoute(request, segments),
+          'blobs' => await _blobRoute(request, segments),
+          _ => _jsonResponse(404, {'error': 'not found'}),
+        };
+      } on _RequestFailure catch (error) {
+        if (error.status == 507) {
+          _alertLimiter.add(error.alert ?? _storeQuotaAlert);
+        }
+        _logFailure(request, error);
+        return _jsonResponse(error.status, {'error': error.message});
+      } on Object catch (error) {
+        return _unexpectedFailure(error);
+      }
+    } finally {
+      if (largeBody) _largeBodies.release(address);
     }
   }
+
+  static const _storeQuotaAlert = AthenaeumOperationalAlert(
+    kind: 'quota_exhaustion',
+    source: 'request',
+    errorType: 'StoreQuotaExceeded',
+  );
+
+  static const _largeBodyCapAlert = AthenaeumOperationalAlert(
+    kind: 'capacity_exhaustion',
+    source: 'large_bodies',
+    errorType: 'LargeBodyCapReached',
+  );
+
+  static const _freeSpaceAlert = AthenaeumOperationalAlert(
+    kind: 'quota_exhaustion',
+    source: 'free_space_floor',
+    errorType: 'FreeSpaceBelowFloor',
+  );
+
+  /// The requests whose body can be large enough to matter held in memory
+  /// many at once (spec §5.4): a manifest `PUT` and `POST /v1/blobs/missing`
+  /// (16 MiB each), a `PUT /v1/blobs/batch` (2 MB), and a blob `PUT` (1 MiB).
+  /// Every other request body is capped at 64 KiB or has none.
+  static bool _isLargeBodyRequest(String method, List<String> segments) {
+    if (segments.length != 3) return false;
+    return switch ((method, segments[1])) {
+      ('PUT', 'manifests') => true,
+      ('PUT', 'blobs') => true,
+      ('POST', 'blobs') => segments[2] == 'missing',
+      _ => false,
+    };
+  }
+
+  /// Whether the free-space floor ([AthenaeumConfig.minFreeBytes]) leaves room
+  /// to store a blob or manifest (spec §5.4). A reading that fails, or a
+  /// platform that has none, admits the write: the floor is a margin ahead of
+  /// a full disk, and refusing every upload because the margin cannot be
+  /// measured would be an outage of its own.
+  bool _belowFreeSpaceFloor() {
+    final floor = config.minFreeBytes;
+    if (floor == 0) return false;
+    int? available;
+    try {
+      available = _freeSpaceProbe(config.dataDirectory);
+    } on Object {
+      available = null;
+    }
+    return available != null && available < floor;
+  }
+
+  /// Refuses a blob or manifest write with the free-space floor's `507`.
+  Never _refuseBelowFreeSpaceFloor() => throw const _RequestFailure(
+    507,
+    'server storage is full',
+    alert: _freeSpaceAlert,
+  );
 
   /// The answer to an exception no route anticipated.
   ///
@@ -377,7 +520,9 @@ class AthenaeumApp {
       if (existing != null) {
         return _failedResolution(request, 409, 'store already exists');
       }
-      if (!_creationBudget.allow()) return _rateLimitedResponse();
+      final address = _clientAddressResolver(request);
+      final retryAfter = _creationBudget.charge(address);
+      if (retryAfter != null) return _rateLimitedResponse(retryAfter);
       var created = false;
       try {
         final storeRow = store.create(identity.idKey);
@@ -386,7 +531,7 @@ class AthenaeumApp {
       } on StoreAlreadyExists {
         return _failedResolution(request, 409, 'store already exists');
       } finally {
-        if (!created) _creationBudget.refund();
+        if (!created) _creationBudget.refund(address);
       }
     }
     if (request.method == 'DELETE') {
@@ -419,19 +564,20 @@ class AthenaeumApp {
       return _failedResolution(request, 404, 'store not found');
     }
     if (request.method == 'GET') {
-      final manifest = store.manifest(identity.idKey, current.epoch, deviceId);
-      if (manifest == null) {
+      final head = store.manifestHead(identity.idKey, current.epoch, deviceId);
+      if (head == null) {
         return _jsonResponse(404, {'error': 'manifest not found'});
       }
-      if (request.headers['if-none-match'] == '"${manifest.etag}"') {
-        return Response(304, headers: {'etag': '"${manifest.etag}"'});
+      if (request.headers['if-none-match'] == '"${head.etag}"') {
+        return Response(304, headers: {'etag': '"${head.etag}"'});
       }
       return Response(
         200,
-        body: manifest.body,
+        body: _manifestChunks(identity.idKey, current.epoch, deviceId, head),
         headers: {
           'content-type': 'application/json',
-          'etag': '"${manifest.etag}"',
+          'content-length': '${head.size}',
+          'etag': '"${head.etag}"',
         },
       );
     }
@@ -462,13 +608,32 @@ class AthenaeumApp {
       if (_declaredLengthExceeds(request, quotaLimit)) {
         throw const _RequestFailure(507, 'byte quota exhausted');
       }
+      // Below the free-space floor a manifest may still be replaced by one no
+      // larger than it: a manifest that drops entries without naming a new
+      // blob (imports excluded, records erased) is how a user shrinks a
+      // device's share without deleting the store (spec §5.4). A device with
+      // no manifest yet cannot publish one.
+      int? floorAllowance;
+      if (_belowFreeSpaceFloor()) {
+        floorAllowance =
+            store.manifestHead(identity.idKey, current.epoch, deviceId)?.size ??
+            0;
+        if (floorAllowance == 0 ||
+            _declaredLengthExceeds(request, floorAllowance)) {
+          _refuseBelowFreeSpaceFloor();
+        }
+      }
       final depthScanner = _MissingHashScanner();
       final body = await _readBody(
         request,
         maxManifestBytes,
         onChunk: depthScanner.add,
         quotaBytes: quotaLimit,
+        deadline: config.largeBodyReadTimeout,
       );
+      if (floorAllowance != null && body.length > floorAllowance) {
+        _refuseBelowFreeSpaceFloor();
+      }
       final manifest = _decodeManifest(body);
       if (manifest.deviceId != deviceId) {
         throw const _RequestFailure(
@@ -546,6 +711,7 @@ class AthenaeumApp {
         request,
         maxManifestBytes,
         onChunk: hashScanner.add,
+        deadline: config.largeBodyReadTimeout,
       );
       final decoded = _decodeJson(body);
       if (decoded is! Map || decoded['hashes'] is! List) {
@@ -584,14 +750,16 @@ class AthenaeumApp {
         return _jsonResponse(404, {'error': 'blob not found'});
       }
       final file = store.blobFile(identity.idKey, current.epoch, hash);
-      if (!file.existsSync()) {
+      final stat = file.statSync();
+      if (stat.type != FileSystemEntityType.file) {
         return _jsonResponse(404, {'error': 'blob not found'});
       }
       return Response(
         200,
-        body: file.readAsBytesSync(),
+        body: _fileChunks(file, stat.size),
         headers: {
           'content-type': 'application/octet-stream',
+          'content-length': '${stat.size}',
           'cache-control': 'private, max-age=31536000, immutable',
         },
       );
@@ -620,10 +788,12 @@ class AthenaeumApp {
           _declaredLengthExceeds(request, quotaLimit)) {
         throw const _RequestFailure(507, 'byte quota exhausted');
       }
+      if (_belowFreeSpaceFloor()) _refuseBelowFreeSpaceFloor();
       final body = await _readBody(
         request,
         maxBlobBytes,
         quotaBytes: quotaLimit,
+        deadline: config.largeBodyReadTimeout,
       );
       if (rawBodyHash(body) != hash) {
         throw const _RequestFailure(400, 'blob body hash does not match path');
@@ -758,6 +928,7 @@ class AthenaeumApp {
       request,
       syncBlobBatchMaxResponseBytes,
       expansionGuard: false,
+      deadline: config.largeBodyReadTimeout,
     );
     final frames = <SyncBlobBatchFrame>[];
     final reader = SyncBlobBatchFrameReader.upload(maxBlobBytes: maxBlobBytes);
@@ -797,15 +968,26 @@ class AthenaeumApp {
       accepted.add((hash: frame.hash, body: blob));
       acceptedIndex.add(index);
     }
+    // Below the free-space floor every blob that passed its checks is `507`,
+    // as its single `PUT` would be, and the batch stores nothing (spec §5.2).
+    // The status of the whole request stays `200`: a client reads a batch's
+    // `507` as the per-blob refusal that stops its upload, where a whole-batch
+    // `507` would read as a server without the route (§5.2).
+    final belowFloor = accepted.isNotEmpty && _belowFreeSpaceFloor();
     late final List<int> stored;
-    try {
-      stored = store.putBlobs(
-        idKey: identity.idKey,
-        epoch: current.epoch,
-        blobs: accepted,
-      );
-    } on StoreEpochMismatch {
-      return _failedResolution(request, 404, 'store not found');
+    if (belowFloor) {
+      stored = List<int>.filled(accepted.length, 507);
+      _alertLimiter.add(_freeSpaceAlert);
+    } else {
+      try {
+        stored = store.putBlobs(
+          idKey: identity.idKey,
+          epoch: current.epoch,
+          blobs: accepted,
+        );
+      } on StoreEpochMismatch {
+        return _failedResolution(request, 404, 'store not found');
+      }
     }
     for (final (position, index) in acceptedIndex.indexed) {
       statuses[index] = stored[position];
@@ -820,14 +1002,8 @@ class AthenaeumApp {
         _logBlobFailure(identity.idKey, result['hash']! as String, status);
       }
     }
-    if (results.any((result) => result['status'] == 507)) {
-      _alertLimiter.add(
-        const AthenaeumOperationalAlert(
-          kind: 'quota_exhaustion',
-          source: 'request',
-          errorType: 'StoreQuotaExceeded',
-        ),
-      );
+    if (!belowFloor && results.any((result) => result['status'] == 507)) {
+      _alertLimiter.add(_storeQuotaAlert);
     }
     return _jsonResponse(200, {'results': results});
   }
@@ -911,6 +1087,91 @@ class AthenaeumApp {
       );
     }
   }
+
+  /// The body of the manifest [head] describes, read
+  /// [manifestResponseChunkBytes] at a time as the response is consumed, so a
+  /// client that stops reading holds one chunk in memory, not the manifest
+  /// (spec §5.4).
+  ///
+  /// Every read names [head]'s etag. If the manifest is replaced or deleted
+  /// part-way, or a read fails, the stream fails with
+  /// [_ResponseStreamInterrupted] rather than splicing two manifests or ending
+  /// cleanly. Failing it is what makes the server drop the connection, so the
+  /// client sees a body cut short and fails the request, as on any dropped
+  /// connection. Ending it cleanly instead would leave dart:io to raise its own
+  /// "Content size below specified contentLength" error, whose text carries
+  /// the request path, device id included, into shelf's log; and a store error
+  /// left to escape would put its statement and parameters there. Shelf logs
+  /// the error this throws, whose text names neither.
+  Stream<List<int>> _manifestChunks(
+    String idKey,
+    String epoch,
+    String deviceId,
+    ManifestHead head,
+  ) async* {
+    var offset = 0;
+    while (offset < head.size) {
+      Uint8List? chunk;
+      try {
+        chunk = store.manifestChunk(
+          idKey,
+          epoch,
+          deviceId,
+          etag: head.etag,
+          offset: offset,
+          length: min(manifestResponseChunkBytes, head.size - offset),
+        );
+      } on Object catch (error) {
+        stderr.writeln(
+          'Athenaeum manifest stream failed (${error.runtimeType})',
+        );
+        throw const _ResponseStreamInterrupted();
+      }
+      if (chunk == null || chunk.isEmpty) {
+        throw const _ResponseStreamInterrupted();
+      }
+      offset += chunk.length;
+      yield chunk;
+    }
+  }
+
+  /// A blob file's [size] bytes, read [_fileChunkBytes] at a time as the
+  /// response is consumed, so a client that stops reading a blob `GET` holds
+  /// one chunk in memory rather than the blob (spec §5.4).
+  ///
+  /// The file is opened only once the response is consumed, so a request
+  /// whose response is never sent leaves no file open. A file that is gone,
+  /// shorter than [size], or unreadable by then fails the stream with
+  /// [_ResponseStreamInterrupted], as for a manifest: a
+  /// `FileSystemException` left to escape would put the blob's path, which
+  /// names the store, into shelf's log.
+  Stream<List<int>> _fileChunks(File file, int size) async* {
+    RandomAccessFile? handle;
+    try {
+      var offset = 0;
+      while (offset < size) {
+        Uint8List chunk;
+        try {
+          handle ??= file.openSync();
+          chunk = handle.readSync(min(_fileChunkBytes, size - offset));
+        } on Object catch (error) {
+          stderr.writeln('Athenaeum blob stream failed (${error.runtimeType})');
+          throw const _ResponseStreamInterrupted();
+        }
+        if (chunk.isEmpty) throw const _ResponseStreamInterrupted();
+        offset += chunk.length;
+        yield chunk;
+      }
+    } finally {
+      try {
+        handle?.closeSync();
+      } on Object {
+        // Nothing was written through it; a failed close loses nothing.
+      }
+    }
+  }
+
+  static const int _fileChunkBytes = 64 * 1024;
 
   /// Whether an `Accept-Encoding` value admits gzip: listed, and not with
   /// `q=0`.
@@ -1036,6 +1297,7 @@ class AthenaeumApp {
     void Function(List<int> chunk)? onChunk,
     int? quotaBytes,
     bool expansionGuard = true,
+    Duration? deadline,
   }) async {
     final declaredLength = int.tryParse(
       request.headers['content-length'] ?? '',
@@ -1068,8 +1330,28 @@ class AthenaeumApp {
         declaredLength != null &&
         declaredLength > maxBytes;
     final iterator = StreamIterator(input);
+    final elapsed = Stopwatch()..start();
+    // A large body must arrive whole within [deadline]: the request holds a
+    // large-body slot while it is read, and a client that trickles its body,
+    // or falls silent part-way, would otherwise hold one for as long as it
+    // likes (spec §5.4). Past it the read gives up with `408`, which logs as
+    // such; dart:io closes the connection without sending a response, because
+    // the body's subscription has been cancelled.
+    Future<bool> next() {
+      if (deadline == null) return iterator.moveNext();
+      final remaining = deadline - elapsed.elapsed;
+      if (remaining <= Duration.zero) {
+        throw const _RequestFailure(408, 'request body too slow');
+      }
+      return iterator.moveNext().timeout(
+        remaining,
+        onTimeout: () =>
+            throw const _RequestFailure(408, 'request body too slow'),
+      );
+    }
+
     try {
-      while (await iterator.moveNext()) {
+      while (await next()) {
         final chunk = iterator.current;
         size += chunk.length;
         final expansionExceeded =
@@ -1095,7 +1377,13 @@ class AthenaeumApp {
         await iterator.cancel();
         throw const _RequestFailure(400, 'malformed compressed body');
       }
-      await iterator.cancel();
+      if (error is _RequestFailure && error.status == 408) {
+        // The client has gone quiet, so nothing guarantees a cancel that
+        // waits on it completes: give up on the body without waiting.
+        unawaited(iterator.cancel());
+      } else {
+        await iterator.cancel();
+      }
       Error.throwWithStackTrace(error, stackTrace);
     }
     if (tooLarge) {
@@ -1117,18 +1405,36 @@ class AthenaeumApp {
   static int _encodedCeiling(int maxBytes) =>
       min(maxGzipBytes, maxBytes + (maxBytes >> 8) + 1024);
 
+  /// [source], counting its bytes into [counter] and failing with `413` past
+  /// [ceiling].
+  ///
+  /// A transformer rather than an `async*` generator: cancelling a generator
+  /// parked in `await for` completes only when [source] sends its next event,
+  /// so a client that sent part of a body and fell silent would keep a read
+  /// that had given up on it — and its large-body slot — alive indefinitely.
+  /// A transformer's cancel reaches [source] at once.
   static Stream<List<int>> _countingStream(
     Stream<List<int>> source,
     _ByteCounter counter,
     int? ceiling,
-  ) async* {
-    await for (final chunk in source) {
-      counter.value += chunk.length;
-      if (ceiling != null && counter.value > ceiling) {
-        throw const _RequestFailure(413, 'request body exceeds limit');
-      }
-      yield chunk;
-    }
+  ) {
+    var failed = false;
+    // `bind`, not `source.transform`: a socket's body is a Stream<Uint8List>,
+    // whose `transform` would reject a List<int> transformer at run time.
+    return StreamTransformer<List<int>, List<int>>.fromHandlers(
+      handleData: (chunk, sink) {
+        if (failed) return;
+        counter.value += chunk.length;
+        if (ceiling != null && counter.value > ceiling) {
+          failed = true;
+          sink
+            ..addError(const _RequestFailure(413, 'request body exceeds limit'))
+            ..close();
+          return;
+        }
+        sink.add(chunk);
+      },
+    ).bind(source);
   }
 
   static SyncManifest _decodeManifest(Uint8List body) {
@@ -1420,8 +1726,9 @@ class AthenaeumApp {
     if (peer == null) return 'unknown';
     final forwarded = request.headers['x-forwarded-for'];
     if (trustForwardedHeaders && peer.isLoopback && forwarded != null) {
-      // Rightmost entry: the one the trusted proxy itself appended. Earlier
-      // entries are whatever the client sent.
+      // Rightmost entry: the one the trusted proxy itself wrote. The reference
+      // vhost overwrites the header, so there is one; behind a proxy that
+      // appends instead, earlier entries are whatever the client sent.
       final candidate = forwarded.split(',').last.trim();
       final parsed = InternetAddress.tryParse(candidate);
       if (parsed != null) return _rateLimitKey(parsed);
@@ -1709,10 +2016,72 @@ class _JsonContext {
 }
 
 class _RequestFailure implements Exception {
-  const _RequestFailure(this.status, this.message);
+  const _RequestFailure(this.status, this.message, {this.alert});
 
   final int status;
   final String message;
+
+  /// The operational alert a `507` raises, when it is not a store quota's.
+  final AthenaeumOperationalAlert? alert;
+}
+
+/// A manifest or blob `GET` whose body could not be sent whole: it changed or
+/// could not be read part-way (see `_manifestChunks` and `_fileChunks`). Its
+/// text is all shelf logs of it, so it names no store, device, path or
+/// statement.
+class _ResponseStreamInterrupted implements Exception {
+  const _ResponseStreamInterrupted();
+
+  @override
+  String toString() =>
+      'Athenaeum response stream interrupted: the stored body changed or '
+      'could not be read while it was sent';
+}
+
+/// Counts the large-body requests in flight, server-wide and per client
+/// address (spec §5.4).
+class _LargeBodySlots {
+  _LargeBodySlots({required this.serverWide, required this.perIp});
+
+  final int serverWide;
+  final int perIp;
+  int _inFlight = 0;
+  final Map<String, int> _byAddress = <String, int>{};
+
+  /// Takes a slot for [address] and returns null, or returns the refusal: a
+  /// `429` when [address] already holds its share, otherwise a `503` when the
+  /// server holds all of them. The per-address check comes first, so a client
+  /// at its own cap is told so rather than that the server is busy.
+  Response? tryAcquire(String address) {
+    final held = _byAddress[address] ?? 0;
+    if (held >= perIp) {
+      return AthenaeumApp._rateLimitedResponse(largeBodyRetryAfter);
+    }
+    if (_inFlight >= serverWide) {
+      return Response(
+        503,
+        body: jsonEncode({'error': 'server busy'}),
+        headers: {
+          'content-type': 'application/json',
+          'retry-after': '${largeBodyRetryAfter.inSeconds}',
+        },
+      );
+    }
+    _inFlight++;
+    _byAddress[address] = held + 1;
+    return null;
+  }
+
+  void release(String address) {
+    final held = _byAddress[address];
+    if (held == null) return;
+    _inFlight--;
+    if (held <= 1) {
+      _byAddress.remove(address);
+    } else {
+      _byAddress[address] = held - 1;
+    }
+  }
 }
 
 class _FailureBudget {
@@ -1783,6 +2152,10 @@ class _TokenBucket {
 
   /// Takes [count] tokens the caller has checked [refill] covers.
   void take(int count) => _tokens -= count;
+
+  /// Returns [count] tokens taken for something that did not happen.
+  void giveBack(int count) =>
+      _tokens = min(capacity.toDouble(), _tokens + count);
 
   /// How long until the bucket holds [count] tokens, as of its last [refill].
   Duration timeUntil(int count) => Duration(
@@ -1902,22 +2275,49 @@ class _RequestBucketCache {
   }
 }
 
+/// The store-creation rows of spec §5.4: a per-address bucket in front of the
+/// server-wide window.
 class _CreationBudget {
-  _CreationBudget(AthenaeumBudgetLimits limits)
-    : _limit = limits.creationsPerMinute;
+  _CreationBudget(AthenaeumBudgetLimits limits, {required this.clock})
+    : _limit = limits.creationsPerMinute,
+      _perIp = _RequestBucketCache(
+        capacity: limits.perIpCreationBurst,
+        refillPerSecond: limits.perIpCreationsPerHour / 3600,
+      );
 
+  final DateTime Function() clock;
   final int _limit;
+  final _RequestBucketCache _perIp;
   final List<DateTime> _timestamps = [];
 
-  bool allow() {
-    final now = DateTime.now();
-    _timestamps.removeWhere((value) => now.difference(value).inSeconds >= 60);
-    if (_timestamps.length >= _limit) return false;
-    _timestamps.add(now);
-    return true;
+  /// Charges one creation to [address] and to the server-wide window and
+  /// returns null, or charges nothing and returns the `Retry-After`.
+  ///
+  /// [address]'s own bucket is consulted first: an address that has spent its
+  /// share is refused without touching the window every address shares, so it
+  /// cannot hold an honest first pairing elsewhere out of it.
+  Duration? charge(String address) {
+    final now = clock();
+    final bucket = _perIp.bucket(address, now);
+    if (bucket.refill(now) < 1) {
+      final seconds =
+          (bucket.timeUntil(1).inMicroseconds / Duration.microsecondsPerSecond)
+              .ceil();
+      return Duration(seconds: max(1, seconds));
+    }
+    final wallNow = DateTime.now();
+    _timestamps.removeWhere(
+      (value) => wallNow.difference(value).inSeconds >= 60,
+    );
+    if (_timestamps.length >= _limit) return const Duration(seconds: 60);
+    bucket.take(1);
+    _timestamps.add(wallNow);
+    return null;
   }
 
-  void refund() {
+  /// Returns a creation [charge] took that did not create a store.
+  void refund(String address) {
     if (_timestamps.isNotEmpty) _timestamps.removeLast();
+    _perIp.bucket(address, clock()).giveBack(1);
   }
 }

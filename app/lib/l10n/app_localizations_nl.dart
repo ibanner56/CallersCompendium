@@ -182,7 +182,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String migrationSnapshotAbortedMessage(String cause) {
-    return 'Caller’s Compendium is niet gestart omdat er geen automatische back-up kon worden gemaakt voordat je opgeslagen gegevens werden bijgewerkt. ${cause}Maak ruimte vrij (of herstel de back-upmap) en open de app dan opnieuw — of open opnieuw en kies om zonder back-up door te gaan.';
+    return 'Caller’s Compendium is niet gestart omdat er geen automatische back-up kon worden gemaakt voordat je opgeslagen gegevens werden gewijzigd. ${cause}Maak ruimte vrij (of herstel de back-upmap) en open de app dan opnieuw — of open opnieuw en kies om zonder back-up door te gaan.';
   }
 
   @override
@@ -194,11 +194,23 @@ class AppLocalizationsNl extends AppLocalizations {
       'Naar de automatische back-upmap kon niet worden geschreven.';
 
   @override
+  String get migrationSnapshotCauseDatabaseInUse =>
+      'Een andere app heeft je bibliotheek geopend, dus een back-up die nu wordt gemaakt, zou je laatste wijzigingen missen. Sluit elke andere app die je bibliotheek geopend heeft en probeer het dan opnieuw.';
+
+  @override
+  String get migrationSnapshotInUseConsentBody =>
+      'Voordat je opgeslagen gegevens worden gewijzigd, maakt Caller’s Compendium een automatische back-up zodat de wijzigingen ongedaan kunnen worden gemaakt als er iets misgaat. Een andere app heeft je bibliotheek nu geopend, dus een back-up die nu wordt gemaakt, zou je laatste wijzigingen missen.\n\nAls je zonder back-up doorgaat en de wijzigingen worden onderbroken, kunnen sommige van je dansen of programma’s verloren gaan. Je kunt afsluiten, elke andere app sluiten die je bibliotheek geopend heeft, en Caller’s Compendium opnieuw openen om het nog eens te proberen.';
+
+  @override
+  String get migrationSnapshotInUseAbortedMessage =>
+      'Caller’s Compendium is niet gestart omdat een andere app je bibliotheek geopend heeft, waardoor de automatische back-up die vóór het wijzigen van je opgeslagen gegevens wordt gemaakt, je laatste wijzigingen zou missen. Sluit elke andere app die je bibliotheek geopend heeft en open Caller’s Compendium dan opnieuw — of open het opnieuw en kies om zonder back-up door te gaan.';
+
+  @override
   String get migrationSnapshotConsentTitle => 'Kon je gegevens niet back-uppen';
 
   @override
   String migrationSnapshotConsentBody(String cause) {
-    return 'Voordat je opgeslagen gegevens naar een nieuw formaat worden bijgewerkt, maakt Caller’s Compendium een automatische back-up zodat een mislukte update ongedaan kan worden gemaakt. Die back-up kon deze keer niet worden gemaakt.$cause\n\nAls je zonder back-up doorgaat en de update wordt onderbroken, kunnen sommige van je dansen of programma’s verloren gaan. Je kunt afsluiten, ruimte vrijmaken (of de back-upmap herstellen) en de app opnieuw openen om het nog eens te proberen.';
+    return 'Voordat je opgeslagen gegevens worden gewijzigd, maakt Caller’s Compendium een automatische back-up zodat de wijzigingen ongedaan kunnen worden gemaakt als er iets misgaat. Die back-up kon deze keer niet worden gemaakt.$cause\n\nAls je zonder back-up doorgaat en de wijzigingen worden onderbroken, kunnen sommige van je dansen of programma’s verloren gaan. Je kunt afsluiten, ruimte vrijmaken (of de back-upmap herstellen) en de app opnieuw openen om het nog eens te proberen.';
   }
 
   @override
@@ -646,7 +658,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsSyncIdCopied =>
-      'Synchronisatiezin gekopieerd. Hij geeft toegang tot je opslag, dus plak hem alleen op een apparaat dat van jou is.';
+      'Synchronisatiezin gekopieerd. Iedereen die hem heeft, kan je gedeelde bibliotheek openen, dus plak hem alleen op een apparaat dat van jou is.';
 
   @override
   String get settingsSyncIdCaution =>
@@ -770,7 +782,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String settingsSyncNoticeNewerVersionItems(String items) {
-    return 'Een ander apparaat gebruikt een nieuwere versie van de app. Werk de app op dit apparaat bij om $items te ontvangen.';
+    return 'Een ander apparaat gebruikt een nieuwere versie van de app. Werk de app op dit apparaat bij om $items te ontvangen. Als je ze hier bewerkt voordat je bijwerkt, kunnen de wijzigingen van het andere apparaat daarin verloren gaan.';
   }
 
   @override
@@ -896,7 +908,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsSyncNoticeNewerVersionUncounted =>
-      'Een ander apparaat gebruikt een nieuwere versie van de app. Werk de app op dit apparaat bij om de wijzigingen ervan te ontvangen.';
+      'Een ander apparaat gebruikt een nieuwere versie van de app. Werk de app op dit apparaat bij om de wijzigingen ervan te ontvangen. Als je hier iets bewerkt dat het heeft gewijzigd voordat je bijwerkt, kunnen de wijzigingen ervan verloren gaan.';
 
   @override
   String settingsSyncNoticeKeptNewerItems(String items) {
@@ -1542,7 +1554,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsSyncWipeConfirmBody =>
-      'Alles wat de opslag bevat wordt van de server verwijderd, voor alle apparaten tegelijk, en dit kan niet ongedaan worden gemaakt. Je bibliotheek blijft op dit apparaat en op elk van je andere apparaten staan — maar alles wat alleen via synchronisatie op een ander apparaat terecht was gekomen, komt hier niet aan. Dit apparaat wordt losgekoppeld en vergeet zijn synchronisatiezin; je andere apparaten zullen bij de volgende synchronisatie merken dat de opslag weg is en vragen of er een nieuwe moet komen. Gebruik dit als iemand anders je synchronisatiezin heeft gezien: het is het enige dat meteen weghaalt wat die persoon kan lezen.';
+      'Alles wat de opslag bevat wordt van de server verwijderd, voor alle apparaten tegelijk, en dit kan niet ongedaan worden gemaakt. Je bibliotheek blijft op dit apparaat en op elk van je andere apparaten staan — maar alles wat alleen via synchronisatie op een ander apparaat terecht was gekomen, komt hier niet aan. Dit apparaat wordt losgekoppeld en vergeet zijn synchronisatiezin; je andere apparaten zullen bij de volgende synchronisatie merken dat de opslag weg is en aanbieden een nieuwe zin in te stellen. Gebruik dit als je het adres van deze opslag niet meer wilt gebruiken: het is het enige dat meteen weghaalt wat de opslag bevat. Om te blijven synchroniseren stel je op elk apparaat een nieuwe zin in — opnieuw verbinden met de oude zet weer een nieuwe opslag op hetzelfde adres.';
 
   @override
   String get settingsSyncWipeConfirmAction => 'Opslag verwijderen';
@@ -1739,14 +1751,17 @@ class AppLocalizationsNl extends AppLocalizations {
       'Je bibliotheek is verbonden. De eerste synchronisatie is nog niet gedraaid; hij draait de volgende keer dat dit apparaat synchroniseert.';
 
   @override
-  String get settingsSyncReplacementTitle => 'Deze opslag opnieuw verbinden?';
+  String get settingsSyncReplacementTitle => 'Deze opslag bestaat niet meer';
 
   @override
   String get settingsSyncReplacementBody =>
-      'De opslag waarmee dit apparaat synchroniseerde, bestaat niet meer. Mogelijk is deze verlopen door inactiviteit, of is deze verwijderd. Opnieuw verbinden maakt een nieuwe opslag met dezelfde zin en synchroniseert helemaal opnieuw.';
+      'De opslag waarmee dit apparaat synchroniseerde, bestaat niet meer. Mogelijk is deze verlopen door inactiviteit, of is deze verwijderd. Om het adres van deze opslag niet meer te gebruiken, stel je een nieuwe zin in: dit apparaat wordt losgekoppeld, en daarna maak je een nieuwe opslag of verbind je met een opslag die je op een ander apparaat hebt ingesteld. Doe dit op elk van je apparaten. Opnieuw verbinden maakt in plaats daarvan een nieuwe opslag op hetzelfde adres, met dezelfde zin, en stuurt je hele bibliotheek daarheen; als een ander apparaat dat al heeft gedaan, sluit dit apparaat zich bij die opslag aan.';
 
   @override
   String get settingsSyncReplacementConfirm => 'Opnieuw verbinden';
+
+  @override
+  String get settingsSyncReplacementNewPhrase => 'Instellen met een nieuwe zin';
 
   @override
   String get settingsSyncReplacementCancel => 'Niet nu';
@@ -3716,6 +3731,10 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get backupRestoreDialogBody =>
       'Herstellen vervangt alles in de app — je collectie, programma’s, dialecten, thema’s en instellingen — met de inhoud van de back-up. Dit kan niet ongedaan worden gemaakt.';
+
+  @override
+  String get backupRestoreDialogSyncNote =>
+      'Dit apparaat is verbonden met apparaatsynchronisatie. Alles wat apparaatsynchronisatie meeneemt en na het maken van deze back-up is gewijzigd op een apparaat waarmee je synchroniseert, komt bij de volgende synchronisatie terug van dat apparaat, ook wijzigingen die hier zijn gemaakt en al zijn gesynchroniseerd. Al het andere krijgt de versie uit de back-up.';
 
   @override
   String get backupChooseFileAction => 'Bestand kiezen…';

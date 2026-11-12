@@ -1067,8 +1067,11 @@ Sync is off and open while it is on.
   arrives. That one is a warning, says
   how many of each kind of record are waiting when it can tell (for example "2
   programs, 1 setting"), lists only those records, and is fixed by updating the
-  app on this device; when records here carry other details a newer version
-  of the app added, which this version keeps and shares back unchanged so they
+  app on this device. Until you do, avoid editing those records here: this
+  device still has its older copy, and an edit makes that the newer one, so for
+  most records it replaces the other device's changes everywhere. The notice
+  says so too. There is also a notice when records here carry other details a
+  newer version of the app added, which this version keeps and shares back unchanged so they
   aren't lost when you edit the record here — that one is information only, the
   records still sync, and updating the app shows the details; when records from
   another device couldn't be used and were skipped; when another device's clock
@@ -1239,29 +1242,44 @@ everything the store holds from the server, for every device at once, and it
 can't be undone. Your library stays on this device and on each of your other
 devices, but anything that had only ever reached another device through syncing
 won't arrive here. This device disconnects and forgets its phrase; your other
-devices find the store gone the next time they sync and are asked whether to
-start a new one, the same question as any store that's no longer there.
+devices find the store gone the next time they sync and ask what to do next,
+the same question as any store that's no longer there (see below).
 
 If the store is deleted but this device can't disconnect from it, a message says
 so: the store is gone and can't be brought back, and this device still holds its
 phrase. Choose **Disconnect this device** to finish.
 
-This is what to use if someone else has seen your sync phrase. A leaked phrase
-can't be revoked, and moving your devices to a new phrase doesn't help on its
-own — whoever has the old one can still read and change everything in the old
-store. Deleting the store is the only thing that takes that away immediately.
-It is not the answer to running out of room, though: remove a device you don't
-use instead.
+This is what to use when you want to stop using this store's address. The
+phrase is that address, and it can't be changed or taken back, so there are two
+steps, and neither does the whole job on its own. Deleting the store is the only thing that removes what
+the store holds straight away — moving your devices to a new phrase on its own
+leaves the old store where it is, for anyone with the old phrase. And to keep
+syncing, set up a new phrase on each device — reconnecting with the old phrase
+puts a new store back at the same address. Deleting is not the answer to
+running out of room, though: remove a device you don't use instead.
 
-If a store this device used to sync with is no longer there, the app asks
-before creating a replacement: it may have gone unused past its 30-day limit,
-or it may have been removed — the app can't tell which. Reconnecting re-sends
-your whole library, so it follows **Sync only on Wi-Fi** like everything else:
-on mobile data with that setting on, nothing is sent and the app points you at
-the setting, with the question still waiting once you're back on Wi-Fi. If a
-reconnection doesn't go through, the question comes back and says so, and you
-can try again or leave it. Declining makes no network request and leaves the choice for later. Sync then **pauses**: the
-status says so and keeps saying so, and automatic syncs stop running rather
+If a store this device used to sync with is no longer there, the app asks what
+to do: it may have gone unused past its 30-day limit, or it may have been
+removed — the app can't tell which. You have three choices:
+
+- **Set up with a new phrase** — this device disconnects from the old phrase
+  and opens **Connect**, where you create a new store or connect to one you've
+  already set up on another device. This is the way to stop using the old
+  store's address: do it on each of your devices. If you back out of
+  **Connect**, this device stays disconnected, as after **Disconnect this
+  device**.
+- **Reconnect** — creates a new store at the same address, with the same
+  phrase, and sends your whole library to it. If another device that has the
+  phrase got there first, this device joins that store instead.
+- **Not now** — see below.
+
+Reconnecting re-sends your whole library, so it follows **Sync only on Wi-Fi**
+like everything else: on mobile data with that setting on, nothing is sent and
+the app points you at the setting, with the question still waiting once you're
+back on Wi-Fi. If a reconnection doesn't go through, the question comes back
+and says so, and you can try again or leave it. Declining makes no network
+request and leaves the choice for later. Sync then **pauses**: the status says
+so and keeps saying so, and automatic syncs stop running rather
 than asking again every time. Nothing is lost while it is paused. When you
 want to decide, choose **Sync now** in this section — that reopens the same
 question, and the paused line goes once a sync completes.
@@ -1296,11 +1314,23 @@ earlier version may not be able to connect.
 
 #### Choosing which version to keep
 
-Sometimes the same item is changed on two of your devices before they've
-synced — the same setting changed in the same second, say, or your dialects
-edited on both a laptop and a phone. The app can't tell which change you meant
-to keep, so it doesn't pick one: both versions stay as they are, and it asks
-you.
+When the same item is changed on two of your devices before they've synced,
+the newer change wins: the whole item, on every device, without asking — the
+other device's change to it is gone. That's the rule for dances, programs,
+venues and almost everything else, and it's why sharing a phrase isn't the same
+as working together on a library.
+
+The app asks you instead in two cases, where it can't tell which change you
+meant to keep:
+
+- **Both changes have the same time** — the same setting changed in the same
+  second on two devices, say. Neither is newer, so both versions stay as they
+  are until you choose.
+- **A whole set kept in one setting** — your dialects, custom themes,
+  walkthrough snippets, or one of your sets of shorthands, changed on both a
+  laptop and a phone. Taking the newer
+  one would throw away the other device's whole set, so the app asks however
+  far apart the two changes were (see below).
 
 It only asks when the versions differ in something you can see. When they look
 exactly the same — the same author added on two devices before they

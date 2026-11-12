@@ -8,11 +8,11 @@
   "specReferences": [
     {
       "path": "docs/design/sync-implementation.md",
-      "heading": "W5 · Sync ID, authentication and the HTTP client"
+      "heading": "W5 · Sync ID, request addressing and the HTTP client"
     },
     {
       "path": "docs/design/sync-spec.md",
-      "heading": "5.1 Authentication"
+      "heading": "5.1 Carrying the sync ID"
     },
     {
       "path": "docs/design/sync-spec.md",

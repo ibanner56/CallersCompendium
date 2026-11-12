@@ -176,9 +176,9 @@
   "@migrationRelocationCopyDetails": {
     "x-sourceSha256": "26e7cdb8f7afe2d471212d37420ffa8e966adf5a0462a26ad7f411bd473f9c18"
   },
-  "migrationSnapshotAbortedMessage": "保存データをアップグレードする前に自動バックアップを作成できなかったため、Caller’s Compendiumを起動できませんでした。{cause}空き容量を確保する（またはバックアップフォルダを修復する）か、アプリを再度開いてください。あるいは、再度開いてバックアップなしで続行することもできます。",
+  "migrationSnapshotAbortedMessage": "保存データを変更する前に自動バックアップを作成できなかったため、Caller’s Compendiumを起動できませんでした。{cause}空き容量を確保する（またはバックアップフォルダを修復する）か、アプリを再度開いてください。あるいは、再度開いてバックアップなしで続行することもできます。",
   "@migrationSnapshotAbortedMessage": {
-    "x-sourceSha256": "701d5476b4f7a24c13676a3f0663490c45e4cae71dc03fb5183c1686d57d2d68"
+    "x-sourceSha256": "373045547ba04d4776d51ddeecf26c38f485afc7bc47aed67ac4fbac1d3622f4"
   },
   "migrationSnapshotCauseDiskFull": "デバイスの空き容量が不足しているようです。",
   "@migrationSnapshotCauseDiskFull": {
@@ -188,13 +188,25 @@
   "@migrationSnapshotCauseUnwritableBackupsDir": {
     "x-sourceSha256": "11d37c8a9cf6e85eea185322cc5783fca284153fe736b0dbd270a11a574af838"
   },
+  "migrationSnapshotCauseDatabaseInUse": "別のアプリがライブラリを開いているため、今バックアップを作成すると最新の変更が含まれません。ライブラリを開いている他のアプリをすべて閉じてから、もう一度お試しください。",
+  "@migrationSnapshotCauseDatabaseInUse": {
+    "x-sourceSha256": "9fe556f07fca5ab643b841d48a8f5d28c912b29f755e37ac1178a1a88191136b"
+  },
+  "migrationSnapshotInUseConsentBody": "保存データを変更する前に、Caller’s Compendiumは自動バックアップを作成し、問題が起きても変更を元に戻せるようにします。現在、別のアプリがライブラリを開いているため、今バックアップを作成すると最新の変更が含まれません。\n\nバックアップなしで続行して変更が中断されると、一部のダンスやプログラムが失われる可能性があります。Caller’s Compendiumを終了し、ライブラリを開いている他のアプリをすべて閉じてから、Caller’s Compendiumを再度開いてもう一度お試しください。",
+  "@migrationSnapshotInUseConsentBody": {
+    "x-sourceSha256": "20d61ed5b8415eeca3265d2534032a65b34f4808d11bdd6e2df58f7689ad5fc5"
+  },
+  "migrationSnapshotInUseAbortedMessage": "別のアプリがライブラリを開いているため、保存データを変更する前の自動バックアップに最新の変更が含まれなくなります。そのため、Caller’s Compendiumを起動できませんでした。ライブラリを開いている他のアプリをすべて閉じてから、Caller’s Compendiumを再度開いてください。あるいは、再度開いてバックアップなしで続行することもできます。",
+  "@migrationSnapshotInUseAbortedMessage": {
+    "x-sourceSha256": "807eb23829aafdccc4616f33502179af13af6b1f6bf14eca55dc0696b087fb7a"
+  },
   "migrationSnapshotConsentTitle": "データをバックアップできませんでした",
   "@migrationSnapshotConsentTitle": {
     "x-sourceSha256": "809b2d6dbd0aae49496f566c318ff23d50bf7ffd3fa9dc0a81a49bd78b153d1c"
   },
-  "migrationSnapshotConsentBody": "保存データを新しい形式にアップグレードする前に、Caller’s Compendiumは自動バックアップを作成し、アップグレードに失敗しても元に戻せるようにします。今回はそのバックアップを作成できませんでした。{cause}\n\nバックアップなしで続行してアップグレードが中断されると、一部のダンスやプログラムが失われる可能性があります。アプリを終了し、空き容量を確保（またはバックアップフォルダを修復）してから、アプリを再度開いてもう一度お試しください。",
+  "migrationSnapshotConsentBody": "保存データを変更する前に、Caller’s Compendiumは自動バックアップを作成し、問題が起きても変更を元に戻せるようにします。今回はそのバックアップを作成できませんでした。{cause}\n\nバックアップなしで続行して変更が中断されると、一部のダンスやプログラムが失われる可能性があります。アプリを終了し、空き容量を確保（またはバックアップフォルダを修復）してから、アプリを再度開いてもう一度お試しください。",
   "@migrationSnapshotConsentBody": {
-    "x-sourceSha256": "1d1216f082332d05fe4421d65e1dd546566adcd5971dd5c6d22a012f40dd3f8d"
+    "x-sourceSha256": "58443cc689fbdcd885acb4babbe96daccdd52c3dc6d63c0d728af76094461a3b"
   },
   "migrationSnapshotConsentQuit": "終了",
   "@migrationSnapshotConsentQuit": {
@@ -604,9 +616,9 @@
   "@settingsSyncIdCopy": {
     "x-sourceSha256": "4e70e2c8f3f09f4c76638dbc8a93ff15a49da24b7f781c1e83ac084d8d421b29"
   },
-  "settingsSyncIdCopied": "同期フレーズをコピーしました。ストアを開けるものなので、自分のデバイスにのみ貼り付けてください。",
+  "settingsSyncIdCopied": "同期フレーズをコピーしました。これを持つ人は誰でも共有ライブラリを開けるため、自分のデバイスにのみ貼り付けてください。",
   "@settingsSyncIdCopied": {
-    "x-sourceSha256": "81d9cf47c8df0aa7ab1264a4810a2a14b4eb11efcb8fb40108d0095f52be1c17"
+    "x-sourceSha256": "4a9bd6708b5e26c6e1d09963fe725d9e570d770f9616d8eae0f1b40df2f4803d"
   },
   "settingsSyncIdCaution": "もう一方のデバイスでこれを入力すると接続できます。共有ライブラリはそこにあるため、これを持つ人は誰でもそのライブラリを開き、同期しているすべての内容を閲覧し、接続されたすべてのデバイス上でその内容を変更または削除し、ストア全体をサーバーから削除できます。別のフレーズに変えるには、すべてのデバイスをそちらへ移す必要があります。",
   "@settingsSyncIdCaution": {
@@ -720,9 +732,9 @@
   "@settingsSyncQuotaExcludeImports": {
     "x-sourceSha256": "13a7925e9cdd2fc7f1329229f1ad3416bdd1f24f9edba254e9c3bd209e576ccb"
   },
-  "settingsSyncNoticeNewerVersionItems": "別のデバイスで新しいバージョンのアプリが使われています。{items}を受け取るには、このデバイスのアプリを更新してください。",
+  "settingsSyncNoticeNewerVersionItems": "別のデバイスで新しいバージョンのアプリが使われています。{items}を受け取るには、このデバイスのアプリを更新してください。更新する前にここでそれらを編集すると、別のデバイスでの変更が失われることがあります。",
   "@settingsSyncNoticeNewerVersionItems": {
-    "x-sourceSha256": "c061cd9ea119307dd18d17b41b95b3b27ccb4d893770063dd44683589422d5bb"
+    "x-sourceSha256": "044b9538159b2d04fcd0feee8d85845fd0e4fe9f324f0b85d66408112f366c39"
   },
   "settingsSyncNoticeCountDance": "{count, plural, other{ダンス{count}件}}",
   "@settingsSyncNoticeCountDance": {
@@ -768,9 +780,9 @@
   "@settingsSyncNoticeCountFigureNote": {
     "x-sourceSha256": "d8a9a1a4ceb2c8d27210fecff6147fdceaceb98a415748dabd9f42851eb3176a"
   },
-  "settingsSyncNoticeNewerVersionUncounted": "別のデバイスで新しいバージョンのアプリが使われています。その変更を受け取るには、このデバイスのアプリを更新してください。",
+  "settingsSyncNoticeNewerVersionUncounted": "別のデバイスで新しいバージョンのアプリが使われています。その変更を受け取るには、このデバイスのアプリを更新してください。更新する前に、そのデバイスが変更したものをここで編集すると、その変更が失われることがあります。",
   "@settingsSyncNoticeNewerVersionUncounted": {
-    "x-sourceSha256": "ca371c7f36b6a2ca97e5fb9d8cd18cc2909af04e2973dec1a999d4e7a50fb339"
+    "x-sourceSha256": "d36a094b45665db591c56fd810a2b0fb4f9ff257a8b2b9f51678e1fcde85fce6"
   },
   "settingsSyncNoticeKeptNewerItems": "新しいバージョンのアプリのために保持しています：{items}。このバージョンでは表示できない詳細を含めたまま、引き続き同期されます。表示するには、このデバイスのアプリを更新してください。",
   "@settingsSyncNoticeKeptNewerItems": {
@@ -1316,9 +1328,9 @@
   "@settingsSyncWipeConfirmTitle": {
     "x-sourceSha256": "77701b6008c7d87383a3c1c7c4316c52219e81baddc39c3438c1879315408645"
   },
-  "settingsSyncWipeConfirmBody": "ストアの内容がサーバーからすべて削除され、すべてのデバイスに一度に影響します。この操作は取り消せません。ライブラリはこのデバイスにも他のデバイスにもそのまま残りますが、同期を通じて他のデバイスにしか届いていなかったものは、ここには届きません。このデバイスは接続を解除し、同期フレーズを削除します。他のデバイスは次回の同期でストアがなくなっていることに気づき、新しく作成するかどうかを尋ねます。同期フレーズが他人に見られた場合はこれを使ってください。相手が読める内容をただちに取り除ける唯一の方法です。",
+  "settingsSyncWipeConfirmBody": "ストアの内容がサーバーからすべて削除され、すべてのデバイスに一度に影響します。この操作は取り消せません。ライブラリはこのデバイスにも他のデバイスにもそのまま残りますが、同期を通じて他のデバイスにしか届いていなかったものは、ここには届きません。このデバイスは接続を解除し、同期フレーズを削除します。他のデバイスは次回の同期でストアがなくなっていることに気づき、新しいフレーズの設定を提案します。このストアのアドレスを使うのをやめたいときに使ってください。ストアの内容をただちに取り除ける唯一の方法です。同期を続けるには、各デバイスで新しいフレーズを設定してください。古いフレーズで再接続すると、同じアドレスに新しいストアが再び作られます。",
   "@settingsSyncWipeConfirmBody": {
-    "x-sourceSha256": "4d32b4cd7be210b3280e49bc954adf9a14e397ffe46431644f05b822ad637f89"
+    "x-sourceSha256": "921009f64e9ea349743941accd380cb8adfcc095e26e0ac5f57e2cf615e84e55"
   },
   "settingsSyncWipeConfirmAction": "ストアを削除",
   "@settingsSyncWipeConfirmAction": {
@@ -1528,17 +1540,21 @@
   "@settingsSyncPairingCompletePending": {
     "x-sourceSha256": "daa70b1721d468f073882e6c3bdc9f5a406d491f004bb1191ed459c2e5c8a0f3"
   },
-  "settingsSyncReplacementTitle": "このストアに再接続しますか?",
+  "settingsSyncReplacementTitle": "このストアはもう存在しません",
   "@settingsSyncReplacementTitle": {
-    "x-sourceSha256": "f89fdb596df9ab804d25c9d81cdcb95707abeeb722b1a682329b6dae9434e3a0"
+    "x-sourceSha256": "d4368e41c5a2c1c88b4400914724b42f0a2525e5fa4eba0cd12c23b5d79eb115"
   },
-  "settingsSyncReplacementBody": "このデバイスが同期していたストアはもう存在しません。非アクティブにより期限切れになったか、削除された可能性があります。再接続すると、同じフレーズで新しいストアが作成され、最初から再同期します。",
+  "settingsSyncReplacementBody": "このデバイスが同期していたストアはもう存在しません。非アクティブにより期限切れになったか、削除された可能性があります。このストアのアドレスを使うのをやめるには、新しいフレーズを設定してください。このデバイスは接続を解除し、その後、新しいストアを作成するか、別のデバイスで設定したストアに接続します。これをすべてのデバイスで行ってください。「再接続」を選ぶと、同じアドレスに同じフレーズで新しいストアが作成され、ライブラリ全体がそこへ送られます。別のデバイスがすでにそうしている場合は、このデバイスはそのストアに参加します。",
   "@settingsSyncReplacementBody": {
-    "x-sourceSha256": "07cb10775fa00e7289a2eb07b808633107fa1dac86c31f3cf54d9470f32a8806"
+    "x-sourceSha256": "685cd71b9351ac070e3487f7b6028bd883be772f091e542d10b093db3cc3fbcd"
   },
   "settingsSyncReplacementConfirm": "再接続",
   "@settingsSyncReplacementConfirm": {
     "x-sourceSha256": "bf8a9eab9e7e141bfb81f0ca9244a5f68f476ed0b57f03538410417298169d18"
+  },
+  "settingsSyncReplacementNewPhrase": "新しいフレーズで設定",
+  "@settingsSyncReplacementNewPhrase": {
+    "x-sourceSha256": "851c453dd3a4f21a28d18633c1915a39aaf0fe34fdc559d1a12df86fe0bc9aa2"
   },
   "settingsSyncReplacementCancel": "今はしない",
   "@settingsSyncReplacementCancel": {
@@ -3707,6 +3723,10 @@
   "backupRestoreDialogBody": "復元すると、アプリの現在の内容（コレクション、プログラム、ダイアレクト、テーマ、設定）がすべてバックアップの内容に置き換えられます。この操作は元に戻せません。",
   "@backupRestoreDialogBody": {
     "x-sourceSha256": "ff51802a21a8219092f0aaebcde7ad04aebb7aa77bf34404915dc4e39b24b83e"
+  },
+  "backupRestoreDialogSyncNote": "このデバイスはデバイス同期に接続されています。デバイス同期で共有される内容のうち、このバックアップの作成後に同期先のデバイスで変更されたもの（このデバイスで変更して同期済みのものを含む）は、次回の同期でそのデバイスから戻ってきます。それ以外はバックアップの内容になります。",
+  "@backupRestoreDialogSyncNote": {
+    "x-sourceSha256": "79ad56b6871d887a13d6c4c1c2625aad3c140d3b98ef2845e174d1c7fd56c995"
   },
   "backupChooseFileAction": "ファイルを選択…",
   "@backupChooseFileAction": {

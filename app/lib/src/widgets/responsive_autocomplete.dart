@@ -446,7 +446,10 @@ class _ResponsiveAutocompleteState<T extends Object>
     // collapsing it has no visible effect for the user.
     return Semantics(
       button: true,
-      hint: widget.sheetSemanticLabel,
+      // A label, not a hint: with an empty field nothing else supplies a
+      // name, and Flutter's labeled-tap-target guideline fails a button that
+      // has only a hint.
+      label: widget.sheetSemanticLabel,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: _openSheet,
