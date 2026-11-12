@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "At large text sizes, long custom-field names and options, difficulty level names, program statuses and matrix column move names no longer overflow their dropdowns; they are cut short with an ellipsis in the closed field, and long custom-field options and level names wrap in the open list so you can read them.",
+      "At large text sizes, long custom-field names and options, difficulty level names, program statuses and matrix column move names no longer overflow their dropdowns; they are cut short with an ellipsis in the closed field, and long custom-field options, level names, program statuses and move names wrap in the open list so you can read them.",
       "At large text sizes, the Month and Day fields in the dance editor and the Cancel and Save buttons in the custom field form no longer overflow."
     ]
   }
