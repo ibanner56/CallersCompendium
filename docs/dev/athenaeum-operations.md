@@ -183,10 +183,14 @@ apply the same /64 rule. The
 limits are independent: 5 requests per IP per second with a burst of 300, 15
 requests per store per second with a burst of 600, 10 failures per IP per
 minute, a burst of 20 failures per IP, 1,000 failures per minute server-wide,
-and 60 store creations per minute. There is deliberately no server-wide
-request limit (spec §5.4); `server/tool/load_test.dart` measures what the host
-sustains. A saturated server-wide failure budget must not block authenticated
-access to an existing store.
+5 store creations per IP (refilled at 5 an hour), and 60 store creations per
+minute server-wide. There is deliberately no server-wide request-rate limit
+(spec §5.4); `server/tool/load_test.dart` measures what the host sustains. A
+saturated server-wide failure budget must not block authenticated access to an
+existing store. Large-body requests (manifest and blob uploads, and
+`POST /v1/blobs/missing`) are also counted while in flight: 4 per IP, then
+`429`, and 16 server-wide, then `503`. See *Server-wide limits* below for how to
+change these and the free-space floor.
 
 Use a no-redirect probe after every Apache change in a direct-origin or staging
 deployment:
@@ -204,8 +208,8 @@ deletes stores it creates. If cleanup is rate-limited after the failure-budget
 probe, it retries after the rolling 60-second window before reporting failure.
 The first request must be a refusal (not 3xx and not an Athenaeum response).
 The script then exercises real client buckets and
-forwarded-header overwrite through Apache, the 1,000-failure and 60-creation
-budgets, the inclusive 16 MiB boundary, compressed-body preservation, and
+forwarded-header overwrite through Apache, the 1,000-failure budget, the
+5-per-IP and 60-per-minute creation budgets, the inclusive 16 MiB boundary, compressed-body preservation, and
 authenticated Athenaeum create/lookup responses over HTTPS with
 `Strict-Transport-Security`. The harness also inspects the active vhost
 configuration to ensure no request decompression directive is enabled;
@@ -441,14 +445,64 @@ curl --noproxy '*' --silent --show-error --max-time 15 \
   https://sync.example.invalid/v1/store
 ```
 
+## Server-wide limits
+
+Every store quota is per store, so three limits protect the server as a whole
+(spec §5.4). Each is set by an environment variable or the matching
+command-line option; the defaults suit the reference host.
+
+| Variable | Option | Default | What it does |
+| --- | --- | --- | --- |
+| `ATHENAEUM_MIN_FREE_BYTES` | `--min-free-bytes` | `1073741824` (1 GiB) | Blob and manifest uploads answer `507` while the filesystem holding `/var/lib/athenaeum` has less free space than this. Lookups, downloads, `POST /v1/blobs/missing`, store creation, every delete, and a manifest upload no larger than the one that device already has keep working, so a user can still shrink a device's share by turning on *Skip unused imported dances*. `0` turns the floor off. |
+| `ATHENAEUM_MAX_LARGE_BODIES` | `--max-large-bodies` | `16` | Manifest `PUT`s, blob `PUT`s (single and batch) and `POST /v1/blobs/missing` requests handled at once, server-wide; one more answers `503` with `Retry-After: 5`. Each can hold up to 16 MiB in memory while it is read and stored. |
+| `ATHENAEUM_MAX_LARGE_BODIES_PER_IP` | `--max-large-bodies-per-ip` | `4` | The same requests one client address (an IPv4 address or an IPv6 /64) may have in flight; one more answers `429` with `Retry-After: 5`. |
+
+Set them in `/root/athenaeum.env` beside the pepper, one `NAME=value` line
+each, and restart the container. Prefer the variables to the options: the
+release workflow's deploy recreates the container with the env file and the
+image's default arguments, so options passed after the image name are lost at
+the next release, while the env file is kept. A counted request whose body has
+not arrived whole after 60 seconds has its connection closed and its slot
+released, so a client sending its body slowly, or not at all, cannot hold a
+slot for longer than that; the deadline is not configurable.
+
+The container reads free space with `statvfs(3)` on the bind-mounted data
+directory, which reports the host filesystem behind the mount. If the server
+cannot read it, it writes `Athenaeum cannot read free space on this platform;
+the --min-free-bytes floor is not enforced` to stderr at startup and admits
+every write; the reference image on 64-bit Linux always can. Keep the floor
+above what the large-body requests in flight can write at once
+(`ATHENAEUM_MAX_LARGE_BODIES` × 16 MiB): a write admitted just above the floor
+can still land.
+
+A `507` from the floor raises a `quota_exhaustion` alert whose `source` is
+`free_space_floor` and `errorType` is `FreeSpaceBelowFloor`. Clients show it as
+a full store, the nearest message they have, and do not retry a `507` by
+themselves (spec §5.3). Grow the disk, or free space on the host: the hourly
+sweep deletes the blob files of expired stores, but SQLite reuses the pages
+their rows held rather than returning them to the filesystem, so reaping does
+not shrink `athenaeum.sqlite`. Each user's next sync that they start then
+succeeds.
+
+The server-wide cap refusing a request raises a `capacity_exhaustion` alert
+(`source` `large_bodies`). Occasional ones mean the cap is tight for the load;
+a steady stream with ordinary traffic means clients are holding slots open, and
+the Apache access log shows from where. Reinstall
+`server/deploy/athenaeum-alert-email` from step 6 of the first deployment so the
+forwarder sends this kind too.
+
 ## Operations
 
 - **Logs:** retain only the redacted Apache access/error logs and container
   stderr according to the host's retention policy. The safe access format
   excludes request targets and headers, so sync IDs and credentials are not
   written. Restrict log access to operators.
-- **Alerts:** route JSON lines with `alert.kind` of `quota_exhaustion` or
-  `sweep_failure` from container stderr to the on-call notification path. The
+- **Alerts:** route JSON lines with `alert.kind` of `quota_exhaustion`,
+  `sweep_failure` or `capacity_exhaustion` from container stderr to the
+  on-call notification path. A
+  `quota_exhaustion` alert with `source` `free_space_floor` means the host's
+  disk is below the free-space floor (see *Server-wide limits*), not that one
+  store is full. The
   reference path is the email forwarder installed in step 6 of the first
   deployment (`server/deploy/athenaeum-alert-email` and its unit); a failed
   send is logged to the unit's journal and skipped.
@@ -501,6 +555,11 @@ curl --noproxy '*' --silent --show-error --max-time 15 \
   one-way derived key, and direct the user to create a new store.
 
 ## Upgrade, rollback, and release order
+
+Before deploying a server release with a free-space floor for the first time,
+check `df -B1 --output=avail /var/lib/athenaeum` on the host. Below the
+floor (1 GiB unless `ATHENAEUM_MIN_FREE_BYTES` says otherwise), every upload
+answers `507` from the moment the new container starts.
 
 Build a new immutable image tag, stop the old container, start the new tag with
 the same volume and pepper, and verify the HTTPS and plaintext probes before

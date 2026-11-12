@@ -3158,8 +3158,9 @@ buys nothing and creates one more way for a conforming client to be turned away.
 | `413` | Payload exceeds a cap. |
 | `415` | Unsupported `Content-Type` (optional; see below). |
 | `422` | **Payload rejected by the allow-list** — a key not classified `shareable` for that kind was present. |
-| `429` | Rate limited. `Retry-After` set. |
-| `507` | Store quota exhausted. |
+| `429` | Rate limited — or, since 2026-11-11, a client holding its share of large-body requests in flight (sync-spec §5.4). `Retry-After` set. |
+| `503` | Since 2026-11-11, the server is handling as many large-body requests as it allows at once (sync-spec §5.4). `Retry-After` set; transient. |
+| `507` | Store quota exhausted — or, since 2026-11-11, the server's free-space floor (sync-spec §5.4). |
 
 There is deliberately **no distinct "expired" status.** An earlier draft had a
 `410` for it. The decisive objection is unchanged: for the server to tell
