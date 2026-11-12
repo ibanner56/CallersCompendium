@@ -604,9 +604,9 @@
   "@settingsSyncIdCopy": {
     "x-sourceSha256": "4e70e2c8f3f09f4c76638dbc8a93ff15a49da24b7f781c1e83ac084d8d421b29"
   },
-  "settingsSyncIdCopied": "Phrase de synchronisation copiée. Elle donne accès à votre espace : ne la collez que sur un appareil qui vous appartient.",
+  "settingsSyncIdCopied": "Phrase de synchronisation copiée. Quiconque la détient peut ouvrir votre bibliothèque partagée : ne la collez que sur un appareil qui vous appartient.",
   "@settingsSyncIdCopied": {
-    "x-sourceSha256": "81d9cf47c8df0aa7ab1264a4810a2a14b4eb11efcb8fb40108d0095f52be1c17"
+    "x-sourceSha256": "4a9bd6708b5e26c6e1d09963fe725d9e570d770f9616d8eae0f1b40df2f4803d"
   },
   "settingsSyncIdCaution": "Saisissez-la sur votre autre appareil pour le connecter. C'est là que se trouve votre bibliothèque partagée : quiconque la détient peut donc ouvrir cette bibliothèque, lire tout ce que vous synchronisez, en modifier ou en supprimer n'importe quelle partie sur tous les appareils connectés, et supprimer l'espace entier du serveur. Changer de phrase suppose de faire passer tous les appareils à la nouvelle.",
   "@settingsSyncIdCaution": {
@@ -720,9 +720,9 @@
   "@settingsSyncQuotaExcludeImports": {
     "x-sourceSha256": "13a7925e9cdd2fc7f1329229f1ad3416bdd1f24f9edba254e9c3bd209e576ccb"
   },
-  "settingsSyncNoticeNewerVersionItems": "Un autre appareil utilise une version plus récente de l’application. Mettez à jour l’application sur cet appareil pour recevoir {items}.",
+  "settingsSyncNoticeNewerVersionItems": "Un autre appareil utilise une version plus récente de l’application. Mettez à jour l’application sur cet appareil pour recevoir {items}. Si vous les modifiez ici avant la mise à jour, les modifications de l’autre appareil sur ces éléments peuvent être perdues.",
   "@settingsSyncNoticeNewerVersionItems": {
-    "x-sourceSha256": "c061cd9ea119307dd18d17b41b95b3b27ccb4d893770063dd44683589422d5bb"
+    "x-sourceSha256": "044b9538159b2d04fcd0feee8d85845fd0e4fe9f324f0b85d66408112f366c39"
   },
   "settingsSyncNoticeCountDance": "{count, plural, =1{1 danse} other{{count} danses}}",
   "@settingsSyncNoticeCountDance": {
@@ -768,9 +768,9 @@
   "@settingsSyncNoticeCountFigureNote": {
     "x-sourceSha256": "d8a9a1a4ceb2c8d27210fecff6147fdceaceb98a415748dabd9f42851eb3176a"
   },
-  "settingsSyncNoticeNewerVersionUncounted": "Un autre appareil utilise une version plus récente de l’application. Mettez à jour l’application sur cet appareil pour recevoir ses modifications.",
+  "settingsSyncNoticeNewerVersionUncounted": "Un autre appareil utilise une version plus récente de l’application. Mettez à jour l’application sur cet appareil pour recevoir ses modifications. Si vous modifiez ici, avant la mise à jour, un élément qu’il a modifié, ses modifications peuvent être perdues.",
   "@settingsSyncNoticeNewerVersionUncounted": {
-    "x-sourceSha256": "ca371c7f36b6a2ca97e5fb9d8cd18cc2909af04e2973dec1a999d4e7a50fb339"
+    "x-sourceSha256": "d36a094b45665db591c56fd810a2b0fb4f9ff257a8b2b9f51678e1fcde85fce6"
   },
   "settingsSyncNoticeKeptNewerItems": "Conservé pour une version plus récente de l’application : {items}. Ces éléments restent synchronisés, avec des détails que cette version ne peut pas afficher. Mettez à jour l’application sur cet appareil pour les voir.",
   "@settingsSyncNoticeKeptNewerItems": {
@@ -1316,9 +1316,9 @@
   "@settingsSyncWipeConfirmTitle": {
     "x-sourceSha256": "77701b6008c7d87383a3c1c7c4316c52219e81baddc39c3438c1879315408645"
   },
-  "settingsSyncWipeConfirmBody": "Tout ce que contient l'espace est supprimé du serveur, pour tous les appareils à la fois, et cette action est irréversible. Votre bibliothèque reste sur cet appareil et sur chacun de vos autres appareils — mais tout ce qui n'était parvenu à un autre appareil que par la synchronisation n'arrivera pas ici. Cet appareil se déconnecte et oublie sa phrase de synchronisation ; vos autres appareils constateront la disparition de l'espace à leur prochaine synchronisation et demanderont s'il faut en créer un nouveau. Utilisez cette option si quelqu'un d'autre a vu votre phrase de synchronisation : c'est la seule chose qui supprime immédiatement ce qu'il peut lire.",
+  "settingsSyncWipeConfirmBody": "Tout ce que contient l'espace est supprimé du serveur, pour tous les appareils à la fois, et cette action est irréversible. Votre bibliothèque reste sur cet appareil et sur chacun de vos autres appareils — mais tout ce qui n'était parvenu à un autre appareil que par la synchronisation n'arrivera pas ici. Cet appareil se déconnecte et oublie sa phrase de synchronisation ; vos autres appareils constateront la disparition de l'espace à leur prochaine synchronisation et proposeront de configurer une nouvelle phrase. Utilisez cette option si vous voulez cesser d'utiliser l'adresse de cet espace : c'est la seule chose qui supprime immédiatement ce que contient l'espace. Pour continuer à synchroniser, configurez une nouvelle phrase sur chaque appareil — se reconnecter avec l'ancienne recrée un espace à la même adresse.",
   "@settingsSyncWipeConfirmBody": {
-    "x-sourceSha256": "4d32b4cd7be210b3280e49bc954adf9a14e397ffe46431644f05b822ad637f89"
+    "x-sourceSha256": "921009f64e9ea349743941accd380cb8adfcc095e26e0ac5f57e2cf615e84e55"
   },
   "settingsSyncWipeConfirmAction": "Supprimer l'espace",
   "@settingsSyncWipeConfirmAction": {
@@ -1528,17 +1528,21 @@
   "@settingsSyncPairingCompletePending": {
     "x-sourceSha256": "daa70b1721d468f073882e6c3bdc9f5a406d491f004bb1191ed459c2e5c8a0f3"
   },
-  "settingsSyncReplacementTitle": "Reconnecter cet espace ?",
+  "settingsSyncReplacementTitle": "Cet espace n'existe plus",
   "@settingsSyncReplacementTitle": {
-    "x-sourceSha256": "f89fdb596df9ab804d25c9d81cdcb95707abeeb722b1a682329b6dae9434e3a0"
+    "x-sourceSha256": "d4368e41c5a2c1c88b4400914724b42f0a2525e5fa4eba0cd12c23b5d79eb115"
   },
-  "settingsSyncReplacementBody": "L'espace avec lequel cet appareil se synchronisait n'existe plus. Il a peut-être expiré par inactivité, ou il a peut-être été supprimé. Se reconnecter crée un nouvel espace avec la même phrase et resynchronise depuis le début.",
+  "settingsSyncReplacementBody": "L'espace avec lequel cet appareil se synchronisait n'existe plus. Il a peut-être expiré par inactivité, ou il a peut-être été supprimé. Pour cesser d'utiliser l'adresse de cet espace, configurez une nouvelle phrase : cet appareil se déconnecte, puis vous créez un nouvel espace ou vous vous connectez à un espace configuré sur un autre appareil. Faites-le sur chacun de vos appareils. « Se reconnecter » crée au contraire un nouvel espace à la même adresse, avec la même phrase, et y envoie toute votre bibliothèque ; si un autre appareil l'a déjà fait, cet appareil rejoint cet espace.",
   "@settingsSyncReplacementBody": {
-    "x-sourceSha256": "07cb10775fa00e7289a2eb07b808633107fa1dac86c31f3cf54d9470f32a8806"
+    "x-sourceSha256": "685cd71b9351ac070e3487f7b6028bd883be772f091e542d10b093db3cc3fbcd"
   },
   "settingsSyncReplacementConfirm": "Se reconnecter",
   "@settingsSyncReplacementConfirm": {
     "x-sourceSha256": "bf8a9eab9e7e141bfb81f0ca9244a5f68f476ed0b57f03538410417298169d18"
+  },
+  "settingsSyncReplacementNewPhrase": "Configurer avec une nouvelle phrase",
+  "@settingsSyncReplacementNewPhrase": {
+    "x-sourceSha256": "851c453dd3a4f21a28d18633c1915a39aaf0fe34fdc559d1a12df86fe0bc9aa2"
   },
   "settingsSyncReplacementCancel": "Pas maintenant",
   "@settingsSyncReplacementCancel": {

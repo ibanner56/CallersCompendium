@@ -72,12 +72,18 @@ const int kMaxSignatureBytes = 4 * 1024;
 
 /// The exhaustive allowlist of hosts an update artifact (and every redirect hop
 /// on the way to it) may be served from (issue #431). Restricting downloads to
-/// canonical GitHub-owned domains — the release-assets host that
+/// GitHub-owned domains — the release-assets host that
 /// `https://github.com/<repo>/releases/download/...` redirects to, plus the
-/// gh-pages origin — closes an off-host redirect as an exfiltration/tamper
+/// gh-pages origin — and this project's custom domain `callerscompendium.com`
+/// (the manifest origin) closes an off-host redirect as an exfiltration/tamper
 /// vector even before the mandatory signature + sha256 gates (OWASP A10 —
 /// Server-Side Request Forgery / A08). Matched **exactly** (no subdomain
 /// wildcard) so a look-alike or taken-over subdomain is never trusted.
+///
+/// `callerscompendium.com` is **not** GitHub-owned: trust in it also rests on
+/// that domain's DNS registration (and its Pages CNAME) staying under the
+/// maintainer's control. A lapsed or hijacked registration would make it an
+/// allowed host for an attacker, with only the signature + sha256 gates left.
 const Set<String> kAllowedArtifactHosts = {
   // Release-download URLs the manifest publishes.
   'github.com',

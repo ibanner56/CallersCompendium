@@ -772,7 +772,7 @@ abstract interface class SyncCoordinatorTransport {
   );
 }
 
-/// Adapts the authenticated HTTP client to the coordinator transport seam.
+/// Adapts the store-addressed HTTP client to the coordinator transport seam.
 final class SyncHttpCoordinatorTransport implements SyncCoordinatorTransport {
   const SyncHttpCoordinatorTransport(this.client);
 

@@ -31,7 +31,7 @@ merging, user accounts, and any sharing of fields not classified `shareable`.
 
 | Term | Meaning |
 | --- | --- |
-| **sync ID** | A diceware passphrase naming one store — its address on the server, classified `storeAddress` (§3.3). Not a secret: §5.1's "credential" is the header *encoding*, not the value. |
+| **sync ID** | A diceware passphrase naming one store — its address on the server, classified `storeAddress` (§3.3). Not a secret and not authentication material: §5.1 carries its *encoding* in the `Authorization` header as a transport mechanic. |
 | **store** | Everything held under one sync ID. |
 | **device** | One installation. Holds a baseline and publishes one manifest. |
 | **peer** | Any other device attached to the same store. |
@@ -469,9 +469,10 @@ and wipe MUST erase it with the sync ID, and pairing MUST erase any value an
 earlier attachment left behind, so every attach — first attach, re-attach after
 detach (to the same store or another), and a new endpoint — publishes under an
 identifier minted for it. A value kept across attachments would let the server,
-or anyone reading its logs, link a device's old store to its new one: exactly
-the step this design tells a user to take when a sync phrase leaks. Two paths
-keep the identifier because they are not new attachments: confirming a
+or anyone reading its logs, link a device's old store to its new one, and
+moving to a new store is exactly the step this design tells a user to take to
+stop syncing with someone who still has the old sync ID (§6.14 item 2). Two
+paths keep the identifier because they are not new attachments: confirming a
 replacement store (§6.3 step 1) and the automatic rejoin on a changed epoch.
 Both re-use the same sync ID, whose derived `id_key` already links them, so a
 new identifier there would buy no unlinkability.
@@ -540,13 +541,17 @@ a different operation from the detach clean-up above and does not share its
 conditions: it is **unconditional** (no condition 5 — the data the manifest
 describes is about to be destroyed anyway), **awaited** rather than best-effort,
 and **fail-closed**. The client sends `DELETE /v1/manifests/{self}` with the
-credentials it still holds; `204` (sent whether or not the manifest existed) and
+sync ID it still holds; `204` (sent whether or not the manifest existed) and
 `404` (the store itself is gone) both mean it is gone, and any other answer, a
 transport failure, or a detach or wipe already in flight means the client MUST
 NOT proceed to delete the database and stays attached. Only then does it clear
 the attachment locally, as detach does. Its cost is that records only this
 manifest named, which no peer has yet pulled, become unreachable for those
 peers; the user is told so before confirming.
+
+*Amended 2026-11-11: wording only. "With the credentials it still holds" is
+now "with the sync ID it still holds", following the maintainer's decision
+quoted at §6.14 item 2; the request is unchanged.*
 
 *Amended 2026-10-02 (@ibanner56's ruling, from a planning session): detach used
 to send no request at all, which left every re-attach's previous manifest
@@ -576,8 +581,8 @@ is the only such value here.
 
 **It is not access-control data, and MUST NOT be described as a credential, a
 key, a password or a secret.** A user is allowed and expected to hand it to
-another person so the two can sync together; that is a supported case, not a
-compromise. That the server currently addresses a store by presenting the value
+another person so the two can sync together; that is a supported case, not an
+incident. That the server currently addresses a store by presenting the value
 in an `Authorization: Bearer` header is a transport mechanic, not a
 classification of the value.
 
@@ -1895,14 +1900,17 @@ is the same total, unrecoverable disclosure that a plaintext request would be --
 not because the address is a secret, but because §8 makes holding it the whole
 of the read, write and `DELETE` capability.
 
-### 5.1 Authentication
+### 5.1 Carrying the sync ID
 
 The sync ID travels in the `Authorization` request header using the `Bearer`
-scheme. It MUST NOT appear in a URL.
+scheme. It MUST NOT appear in a URL. The header and scheme are how a request
+names the store it addresses; they do not make the ID authentication material
+(§3.3).
 
-**The sync ID is not the credential; its encoding is.** RFC 6750's `b64token`
-grammar is ASCII-only, and §8 deliberately permits arbitrary code points in a
-word, so the identifier and the transport disagree by construction. This is not
+**The header carries an encoding of the sync ID, not the ID itself.** RFC
+6750's `b64token` grammar is ASCII-only, and §8 deliberately permits arbitrary
+code points in a word, so the identifier and the transport disagree by
+construction. This is not
 a mangling risk that degrades gracefully: `dart:io` raises `FormatException:
 Invalid HTTP header field value` when a header value carries any code unit
 outside ASCII 32–127, tab excepted, so a client sending a non-English ID
@@ -1911,22 +1919,31 @@ Latin-1, which matters because it makes the affected population larger than it
 looks: `café` throws exactly as `Δ` does. The user cannot sync at all, and the
 failure is local, so no server log records it.
 
-A client MUST therefore send, as the credential, the **base64url encoding
+A client MUST therefore send, as the `Bearer` value, the **base64url encoding
 (RFC 4648 §5, padding omitted) of the UTF-8 bytes of the §8-normalised sync
-ID**. A server MUST base64url-decode the credential, decode those bytes as
+ID**. A server MUST base64url-decode that value, decode those bytes as
 UTF-8, normalise per §8, and derive the storage key from the result. A
-credential that is not valid base64url, or whose bytes are not well-formed
+`Bearer` value that is not valid base64url, or whose bytes are not well-formed
 UTF-8, MUST be rejected with `401` — never repaired, and in particular never
 decoded with `U+FFFD` substitution, which would map distinct IDs onto one store
 by the mechanism §4.1 rejects for record content.
 
 **The encoding MUST be unconditional — applied to every sync ID, ASCII or
-not.** Encoding only when a character requires it makes the credential
+not.** Encoding only when a character requires it makes the header value
 ambiguous: the server receiving `Y2FmZQ` cannot tell the encoding of `cafe`
 from the literal ASCII ID `Y2FmZQ`, and either reading is a legal ID under §8.
 Whichever way it guesses, some pair of users share a store or one user's ID
 resolves to two — the same one-typed-ID-two-stores failure this section already
 warns about, arriving through a different door.
+
+*Amended 2026-11-11: wording only. This section called the encoded ID "the
+credential" and said "The sync ID is not the credential; its encoding is." It
+now names the `Bearer` value instead, following the maintainer's decision of
+2026-11-11, quoted at §6.14 item 2, that nothing here should imply the store ID
+is authentication material of any kind. What a client sends, what a server
+decodes, and when it answers `401` are unchanged. The same substitution is made
+in §5.4's outcome table and in §9's test vectors. The heading, "5.1
+Authentication", is renamed for the same reason.*
 
 Because the encoding is applied *after* normalisation and unwound *before* the
 HMAC, the storage key is a function of the normalised ID alone. The encoding
@@ -2055,7 +2072,7 @@ attacker can send ever fails*. A guessed ID is structurally valid, so it is not
 a `401` (§5.1) and not a `403` (§8); it resolves to some `id_key`, and the
 endpoint then manufactures a store and reports success. Wrong guesses became
 successful creations, distinguishable from hits only by an empty `devices` list,
-and §8's enumeration bound rested on a failed-authentication counter that
+and §8's enumeration bound rested on a counter of `401` responses that
 guessing never incremented. Splitting creation out is what makes a wrong guess
 observable to the server as a failure at all, which is what §5.4's budget
 accounts for. That accounting is a load and visibility control and not the
@@ -2239,7 +2256,11 @@ already holds is still `200` after that point. And a batch checks each blob's
 hash and allow-list before the quota, so a malformed or refused blob is `400`
 or `422` even in a full store, where its single `PUT` checks the quota first
 and is `507`. A blob answered `200` or `201` is stored
-whatever the batch's other results are.
+whatever the batch's other results are. Below the server's free-space floor
+(§5.4), every blob that passes its hash and allow-list checks is `507`, one the
+store already holds included, as its single `PUT` would be, and the batch
+stores nothing; the response is still a `200`, so a client reads that `507` as
+the refusal that stops its upload and not as a server without the route.
 
 As on the batch read, the status of the whole response is about the whole
 request: a store that does not resolve is `404` and counts as a failed
@@ -2283,8 +2304,9 @@ malformed hash, and one that serves only the batch read answers `405`.
 | `413` | Payload exceeds a cap. A `POST /v1/blobs/batch` naming more than 200 hashes is `413`; a *response* reaching its byte cap is not an error, and lists the rest as not sent (§5.2). A `PUT /v1/blobs/batch` carrying more than 50 blobs, or a blob over the blob cap, is `413`. |
 | `415` | Body media type is not the one the endpoint expects (optional; see §5.1). |
 | `422` | Payload rejected by the allow-list. In a `PUT /v1/blobs/batch` this and every other refusal of one blob is a result inside a `200` (§5.2). |
-| `429` | Rate limited. `Retry-After` set. |
-| `507` | Store quota exhausted. |
+| `429` | Rate limited. `Retry-After` set. Also a client holding its share of large-body requests in flight (§5.4). |
+| `503` | The server is handling as many large-body requests as it allows at once (§5.4). `Retry-After` set; transient. |
+| `507` | Store quota exhausted, or the server's storage below its free-space floor (§5.4). |
 
 **Deleting a manifest is idempotent, and deleting a store is not.** `DELETE
 /v1/manifests/{deviceId}` MUST return `204` whether or not a manifest existed
@@ -2315,6 +2337,9 @@ number of elements in a request body such as §5.4's hashes-per-request cap — 
 store, and **devices per store**, so the 33rd device attaching receives `507`
 rather than `413` or `429`. A client MUST surface `507` to the user and MUST NOT
 retry it without user action, since nothing the client does alone clears it.
+The same holds for the `507` of the free-space floor (§5.4), which is a
+server-wide condition and not the store's: only the operator clears it, and the
+client has no way to tell the two apart.
 
 That last rule has one qualification the client MUST honour. §7.3 keeps
 unreferenced blobs for a 24-hour grace window, so space freed by deleting
@@ -2350,9 +2375,13 @@ Every limit MUST be enforced before allocation, streaming-abort style.
 | Request rate, per store (`id_key`) | 15/second, burst 600 |
 | **Failed store resolutions**, per client IP | 10/minute, burst 20 |
 | **Failed store resolutions**, server-wide | 1,000/minute |
+| Store creations (`201` from `POST /v1/store`), per client IP | 5, refilled at 5/hour |
 | Store creations (`201` from `POST /v1/store`), server-wide | 60/minute |
+| Large-body requests in flight, per client IP | 4; one more is `429` with `Retry-After` |
+| Large-body requests in flight, server-wide | 16; one more is `503` with `Retry-After` |
+| Free space on the filesystem holding the server's data | blob and manifest writes are `507` below 1 GiB |
 
-**The client IP is keyed by network, not by every address, for IPv6.** The two
+**The client IP is keyed by network, not by every address, for IPv6.** The
 per-client-IP rows count an IPv4 client per address and an IPv6 client per
 **/64**. A subscriber is normally delegated a /64 or more and can present 2⁶⁴
 distinct source addresses inside it, so a per-address key would hand an IPv6
@@ -2366,7 +2395,7 @@ that is accepted, and a wider mask was rejected because it would merge unrelated
 subscribers at carriers that give each device a /64.
 
 The request-rate rows bound load: the work every request costs whatever it
-carries — authentication, the store lookup and its `last_seen` write, the
+carries — decoding the header, the store lookup and its `last_seen` write, the
 request-path deletion retry (§7.3) — and the bytes it sends. **A
 `POST /v1/blobs/batch` naming *n* hashes costs 1 + ⌈*n*/20⌉ tokens on both
 rows**, so a full batch of 200 costs 11. The server MUST charge the extra
@@ -2406,7 +2435,7 @@ figures were first worked at the earlier 60 a minute, where each is a fifth as
 large, and the rule was approved on them.)
 Exempting batches from the per-IP row instead was rejected: the per-store row
 alone bounds nothing per address, which can hold any number of stores, and the
-per-IP row is what bounds the unauthenticated work of guessing at stores. When
+per-IP row is what bounds the work of guessing at stores. When
 the per-IP limit is enforced at the proxy (§7.5 requirement 6), the proxy
 counts requests, not this cost; the server's own row still applies.
 
@@ -2490,7 +2519,7 @@ qualify, and a server MUST count all four:
 
 | Outcome | What it reveals |
 | --- | --- |
-| `401` | The credential was malformed (§5.1). |
+| `401` | The `Bearer` value was malformed (§5.1). |
 | `403` | The sync ID fails the structural rule (§8). |
 | `404` on a store-scoped request | No store exists for this `id_key`. |
 | `409` on `POST /v1/store` | A store *does* exist for this `id_key`. |
@@ -2505,15 +2534,120 @@ row matters for the same reason in the opposite direction: without it, `POST`
 becomes the oracle that `GET` used to be, since "already exists" is as
 informative as "found".
 
-**The creation row bounds storage rather than guessing.** Every `POST` that
-succeeds costs a row that lives until §7.3 reaps it, and no per-ID limiter
-engages because each creation uses a fresh `id_key`. Honest creation happens
-once per store in its lifetime, so 60/minute is several orders of magnitude
-above legitimate demand and still caps live empty stores at roughly 2.6 million
-against the 30-day TTL. Without this row the failure budget alone would leave
-creation unbounded, because a *successful* creation is not a failure and must
-not be counted as one — an honest first pairing would otherwise consume the same
-budget as an attack.
+**The creation rows bound store rows rather than guessing, and not bytes.**
+Every `POST` that succeeds costs a row that lives until §7.3 reaps it, and no
+per-ID limiter engages because each creation uses a fresh `id_key`. Honest
+creation happens once per store in its lifetime, so 60/minute is several orders
+of magnitude above legitimate demand and still caps live empty stores at roughly
+2.6 million against the 30-day TTL. Without this row the failure budget alone
+would leave creation unbounded, because a *successful* creation is not a failure
+and must not be counted as one — an honest first pairing would otherwise consume
+the same budget as an attack. An earlier version of this paragraph said the row
+bounds *storage*. It bounds rows: each store it admits may still fill its own
+byte quota, so what the server-wide row protects is the store table and the
+sweep that walks it, and the bytes on disk are bounded only by the free-space
+floor below (amended 2026-11-11, with the floor).
+
+**The per-client-IP creation row is in front of the server-wide one.** The
+server-wide row is one window every address shares, so without a share per
+address one client could spend all of it — sixty creations, then `429` for
+every honest first pairing anywhere for the rest of the minute. A request the
+per-IP row refuses is not charged to the server-wide row, and one the
+server-wide row refuses gives its per-IP token back, so an address is charged
+only for stores it actually created. A burst of 5, refilled at 5 an hour,
+covers a household pairing and then replacing a store (§6.3 step 1) with room
+to spare; past it, `Retry-After` is the time to the next token, about twelve
+minutes. Behind carrier-grade NAT every subscriber sharing one IPv4 address
+shares one share, so a first pairing there can wait for a token; that is
+accepted, because creation is once per store and the wait is bounded. The
+server-wide row stays because the per-IP row binds nothing against
+a client holding many addresses — a /48 holds 65,536 /64s — and is what still
+bounds the store table then. Both values are the change author's choice
+(2026-11-11), and an operator may tune them with the rest.
+
+**Large-body requests are counted while they are in flight.** A manifest `PUT`
+and `POST /v1/blobs/missing` may carry 16 MB, a `PUT /v1/blobs/batch` 2 MB and a
+blob `PUT` 1 MB, and the reference server holds each body in memory while it
+reads, decodes and stores it. The request-rate rows count requests, not
+requests in flight, so they do not bound that memory: one address may start
+some 600 requests in a minute (the burst of 300 and 5 a second after it), and a
+client that sends its body slowly keeps each one open. Measured on the reference
+server before these rows (2026-11-11), 40 stalled 15 MB manifest `PUT`s took its
+resident memory from 169 MB to 740 MB, and 40 unread `GET`s of a 15 MB manifest
+from 170 MB to 746 MB, held there until the connections closed. With these rows
+and the streamed `GET`s below, the same `PUT`s ended at 137 MB from one address
+and 362 MB from 40, and the `GET`s at 123 MB.
+
+A server MUST bound how many it holds at once, per client IP and server-wide,
+and refuse one past either bound before reading its body: past the client's own
+share with `429`, past the server's with `503`, both with `Retry-After`. Other
+requests are not counted — their bodies are capped at 64 KB or absent — so a
+lookup, a read or a delete is never refused by these rows. A counted request's
+body MUST arrive whole within a deadline, or the server stops reading it,
+releases its slot and closes the connection; without one, a client that
+trickles its body, or sends part of it and falls silent, holds its slot for as
+long as the proxy lets it, and a handful of addresses doing so would hold every
+upload on the server out. The reference server closes the connection without a
+response, so the client sees a dropped connection rather than a status. Its
+deadline is 60 seconds, twice the reference client's 30-second request
+deadline, so it never cuts off a request that client is still waiting on.
+
+The reference server also answers a manifest `GET` and a blob `GET` from storage
+a chunk at a time as the client reads it, rather than holding the body whole
+until it is sent, so a client that stops reading pins about one chunk. A
+manifest `GET` is not a snapshot: each chunk is read afresh, and if the device
+replaces its manifest before the last chunk is read, the response ends short
+rather than splicing two manifests, and the reader fails the request as it
+would on a dropped connection. A reader on a slow link fetching a large
+manifest from a device that publishes often can therefore fail more than once;
+the change author accepted that over holding every manifest being sent in
+memory, since the next attempt starts again with the then-current manifest.
+
+The server-wide row refuses honest uploads while it is full, which is the cost
+§5.4 rejected for a server-wide *request* limit (above). It is accepted here
+because the alternative is not a slow server but an exhausted one, which
+refuses everyone everything; because it engages only on large-body requests,
+after each address's share, so it takes several addresses each holding its
+whole share to fill it; and because the body deadline bounds how long any
+request can hold a slot. It does not stop an attacker with many addresses — a
+/48 holds 65,536 /64s — from keeping it full by sending slow bodies one after
+another, any more than the server-wide creation row stops one from spending
+its creations; it turns what would be a server out of memory into uploads
+refused for as long as the attack lasts, with lookups, reads and deletes
+unaffected, and the reference server raises an operational alert when it
+engages. A client refused it treats the `503` as transient and retries by
+itself (§6.12). The values, 4 per client IP and 16 server-wide, are the change
+author's choice (2026-11-11): the reference client sends one request at a time,
+so 4 leaves room for a few devices behind one address, and 16 holds the worst
+case near 256 MB of bodies. An operator may change them.
+
+**The free-space floor keeps a full disk from becoming an outage** (amended
+2026-11-11). Every quota above is per store, and creating a store needs only a
+structurally valid sync ID, so nothing per store bounds the bytes all stores
+together write. When the disk fills, every SQLite write fails for everyone,
+including the `last_seen` write every request makes, and the server stops
+answering correctly at all. So a server MUST refuse blob and manifest writes
+with `507` while the filesystem holding its data has less free space than a
+floor, and MUST keep serving reads and deletes below it. It MUST still admit a
+manifest `PUT` no larger than the manifest that device already has stored:
+a manifest that drops entries without naming any new blob — the one a device
+publishes after the user turns on *Skip unused imported dances*, which is the
+advice the reference client gives with a `507`, or after records are erased
+outright — is how a user shrinks what a device holds in the store, and refusing
+it would leave `DELETE /v1/manifests/{deviceId}` and `DELETE /v1/store` as the
+only remedies, where §5.3 forbids offering the destructive one first. Deleting
+a record does not shrink anything below the floor: it publishes a tombstone,
+which is a new blob, and that upload is refused like any other. A
+store's other requests — creation, lookup, `POST /v1/blobs/missing` — write at
+most a row and are not refused. A server that cannot read its free space admits
+the write: the floor is a margin ahead of a full disk, and refusing every upload
+because the margin cannot be measured would be an outage of its own. A floor,
+rather than a server-wide byte quota or a cap on live stores, was the
+maintainer's (@ibanner56's) choice among the remedies the 2026-11 server audit
+put to them; the rule's details and the reference server's default of 1 GiB
+are the change author's. That default is four times what its large-body
+requests in flight can write at once, so writes already past the check cannot
+take the disk to empty; an operator may change it, or set it to zero.
 
 These specific values are my choice, not a derivation from anything in the
 design; what is derived is the *shape* — that the limit which matters counts
@@ -2525,8 +2659,8 @@ bounded guessing to begin with.
 
 A server-wide failure limit would be a denial-of-service vector if it could lock
 out honest users, so it MUST be scoped to requests that *fail*: while it is
-saturated the server MUST continue to serve correctly-authenticated requests
-normally, and reject only those that would have produced one of the four
+saturated the server MUST continue to serve requests that resolve an existing
+store normally, and reject only those that would have produced one of the four
 outcomes above anyway. This is the rule that stops the budget from bounding
 guessing — a refused guess is still an answered guess — and it is kept anyway,
 because the alternative hands every attacker a total outage for the price of
@@ -2538,6 +2672,11 @@ message for the same outcome. A user creating their *first* store while the
 budget is saturated is refused, which is the one honest case this control can
 delay; it is bounded by the same window, and it is the price of making a wrong
 guess cost something.
+
+*Amended 2026-11-11: wording only, following the maintainer's decision quoted
+at §6.14 item 2. "Correctly-authenticated requests" is now "requests that
+resolve an existing store" — the set the rule's second clause already
+implied, and the wording §9's vector for this rule already used. The requirement is unchanged.*
 
 ## 6. Client conformance
 
@@ -2560,7 +2699,7 @@ backup.** `isBackupEligibleSettingKey` treats `kBackupSettingsDenylist` as the
 whole of the exclusion and everything else as content a restore replaces, so a
 key that is merely classified still travels. W5 and W13 MUST denylist each key
 they add, and a restore test MUST assert that restoring a backup taken on a
-syncing device leaves sync off, adopts no device ID, and stores no credential.
+syncing device leaves sync off, adopts no device ID, and stores no sync ID.
 
 This does **not** follow from the classifications above, and MUST NOT be
 justified that way. The backup filter is not derived from `EgressClass` and
@@ -2577,6 +2716,10 @@ adoption §3.3 rule 3 forbids, and hands two devices one manifest by a route no
 envelope check sees. A restored `sync_id` puts a store address into a
 plaintext file users mail to themselves, and attaches whatever device restores
 it to that store.
+
+*Amended 2026-11-11: wording only. The restore test's "stores no credential" is
+now "stores no sync ID", the only value it ever referred to, following the
+maintainer's decision quoted at §6.14 item 2. The test is unchanged.*
 
 **`sync_exclude_imports`** is one of those keys: a per-device toggle, default
 **off**, which trims what this installation publishes. It is `deviceScoped`
@@ -4699,12 +4842,12 @@ this document is invisible to it by construction.
    say so.** Whoever holds it can read everything the store syncs, change or
    delete any of it on every connected device, and delete the store from the
    server — holding it is all that is required (§8). Losing it makes the store
-   unreachable; leaking it cannot be undone, so continuing to sync means moving
-   every device to a new ID — which on its own leaves the old store readable and
-   writable by whoever holds the leaked one, making wipe (§5.3) the only remedy
-   that acts at once. The two are complementary and the disclosure MUST NOT
-   present either as the whole answer. This follows from there being no accounts
-   (§8) and is not otherwise visible.
+   unreachable; once someone else has it, it cannot be taken back, so
+   continuing to sync without them means moving every device to a new ID —
+   which on its own leaves the old store readable and writable by whoever still
+   has the old ID, making wipe (§5.3) the only remedy that acts at once. The two are
+   complementary and the disclosure MUST NOT present either as the whole answer.
+   This follows from there being no accounts (§8) and is not otherwise visible.
 
    *Amended 2026-09-23: this item used to classify the sync ID as a bearer
    credential. The capability and the irreversibility are unchanged — they are
@@ -4713,6 +4856,21 @@ this document is invisible to it by construction.
    itself as `storeAddress`. Nothing the pairing flow must disclose is narrower
    than before; it is wider, because the capability is now spelled out instead
    of implied.*
+
+   *Amended 2026-11-11: this item said the ID could be "leaked" and that the old
+   store stays writable by "whoever holds the leaked one". Those words framed the
+   ID as a secret, and the maintainer decided on 2026-11-11 that "the wording
+   should be changed to remove any implication that the store id is
+   authentication material of any kind." It now says what happens when someone
+   else has the ID: it cannot be taken back, and whoever still has the old ID
+   keeps access to the old store until wipe removes it.
+   Handing it to someone to sync with is a supported case (§3.3), not an
+   incident. The 2026-09-23 note's remark that §2 and §5.1 reserve
+   "credential" for the header encoding no longer holds: neither uses the word
+   for it now. Nothing
+   the pairing flow must disclose has changed: no recovery, no revocation, the
+   full capability of whoever holds the ID, and that moving devices to a new ID
+   and wipe are complementary.*
 3. **Sync is not backup, and the UI MUST say so wherever it reports success.**
    A store is reaped after 30 days of disuse (§7.3), which makes it a relay
    with a grace period. The file backup remains the recovery path. A green
@@ -5126,7 +5284,9 @@ DELETE FROM stores WHERE last_seen < (now - 30 days);
 ```
 
 then cascades manifests, blob refs and blob files. `last_seen` is refreshed by
-any authenticated request, making this a rolling TTL on activity.
+any request that resolves the store, making this a rolling TTL on activity.
+*Amended 2026-11-11: wording only ("any authenticated request"), following the
+maintainer's decision quoted at §6.14 item 2; the rule is unchanged.*
 
 A blob is reachable while any manifest for its store references it. After each
 manifest `PUT`, and during the sweep, unreferenced blobs for that store are
@@ -5301,12 +5461,12 @@ and no revocation — so a single plaintext request discloses it in full to
 anything on the path, permanently and unrecoverably.
 
 **What refusal buys is not the first disclosure, which is already unrecoverable
-by the time the listener can respond at all.** The credential is on the wire in
+by the time the listener can respond at all.** The sync ID is on the wire in
 the request; no status code recalls it. What refusal prevents is a *working*
 plaintext sync — every subsequent request, on every subsequent run — and that
 is the whole of the justification. This is also why `/v1` MUST be refused
 rather than redirected, and the two are not interchangeable here — but not
-because the redirect itself carries the credential onward. Scheme is part of an
+because the redirect itself carries the sync ID onward. Scheme is part of an
 origin, so an `http`→`https` redirect is a *cross-origin* hop, and both clients
 named below strip `Authorization` across it: `dart:io`'s `HttpClient` copies no
 sensitive header unless scheme, host and port all match (`_isSameOrigin`,
@@ -5324,11 +5484,11 @@ non-app callers, since those fixes shipped in Dart 2.16 on 2022-02-03 and curl
 gets a sync that *works*, over a redirect, which is the outcome this
 requirement exists to deny: nothing then surfaces the misconfiguration, so it
 is never corrected, and every subsequent run repeats the plaintext request that
-discloses the bearer in full. Refusal produces the same visible failure for
+discloses the sync ID in full. Refusal produces the same visible failure for
 every client whatever its header policy, and that uniformity is the point. A
 deployment MUST NOT have to reason about which clients will reach it in order
 to be safe. A redirect remains the right answer for other paths, which carry no
-credential.
+sync ID.
 
 `Strict-Transport-Security` is listed as a SHOULD, and separately from the
 refusal, because it protects a different population than the one above: HSTS is
@@ -5363,7 +5523,7 @@ strength of ~2⁴⁰, and a client MUST warn when it falls below — but the sco
 score MUST be computed over the **normalised** ID of the rule below, not the
 string as typed: normalisation lowercases and applies NFC before the ID is
 hashed, so an estimator run on the raw string credits case and Unicode-form
-distinctions that collapse to the same credential, and reports a strength the
+distinctions that collapse to the same sync ID, and reports a strength the
 user does not have.
 
 **Scoring is provenance-independent, and MUST be.** The estimator is a function
@@ -5493,7 +5653,8 @@ request is issued, against all of:
 A hop failing any of these MUST be refused rather than followed, and the
 `Authorization` header of §5.1 MUST NOT be sent to any origin other than the
 configured endpoint's. A client MAY instead refuse cross-origin redirects
-outright; it MUST NOT follow one while still carrying the credential.
+outright; it MUST NOT follow one while still carrying the `Authorization`
+header.
 
 Each request MUST have a **30-second** cancellable deadline covering both the
 response-header wait and body consumption. A deadline expiry is a transient
@@ -5505,10 +5666,10 @@ that satisfies every cosmetic check and terminates at an attacker-controlled
 https host on port 443 with no userinfo is exactly the case that matters, and it
 is not exotic: §7.5 treats a reverse proxy as the reference deployment, so a
 misconfigured proxy, an open redirect, or a stale `Location` target reaches this
-path without anyone doing anything unusual. The sync ID is not a session token —
-it is simultaneously the store address and the entire read, write and `DELETE`
-credential, with no accounts, no rotation and no revocation — so a single
-credentialed request to a foreign origin is unrecoverable and total. Bounding
+path without anyone doing anything unusual. The sync ID is the store address,
+and holding it is the entire read, write and `DELETE` capability, with no
+accounts, no rotation and no revocation — so a single request that carries it
+to a foreign origin cannot be taken back and hands over everything. Bounding
 the shape of a hop while leaving its destination unbounded protects nothing.
 
 Scheme and Port are formally **subsumed** by Origin, which already fixes scheme,
@@ -5524,10 +5685,29 @@ The user-configured endpoint is validated on entry: https or an exactly-matched
 MUST be shown prominently and a change MUST warn.
 
 **Threat model.** Anyone holding the sync ID has full read and write access,
-including `DELETE /v1/store`. This is inherent to the bearer model and MUST be
-disclosed. A peer can write any `shareable` record; it cannot write
-`deviceLocal` or `deviceScoped` fields, because the receiver filters
-independently of the server.
+including `DELETE /v1/store`. This is inherent to there being no accounts —
+holding the ID is all that is required — and MUST be disclosed. A peer can
+write any `shareable` record; it cannot write `deviceLocal` or `deviceScoped`
+fields, because the receiver filters independently of the server.
+
+*Amended 2026-11-11: wording only, following the maintainer's decision quoted
+at §6.14 item 2. The threat model said "inherent to the bearer model", and the
+redirect rule above said "while still carrying the credential" where it now
+says "the `Authorization` header". Both requirements are unchanged.*
+
+**What these protections are for.** The enumeration bound below, the strength
+warning for a chosen ID, and keeping the ID out of logs, URLs and the status
+surface all make a store's address hard to *discover*, the way an unlisted
+link is hard to find. None of them makes the ID a password or a credential:
+whoever has the address may use it (§3.3), and there is nothing to sign in to.
+The failure budget (§5.4) is not one of them: it bounds load and gives
+visibility, not guessing.
+
+*Amended 2026-11-11: paragraph added. The maintainer chose on 2026-11-11 to
+keep these protections exactly as specified and to describe them as making
+store addresses hard to discover ("Hard-to-guess address"), not as protecting
+a secret; the decision is recorded in the description of #2164. No
+requirement changed.*
 
 **Enumeration.** Guessing is bounded by the ID's own strength — guaranteed for a
 generated ID, warned about but not guaranteed for a chosen one — and by the
@@ -5561,7 +5741,7 @@ merely named.
 
 The conclusion is unchanged at 2⁴⁰–2⁵². What has changed three times is *which
 control does the work*: first from the per-IP limit to the server-wide one, then
-from a counter of authentication failures to a counter of store-resolution
+from a counter of `401` responses to a counter of store-resolution
 failures, and finally away from counting altogether. Each correction exists so
 that weakening the wrong control later cannot read as safe. The check a reviewer
 should run before any other is **not** whether the enumerating request produces
@@ -5751,7 +5931,7 @@ matching that row** (mutation: set the rebuild-owed flag only on the one-time
 pass — retry writes the repaired row, dies before the rebuild, and its next
 rescan finds nothing to write and is forbidden from rebuilding). **A sync ID
 containing non-ASCII code points produces a request that is actually issued, and
-its `Authorization` credential is the base64url of the normalised UTF-8 bytes**
+its `Authorization` header value is the base64url of the normalised UTF-8 bytes**
 (mutations: send the raw ID — on `dart:io` the client throws
 `FormatException` before the socket is touched, so the test must assert a
 request was *issued*, not merely that sync failed; encode only when a character
@@ -6020,8 +6200,8 @@ archive carries entity rows with no settings representation of any kind (the
 backup document, the one export that carries settings at all, excludes
 `sync_id` by name rather than by class — see *Configuration egress* above); and
 no server or proxy log line contains it, checked against the response to a
-request that fails authentication as well as one that succeeds (mutation: log
-the request line verbatim — the failing case is the one a naive implementation
+request answered `401` as well as one that succeeds (mutation: log the
+request line verbatim — the failing case is the one a naive implementation
 logs, because it is the one an operator wants to debug).
 
 **Reconciliation.** Converges from both sides (mutation: keep the local row).
@@ -6265,7 +6445,7 @@ together). **No log line contains a raw `{deviceId}`, and any log that records
 one carries a stated retention bound** (mutation: log the request path verbatim
 — the body-logging vector above still passes, because the identifier is in the
 path and never in a body, and §7.3's own reaping never reaches it). **A
-credential that is not valid base64url, or whose bytes are not well-formed
+`Bearer` value that is not valid base64url, or whose bytes are not well-formed
 UTF-8, is rejected `401`** (mutation: decode with `U+FFFD` substitution, then
 assert two distinct sync IDs differing only in an invalid byte do not resolve to
 one store). **While the server-wide failure limit is saturated, a request that
@@ -6295,16 +6475,51 @@ not.** Asserted by driving each of `401`, `403`, `404`-on-store-scoped and
 not move (mutation: count only `401`, which is what an earlier draft did and
 which leaves the enumerating request — well-formed, structurally valid,
 resolving to some `id_key` — costing an attacker nothing at all; the mutation
-passes every test that exercises malformed credentials). The complementary
+passes every test that exercises malformed `Bearer` values). The complementary
 mutation is to count successful resolutions too, which throttles an honest
 device's ordinary polling and is caught by the success run.
 
-**The creation cap bounds storage independently of the failure budget**: a run
-of successful creations is refused at the §5.4 rate while an unrelated existing
-store still resolves (mutation: fold creation into the failure budget, so a
-single honest first pairing consumes the guessing allowance, or drop the cap
-entirely, so an attacker converts an unbounded creation right into stored rows
-the sweep only reaches 30 days later).
+**The creation cap bounds store rows independently of the failure budget**: a
+run of successful creations is refused at the §5.4 rate while an unrelated
+existing store still resolves (mutation: fold creation into the failure budget,
+so a single honest first pairing consumes the guessing allowance, or drop the
+cap entirely, so an attacker converts an unbounded creation right into stored
+rows the sweep only reaches 30 days later).
+
+**One address cannot spend the creations every address shares**: an address
+past its per-client-IP share is refused while another address still creates,
+an IPv6 address shares its /64's share, a refusal by the per-IP row leaves the
+server-wide row unspent, and a creation that fails gives the address its token
+back (mutations: drop the per-IP row, which lets one address hold every honest
+first pairing out for the rest of the minute; charge the server-wide row before
+the per-IP one; drop the refund).
+
+**Large-body requests in flight are bounded per address and server-wide**:
+with a request of each counted route held open mid-body, one more from the same
+address is `429` with `Retry-After` while another address is served, a lookup
+from the first address is not refused, one past the server-wide cap is `503`
+with `Retry-After`, and a slot is free again once its request ends, by
+completing, by failing part-way, or by a body that does not arrive within the
+deadline, whether it trickles in or stops arriving altogether, plain or gzip
+(mutations: count nothing, which is the server these rows were added to; read a
+body without a deadline, which lets one trickling client keep its slot; count
+the body's bytes in an `async*` generator, whose cancel waits on a client that
+has fallen silent). A manifest `GET` reads the manifest a bounded chunk
+at a time as the response is consumed, and a manifest replaced, or a read that
+fails, part-way through is a response cut short that the client fails rather
+than a body spliced from two manifests or ended cleanly (mutations: answer from
+one whole read; end the stream without an error). A blob `GET` likewise
+streams its file, and a file gone part-way fails the stream with an error that
+names no path (mutations: read the file whole; let the file error escape).
+
+**The free-space floor refuses writes and nothing else**: below the floor a
+blob `PUT`, a manifest `PUT` and every checked blob of a batch upload are
+`507` and store nothing, while lookups, blob and manifest `GET`s,
+`POST /v1/blobs/missing` and deletes succeed; a manifest `PUT` no larger than
+the device's stored manifest is admitted and a larger one is not; a floor of
+zero is never read, and a reading that fails admits the write (mutations: never
+refuse, the server before the floor; refuse every manifest `PUT`, which leaves
+a user only deletes to free space with; admit a larger replacement).
 
 **User-visible sync obligations.** With `sync_exclude_imports` on, an imported
 dance that no published record cites is absent from this device's manifest,
@@ -6402,9 +6617,9 @@ the other, since a range test rejects `localhost.example.com` correctly while
 admitting every address §5 excludes). **A `302` to a foreign https host is
 refused, and no request carrying `Authorization` is issued to it** (mutation:
 validate only scheme, userinfo and port — every cosmetic check still passes and
-the sync ID, which is the whole credential, leaves for an attacker-controlled
-origin on the first hop). **§6.12's triggers behave as specified**: *Sync only
-on Wi-Fi* defaults to on; on a metered connection no automatic pass runs and a
+the sync ID, and with it the whole read, write and `DELETE` capability, leaves
+for an attacker-controlled origin on the first hop). **§6.12's triggers behave
+as specified**: *Sync only on Wi-Fi* defaults to on; on a metered connection no automatic pass runs and a
 manual attempt routes to the setting rather than failing; and a pass suppressed
 for either reason runs at the next trigger without user action (mutation: treat
 a suppressed pass as a completed one — nothing reports an error, and the device
