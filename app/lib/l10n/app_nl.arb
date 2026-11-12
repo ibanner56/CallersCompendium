@@ -11569,5 +11569,9 @@
   "exportCallingCardsCutOff": "{count, plural, =1{1 kaart paste niet en is onderaan afgesneden.} other{{count} kaarten pasten niet en zijn onderaan afgesneden.}}",
   "@exportCallingCardsCutOff": {
     "x-sourceSha256": "b025c9efc4e669393a66c90e01c55ac6efbec97d37648335a1f21e420849592a"
+  },
+  "callingCardHelpOptionHighlight": "Voor figures: de bewegingen vet in donkerrood, de dansers vet, en hoeveelheden zoals ½ of 3 places in blauwgrijs.",
+  "@callingCardHelpOptionHighlight": {
+    "x-sourceSha256": "eb1a86f69fdf21a45f1d0a64ee553ddb6ceb1f988789cd019a9acdbc7b855a1d"
   }
 }

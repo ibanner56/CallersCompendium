@@ -11901,4 +11901,8 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get callingCardHelpOptionHighlight =>
+      'For figures: the moves in bold dark red, the dancers in bold, and amounts such as ½ or 3 places in blue-grey.';
 }

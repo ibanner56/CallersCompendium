@@ -600,6 +600,7 @@ class _CallingCardLayoutEditorScreenState
       ['beats=off', 'notes=off', 'phrases=off', 'dividers=off'],
       l10n.callingCardHelpOptionFigures,
     ),
+    (['highlight'], l10n.callingCardHelpOptionHighlight),
     (['thickness=2'], l10n.callingCardHelpOptionThickness),
   ];
 }

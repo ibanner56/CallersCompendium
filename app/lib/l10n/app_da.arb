@@ -11569,5 +11569,9 @@
   "exportCallingCardsCutOff": "{count, plural, =1{1 kort passede ikke og er skåret af forneden.} other{{count} kort passede ikke og er skåret af forneden.}}",
   "@exportCallingCardsCutOff": {
     "x-sourceSha256": "b025c9efc4e669393a66c90e01c55ac6efbec97d37648335a1f21e420849592a"
+  },
+  "callingCardHelpOptionHighlight": "For figures: bevægelserne med fed mørkerød skrift, danserne med fed og mængder som ½ eller 3 places i blågrå.",
+  "@callingCardHelpOptionHighlight": {
+    "x-sourceSha256": "eb1a86f69fdf21a45f1d0a64ee553ddb6ceb1f988789cd019a9acdbc7b855a1d"
   }
 }

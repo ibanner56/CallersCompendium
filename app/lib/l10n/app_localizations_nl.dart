@@ -12027,4 +12027,8 @@ class AppLocalizationsNl extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get callingCardHelpOptionHighlight =>
+      'Voor figures: de bewegingen vet in donkerrood, de dansers vet, en hoeveelheden zoals ½ of 3 places in blauwgrijs.';
 }

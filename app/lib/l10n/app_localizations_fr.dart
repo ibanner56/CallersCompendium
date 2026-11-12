@@ -12095,4 +12095,8 @@ class AppLocalizationsFr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get callingCardHelpOptionHighlight =>
+      'Pour figures : les mouvements en gras rouge foncé, les danseurs en gras, et les quantités comme ½ ou 3 places en gris bleuté.';
 }

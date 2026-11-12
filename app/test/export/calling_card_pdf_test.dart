@@ -270,6 +270,38 @@ notes label=""
     },
   );
 
+  test('figures highlight sets the moves and dancers in bold', () async {
+    // Without the phrase column and beats, nothing else on the card is bold,
+    // so the bold face is used only if the figure lines are highlighted.
+    Future<String> raw(String layout) async => latin1.decode(
+      await buildCallingCardsPdf(
+        [_entry(_dance())],
+        layout: CallingCardLayout.parse(layout),
+        size: kDefaultCallingCardSize,
+        dialect: Dialect.canonical,
+        fields: DanceShareField.allExceptTunes,
+        theme: _theme,
+      ),
+    );
+    expect(
+      await raw('figures phrases=off beats=off'),
+      isNot(contains('Helvetica-Bold')),
+    );
+    final highlighted = await raw('figures phrases=off beats=off highlight');
+    expect(highlighted, contains('Helvetica-Bold'));
+    final text = pdfText(
+      await buildCallingCardsPdf(
+        [_entry(_dance())],
+        layout: CallingCardLayout.parse('figures highlight'),
+        size: kDefaultCallingCardSize,
+        dialect: Dialect.canonical,
+        fields: DanceShareField.allExceptTunes,
+        theme: _theme,
+      ),
+    );
+    expect(text, contains('swing'), reason: 'the words are all still there');
+  });
+
   test('the editor sample dance is valid under the taxonomy', () {
     final sample = callingCardSampleDance(
       title: 'Sample',

@@ -16081,5 +16081,9 @@
         "example": "2"
       }
     }
+  },
+  "callingCardHelpOptionHighlight": "For figures: the moves in bold dark red, the dancers in bold, and amounts such as ½ or 3 places in blue-grey.",
+  "@callingCardHelpOptionHighlight": {
+    "description": "Help: the figures block's highlight option. Block and option names in this text (title, figures, size=, label=, and the like) are the layout language's own: keep them in English."
   }
 }

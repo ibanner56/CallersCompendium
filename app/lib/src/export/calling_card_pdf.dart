@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart' show Matrix4;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
+import 'calling_card_highlight.dart';
 import 'calling_card_layout.dart';
 import 'program_pdf.dart';
 
@@ -174,6 +175,27 @@ class _CardBuilder {
   final String programTitle;
   final bool canonicalizeDiscouragedTerms;
 
+  /// The dialect's dancer words, for `figures highlight`; worked out once
+  /// per card.
+  late final Set<String> _dancers = renderer.dancerTerms(dialect);
+
+  /// How `figures highlight` sets each kind of span apart: the move in bold
+  /// dark red, the dancers in bold, the amounts in slate. Bold carries the
+  /// difference on a black-and-white printer.
+  static pw.TextStyle? _highlightStyle(CallingCardSpanKind kind) =>
+      switch (kind) {
+        CallingCardSpanKind.plain => null,
+        CallingCardSpanKind.move => const pw.TextStyle(
+          color: _move,
+          fontWeight: pw.FontWeight.bold,
+        ),
+        CallingCardSpanKind.dancer => pw.TextStyle(
+          fontWeight: pw.FontWeight.bold,
+        ),
+        CallingCardSpanKind.amount => const pw.TextStyle(color: _muted),
+      };
+
+  static const _move = PdfColor.fromInt(0xff7a2e2e);
   static const _ink = PdfColor.fromInt(0xff1d2528);
   static const _muted = PdfColor.fromInt(0xff4d6470);
   static const _divider = PdfColor.fromInt(0xff7aa0b8);
@@ -375,7 +397,30 @@ class _CardBuilder {
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
-                pw.Text('${_render(figure)}$marker', style: _style(b)),
+                if (b.highlight)
+                  pw.RichText(
+                    text: pw.TextSpan(
+                      style: _style(b),
+                      children: [
+                        for (final span in highlightFigureLine(
+                          _render(figure),
+                          moves: callingCardMoveNames(
+                            figure,
+                            renderer,
+                            dialect,
+                          ),
+                          dancers: _dancers,
+                        ))
+                          pw.TextSpan(
+                            text: span.text,
+                            style: _highlightStyle(span.kind),
+                          ),
+                        pw.TextSpan(text: marker),
+                      ],
+                    ),
+                  )
+                else
+                  pw.Text('${_render(figure)}$marker', style: _style(b)),
                 if (b.figureNotes && note.isNotEmpty)
                   pw.Text(
                     _renderFree(note),

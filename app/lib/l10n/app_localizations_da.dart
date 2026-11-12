@@ -11949,4 +11949,8 @@ class AppLocalizationsDa extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get callingCardHelpOptionHighlight =>
+      'For figures: bevægelserne med fed mørkerød skrift, danserne med fed og mængder som ½ eller 3 places i blågrå.';
 }

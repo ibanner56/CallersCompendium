@@ -12079,4 +12079,8 @@ class AppLocalizationsDe extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get callingCardHelpOptionHighlight =>
+      'Für figures: Bewegungen fett in Dunkelrot, Tanzende fett und Mengen wie ½ oder 3 places in Blaugrau.';
 }

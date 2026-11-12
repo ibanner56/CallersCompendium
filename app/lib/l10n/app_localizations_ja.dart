@@ -11481,4 +11481,8 @@ class AppLocalizationsJa extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get callingCardHelpOptionHighlight =>
+      'figures 用：動きを濃い赤の太字、ダンサーを太字、½ や 3 places などの量を青みがかった灰色で表示します。';
 }
