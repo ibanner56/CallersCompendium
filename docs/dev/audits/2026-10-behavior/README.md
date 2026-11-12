@@ -12,9 +12,16 @@
 > Apart from this note, every file here is a byte-for-byte copy of the audit's
 > working files, so `file:line` citations into them stay exact. The sentence
 > below saying the directory "is not meant to be merged as-is" described that
-> working copy. The auditors' throwaway probe scripts (the `probes/` the next
-> paragraph and `intake.md` mention) were not brought over: they ran outside the repository,
-> and the reports quote what they printed.
+> working copy.
+>
+> The auditors' probe scripts (the `probes/` the next paragraph and `intake.md`
+> mention) were **not** brought onto `main`, so those two references have no
+> target here. The scripts ran outside the repository and the reports quote what
+> they printed, but the sources themselves were kept only with the audit's
+> working files. They are Dart files and a package manifest that the
+> repository's format and analyze gates would pick up. Leaving them out was the
+> implementing session's call, not the maintainer's; whether to keep them is
+> raised in the pull request that added this note.
 
 Nine read-only audits, each following one caller user story end to end. Full reports are in `reports/`; probe sources in `probes/`. Published summary page: https://claude.ai/artifact/Tm6fL9hgeC8fUVVJ1N488u
 

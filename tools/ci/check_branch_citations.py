@@ -13,7 +13,9 @@ and five of the branches of merged PRs.
 
 Scope: every Markdown file, the ``.txt``/``.svg``/``.html`` files under
 ``docs/``, and the comments of hand-written Dart under ``app/``, ``packages/``
-and ``server/`` (generated Dart, including ``app/lib/l10n/``, is skipped).
+and ``server/``. Generated Dart is skipped: ``*.g.dart``, ``*.freezed.dart``,
+``*.mocks.dart``, ``generated_*.dart``, anything under a ``generated/``
+directory, and ``app/lib/l10n/``.
 "Every file" is what git tracks plus untracked files it does not ignore, so a
 local run sees a new file before it is staged.
 Workflow YAML, release tooling and test fixtures that genuinely operate on
@@ -23,8 +25,8 @@ What counts as a branch citation (each rule is narrow on purpose; see the
 tests for the legitimate text each one must leave alone):
 
 1. An agent-session branch name, ``claude/<slug>``, ``copilot/<slug>`` or
-   ``codex/<slug>``, anywhere, including as ``origin/claude/<slug>`` or
-   ``refs/heads/claude/<slug>`` -- unless it is part of another path
+   ``codex/<slug>``, anywhere, including as ``origin/claude/<slug>``,
+   ``upstream/claude/<slug>`` or ``refs/heads/claude/<slug>`` -- unless it is part of another path
    (``.claude/``, ``foo/claude/``) or a glob (``claude/*``). These are session branches: they
    are deleted or abandoned once their PR merges, so a citation of one is
    a pointer at content that will not stay reachable. Cite the PR instead.
@@ -50,7 +52,11 @@ planned piece of work will be built on ("| H1 | ``feat/called-filter-scopes``
 push every plan table into an allow-list. Only the backticked forms of rule 2
 catch a sentence that puts a record *on* such a branch; "recorded in ``x.md``
 on ``feat/foo``" is a known miss, as are unnamed references such as "on that
-branch". The check is a ratchet on the shapes that occurred, not a proof.
+branch", a second name in "branches ``a`` and ``b``", and comments in a Dart
+string whose interpolation nests a triple quote. Known false positives: prose
+that pairs agent names with a slash ("the claude/copilot split") and "the
+branch ``else-if``" word order. None occurs in the tree; the check is a ratchet
+on the shapes that occurred, not a proof.
 
 Exemptions (``EXEMPT_PREFIXES``) are by path, each with its reason.
 
@@ -91,7 +97,7 @@ _SLUG = r"[A-Za-z0-9][A-Za-z0-9._-]*(?:/[A-Za-z0-9][A-Za-z0-9._-]*)*"
 # Rule 1. Not preceded by a path character, so `.claude/` and `a/claude/b`
 # pass -- except a remote or ref prefix, which names the branch outright.
 _AGENT_BRANCH_RE = re.compile(
-    rf"(?:(?<![\w./-])|(?<=origin/)|(?<=refs/heads/)|(?<=refs/remotes/))"
+    rf"(?:(?<![\w./-])|(?<=origin/)|(?<=upstream/)|(?<=refs/heads/)|(?<=refs/remotes/))"
     rf"(?:claude|copilot|codex)/{_SLUG}"
 )
 # Rule 2.
@@ -105,7 +111,7 @@ _SHA_RE = re.compile(r"[0-9a-f]{7,40}")
 _RANGE_SPLIT_RE = re.compile(r"\.{2,3}")
 _TAG_RE = re.compile(r"v\d[\w.+-]*")
 # Rule 4.
-_AUDIT_BRANCH_RE = re.compile(r"\baudit\s+branch\b", re.IGNORECASE)
+_AUDIT_BRANCH_RE = re.compile(r"\baudit[\s-]+branch(?:es)?\b", re.IGNORECASE)
 # Rule 2's shape test: a ref name with a separator, no spaces or punctuation
 # that a code identifier or expression would carry, and no file extension.
 _BRANCH_SHAPE_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_/-]*(?:\.[0-9]+)*[A-Za-z0-9_/-]*")
@@ -147,6 +153,8 @@ def in_scope(path: str) -> str | None:
         and path.endswith(".dart")
         and not path.endswith(GENERATED_DART_SUFFIXES)
         and not path.startswith(GENERATED_DART_PREFIXES)
+        and "/generated/" not in path
+        and not path.rsplit("/", 1)[-1].startswith("generated_")
     ):
         return "dart"
     return None

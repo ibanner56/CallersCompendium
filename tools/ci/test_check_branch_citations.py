@@ -65,6 +65,8 @@ def test_flags_branch_citations() -> None:
             "agent-branch",
         ),
         "full ref name": ("pushed to refs/heads/claude/foo-bar", "agent-branch"),
+        "upstream remote name": ("compare upstream/claude/x-y", "agent-branch"),
+        "the audit branches, plural": ("on the audit branches", "audit-branch"),
         "branch `name`": (
             "  - PR2 delivered (branch `isaacbanner-dialect-pr2`): the library",
             "named-branch",
@@ -202,6 +204,14 @@ def test_scope() -> None:
     check("app dart", in_scope("app/lib/a.dart") == "dart")
     check("server dart", in_scope("server/bin/a.dart") == "dart")
     check("generated dart skipped", in_scope("packages/c/lib/a.g.dart") is None)
+    check(
+        "generated directory skipped",
+        in_scope("packages/c/test/storage/generated/schema_v3.dart") is None,
+    )
+    check(
+        "generated_ file skipped",
+        in_scope("packages/c/lib/src/sync/generated_sync_allow_list.dart") is None,
+    )
     check(
         "generated localizations skipped",
         in_scope("app/lib/l10n/app_localizations_de.dart") is None,
