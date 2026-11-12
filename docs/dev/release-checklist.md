@@ -214,8 +214,11 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
 - [ ] **Text-scaling / reflow — Gate.** Set the platform's largest supported
  text-scaling setting and repeat: Collection list, Dance detail/card, Program
  builder, Settings, the Dance editor (the Formation and Type dropdowns), Perform
- and its Adjust sheet (Done stays on screen), and the Tags manager (sort by
- dance count). On **Android**, set font scale to **2.0×**; on **iOS**,
+ and its Adjust sheet (Done stays on screen), the Tags manager (sort by
+ dance count), and the form dropdowns: a choice custom field with a long name
+ and long options (dance editor and the Collection batch edit), the Level,
+ Month and Day fields, a Program's Status, and the Settings matrix-column
+ dialogs. On **Android**, set font scale to **2.0×**; on **iOS**,
  set Dynamic Type to its **largest accessibility size**. **Pass**: no text is
  clipped, truncated without a way to reveal the rest, or overlapping other
  content; layouts reflow instead of overflowing off-screen.
@@ -224,7 +227,14 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
  screenful, and the Tags manager at 2.0× on 360 and 412 dp with the real fonts.
  It does not cover Dance detail/card or Settings, and the editor's
  Type/Formation dropdowns are covered only by `dance_editor_narrow_test.dart`.
- It supplements this gate, not replaces it.)
+ `app/test/dropdown_large_text_test.dart` checks those form dropdowns for
+ overflow at 360 dp, 1.5× and 2.0× with long values (locale-dependent ones in
+ every shipped locale). In these dropdowns (custom-field names and options,
+ level names, matrix move names, Status) the closed field ellipsizes but the
+ open menu wraps, so the full text is always readable. The Month list only
+ ellipsizes (twelve short, ordered names). The floating label of a long
+ custom-field name can still be cut off.
+ These supplement this gate, not replace it.)
 - [ ] **Keyboard-only navigation (desktop) — Gate.** On a desktop build
  (macOS/Linux/Windows), unplug/ignore the mouse and complete the same core
  flows using Tab/Shift+Tab/Enter/Arrow keys only. **Pass**: every interactive
