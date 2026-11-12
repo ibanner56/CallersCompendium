@@ -10,7 +10,6 @@
 // The widgets are pumped directly rather than reached through a lazy list, so
 // the site is certain to be built (the #2162 sweep only builds what is on
 // screen).
-import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/custom_fields_screen.dart';
@@ -20,7 +19,6 @@ import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/screens/settings/matrix_column_editor.dart';
 import 'package:compendium_app/src/theme/app_theme.dart';
 import 'package:compendium_app/src/widgets/batch_custom_field_dialog.dart';
-import 'package:compendium_app/src/widgets/lingo_text_editing_controller.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
