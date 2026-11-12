@@ -164,7 +164,7 @@ enum SnapshotFailureCause {
   /// (`EACCES`/`EPERM`/`EROFS`/`ENOTDIR` / Windows access-denied).
   unwritableBackupsDir,
 
-  /// Another connection, normally another program with the library open,
+  /// Another connection, normally another app with the library open,
   /// holds a read transaction that keeps the WAL checkpoint from folding in
   /// the newest commits, so a copy would miss them ([SnapshotDatabaseInUse]).
   /// The remedy is to close that program, not to free space.

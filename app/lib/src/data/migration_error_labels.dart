@@ -58,7 +58,7 @@ String snapshotCauseSentence(
 };
 
 /// Body of the blocking dialog that asks whether to change saved data without
-/// a backup. A database another program holds open gets its own copy: the
+/// a backup. A database another app holds open gets its own copy: the
 /// generic one tells the user to free up space or fix the backups folder,
 /// which would not help.
 String migrationSnapshotConsentBody(
@@ -75,7 +75,7 @@ String migrationSnapshotConsentBody(
 }
 
 /// Terminal-screen message for a [MigrationSnapshotAborted], weaving in the
-/// likely-cause sentence when one is known. A database another program holds
+/// likely-cause sentence when one is known. A database another app holds
 /// open gets its own message, for the reason given at
 /// [migrationSnapshotConsentBody].
 String migrationSnapshotAbortedMessage(
