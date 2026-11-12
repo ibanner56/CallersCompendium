@@ -161,7 +161,7 @@ Future<Uint8List> buildCallingCardsPdf(
       );
     }
   } else {
-    _addSheets(doc, cards, size, sheet, margin, report);
+    _addSheets(doc, cards, size, sheet, report);
   }
   return doc.save();
 }
@@ -232,15 +232,15 @@ typedef CallingCardCutMark = ({double x1, double y1, double x2, double y2});
 /// whose top-left corner is at ([left], [top]) on a page of [pageWidth] ×
 /// [pageHeight]).
 ///
-/// No mark comes within [printableInset] of the paper's edge, the strip the
-/// printer cannot reach. Where the paper leaves room between that strip and
-/// the grid, the marks sit there, stopping [_markGap] short of the cards so a
-/// slightly crooked cut leaves no line on a card. A grid that fills the paper
-/// has no such room, so its marks run inward from the edge of the printable
-/// area across the cards' blank margins, stopping short of their content,
-/// which starts [cardMargin] in from each card's edge. A mark with no room
-/// either way is left out, as is one for a cut line that itself lies within
-/// [printableInset] of the paper's edge: the paper's edge is then the cut.
+/// Every mark lies on a cut line, so it never crosses a card's content,
+/// which keeps its card's margin away from every edge. No mark comes within
+/// [printableInset] of the paper's edge, the strip the printer is taken not
+/// to reach. Where the paper leaves room for a full-length mark between that
+/// strip and the grid, the marks sit there, stopping [_markGap] short of the
+/// cards so a slightly crooked cut leaves no line on a card. Otherwise they
+/// run inward from the edge of the printable area, along the cut lines
+/// between the cards. A cut line that itself lies within [printableInset] of
+/// the paper's edge gets no mark: the paper's edge is that cut.
 List<CallingCardCutMark> callingCardCutMarks({
   required double pageWidth,
   required double pageHeight,
@@ -250,25 +250,18 @@ List<CallingCardCutMark> callingCardCutMarks({
   required double cellHeight,
   required int columns,
   required int rows,
-  required double cardMargin,
   required double printableInset,
 }) {
   final marks = <CallingCardCutMark>[];
   // The span, measured in from one paper edge, that a mark may cover on the
   // [offset] side of the grid.
-  (double, double)? span(double offset) {
-    final from = printableInset;
+  (double, double) span(double offset) {
     final outsideTo = offset - _markGap;
-    if (outsideTo - from >= _markMinimum) {
-      return (math.max(from, outsideTo - _markLength), outsideTo);
+    if (outsideTo - printableInset >= _markLength) {
+      return (outsideTo - _markLength, outsideTo);
     }
-    final insideFrom = math.max(from, offset);
-    final insideTo = math.min(
-      offset + cardMargin - _markGap,
-      insideFrom + _markLength,
-    );
-    if (insideTo - insideFrom >= _markMinimum) return (insideFrom, insideTo);
-    return null;
+    final insideFrom = math.max(printableInset, offset);
+    return (insideFrom, insideFrom + _markLength);
   }
 
   final gridRight = left + columns * cellWidth;
@@ -281,24 +274,22 @@ List<CallingCardCutMark> callingCardCutMarks({
   for (var c = 0; c <= columns; c++) {
     final x = left + c * cellWidth;
     if (!printable(x, pageWidth)) continue;
-    if (above case (final a, final b)) {
-      marks.add((x1: x, y1: a, x2: x, y2: b));
-    }
-    if (below case (final a, final b)) {
-      marks.add((x1: x, y1: pageHeight - a, x2: x, y2: pageHeight - b));
-    }
+    final (a1, b1) = above;
+    final (a2, b2) = below;
+    marks
+      ..add((x1: x, y1: a1, x2: x, y2: b1))
+      ..add((x1: x, y1: pageHeight - a2, x2: x, y2: pageHeight - b2));
   }
   final before = span(left);
   final after = span(pageWidth - gridRight);
   for (var r = 0; r <= rows; r++) {
     final y = top + r * cellHeight;
     if (!printable(y, pageHeight)) continue;
-    if (before case (final a, final b)) {
-      marks.add((x1: a, y1: y, x2: b, y2: y));
-    }
-    if (after case (final a, final b)) {
-      marks.add((x1: pageWidth - a, y1: y, x2: pageWidth - b, y2: y));
-    }
+    final (a1, b1) = before;
+    final (a2, b2) = after;
+    marks
+      ..add((x1: a1, y1: y, x2: b1, y2: y))
+      ..add((x1: pageWidth - a2, y1: y, x2: pageWidth - b2, y2: y));
   }
   return marks;
 }
@@ -306,27 +297,22 @@ List<CallingCardCutMark> callingCardCutMarks({
 const double _markGap = 3;
 const double _markLength = 11;
 
-/// The shortest mark worth printing: a 0.5 pt line this long is still easy
-/// to see and to line a ruler up with.
-const double _markMinimum = 2;
-
 /// Lays [cards] out on pages of [paper]: a grid per page with cut marks, or,
 /// for cards larger than the paper, one per page scaled to fit, turned if
-/// that prints them larger. [cardMargin] is the space inside each card
-/// before its content.
+/// that prints them larger.
 void _addSheets(
   pw.Document doc,
   List<pw.Widget> cards,
   CallingCardSize size,
   PdfPageFormat paper,
-  double cardMargin,
   CallingCardFitReport? report,
 ) {
-  // The dialog's paper carries the printer's unprintable margins; the grid
-  // is placed on the whole sheet, and only the marks keep clear of them.
-  // Capped at a quarter inch: a printer reaches at least that close to the
-  // edge, and a format that reports more is a page layout's margin (pdf's
-  // stock A4 and Letter carry 2 cm), which would leave no room for marks.
+  // The grid is placed on the whole sheet; only the marks keep clear of the
+  // edge. How far is a guess: the dialog's paper reports margins, which on
+  // most platforms are the printer's unprintable strip but on macOS are the
+  // page setup's, and pdf's stock A4 and Letter carry 2 cm. The largest of
+  // them, capped at a quarter inch, keeps marks off the strip most printers
+  // cannot reach without pushing them off the sheet.
   final page = PdfPageFormat(paper.width, paper.height);
   final printableInset = math.min(
     [
@@ -388,7 +374,6 @@ void _addSheets(
       cellHeight: cellHeight,
       columns: grid.columns,
       rows: (onPage.length / grid.columns).ceil(),
-      cardMargin: cardMargin,
       printableInset: printableInset,
     );
     doc.addPage(

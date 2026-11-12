@@ -342,22 +342,34 @@ notes label=""
     });
 
     group('cut marks', () {
-      /// Every mark keeps [inset] from the paper's edge and stays out of
-      /// every card's content, which is [cardMargin] inside its cell.
-      void expectClear(
+      /// Every mark is a full-length mark on one of the grid's cut lines,
+      /// so it never crosses a card's content, and keeps [inset] from the
+      /// paper's edge.
+      void expectOnCutLines(
         List<CallingCardCutMark> marks, {
         required double pageWidth,
         required double pageHeight,
         required double left,
         required double top,
-        required double cell,
+        required double cellWidth,
         required double cellHeight,
         required int columns,
         required int rows,
-        required double cardMargin,
         required double inset,
       }) {
+        final columnLines = [
+          for (var c = 0; c <= columns; c++) left + c * cellWidth,
+        ];
+        final rowLines = [for (var r = 0; r <= rows; r++) top + r * cellHeight];
         for (final m in marks) {
+          if (m.x1 == m.x2) {
+            expect(columnLines, contains(m.x1), reason: '$m');
+            expect((m.y2 - m.y1).abs(), closeTo(11, 1e-9), reason: '$m');
+          } else {
+            expect(m.y1, m.y2, reason: '$m is not straight');
+            expect(rowLines, contains(m.y1), reason: '$m');
+            expect((m.x2 - m.x1).abs(), closeTo(11, 1e-9), reason: '$m');
+          }
           for (final (x, y) in [(m.x1, m.y1), (m.x2, m.y2)]) {
             expect(x, inInclusiveRange(inset, pageWidth - inset), reason: '$m');
             expect(
@@ -366,83 +378,48 @@ notes label=""
               reason: '$m',
             );
           }
-          for (var c = 0; c < columns; c++) {
-            for (var r = 0; r < rows; r++) {
-              final cl = left + c * cell + cardMargin;
-              final cr = left + (c + 1) * cell - cardMargin;
-              final ct = top + r * cellHeight + cardMargin;
-              final cb = top + (r + 1) * cellHeight - cardMargin;
-              // A mark is axis-aligned: it crosses the content box only if
-              // its line runs through the box's interior.
-              final vertical = m.x1 == m.x2;
-              final crosses = vertical
-                  ? m.x1 > cl &&
-                        m.x1 < cr &&
-                        math.max(m.y1, m.y2) > ct &&
-                        math.min(m.y1, m.y2) < cb
-                  : m.y1 > ct &&
-                        m.y1 < cb &&
-                        math.max(m.x1, m.x2) > cl &&
-                        math.min(m.x1, m.x2) < cr;
-              expect(crosses, isFalse, reason: '$m crosses card ($c, $r)');
-            }
-          }
         }
       }
 
-      test('a grid that fills the page: inward, clear of the printer edge', () {
-        // A6 on A4, turned: 2 × 2 cells of 297.64 × 419.53 pt.
-        const a6w = 105 * 72 / 25.4, a6h = 148 * 72 / 25.4;
-        final left = (595.28 - 2 * a6w) / 2, top = (841.89 - 2 * a6h) / 2;
-        final marks = callingCardCutMarks(
-          pageWidth: 595.28,
-          pageHeight: 841.89,
-          left: left,
-          top: top,
-          cellWidth: a6w,
-          cellHeight: a6h,
-          columns: 2,
-          rows: 2,
-          cardMargin: 18,
-          printableInset: 12,
-        );
-        // The grid fills the page, so its outer lines are the paper's edges:
-        // only the middle column line (above and below) and the middle row
-        // line (either side) get marks.
-        expect(marks, hasLength(4));
-        expectClear(
-          marks,
-          pageWidth: 595.28,
-          pageHeight: 841.89,
-          left: left,
-          top: top,
-          cell: a6w,
-          cellHeight: a6h,
-          columns: 2,
-          rows: 2,
-          cardMargin: 18,
-          inset: 12,
-        );
-      });
+      // A6 on A4, turned: 2 × 2 cells filling the page.
+      const a6w = 105 * 72 / 25.4, a6h = 148 * 72 / 25.4;
+      final a6left = (595.28 - 2 * a6w) / 2, a6top = (841.89 - 2 * a6h) / 2;
 
-      test('no room inside a thin card margin: the marks are left out', () {
-        const a6w = 105 * 72 / 25.4, a6h = 148 * 72 / 25.4;
-        final marks = callingCardCutMarks(
-          pageWidth: 595.28,
-          pageHeight: 841.89,
-          left: (595.28 - 2 * a6w) / 2,
-          top: (841.89 - 2 * a6h) / 2,
-          cellWidth: a6w,
-          cellHeight: a6h,
-          columns: 2,
-          rows: 2,
-          cardMargin: 4,
-          printableInset: 12,
+      for (final inset in [12.0, 18.0]) {
+        test(
+          'a grid that fills the page is marked inside a $inset pt edge',
+          () {
+            final marks = callingCardCutMarks(
+              pageWidth: 595.28,
+              pageHeight: 841.89,
+              left: a6left,
+              top: a6top,
+              cellWidth: a6w,
+              cellHeight: a6h,
+              columns: 2,
+              rows: 2,
+              printableInset: inset,
+            );
+            // The outer lines are the paper's edges: only the middle column
+            // line (above and below) and the middle row line (either side).
+            expect(marks, hasLength(4));
+            expectOnCutLines(
+              marks,
+              pageWidth: 595.28,
+              pageHeight: 841.89,
+              left: a6left,
+              top: a6top,
+              cellWidth: a6w,
+              cellHeight: a6h,
+              columns: 2,
+              rows: 2,
+              inset: inset,
+            );
+          },
         );
-        expect(marks, isEmpty);
-      });
+      }
 
-      test('room around the grid: the marks sit outside it', () {
+      test('room around the grid: full marks outside it', () {
         // 3 × 5 in cards turned on Letter: 2 × 2 cells of 216 × 360 pt.
         const left = (612 - 432) / 2, top = (792 - 720) / 2;
         final marks = callingCardCutMarks(
@@ -454,7 +431,6 @@ notes label=""
           cellHeight: 360,
           columns: 2,
           rows: 2,
-          cardMargin: 0,
           printableInset: 12,
         );
         expect(marks, hasLength(12));
@@ -466,18 +442,46 @@ notes label=""
               math.min(m.x1, m.x2) >= left + 432;
           expect(outside, isTrue, reason: '$m');
         }
-        expectClear(
+        expectOnCutLines(
           marks,
           pageWidth: 612,
           pageHeight: 792,
           left: left,
           top: top,
-          cell: 216,
+          cellWidth: 216,
           cellHeight: 360,
           columns: 2,
           rows: 2,
-          cardMargin: 0,
           inset: 12,
+        );
+      });
+
+      test('too little room outside for a full mark: inward instead', () {
+        // 23 pt from an 18 pt inset leaves 2 pt outside; the marks run in.
+        final marks = callingCardCutMarks(
+          pageWidth: 600,
+          pageHeight: 600,
+          left: 23,
+          top: 23,
+          cellWidth: 277,
+          cellHeight: 277,
+          columns: 2,
+          rows: 2,
+          printableInset: 18,
+        );
+        expect(marks, hasLength(12));
+        expect(marks.first.y1, 23, reason: 'starts at the grid edge');
+        expectOnCutLines(
+          marks,
+          pageWidth: 600,
+          pageHeight: 600,
+          left: 23,
+          top: 23,
+          cellWidth: 277,
+          cellHeight: 277,
+          columns: 2,
+          rows: 2,
+          inset: 18,
         );
       });
     });
