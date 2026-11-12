@@ -102,7 +102,8 @@ Future<void> _expectEllipsizedClosedReadableOpen(
   _expectNoOverflow(tester);
 }
 
-/// Every `Text` inside the open menu's items must lay out in full.
+/// Every `Text` inside the open menu's items must lay out in full and be
+/// allowed to wrap (no ellipsis, no line cap).
 void _expectMenuItemsUnclipped<T>(WidgetTester tester) {
   final texts = find.descendant(
     of: find.byType(DropdownMenuItem<T>),
@@ -114,6 +115,11 @@ void _expectMenuItemsUnclipped<T>(WidgetTester tester) {
       find.byWidget(element.widget),
     );
     expect(paragraph.didExceedMaxLines, isFalse);
+    // A label that happens to fit must still be free to wrap: a menu item that
+    // ellipsizes would silently truncate a longer translation or larger text.
+    final text = element.widget as Text;
+    expect(text.overflow, isNot(TextOverflow.ellipsis));
+    expect(text.maxLines, isNull);
   }
 }
 
