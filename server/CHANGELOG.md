@@ -8,6 +8,8 @@ the app and of `compendium_core`; version headings below refer to
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-12
+
 ### Added
 
 - `--break-glass` can read one blob through the audited command
