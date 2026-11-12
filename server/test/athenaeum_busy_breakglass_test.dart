@@ -74,7 +74,10 @@ void main() {
 
     final store = AthenaeumStore.breakGlass(config: config);
     addTearDown(store.close);
-    store.recordBreakGlassAccess(syncId);
+    store.recordBreakGlassRead(
+      syncId,
+      BreakGlassRead.manifest(deviceId: 'device-one'),
+    );
     final current = store.lookup(idKey());
     expect(current?.epoch, seeded.epoch);
     expect(store.manifest(idKey(), seeded.epoch, 'device-one'), isNotNull);
@@ -89,7 +92,10 @@ void main() {
     seedUnindexedStore().server.close();
     final store = AthenaeumStore.breakGlass(config: config);
     addTearDown(store.close);
-    store.recordBreakGlassAccess(syncId);
+    store.recordBreakGlassRead(
+      syncId,
+      BreakGlassRead.manifest(deviceId: 'device-one'),
+    );
 
     final log = sqlite3.open(
       '${dataDirectory.path}/athenaeum-break-glass.sqlite',

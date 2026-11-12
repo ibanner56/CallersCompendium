@@ -554,7 +554,10 @@ void main() {
     });
 
     const syncId = 'café-horse-battery-staple';
-    store.recordBreakGlassAccess(syncId);
+    store.recordBreakGlassRead(
+      syncId,
+      BreakGlassRead.manifest(deviceId: 'device-one'),
+    );
     final rows = breakGlassDatabase.select(
       'SELECT id_key, accessed_at FROM break_glass_access',
     );
@@ -1763,8 +1766,9 @@ void main() {
         Uint8List.fromList([0]),
       ],
     );
-    store.recordBreakGlassAccess(
+    store.recordBreakGlassRead(
       'café-horse-battery-staple',
+      BreakGlassRead.manifest(deviceId: 'device-one'),
       accessedAt: now.subtract(const Duration(days: 31)),
     );
     store.recordDiagnostic(

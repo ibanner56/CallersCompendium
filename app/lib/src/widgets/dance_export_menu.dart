@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/calling_card_settings_scope.dart';
 import '../data/user_figures_scope.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
 import '../export/json_export.dart';
@@ -11,13 +12,21 @@ import 'dance_export_actions.dart';
 export 'dance_export_actions.dart' show PdfLayouter, ShareInvoker;
 
 /// Actions offered by the [DanceExportMenu].
-enum _ExportAction { shareText, shareBundle, copyText, shareJson, pdf }
+enum _ExportAction {
+  shareText,
+  shareBundle,
+  copyText,
+  shareJson,
+  pdf,
+  callingCard,
+}
 
 /// A labeled, keyboard-reachable print/share control for a single [Dance]
 /// (`docs/design/ux.md` §2 dance-detail actions).
 ///
 /// Mirrors the program-level [ProgramExportMenu]: a [PopupMenuButton] (icon +
-/// tooltip "Export") with five actions, all implemented by
+/// tooltip "Export") with five actions (six with calling cards on), all
+/// implemented by
 /// [DanceExportActions]:
 /// - **Share dance (text)** — the shareable plain-text card, via the OS share
 ///   sheet (`share_plus`).
@@ -29,6 +38,8 @@ enum _ExportAction { shareText, shareBundle, copyText, shareJson, pdf }
 ///   choice.
 /// - **Export / print PDF** — hands a generated PDF to the OS print/save dialog
 ///   (`printing`).
+/// - **Print calling card** — only while Settings › Experimental › Calling
+///   cards is on: the dance as one small card at the card's own size.
 ///
 /// The card is rendered **dialect-aware** and privacy-safe: the caller resolves
 /// author [authorNames] and the facet label strings, so no choreographer
@@ -143,12 +154,19 @@ class DanceExportMenu extends StatelessWidget {
         await actions.exportJson(context, messenger, l10n, origin: origin);
       case _ExportAction.pdf:
         await actions.exportPdf(messenger, l10n);
+      case _ExportAction.callingCard:
+        await actions.printCallingCard(
+          messenger,
+          l10n,
+          CallingCardSettingsScope.of(context),
+        );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final callingCards = CallingCardSettingsScope.of(context).enabled;
     return PopupMenuButton<_ExportAction>(
       key: const ValueKey('dance-export-menu'),
       tooltip: l10n.exportTooltip,
@@ -203,6 +221,16 @@ class DanceExportMenu extends StatelessWidget {
             contentPadding: EdgeInsets.zero,
           ),
         ),
+        if (callingCards)
+          PopupMenuItem<_ExportAction>(
+            key: const ValueKey('dance-export-calling-card'),
+            value: _ExportAction.callingCard,
+            child: ListTile(
+              leading: const Icon(Icons.style_outlined),
+              title: Text(l10n.exportPrintCallingCard),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
       ],
     );
   }

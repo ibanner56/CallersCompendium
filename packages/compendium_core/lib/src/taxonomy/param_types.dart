@@ -31,6 +31,11 @@ enum ParamKind {
   /// by name.
   places,
 
+  /// A plain whole number, 0–99, worded as the digits alone: no "place(s)",
+  /// "change(s)" or other unit. For a figure of your own whose count is not a
+  /// distance around a ring, where [places] would add its own word.
+  number,
+
   /// `quarter` / `half` / `threeQuarter` / `full` / `other` (figure 8,
   /// poussette). `other` means "an amount none of the named values states":
   /// the amount itself lives in the move's sibling `amount` param
@@ -410,6 +415,8 @@ class ParamSpec {
             (value * 4) % 1 == 0;
       case ParamKind.places:
         return value is int && value >= 1 && value <= 10;
+      case ParamKind.number:
+        return value is int && value >= 0 && value <= 99;
       case ParamKind.fraction:
         return value is String &&
             (choices ?? ParamVocab.fractions).contains(value);

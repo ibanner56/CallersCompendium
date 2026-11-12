@@ -141,13 +141,7 @@ class AthenaeumStore {
       'CREATE INDEX IF NOT EXISTS manifest_refs_hash_idx '
       'ON manifest_refs (id_key, epoch, hash)',
     );
-    for (final table in breakGlassTableSchemas) {
-      _breakGlassDatabase.execute(table.createSql());
-    }
-    _breakGlassDatabase.execute(
-      'CREATE INDEX IF NOT EXISTS break_glass_access_linkable_idx '
-      'ON break_glass_access (accessed_at) WHERE id_key IS NOT NULL',
-    );
+    _createBreakGlassSchema(_breakGlassDatabase);
     for (final table in diagnosticTableSchemas) {
       _diagnosticDatabase.execute(table.createSql());
     }
@@ -167,11 +161,12 @@ class AthenaeumStore {
   /// opened `OpenMode.readOnly`, and none of the full constructor's startup
   /// work runs (no schema or index creation, no manifest indexing, no orphan
   /// blob reconcile, no pending-deletion retry). Under WAL a reader never
-  /// blocks the server's writer. Only `lookup` and `manifest` are meant to be
-  /// called on it; any write to the store database throws.
+  /// blocks the server's writer. Only the reads `runBreakGlass` makes
+  /// (`lookup`, `manifest`, `breakGlassBlob`) are meant to be called on it; any
+  /// write to the store database throws.
   ///
   /// The break-glass log database stays writable, because
-  /// [recordBreakGlassAccess] must still record the access there. The
+  /// [recordBreakGlassRead] must still record the access there. The
   /// diagnostics database is not opened at all (an in-memory stand-in keeps
   /// the field non-null), so the live one is never touched.
   ///
@@ -196,13 +191,7 @@ class AthenaeumStore {
     _breakGlassDatabase.execute(
       'PRAGMA busy_timeout = $athenaeumSqliteBusyTimeoutMs',
     );
-    for (final table in breakGlassTableSchemas) {
-      _breakGlassDatabase.execute(table.createSql());
-    }
-    _breakGlassDatabase.execute(
-      'CREATE INDEX IF NOT EXISTS break_glass_access_linkable_idx '
-      'ON break_glass_access (accessed_at) WHERE id_key IS NOT NULL',
-    );
+    _createBreakGlassSchema(_breakGlassDatabase);
   }
 
   final AthenaeumConfig config;
@@ -247,6 +236,20 @@ class AthenaeumStore {
   static sqlite3.Database _openDatabase(String dataDirectory) {
     Directory(dataDirectory).createSync(recursive: true);
     return sqlite3.sqlite3.open(p.join(dataDirectory, 'athenaeum.sqlite'));
+  }
+
+  static void _createBreakGlassSchema(sqlite3.Database database) {
+    for (final table in breakGlassTableSchemas) {
+      database.execute(table.createSql());
+    }
+    database.execute(
+      'CREATE INDEX IF NOT EXISTS break_glass_access_linkable_idx '
+      'ON break_glass_access (accessed_at) WHERE id_key IS NOT NULL',
+    );
+    database.execute(
+      'CREATE INDEX IF NOT EXISTS break_glass_reads_linkable_idx '
+      'ON break_glass_reads (accessed_at) WHERE id_key IS NOT NULL',
+    );
   }
 
   static sqlite3.Database _openBreakGlassDatabase(String dataDirectory) {
@@ -1198,14 +1201,72 @@ class AthenaeumStore {
     return usage;
   }
 
-  void recordBreakGlassAccess(String syncId, {DateTime? accessedAt}) {
+  /// Audits one `--break-glass` read before it happens: the store's
+  /// `break_glass_access` row and a `break_glass_reads` row naming what is
+  /// about to be read, in one transaction, so a failure records neither. The
+  /// caller must not read anything unless this returns.
+  ///
+  /// [BreakGlassRead.epoch] may be null, meaning "the store's current epoch",
+  /// which is not known until the store is looked up; the caller then records
+  /// it with [resolveBreakGlassReadEpoch] before reading. Returns the read
+  /// row's id for that call.
+  int recordBreakGlassRead(
+    String syncId,
+    BreakGlassRead read, {
+    DateTime? accessedAt,
+  }) {
     final now = accessedAt ?? _clock();
     purgeExpiredBreakGlassAccess(now: now);
     final idKey = deriveIncomingSyncIdKey(syncId, config.pepper);
+    final at = now.millisecondsSinceEpoch ~/ 1000;
+    var inTransaction = false;
+    try {
+      _breakGlassDatabase.execute('BEGIN IMMEDIATE');
+      inTransaction = true;
+      _breakGlassDatabase.execute(
+        'INSERT INTO break_glass_access (id_key, accessed_at) VALUES (?, ?)',
+        [idKey, at],
+      );
+      _breakGlassDatabase.execute(
+        'INSERT INTO break_glass_reads '
+        '(kind, id_key, epoch, device_id, hash, accessed_at) '
+        'VALUES (?, ?, ?, ?, ?, ?)',
+        [read.kind.name, idKey, read.epoch, read.deviceId, read.hash, at],
+      );
+      final id = _breakGlassDatabase.lastInsertRowId;
+      _breakGlassDatabase.execute('COMMIT');
+      inTransaction = false;
+      return id;
+    } catch (_) {
+      try {
+        if (inTransaction) _breakGlassDatabase.execute('ROLLBACK');
+      } finally {
+        rethrow;
+      }
+    }
+  }
+
+  /// Records the epoch a [recordBreakGlassRead] row with no epoch resolved
+  /// to. Throws unless exactly that row was updated.
+  void resolveBreakGlassReadEpoch(int readId, String epoch) {
     _breakGlassDatabase.execute(
-      'INSERT INTO break_glass_access (id_key, accessed_at) VALUES (?, ?)',
-      [idKey, now.millisecondsSinceEpoch ~/ 1000],
+      'UPDATE break_glass_reads SET epoch = ? '
+      'WHERE rowid = ? AND epoch IS NULL AND id_key IS NOT NULL',
+      [epoch, readId],
     );
+    if (_breakGlassDatabase.updatedRows != 1) {
+      throw StateError('break-glass read row not updated');
+    }
+  }
+
+  /// A blob's bytes for `--break-glass`, or null when [epoch] holds no
+  /// reference to [hash] or its file is missing. Reads only; the server's
+  /// `GET /v1/blobs/{hash}` applies the same two checks.
+  Uint8List? breakGlassBlob(String idKey, String epoch, String hash) {
+    if (blobRef(idKey, epoch, hash) == null) return null;
+    final file = blobFile(idKey, epoch, hash);
+    if (!file.existsSync()) return null;
+    return file.readAsBytesSync();
   }
 
   void recordDiagnostic({
@@ -1252,11 +1313,32 @@ class AthenaeumStore {
             .subtract(breakGlassLinkabilityPeriod)
             .millisecondsSinceEpoch ~/
         1000;
-    _breakGlassDatabase.execute(
-      'UPDATE break_glass_access SET id_key = NULL '
-      'WHERE id_key IS NOT NULL AND accessed_at < ?',
-      [cutoff],
-    );
+    // One transaction, so an access row is never unlinked while the reads it
+    // made still carry its key.
+    var inTransaction = false;
+    try {
+      _breakGlassDatabase.execute('BEGIN IMMEDIATE');
+      inTransaction = true;
+      _breakGlassDatabase.execute(
+        'UPDATE break_glass_access SET id_key = NULL '
+        'WHERE id_key IS NOT NULL AND accessed_at < ?',
+        [cutoff],
+      );
+      _breakGlassDatabase.execute(
+        'UPDATE break_glass_reads '
+        'SET id_key = NULL, epoch = NULL, device_id = NULL, hash = NULL '
+        'WHERE id_key IS NOT NULL AND accessed_at < ?',
+        [cutoff],
+      );
+      _breakGlassDatabase.execute('COMMIT');
+      inTransaction = false;
+    } catch (_) {
+      try {
+        if (inTransaction) _breakGlassDatabase.execute('ROLLBACK');
+      } finally {
+        rethrow;
+      }
+    }
   }
 
   bool putBlob({
@@ -1915,6 +1997,41 @@ class AthenaeumStore {
     final random = Random.secure();
     final bytes = List<int>.generate(16, (_) => random.nextInt(256));
     return bytes.map((byte) => byte.toRadixString(16).padLeft(2, '0')).join();
+  }
+}
+
+/// What one `--break-glass` invocation reads.
+enum BreakGlassReadKind { manifest, blob }
+
+/// One item a `--break-glass` invocation reads, as its audit row records it.
+class BreakGlassRead {
+  /// One device's manifest. A null [epoch] means the store's current epoch.
+  BreakGlassRead.manifest({required String this.deviceId, this.epoch})
+    : kind = BreakGlassReadKind.manifest,
+      hash = null {
+    AthenaeumStore.validateDeviceId(deviceId!);
+    _validateEpoch(epoch);
+  }
+
+  /// One blob's bytes. A null [epoch] means the store's current epoch.
+  BreakGlassRead.blob({required String this.hash, this.epoch})
+    : kind = BreakGlassReadKind.blob,
+      deviceId = null {
+    if (!_hashPattern.hasMatch(hash!)) {
+      throw const FormatException('invalid blob hash');
+    }
+    _validateEpoch(epoch);
+  }
+
+  final BreakGlassReadKind kind;
+  final String? deviceId;
+  final String? hash;
+  final String? epoch;
+
+  static void _validateEpoch(String? epoch) {
+    if (epoch != null && !_epochPattern.hasMatch(epoch)) {
+      throw const FormatException('invalid epoch');
+    }
   }
 }
 

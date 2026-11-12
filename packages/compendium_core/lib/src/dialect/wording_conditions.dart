@@ -693,6 +693,7 @@ WordingNameKind wordingNameKind(ParamSpec? spec) => switch (spec?.kind) {
   ParamKind.text => WordingNameKind.text,
   ParamKind.rotation ||
   ParamKind.places ||
+  ParamKind.number ||
   ParamKind.beats => WordingNameKind.number,
   _ => WordingNameKind.choices,
 };
@@ -2883,6 +2884,7 @@ final class _DisplayReader {
   (num, num) _rangeOf(WordingName info) => switch (info.spec?.kind) {
     ParamKind.rotation => (0.25, 2.5),
     ParamKind.places => (1, 10),
+    ParamKind.number => (0, 99),
     _ => (0, 64),
   };
 

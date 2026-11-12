@@ -11471,6 +11471,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get compoundParamKindPlaces => 'Plätze';
 
   @override
+  String get compoundParamKindNumber => 'Zahl';
+
+  @override
   String get compoundParamKindBeats => 'Schläge';
 
   @override
@@ -11774,5 +11777,317 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String wordingIssueTooManyNots(String max) {
     return 'Diese Bedingung verschachtelt zu viele „not“ ineinander: höchstens $max. Entferne einige: Zwei „not“ hintereinander heben sich auf.';
+  }
+
+  @override
+  String get settingsCallingCardsHeader => 'Calling-Karten';
+
+  @override
+  String get settingsCallingCardsEnableTitle => 'Calling-Karten drucken';
+
+  @override
+  String get settingsCallingCardsEnableSubtitle =>
+      'Fügt dem Exportmenü eines Tanzes „Calling-Karte drucken“ hinzu und dem eines Programms „Calling-Karten drucken“: eine kleine Karte pro Tanz, gestaltet wie unten festgelegt.';
+
+  @override
+  String get settingsCallingCardsSizeTitle => 'Kartengröße';
+
+  @override
+  String settingsCallingCardsSizeIndexCard(String size) {
+    return 'Karteikarte, $size';
+  }
+
+  @override
+  String settingsCallingCardsSizeIsoA(String name, String size) {
+    return '$name ($size)';
+  }
+
+  @override
+  String settingsCallingCardsSizeInches(String width, String height) {
+    return '$width × $height in';
+  }
+
+  @override
+  String settingsCallingCardsSizeMillimetres(String width, String height) {
+    return '$width × $height mm';
+  }
+
+  @override
+  String get settingsCallingCardsSizeCustom => 'Eigene Größe';
+
+  @override
+  String get settingsCallingCardsWidthLabel => 'Breite';
+
+  @override
+  String get settingsCallingCardsHeightLabel => 'Höhe';
+
+  @override
+  String get settingsCallingCardsUnitInches => 'Zoll';
+
+  @override
+  String get settingsCallingCardsUnitMillimetres => 'Millimeter';
+
+  @override
+  String get settingsCallingCardsSizeInvalid =>
+      'Jede Seite muss zwischen 1 und 14 Zoll (26 bis 355 mm) liegen.';
+
+  @override
+  String get settingsCallingCardsLandscapeTitle => 'Querformat';
+
+  @override
+  String get settingsCallingCardsLandscapeSubtitle =>
+      'Mit der langen Seite oben drucken.';
+
+  @override
+  String get settingsCallingCardsLayoutTitle => 'Kartenlayout';
+
+  @override
+  String get settingsCallingCardsLayoutSubtitle =>
+      'Wählen, was auf jede Karte kommt, und wohin.';
+
+  @override
+  String get callingCardEditorTitle => 'Layout der Calling-Karte';
+
+  @override
+  String get callingCardEditorFieldLabel => 'Layout';
+
+  @override
+  String get callingCardEditorAutosaveHint =>
+      'Änderungen werden beim Tippen gespeichert.';
+
+  @override
+  String get callingCardEditorReset => 'Auf Standard zurücksetzen';
+
+  @override
+  String get callingCardEditorResetConfirmTitle => 'Layout zurücksetzen?';
+
+  @override
+  String get callingCardEditorResetConfirmBody =>
+      'Dein Layout wird durch das Standardlayout ersetzt.';
+
+  @override
+  String get callingCardEditorReplaced => 'Layout ersetzt.';
+
+  @override
+  String get callingCardEditorPreviewTitle => 'Vorschau';
+
+  @override
+  String callingCardEditorPreviewCaption(String size) {
+    return 'Ein Beispieltanz auf einer Karte von $size.';
+  }
+
+  @override
+  String get callingCardEditorPreviewError =>
+      'Die Vorschau konnte nicht gezeichnet werden.';
+
+  @override
+  String callingCardEditorPreviewShrunk(int percent) {
+    return 'Der Text wird auf $percent % verkleinert, damit er auf diese Karte passt.';
+  }
+
+  @override
+  String get callingCardEditorPreviewOverflow =>
+      'Diese Karte passt nicht einmal in halber Größe, daher ist ihr unteres Ende abgeschnitten. Nimm einen Block heraus oder ergänze lines= bei einem langen.';
+
+  @override
+  String get callingCardEditorIssuesTitle =>
+      'Zeilen, die nicht gelesen werden konnten';
+
+  @override
+  String callingCardIssueUnknownBlock(int line, String name) {
+    return 'Zeile $line: „$name“ ist kein Block. Die Blöcke stehen unter „So schreibst du ein Layout“.';
+  }
+
+  @override
+  String callingCardIssueUnknownOption(int line, String name) {
+    return 'Zeile $line: Dieser Block hat keine Option „$name“.';
+  }
+
+  @override
+  String callingCardIssueBadValue(int line, String option, String value) {
+    return 'Zeile $line: „$value“ passt nicht zu $option.';
+  }
+
+  @override
+  String callingCardIssueUnclosedQuote(int line) {
+    return 'Zeile $line: Ein Anführungszeichen wird nie geschlossen, daher wird die ganze Zeile übersprungen.';
+  }
+
+  @override
+  String callingCardIssueMissingText(int line) {
+    return 'Zeile $line: text braucht Wörter in Anführungszeichen, etwa text \"Called by me\".';
+  }
+
+  @override
+  String callingCardIssueCardNotAlone(int line) {
+    return 'Zeile $line: card legt die ganze Karte fest und braucht daher eine eigene Zeile.';
+  }
+
+  @override
+  String callingCardIssueEmptyBlock(int line) {
+    return 'Zeile $line: Auf einer Seite eines | steht nichts.';
+  }
+
+  @override
+  String get callingCardHelpTitle => 'So schreibst du ein Layout';
+
+  @override
+  String get callingCardHelpIntro =>
+      'Jede Zeile ist eine Reihe der Karte, von oben nach unten. Beginne die Zeile mit dem Namen eines Blocks und füge danach Optionen hinzu. Setze | zwischen Blöcke, um sie nebeneinander zu stellen. Eine Zeile, die mit # beginnt, ist eine Notiz für dich und wird nicht gedruckt.';
+
+  @override
+  String get callingCardHelpFields =>
+      'Ein Block druckt nur, was der Tanz hat, und nur Felder, die unter Einstellungen › Standardwerte › Geteilte Tanzfelder eingeschaltet sind. Eine Reihe ohne Inhalt nimmt keinen Platz ein. Ist eine Karte zu voll, wird alles darauf gleichmäßig verkleinert, bis zur halben Größe.';
+
+  @override
+  String get callingCardHelpTapToInsert =>
+      'Tippe auf einen Namen, um ihn deinem Layout hinzuzufügen.';
+
+  @override
+  String get callingCardHelpBlocksTitle => 'Blöcke';
+
+  @override
+  String get callingCardHelpOptionsTitle => 'Optionen';
+
+  @override
+  String get callingCardHelpExamplesTitle => 'Beispiele';
+
+  @override
+  String get callingCardHelpExampleUse => 'Dieses Layout verwenden';
+
+  @override
+  String get callingCardHelpBlockTitle => 'Der Titel des Tanzes.';
+
+  @override
+  String get callingCardHelpBlockAuthors => 'Wer den Tanz geschrieben hat.';
+
+  @override
+  String get callingCardHelpBlockFormation =>
+      'Die Aufstellung, etwa Improper oder Becket.';
+
+  @override
+  String get callingCardHelpBlockLevel => 'Das Niveau des Tanzes.';
+
+  @override
+  String get callingCardHelpBlockMeta =>
+      'Aufstellung, Niveau, Mixer, Status und Phrase in einer Zeile, jeweils mit Bezeichnung.';
+
+  @override
+  String get callingCardHelpBlockFigures =>
+      'Die Figuren, nach Phrasen gruppiert (A1, A2, B1, B2), mit ihren Takten.';
+
+  @override
+  String get callingCardHelpBlockNotes => 'Deine Calling-Notizen.';
+
+  @override
+  String get callingCardHelpBlockWalkthrough => 'Der Walkthrough.';
+
+  @override
+  String get callingCardHelpBlockHook => 'Der Hook des Tanzes.';
+
+  @override
+  String get callingCardHelpBlockTunes => 'Vorgeschlagene Melodien.';
+
+  @override
+  String get callingCardHelpBlockSources => 'Veröffentlichte Quellen.';
+
+  @override
+  String get callingCardHelpBlockProgram =>
+      'Der Titel des Programms, wenn du ein Programm druckst.';
+
+  @override
+  String get callingCardHelpBlockNumber =>
+      'Die Stelle des Tanzes im Programm (1, 2, 3 oder Alternativ), wenn du ein Programm druckst.';
+
+  @override
+  String get callingCardHelpBlockText => 'Eigene Wörter, in Anführungszeichen.';
+
+  @override
+  String get callingCardHelpBlockRule => 'Eine Linie quer über die Karte.';
+
+  @override
+  String get callingCardHelpBlockSpace =>
+      'Ein Abstand, in Punkt (72 pro Zoll).';
+
+  @override
+  String get callingCardHelpBlockCard =>
+      'Einstellungen für die ganze Karte: margin ist der Abstand zum Rand, in Punkt.';
+
+  @override
+  String get callingCardHelpOptionSize => 'Textgröße, in Punkt.';
+
+  @override
+  String get callingCardHelpOptionStyle => 'Fetter oder schräger Text.';
+
+  @override
+  String get callingCardHelpOptionAlign => 'Wo der Text in seinem Platz steht.';
+
+  @override
+  String get callingCardHelpOptionColor =>
+      'Text- oder Linienfarbe, als Hex-Code.';
+
+  @override
+  String get callingCardHelpOptionLines =>
+      'Höchstens so viele Zeilen eines langen Blocks drucken.';
+
+  @override
+  String get callingCardHelpOptionLabel =>
+      'Wörter vor dem Text. label=\"\" druckt keine.';
+
+  @override
+  String get callingCardHelpOptionWidth =>
+      'In einer Reihe nimmt ein Block mit width=2 doppelt so viel Platz ein wie einer mit width=1.';
+
+  @override
+  String get callingCardHelpOptionFigures =>
+      'Für figures: die Takte, die eigenen Notizen der Figuren, die Phrasennamen oder die Linien zwischen den Phrasen weglassen.';
+
+  @override
+  String get callingCardHelpOptionThickness =>
+      'Wie dick eine Linie ist, in Punkt.';
+
+  @override
+  String get callingCardExampleClassic => 'Klassisch';
+
+  @override
+  String get callingCardExampleBigPrint => 'Große Schrift';
+
+  @override
+  String get callingCardExampleProgram => 'Programmabend';
+
+  @override
+  String get callingCardExampleTeaching => 'Lernkarte';
+
+  @override
+  String get callingCardSampleTitle => 'Beispiel-Contra';
+
+  @override
+  String get callingCardSampleAuthor => 'A. Caller';
+
+  @override
+  String get callingCardSampleNotes =>
+      'Zum Weiterrücken entlang der Reihe nach links gleiten.';
+
+  @override
+  String get callingCardSampleFigureNote => 'Für die ganze Drehung festhalten.';
+
+  @override
+  String get callingCardSampleProgram => 'Tanzabend am Freitag';
+
+  @override
+  String get exportPrintCallingCard => 'Calling-Karte drucken';
+
+  @override
+  String get exportPrintCallingCards => 'Calling-Karten drucken';
+
+  @override
+  String exportCallingCardsCutOff(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Karten haben nicht gepasst und sind unten abgeschnitten.',
+      one: '1 Karte hat nicht gepasst und ist unten abgeschnitten.',
+    );
+    return '$_temp0';
   }
 }

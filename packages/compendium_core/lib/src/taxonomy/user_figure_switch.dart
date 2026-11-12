@@ -79,6 +79,7 @@ List<String>? _wordValues(ParamSpec spec) => switch (spec.kind) {
   ParamKind.choice => spec.choices ?? const [],
   ParamKind.rotation ||
   ParamKind.places ||
+  ParamKind.number ||
   ParamKind.beats ||
   ParamKind.text ||
   ParamKind.flag => null,

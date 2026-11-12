@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/user_figures_scope.dart';
 import '../data/active_dialect_scope.dart';
+import '../data/calling_card_settings_scope.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/collection_filter_scope.dart';
 import '../data/dance_share_fields_scope.dart';
@@ -771,6 +772,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     final canonicalizeDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
       context,
     );
+    final callingCards = CallingCardSettingsScope.of(context);
     final exportActions = DanceExportActions(
       dance: detail.dance,
       dialect: dialect,
@@ -888,6 +890,17 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
             contentPadding: EdgeInsets.zero,
           ),
         ),
+        if (callingCards.enabled)
+          PopupMenuItem<void>(
+            key: const ValueKey('overflow-calling-card'),
+            onTap: () =>
+                exportActions.printCallingCard(messenger, l10n, callingCards),
+            child: ListTile(
+              leading: const Icon(Icons.style_outlined),
+              title: Text(l10n.exportPrintCallingCard),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
         const PopupMenuDivider(),
         if (widget.onReimport != null)
           PopupMenuItem<void>(

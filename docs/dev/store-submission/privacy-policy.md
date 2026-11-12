@@ -72,9 +72,13 @@ about you or your device.
 
 The service operator can read the plaintext synchronized store if they choose to.
 A break-glass access path exists for abuse investigations, and every use is
-logged. The derived sync storage path in that log becomes eligible for nulling
-after 30 days of access and is nulled by the next hourly sweep; after that it
-becomes a timestamp-only aggregate row. Ordinary diagnostic events that contain
+logged before anything is read, including what it reads: which device's index
+of synced items, or which synced item by a hash of its content, but never the
+content itself. The derived sync storage path, the store version, the device
+identifier and the content hash in that log become eligible for nulling after 30
+days of access and are nulled by the next hourly sweep; after that each use
+becomes a timestamp-only aggregate row, and each item requested keeps only its
+time and whether it was an index or an item. Ordinary diagnostic events that contain
 store-derived metadata become eligible for removal after 30 days and are
 removed by the next hourly sweep. They never include request bodies, record
 content, or sync phrases.
@@ -160,11 +164,12 @@ reaps it after 30 days of disuse. Unreferenced uploads are protected for 24 hour
 they can still be published, but deleting the store requests immediate removal.
 If physical removal fails, a durable cleanup record retries it on later requests
 and hourly sweeps.
-The access log's derived sync storage path becomes eligible for nulling 30 days
-after access and is nulled by the next hourly sweep; it retains a timestamp-only
-aggregate row after that. Ordinary diagnostic events become eligible for
-removal after 30 days and are removed by the next hourly sweep. They contain no
-content or sync phrases.
+The access log's derived sync storage path, and the identifiers of what was
+requested, become eligible for nulling 30 days after access and are nulled by the
+next hourly sweep; it retains a timestamp-only aggregate row after that, and
+for each item requested only its time and kind. Ordinary diagnostic events
+become eligible for removal after 30 days and are removed by the next hourly
+sweep. They contain no content or sync phrases.
 
 ### 8. Open source
 

@@ -1466,7 +1466,10 @@ class FigureRenderer {
           WordingValueWords(1, 'once'),
           WordingValueWords(2, 'twice'),
         ];
-      case ParamKind.places || ParamKind.beats || ParamKind.text:
+      case ParamKind.places ||
+          ParamKind.number ||
+          ParamKind.beats ||
+          ParamKind.text:
       case ParamKind.flag:
         return const [];
       case ParamKind.dancerSet || ParamKind.dancerPair:

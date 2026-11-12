@@ -72,6 +72,7 @@ searchKeywords: [allemande, almond]
 | spinDirection | clockwise, counterclockwise | |
 | rotation | 0.25 … 2.5 in quarter steps | replaces ContraDB degrees (90–900) |
 | places | 1 … 10 int | ring/star travel; replaces ContraDB degrees; renders "N places" |
+| number | 0 … 99 int | a plain count for a figure of your own; renders the digits alone, no unit word (user figures only, no built-in move uses it) |
 | fraction | 1/4, 1/2, 3/4, full, other | figure 8, poussette; `other` states its amount in the move's `amount` param (v39) |
 | beats | 0–64 int | 0 allowed for formation labels |
 | direction | along, across, rightDiagonal, leftDiagonal, in, out, up, down | |

@@ -1,0 +1,9 @@
+{
+  "id": "breakglass-audited-reads",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "The privacy policy and the break-glass access record now say that a Device Sync operator's break-glass access logs what it reads — which device's index of synced items, or which synced item by a hash of its content — before reading it, and never the content itself. Those identifiers, and the store version, are removed from the log after 30 days, the same as the sync storage path."
+    ]
+  }
+}

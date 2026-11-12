@@ -76,6 +76,18 @@ const List<AthenaeumTableSchema> breakGlassTableSchemas = [
     'id_key': 'TEXT',
     'accessed_at': 'INTEGER NOT NULL',
   }),
+  // What one `--break-glass` invocation read: a manifest (`device_id`) or a
+  // blob (`hash`), in `epoch`. Written with its `break_glass_access` row before
+  // any byte is read. Never holds content. The retention sweep nulls every
+  // column but `kind` and `accessed_at` with the access row's `id_key`.
+  AthenaeumTableSchema('break_glass_reads', {
+    'kind': 'TEXT NOT NULL',
+    'id_key': 'TEXT',
+    'epoch': 'TEXT',
+    'device_id': 'TEXT',
+    'hash': 'TEXT',
+    'accessed_at': 'INTEGER NOT NULL',
+  }),
 ];
 
 const List<AthenaeumTableSchema> diagnosticTableSchemas = [

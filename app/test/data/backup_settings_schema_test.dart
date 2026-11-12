@@ -9,6 +9,8 @@ import 'package:compendium_app/src/data/show_glossary_scope.dart'
 import 'package:compendium_app/src/data/backup_service.dart'
     show isBackupEligibleSettingKey;
 import 'package:compendium_app/src/data/backup_settings_schema.dart';
+import 'package:compendium_app/src/data/calling_card_settings_scope.dart';
+import 'package:compendium_app/src/export/calling_card_layout.dart';
 import 'package:compendium_app/src/data/seed_service.dart'
     show kInitialSeedCompletedKey;
 import 'package:compendium_app/src/data/display_defaults.dart'
@@ -104,6 +106,29 @@ void main() {
         validateBackupSettingValue(kShowProgramSlotCallerNotesKey, null),
         isFalse,
       );
+    });
+
+    test('calling-card settings accept only a value read as written', () {
+      final good = const CallingCardSettings(
+        enabled: true,
+        size: CallingCardSize(105, 148, CallingCardUnit.millimetre),
+        layout: 'title',
+      ).toJson();
+      expect(validateBackupSettingValue(kCallingCardSettingsKey, good), isTrue);
+      for (final bad in <Object?>[
+        null,
+        'calling cards',
+        {...good, 'enabled': 'yes'},
+        {...good, 'width': 1},
+        {...good, 'unit': 'cm'},
+        {...good, 'layout': 3},
+      ]) {
+        expect(
+          validateBackupSettingValue(kCallingCardSettingsKey, bad),
+          isFalse,
+          reason: '$bad',
+        );
+      }
     });
 
     test('bool keys accept only bools', () {
