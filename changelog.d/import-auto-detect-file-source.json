@@ -1,0 +1,9 @@
+{
+  "id": "import-auto-detect-file-source",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "Choosing a .ccshare or .usr file in Import now switches the import source to match, so you no longer have to change it yourself first."
+    ]
+  }
+}
