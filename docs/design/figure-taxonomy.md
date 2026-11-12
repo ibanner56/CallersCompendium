@@ -1827,12 +1827,20 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
     chosen still validates and is still shown; a figure of your own expands
     it as an unstated amount (no amount is seeded), and a saved `other`
     default is no longer applied (`skipsMoveDefault`).
-  - A device still on v38 stores and saves an `amount` it receives, renders
-    such a figure as "other", and opening it in the editor keeps `other` (a
-    valid value) and the amount. Its `validateFigure` does reject the unknown
-    param (`unknown_param`), so where that build validates (an import, or a
-    figure of your own whose template holds such a figure, which then cannot
-    expand there) the figure is refused. To keep that to figures that state an
+  - **Older devices (taxonomy v38, app 0.9.x).** A v38 build stores, syncs,
+    shares and restores an `amount` it receives unchanged (the figure codec
+    and the sync figure check never look inside params), renders such a figure
+    as "other", and opening it in the editor keeps `other` (a valid value) and
+    the amount. Its `validateFigure` rejects the unknown param
+    (`unknown_param`), and the one place that bites is a compound of the
+    user's own whose template holds such a figure: `decodeCompoundDefinition`
+    returns null there, so the entry is marked "needs repair" and cannot be
+    placed or used by a shorthand on that device, and a repair there means
+    removing or changing the figure, which drops the amount and syncs back.
+    Maintainer decision, 2026-11-12 (on #2120): accept and document it, with
+    no refusal of such templates and no sync capability gate. The limit is
+    general: an older build's validator rejects any param a later taxonomy
+    adds, so every such bump has it. To keep it to figures that state an
     amount, the key is written only then: `Taxonomy.entryParams` does not seed
     the `unspecified` default, the editor drops it with a named fraction, and
     compound expansion does not seed one (an `other` argument expands as an

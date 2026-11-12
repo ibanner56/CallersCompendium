@@ -12,7 +12,8 @@
       "The spoken (verbose) wording of a poussette now spells out its fraction (“three quarters poussette”), as a figure 8's already did."
     ],
     "data_migrations": [
-      "Taxonomy 38 → 39: figure 8 and poussette gain an `amount`, used when their fraction is “other”. On first launch a one-time rebuild of the search index re-derives the text of every stored figure; your dances themselves are not changed, and an “other” saved without an amount stays that way, because the original amount was never stored and cannot be recovered."
+      "Taxonomy 38 → 39: figure 8 and poussette gain an `amount`, used when their fraction is “other”. On first launch a one-time rebuild of the search index re-derives the text of every stored figure; your dances themselves are not changed, and an “other” saved without an amount stays that way, because the original amount was never stored and cannot be recovered.",
+      "Devices still on 0.9.x: a figure 8 or poussette with an amount syncs, shares and restores there unchanged, reading as “other figure 8” without the amount. A combination of your own that uses one is marked Needs repair on such a device and can't be used there until it is updated; repairing it there would remove the amount from all your devices, so update instead."
     ]
   },
   "core": {

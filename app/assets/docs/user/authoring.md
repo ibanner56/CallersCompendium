@@ -307,6 +307,15 @@ Select a figure to open it. What you can change depends on the move:
   progression say so.
 - **Add note** — a short note attached to that figure alone.
 
+A figure 8 or a poussette can go a quarter, half, three quarter or full way,
+or **other amount…**: picking that shows an amount, starting at one and a
+half, that you can step from 1¼ to 2½. The figure then reads with it, as in
+`ones 1½ figure 8 up between twos`, and a figure 8 counts 16 beats for each
+full amount. One saved by an earlier version as "other" with no amount reads
+`an unstated amount of figure 8` and asks you to choose the amount; nothing is
+filled in for you. Your own figures and the per-figure defaults in Settings
+don't offer "other", because they have no amount to go with it.
+
 A figure whose move this version of the app does not know — one added by a newer
 version, for example — is shown read-only, with a plain explanation. Its data is
 kept untouched, it edits normally again once the app knows the move, and you can
@@ -391,6 +400,15 @@ parameters are not kept. A row that is one of your combinations cannot be
 grouped as a meanwhile, modifier or sequence. Turning Custom Figures off stops
 them being offered, but a row you already picked is still expanded when you
 save.
+
+Versions of the app before 0.10.0 can't read a figure 8 or poussette with an
+"other amount" (see [Adjust a figure](#adjust-a-figure)). On a device that
+hasn't been updated, a combination of yours that uses one is marked **Needs
+repair** and can't be picked or used by a shorthand, though it is kept as it
+is. Repairing it there means changing or removing that figure, which drops the
+amount, and the change then syncs to your other devices, so update the device
+instead. Dances, backups and shared files that hold such a figure keep it on an
+older version too, which reads it as "other figure 8" without the amount.
 
 #### A new figure
 
