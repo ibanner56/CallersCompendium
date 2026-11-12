@@ -12,27 +12,41 @@ enum CallingCardSpanKind { plain, move, dancer, amount }
 /// A stretch of a figure line and what it is.
 typedef CallingCardSpan = ({String text, CallingCardSpanKind kind});
 
-/// The move names [figure]'s line may print under [dialect]: its own and,
+/// Whether a card highlights [figure]'s line at all. A figure written as
+/// free text (a custom figure, which is also how the user's own figures are
+/// stored) prints plain: its words are the user's, and a word such as
+/// "lead" or "once" there is not reliably a dancer or an amount.
+bool callingCardHighlights(Figure figure) => figure.move != customMove;
+
+/// The move names [figure]'s line may print under [dialect]: its own, or,
 /// for a container (meanwhile, modifier, sequence), those of the figures
-/// inside it. Each comes as the dialect names the move and as free text's
-/// substitutions render that name (with [canonicalizeDiscouragedTerms], a
-/// discouraged term's replacement), since the line may hold either.
+/// inside it, whose own lines make up its line. Free-text figures inside a
+/// container name no move. Each comes as the dialect names the move, with
+/// the figure's effective parameters (a `%S` substitution takes its default
+/// side), and as free text's substitutions render that name (with
+/// [canonicalizeDiscouragedTerms], a discouraged term's replacement), since
+/// the line may hold either. A move whose line never prints its name (zig
+/// zag, for one) is simply not found.
 List<String> callingCardMoveNames(
   Figure figure,
   FigureRenderer renderer,
   Dialect dialect, {
   bool canonicalizeDiscouragedTerms = false,
 }) {
-  final name = renderer.displayMoveName(
-    figure.move,
-    dialect,
-    params: figure.params,
-  );
+  final own = figure.isContainer || !callingCardHighlights(figure)
+      ? null
+      : renderer.displayMoveName(
+          figure.move,
+          dialect,
+          params: renderer.taxonomy.effectiveParams(figure),
+        );
   return [
-    name,
-    canonicalizeDiscouragedTerms
-        ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(name, dialect)
-        : renderer.renderFreeText(name, dialect),
+    if (own != null) ...[
+      own,
+      canonicalizeDiscouragedTerms
+          ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(own, dialect)
+          : renderer.renderFreeText(own, dialect),
+    ],
     for (final inner in figure.subFigures)
       ...callingCardMoveNames(
         inner,

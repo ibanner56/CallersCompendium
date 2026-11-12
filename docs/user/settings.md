@@ -984,7 +984,7 @@ notes size=8 lines=4
 ```
 
 That reads: the title, large and bold, with the formation to its right; the
-authors, with the level to their right; a red line; the figures, with each
+authors, with the level to their right; a red line; the figures, with the
 move in bold dark red, the dancers in bold and amounts such as ½ or 3 places in
 blue-grey; a small gap; then up to four lines of calling notes.
 
@@ -1021,10 +1021,14 @@ The options are `size=12` (text size in points), `bold`, `italic`, `left`,
 block), `label="Notes: "` (words in front; `label=""` for none) and `width=2`
 (in a row, twice the room of a `width=1` block). `figures` also takes
 `beats=off`, `notes=off` (the figures' own notes), `phrases=off`,
-`dividers=off` (the lines between phrases) and `highlight` (each move, the
+`dividers=off` (the lines between phrases) and `highlight` (the move, the
 dancers and the amounts set apart as above, in your dialect's words), and
-`rule` takes `thickness=2`. A layout you have written yourself keeps its
-figures as they were until you add `highlight`.
+`rule` takes `thickness=2`. With `highlight`, the move is marked wherever a
+figure's line names it — a few moves, such as zig zag, are worded without
+their name — and its red and the amounts' blue-grey take the place of a
+`color=` on that line. A figure written as free text, such as one of your own
+figures, prints plain. A layout you have written yourself keeps its figures
+as they were until you add `highlight`.
 
 A block prints only what the dance has, and only the fields turned on under
 **Defaults** › [**Shared dance fields**](./sharing.md#choose-which-dance-fields-appear)

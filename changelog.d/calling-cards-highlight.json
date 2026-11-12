@@ -3,12 +3,12 @@
   "user_visible": true,
   "app": {
     "added": [
-      "Experimental: calling cards can set the figures apart as Yona Appletree's Contra Card does — each move in bold dark red, the dancers in bold, and amounts such as ½ or 3 places in blue-grey, in your dialect's words. The default card layout now does this; add highlight to the figures line of a layout of your own to turn it on there."
+      "Experimental: calling cards set the figures apart as Yona Appletree's Contra Card does — the move in bold dark red, the dancers in bold, and amounts such as ½ or 3 places in blue-grey, in your dialect's words. The default card layout does this; add highlight to the figures line of a layout of your own to have it there."
     ]
   },
   "core": {
     "added": [
-      "FigureRenderer.dancerTerms: every word the renderer may print for a dancer or a role under a dialect, for display that sets dancers apart in a rendered line."
+      "FigureRenderer.dancerTerms: the forms the renderer prints for every dancer and role token under a dialect, for display that sets dancers apart in a rendered line."
     ]
   }
 }

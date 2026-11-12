@@ -397,7 +397,7 @@ class _CardBuilder {
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
-                if (b.highlight)
+                if (b.highlight && callingCardHighlights(figure))
                   pw.RichText(
                     text: pw.TextSpan(
                       style: _style(b),

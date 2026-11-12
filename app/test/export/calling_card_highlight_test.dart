@@ -150,6 +150,50 @@ void main() {
       expect(marked, isNotEmpty, reason: line);
     });
 
+    test('a free-text figure is not highlighted', () {
+      expect(
+        callingCardHighlights(
+          Figure(move: customMove, params: const {'text': 'lead once more'}),
+        ),
+        isFalse,
+      );
+      expect(callingCardHighlights(Figure(move: 'swing')), isTrue);
+    });
+
+    test("a container offers its figures' moves, not its own name", () {
+      final figure = Figure.meanwhile(
+        figures: [
+          Figure(move: 'swing', params: {'who': 'partners'}),
+          Figure(move: customMove, params: const {'text': 'meanwhile, wave'}),
+        ],
+        beats: 8,
+      );
+      final names = callingCardMoveNames(figure, renderer, dialect);
+      expect(names, contains('swing'));
+      expect(names, isNot(contains('meanwhile')));
+      expect(names, isNot(contains('custom')));
+    });
+
+    test("a %S move name takes the figure's default side", () {
+      // The line reads "neighbor right gypsy once": the shoulder is left to
+      // its default, which the substitution needs to name the move.
+      final sided = Dialect(
+        name: 'Sided',
+        moves: const {'shoulder_round': '%S gypsy'},
+      );
+      final figure = Figure(move: 'shoulder_round', params: const {});
+      final line = renderer.renderSummary(figure, sided);
+      final marked = [
+        for (final s in highlightFigureLine(
+          line,
+          moves: callingCardMoveNames(figure, renderer, sided),
+          dancers: renderer.dancerTerms(sided),
+        ))
+          if (s.kind == move) s.text,
+      ];
+      expect(marked, ['right gypsy'], reason: line);
+    });
+
     test('a container figure highlights the moves inside it', () {
       final figure = Figure.meanwhile(
         figures: [
