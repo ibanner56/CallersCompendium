@@ -172,9 +172,16 @@ request bodies, overwrite `X-Forwarded-For` with the connecting client
 address, and proxy only over loopback. The application trusts that header only
 when the socket peer is loopback, and then reads only the rightmost entry, so a
 client-supplied prefix cannot choose the rate-limit key even behind a proxy that
-appends instead of overwriting; Apache derives it from the underlying
-connection peer (`CONN_REMOTE_ADDR`) even if host-level `mod_remoteip` is
-enabled, and the application otherwise uses its peer address. Either way the
+appends instead of overwriting. The reference vhost sets it from the
+underlying connection peer (`CONN_REMOTE_ADDR`) and turns off mod_proxy's own
+forwarding headers with `ProxyAddHeaders Off`. Both are needed: with mod_proxy's
+default (`ProxyAddHeaders On`), Apache appends a second entry after the one
+`RequestHeader set` wrote, that entry is `REMOTE_ADDR` *after* any host-level
+`mod_remoteip` rewrite, and it is the rightmost entry the application reads. On
+a host with `mod_remoteip` enabled, the rate-limit key would then be whatever
+address remoteip resolved, which is client-chosen if remoteip trusts a header
+the client can send. With no forwarded header the application uses its peer
+address. Either way the
 rate-limit key is the IPv4 address, or for IPv6 the /64 (the address's first 64
 bits), because one IPv6 subscriber can present 2^64 addresses inside its
 delegated /64; an IPv4-mapped IPv6 address (`::ffff:a.b.c.d`) is keyed as its
@@ -192,6 +199,20 @@ existing store. Large-body requests (manifest and blob uploads, and
 `429`, and 16 server-wide, then `503`. See *Server-wide limits* below for how to
 change these and the free-space floor.
 
+**Existing hosts:** a vhost installed before `ProxyAddHeaders Off` was added to
+the reference configuration does not have it, and nothing deploys it for you:
+the release workflow replaces the container, not the Apache configuration. Add
+the line by hand inside the Athenaeum `*:443` vhost, next to the
+`RequestHeader set X-Forwarded-For` directive, then check and reload:
+
+```sh
+# Edit the file behind the enabled site; sudoedit will not follow the symlink.
+sudoedit "$(readlink -f /etc/apache2/sites-enabled/athenaeum.conf)"
+sudo apachectl -t && sudo systemctl reload apache2
+```
+
+The smoke test below refuses a vhost without it.
+
 Use a no-redirect probe after every Apache change in a direct-origin or staging
 deployment:
 
@@ -207,9 +228,18 @@ The encoded sync ID must be new and belong to a disposable test store; the scrip
 deletes stores it creates. If cleanup is rate-limited after the failure-budget
 probe, it retries after the rolling 60-second window before reporting failure.
 The first request must be a refusal (not 3xx and not an Athenaeum response).
-The script then exercises real client buckets and
-forwarded-header overwrite through Apache, the 1,000-failure budget, the
-5-per-IP and 60-per-minute creation budgets, the inclusive 16 MiB boundary, compressed-body preservation, and
+The script refuses a vhost whose TLS vhost lacks `ProxyAddHeaders Off`, then
+exercises real client buckets and forwarded-header overwrite through Apache
+(including forged `X-Forwarded-For`, `X-Real-IP`, `CF-Connecting-IP`,
+`True-Client-IP`, `X-Client-IP`, and any `RemoteIPHeader` named in the vhost or
+in `conf-enabled/` or `mods-enabled/` under `ATHENAEUM_APACHE_ROOT`, default
+`/etc/apache2`; sent from a loopback client, none of them may change its
+rate-limit key. The probe catches a vhost that does not overwrite the header,
+but an appended remoteip-resolved entry shows up there only where
+`mod_remoteip` trusts loopback, so on hosts that trust only CDN ranges the
+`ProxyAddHeaders Off` check is the guard), the 1,000-failure budget, the
+5-per-IP and 60-per-minute creation budgets, the inclusive 16 MiB boundary,
+compressed-body preservation, and
 Athenaeum create/lookup responses over HTTPS with
 `Strict-Transport-Security`. The harness also inspects the active vhost
 configuration to ensure no request decompression directive is enabled;
