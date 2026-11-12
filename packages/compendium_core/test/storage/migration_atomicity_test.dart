@@ -21,15 +21,16 @@
 // and drift's own (redundant) stamp, which still has the whole of
 // `beforeOpen` to run first.
 //
-// The first test starts at the floor (v39) and injects a throw right after the
-// v40 step creates its first table, and asserts the rollback: the stamp is
-// unchanged *and* the created table is gone, so a real reopen then migrates
-// cleanly. (The v40 step is idempotent, so the reopen would survive a leaked
-// table; the table assertion is what proves the rollback.)
+// The first test starts at the floor (v39) and injects a throw in the v41
+// step, right after it creates its first index, so the whole v40 step has
+// already run. It asserts the rollback: the stamp is unchanged, *and* both the
+// v40 tables and that index are gone, so a real reopen then migrates cleanly.
+// (Both steps are idempotent, so the reopen would survive leaked DDL; the
+// table and index assertions are what prove the rollback.)
 //
-// Mutation the first test catches: remove the `transaction()` wrap.
-// `user_version` still reads 39 (drift never stamped it), but
-// `user_glossary_entries` already exists.
+// Mutations the first test catches: remove the `transaction()` wrap, or give
+// each step its own transaction. Either way `user_version` still reads 39
+// (drift never stamped it), but `user_glossary_entries` already exists.
 //
 // The second test lets the transaction commit and then throws from
 // `beforeOpen`, before drift's own stamp would run, and asserts
@@ -47,10 +48,9 @@ import 'package:test/test.dart';
 
 import 'generated/schema.dart';
 
-/// Throws after the `user_glossary_entries` table is created, i.e. after the
-/// v40 step's first DDL has run and before drift would stamp `user_version`.
-class _ThrowAfterGlossaryTableCreated extends Migrator {
-  _ThrowAfterGlossaryTableCreated(super.database);
+/// Records `PRAGMA foreign_keys` at each `createTable` the upgrade makes.
+class _RecordingMigrator extends Migrator {
+  _RecordingMigrator(super.database);
 
   /// `PRAGMA foreign_keys` as seen from inside `onUpgrade`, recorded so the
   /// claim in `database.dart` — that foreign keys are OFF for the whole of
@@ -66,16 +66,23 @@ class _ThrowAfterGlossaryTableCreated extends Migrator {
           .read<bool>('foreign_keys'),
     );
     await super.createTable(table);
-    if (table.actualTableName == 'user_glossary_entries') {
-      throw StateError('injected failure after the v40 createTable');
-    }
   }
 }
 
-class _FailingAfterV40Table extends CompendiumDatabase {
-  _FailingAfterV40Table(super.executor);
+/// Throws after the v41 step's first index is created: every v40 DDL and one
+/// v41 DDL have run, and drift has not stamped `user_version`.
+class _FailingInV41Step extends CompendiumDatabase {
+  _FailingInV41Step(super.executor);
 
-  late final migrator = _ThrowAfterGlossaryTableCreated(this);
+  late final migrator = _RecordingMigrator(this);
+
+  @override
+  Future<void> customStatement(String statement, [List<dynamic>? args]) async {
+    await super.customStatement(statement, args);
+    if (statement == citedIdLookupIndexSql.first) {
+      throw StateError('injected failure in the v41 step');
+    }
+  }
 
   @override
   Migrator createMigrator() => migrator;
@@ -115,7 +122,7 @@ void main() {
     expect(_userVersion(raw), kMinSupportedSchemaVersion);
     expect(_tables(raw), isNot(contains('user_glossary_entries')));
 
-    final failing = _FailingAfterV40Table(
+    final failing = _FailingInV41Step(
       NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
     );
     await expectLater(
@@ -137,7 +144,7 @@ void main() {
 
     expect(
       failing.migrator.foreignKeysSeen,
-      [false],
+      [false, false],
       reason:
           'foreign keys must be OFF during onUpgrade (beforeOpen turns them ON '
           'afterwards); if this ever reads true, alterTable will try to toggle '
@@ -152,9 +159,14 @@ void main() {
       _tables(raw),
       isNot(contains('user_glossary_entries')),
       reason:
-          'the v40 createTable ran before the throw; without a transaction '
-          'around the step body the table stays committed under a '
-          'user_version that still says v39',
+          'the whole v40 step ran before the throw; unless every step shares '
+          'one transaction its tables stay committed under a user_version '
+          'that still says v39',
+    );
+    expect(
+      _indexes(raw),
+      isNot(contains(_firstCitedIdIndex)),
+      reason: 'the v41 index created just before the throw must roll back too',
     );
 
     // The proof that the rollback matters: a real reopen now migrates.
@@ -225,6 +237,18 @@ void main() {
 
 int _userVersion(sqlite3.Database raw) =>
     raw.select('PRAGMA user_version').first.columnAt(0) as int;
+
+/// The name of the index `citedIdLookupIndexSql.first` creates.
+final _firstCitedIdIndex = RegExp(
+  r'CREATE INDEX IF NOT EXISTS (\w+)',
+).firstMatch(citedIdLookupIndexSql.first)!.group(1)!;
+
+Set<String> _indexes(sqlite3.Database raw) => {
+  for (final row in raw.select(
+    "SELECT name FROM sqlite_master WHERE type = 'index'",
+  ))
+    row['name'] as String,
+};
 
 Set<String> _tables(sqlite3.Database raw) => {
   for (final row in raw.select(

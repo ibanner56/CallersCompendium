@@ -1,9 +1,11 @@
 // A development build stamped `user_version` 39 before the v39 step created
 // everything it now does, so such a file lacks `peer_manifests` and the
-// published-manifest columns, and `onUpgrade`'s v39 step never runs for it
-// (it is already at 39). Every sync pass then died on "no such table:
-// peer_manifests". Only `beforeOpen` repairs it, on the migrating open that
-// also takes it to the current schema.
+// published-manifest columns, and no `onUpgrade` step adds them (it is already
+// at 39, and v39 is now the floor, so there is no v39 step at all). Every sync
+// pass then died on "no such table: peer_manifests". Only `beforeOpen` repairs
+// it, on the migrating open that also takes it to the current schema.
+// `retained_sync_fields` is dropped too: since the floor reached v39, this is
+// the only test of the helper's branch that recreates it.
 //
 // Mutation this catches: drop the `_ensureV39Schema` call from `beforeOpen`.
 import 'package:compendium_core/compendium_core.dart';
@@ -23,6 +25,7 @@ void main() {
     await fresh.close();
 
     raw.execute('DROP TABLE peer_manifests');
+    raw.execute('DROP TABLE retained_sync_fields');
     raw.execute(
       'ALTER TABLE baseline_state DROP COLUMN published_manifest_hash',
     );
@@ -40,13 +43,16 @@ void main() {
     await reopened.customSelect('SELECT 1').get();
 
     final tables = raw
-        .select("SELECT name FROM sqlite_master WHERE name = 'peer_manifests'")
+        .select(
+          "SELECT name FROM sqlite_master "
+          "WHERE name IN ('peer_manifests', 'retained_sync_fields')",
+        )
         .length;
     final columns = raw
         .select("SELECT name FROM pragma_table_info('baseline_state')")
         .map((r) => r['name'])
         .toSet();
-    expect(tables, 1);
+    expect(tables, 2);
     expect(
       columns,
       containsAll(['published_manifest_hash', 'published_verified_at']),

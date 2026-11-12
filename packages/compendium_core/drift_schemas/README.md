@@ -43,8 +43,9 @@ The dumps are not the only starting files the migration tests use. The
 captured from the `v0.7.0-beta` tag with real rows in it; a dump cannot stand in
 for that, because it carries no data. See "The floor: which versions live here".
 
-The set is exactly floor…head. Some of those versions were never in a release;
-no new ones are added that way. A schema change made while head is unreleased
+The set is exactly floor…head. Every version below head shipped in a release,
+and head either has or ships with the next one; no version is added that a
+release will not carry. A schema change made while head is unreleased
 joins head rather than bumping it (see "Amending the unreleased head" below),
 so from here on each version past head is one that a release will carry.
 
