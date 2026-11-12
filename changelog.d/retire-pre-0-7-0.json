@@ -1,0 +1,17 @@
+{
+  "id": "retire-pre-0-7-0",
+  "user_visible": true,
+  "app": {
+    "data_migrations": [
+      "Your collection can no longer be brought up to date from a version before 0.7.0. If you last opened it with 0.6.0 or earlier, this version won't open it: the startup screen names the release to open it with first (0.9.2 for a collection last opened by 0.4.0 to 0.6.0), and offers to back it up and start fresh. Collections last opened by 0.7.0 or later are not affected."
+    ],
+    "changed": [
+      "Versions up to and including 0.7.0 now say, when they check for updates, that their support ends on November 30, 2026, and ask you to update before then."
+    ]
+  },
+  "core": {
+    "removed": [
+      "Retire on-disk schema versions v35–v38: `kMinSupportedSchemaVersion` is now 39, the schema `v0.7.0-beta` shipped. Their upgrade steps, schema dumps, generated schema classes and the v35 and v38 release fixtures are deleted; the floor fixture is now `v39.sqlite`, captured from `v0.7.0-beta`."
+    ]
+  }
+}

@@ -7,9 +7,9 @@
 // grounds that it would otherwise "schedule a duplicate rebuild marker while
 // … still traversing the old schema" — which is not the order drift runs
 // things in, and the presence check makes a duplicate marker impossible
-// anyway. The cost of the early return: a v35+ file missing an FTS table
-// migrated, failed once in the post-open sweeps, and healed on the *next*
-// launch.
+// anyway. The cost of the early return: a floor-or-later file missing an FTS
+// table migrated, failed once in the post-open sweeps, and healed on the
+// *next* launch.
 //
 // Mutation this catches: restore the early return. The dropped table is then
 // absent after the migrating open and no rebuild marker is set.
@@ -26,7 +26,7 @@ void main() {
     final raw = sqlite3.sqlite3.openInMemory();
     addTearDown(raw.close);
 
-    // v35 is the floor snapshot. No surviving `onUpgrade` step creates an FTS
+    // The floor snapshot. No surviving `onUpgrade` step creates an FTS
     // table, so a table missing here is missing when `beforeOpen` runs.
     final historical = GeneratedHelper().databaseForVersion(
       NativeDatabase.opened(raw, closeUnderlyingOnClose: false),

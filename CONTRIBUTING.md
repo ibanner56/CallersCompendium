@@ -116,7 +116,7 @@ When you change the schema:
   `schemaVersion` without adding or changing such a test/fixture. A test built
   from a drift schema dump seeds its own rows, so it cannot notice a step that
   corrupts existing data; the **floor** version therefore keeps a real
-  fixture captured from its release tag (`test/storage/fixtures/v35.sqlite`,
+  fixture captured from its release tag (`test/storage/fixtures/v39.sqlite`,
   exercised by `real_release_fixture_test.dart`), and raising the floor
   requires capturing the next one (see "Retiring a schema version" in
   [`docs/design/storage.md`](docs/design/storage.md)).

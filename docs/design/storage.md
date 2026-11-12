@@ -198,12 +198,11 @@ No full-table in-memory scans (ContraDB pitfall #2). Target: <50 ms over
   a test that instantiates the previous version from its generated schema
   snapshot (`GeneratedHelper`) and seeds the rows it asserts on.
 - The **floor version also keeps a real binary fixture**:
-  `test/storage/fixtures/v35.sqlite`, written by the `v0.4.0-beta` release with
+  `test/storage/fixtures/v39.sqlite`, written by the `v0.7.0-beta` release with
   representative rows. A schema snapshot carries structure only, so it cannot
   show that `onUpgrade` preserved data; `real_release_fixture_test.dart`
   opens the fixture, migrates it to head and reads the rows, FTS content,
-  links, provenance, program and settings back. A second one, `v38.sqlite`
-  from `v0.6.0-beta`, covers the bridge release. See "Floor fixtures" below.
+  links, provenance, program and settings back. See "Floor fixtures" below.
 - A **schema floor** (`kMinSupportedSchemaVersion`): versions below it are
   retired — their migration steps, fixtures and `drift_schemas/generated/`
   dumps are
@@ -306,16 +305,15 @@ indistinguishable from, because startup re-creates them.
 
 | Fixture | Written by | Schema | sha256 |
 | --- | --- | --- | --- |
-| `v35.sqlite` (the floor) | `v0.4.0-beta` (`04ab10c7`) | 35 | `bce61632dce3f44ff56cd32cec101747dadc1339c17788b3951bccfaf884b290` |
-| `v38.sqlite` (the bridge release) | `v0.6.0-beta` (`a6d52290`) | 38 | `44dfb5a4b25143445a17feb1af6b224a6caa2a4ba5bf9ec3ecc315c000ac1286` |
+| `v39.sqlite` (the floor) | `v0.7.0-beta` (`1cf5af66`) | 39 | `fb3a9119d160cda6a6a63f0438a12a8ca31aed0964e13a6c4a765e029b27f1bd` |
 
-`v38.sqlite` is the release `kBelowFloorBridgeTags` sends v20–v34 collections
-through, so it is the file many migrating collections really reach head from. It
-is not below the floor, so the below-floor gate allows it; once the floor passes
-v38, delete it and its group in the test. The floor fixture, by contrast, has its
-name derived from the constant, so raising the floor without a new fixture fails
-the existence test, and a test fails if any `v*.sqlite` below the floor is left
-in the fixtures directory. Neither guard stops someone deleting the test itself
+The floor fixture's name is derived from the constant, so raising the floor
+without a new fixture fails the existence test, and a test fails if any
+`v*.sqlite` below the floor is left in the fixtures directory. (Until the floor
+reached v39 a second fixture, `v38.sqlite` from `v0.6.0-beta`, covered the
+release the below-floor bridge then sent v20–v34 collections through. It was
+retired with the versions below v39; the bridge for v35–v38, `v0.9.2-beta`,
+writes head, so a fixture from it would exercise no migration.) Neither guard stops someone deleting the test itself
 or editing both the constant and the expectations in the same PR: review still
 has to notice that.
 
@@ -342,13 +340,13 @@ adding the matching entry. A change added to a version that has not shipped yet
 entry instead. The gate cannot see that case, because the constant does not
 move.
 
-### Retired (v1–v34): history only
+### Retired (v1–v38): history only
 
-**v1–v34 are RETIRED** (#837, then floor raises since, the latest to v35 once
-every release before `v0.4.0-beta` was retired): they predate `v0.4.0-beta`,
-the oldest supported release, so their migration steps, fixtures and schema
-dumps have been deleted and [kMinSupportedSchemaVersion] refuses a database
-stamped below v35. Their entries are kept below as history — they explain why later
+**v1–v38 are RETIRED** (#837, then floor raises since, the latest to v39 once
+every release before `v0.7.0-beta` was retired, maintainer, 2026-11-12): they
+predate `v0.7.0-beta`, the oldest supported release, so their migration steps,
+fixtures and schema dumps have been deleted and [kMinSupportedSchemaVersion]
+refuses a database stamped below v39. Their entries are kept below as history — they explain why later
 columns exist and are still referenced by the steps that survive — but there
 is no longer any code path that migrates from them.
 
@@ -665,12 +663,6 @@ is no longer any code path that migrates from them.
   its `level_id`, naming the tombstoned row. Because the foreign key has no
   `ON DELETE` action, `DifficultyLevelRepository.hardDelete` (an import's
   rollback) tombstones rather than erases a level only such a dance names.
-### Supported (v35 and later)
-
-These are the versions a database can still be stamped at. v35 is the floor:
-its own migration step is retired along with the older ones, because a floor
-database already carries it. The steps that can still fire are v36 onward.
-
 - v35 (issues #1104 and #1233): rewrites persisted figure parameter keys and
   consolidates the legacy `pull_by_dancers`/`pull_by_direction` move IDs to
   the v35 taxonomy representation, and replaces nullable
@@ -708,6 +700,14 @@ database already carries it. The steps that can still fire are v36 onward.
   instead of restoring it without them; the core archive version is unchanged,
   so share files are not affected (#1885). Additive `addColumn`s; no back-fill
   and no derived rebuild.
+### Supported (v39 and later)
+
+These are the versions a database can still be stamped at. v39 is the floor:
+its own migration step is retired along with the older ones, because a floor
+database already carries it. (`beforeOpen` still ensures v39's pieces on every
+open, because a development build stamped v39 before all of them existed.) The
+steps that can still fire are v40 onward.
+
 - v39 (sync-spec §6.7): adds the `retained_sync_fields` table — `kind`,
   `record_id`, `whole_record` (bool) and `payload` (canonical JSON text), keyed
   by `(kind, record_id)`. It holds what this device keeps of a synced record
