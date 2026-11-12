@@ -8,7 +8,8 @@ python3 tools/ci/check_pr_review_gates.py all <PR_NUMBER> --closes <ISSUE>...
 ```
 
 It runs every gate even when one fails, so a single invocation reports the whole
-picture, and prints one line per gate. Exit codes: `0` all gates passed, `1` at
+picture, and prints one line per gate (after a `repo:` line when `--repo` is not
+given). Exit codes: `0` all gates passed, `1` at
 least one gate failed, `2` at least one gate was unanswerable (a `SKIP` line —
 the environment could not answer, which is not the same as a pass). Read the
 reasoning below when a gate fails, or when you are checking by hand.

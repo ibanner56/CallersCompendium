@@ -29,7 +29,8 @@ hand-rolled versions read as PASS when they should have failed:
                 fails or is unanswerable, so one invocation reports the whole
                 picture rather than costing a round trip per gate.
 
-Output is one line per gate: ``PASS <gate>: <evidence>``,
+Output is an optional ``repo: <owner/name> (from <source>)`` line (printed when
+``--repo`` is not given), then one line per gate: ``PASS <gate>: <evidence>``,
 ``FAIL <gate>: <what is wrong>``, or ``SKIP <gate>: <why it is unanswerable>``.
 A red run should cost a few hundred tokens to
 act on, not a few thousand to read.
