@@ -27,6 +27,9 @@ import 'package:compendium_app/src/data/soft_delete_retention.dart'
 import 'package:compendium_app/src/screens/settings_screen.dart';
 import 'package:compendium_app/src/sync/sync_coordinator.dart';
 import 'package:compendium_app/src/sync/sync_http_client.dart';
+import 'package:compendium_app/src/sync/sync_controller.dart';
+import 'package:compendium_app/src/sync/sync_network.dart';
+import 'package:compendium_app/src/sync/sync_scope.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:drift/drift.dart' show driftRuntimeOptions;
@@ -98,6 +101,7 @@ Future<void> _pumpGeneral(
   Size surface = const Size(1200, 2200),
   double textScale = 1,
   DateFormatSetting dateFormat = DateFormatSetting.system,
+  SyncController? sync,
 }) async {
   await setScreenSize(tester, surface);
   final dateFormatNotifier = ValueNotifier<DateFormatSetting>(dateFormat);
@@ -141,6 +145,7 @@ Future<void> _pumpGeneral(
         child: tree,
       );
     }
+    if (sync != null) tree = SyncScope(controller: sync, child: tree);
     return tree;
   }
 
@@ -1156,10 +1161,15 @@ void main() {
 
       expect(find.text('Settings applied.'), findsOneWidget);
       expect(refreshCount, 2);
+      // The retry drops the sync baseline (SYNC-1, sync-spec §6.11), so it
+      // is serialized with Device Sync as the restore is: one more pass of
+      // the writer lifecycle, around the settings apply only.
       expect(lifecycle, [
         'before',
         'after',
-      ], reason: 'settings-only retry must not re-enter sync lifecycle');
+        'before',
+        'after',
+      ], reason: 'the settings retry runs inside the sync-writer lifecycle');
       expect(await target.repos.settings.get(kSoftDeleteRetentionKey), isNull);
       expect(
         tester
@@ -1314,4 +1324,69 @@ void main() {
       BackupReminderCadence.weekly,
     );
   });
+
+  group('restore dialog Device Sync note (SYNC-1)', () {
+    Future<SyncController> controller(
+      CompendiumRepositories repos, {
+      required bool paired,
+    }) async {
+      if (paired) {
+        await repos.settings.set(kSyncIdKey, 'correct horse battery staple');
+      }
+      final sync = SyncController(
+        settings: repos.settings,
+        syncLocal: repos.syncLocal,
+        coordinator: () => null,
+        reconfigure: ({bool startPass = true}) async {},
+        classifier: _UnmeteredNetwork(),
+      );
+      addTearDown(sync.dispose);
+      await sync.load();
+      return sync;
+    }
+
+    Future<void> openDialog(WidgetTester tester) async {
+      await tester.tap(find.byKey(const ValueKey('backup-restore-button')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('restore-backup-dialog')),
+        findsOneWidget,
+      );
+    }
+
+    testWidgets('says what comes back when this device is paired', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      final sync = await controller(repos, paired: true);
+      await _pumpGeneral(tester, repos, sync: sync);
+      await openDialog(tester);
+      final note = find.byKey(const ValueKey('restore-sync-note'));
+      expect(note, findsOneWidget);
+      expect(
+        tester.widget<Text>(note).data,
+        lookupAppLocalizations(const Locale('en')).backupRestoreDialogSyncNote,
+      );
+    });
+
+    testWidgets('is absent when this device is not paired', (tester) async {
+      final repos = openTestRepositories();
+      final sync = await controller(repos, paired: false);
+      await _pumpGeneral(tester, repos, sync: sync);
+      await openDialog(tester);
+      expect(find.byKey(const ValueKey('restore-sync-note')), findsNothing);
+    });
+
+    testWidgets('is absent when Device Sync is not wired', (tester) async {
+      final repos = openTestRepositories();
+      await _pumpGeneral(tester, repos);
+      await openDialog(tester);
+      expect(find.byKey(const ValueKey('restore-sync-note')), findsNothing);
+    });
+  });
+}
+
+final class _UnmeteredNetwork implements SyncNetworkClassifier {
+  @override
+  Future<SyncNetworkKind> current() async => SyncNetworkKind.unmetered;
 }

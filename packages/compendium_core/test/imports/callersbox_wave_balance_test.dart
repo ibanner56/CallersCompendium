@@ -359,6 +359,30 @@ void main() {
       },
     );
 
+    // #2160: TCB 18065's exact line pair, with the circulate's trailing
+    // bracket. Runs the real adapter, so the balance merge is exercised too.
+    const bracketNotes = <String, String>{
+      '[with N2]': 'with nextNeighbors',
+      '[with shadow]': 'with shadows',
+    };
+    for (final MapEntry(key: bracket, value: note) in bracketNotes.entries) {
+      test('a long-wave balance folds into "Circulate: … $bracket"', () async {
+        final figures = await _figuresFor([
+          '(4) Balance long wave (N2R, women face in)',
+          '(4) Circulate: Women cross, men loop right $bracket',
+        ]);
+        expect(figures, hasLength(1));
+        final figure = figures.single;
+        expect(figure.move, 'box_circulate');
+        expect(figure.isCustom, isFalse);
+        expect(figure.params['who'], 'role2s');
+        expect(figure.params['hand'], 'right');
+        expect(figure.params['balance'], isTrue);
+        expect(figure.params['beats'], 8);
+        expect(figure.note, note);
+      });
+    }
+
     test('a circulate hand overrides the preceding balance hand', () async {
       final figures = await _figuresFor([
         '(4) Women balance (LH)',

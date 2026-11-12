@@ -3694,6 +3694,10 @@ class AppLocalizationsDa extends AppLocalizations {
       'Gendannelse erstatter alt i appen – din samling, programmer, dialekter, temaer og indstillinger – med indholdet af sikkerhedskopien. Dette kan ikke fortrydes.';
 
   @override
+  String get backupRestoreDialogSyncNote =>
+      'Denne enhed er forbundet til enhedssynkronisering. Alt, hvad enhedssynkronisering overfører, og som er ændret efter denne sikkerhedskopi blev lavet på en enhed, du synkroniserer med, kommer tilbage fra den enhed ved næste synkronisering – også ændringer foretaget her og allerede synkroniseret. Alt andet får sikkerhedskopiens version.';
+
+  @override
   String get backupChooseFileAction => 'Vælg fil…';
 
   @override

@@ -269,9 +269,12 @@ never sent anywhere.
 epoch reset and a detach, like the record it belongs to. A restore of either
 mode and an archive import MUST clear no row: a local edit keeps the kept parts
 and these writes are no different, and a record a restore writes
-is stamped at restore time, newer than the peer's copy, so a body without the
+is stamped at the backup's creation time (§6.11), still newer than a
+peer's copy that has not changed since, so a body without the
 kept parts would win last-writer-wins and strip them from the peer on every
-device (§6.7). A replace restore deletes the old records first, but the row of a
+device (§6.7). *Amended 2026-11-11 (SYNC-1): this sentence said a restored
+record "is stamped at restore time, newer than the peer's copy". The rule it
+supports is unchanged.* A replace restore deletes the old records first, but the row of a
 record the backup restores under the same id survives and is put back, and the
 row of a record the backup does not hold is dropped by the next snapshot, as
 below, so the restore need not clear anything. A row MUST follow its
@@ -4670,6 +4673,58 @@ either mode and no archive import clears them.
 
 Restore converges on a deletion only while some peer still advertises the
 tombstone.
+
+> **Amended 2026-11-11 (SYNC-1).** This section said nothing about the stamps
+> a restore writes, and §3.2 assumed they were the restore's own time. The
+> client stamped every record whose backed-up form carries no timestamp, every
+> setting, glossary entry and figure note, and every deletion the restore
+> made, at restore time; the fresh attach above then resolved each
+> `changed`/`changed` pair in the restore's favour, so restoring an old backup
+> on one device silently undid, on every device, the renames, deletions and
+> edits made elsewhere after the backup. Dances and programs were unaffected,
+> because they carry their own `updatedAt`. The maintainer, judging the
+> blind-spot audit finding, chose to stamp a restore's writes with the
+> backup's creation time instead (the finding's option (b)). The rules below
+> are that decision; their wording is the implementing session's.
+
+**A backup restore MUST stamp what it writes at the backup's creation time**,
+not at the time of the restore. Call that time *T*.
+
+- Every record the restore writes whose backed-up form carries no `updatedAt`
+  — the reference kinds, settings, glossary entries and figure notes — MUST
+  take *T* as its `updatedAt`. A record whose backed-up form carries its own
+  (a dance, a program) keeps it.
+- A record the restore creates, revives or deletes MUST take *T* as its
+  `existenceAt` (and, for a deletion, its `deletedAt`), including a setting,
+  glossary entry or figure note that the backup does not hold and the restore
+  therefore deletes. This stamp is **not** causal: it MAY be lower than the
+  value the row held before, which is what lets a peer's later deletion or
+  revival win. Two exceptions keep the causal floor. A tombstoned tag the
+  restore writes and then deletes takes *T* plus one tick. A merge restore's
+  revival or deletion of a dance, program or reference-kind record the device
+  already holds takes the ordinary causal stamp above that row's own
+  `existenceAt`, which can be well above *T*, so it can outrank a peer's
+  transition made after the backup; that is a known gap, not the intended
+  behaviour. The shipped restore is a replace, which clears those kinds
+  first, so neither the UI nor its retry reaches it.
+
+Anything changed on any device after the backup therefore wins at the next
+sync and comes back to the restoring device, and the backup wins over
+anything older. *T* MUST be clamped to the restoring device's clock, so a
+future-dated backup can neither outrank edits made after the restore nor be
+refused by peers under §6.9. A backup that records no creation time is
+stamped at the Unix epoch, so every peer's copy wins. A part of the restore
+that runs again on its own afterwards (the reference client's retry of the
+settings, glossary and figure-note step) MUST drop the baseline again and be
+serialized with Device Sync as the restore is: a pass may have run in between,
+and against its baseline the backup-dated writes would read as local changes
+that every peer refuses. A client that offers a
+restore while paired SHOULD say that records changed on a synced device since
+the backup will come back from it.
+
+These rules bind backup restore only. A sample-library seed is not a restore
+of earlier state and stamps as an ordinary write; a shared-archive import is
+not a restore and is unchanged.
 
 At the currently shipped backup UI boundary, the client MUST serialize the
 restore operation with Device Sync: before `BackupService.restoreFromJson`

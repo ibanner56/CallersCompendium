@@ -3712,6 +3712,10 @@
   "@backupRestoreDialogBody": {
     "x-sourceSha256": "ff51802a21a8219092f0aaebcde7ad04aebb7aa77bf34404915dc4e39b24b83e"
   },
+  "backupRestoreDialogSyncNote": "Cet appareil est connecté à la synchronisation des appareils. Tout ce que la synchronisation transmet et qui a été modifié après cette sauvegarde sur un appareil avec lequel vous synchronisez reviendra de cet appareil à la prochaine synchronisation, y compris les modifications faites ici et déjà synchronisées. Tout le reste prend la version de la sauvegarde.",
+  "@backupRestoreDialogSyncNote": {
+    "x-sourceSha256": "79ad56b6871d887a13d6c4c1c2625aad3c140d3b98ef2845e174d1c7fd56c995"
+  },
   "backupChooseFileAction": "Choisir un fichier…",
   "@backupChooseFileAction": {
     "x-sourceSha256": "5c6623857cc7b764cdf1eecad5b2f0f54184bebca4aa2d7f3bbdcedf6a8929d1"

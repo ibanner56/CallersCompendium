@@ -223,9 +223,10 @@ void main() {
   test('a replace restore keeps what a newer build added to a setting, and '
       'to one this build does not sync', () async {
     // The settings the backup carries are applied after the core commit, by
-    // `settings.set`, which stamps the moment of the restore: the restored
-    // value is the newest copy, so its body must still carry what a peer's
-    // newer build put beside it (sync-spec §6.7).
+    // `settings.setFromRestore`, which stamps the backup's creation time. The
+    // backup here is made after the peer's copy, so the restored value is the
+    // newest copy and its body must still carry what a peer's newer build put
+    // beside it (sync-spec §6.7).
     final source = openTestRepositories();
     await _seed(source);
     final json = await BackupService(source).exportToJson();

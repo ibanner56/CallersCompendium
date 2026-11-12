@@ -53,13 +53,24 @@ CompendiumRepositories openTestRepositories({bool closeOnTearDown = true}) =>
 class FailingSettingsRepository extends SettingsRepository {
   FailingSettingsRepository(super.db);
 
-  /// When true, every [set] throws instead of writing.
+  /// When true, every [set] and [setFromRestore] throws instead of writing.
   bool failWrites = true;
 
   @override
   Future<void> set(String key, Object? value, {DateTime? at}) {
     if (failWrites) throw const InjectedSettingsFailure();
     return super.set(key, value, at: at);
+  }
+
+  /// A backup restore's writes go through here, so they fail as [set] does.
+  @override
+  Future<void> setFromRestore(
+    String key,
+    Object? value, {
+    required DateTime at,
+  }) {
+    if (failWrites) throw const InjectedSettingsFailure();
+    return super.setFromRestore(key, value, at: at);
   }
 }
 
