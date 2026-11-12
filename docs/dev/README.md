@@ -13,6 +13,7 @@ rendering.
 | How do I request/read a review, or merge safely? | [agents/code-review.md](agents/code-review.md), [agents/merging.md](agents/merging.md) |
 | What does reviewing a design here keep catching? | [design-review.md](design-review.md) — the habits, and the findings they came from |
 | Why does this rule exist? | [agents/incidents.md](agents/incidents.md) |
+| Where is a 2026-10 audit finding or maintainer decision recorded? | [`audits/2026-10-behavior/`](audits/2026-10-behavior/README.md) — the October 2026 behaviour audit, kept as a historical record (see [Citing a record](#citing-a-record)) |
 | How do I contribute / set up the toolchain? | [`CONTRIBUTING.md`](../../CONTRIBUTING.md) |
 | What is planned, and what is done? | [`docs/ROADMAP.md`](../ROADMAP.md) (open work), [`docs/ROADMAP-archive.md`](../ROADMAP-archive.md) (completed phases) |
 | Why is the stack what it is? | [`docs/adr/`](../adr/) — 001 stack, 002 distribution/update channels, 003 Linux packaging, 004 Device Sync and the Athenaeum server, 005 difficulty vocabulary, 006 English country dance grammar |
@@ -40,6 +41,27 @@ python3 tools/preflight.py --list    # what runs, and why
 Each gate also lives in [`.github/workflows/_checks.yml`](../../.github/workflows/_checks.yml)
 with a comment saying which defect it exists to prevent — that file is the
 authoritative list; `preflight.py` is the local mirror of it.
+
+## Citing a record
+
+Design documentation on `main` does not point to files or recorded decisions on
+another branch (the maintainer's rule, 2026-11-12). A branch is deleted or
+rewritten long before the document that cites it is retired, and a decision
+whose only record is on a branch loses its provenance with it. So:
+
+- If a document or comment needs to cite a record that lives only on a branch
+  (an audit report, a decision log), bring the record onto `main` in the same
+  PR and cite its path there. Copy it byte-for-byte if anything cites it by
+  `file:line`.
+- To say where work was done, cite the merged PR (`#N`) or a commit SHA, not
+  the branch it was built on. A GitHub link pins a SHA or `main`, never a
+  branch.
+- Naming the branch a *planned* piece of work will be built on, in a plan
+  table, is fine: that names work, not a place where a record lives.
+
+`python3 tools/ci/check_branch_citations.py` enforces this for every tracked
+Markdown file, everything under `docs/`, and the comments of hand-written Dart;
+its docstring lists exactly what it flags and why.
 
 ## Generated files: read the source, not the rendering
 

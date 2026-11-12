@@ -6,7 +6,7 @@ pinned New row (N3-A1); order, grouping, status, search and the extracted
 `AddToProgramList` (N3-A2).** The
 maintainer asked for this note ("design note now") in the 2026-10-29 decisions,
 and answered its six questions on 2026-10-29/30 (N3-1 … N3-6 in
-`maintainer-decisions-2026-10-30.md`, on `claude/app-audit-categories-k2pdon`).
+`docs/dev/audits/2026-10-behavior/maintainer-decisions-2026-10-30.md`).
 §8 quotes each answer. One differs from this note's recommendation: N3-4, a
 repeated add asks first. The text below follows the answers. Anything still
 marked *recommended* or *my call* is this note's, not the maintainer's.
@@ -81,11 +81,12 @@ building" (`docs/user/collection.md:306`).
 | D-11 (Save, New, header placement) is open. | `maintainer-decisions-2026-10-29.md:59` (D-11); the decision to write this note is `:352-355` | The pinned "New program" row is inside the sheet. It does not decide where New sits on any screen. |
 | A new string needs keys in all six ARBs, beside related keys, and a `changelog.d` fragment. | `decided-work-plan.md:11-16` (conventions) | Listed in each branch (§7). |
 
-The `batch-plan.md`, `decided-work-plan.md`, `maintainer-decisions-2026-10-29.md`
-and `reports/FIND.md` citations are to the audit branch
-(`claude/app-audit-categories-k2pdon`, under `docs/dev/audits/2026-10-behavior/`),
-which is not on `main` yet. Their line numbers are for that branch. Every other
-citation is against `main` at `acacb05`.
+The `batch-plan.md`, `decided-work-plan.md`, `design-work-plan.md`,
+`maintainer-decisions-2026-10-29.md`, `maintainer-decisions-2026-10-30.md` and
+`reports/FIND.md` citations are to the audit record in
+`docs/dev/audits/2026-10-behavior/`. Their line numbers are into those files,
+which were brought onto `main` unchanged. Every other citation is against
+`main` at `acacb05`.
 
 ## 3. Questions in the audit's FIND-17, and short answers
 
@@ -232,8 +233,7 @@ it "breaks the rule to confirm only where Undo is impossible and slows a
 deliberate repeat".
 
 **How the question works.** These details are the *planner's reading,
-accepted by the maintainer 2026-10-30* (`design-work-plan.md` ambiguity 4, on
-the audit branch):
+accepted by the maintainer 2026-10-30* (`design-work-plan.md` ambiguity 4):
 
 - Tapping a program **without** the marker adds at once, as today.
 - Tapping a marked program opens a small dialog: "'{dance}' is already in
@@ -407,7 +407,7 @@ For each, the mutation it must catch:
 ## 7. Proposed branch breakdown
 
 Format follows `decided-work-plan.md`. Size counts changed lines, tests
-included: S < 150, M 150–400, L 400+. In the audit branch's `design-work-plan.md` these are N3-A1 and N3-A2 (the
+included: S < 150, M 150–400, L 400+. In the audit record's `design-work-plan.md` these are N3-A1 and N3-A2 (the
 design note's own numbers, N3-1 and N3-2, collide with the decision IDs).
 
 | # | Branch | Items | Main files | Size | Model | Depends on |
@@ -432,14 +432,13 @@ a few lines at `:2220`, and should rebase last.
 
 *Planner's readings.* Where an answer left a detail open, the planning session
 proposed a reading in `design-work-plan.md` ("Ambiguities the answers leave
-open", on the audit branch). The maintainer accepted all eight on 2026-10-30
+open"). The maintainer accepted all eight on 2026-10-30
 ("Accept all 8 (Recommended)"), as recorded in `maintainer-decisions-2026-10-30.md`
 under "Design plan / N1–N5". This note labels each one "planner's reading,
 accepted by the maintainer 2026-10-30".
 
 The maintainer answered all six on 2026-10-29/30. Each entry quotes the decision
-as `maintainer-decisions-2026-10-30.md` (on `claude/app-audit-categories-k2pdon`)
-records it. The maintainer left no notes on these six.
+as `maintainer-decisions-2026-10-30.md` records it. The maintainer left no notes on these six.
 
 1. **N3-1, Performed programs (§4.2).** "(c) Group them, collapsed below. Open
    programs first, then a collapsed Performed (N) row; everything stays two

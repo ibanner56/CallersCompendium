@@ -84,6 +84,18 @@ jobs:
         run: python3 tools/ci/test_check_agent_context_budget.py
       - name: Guard resident agent context (byte budget)
         run: python3 tools/ci/check_agent_context_budget.py
+      # Ratchet: documentation and code comments cite no git branch but main.
+      # About fifty citations of the October 2026 behaviour audit pointed at
+      # files that lived only on a session branch, so a decision cited across
+      # the codebase would have lost its provenance when that branch was
+      # deleted (maintainer's rule, 2026-11-12). The record is now under
+      # docs/dev/audits/2026-10-behavior/. This step covers the Dart comments
+      # in code PRs; branch-citations.yml runs the same pair for Markdown-only
+      # PRs, which skip this job.
+      - name: Test the branch-citation ratchet
+        run: python3 tools/ci/test_check_branch_citations.py
+      - name: Guard branch citations (docs and comments cite only main)
+        run: python3 tools/ci/check_branch_citations.py
       # The merge-readiness gates (review freshness by reviewer identity,
       # unresolved threads with totalCount, closing-issue intent, suppressed
       # review findings) are a script rather than a procedure an agent has to

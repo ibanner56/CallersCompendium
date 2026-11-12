@@ -13,8 +13,8 @@
 - **Erratum (2026-10-29)**: "Scope of what syncs" says everything classified
   `shareable` travels, "**settings included**". Not every setting is
   `shareable`. By the maintainer's decision on settings-sync-scope
-  (`docs/dev/audits/2026-10-behavior/maintainer-decisions-2026-10-29.md`, on
-  the audit branch), the screen-bound settings stay on each device: app
+  (`docs/dev/audits/2026-10-behavior/maintainer-decisions-2026-10-29.md`),
+  the screen-bound settings stay on each device: app
   language (`app_locale`), Reduce motion (`reduce_motion`), Auto-size Perform
   cards (`auto_size_perform_cards`) and the Perform stage theme
   (`perform_stage_mode`) are `deviceLocal`, beside `perform_text_scale`. The

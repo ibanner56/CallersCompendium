@@ -202,7 +202,7 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   that menu, followed by View details and cut. This is maintainer decision
   D-2 of the October 2026 UX audit: "(a) Drag handle and ⋮ only. View, Up,
   Down and Cut move into ⋮, with Up and Down first." It is recorded in
-  [maintainer-decisions-2026-10-29.md](https://github.com/ibanner56/CallersCompendium/blob/c650d90c2839619f6b9987dbe260cdf8c3d76cf9/docs/dev/audits/2026-10-behavior/maintainer-decisions-2026-10-29.md).
+  [maintainer-decisions-2026-10-29.md](../dev/audits/2026-10-behavior/maintainer-decisions-2026-10-29.md).
 - **Matrix view** tab: figures × dances grid computed from structured data
   (moves as columns, per-dance presence + program-debut and dance-first-figure
   highlights) — CC's
