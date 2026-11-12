@@ -13,7 +13,7 @@
 > working files, so `file:line` citations into them stay exact. The sentence
 > below saying the directory "is not meant to be merged as-is" described that
 > working copy. The auditors' throwaway probe scripts (the `probes/` the next
-> paragraph mentions) were not brought over: they ran outside the repository,
+> paragraph and `intake.md` mention) were not brought over: they ran outside the repository,
 > and the reports quote what they printed.
 
 Nine read-only audits, each following one caller user story end to end. Full reports are in `reports/`; probe sources in `probes/`. Published summary page: https://claude.ai/artifact/Tm6fL9hgeC8fUVVJ1N488u

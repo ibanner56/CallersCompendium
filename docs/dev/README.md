@@ -53,15 +53,19 @@ whose only record is on a branch loses its provenance with it. So:
   (an audit report, a decision log), bring the record onto `main` in the same
   PR and cite its path there. Copy it byte-for-byte if anything cites it by
   `file:line`.
-- To say where work was done, cite the merged PR (`#N`) or a commit SHA, not
-  the branch it was built on. A GitHub link pins a SHA or `main`, never a
-  branch.
+- To say where work was done, cite the merged PR (`#N`) or a commit SHA that
+  is on `main`, not the branch it was built on. A GitHub link pins such a SHA
+  or `main`, never a branch. A SHA that exists only on a branch is a branch
+  citation in disguise: it stops resolving once the branch is deleted, and
+  the check below cannot tell (CI checks out a single commit).
 - Naming the branch a *planned* piece of work will be built on, in a plan
   table, is fine: that names work, not a place where a record lives.
 
-`python3 tools/ci/check_branch_citations.py` enforces this for every tracked
-Markdown file, everything under `docs/`, and the comments of hand-written Dart;
-its docstring lists exactly what it flags and why.
+`python3 tools/ci/check_branch_citations.py` enforces the common shapes of this
+in every Markdown file, the text files under `docs/`, and the comments of
+hand-written Dart. Its docstring lists exactly what it flags, what it knowingly
+misses, and the one exempt path: the audit record, whose logs name the session
+branches its work was built on and must stay byte-for-byte.
 
 ## Generated files: read the source, not the rendering
 

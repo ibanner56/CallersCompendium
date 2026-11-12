@@ -85,7 +85,7 @@ jobs:
       - name: Guard resident agent context (byte budget)
         run: python3 tools/ci/check_agent_context_budget.py
       # Ratchet: documentation and code comments cite no git branch but main.
-      # About fifty citations of the October 2026 behaviour audit pointed at
+      # Thirty-five citations of the October 2026 behaviour audit pointed at
       # files that lived only on a session branch, so a decision cited across
       # the codebase would have lost its provenance when that branch was
       # deleted (maintainer's rule, 2026-11-12). The record is now under
