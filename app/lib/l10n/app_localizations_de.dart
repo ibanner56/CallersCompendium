@@ -9464,6 +9464,17 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String danceEditorFractionAmountValue(String amount) {
+    return '$amount×';
+  }
+
+  @override
+  String get figureParamFractionOther => 'andere Menge';
+
+  @override
+  String get figureParamFractionOtherPick => 'andere Menge…';
+
+  @override
   String get commonBack => 'Zurück';
 
   @override
@@ -12083,4 +12094,15 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get callingCardHelpOptionHighlight =>
       'Für figures: Bewegungen fett in Dunkelrot, Tanzende fett und Mengen wie ½ oder 3 places in Blaugrau.';
+
+  @override
+  String get settingsCallingCardsSheetsTitle => 'Mehrere Karten pro Seite';
+
+  @override
+  String get settingsCallingCardsSheetsSubtitle =>
+      'Auf normales Papier drucken, so viele Karten pro Seite wie passen, mit Markierungen zum Zuschneiden. Das Papier wählst du beim Drucken.';
+
+  @override
+  String get exportCallingCardsBiggerThanPaper =>
+      'Diese Karten sind größer als das Papier, daher wurde jede verkleinert und einzeln auf eine Seite gedruckt.';
 }

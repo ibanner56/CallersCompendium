@@ -1054,11 +1054,31 @@ const List<MapEntry<String, String>> _displayFractions = [
   MapEntry('other', 'other'),
 ];
 
-String? _displayFraction(_Scan s) {
+/// The fraction params a poussette or figure 8 display line states, or null
+/// when the next words are no fraction. Besides the named words, the display
+/// writes an `other` fraction as its amount (`1½`, `two`) or, when it states
+/// none, as `an unstated amount of` (#2120); the legacy word `other` still
+/// reads as an `other` with no amount.
+Map<String, Object?>? _displayFraction(_Scan s) {
+  if (s.eatPhrase('an unstated amount of')) return {'fraction': 'other'};
   for (final MapEntry(key: phrase, value: token) in _displayFractions) {
-    if (s.eatPhrase(phrase)) return token;
+    if (s.eatPhrase(phrase)) return {'fraction': token};
   }
-  return null;
+  final token = s.peek();
+  // The glyph form (`1½`), the spelled whole amount (`two`), and the decimal
+  // form the "show turns as decimals" setting writes (`1.5`).
+  final amount = token == 'two'
+      ? 2.0
+      : _rotation(token) ??
+            (token != null && token.contains('.')
+                ? double.tryParse(token)
+                : null);
+  final params = amount == null ? null : fractionParamsForAmount(amount);
+  // Only an amount the named words do not cover: `½` is not the display's
+  // wording for a half, so it is left to the other readers.
+  if (params == null || params['fraction'] != 'other') return null;
+  s.take();
+  return params;
 }
 
 /// The zig-zag in the app's display wording (#2121): "zig SIDE zag OTHER
@@ -1110,12 +1130,7 @@ FigureMatch? _poussetteDisplay(String text) {
   if (s.peek() != null) return null;
   return FigureMatch(
     'poussette',
-    params: {
-      'fraction': fraction,
-      'who': who,
-      'whom': ?whom,
-      'direction': ?direction,
-    },
+    params: {...fraction, 'who': who, 'whom': ?whom, 'direction': ?direction},
   );
 }
 
@@ -1160,7 +1175,7 @@ FigureMatch? _figure8Display(String text) {
   if (s.peek() != null) return null;
   return FigureMatch(
     'figure_8',
-    params: {'who': who, 'fraction': fraction, 'where': where, 'lead': ?lead},
+    params: {'who': who, ...fraction, 'where': where, 'lead': ?lead},
   );
 }
 

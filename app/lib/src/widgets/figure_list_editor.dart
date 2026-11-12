@@ -1929,7 +1929,8 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     final schema = widget.taxonomy.resolve(moveId)?.params;
     if (schema == null) return;
     for (final entry in overrides.entries) {
-      if (schema.containsKey(entry.key)) {
+      if (schema.containsKey(entry.key) &&
+          !skipsMoveDefault(entry.key, entry.value)) {
         widget.draft.params[entry.key] = entry.value;
         // A saved per-move beats default is a user-configured value; treat it
         // as owned so a later non-beats edit's resync won't revert it to the
@@ -3424,7 +3425,12 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
   Widget _buildParams(BuildContext context, MoveDef def) {
     final l10n = AppLocalizations.of(context);
     final draft = widget.draft;
-    var entries = def.params.entries.toList();
+    // A fraction's `amount` (#2120) is read only while the fraction is
+    // `other`, so it is offered only then; core's `applyParamChange` seeds it
+    // when `other` is picked and drops it when a named fraction is.
+    var entries = def.params.entries
+        .where((e) => !hidesFractionAmount(e.key, draft.params))
+        .toList();
     // issue #576: hey's `meetTarget` is meaningful only for the two partial
     // lengths — surface it in the editor ONLY when `length ∈ {lessThanHalf,
     // betweenHalfAndFull}`, so the field never appears for half/full heys (and
@@ -3472,10 +3478,22 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     }
     // Progressive disclosure: >3 params → first 3 inline, rest behind a
     // collapsed "More options" disclosure. ≤3 params → all inline, no toggle.
-    final hasMore = entries.length > 3;
-    final inline = hasMore ? entries.take(3).toList() : entries;
+    // A fraction's amount (#2120) stays in the same section as its fraction,
+    // so picking "other amount…" from an inline fraction (a poussette's)
+    // shows the stepper it reveals rather than hiding it behind the toggle.
+    var inlineCount = 3;
+    final fractionAt = entries.indexWhere((e) => e.key == 'fraction');
+    if (fractionAt >= 0 &&
+        fractionAt < inlineCount &&
+        fractionAt + 1 < entries.length &&
+        entries[fractionAt + 1].key == fractionAmountParam &&
+        fractionAt + 1 >= inlineCount) {
+      inlineCount = fractionAt + 2;
+    }
+    final hasMore = entries.length > inlineCount;
+    final inline = hasMore ? entries.take(inlineCount).toList() : entries;
     final extra = hasMore
-        ? entries.sublist(3)
+        ? entries.sublist(inlineCount)
         : const <MapEntry<String, ParamSpec>>[];
 
     Widget paramWrap(List<MapEntry<String, ParamSpec>> items) => Wrap(
@@ -3491,6 +3509,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
             dialect: widget.dialect,
             mixer: widget.mixer,
             moveId: draft.move,
+            fractionAmountFollows: true,
             value: draft.params[entry.key] ?? entry.value.defaultValue,
             onChanged: (v) {
               if (entry.key == 'beats') {
@@ -3905,7 +3924,8 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
     if (schema == null) return;
     final draft = widget.draft;
     for (final entry in overrides.entries) {
-      if (schema.containsKey(entry.key)) {
+      if (schema.containsKey(entry.key) &&
+          !skipsMoveDefault(entry.key, entry.value)) {
         draft.params[entry.key] = entry.value;
         if (entry.key == 'beats') draft.beatsTouched = true;
       }
@@ -4169,6 +4189,9 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
     final isStep = widget.role == _ChildRole.step;
     final entries = def.params.entries
         .where((e) => isStep || e.key != 'beats')
+        // As for a top-level figure: the amount only while `other`, and the
+        // fraction rule below keeps `other` with one (#2120).
+        .where((e) => !hidesFractionAmount(e.key, draft.params))
         .toList(growable: false);
     if (entries.isEmpty) return const SizedBox.shrink();
     return Wrap(
@@ -4184,6 +4207,7 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
             dialect: widget.dialect,
             mixer: widget.mixer,
             moveId: draft.move,
+            fractionAmountFollows: true,
             value: draft.params[entry.key] ?? entry.value.defaultValue,
             onChanged: (v) {
               if (entry.key == 'who') draft.assumedSubject = false;
@@ -4207,7 +4231,18 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
                 widget.onChanged();
                 return;
               }
-              draft.params[entry.key] = v;
+              // A fraction and its amount follow the same rule as a
+              // top-level figure's (#2120): `other` is never stored without
+              // an amount. Beats are left alone, as the container's count.
+              if (!applyFractionAmountChange(
+                widget.taxonomy,
+                move: draft.move!,
+                params: draft.params,
+                key: entry.key,
+                value: v,
+              )) {
+                draft.params[entry.key] = v;
+              }
               // #976: a `who` edit on a chain rewrites its role-implied
               // hand, mirroring ContraDB's `chainChange` (figure.js:256-263)
               // — an explicit hand set for the OLD role must not silently

@@ -140,4 +140,58 @@ void main() {
       );
     });
   });
+
+  group('an other fraction amount (#2120)', () {
+    final renderer = FigureRenderer(tax);
+    Figure f8(Map<String, Object?> p) =>
+        testFigure(move: 'figure_8', params: p);
+
+    test('a stated amount joins the signature', () {
+      expect(
+        figureSnippetSignature(f8({'fraction': 'other', 'amount': 1.5}), tax),
+        'figure_8(amount=1.5,fraction=other,who=ones)',
+      );
+      expect(
+        figureSnippetSignature(f8({'fraction': 'other', 'amount': 2}), tax),
+        'figure_8(amount=2,fraction=other,who=ones)',
+      );
+    });
+
+    test('every key a pre-v39 figure could have is unchanged', () {
+      expect(
+        figureSnippetSignature(f8({'fraction': 'other'}), tax),
+        'figure_8(fraction=other,who=ones)',
+      );
+      // A stale amount under a named fraction is not part of the figure.
+      expect(
+        figureSnippetSignature(f8({'fraction': 'half', 'amount': 2}), tax),
+        'figure_8(fraction=half,who=ones)',
+      );
+    });
+
+    test('migration keeps a figure 8 amount and still renames orbit', () {
+      expect(
+        migrateFigureSnippetSignature(
+          'figure_8(amount=1.5,fraction=other,who=ones)',
+        ),
+        'figure_8(amount=1.5,fraction=other,who=ones)',
+      );
+      expect(
+        migrateFigureSnippetSignature('orbit(amount=0.5,turn=clockwise)'),
+        'orbit(direction=clockwise,travel=0.5)',
+      );
+    });
+
+    test('a signature with an amount describes as its figure', () {
+      expect(
+        describeFigureSignature(
+          'figure_8(amount=1.5,fraction=other,who=ones)',
+          tax,
+          renderer,
+          Dialect.larksRobins,
+        ),
+        startsWith('ones 1½ figure 8'),
+      );
+    });
+  });
 }

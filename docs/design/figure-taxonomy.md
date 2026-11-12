@@ -73,7 +73,7 @@ searchKeywords: [allemande, almond]
 | rotation | 0.25 … 2.5 in quarter steps | replaces ContraDB degrees (90–900) |
 | places | 1 … 10 int | ring/star travel; replaces ContraDB degrees; renders "N places" |
 | number | 0 … 99 int | a plain count for a figure of your own; renders the digits alone, no unit word (user figures only, no built-in move uses it) |
-| fraction | 1/4, 1/2, 3/4, full, other | heys, poussettes |
+| fraction | 1/4, 1/2, 3/4, full, other | figure 8, poussette; `other` states its amount in the move's `amount` param (v39) |
 | beats | 0–64 int | 0 allowed for formation labels |
 | direction | along, across, rightDiagonal, leftDiagonal, in, out, up, down | |
 | enum(...) | move-specific lists (grips, enders, prefixes…) | e.g. downTheHallEnder |
@@ -765,6 +765,9 @@ kinds:
   gate `face`, down-the-hall/zig-zag enders, hey length, all/center/outsides,
   figure-8 dir, left/right spins).
 - **`half_or_full`** — DONE (PR3): maps onto `fraction` (`half`/`full`).
+  ContraDB writes nothing else (`stringParamHalfOrFullNotN` throws on any
+  other value); since v39 a foreign quarter-step amount up to 2½ is kept as
+  `other` with `amount` (#2120).
 - **`hey`** (pass pairs, shoulder, length, dir, four ricochet flags, beats,
   `meetTarget`) and the **ocean/long-wave family** — DONE (PR5 + v6 + v17):
   modeled with existing kinds (no new `ParamKind`). The full set of ContraDB
@@ -1768,6 +1771,81 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
     keeps them. The derived `dance_figures.beats` and `deriveSections` read a
     figure's own stored `beats`, not the taxonomy default, and `beats` is not in
     its canonical text, so nothing is owed beyond v38's existing rebuild.
+- v39: a figure 8 or poussette fraction of `other` states its amount (#2120,
+    maintainer decisions relayed 2026-11-11). Before, `other` stored no amount:
+    the ContraDB adapter turned any number but 0.25/0.5/0.75/1 into a bare
+    `other`, the editor offered `other` with nowhere to put the amount, and the
+    line read "ones other figure 8".
+  - `figure_8` and `poussette` gain an `amount` param
+    (`fractionAmountParam`): a `ParamKind.rotation` (quarter steps, 0.25–2.5)
+    that opts into the `unspecified` sentinel and defaults to it. It is read
+    only while `fraction` is `other`; an amount left under a named fraction
+    means nothing and is dropped by the editor. An amount a named fraction
+    states is stored as that fraction (`fractionParamsForAmount`), so in
+    practice `other` carries 1¼–2½. **Why a sibling param and not a numeric
+    `fraction`:** nothing on the sync, share or archive path validates param
+    values, and an older build's editor rewrites a fraction it does not know
+    to `half` when the figure is opened, then syncs that back. A sibling param
+    is left alone by an older build, which keeps showing "other". Thirds and
+    eighths are not representable; contra calls them essentially never, and a
+    free-text amount (the rejected alternative) could not be filtered, checked
+    or turned into beats.
+  - `figure_8.paramBeats` gains `beatsPerAmount: 16` (ContraDB's
+    `half_or_full * 16` carried past `full`, our extension: ContraDB has no
+    amount beyond full), so a 1½ figure 8 is 24 beats; validation does not
+    flag a count the move's own rule derives as atypical. Poussette still has
+    no per-value beats.
+  - Wording: an `other` with an amount renders as the amount (`ones 1½ figure
+    8`, `1½ poussette - …`; `one and a half` verbose; a whole amount is spelled
+    `two`, because a line that opens with a bare number is read as its beat
+    count). One with no amount renders `an unstated amount of` on display and
+    `unstated amount` in canonical text, never the bare token. The poussette
+    line now uses the verbose fraction words too ("three quarters
+    poussette"). The display read-back (#2121) reads the new wording, and the
+    word `other` still reads back as an `other` with no amount.
+  - Producers: the ContraDB adapter keeps a quarter-step number up to 2½ as
+    `other` with `amount` (a number outside that domain is still a bare
+    `other`, which reads as unstated); the figure parser reads a mixed amount
+    (`1 1/2`, `1½`) for a figure 8 or poussette, where it used to fall back to
+    a custom figure.
+  - Migration: none of stored data. An `other` stored before v39 stays an
+    `other` with no amount, because nothing it came from survives to say what
+    the amount was (the provenance raw payload went in schema v21, #781, and
+    ContraDB never produces such an amount anyway). Its canonical text changes
+    ("other" -> "unstated amount"), so v39 owes a one-time canonical/FTS
+    rebuild, guarded by `taxonomyV39CanonicalRebuildDoneKey` and listed in
+    `oneTimeRepairMarkers`, so the pre-repair snapshot covers it.
+  - Keys: `figureSnippetSignature` and the re-import diff key
+    (`figureCanonicalKey`) include the amount only while it is stated, so every
+    key a pre-v39 figure had is unchanged and no snippet-signature version
+    bump is owed. The v1 signature migration's legacy `amount` -> `travel`
+    rename is narrowed to `orbit`, the only move that had one, because conflict
+    keys pass through it on every load.
+  - Figures of your own no longer offer `other` for a fraction argument, nor
+    does a per-move default in Settings ▸ Defaults (`offersFractionChoice`):
+    an argument cannot carry an amount through to the move it fills, and a
+    default seeds none. Settings does not offer `amount` either. One already
+    chosen still validates and is still shown; a figure of your own expands
+    it as an unstated amount (no amount is seeded), and a saved `other`
+    default is no longer applied (`skipsMoveDefault`).
+  - **Older devices (taxonomy v38, app 0.9.x).** A v38 build stores, syncs,
+    shares and restores an `amount` it receives unchanged (the figure codec
+    and the sync figure check never look inside params), renders such a figure
+    as "other", and opening it in the editor keeps `other` (a valid value) and
+    the amount. Its `validateFigure` rejects the unknown param
+    (`unknown_param`), and the one place that bites is a compound of the
+    user's own whose template holds such a figure: `decodeCompoundDefinition`
+    returns null there, so the entry is marked "needs repair" and cannot be
+    placed or used by a shorthand on that device, and a repair there means
+    removing or changing the figure, which drops the amount and syncs back.
+    Maintainer decision, 2026-11-12 (on #2120): accept and document it, with
+    no refusal of such templates and no sync capability gate. The limit is
+    general: an older build's validator rejects any param a later taxonomy
+    adds, so every such bump has it. To keep it to figures that state an
+    amount, the key is written only then: `Taxonomy.entryParams` does not seed
+    the `unspecified` default, the editor drops it with a named fraction, and
+    compound expansion does not seed one (an `other` argument expands as an
+    unstated amount).
 
 ## Open questions (to resolve during implementation, with user input)
 

@@ -120,10 +120,11 @@ final Map<String, DataClassification> settingsClassifications = {
     subject: DataSubject.appUser,
     egress: EgressClass.shareable,
     note:
-        'Whether calling cards are offered, the card size and the card '
-        'layout: how the user likes their cards printed, which is the same '
-        'card stock on any device they own, so it travels like any '
-        'preference. The layout can hold free text the user typed for a '
+        'Whether calling cards are offered, the card size, whether they print '
+        'several to a page, and the card layout: how the user likes their '
+        'cards printed. The card stock is the same whichever device prints, '
+        'and printing onto sheets is a habit more than a property of one '
+        'printer, so it travels like any preference. The layout can hold free text the user typed for a '
         'text block; like walkthrough_snippets, that is configuration the '
         'user authored for their own use, classified by what the setting is '
         'for rather than by whatever words they choose to print.',
@@ -445,6 +446,7 @@ final Map<String, DataClassification> settingsClassifications = {
   '__modifier_container_canonical_rebuild_done__': _installState,
   '__taxonomy_v37_canonical_rebuild_done__': _installState,
   '__taxonomy_v38_canonical_rebuild_done__': _installState,
+  '__taxonomy_v39_canonical_rebuild_done__': _installState,
   '__taxonomy_v35_figure_normalization_done__': _installState,
   '__callersbox_roll_away_role_repair_done__': _installState,
   '__normalisation_derived_index_repair_done__': _installState,

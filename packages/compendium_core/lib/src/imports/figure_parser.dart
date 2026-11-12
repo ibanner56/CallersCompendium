@@ -2408,8 +2408,11 @@ _Match? _poussette(List<String> w) {
   if (!_consumePhrase(w, ['poussette'])) return null;
   final who2 = who ?? _takeDancer(w);
   final spin = _takeSpinDirection(w);
+  final amount = _takeFractionAmount(w);
   String? frac;
-  if (_consumePhrase(w, ['1/2'])) {
+  if (amount != null) {
+    frac = 'other';
+  } else if (_consumePhrase(w, ['1/2'])) {
     frac = 'half';
   } else if (_consumePhrase(w, ['full']) || _consumePhrase(w, ['1'])) {
     frac = 'full';
@@ -2420,7 +2423,31 @@ _Match? _poussette(List<String> w) {
     'who': ?who2,
     'direction': ?spin,
     'fraction': ?frac,
+    fractionAmountParam: ?amount,
   });
+}
+
+/// Removes and returns a mixed fraction amount, `1 1/4` to `2 1/2` (the
+/// display's `1½` is normalized to `1 1/2`), for a figure 8 or poussette
+/// whose fraction no named value states (#2120). Null, leaving [w] as it was,
+/// when there is none. A bare `2` is not read: a lone digit is too often a
+/// dancer number or a position note.
+double? _takeFractionAmount(List<String> w) {
+  const parts = {'1/4': 0.25, '1/2': 0.5, '3/4': 0.75};
+  for (var i = 0; i + 1 < w.length; i++) {
+    final whole = switch (w[i]) {
+      '1' => 1,
+      '2' => 2,
+      _ => null,
+    };
+    final part = parts[w[i + 1]];
+    if (whole == null || part == null) continue;
+    final amount = whole + part;
+    if (!isFractionAmount(amount)) continue;
+    w.removeRange(i, i + 2);
+    return amount;
+  }
+  return null;
 }
 
 /// Issue #295: standalone `orbit` — TCB writes "Men orbit clockwise 1/2" /
@@ -2903,8 +2930,9 @@ _Match? _crossTrails(List<String> w) {
 }
 
 /// Tier B: TCB writes "Ones figure eight 1/2 up" / "Twos figure eight down".
-/// The dancer maps to `who`; the fraction to `half`
-/// (1/2→half, 1/4→quarter, 3/4→threeQuarter, 1|full→full); and the TCB
+/// The dancer maps to `who`; the fraction to `fraction`
+/// (1/2→half, 1/4→quarter, 3/4→threeQuarter, 1|full→full, and a mixed amount
+/// such as `1 1/2`→other with that `amount`, #2120); and the TCB
 /// direction vocabulary up/down maps to the taxonomy's above/below (`across`
 /// passes through unchanged). Anything left over → custom.
 _Match? _figure8(List<String> w) {
@@ -2914,8 +2942,12 @@ _Match? _figure8(List<String> w) {
     return null;
   }
   final who2 = who ?? _takeDancer(w);
+  // A mixed amount first, so "1 1/2" is not read as `1` with a stray `1/2`.
+  final amount = _takeFractionAmount(w);
   String? half;
-  if (_consumePhrase(w, ['1/2'])) {
+  if (amount != null) {
+    half = 'other';
+  } else if (_consumePhrase(w, ['1/2'])) {
     half = 'half';
   } else if (_consumePhrase(w, ['1/4'])) {
     half = 'quarter';
@@ -2938,7 +2970,12 @@ _Match? _figure8(List<String> w) {
   if (w.isNotEmpty) return null;
   return _Match(
     'figure_8',
-    {'who': ?who2, 'fraction': ?half, 'where': ?dir},
+    {
+      'who': ?who2,
+      'fraction': ?half,
+      fractionAmountParam: ?amount,
+      'where': ?dir,
+    },
     null,
     who2 == null,
   );

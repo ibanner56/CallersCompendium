@@ -9421,6 +9421,17 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String danceEditorFractionAmountValue(String amount) {
+    return '$amount×';
+  }
+
+  @override
+  String get figureParamFractionOther => 'andere hoeveelheid';
+
+  @override
+  String get figureParamFractionOtherPick => 'andere hoeveelheid…';
+
+  @override
   String get commonBack => 'Terug';
 
   @override
@@ -12031,4 +12042,15 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get callingCardHelpOptionHighlight =>
       'Voor figures: de bewegingen vet in donkerrood, de dansers vet, en hoeveelheden zoals ½ of 3 places in blauwgrijs.';
+
+  @override
+  String get settingsCallingCardsSheetsTitle => 'Meerdere kaarten per pagina';
+
+  @override
+  String get settingsCallingCardsSheetsSubtitle =>
+      'Afdrukken op gewoon papier, zoveel kaarten per pagina als er passen, met snijtekens. Het papier is het papier dat je kiest bij het afdrukken.';
+
+  @override
+  String get exportCallingCardsBiggerThanPaper =>
+      'Deze kaarten zijn groter dan het papier, dus elke kaart is kleiner afgedrukt, één per pagina.';
 }

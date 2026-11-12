@@ -13772,6 +13772,24 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{{formatted} turn} other{{formatted} turns}}'**
   String danceEditorTurnCount(num count, String formatted);
 
+  /// The amount of a figure 8 or poussette whose fraction is 'other amount', shown in the figure parameter editor: how many times through the figure, e.g. 1.5×.
+  ///
+  /// In en, this message translates to:
+  /// **'{amount}×'**
+  String danceEditorFractionAmountValue(String amount);
+
+  /// The fraction value of a figure 8 or poussette that none of quarter, half, three quarter or full states; its amount is stated separately. Shown in search filters and wherever the value is named on its own.
+  ///
+  /// In en, this message translates to:
+  /// **'other amount'**
+  String get figureParamFractionOther;
+
+  /// The same fraction value as figureParamFractionOther, as a choice in the dance editor's fraction menu: picking it shows a field for the amount, hence the ellipsis.
+  ///
+  /// In en, this message translates to:
+  /// **'other amount…'**
+  String get figureParamFractionOtherPick;
+
   /// Generic 'Back' affordance shared across screens.
   ///
   /// In en, this message translates to:
@@ -17570,6 +17588,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'For figures: the moves in bold dark red, the dancers in bold, and amounts such as ½ or 3 places in blue-gray.'**
   String get callingCardHelpOptionHighlight;
+
+  /// Switch title: print calling cards on ordinary paper, several to a page, instead of one per card-sized page.
+  ///
+  /// In en, this message translates to:
+  /// **'Several cards to a page'**
+  String get settingsCallingCardsSheetsTitle;
+
+  /// Subtitle of the several-cards-to-a-page switch.
+  ///
+  /// In en, this message translates to:
+  /// **'Print on ordinary paper, as many cards to a page as fit, with marks to cut along. The paper is the one you choose when you print.'**
+  String get settingsCallingCardsSheetsSubtitle;
+
+  /// Snack bar after printing calling cards several to a page when the card size does not fit on the chosen paper.
+  ///
+  /// In en, this message translates to:
+  /// **'These cards are bigger than the paper, so each was printed smaller, one to a page.'**
+  String get exportCallingCardsBiggerThanPaper;
 }
 
 class _AppLocalizationsDelegate

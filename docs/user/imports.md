@@ -264,7 +264,8 @@ Dances shared as a **Caller's Compendium** file (the app's own `.json` or
 `.ccshare` format) come in through the same review flow:
 
 1. Open **Settings**, choose **General**, and choose **Import…**.
-2. Set the source to **a Caller's Compendium JSON file**.
+2. Set the source to **a Caller's Compendium JSON file**. If you choose a
+   `.ccshare` file in the next step, the source switches to this one for you.
 3. Choose the file with **Choose file…**, paste its contents, or enter a URL and
    choose **Fetch**.
 4. Review and commit.

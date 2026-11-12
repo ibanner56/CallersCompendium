@@ -9356,6 +9356,17 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String danceEditorFractionAmountValue(String amount) {
+    return '$amount×';
+  }
+
+  @override
+  String get figureParamFractionOther => 'anden mængde';
+
+  @override
+  String get figureParamFractionOtherPick => 'anden mængde…';
+
+  @override
   String get commonBack => 'Tilbage';
 
   @override
@@ -11953,4 +11964,15 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get callingCardHelpOptionHighlight =>
       'For figures: bevægelserne med fed mørkerød skrift, danserne med fed og mængder som ½ eller 3 places i blågrå.';
+
+  @override
+  String get settingsCallingCardsSheetsTitle => 'Flere kort pr. side';
+
+  @override
+  String get settingsCallingCardsSheetsSubtitle =>
+      'Udskriv på almindeligt papir, så mange kort pr. side som der er plads til, med mærker at skære efter. Papiret er det, du vælger, når du udskriver.';
+
+  @override
+  String get exportCallingCardsBiggerThanPaper =>
+      'Disse kort er større end papiret, så hvert kort blev udskrevet mindre, ét pr. side.';
 }

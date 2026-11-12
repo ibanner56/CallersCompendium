@@ -9483,6 +9483,17 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String danceEditorFractionAmountValue(String amount) {
+    return '$amount×';
+  }
+
+  @override
+  String get figureParamFractionOther => 'autre quantité';
+
+  @override
+  String get figureParamFractionOtherPick => 'autre quantité…';
+
+  @override
   String get commonBack => 'Retour';
 
   @override
@@ -12099,4 +12110,15 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get callingCardHelpOptionHighlight =>
       'Pour figures : les mouvements en gras rouge foncé, les danseurs en gras, et les quantités comme ½ ou 3 places en gris bleuté.';
+
+  @override
+  String get settingsCallingCardsSheetsTitle => 'Plusieurs fiches par page';
+
+  @override
+  String get settingsCallingCardsSheetsSubtitle =>
+      'Imprimer sur du papier ordinaire, autant de fiches par page qu’il en tient, avec des repères de coupe. Le papier est celui que vous choisissez à l’impression.';
+
+  @override
+  String get exportCallingCardsBiggerThanPaper =>
+      'Ces fiches sont plus grandes que le papier : chacune a donc été imprimée en plus petit, une par page.';
 }

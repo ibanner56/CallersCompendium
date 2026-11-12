@@ -1988,6 +1988,36 @@ void main() {
       });
     });
 
+    testWidgets('a figure 8 default offers no amount and no other (#2120)', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(
+        kDefaultMoveParamOverridesKey,
+        encodeMoveParamOverrides({
+          'figure_8': {'fraction': 'full'},
+        }),
+      );
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('move-default-figure_8-fraction')),
+        findsWidgets,
+      );
+      expect(
+        find.byKey(const ValueKey('move-default-figure_8-amount-value')),
+        findsNothing,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('move-default-figure_8-fraction')).last,
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('three quarter'), findsWidgets);
+      expect(find.textContaining('other amount'), findsNothing);
+    });
+
     testWidgets('facing star labels its who override backing up', (
       tester,
     ) async {

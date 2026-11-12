@@ -1,5 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
+import 'package:drift/drift.dart' as drift;
+import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
@@ -65,8 +67,33 @@ Future<void> _pumpWide(
   await tester.pumpAndSettle();
 }
 
-Future<CompendiumRepositories> _seed({List<ProgramSlot>? slots}) async {
-  final repos = openTestRepositories();
+/// Delays every SELECT once [slow] is set, so a reload spans real frames as it
+/// does on a device. Native in-memory drift answers within one microtask drain,
+/// which would let a blanked pane recover before it was ever painted.
+class _SlowReads extends drift.QueryInterceptor {
+  bool slow = false;
+
+  @override
+  Future<List<Map<String, Object?>>> runSelect(
+    drift.QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) async {
+    if (slow) await Future<void>.delayed(const Duration(milliseconds: 100));
+    return super.runSelect(executor, statement, args);
+  }
+}
+
+Future<CompendiumRepositories> _seed({
+  List<ProgramSlot>? slots,
+  drift.QueryExecutor? executor,
+}) async {
+  final repos = executor == null
+      ? openTestRepositories()
+      : CompendiumRepositories(
+          openWidgetTestDatabase(executor: executor),
+          contraTaxonomy,
+        );
   await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
   await repos.dances.create(_dance(id: 'd2', title: 'Big Circle'));
   await repos.programs.create(
@@ -135,6 +162,58 @@ void main() {
     expect(alt.countsTowardCallingHistory, isTrue);
     // Only the tapped row changed.
     expect((await _slot(repos, 's0')).performedAt, isNull);
+  });
+
+  testWidgets('marking a slot performed keeps the scroll position', (
+    tester,
+  ) async {
+    final reads = _SlowReads();
+    final repos = await _seed(
+      executor: NativeDatabase.memory(
+        setup: applyCompendiumSqliteSetup,
+      ).interceptWith(reads),
+      slots: [
+        for (var i = 0; i < 40; i++)
+          ProgramSlot(id: 's$i', position: i, danceId: i.isEven ? 'd1' : 'd2'),
+      ],
+    );
+    await _pumpWide(tester, repos);
+    await _open(tester);
+
+    final list = find.byType(ListView).last;
+    await tester.drag(list, const Offset(0, -1200));
+    await tester.pumpAndSettle();
+    ScrollPosition position() => tester
+        .state<ScrollableState>(
+          find.descendant(of: list, matching: find.byType(Scrollable)).first,
+        )
+        .position;
+    final before = position().pixels;
+    expect(before, greaterThan(0));
+
+    final visible = find.byWidgetPredicate(
+      (w) =>
+          w.key is ValueKey<String> &&
+          (w.key! as ValueKey<String>).value.endsWith('-performed-toggle'),
+    );
+    reads.slow = true;
+    // A toggle actually on screen: `.first` can be a built-but-clipped row,
+    // and a tap that misses would leave the position trivially unchanged.
+    final target = visible.hitTestable().first;
+    final slotId = (tester.widget(target).key! as ValueKey<String>).value
+        .replaceFirst('summary-slot-', '')
+        .replaceFirst('-performed-toggle', '');
+    await tester.tap(target);
+    // Long enough for the write, the coalescing window and every slowed read
+    // of the reload to finish, with frames painted throughout.
+    for (var i = 0; i < 100; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+    await tester.pumpAndSettle();
+    reads.slow = false;
+    expect((await _slot(repos, slotId)).performedAt, isNotNull);
+
+    expect(position().pixels, before);
   });
 
   testWidgets('Undo after marking clears the mark', (tester) async {

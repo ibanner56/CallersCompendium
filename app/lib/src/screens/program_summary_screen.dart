@@ -521,7 +521,13 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
+    // Blank the pane (spinner) only when there is nothing of this program to
+    // keep showing. A reload of the program already on screen — every write to
+    // it, such as marking a slot performed — swaps the data in place; replacing
+    // the list with a spinner would dispose its ListView and reset the scroll
+    // position to the top.
+    final keepVisible = _program?.id == widget.programId && _error == null;
+    if (!keepVisible) setState(() => _loading = true);
     try {
       final program = await _repos.programs.getById(widget.programId);
       if (program == null) {

@@ -212,6 +212,55 @@ Future<String?> pickImportFile() async {
   return readImportTextCapped(file);
 }
 
+/// A file chosen in the import dialog: its [name] (as the picker reports it)
+/// and raw [bytes]. Unlike [ImportPicker] this keeps the file name, so the
+/// review screen can recognize a special file type from its extension.
+class PickedImportFile {
+  const PickedImportFile({required this.name, required this.bytes});
+
+  final String name;
+  final Uint8List bytes;
+}
+
+/// Prompts the user to choose an import file and returns it with its name, or
+/// `null` if they cancelled. Widget tests override this seam (via
+/// `ImportReviewScreen.filePicker`) so no real picker plugin is invoked.
+typedef ImportFilePicker = Future<PickedImportFile?> Function();
+
+/// The import source a picked file's extension identifies, or `null` when the
+/// extension says nothing about the source.
+///
+/// Only the dedicated file types are recognized: `.ccshare` (a Caller's
+/// Compendium share bundle) and `.usr` (a Caller's Companion export). A plain
+/// `.json` is deliberately **not** claimed: The Caller's Box and others serve
+/// JSON too, so the extension does not say which source it came from. Matching
+/// is case-insensitive (`.USR` is how Caller's Companion names its export).
+ImportSourceKind? importSourceKindForFileName(String fileName) {
+  final lower = fileName.toLowerCase();
+  if (lower.endsWith('.ccshare')) return ImportSourceKind.genericJson;
+  if (lower.endsWith('.usr')) return ImportSourceKind.callersCompanionUsr;
+  return null;
+}
+
+/// Default [ImportFilePicker]: opens the native open-file dialog restricted to
+/// the file types the import screen understands (`.ccshare`, `.json`, `.usr`)
+/// and reads the chosen file's bytes — under [kMaxImportUsrBytes] for a `.usr`,
+/// [kMaxImportFileBytes] otherwise. Returns `null` when the user cancels.
+Future<PickedImportFile?> pickImportAnyFile() async {
+  final file = await openFile(
+    acceptedTypeGroups: [importJsonTypeGroup(), importUsrTypeGroup()],
+  );
+  if (file == null) return null;
+  final isUsr =
+      importSourceKindForFileName(file.name) ==
+      ImportSourceKind.callersCompanionUsr;
+  final bytes = await readImportBytesCapped(
+    file,
+    maxBytes: isUsr ? kMaxImportUsrBytes : kMaxImportFileBytes,
+  );
+  return PickedImportFile(name: file.name, bytes: bytes);
+}
+
 /// Prompts the user to choose a **binary** source file for an import and returns
 /// its raw bytes, or `null` if they cancelled. See [pickImportUsrFile] for the
 /// default implementation; widget tests override this seam (via

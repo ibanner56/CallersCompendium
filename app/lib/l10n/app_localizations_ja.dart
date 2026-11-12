@@ -8987,6 +8987,17 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String danceEditorFractionAmountValue(String amount) {
+    return '$amount×';
+  }
+
+  @override
+  String get figureParamFractionOther => 'その他の量';
+
+  @override
+  String get figureParamFractionOtherPick => 'その他の量…';
+
+  @override
   String get commonBack => '戻る';
 
   @override
@@ -11485,4 +11496,15 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get callingCardHelpOptionHighlight =>
       'figures 用：動きを濃い赤の太字、ダンサーを太字、½ や 3 places などの量を青みがかった灰色で表示します。';
+
+  @override
+  String get settingsCallingCardsSheetsTitle => '1ページに複数枚';
+
+  @override
+  String get settingsCallingCardsSheetsSubtitle =>
+      '普通紙に、入るだけの枚数を並べて、切り取り用の目印を付けて印刷します。用紙は印刷時に選んだものを使います。';
+
+  @override
+  String get exportCallingCardsBiggerThanPaper =>
+      'カードが用紙より大きいため、1ページに1枚ずつ縮小して印刷しました。';
 }

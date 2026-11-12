@@ -31,6 +31,12 @@ void seedChainHand(String moveId, Map<String, Object?> params) {
 /// - **promenade `where`** (v30, #989): `in`, `out`, `up` or `down` leave no
 ///   rotation, so `direction` is reset to the `unspecified` sentinel. It is
 ///   written rather than removed, because the spec default is concrete.
+/// - **a fraction and its `amount`** (v39, #2120), on a move that has both:
+///   picking `other` seeds the amount at [kFractionOtherSeedAmount] unless
+///   one is already stated, so `other` is never stored without one; picking a
+///   named fraction drops the amount, which only `other` reads; and an amount
+///   a named fraction states is stored as that fraction
+///   ([fractionParamsForAmount]).
 /// - **a `balance` flag** shifts `beats` by +4 (on) or -4 (off) from the
 ///   current count, clamped to 0..64, including a manual override, and returns
 ///   before the rules below.
@@ -49,6 +55,7 @@ String applyParamChange(
   required Object? value,
   required bool beatsTouched,
   required bool aggressiveBeats,
+  bool seedFractionAmount = true,
 }) {
   if (move == 'hey' && key == 'length') {
     final partial = value == 'lessThanHalf' || value == 'betweenHalfAndFull';
@@ -61,7 +68,18 @@ String applyParamChange(
     }
   }
   final oldDefault = canonicalBeatsFor(taxonomy, move, params);
-  if (key == 'balance' && value is bool && _isBalanceFlag(taxonomy, move)) {
+  final setByFractionRule = applyFractionAmountChange(
+    taxonomy,
+    move: move,
+    params: params,
+    key: key,
+    value: value,
+    seed: seedFractionAmount,
+  );
+  if (!setByFractionRule &&
+      key == 'balance' &&
+      value is bool &&
+      _isBalanceFlag(taxonomy, move)) {
     final wasOn = _effectiveBalance(taxonomy, move, params);
     params[key] = value;
     if (wasOn != value) {
@@ -73,7 +91,7 @@ String applyParamChange(
     }
     return move;
   }
-  params[key] = value;
+  if (!setByFractionRule) params[key] = value;
   if (move == 'chain' && key == 'who') seedChainHand('chain', params);
   final resolved = taxonomy.resolvedMoveId(Figure(move: move, params: params));
   final newDefault = canonicalBeatsFor(taxonomy, resolved, params);
@@ -89,6 +107,51 @@ String applyParamChange(
     params['beats'] = newDefault;
   }
   return resolved;
+}
+
+/// Applies the fraction/amount rule (#2120) for a change of [key] to [value],
+/// when [move] has a `fraction` with an `amount` and [key] is one of them, and
+/// returns whether it handled the change (so the caller does not set [key]
+/// again). Part of [applyParamChange]; public for an editor that does not
+/// reconcile beats (a meanwhile side or modifier child, whose container's
+/// beats count) but must still never store `other` without an amount.
+///
+/// [seed] false leaves an `other` with no amount as it is: compound expansion
+/// passes an argument chosen before taxonomy v39, which states none, and must
+/// not have one invented for it. A non-numeric amount is refused (the params
+/// are left as they were): `other` always states one.
+bool applyFractionAmountChange(
+  Taxonomy taxonomy, {
+  required String move,
+  required Map<String, Object?> params,
+  required String key,
+  required Object? value,
+  bool seed = true,
+}) {
+  final def = taxonomy.resolve(move);
+  if (def == null || !def.params.containsKey(fractionAmountParam)) {
+    return false;
+  }
+  if (key == 'fraction') {
+    params['fraction'] = value;
+    if (value == 'other') {
+      if (seed && statedFractionAmount(params) == null) {
+        params[fractionAmountParam] = kFractionOtherSeedAmount;
+      }
+    } else {
+      params.remove(fractionAmountParam);
+    }
+    return true;
+  }
+  if (key == fractionAmountParam) {
+    final normalized = value is num ? fractionParamsForAmount(value) : null;
+    // Refused: not an amount (`unspecified` included) or out of domain.
+    if (normalized == null) return true;
+    params.remove(fractionAmountParam);
+    params.addAll(normalized);
+    return true;
+  }
+  return false;
 }
 
 /// The canonical `beats` default of [move] for [params], ignoring any explicit

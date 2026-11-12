@@ -26,7 +26,7 @@ void main() {
     },
   );
 
-  test('taxonomy version is 38', () => expect(contraTaxonomyVersion, 38));
+  test('taxonomy version is 39', () => expect(contraTaxonomyVersion, 39));
 
   group('definition', () {
     final def = tax.resolve('circular_hey')!;

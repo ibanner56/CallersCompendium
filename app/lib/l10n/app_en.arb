@@ -12267,6 +12267,24 @@
       }
     }
   },
+  "danceEditorFractionAmountValue": "{amount}×",
+  "@danceEditorFractionAmountValue": {
+    "description": "The amount of a figure 8 or poussette whose fraction is 'other amount', shown in the figure parameter editor: how many times through the figure, e.g. 1.5×.",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "1.5"
+      }
+    }
+  },
+  "figureParamFractionOther": "other amount",
+  "@figureParamFractionOther": {
+    "description": "The fraction value of a figure 8 or poussette that none of quarter, half, three quarter or full states; its amount is stated separately. Shown in search filters and wherever the value is named on its own."
+  },
+  "figureParamFractionOtherPick": "other amount…",
+  "@figureParamFractionOtherPick": {
+    "description": "The same fraction value as figureParamFractionOther, as a choice in the dance editor's fraction menu: picking it shows a field for the amount, hence the ellipsis."
+  },
   "commonBack": "Back",
   "@commonBack": {
     "description": "Generic 'Back' affordance shared across screens."
@@ -16085,5 +16103,17 @@
   "callingCardHelpOptionHighlight": "For figures: the moves in bold dark red, the dancers in bold, and amounts such as ½ or 3 places in blue-gray.",
   "@callingCardHelpOptionHighlight": {
     "description": "Help: the figures block's highlight option. Block and option names in this text (title, figures, size=, label=, and the like) are the layout language's own: keep them in English."
+  },
+  "settingsCallingCardsSheetsTitle": "Several cards to a page",
+  "@settingsCallingCardsSheetsTitle": {
+    "description": "Switch title: print calling cards on ordinary paper, several to a page, instead of one per card-sized page."
+  },
+  "settingsCallingCardsSheetsSubtitle": "Print on ordinary paper, as many cards to a page as fit, with marks to cut along. The paper is the one you choose when you print.",
+  "@settingsCallingCardsSheetsSubtitle": {
+    "description": "Subtitle of the several-cards-to-a-page switch."
+  },
+  "exportCallingCardsBiggerThanPaper": "These cards are bigger than the paper, so each was printed smaller, one to a page.",
+  "@exportCallingCardsBiggerThanPaper": {
+    "description": "Snack bar after printing calling cards several to a page when the card size does not fit on the chosen paper."
   }
 }

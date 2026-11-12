@@ -6,6 +6,7 @@ import '../dialect/dialect.dart';
 import '../dialect/renderer.dart';
 import '../model/figure.dart';
 import '../model/phrase_structure.dart';
+import '../taxonomy/param_types.dart';
 import '../taxonomy/taxonomy.dart';
 import '../taxonomy/user_figure_use.dart';
 
@@ -123,6 +124,13 @@ String figureCanonicalKey(Figure figure, Taxonomy taxonomy) {
   final moveId = def?.id ?? figure.move;
   final effective = Map<String, Object?>.of(taxonomy.effectiveParams(figure))
     ..remove('beats');
+  // An `other` fraction's amount (#2120) counts only while it is stated: an
+  // amount left behind under a named fraction means nothing, and an unstated
+  // one keeps the key every figure 8 and poussette had before taxonomy v39.
+  if ((def?.params.containsKey(fractionAmountParam) ?? false) &&
+      statedFractionAmount(effective) == null) {
+    effective.remove(fractionAmountParam);
+  }
   final keys = effective.keys.toList()..sort();
   final parts = <String>[];
   for (final name in keys) {

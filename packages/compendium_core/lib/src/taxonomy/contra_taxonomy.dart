@@ -23,7 +23,7 @@ import 'taxonomy.dart';
 /// Bump only when the current value has shipped in a release. While it has
 /// not, a taxonomy change joins that version and amends its entry instead
 /// (CONTRIBUTING.md, "Versioned formats").
-const int contraTaxonomyVersion = 38;
+const int contraTaxonomyVersion = 39;
 
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
@@ -969,8 +969,9 @@ final Taxonomy contraTaxonomy = Taxonomy(
           choices: _gateDirectionOrUnspecified,
         ),
         // Turn fraction in full turns (1/2 -> 0.5, 3/4 -> 0.75, 1 -> 1.0,
-        // "1 & 1/4" -> 1.25). The one ParamKind.rotation that opts into the
-        // `unspecified` sentinel (see ParamSpec.validate): ContraDB's gate has
+        // "1 & 1/4" -> 1.25). A ParamKind.rotation that opts into the
+        // `unspecified` sentinel (see ParamSpec.validate; so, since v39, do
+        // the fraction `amount` params): ContraDB's gate has
         // no amount param at all, so any numeric default would fabricate one
         // for every ContraDB import.
         'travel': ParamSpec(
@@ -1250,16 +1251,27 @@ final Taxonomy contraTaxonomy = Taxonomy(
           choices: ['onesRole1', 'onesRole2', 'twosRole1', 'twosRole2'],
         ),
         'fraction': ParamSpec(ParamKind.fraction, defaultValue: 'half'),
+        // The amount an `other` fraction states (v39, #2120): read only while
+        // the fraction is `other`. See [fractionAmountParam] for why it is a
+        // sibling param and not a numeric fraction.
+        fractionAmountParam: ParamSpec(
+          ParamKind.rotation,
+          defaultValue: ParamVocab.unspecified,
+          choices: [ParamVocab.unspecified],
+        ),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
       renderTemplate: '{who} {fraction} {move}',
       // ContraDB figure8GoodBeats: `beats === half_or_full * 16` (an exact
       // equality, and figure8Change auto-sets it on a fraction flip): half
-      // (0.5) -> 8, full (1.0) -> 16.
+      // (0.5) -> 8, full (1.0) -> 16. The same 16 a full amount carries past
+      // `full` for an `other` fraction's stated amount (v39): 1½ -> 24.
+      // ContraDB itself has no amount beyond full, so that rule is ours.
       goodBeats: [8, 16],
       paramBeats: ParamBeats(
         param: 'fraction',
         byValue: {'half': 8, 'full': 16},
+        beatsPerAmount: 16,
       ),
     ),
     const MoveDef(
@@ -1269,6 +1281,14 @@ final Taxonomy contraTaxonomy = Taxonomy(
         'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'role1s'),
         'whom': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
         'fraction': ParamSpec(ParamKind.fraction, defaultValue: 'half'),
+        // The amount an `other` fraction states (v39, #2120): read only while
+        // the fraction is `other`. See [fractionAmountParam] for why it is a
+        // sibling param and not a numeric fraction.
+        fractionAmountParam: ParamSpec(
+          ParamKind.rotation,
+          defaultValue: ParamVocab.unspecified,
+          choices: [ParamVocab.unspecified],
+        ),
         'direction': ParamSpec(
           ParamKind.spinDirection,
           defaultValue: 'clockwise',

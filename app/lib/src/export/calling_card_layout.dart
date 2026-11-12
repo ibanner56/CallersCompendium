@@ -745,11 +745,17 @@ class CallingCardSettings {
     this.enabled = false,
     this.size = kDefaultCallingCardSize,
     this.layout,
+    this.onSheets = false,
   });
 
   /// Whether the Export menus offer calling cards.
   final bool enabled;
   final CallingCardSize size;
+
+  /// Whether cards print several to a page on the paper the print dialog
+  /// chooses, with marks to cut along, instead of one per page at the card's
+  /// own size.
+  final bool onSheets;
 
   /// The user's layout, or `null` for [kDefaultCallingCardLayout]. Kept `null`
   /// until the user changes it, so a better default reaches everyone who never
@@ -765,10 +771,12 @@ class CallingCardSettings {
     bool? enabled,
     CallingCardSize? size,
     String? Function()? layout,
+    bool? onSheets,
   }) => CallingCardSettings(
     enabled: enabled ?? this.enabled,
     size: size ?? this.size,
     layout: layout == null ? this.layout : layout(),
+    onSheets: onSheets ?? this.onSheets,
   );
 
   /// The stored JSON object. A layout identical to the default is stored as
@@ -780,6 +788,7 @@ class CallingCardSettings {
     'unit': size.unit.token,
     if (layout case final text? when text != kDefaultCallingCardLayout)
       'layout': text,
+    'sheets': onSheets,
   };
 
   /// Reads a stored value. Stored values are untrusted: anything missing,
@@ -800,12 +809,14 @@ class CallingCardSettings {
       if (candidate.isValid) size = candidate;
     }
     final layout = stored['layout'];
+    final sheets = stored['sheets'];
     return CallingCardSettings(
       enabled: enabled is bool && enabled,
       size: size,
       layout: layout is String && layout != kDefaultCallingCardLayout
           ? layout
           : null,
+      onSheets: sheets is bool && sheets,
     );
   }
 
@@ -817,7 +828,10 @@ class CallingCardSettings {
     final height = stored['height'];
     final unit = CallingCardUnit.fromToken(stored['unit']);
     final layout = stored['layout'];
+    final sheets = stored['sheets'];
     return stored['enabled'] is bool &&
+        // Absent in values stored before the setting existed.
+        (sheets == null || sheets is bool) &&
         width is num &&
         height is num &&
         unit != null &&
@@ -830,8 +844,9 @@ class CallingCardSettings {
       other is CallingCardSettings &&
       other.enabled == enabled &&
       other.size == size &&
-      other.layout == layout;
+      other.layout == layout &&
+      other.onSheets == onSheets;
 
   @override
-  int get hashCode => Object.hash(enabled, size, layout);
+  int get hashCode => Object.hash(enabled, size, layout, onSheets);
 }

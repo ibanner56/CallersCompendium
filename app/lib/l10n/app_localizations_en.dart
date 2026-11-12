@@ -9319,6 +9319,17 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String danceEditorFractionAmountValue(String amount) {
+    return '$amount×';
+  }
+
+  @override
+  String get figureParamFractionOther => 'other amount';
+
+  @override
+  String get figureParamFractionOtherPick => 'other amount…';
+
+  @override
   String get commonBack => 'Back';
 
   @override
@@ -11905,4 +11916,15 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get callingCardHelpOptionHighlight =>
       'For figures: the moves in bold dark red, the dancers in bold, and amounts such as ½ or 3 places in blue-gray.';
+
+  @override
+  String get settingsCallingCardsSheetsTitle => 'Several cards to a page';
+
+  @override
+  String get settingsCallingCardsSheetsSubtitle =>
+      'Print on ordinary paper, as many cards to a page as fit, with marks to cut along. The paper is the one you choose when you print.';
+
+  @override
+  String get exportCallingCardsBiggerThanPaper =>
+      'These cards are bigger than the paper, so each was printed smaller, one to a page.';
 }

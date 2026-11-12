@@ -52,14 +52,37 @@ class MoveDef {
 /// derive `beats` when a figure does not carry an explicit value.
 @immutable
 class ParamBeats {
-  const ParamBeats({required this.param, required this.byValue});
+  const ParamBeats({
+    required this.param,
+    required this.byValue,
+    this.beatsPerAmount,
+  });
 
   /// Name of the parameter whose value selects the beat count.
   final String param;
 
   /// Canonical beats for each value of [param]. A value absent here falls back
-  /// to the move's flat `beats` spec default.
+  /// to [beatsPerAmount] when that applies, else to the move's flat `beats`
+  /// spec default.
   final Map<Object?, int> byValue;
+
+  /// For a [ParamKind.fraction] driver: beats per full amount, applied to the
+  /// amount an `other` fraction states (`statedFractionAmount`). `figure_8`
+  /// sets 16, ContraDB's `half_or_full * 16` carried past `full` (a 1½ figure
+  /// 8 is 24 beats). Null, or an `other` that states no amount, falls back to
+  /// the flat default.
+  final int? beatsPerAmount;
+
+  /// The beats these rules derive from a figure's [effective] params, or null
+  /// when they derive none.
+  int? derive(Map<String, Object?> effective) {
+    final byName = byValue[effective[param]];
+    if (byName != null) return byName;
+    final perAmount = beatsPerAmount;
+    if (perAmount == null) return null;
+    final amount = statedFractionAmount(effective, fractionParam: param);
+    return amount == null ? null : (amount * perAmount).round();
+  }
 }
 
 /// An alias entry: resolves to a canonical move with pinned params

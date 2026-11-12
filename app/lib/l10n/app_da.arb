@@ -9066,6 +9066,18 @@
   "@danceEditorTurnCount": {
     "x-sourceSha256": "bf3ef6c7d671b0b533737fd923373473cea65f73adcfbcbdd39cea05ef90ec81"
   },
+  "danceEditorFractionAmountValue": "{amount}×",
+  "@danceEditorFractionAmountValue": {
+    "x-sourceSha256": "553da8e4e4a62036af6fef16e984f65ca6452d138b08fb0c14d06957d787802f"
+  },
+  "figureParamFractionOther": "anden mængde",
+  "@figureParamFractionOther": {
+    "x-sourceSha256": "a08437dd2535b4534d402f71f66664161a72443f385f7ef12bc34aa1c36e04f8"
+  },
+  "figureParamFractionOtherPick": "anden mængde…",
+  "@figureParamFractionOtherPick": {
+    "x-sourceSha256": "87c84f8b5517f530a1517e14d57212585827b7c752bdfc3e1a87887d36a9ec7f"
+  },
   "commonBack": "Tilbage",
   "@commonBack": {
     "x-sourceSha256": "76900f1bfd16c8d4dd3d25e6f46638d7165aee23883ccea6bfe071c514421769"
@@ -11573,5 +11585,17 @@
   "callingCardHelpOptionHighlight": "For figures: bevægelserne med fed mørkerød skrift, danserne med fed og mængder som ½ eller 3 places i blågrå.",
   "@callingCardHelpOptionHighlight": {
     "x-sourceSha256": "72204db6b612cb2677022bc6ae5c56028cb7dea8f0351c8eeeab21eb5a3a4020"
+  },
+  "settingsCallingCardsSheetsTitle": "Flere kort pr. side",
+  "@settingsCallingCardsSheetsTitle": {
+    "x-sourceSha256": "007bda11261b6308f8db8297b032d3c34ef5de13a70b016bbd3035eece0765a6"
+  },
+  "settingsCallingCardsSheetsSubtitle": "Udskriv på almindeligt papir, så mange kort pr. side som der er plads til, med mærker at skære efter. Papiret er det, du vælger, når du udskriver.",
+  "@settingsCallingCardsSheetsSubtitle": {
+    "x-sourceSha256": "c8643e6ca58f504b9366e91a1f70cd69ffec7c376b4a588ae25dab4787a0f8c4"
+  },
+  "exportCallingCardsBiggerThanPaper": "Disse kort er større end papiret, så hvert kort blev udskrevet mindre, ét pr. side.",
+  "@exportCallingCardsBiggerThanPaper": {
+    "x-sourceSha256": "b72cf3ae14970e26d9ca98cdea00c2c9a23b004b7d9084777486e2730750cbd6"
   }
 }

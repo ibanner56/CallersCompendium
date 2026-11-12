@@ -9066,6 +9066,18 @@
   "@danceEditorTurnCount": {
     "x-sourceSha256": "bf3ef6c7d671b0b533737fd923373473cea65f73adcfbcbdd39cea05ef90ec81"
   },
+  "danceEditorFractionAmountValue": "{amount}×",
+  "@danceEditorFractionAmountValue": {
+    "x-sourceSha256": "553da8e4e4a62036af6fef16e984f65ca6452d138b08fb0c14d06957d787802f"
+  },
+  "figureParamFractionOther": "andere hoeveelheid",
+  "@figureParamFractionOther": {
+    "x-sourceSha256": "a08437dd2535b4534d402f71f66664161a72443f385f7ef12bc34aa1c36e04f8"
+  },
+  "figureParamFractionOtherPick": "andere hoeveelheid…",
+  "@figureParamFractionOtherPick": {
+    "x-sourceSha256": "87c84f8b5517f530a1517e14d57212585827b7c752bdfc3e1a87887d36a9ec7f"
+  },
   "commonBack": "Terug",
   "@commonBack": {
     "x-sourceSha256": "76900f1bfd16c8d4dd3d25e6f46638d7165aee23883ccea6bfe071c514421769"
@@ -11573,5 +11585,17 @@
   "callingCardHelpOptionHighlight": "Voor figures: de bewegingen vet in donkerrood, de dansers vet, en hoeveelheden zoals ½ of 3 places in blauwgrijs.",
   "@callingCardHelpOptionHighlight": {
     "x-sourceSha256": "72204db6b612cb2677022bc6ae5c56028cb7dea8f0351c8eeeab21eb5a3a4020"
+  },
+  "settingsCallingCardsSheetsTitle": "Meerdere kaarten per pagina",
+  "@settingsCallingCardsSheetsTitle": {
+    "x-sourceSha256": "007bda11261b6308f8db8297b032d3c34ef5de13a70b016bbd3035eece0765a6"
+  },
+  "settingsCallingCardsSheetsSubtitle": "Afdrukken op gewoon papier, zoveel kaarten per pagina als er passen, met snijtekens. Het papier is het papier dat je kiest bij het afdrukken.",
+  "@settingsCallingCardsSheetsSubtitle": {
+    "x-sourceSha256": "c8643e6ca58f504b9366e91a1f70cd69ffec7c376b4a588ae25dab4787a0f8c4"
+  },
+  "exportCallingCardsBiggerThanPaper": "Deze kaarten zijn groter dan het papier, dus elke kaart is kleiner afgedrukt, één per pagina.",
+  "@exportCallingCardsBiggerThanPaper": {
+    "x-sourceSha256": "b72cf3ae14970e26d9ca98cdea00c2c9a23b004b7d9084777486e2730750cbd6"
   }
 }

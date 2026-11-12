@@ -121,6 +121,7 @@ class ImportReviewScreen extends StatefulWidget {
     required this.sources,
     this.picker,
     this.bytePicker,
+    this.filePicker,
     this.fetcher,
     this.archiveDecoder,
     this.onlineService,
@@ -154,14 +155,23 @@ class ImportReviewScreen extends StatefulWidget {
   /// order and default selection are deliberately separate (issue #823).
   final List<ImportSource> sources;
 
-  /// Test seam for choosing a file; defaults to [pickImportFile] (native
-  /// open-file dialog). Widget tests inject canned text.
+  /// Test seam for choosing a file as canned text. When null the screen uses
+  /// [filePicker], which defaults to [pickImportAnyFile] (native open-file
+  /// dialog). A text picker carries no file name, so injecting one skips
+  /// extension-based source detection.
   final ImportPicker? picker;
 
   /// Test seam for choosing a **binary** file (byte sources such as Caller's
   /// Companion `.USR`); overrides the selected [ImportSource.bytePicker] when
   /// provided. Widget tests inject canned bytes so no real picker plugin runs.
   final ImportBytePicker? bytePicker;
+
+  /// Test seam for the name-aware file choice behind "Choose file…". Used when
+  /// [picker] is not provided; defaults to [pickImportAnyFile]. The chosen
+  /// file's extension selects the import source (see
+  /// [importSourceKindForFileName]); [picker] yields text only, so it never
+  /// does.
+  final ImportFilePicker? filePicker;
 
   /// Test seam for the archive decode the screen runs once per plan to decide
   /// whether the text is a shared bundle; defaults to [archiveFromJson]. Widget
@@ -716,13 +726,46 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   }
 
   Future<void> _chooseFile() async {
-    final picker = widget.picker ?? pickImportFile;
+    final textPicker = widget.picker;
+    final filePicker = widget.filePicker ?? pickImportAnyFile;
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
     setState(() => _picking = true);
     try {
-      final text = await picker();
-      if (!mounted || text == null) return;
+      final String text;
+      ImportSource? detected;
+      Uint8List? usrBytes;
+      if (textPicker != null) {
+        final picked = await textPicker();
+        if (!mounted || picked == null) return;
+        text = picked;
+      } else {
+        final picked = await filePicker();
+        if (!mounted || picked == null) return;
+        // The extension names the source: a `.ccshare` is never a Caller's Box
+        // payload and a `.usr` is never text, so switch rather than make the
+        // user do it before the import can work.
+        final kind = importSourceKindForFileName(picked.name);
+        for (final s in widget.sources) {
+          if (s.kind == kind) detected = s;
+        }
+        if (detected?.bytePicker != null) {
+          usrBytes = picked.bytes;
+          text = '';
+        } else {
+          text = utf8.decode(picked.bytes);
+        }
+      }
+      if (detected != null && detected != _selected) {
+        _switchSourceForPickedFile(detected);
+      }
+      if (usrBytes != null) {
+        setState(() {
+          _payloadBytes = usrBytes;
+          _usrArchive = null;
+        });
+        return;
+      }
       _pasteController.text = text;
       // A freshly picked file replaces any URL-sourced payload; drop stale
       // provenance so this import is recorded as file/paste (uri == null).
@@ -763,6 +806,24 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     } finally {
       if (mounted) setState(() => _picking = false);
     }
+  }
+
+  /// Moves the selection to [source] because the picked file's extension
+  /// identifies it. Resets what belonged to the previous source exactly as the
+  /// dropdown does, but leaves [_sourceManuallySelected] alone: this is not a
+  /// deliberate dropdown choice, so it must not switch URL auto-detection off.
+  void _switchSourceForPickedFile(ImportSource source) {
+    setState(() {
+      _showPublishedCatalog = false;
+      _publishedEntry = null;
+      _publishedArchiveBytes = null;
+      _selected = source;
+      _fetchError = null;
+      _sourceUri = null;
+      _payloadBytes = null;
+      _usrArchive = null;
+      _titleListError = null;
+    });
   }
 
   /// Picks the raw bytes of a binary payload for a byte source (Caller's
