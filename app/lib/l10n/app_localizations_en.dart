@@ -11904,5 +11904,5 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get callingCardHelpOptionHighlight =>
-      'For figures: the moves in bold dark red, the dancers in bold, and amounts such as ½ or 3 places in blue-grey.';
+      'For figures: the moves in bold dark red, the dancers in bold, and amounts such as ½ or 3 places in blue-gray.';
 }

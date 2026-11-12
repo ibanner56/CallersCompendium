@@ -17568,7 +17568,7 @@ abstract class AppLocalizations {
   /// Help: the figures block's highlight option. Block and option names in this text (title, figures, size=, label=, and the like) are the layout language's own: keep them in English.
   ///
   /// In en, this message translates to:
-  /// **'For figures: the moves in bold dark red, the dancers in bold, and amounts such as ½ or 3 places in blue-grey.'**
+  /// **'For figures: the moves in bold dark red, the dancers in bold, and amounts such as ½ or 3 places in blue-gray.'**
   String get callingCardHelpOptionHighlight;
 }
 
