@@ -65,6 +65,9 @@ void main() {
     await SettingsRepository(
       db,
     ).set(taxonomyV38CanonicalRebuildDoneKey, 'done');
+    await SettingsRepository(
+      db,
+    ).set(taxonomyV39CanonicalRebuildDoneKey, 'done');
   });
   tearDown(() => db.close());
 

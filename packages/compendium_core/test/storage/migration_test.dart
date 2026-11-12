@@ -245,6 +245,7 @@ void main() {
           modifierContainerCanonicalRebuildDoneKey,
           taxonomyV37CanonicalRebuildDoneKey,
           taxonomyV38CanonicalRebuildDoneKey,
+          taxonomyV39CanonicalRebuildDoneKey,
           chainHandBackfillDoneKey,
         ]) {
           await repos.settings.set(key, 'done');
@@ -812,6 +813,88 @@ void main() {
         expect(repos.rebuildAttempts, rebuilds, reason: 'runs once');
       },
     );
+  });
+
+  group('taxonomy v39 canonical rebuild (#2120)', () {
+    test('an other fraction re-derives as its amount or as unstated', () async {
+      final db = CompendiumDatabase(NativeDatabase.memory());
+      final repos = _CountingRepositories(db, contraTaxonomy);
+      addTearDown(db.close);
+
+      await repos.dances.create(
+        Dance(
+          id: 'v39-other',
+          title: 'v39 fractions',
+          figures: [
+            Figure(
+              move: 'figure_8',
+              params: {'fraction': 'other', 'where': 'none', 'beats': 8},
+            ),
+            Figure(
+              move: 'figure_8',
+              params: {
+                'fraction': 'other',
+                'amount': 1.5,
+                'where': 'none',
+                'beats': 24,
+              },
+            ),
+          ],
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      await _markPre1192SweepsComplete(repos);
+      await repos.settings.remove(taxonomyV39CanonicalRebuildDoneKey);
+      // What a v38 install derived: the bare word "other".
+      await db.customUpdate(
+        'UPDATE dance_figures SET canonical_text = ? WHERE dance_id = ?',
+        variables: [
+          Variable<String>('ones other figure 8'),
+          Variable<String>('v39-other'),
+        ],
+      );
+      final sourceBefore =
+          (await db
+                  .customSelect(
+                    'SELECT figures_json FROM dances WHERE id = ?',
+                    variables: [Variable<String>('v39-other')],
+                  )
+                  .getSingle())
+              .read<String>('figures_json');
+
+      await repos.ensureMigrated();
+
+      final indexed = await db
+          .customSelect(
+            'SELECT canonical_text FROM dance_figures WHERE dance_id = ? '
+            'ORDER BY idx',
+            variables: [Variable<String>('v39-other')],
+          )
+          .get();
+      expect(indexed.map((row) => row.read<String>('canonical_text')), [
+        'ones unstated amount figure 8',
+        'ones 1½ figure 8',
+      ]);
+      // No amount is invented for the legacy row: source JSON is untouched.
+      final sourceAfter =
+          (await db
+                  .customSelect(
+                    'SELECT figures_json FROM dances WHERE id = ?',
+                    variables: [Variable<String>('v39-other')],
+                  )
+                  .getSingle())
+              .read<String>('figures_json');
+      expect(sourceAfter, sourceBefore);
+      expect(
+        repos.oneTimeRepairMarkers,
+        contains(taxonomyV39CanonicalRebuildDoneKey),
+      );
+
+      final rebuilds = repos.rebuildAttempts;
+      await repos.ensureMigrated();
+      expect(repos.rebuildAttempts, rebuilds, reason: 'runs once');
+    });
   });
 
   group('taxonomy v35 figure normalization', () {
@@ -1858,6 +1941,7 @@ Future<void> _markPre1192SweepsComplete(CompendiumRepositories repos) async {
     modifierContainerCanonicalRebuildDoneKey,
     taxonomyV37CanonicalRebuildDoneKey,
     taxonomyV38CanonicalRebuildDoneKey,
+    taxonomyV39CanonicalRebuildDoneKey,
     chainHandBackfillDoneKey,
   ]) {
     await repos.settings.set(key, 'done');

@@ -1123,6 +1123,195 @@ void main() {
     });
   });
 
+  group('fraction amount (#2120, taxonomy v39)', () {
+    testWidgets('the amount shows only for other, which seeds and keeps one', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[
+        FigureDraft.fromFigure(
+          Figure(
+            move: 'figure_8',
+            params: const {'fraction': 'half', 'where': 'above', 'beats': 8},
+          ),
+        ),
+      ];
+      await _pump(tester, drafts);
+      await _openFigure(tester, 0);
+      await tester.tap(find.byKey(const ValueKey('figure-0-more-options')));
+      await tester.pumpAndSettle();
+
+      // A named fraction: no amount field.
+      expect(find.byKey(const ValueKey('figure-0-amount-value')), findsNothing);
+
+      // Picking "other amount…" stores other WITH an amount, never without.
+      await _selectDropdownOption(tester, 'figure-0-fraction', 'other amount…');
+      expect(drafts.single.params['fraction'], 'other');
+      expect(drafts.single.params['amount'], 1.5);
+      expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('figure-0-amount-value')))
+            .data,
+        '1.5×',
+      );
+
+      // Stepping the amount up. (Beats derived from the amount are pinned in
+      // core's param_change_rules_test; this figure states its beats, which
+      // the editor keeps as the caller's own.)
+      await tester.tap(find.byKey(const ValueKey('figure-0-amount-inc')));
+      await tester.pumpAndSettle();
+      expect(drafts.single.params['amount'], 1.75);
+
+      // Back to a named fraction: the field goes and the amount with it.
+      await _selectDropdownOption(tester, 'figure-0-fraction', 'full');
+      expect(find.byKey(const ValueKey('figure-0-amount-value')), findsNothing);
+      expect(drafts.single.params.containsKey('amount'), isFalse);
+    });
+
+    testWidgets('a poussette shows the amount beside its inline fraction', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[
+        FigureDraft.fromFigure(
+          Figure(
+            move: 'poussette',
+            params: const {'fraction': 'half', 'beats': 6},
+          ),
+        ),
+      ];
+      await _pump(tester, drafts);
+      await _openFigure(tester, 0);
+      // Without expanding "More options": the fraction is inline here, and
+      // the amount it reveals must be too.
+      await _selectDropdownOption(tester, 'figure-0-fraction', 'other amount…');
+      expect(
+        find.byKey(const ValueKey('figure-0-amount-value')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a legacy poussette asks for its amount without expanding', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[
+        FigureDraft.fromFigure(
+          Figure(
+            move: 'poussette',
+            params: const {'fraction': 'other', 'beats': 6},
+          ),
+        ),
+      ];
+      await _pump(tester, drafts);
+      await _openFigure(tester, 0);
+      expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('figure-0-amount-value')))
+            .data,
+        'choose a value',
+      );
+    });
+
+    testWidgets('the stepper never steps down into a named fraction', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[
+        FigureDraft.fromFigure(
+          Figure(
+            move: 'poussette',
+            params: const {'fraction': 'other', 'amount': 1.25, 'beats': 6},
+          ),
+        ),
+      ];
+      await _pump(tester, drafts);
+      await _openFigure(tester, 0);
+      await tester.tap(find.byKey(const ValueKey('figure-0-more-options')));
+      await tester.pumpAndSettle();
+      final dec = tester.widget<IconButton>(
+        find.byKey(const ValueKey('figure-0-amount-dec')),
+      );
+      expect(dec.onPressed, isNull);
+    });
+
+    testWidgets('a legacy other with no amount asks for one, filling nothing', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[
+        FigureDraft.fromFigure(
+          Figure(
+            move: 'figure_8',
+            params: const {'fraction': 'other', 'where': 'above', 'beats': 8},
+          ),
+        ),
+      ];
+      await _pump(tester, drafts);
+      await _openFigure(tester, 0);
+      await tester.tap(find.byKey(const ValueKey('figure-0-more-options')));
+      await tester.pumpAndSettle();
+
+      final label = tester.widget<Text>(
+        find.byKey(const ValueKey('figure-0-amount-value')),
+      );
+      expect(label.data, 'choose a value');
+      // Opening the editor stores nothing on the caller's behalf.
+      expect(drafts.single.params.containsKey('amount'), isFalse);
+      expect(drafts.single.params['fraction'], 'other');
+
+      // The first step adopts the seed amount, not the 1¼ floor.
+      await tester.tap(find.byKey(const ValueKey('figure-0-amount-inc')));
+      await tester.pumpAndSettle();
+      expect(drafts.single.params['amount'], 1.5);
+    });
+  });
+
+  group('fraction amount beside the top level (#2120)', () {
+    testWidgets('a meanwhile side never stores other without an amount', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[
+        FigureDraft(
+          meanwhileSides: [
+            FigureDraft(
+              move: 'figure_8',
+              params: {'fraction': 'half', 'where': 'above', 'beats': 8},
+            ),
+            FigureDraft(move: 'swing', params: {'beats': 8, 'who': 'partners'}),
+          ],
+        )..params['beats'] = 8,
+      ];
+      await _pump(tester, drafts);
+      await _openFigure(tester, 0);
+
+      await _selectDropdownOption(
+        tester,
+        'figure-0-side-0-fraction',
+        'other amount…',
+      );
+      final side = drafts.single.meanwhileSides!.first;
+      expect(side.params['fraction'], 'other');
+      expect(side.params['amount'], 1.5);
+
+      await _selectDropdownOption(tester, 'figure-0-side-0-fraction', 'full');
+      expect(side.params['fraction'], 'full');
+      expect(side.params.containsKey('amount'), isFalse);
+    });
+
+    testWidgets('a saved other default is not applied to a new figure', (
+      tester,
+    ) async {
+      final drafts = [FigureDraft()];
+      await _pump(
+        tester,
+        drafts,
+        moveParamDefaults: {
+          'figure_8': {'fraction': 'other', 'who': 'twos'},
+        },
+      );
+      await _selectMove(tester, 0, 'figure 8', 'figure_8');
+      expect(drafts.single.params['who'], 'twos');
+      expect(drafts.single.params['fraction'], isNot('other'));
+      expect(drafts.single.params.containsKey('amount'), isFalse);
+    });
+  });
+
   group('promenade direction/destination visibility & reset (#989, v30)', () {
     testWidgets('direction resets outside the across/along plane', (
       tester,

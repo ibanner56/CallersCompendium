@@ -178,7 +178,9 @@ class FigureDraft {
     if (overrides == null || schema == null) return const {};
     final applicable = {
       for (final entry in overrides.entries)
-        if (schema.containsKey(entry.key) && entry.key != 'text')
+        if (schema.containsKey(entry.key) &&
+            entry.key != 'text' &&
+            !skipsMoveDefault(entry.key, entry.value))
           entry.key: entry.value,
     };
     bool stated(String key) =>

@@ -141,7 +141,16 @@ class UserFigureArgumentEditor extends StatelessWidget {
         return FigureParamEditor(
           keyPrefix: keyPrefix,
           paramKey: param.key,
-          spec: ParamSpec(param.kind, defaultValue: null),
+          spec: ParamSpec(
+            param.kind,
+            defaultValue: null,
+            choices: param.kind == ParamKind.fraction
+                ? [
+                    for (final v in ParamVocab.fractions)
+                      if (offersFractionChoice(v, value)) v,
+                  ]
+                : null,
+          ),
           value: value,
           onChanged: onChanged,
           dialect: dialect,
