@@ -9,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:compendium_app/src/diagnostics/crash_reporter.dart';
 import 'package:compendium_app/src/diagnostics/error_log.dart';
 import 'package:compendium_app/src/published_collections/published_collection_config.dart';
+import 'package:compendium_app/src/published_collections/published_collection_manifest.dart';
 import 'package:compendium_app/src/published_collections/published_collection_service.dart';
 import 'package:compendium_app/src/screens/published_collection_catalog_screen.dart';
 
@@ -42,7 +43,7 @@ void main() {
           'requiredCapabilities': <String>[],
         },
         {
-          'id': 'foda-1-1',
+          'id': 'foda-2',
           'version': '2.0.0',
           'title': 'FODA updated',
           'archiveUrl':
@@ -99,7 +100,7 @@ void main() {
     expect(statusLoads, 2);
     expect(
       statusRequests,
-      containsAll(<String>['foda-1-1/1.0.0', 'foda-1-1/2.0.0']),
+      containsAll(<String>['foda-1-1/1.0.0', 'foda-2/2.0.0']),
     );
     expect(find.textContaining('License: CC0-1.0'), findsNWidgets(2));
     expect(
@@ -110,7 +111,8 @@ void main() {
 
     await tester.tap(find.text('Import collection').first);
     await tester.pumpAndSettle();
-    expect(statusLoads, 4);
+    // Only the imported id's status is refreshed.
+    expect(statusLoads, 3);
   });
 
   testWidgets('disables every import while an archive is loading', (
@@ -124,7 +126,7 @@ void main() {
       'collections': [
         for (final version in ['1.0.0', '2.0.0'])
           {
-            'id': 'foda-1-1',
+            'id': 'foda-$version',
             'version': version,
             'title': 'FODA $version',
             'archiveUrl':
@@ -181,6 +183,132 @@ void main() {
 
     archiveFetch.complete(archiveBytes);
     await tester.pumpAndSettle();
+  });
+
+  group('only the newest version of a collection is importable (SUPPLY-2)', () {
+    final archiveBytes = utf8.encode('{}');
+    final digest = sha256.convert(archiveBytes).toString();
+    final manifest = jsonEncode({
+      'manifestSchema': {'major': 1, 'minor': 0},
+      'minReaderVersion': '0.0.1',
+      'collections': [
+        for (final version in ['2.0.0', '1.0.0', '10.0.0-rc.1', '1.9.0'])
+          {
+            'id': 'foda-1-1',
+            'version': version,
+            'title': 'FODA $version',
+            'archiveUrl':
+                'https://analect.callerscompendium.com/collections/$version.json',
+            'archiveBytes': archiveBytes.length,
+            'sha256': digest,
+            'danceCount': 0,
+            'license': 'CC0-1.0',
+            'permission': {
+              'grantor': 'Grantor',
+              'holder': 'Holder',
+              'basis': 'Basis',
+              'license': 'CC0-1.0',
+              'fields': <String>[],
+            },
+            'requiredCapabilities': <String>[],
+          },
+      ],
+    });
+    PublishedCollectionService service() => PublishedCollectionService(
+      bytesFetcher: (uri, _) async {
+        if (uri.toString() == kPublishedCollectionManifestUrl) {
+          return utf8.encode(manifest);
+        }
+        if (uri.toString() == kPublishedCollectionSignatureUrl) {
+          return utf8.encode('signature');
+        }
+        return archiveBytes;
+      },
+      signatureVerifier: (_, _) async => true,
+    );
+
+    Future<void> pump(
+      WidgetTester tester, {
+      String? importedVersion,
+      required List<String> imported,
+    }) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: PublishedCollectionCatalogScreen(
+            service: service(),
+            statusLoader: (_, _) async => PublishedCollectionStatus(
+              heldCount: 0,
+              importedVersion: importedVersion,
+            ),
+            onImport: (entry, _) async => imported.add(entry.version),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('a catalog listing several versions offers only the newest', (
+      tester,
+    ) async {
+      final imported = <String>[];
+      await pump(tester, imported: imported);
+
+      expect(find.text('FODA 10.0.0-rc.1'), findsOneWidget);
+      expect(find.text('FODA 2.0.0'), findsNothing);
+      expect(find.text('FODA 1.0.0'), findsNothing);
+      expect(find.text('FODA 1.9.0'), findsNothing);
+      expect(find.text('Import collection'), findsOneWidget);
+      await tester.tap(find.text('Import collection'));
+      await tester.pumpAndSettle();
+      expect(imported, ['10.0.0-rc.1']);
+    });
+
+    testWidgets('an entry older than the imported version cannot be imported', (
+      tester,
+    ) async {
+      final imported = <String>[];
+      await pump(tester, importedVersion: '11.0.0', imported: imported);
+
+      final button = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Import collection'),
+      );
+      expect(button.onPressed, isNull);
+      expect(imported, isEmpty);
+    });
+  });
+
+  test('latestPublishedCollectionEntries keeps the highest version per id', () {
+    PublishedCollectionEntry entry(String id, String version) =>
+        PublishedCollectionEntry(
+          id: id,
+          version: version,
+          title: 't',
+          archiveUrl: Uri.parse('https://example.com/a.json'),
+          archiveBytes: 1,
+          sha256: 'a' * 64,
+          danceCount: 0,
+          license: 'l',
+          permission: const PublishedCollectionPermission(
+            grantor: 'g',
+            holder: 'h',
+            basis: 'b',
+            license: 'l',
+            fields: [],
+          ),
+          requiredCapabilities: const [],
+        );
+    final latest = latestPublishedCollectionEntries([
+      entry('a', '1.0.0'),
+      entry('b', '1.0.0'),
+      entry('a', '2.0.0'),
+      entry('a', '1.5.0'),
+    ]);
+    expect(latest.map((e) => '${e.id}@${e.version}'), ['a@2.0.0', 'b@1.0.0']);
+    expect(isOlderThanImportedPublishedVersion('1.0.0', '2.0.0'), isTrue);
+    expect(isOlderThanImportedPublishedVersion('2.0.0', '2.0.0'), isFalse);
+    expect(isOlderThanImportedPublishedVersion('2.0.0', null), isFalse);
   });
 
   group('catalog and archive failures', () {

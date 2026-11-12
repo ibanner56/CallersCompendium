@@ -144,11 +144,20 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
   /// Shown at the moment §6.3 step 1 finds a previously used store missing
   /// (spec §6.14 item 6): explains it may have expired or been removed, and
   /// requires confirmation before replacing it. Cancel makes no network call.
+  /// The primary action moves this device to a new phrase instead
+  /// ([_setUpNewPhrase]); Reconnect is the replacement itself.
+  ///
+  /// Not shown while a Reconnect is still running
+  /// ([SyncController.confirmingReplacement]): the decision stays pending until
+  /// it completes, and a dialog shown in between stayed on screen after a
+  /// success — where Not now paused the sync that had just recovered, and
+  /// Reconnect reported a failure that had not happened.
   void _maybeShowReplacementDialog() {
     final controller = _controller;
     if (!mounted ||
         controller == null ||
         !controller.replacementPending ||
+        controller.confirmingReplacement ||
         _replacementDialogShowing) {
       return;
     }
@@ -167,10 +176,9 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
         // barrier-dismissible-false barrier, so it has to be said here.
         //
         // Built against the live controller rather than a value read when the
-        // dialog opened: the controller notifies when it takes the pass in
-        // flight, which can re-show this dialog *before* the attempt has a
-        // result, so a snapshot taken at open time would always predate the
-        // failure it is meant to report.
+        // dialog opened, so the line reflects the latest pass. The dialog is
+        // re-shown by the attempt's final notification, which the controller
+        // sends with the result already recorded.
         content: ListenableBuilder(
           listenable: controller,
           builder: (builderContext, _) {
@@ -185,10 +193,10 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
             // those races unexplained — the same defect this line exists to
             // fix, one layer in.
             //
-            // `running` excludes the notification the controller sends when it
-            // *takes* the pass in flight: `lastResult` is still the pass that
-            // raised this dialog at that point, and reporting it would call
-            // the attempt failed while it is still running.
+            // `running` excludes any moment a pass is in flight — another
+            // trigger's, or this attempt's before its result: `lastResult` is
+            // then still the pass that raised this dialog, and reporting it
+            // would call the attempt failed while it is still running.
             final result = controller.lastResult;
             final lastAttemptFailed =
                 _replacementConfirmAttempted &&
@@ -215,6 +223,13 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
             );
           },
         ),
+        // Setting up a new phrase is the primary action and Reconnect the
+        // second one. The store can be missing because a device deleted it,
+        // and Reconnect re-creates a store at that same address and sends the
+        // whole library there — the natural tap must not undo a delete. A new
+        // phrase is how the user stops using an address; Reconnect stays for
+        // a store that simply expired. Its `409` adoption (spec §5.2, #1351)
+        // is unchanged.
         actions: [
           TextButton(
             key: const ValueKey('sync-replacement-cancel'),
@@ -224,13 +239,21 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
             },
             child: Text(l10n.settingsSyncReplacementCancel),
           ),
-          FilledButton(
+          TextButton(
             key: const ValueKey('sync-replacement-confirm'),
             onPressed: () {
               Navigator.of(dialogContext).pop();
               unawaited(_confirmReplacement(controller));
             },
             child: Text(l10n.settingsSyncReplacementConfirm),
+          ),
+          FilledButton(
+            key: const ValueKey('sync-replacement-new-phrase'),
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              unawaited(_setUpNewPhrase(controller));
+            },
+            child: Text(l10n.settingsSyncReplacementNewPhrase),
           ),
         ],
       ),
@@ -260,6 +283,34 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
     if (message != null) {
       messenger?.showSnackBar(SnackBar(content: Text(message)));
     }
+  }
+
+  /// Leaves the missing store's address for a new one: disconnects this
+  /// device, then opens the pairing flow, where the user creates a new store
+  /// or connects to one another device has already set up. Creates nothing at
+  /// the old address (detach's best-effort clean-up may still look there).
+  ///
+  /// Declines first, so the decision is resolved before [SyncController.detach]
+  /// notifies — otherwise a notification while `replacementPending` still
+  /// stood would re-show the dialog the user just answered. Declining is also
+  /// the right state to be left in if the disconnect fails: paused, with the
+  /// question available again from *Sync now*. Backing out of the pairing
+  /// flow leaves the device disconnected, as *Disconnect this device* does.
+  Future<void> _setUpNewPhrase(SyncController controller) async {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    final l10n = AppLocalizations.of(context);
+    controller.declineReplacement();
+    try {
+      await controller.detach();
+    } on Object catch (e, st) {
+      logCaughtErrorTypeOnly(e, st, source: 'device_sync_section.newPhrase');
+      messenger?.showSnackBar(
+        SnackBar(content: Text(l10n.settingsSyncDisconnectFailed)),
+      );
+      return;
+    }
+    if (!mounted) return;
+    await showSyncPairingScreen(context, backupSaver: widget.backupSaver);
   }
 
   /// What to tell the user about a manual attempt the §6.12 gate stopped, or

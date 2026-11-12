@@ -129,8 +129,8 @@
           hourly sweep; after that it becomes a timestamp-only aggregate row.
           Ordinary diagnostic events that contain store-derived metadata become
           eligible for removal after 30 days and are removed by the next hourly
-          sweep. They never include request bodies, record content, or bearer
-          credentials.
+          sweep. They never include request bodies, record content, or sync
+          phrases.
         </p>
         <p>
           Device Sync does not transfer structured venue street address, city,
@@ -230,7 +230,8 @@
         </ul>
         <p>
           When Device Sync is enabled, the configured sync service holds the
-          selected content for as long as the store receives authenticated activity,
+          selected content for as long as the store keeps receiving requests
+          addressed to it,
           then reaps it after 30 days of disuse. Unreferenced uploads are protected
           for 24 hours while they can still be published, but deleting the store
           requests immediate removal. If physical removal fails, a durable cleanup
@@ -239,8 +240,8 @@
           access and is nulled by the next hourly sweep; it retains a
           timestamp-only aggregate row after that.
           Ordinary diagnostic events become eligible for removal after 30 days and
-          are removed by the next hourly sweep. They contain no content or bearer
-          credentials.
+          are removed by the next hourly sweep. They contain no content or sync
+          phrases.
         </p>
 
         <h2>8. Open source</h2>

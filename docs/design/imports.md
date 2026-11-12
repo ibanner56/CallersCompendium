@@ -1296,6 +1296,29 @@ manifest's permission and licence declaration. Collection-level consent is
 required before commit, including when every dance is new; only potential
 duplicate rows need individual decisions.
 
+The catalog may list several versions of one collection id, but the app offers
+only the newest by SemVer precedence (`latestPublishedCollectionEntries`), so a
+re-import can never roll corrected figures back to an older release. The
+import itself is also refused when its version is lower than the highest
+version already imported for that id (`isOlderThanImportedPublishedVersion`):
+the catalog disables the button, and the review screen declines to plan a
+catalog or seed import that fails the same check. An equal version is a plain
+re-import. Catalog text that is displayed and persisted into provenance
+(`title`, `license`, `permission.grantor/holder/basis/license/fields`) is
+stripped with `sanitizeImportedText(allowLineBreaks: false)` at parse time,
+as on every other import path; a value that is empty after stripping is
+refused. The catalog is expected to list only current versions as a matter of
+repository hygiene; the client enforces latest-only regardless. Latest-only
+is by version alone, not by capability support: if the newest version needs a
+capability this build lacks, it is shown disabled as unsupported and no older
+version is offered in its place. This is a deliberate choice (the alternative,
+falling back to the newest supported version, would quietly hand a user on an
+older app a superseded release); updating the app is the fix. The guard
+covers the catalog and standalone-seed routes only: an archive pasted or opened
+through the generic import sources carries no collection version and is not
+checked. A publisher who withdraws a bad newest version must republish a higher
+version number, since users who imported it cannot move back to an older one.
+
 ### 5. A list of titles (#823)
 
 The only source whose input is **pasted text** rather than a file or a URL, and

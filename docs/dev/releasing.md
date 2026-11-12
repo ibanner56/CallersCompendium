@@ -229,7 +229,10 @@ and produces no Android artifact.
    - Do not add a build-number line: the tag deterministically supplies store
      build codes, and `app/pubspec.yaml` has no version suffix.
    - **Include a Data / Migrations section whenever `kCompendiumSchemaVersion`
-     or `contraTaxonomyVersion` has moved** since that section was last written.
+     or `contraTaxonomyVersion` has moved, or a new one-time repair marker
+     (a `'__…_done__'` settings key in
+     `packages/compendium_core/lib/src/storage/database.dart`) has appeared,**
+     since that section was last written.
      Read both from source at tag time — they move while a release is being
      prepared, so a value quoted from an earlier status report may already be
      stale. State old → new and what the migration does: these notes are where a
@@ -250,11 +253,30 @@ and produces no Android artifact.
      so write `schema … 20 → 25` and `taxonomy … 23 → 27` as separate,
      explicitly labelled ranges.
 
-     A taxonomy bump is **not** a data migration — nothing reads
-     `contraTaxonomyVersion` at runtime and no rebuild is triggered by it. It is
-     still user-visible, because dances get categorised or matched differently,
-     so it belongs in the notes; describe what changed about recognition or
-     canonical form rather than implying the database is rewritten.
+     The taxonomy **constant** migrates nothing — nothing reads
+     `contraTaxonomyVersion` at runtime — but the change it records usually
+     ships with a one-time pass that does. Several taxonomy changes rewrote
+     stored figures on first launch (v26, v28, v33, v34, v35) and others only
+     rebuilt the search index (v27, v30, v32, v37, v38), each gated by its own
+     `'__…_done__'` marker rather than by either version. So describe what
+     changed about recognition or canonical form, **and** describe every
+     one-time pass the release runs over stored figures or text: what it
+     rewrites, and whether it changes the user's data or only the search
+     index. Repairs ship this way in PATCH releases too, where the schema may
+     not move at all, so a release with no version range can still owe this
+     section.
+
+     `tools/ci/check_changelog_promoted.py` enforces the ranges and, for a new
+     `'__…_done__'` marker since the previous tag, that a non-empty Data /
+     Migrations section exists. It cannot judge whether the prose describes
+     the pass; that is the author's job. Nor does it see a pass that re-runs
+     without a new `_done__` key: a change to the shareable-text normalisation
+     scope (a newly `shareable` column or settings key in the privacy
+     registry, or a new normalisation algorithm version) re-runs the full
+     normalisation of stored text, and a `kSectionRuleVersion` bump re-runs
+     the section rebuild. The complete list of passes is
+     `CompendiumRepositories.oneTimeRepairMarkers`; check it against the
+     previous tag.
 
    **Then preview the compiled notes.** The compiler verifies fragment shape and
    consumes the exact inputs shown in the generated diff; rendering remains the
@@ -418,7 +440,9 @@ refuses if the running container is a newer release than this tag, then:
 1. fetches that exact commit into `/opt/CallersCompendium` and checks it out
    detached (the tag's commit, not whatever `main` is now);
 2. builds `callers-compendium-athenaeum:<version>` (`0.7.0-beta`, the tag without
-   its `v`) from `server/Dockerfile`: **before** touching the running container,
+   its `v`) from `server/Dockerfile`, with `git archive <sha>` as the build
+   context, so local edits or untracked files in the host checkout never reach
+   the image: **before** touching the running container,
    so a failed build leaves the previous release serving;
 3. stops and removes the `athenaeum` container, and starts the new image with the
    flags in [the operations runbook](athenaeum-operations.md);
