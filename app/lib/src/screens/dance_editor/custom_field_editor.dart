@@ -108,11 +108,17 @@ class CustomFieldEditor extends StatelessWidget {
         final dropdown = DropdownButtonFormField<String?>(
           key: ValueKey('custom-${def.id}-choice'),
           initialValue: currentValue as String?,
+          // A user-typed field name or option is unbounded: fill the slot and
+          // ellipsize rather than size to the widest option.
+          isExpanded: true,
           decoration: InputDecoration(labelText: def.label),
           items: [
             const DropdownMenuItem(value: null, child: Text('—')),
             for (final choice in def.choices ?? const <String>[])
-              DropdownMenuItem(value: choice, child: Text(choice)),
+              DropdownMenuItem(
+                value: choice,
+                child: Text(choice, overflow: TextOverflow.ellipsis),
+              ),
           ],
           onChanged: (v) => onValueChanged(v),
         );

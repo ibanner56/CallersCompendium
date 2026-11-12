@@ -189,6 +189,7 @@ class _BatchCustomFieldDialogState extends State<_BatchCustomFieldDialog> {
             'batch-custom-field-value-${def.id}-${def.choices?.length ?? 0}',
           ),
           initialValue: _choiceValue,
+          isExpanded: true,
           decoration: InputDecoration(
             labelText: def.label,
             isDense: true,
@@ -196,7 +197,10 @@ class _BatchCustomFieldDialogState extends State<_BatchCustomFieldDialog> {
           ),
           items: [
             for (final choice in def.choices ?? const <String>[])
-              DropdownMenuItem(value: choice, child: Text(choice)),
+              DropdownMenuItem(
+                value: choice,
+                child: Text(choice, overflow: TextOverflow.ellipsis),
+              ),
           ],
           onChanged: (v) => setState(() => _choiceValue = v),
         );
@@ -242,6 +246,7 @@ class _BatchCustomFieldDialogState extends State<_BatchCustomFieldDialog> {
                   DropdownButtonFormField<CustomFieldDef>(
                     key: const ValueKey('batch-custom-field-key'),
                     initialValue: _selectedDef,
+                    isExpanded: true,
                     decoration: InputDecoration(
                       labelText: l10n.collectionBatchCustomFieldKeyLabel,
                       isDense: true,
@@ -249,7 +254,10 @@ class _BatchCustomFieldDialogState extends State<_BatchCustomFieldDialog> {
                     ),
                     items: [
                       for (final d in _defs)
-                        DropdownMenuItem(value: d, child: Text(d.label)),
+                        DropdownMenuItem(
+                          value: d,
+                          child: Text(d.label, overflow: TextOverflow.ellipsis),
+                        ),
                     ],
                     onChanged: _onDefChanged,
                   ),

@@ -57,9 +57,10 @@ baseline is AA:
 Automated check: `app/test/a11y_guidelines_test.dart` pumps the full app through
 the core screens and runs Flutter's `labeledTapTargetGuideline`, a 24×24 px
 tap-target minimum (this baseline's floor, not Android's 48), and a RenderFlex
-overflow sweep at 360 and 412 dp with 2.0× text and the bundled fonts. It does
-not replace the manual screen-reader and Dynamic Type passes in
-`docs/dev/release-checklist.md`.
+overflow sweep at 360 and 412 dp with 2.0× text and the bundled fonts.
+`app/test/dropdown_large_text_test.dart` does the same for each form dropdown,
+pumped directly with long values. Neither replaces the manual screen-reader and
+Dynamic Type passes in `docs/dev/release-checklist.md`.
 
 ### Understandable
 - Consistent navigation and terminology across screens; user's dialect applied

@@ -167,16 +167,24 @@ class LevelDropdown extends StatelessWidget {
     return DropdownButtonFormField<DifficultyLevel?>(
       key: const ValueKey('level-field'),
       initialValue: value,
+      // Level names are user-editable: fill the slot and ellipsize.
+      isExpanded: true,
       decoration: InputDecoration(labelText: l10n.danceEditorLevelLabel),
       items: [
         DropdownMenuItem<DifficultyLevel?>(
           value: null,
-          child: Text(l10n.danceEditorLevelUnspecified),
+          child: Text(
+            l10n.danceEditorLevelUnspecified,
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
         for (final v in levels ?? DifficultyLevel.shipped)
           DropdownMenuItem<DifficultyLevel?>(
             value: v,
-            child: Text(danceLevelLabel(l10n, v)),
+            child: Text(
+              danceLevelLabel(l10n, v),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
       ],
       onChanged: onChanged,
@@ -319,6 +327,7 @@ class _PartialDateFieldState extends State<PartialDateField> {
               child: DropdownButtonFormField<int?>(
                 key: ValueKey('${widget.fieldKey}-month'),
                 initialValue: _month,
+                isExpanded: true,
                 decoration: InputDecoration(
                   labelText: l10n.danceEditorMonthLabel,
                 ),
@@ -327,7 +336,10 @@ class _PartialDateFieldState extends State<PartialDateField> {
                   for (var m = 1; m <= 12; m++)
                     DropdownMenuItem<int?>(
                       value: m,
-                      child: Text(_monthLabel(l10n, m)),
+                      child: Text(
+                        _monthLabel(l10n, m),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                 ],
                 onChanged: year == null
@@ -350,6 +362,7 @@ class _PartialDateFieldState extends State<PartialDateField> {
               child: DropdownButtonFormField<int?>(
                 key: ValueKey('${widget.fieldKey}-day'),
                 initialValue: _day,
+                isExpanded: true,
                 decoration: InputDecoration(
                   labelText: l10n.danceEditorDayLabel,
                 ),

@@ -819,6 +819,7 @@ class _ParameterizedColumnDialogState
                 DropdownButtonFormField<String>(
                   key: const ValueKey('matrix-parameterized-move'),
                   initialValue: _baseMove,
+                  isExpanded: true,
                   decoration: InputDecoration(
                     labelText: l10n.settingsMatrixColumnsParameterizedMove,
                   ),
@@ -826,7 +827,10 @@ class _ParameterizedColumnDialogState
                     for (final move in widget.taxonomy.moves.values)
                       DropdownMenuItem(
                         value: move.id,
-                        child: Text(move.displayName),
+                        child: Text(
+                          move.displayName,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                   ],
                   onChanged: (value) {
@@ -1199,6 +1203,7 @@ class _CompoundColumnDialogState extends State<_CompoundColumnDialog> {
             DropdownButtonFormField<String>(
               key: ValueKey('matrix-compound-step-move-$index'),
               initialValue: step.move,
+              isExpanded: true,
               decoration: InputDecoration(
                 labelText: l10n.settingsMatrixColumnsCompoundMove,
               ),
@@ -1206,7 +1211,10 @@ class _CompoundColumnDialogState extends State<_CompoundColumnDialog> {
                 for (final candidate in widget.taxonomy.moves.values)
                   DropdownMenuItem(
                     value: candidate.id,
-                    child: Text(candidate.displayName),
+                    child: Text(
+                      candidate.displayName,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
               ],
               onChanged: (value) {
