@@ -967,9 +967,12 @@ calling cards** — see [Print calling cards](./sharing.md#print-calling-cards).
   choose in the print dialog, side by side, with short marks to cut along.
   Cards are turned a quarter turn on the page when that fits more of them
   (3 × 5 cards fit four to a Letter page that way, not three), and sizes made
-  to divide a sheet fill it — four A6 or eight A7 to an A4 page, with the
-  marks running in from the edges. Cards bigger than the paper print one to a
-  page, shrunk to fit, and printing says so.
+  to divide a sheet fill it — four A6 or eight A7 to an A4 page. There the
+  marks run a little way in from the edge your printer can reach, across the
+  cards' blank margins, and stop short of their text; with a very small
+  `card margin` there is no room for them, and the paper's edge and the middle
+  lines are the cuts. Cards bigger than the paper print one to a page, shrunk
+  to fit (turned, if that prints them larger), and printing says so.
 - **Landscape** (on by default) — print with the long side across the top.
   Turn it off for a card that stands upright.
 - **Card layout** — opens the layout editor, described below.

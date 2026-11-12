@@ -6,6 +6,7 @@ import 'package:compendium_app/src/export/calling_card_sample.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_core/testing.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:pdf/pdf.dart';
@@ -315,6 +316,170 @@ notes label=""
         const CallingCardSize(14, 13, CallingCardUnit.inch),
       );
       expect(big.columns * big.rows, 0);
+    });
+
+    test('paper as print dialogs report it still takes an exact grid', () {
+      // Windows reports A4 as 595.2 × 841.8 pt, macOS as 595 × 842, against
+      // the true 595.28 × 841.89.
+      for (final a4 in [
+        const PdfPageFormat(595.2, 841.8),
+        const PdfPageFormat(595, 842),
+      ]) {
+        final a6 = callingCardSheetGrid(a4, kCallingCardSizePresets['a6']!);
+        final a7 = callingCardSheetGrid(a4, kCallingCardSizePresets['a7']!);
+        expect(a6.columns * a6.rows, 4, reason: '$a4');
+        expect(a7.columns * a7.rows, 8, reason: '$a4');
+      }
+    });
+
+    test('the tolerance is a point, no more', () {
+      // Two 3 in (216 pt) cards across need 432 pt.
+      const card = CallingCardSize(3, 13, CallingCardUnit.inch);
+      int across(double width) =>
+          callingCardSheetGrid(PdfPageFormat(width, 1000), card).columns;
+      expect(across(431.1), 2);
+      expect(across(430.9), 1);
+    });
+
+    group('cut marks', () {
+      /// Every mark keeps [inset] from the paper's edge and stays out of
+      /// every card's content, which is [cardMargin] inside its cell.
+      void expectClear(
+        List<CallingCardCutMark> marks, {
+        required double pageWidth,
+        required double pageHeight,
+        required double left,
+        required double top,
+        required double cell,
+        required double cellHeight,
+        required int columns,
+        required int rows,
+        required double cardMargin,
+        required double inset,
+      }) {
+        for (final m in marks) {
+          for (final (x, y) in [(m.x1, m.y1), (m.x2, m.y2)]) {
+            expect(x, inInclusiveRange(inset, pageWidth - inset), reason: '$m');
+            expect(
+              y,
+              inInclusiveRange(inset, pageHeight - inset),
+              reason: '$m',
+            );
+          }
+          for (var c = 0; c < columns; c++) {
+            for (var r = 0; r < rows; r++) {
+              final cl = left + c * cell + cardMargin;
+              final cr = left + (c + 1) * cell - cardMargin;
+              final ct = top + r * cellHeight + cardMargin;
+              final cb = top + (r + 1) * cellHeight - cardMargin;
+              // A mark is axis-aligned: it crosses the content box only if
+              // its line runs through the box's interior.
+              final vertical = m.x1 == m.x2;
+              final crosses = vertical
+                  ? m.x1 > cl &&
+                        m.x1 < cr &&
+                        math.max(m.y1, m.y2) > ct &&
+                        math.min(m.y1, m.y2) < cb
+                  : m.y1 > ct &&
+                        m.y1 < cb &&
+                        math.max(m.x1, m.x2) > cl &&
+                        math.min(m.x1, m.x2) < cr;
+              expect(crosses, isFalse, reason: '$m crosses card ($c, $r)');
+            }
+          }
+        }
+      }
+
+      test('a grid that fills the page: inward, clear of the printer edge', () {
+        // A6 on A4, turned: 2 × 2 cells of 297.64 × 419.53 pt.
+        const a6w = 105 * 72 / 25.4, a6h = 148 * 72 / 25.4;
+        final left = (595.28 - 2 * a6w) / 2, top = (841.89 - 2 * a6h) / 2;
+        final marks = callingCardCutMarks(
+          pageWidth: 595.28,
+          pageHeight: 841.89,
+          left: left,
+          top: top,
+          cellWidth: a6w,
+          cellHeight: a6h,
+          columns: 2,
+          rows: 2,
+          cardMargin: 18,
+          printableInset: 12,
+        );
+        // The grid fills the page, so its outer lines are the paper's edges:
+        // only the middle column line (above and below) and the middle row
+        // line (either side) get marks.
+        expect(marks, hasLength(4));
+        expectClear(
+          marks,
+          pageWidth: 595.28,
+          pageHeight: 841.89,
+          left: left,
+          top: top,
+          cell: a6w,
+          cellHeight: a6h,
+          columns: 2,
+          rows: 2,
+          cardMargin: 18,
+          inset: 12,
+        );
+      });
+
+      test('no room inside a thin card margin: the marks are left out', () {
+        const a6w = 105 * 72 / 25.4, a6h = 148 * 72 / 25.4;
+        final marks = callingCardCutMarks(
+          pageWidth: 595.28,
+          pageHeight: 841.89,
+          left: (595.28 - 2 * a6w) / 2,
+          top: (841.89 - 2 * a6h) / 2,
+          cellWidth: a6w,
+          cellHeight: a6h,
+          columns: 2,
+          rows: 2,
+          cardMargin: 4,
+          printableInset: 12,
+        );
+        expect(marks, isEmpty);
+      });
+
+      test('room around the grid: the marks sit outside it', () {
+        // 3 × 5 in cards turned on Letter: 2 × 2 cells of 216 × 360 pt.
+        const left = (612 - 432) / 2, top = (792 - 720) / 2;
+        final marks = callingCardCutMarks(
+          pageWidth: 612,
+          pageHeight: 792,
+          left: left,
+          top: top,
+          cellWidth: 216,
+          cellHeight: 360,
+          columns: 2,
+          rows: 2,
+          cardMargin: 0,
+          printableInset: 12,
+        );
+        expect(marks, hasLength(12));
+        for (final m in marks) {
+          final outside =
+              math.max(m.y1, m.y2) <= top ||
+              math.min(m.y1, m.y2) >= top + 720 ||
+              math.max(m.x1, m.x2) <= left ||
+              math.min(m.x1, m.x2) >= left + 432;
+          expect(outside, isTrue, reason: '$m');
+        }
+        expectClear(
+          marks,
+          pageWidth: 612,
+          pageHeight: 792,
+          left: left,
+          top: top,
+          cell: 216,
+          cellHeight: 360,
+          columns: 2,
+          rows: 2,
+          cardMargin: 0,
+          inset: 12,
+        );
+      });
     });
 
     Future<Uint8List> sheets(

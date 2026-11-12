@@ -161,7 +161,7 @@ Future<Uint8List> buildCallingCardsPdf(
       );
     }
   } else {
-    _addSheets(doc, cards, size, sheet, report);
+    _addSheets(doc, cards, size, sheet, margin, report);
   }
   return doc.save();
 }
@@ -169,6 +169,12 @@ Future<Uint8List> buildCallingCardsPdf(
 /// The space a sheet keeps around its grid of cards when it can: a quarter
 /// inch, inside what most printers reach, with room for the cut marks.
 const double kCallingCardSheetMargin = 18;
+
+/// How much a paper size reported by a print dialog may fall short of a
+/// grid's size and still take it. Dialogs round: Windows reports A4 as
+/// 595.2 pt and macOS as 595 pt, against its true 595.28, and a grid of A6
+/// or A7 cards needs every bit of it.
+const double kCallingCardSheetTolerance = 1;
 
 /// How cards tile onto a page of paper: [columns] × [rows] of them, each
 /// [rotated] a quarter turn or not, inside [margin] points of the paper's
@@ -182,19 +188,20 @@ typedef CallingCardSheetGrid = ({
 
 /// The arrangement that fits the most cards of [card]'s size onto [paper].
 ///
-/// It tries the cards both ways round, inside [kCallingCardSheetMargin] and
-/// then right to the paper's edge, and keeps the first that fits the most:
-/// upright before turned, and the margin before none, on a tie. Filling the
-/// page is what lets sizes made to divide a sheet, such as A6 on A4, print
-/// four to a page; each card's own margin keeps its text clear of the edge a
-/// printer cannot reach. Zero cards when a card is larger than the paper
-/// either way.
+/// It tries four: inside [kCallingCardSheetMargin], upright then turned a
+/// quarter turn, and then filling the paper to its edge, upright then
+/// turned. It keeps the first that fits the most, so on a tie the margin wins
+/// over filling the page, and upright over turned. Filling the page is what
+/// lets sizes made to divide a sheet, such as A6 on A4, print four to a page;
+/// each card's own margin keeps its text clear of the edge a printer cannot
+/// reach. Zero cards when a card is larger than the paper either way. Paper
+/// may fall [kCallingCardSheetTolerance] short of a grid and still take it.
 CallingCardSheetGrid callingCardSheetGrid(
   PdfPageFormat paper,
   CallingCardSize card,
 ) {
-  // A hair of tolerance, so a card exactly the room's size still fits.
-  int fit(double room, double side) => ((room + 0.01) / side).floor();
+  int fit(double room, double side) =>
+      ((room + kCallingCardSheetTolerance) / side).floor();
   CallingCardSheetGrid? best;
   for (final margin in const [kCallingCardSheetMargin, 0.0]) {
     final across = paper.width - 2 * margin;
@@ -216,20 +223,134 @@ CallingCardSheetGrid callingCardSheetGrid(
   return best!;
 }
 
+/// One straight cut mark, from ([x1], [y1]) to ([x2], [y2]) in points from
+/// the page's top-left corner.
+typedef CallingCardCutMark = ({double x1, double y1, double x2, double y2});
+
+/// Where a sheet's cut marks go: a short mark in line with every edge of the
+/// grid's cards ([columns] × [rows] cells of [cellWidth] × [cellHeight],
+/// whose top-left corner is at ([left], [top]) on a page of [pageWidth] ×
+/// [pageHeight]).
+///
+/// No mark comes within [printableInset] of the paper's edge, the strip the
+/// printer cannot reach. Where the paper leaves room between that strip and
+/// the grid, the marks sit there, stopping [_markGap] short of the cards so a
+/// slightly crooked cut leaves no line on a card. A grid that fills the paper
+/// has no such room, so its marks run inward from the edge of the printable
+/// area across the cards' blank margins, stopping short of their content,
+/// which starts [cardMargin] in from each card's edge. A mark with no room
+/// either way is left out, as is one for a cut line that itself lies within
+/// [printableInset] of the paper's edge: the paper's edge is then the cut.
+List<CallingCardCutMark> callingCardCutMarks({
+  required double pageWidth,
+  required double pageHeight,
+  required double left,
+  required double top,
+  required double cellWidth,
+  required double cellHeight,
+  required int columns,
+  required int rows,
+  required double cardMargin,
+  required double printableInset,
+}) {
+  final marks = <CallingCardCutMark>[];
+  // The span, measured in from one paper edge, that a mark may cover on the
+  // [offset] side of the grid.
+  (double, double)? span(double offset) {
+    final from = printableInset;
+    final outsideTo = offset - _markGap;
+    if (outsideTo - from >= _markMinimum) {
+      return (math.max(from, outsideTo - _markLength), outsideTo);
+    }
+    final insideFrom = math.max(from, offset);
+    final insideTo = math.min(
+      offset + cardMargin - _markGap,
+      insideFrom + _markLength,
+    );
+    if (insideTo - insideFrom >= _markMinimum) return (insideFrom, insideTo);
+    return null;
+  }
+
+  final gridRight = left + columns * cellWidth;
+  final gridBottom = top + rows * cellHeight;
+  final above = span(top);
+  final below = span(pageHeight - gridBottom);
+  // A cut line within the unprintable strip is the paper's own edge.
+  bool printable(double at, double extent) =>
+      at >= printableInset && at <= extent - printableInset;
+  for (var c = 0; c <= columns; c++) {
+    final x = left + c * cellWidth;
+    if (!printable(x, pageWidth)) continue;
+    if (above case (final a, final b)) {
+      marks.add((x1: x, y1: a, x2: x, y2: b));
+    }
+    if (below case (final a, final b)) {
+      marks.add((x1: x, y1: pageHeight - a, x2: x, y2: pageHeight - b));
+    }
+  }
+  final before = span(left);
+  final after = span(pageWidth - gridRight);
+  for (var r = 0; r <= rows; r++) {
+    final y = top + r * cellHeight;
+    if (!printable(y, pageHeight)) continue;
+    if (before case (final a, final b)) {
+      marks.add((x1: a, y1: y, x2: b, y2: y));
+    }
+    if (after case (final a, final b)) {
+      marks.add((x1: pageWidth - a, y1: y, x2: pageWidth - b, y2: y));
+    }
+  }
+  return marks;
+}
+
+const double _markGap = 3;
+const double _markLength = 11;
+
+/// The shortest mark worth printing: a 0.5 pt line this long is still easy
+/// to see and to line a ruler up with.
+const double _markMinimum = 2;
+
 /// Lays [cards] out on pages of [paper]: a grid per page with cut marks, or,
-/// for cards larger than the paper, one per page scaled to fit.
+/// for cards larger than the paper, one per page scaled to fit, turned if
+/// that prints them larger. [cardMargin] is the space inside each card
+/// before its content.
 void _addSheets(
   pw.Document doc,
   List<pw.Widget> cards,
   CallingCardSize size,
   PdfPageFormat paper,
+  double cardMargin,
   CallingCardFitReport? report,
 ) {
+  // The dialog's paper carries the printer's unprintable margins; the grid
+  // is placed on the whole sheet, and only the marks keep clear of them.
+  // Capped at a quarter inch: a printer reaches at least that close to the
+  // edge, and a format that reports more is a page layout's margin (pdf's
+  // stock A4 and Letter carry 2 cm), which would leave no room for marks.
   final page = PdfPageFormat(paper.width, paper.height);
+  final printableInset = math.min(
+    [
+      paper.marginLeft,
+      paper.marginRight,
+      paper.marginTop,
+      paper.marginBottom,
+    ].reduce(math.max),
+    kCallingCardSheetMargin,
+  );
   final grid = callingCardSheetGrid(page, size);
   final perPage = grid.columns * grid.rows;
   if (perPage == 0) {
     report?.cardsShrunkToSheet = true;
+    final across = page.width - 2 * kCallingCardSheetMargin;
+    final down = page.height - 2 * kCallingCardSheetMargin;
+    final upright = math.min(
+      across / size.widthPoints,
+      down / size.heightPoints,
+    );
+    final turned = math.min(
+      across / size.heightPoints,
+      down / size.widthPoints,
+    );
     for (final card in cards) {
       doc.addPage(
         pw.Page(
@@ -239,7 +360,13 @@ void _addSheets(
             marginTop: kCallingCardSheetMargin,
             marginBottom: kCallingCardSheetMargin,
           ),
-          build: (_) => pw.Center(child: pw.FittedBox(child: card)),
+          build: (_) => pw.Center(
+            child: pw.FittedBox(
+              child: turned > upright
+                  ? pw.Transform.rotateBox(angle: math.pi / 2, child: card)
+                  : card,
+            ),
+          ),
         ),
       );
     }
@@ -252,7 +379,18 @@ void _addSheets(
   for (var first = 0; first < cards.length; first += perPage) {
     final onPage = cards.skip(first).take(perPage).toList();
     // Only the rows this page fills get marks.
-    final rows = (onPage.length / grid.columns).ceil();
+    final marks = callingCardCutMarks(
+      pageWidth: page.width,
+      pageHeight: page.height,
+      left: left,
+      top: top,
+      cellWidth: cellWidth,
+      cellHeight: cellHeight,
+      columns: grid.columns,
+      rows: (onPage.length / grid.columns).ceil(),
+      cardMargin: cardMargin,
+      printableInset: printableInset,
+    );
     doc.addPage(
       pw.Page(
         pageFormat: page,
@@ -269,16 +407,18 @@ void _addSheets(
             // Over the cards: a mark may fall inside a card's blank margin.
             pw.Positioned.fill(
               child: pw.CustomPaint(
-                painter: (canvas, area) => _paintCutMarks(
-                  canvas,
-                  pageHeight: area.y,
-                  left: left,
-                  top: top,
-                  cellWidth: cellWidth,
-                  cellHeight: cellHeight,
-                  columns: grid.columns,
-                  rows: rows,
-                ),
+                painter: (canvas, area) {
+                  canvas
+                    ..setStrokeColor(PdfColors.grey700)
+                    ..setLineWidth(0.5);
+                  // The canvas's y runs up from the bottom of the page.
+                  for (final m in marks) {
+                    canvas
+                      ..moveTo(m.x1, area.y - m.y1)
+                      ..lineTo(m.x2, area.y - m.y2);
+                  }
+                  canvas.strokePath();
+                },
               ),
             ),
           ],
@@ -286,70 +426,6 @@ void _addSheets(
       ),
     );
   }
-}
-
-/// Short marks in line with every edge of the grid's cards, for a guillotine
-/// or a ruler. Where the paper leaves room outside the grid they sit there,
-/// stopping short of the cards so a slightly crooked cut leaves no line on a
-/// card. A grid that fills the paper has no such room, so its marks run a
-/// little way in from the grid's edge instead, across the cards' blank
-/// margins.
-void _paintCutMarks(
-  PdfGraphics canvas, {
-  required double pageHeight,
-  required double left,
-  required double top,
-  required double cellWidth,
-  required double cellHeight,
-  required int columns,
-  required int rows,
-}) {
-  const gap = 3.0;
-  const length = 11.0;
-  // The canvas's y runs up from the bottom of the page.
-  final gridTop = pageHeight - top;
-  final gridBottom = gridTop - rows * cellHeight;
-  final gridLeft = left;
-  final gridRight = left + columns * cellWidth;
-  // Marks go outside when the room is there, else inward.
-  final verticalOutside = top >= gap + length;
-  final horizontalOutside = left >= gap + length;
-  canvas
-    ..setStrokeColor(PdfColors.grey700)
-    ..setLineWidth(0.5);
-  for (var c = 0; c <= columns; c++) {
-    final x = gridLeft + c * cellWidth;
-    if (verticalOutside) {
-      canvas
-        ..moveTo(x, gridTop + gap)
-        ..lineTo(x, gridTop + gap + length)
-        ..moveTo(x, gridBottom - gap)
-        ..lineTo(x, gridBottom - gap - length);
-    } else {
-      canvas
-        ..moveTo(x, gridTop)
-        ..lineTo(x, gridTop - length)
-        ..moveTo(x, gridBottom)
-        ..lineTo(x, gridBottom + length);
-    }
-  }
-  for (var r = 0; r <= rows; r++) {
-    final y = gridTop - r * cellHeight;
-    if (horizontalOutside) {
-      canvas
-        ..moveTo(gridLeft - gap, y)
-        ..lineTo(gridLeft - gap - length, y)
-        ..moveTo(gridRight + gap, y)
-        ..lineTo(gridRight + gap + length, y);
-    } else {
-      canvas
-        ..moveTo(gridLeft, y)
-        ..lineTo(gridLeft + length, y)
-        ..moveTo(gridRight, y)
-        ..lineTo(gridRight - length, y);
-    }
-  }
-  canvas.strokePath();
 }
 
 /// [theme] with its bold face standing in for bold italic.

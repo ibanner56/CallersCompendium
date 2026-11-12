@@ -20,8 +20,9 @@ import 'export_guard.dart';
 /// on the card's own paper size and does not re-lay the cards out when the
 /// user picks other paper: a card is printed at its size, on card stock.
 /// With [CallingCardSettings.onSheets] it is the other way round: the cards
-/// are laid out several to a page of whatever paper the dialog chooses, and
-/// again whenever the user changes it.
+/// are laid out several to a page of the paper the dialog reports, each time
+/// it asks (on platforms that re-lay a document out, whenever the user
+/// changes the paper).
 ///
 /// Every context-dependent value is a parameter, resolved by the caller
 /// before any await, as for the other exports.
