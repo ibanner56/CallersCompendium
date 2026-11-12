@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:compendium_core/compendium_core.dart';
@@ -394,10 +395,12 @@ class _PagedContraDb extends ContraDbOnline {
   factory _PagedContraDb({
     required int total,
     bool Function(ContraDbSearchRequest request)? failWhen,
+    Future<void>? Function(ContraDbSearchRequest request)? holdWhen,
   }) {
     final requests = <ContraDbSearchRequest>[];
     return _PagedContraDb._(requests, (request) async {
       requests.add(request);
+      await holdWhen?.call(request);
       if (failWhen != null && failWhen(request)) throw Exception('down');
       final from = request.offset;
       final to = (from + 20) < total ? from + 20 : total;
@@ -1489,6 +1492,98 @@ void main() {
       expect(contraDb.requests.map((r) => r.offset), [0, 20, 20]);
       await scrollToTop(tester);
       expect(find.text(of(40)), findsOneWidget);
+    });
+
+    testWidgets('a new search after a failed page still loads its own page 2', (
+      tester,
+    ) async {
+      final contraDb = _PagedContraDb(
+        total: 45,
+        failWhen: (request) => request.query == 'dance' && request.offset == 20,
+      );
+      await openContraDb(tester, contraDb);
+      await scrollToEnd(tester);
+      expect(find.byKey(const ValueKey('online-more-retry')), findsOneWidget);
+
+      // The search box sits above the list, so the footer stays built while
+      // the query is edited. The new search's first page has as many rows as the old list had, so
+      // the footer at the end must be rebuilt, not kept (its state asks once).
+      await tester.enterText(
+        find.byKey(const ValueKey('picker-search')),
+        'dancer',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      await scrollToEnd(tester);
+
+      expect(contraDb.requests.map((r) => '${r.query}@${r.offset}').take(4), [
+        'dance@0',
+        'dance@20',
+        'dancer@0',
+        'dancer@20',
+      ]);
+    });
+
+    testWidgets('a new search while page 2 is in flight still loads page 2', (
+      tester,
+    ) async {
+      final hold = Completer<void>();
+      final contraDb = _PagedContraDb(
+        total: 45,
+        holdWhen: (request) => request.query == 'dance' && request.offset == 20
+            ? hold.future
+            : null,
+      );
+      await openContraDb(tester, contraDb);
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -4000));
+      // The footer's spinner never settles, so advance by hand.
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 2));
+      expect(contraDb.requests.map((r) => r.offset), [0, 20]);
+      await tester.enterText(
+        find.byKey(const ValueKey('picker-search')),
+        'dancer',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pump();
+      hold.complete(); // the old page lands after its search was replaced
+      // The user is still at the end of the list: its footer must ask for the
+      // new search's page 2 by itself, with no further scrolling.
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 2));
+
+      expect(contraDb.requests.map((r) => '${r.query}@${r.offset}').take(4), [
+        'dance@0',
+        'dance@20',
+        'dancer@0',
+        'dancer@20',
+      ]);
+    });
+
+    testWidgets('clearing the search drops a page still in flight', (
+      tester,
+    ) async {
+      final hold = Completer<void>();
+      final contraDb = _PagedContraDb(
+        total: 45,
+        holdWhen: (request) => request.query == 'dance' && request.offset == 20
+            ? hold.future
+            : null,
+      );
+      await openContraDb(tester, contraDb);
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -4000));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 2));
+      expect(contraDb.requests.map((r) => r.offset), [0, 20]);
+
+      await tester.enterText(find.byKey(const ValueKey('picker-search')), '');
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pump();
+      hold.complete(); // lands after the box was cleared
+      await tester.pumpAndSettle();
+
+      // The late page must not merge its rows into the cleared list.
+      expect(find.textContaining('Dance 0'), findsNothing);
     });
   });
 

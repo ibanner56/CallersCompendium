@@ -3118,7 +3118,8 @@ String _otherShoulder(String s) => s == 'right' ? 'left' : 'right';
 /// of four`), i.e. the balance-and-box-circulate figure. This pre-recognizer
 /// maps such a line onto [box_circulate]; the crossing subject becomes `who`,
 /// an explicit loop direction becomes `hand`, and the scrubbed/canonicalized
-/// definition is retained in the figure `note`. The CallersBox cross-line merge
+/// definition is retained in the figure `note` (unless a trailing bracket
+/// replaces it, below). The CallersBox cross-line merge
 /// then folds a preceding balance line into `balance: true` (box_circulate is
 /// a balance-merge target).
 ///
@@ -3129,12 +3130,38 @@ String _otherShoulder(String s) => s == 'right' ? 'left' : 'right';
 /// Unknown, non-inverse, or malformed subjects decline here and fall through to
 /// custom. Runs on the scrubbed text (roles already canonicalized) like the
 /// other pre-recognizers.
+///
+/// One trailing square bracket is allowed after the loop clause (#2160): `…
+/// loop right [with N2]`, `[with shadow]`, `[around N2]`. It must be the last
+/// thing on the line, the only bracket on it, and say `with` or `around` and a
+/// dancer [resolveDancerSetPhrase] resolves; anything else (`[with phantom]`,
+/// another head, a second bracket, text after it) declines to custom, as the
+/// guards above do. The bracket is read as commentary, as
+/// [_bracketAnnotation] reads one (#744): the figure's `note` is then just its
+/// canonical text (`with nextNeighbors`), not the definition, which `who` and
+/// `hand` already carry. A line with no bracket keeps the definition as its
+/// note.
 FigureMatch? _circulate(String scrubbed) {
   final colon = scrubbed.indexOf(':');
   if (colon == -1) return null;
   final head = scrubbed.substring(0, colon).trim().toLowerCase();
-  final def = scrubbed.substring(colon + 1).trim();
+  var def = scrubbed.substring(colon + 1).trim();
   if (def.isEmpty || head != 'circulate') return null;
+
+  String? bracketNote;
+  final bracket = _circulateTrailingBracketRe.firstMatch(def);
+  if (bracket != null) {
+    final body = bracket[2]!.trim();
+    final relation = _squareBracketRelationRe.firstMatch(body);
+    if (relation == null || resolveDancerSetPhrase(relation[2]!) == null) {
+      return null;
+    }
+    bracketNote = _canonicalSquareBracketNote(body);
+    def = bracket[1]!.trim();
+  }
+  // Any bracket text left in [def] (a second bracket, an unbalanced one, one
+  // with text after it, one before the loop) is rejected below: the cross and
+  // loop clauses must match their anchored regexes and resolve to dancers.
   final comma = def.indexOf(',');
   if (comma == -1 || def.indexOf(',', comma + 1) != -1) return null;
 
@@ -3152,9 +3179,16 @@ FigureMatch? _circulate(String scrubbed) {
   return FigureMatch(
     'box_circulate',
     params: {'who': who, 'hand': ?hand},
-    note: def,
+    note: bracketNote ?? def,
   );
 }
+
+/// The one `[…]` that ends a Caller's Box circulate definition (#2160): group 1
+/// is the definition before it, group 2 the bracket's body. The body holds no
+/// bracket and is at most the 120 characters [_annotationRe] allows.
+final RegExp _circulateTrailingBracketRe = RegExp(
+  r'^(.*?)\s*\[([^\[\]]{1,120})\]$',
+);
 
 /// Caller's Companion's `Wave balance, circulate` is one box circulate with
 /// its balance (maintainer decision 2 on #1975), and so is `Wave balance, box

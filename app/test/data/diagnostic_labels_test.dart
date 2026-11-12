@@ -428,6 +428,57 @@ void main() {
       );
     });
 
+    test('a database another app holds open gets its own copy, naming '
+        'the remedy rather than the disk/folder advice', () {
+      final failure = SnapshotFailure(
+        fromVersion: 2,
+        toVersion: 2,
+        cause: SnapshotFailureCause.databaseInUse,
+        error: const SnapshotDatabaseInUse('/raw/path'),
+      );
+      final consent = migrationSnapshotConsentBody(l10n, failure);
+      final aborted = migrationSnapshotAbortedMessage(l10n, failure);
+      for (final text in [consent, aborted]) {
+        expect(
+          text.toLowerCase(),
+          contains('another app has your library open'),
+        );
+        expect(text.toLowerCase(), contains('close any other app'));
+        expect(text.toLowerCase(), isNot(contains('free up space')));
+        expect(text, isNot(contains('/raw/path')));
+      }
+      // The reset flow appends the sentence alone: it names the remedy too.
+      expect(
+        snapshotCauseSentence(l10n, SnapshotFailureCause.databaseInUse),
+        contains('Close any other app'),
+      );
+    });
+
+    test('the generic consent body weaves in a known cause', () {
+      final failure = SnapshotFailure(
+        fromVersion: 1,
+        toVersion: 2,
+        cause: SnapshotFailureCause.diskFull,
+        error: 'x',
+      );
+      expect(
+        migrationSnapshotConsentBody(l10n, failure),
+        contains('\n\n${l10n.migrationSnapshotCauseDiskFull}'),
+      );
+      expect(
+        migrationSnapshotConsentBody(
+          l10n,
+          SnapshotFailure(
+            fromVersion: 1,
+            toVersion: 2,
+            cause: SnapshotFailureCause.unknown,
+            error: 'x',
+          ),
+        ),
+        l10n.migrationSnapshotConsentBody(''),
+      );
+    });
+
     test('known snapshot causes weave a cause sentence into the message', () {
       for (final cause in [
         SnapshotFailureCause.diskFull,

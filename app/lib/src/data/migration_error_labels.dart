@@ -43,6 +43,8 @@ String databaseBelowFloorResetOnly(AppLocalizations l10n) =>
 
 /// A short, plain-language sentence naming the probable cause of a failed
 /// pre-migration backup, or the empty string when the cause is [unknown].
+/// The [SnapshotFailureCause.databaseInUse] sentence also names its remedy, as
+/// the generic copy's "free up space" advice does not apply to it.
 String snapshotCauseSentence(
   AppLocalizations l10n,
   SnapshotFailureCause cause,
@@ -50,15 +52,39 @@ String snapshotCauseSentence(
   SnapshotFailureCause.diskFull => l10n.migrationSnapshotCauseDiskFull,
   SnapshotFailureCause.unwritableBackupsDir =>
     l10n.migrationSnapshotCauseUnwritableBackupsDir,
+  SnapshotFailureCause.databaseInUse =>
+    l10n.migrationSnapshotCauseDatabaseInUse,
   SnapshotFailureCause.unknown => '',
 };
 
+/// Body of the blocking dialog that asks whether to change saved data without
+/// a backup. A database another app holds open gets its own copy: the
+/// generic one tells the user to free up space or fix the backups folder,
+/// which would not help.
+String migrationSnapshotConsentBody(
+  AppLocalizations l10n,
+  SnapshotFailure failure,
+) {
+  if (failure.cause == SnapshotFailureCause.databaseInUse) {
+    return l10n.migrationSnapshotInUseConsentBody;
+  }
+  final sentence = snapshotCauseSentence(l10n, failure.cause);
+  return l10n.migrationSnapshotConsentBody(
+    sentence.isEmpty ? '' : '\n\n$sentence',
+  );
+}
+
 /// Terminal-screen message for a [MigrationSnapshotAborted], weaving in the
-/// likely-cause sentence when one is known.
+/// likely-cause sentence when one is known. A database another app holds
+/// open gets its own message, for the reason given at
+/// [migrationSnapshotConsentBody].
 String migrationSnapshotAbortedMessage(
   AppLocalizations l10n,
   SnapshotFailure failure,
 ) {
+  if (failure.cause == SnapshotFailureCause.databaseInUse) {
+    return l10n.migrationSnapshotInUseAbortedMessage;
+  }
   final sentence = snapshotCauseSentence(l10n, failure.cause);
   final cause = sentence.isEmpty ? '' : '$sentence ';
   return l10n.migrationSnapshotAbortedMessage(cause);

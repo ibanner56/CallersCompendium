@@ -651,10 +651,12 @@ void main() {
         [derivedRebuildRequiredKey, 'true'],
       );
 
+      var pinReleases = 0;
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
           windowService: NoopWindowService(appData.repositories.settings),
+          releaseRepairSnapshotPin: () async => pinReleases++,
           // Retry now reopens the database (see the failed-open test above), so
           // it asks for a replacement AppData rather than reusing the failed
           // one; hand it a fresh healthy in-memory one instead of the real
@@ -677,6 +679,8 @@ void main() {
       expect(find.text('Retry'), findsOneWidget);
       expect(find.byType(AppShell), findsNothing);
       expect(appData.repositories.rebuildAttempts, 1);
+      // The repair debt has not cleared, so a pinned pre-repair copy stays.
+      expect(pinReleases, 0);
 
       // Retry rebuilds the database-backed world from appDataFactory; the fresh
       // healthy AppData migrates cleanly and the app recovers.
@@ -688,12 +692,39 @@ void main() {
         findsNothing,
       );
       expect(find.byType(AppShell), findsOneWidget);
+      // ensureMigrated succeeded: the pin is released in this session.
+      expect(pinReleases, 1);
       // The flaky instance is no longer in use after Retry, so its attempt
       // count stays at 1; the cross-instance `== 2` assertion this test used to
       // make (same AppData re-run) no longer describes Retry.
       expect(appData.repositories.rebuildAttempts, 1);
     },
   );
+
+  testWidgets('a pin release that throws is logged and does not stop the app '
+      'opening', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final sink = _RecordingCrashLogSink();
+    installCaughtErrorLog(sink);
+    addTearDown(resetCaughtErrorLogForTesting);
+
+    final appData = openTestAppData();
+    await tester.pumpWidget(
+      CompendiumApp(
+        appData: appData,
+        windowService: NoopWindowService(appData.repositories.settings),
+        releaseRepairSnapshotPin: () async =>
+            throw const FileSystemException('locked'),
+        integrityCheck: () async => true,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AppShell), findsOneWidget);
+    expect(sink.sources, contains('startup.release_snapshot_pin'));
+  });
 
   testWidgets('a failed integrity check warns the user but still opens the app '
       '(Stage 1.7)', (tester) async {
@@ -2932,6 +2963,62 @@ void main() {
       expect(find.text('Couldn\'t back up your data'), findsNothing);
     },
   );
+
+  testWidgets('a snapshot refused because another app has the library '
+      'open says to close it, in the dialog and on the terminal screen', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final appData = openTestAppData();
+    final failure = SnapshotFailure(
+      fromVersion: 2,
+      toVersion: 2,
+      cause: SnapshotFailureCause.databaseInUse,
+      error: const SnapshotDatabaseInUse('/x/compendium.sqlite'),
+    );
+
+    await tester.pumpWidget(
+      CompendiumApp(
+        appData: appData,
+        windowService: NoopWindowService(appData.repositories.settings),
+        migrationPreflight: (onSnapshotFailure) async {
+          final proceed = await onSnapshotFailure(failure);
+          if (!proceed) throw MigrationSnapshotAborted(failure);
+        },
+        integrityCheck: () async => true,
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    // The dialog names the real remedy and not the disk/folder advice.
+    expect(find.text('Couldn\'t back up your data'), findsOneWidget);
+    expect(
+      find.textContaining('Another app has your library open'),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('close any other app that has your library open'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('free up space'), findsNothing);
+
+    await tester.tap(find.text('Quit'));
+    await tester.pumpAndSettle();
+
+    // The dialog is gone; the terminal screen gives the same remedy.
+    expect(find.text('Couldn\'t back up your data'), findsNothing);
+    expect(
+      find.textContaining('Close any other app that has your library'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Free up space'), findsNothing);
+    expect(find.byIcon(Icons.lock_outline), findsOneWidget);
+    expect(find.byType(AppShell), findsNothing);
+  });
 
   testWidgets(
     'a failed pre-migration snapshot with Quit aborts to a non-retryable '

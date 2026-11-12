@@ -500,8 +500,9 @@ void main() {
   group('restores and imports', () {
     // Kept parts belong to the peer's copy of a record, so a writer that writes
     // records, as a restore of either mode and an archive import do, keeps
-    // them: the record it writes is stamped newer than the peer's copy, and a
-    // body without the parts would win and strip them from the peer. A row for
+    // them: the record it writes can be stamped newer than the peer's copy (a
+    // restore stamps the backup's time, an import now), and a body without
+    // the parts would then win and strip them from the peer. A row for
     // a record the writer leaves no longer existing is dropped by the next
     // snapshot, not by the writer.
     Tag tag() => Tag(id: 't1', name: 'Tag');
@@ -634,9 +635,10 @@ void main() {
 
     group('settings', () {
       // A restore does not write the settings table: `BackupService` applies
-      // the backup's app settings after the core commit, with the same
-      // `SettingsRepository.set` and `remove` used below, which stamp the
-      // moment of the restore.
+      // the backup's app settings after the core commit, with
+      // `SettingsRepository.setFromRestore` and `removeFromRestore`, which
+      // stamp the backup's creation time. The `set` and `remove` used below
+      // stamp now, standing in for a backup made after the peer's copy.
       SyncRecordBlob dialects({Map<String, Object?> extra = const {}}) =>
           SyncRecordBlob(
             kind: SyncRecordKind.setting,
