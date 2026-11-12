@@ -3759,7 +3759,7 @@ It works for backups already written, because the app has always recorded when
 a backup was made (`createdAt`, and the same instant in the core archive's
 `exportedAt`), so the backup format did not change.
 
-Three details carry the weight:
+Four details carry the weight:
 
 - **The existence stamp is not causal.** Everywhere else a transition must stamp
   above the value it supersedes, so a revival outranks the deletion before it.
