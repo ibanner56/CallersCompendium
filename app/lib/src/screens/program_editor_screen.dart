@@ -4637,9 +4637,27 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         DropdownButtonFormField<ProgramStatus>(
           key: const ValueKey('program-status'),
           initialValue: _status,
-          // Fill the field so a long translated status ellipsizes beside its
-          // icon instead of overflowing at large text.
+          // Fill the field so a long translated status cannot overflow at
+          // large text: the closed field ellipsizes beside its icon and the
+          // open menu wraps, so the full label can always be read.
           isExpanded: true,
+          itemHeight: null,
+          selectedItemBuilder: (context) => [
+            for (final status in ProgramStatus.values)
+              Row(
+                children: [
+                  Icon(programStatusPresentation(status, l10n).icon, size: 18),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      programStatusPresentation(status, l10n).label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+          ],
           decoration: InputDecoration(
             labelText: l10n.programsStatusFieldLabel,
             // GIG-12: say what Performed writes, and that Mark all performed
@@ -4665,7 +4683,6 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                     Flexible(
                       child: Text(
                         programStatusPresentation(status, l10n).label,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],

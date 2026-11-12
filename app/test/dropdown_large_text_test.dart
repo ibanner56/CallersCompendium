@@ -93,11 +93,28 @@ Future<void> _expectEllipsizedClosedReadableOpen(
   final closed = find.descendant(of: field, matching: find.text(full));
   expect(closed, findsOneWidget);
   expect(exceeds(closed), isTrue, reason: 'closed field should ellipsize');
+  await tester.ensureVisible(field);
+  await tester.pumpAndSettle();
   await tester.tap(field);
   await tester.pumpAndSettle();
   final inMenu = find.text(full).last;
   expect(exceeds(inMenu), isFalse, reason: 'open menu should show it in full');
   _expectNoOverflow(tester);
+}
+
+/// Every `Text` inside the open menu's items must lay out in full.
+void _expectMenuItemsUnclipped<T>(WidgetTester tester) {
+  final texts = find.descendant(
+    of: find.byType(DropdownMenuItem<T>),
+    matching: find.byType(Text),
+  );
+  expect(texts, findsWidgets);
+  for (final element in texts.evaluate()) {
+    final paragraph = tester.renderObject<RenderParagraph>(
+      find.byWidget(element.widget),
+    );
+    expect(paragraph.didExceedMaxLines, isFalse);
+  }
 }
 
 Widget _scaffold(Widget body) => Scaffold(
@@ -310,6 +327,13 @@ void main() {
           );
           expect(status, findsOneWidget);
           _expectNoOverflow(tester);
+          // Open the menu: every status label must show in full there.
+          await tester.ensureVisible(status);
+          await tester.pumpAndSettle();
+          await tester.tap(status);
+          await tester.pumpAndSettle();
+          _expectMenuItemsUnclipped<ProgramStatus>(tester);
+          _expectNoOverflow(tester);
         });
       }
 
@@ -345,11 +369,12 @@ void main() {
 
         testWidgets('parameterized column move dropdown', (tester) async {
           await openDialog(tester, 'matrix-column-add-parameterized');
-          expect(
-            find.byKey(const ValueKey('matrix-parameterized-move')),
-            findsOneWidget,
-          );
           _expectNoOverflow(tester);
+          await _expectEllipsizedClosedReadableOpen(
+            tester,
+            find.byKey(const ValueKey('matrix-parameterized-move')),
+            longest.displayName,
+          );
         });
 
         testWidgets('compound column step move dropdown', (tester) async {
@@ -359,11 +384,12 @@ void main() {
           await tester.ensureVisible(add);
           await tester.tap(add);
           await tester.pumpAndSettle();
-          expect(
-            find.byKey(const ValueKey('matrix-compound-step-move-0')),
-            findsOneWidget,
-          );
           _expectNoOverflow(tester);
+          await _expectEllipsizedClosedReadableOpen(
+            tester,
+            find.byKey(const ValueKey('matrix-compound-step-move-0')),
+            longest.displayName,
+          );
         });
       });
     });
