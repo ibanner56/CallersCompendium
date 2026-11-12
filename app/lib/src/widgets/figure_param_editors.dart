@@ -73,6 +73,17 @@ class FigureParamEditor extends StatelessWidget {
 
   String get _key => '$keyPrefix-$paramKey';
 
+  /// A dropdown item's label. Picking a fraction of `other` reveals the
+  /// amount stepper (#2120) in the dance editor, on a move that has one, so
+  /// there it reads "other amount…".
+  String _choiceLabel(AppLocalizations l10n, String choice) =>
+      spec.kind == ParamKind.fraction &&
+          choice == 'other' &&
+          fractionAmountFollows &&
+          _moveHasFractionAmount
+      ? l10n.figureParamFractionOtherPick
+      : figureParamChoiceLabel(l10n, spec, dialect, choice);
+
   /// Whether [moveId] is a shipped move with a fraction amount (#2120).
   bool get _moveHasFractionAmount =>
       moveId != null &&
@@ -312,16 +323,7 @@ class FigureParamEditor extends StatelessWidget {
           for (final choice in selectable)
             DropdownMenuItem(
               value: choice,
-              child: Text(
-                // Picking `other` reveals the amount stepper (#2120), in the
-                // dance editor on a move that has one.
-                spec.kind == ParamKind.fraction &&
-                        choice == 'other' &&
-                        fractionAmountFollows &&
-                        _moveHasFractionAmount
-                    ? l10n.figureParamFractionOtherPick
-                    : figureParamChoiceLabel(l10n, spec, dialect, choice),
-              ),
+              child: Text(_choiceLabel(l10n, choice)),
             ),
         ],
         onChanged: (v) {
