@@ -64,7 +64,7 @@ Keep this handy — every form asks some slice of it.
 | Support email | compendium@contra.dance |
 | Support / marketing site | <https://ibanner56.github.io/CallersCompendium/> |
 | Source & issues | <https://github.com/ibanner56/CallersCompendium> |
-| Privacy policy URL | <https://ibanner56.github.io/CallersCompendium/privacy/> (published — source in [`privacy-policy.md`](privacy-policy.md), page at `site/privacy/index.html`) |
+| Privacy policy URL | <https://ibanner56.github.io/CallersCompendium/privacy/> (published from `site/privacy/index.html`, which is authoritative; [`privacy-policy.md`](privacy-policy.md) is its hand-kept mirror) |
 | License | AGPL-3.0 (source-available) |
 | Data collection | Selected Other User Content via optional Device Sync, not linked to you, used for App Functionality when the user opts in. |
 | Network use | User-initiated imports (Caller's Box, ContraDB, JSON) over HTTPS; published-collection browsing/imports from a developer-hosted catalog; opt-in update check (off by default); opt-in Device Sync for selected shareable content |
@@ -78,7 +78,7 @@ These are the things needed **regardless** of store. Knock them out first.
 - [x] **A publishable privacy policy at a stable public URL.** Both stores block
   submission without one. **Published** at
   <https://ibanner56.github.io/CallersCompendium/privacy/> (page lives at
-  `site/privacy/index.html`; content mirrors [`privacy-policy.md`](privacy-policy.md)).
+  `site/privacy/index.html`; [`privacy-policy.md`](privacy-policy.md) mirrors its content).
   Use that URL in both consoles. The `site/` folder publishes to GitHub Pages, so
   the page ships automatically on the next Pages deploy.
 - [ ] **Final store listing text**, localized to at least English. Draft is in
