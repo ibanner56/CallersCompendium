@@ -1,0 +1,9 @@
+{
+  "id": "program-summary-keep-scroll-on-performed",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Marking a dance as performed in a program no longer scrolls the program back to the top."
+    ]
+  }
+}
