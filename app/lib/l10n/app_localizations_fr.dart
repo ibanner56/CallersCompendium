@@ -184,7 +184,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String migrationSnapshotAbortedMessage(String cause) {
-    return 'Caller’s Compendium n\'a pas démarré car une sauvegarde automatique n\'a pas pu être créée avant la mise à niveau de vos données enregistrées. ${cause}Libérez de l\'espace (ou réparez le dossier de sauvegardes), puis rouvrez l\'application — ou rouvrez-la et choisissez de continuer sans sauvegarde.';
+    return 'Caller’s Compendium n\'a pas démarré car une sauvegarde automatique n\'a pas pu être créée avant la modification de vos données enregistrées. ${cause}Libérez de l\'espace (ou réparez le dossier de sauvegardes), puis rouvrez l\'application — ou rouvrez-la et choisissez de continuer sans sauvegarde.';
   }
 
   @override
@@ -196,12 +196,24 @@ class AppLocalizationsFr extends AppLocalizations {
       'Impossible d\'écrire dans le dossier de sauvegardes automatiques.';
 
   @override
+  String get migrationSnapshotCauseDatabaseInUse =>
+      'Une autre application a ouvert votre bibliothèque : une sauvegarde faite maintenant ne contiendrait pas vos dernières modifications. Fermez toute autre application qui a ouvert votre bibliothèque, puis réessayez.';
+
+  @override
+  String get migrationSnapshotInUseConsentBody =>
+      'Avant de modifier vos données enregistrées, Caller’s Compendium crée une sauvegarde automatique afin que les modifications puissent être annulées en cas de problème. Une autre application a ouvert votre bibliothèque en ce moment : une sauvegarde faite maintenant ne contiendrait pas vos dernières modifications.\n\nSi vous continuez sans sauvegarde et que les modifications sont interrompues, certaines de vos danses ou de vos programmes pourraient être perdus. Vous pouvez quitter, fermer toute autre application qui a ouvert votre bibliothèque et rouvrir Caller’s Compendium pour réessayer.';
+
+  @override
+  String get migrationSnapshotInUseAbortedMessage =>
+      'Caller’s Compendium n\'a pas démarré car une autre application a ouvert votre bibliothèque : la sauvegarde automatique faite avant la modification de vos données enregistrées ne contiendrait pas vos dernières modifications. Fermez toute autre application qui a ouvert votre bibliothèque, puis rouvrez Caller’s Compendium — ou rouvrez-le et choisissez de continuer sans sauvegarde.';
+
+  @override
   String get migrationSnapshotConsentTitle =>
       'Impossible de sauvegarder vos données';
 
   @override
   String migrationSnapshotConsentBody(String cause) {
-    return 'Avant de mettre à niveau vos données enregistrées vers un nouveau format, Caller’s Compendium crée une sauvegarde automatique afin qu\'une mise à niveau échouée puisse être annulée. Cette sauvegarde n\'a pas pu être créée cette fois.$cause\n\nSi vous continuez sans sauvegarde et que la mise à niveau est interrompue, certaines de vos danses ou de vos programmes pourraient être perdus. Vous pouvez quitter, libérer de l\'espace (ou réparer le dossier de sauvegardes) et rouvrir l\'application pour réessayer.';
+    return 'Avant de modifier vos données enregistrées, Caller’s Compendium crée une sauvegarde automatique afin que les modifications puissent être annulées en cas de problème. Cette sauvegarde n\'a pas pu être créée cette fois.$cause\n\nSi vous continuez sans sauvegarde et que les modifications sont interrompues, certaines de vos danses ou de vos programmes pourraient être perdus. Vous pouvez quitter, libérer de l\'espace (ou réparer le dossier de sauvegardes) et rouvrir l\'application pour réessayer.';
   }
 
   @override
@@ -655,7 +667,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsSyncIdCopied =>
-      'Phrase de synchronisation copiée. Elle donne accès à votre espace : ne la collez que sur un appareil qui vous appartient.';
+      'Phrase de synchronisation copiée. Quiconque la détient peut ouvrir votre bibliothèque partagée : ne la collez que sur un appareil qui vous appartient.';
 
   @override
   String get settingsSyncIdCaution =>
@@ -740,11 +752,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsSyncFailureStoreFull =>
-      'Votre espace a utilisé toute la place autorisée par le serveur de synchronisation.';
+      'Le serveur de synchronisation ne peut pas stocker davantage pour le moment.';
 
   @override
   String get settingsSyncFailureStoreFullAdvice =>
-      'Les modifications de cet appareil ne pourront pas être enregistrées tant qu’il n’y aura pas de place. Activer Ignorer les danses importées inutilisées réduit ce que cet appareil envoie. Si vous utilisez votre propre serveur, augmentez sa limite de stockage.';
+      'Les modifications de cet appareil ne pourront pas être enregistrées tant qu’il n’y aura pas de place. Activer Ignorer les danses importées inutilisées peut réduire ce que cet appareil envoie. Si vous utilisez votre propre serveur, augmentez sa limite de stockage ou libérez de l’espace disque.';
 
   @override
   String get settingsSyncFailureTooLarge =>
@@ -779,7 +791,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String settingsSyncNoticeNewerVersionItems(String items) {
-    return 'Un autre appareil utilise une version plus récente de l’application. Mettez à jour l’application sur cet appareil pour recevoir $items.';
+    return 'Un autre appareil utilise une version plus récente de l’application. Mettez à jour l’application sur cet appareil pour recevoir $items. Si vous les modifiez ici avant la mise à jour, les modifications de l’autre appareil sur ces éléments peuvent être perdues.';
   }
 
   @override
@@ -905,7 +917,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsSyncNoticeNewerVersionUncounted =>
-      'Un autre appareil utilise une version plus récente de l’application. Mettez à jour l’application sur cet appareil pour recevoir ses modifications.';
+      'Un autre appareil utilise une version plus récente de l’application. Mettez à jour l’application sur cet appareil pour recevoir ses modifications. Si vous modifiez ici, avant la mise à jour, un élément qu’il a modifié, ses modifications peuvent être perdues.';
 
   @override
   String settingsSyncNoticeKeptNewerItems(String items) {
@@ -1549,7 +1561,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsSyncWipeConfirmBody =>
-      'Tout ce que contient l\'espace est supprimé du serveur, pour tous les appareils à la fois, et cette action est irréversible. Votre bibliothèque reste sur cet appareil et sur chacun de vos autres appareils — mais tout ce qui n\'était parvenu à un autre appareil que par la synchronisation n\'arrivera pas ici. Cet appareil se déconnecte et oublie sa phrase de synchronisation ; vos autres appareils constateront la disparition de l\'espace à leur prochaine synchronisation et demanderont s\'il faut en créer un nouveau. Utilisez cette option si quelqu\'un d\'autre a vu votre phrase de synchronisation : c\'est la seule chose qui supprime immédiatement ce qu\'il peut lire.';
+      'Tout ce que contient l\'espace est supprimé du serveur, pour tous les appareils à la fois, et cette action est irréversible. Votre bibliothèque reste sur cet appareil et sur chacun de vos autres appareils — mais tout ce qui n\'était parvenu à un autre appareil que par la synchronisation n\'arrivera pas ici. Cet appareil se déconnecte et oublie sa phrase de synchronisation ; vos autres appareils constateront la disparition de l\'espace à leur prochaine synchronisation et proposeront de configurer une nouvelle phrase. Utilisez cette option si vous voulez cesser d\'utiliser l\'adresse de cet espace : c\'est la seule chose qui supprime immédiatement ce que contient l\'espace. Pour continuer à synchroniser, configurez une nouvelle phrase sur chaque appareil — se reconnecter avec l\'ancienne recrée un espace à la même adresse.';
 
   @override
   String get settingsSyncWipeConfirmAction => 'Supprimer l\'espace';
@@ -1748,14 +1760,18 @@ class AppLocalizationsFr extends AppLocalizations {
       'Votre bibliothèque est connectée. La première synchronisation n\'a pas encore eu lieu ; elle se fera à la prochaine synchronisation de cet appareil.';
 
   @override
-  String get settingsSyncReplacementTitle => 'Reconnecter cet espace ?';
+  String get settingsSyncReplacementTitle => 'Cet espace n\'existe plus';
 
   @override
   String get settingsSyncReplacementBody =>
-      'L\'espace avec lequel cet appareil se synchronisait n\'existe plus. Il a peut-être expiré par inactivité, ou il a peut-être été supprimé. Se reconnecter crée un nouvel espace avec la même phrase et resynchronise depuis le début.';
+      'L\'espace avec lequel cet appareil se synchronisait n\'existe plus. Il a peut-être expiré par inactivité, ou il a peut-être été supprimé. Pour cesser d\'utiliser l\'adresse de cet espace, configurez une nouvelle phrase : cet appareil se déconnecte, puis vous créez un nouvel espace ou vous vous connectez à un espace configuré sur un autre appareil. Faites-le sur chacun de vos appareils. « Se reconnecter » crée au contraire un nouvel espace à la même adresse, avec la même phrase, et y envoie toute votre bibliothèque ; si un autre appareil l\'a déjà fait, cet appareil rejoint cet espace.';
 
   @override
   String get settingsSyncReplacementConfirm => 'Se reconnecter';
+
+  @override
+  String get settingsSyncReplacementNewPhrase =>
+      'Configurer avec une nouvelle phrase';
 
   @override
   String get settingsSyncReplacementCancel => 'Pas maintenant';
@@ -3745,6 +3761,10 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get backupRestoreDialogBody =>
       'La restauration remplace tout le contenu actuel de l’application — votre collection, programmes, dialectes, thèmes et paramètres — par le contenu de la sauvegarde. Cette action est irréversible.';
+
+  @override
+  String get backupRestoreDialogSyncNote =>
+      'Cet appareil est connecté à la synchronisation des appareils. Tout ce que la synchronisation transmet et qui a été modifié après cette sauvegarde sur un appareil avec lequel vous synchronisez reviendra de cet appareil à la prochaine synchronisation, y compris les modifications faites ici et déjà synchronisées. Tout le reste prend la version de la sauvegarde.';
 
   @override
   String get backupChooseFileAction => 'Choisir un fichier…';

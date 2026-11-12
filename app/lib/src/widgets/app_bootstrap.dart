@@ -41,8 +41,9 @@ import '../utils/launch_external_url.dart';
 ///   minimum supported schema version): retrying cannot recover the data; the
 ///   user must run the bridge release to migrate it, or reset. [onBackUpAndReset]
 ///   and [onResetOnly] supply the recovery actions.
-/// - [MigrationSnapshotAborted] (no backup could be written): free space or fix
-///   the backups folder, then reopen.
+/// - [MigrationSnapshotAborted] (no backup could be written): free space, fix
+///   the backups folder, or close another app that has the library open, then
+///   reopen.
 /// - [DatabaseRelocationBlocked] (the library could not be moved safely): fix
 ///   the folders, then reopen.
 class AppBootstrap extends StatelessWidget {
@@ -125,7 +126,8 @@ class AppBootstrap extends StatelessWidget {
           // backup (the pre-migration snapshot failed) and chose to abort, or
           // there was no way to ask (issue #442). Like the downgrade case this
           // is terminal with *no* Retry: retrying wouldn't create the backup —
-          // the user must free space / fix the backups folder and reopen.
+          // the user must free space / fix the backups folder / close another
+          // app that has the library open, and reopen.
           if (error is MigrationSnapshotAborted) {
             return _TerminalScreen(
               icon: _snapshotAbortedIcon(error.failure.cause),
@@ -256,6 +258,8 @@ class AppBootstrap extends StatelessWidget {
         return Icons.disc_full;
       case SnapshotFailureCause.unwritableBackupsDir:
         return Icons.folder_off_outlined;
+      case SnapshotFailureCause.databaseInUse:
+        return Icons.lock_outline;
       case SnapshotFailureCause.unknown:
         return Icons.warning_amber_outlined;
     }

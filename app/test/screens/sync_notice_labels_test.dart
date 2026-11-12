@@ -195,7 +195,9 @@ void main() {
           ],
         ),
         'Another device is using a newer version of the app. Update the app '
-        'on this device to receive 4 dances.',
+        'on this device to receive 4 dances.'
+        ' Editing them here before you update may discard the other '
+        "device's changes to them.",
       );
     });
 
@@ -215,7 +217,9 @@ void main() {
           ],
         ),
         'Another device is using a newer version of the app. Update the app '
-        'on this device to receive 2 programs, 1 setting.',
+        'on this device to receive 2 programs, 1 setting.'
+        ' Editing them here before you update may discard the other '
+        "device's changes to them.",
       );
     });
 

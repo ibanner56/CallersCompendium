@@ -180,7 +180,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String migrationSnapshotAbortedMessage(String cause) {
-    return 'Caller’s Compendium wurde nicht gestartet, weil vor der Aktualisierung deiner gespeicherten Daten keine automatische Sicherung erstellt werden konnte. ${cause}Schaffe Speicherplatz (oder repariere den Sicherungsordner) und öffne die App dann erneut – oder öffne sie erneut und fahre ohne Sicherung fort.';
+    return 'Caller’s Compendium wurde nicht gestartet, weil vor Änderungen an deinen gespeicherten Daten keine automatische Sicherung erstellt werden konnte. ${cause}Schaffe Speicherplatz (oder repariere den Sicherungsordner) und öffne die App dann erneut – oder öffne sie erneut und fahre ohne Sicherung fort.';
   }
 
   @override
@@ -192,12 +192,24 @@ class AppLocalizationsDe extends AppLocalizations {
       'Der automatische Sicherungsordner konnte nicht beschrieben werden.';
 
   @override
+  String get migrationSnapshotCauseDatabaseInUse =>
+      'Eine andere App hat deine Bibliothek geöffnet, daher würden einer jetzt erstellten Sicherung deine neuesten Änderungen fehlen. Schließe alle anderen Apps, die deine Bibliothek geöffnet haben, und versuche es dann erneut.';
+
+  @override
+  String get migrationSnapshotInUseConsentBody =>
+      'Bevor deine gespeicherten Daten geändert werden, erstellt Caller’s Compendium eine automatische Sicherung, damit sich die Änderungen rückgängig machen lassen, falls etwas schiefgeht. Gerade hat eine andere App deine Bibliothek geöffnet, daher würden einer jetzt erstellten Sicherung deine neuesten Änderungen fehlen.\n\nWenn du ohne Sicherung fortfährst und die Änderungen unterbrochen werden, könnten einige deiner Tänze oder Programme verloren gehen. Du kannst Caller’s Compendium beenden, alle anderen Apps schließen, die deine Bibliothek geöffnet haben, und Caller’s Compendium dann erneut öffnen, um es noch einmal zu versuchen.';
+
+  @override
+  String get migrationSnapshotInUseAbortedMessage =>
+      'Caller’s Compendium wurde nicht gestartet, weil eine andere App deine Bibliothek geöffnet hat, sodass der automatischen Sicherung vor Änderungen an deinen gespeicherten Daten deine neuesten Änderungen fehlen würden. Schließe alle anderen Apps, die deine Bibliothek geöffnet haben, und öffne Caller’s Compendium dann erneut – oder öffne es erneut und fahre ohne Sicherung fort.';
+
+  @override
   String get migrationSnapshotConsentTitle =>
       'Sicherung deiner Daten fehlgeschlagen';
 
   @override
   String migrationSnapshotConsentBody(String cause) {
-    return 'Bevor deine gespeicherten Daten in ein neues Format aktualisiert werden, erstellt Caller’s Compendium eine automatische Sicherung, damit eine fehlgeschlagene Aktualisierung rückgängig gemacht werden kann. Diese Sicherung konnte diesmal nicht erstellt werden.$cause\n\nWenn du ohne Sicherung fortfährst und die Aktualisierung unterbrochen wird, könnten einige deiner Tänze oder Programme verloren gehen. Du kannst die App beenden, Speicherplatz schaffen (oder den Sicherungsordner reparieren) und sie erneut öffnen, um es noch einmal zu versuchen.';
+    return 'Bevor deine gespeicherten Daten geändert werden, erstellt Caller’s Compendium eine automatische Sicherung, damit sich die Änderungen rückgängig machen lassen, falls etwas schiefgeht. Diese Sicherung konnte diesmal nicht erstellt werden.$cause\n\nWenn du ohne Sicherung fortfährst und die Änderungen unterbrochen werden, könnten einige deiner Tänze oder Programme verloren gehen. Du kannst die App beenden, Speicherplatz schaffen (oder den Sicherungsordner reparieren) und sie erneut öffnen, um es noch einmal zu versuchen.';
   }
 
   @override
@@ -645,7 +657,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsSyncIdCopied =>
-      'Synchronisierungsphrase kopiert. Sie öffnet deinen Speicher – füge sie nur auf einem Gerät ein, das dir gehört.';
+      'Synchronisierungsphrase kopiert. Jeder, der sie hat, kann deine geteilte Bibliothek öffnen – füge sie nur auf einem Gerät ein, das dir gehört.';
 
   @override
   String get settingsSyncIdCaution =>
@@ -730,11 +742,11 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsSyncFailureStoreFull =>
-      'Dein Speicher hat den gesamten Platz belegt, den der Synchronisierungsserver erlaubt.';
+      'Der Synchronisierungsserver kann gerade nichts mehr speichern.';
 
   @override
   String get settingsSyncFailureStoreFullAdvice =>
-      'Änderungen von diesem Gerät können erst gespeichert werden, wenn wieder Platz ist. Wenn du Ungenutzte importierte Tänze überspringen einschaltest, lädt dieses Gerät weniger hoch. Wenn du einen eigenen Server betreibst, erhöhe sein Speicherlimit.';
+      'Änderungen von diesem Gerät können erst gespeichert werden, wenn wieder Platz ist. Wenn du Ungenutzte importierte Tänze überspringen einschaltest, kann dieses Gerät weniger hochladen. Wenn du einen eigenen Server betreibst, erhöhe sein Speicherlimit oder schaffe Speicherplatz.';
 
   @override
   String get settingsSyncFailureTooLarge =>
@@ -769,7 +781,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String settingsSyncNoticeNewerVersionItems(String items) {
-    return 'Ein anderes Gerät verwendet eine neuere Version der App. Aktualisiere die App auf diesem Gerät, um $items zu erhalten.';
+    return 'Ein anderes Gerät verwendet eine neuere Version der App. Aktualisiere die App auf diesem Gerät, um $items zu erhalten. Wenn du sie hier vor dem Aktualisieren bearbeitest, können die Änderungen des anderen Geräts daran verloren gehen.';
   }
 
   @override
@@ -895,7 +907,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsSyncNoticeNewerVersionUncounted =>
-      'Ein anderes Gerät verwendet eine neuere Version der App. Aktualisiere die App auf diesem Gerät, um seine Änderungen zu erhalten.';
+      'Ein anderes Gerät verwendet eine neuere Version der App. Aktualisiere die App auf diesem Gerät, um seine Änderungen zu erhalten. Wenn du vor dem Aktualisieren hier etwas bearbeitest, das es geändert hat, können seine Änderungen verloren gehen.';
 
   @override
   String settingsSyncNoticeKeptNewerItems(String items) {
@@ -1541,7 +1553,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsSyncWipeConfirmBody =>
-      'Alles, was der Speicher enthält, wird vom Server gelöscht, für alle Geräte auf einmal, und das lässt sich nicht rückgängig machen. Deine Bibliothek bleibt auf diesem Gerät und auf jedem deiner anderen Geräte – aber alles, was bisher nur über die Synchronisierung auf ein anderes Gerät gelangt war, kommt hier nicht mehr an. Dieses Gerät wird getrennt und vergisst seine Synchronisierungsphrase; deine anderen Geräte finden den Speicher beim nächsten Synchronisieren nicht mehr vor und fragen, ob ein neuer angelegt werden soll. Nutze das, wenn deine Synchronisierungsphrase jemand anderem bekannt geworden ist: Es ist das Einzige, was sofort entfernt, was diese Person lesen kann.';
+      'Alles, was der Speicher enthält, wird vom Server gelöscht, für alle Geräte auf einmal, und das lässt sich nicht rückgängig machen. Deine Bibliothek bleibt auf diesem Gerät und auf jedem deiner anderen Geräte – aber alles, was bisher nur über die Synchronisierung auf ein anderes Gerät gelangt war, kommt hier nicht mehr an. Dieses Gerät wird getrennt und vergisst seine Synchronisierungsphrase; deine anderen Geräte finden den Speicher beim nächsten Synchronisieren nicht mehr vor und bieten an, eine neue Phrase einzurichten. Nutze das, wenn du die Adresse dieses Speichers nicht mehr verwenden willst: Es ist das Einzige, was sofort entfernt, was der Speicher enthält. Um weiter zu synchronisieren, richte auf jedem Gerät eine neue Phrase ein – erneutes Verbinden mit der alten legt wieder einen neuen Speicher unter derselben Adresse an.';
 
   @override
   String get settingsSyncWipeConfirmAction => 'Speicher löschen';
@@ -1739,14 +1751,18 @@ class AppLocalizationsDe extends AppLocalizations {
       'Deine Bibliothek ist verbunden. Die erste Synchronisierung ist noch nicht gelaufen; sie läuft, wenn dieses Gerät das nächste Mal synchronisiert.';
 
   @override
-  String get settingsSyncReplacementTitle => 'Diesen Speicher neu verbinden?';
+  String get settingsSyncReplacementTitle =>
+      'Dieser Speicher ist nicht mehr vorhanden';
 
   @override
   String get settingsSyncReplacementBody =>
-      'Der Speicher, mit dem dieses Gerät synchronisiert hat, ist nicht mehr vorhanden. Er könnte durch Inaktivität abgelaufen oder entfernt worden sein. Erneutes Verbinden erstellt einen neuen Speicher mit derselben Phrase und synchronisiert von vorn.';
+      'Der Speicher, mit dem dieses Gerät synchronisiert hat, ist nicht mehr vorhanden. Er könnte durch Inaktivität abgelaufen oder entfernt worden sein. Um die Adresse dieses Speichers nicht mehr zu verwenden, richte eine neue Phrase ein: Dieses Gerät wird getrennt, und du erstellst danach einen neuen Speicher oder verbindest dich mit einem, den du auf einem anderen Gerät eingerichtet hast. Mach das auf jedem deiner Geräte. „Neu verbinden“ erstellt stattdessen einen neuen Speicher unter derselben Adresse, mit derselben Phrase, und sendet deine ganze Bibliothek dorthin; hat ein anderes Gerät das schon getan, tritt dieses Gerät diesem Speicher bei.';
 
   @override
   String get settingsSyncReplacementConfirm => 'Neu verbinden';
+
+  @override
+  String get settingsSyncReplacementNewPhrase => 'Mit neuer Phrase einrichten';
 
   @override
   String get settingsSyncReplacementCancel => 'Jetzt nicht';
@@ -3730,6 +3746,10 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get backupRestoreDialogBody =>
       'Bei der Wiederherstellung wird alles in der App – Ihre Sammlung, Programme, Dialekte, Designs und Einstellungen – durch den Inhalt der Sicherung ersetzt. Dies kann nicht rückgängig gemacht werden.';
+
+  @override
+  String get backupRestoreDialogSyncNote =>
+      'Dieses Gerät ist mit der Gerätesynchronisierung verbunden. Alles, was die Gerätesynchronisierung überträgt und nach dieser Sicherung auf einem Gerät geändert wurde, mit dem Sie synchronisieren, kommt bei der nächsten Synchronisierung von diesem Gerät zurück – auch hier vorgenommene und bereits synchronisierte Änderungen. Alles andere erhält die Version der Sicherung.';
 
   @override
   String get backupChooseFileAction => 'Datei auswählen…';

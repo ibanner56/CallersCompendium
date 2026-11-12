@@ -2857,7 +2857,9 @@ void main() {
           expect(
             find.text(
               'Another device is using a newer version of the app. Update the '
-              'app on this device to receive its changes.',
+              'app on this device to receive its changes.'
+              ' Editing something here that it changed, before you update, may '
+              'discard its changes.',
             ),
             findsOneWidget,
           );
@@ -2885,7 +2887,9 @@ void main() {
           expect(
             find.text(
               'Another device is using a newer version of the app. Update the '
-              'app on this device to receive 3 dances.',
+              'app on this device to receive 3 dances.'
+              ' Editing them here before you update may discard the other '
+              "device's changes to them.",
             ),
             findsOneWidget,
           );
@@ -2943,7 +2947,9 @@ void main() {
           expect(
             find.text(
               'Another device is using a newer version of the app. Update the '
-              'app on this device to receive 2 programs, 1 setting.',
+              'app on this device to receive 2 programs, 1 setting.'
+              ' Editing them here before you update may discard the other '
+              "device's changes to them.",
             ),
             findsOneWidget,
           );
@@ -5502,6 +5508,222 @@ void main() {
           );
           await tester.pumpAndSettle();
           expect(transport.createStoreCalls, 1);
+          expect(
+            find.byKey(const ValueKey('sync-replacement-dialog')),
+            findsNothing,
+            reason: 'a completed Reconnect does not ask again',
+          );
+        },
+      );
+
+      // The store can be missing because a device deleted it, so the natural
+      // tap must not re-create a store at the same address. Setting up a new
+      // phrase is the primary (filled, last) action; Reconnect stays as the
+      // second one, and the cancel stays first.
+      testWidgets(
+        'puts setting up a new phrase first and Reconnect second; the new '
+        'phrase disconnects and opens pairing without any POST',
+        (tester) async {
+          final transport = ControllableSyncTransport();
+          final harness = await _pumpSettings(tester);
+          await harness.repos.settings.set('sync_id', 'configured-store-id-n');
+          final controller = SyncScope.of(
+            tester.element(find.byType(SettingsScreen)),
+          );
+          await controller.setEnabled(true);
+          await controller.load();
+
+          _syncCoordinator = SyncCoordinator(
+            syncId: 'configured',
+            deviceId: 'device',
+            store: CompendiumSyncCoordinatorStore(harness.repos),
+            transport: transport,
+            passOperation: ({initialStore}) async =>
+                const SyncPassResult(SyncPassStatus.replacementRequired),
+          );
+          addTearDown(_syncCoordinator!.dispose);
+          controller.attachCoordinator(_syncCoordinator);
+          await openExperimental(tester);
+
+          await tester.tap(find.byKey(const ValueKey('sync-now')));
+          await tester.pumpAndSettle();
+          final dialog = find.byKey(const ValueKey('sync-replacement-dialog'));
+          expect(dialog, findsOneWidget);
+
+          final actions = tester.widget<AlertDialog>(dialog).actions!;
+          expect(actions.map((a) => a.key).toList(), const [
+            ValueKey('sync-replacement-cancel'),
+            ValueKey('sync-replacement-confirm'),
+            ValueKey('sync-replacement-new-phrase'),
+          ]);
+          expect(
+            actions.whereType<FilledButton>().map((a) => a.key).toList(),
+            const [ValueKey('sync-replacement-new-phrase')],
+            reason: 'the new phrase is the only primary action',
+          );
+          expect(
+            find.descendant(
+              of: find.byKey(const ValueKey('sync-replacement-new-phrase')),
+              matching: find.text('Set up with a new phrase'),
+            ),
+            findsOneWidget,
+          );
+          expect(
+            find.descendant(
+              of: find.byKey(const ValueKey('sync-replacement-confirm')),
+              matching: find.text('Reconnect'),
+            ),
+            findsOneWidget,
+          );
+
+          await tester.tap(
+            find.byKey(const ValueKey('sync-replacement-new-phrase')),
+          );
+          await tester.pumpAndSettle();
+
+          expect(
+            transport.createStoreCalls,
+            0,
+            reason: 'nothing is re-created at the missing address',
+          );
+          expect(await harness.repos.settings.contains('sync_id'), isFalse);
+          expect(controller.paired, isFalse);
+          expect(controller.replacementPending, isFalse);
+          expect(find.byType(SyncPairingScreen), findsOneWidget);
+          expect(dialog, findsNothing);
+        },
+      );
+
+      // The maintainer-settled rule (#1351): a `409` on the replacement `POST`
+      // means a store with this phrase exists now, so the device adopts it —
+      // no second POST, no re-prompt, no extra tap. Moving Reconnect to the
+      // second button must not change that.
+      testWidgets(
+        'Reconnect still adopts the store on a 409, with one POST and no '
+        're-prompt',
+        (tester) async {
+          final transport = ControllableSyncTransport()
+            ..createStoreResponse = const SyncHttpResponse(
+              statusCode: 409,
+              kind: SyncResponseKind.conflict,
+              headers: {},
+              body: [],
+            );
+          final harness = await _pumpSettings(tester);
+          await harness.repos.settings.set('sync_id', 'configured-store-id-c');
+          final controller = SyncScope.of(
+            tester.element(find.byType(SettingsScreen)),
+          );
+          await controller.setEnabled(true);
+          await controller.load();
+
+          _syncCoordinator = SyncCoordinator(
+            syncId: 'configured',
+            deviceId: 'device',
+            store: CompendiumSyncCoordinatorStore(harness.repos),
+            transport: transport,
+            passOperation: ({initialStore}) async {
+              if (transport.createStoreCalls == 0) {
+                return const SyncPassResult(SyncPassStatus.replacementRequired);
+              }
+              return const SyncPassResult(SyncPassStatus.completed);
+            },
+          );
+          addTearDown(_syncCoordinator!.dispose);
+          controller.attachCoordinator(_syncCoordinator);
+          await openExperimental(tester);
+
+          await tester.tap(find.byKey(const ValueKey('sync-now')));
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.byKey(const ValueKey('sync-replacement-confirm')),
+          );
+          await tester.pumpAndSettle();
+
+          expect(transport.createStoreCalls, 1);
+          expect(controller.lastResult?.status, SyncPassStatus.completed);
+          expect(controller.replacementPending, isFalse);
+          expect(controller.paired, isTrue);
+          expect(
+            find.byKey(const ValueKey('sync-replacement-dialog')),
+            findsNothing,
+            reason: 'no re-prompt after adopting',
+          );
+
+          await tester.tap(find.byKey(const ValueKey('sync-now')));
+          await tester.pumpAndSettle();
+          expect(transport.createStoreCalls, 1, reason: 'no second POST');
+          expect(
+            find.byKey(const ValueKey('sync-replacement-dialog')),
+            findsNothing,
+          );
+        },
+      );
+
+      // The decision stays pending until the Reconnect completes, and the
+      // controller notifies in between. A dialog shown then stayed on screen
+      // after a success, where Not now paused the sync that had just
+      // recovered. It stays closed while the attempt runs, and comes back
+      // only for an attempt that did not complete.
+      testWidgets(
+        'the dialog stays closed while a Reconnect runs, and does not come '
+        'back after it completes',
+        (tester) async {
+          final transport = ControllableSyncTransport();
+          final release = Completer<void>();
+          // Released on failure too, so a red run ends instead of hanging on
+          // the held pass.
+          addTearDown(() {
+            if (!release.isCompleted) release.complete();
+          });
+          final harness = await _pumpSettings(tester);
+          await harness.repos.settings.set('sync_id', 'configured-store-id-f');
+          final controller = SyncScope.of(
+            tester.element(find.byType(SettingsScreen)),
+          );
+          await controller.setEnabled(true);
+          await controller.load();
+
+          _syncCoordinator = SyncCoordinator(
+            syncId: 'configured',
+            deviceId: 'device',
+            store: CompendiumSyncCoordinatorStore(harness.repos),
+            transport: transport,
+            passOperation: ({initialStore}) async {
+              if (transport.createStoreCalls == 0) {
+                return const SyncPassResult(SyncPassStatus.replacementRequired);
+              }
+              await release.future;
+              return const SyncPassResult(SyncPassStatus.completed);
+            },
+          );
+          addTearDown(_syncCoordinator!.dispose);
+          controller.attachCoordinator(_syncCoordinator);
+          await openExperimental(tester);
+
+          await tester.tap(find.byKey(const ValueKey('sync-now')));
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.byKey(const ValueKey('sync-replacement-confirm')),
+          );
+          await tester.pumpAndSettle();
+
+          expect(controller.confirmingReplacement, isTrue);
+          expect(controller.replacementPending, isTrue);
+          expect(
+            find.byKey(const ValueKey('sync-replacement-dialog')),
+            findsNothing,
+            reason: 'not asked again about the attempt in flight',
+          );
+
+          release.complete();
+          await tester.pumpAndSettle();
+          expect(controller.confirmingReplacement, isFalse);
+          expect(controller.replacementPending, isFalse);
+          expect(
+            find.byKey(const ValueKey('sync-replacement-dialog')),
+            findsNothing,
+          );
         },
       );
 

@@ -1,0 +1,14 @@
+{
+  "id": "upgrade-repair-snapshot",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "The app now saves its automatic recovery snapshot before an update runs a one-time repair over your saved dances, not only before it changes how your data is stored, so a repair that goes wrong can be undone too."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add `CompendiumRepositories.oneTimeRepairMarkers` and `owedOneTimeRepairs`, which report the one-time repairs a database still owes so a caller can snapshot it first."
+    ]
+  }
+}

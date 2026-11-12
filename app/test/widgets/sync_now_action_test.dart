@@ -369,8 +369,7 @@ void main() {
 
         expect(
           find.textContaining(
-            "Sync didn't finish. Your store has used all the space the sync "
-            'server allows.',
+            "Sync didn't finish. The sync server can't store more right now.",
           ),
           findsOneWidget,
         );

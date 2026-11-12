@@ -175,7 +175,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String migrationSnapshotAbortedMessage(String cause) {
-    return '保存データをアップグレードする前に自動バックアップを作成できなかったため、Caller’s Compendiumを起動できませんでした。$cause空き容量を確保する（またはバックアップフォルダを修復する）か、アプリを再度開いてください。あるいは、再度開いてバックアップなしで続行することもできます。';
+    return '保存データを変更する前に自動バックアップを作成できなかったため、Caller’s Compendiumを起動できませんでした。$cause空き容量を確保する（またはバックアップフォルダを修復する）か、アプリを再度開いてください。あるいは、再度開いてバックアップなしで続行することもできます。';
   }
 
   @override
@@ -186,11 +186,23 @@ class AppLocalizationsJa extends AppLocalizations {
       '自動バックアップフォルダに書き込めませんでした。';
 
   @override
+  String get migrationSnapshotCauseDatabaseInUse =>
+      '別のアプリがライブラリを開いているため、今バックアップを作成すると最新の変更が含まれません。ライブラリを開いている他のアプリをすべて閉じてから、もう一度お試しください。';
+
+  @override
+  String get migrationSnapshotInUseConsentBody =>
+      '保存データを変更する前に、Caller’s Compendiumは自動バックアップを作成し、問題が起きても変更を元に戻せるようにします。現在、別のアプリがライブラリを開いているため、今バックアップを作成すると最新の変更が含まれません。\n\nバックアップなしで続行して変更が中断されると、一部のダンスやプログラムが失われる可能性があります。Caller’s Compendiumを終了し、ライブラリを開いている他のアプリをすべて閉じてから、Caller’s Compendiumを再度開いてもう一度お試しください。';
+
+  @override
+  String get migrationSnapshotInUseAbortedMessage =>
+      '別のアプリがライブラリを開いているため、保存データを変更する前の自動バックアップに最新の変更が含まれなくなります。そのため、Caller’s Compendiumを起動できませんでした。ライブラリを開いている他のアプリをすべて閉じてから、Caller’s Compendiumを再度開いてください。あるいは、再度開いてバックアップなしで続行することもできます。';
+
+  @override
   String get migrationSnapshotConsentTitle => 'データをバックアップできませんでした';
 
   @override
   String migrationSnapshotConsentBody(String cause) {
-    return '保存データを新しい形式にアップグレードする前に、Caller’s Compendiumは自動バックアップを作成し、アップグレードに失敗しても元に戻せるようにします。今回はそのバックアップを作成できませんでした。$cause\n\nバックアップなしで続行してアップグレードが中断されると、一部のダンスやプログラムが失われる可能性があります。アプリを終了し、空き容量を確保（またはバックアップフォルダを修復）してから、アプリを再度開いてもう一度お試しください。';
+    return '保存データを変更する前に、Caller’s Compendiumは自動バックアップを作成し、問題が起きても変更を元に戻せるようにします。今回はそのバックアップを作成できませんでした。$cause\n\nバックアップなしで続行して変更が中断されると、一部のダンスやプログラムが失われる可能性があります。アプリを終了し、空き容量を確保（またはバックアップフォルダを修復）してから、アプリを再度開いてもう一度お試しください。';
   }
 
   @override
@@ -615,7 +627,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsSyncIdCopied =>
-      '同期フレーズをコピーしました。ストアを開けるものなので、自分のデバイスにのみ貼り付けてください。';
+      '同期フレーズをコピーしました。これを持つ人は誰でも共有ライブラリを開けるため、自分のデバイスにのみ貼り付けてください。';
 
   @override
   String get settingsSyncIdCaution =>
@@ -692,11 +704,11 @@ class AppLocalizationsJa extends AppLocalizations {
       '短時間にリクエストが多すぎました。数分待ってから、もう一度お試しください。';
 
   @override
-  String get settingsSyncFailureStoreFull => 'ストアが同期サーバーで使える容量をすべて使い切りました。';
+  String get settingsSyncFailureStoreFull => '同期サーバーは現在、これ以上保存できません。';
 
   @override
   String get settingsSyncFailureStoreFullAdvice =>
-      '空きができるまで、このデバイスの変更は保存できません。「未使用の取り込んだダンスをスキップ」をオンにすると、このデバイスがアップロードする量を減らせます。独自のサーバーを運用している場合は、ストレージの上限を引き上げてください。';
+      '空きができるまで、このデバイスの変更は保存できません。「未使用の取り込んだダンスをスキップ」をオンにすると、このデバイスがアップロードする量を減らせる場合があります。独自のサーバーを運用している場合は、ストレージの上限を引き上げるか、ディスクの空き容量を確保してください。';
 
   @override
   String get settingsSyncFailureTooLarge =>
@@ -728,7 +740,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String settingsSyncNoticeNewerVersionItems(String items) {
-    return '別のデバイスで新しいバージョンのアプリが使われています。$itemsを受け取るには、このデバイスのアプリを更新してください。';
+    return '別のデバイスで新しいバージョンのアプリが使われています。$itemsを受け取るには、このデバイスのアプリを更新してください。更新する前にここでそれらを編集すると、別のデバイスでの変更が失われることがあります。';
   }
 
   @override
@@ -843,7 +855,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsSyncNoticeNewerVersionUncounted =>
-      '別のデバイスで新しいバージョンのアプリが使われています。その変更を受け取るには、このデバイスのアプリを更新してください。';
+      '別のデバイスで新しいバージョンのアプリが使われています。その変更を受け取るには、このデバイスのアプリを更新してください。更新する前に、そのデバイスが変更したものをここで編集すると、その変更が失われることがあります。';
 
   @override
   String settingsSyncNoticeKeptNewerItems(String items) {
@@ -1450,7 +1462,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsSyncWipeConfirmBody =>
-      'ストアの内容がサーバーからすべて削除され、すべてのデバイスに一度に影響します。この操作は取り消せません。ライブラリはこのデバイスにも他のデバイスにもそのまま残りますが、同期を通じて他のデバイスにしか届いていなかったものは、ここには届きません。このデバイスは接続を解除し、同期フレーズを削除します。他のデバイスは次回の同期でストアがなくなっていることに気づき、新しく作成するかどうかを尋ねます。同期フレーズが他人に見られた場合はこれを使ってください。相手が読める内容をただちに取り除ける唯一の方法です。';
+      'ストアの内容がサーバーからすべて削除され、すべてのデバイスに一度に影響します。この操作は取り消せません。ライブラリはこのデバイスにも他のデバイスにもそのまま残りますが、同期を通じて他のデバイスにしか届いていなかったものは、ここには届きません。このデバイスは接続を解除し、同期フレーズを削除します。他のデバイスは次回の同期でストアがなくなっていることに気づき、新しいフレーズの設定を提案します。このストアのアドレスを使うのをやめたいときに使ってください。ストアの内容をただちに取り除ける唯一の方法です。同期を続けるには、各デバイスで新しいフレーズを設定してください。古いフレーズで再接続すると、同じアドレスに新しいストアが再び作られます。';
 
   @override
   String get settingsSyncWipeConfirmAction => 'ストアを削除';
@@ -1637,14 +1649,17 @@ class AppLocalizationsJa extends AppLocalizations {
       'ライブラリが接続されました。最初の同期はまだ実行されていません。このデバイスが次に同期するときに実行されます。';
 
   @override
-  String get settingsSyncReplacementTitle => 'このストアに再接続しますか?';
+  String get settingsSyncReplacementTitle => 'このストアはもう存在しません';
 
   @override
   String get settingsSyncReplacementBody =>
-      'このデバイスが同期していたストアはもう存在しません。非アクティブにより期限切れになったか、削除された可能性があります。再接続すると、同じフレーズで新しいストアが作成され、最初から再同期します。';
+      'このデバイスが同期していたストアはもう存在しません。非アクティブにより期限切れになったか、削除された可能性があります。このストアのアドレスを使うのをやめるには、新しいフレーズを設定してください。このデバイスは接続を解除し、その後、新しいストアを作成するか、別のデバイスで設定したストアに接続します。これをすべてのデバイスで行ってください。「再接続」を選ぶと、同じアドレスに同じフレーズで新しいストアが作成され、ライブラリ全体がそこへ送られます。別のデバイスがすでにそうしている場合は、このデバイスはそのストアに参加します。';
 
   @override
   String get settingsSyncReplacementConfirm => '再接続';
+
+  @override
+  String get settingsSyncReplacementNewPhrase => '新しいフレーズで設定';
 
   @override
   String get settingsSyncReplacementCancel => '今はしない';
@@ -3511,6 +3526,10 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get backupRestoreDialogBody =>
       '復元すると、アプリの現在の内容（コレクション、プログラム、ダイアレクト、テーマ、設定）がすべてバックアップの内容に置き換えられます。この操作は元に戻せません。';
+
+  @override
+  String get backupRestoreDialogSyncNote =>
+      'このデバイスはデバイス同期に接続されています。デバイス同期で共有される内容のうち、このバックアップの作成後に同期先のデバイスで変更されたもの（このデバイスで変更して同期済みのものを含む）は、次回の同期でそのデバイスから戻ってきます。それ以外はバックアップの内容になります。';
 
   @override
   String get backupChooseFileAction => 'ファイルを選択…';

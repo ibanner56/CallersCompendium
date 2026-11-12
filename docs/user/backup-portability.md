@@ -155,7 +155,30 @@ backup is refused the same way, with its size and the limit.
 > restore it without them. Versions before 0.5.2 don't check, and may restore it
 > without those details. Install the current version before you restore.
 
-If you use [Device Sync](./settings.md#device-sync) with another device that
+### Restoring while Device Sync is connected
+
+If this device is connected to [Device Sync](./settings.md#device-sync), the
+restore dialog says so. A restore puts this device back the way it was when the
+backup was made, but it doesn't turn back the clock on your other devices:
+
+- Anything Device Sync carries that was changed on a device you sync with
+  **since the backup was made** comes back from that device at the next sync.
+  That covers edits, new items and deletions — a tag renamed on your phone
+  last week, a glossary term added on your tablet, a venue deleted on your
+  laptop, a shared setting such as decimal turns changed anywhere. It includes
+  changes you made on this device and had already synced, because your other
+  devices hold them too.
+- Everything else takes the backup's version: what hasn't changed since the
+  backup (on this device and, after the next sync, on your other devices),
+  changes made on this device that never reached your other devices, and
+  settings kept per device, such as the app language, which Device Sync
+  never carries.
+
+So with sync on, a restore can't undo a change your other devices already
+have. To undo one everywhere, make the change again after the restore — for a
+dance or program, that includes restoring it from **Recently deleted**.
+
+If you use Device Sync with another device that
 runs a newer version of the app, a restore keeps the details that version added
 to your records, so the next sync doesn't remove them from your other devices.
 
@@ -182,7 +205,10 @@ to your records, so the next sync doesn't remove them from your other devices.
 
 > **Restoring replaces everything.** A restore swaps out *all* of your
 > current dances, programs, settings, and customizations for the
-> contents of the backup file, and it **cannot be undone**. The app
+> contents of the backup file on this device, and it **cannot be undone**
+> (with Device Sync on, see
+> [Restoring while Device Sync is connected](#restoring-while-device-sync-is-connected)
+> for what comes back from your other devices). The app
 > shows a confirmation dialog to make sure this is what you want. If
 > there's anything on your device you haven't backed up yet, export a
 > fresh backup first.
@@ -223,8 +249,9 @@ the next time you open the app.
 
 ## Backups happen automatically too
 
-Before an app update changes how your data is stored, the app saves its
-own recovery snapshot on your device. There's nothing to press and
+Before an app update changes how your data is stored, or runs a one-time
+repair over your saved dances, the app saves its own recovery snapshot on
+your device. There's nothing to press and
 nothing to manage — it's an extra safety net across updates.
 
 This snapshot is a bonus, not a replacement. Your own exported backups are
