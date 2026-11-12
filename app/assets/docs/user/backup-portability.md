@@ -205,7 +205,10 @@ to your records, so the next sync doesn't remove them from your other devices.
 
 > **Restoring replaces everything.** A restore swaps out *all* of your
 > current dances, programs, settings, and customizations for the
-> contents of the backup file, and it **cannot be undone**. The app
+> contents of the backup file on this device, and it **cannot be undone**
+> (with Device Sync on, see
+> [Restoring while Device Sync is connected](#restoring-while-device-sync-is-connected)
+> for what comes back from your other devices). The app
 > shows a confirmation dialog to make sure this is what you want. If
 > there's anything on your device you haven't backed up yet, export a
 > fresh backup first.
