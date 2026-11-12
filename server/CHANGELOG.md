@@ -8,8 +8,6 @@ the app and of `compendium_core`; version headings below refer to
 
 ## [Unreleased]
 
-## [0.4.0] - 2026-11-12
-
 ### Added
 
 - `--break-glass` can read one blob through the audited command
@@ -27,6 +25,11 @@ the app and of `compendium_core`; version headings below refer to
   version. An earlier image ignores the table, so after a rollback its rows are
   not nulled until this version runs again. Options that do not name exactly
   one valid item now exit `2` before the sync ID is read.
+
+## [0.4.0] - 2026-11-12
+
+### Added
+
 - Large-body requests — manifest `PUT`, blob `PUT` (single and batch) and
   `POST /v1/blobs/missing` — are counted while in flight: 4 per client address,
   then `429` with `Retry-After: 5`, and 16 server-wide, then `503` with
