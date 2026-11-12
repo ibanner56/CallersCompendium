@@ -1,5 +1,6 @@
 import 'package:compendium_app/src/export/calling_card_highlight.dart';
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -126,28 +127,36 @@ void main() {
       expect(result, contains(('chain', move)));
     });
 
-    test('a move is found under either of its names', () {
-      final gypsy = Figure(move: 'gypsy', params: const {});
+    test("replacing discouraged terms keeps the line's own move name", () {
+      // A dialect that still calls the shoulder round a gypsy, printed with
+      // discouraged terms replaced. The renderer keeps the dialect's own name
+      // on a structured figure, so the replacement alone would find nothing.
+      final old = Dialect(
+        name: 'Old',
+        moves: const {'shoulder_round': 'gypsy'},
+        discouragedTerms: const ['gypsy'],
+      );
+      final figure = Figure(move: 'shoulder_round', params: const {});
       final names = callingCardMoveNames(
-        gypsy,
+        figure,
         renderer,
-        dialect,
+        old,
         canonicalizeDiscouragedTerms: true,
       );
-      expect(names, containsAll(['gypsy', 'shoulder round']));
+      expect(names, contains('gypsy'));
       final line = renderer.renderSummaryWithCanonicalDiscouragedTerms(
-        gypsy,
-        dialect,
+        figure,
+        old,
       );
       final marked = [
         for (final s in highlightFigureLine(
           line,
           moves: names,
-          dancers: dancers,
+          dancers: renderer.dancerTerms(old),
         ))
           if (s.kind == move) s.text,
       ];
-      expect(marked, isNotEmpty, reason: line);
+      expect(marked, ['gypsy'], reason: line);
     });
 
     test("a line holding the user's own text is not highlighted", () {
@@ -168,7 +177,7 @@ void main() {
           Figure.meanwhile(
             figures: [
               Figure(move: 'swing', params: const {'who': 'partners'}),
-              Figure(
+              testFigure(
                 move: customMove,
                 params: const {'text': 'lead once more'},
               ),
@@ -213,7 +222,10 @@ void main() {
     test('a free-text figure is not highlighted', () {
       expect(
         callingCardHighlights(
-          Figure(move: customMove, params: const {'text': 'lead once more'}),
+          testFigure(
+            move: customMove,
+            params: const {'text': 'lead once more'},
+          ),
         ),
         isFalse,
       );
@@ -224,7 +236,10 @@ void main() {
       final figure = Figure.meanwhile(
         figures: [
           Figure(move: 'swing', params: {'who': 'partners'}),
-          Figure(move: customMove, params: const {'text': 'meanwhile, wave'}),
+          testFigure(
+            move: customMove,
+            params: const {'text': 'meanwhile, wave'},
+          ),
         ],
         beats: 8,
       );
