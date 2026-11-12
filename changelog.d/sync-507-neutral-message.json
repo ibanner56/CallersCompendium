@@ -1,9 +1,0 @@
-{
-  "id": "sync-507-neutral-message",
-  "user_visible": true,
-  "app": {
-    "changed": [
-      "When the sync server can't store more, Device Sync now says \"The sync server can't store more right now\" instead of blaming your store, since the server itself may be short of space."
-    ]
-  }
-}

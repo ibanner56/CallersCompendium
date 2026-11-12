@@ -707,15 +707,19 @@ class _CustomFieldFormState extends State<_CustomFieldForm> {
                   onChanged: (v) => setState(() => _shareable = v),
                 ),
                 const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
+                // An OverflowBar, not a Row: at large text a translated
+                // Cancel/Save pair is wider than the sheet, and stacks instead.
+                OverflowBar(
+                  alignment: MainAxisAlignment.end,
+                  spacing: 8,
+                  overflowSpacing: 8,
+                  overflowAlignment: OverflowBarAlignment.end,
                   children: [
                     TextButton(
                       key: const ValueKey('cf-form-cancel'),
                       onPressed: () => Navigator.of(context).pop(),
                       child: Text(l10n.commonCancel),
                     ),
-                    const SizedBox(width: 8),
                     FilledButton(
                       key: const ValueKey('cf-form-save'),
                       onPressed: _save,
