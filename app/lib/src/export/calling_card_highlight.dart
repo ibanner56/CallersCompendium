@@ -84,8 +84,8 @@ List<CallingCardSpan> highlightFigureLine(
 }) {
   final kinds = List<CallingCardSpanKind?>.filled(line.length, null);
 
-  // Matched on [line] itself, ignoring case, so every index is one of
-  // [line]'s: lower-casing a copy can change its length.
+  // Matched on [line] itself, ignoring case, so no index depends on a
+  // lower-cased copy keeping the line's length.
   void markAll(Iterable<String> names, CallingCardSpanKind kind) {
     final sorted = {
       for (final n in names)

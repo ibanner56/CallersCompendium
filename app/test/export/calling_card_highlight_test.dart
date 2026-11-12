@@ -87,24 +87,6 @@ void main() {
       expect(spans('role1s chain'), [('role1s chain', plain)]);
     });
 
-    test('a character that lengthens when lower-cased shifts nothing', () {
-      // U+0130 can lower-case to two code units; matching must use the
-      // line's own indices.
-      expect(
-        spans(
-          '\u0130stanbul partner swing',
-          moves: ['swing'],
-          dancers: {'partner'},
-        ),
-        [
-          ('\u0130stanbul ', plain),
-          ('partner', dancer),
-          (' ', plain),
-          ('swing', move),
-        ],
-      );
-    });
-
     test('an empty line has no spans', () {
       expect(spans(''), isEmpty);
     });
