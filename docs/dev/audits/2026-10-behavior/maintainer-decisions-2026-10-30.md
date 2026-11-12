@@ -1,0 +1,613 @@
+# Maintainer decisions, round 2 and design notes (2026-10-29 / 2026-10-30)
+
+The maintainer (ibanner56) recorded these answers on the decision page https://claude.ai/artifact/MRVAeqpyG34SKbv48Xomdy between 2026-10-29 22:33 UTC and 2026-10-30 00:47 UTC. Each entry quotes the chosen option's label and text as the page showed it, and the maintainer's own note verbatim where they left one. Entries marked *(differs from the recommendation)* are where the maintainer chose another option than the page recommended.
+
+Further decisions were made in conversation with the orchestrating session on 2026-10-29/30 and relayed to the branch sessions; they are recorded at the end.
+
+
+## Round 2 (follow-ups to the 2026-10-29 decisions)
+
+### R2-check-again (FAIL-11)
+
+**Question:** "Check again" would always fail on two startup screens but can succeed on the other two. Add it to those two?
+
+**Decision:** (b) No Check again anywhere. As you picked. Those two screens need a restart after the fix. *(differs from the recommendation, (a))*
+
+**Unblocks:** B25
+
+### R2-d2-scope (FIND-4, FIND-5, PLAT-3, PLAT-7)
+
+**Question:** The queued user-guide PR (D2) would document four behaviours you just chose to change. Move those four bullets to the branches that change them?
+
+**Decision:** (a) Move them to B11, B21 and B29. Each branch documents its own change. The rest of D2 stands.
+
+**Unblocks:** D2
+
+### R2-d4-quotes (UX3-6)
+
+**Question:** You chose to normalise all quotes (D-4 c). Which style, and do apostrophes count?
+
+**Decision:** (c) Straight everywhere. "like this" and don't. The easiest to type, and translators get it right. *(differs from the recommendation, (a))*
+
+**Unblocks:** U5b
+
+### R2-g1-review
+
+**Question:** The German "beats" sweep needs a fluent reviewer. How should G1 land?
+
+**Decision:** (a) Merge the sweep now; review later. The PR is marked "needs fluent review", and you arrange a reviewer.
+
+**Unblocks:** G1
+
+### R2-intake2-clash (INTAKE-2)
+
+**Question:** When a share file brings a custom field whose key matches yours but whose type or choices differ, what happens?
+
+**Decision:** (a) Import into a new field "<key>_2", with a review note. Follows the .USR import's existing rule. Nothing is lost.
+
+**Unblocks:** B17
+
+### R2-intake7-native (INTAKE-7)
+
+**Question:** Batch re-import will replace only the choreography. Should that also apply to native Compendium archives and share files?
+
+**Decision:** (a) Every source, archives included. Your own ratings, tags and notes are never overwritten by a re-import.
+
+**Unblocks:** B18
+
+### R2-life2-retire (LIFE-2)
+
+**Question:** Your LIFE-2 note asked to clear a deletion record once every device has synced past it. That can't be done safely. Which do you want?
+
+**Decision:** (a) Hide it and blank its content (no retirement). Permanently delete hides the item and overwrites its content with a fresh stamp. Only a few bytes remain, with no names or text. Meets the privacy goal.
+
+**Unblocks:** B7, then B8 and B9
+
+### R2-out2-export (OUT-2)
+
+**Question:** Your OUT-2 note says pay, rating and dialect "should still travel in sync and export". By "export", do you mean Backup?
+
+**Decision:** (a) Yes: sync and Backup keep them; share files drop them. B19 removes pay, rating and Perform dialect from share files only.
+
+**Unblocks:** B19
+
+### R2-pres12-mixer (PRES-12)
+
+**Question:** In set lists, does your own formation colour override the mixer accent?
+
+**Decision:** (a) Mixer accent always wins. Your formation colour applies to every other dance.
+
+**Unblocks:** B22
+
+### R2-tag-tap (FIND-14)
+
+**Question:** Tapping a tag chip adds it to the filters. The Tags filter matches "any" tag, so adding one can show more dances, not fewer. What should a tap do?
+
+**Decision:** (b) Require all selected tags (AND). Changes the Tags facet's rule everywhere. *(differs from the recommendation, (c))*
+
+**Maintainer's note:** "None of the above, really - every beta user sampled said they want to be able to toggle between and/or, with and being the default when you add a second tag. Any tags added beyond the second should honor the currently selected and/or mode."
+
+**Unblocks:** B15
+
+### R2-trash-docs (LIFE-9, GIG-17)
+
+**Question:** "Trash doesn't protect" contradicts three design documents. Amend them, or switch to "trash protects"?
+
+**Decision:** (a) Keep (b) and amend the three docs. B8 makes every guard ignore trashed records and adds errata. B9 makes restore cope with missing venues and fields.
+
+**Unblocks:** B8, B9
+
+
+## N1: history filters (docs/design/history-filters.md)
+
+### N1-1 (FIND-1)
+
+**Question:** How should the venue filter decide that two programs were at the same venue?
+
+**Decision:** (a) Venue key, like the repeated-venues list. The filter always agrees with the dance page's repeated venues, but a typed "Grange" and a saved "Grange" stay separate until old programs are linked.
+
+**Unblocks:** H1, H2
+
+### N1-2 (FIND-1)
+
+**Question:** How should a caller choose the time window for "not called recently"?
+
+**Decision:** (a) Presets plus a chosen date. One tap for 4 weeks, 3 months, 6 months or 1 year, plus "Since a date"; it costs two controls in one section.
+
+**Maintainer's note:** "Also an option for dances which haven't been called. I think you can just say 1mo, 3mo, 6mo, or since a date on top of that, 1 year is a long while."
+
+**Unblocks:** H2 (H1 adds the scope underneath)
+
+### N1-3 (FIND-1)
+
+**Question:** If a program has no event date and was never marked performed, should its dances count as called recently?
+
+**Decision:** (a) Leave them out of recency windows. They still count as called and in "called ×N" but never as recent; the Last-called sort can then place a dance differently from its chip.
+
+**Unblocks:** H1 (and B1's shared date helper)
+
+### N1-4 (FIND-1)
+
+**Question:** In the dance picker, should "within 3 months" count back from the program's date or from today?
+
+**Decision:** (b) Always from today. Simpler, but wrong for a program planned weeks ahead. *(differs from the recommendation, (a))*
+
+**Unblocks:** H3
+
+### N1-5 (FIND-1)
+
+**Question:** When you add dances to a program at a venue, should the picker hide dances already called there?
+
+**Decision:** (a) Flag them, with an off-by-default chip. Rows called here show a "here" marker, and a Not called here chip hides them in one tap per program.
+
+**Unblocks:** H3
+
+### N1-6 (FIND-1)
+
+**Question:** In the picker, should dances you have just added to this program stop counting as called?
+
+**Decision:** (c) Leave out the whole program. Also hides a dance performed an hour ago, and Perform has no in-program marker to make up for it. *(differs from the recommendation, (a))*
+
+**Unblocks:** H1, H3
+
+### N1-7 (FIND-1)
+
+**Question:** Should dance rows show when a dance was last called, and whether it was called at this venue?
+
+**Decision:** (a) Short "last called" chip plus "here". Rows show "3 mo ago", and picker rows add a "here" marker; one more chip on a busy row, which card fields can hide.
+
+**Unblocks:** H3 (L ~500 lines, or M ~300 if c)
+
+### N1-8 (FIND-1)
+
+**Question:** Should people who have customised their card fields see the new Last called chip without turning it on?
+
+**Decision:** (a) No, they turn it on themselves. No new setting or migration; the changelog says where to turn it on, and an older synced device can drop it again.
+
+**Unblocks:** H3
+
+### N1-9 (FIND-1)
+
+**Question:** Should a program dated in the future count as a call in "within 3 months"?
+
+**Decision:** (a) Yes, count future programs. "Not called within 3 months" hides a dance already planned for next month, matching "called ×N".
+
+**Unblocks:** H1
+
+
+## N2: tags, authors and sources (docs/design/tags-and-people.md)
+
+### N2-1 (FIND-3, LIFE-5)
+
+**Question:** Should Device Sync's rules change so that a merge you make by hand reaches your other devices safely?
+
+**Decision:** (a) Yes, amend sync-spec §6.6. Merges record an alias, so a device that tagged dances offline lands on the merged entry; T1 must still choose the fix for one open risk.
+
+**Unblocks:** T1
+
+### N2-2 (LIFE-5)
+
+**Question:** When you merge two authors, what happens to the details on the one that goes away?
+
+**Decision:** (b) Fill the blanks, list what's dropped. Empty fields take the other author's values, and the dialog lists conflicting values it will drop; a longer dialog on conflict.
+
+**Unblocks:** T3
+
+### N2-3 (FIND-3, LIFE-5)
+
+**Question:** Where should the new Tags, Authors and Sources managers live?
+
+**Decision:** (a) Settings, General, Library. Three new Library entries, and Tag colours in Appearance opens the Tags manager; nothing added to Collection.
+
+**Unblocks:** T2 (T3 builds on T2's screen)
+
+### N2-4 (LIFE-5)
+
+**Question:** Can you delete an author or source that dances still credit?
+
+**Decision:** (a) No, offer Merge into instead. Delete appears only for unused entries; an entry in use offers a merge, so no dance loses its credit.
+
+**Unblocks:** T3
+
+### N2-5 (FIND-3)
+
+**Question:** How long can you undo deleting a tag?
+
+**Decision:** (a) Only from the Undo snackbar. Undo lasts as long as the snackbar, and nothing new is stored.
+
+**Unblocks:** T2
+
+### N2-6 (LIFE-5)
+
+**Question:** When old dances are purged from the trash, should tags, authors and sources with details you entered be kept?
+
+**Decision:** (b) Keep entries that hold details. Bare entries go; ones with a colour, website, notes or email stay as Not used, keeping third-party contact data.
+
+**Unblocks:** T4
+
+### N2-7 (FIND-3)
+
+**Question:** When you delete a tag, should it come off every dance for good?
+
+**Decision:** (a) Remove it from every dance. Each dance loses the tag and is updated, so all devices agree; bringing the tag back does not re-tag old dances.
+
+**Unblocks:** T1
+
+
+## N3: add-to-program sheet (docs/design/add-to-program-sheet.md)
+
+### N3-1 (FIND-17)
+
+**Question:** In the Add to program sheet, how should performed programs appear?
+
+**Decision:** (c) Group them, collapsed below. Open programs first, then a collapsed Performed (N) row; everything stays two taps away, at the cost of one row.
+
+**Unblocks:** N3-2 (feat/add-to-program-order-and-search)
+
+### N3-2 (FIND-17)
+
+**Question:** Among programs still being planned, which should come first in the sheet?
+
+**Decision:** (a) Soonest event first, then by edit. Programs dated today or later come first, soonest at the top; the rest follow by last edit, as today.
+
+**Unblocks:** N3-2 (feat/add-to-program-order-and-search)
+
+### N3-3 (FIND-17)
+
+**Question:** Should the Add to program sheet have a search field, and should it match venue names?
+
+**Decision:** (c) Above about 8, titles and venues. Small lists stay compact, and "the Tuesday night at X" finds its program; one extra read on open.
+
+**Unblocks:** N3-2 (feat/add-to-program-order-and-search)
+
+### N3-4 (FIND-17)
+
+**Question:** If a program already holds the dance, what happens when you tap it?
+
+**Decision:** (b) Ask first. Safer for a mis-tap, but breaks the rule to confirm only where Undo is impossible and slows a deliberate repeat. *(differs from the recommendation, (a))*
+
+**Unblocks:** N3-1 (feat/add-to-program-contains-and-new)
+
+### N3-5 (FIND-17)
+
+**Question:** Where should New program with this dance sit in the sheet?
+
+**Decision:** (a) Pinned first row. Always visible, even with the keyboard up and a long list; it costs one row.
+
+**Unblocks:** N3-1 (feat/add-to-program-contains-and-new)
+
+### N3-6 (FIND-17)
+
+**Question:** Should a dance that is only an alternate in a program show the In this program marker?
+
+**Decision:** (a) Yes, alternates count. The marker answers "will I add this twice?" and matches the picker's count.
+
+**Unblocks:** N3-1 (feat/add-to-program-contains-and-new)
+
+
+## N4: bulk selection (docs/design/bulk-selection.md)
+
+### N4-1 (FIND-8)
+
+**Question:** When a new search hides dances you selected, should they stay selected?
+
+**Decision:** (b) Keep them and show the count. The count line says 14 selected (9 not shown), with Deselect those not shown; a longer result line.
+
+**Unblocks:** S1 (feat/collection-select-all)
+
+### N4-2 (FIND-8)
+
+**Question:** Should Select all pick only the dances in the current results, or the whole collection?
+
+**Decision:** (a) Current results only. Selects exactly the list on screen; to select everything, clear the filters first.
+
+**Unblocks:** S1 (feat/collection-select-all)
+
+### N4-3 (FIND-8)
+
+**Question:** Should Group by category stay on while you select dances?
+
+**Decision:** (a) Keep groups, add section checkboxes. Sections stay put, and each header gets a checkbox that selects or clears its rows.
+
+**Unblocks:** S2 (feat/selection-keeps-groups)
+
+### N4-4 (FIND-8)
+
+**Question:** Should deleting many dances at once ask you to confirm?
+
+**Decision:** (a) Follow Confirm before delete. One rule for every delete; with the setting off a 200-dance delete is one tap, recoverable from Recently deleted.
+
+**Unblocks:** S3 (feat/batch-delete)
+
+### N4-5 (FIND-8)
+
+**Question:** Which new batch actions should be built first?
+
+**Decision:** (b) All six together. Everything at once, but Add to program and Add source would pre-empt open decisions in those two notes. *(differs from the recommendation, (a))*
+
+**Maintainer's note:** "but not mixer or mixed level"
+
+**Unblocks:** S3, S4 now; S5 after N3 is decided; S6 after N2 is decided
+
+### N4-6 (FIND-8)
+
+**Question:** How should the selection bar fit up to fourteen actions on a phone?
+
+**Decision:** (a) Grouped ⋮ menu, Select all icon. Keeps three icons, plus Select all where it fits; the rest go in a grouped menu with Delete last, in the error colour.
+
+**Unblocks:** S4 (feat/batch-details); S1 for the Select all icon
+
+
+## N5: selectable text (docs/design/selectable-text.md)
+
+### N5-1 (PLAT-17)
+
+**Question:** Should you be able to select dance text on phones too, or only on desktop?
+
+**Decision:** (a) Desktop only. Phones stay exactly as now and keep only Copy dance; turning it on everywhere later is a one-line change.
+
+**Unblocks:** S1 (feat/selectable-detail-text)
+
+### N5-2 (PLAT-17)
+
+**Question:** On the program summary, should the dance titles in the set list be selectable?
+
+**Decision:** (a) No, header text only. Title, details and notes select; set-list rows keep their taps, and the export menu copies the titles.
+
+**Unblocks:** S2 (feat/selectable-summary-text)
+
+### N5-3 (PLAT-17)
+
+**Question:** When you copy selected text, should you get exactly what is on screen?
+
+**Decision:** (a) What you see. Copies the wording as shown, including verbose text and capitals; it differs from Copy dance on those two settings.
+
+**Unblocks:** S1 (feat/selectable-detail-text)
+
+### N5-4 (PLAT-17)
+
+**Question:** When you right-click, which menu should appear?
+
+**Decision:** (a) Copy menu in text, ⋮ on rows. Right-click on dance or summary text shows Copy and Select all; on a list row it opens the ⋮ menu.
+
+**Unblocks:** S3 (test/selectable-right-click-rule), B29
+
+### N5-5 (PLAT-17)
+
+**Question:** Should Perform let you select text?
+
+**Decision:** (a) No, leave Perform out. Nothing on stage changes from a stray drag; callers copy from the dance page or the summary.
+
+**Unblocks:** S1 (feat/selectable-detail-text)
+
+
+## Decisions made in conversation (relayed by the orchestrating session)
+
+These were asked through a question dialog and answered by the maintainer directly. The option text is quoted as shown.
+
+### B30 / PRES-1: withdrawn screen-bound keys from older peers (2026-10-29 ~23:22 UTC)
+**Decision:** "(a) Drop withdrawn keys". Inbound values for the four withdrawn keys are dropped: not kept, not passed on, no "kept for a newer version" notice. Needs a dated amendment to sync-spec §6.7.
+
+**Re-decided 2026-10-30 ~00:12 UTC** after review found that an old-build device then shows a false "isn't taking N changes … may need an app update" notice about an upgraded peer: "(c) Drop + document". Keep the drop; document the old-device notice in the §6.7 amendment and the user guide. Rejected: (b) keep and republish whole, because every upgraded device would keep sending values classified deviceLocal.
+
+### B27 / PLAT-5, PLAT-6: store builds and end-of-support notices (2026-10-30 ~00:01 UTC)
+**Decision:** "Notice only, in #2045". Store builds still read the release info, but only for end-of-support; they never show an update offer, and the banner's "Get update" opens the store listing.
+
+**Store link (2026-10-30 ~00:05 UTC):** "TestFlight + Play URL". iOS opens the TestFlight public link and Android the Play details URL, each one constant.
+
+### B31 / PLAT-12: English-language phones with a non-English region (2026-10-30 ~00:31 UTC)
+**Decision:** "Merge, follow-up PR". #2044 merges with the limit documented; a follow-up adds a region fallback (for en_DK, the numeric order of a locale for that region).
+
+### Design plan / N1–N5: the eight readings in `design-work-plan.md` (2026-10-30, relayed ~01:19 UTC)
+**Question:** the eight ambiguities `design-work-plan.md` lists ("Ambiguities the answers leave open"), each with the planner's recommended reading, as the planning session gave them.
+
+**Decision:** "Accept all 8 (Recommended)". The option read: "Builders follow these readings, labelled as the planner's reading that you accepted."
+
+The design notes label each one "planner's reading, accepted by the maintainer 2026-10-30". The readings themselves are in `design-work-plan.md`; this entry records only that the maintainer accepted them.
+
+### B7 / LIFE-2: retention auto-purge and items that have synced (2026-10-30 ~02:10 UTC)
+**Question:** B7 (#2053) makes Permanently delete blank a published (synced) dance or program. The Recently deleted retention auto-purge still skips published items, so they stay in the trash for ever. Should retention blank them too, given that one device's retention would then clear the item from every device's trash?
+
+**Decision:** "Blank on retention too". The option read: "Follow-up branch: retention treats an expired synced item like Permanently delete. The settings text says it applies to all your devices." The "(Recommended)" tag and its reason were the orchestrating session's. Rejected: "Keep skipping synced items" and "Shortest setting wins" (which needs the setting synced).
+
+Built in the B7 follow-up branch `claude/fix-retention-blanks-synced`.
+
+### Wave 3 (2026-10-30 ~02:10 UTC)
+**Question:** when #2040 (F11) merges, start wave 3 (B4 → B5, B22, B24, B28 → B29)?
+
+**Decision:** "Hold wave 3". Do not start wave 3 until the maintainer says so.
+
+### Windows CompanyName: release blocker from #1986 (2026-10-30 ~02:20 UTC)
+**Question:** #1986 (F17, after v0.8.1-beta) changed `app/windows/runner/Runner.rc` CompanyName from "org.callerscompendium" to "Caller's Compendium contributors". On Windows, path_provider builds the cache and support folders from CompanyName\ProductName, so the next release would open an empty library for existing Windows users. How should it be fixed?
+
+**Decision:** "Revert CompanyName". The option read: "One-line fix: CompanyName goes back to \"org.callerscompendium\"; the new LegalCopyright text stays. Every folder stays where v0.8.1 put it. Add a test pinning CompanyName with a comment on why, and fix the storage.md and FAQ paths. Opened under your standing approval as a fix PR." Rejected: keeping the new name and migrating the old folders.
+
+Built in #2057.
+
+### B18 follow-up / INTAKE-7: published-collection corrections on re-import (2026-10-30 ~06:50 UTC)
+**Question:** B18 (#2064) made re-import replace only a dance's choreography. A published collection's corrected title or credit therefore no longer reaches an imported dance, while its provenance records the new version. Is that intended?
+
+**Decision:** "Ask per import". The option read: "The review screen offers \"Also update title and credit\" as a checkbox on re-import rows." Rejected: "Yes, by design" (document only) and the orchestrating session's recommendation, "Also take title/credit" when not edited since the last import.
+
+### B18 follow-up: four import leftovers (2026-10-30 ~06:50 UTC)
+**Question:** fold B18's four listed leftovers (review screen still says "overwritten"; share metadata revives deleted tags, fields and sources; .USR Import-and-edit adds related links; spurious .USR warnings for re-imported pairs) into one follow-up branch?
+
+**Decision:** "One follow-up branch". The option read: "One branch fixes all four, plus the title/credit answer above, under the same rules and approvals. It needs all six ARBs for the wording."
+
+### B19 follow-up / OUT-2: "Same dance – replace" and an absent rating (2026-10-30 ~14:10 UTC)
+**Question:** share files no longer carry a dance's rating (OUT-2, #2065). So "Same dance – replace" from a share file clears the receiver's existing rating, because the file has none; `callersbox_online_test` pins "replace overwrites rating". Should replace keep the existing rating when the incoming file has none?
+
+**Decision:** "Keep my rating". The option read: "Replace leaves your existing rating alone whenever the incoming file carries none. It's a small follow-up PR covering the import pipeline, that test and imports.md." The "(Recommended)" tag and its reason were the orchestrating session's. Rejected: "Clear it, as now".
+
+### D-11 / UX6-2: Save, New and the record's name on sibling screens (2026-10-30 ~14:20 UTC)
+**Question:** where should Save, New and the record's name sit on sibling screens? Answered in three parts after viewing the renders at https://claude.ai/artifact/GJJMBFTrPuCp46DWMPtsjo.
+
+**Decision:**
+- **Save:** "(a) Keep today's split". The two long editors (dance, program) keep a floating Save; the other five keep Save in the top bar. Write the rule into `ux.md` and fix the two code comments that cite `ux.md` for the floating Save.
+- **New:** "Keep today's mix". Floating New on top-level lists; "+" in the top bar where a floating button would cover entries (Glossary).
+- **Record name:** "(B) Actions to top bar". The top bar keeps "Program" and takes the four action icons; the full name keeps its own line in the body. Dance detail is unchanged.
+
+All three match the recommendations. Builds as the UX6-2 branch, after D2.
+
+### B30 follow-up / PRES-1: stale conflict rows for withdrawn keys (2026-10-30 ~14:25 UTC)
+**Question:** a sync conflict on one of B30's four withdrawn keys queued before the upgrade can fail to resolve until the first full pass. Fix by having `refreshConflictReviews` drop such rows?
+
+**Decision:** "Yes, small fix PR". The option read: "A Sonnet branch drops stale conflict rows for the four withdrawn keys, with a guard test. No behaviour changes for anything else."
+
+### B6 follow-up: prove the rename stamp test can fail (2026-10-30 ~14:25 UTC)
+**Question:** #2042's test that a renamed program's stamp moves strictly forward was never shown to fail. Prove it now?
+
+**Decision:** "Yes, prove it". The option read: "A small session mutates renameDialect to reuse the old stamp and checks the test goes red. If it doesn't, the session strengthens the test in a small PR. A test-only change."
+
+### Wave 3 release condition (2026-10-30 ~14:30 UTC)
+**Decision (maintainer's words):** "Release wave 3 when everything remaining from wave 2 is all-green and ready to merge."
+
+At that time the only wave-2 branch not yet merged or open was B3 (`fix/link-typed-venues`), so wave 3 (B4 → B5, B22, B24, B28 → B29) starts once B3's PR is green and ready to merge.
+
+### Wave 3 release condition, revised (2026-10-30 ~14:35 UTC)
+**Decision (maintainer's words):** "Move everything else that was in the queue up before wave 3 and gate wave 3 on everything remaining in the *queue* being green and good to merge."
+
+This replaces the condition above. The orchestrating session's reading of "the queue" at that time:
+- building: B9, N2-T1, N4-S2, N4-S4;
+- queued: B3, the B19 rating follow-up, the B6 stamp-test proof, the B30 conflict-row fix, N3-A2, N4-S3, N2-T2, N2-T3.
+
+Wave 3 starts when each of these is green and ready to merge, or merged. N4-S5 and N4-S6 were not in the queue then and are not part of the gate.
+
+### PR approval for the remaining queue (2026-10-30 ~15:35 UTC)
+**Question:** N3-A2 had pushed and its session asked for direct approval before opening its PR. Approve opening it, and should that approval also cover the remaining queue (B3, the B19 rating follow-up, N4-S3, N2-T2, N2-T3) once each has pushed, passed preflight and been reviewed?
+
+**Decision (maintainer's choice):** "Yes, standing (Recommended)". Its description: "Open N3-A2's PR now, and let every remaining queued branch open its PR once it has pushed, passed preflight and been reviewed, without asking you each time."
+
+This covers those six branches only. It does not cover wave 3, wave 4 or D2.
+
+### PR approval for wave 3 (2026-10-30 ~21:05 UTC)
+**Question:** Wave 3 is building (B4, B22, B24, B28). Should these, and B5 once B4 merges, open their PRs on their own once each has pushed, passed the full preflight and been reviewed?
+
+**Decision (maintainer's choice):** "Yes, standing (Recommended)". Its description: "Each wave-3 branch (B4, B5, B22, B24, B28) opens its PR once it has pushed, passed preflight and been reviewed, without asking you each time. Hot-file ordering (B4 first) still applies. B29 isn't included, because it waits on D2."
+
+Wave 3 itself started at about 20:33 UTC, when the revised gate above was met: N4-S3 (#2083) and N2-T3 (#2084) were green and ready to merge, and every other gate branch had merged.
+
+### D2, its scope, and B29 (2026-10-31 ~06:50 UTC)
+**Decision (maintainer's words):** "D2 is approved".
+
+**Scope (maintainer's choice):** "Trimmed scope (Recommended)". Its description: "D2 does PRES-5, PRES-6, GIG-20 and INTAKE-11. It checks the moved bullets are already covered by B11 and B21 on main, and lists anything still wrong as a follow-up." This confirms "Decisions that conflict" item 4 in `decided-work-plan.md`: FIND-4 and FIND-5 go to B11, PLAT-3 to B21, and PLAT-7 to B29.
+
+**PR approval (maintainer's choice):** "Both, standing (Recommended)". Its description: "D2 opens its PR when ready. After D2 merges, B29 starts on Opus and opens its PR when ready, without asking you each time."
+
+**Wave 4 (maintainer's choice):** "Not yet". Its description: "Hold wave 4; ask me again after D2 merges."
+
+### Wave 4 (2026-10-31 ~08:15 UTC)
+**Question:** D2 (#2092) has merged. Should wave 4 start now? It runs U4 → U5a → U5b-1 → U5b-2 in that order, and UX6-2 follows.
+
+**Decision (maintainer's words):** "Start, PR approval standing, but work one PR at a time to be cautious of my weekly session limit. Release the next session only once CI and Claude review are green for a branch."
+
+The orchestrating session reads this as follows:
+- Only one wave-4 session builds at a time.
+- The next session starts only when the previous branch's PR has green CI and an approving Claude review.
+- B29, already building, counts toward this: no wave-4 session after U4 starts while B29 is still building.
+- Still open: U5b-1 is blocked on conflict 10 in `decided-work-plan.md` (curly or straight quotes, and whether apostrophes count). Ask the maintainer before starting U5b-1.
+
+### Follow-ups (2026-10-31 ~16:20 UTC)
+**Instruction (maintainer's words):** "Tackle your follow ups now". A triage was written to `followups-triage.md` (49e3d00).
+
+**Bundles (maintainer's choice):** "One at a time, PRs standing (Recommended)". Its description: "Start bundle 1 now. Each later bundle starts once the previous one's PR has green CI and an approving Claude review, the same rule as wave 4. Each opens its PR without asking you. Bundle 1 adds ARB keys, so it opens its PR only after U5a merges."
+
+**Q-6, a slot whose dance was blanked elsewhere (maintainer's choice):** "\"Deleted dance\" (Recommended)". Show a localized "Deleted dance" placeholder in the slot.
+
+**Q-8, the fix sessions' own calls (maintainer's choice):** "Ratify all (Recommended)". These are now maintainer decisions:
+- B22: a user-chosen colour is honoured under high contrast, and with colour-coding off there is no accent.
+- B4: Mark all sets the status even when nothing is left to mark, and un-marking never changes the status.
+- B29: Esc goes back even from a text field, and app commands leave a page through its own back guard.
+
+**Q-9, the B5 Undo snackbar (maintainer's choice):** "No (Recommended)". The snackbar stays short.
+
+Q-1 to Q-5 and Q-7 in `followups-triage.md` are still open.
+
+### Conflict 10, quote style for U5b (2026-10-31 ~16:55 UTC)
+**Question:** U5b-1 builds the quote normaliser and its CI guard for the English app text (about 318 strings). Which style should it enforce?
+
+**Decision (maintainer's choice):** "Straight everywhere". Its description: "Normalise to \" and '. Simplest to type and grep, less typographic."
+
+This differs from the plan's recommendation (curly in prose). U5b-1's tool and ratchet enforce straight double quotes and straight apostrophes in `app_en.arb`. Other locales keep their own conventions (the plan's call). Test fixtures that assert English, and ICU syntax (no `use-escaping`), are handled as the plan says.
+
+### Usage credits (2026-11-02 ~15:25 UTC)
+**Instruction (maintainer's words):** "We're on usage credits. Go slowly and check with me before creating new sessions or starting new work."
+
+This supersedes the standing "start the next one when green" rules for wave 4 and the follow-up bundles. No new session and no new branch of work starts without asking the maintainer first. The two sessions already finishing their PRs (bundle 1 and U5b-1) were told to open them before this instruction arrived. The orchestrator's scheduled check-ins are switched off.
+
+### Usage limit reset, cadence resumed (2026-11-05)
+**Instruction (maintainer's words):** "My usage limit has reset, please go back to your prior cadence of execution".
+
+This lifts the 2026-11-02 "check with me before creating new sessions" instruction and restores the earlier rules: wave 4 and the follow-up bundles run one at a time, each released when the previous branch's PR has green CI and a green review, with PR creation pre-approved. #2103 (U5b-1) and #2104 (bundle 1) use Copilot review instead of the Claude label, per what their sessions reported the maintainer asked for. Next in line: U5b-2 after #2103 is green, and bundle 2 after #2104 is green.
+
+### Reviews (2026-11-05)
+**Instruction (maintainer's words):** "PRs which were not tagged for Claude review may now be tagged as such", then "Do not request additional copilot reviews".
+
+#2103 and #2104 now carry `review: claude`, and every PR a session opens from here on gets it. No session requests a Copilot review, re-review or reviewer assignment; sessions answer the Copilot comments that exist or that the maintainer triggers.
+
+### Parallel work allowed (2026-11-05)
+**Instruction (maintainer's words):** "If you have work that is not blocked on other changes, you may now run them in parallel - the serial requirement was to address a nearing weekly limit that is now reset".
+
+This lifts the one-at-a-time rule for wave 4 and the follow-up bundles. The four-session cap and the hot-file rules in `decided-work-plan.md` still apply. Started in parallel at about 07:25 UTC: follow-up bundles 2, 3, 4 and 5. Held back because they depend on open work: U5b-2 (needs #2103 merged), UX6-2 and triage rows 22 and 51 (the program screens bundle 2 is editing), and the tag bulk handler's batched read (needs #2104 merged).
+
+### Blanked dances in program shares and PDFs (2026-11-05)
+**Question (from #2112, triage row 49):** when a dance has been blanked on another device but a program still uses it, what should the program's share file and the PDF "Include figures" option do with that slot? Today they carry an empty "-" dance.
+
+**Decision (maintainer's words):** "Go with option (a) for blanked dances". Option (a): the share sends a "Deleted dance" text slot and leaves the dance out, and the PDF skips that slot's figure page. Options (b) (omit the dance but keep the slot citing its id) and (c) (leave as is) were rejected. The bundle 3 session builds it on #2112.
+
+## Follow-up decision sheet, answered 2026-11-05
+
+Answered on the "Follow-up decisions" artifact (https://claude.ai/artifact/T25kjB4Vj2yZkUiFfHesW5). The recommendations on that sheet were the orchestrating session's, not the maintainer's. The maintainer's picks, with their notes verbatim:
+
+- **Q-1 (revival under a held peer tombstone):** (b) keep waiting for the hold to resolve, as today. Recommended.
+- **Q-2 (undated, unperformed slots in Calling history and Last-called):** (a) leave the order and sort as they are. *(differs from the recommendation, (b))* Maintainer's note: "I don't mark my dances as performed, and still want recency. Some folks may want programs without dates to show up based on last edit time in recency. Some may want history and last called to only included programs with dates or dances marked performed. All four could be settings toggles for performance tracking behavior. If "all four" is unclear, ask and I'll specify." Open: the four behaviours are not yet pinned down. See Still open.
+- **Q-3 (ContraDB confident match with differing figures):** (a) import as a variation, as Caller's Box does. Recommended.
+- **Q-4 (type-aheads for Advanced and By phrase):** (a) schedule after the held program work. Recommended.
+- **Q-5 (alternate slot title width):** (a) accept as is. Recommended.
+- **Q-7 (pinned New-program row at 200% text with the keyboard up):** (b) drop the sheet title while the keyboard is up. Recommended.
+- **Merged-tag colour:** (b) the survivor's colour, or the other tag's if the survivor has none. Recommended.
+- **"Show these dances" (Tags manager row action):** (a) after the held program work. Recommended. Maintainer's note: "I thought we had a conversation about AND vs OR in tag search, is this separate from that?" Answer: yes, separate. The AND/OR toggle is B15 (#2063, built: "All tags / Any tag", AND the default once a second tag is added), decided under R2-tag-tap. The sheet card described the wrong feature (a chip-tap that shows only that tag, R2-tag-tap's option (c), which the maintainer did not pick). The thing waiting is the Tags manager action in `docs/design/tags-and-people.md` ("Not proposed here: a 'show these dances' action"), which opens Collection filtered to one tag.
+- **U5a calls:** feature names keep capitals; `docs/user` US spelling with `docs/design` left British; ARB `@description` British words fixed the next time an ARB PR touches the file. All (a), recommended.
+- **Bundle 2 leftovers:** (a) build the `_CompoundColumnDialog` guard and the program editor export-menu trashed-author gap in one small PR. **Whole-number custom values showing "3.0":** (a) fix. **Tiny documentation cleanups:** (a) do both. All recommended.
+- **Held program work:** (b) rows 22 and 51 in one session, then UX6-2. *(differs from the recommendation, (a))*
+- **H-2 (Danish):** the word for beat is "taktslag". Maintainer's note: "taktslag".
+- **H-7 (B28 full screen):** checked, works everywhere.
+- **Stray branch `claude/add-to-program-order-and-search`:** deleted by the maintainer (confirmed: no longer on origin).
+- **Not yet checked:** H-1 (Android picker), H-3 (native translation review), H-4 (Mac menu), H-5 (NVDA and VoiceOver), H-6 (Windows and Linux file association).
+
+### Q-2 clarified, 2026-11-05: four performance-tracking toggles
+
+The maintainer's four toggles, in their words:
+1. "Recency only counts dated programs (defaults to on)"
+2. "Recency only counts marked performed (defaults to match "require performed for calling history" which I believe is off by default)"
+3. "History order + last called ignores undated programs (defaults to off, sorts by edit timestamp)"
+4. "History order + last called ignores dances not marked performed (off by default)"
+
+The orchestrating session asked whether 3 and 4 were the two existing global settings ("Require an event date" and "Require mark performed", which also gate the counts). Answer: "Yes, correct, 3 and 4 are separate and only affect the history order and last-called sort. This should be clear in the setting descriptions." On how 1 and 2 combine: "yes, if toggle 1 is on, its condition must be satisfied. If toggle 2 is on, its condition must be satisfied. If both are on, both must be satisfied."
+
+So: four NEW settings; the two existing global settings stay and still gate the counts. The meaning of "ignores" for 3 and 4 (a slot with no ordering date stays in the list and in "called ×N", sorts after dated entries, and contributes no Last-called date) and the performed-slot-in-an-undated-program consequence of toggle 1 defaulting on were the orchestrating session's reading, stated in the build brief and not separately confirmed by the maintainer. Build session: `claude/followups-tracking-toggles`.
+
+### Tracking-toggle PR (#2128), answered 2026-11-06
+
+- **Toggle 1 defaults on, so a performed slot in an undated program leaves the recency window, and no combination of the four settings restores the old "dated or performed" rule.** Maintainer: "1 I accept".
+- **"Ship it as one PR" (the size decision for #2128, which arrived as a user message in the build session):** Maintainer: "2 I sent that". So the one-PR decision is the maintainer's.
+
+### Stale "row 7" timing numbers in docs/design/bulk-selection.md, 2026-11-06
+
+**Question:** a follow-up from bundle 1 said `docs/design/bulk-selection.md` has stale "row 7" timing numbers. No test or benchmark reproduces the figures, and neither the build session nor the orchestrating session could tell what "row 7" refers to. Drop the item?
+
+**Decision (maintainer's words):** "Drop it if no one knows what it was". Dropped. `bulk-selection.md` is left as it is; no session is assigned to it. If someone later finds which numbers were meant, it can be reopened as a new item.
+
+### Standing go-ahead for the held work, 2026-11-06
+
+**Instruction (maintainer's words):** "You've got my approval to keep moving on your remaining held work as it becomes unblocked".
+
+The orchestrating session's reading: this covers the work still waiting on the sheet's "after the held program work" answers, namely Q-4 (type-aheads for Advanced search and By phrase) and the Tags manager "show these dances" action. Each starts once UX6-2's PR is open (the maintainer's earlier condition), under the existing standing PR approval, the four-session cap and the hot-file rules. It does not cover anything the maintainer has not yet decided.
+
+## Still open
+
+Closed out 2026-11-06; see `closeout-2026-11-06.md`.
+
+- The wide Programs split pane (no app bar) keeps its in-body action row; no decision has been made.
+- The merged-tag colour reading ("survivor" means the tag you merge into) is the orchestrating session's, not confirmed.
+- H-1, H-3, H-4, H-5 and H-6 are device checks and native-speaker reviews waiting on the maintainer.
