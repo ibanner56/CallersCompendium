@@ -3400,7 +3400,9 @@ class _DanceListScreenState extends State<DanceListScreen>
       itemBuilder: (context, index) {
         if (index == _onlineResults.length) {
           return OnlineMoreFooter(
-            key: ValueKey('online-more-${_onlineResults.length}'),
+            key: ValueKey(
+              'online-more-$_onlinePagingSeq-${_onlineResults.length}',
+            ),
             failed: _onlineMoreFailed,
             failedMessage: l10n.onlineSearchFailed(_onlineSource.label),
             onLoad: _loadMoreOnline,

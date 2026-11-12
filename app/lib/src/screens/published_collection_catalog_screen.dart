@@ -89,7 +89,7 @@ class _PublishedCollectionCatalogState
       widget.service ?? PublishedCollectionService();
   late Future<PublishedCollectionManifest> _catalog = _loadCatalog();
   final _statusByEntry =
-      <(String, String), Future<PublishedCollectionStatus>>{};
+      <(String, String), Future<PublishedCollectionStatus?>>{};
   PublishedCollectionEntry? _loadingEntry;
   PublishedCollectionFetchFailure? _archiveError;
   PublishedCollectionEntry? _archiveErrorEntry;
@@ -123,6 +123,29 @@ class _PublishedCollectionCatalogState
     });
   }
 
+  /// The local import status of [entry], memoised per id+version. A failed
+  /// lookup reads as unknown (null), never as an error the UI must handle.
+  Future<PublishedCollectionStatus?>? _statusFutureFor(
+    PublishedCollectionEntry entry,
+  ) => widget.statusLoader == null
+      ? null
+      : _statusByEntry.putIfAbsent((entry.id, entry.version), () async {
+          try {
+            return await widget.statusLoader!(entry.id, entry.version);
+          } catch (error, stackTrace) {
+            logCaughtErrorTypeOnly(
+              error,
+              stackTrace,
+              source: 'published_collection_catalog_screen._statusFutureFor',
+            );
+            return null;
+          }
+        });
+
+  Future<PublishedCollectionStatus?> _statusFor(
+    PublishedCollectionEntry entry,
+  ) async => await _statusFutureFor(entry);
+
   Future<void> _import(PublishedCollectionEntry entry) async {
     if (!entry.isSupported || _loadingEntry != null) return;
     setState(() {
@@ -131,6 +154,18 @@ class _PublishedCollectionCatalogState
       _archiveErrorEntry = null;
     });
     try {
+      // Defence in depth for SUPPLY-2: the button is disabled for an entry
+      // older than what is imported, but any other route here must not roll a
+      // newer imported collection back. Checked after _loadingEntry is set so
+      // a second tap cannot slip in while the status loads.
+      final status = await _statusFor(entry);
+      if (!mounted ||
+          isOlderThanImportedPublishedVersion(
+            entry.version,
+            status?.importedVersion,
+          )) {
+        return;
+      }
       final bytes = await _service.fetchArchive(entry);
       if (!mounted) return;
       await widget.onImport(entry, bytes);
@@ -202,7 +237,9 @@ class _PublishedCollectionCatalogState
             ),
           );
         }
-        final entries = snapshot.data!.collections;
+        final entries = latestPublishedCollectionEntries(
+          snapshot.data!.collections,
+        );
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -223,12 +260,7 @@ class _PublishedCollectionCatalogState
     final loading = _loadingEntry == entry;
     final unsupported = !entry.isSupported;
     final archiveError = _archiveError != null && _archiveErrorEntry == entry;
-    final statusFuture = widget.statusLoader == null
-        ? null
-        : _statusByEntry.putIfAbsent((
-            entry.id,
-            entry.version,
-          ), () => widget.statusLoader!(entry.id, entry.version));
+    final statusFuture = _statusFutureFor(entry);
     return Card(
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
       child: Padding(
@@ -258,7 +290,7 @@ class _PublishedCollectionCatalogState
               ),
             ),
             if (statusFuture != null)
-              FutureBuilder<PublishedCollectionStatus>(
+              FutureBuilder<PublishedCollectionStatus?>(
                 future: statusFuture,
                 builder: (context, snapshot) {
                   final status = snapshot.data;
@@ -311,20 +343,34 @@ class _PublishedCollectionCatalogState
               ),
             ],
             const SizedBox(height: AppSpacing.sm),
-            Align(
-              alignment: AlignmentDirectional.centerEnd,
-              child: FilledButton.icon(
-                onPressed: unsupported || _loadingEntry != null
-                    ? null
-                    : () => _import(entry),
-                icon: loading
-                    ? const SizedBox.square(
-                        dimension: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.download),
-                label: Text(l10n.publishedCollectionImport),
-              ),
+            FutureBuilder<PublishedCollectionStatus?>(
+              future: statusFuture,
+              builder: (context, snapshot) {
+                // An entry older than what is imported is refused, not offered
+                // (SUPPLY-2); the "Imported version" line above says why.
+                final olderThanImported = isOlderThanImportedPublishedVersion(
+                  entry.version,
+                  snapshot.data?.importedVersion,
+                );
+                return Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: FilledButton.icon(
+                    onPressed:
+                        unsupported ||
+                            olderThanImported ||
+                            _loadingEntry != null
+                        ? null
+                        : () => _import(entry),
+                    icon: loading
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.download),
+                    label: Text(l10n.publishedCollectionImport),
+                  ),
+                );
+              },
             ),
           ],
         ),

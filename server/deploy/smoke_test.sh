@@ -4,7 +4,7 @@ set -eu
 host=${1:?usage: smoke_test.sh <host> [https-port] [http-port]}
 https_port=${2:-443}
 http_port=${3:-80}
-credential=${ATHENAEUM_CREDENTIAL:?set ATHENAEUM_CREDENTIAL to a new encoded sync credential}
+credential=${ATHENAEUM_CREDENTIAL:?set ATHENAEUM_CREDENTIAL to a new store's encoded sync ID}
 http_body=$(mktemp)
 status_body=$(mktemp)
 health_body=$(mktemp)
@@ -52,7 +52,7 @@ cleanup() {
     done < "$created_credentials"
   fi
   if [ -s "$cleanup_failures" ]; then
-    echo "cleanup incomplete; credentials retained in $cleanup_failures" >&2
+    echo "cleanup incomplete; encoded sync IDs retained in $cleanup_failures" >&2
   else
     rm -f "$cleanup_failures"
   fi
@@ -361,7 +361,7 @@ if [ -z "$hsts_max_age" ] || [ "$hsts_max_age" -lt 15552000 ]; then
   echo "HSTS max-age is below the six-month minimum" >&2
   exit 1
 fi
-echo "authenticated HTTPS create/lookup and HSTS: passed"
+echo "HTTPS create/lookup and HSTS: passed"
 
 if grep -Eiq 'mod_deflate|SetInputFilter|RequestHeader[[:space:]]+.*Content-Encoding' "$apache_config"; then
   echo "active Apache vhost contains a request decompression directive" >&2

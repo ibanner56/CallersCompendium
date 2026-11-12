@@ -515,6 +515,19 @@ class SyncController extends ChangeNotifier {
   /// explanation-then-confirm decision (spec §6.3 step 1, §6.14 item 6).
   bool get replacementPending => _replacementPending;
 
+  /// Whether a [confirmReplacement] the gate let through is still running.
+  ///
+  /// [replacementPending] stays true until that attempt completes, and the
+  /// controller notifies in between — when it takes the pass in flight — so a
+  /// surface that asks the question whenever the decision is pending would
+  /// ask it again about the attempt it is waiting on. Read it to stay closed
+  /// until the outcome is known. Cleared before the attempt's final
+  /// notification, so an attempt that did not complete is asked about again
+  /// at once, and one that did is not. Kept here rather than on the widget so
+  /// a surface built while the attempt is in flight sees it too.
+  bool get confirmingReplacement => _confirmingReplacement;
+  bool _confirmingReplacement = false;
+
   /// Whether the status surface should warn that the store is approaching the
   /// disuse expiry.
   bool get expiryApproaching {
@@ -830,8 +843,9 @@ class SyncController extends ChangeNotifier {
   /// Every caller MUST consult this **before** taking [_inFlight] and notifying:
   /// a suppressed attempt must leave the controller bit-identical, and the
   /// replacement dialog re-shows itself on any notification while the decision
-  /// is pending — so a gate that notified first would cover the very setting it
-  /// is routing the user to.
+  /// is pending and no confirmation is running ([confirmingReplacement]) — so
+  /// a gate that notified first would cover the very setting it is routing the
+  /// user to.
   Future<SyncGateOutcome?> _connectionGate({required bool manual}) async {
     final network = await _classifier.current();
     if (network == SyncNetworkKind.offline) {
@@ -1035,6 +1049,7 @@ class SyncController extends ChangeNotifier {
     // resume interval like any pass [trigger] starts.
     _lastPassStartedAt = _now();
     _inFlight++;
+    _confirmingReplacement = true;
     _notify();
     try {
       SyncPassResult result;
@@ -1084,6 +1099,7 @@ class SyncController extends ChangeNotifier {
       return SyncGateOutcome.ran;
     } finally {
       _endPass();
+      _confirmingReplacement = false;
       _notify();
     }
   }
@@ -1205,7 +1221,7 @@ class SyncController extends ChangeNotifier {
         // microtask ordering, not an invariant, and it would stop holding the
         // moment anything between the release and that read stopped yielding.
         // Clearing here makes it structural: no queued writer can observe the
-        // old credential, because the clear precedes the release entirely.
+        // old sync ID, because the clear precedes the release entirely.
         _forgetAttachment();
         if (selfId != null && syncId != null && endpoint != null) {
           leaving = (syncId: syncId, endpoint: endpoint, deviceId: selfId);
@@ -1519,7 +1535,7 @@ class SyncController extends ChangeNotifier {
         // is a queue: the `await` above yields, so a detach can be queued
         // ahead of this operation and will have cleared the sync ID by the
         // time the operation runs. An admin captured before queueing still
-        // holds that cleared credential, and would send the `DELETE` to a
+        // holds that cleared sync ID, and would send the `DELETE` to a
         // store this device has just left — removing a peer from a store the
         // user may no longer own. Rebuilding here means a detach that won the
         // queue leaves nothing to build from, and nothing is sent.
@@ -1572,11 +1588,13 @@ class SyncController extends ChangeNotifier {
   /// at once.
   ///
   /// The local clear is part of the contract, not a convenience: wipe's
-  /// headline purpose is the remedy for a leaked sync phrase, and a device left
-  /// attached would find the store missing on its very next pass and be offered
-  /// the §6.3 replacement dialog — that is, offered to re-create the store under
-  /// the phrase that leaked. Peers still follow the §6.3 missing-store flow,
-  /// which is the intended behaviour for them.
+  /// headline purpose is to stop using a store's address — a phrase someone
+  /// else has can't be taken back, so removing what the store holds is the only
+  /// thing that acts at once — and a device left attached would find the store
+  /// missing on its very next pass and be offered the §6.3 replacement dialog:
+  /// that is, offered to re-create a store at the very address the user is
+  /// leaving. Peers still follow the §6.3 missing-store flow, which is the
+  /// intended behaviour for them.
   ///
   /// A failed wipe changes nothing locally: the device stays attached, so the
   /// user can try again. Between the successful `DELETE` and the local clear
@@ -1585,10 +1603,10 @@ class SyncController extends ChangeNotifier {
   /// missing-store flow.
   ///
   /// Like [removeDevice], not gated on the §6.12 connection policy: a wipe
-  /// prompted by a leaked phrase must not wait for WiFi. It is deliberately
-  /// offered beside *Disconnect this device* rather than from any quota or
-  /// error surface — spec §5.3 requires that a destructive wipe never be the
-  /// first thing offered in response to a `507`.
+  /// asked for because someone else has the phrase must not wait for WiFi. It
+  /// is deliberately offered beside *Disconnect this device* rather than from
+  /// any quota or error surface — spec §5.3 requires that a destructive wipe
+  /// never be the first thing offered in response to a `507`.
   Future<SyncAdminOutcome> wipeStore() async {
     _lastAdminFailure = null;
     if (!paired || _detaching) return SyncAdminOutcome.notPaired;
@@ -1612,7 +1630,7 @@ class SyncController extends ChangeNotifier {
       await _runExclusive(() async {
         ran = true;
         // Built inside the boundary, for the reason [removeDevice] gives: the
-        // boundary is a queue, and a credential captured before queueing can
+        // boundary is a queue, and a sync ID captured before queueing can
         // belong to a store this device has already left by the time the
         // request goes out.
         final admin = _deviceAdmin();
@@ -1633,7 +1651,7 @@ class SyncController extends ChangeNotifier {
           await _clearAttachment();
           cleared = true;
           // Inside the boundary, for the reason [detach] gives: a writer
-          // queued behind this one must not be able to observe the credential
+          // queued behind this one must not be able to observe the sync ID
           // of a store that no longer exists.
           _forgetAttachment();
         } finally {

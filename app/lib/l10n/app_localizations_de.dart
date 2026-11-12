@@ -645,7 +645,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsSyncIdCopied =>
-      'Synchronisierungsphrase kopiert. Sie öffnet deinen Speicher – füge sie nur auf einem Gerät ein, das dir gehört.';
+      'Synchronisierungsphrase kopiert. Jeder, der sie hat, kann deine geteilte Bibliothek öffnen – füge sie nur auf einem Gerät ein, das dir gehört.';
 
   @override
   String get settingsSyncIdCaution =>
@@ -769,7 +769,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String settingsSyncNoticeNewerVersionItems(String items) {
-    return 'Ein anderes Gerät verwendet eine neuere Version der App. Aktualisiere die App auf diesem Gerät, um $items zu erhalten.';
+    return 'Ein anderes Gerät verwendet eine neuere Version der App. Aktualisiere die App auf diesem Gerät, um $items zu erhalten. Wenn du sie hier vor dem Aktualisieren bearbeitest, können die Änderungen des anderen Geräts daran verloren gehen.';
   }
 
   @override
@@ -895,7 +895,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsSyncNoticeNewerVersionUncounted =>
-      'Ein anderes Gerät verwendet eine neuere Version der App. Aktualisiere die App auf diesem Gerät, um seine Änderungen zu erhalten.';
+      'Ein anderes Gerät verwendet eine neuere Version der App. Aktualisiere die App auf diesem Gerät, um seine Änderungen zu erhalten. Wenn du vor dem Aktualisieren hier etwas bearbeitest, das es geändert hat, können seine Änderungen verloren gehen.';
 
   @override
   String settingsSyncNoticeKeptNewerItems(String items) {
@@ -1541,7 +1541,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsSyncWipeConfirmBody =>
-      'Alles, was der Speicher enthält, wird vom Server gelöscht, für alle Geräte auf einmal, und das lässt sich nicht rückgängig machen. Deine Bibliothek bleibt auf diesem Gerät und auf jedem deiner anderen Geräte – aber alles, was bisher nur über die Synchronisierung auf ein anderes Gerät gelangt war, kommt hier nicht mehr an. Dieses Gerät wird getrennt und vergisst seine Synchronisierungsphrase; deine anderen Geräte finden den Speicher beim nächsten Synchronisieren nicht mehr vor und fragen, ob ein neuer angelegt werden soll. Nutze das, wenn deine Synchronisierungsphrase jemand anderem bekannt geworden ist: Es ist das Einzige, was sofort entfernt, was diese Person lesen kann.';
+      'Alles, was der Speicher enthält, wird vom Server gelöscht, für alle Geräte auf einmal, und das lässt sich nicht rückgängig machen. Deine Bibliothek bleibt auf diesem Gerät und auf jedem deiner anderen Geräte – aber alles, was bisher nur über die Synchronisierung auf ein anderes Gerät gelangt war, kommt hier nicht mehr an. Dieses Gerät wird getrennt und vergisst seine Synchronisierungsphrase; deine anderen Geräte finden den Speicher beim nächsten Synchronisieren nicht mehr vor und bieten an, eine neue Phrase einzurichten. Nutze das, wenn du die Adresse dieses Speichers nicht mehr verwenden willst: Es ist das Einzige, was sofort entfernt, was der Speicher enthält. Um weiter zu synchronisieren, richte auf jedem Gerät eine neue Phrase ein – erneutes Verbinden mit der alten legt wieder einen neuen Speicher unter derselben Adresse an.';
 
   @override
   String get settingsSyncWipeConfirmAction => 'Speicher löschen';
@@ -1739,14 +1739,18 @@ class AppLocalizationsDe extends AppLocalizations {
       'Deine Bibliothek ist verbunden. Die erste Synchronisierung ist noch nicht gelaufen; sie läuft, wenn dieses Gerät das nächste Mal synchronisiert.';
 
   @override
-  String get settingsSyncReplacementTitle => 'Diesen Speicher neu verbinden?';
+  String get settingsSyncReplacementTitle =>
+      'Dieser Speicher ist nicht mehr vorhanden';
 
   @override
   String get settingsSyncReplacementBody =>
-      'Der Speicher, mit dem dieses Gerät synchronisiert hat, ist nicht mehr vorhanden. Er könnte durch Inaktivität abgelaufen oder entfernt worden sein. Erneutes Verbinden erstellt einen neuen Speicher mit derselben Phrase und synchronisiert von vorn.';
+      'Der Speicher, mit dem dieses Gerät synchronisiert hat, ist nicht mehr vorhanden. Er könnte durch Inaktivität abgelaufen oder entfernt worden sein. Um die Adresse dieses Speichers nicht mehr zu verwenden, richte eine neue Phrase ein: Dieses Gerät wird getrennt, und du erstellst danach einen neuen Speicher oder verbindest dich mit einem, den du auf einem anderen Gerät eingerichtet hast. Mach das auf jedem deiner Geräte. „Neu verbinden“ erstellt stattdessen einen neuen Speicher unter derselben Adresse, mit derselben Phrase, und sendet deine ganze Bibliothek dorthin; hat ein anderes Gerät das schon getan, tritt dieses Gerät diesem Speicher bei.';
 
   @override
   String get settingsSyncReplacementConfirm => 'Neu verbinden';
+
+  @override
+  String get settingsSyncReplacementNewPhrase => 'Mit neuer Phrase einrichten';
 
   @override
   String get settingsSyncReplacementCancel => 'Jetzt nicht';

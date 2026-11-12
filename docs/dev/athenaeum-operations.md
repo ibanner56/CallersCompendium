@@ -110,7 +110,7 @@ the loopback-only forwarded-address trust boundary.
    install a matching certificate, enable the site, and reload Apache. The
    `:80` vhost may serve ACME challenges, but `/v1` must remain refused and must
    never redirect or proxy. Both vhosts serve the status page at `/` and proxy
-   the credential-free `/heartbeat` liveness check; only the TLS vhost proxies
+   the `/heartbeat` liveness check (which takes no sync ID); only the TLS vhost proxies
    `/v1/`.
 5. Start the container with host networking and the persistent volume:
 
@@ -193,7 +193,7 @@ minute, a burst of 20 failures per IP, 1,000 failures per minute server-wide,
 5 store creations per IP (refilled at 5 an hour), and 60 store creations per
 minute server-wide. There is deliberately no server-wide request-rate limit
 (spec §5.4); `server/tool/load_test.dart` measures what the host sustains. A
-saturated server-wide failure budget must not block authenticated access to an
+saturated server-wide failure budget must not block requests that resolve an
 existing store. Large-body requests (manifest and blob uploads, and
 `POST /v1/blobs/missing`) are also counted while in flight: 4 per IP, then
 `429`, and 16 server-wide, then `503`. See *Server-wide limits* below for how to
@@ -217,14 +217,14 @@ Use a no-redirect probe after every Apache change in a direct-origin or staging
 deployment:
 
 ```sh
-ATHENAEUM_CREDENTIAL='encoded-credential-for-a-new-disposable-store' \
+ATHENAEUM_CREDENTIAL='encoded-sync-id-of-a-new-disposable-store' \
   ATHENAEUM_APACHE_CONFIG=/etc/apache2/sites-enabled/athenaeum.conf \
   sh server/deploy/smoke_test.sh sync.example.invalid
 curl --max-time 10 --max-redirs 0 --include http://sync.example.invalid/v1/store
 curl --max-time 10 --include https://sync.example.invalid/v1/store
 ```
 
-The credential must be new and belong to a disposable test store; the script
+The encoded sync ID must be new and belong to a disposable test store; the script
 deletes stores it creates. If cleanup is rate-limited after the failure-budget
 probe, it retries after the rolling 60-second window before reporting failure.
 The first request must be a refusal (not 3xx and not an Athenaeum response).
@@ -240,7 +240,7 @@ but an appended remoteip-resolved entry shows up there only where
 `ProxyAddHeaders Off` check is the guard), the 1,000-failure budget, the
 5-per-IP and 60-per-minute creation budgets, the inclusive 16 MiB boundary,
 compressed-body preservation, and
-authenticated Athenaeum create/lookup responses over HTTPS with
+Athenaeum create/lookup responses over HTTPS with
 `Strict-Transport-Security`. The harness also inspects the active vhost
 configuration to ensure no request decompression directive is enabled;
 the successful gzip upload then exercises the backend's own gzip decoder.
@@ -391,7 +391,7 @@ SSLVerifyDepth 1
 
 Reload Apache, enable **Global Authenticated Origin Pulls** under
 **SSL/TLS > Origin Server** in Cloudflare, and confirm the proxied HTTPS
-endpoint still returns the expected unauthenticated `401`. Then change
+endpoint still returns the expected `401` for a request without a sync ID. Then change
 `SSLVerifyClient optional` to `SSLVerifyClient require` and reload Apache.
 Global Origin Pulls causes Cloudflare to present its certificate for proxied
 hostnames in the zone; enforcement remains Athenaeum-only because this vhost
@@ -410,7 +410,7 @@ curl --noproxy '*' --connect-timeout 5 --max-time 15 \
 ```
 
 The public HTTP request must be a refusal rather than a redirect, and public
-HTTPS must return Athenaeum's unauthenticated `401`. The direct HTTPS request
+HTTPS must return Athenaeum's `401` for a request without a sync ID. The direct HTTPS request
 must fail TLS client-certificate verification without returning an HTTP
 response. The standard smoke harness intentionally connects to loopback, so it
 cannot run while `SSLVerifyClient require` is enforced; use a direct/staging
@@ -464,7 +464,7 @@ same invalid authorization. It must return `401`, not `429`. Correlate each
 request with the redacted Apache access log by timestamp: its `%h` client
 address must match the address reported by `/cdn-cgi/trace`, never a
 Cloudflare range. This verifies both independent client buckets and the
-trusted `CF-Connecting-IP` path without logging credentials or request
+trusted `CF-Connecting-IP` path without logging sync IDs or request
 headers.
 
 ```sh
@@ -525,8 +525,8 @@ forwarder sends this kind too.
 
 - **Logs:** retain only the redacted Apache access/error logs and container
   stderr according to the host's retention policy. The safe access format
-  excludes request targets and headers, so sync IDs and credentials are not
-  written. Restrict log access to operators.
+  excludes request targets and headers, so sync IDs, in plain or encoded
+  form, are not written. Restrict log access to operators.
 - **Alerts:** route JSON lines with `alert.kind` of `quota_exhaustion`,
   `sweep_failure` or `capacity_exhaustion` from container stderr to the
   on-call notification path. A
@@ -539,7 +539,7 @@ forwarder sends this kind too.
   Repeated alerts with the same kind, source, and exception type are limited to
   one notification per minute; the next notification includes the aggregate
   count. Payloads contain only a category, source, exception type, and optional
-  count; they never contain user content, bearer credentials, sync IDs, or
+  count; they never contain user content, sync IDs (plain or encoded), or
   device IDs.
 - **Quota probe:** in a staging deployment, create data until the service
   returns `507`, record the UTC timestamp and alert/incident URL, then remove
@@ -549,8 +549,8 @@ forwarder sends this kind too.
   `sweep_failure` alert reaches a human, record the timestamp and incident URL,
   then repeat without the injected failure to verify removal.
 - **Retention:** after the sweep, query the disposable store and expect
-  "not found". Search ordinary access/error/container logs for its credential,
-  sync ID, and content; all must be absent.
+  "not found". Search ordinary access/error/container logs for its sync ID, plain
+  and encoded, and its content; all must be absent.
 - **Break-glass:** obtain an incident/ticket approval before access. Record the
   operator, reason, approval reference, and UTC time in the ticket, then use
   the supported command below. It accepts the raw sync ID on stdin, writes the
