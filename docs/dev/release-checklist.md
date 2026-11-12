@@ -229,9 +229,11 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
  Type/Formation dropdowns are covered only by `dance_editor_narrow_test.dart`.
  `app/test/dropdown_large_text_test.dart` checks those form dropdowns for
  overflow at 360 dp, 1.5× and 2.0× with long values (locale-dependent ones in
- every shipped locale). A long value is ellipsized in the closed field and the
- open menu, so for those fields an ellipsis is the accepted outcome here, not a
- gate failure; overflow and clipping are.
+ every shipped locale). For user-typed values (custom-field names and options,
+ level names) the closed field ellipsizes but the open menu wraps, so the full
+ text is always readable; the fixed lists (Month, Status, matrix move names)
+ only ellipsize. The floating label of a long custom-field name can still be
+ cut off.
  These supplement this gate, not replace it.)
 - [ ] **Keyboard-only navigation (desktop) — Gate.** On a desktop build
  (macOS/Linux/Windows), unplug/ignore the mouse and complete the same core
