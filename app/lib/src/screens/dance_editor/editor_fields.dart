@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../search/facet_labels.dart';
 import '../../theme/app_spacing.dart';
+import '../../widgets/dropdown_selection.dart';
 
 class FieldLabel extends StatelessWidget {
   const FieldLabel(this.text, {super.key});
@@ -167,24 +168,25 @@ class LevelDropdown extends StatelessWidget {
     return DropdownButtonFormField<DifficultyLevel?>(
       key: const ValueKey('level-field'),
       initialValue: value,
-      // Level names are user-editable: fill the slot and ellipsize.
+      // Level names are user-editable: fill the slot, ellipsize the closed
+      // field, and let the open menu wrap so a long name can be read.
       isExpanded: true,
+      itemHeight: null,
+      selectedItemBuilder: ellipsizedSelection([
+        l10n.danceEditorLevelUnspecified,
+        for (final v in levels ?? DifficultyLevel.shipped)
+          danceLevelLabel(l10n, v),
+      ]),
       decoration: InputDecoration(labelText: l10n.danceEditorLevelLabel),
       items: [
         DropdownMenuItem<DifficultyLevel?>(
           value: null,
-          child: Text(
-            l10n.danceEditorLevelUnspecified,
-            overflow: TextOverflow.ellipsis,
-          ),
+          child: Text(l10n.danceEditorLevelUnspecified),
         ),
         for (final v in levels ?? DifficultyLevel.shipped)
           DropdownMenuItem<DifficultyLevel?>(
             value: v,
-            child: Text(
-              danceLevelLabel(l10n, v),
-              overflow: TextOverflow.ellipsis,
-            ),
+            child: Text(danceLevelLabel(l10n, v)),
           ),
       ],
       onChanged: onChanged,

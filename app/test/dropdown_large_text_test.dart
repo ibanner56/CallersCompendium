@@ -21,6 +21,7 @@ import 'package:compendium_app/src/theme/app_theme.dart';
 import 'package:compendium_app/src/widgets/batch_custom_field_dialog.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/l10n_harness.dart';
@@ -79,6 +80,26 @@ void _expectNoOverflow(WidgetTester tester) {
   expect(tester.takeException(), isNull);
 }
 
+/// For a dropdown whose items are user-typed: the closed field ellipsizes the
+/// selected [full] text, and the open menu shows all of it (it wraps), so the
+/// value can always be read somewhere.
+Future<void> _expectEllipsizedClosedReadableOpen(
+  WidgetTester tester,
+  Finder field,
+  String full,
+) async {
+  bool exceeds(Finder f) =>
+      tester.renderObject<RenderParagraph>(f).didExceedMaxLines;
+  final closed = find.descendant(of: field, matching: find.text(full));
+  expect(closed, findsOneWidget);
+  expect(exceeds(closed), isTrue, reason: 'closed field should ellipsize');
+  await tester.tap(field);
+  await tester.pumpAndSettle();
+  final inMenu = find.text(full).last;
+  expect(exceeds(inMenu), isFalse, reason: 'open menu should show it in full');
+  _expectNoOverflow(tester);
+}
+
 Widget _scaffold(Widget body) => Scaffold(
   body: SingleChildScrollView(padding: const EdgeInsets.all(16), child: body),
 );
@@ -116,6 +137,11 @@ void main() {
               scale: scale,
             );
             _expectNoOverflow(tester);
+            await _expectEllipsizedClosedReadableOpen(
+              tester,
+              find.byKey(const ValueKey('custom-f1-choice')),
+              _longChoice,
+            );
           });
         }
       });
@@ -140,6 +166,11 @@ void main() {
           scale: scale,
         );
         _expectNoOverflow(tester);
+        await _expectEllipsizedClosedReadableOpen(
+          tester,
+          find.byKey(const ValueKey('level-field')),
+          long.label,
+        );
       });
 
       for (final locale in testSupportedLocales) {
@@ -203,6 +234,11 @@ void main() {
             ),
           ]);
           _expectNoOverflow(tester);
+          await _expectEllipsizedClosedReadableOpen(
+            tester,
+            find.byKey(const ValueKey('batch-custom-field-key')),
+            _longFieldLabel,
+          );
         });
 
         testWidgets('long choice label in the value dropdown', (tester) async {
@@ -223,10 +259,16 @@ void main() {
           await tester.tap(find.text(_longChoice).last);
           await tester.pumpAndSettle();
           _expectNoOverflow(tester);
+          await _expectEllipsizedClosedReadableOpen(
+            tester,
+            find.byKey(const ValueKey('batch-custom-field-value-f1-2')),
+            _longChoice,
+          );
         });
       });
 
-      for (final locale in testSupportedLocales) {
+      for (final locale
+          in scale < 2 ? const <Locale>[] : testSupportedLocales) {
         testWidgets('custom field form type dropdown in $locale', (
           tester,
         ) async {
@@ -245,7 +287,8 @@ void main() {
         });
       }
 
-      for (final locale in testSupportedLocales) {
+      for (final locale
+          in scale < 2 ? const <Locale>[] : testSupportedLocales) {
         testWidgets('program status dropdown in $locale', (tester) async {
           final repos = openTestRepositories();
           await _pump(

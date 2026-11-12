@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../screens/dance_editor/choice_option.dart';
+import 'dropdown_selection.dart';
 import '../screens/dance_editor/custom_field_editor.dart'
     show showAddChoiceOptionDialog;
 
@@ -190,6 +191,8 @@ class _BatchCustomFieldDialogState extends State<_BatchCustomFieldDialog> {
           ),
           initialValue: _choiceValue,
           isExpanded: true,
+          itemHeight: null,
+          selectedItemBuilder: ellipsizedSelection(def.choices ?? const []),
           decoration: InputDecoration(
             labelText: def.label,
             isDense: true,
@@ -197,10 +200,7 @@ class _BatchCustomFieldDialogState extends State<_BatchCustomFieldDialog> {
           ),
           items: [
             for (final choice in def.choices ?? const <String>[])
-              DropdownMenuItem(
-                value: choice,
-                child: Text(choice, overflow: TextOverflow.ellipsis),
-              ),
+              DropdownMenuItem(value: choice, child: Text(choice)),
           ],
           onChanged: (v) => setState(() => _choiceValue = v),
         );
@@ -247,6 +247,10 @@ class _BatchCustomFieldDialogState extends State<_BatchCustomFieldDialog> {
                     key: const ValueKey('batch-custom-field-key'),
                     initialValue: _selectedDef,
                     isExpanded: true,
+                    itemHeight: null,
+                    selectedItemBuilder: ellipsizedSelection(
+                      _defs.map((d) => d.label),
+                    ),
                     decoration: InputDecoration(
                       labelText: l10n.collectionBatchCustomFieldKeyLabel,
                       isDense: true,
@@ -254,10 +258,7 @@ class _BatchCustomFieldDialogState extends State<_BatchCustomFieldDialog> {
                     ),
                     items: [
                       for (final d in _defs)
-                        DropdownMenuItem(
-                          value: d,
-                          child: Text(d.label, overflow: TextOverflow.ellipsis),
-                        ),
+                        DropdownMenuItem(value: d, child: Text(d.label)),
                     ],
                     onChanged: _onDefChanged,
                   ),
