@@ -1026,8 +1026,10 @@ dancers and the amounts set apart as above, in your dialect's words), and
 `rule` takes `thickness=2`. With `highlight`, the move is marked wherever a
 figure's line names it — a few moves, such as zig zag, are worded without
 their name — and its red and the amounts' blue-grey take the place of a
-`color=` on that line. A figure written as free text, such as one of your own
-figures, prints plain. A layout you have written yourself keeps its figures
+`color=` on that line. A figure whose line holds your own words prints plain:
+one written as free text (your own figures among them), one whose wording
+you have changed, and a combination with either inside it, or with a note on
+one of its parts. A layout you have written yourself keeps its figures
 as they were until you add `highlight`.
 
 A block prints only what the dance has, and only the fields turned on under

@@ -12,11 +12,23 @@ enum CallingCardSpanKind { plain, move, dancer, amount }
 /// A stretch of a figure line and what it is.
 typedef CallingCardSpan = ({String text, CallingCardSpanKind kind});
 
-/// Whether a card highlights [figure]'s line at all. A figure written as
-/// free text (a custom figure, which is also how the user's own figures are
-/// stored) prints plain: its words are the user's, and a word such as
-/// "lead" or "once" there is not reliably a dancer or an amount.
-bool callingCardHighlights(Figure figure) => figure.move != customMove;
+/// Whether a card highlights [figure]'s line at all: only when every word of
+/// the line comes from the app's own wording. A line holding the user's own
+/// text prints plain, since a word such as "lead" or "once" there is not
+/// reliably a dancer or an amount. That is a figure written as free text (a
+/// custom figure, which is also how the user's own figures are stored), one
+/// with its wording overridden, and a container (meanwhile, modifier,
+/// sequence) any of whose figures is either, or has a note, which its line
+/// shows in parentheses.
+bool callingCardHighlights(Figure figure) {
+  if (figure.move == customMove) return false;
+  if (figure.wordingOverride?.trim().isNotEmpty ?? false) return false;
+  for (final inner in figure.subFigures) {
+    if (inner.note?.trim().isNotEmpty ?? false) return false;
+    if (!callingCardHighlights(inner)) return false;
+  }
+  return true;
+}
 
 /// The move names [figure]'s line may print under [dialect]: its own, or,
 /// for a container (meanwhile, modifier, sequence), those of the figures
@@ -71,20 +83,23 @@ List<CallingCardSpan> highlightFigureLine(
   required Set<String> dancers,
 }) {
   final kinds = List<CallingCardSpanKind?>.filled(line.length, null);
-  final lower = line.toLowerCase();
 
+  // Matched on [line] itself, ignoring case, so every index is one of
+  // [line]'s: lower-casing a copy can change its length.
   void markAll(Iterable<String> names, CallingCardSpanKind kind) {
     final sorted = {
       for (final n in names)
         if (n.trim().isNotEmpty) n.trim().toLowerCase(),
     }.toList()..sort((a, b) => b.length.compareTo(a.length));
     for (final name in sorted) {
-      var from = 0;
-      while (true) {
-        final at = lower.indexOf(name, from);
-        if (at < 0) break;
-        final end = at + name.length;
-        from = at + 1;
+      final pattern = RegExp(
+        RegExp.escape(name),
+        caseSensitive: false,
+        unicode: true,
+      );
+      for (final match in pattern.allMatches(line)) {
+        final at = match.start;
+        final end = match.end;
         if (!_boundary(line, at - 1) || !_boundary(line, end)) continue;
         if (kinds.sublist(at, end).any((k) => k != null)) continue;
         kinds.fillRange(at, end, kind);

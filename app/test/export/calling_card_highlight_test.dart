@@ -87,6 +87,24 @@ void main() {
       expect(spans('role1s chain'), [('role1s chain', plain)]);
     });
 
+    test('a character that lengthens when lower-cased shifts nothing', () {
+      // U+0130 can lower-case to two code units; matching must use the
+      // line's own indices.
+      expect(
+        spans(
+          '\u0130stanbul partner swing',
+          moves: ['swing'],
+          dancers: {'partner'},
+        ),
+        [
+          ('\u0130stanbul ', plain),
+          ('partner', dancer),
+          (' ', plain),
+          ('swing', move),
+        ],
+      );
+    });
+
     test('an empty line has no spans', () {
       expect(spans(''), isEmpty);
     });
@@ -148,6 +166,66 @@ void main() {
           if (s.kind == move) s.text,
       ];
       expect(marked, isNotEmpty, reason: line);
+    });
+
+    test("a line holding the user's own text is not highlighted", () {
+      // A structured figure whose wording is overridden.
+      expect(
+        callingCardHighlights(
+          Figure(
+            move: 'allemande',
+            params: const {'who': 'neighbors'},
+            wordingOverride: 'lead the robins once round',
+          ),
+        ),
+        isFalse,
+      );
+      // A container with a free-text figure in it.
+      expect(
+        callingCardHighlights(
+          Figure.meanwhile(
+            figures: [
+              Figure(move: 'swing', params: const {'who': 'partners'}),
+              Figure(
+                move: customMove,
+                params: const {'text': 'lead once more'},
+              ),
+            ],
+            beats: 8,
+          ),
+        ),
+        isFalse,
+      );
+      // A container whose figure has a note, which its line shows.
+      expect(
+        callingCardHighlights(
+          Figure.meanwhile(
+            figures: [
+              Figure(move: 'swing', params: const {'who': 'partners'}),
+              Figure(
+                move: 'balance',
+                params: const {'who': 'neighbors'},
+                note: 'lead once more',
+              ),
+            ],
+            beats: 8,
+          ),
+        ),
+        isFalse,
+      );
+      // A container of the app's own wording is highlighted.
+      expect(
+        callingCardHighlights(
+          Figure.meanwhile(
+            figures: [
+              Figure(move: 'swing', params: const {'who': 'partners'}),
+              Figure(move: 'balance', params: const {'who': 'neighbors'}),
+            ],
+            beats: 8,
+          ),
+        ),
+        isTrue,
+      );
     });
 
     test('a free-text figure is not highlighted', () {
