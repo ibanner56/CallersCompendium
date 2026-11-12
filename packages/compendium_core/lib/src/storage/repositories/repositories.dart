@@ -866,6 +866,7 @@ class CompendiumRepositories {
     modifierContainerCanonicalRebuildDoneKey: null,
     taxonomyV37CanonicalRebuildDoneKey: null,
     taxonomyV38CanonicalRebuildDoneKey: null,
+    taxonomyV39CanonicalRebuildDoneKey: null,
     chainHandBackfillDoneKey: null,
     callersBoxRollAwayRoleRepairDoneKey: null,
     shareableTextNormalisationScopeKey: _normalisationScope,
@@ -989,6 +990,10 @@ class CompendiumRepositories {
         onProgress: onDerivedRebuildProgress,
       );
       rebuiltThisCall = await _emitTaxonomyV38CanonicalTextIfNeeded(
+        alreadyRebuilt: rebuiltThisCall,
+        onProgress: onDerivedRebuildProgress,
+      );
+      rebuiltThisCall = await _emitTaxonomyV39CanonicalTextIfNeeded(
         alreadyRebuilt: rebuiltThisCall,
         onProgress: onDerivedRebuildProgress,
       );
@@ -2506,6 +2511,31 @@ class CompendiumRepositories {
       await runDerivedRebuild(onProgress: onProgress);
     }
     await _writeSweepMarker(taxonomyV38CanonicalRebuildDoneKey, '"done"');
+    return true;
+  }
+
+  /// Rebuilds canonical/FTS text after taxonomy v39 (#2120) changed how a
+  /// figure 8 or poussette fraction of `other` renders: it reads its `amount`,
+  /// and with none it reads as an unstated amount, not the word "other".
+  /// Source JSON is unchanged: an `other` stored before v39 stays an `other`
+  /// with no amount, because nothing it was imported from survives to say
+  /// what the amount was (the raw payload went in schema v21, #781).
+  Future<bool> _emitTaxonomyV39CanonicalTextIfNeeded({
+    bool alreadyRebuilt = false,
+    DerivedRebuildProgressCallback? onProgress,
+  }) async {
+    final done = await db
+        .customSelect(
+          'SELECT 1 FROM settings WHERE key = ? AND deleted_at IS NULL',
+          variables: [Variable.withString(taxonomyV39CanonicalRebuildDoneKey)],
+        )
+        .get();
+    if (done.isNotEmpty) return alreadyRebuilt;
+
+    if (!alreadyRebuilt) {
+      await runDerivedRebuild(onProgress: onProgress);
+    }
+    await _writeSweepMarker(taxonomyV39CanonicalRebuildDoneKey, '"done"');
     return true;
   }
 

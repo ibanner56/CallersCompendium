@@ -2833,19 +2833,35 @@ class _MoveDefaultsEditor extends StatelessWidget {
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   for (final entry in def.params.entries)
-                    FigureParamEditor(
-                      key: ValueKey('move-default-$moveId-${entry.key}'),
-                      keyPrefix: 'move-default-$moveId',
-                      paramKey: entry.key,
-                      spec: entry.value,
-                      value: moveOverrides.containsKey(entry.key)
-                          ? moveOverrides[entry.key]
-                          : effective[entry.key],
-                      onChanged: (v) =>
-                          onMoveParamOverrideChanged(moveId, entry.key, v),
-                      dialect: dialect,
-                      moveId: moveId,
-                    ),
+                    // A default has no amount beside its fraction, so neither
+                    // the amount nor a fraction of `other` is offered (#2120).
+                    if (entry.key != fractionAmountParam)
+                      FigureParamEditor(
+                        key: ValueKey('move-default-$moveId-${entry.key}'),
+                        keyPrefix: 'move-default-$moveId',
+                        paramKey: entry.key,
+                        spec: entry.value.kind == ParamKind.fraction
+                            ? ParamSpec(
+                                ParamKind.fraction,
+                                defaultValue: entry.value.defaultValue,
+                                choices: [
+                                  for (final v in ParamVocab.fractions)
+                                    if (offersFractionChoice(
+                                      v,
+                                      moveOverrides[entry.key],
+                                    ))
+                                      v,
+                                ],
+                              )
+                            : entry.value,
+                        value: moveOverrides.containsKey(entry.key)
+                            ? moveOverrides[entry.key]
+                            : effective[entry.key],
+                        onChanged: (v) =>
+                            onMoveParamOverrideChanged(moveId, entry.key, v),
+                        dialect: dialect,
+                        moveId: moveId,
+                      ),
                 ],
               ),
           ],

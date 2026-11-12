@@ -473,7 +473,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; classified here so the catalogue has one source of truth. `settings.value_json` is `deviceLocal` at the column level so a blanket sync cannot happen by accident — these entries decide what actually travels.
 
-**113 settings keys**: 71 shareable, 12 device-local, 28 device-scoped, 1 protocol-identifier, 1 store-address. 4 personal data by category.
+**114 settings keys**: 71 shareable, 12 device-local, 29 device-scoped, 1 protocol-identifier, 1 store-address. 4 personal data by category.
 
 | Key | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |
@@ -497,6 +497,7 @@ Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; 
 | `__taxonomy_v35_figure_normalization_done__` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
 | `__taxonomy_v37_canonical_rebuild_done__` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
 | `__taxonomy_v38_canonical_rebuild_done__` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
+| `__taxonomy_v39_canonical_rebuild_done__` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
 | `active_custom_theme` | `dpv:NonPersonalData` | app user | shareable |  |
 | `active_dialect` | `dpv:NonPersonalData` | app user | shareable |  |
 | `active_dialect_ref` | `dpv:NonPersonalData` | app user | shareable |  |

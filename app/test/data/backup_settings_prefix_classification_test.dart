@@ -92,6 +92,7 @@ void main() {
       taxonomyV35FigureNormalizationDoneKey,
       taxonomyV37CanonicalRebuildDoneKey,
       taxonomyV38CanonicalRebuildDoneKey,
+      taxonomyV39CanonicalRebuildDoneKey,
       callersBoxRollAwayRoleRepairDoneKey,
       normalisationDerivedIndexRepairDoneKey,
       customFieldIndexRepairDoneKey,
@@ -138,6 +139,10 @@ void main() {
     );
     expect(
       isBackupEligibleSettingKey(taxonomyV38CanonicalRebuildDoneKey),
+      isFalse,
+    );
+    expect(
+      isBackupEligibleSettingKey(taxonomyV39CanonicalRebuildDoneKey),
       isFalse,
     );
     expect(

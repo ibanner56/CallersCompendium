@@ -36,7 +36,11 @@ enum ParamKind {
   /// distance around a ring, where [places] would add its own word.
   number,
 
-  /// `quarter` / `half` / `threeQuarter` / `full` / `other` (heys, poussettes).
+  /// `quarter` / `half` / `threeQuarter` / `full` / `other` (figure 8,
+  /// poussette). `other` means "an amount none of the named values states":
+  /// the amount itself lives in the move's sibling `amount` param
+  /// ([fractionAmountParam]), read only while the fraction is `other`
+  /// (taxonomy v39, #2120).
   fraction,
 
   /// Duration 0–64 beats (0 allowed: formation labels).
@@ -229,6 +233,96 @@ String? chainHandForWho(String who) {
     default:
       return null;
   }
+}
+
+/// The sibling param of a [ParamKind.fraction] param that states the amount
+/// when the fraction is `other` (taxonomy v39, #2120).
+///
+/// It is a [ParamKind.rotation] (quarter steps, 0.25–2.5) that opts into the
+/// [ParamVocab.unspecified] sentinel, and it is read **only** while the
+/// fraction is `other`: an amount left behind by a change to a named fraction
+/// means nothing. The fraction keeps its string tokens, and the amount is a
+/// separate param, because a peer on an older build has no way to refuse a new
+/// value type: its editor rewrites any fraction it does not recognise to
+/// `half` and syncs that back, whereas it stores and saves an extra param
+/// untouched. An older build's `validateFigure` does reject the extra param
+/// (`unknown_param`), so where it validates (import, and a figure of the
+/// user's own whose template holds such a figure) that figure is refused
+/// there; which is why the key is written only on a figure that states an
+/// amount ([Taxonomy.entryParams] does not seed it).
+///
+/// An amount equal to a named value (0.25, 0.5, 0.75, 1) is stored as that
+/// named value instead ([fractionParamsForAmount]), so in practice `other`
+/// carries 1¼–2½. `other` with no amount is a legacy row from before v39 (or
+/// a source that said "other" and nothing more): it reads as an unstated
+/// amount, never as a guessed one.
+const String fractionAmountParam = 'amount';
+
+/// Whether a fraction field with no amount beside it offers [choice] when its
+/// value is [current] (#2120): every fraction but `other`, which would be
+/// stored with no amount. Such fields are a figure of the user's own, whose
+/// argument cannot carry an amount through to the move it fills, and a
+/// per-move default in Settings, which seeds no amount. One already chosen is
+/// still offered, so it is shown rather than hidden, and it still validates:
+/// only the offer stops.
+bool offersFractionChoice(String choice, Object? current) =>
+    choice != 'other' || current == 'other';
+
+/// Whether a saved per-move default (Settings ▸ Defaults) of [value] for
+/// [key] is left unapplied (#2120): a fraction of `other`, which would seed a
+/// figure with no amount (one saved before taxonomy v39 is still stored and
+/// shown, see [offersFractionChoice]), and an amount, which Settings no
+/// longer offers.
+bool skipsMoveDefault(String key, Object? value) =>
+    key == fractionAmountParam || (key == 'fraction' && value == 'other');
+
+/// Whether an editor leaves the param [key] out for a figure with [params]:
+/// [fractionAmountParam] while the fraction is not `other`, the only value
+/// that reads it (#2120). An absent fraction is the spec default, `half`.
+bool hidesFractionAmount(String key, Map<String, Object?> params) =>
+    key == fractionAmountParam && params['fraction'] != 'other';
+
+/// The amount the editor seeds when a caller picks `other` (#2120): one and a
+/// half, the commonest amount no named fraction states.
+const num kFractionOtherSeedAmount = 1.5;
+
+/// The fraction params for a numeric [amount] in full turns of the figure:
+/// the named token when it is one (`{fraction: half}`), else `other` with the
+/// amount (`{fraction: other, amount: 1.5}`). Null when [amount] is outside
+/// the amount domain (a quarter step from 0.25 to 2.5), so a caller can leave
+/// the line unread rather than store a value that cannot be shown.
+Map<String, Object?>? fractionParamsForAmount(num amount) {
+  final named = fractionTokenForAmount(amount);
+  if (named != null) return {'fraction': named};
+  if (!isFractionAmount(amount)) return null;
+  return {'fraction': 'other', fractionAmountParam: amount};
+}
+
+/// The named [ParamKind.fraction] token for [amount] in full turns of the
+/// figure (0.5 -> `half`), or null when no named value states it.
+String? fractionTokenForAmount(num amount) => switch (amount) {
+  0.25 => 'quarter',
+  0.5 => 'half',
+  0.75 => 'threeQuarter',
+  1 => 'full',
+  _ => null,
+};
+
+/// Whether [value] is a storable fraction amount: a quarter step from 0.25 to
+/// 2.5, the same domain as [ParamKind.rotation].
+bool isFractionAmount(Object? value) =>
+    value is num && value >= 0.25 && value <= 2.5 && (value * 4) % 1 == 0;
+
+/// The amount a figure's fraction states: [fractionAmountParam] while the
+/// fraction is `other` and the amount is in domain, else null (a named
+/// fraction, or an `other` that states none).
+num? statedFractionAmount(
+  Map<String, Object?> params, {
+  String fractionParam = 'fraction',
+}) {
+  if (params[fractionParam] != 'other') return null;
+  final amount = params[fractionAmountParam];
+  return isFractionAmount(amount) ? amount! as num : null;
 }
 
 /// Specification of one named move parameter: kind, default, and (for

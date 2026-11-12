@@ -8987,6 +8987,17 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String danceEditorFractionAmountValue(String amount) {
+    return '$amount×';
+  }
+
+  @override
+  String get figureParamFractionOther => 'その他の量';
+
+  @override
+  String get figureParamFractionOtherPick => 'その他の量…';
+
+  @override
   String get commonBack => '戻る';
 
   @override

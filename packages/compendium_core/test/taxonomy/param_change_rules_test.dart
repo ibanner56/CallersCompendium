@@ -57,6 +57,76 @@ void main() {
     });
   });
 
+  group('fraction and amount (#2120)', () {
+    test('picking other seeds the amount, so other always has one', () {
+      final r = change('figure_8', {'fraction': 'half'}, 'fraction', 'other');
+      expect(r.params['fraction'], 'other');
+      expect(r.params['amount'], kFractionOtherSeedAmount);
+      // Beats follow the seeded amount: 1½ x 16.
+      expect(r.params['beats'], 24);
+    });
+
+    test('picking other keeps an amount already stated', () {
+      final r = change(
+        'poussette',
+        {'fraction': 'other', 'amount': 2.5},
+        'fraction',
+        'other',
+      );
+      expect(r.params['amount'], 2.5);
+    });
+
+    test('picking other on a legacy unstated row states an amount', () {
+      final r = change('figure_8', {'fraction': 'other'}, 'fraction', 'other');
+      expect(r.params['amount'], kFractionOtherSeedAmount);
+    });
+
+    test('picking a named fraction drops the amount', () {
+      final r = change(
+        'figure_8',
+        {'fraction': 'other', 'amount': 2},
+        'fraction',
+        'full',
+      );
+      expect(r.params['fraction'], 'full');
+      expect(r.params.containsKey('amount'), isFalse);
+      expect(r.params['beats'], 16);
+    });
+
+    test('an amount a named fraction states is stored as that fraction', () {
+      final r = change(
+        'figure_8',
+        {'fraction': 'other', 'amount': 1.5},
+        'amount',
+        1.0,
+      );
+      expect(r.params['fraction'], 'full');
+      expect(r.params.containsKey('amount'), isFalse);
+    });
+
+    test('a non-numeric amount is refused, so other keeps its amount', () {
+      final r = change(
+        'figure_8',
+        {'fraction': 'other', 'amount': 1.5},
+        'amount',
+        ParamVocab.unspecified,
+      );
+      expect(r.params['amount'], 1.5);
+      expect(r.params['beats'], 24);
+    });
+
+    test('changing the amount re-derives beats', () {
+      final r = change(
+        'figure_8',
+        {'fraction': 'other', 'amount': 1.5, 'beats': 24},
+        'amount',
+        2.0,
+      );
+      expect(r.params['amount'], 2.0);
+      expect(r.params['beats'], 32);
+    });
+  });
+
   group('promenade where (#989)', () {
     test('a rotationless destination writes the unspecified sentinel', () {
       for (final where in ['in', 'out', 'up', 'down']) {

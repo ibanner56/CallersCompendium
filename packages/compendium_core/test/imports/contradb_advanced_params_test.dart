@@ -172,11 +172,14 @@ void main() {
         'butterfly_whirl': ['direction', 'who'],
         'circle': ['singleFile'],
         'contra_corners': ['custom'],
-        'figure_8': ['lead'],
+        // ContraDB's half_or_full stops at full, so an amount past it has
+        // no ContraDB value (#2120).
+        'figure_8': ['amount', 'lead'],
         'form_long_waves': ['balance', 'whom', 'whomHand'],
         'gate': ['direction', 'pair', 'travel'],
         'hey': ['meetTarget', 'pass2'],
         'mad_robin': ['direction', 'whom'],
+        'poussette': ['amount'],
         'promenade': ['destination', 'singleFile'],
         'roll_away': ['halfSashay'],
         'slice': ['by', 'return'],

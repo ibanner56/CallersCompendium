@@ -9066,6 +9066,18 @@
   "@danceEditorTurnCount": {
     "x-sourceSha256": "bf3ef6c7d671b0b533737fd923373473cea65f73adcfbcbdd39cea05ef90ec81"
   },
+  "danceEditorFractionAmountValue": "{amount}×",
+  "@danceEditorFractionAmountValue": {
+    "x-sourceSha256": "553da8e4e4a62036af6fef16e984f65ca6452d138b08fb0c14d06957d787802f"
+  },
+  "figureParamFractionOther": "autre quantité",
+  "@figureParamFractionOther": {
+    "x-sourceSha256": "a08437dd2535b4534d402f71f66664161a72443f385f7ef12bc34aa1c36e04f8"
+  },
+  "figureParamFractionOtherPick": "autre quantité…",
+  "@figureParamFractionOtherPick": {
+    "x-sourceSha256": "87c84f8b5517f530a1517e14d57212585827b7c752bdfc3e1a87887d36a9ec7f"
+  },
   "commonBack": "Retour",
   "@commonBack": {
     "x-sourceSha256": "76900f1bfd16c8d4dd3d25e6f46638d7165aee23883ccea6bfe071c514421769"

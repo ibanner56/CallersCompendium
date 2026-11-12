@@ -181,6 +181,31 @@ notes label=""
     expect(bare, isNot(contains('Noted')));
   });
 
+  test('a fraction of other prints its amount, or that it is unstated '
+      '(#2120)', () async {
+    final dance = _dance(
+      figures: [
+        testFigure(
+          move: 'figure_8',
+          params: {
+            'fraction': 'other',
+            'amount': 1.5,
+            'where': 'none',
+            'beats': 24,
+          },
+        ),
+        testFigure(
+          move: 'poussette',
+          params: {'fraction': 'other', 'beats': 8},
+        ),
+      ],
+    );
+    final text = await _text([_entry(dance)], layout: 'figures');
+    expect(text, contains('1½'));
+    expect(text, contains('unstated'));
+    expect(text, isNot(contains('other')));
+  });
+
   group('shrink to fit', () {
     test('a card that fits prints at full size', () async {
       final report = CallingCardFitReport();
