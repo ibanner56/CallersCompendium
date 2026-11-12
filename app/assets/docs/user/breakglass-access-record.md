@@ -4,10 +4,11 @@ This file records operator access events for the hosted sync service.
 Every breakglass action must be accompanied by an access record below.
 Each record says what was read, by kind and count (for example "one device's
 manifest and 12 blobs"). It never records what those items contain, nor a sync
-ID, credential, device ID, blob hash, or secure output path: this page is
-permanent, while the server's own break-glass log, which does name the device
-ID and blob hashes read, nulls them after 30 days. Entries made before the
-**Accessed** field existed are left as they were written.
+ID (a store's address, in any form, including its encoded `Authorization`
+header value), operator credential, device ID, blob hash, or secure output path:
+this page is permanent, while the server's own break-glass log, which does name
+the device ID and blob hashes read, nulls them after 30 days. Entries made
+before the **Accessed** field existed are left as they were written.
 
 ## [YYYY-MM-DD] Entry Title
 

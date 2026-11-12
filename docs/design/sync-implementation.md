@@ -106,7 +106,7 @@ assumption about one of these six:
 4. **The two non-content-addressed JSON shapes** — `GET /v1/store` and
    `POST /v1/blobs/missing` (§5.2). These are the endpoints nothing *forced*
    into a schema, which is exactly why they were the last to get one.
-5. **Sync-ID normalisation and credential encoding** (§5.1, §8). Trim → NFC →
+5. **Sync-ID normalisation and header encoding** (§5.1, §8). Trim → NFC →
    locale-independent
    lowercase, applied identically by client and server before the HMAC — and
    then, on the wire, **base64url of the normalised UTF-8 bytes, unconditionally
@@ -696,7 +696,7 @@ which no local action can retract — so detach, epoch reset and restore all lea
 it alone. Clearing it on detach converts "the deletion sticks" into "the
 deletion silently reverts".
 
-#### W5 · Sync ID, authentication and the HTTP client
+#### W5 · Sync ID, request addressing and the HTTP client
 
 - **Serves** §5.1, §5.2, §5.3 (client half), §8.
 - **Inherits** W3 (what it sends and receives).
@@ -704,13 +704,13 @@ deletion silently reverts".
   strength **warning**; the structural rule and the **normalisation applied
   before the HMAC** (trim → NFC → locale-independent lowercase), written
   **once** as the shared definition W10 imports rather than reimplements, per
-  contract 5; the **base64url credential encoding** applied unconditionally to
+  contract 5; the **base64url sync-ID header encoding** applied unconditionally to
   every sync ID, which is what makes a non-English ID transmissible at all —
   `dart:io` throws `FormatException` on a raw header value carrying any code
   unit outside ASCII 32–127 — `café` throws, not only CJK — so the failure is a
-  local exception rather than a rejected request; bearer auth that
-  never puts the ID in a URL; and typed status handling — a first-time missing
-  store is distinct from a previously successful ID whose store disappeared,
+  local exception rather than a rejected request; the ID sent in the
+  `Authorization` header (`Bearer` scheme) and never in a URL; and typed
+  status handling — a first-time missing store is distinct from a previously successful ID whose store disappeared,
   and neither outcome creates a store; a **stale-epoch `409` from a manifest
   `PUT`** forces fresh attach, while a `409` from a *pairing* `POST /v1/store`
   is reported and stops and is never joined — on the §6.3 step 1 replacement
@@ -748,8 +748,8 @@ deletion silently reverts".
   succeeding, since the naive implementation throws before the socket is touched
   — **and an all-ASCII ID and the base64url of that same ID resolve to two
   different stores**, which is what pins the encoding as unconditional, **and a
-  `302` to a foreign https host is refused with no credentialed request
-  issued**, as are a server presenting an untrusted certificate, a
+  `302` to a foreign https host is refused with no request carrying the sync
+  ID issued**, as are a server presenting an untrusted certificate, a
   `localhost`-prefixed public host such as `localhost.example.com`, **and the
   loopback addresses `http://[::1]` and `http://127.0.0.2`** (§9 *Client isolate
   and robustness*). Those last two are separate cases on purpose: a prefix test
@@ -782,7 +782,7 @@ ruling, re-affirmed after the split; spec §8 carries the re-derivation.
   strength estimator, which now follows from the score blocking nowhere at
   all).
 - **Inherits** W3 (schemas), and **W5 for the sync-ID normalisation and
-  credential-encoding definitions only** (contract 5).
+  header-encoding definitions only** (contract 5).
 
   That second edge is narrow by design — it gates the `id_key` derivation and
   nothing else, so the rest of this unit still runs beside W5 from C1, exactly
@@ -804,7 +804,7 @@ ruling, re-affirmed after the split; spec §8 carries the re-derivation.
   and no conformance case behind it; the store, manifest and blob endpoints,
   **including `POST /v1/store` as a separate creation call that `GET` never
   performs**; strong quoted `ETag` equal to the manifest content hash, with
-  `If-None-Match`; permissive `Content-Type` handling; **base64url credential
+  `If-None-Match`; permissive `Content-Type` handling; **base64url sync-ID
   decoding that rejects malformed input with `401` rather than repairing it —
   never `U+FFFD` substitution, which maps distinct IDs onto one store**; **the
   failed store-resolution limits, per-IP and server-wide**, counting all four of
@@ -846,7 +846,7 @@ ruling, re-affirmed after the split; spec §8 carries the re-derivation.
 half of the programme and it is the *test fixture* for the expensive half: a
 merge engine developed against a mock server is a merge engine whose first
 contact with the real contract happens at the end. Start W10 at C1, after the
-shared W5 credential definition it needs, and treat "the client team has a real
+shared W5 sync-ID encoding definition it needs, and treat "the client team has a real
 server to run against" as the point of it rather than a side effect.
 
 #### W13 · Settings blade, pairing, triggers and user-facing obligations
@@ -1761,7 +1761,7 @@ buckets. Ownership is now explicit:
 
 | §9 bucket | Owning unit(s) |
 | --- | --- |
-| Wire format | W1 + **W18** (every normalisation clause: both form vectors, the collision, idempotence and derived-rebuild clauses) + **W5** (the client half of the base64url credential encoding, including the unconditional-encoding vector) + **W10** (the server half — decode, and `401` on malformed input) |
+| Wire format | W1 + **W18** (every normalisation clause: both form vectors, the collision, idempotence and derived-rebuild clauses) + **W5** (the client half of the base64url sync-ID header encoding, including the unconditional-encoding vector) + **W10** (the server half — decode, and `401` on malformed input) |
 | Cross-kind identity | **W1** (the manifest's kind nesting) + **W4** (the baseline's `kind` column) + **W6** (the merge keeping two same-id records of different kinds apart) |
 | Merge | W6 |
 | Existence | W6 (the general baseline-absence guard on §6.4) + **W8** (the fresh-attach exclusion, which is §6.2's clause and cannot be asserted by a unit that never attaches) |

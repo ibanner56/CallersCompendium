@@ -1296,6 +1296,29 @@ manifest's permission and licence declaration. Collection-level consent is
 required before commit, including when every dance is new; only potential
 duplicate rows need individual decisions.
 
+The catalog may list several versions of one collection id, but the app offers
+only the newest by SemVer precedence (`latestPublishedCollectionEntries`), so a
+re-import can never roll corrected figures back to an older release. The
+import itself is also refused when its version is lower than the highest
+version already imported for that id (`isOlderThanImportedPublishedVersion`):
+the catalog disables the button, and the review screen declines to plan a
+catalog or seed import that fails the same check. An equal version is a plain
+re-import. Catalog text that is displayed and persisted into provenance
+(`title`, `license`, `permission.grantor/holder/basis/license/fields`) is
+stripped with `sanitizeImportedText(allowLineBreaks: false)` at parse time,
+as on every other import path; a value that is empty after stripping is
+refused. The catalog is expected to list only current versions as a matter of
+repository hygiene; the client enforces latest-only regardless. Latest-only
+is by version alone, not by capability support: if the newest version needs a
+capability this build lacks, it is shown disabled as unsupported and no older
+version is offered in its place. This is a deliberate choice (the alternative,
+falling back to the newest supported version, would quietly hand a user on an
+older app a superseded release); updating the app is the fix. The guard
+covers the catalog and standalone-seed routes only: an archive pasted or opened
+through the generic import sources carries no collection version and is not
+checked. A publisher who withdraws a bad newest version must republish a higher
+version number, since users who imported it cannot move back to an older one.
+
 ### 5. A list of titles (#823)
 
 The only source whose input is **pasted text** rather than a file or a URL, and
@@ -1497,8 +1520,9 @@ shared reading", "becomes an unrecognized figure") over the bare verb.
 
 Which is which, derived from the code rather than from memory:
 
-- `tcbFigureFrontEnd` registers **nineteen** pre-recognizers: `_hey`,
-  `_circulate`, `_handBalanceSquareThrough`, `_squareThroughPassList`,
+- `tcbFigureFrontEnd` registers **twenty-one** pre-recognizers: `_hey`,
+  `_circulate`, `_waveBalanceCirculate`, `_circulateCrossBracket`,
+  `_handBalanceSquareThrough`, `_squareThroughPassList`,
   `_balanceHandAnnotation`, `_balancePairHandAnnotation`, `_gateAnnotation`,
   `_courtesyTurnAnnotation`, `_walkForwardAnnotation`, `_chainAnnotation`,
   `_starPromenadeAnnotation`, `_promenadeAnnotation`,
@@ -2046,6 +2070,20 @@ has to be judged in its own context.
     has no reading for a box circulate whose note holds a balance, at its
     start or after a comma, `;`, dash, `and` or `then`
     (`_balanceAfterCirculate`), for imports and typed figures alike.
+
+  **Caller's Box `Circulate:` and a trailing bracket (#2160):** this is the
+  Caller's Box colon form (`_circulate`), not the Caller's Companion forms
+  above. `Circulate: Women cross, men loop right [with N2]` is a box circulate
+  with `who` and `hand`, so the preceding balance folds into it as it does
+  without the bracket. The bracket must be the one `[…]` that ends the line and
+  must say `with` or `around` and a dancer the strict resolver accepts
+  (`[with N2]`, `[with shadow]`, `[around N2]`). `[with phantom]`, any other
+  head, a second bracket, text after the bracket and the non-inverse or
+  malformed definitions that decline without a bracket all stay text. The
+  figure's note is then the bracket's canonical text (`with nextNeighbors`)
+  and not the definition, which `who` and `hand` already carry; a line with no
+  bracket keeps the definition as its note, as before. (#2160 suggested keeping
+  the raw bracket in the note; this reading does not.)
 
   The author's calls:
   - The rule covers any balance written after it (`balance the ring`,

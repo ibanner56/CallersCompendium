@@ -264,6 +264,67 @@ Future<void> applyUpsertExistence(
   );
 }
 
+/// The existence write for a row a **backup restore** has just written or is
+/// removing, stamped at the backup's creation time [at] rather than causally.
+///
+/// This is the one deliberate exception to [existenceStampTick]'s invariant,
+/// and it is confined to restore. A restore is not a transition on this
+/// device's timeline: it drops the sync baseline (sync-spec §6.11) and puts
+/// back what the backup said was true **when it was made**. A causal stamp
+/// would date that claim *now* and, because it must exceed the row's current
+/// value, would outrank a deletion or revival another device made after the
+/// backup — the restore would then undo it on every device (SYNC-1). Stamping
+/// at [at] instead lets anything changed after the backup, on any device, win
+/// at the next sync, and lets the backup win over anything older.
+///
+/// * [deleted] `true`: tombstones a **live** row, setting `deleted_at`,
+///   `updated_at` and `existence_at` all to [at]. A row already deleted is left
+///   alone, as is a missing one.
+/// * [deleted] `false`: follows a drift-native upsert that has already put [at]
+///   in `updated_at`. A row the upsert revived (`deleted_at` set) or created
+///   (`existence_at` NULL) takes [at] as its `existence_at`; a row that was
+///   already live keeps its own, as an ordinary edit does
+///   ([applyUpsertExistence]).
+///
+/// Either way `existence_at` may end up **below** its previous value. That is
+/// the point: a peer's newer transition must win over the restored copy.
+Future<void> applyRestoredExistence(
+  CompendiumDatabase db, {
+  required TableInfo<Table, dynamic> table,
+  required String keyColumn,
+  required String key,
+  required DateTime at,
+  required bool deleted,
+}) {
+  assertUtc(at, 'at');
+  final stamp = unixSeconds(at);
+  if (deleted) {
+    return db.customUpdate(
+      'UPDATE ${table.actualTableName} '
+      'SET deleted_at = ?, updated_at = ?, existence_at = ? '
+      'WHERE $keyColumn = ? AND deleted_at IS NULL',
+      variables: [
+        Variable<int>(stamp),
+        Variable<int>(stamp),
+        Variable<int>(stamp),
+        Variable<String>(key),
+      ],
+      updates: {table},
+      updateKind: UpdateKind.update,
+    );
+  }
+  return db.customUpdate(
+    'UPDATE ${table.actualTableName} SET existence_at = CASE '
+    'WHEN deleted_at IS NOT NULL OR existence_at IS NULL THEN ? '
+    'ELSE existence_at END, '
+    'deleted_at = NULL '
+    'WHERE $keyColumn = ?',
+    variables: [Variable<int>(stamp), Variable<String>(key)],
+    updates: {table},
+    updateKind: UpdateKind.update,
+  );
+}
+
 /// SQL form of the causal stamp with a **second value to supersede**, for the
 /// one transition whose predecessor is not on the row being stamped.
 ///
