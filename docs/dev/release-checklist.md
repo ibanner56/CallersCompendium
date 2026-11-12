@@ -227,8 +227,11 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
  screenful, and the Tags manager at 2.0× on 360 and 412 dp with the real fonts.
  It does not cover Dance detail/card or Settings, and the editor's
  Type/Formation dropdowns are covered only by `dance_editor_narrow_test.dart`.
- `app/test/dropdown_large_text_test.dart` pumps each form dropdown above
- directly at 360 dp, 1.5× and 2.0×, with long values and every shipped locale.
+ `app/test/dropdown_large_text_test.dart` checks those form dropdowns for
+ overflow at 360 dp, 1.5× and 2.0× with long values (locale-dependent ones in
+ every shipped locale). A long value is ellipsized in the closed field and the
+ open menu, so for those fields an ellipsis is the accepted outcome here, not a
+ gate failure; overflow and clipping are.
  These supplement this gate, not replace it.)
 - [ ] **Keyboard-only navigation (desktop) — Gate.** On a desktop build
  (macOS/Linux/Windows), unplug/ignore the mouse and complete the same core
