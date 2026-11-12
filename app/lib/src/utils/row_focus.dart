@@ -9,9 +9,13 @@ import 'package:flutter/material.dart';
 /// sits on a live, traversable widget is never "lost", so a caller can use this
 /// to avoid stealing it from wherever the user has since moved it.
 bool keyboardFocusIsLost() {
-  // Only a keyboard (or switch/AT) user has focus to lose. A mouse or touch
-  // user has nothing focused as a matter of course, and moving focus for them
-  // would raise a soft keyboard or announce a button nobody was on.
+  // A touch or stylus user has nothing focused as a matter of course, and
+  // moving focus for them would raise a soft keyboard or announce a button
+  // nobody was on, so only keyboard navigation mode counts. This does not
+  // exclude a desktop mouse user: Flutter leaves the mode alone on mouse input,
+  // and desktop starts in `traditional`, so for them the move still happens
+  // (a focus ring on the next row's ⋮ button, harmless, and the same place a
+  // keyboard user needs).
   if (FocusManager.instance.highlightMode != FocusHighlightMode.traditional) {
     return false;
   }

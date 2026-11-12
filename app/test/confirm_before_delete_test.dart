@@ -597,7 +597,8 @@ void main() {
 
   group('focus after deleting a row from its ⋮ menu (A11Y-5)', () {
     // The deletes below stand in for a keyboard user's, so keep the app in
-    // keyboard navigation mode (a tap would switch it to touch mode).
+    // keyboard navigation mode, as a desktop session is by default: Flutter
+    // leaves the mode alone on mouse input, so these taps stand for both.
     setUp(() {
       FocusManager.instance.highlightStrategy =
           FocusHighlightStrategy.alwaysTraditional;

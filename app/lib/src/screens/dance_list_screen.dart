@@ -2853,8 +2853,9 @@ class _DanceListScreenState extends State<DanceListScreen>
     // the next Tab continues from where the user was instead of restarting at
     // the app bar. The snackbar's Undo is not the target: it is transient and
     // sits outside the list's traversal order. The move only happens for a
-    // keyboard user whose focus was actually dropped ([restoreFocusToRowMenu]),
-    // so a mouse or touch user, or focus that has since moved, is left alone.
+    // user in keyboard navigation mode whose focus was actually dropped
+    // ([restoreFocusToRowMenu]), so a touch user, or focus that has since moved,
+    // is left alone. A desktop mouse user is in that mode too, so is not.
     // "Next" is in display order, which differs from `_results` order when a
     // category grouping is active.
     final shown = [
