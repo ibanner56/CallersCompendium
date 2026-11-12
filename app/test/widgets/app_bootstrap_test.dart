@@ -422,6 +422,22 @@ void main() {
           'toVersion: 12',
         ],
       ),
+      'snapshot aborted, database in use': (
+        error: MigrationSnapshotAborted(
+          SnapshotFailure(
+            fromVersion: 12,
+            toVersion: 12,
+            cause: SnapshotFailureCause.databaseInUse,
+            error: const SnapshotDatabaseInUse('/home/jane.doe/compendium'),
+          ),
+        ),
+        detailLines: [
+          'MigrationSnapshotAborted',
+          'cause: databaseInUse',
+          'fromVersion: 12',
+          'toVersion: 12',
+        ],
+      ),
       'relocation blocked': (
         error: DatabaseRelocationBlocked(
           DatabaseRelocationFailure.bothExist,

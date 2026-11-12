@@ -1,0 +1,12 @@
+{
+  "id": "a11y-large-text-layout",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Screen readers no longer stop on an extra, unlabelled item for every row in the Collection and Programs lists.",
+      "At large text sizes on a phone, the Done button in Perform's Adjust program sheet stays on screen instead of being pushed off the edge.",
+      "At large text sizes, the dance editor's Type and Formation fields and the Tags and References sort row no longer overflow.",
+      "The Authors and Tags pickers in the dance editor now have a spoken name on phones."
+    ]
+  }
+}
