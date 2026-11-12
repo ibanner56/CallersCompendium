@@ -95,6 +95,21 @@ class ArchiveExporter {
   }
 }
 
+/// The instant a restore of a backup made at [backupCreatedAt] stamps the
+/// records it writes (SYNC-1, sync-spec §6.11): the backup's creation time,
+/// clamped to [now] so a backup dated in the future (a fast clock, or a
+/// hand-edited file) cannot outrank edits made after the restore, nor be
+/// refused by peers as implausibly future-dated (§6.9). `null` means there is
+/// no earlier state being put back, and stamps [now].
+///
+/// [now] defaults to the clock and is open for tests. The result is UTC.
+DateTime restoreStampFor(DateTime? backupCreatedAt, {DateTime? now}) {
+  final clock = (now ?? DateTime.now()).toUtc();
+  if (backupCreatedAt == null) return clock;
+  final made = backupCreatedAt.toUtc();
+  return made.isAfter(clock) ? clock : made;
+}
+
 /// Applies a [CompendiumArchive] to a live dataset — the restore/import half of
 /// the canonical codec.
 ///
@@ -130,13 +145,28 @@ class ArchiveRestorer {
   /// entity (or retained-join pass) so `done` climbs by one to `total`. It is
   /// advisory (a progress bar): `done` also advances past an entity that failed
   /// or was skipped, and a replace that rolls back still ends at `total`.
+  ///
+  /// [backupCreatedAt] is when the backup being restored was made. When given,
+  /// every record this restore stamps — the kinds whose archived form carries
+  /// no timestamps (difficulty levels, published sources, choreographers,
+  /// tags, custom-field defs, venues), a tombstoned tag, and the transitions a
+  /// merge applies to existing dances and programs — is stamped there instead
+  /// of now. Dances and programs carry their own `updatedAt` and keep it
+  /// either way. That makes a restore on a syncing device lose, at the next
+  /// sync, to anything another device changed after the backup, as a restored
+  /// dance already does, instead of overwriting it on every device (SYNC-1;
+  /// sync-spec §6.11). A stamp later than now is clamped to now, so a backup
+  /// from a fast clock or a hand-edited file cannot outrank this device's
+  /// next edit. Omit it to stamp now, as a write that is not a restore of
+  /// earlier state (a sample-library seed) should.
   Future<ArchiveRestoreResult> restore(
     CompendiumArchive archive, {
     RestoreMode mode = RestoreMode.replace,
+    DateTime? backupCreatedAt,
     void Function(int done, int total)? onProgress,
   }) async {
     final errors = <ArchiveError>[];
-    final causalAt = DateTime.now().toUtc();
+    final causalAt = restoreStampFor(backupCreatedAt);
     // Distinguishes an intentional abort-to-rollback (replace mode saw a write
     // error) from an unexpected transaction failure, without depending on how
     // the database layer re-surfaces the thrown sentinel.
@@ -168,8 +198,9 @@ class ArchiveRestorer {
             throw const _RestoreAborted();
           }
           // The parts kept for a peer's newer build are not cleared with the
-          // library: a record restored here is stamped at restore time, so a
-          // body without them would win and strip them from the peer. Rows of
+          // library: a record restored here is stamped at the backup's
+          // creation time, still newer than a peer's copy that has not changed since,
+          // so a body without them would win and strip them from the peer. Rows of
           // records the backup lacks are dropped by the next snapshot
           // (sync-spec §3.2, §6.7). A row still due for a record that was in
           // the trash is not exempt: its kept value replaces the backup's at
@@ -302,7 +333,7 @@ class ArchiveRestorer {
     for (final level in seededLevels) {
       final errorsBefore = errors.length;
       await _guard('difficultyLevel', level.id, errors, () async {
-        await _repos.difficultyLevels.upsert(level);
+        await _repos.difficultyLevels.upsert(level, at: causalAt);
       });
       if (errors.length == errorsBefore) {
         restoredRecords.add((
@@ -315,7 +346,7 @@ class ArchiveRestorer {
     for (final level in levelsToLoad) {
       final errorsBefore = errors.length;
       await _guard('difficultyLevel', level.id, errors, () async {
-        await _repos.difficultyLevels.upsert(level);
+        await _repos.difficultyLevels.upsert(level, at: causalAt);
       });
       if (errors.length == errorsBefore) {
         restoredRecords.add((
@@ -331,7 +362,7 @@ class ArchiveRestorer {
         // publishedSources.upsert returns Future<void> — it contains no
         // adoptTombstonedNaturalKey calls, so its id can never change. No
         // remap needed; the discard is structural, not an oversight.
-        await _repos.publishedSources.upsert(s);
+        await _repos.publishedSources.upsert(s, at: causalAt);
       });
       if (errors.length == errorsBefore) {
         restoredRecords.add((
@@ -344,7 +375,7 @@ class ArchiveRestorer {
     for (final c in archive.choreographers) {
       final errorsBefore = errors.length;
       await _guard('choreographer', c.id, errors, () async {
-        final writtenId = await _repos.choreographers.upsert(c);
+        final writtenId = await _repos.choreographers.upsert(c, at: causalAt);
         choreoRemap[c.id] = writtenId;
       });
       if (errors.length == errorsBefore) {
@@ -358,7 +389,7 @@ class ArchiveRestorer {
     for (final t in archive.tags) {
       final errorsBefore = errors.length;
       await _guard('tag', t.id, errors, () async {
-        final writtenId = await _repos.tags.upsert(t);
+        final writtenId = await _repos.tags.upsert(t, at: causalAt);
         tagRemap[t.id] = writtenId;
       });
       if (errors.length == errorsBefore) {
@@ -392,7 +423,7 @@ class ArchiveRestorer {
     for (final f in archive.customFields) {
       final errorsBefore = errors.length;
       await _guard('customField', f.id, errors, () async {
-        final writtenId = await _repos.customFieldDefs.upsert(f);
+        final writtenId = await _repos.customFieldDefs.upsert(f, at: causalAt);
         fieldRemap[f.id] = writtenId;
       });
       if (errors.length == errorsBefore) {
@@ -474,7 +505,7 @@ class ArchiveRestorer {
     for (final v in archive.venues) {
       final errorsBefore = errors.length;
       await _guard('venue', v.id, errors, () async {
-        await _repos.venues.upsert(v);
+        await _repos.venues.upsert(v, at: causalAt);
       });
       if (errors.length == errorsBefore) {
         restoredRecords.add((kind: SyncRecordKind.venue, recordId: v.id));

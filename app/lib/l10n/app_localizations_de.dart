@@ -3736,6 +3736,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Bei der Wiederherstellung wird alles in der App – Ihre Sammlung, Programme, Dialekte, Designs und Einstellungen – durch den Inhalt der Sicherung ersetzt. Dies kann nicht rückgängig gemacht werden.';
 
   @override
+  String get backupRestoreDialogSyncNote =>
+      'Dieses Gerät ist mit der Gerätesynchronisierung verbunden. Alles, was die Gerätesynchronisierung überträgt und nach dieser Sicherung auf einem Gerät geändert wurde, mit dem Sie synchronisieren, kommt bei der nächsten Synchronisierung von diesem Gerät zurück – auch hier vorgenommene und bereits synchronisierte Änderungen. Alles andere erhält die Version der Sicherung.';
+
+  @override
   String get backupChooseFileAction => 'Datei auswählen…';
 
   @override

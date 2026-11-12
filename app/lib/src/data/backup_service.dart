@@ -464,9 +464,12 @@ class BackupService {
     }
 
     final doc = read.document;
-    final restoreResult = await ArchiveRestorer(
-      _repos,
-    ).restore(doc.core, mode: mode, onProgress: onProgress);
+    final restoreResult = await ArchiveRestorer(_repos).restore(
+      doc.core,
+      mode: mode,
+      backupCreatedAt: backupCreatedAt(doc),
+      onProgress: onProgress,
+    );
     errors.addAll(restoreResult.errors);
     warnings.addAll(restoreResult.warnings);
 
@@ -576,6 +579,16 @@ class BackupService {
       );
     }
 
+    // The retry is part of the restore, and it may come after a sync pass has
+    // run against the restored library: the coordinator was recreated when the
+    // core committed, and the retry is offered until the user takes it. That
+    // pass's baseline holds a peer's newer values, so writing the backup's
+    // settings and glossary over it at the backup's time would read as a local
+    // change that peers refuse, leaving this device diverged for good. Drop
+    // the baseline again, as the core restore does (sync-spec §6.11), so the
+    // next pass is a fresh attach that lets the newer copies win. Callers run
+    // this inside the sync-writer lifecycle, as they do the restore.
+    await _repos.syncLocal.clearBaseline();
     try {
       await _applyAppSettings(read, warnings, errors: errors, mode: mode);
     } on Exception catch (e, st) {
@@ -630,24 +643,28 @@ class BackupService {
     required RestoreMode mode,
   }) => _repos.transaction(() async {
     final doc = read.document;
+    final stamp = restoreStampFor(backupCreatedAt(doc));
     final removeMissing = mode == RestoreMode.replace && read.glossaryComplete;
     if (removeMissing) {
       final keptIds = {for (final e in doc.glossaryEntries) e.id};
       for (final live in await _repos.userGlossary.listAll()) {
         if (!keptIds.contains(live.id)) {
-          await _repos.userGlossary.delete(live.id);
+          await _repos.userGlossary.deleteFromRestore(live.id, at: stamp);
         }
       }
       final keptNotes = {for (final n in doc.figureNotes) n.figureId};
       for (final live in await _repos.figureNotes.listAll()) {
         if (!keptNotes.contains(live.figureId)) {
-          await _repos.figureNotes.delete(live.figureId);
+          await _repos.figureNotes.deleteFromRestore(live.figureId, at: stamp);
         }
       }
     }
     for (final entry in doc.glossaryEntries) {
       try {
-        await _repos.userGlossary.upsertFromRestore(entry);
+        await _repos.userGlossary.upsertFromRestore(
+          entry,
+          backupCreatedAt: stamp,
+        );
       } on UserGlossaryEntryInvalid catch (e) {
         // diagnostics: silent — the skipped entry is reported in the restore outcome's errors.
         errors.add(
@@ -663,7 +680,11 @@ class BackupService {
     }
     for (final note in doc.figureNotes) {
       try {
-        await _repos.figureNotes.setFromRestore(note.figureId, note.notes);
+        await _repos.figureNotes.setFromRestore(
+          note.figureId,
+          note.notes,
+          backupCreatedAt: stamp,
+        );
       } on FigureNoteInvalid {
         // diagnostics: silent — the skipped note is reported in the restore outcome's errors.
         errors.add(
@@ -702,6 +723,14 @@ class BackupService {
   }) async {
     final doc = read.document;
     final settings = _repos.settings;
+    // Every write below is stamped at the backup's creation time, not now, so
+    // a setting another device changed after the backup wins at the next sync
+    // instead of being overwritten on every device (SYNC-1).
+    final stamp = restoreStampFor(backupCreatedAt(doc));
+    Future<void> set(String key, Object? value) =>
+        settings.setFromRestore(key, value, at: stamp);
+    Future<void> remove(String key) =>
+        settings.removeFromRestore(key, at: stamp);
 
     if (read.hasSettingsSection) {
       final existing = await settings.all();
@@ -709,7 +738,7 @@ class BackupService {
       for (final key in existing.keys) {
         if (!isBackupEligibleSettingKey(key)) continue;
         if (backedUp.contains(key)) continue;
-        await settings.remove(key);
+        await remove(key);
       }
     }
 
@@ -717,16 +746,16 @@ class BackupService {
     // legacy full-blob key in sync for any reader that still resolves the active
     // dialect from it.
     if (read.hasDialectsSection) {
-      await settings.set(kCustomDialectsKey, [
+      await set(kCustomDialectsKey, [
         for (final d in doc.customDialects) d.toJson(),
       ]);
-      await settings.set(kActiveDialectRefKey, doc.activeDialectRef);
+      await set(kActiveDialectRefKey, doc.activeDialectRef);
       final active = Dialect.resolveByName(
         doc.activeDialectRef,
         candidates: doc.customDialects,
       );
       if (active != null) {
-        await settings.set(kActiveDialectKey, active.toJson());
+        await set(kActiveDialectKey, active.toJson());
       }
     }
 
@@ -736,10 +765,10 @@ class BackupService {
 
     // Custom themes: rewrite the list and the active id.
     if (read.hasThemesSection) {
-      await settings.set(kCustomThemesKey, [
+      await set(kCustomThemesKey, [
         for (final t in doc.customThemes) t.toJson(),
       ]);
-      await settings.set(kActiveCustomThemeKey, doc.activeCustomThemeId);
+      await set(kActiveCustomThemeKey, doc.activeCustomThemeId);
     }
 
     // Preference settings: re-apply every backed-up key. The eligibility
@@ -765,14 +794,14 @@ class BackupService {
       if (!isBackupEligibleSettingKey(entry.key)) continue;
       if (jsonNestedDeeperThan(entry.value, kMaxBackupSettingDepth) ||
           validateBackupSettingValue(entry.key, entry.value) == false) {
-        await settings.remove(entry.key);
+        await remove(entry.key);
         warnings.add(
           'Skipped an invalid value for "${entry.key}" from the backup; '
           'using its default instead.',
         );
         continue;
       }
-      await settings.set(entry.key, entry.value);
+      await set(entry.key, entry.value);
     }
   }
 
@@ -810,6 +839,17 @@ class BackupService {
     return result;
   }
 }
+
+/// When the backup in [doc] was made: its envelope's `createdAt`, or, for a
+/// file that lacks a usable one, its core archive's `exportedAt` (the writer
+/// puts the same instant in both). A file with neither decodes both as the
+/// Unix epoch, which is returned: a restore of it then loses to every other
+/// device's copy at the next sync, the safe direction when nothing says how
+/// old the backup is.
+DateTime backupCreatedAt(BackupDocument doc) =>
+    doc.createdAt.millisecondsSinceEpoch != 0
+    ? doc.createdAt
+    : doc.core.exportedAt;
 
 /// Suggested filename for an exported backup, dated in the device's local time
 /// (the day the user took it, not the UTC day) so backups sort and are easy to

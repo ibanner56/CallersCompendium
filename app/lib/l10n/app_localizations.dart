@@ -5687,6 +5687,12 @@ abstract class AppLocalizations {
   /// **'Restoring replaces everything currently in the app — your collection, programs, dialects, themes, and settings — with the backup\'s contents. This cannot be undone.'**
   String get backupRestoreDialogBody;
 
+  /// Shown in the restore-from-backup dialog only while this device is paired with a Device Sync store. Restored records are stamped at the backup's creation time, so anything changed since on a synced device wins at the next sync and comes back here.
+  ///
+  /// In en, this message translates to:
+  /// **'This device is connected to Device Sync. Anything Device Sync carries that was changed after this backup was made, on any device you sync with, comes back from that device at the next sync, including changes made here and already synced. Everything else takes the backup\'s version.'**
+  String get backupRestoreDialogSyncNote;
+
   /// Button label in the restore-from-backup dialog that opens a file chooser.
   ///
   /// In en, this message translates to:
