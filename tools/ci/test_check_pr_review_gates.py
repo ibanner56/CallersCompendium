@@ -11,7 +11,10 @@ one that does nothing.
 
 from __future__ import annotations
 
+import contextlib
 import importlib.util
+import os
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -1001,6 +1004,146 @@ def test_an_unanswerable_gate_does_not_hide_the_answerable_ones() -> None:
 def test_cli_requires_explicit_closes_intent() -> None:
     code = gates.main(["closes", "1", "--repo", "o/r"])
     assert code == 2
+
+
+# --- detect_repo: no GraphQL ------------------------------------------------ #
+
+
+@contextlib.contextmanager
+def _patched(env: dict[str, str | None], git: Any, run: Any):
+    saved_env = {k: os.environ.get(k) for k in env}
+    saved = (gates._git, gates.subprocess.run)
+    for k, v in env.items():
+        if v is None:
+            os.environ.pop(k, None)
+        else:
+            os.environ[k] = v
+    gates._git, gates.subprocess.run = git, run
+    try:
+        yield
+    finally:
+        gates._git, gates.subprocess.run = saved
+        for k, v in saved_env.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+
+
+def _gh_forbidden(*a: Any, **k: Any) -> None:
+    raise AssertionError("gh must not be consulted")
+
+
+def test_parse_remote_url_shapes() -> None:
+    p = gates.parse_remote_url
+    want = "ibanner56/CallersCompendium"
+    assert p("https://github.com/ibanner56/CallersCompendium") == want
+    assert p("https://github.com/ibanner56/CallersCompendium.git") == want
+    assert p("git@github.com:ibanner56/CallersCompendium.git") == want
+    assert p("ssh://git@github.com/ibanner56/CallersCompendium") == want
+    assert p("http://local_proxy@127.0.0.1:41234/git/ibanner56/CallersCompendium") == want
+    assert p("https://github.com/ibanner56/CallersCompendium/") == want
+
+
+def test_parse_remote_url_rejects_non_shapes() -> None:
+    p = gates.parse_remote_url
+    assert p("/home/user/CallersCompendium") is None
+    assert p("CallersCompendium") is None
+    assert p("https://github.com/CallersCompendium") is None
+    assert p("") is None
+    assert p("https://github.com/o/r/pulls") is None
+    assert p("https://host/a/b/c/d") is None
+    assert p("https://github.com/o/r.git.git") is None
+    assert p("https://github.com/o/..") is None
+    assert p("https://github.com/o/r.GIT") == "o/r"
+    assert p("https://github.com/o/r ?x") is None
+
+
+def test_detect_repo_prefers_environment() -> None:
+    with _patched({"GITHUB_REPOSITORY": "o/r"}, lambda a: "", _gh_forbidden):
+        assert gates.detect_repo() == "o/r"
+
+
+def test_detect_repo_uses_git_remote_without_gh() -> None:
+    answers = {"symbolic-ref": "main", "config": "", "remote": "git@github.com:o/r.git"}
+    with _patched({"GITHUB_REPOSITORY": None}, lambda a: answers[a[0]], _gh_forbidden):
+        assert gates.detect_repo() == "o/r"
+
+
+def test_detect_repo_uses_tracking_remote_then_origin() -> None:
+    urls = {"fork": "https://github.com/me/r", "origin": "https://github.com/o/r"}
+
+    def git(a: Any) -> str:
+        if a[0] == "symbolic-ref":
+            return "feat"
+        if a[0] == "config":
+            return "fork"
+        return urls.get(a[2], "")
+
+    with _patched({"GITHUB_REPOSITORY": None}, git, _gh_forbidden):
+        assert gates.detect_repo() == "me/r"
+        urls["fork"] = "/local/path"  # unparsable -> origin
+        assert gates.detect_repo() == "o/r"
+
+
+def test_detect_repo_prefers_upstream_remote_in_a_fork_clone() -> None:
+    urls = {"upstream": "https://github.com/o/r", "origin": "https://github.com/me/r"}
+
+    def git(a: Any) -> str:
+        if a[0] == "symbolic-ref":
+            return "feat"
+        if a[0] == "config":
+            return "origin"
+        return urls.get(a[2], "")
+
+    with _patched({"GITHUB_REPOSITORY": None}, git, _gh_forbidden):
+        assert gates.detect_repo_with_source() == ("o/r", "git remote upstream")
+
+
+def test_main_prints_the_detected_repo_and_its_source() -> None:
+    answers = {"symbolic-ref": "", "remote": "https://github.com/o/r"}
+    lines: list[str] = []
+    saved = gates.run_gates
+    gates.run_gates = lambda *a, **k: 0
+    real_print = print
+    try:
+        with _patched(
+            {"GITHUB_REPOSITORY": None}, lambda a: answers.get(a[0], ""), _gh_forbidden
+        ):
+            import builtins
+
+            builtins.print = lambda *a, **k: lines.append(" ".join(map(str, a)))
+            try:
+                gates.main(["threads", "1"])
+            finally:
+                builtins.print = real_print
+    finally:
+        gates.run_gates = saved
+    assert any(l.startswith("repo: o/r (from git remote ") for l in lines), lines
+
+
+def test_detect_repo_ignores_invalid_environment_value() -> None:
+    answers = {"symbolic-ref": "", "remote": "https://github.com/o/r"}
+    for bad in ("./..", "a/b/c", "o/ r", "o/r/", "ö/r", "o/r?x", "o/r.git/"):
+        with _patched({"GITHUB_REPOSITORY": bad}, lambda a: answers.get(a[0], ""), _gh_forbidden):
+            assert gates.detect_repo() == "o/r", bad
+
+
+def test_detect_repo_falls_back_to_gh_then_errors() -> None:
+    out = {"rc": 0, "text": "x/y\n"}
+
+    def fake_run(*a: Any, **k: Any) -> Any:
+        return subprocess.CompletedProcess(a, out["rc"], out["text"], "")
+
+    with _patched({"GITHUB_REPOSITORY": None}, lambda a: "", fake_run):
+        assert gates.detect_repo() == "x/y"
+        out.update(rc=1, text="")
+        try:
+            gates.detect_repo()
+        except gates.GateError as exc:
+            assert "pass --repo" in str(exc)
+        else:
+            raise AssertionError("expected GateError")
 
 
 def main() -> int:

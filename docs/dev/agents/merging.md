@@ -8,7 +8,8 @@ python3 tools/ci/check_pr_review_gates.py all <PR_NUMBER> --closes <ISSUE>...
 ```
 
 It runs every gate even when one fails, so a single invocation reports the whole
-picture, and prints one line per gate. Exit codes: `0` all gates passed, `1` at
+picture, and prints one line per gate (after a `repo:` line when `--repo` is not
+given). Exit codes: `0` all gates passed, `1` at
 least one gate failed, `2` at least one gate was unanswerable (a `SKIP` line —
 the environment could not answer, which is not the same as a pass). Read the
 reasoning below when a gate fails, or when you are checking by hand.
@@ -105,6 +106,12 @@ labels the evidence line "via REST":
   in the PR sidebar**, so its PASS is weaker than GraphQL's; the evidence line
   says so. A denial such as `Does not close #887` still counts, as it does on
   GitHub.
+
+Repository detection needs no GraphQL either: it reads `--repo`, then
+`GITHUB_REPOSITORY`, then the git remote (`upstream`, else the branch's tracking
+remote, else `origin`), and only then asks `gh repo view`. It prints the repo and
+its source on the first line; check that it is the repo the PR is on, and pass
+`--repo` if not.
 
 Any other GraphQL failure (timeout, auth, rate limit) is still a SKIP, and exit
 2 still means a gate went unanswered.
