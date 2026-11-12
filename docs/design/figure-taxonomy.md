@@ -1824,10 +1824,19 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
     does a per-move default in Settings ▸ Defaults (`offersFractionChoice`):
     an argument cannot carry an amount through to the move it fills, and a
     default seeds none. Settings does not offer `amount` either. One already
-    chosen still validates and is still shown.
-  - A device still on v38 keeps an `amount` it receives and renders such a
-    figure as "other"; opening it there keeps `other` (a valid value) and the
-    amount.
+    chosen still validates and is still shown; a figure of your own expands
+    it as an unstated amount (no amount is seeded), and a saved `other`
+    default is no longer applied (`skipsMoveDefault`).
+  - A device still on v38 stores and saves an `amount` it receives, renders
+    such a figure as "other", and opening it in the editor keeps `other` (a
+    valid value) and the amount. Its `validateFigure` does reject the unknown
+    param (`unknown_param`), so where that build validates (an import, or a
+    figure of your own whose template holds such a figure, which then cannot
+    expand there) the figure is refused. To keep that to figures that state an
+    amount, the key is written only then: `Taxonomy.entryParams` does not seed
+    the `unspecified` default, the editor drops it with a named fraction, and
+    compound expansion does not seed one (an `other` argument expands as an
+    unstated amount).
 
 ## Open questions (to resolve during implementation, with user input)
 

@@ -1929,7 +1929,8 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     final schema = widget.taxonomy.resolve(moveId)?.params;
     if (schema == null) return;
     for (final entry in overrides.entries) {
-      if (schema.containsKey(entry.key)) {
+      if (schema.containsKey(entry.key) &&
+          !skipsMoveDefault(entry.key, entry.value)) {
         widget.draft.params[entry.key] = entry.value;
         // A saved per-move beats default is a user-configured value; treat it
         // as owned so a later non-beats edit's resync won't revert it to the
@@ -3496,6 +3497,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
             dialect: widget.dialect,
             mixer: widget.mixer,
             moveId: draft.move,
+            fractionAmountFollows: true,
             value: draft.params[entry.key] ?? entry.value.defaultValue,
             onChanged: (v) {
               if (entry.key == 'beats') {
@@ -3910,7 +3912,8 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
     if (schema == null) return;
     final draft = widget.draft;
     for (final entry in overrides.entries) {
-      if (schema.containsKey(entry.key)) {
+      if (schema.containsKey(entry.key) &&
+          !skipsMoveDefault(entry.key, entry.value)) {
         draft.params[entry.key] = entry.value;
         if (entry.key == 'beats') draft.beatsTouched = true;
       }
@@ -4174,7 +4177,8 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
     final isStep = widget.role == _ChildRole.step;
     final entries = def.params.entries
         .where((e) => isStep || e.key != 'beats')
-        // As for a top-level figure: the amount only while `other` (#2120).
+        // As for a top-level figure: the amount only while `other`, and the
+        // fraction rule below keeps `other` with one (#2120).
         .where((e) => !hidesFractionAmount(e.key, draft.params))
         .toList(growable: false);
     if (entries.isEmpty) return const SizedBox.shrink();
@@ -4191,6 +4195,7 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
             dialect: widget.dialect,
             mixer: widget.mixer,
             moveId: draft.move,
+            fractionAmountFollows: true,
             value: draft.params[entry.key] ?? entry.value.defaultValue,
             onChanged: (v) {
               if (entry.key == 'who') draft.assumedSubject = false;
@@ -4214,7 +4219,18 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
                 widget.onChanged();
                 return;
               }
-              draft.params[entry.key] = v;
+              // A fraction and its amount follow the same rule as a
+              // top-level figure's (#2120): `other` is never stored without
+              // an amount. Beats are left alone, as the container's count.
+              if (!applyFractionAmountChange(
+                widget.taxonomy,
+                move: draft.move!,
+                params: draft.params,
+                key: entry.key,
+                value: v,
+              )) {
+                draft.params[entry.key] = v;
+              }
               // #976: a `who` edit on a chain rewrites its role-implied
               // hand, mirroring ContraDB's `chainChange` (figure.js:256-263)
               // — an explicit hand set for the OLD role must not silently

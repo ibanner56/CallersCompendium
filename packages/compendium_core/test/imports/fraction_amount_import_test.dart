@@ -108,6 +108,31 @@ void main() {
       }
     }
 
+    for (final move in ['figure_8', 'poussette']) {
+      test('$move with decimals reads back', () {
+        final figure = Figure(
+          move: move,
+          params: {
+            if (move == 'figure_8') 'where': 'above',
+            'fraction': 'other',
+            'amount': 1.5,
+          },
+        );
+        final text = renderer.render(
+          figure,
+          Dialect.larksRobins,
+          decimals: true,
+        );
+        expect(text, contains('1.5'));
+        final read = parseFreeTextFigureEntry(
+          text,
+          dialect: Dialect.larksRobins,
+        );
+        expect(read.single.move, move, reason: text);
+        expect(read.single.params[fractionAmountParam], 1.5);
+      });
+    }
+
     test('the legacy word "other" still reads as an unstated other', () {
       final read = parseFreeTextFigureEntry(
         'other poussette - larks pull neighbor back then left',

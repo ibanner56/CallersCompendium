@@ -1219,6 +1219,56 @@ void main() {
     });
   });
 
+  group('fraction amount beside the top level (#2120)', () {
+    testWidgets('a meanwhile side never stores other without an amount', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[
+        FigureDraft(
+          meanwhileSides: [
+            FigureDraft(
+              move: 'figure_8',
+              params: {'fraction': 'half', 'where': 'above', 'beats': 8},
+            ),
+            FigureDraft(move: 'swing', params: {'beats': 8, 'who': 'partners'}),
+          ],
+        )..params['beats'] = 8,
+      ];
+      await _pump(tester, drafts);
+      await _openFigure(tester, 0);
+
+      await _selectDropdownOption(
+        tester,
+        'figure-0-side-0-fraction',
+        'other amount…',
+      );
+      final side = drafts.single.meanwhileSides!.first;
+      expect(side.params['fraction'], 'other');
+      expect(side.params['amount'], 1.5);
+
+      await _selectDropdownOption(tester, 'figure-0-side-0-fraction', 'full');
+      expect(side.params['fraction'], 'full');
+      expect(side.params.containsKey('amount'), isFalse);
+    });
+
+    testWidgets('a saved other default is not applied to a new figure', (
+      tester,
+    ) async {
+      final drafts = [FigureDraft()];
+      await _pump(
+        tester,
+        drafts,
+        moveParamDefaults: {
+          'figure_8': {'fraction': 'other', 'who': 'twos'},
+        },
+      );
+      await _selectMove(tester, 0, 'figure 8', 'figure_8');
+      expect(drafts.single.params['who'], 'twos');
+      expect(drafts.single.params['fraction'], isNot('other'));
+      expect(drafts.single.params.containsKey('amount'), isFalse);
+    });
+  });
+
   group('promenade direction/destination visibility & reset (#989, v30)', () {
     testWidgets('direction resets outside the across/along plane', (
       tester,

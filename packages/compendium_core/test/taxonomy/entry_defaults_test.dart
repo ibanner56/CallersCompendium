@@ -24,7 +24,8 @@ void main() {
       final overrides = expectedEntryOverrides[id] ?? const {};
       expect(
         entry,
-        {...effective, ...overrides},
+        {...effective, ...overrides}
+          ..remove(fractionAmountParam), // seeded only with `other` (#2120)
         reason:
             '$id: entry params should be its defaults plus '
             '${overrides.isEmpty ? 'nothing' : overrides}',

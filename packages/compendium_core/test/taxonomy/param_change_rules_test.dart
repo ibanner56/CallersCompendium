@@ -104,6 +104,17 @@ void main() {
       expect(r.params.containsKey('amount'), isFalse);
     });
 
+    test('a non-numeric amount is refused, so other keeps its amount', () {
+      final r = change(
+        'figure_8',
+        {'fraction': 'other', 'amount': 1.5},
+        'amount',
+        ParamVocab.unspecified,
+      );
+      expect(r.params['amount'], 1.5);
+      expect(r.params['beats'], 24);
+    });
+
     test('changing the amount re-derives beats', () {
       final r = change(
         'figure_8',

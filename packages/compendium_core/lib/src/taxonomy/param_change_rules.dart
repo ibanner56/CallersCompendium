@@ -55,6 +55,7 @@ String applyParamChange(
   required Object? value,
   required bool beatsTouched,
   required bool aggressiveBeats,
+  bool seedFractionAmount = true,
 }) {
   if (move == 'hey' && key == 'length') {
     final partial = value == 'lessThanHalf' || value == 'betweenHalfAndFull';
@@ -67,12 +68,13 @@ String applyParamChange(
     }
   }
   final oldDefault = canonicalBeatsFor(taxonomy, move, params);
-  final setByFractionRule = _applyFractionAmount(
+  final setByFractionRule = applyFractionAmountChange(
     taxonomy,
-    move,
-    params,
-    key,
-    value,
+    move: move,
+    params: params,
+    key: key,
+    value: value,
+    seed: seedFractionAmount,
   );
   if (!setByFractionRule &&
       key == 'balance' &&
@@ -107,16 +109,25 @@ String applyParamChange(
   return resolved;
 }
 
-/// Applies the fraction/amount rule for a change of [key] to [value], when
-/// [move] has a `fraction` with an `amount` and [key] is one of them. Returns
-/// whether it set [params] (so the caller does not set [key] again).
-bool _applyFractionAmount(
-  Taxonomy taxonomy,
-  String move,
-  Map<String, Object?> params,
-  String key,
-  Object? value,
-) {
+/// Applies the fraction/amount rule (#2120) for a change of [key] to [value],
+/// when [move] has a `fraction` with an `amount` and [key] is one of them, and
+/// returns whether it handled the change (so the caller does not set [key]
+/// again). Part of [applyParamChange]; public for an editor that does not
+/// reconcile beats (a meanwhile side or modifier child, whose container's
+/// beats count) but must still never store `other` without an amount.
+///
+/// [seed] false leaves an `other` with no amount as it is: compound expansion
+/// passes an argument chosen before taxonomy v39, which states none, and must
+/// not have one invented for it. A non-numeric amount is refused (the params
+/// are left as they were): `other` always states one.
+bool applyFractionAmountChange(
+  Taxonomy taxonomy, {
+  required String move,
+  required Map<String, Object?> params,
+  required String key,
+  required Object? value,
+  bool seed = true,
+}) {
   final def = taxonomy.resolve(move);
   if (def == null || !def.params.containsKey(fractionAmountParam)) {
     return false;
@@ -124,7 +135,7 @@ bool _applyFractionAmount(
   if (key == 'fraction') {
     params['fraction'] = value;
     if (value == 'other') {
-      if (statedFractionAmount(params) == null) {
+      if (seed && statedFractionAmount(params) == null) {
         params[fractionAmountParam] = kFractionOtherSeedAmount;
       }
     } else {
@@ -132,9 +143,10 @@ bool _applyFractionAmount(
     }
     return true;
   }
-  if (key == fractionAmountParam && value is num) {
-    final normalized = fractionParamsForAmount(value);
-    if (normalized == null) return false;
+  if (key == fractionAmountParam) {
+    final normalized = value is num ? fractionParamsForAmount(value) : null;
+    // Refused: not an amount (`unspecified` included) or out of domain.
+    if (normalized == null) return true;
     params.remove(fractionAmountParam);
     params.addAll(normalized);
     return true;

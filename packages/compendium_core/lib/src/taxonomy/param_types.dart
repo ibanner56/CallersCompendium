@@ -239,7 +239,12 @@ String? chainHandForWho(String who) {
 /// means nothing. The fraction keeps its string tokens, and the amount is a
 /// separate param, because a peer on an older build has no way to refuse a new
 /// value type: its editor rewrites any fraction it does not recognise to
-/// `half` and syncs that back, whereas it keeps an extra param untouched.
+/// `half` and syncs that back, whereas it stores and saves an extra param
+/// untouched. An older build's `validateFigure` does reject the extra param
+/// (`unknown_param`), so where it validates (import, and a figure of the
+/// user's own whose template holds such a figure) that figure is refused
+/// there; which is why the key is written only on a figure that states an
+/// amount ([Taxonomy.entryParams] does not seed it).
 ///
 /// An amount equal to a named value (0.25, 0.5, 0.75, 1) is stored as that
 /// named value instead ([fractionParamsForAmount]), so in practice `other`
@@ -257,6 +262,14 @@ const String fractionAmountParam = 'amount';
 /// only the offer stops.
 bool offersFractionChoice(String choice, Object? current) =>
     choice != 'other' || current == 'other';
+
+/// Whether a saved per-move default (Settings ▸ Defaults) of [value] for
+/// [key] is left unapplied (#2120): a fraction of `other`, which would seed a
+/// figure with no amount (one saved before taxonomy v39 is still stored and
+/// shown, see [offersFractionChoice]), and an amount, which Settings no
+/// longer offers.
+bool skipsMoveDefault(String key, Object? value) =>
+    key == fractionAmountParam || (key == 'fraction' && value == 'other');
 
 /// Whether an editor leaves the param [key] out for a figure with [params]:
 /// [fractionAmountParam] while the fraction is not `other`, the only value

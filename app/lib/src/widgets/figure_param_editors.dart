@@ -28,6 +28,7 @@ class FigureParamEditor extends StatelessWidget {
     required this.dialect,
     this.mixer = false,
     this.moveId,
+    this.fractionAmountFollows = false,
     this.correctsValue = true,
   });
 
@@ -57,6 +58,11 @@ class FigureParamEditor extends StatelessWidget {
   /// Move identity used only for display-specific parameter labels.
   final String? moveId;
 
+  /// Whether picking a fraction of `other` here reveals an amount field (the
+  /// dance editor's, #2120), so the choice reads "other amount…". Off
+  /// elsewhere, where a legacy `other` is shown with nothing after it.
+  final bool fractionAmountFollows;
+
   /// Whether a dropdown corrects a value outside its choices by writing a
   /// valid one back after the frame. Off where the value is the user's
   /// standing choice and an invalid one must stay visible as such, not be
@@ -66,6 +72,20 @@ class FigureParamEditor extends StatelessWidget {
   final bool correctsValue;
 
   String get _key => '$keyPrefix-$paramKey';
+
+  /// Whether [moveId] is a shipped move with a fraction amount (#2120).
+  bool get _moveHasFractionAmount =>
+      moveId != null &&
+      (contraTaxonomy
+              .resolve(moveId!)
+              ?.params
+              .containsKey(fractionAmountParam) ??
+          false);
+
+  /// Whether this field is that move's amount, not a rotation of a figure of
+  /// the user's own that happens to be named `amount`.
+  bool get _isFractionAmount =>
+      paramKey == fractionAmountParam && _moveHasFractionAmount;
 
   @override
   Widget build(BuildContext context) {
@@ -89,7 +109,7 @@ class FigureParamEditor extends StatelessWidget {
         return _dropdown(context, spec.choices ?? ParamVocab.directions);
       case ParamKind.choice:
         return _dropdown(context, spec.choices ?? const []);
-      case ParamKind.rotation when paramKey == fractionAmountParam:
+      case ParamKind.rotation when _isFractionAmount:
         // The amount an `other` fraction states (#2120). Shown only while the
         // fraction is `other`, and picking `other` seeds it, so an `other`
         // with none is a row from before taxonomy v39: it asks for an amount,
@@ -293,8 +313,12 @@ class FigureParamEditor extends StatelessWidget {
             DropdownMenuItem(
               value: choice,
               child: Text(
-                // Picking `other` reveals the amount stepper (#2120).
-                spec.kind == ParamKind.fraction && choice == 'other'
+                // Picking `other` reveals the amount stepper (#2120), in the
+                // dance editor on a move that has one.
+                spec.kind == ParamKind.fraction &&
+                        choice == 'other' &&
+                        fractionAmountFollows &&
+                        _moveHasFractionAmount
                     ? l10n.figureParamFractionOtherPick
                     : figureParamChoiceLabel(l10n, spec, dialect, choice),
               ),

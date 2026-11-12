@@ -664,9 +664,6 @@ class ContraDbAdapter implements SourceAdapter {
 
 typedef _Conv = Object? Function(Object? raw);
 
-/// One positional parameter in a ContraDB move's `parameter_values`: our
-/// named [name] and a [convert] that maps the ContraDB value into our
-/// vocabulary (returning `null` when it cannot convert cleanly).
 /// A conversion that sets several params from one positional value: a
 /// fraction amount sets `fraction` and `amount` together (#2120).
 final class _ParamGroup {
@@ -674,6 +671,10 @@ final class _ParamGroup {
   final Map<String, Object?> params;
 }
 
+/// One positional parameter in a ContraDB move's `parameter_values`: our
+/// named [name] and a [convert] that maps the ContraDB value into our
+/// vocabulary (returning `null` when it cannot convert cleanly, or a
+/// [_ParamGroup] when it sets more than one param).
 class _PosParam {
   const _PosParam(this.name, this.convert);
   final String name;

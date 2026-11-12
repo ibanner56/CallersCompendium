@@ -4,6 +4,7 @@ import '../model/enums.dart';
 import '../model/figure.dart';
 import '../validation/validation.dart';
 import 'move_def.dart';
+import 'param_types.dart';
 import 'user_figure_use.dart';
 
 /// A versioned, per-form move taxonomy.
@@ -178,6 +179,14 @@ class Taxonomy {
     for (final entry in def.params.entries) {
       final seeded = entry.value.entryDefault;
       if (seeded != null) params[entry.key] = seeded;
+    }
+    // A fraction's `amount` (#2120) is seeded only with an `other` fraction,
+    // which is never an entry default: a new figure 8 or poussette stores no
+    // `amount` key at all, so a peer still on taxonomy v38 (whose
+    // `validateFigure` rejects a param it does not know) only ever meets one
+    // on a figure that states an amount.
+    if (statedFractionAmount(params) == null) {
+      params.remove(fractionAmountParam);
     }
     return params;
   }

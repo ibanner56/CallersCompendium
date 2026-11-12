@@ -76,6 +76,26 @@ void main() {
       expect(off.single.params['beats'], 2);
     });
 
+    test('a bound other fraction expands with no invented amount (#2120)', () {
+      final definition = CompoundDefinition(
+        params: const [CompoundParam(key: 'frac', kind: ParamKind.fraction)],
+        figures: [Figure(move: 'figure_8')],
+        bindings: const [
+          CompoundSlotBinding(
+            figureIndex: 0,
+            slotKey: 'fraction',
+            paramKey: 'frac',
+          ),
+        ],
+      );
+      final other = expandCompound(definition, {'frac': 'other'}, taxonomy)!;
+      expect(other.single.params['fraction'], 'other');
+      expect(other.single.params.containsKey('amount'), isFalse);
+      expect(other.single.params['beats'], 8);
+      final full = expandCompound(definition, {'frac': 'full'}, taxonomy)!;
+      expect(full.single.params['beats'], 16);
+    });
+
     test('a bound chain role carries its role-implied hand', () {
       final definition = CompoundDefinition(
         params: const [CompoundParam(key: 'who', kind: ParamKind.dancerSet)],

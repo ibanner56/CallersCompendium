@@ -616,6 +616,10 @@ List<Figure>? expandCompound(
         value: value,
         beatsTouched: beatsTouched,
         aggressiveBeats: false,
+        // An `other` argument states no amount (one is no longer offered,
+        // and one chosen before taxonomy v39 never had one): it expands as
+        // an unstated amount, never an invented 1½ (#2120).
+        seedFractionAmount: false,
       );
     }
     final bound = figureBindings.isNotEmpty;

@@ -70,6 +70,18 @@ void main() {
     });
   });
 
+  test('a new figure 8 or poussette stores no amount key', () {
+    // A v38 peer's validateFigure rejects a param it does not know, so the
+    // key must appear only on a figure that states an amount.
+    for (final move in ['figure_8', 'poussette']) {
+      expect(
+        contraTaxonomy.entryParams(move).containsKey(fractionAmountParam),
+        isFalse,
+        reason: move,
+      );
+    }
+  });
+
   group('beats', () {
     int beats(Map<String, Object?> params) =>
         contraTaxonomy.effectiveParams(figure8(params))['beats']! as int;

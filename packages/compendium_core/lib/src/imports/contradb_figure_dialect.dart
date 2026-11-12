@@ -1065,7 +1065,14 @@ Map<String, Object?>? _displayFraction(_Scan s) {
     if (s.eatPhrase(phrase)) return {'fraction': token};
   }
   final token = s.peek();
-  final amount = token == 'two' ? 2.0 : _rotation(token);
+  // The glyph form (`1½`), the spelled whole amount (`two`), and the decimal
+  // form the "show turns as decimals" setting writes (`1.5`).
+  final amount = token == 'two'
+      ? 2.0
+      : _rotation(token) ??
+            (token != null && token.contains('.')
+                ? double.tryParse(token)
+                : null);
   final params = amount == null ? null : fractionParamsForAmount(amount);
   // Only an amount the named words do not cover: `½` is not the display's
   // wording for a half, so it is left to the other readers.
