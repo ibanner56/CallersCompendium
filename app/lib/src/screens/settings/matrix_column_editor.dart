@@ -15,6 +15,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../search/facet_labels.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/destructive_button_style.dart';
+import '../../widgets/dropdown_selection.dart';
 import '../../widgets/section_header.dart';
 import '../../widgets/dirty_dialog_guard.dart';
 import '../../widgets/figure_param_editors.dart';
@@ -819,6 +820,11 @@ class _ParameterizedColumnDialogState
                 DropdownButtonFormField<String>(
                   key: const ValueKey('matrix-parameterized-move'),
                   initialValue: _baseMove,
+                  isExpanded: true,
+                  itemHeight: null,
+                  selectedItemBuilder: ellipsizedSelection(
+                    widget.taxonomy.moves.values.map((m) => m.displayName),
+                  ),
                   decoration: InputDecoration(
                     labelText: l10n.settingsMatrixColumnsParameterizedMove,
                   ),
@@ -1199,6 +1205,11 @@ class _CompoundColumnDialogState extends State<_CompoundColumnDialog> {
             DropdownButtonFormField<String>(
               key: ValueKey('matrix-compound-step-move-$index'),
               initialValue: step.move,
+              isExpanded: true,
+              itemHeight: null,
+              selectedItemBuilder: ellipsizedSelection(
+                widget.taxonomy.moves.values.map((m) => m.displayName),
+              ),
               decoration: InputDecoration(
                 labelText: l10n.settingsMatrixColumnsCompoundMove,
               ),
