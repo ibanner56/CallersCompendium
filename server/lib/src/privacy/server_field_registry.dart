@@ -194,6 +194,52 @@ const Map<String, DataClassification> serverFieldClassifications = {
     egress: EgressClass.deviceScoped,
     note: 'Retained audit timestamp without a linkable store key.',
   ),
+  'break_glass_reads.kind': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+    note:
+        'Whether a break-glass read was a manifest or a blob; retained with '
+        'the timestamp after the linkable columns are nulled.',
+  ),
+  'break_glass_reads.id_key': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+    note:
+        'Same peppered store key as break_glass_access.id_key; nulled with it '
+        'by the sweep after 30 days.',
+  ),
+  'break_glass_reads.epoch': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+    note: 'Random store epoch read; nulled with id_key after 30 days.',
+  ),
+  'break_glass_reads.device_id': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+    note:
+        'Random per-connection device ID whose manifest was read. Unlike the '
+        'protocolIdentifier copies in manifest_refs and indexed_manifests, '
+        'this audit copy is never served or used to route a request, so it is '
+        'deviceScoped; nulled with id_key after 30 days.',
+  ),
+  'break_glass_reads.hash': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+    note:
+        'Hash of the blob read, never its content. Nulled with id_key after 30 '
+        'days because a content hash can confirm a guessed record.',
+  ),
+  'break_glass_reads.accessed_at': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+    note: 'Retained audit timestamp without a linkable store key.',
+  ),
   'diagnostic_events.status': DataClassification(
     term: DpvTerm.nonPersonal,
     subject: DataSubject.none,

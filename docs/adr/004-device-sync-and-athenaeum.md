@@ -1696,9 +1696,11 @@ makes self-hosting materially harder, which constraint 4 forbids.
   access is a matter of policy rather than capability. A break-glass path for
   abuse investigation exists, is logged, and is disclosed in the privacy policy.
   The log lives in a **separate database** — so reaping a store cannot destroy
-  the record of access to it — and holds two fields: the derived sync-ID key and
-  a timestamp. Never the plaintext ID: the store deliberately avoids holding the
-  sync ID in the clear, and a plaintext log would undo that while outliving
+  the record of access to it — and holds, per access, the derived sync-ID key
+  and a timestamp, and, per item the access is about to read, its kind
+  (manifest or blob), the epoch, and the device ID or blob hash, never its
+  content (spec §7.4). Never the plaintext ID: the store deliberately avoids
+  holding the sync ID in the clear, and a plaintext log would undo that while outliving
   the stores it describes.
 - **Identifiers are derived with HMAC, not a bare hash.** A bare SHA-256 of a
   sync ID is weak *because the ID is deliberately low-entropy*: at the ~2⁴⁰
@@ -1716,9 +1718,10 @@ makes self-hosting materially harder, which constraint 4 forbids.
   Versioned peppers with lazy re-keying are the proposed resolution; see
   [sync.md](../design/sync.md) → Recorded limitations.
 - **Even a derived identifier is linkable, so the log expires too.** The access
-  log keeps its identifier for 30 days and then **degrades to a timestamp-only
-  row**, preserving "an access occurred on this date" as a non-linkable aggregate
-  while the linkable part expires on the same schedule as everything else.
+  log keeps its identifiers for 30 days and then **degrades to timestamp-only
+  access rows** (each read row keeping only its time and kind), preserving "an
+  access occurred on this date" as a non-linkable aggregate while the linkable
+  part expires on the same schedule as everything else.
 - **Export compliance is unchanged, and was checked rather than assumed.** Device Sync
   adds no new cryptographic *category*: TLS is OS-provided, SHA-256 content
   addressing is hashing, and the binary already ships both plus Ed25519 for

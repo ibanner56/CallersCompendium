@@ -8,6 +8,24 @@ the app and of `compendium_core`; version headings below refer to
 
 ## [Unreleased]
 
+### Added
+
+- `--break-glass` can read one blob through the audited command
+  (`--break-glass-blob <hash>`), as well as one device's manifest, so reading
+  content no longer means going around the audit to the blob directory. Each
+  run now also records *what* it read, before reading it: a new
+  `break_glass_reads` table in `athenaeum-break-glass.sqlite` gets one row
+  (`manifest` or `blob`, the derived `id_key`, epoch, device ID or blob hash,
+  time) in the same transaction as the existing `break_glass_access` row. A
+  failure to write either reads nothing. Content is never recorded. The hourly
+  sweep nulls the new row's `id_key`, epoch, device ID and hash after 30 days,
+  with the access row's `id_key`, leaving the time and the kind. **Upgrade
+  note:** the table is created automatically on the first start or
+  break-glass run of this version; there is no migration step and no schema
+  version. An earlier image ignores the table, so after a rollback its rows are
+  not nulled until this version runs again. Options that do not name exactly
+  one valid item now exit `2` before the sync ID is read.
+
 ## [0.4.0] - 2026-11-12
 
 ### Added

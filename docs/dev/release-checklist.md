@@ -259,7 +259,8 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
   host-network Apache vhost.
 - [ ] Attach live staging evidence for quota and sweep alerts reaching a human,
   30-day retention removal with log-content absence, one authorized break-glass
-  access with exactly one separate audit row, and the lost-ID "not recoverable"
+  access with exactly one `break_glass_access` row and one `break_glass_reads`
+  row per item read in the separate audit database, and the lost-ID "not recoverable"
   support response.
 
 ## 9. Tag & publish

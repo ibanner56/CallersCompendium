@@ -51,13 +51,23 @@ every write.
 ### Break-glass reads
 
 After incident approval, use the supported break-glass command rather than
-querying SQLite directly. It accepts the raw sync ID on stdin, records the
-separate audit row first, and writes the selected manifest bytes to stdout:
+querying SQLite or the blob directory directly. It accepts the raw sync ID on
+stdin and reads exactly one item per run: one device's manifest
+(`--break-glass-device-id`) or one blob (`--break-glass-blob <hash>`), in the
+store's current epoch unless `--break-glass-epoch` names another. Before it
+looks the store up it records, in the separate break-glass database, an access
+row and a row naming what it is about to read (manifest and device ID, or blob
+and hash, with the requested epoch); when no epoch was requested it records the
+current one after the lookup. If either write fails it reads nothing. It never
+records the content. Then it writes the item's bytes to stdout:
 
 ```sh
 printf '%s\n' "$SYNC_ID" | docker exec -i athenaeum \
   /opt/athenaeum/bin/athenaeum --data-dir /var/lib/athenaeum --break-glass \
   --break-glass-device-id device-one > /secure/incident/manifest.bin
+printf '%s\n' "$SYNC_ID" | docker exec -i athenaeum \
+  /opt/athenaeum/bin/athenaeum --data-dir /var/lib/athenaeum --break-glass \
+  --break-glass-blob "$BLOB_HASH" > /secure/incident/blob.bin
 ```
 
 Keep the input, output, and audit evidence in approved secure locations.
@@ -127,9 +137,10 @@ Stores are reaped after 30 days without a request addressed to them by sync ID.
 Unreferenced blobs remain temporary roots for 24 hours so an in-flight upload
 can be published safely; manifest publication collects expired blobs across all
 persisted epochs, and `DELETE /v1/store` bypasses that grace period. The
-break-glass access database makes a derived sync storage path eligible for nulling
-after 30 days and nulls it by the next hourly sweep, then retains only its
-timestamp.
+break-glass access database makes a derived sync storage path, and the epoch,
+device ID, and blob hash of each item requested, eligible for nulling after 30 days
+and nulls them by the next hourly sweep, then retains only each access's
+timestamp and whether a manifest or a blob was read.
 Ordinary diagnostic events become eligible for removal after 30 days and are
 removed by the next hourly sweep; failures that do not name an existing store
 are not persisted, and the diagnostic store is capped at 10,000 rows with a
