@@ -126,6 +126,30 @@ void main() {
       expect(result, contains(('chain', move)));
     });
 
+    test('a move is found under either of its names', () {
+      final gypsy = Figure(move: 'gypsy', params: const {});
+      final names = callingCardMoveNames(
+        gypsy,
+        renderer,
+        dialect,
+        canonicalizeDiscouragedTerms: true,
+      );
+      expect(names, containsAll(['gypsy', 'shoulder round']));
+      final line = renderer.renderSummaryWithCanonicalDiscouragedTerms(
+        gypsy,
+        dialect,
+      );
+      final marked = [
+        for (final s in highlightFigureLine(
+          line,
+          moves: names,
+          dancers: dancers,
+        ))
+          if (s.kind == move) s.text,
+      ];
+      expect(marked, isNotEmpty, reason: line);
+    });
+
     test('a container figure highlights the moves inside it', () {
       final figure = Figure.meanwhile(
         figures: [

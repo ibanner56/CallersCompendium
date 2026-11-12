@@ -12,17 +12,36 @@ enum CallingCardSpanKind { plain, move, dancer, amount }
 /// A stretch of a figure line and what it is.
 typedef CallingCardSpan = ({String text, CallingCardSpanKind kind});
 
-/// The move names [figure] can print under [dialect]: its own and, for a
-/// container (meanwhile, modifier, sequence), those of the figures inside it.
+/// The move names [figure]'s line may print under [dialect]: its own and,
+/// for a container (meanwhile, modifier, sequence), those of the figures
+/// inside it. Each comes as the dialect names the move and as free text's
+/// substitutions render that name (with [canonicalizeDiscouragedTerms], a
+/// discouraged term's replacement), since the line may hold either.
 List<String> callingCardMoveNames(
   Figure figure,
   FigureRenderer renderer,
-  Dialect dialect,
-) => [
-  renderer.displayMoveName(figure.move, dialect, params: figure.params),
-  for (final inner in figure.subFigures)
-    ...callingCardMoveNames(inner, renderer, dialect),
-];
+  Dialect dialect, {
+  bool canonicalizeDiscouragedTerms = false,
+}) {
+  final name = renderer.displayMoveName(
+    figure.move,
+    dialect,
+    params: figure.params,
+  );
+  return [
+    name,
+    canonicalizeDiscouragedTerms
+        ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(name, dialect)
+        : renderer.renderFreeText(name, dialect),
+    for (final inner in figure.subFigures)
+      ...callingCardMoveNames(
+        inner,
+        renderer,
+        dialect,
+        canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+      ),
+  ];
+}
 
 /// Splits [line] into spans: each of [moves] and [dancers] found as whole
 /// words, ignoring case, and the amounts (fractions such as `½` or `3/4`,

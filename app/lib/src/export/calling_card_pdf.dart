@@ -408,6 +408,8 @@ class _CardBuilder {
                             figure,
                             renderer,
                             dialect,
+                            canonicalizeDiscouragedTerms:
+                                canonicalizeDiscouragedTerms,
                           ),
                           dancers: _dancers,
                         ))
