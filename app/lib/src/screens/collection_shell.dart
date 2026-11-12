@@ -68,8 +68,10 @@ class CollectionShell extends StatefulWidget {
   /// commands from the keyboard map and the macOS menu bar (PLAT-7, PLAT-8).
   final CollectionCommands? commands;
 
-  /// Test seam for choosing an import file; forwarded to [ImportReviewScreen].
-  /// Defaults to [pickImportFile] (native open-file dialog) when null.
+  /// Test seam for choosing an import file; forwarded to [ImportReviewScreen],
+  /// where null opens the native dialog ([pickImportAnyFile]) and an injected
+  /// picker skips extension-based source detection. The reimport flow still
+  /// defaults to [pickImportFile] when null.
   final ImportPicker? importPicker;
 
   /// Test seam for fetching an import URL; forwarded to [ImportReviewScreen].

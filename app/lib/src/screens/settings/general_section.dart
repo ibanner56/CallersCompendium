@@ -67,8 +67,10 @@ class GeneralSection extends StatefulWidget {
   /// [pickBackupFile] (native open-file dialog).
   final BackupPicker? backupPicker;
 
-  /// Test seam for choosing an import file; defaults to [pickImportFile]
-  /// (native open-file dialog). Forwarded to [ImportReviewScreen].
+  /// Test seam for choosing an import file as canned text; when null the import
+  /// screen opens the native open-file dialog ([pickImportAnyFile]). Injecting
+  /// it skips extension-based source detection. Forwarded to
+  /// [ImportReviewScreen].
   final ImportPicker? importPicker;
 
   /// Test seam for fetching an import URL; defaults to [fetchImportUrl] (real

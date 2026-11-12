@@ -155,8 +155,10 @@ class ImportReviewScreen extends StatefulWidget {
   /// order and default selection are deliberately separate (issue #823).
   final List<ImportSource> sources;
 
-  /// Test seam for choosing a file; defaults to [pickImportFile] (native
-  /// open-file dialog). Widget tests inject canned text.
+  /// Test seam for choosing a file as canned text. When null the screen uses
+  /// [filePicker], which defaults to [pickImportAnyFile] (native open-file
+  /// dialog). A text picker carries no file name, so injecting one skips
+  /// extension-based source detection.
   final ImportPicker? picker;
 
   /// Test seam for choosing a **binary** file (byte sources such as Caller's
@@ -251,9 +253,8 @@ class ImportReviewScreen extends StatefulWidget {
 }
 
 /// Decodes an already-parsed archive object; [archiveFromJson]'s shape.
-typedef ArchiveMapDecoder = ArchiveReadResult Function(
-  Map<String, Object?> root,
-);
+typedef ArchiveMapDecoder =
+    ArchiveReadResult Function(Map<String, Object?> root);
 
 enum _Phase { input, planning, review, committing }
 
@@ -2844,8 +2845,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           Semantics(
             liveRegion: true,
             child: Text(
-              AppLocalizations.of(context)
-                  .importReviewCommitProgress(done, total),
+              AppLocalizations.of(
+                context,
+              ).importReviewCommitProgress(done, total),
               key: const ValueKey('import-commit-progress'),
             ),
           ),
@@ -3763,8 +3765,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// comes from [importIssueMessage], never the issue's English `message`.
   Widget _buildBatchWarnings(BuildContext context, List<ImportIssue> warnings) {
     final l10n = AppLocalizations.of(context);
-    final messages = {for (final w in warnings) importIssueMessage(l10n, w)}
-        .toList();
+    final messages = {
+      for (final w in warnings) importIssueMessage(l10n, w),
+    }.toList();
     return Semantics(
       container: true,
       liveRegion: true,
@@ -3985,8 +3988,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       padding: const EdgeInsets.only(top: 4),
       child: Text(
         details.join(' · '),
-        style: Theme.of(context).textTheme.bodySmall
-            ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
       ),
     );
   }

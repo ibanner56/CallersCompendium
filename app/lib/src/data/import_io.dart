@@ -1758,9 +1758,8 @@ const String contraDbSearchUrl = 'https://contradb.com/api/v1/dances';
 /// [CallersBoxSearchFetcher]):
 /// ContraDB search is a POST to a single fixed endpoint whose JSON body carries
 /// the query, so the transport — not the caller — assembles the request.
-typedef ContraDbSearchFetcher = Future<String> Function(
-  ContraDbSearchRequest request,
-);
+typedef ContraDbSearchFetcher =
+    Future<String> Function(ContraDbSearchRequest request);
 
 /// A validated ContraDB search criterion for the injected transport seam.
 ///
