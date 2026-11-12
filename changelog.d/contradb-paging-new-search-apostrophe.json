@@ -1,0 +1,9 @@
+{
+  "id": "contradb-paging-new-search-apostrophe",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Scrolling through ContraDB results no longer gets stuck on a spinner when you edit the search after a page failed or was still loading, and a failed page of an apostrophe search (such as Mary's) now shows Try again instead of quietly ending the list early."
+    ]
+  }
+}

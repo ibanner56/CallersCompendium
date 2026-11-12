@@ -571,8 +571,9 @@ detail of how the server addresses a store, not a security classification. The
 member is therefore `EgressClass.storeAddress`.
 
 **The two recipient rules survive that reclassification, on their own reasons.**
-They were originally justified by saying the harm from a leaked credential is
-not that it travelled but that it was kept. That justification is gone; the
+They were originally justified under the withdrawn access-control framing, by
+saying the harm was not that the ID travelled but that it was kept. That
+justification is gone; the
 rules are not. A store address is still user-chosen text that may carry
 personal content, it still names where one person's library lives, and the
 operator has no use for the plaintext because §5.1 addresses the store by an
@@ -2785,8 +2786,8 @@ reports success.
 
 **A rule can be right while the sentence justifying it is false, and the false
 sentence is what gets audited.** Two of round 42's findings were this. Refusing
-plaintext at the listener was said to turn a disclosure into a failed
-connection — but the credential is on the wire before the listener can respond
+plaintext at the listener was said to turn a plaintext send into a failed
+connection — but the sync ID is on the wire before the listener can respond
 at all, so nothing recalls the first one; what refusal actually buys is that
 there is no *second*. And `Strict-Transport-Security` was grouped with rules
 "chosen because some common proxy violates the default", as though it protected
@@ -3002,19 +3003,20 @@ to that device — it is **not** a deletion. See "Absence never deletes".
 Base path `/v1`. TLS required; the client refuses a non-`https` endpoint except
 `http://localhost` and `http://127.0.0.1`, which self-hosters need for testing.
 
-### Authentication
+### Carrying the sync ID
 
 The sync ID travels in the standard HTTP `Authorization` request header using
-the `Bearer` scheme, with the sync ID as the credential — **never in a URL**.
+the `Bearer` scheme, carrying the sync ID — **never in a URL**.
 
 > Written as prose rather than as a literal header line on purpose: credential
 > scanners in review tooling and terminals redact anything shaped like an auth
 > header, which made an earlier draft of this section display as `******` and
 > drew a review comment asking what the scheme was. The scheme is `Bearer`.
 
-Credentials in URLs leak into server logs, proxy logs, browser history and
-`Referer` headers (CWE-598). Paths are therefore scoped implicitly by the
-authenticated sync ID and contain no secret.
+Anything in a URL is copied into server logs, proxy logs, browser history and
+`Referer` headers (CWE-598), and the sync ID names where a user keeps their
+library. Paths are therefore scoped implicitly by the sync ID in the header and
+never contain it.
 
 The server does not "look up an account". The sync ID *is* the namespace: it is
 derived into a storage key with **`HMAC-SHA256(pepper, syncID)`**, so the
@@ -3024,7 +3026,8 @@ plaintext ID is never written to disk.
 memorable by design, and a user-chosen one may sit at or below the ~2⁴⁰ the
 strength score merely warns about. Exhausting 2⁴⁰
 SHA-256 candidates is minutes on a commodity GPU, so a bare hash would let anyone
-with a stolen database recover working credentials. The pepper lives in server
+with a stolen database recover the sync IDs themselves, and with them every
+store. The pepper lives in server
 configuration, never in the database, so the database alone is useless — but
 only if the pepper is itself unguessable, which is why the specification
 requires it to be generated per deployment and forbids a shipped default. A
@@ -3066,7 +3069,7 @@ and 16 minutes, and for 5,000 records about 85. The records are small (a median
 dance is 1.7 KB of canonical JSON) and the request around them is not: measured
 in-process on the reference server, a single-blob `GET` spent 0.45–0.65 ms of
 handler time, nearly all of it paid once per request whatever it carries —
-request and response handling, authentication, the store lookup and its
+request and response handling, resolving the sync ID to its key, the store lookup and its
 `last_seen` write (0.1–0.2 ms on its own) — against 35–55 µs for each further
 blob in a batch, or 50–75 µs with gzip. Two hundred hashes a request makes that first download
 five requests. The wire format, the caps and the fallback for a server without
@@ -3679,13 +3682,13 @@ entirely.** `ArchiveRestorer` writes every entity through unconditional
 and is right for what restore is: putting a device back to a known state.
 
 Left alone, the two features contradict each other. A user restores a backup
-taken before X was deleted and synced away. X returns as a live row carrying its
-old `updatedAt` and no `existenceAt`, while the sync baseline — a separate table
-restore never touches — still records X as a tombstone. The next pass reads local
-as `changed`, remote as `same`, and the table says **upload**, unconditionally.
-Peers correctly refuse it, since the backup's `updatedAt` predates the deletion
-and its `existenceAt` predates the deletion, so it does not reverse
-network-wide. But
+taken before X was deleted and synced away. X returns as a live row whose stamps
+are no later than the backup (see *What a restore stamps* below), while the
+sync baseline — a separate table restore never touches — still records X as a
+tombstone. The next pass reads local as `changed`, remote as `same`, and the
+table says **upload**, unconditionally. Peers correctly refuse it, since the
+restored `updatedAt` and `existenceAt` both predate the deletion, so it does not
+reverse network-wide. But
 the restoring device now shows X alive **permanently, diverged from every peer,
 with no error and no path back**.
 
@@ -3733,6 +3736,57 @@ never fire. **After a restore, pending rows are revalidated against the restored
 data**: one whose record no longer exists is dropped, and one whose record is now
 uncited applies immediately rather than waiting for an event that has already
 happened.
+
+#### What a restore stamps
+
+The paragraphs above lean on one property: a restored record's stamps are no
+later than the backup. Until SYNC-1 that held only for dances and programs,
+whose archived form carries its own `updatedAt`. Every other kind's archived
+form carries no timestamp, so restore stamped those rows **now**: the reference
+kinds (tags, authors, venues, published sources, custom fields, difficulty
+levels), every setting it set or removed, and every glossary entry and figure
+note it wrote or deleted. The fresh attach then resolved each
+`changed`/`changed` pair by the higher stamp, and the restore's always won.
+Restoring a month-old backup on one device undid, on every device, the tag and
+venue renames and deletions, the glossary edits and the settings changes made
+elsewhere in that month, with nothing queued for review and nothing shown.
+
+The maintainer chose to stamp a restore's writes with **the backup's creation
+time** instead (spec §6.11, amended 2026-11-11). That gives every kind the
+property dances already had: anything changed on any device after the backup
+wins at the next sync and comes back, and the backup wins over anything older.
+It works for backups already written, because the app has always recorded when
+a backup was made (`createdAt`, and the same instant in the core archive's
+`exportedAt`), so the backup format did not change.
+
+Four details carry the weight:
+
+- **The existence stamp is not causal.** Everywhere else a transition must stamp
+  above the value it supersedes, so a revival outranks the deletion before it.
+  A restore is not a transition on this device's timeline; it puts back what
+  the backup vouches for at the time it was made. A causal floor would lift a
+  restored revival above a peer's later deletion — exactly the defect.
+  `applyRestoredExistence` therefore writes the backup's time even when that is
+  below the row's previous `existenceAt`. A replace restore clears the library
+  kinds first, so for them there is no previous value; it matters for settings,
+  glossary entries and figure notes, whose rows a restore overwrites in place.
+- **A future-dated backup is clamped to now.** A fast clock or a hand-edited
+  file could otherwise outrank every edit made after the restore, and a stamp
+  more than a day ahead is refused by peers outright (§6.9).
+- **A backup with no readable creation time stamps at the epoch**, so every
+  peer's copy wins — the safe direction when nothing says how old it is.
+- **The settings retry drops the baseline again.** When the settings step
+  fails after the core commits, the app offers a retry that can come long
+  after a sync pass has run. That pass's baseline already holds the peers'
+  newer values, so backup-dated writes over it read as local changes, peers
+  refuse them, and the device would stay diverged with nothing reported. The
+  retry therefore drops the baseline and runs under the same sync-writer
+  lifecycle as the restore.
+
+The cost is the one the restore dialog now states when the device is paired:
+with sync on, a restore cannot take back a change that another device holds,
+including a change made on this device and already synced. It returns this
+device to the backup, then sync returns everything newer.
 
 A user who genuinely wants the restored version to win can delete and re-enter
 the record, or restore it from Recently Deleted once the deletion applies — both
@@ -4114,7 +4168,7 @@ DELETE FROM stores WHERE last_seen < (now - 30 days);
 
 then cascades manifests, blob refs and blob files.
 
-`last_seen` is updated by **any** authenticated request for the store, so this
+`last_seen` is updated by **any** request that resolves the store, so this
 is a rolling TTL on activity rather than an absolute age cap: a store synced
 weekly persists indefinitely, and that is intended.
 
@@ -4358,18 +4412,22 @@ serialiser is the control.
 ## Security
 
 Threat model, following OWASP. The store holds plaintext choreography by design
-(ADR-004: no confidentiality crypto), so confidentiality rests entirely on the
-sync ID.
+(ADR-004: no confidentiality crypto), so who can read a store comes down
+entirely to who has its sync ID.
 
-### An attacker who has a sync ID
+### Anyone who has a sync ID
 
 ...can read, modify and delete the whole collection. That is inherent to a
-single store address that is also the whole capability, with no accounts, and
-ADR-004 accepts it. Mitigations are
-about making acquisition hard, not about limiting the blast radius:
+single store address that is all a request needs, with no accounts, and
+ADR-004 accepts it. What the design does is make an address hard to find by
+guessing, not limit what holding one allows — like an unlisted link, which
+anyone who has it can open, but which is hard to come across. The protections
+below keep the address hard to discover; none of them turns it into a password
+(maintainer decision, 2026-11-11, recorded in the description of #2164):
 
 - Generated IDs are four EFF-wordlist words, ~2⁵². At 1,000 guesses/second an
-  exhaustive search is ~10⁵ years; rate limiting makes it far worse.
+  exhaustive search is ~10⁵ years. The bound rests on this entropy alone: rate
+  limits bound load, not guessing (sync-spec §8, *Enumeration*).
 - **Two checks, not one, and they are enforced in different places.** The
   **format** is fixed at four hyphen-separated words, which rejects
   `isaac-banner-dances` structurally, and is enforced on **both** sides — the
@@ -4409,10 +4467,10 @@ about making acquisition hard, not about limiting the blast radius:
 
 ### What a peer can do to another peer
 
-The bearer model has a consequence beyond read access, and it is worth stating
-as plainly as the read case. `PUT /v1/manifests/{deviceId}` accepts a
-**caller-chosen** device id, and the same shared bearer authorises
-`DELETE /v1/store`. So anyone holding the sync ID can publish a manifest as
+The one-address model has a consequence beyond read access, and it is worth
+stating as plainly as the read case. `PUT /v1/manifests/{deviceId}` accepts a
+**caller-chosen** device id, and the same shared sync ID is all that
+`DELETE /v1/store` asks for. So anyone holding the sync ID can publish a manifest as
 another device, or destroy the entire store.
 
 This is inherent to "one address, no accounts", which ADR-004 chose knowingly.
@@ -4494,8 +4552,8 @@ path's stance is deliberate and unchanged.
   ContraDB search path (#765), still open in the update-manifest fetcher (#784)
   — so the sync client adopts the hardened pattern from the start rather than
   becoming the third instance.
-- **Every hop must match the configured endpoint's origin, and the credential
-  must never cross one that does not.** This was missing until round 31, and how
+- **Every hop must match the configured endpoint's origin, and the sync ID
+  must never be sent to one that does not.** This was missing until round 31, and how
   it went missing is the more useful part. The spec cited the precedent and then
   paraphrased it as "https only, no userinfo, default port, hop cap" — an
   accurate list of that helper's *incidental* checks and a complete omission of
@@ -4508,10 +4566,12 @@ path's stance is deliberate and unchanged.
   concealed.** The artifact downloader sends no `Authorization` at all, so for
   it a followed redirect leaks nothing but the fact of a download. The sync
   client puts the sync ID in `Authorization` on every request, and that ID is
-  not a session token: it is the store address *and* the full read, write and
-  `DELETE` credential, with no accounts, no rotation and no revocation. One
-  credentialed hop to a foreign origin is unrecoverable, total compromise of
-  everything the user has ever synced. Inheriting a precedent's rules is only
+  the store address: holding it is all a request needs to read, write or
+  `DELETE` the store, there are no accounts, and an address cannot be taken
+  back once someone else has it. One hop to a foreign origin that carries it
+  hands that origin everything the user has ever synced, for good — the only
+  way to stop using the address is a new phrase on every device, and deleting
+  the store is the only way to remove its contents at once. Inheriting a precedent's rules is only
   safe when the new caller's exposure is no greater than the old one's, and here
   it is strictly greater.
 - The user-configured endpoint is validated on entry: https (or localhost), no
@@ -5221,13 +5281,13 @@ must say this plainly rather than implying sync is opaque to us.
 - **A record that would need NaN or ±Infinity is rejected** — not coerced to
   `null` or `0`. Mutation-proved by coercing: the record then syncs, silently
   carrying a value the user never entered, and still fails to converge.
-- **A redirect to a foreign origin is refused and never credentialed** — assert
+- **A redirect to a foreign origin is refused and never sent the sync ID** — assert
   both halves: the request fails, *and* no request bearing `Authorization` was
   issued to the other host. Mutation-proved by validating only scheme, userinfo
   and port, which is what the spec required until round 31: an https `302` to an
   attacker's host on port 443 with no userinfo passes every one of those checks
   and takes the sync ID with it. Asserting only that the download failed would
-  pass against the mutation, because the leak happens before the failure.
+  pass against the mutation, because the ID is sent before the failure.
 - **Hostile peer blob** — the `ArgumentError` case; a malformed date rejects one
   record and does not abort the batch or escape the isolate.
 - **An unmanifested blob survives collection** — upload a blob, have a *second*
@@ -5262,7 +5322,7 @@ must say this plainly rather than implying sync is opaque to us.
   with differing leading whitespace and in NFD, and assert a single store.
   Mutation-proved by normalising on the client only. This is the nastiest
   failure in the HTTP contract because it produces *no error*: the second device
-  authenticates fine, gets a real store that happens to be empty, and reports a
+  is accepted, gets a real store that happens to be empty, and reports a
   successful sync of nothing. Every other ID disagreement surfaces as a `403`.
 
 ## Resolved since first draft
@@ -5345,7 +5405,7 @@ Storage keys are `HMAC-SHA256(pepper, syncID)` and the server retains **only the
 derived key** — plaintext sync IDs are deliberately not stored. So re-deriving a
 key under a new pepper needs an input the server does not have:
 
-- **Active stores** can be re-keyed lazily: the next authentication supplies the
+- **Active stores** can be re-keyed lazily: the next request supplies the
   plaintext, so the new key can be computed then.
 - **Inactive stores can never be re-keyed.** There is no input until a client
   returns, and if none does the entry is orphaned.
@@ -5356,7 +5416,7 @@ unreachable.
 
 Proposed resolution — **versioned peppers with lazy re-keying**: store a pepper
 version beside each derived key; hold predecessors while still referenced;
-re-derive on next authentication; drop a version once unreferenced. Orphans are
+re-derive on the store's next request; drop a version once unreferenced. Orphans are
 bounded by the ordinary 30-day disuse TTL rather than being indefinite, though a
 forced-reset path is still needed for a pepper that must be retired faster than
 that.
@@ -5581,10 +5641,10 @@ count and almost never the property being relied on.
 
 #### "Encode only when necessary" makes the receiver guess
 
-§8 permits sync IDs containing code points that cannot travel as a bearer
-credential: RFC 6750's `b64token` grammar is ASCII-only, and `dart:io` raises
+§8 permits sync IDs containing code points that cannot travel in the `Bearer`
+scheme: RFC 6750's `b64token` grammar is ASCII-only, and `dart:io` raises
 before the socket is touched rather than sending them. The ruling was to keep
-non-ASCII IDs and encode the credential as base64url of the normalised UTF-8
+non-ASCII IDs and encode the ID as base64url of the normalised UTF-8
 bytes.
 
 The part the ruling did not have to state, and the part that makes it work, is
@@ -5659,7 +5719,7 @@ sync ID.
 The score is also now computed over the **normalised** ID. Scoring the raw
 string was the same bug in miniature — it credits case and Unicode distinctions
 that normalisation collapses before the HMAC, so it reports a strength the
-credential does not have, and the section defining the normalisation sat four
+ID does not have, and the section defining the normalisation sat four
 paragraphs below the sentence ignoring it.
 
 #### Reusing a path across incarnations is a race a database cannot close

@@ -26,7 +26,8 @@ enum SyncFailureCause {
   /// The server answered 429 and asked this device to slow down.
   rateLimited,
 
-  /// The server answered 507: the store has used its storage allowance.
+  /// The server answered 507: this store is over its quota or, on newer
+  /// servers, the whole server is low on storage. The client cannot tell which, so the copy is neutral.
   storeFull,
 
   /// The server answered 413: something this device sent is over its size

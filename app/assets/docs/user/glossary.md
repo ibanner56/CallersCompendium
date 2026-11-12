@@ -115,9 +115,10 @@ A single dance transcription in your [collection](#collection): its title,
 An optional, experimental feature that keeps your library in step across your
 own devices. It is off until you turn it on in
 [Settings › Experimental](./settings.md#device-sync), and while it is off the app
-sends nothing anywhere. Your devices connect using a private sync phrase that
-only you should know. Sync is not a backup — keep making
-[backups](#backup-and-restore) too.
+sends nothing anywhere. Your devices connect using a sync phrase: it's the
+address of your shared library, so anyone who has it can open that library, and
+once someone else has it, it can't be taken back. Sync is not a backup — keep
+making [backups](#backup-and-restore) too.
 
 ## Dialect
 

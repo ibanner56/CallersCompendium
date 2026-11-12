@@ -7,7 +7,7 @@
 // `429` caps the result — unless `--shipped-request-limits` is given, which
 // keeps the shipped request-rate rows so that their `429`s show. Run it on the
 // hardware you intend to deploy to, with `--data-dir` on the disk the server
-// will use: every authenticated request commits a SQLite write and a blob
+// will use: every request that reaches a store commits a SQLite write and a blob
 // upload also flushes a file, so the disk's sync latency dominates and a tmpfs
 // directory does not represent a real disk. `--data-dir` must be new or empty:
 // the tool migrates it and inserts fixture stores, so it refuses anything else.

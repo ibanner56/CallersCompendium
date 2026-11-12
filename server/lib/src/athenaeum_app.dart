@@ -1726,8 +1726,9 @@ class AthenaeumApp {
     if (peer == null) return 'unknown';
     final forwarded = request.headers['x-forwarded-for'];
     if (trustForwardedHeaders && peer.isLoopback && forwarded != null) {
-      // Rightmost entry: the one the trusted proxy itself appended. Earlier
-      // entries are whatever the client sent.
+      // Rightmost entry: the one the trusted proxy itself wrote. The reference
+      // vhost overwrites the header, so there is one; behind a proxy that
+      // appends instead, earlier entries are whatever the client sent.
       final candidate = forwarded.split(',').last.trim();
       final parsed = InternetAddress.tryParse(candidate);
       if (parsed != null) return _rateLimitKey(parsed);
