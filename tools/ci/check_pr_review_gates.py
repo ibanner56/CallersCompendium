@@ -200,10 +200,10 @@ _REMOTE_PATTERNS = (
 
 
 def _slug(owner: str, name: str) -> str | None:
-    if name.endswith(".git"):
+    if name.lower().endswith(".git"):
         name = name[: -len(".git")]
     for part in (owner, name):
-        if not part or part in (".", "..") or part.endswith(".git"):
+        if not part or part in (".", "..") or part.lower().endswith(".git"):
             return None
     return f"{owner}/{name}"
 
@@ -254,8 +254,8 @@ def detect_repo_with_source() -> tuple[str, str]:
     then `gh repo view`. Pass `--repo` to override.
     """
     env_repo = os.environ.get("GITHUB_REPOSITORY", "").strip()
-    owner, _, name = env_repo.partition("/")
-    if env_repo and _slug(owner, name) == env_repo:
+    env_match = re.fullmatch(rf"({_SLUG})/({_SLUG})", env_repo)
+    if env_match and _slug(*env_match.groups()) == env_repo:
         return env_repo, "GITHUB_REPOSITORY"
     from_git = _repo_from_git()
     if from_git:

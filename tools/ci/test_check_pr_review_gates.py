@@ -1055,6 +1055,8 @@ def test_parse_remote_url_rejects_non_shapes() -> None:
     assert p("https://host/a/b/c/d") is None
     assert p("https://github.com/o/r.git.git") is None
     assert p("https://github.com/o/..") is None
+    assert p("https://github.com/o/r.GIT") == "o/r"
+    assert p("https://github.com/o/r ?x") is None
 
 
 def test_detect_repo_prefers_environment() -> None:
@@ -1122,8 +1124,9 @@ def test_main_prints_the_detected_repo_and_its_source() -> None:
 
 def test_detect_repo_ignores_invalid_environment_value() -> None:
     answers = {"symbolic-ref": "", "remote": "https://github.com/o/r"}
-    with _patched({"GITHUB_REPOSITORY": "./.."}, lambda a: answers.get(a[0], ""), _gh_forbidden):
-        assert gates.detect_repo() == "o/r"
+    for bad in ("./..", "a/b/c", "o/ r", "o/r/", "ö/r", "o/r?x", "o/r.git/"):
+        with _patched({"GITHUB_REPOSITORY": bad}, lambda a: answers.get(a[0], ""), _gh_forbidden):
+            assert gates.detect_repo() == "o/r", bad
 
 
 def test_detect_repo_falls_back_to_gh_then_errors() -> None:
@@ -1153,4 +1156,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-
