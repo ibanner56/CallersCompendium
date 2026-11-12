@@ -1,9 +1,0 @@
-{
-  "id": "collection-filters-fill-chips",
-  "user_visible": true,
-  "app": {
-    "fixed": [
-      "The Filters, By phrase and Advanced buttons above the Collection now grow to fill the row, with the extra width as padding inside each button, instead of staying small and spreading apart with uneven gaps."
-    ]
-  }
-}
