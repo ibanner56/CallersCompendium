@@ -4699,12 +4699,14 @@ not at the time of the restore. Call that time *T*.
   glossary entry or figure note that the backup does not hold and the restore
   therefore deletes. This stamp is **not** causal: it MAY be lower than the
   value the row held before, which is what lets a peer's later deletion or
-  revival win. Two exceptions keep the causal floor, and both stay at or near
-  *T*: a tombstoned tag the restore writes and then deletes takes *T* plus one
-  tick, and a merge restore's revival or deletion of a dance, program or
-  reference-kind record the device already holds supersedes that row's own
-  stamp as an ordinary transition would. The shipped restore is a replace,
-  which clears those kinds first.
+  revival win. Two exceptions keep the causal floor. A tombstoned tag the
+  restore writes and then deletes takes *T* plus one tick. A merge restore's
+  revival or deletion of a dance, program or reference-kind record the device
+  already holds takes the ordinary causal stamp above that row's own
+  `existenceAt`, which can be well above *T*, so it can outrank a peer's
+  transition made after the backup; that is a known gap, not the intended
+  behaviour. The shipped restore is a replace, which clears those kinds
+  first, so neither the UI nor its retry reaches it.
 
 Anything changed on any device after the backup therefore wins at the next
 sync and comes back to the restoring device, and the backup wins over
