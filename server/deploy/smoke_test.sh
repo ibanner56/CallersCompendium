@@ -229,20 +229,42 @@ encode_id() {
   printf '%s' "$1" | base64 | tr '+/' '-_' | tr -d '=[:space:]'
 }
 
-echo "checking store-creation budget (60 successes, 61st refusal)"
-for index in $(seq 1 59); do
+echo "checking per-IP store-creation budget (5 successes, 6th refusal)"
+for index in $(seq 1 5); do
+  token=$(encode_id "w16-smoke-${run_id}ip${index}-store")
+  printf '%s\n' "$token" >> "$created_credentials"
+  expect_status 201 "per-IP store creation ${index}" \
+    --interface 127.3.0.1 \
+    --request POST --header "Authorization: Bearer ${token}" \
+    "${https_url}/v1/store"
+done
+ip_extra_token=$(encode_id "w16-overip${run_id}-budget-store")
+printf '%s\n' "$ip_extra_token" >> "$created_credentials"
+expect_status 429 "per-IP store creation budget" \
+  --interface 127.3.0.1 \
+  --request POST --header "Authorization: Bearer ${ip_extra_token}" \
+  "${https_url}/v1/store"
+echo "per-IP store-creation budget: passed"
+
+# The HTTPS create above and the five per-IP successes are 6 of the 60; the
+# per-IP refusal is not charged to the server-wide budget. One creation per
+# address from here, so the server-wide budget is what refuses the 61st.
+echo "checking server-wide store-creation budget (60 successes, 61st refusal)"
+for index in $(seq 1 54); do
   token=$(encode_id "w16-smoke-${run_id}${index}-store")
   printf '%s\n' "$token" >> "$created_credentials"
   expect_status 201 "store creation ${index}" \
+    --interface "127.3.1.${index}" \
     --request POST --header "Authorization: Bearer ${token}" \
     "${https_url}/v1/store"
 done
 extra_token=$(encode_id "w16-over${run_id}-budget-store")
 printf '%s\n' "$extra_token" >> "$created_credentials"
 expect_status 429 "store creation budget" \
+  --interface 127.3.2.1 \
   --request POST --header "Authorization: Bearer ${extra_token}" \
   "${https_url}/v1/store"
-echo "store-creation budget: passed"
+echo "server-wide store-creation budget: passed"
 
 https_get_status=$(
   curl_local --silent --show-error --max-time 10 --max-redirs 0 \

@@ -1,0 +1,9 @@
+{
+  "id": "sequence-custom-step-beats",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "A free-text figure inside a sequence now shows its own Beats field, like every other step. Before, it was quietly given the default count with no way to see or change it, which threw off the sequence's total."
+    ]
+  }
+}

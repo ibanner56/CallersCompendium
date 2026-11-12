@@ -329,6 +329,7 @@ class DanceEditorForm extends StatelessWidget {
                 const SizedBox(height: AppSpacing.md),
                 DropdownButtonFormField<DanceForm>(
                   key: const ValueKey('form-field'),
+                  isExpanded: true,
                   decoration: InputDecoration(
                     labelText: l10n.danceEditorFormLabel,
                   ),
@@ -347,6 +348,7 @@ class DanceEditorForm extends StatelessWidget {
                 const SizedBox(height: AppSpacing.md),
                 DropdownButtonFormField<FormationShape>(
                   key: const ValueKey('formation-field'),
+                  isExpanded: true,
                   decoration: InputDecoration(
                     labelText: l10n.danceEditorFormationLabel,
                   ),

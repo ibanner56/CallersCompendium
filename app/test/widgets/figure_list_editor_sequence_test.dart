@@ -11,10 +11,13 @@ import '../support/l10n_harness.dart';
 /// entry, row-menu grouping, the steps' own beats and total, and the
 /// four-step and one-phrase limits.
 class _Host extends StatefulWidget {
-  const _Host({required this.drafts, required this.phrase});
+  const _Host({required this.drafts, required this.phrase, this.onEdit});
 
   final List<FigureDraft> drafts;
   final PhraseStructure phrase;
+
+  /// Called for every edit the editor reports to its host.
+  final VoidCallback? onEdit;
 
   @override
   State<_Host> createState() => _HostState();
@@ -49,7 +52,10 @@ class _HostState extends State<_Host> {
             drafts: widget.drafts,
             taxonomy: contraTaxonomy,
             phraseStructure: widget.phrase,
-            onChanged: () => setState(() {}),
+            onChanged: () {
+              widget.onEdit?.call();
+              setState(() {});
+            },
             onAdd: () => setState(() => widget.drafts.add(FigureDraft())),
             onAddSequence: () {
               final draft = FigureDraft(
@@ -77,6 +83,7 @@ Future<void> _pump(
   WidgetTester tester,
   List<FigureDraft> drafts, {
   PhraseStructure phrase = PhraseStructure.standard,
+  VoidCallback? onEdit,
 }) async {
   const size = Size(1200, 2400);
   await tester.binding.setSurfaceSize(size);
@@ -85,7 +92,9 @@ Future<void> _pump(
     tester.view.resetPhysicalSize();
     return tester.binding.setSurfaceSize(null);
   });
-  await tester.pumpWidget(_Host(drafts: drafts, phrase: phrase));
+  await tester.pumpWidget(
+    _Host(drafts: drafts, phrase: phrase, onEdit: onEdit),
+  );
   await tester.pumpAndSettle();
 }
 
@@ -154,6 +163,71 @@ void main() {
     expect(drafts.single.beats, 16);
     expect(find.text('16 beats in total'), findsOneWidget);
     expect(drafts.single.toFigure()!.beats, 16);
+  });
+
+  testWidgets('a free-text step edits its own beats like any other step', (
+    tester,
+  ) async {
+    final custom = FigureDraft(
+      move: customMove,
+      params: {'text': 'funky thing', 'beats': 8},
+      beatsTouched: true,
+    );
+    final drafts = [
+      FigureDraft(sequenceFigures: [_step('balance', 4), custom]),
+    ];
+    await _pump(tester, drafts);
+    await _open(tester, 0);
+
+    expect(find.text('12 beats in total'), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const ValueKey('figure-0-side-1-beats')),
+      '4',
+    );
+    await tester.pumpAndSettle();
+
+    expect(custom.params['beats'], 4);
+    expect(find.text('8 beats in total'), findsOneWidget);
+    final built = drafts.single.toFigure()!;
+    expect(built.beats, 8);
+    expect(built.subFigures.last.params['beats'], 4);
+  });
+
+  testWidgets('a free-text step with no stored count is seeded, not zeroed', (
+    tester,
+  ) async {
+    final custom = FigureDraft(move: customMove, params: {'text': 'old line'});
+    final drafts = [
+      FigureDraft(sequenceFigures: [_step('balance', 4), custom]),
+    ];
+    var edits = 0;
+    await _pump(tester, drafts, onEdit: () => edits++);
+    await _open(tester, 0);
+
+    // Seeding is not an edit: opening a row must not mark the dance dirty.
+    expect(edits, 0);
+    expect(custom.params['beats'], isNotNull);
+    expect(find.text('${drafts.single.beats} beats in total'), findsOneWidget);
+    expect(drafts.single.beats, greaterThan(4));
+    expect(drafts.single.toFigure()!.subFigures.last.beats, custom.beats);
+    expect(custom.beats, greaterThan(0));
+  });
+
+  testWidgets('a free-text meanwhile side still shows no beats of its own', (
+    tester,
+  ) async {
+    final drafts = [
+      FigureDraft(
+        meanwhileSides: [
+          _step('balance', 4),
+          FigureDraft(move: customMove, params: {'text': 'x', 'beats': 8}),
+        ],
+      ),
+    ];
+    await _pump(tester, drafts);
+    await _open(tester, 0);
+
+    expect(find.byKey(const ValueKey('figure-0-side-1-beats')), findsNothing);
   });
 
   testWidgets('a sequence stops at four steps', (tester) async {
