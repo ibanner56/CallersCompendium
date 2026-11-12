@@ -77,7 +77,7 @@ after 30 days of access and is nulled by the next hourly sweep; after that it
 becomes a timestamp-only aggregate row. Ordinary diagnostic events that contain
 store-derived metadata become eligible for removal after 30 days and are
 removed by the next hourly sweep. They never include request bodies, record
-content, or bearer credentials.
+content, or sync phrases.
 
 Device Sync does not transfer structured venue street address, city, region,
 country, postal or ZIP code, or contact name, phone, or email fields. **Freeform
@@ -155,8 +155,8 @@ Your local data remains under your control:
   content.
 
 When Device Sync is enabled, the configured sync service holds the selected
-content for as long as the store receives authenticated activity, then reaps it
-after 30 days of disuse. Unreferenced uploads are protected for 24 hours while
+content for as long as the store keeps receiving requests addressed to it, then
+reaps it after 30 days of disuse. Unreferenced uploads are protected for 24 hours while
 they can still be published, but deleting the store requests immediate removal.
 If physical removal fails, a durable cleanup record retries it on later requests
 and hourly sweeps.
@@ -164,7 +164,7 @@ The access log's derived sync storage path becomes eligible for nulling 30 days
 after access and is nulled by the next hourly sweep; it retains a timestamp-only
 aggregate row after that. Ordinary diagnostic events become eligible for
 removal after 30 days and are removed by the next hourly sweep. They contain no
-content or bearer credentials.
+content or sync phrases.
 
 ### 8. Open source
 

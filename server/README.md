@@ -75,7 +75,7 @@ For production, reserve port `33333` on the Linux host and run the container
 with host networking. Apache must proxy only HTTPS `/v1/` requests to
 `127.0.0.1:33333`; the plaintext `:80` vhost must refuse `/v1` rather than
 redirecting it. The reference vhost serves the static status page at `/` from
-`/var/www/athenaeum`, proxies the credential-free `/heartbeat` liveness check,
+`/var/www/athenaeum`, proxies the `/heartbeat` liveness check (which takes no sync ID),
 and proxies the API under `/v1/` only over HTTPS. Install the status page and
 its [`deploy/status/icon.svg`](deploy/status/icon.svg) app icon at that
 document root before enabling the vhost. The reference vhost is
@@ -123,7 +123,7 @@ file without charging quota again. Every pending physical file remains
 charged against recreated-store quotas, and an epoch that gains a stale upload is
 preserved until its refs are gone. Store deletion also prioritizes all
 directories belonging to that store before background retries.
-Stores are reaped after 30 days without an authenticated request.
+Stores are reaped after 30 days without a request addressed to them by sync ID.
 Unreferenced blobs remain temporary roots for 24 hours so an in-flight upload
 can be published safely; manifest publication collects expired blobs across all
 persisted epochs, and `DELETE /v1/store` bypasses that grace period. The
@@ -131,8 +131,9 @@ break-glass access database makes a derived sync storage path eligible for nulli
 after 30 days and nulls it by the next hourly sweep, then retains only its
 timestamp.
 Ordinary diagnostic events become eligible for removal after 30 days and are
-removed by the next hourly sweep; unauthenticated failures are not persisted,
-and the diagnostic store is capped at 10,000 rows with a timestamp index.
+removed by the next hourly sweep; failures that do not name an existing store
+are not persisted, and the diagnostic store is capped at 10,000 rows with a
+timestamp index.
 
 ## Load testing
 
@@ -173,7 +174,7 @@ failure and creation budgets, the large-body caps and the free-space floor stay
 lifted.
 
 Run it on the hardware you deploy to, with `--data-dir` on the disk the server
-will use. Every authenticated request commits a SQLite write and every blob
+will use. Every request that reaches a store commits a SQLite write and every blob
 upload also flushes a file, so disk sync latency dominates and a tmpfs directory
 does not represent a real disk. A supplied `--data-dir` is left in place
 afterwards; delete it once you have the numbers.
