@@ -11949,4 +11949,15 @@ class AppLocalizationsDa extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get settingsCallingCardsSheetsTitle => 'Flere kort pr. side';
+
+  @override
+  String get settingsCallingCardsSheetsSubtitle =>
+      'Udskriv på almindeligt papir, så mange kort pr. side som der er plads til, med mærker at skære efter. Papiret er det, du vælger, når du udskriver.';
+
+  @override
+  String get exportCallingCardsBiggerThanPaper =>
+      'Disse kort er større end papiret, så hvert kort blev udskrevet mindre, ét pr. side.';
 }

@@ -6,6 +6,9 @@ import 'package:compendium_app/src/export/calling_card_sample.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_core/testing.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'dart:typed_data';
+
+import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import '../support/pdf_probe.dart';
@@ -269,6 +272,98 @@ notes label=""
       expect(latin1.decode(pdf), isNot(contains('Helvetica')));
     },
   );
+
+  group('several to a page', () {
+    test('the grid fits the most cards, turning them when that fits more', () {
+      // 5 × 3 in on Letter: 3 upright (one column), 4 turned (2 × 2).
+      expect(
+        callingCardSheetGrid(PdfPageFormat.letter, kDefaultCallingCardSize),
+        (columns: 2, rows: 2, rotated: true, margin: kCallingCardSheetMargin),
+      );
+      // 6 × 4 in on Letter: 2 either way, so they stay upright.
+      expect(
+        callingCardSheetGrid(
+          PdfPageFormat.letter,
+          kCallingCardSizePresets['index4x6']!,
+        ),
+        (columns: 1, rows: 2, rotated: false, margin: kCallingCardSheetMargin),
+      );
+      // An upright 5 × 8 in card fits once; turned, it is 8 in across,
+      // exactly Letter's printable width, and two stack in its 10.5 in.
+      expect(
+        callingCardSheetGrid(
+          PdfPageFormat.letter,
+          const CallingCardSize(5, 8, CallingCardUnit.inch),
+        ),
+        (columns: 1, rows: 2, rotated: true, margin: kCallingCardSheetMargin),
+      );
+      // A6 is a quarter of A4 and A7 an eighth: they only tile it by
+      // filling the page, which needs no margin.
+      expect(
+        callingCardSheetGrid(PdfPageFormat.a4, kCallingCardSizePresets['a6']!),
+        (columns: 2, rows: 2, rotated: true, margin: 0.0),
+      );
+      final a7 = callingCardSheetGrid(
+        PdfPageFormat.a4,
+        kCallingCardSizePresets['a7']!,
+      );
+      expect(a7.columns * a7.rows, 8);
+      expect(a7.margin, 0);
+      // Larger than the paper either way.
+      final big = callingCardSheetGrid(
+        PdfPageFormat.letter,
+        const CallingCardSize(14, 13, CallingCardUnit.inch),
+      );
+      expect(big.columns * big.rows, 0);
+    });
+
+    Future<Uint8List> sheets(
+      int count, {
+      CallingCardSize size = kDefaultCallingCardSize,
+      CallingCardFitReport? report,
+    }) => buildCallingCardsPdf(
+      [for (var i = 0; i < count; i++) _entry(_dance(title: 'Dance $i'))],
+      layout: CallingCardLayout.parse('title'),
+      size: size,
+      dialect: Dialect.canonical,
+      fields: DanceShareField.allExceptTunes,
+      theme: _theme,
+      sheet: PdfPageFormat.letter,
+      report: report,
+    );
+
+    test('pages are the paper, filled a grid at a time', () async {
+      final report = CallingCardFitReport();
+      final pdf = await sheets(5, report: report);
+      expect(pdfMediaBox(pdf), (612, 792));
+      expect(pdfPageCount(pdf), 2, reason: '4 to a page, then 1');
+      expect(report.scales, hasLength(5));
+      expect(report.cardsShrunkToSheet, isFalse);
+      final text = pdfText(pdf);
+      for (var i = 0; i < 5; i++) {
+        expect(text, contains('$i'));
+      }
+      expect(pdfPageCount(await sheets(4)), 1);
+    });
+
+    test(
+      'cards bigger than the paper print one to a page, and say so',
+      () async {
+        final report = CallingCardFitReport();
+        final pdf = await sheets(
+          3,
+          size: const CallingCardSize(14, 13, CallingCardUnit.inch),
+          report: report,
+        );
+        expect(pdfMediaBox(pdf), (612, 792));
+        expect(pdfPageCount(pdf), 3);
+        expect(report.cardsShrunkToSheet, isTrue);
+        // The flag is cleared by the next build.
+        await sheets(1, report: report);
+        expect(report.cardsShrunkToSheet, isFalse);
+      },
+    );
+  });
 
   test('the editor sample dance is valid under the taxonomy', () {
     final sample = callingCardSampleDance(

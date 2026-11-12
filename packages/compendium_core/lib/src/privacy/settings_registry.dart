@@ -120,8 +120,9 @@ final Map<String, DataClassification> settingsClassifications = {
     subject: DataSubject.appUser,
     egress: EgressClass.shareable,
     note:
-        'Whether calling cards are offered, the card size and the card '
-        'layout: how the user likes their cards printed, which is the same '
+        'Whether calling cards are offered, the card size, whether they print '
+        'several to a page, and the card layout: how the user likes their '
+        'cards printed, which is the same '
         'card stock on any device they own, so it travels like any '
         'preference. The layout can hold free text the user typed for a '
         'text block; like walkthrough_snippets, that is configuration the '

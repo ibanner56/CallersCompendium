@@ -12027,4 +12027,15 @@ class AppLocalizationsNl extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get settingsCallingCardsSheetsTitle => 'Meerdere kaarten per pagina';
+
+  @override
+  String get settingsCallingCardsSheetsSubtitle =>
+      'Afdrukken op gewoon papier, zoveel kaarten per pagina als er passen, met snijtekens. Het papier is het papier dat je kiest bij het afdrukken.';
+
+  @override
+  String get exportCallingCardsBiggerThanPaper =>
+      'Deze kaarten zijn groter dan het papier, dus elke kaart is kleiner afgedrukt, één per pagina.';
 }

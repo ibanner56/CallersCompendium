@@ -160,6 +160,49 @@ void main() {
       expect(pdfMediaBox(await capture.letter(tester)), (288, 432));
     });
 
+    testWidgets('several to a page uses the paper the dialog chose', (
+      tester,
+    ) async {
+      final capture = _Capture();
+      await tester.pumpWidget(
+        _app(
+          _danceMenu(_dance('d1'), capture),
+          const CallingCardSettings(enabled: true, onSheets: true),
+        ),
+      );
+      await _open(tester, 'dance-export-menu');
+      await tester.tap(find.text('Print calling card'));
+      await tester.pumpAndSettle();
+      final pdf = await capture.letter(tester);
+      expect(pdfMediaBox(pdf), (612, 792));
+      expect(find.textContaining('bigger than the paper'), findsNothing);
+    });
+
+    testWidgets('says when cards were bigger than the paper', (tester) async {
+      final capture = _Capture();
+      await tester.pumpWidget(
+        _app(
+          _danceMenu(_dance('d1'), capture),
+          const CallingCardSettings(
+            enabled: true,
+            onSheets: true,
+            size: CallingCardSize(14, 13, CallingCardUnit.inch),
+          ),
+        ),
+      );
+      await _open(tester, 'dance-export-menu');
+      await tester.tap(find.text('Print calling card'));
+      await tester.pumpAndSettle();
+      await capture.letter(tester);
+      expect(
+        find.text(
+          'These cards are bigger than the paper, so each was printed '
+          'smaller, one to a page.',
+        ),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('says when the card was cut off', (tester) async {
       final capture = _Capture();
       await tester.pumpWidget(

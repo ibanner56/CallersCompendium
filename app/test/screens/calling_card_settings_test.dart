@@ -158,6 +158,20 @@ void main() {
       });
     });
 
+    testWidgets('Several cards to a page is stored', (tester) async {
+      final h = await _pump(
+        tester,
+        _section(),
+        settings: const CallingCardSettings(enabled: true),
+      );
+      await tester.tap(find.byKey(const ValueKey('calling-card-sheets')));
+      await tester.pumpAndSettle();
+      expect(h.notifier.value.onSheets, isTrue);
+      await tester.runAsync(() async {
+        expect((await h.stored()).onSheets, isTrue);
+      });
+    });
+
     testWidgets('Landscape turns the card', (tester) async {
       final h = await _pump(
         tester,

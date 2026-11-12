@@ -19,6 +19,9 @@ import 'export_guard.dart';
 /// [pdfLayouter] is the Export menus' test seam. Without it the dialog opens
 /// on the card's own paper size and does not re-lay the cards out when the
 /// user picks other paper: a card is printed at its size, on card stock.
+/// With [CallingCardSettings.onSheets] it is the other way round: the cards
+/// are laid out several to a page of whatever paper the dialog chooses, and
+/// again whenever the user changes it.
 ///
 /// Every context-dependent value is a parameter, resolved by the caller
 /// before any await, as for the other exports.
@@ -41,8 +44,9 @@ Future<void> printCallingCards({
   final labels = danceExportLabels(l10n);
   final layout = CallingCardLayout.parse(settings.layoutSource);
   final size = settings.size;
-  // The dialog's paper is not used: each page is the card.
-  Future<Uint8List> build(PdfPageFormat _) => buildCallingCardsPdf(
+  final onSheets = settings.onSheets;
+  // On card stock the dialog's paper is not used: each page is the card.
+  Future<Uint8List> build(PdfPageFormat paper) => buildCallingCardsPdf(
     entries,
     layout: layout,
     size: size,
@@ -54,11 +58,14 @@ Future<void> printCallingCards({
     documentTitle: jobName,
     canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
     report: report,
+    sheet: onSheets ? paper : null,
   );
   // The seam does not say whether the user printed; the real dialog does.
   var printed = true;
   if (pdfLayouter != null) {
     await pdfLayouter(name: jobName, onLayout: build);
+  } else if (onSheets) {
+    printed = await Printing.layoutPdf(name: jobName, onLayout: build);
   } else {
     printed = await Printing.layoutPdf(
       name: jobName,
@@ -67,10 +74,16 @@ Future<void> printCallingCards({
       onLayout: build,
     );
   }
+  if (!printed) return;
   final cutOff = report.overflowed.length;
-  if (printed && cutOff > 0) {
+  if (cutOff > 0) {
     messenger.showSnackBar(
       SnackBar(content: Text(l10n.exportCallingCardsCutOff(cutOff))),
+    );
+  }
+  if (report.cardsShrunkToSheet) {
+    messenger.showSnackBar(
+      SnackBar(content: Text(l10n.exportCallingCardsBiggerThanPaper)),
     );
   }
 }, source: source);

@@ -12079,4 +12079,15 @@ class AppLocalizationsDe extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get settingsCallingCardsSheetsTitle => 'Mehrere Karten pro Seite';
+
+  @override
+  String get settingsCallingCardsSheetsSubtitle =>
+      'Auf normales Papier drucken, so viele Karten pro Seite wie passen, mit Markierungen zum Zuschneiden. Das Papier wählst du beim Drucken.';
+
+  @override
+  String get exportCallingCardsBiggerThanPaper =>
+      'Diese Karten sind größer als das Papier, daher wurde jede verkleinert und einzeln auf eine Seite gedruckt.';
 }

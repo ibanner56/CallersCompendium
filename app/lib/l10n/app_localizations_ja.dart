@@ -11481,4 +11481,15 @@ class AppLocalizationsJa extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get settingsCallingCardsSheetsTitle => '1ページに複数枚';
+
+  @override
+  String get settingsCallingCardsSheetsSubtitle =>
+      '普通紙に、入るだけの枚数を並べて、切り取り用の目印を付けて印刷します。用紙は印刷時に選んだものを使います。';
+
+  @override
+  String get exportCallingCardsBiggerThanPaper =>
+      'カードが用紙より大きいため、1ページに1枚ずつ縮小して印刷しました。';
 }

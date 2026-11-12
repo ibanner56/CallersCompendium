@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:compendium_core/compendium_core.dart';
@@ -38,9 +39,14 @@ class CallingCardFitReport {
   /// [kCallingCardMinScale], and so were cut off at the bottom.
   final List<String> overflowed = [];
 
+  /// Printing on sheets: whether the cards were larger than the paper, and so
+  /// were printed one to a page, scaled down to fit.
+  bool cardsShrunkToSheet = false;
+
   void _clear() {
     scales.clear();
     overflowed.clear();
+    cardsShrunkToSheet = false;
   }
 }
 
@@ -64,6 +70,10 @@ const double kCallingCardMinScale = 0.5;
 /// off at the bottom and marked with a small corner triangle. [report], when
 /// given, records each card's scale and the cards that were cut off.
 ///
+/// With [sheet], the cards are printed several to a page of that paper
+/// instead, edge to edge in a centred grid with marks to cut along; see
+/// [callingCardSheetGrid].
+///
 /// [programTitle] is what the `program` block prints. [theme] supplies the
 /// Unicode font; when omitted it is loaded from the bundled asset.
 Future<Uint8List> buildCallingCardsPdf(
@@ -79,6 +89,7 @@ Future<Uint8List> buildCallingCardsPdf(
   bool canonicalizeDiscouragedTerms = false,
   pw.ThemeData? theme,
   CallingCardFitReport? report,
+  PdfPageFormat? sheet,
 }) async {
   final fig = renderer ?? FigureRenderer(contraTaxonomy);
   final resolvedTheme = theme ?? _withBoldItalic(await loadProgramPdfTheme());
@@ -96,8 +107,8 @@ Future<Uint8List> buildCallingCardsPdf(
     0.0,
     (width < height ? width : height) / 4,
   );
-  final format = PdfPageFormat(width, height, marginAll: margin);
 
+  final cards = <pw.Widget>[];
   for (final entry in entries) {
     final content = DanceCardContent.build(
       entry.dance,
@@ -121,24 +132,224 @@ Future<Uint8List> buildCallingCardsPdf(
       programTitle: programTitle,
       canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
     );
-    doc.addPage(
-      pw.Page(
-        pageFormat: format,
-        build: (_) => _ShrinkToFit(
-          minScale: kCallingCardMinScale,
-          onLaidOut: (scale, overflowed) {
-            report?.scales.add(scale);
-            if (overflowed) report?.overflowed.add(content.title);
-          },
-          child: pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-            children: [for (final row in layout.rows) ?card.row(row)],
+    cards.add(
+      pw.SizedBox(
+        width: width,
+        height: height,
+        child: pw.Padding(
+          padding: pw.EdgeInsets.all(margin),
+          child: _ShrinkToFit(
+            minScale: kCallingCardMinScale,
+            onLaidOut: (scale, overflowed) {
+              report?.scales.add(scale);
+              if (overflowed) report?.overflowed.add(content.title);
+            },
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+              children: [for (final row in layout.rows) ?card.row(row)],
+            ),
           ),
         ),
       ),
     );
   }
+
+  if (sheet == null) {
+    for (final card in cards) {
+      doc.addPage(
+        pw.Page(pageFormat: PdfPageFormat(width, height), build: (_) => card),
+      );
+    }
+  } else {
+    _addSheets(doc, cards, size, sheet, report);
+  }
   return doc.save();
+}
+
+/// The space a sheet keeps around its grid of cards when it can: a quarter
+/// inch, inside what most printers reach, with room for the cut marks.
+const double kCallingCardSheetMargin = 18;
+
+/// How cards tile onto a page of paper: [columns] × [rows] of them, each
+/// [rotated] a quarter turn or not, inside [margin] points of the paper's
+/// edge.
+typedef CallingCardSheetGrid = ({
+  int columns,
+  int rows,
+  bool rotated,
+  double margin,
+});
+
+/// The arrangement that fits the most cards of [card]'s size onto [paper].
+///
+/// It tries the cards both ways round, inside [kCallingCardSheetMargin] and
+/// then right to the paper's edge, and keeps the first that fits the most:
+/// upright before turned, and the margin before none, on a tie. Filling the
+/// page is what lets sizes made to divide a sheet, such as A6 on A4, print
+/// four to a page; each card's own margin keeps its text clear of the edge a
+/// printer cannot reach. Zero cards when a card is larger than the paper
+/// either way.
+CallingCardSheetGrid callingCardSheetGrid(
+  PdfPageFormat paper,
+  CallingCardSize card,
+) {
+  // A hair of tolerance, so a card exactly the room's size still fits.
+  int fit(double room, double side) => ((room + 0.01) / side).floor();
+  CallingCardSheetGrid? best;
+  for (final margin in const [kCallingCardSheetMargin, 0.0]) {
+    final across = paper.width - 2 * margin;
+    final down = paper.height - 2 * margin;
+    for (final rotated in const [false, true]) {
+      final w = rotated ? card.heightPoints : card.widthPoints;
+      final h = rotated ? card.widthPoints : card.heightPoints;
+      final grid = (
+        columns: fit(across, w),
+        rows: fit(down, h),
+        rotated: rotated,
+        margin: margin,
+      );
+      if (best == null || grid.columns * grid.rows > best.columns * best.rows) {
+        best = grid;
+      }
+    }
+  }
+  return best!;
+}
+
+/// Lays [cards] out on pages of [paper]: a grid per page with cut marks, or,
+/// for cards larger than the paper, one per page scaled to fit.
+void _addSheets(
+  pw.Document doc,
+  List<pw.Widget> cards,
+  CallingCardSize size,
+  PdfPageFormat paper,
+  CallingCardFitReport? report,
+) {
+  final page = PdfPageFormat(paper.width, paper.height);
+  final grid = callingCardSheetGrid(page, size);
+  final perPage = grid.columns * grid.rows;
+  if (perPage == 0) {
+    report?.cardsShrunkToSheet = true;
+    for (final card in cards) {
+      doc.addPage(
+        pw.Page(
+          pageFormat: page.copyWith(
+            marginLeft: kCallingCardSheetMargin,
+            marginRight: kCallingCardSheetMargin,
+            marginTop: kCallingCardSheetMargin,
+            marginBottom: kCallingCardSheetMargin,
+          ),
+          build: (_) => pw.Center(child: pw.FittedBox(child: card)),
+        ),
+      );
+    }
+    return;
+  }
+  final cellWidth = grid.rotated ? size.heightPoints : size.widthPoints;
+  final cellHeight = grid.rotated ? size.widthPoints : size.heightPoints;
+  final left = (page.width - grid.columns * cellWidth) / 2;
+  final top = (page.height - grid.rows * cellHeight) / 2;
+  for (var first = 0; first < cards.length; first += perPage) {
+    final onPage = cards.skip(first).take(perPage).toList();
+    // Only the rows this page fills get marks.
+    final rows = (onPage.length / grid.columns).ceil();
+    doc.addPage(
+      pw.Page(
+        pageFormat: page,
+        build: (_) => pw.Stack(
+          children: [
+            for (final (i, card) in onPage.indexed)
+              pw.Positioned(
+                left: left + (i % grid.columns) * cellWidth,
+                top: top + (i ~/ grid.columns) * cellHeight,
+                child: grid.rotated
+                    ? pw.Transform.rotateBox(angle: math.pi / 2, child: card)
+                    : card,
+              ),
+            // Over the cards: a mark may fall inside a card's blank margin.
+            pw.Positioned.fill(
+              child: pw.CustomPaint(
+                painter: (canvas, area) => _paintCutMarks(
+                  canvas,
+                  pageHeight: area.y,
+                  left: left,
+                  top: top,
+                  cellWidth: cellWidth,
+                  cellHeight: cellHeight,
+                  columns: grid.columns,
+                  rows: rows,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Short marks in line with every edge of the grid's cards, for a guillotine
+/// or a ruler. Where the paper leaves room outside the grid they sit there,
+/// stopping short of the cards so a slightly crooked cut leaves no line on a
+/// card. A grid that fills the paper has no such room, so its marks run a
+/// little way in from the grid's edge instead, across the cards' blank
+/// margins.
+void _paintCutMarks(
+  PdfGraphics canvas, {
+  required double pageHeight,
+  required double left,
+  required double top,
+  required double cellWidth,
+  required double cellHeight,
+  required int columns,
+  required int rows,
+}) {
+  const gap = 3.0;
+  const length = 11.0;
+  // The canvas's y runs up from the bottom of the page.
+  final gridTop = pageHeight - top;
+  final gridBottom = gridTop - rows * cellHeight;
+  final gridLeft = left;
+  final gridRight = left + columns * cellWidth;
+  // Marks go outside when the room is there, else inward.
+  final verticalOutside = top >= gap + length;
+  final horizontalOutside = left >= gap + length;
+  canvas
+    ..setStrokeColor(PdfColors.grey700)
+    ..setLineWidth(0.5);
+  for (var c = 0; c <= columns; c++) {
+    final x = gridLeft + c * cellWidth;
+    if (verticalOutside) {
+      canvas
+        ..moveTo(x, gridTop + gap)
+        ..lineTo(x, gridTop + gap + length)
+        ..moveTo(x, gridBottom - gap)
+        ..lineTo(x, gridBottom - gap - length);
+    } else {
+      canvas
+        ..moveTo(x, gridTop)
+        ..lineTo(x, gridTop - length)
+        ..moveTo(x, gridBottom)
+        ..lineTo(x, gridBottom + length);
+    }
+  }
+  for (var r = 0; r <= rows; r++) {
+    final y = gridTop - r * cellHeight;
+    if (horizontalOutside) {
+      canvas
+        ..moveTo(gridLeft - gap, y)
+        ..lineTo(gridLeft - gap - length, y)
+        ..moveTo(gridRight + gap, y)
+        ..lineTo(gridRight + gap + length, y);
+    } else {
+      canvas
+        ..moveTo(gridLeft, y)
+        ..lineTo(gridLeft + length, y)
+        ..moveTo(gridRight, y)
+        ..lineTo(gridRight - length, y);
+    }
+  }
+  canvas.strokePath();
 }
 
 /// [theme] with its bold face standing in for bold italic.
