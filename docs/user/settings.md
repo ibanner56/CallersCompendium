@@ -962,6 +962,16 @@ calling cards** — see [Print calling cards](./sharing.md#print-calling-cards).
   **Custom size**, where you type a width and height in inches or millimeters.
   Each side can be from 1 to 14 inches (26 to 355 mm); a size outside that
   isn't kept, and the field says so.
+- **Several cards to a page** (off by default) — print on ordinary paper
+  instead of card stock: as many cards as fit on each page of the paper you
+  choose in the print dialog, side by side, with short marks to cut along.
+  Cards are turned a quarter turn on the page when that fits more of them
+  (3 × 5 cards fit four to a Letter page that way, not three), and sizes made
+  to divide a sheet fill it — four A6 or eight A7 to an A4 page. There the
+  paper's own edges are the outer cuts, and the marks for the cuts between
+  cards run a little way in from the edge your printer can reach, along the
+  line between two cards. Cards bigger than the paper print one to a page,
+  shrunk to fit (turned, if that prints them larger), and printing says so.
 - **Landscape** (on by default) — print with the long side across the top.
   Turn it off for a card that stands upright.
 - **Card layout** — opens the layout editor, described below.

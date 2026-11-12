@@ -17582,6 +17582,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{1 card didn\'t fit and is cut off at the bottom.} other{{count} cards didn\'t fit and are cut off at the bottom.}}'**
   String exportCallingCardsCutOff(int count);
+
+  /// Switch title: print calling cards on ordinary paper, several to a page, instead of one per card-sized page.
+  ///
+  /// In en, this message translates to:
+  /// **'Several cards to a page'**
+  String get settingsCallingCardsSheetsTitle;
+
+  /// Subtitle of the several-cards-to-a-page switch.
+  ///
+  /// In en, this message translates to:
+  /// **'Print on ordinary paper, as many cards to a page as fit, with marks to cut along. The paper is the one you choose when you print.'**
+  String get settingsCallingCardsSheetsSubtitle;
+
+  /// Snack bar after printing calling cards several to a page when the card size does not fit on the chosen paper.
+  ///
+  /// In en, this message translates to:
+  /// **'These cards are bigger than the paper, so each was printed smaller, one to a page.'**
+  String get exportCallingCardsBiggerThanPaper;
 }
 
 class _AppLocalizationsDelegate

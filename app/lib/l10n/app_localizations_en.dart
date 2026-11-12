@@ -11912,4 +11912,15 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get settingsCallingCardsSheetsTitle => 'Several cards to a page';
+
+  @override
+  String get settingsCallingCardsSheetsSubtitle =>
+      'Print on ordinary paper, as many cards to a page as fit, with marks to cut along. The paper is the one you choose when you print.';
+
+  @override
+  String get exportCallingCardsBiggerThanPaper =>
+      'These cards are bigger than the paper, so each was printed smaller, one to a page.';
 }

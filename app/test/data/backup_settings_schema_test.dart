@@ -122,6 +122,7 @@ void main() {
         {...good, 'width': 1},
         {...good, 'unit': 'cm'},
         {...good, 'layout': 3},
+        {...good, 'sheets': 'yes'},
       ]) {
         expect(
           validateBackupSettingValue(kCallingCardSettingsKey, bad),

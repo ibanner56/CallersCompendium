@@ -11581,5 +11581,17 @@
   "exportCallingCardsCutOff": "{count, plural, =1{1 kaart paste niet en is onderaan afgesneden.} other{{count} kaarten pasten niet en zijn onderaan afgesneden.}}",
   "@exportCallingCardsCutOff": {
     "x-sourceSha256": "b025c9efc4e669393a66c90e01c55ac6efbec97d37648335a1f21e420849592a"
+  },
+  "settingsCallingCardsSheetsTitle": "Meerdere kaarten per pagina",
+  "@settingsCallingCardsSheetsTitle": {
+    "x-sourceSha256": "007bda11261b6308f8db8297b032d3c34ef5de13a70b016bbd3035eece0765a6"
+  },
+  "settingsCallingCardsSheetsSubtitle": "Afdrukken op gewoon papier, zoveel kaarten per pagina als er passen, met snijtekens. Het papier is het papier dat je kiest bij het afdrukken.",
+  "@settingsCallingCardsSheetsSubtitle": {
+    "x-sourceSha256": "c8643e6ca58f504b9366e91a1f70cd69ffec7c376b4a588ae25dab4787a0f8c4"
+  },
+  "exportCallingCardsBiggerThanPaper": "Deze kaarten zijn groter dan het papier, dus elke kaart is kleiner afgedrukt, één per pagina.",
+  "@exportCallingCardsBiggerThanPaper": {
+    "x-sourceSha256": "b72cf3ae14970e26d9ca98cdea00c2c9a23b004b7d9084777486e2730750cbd6"
   }
 }

@@ -173,6 +173,14 @@ class _CallingCardSectionState extends State<CallingCardSection> {
           ),
           if (custom) _customFields(l10n, settings),
           SwitchListTile(
+            key: const ValueKey('calling-card-sheets'),
+            value: settings.onSheets,
+            onChanged: (value) => _save(settings.copyWith(onSheets: value)),
+            title: Text(l10n.settingsCallingCardsSheetsTitle),
+            subtitle: Text(l10n.settingsCallingCardsSheetsSubtitle),
+            isThreeLine: true,
+          ),
+          SwitchListTile(
             key: const ValueKey('calling-card-landscape'),
             value: settings.size.isLandscape,
             onChanged: (landscape) {

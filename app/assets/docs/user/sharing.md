@@ -307,6 +307,9 @@ Calling cards first; that is also where you choose the card size and lay out wha
 Your system's print dialog opens on the card's own paper size, and each page
 of what it prints is one card — the cards don't change if you pick other paper
 in the dialog, so load your printer with cards of that size, or save the PDF.
+With **Several cards to a page** on, it's the other way round: pick the paper
+you have in the dialog, and the cards are laid out on it as many to a page as
+fit, with marks to cut along (see [Calling cards](./settings.md#calling-cards)).
 A card that doesn't fit even at half size is cut off at the bottom and marked
 with a small grey triangle at the bottom-right corner of its printed area, and
 after printing the app says how many were cut off.

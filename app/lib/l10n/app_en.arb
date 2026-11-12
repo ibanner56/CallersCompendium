@@ -16099,5 +16099,17 @@
         "example": "2"
       }
     }
+  },
+  "settingsCallingCardsSheetsTitle": "Several cards to a page",
+  "@settingsCallingCardsSheetsTitle": {
+    "description": "Switch title: print calling cards on ordinary paper, several to a page, instead of one per card-sized page."
+  },
+  "settingsCallingCardsSheetsSubtitle": "Print on ordinary paper, as many cards to a page as fit, with marks to cut along. The paper is the one you choose when you print.",
+  "@settingsCallingCardsSheetsSubtitle": {
+    "description": "Subtitle of the several-cards-to-a-page switch."
+  },
+  "exportCallingCardsBiggerThanPaper": "These cards are bigger than the paper, so each was printed smaller, one to a page.",
+  "@exportCallingCardsBiggerThanPaper": {
+    "description": "Snack bar after printing calling cards several to a page when the card size does not fit on the chosen paper."
   }
 }

@@ -12106,4 +12106,15 @@ class AppLocalizationsFr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get settingsCallingCardsSheetsTitle => 'Plusieurs fiches par page';
+
+  @override
+  String get settingsCallingCardsSheetsSubtitle =>
+      'Imprimer sur du papier ordinaire, autant de fiches par page qu’il en tient, avec des repères de coupe. Le papier est celui que vous choisissez à l’impression.';
+
+  @override
+  String get exportCallingCardsBiggerThanPaper =>
+      'Ces fiches sont plus grandes que le papier : chacune a donc été imprimée en plus petit, une par page.';
 }

@@ -1,0 +1,14 @@
+{
+  "id": "calling-cards-on-sheets",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Experimental: print calling cards on ordinary paper. Turn on Several cards to a page in Settings › Experimental › Calling cards, and the cards are laid out as many to a page as fit on the paper you choose when printing, with marks to cut along — four 3 × 5 cards to a Letter page, four A6 or eight A7 to an A4 page."
+    ]
+  },
+  "core": {
+    "changed": [
+      "The calling_card_print setting's classification note mentions that it also records whether cards print several to a page."
+    ]
+  }
+}

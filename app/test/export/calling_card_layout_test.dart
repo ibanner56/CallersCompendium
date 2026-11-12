@@ -330,6 +330,26 @@ figures
       }
     });
 
+    test(
+      'several to a page round-trips; an older value reads as one per page',
+      () {
+        const s = CallingCardSettings(onSheets: true);
+        expect(CallingCardSettings.fromJson(s.toJson()), s);
+        final older = Map.of(CallingCardSettings.defaults.toJson())
+          ..remove('sheets');
+        expect(CallingCardSettings.isWellFormed(older), isTrue);
+        expect(CallingCardSettings.fromJson(older).onSheets, isFalse);
+        expect(
+          CallingCardSettings.isWellFormed({...older, 'sheets': 'yes'}),
+          isFalse,
+        );
+        expect(
+          CallingCardSettings.fromJson({...older, 'sheets': 'yes'}).onSheets,
+          isFalse,
+        );
+      },
+    );
+
     test('copyWith can clear the layout', () {
       const s = CallingCardSettings(layout: 'title');
       expect(s.copyWith(layout: () => null).layout, isNull);
