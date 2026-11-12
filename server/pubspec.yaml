@@ -1,6 +1,6 @@
 name: callers_compendium_server
 description: Shelf-based Athenaeum server for Caller's Compendium Device Sync.
-version: 0.3.3
+version: 0.4.0
 publish_to: none
 resolution: workspace
 

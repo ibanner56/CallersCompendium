@@ -21,6 +21,17 @@ core version. They are left that way deliberately — do not renumber them.
 
 ## [Unreleased]
 
+## [0.10.2] - 2026-11-12
+
+### Added
+
+- Add `CompendiumRepositories.oneTimeRepairMarkers` and `owedOneTimeRepairs`, which report the one-time repairs a database still owes so a caller can snapshot it first.
+
+### Fixed
+
+- The Caller's Box `Circulate: <X> cross, <inverse X> loop [left|right]` reader accepts one trailing `[with <dancer>]` or `[around <dancer>]` bracket, keeping its canonical text as the figure note; other brackets, unresolvable dancers and malformed definitions still read as custom.
+- ArchiveRestorer.restore takes backupCreatedAt and stamps the records it writes there, clamped to now, instead of at restore time; SettingsRepository.setFromRestore/removeFromRestore and the glossary and figure-note restore writes stamp the same way, with a non-causal existence stamp (sync-spec §6.11, amended 2026-11-11).
+
 ## [0.10.1] - 2026-11-10
 
 ### Added

@@ -36,6 +36,35 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 ## [Unreleased]
 
+## [0.9.2] - 2026-11-12
+
+### Changed
+
+- When the sync server can't store more, Device Sync now says "The sync server can't store more right now" instead of blaming your store, since the server itself may be short of space.
+- When a Device Sync store is no longer there, the main choice is now Set up with a new phrase, which disconnects this device and opens Connect. Reconnect, which creates a new store at the same address, is the second choice. Deleting the store now explains that, to keep syncing somewhere else, you set up a new phrase on each device.
+- The notice that another device uses a newer version of the app now warns that editing those records here before you update may discard that device's changes to them.
+- The message shown after copying your sync phrase now says that anyone who has it can open your shared library, rather than that it unlocks your store.
+
+### Fixed
+
+- Importing a Caller's Box dance whose Circulate line ends in [with N2], [with shadow] or [around N2] now gives you a box circulate again, with the balance before it folded in, instead of an unrecognised figure.
+- At large text sizes, long custom-field names and options, difficulty level names, program statuses and matrix column move names no longer overflow their dropdowns; they are cut short with an ellipsis in the closed field, and long custom-field options, level names, program statuses and move names wrap in the open list so you can read them.
+- At large text sizes, the Month and Day fields in the dance editor and the Cancel and Save buttons in the custom field form no longer overflow.
+- Deleting a dance or program from its ⋮ menu with the keyboard now leaves focus on the next row's ⋮ button (the previous row's at the end of the list), instead of dropping it to the top of the page; Undo returns focus to the restored row.
+- While the app is closing, keystrokes no longer reach a text field that had focus behind the "Closing…" notice.
+- Screen readers no longer stop on an extra, unlabelled item for every row in the Collection and Programs lists.
+- At large text sizes on a phone, the Done button in Perform's Adjust program sheet stays on screen instead of being pushed off the edge.
+- At large text sizes, the dance editor's Type and Formation fields and the Tags and References sort row no longer overflow.
+- The Authors and Tags pickers in the dance editor now have a spoken name on phones.
+- The Filters, By phrase and Advanced buttons above the Collection now grow to fill the row, with the extra width as padding inside each button, instead of staying small and spreading apart with uneven gaps.
+- Scrolling through ContraDB results no longer gets stuck on a spinner when you edit the search after a page failed or was still loading, and a failed page of an apostrophe search (such as Mary's) now shows Try again instead of quietly ending the list early.
+- The published-collection catalog now offers only the newest version of each collection, and an older version can no longer be imported over a newer one you already have. Text from the catalog is also cleaned of invisible direction-override characters before it is shown or recorded.
+- A free-text figure inside a sequence now shows its own Beats field, like every other step. Before, it was quietly given the default count with no way to see or change it, which threw off the sequence's total.
+- Restoring an older backup on a device that uses Device Sync no longer undoes, on all your devices, the changes you made elsewhere since the backup. Tags, authors and venues renamed or deleted, and glossary terms, figure notes and synced settings changed, on another device now come back from it at the next sync, and the restore dialog says so when this device is connected.
+- After a successful Reconnect for a Device Sync store that was no longer there, the question no longer comes straight back. Answering it again could report a failure that hadn't happened, or pause sync that had just started working again.
+- The app now saves its automatic recovery snapshot before an update runs a one-time repair over your saved dances, not only before it changes how your data is stored, so a repair that goes wrong can be undone too.
+- The app no longer saves a recovery snapshot that is missing your most recent changes when another app has your library open at that moment. It asks you what to do instead, and tells you to close that app and reopen Caller's Compendium.
+
 ## [0.9.1] - 2026-11-10
 
 ### Added
