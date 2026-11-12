@@ -11,7 +11,10 @@ one that does nothing.
 
 from __future__ import annotations
 
+import contextlib
 import importlib.util
+import os
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -1005,10 +1008,6 @@ def test_cli_requires_explicit_closes_intent() -> None:
 
 # --- detect_repo: no GraphQL ------------------------------------------------ #
 
-import contextlib
-import os
-import subprocess
-
 
 @contextlib.contextmanager
 def _patched(env: dict[str, str | None], git: Any, run: Any):
@@ -1052,6 +1051,10 @@ def test_parse_remote_url_rejects_non_shapes() -> None:
     assert p("CallersCompendium") is None
     assert p("https://github.com/CallersCompendium") is None
     assert p("") is None
+    assert p("https://github.com/o/r/pulls") is None
+    assert p("https://host/a/b/c/d") is None
+    assert p("https://github.com/o/r.git.git") is None
+    assert p("https://github.com/o/..") is None
 
 
 def test_detect_repo_prefers_environment() -> None:
@@ -1062,6 +1065,28 @@ def test_detect_repo_prefers_environment() -> None:
 def test_detect_repo_uses_git_remote_without_gh() -> None:
     answers = {"symbolic-ref": "main", "config": "", "remote": "git@github.com:o/r.git"}
     with _patched({"GITHUB_REPOSITORY": None}, lambda a: answers[a[0]], _gh_forbidden):
+        assert gates.detect_repo() == "o/r"
+
+
+def test_detect_repo_uses_tracking_remote_then_origin() -> None:
+    urls = {"fork": "https://github.com/me/r", "origin": "https://github.com/o/r"}
+
+    def git(a: Any) -> str:
+        if a[0] == "symbolic-ref":
+            return "feat"
+        if a[0] == "config":
+            return "fork"
+        return urls.get(a[2], "")
+
+    with _patched({"GITHUB_REPOSITORY": None}, git, _gh_forbidden):
+        assert gates.detect_repo() == "me/r"
+        urls["fork"] = "/local/path"  # unparsable -> origin
+        assert gates.detect_repo() == "o/r"
+
+
+def test_detect_repo_ignores_invalid_environment_value() -> None:
+    answers = {"symbolic-ref": "", "remote": "https://github.com/o/r"}
+    with _patched({"GITHUB_REPOSITORY": "./.."}, lambda a: answers.get(a[0], ""), _gh_forbidden):
         assert gates.detect_repo() == "o/r"
 
 

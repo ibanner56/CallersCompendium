@@ -44,6 +44,9 @@ Exit codes: 0 all gates pass, 1 at least one gate failed, 2 at least one gate
 could not be answered (bad input, or ``gh`` missing or unauthenticated). 2
 dominates 1, so an environment problem never reads as a clean run.
 
+The repository is ``--repo``, else ``GITHUB_REPOSITORY``, else the git remote
+(no GraphQL, so it works in Claude Code sessions), else ``gh repo view``.
+
 Where the environment refuses GraphQL outright (Claude Code cloud sessions
 answer ``gh api graphql`` with HTTP 403), ``threads`` and ``closes`` answer from
 REST instead and label their evidence "via REST". ``threads`` uses the CCR
@@ -185,15 +188,23 @@ class GitHubFetcher:
 
 
 _SLUG = r"[A-Za-z0-9_.-]+"
-_REPO_SLUG = re.compile(rf"^{_SLUG}/{_SLUG}$")
 # scp-style (`git@github.com:owner/name.git`) or a URL (`https://`, `ssh://`,
 # and the proxy-style `http://host:port/git/owner/name` some sandboxes use).
-# Only the last two path segments are read, and only from a URL or scp-style
-# remote -- a bare local path is never mistaken for a slug.
+# The path must be exactly `owner/name`, optionally behind one `git/` segment:
+# `https://github.com/o/r/pulls` or a bare local path is not a slug.
 _REMOTE_PATTERNS = (
-    re.compile(rf"^[\w.-]+@[\w.-]+:(?:/)?(?:.*/)?({_SLUG})/({_SLUG})/?$"),
-    re.compile(rf"^[A-Za-z][A-Za-z0-9+.-]*://[^/]+/(?:.*/)?({_SLUG})/({_SLUG})/?$"),
+    re.compile(rf"^[\w.-]+@[\w.-]+:/?({_SLUG})/({_SLUG})/?$"),
+    re.compile(rf"^[A-Za-z][A-Za-z0-9+.-]*://[^/]+/(?:git/)?({_SLUG})/({_SLUG})/?$"),
 )
+
+
+def _slug(owner: str, name: str) -> str | None:
+    if name.endswith(".git"):
+        name = name[: -len(".git")]
+    for part in (owner, name):
+        if not part or part in (".", "..") or part.endswith(".git"):
+            return None
+    return f"{owner}/{name}"
 
 
 def parse_remote_url(url: str) -> str | None:
@@ -202,11 +213,7 @@ def parse_remote_url(url: str) -> str | None:
     for pattern in _REMOTE_PATTERNS:
         match = pattern.match(url)
         if match:
-            owner, name = match.groups()
-            if name.endswith(".git"):
-                name = name[: -len(".git")]
-            if owner and name and name not in (".", ".."):
-                return f"{owner}/{name}"
+            return _slug(*match.groups())
     return None
 
 
@@ -239,10 +246,13 @@ def _repo_from_git() -> str | None:
 def detect_repo() -> str:
     """Resolve `owner/name` without GraphQL (refused in Claude Code sessions).
 
-    Order: `GITHUB_REPOSITORY`, the git remote, then `gh repo view`.
+    Order: `GITHUB_REPOSITORY`, the git remote (the branch's tracking remote,
+    else `origin`), then `gh repo view`. In a fork checkout whose remote is the
+    fork, the remote wins over `gh`'s base-repo default; pass `--repo` there.
     """
     env_repo = os.environ.get("GITHUB_REPOSITORY", "").strip()
-    if _REPO_SLUG.match(env_repo):
+    owner, _, name = env_repo.partition("/")
+    if env_repo and _slug(owner, name) == env_repo:
         return env_repo
     from_git = _repo_from_git()
     if from_git:
@@ -773,7 +783,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             "requested Copilot instead"
         ),
     )
-    parser.add_argument("--repo", help="owner/name (default: GITHUB_REPOSITORY, the git remote, then gh)")
+    parser.add_argument(
+        "--repo",
+        help="owner/name (default: GITHUB_REPOSITORY, the git remote, then gh)",
+    )
     args = parser.parse_args(argv)
 
     names = list(ALL_ORDER) if args.gate == "all" else [args.gate]

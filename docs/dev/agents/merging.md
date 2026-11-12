@@ -106,6 +106,11 @@ labels the evidence line "via REST":
   says so. A denial such as `Does not close #887` still counts, as it does on
   GitHub.
 
+Repository detection needs no GraphQL either: it reads `--repo`, then
+`GITHUB_REPOSITORY`, then the git remote (the branch's tracking remote, else
+`origin`), and only then asks `gh repo view`. In a fork checkout whose remote is
+the fork, pass `--repo` for the upstream.
+
 Any other GraphQL failure (timeout, auth, rate limit) is still a SKIP, and exit
 2 still means a gate went unanswered.
 
