@@ -147,7 +147,7 @@ class UserFigureArgumentEditor extends StatelessWidget {
             choices: param.kind == ParamKind.fraction
                 ? [
                     for (final v in ParamVocab.fractions)
-                      if (userFigureOffersFraction(v, value)) v,
+                      if (offersFractionChoice(v, value)) v,
                   ]
                 : null,
           ),

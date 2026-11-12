@@ -248,12 +248,14 @@ String? chainHandForWho(String who) {
 /// amount, never as a guessed one.
 const String fractionAmountParam = 'amount';
 
-/// Whether a figure of the user's own offers [choice] for a fraction
-/// argument whose value is [current] (#2120): every fraction but `other`,
-/// whose amount an argument cannot carry through to the move it fills. One
-/// already chosen is still offered, so it is shown rather than hidden, and it
-/// still validates: only the offer stops.
-bool userFigureOffersFraction(String choice, Object? current) =>
+/// Whether a fraction field with no amount beside it offers [choice] when its
+/// value is [current] (#2120): every fraction but `other`, which would be
+/// stored with no amount. Such fields are a figure of the user's own, whose
+/// argument cannot carry an amount through to the move it fills, and a
+/// per-move default in Settings, which seeds no amount. One already chosen is
+/// still offered, so it is shown rather than hidden, and it still validates:
+/// only the offer stops.
+bool offersFractionChoice(String choice, Object? current) =>
     choice != 'other' || current == 'other';
 
 /// Whether an editor leaves the param [key] out for a figure with [params]:

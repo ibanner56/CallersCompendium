@@ -137,7 +137,7 @@ class CompoundArgumentEditor extends StatelessWidget {
             for (final v in allowed)
               if (v is String &&
                   (param.kind != ParamKind.fraction ||
-                      userFigureOffersFraction(v, value)))
+                      offersFractionChoice(v, value)))
                 v,
           ],
           // Listing the sentinel is how a rotation admits "not stated": its

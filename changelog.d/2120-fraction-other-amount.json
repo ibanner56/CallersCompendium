@@ -1,0 +1,31 @@
+{
+  "id": "2120-fraction-other-amount",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "A figure 8 or poussette can now be danced an amount none of quarter, half, three quarter or full states, such as one and a half: pick “other amount…” in the dance editor and set the amount. It shows in the figure's line (“ones 1½ figure 8 up between twos”), and a 1½ figure 8 is counted as 24 beats.",
+      "Imported figure 8 and poussette lines that state an amount such as “1 1/2” keep it, instead of losing it or being kept only as text."
+    ],
+    "changed": [
+      "A figure 8 or poussette saved before this version as “other” with no amount now reads “an unstated amount of figure 8” instead of “other figure 8”, and the dance editor asks you to choose the amount. Nothing is filled in for you.",
+      "Figures of your own no longer offer “other” for a fraction, because the amount could not be carried through to the figure they become, and nor do the per-figure defaults in Settings, which have no amount to go with it. One you already chose keeps working.",
+      "The spoken (verbose) wording of a poussette now spells out its fraction (“three quarters poussette”), as a figure 8's already did."
+    ],
+    "data_migrations": [
+      "Taxonomy 38 → 39: figure 8 and poussette gain an `amount`, used when their fraction is “other”. On first launch a one-time rebuild of the search index re-derives the text of every stored figure; your dances themselves are not changed, and an “other” saved without an amount stays that way, because the original amount was never stored and cannot be recovered."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add the `amount` param to `figure_8` and `poussette` (taxonomy v39): a `ParamKind.rotation` opting into the `unspecified` sentinel, read only while `fraction` is `other`. Add `fractionAmountParam`, `fractionParamsForAmount`, `fractionTokenForAmount`, `isFractionAmount`, `statedFractionAmount`, `hidesFractionAmount`, `offersFractionChoice` and `kFractionOtherSeedAmount`.",
+      "Add `ParamBeats.beatsPerAmount` and `ParamBeats.derive`: `figure_8` derives 16 beats per full amount for an `other` fraction, and validation no longer flags a derived count as atypical.",
+      "Add `taxonomyV39CanonicalRebuildDoneKey`, a one-time canonical/FTS rebuild listed in `oneTimeRepairMarkers`."
+    ],
+    "changed": [
+      "Render an `other` fraction as its amount (`1½`, `two`, `one and a half` verbose), or as `an unstated amount of` (`unstated amount` in canonical text) when it states none. The poussette display line now uses the verbose fraction words.",
+      "The ContraDB adapter keeps a quarter-step `half_or_full` amount up to 2.5 as `other` with `amount`; the figure parser reads a mixed amount (`1 1/2`) for a figure 8 or poussette; the display read-back reads the new wording.",
+      "`applyParamChange` seeds the amount when the fraction becomes `other`, drops it for a named fraction, and stores an amount a named fraction states as that fraction.",
+      "`figureSnippetSignature` and `figureCanonicalKey` include the amount only while it is stated, so every key a pre-v39 figure had is unchanged; the v1 snippet-signature migration renames a legacy `amount` only for `orbit`."
+    ]
+  }
+}
