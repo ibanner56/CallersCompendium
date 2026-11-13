@@ -8,14 +8,14 @@
 > distribute, even for beta/testing tracks. This markdown is a human-readable
 > mirror of that page for review and history. There is no build step that
 > generates one from the other, so **any policy change must be made to both
-> `site/privacy/index.html` and this file, keeping their wording and the
-> effective date in sync.** This is not legal advice.
+> `site/privacy/index.html` and this file, keeping their wording, the effective
+> date and the last-updated date in sync.** This is not legal advice.
 
 ---
 
 ## Privacy Policy for Caller's Compendium
 
-**Effective date:** September 21, 2026
+**Effective date:** November 12, 2026 · **Last updated:** November 12, 2026
 
 Caller's Compendium ("the app") is a free, open-source, local-first application
 for dance callers, developed by Isaac Banner ("we," "us"). This policy explains

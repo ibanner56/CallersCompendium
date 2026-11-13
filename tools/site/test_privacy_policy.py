@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import html
 import re
+from datetime import datetime
 from pathlib import Path
 
 
@@ -39,9 +40,30 @@ def policy_text(path: Path) -> str:
 
 def main() -> None:
     texts = {path: policy_text(path) for path in POLICY_FILES}
-    date_re = re.compile(r"effective date:\**\s*([a-z]+ \d{1,2}, \d{4})")
-    dates = {m.group(1) for text in texts.values() for m in [date_re.search(text)] if m}
-    assert len(dates) == 1, f"policy copies have different effective dates: {dates}"
+    dates = {}
+    for label in ("effective date", "last updated"):
+        date_re = re.compile(label + r":\**\s*([a-z]+ \d{1,2}, \d{4})")
+        found = {}
+        for path, text in texts.items():
+            matches = date_re.findall(text)
+            assert len(matches) == 1, (
+                f"{path} must state exactly one {label}, found {matches}"
+            )
+            try:
+                datetime.strptime(matches[0], "%B %d, %Y")
+            except ValueError:
+                raise AssertionError(f"{path} has an invalid {label}: {matches[0]}")
+            found[path] = matches[0]
+        assert len(set(found.values())) == 1, (
+            f"policy copies have different {label} values: {found}"
+        )
+        dates[label] = next(iter(found.values()))
+    effective = datetime.strptime(dates["effective date"], "%B %d, %Y")
+    updated = datetime.strptime(dates["last updated"], "%B %d, %Y")
+    assert updated >= effective, (
+        f"last updated {dates['last updated']} precedes "
+        f"effective date {dates['effective date']}"
+    )
 
     for path, text in texts.items():
         for phrase in REQUIRED_PHRASES:
@@ -49,7 +71,10 @@ def main() -> None:
         for phrase in FORBIDDEN_PHRASES:
             assert phrase not in text, f"{path} retains obsolete wording: {phrase}"
 
-    print(f"OK: privacy-policy copies agree on {next(iter(dates))}")
+    print(
+        "OK: privacy-policy copies agree on effective date "
+        f"{dates['effective date']} and last updated {dates['last updated']}"
+    )
 
 
 if __name__ == "__main__":
