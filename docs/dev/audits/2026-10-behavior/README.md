@@ -17,11 +17,11 @@
 > The auditors' probe scripts (the `probes/` the next paragraph and `intake.md`
 > mention) were **not** brought onto `main`, so those two references have no
 > target here. The scripts ran outside the repository and the reports quote what
-> they printed, but the sources themselves were kept only with the audit's
-> working files. They are Dart files and a package manifest that the
-> repository's format and analyze gates would pick up. Leaving them out was the
-> implementing session's call, not the maintainer's; whether to keep them is
-> raised in the pull request that added this note.
+> they printed; the reports are the record of what each probe showed. The
+> sources were Dart files and a package manifest that the repository's format
+> and analyze gates would pick up. The implementing session left them out and
+> asked the maintainer, who decided on 2026-11-13 to let them go rather than
+> keep them on `main` as text or as excluded Dart.
 
 Nine read-only audits, each following one caller user story end to end. Full reports are in `reports/`; probe sources in `probes/`. Published summary page: https://claude.ai/artifact/Tm6fL9hgeC8fUVVJ1N488u
 
