@@ -19,56 +19,105 @@ class SetListShareOptions {
     this.includeDateVenue = true,
   });
 
+  /// The three toggles as they stand now. Registers a rebuild dependency on
+  /// each, and returns all-on (the pre-toggle behaviour) for any scope that is
+  /// not mounted.
+  static SetListShareOptions of(BuildContext context) => SetListShareOptions(
+    includeTitle: ShareSetListTitleScope.of(context),
+    includeCallerBand: ShareSetListCallerBandScope.of(context),
+    includeDateVenue: ShareSetListDateVenueScope.of(context),
+  );
+
   final bool includeTitle;
   final bool includeCallerBand;
   final bool includeDateVenue;
 }
 
-/// Exposes the three set-list sharing toggles as live notifiers.
-///
-/// [of] rebuilds the caller when any toggle changes and returns all-on (the
-/// pre-toggle behaviour) when no scope is mounted. The settings screen reads
-/// the individual notifiers with [titleNotifierOf], [callerBandNotifierOf] and
-/// [dateVenueNotifierOf] to change them.
-class SetListShareScope extends InheritedNotifier<Listenable> {
-  SetListShareScope({
+/// Whether a shared or copied set list includes the program title. A live [ValueNotifier]; `true` (the default) when no scope is
+/// mounted. Use [ShareSetListTitleScope.notifierOf] to change it from Settings.
+class ShareSetListTitleScope extends InheritedNotifier<ValueNotifier<bool>> {
+  const ShareSetListTitleScope({
     super.key,
-    required this.title,
-    required this.callerBand,
-    required this.dateVenue,
+    required ValueNotifier<bool> notifier,
     required super.child,
-  }) : super(notifier: Listenable.merge([title, callerBand, dateVenue]));
+  }) : super(notifier: notifier);
 
-  final ValueNotifier<bool> title;
-  final ValueNotifier<bool> callerBand;
-  final ValueNotifier<bool> dateVenue;
-
-  static SetListShareOptions of(BuildContext context) {
+  static bool of(BuildContext context) {
     final scope = context
-        .dependOnInheritedWidgetOfExactType<SetListShareScope>();
-    if (scope == null) return const SetListShareOptions();
-    return SetListShareOptions(
-      includeTitle: scope.title.value,
-      includeCallerBand: scope.callerBand.value,
-      includeDateVenue: scope.dateVenue.value,
-    );
+        .dependOnInheritedWidgetOfExactType<ShareSetListTitleScope>();
+    return scope?.notifier?.value ?? true;
   }
 
-  static SetListShareScope _scopeOf(BuildContext context) {
-    final scope = context.getInheritedWidgetOfExactType<SetListShareScope>();
+  /// The underlying notifier, without a rebuild dependency.
+  static ValueNotifier<bool> notifierOf(BuildContext context) {
+    final scope = context
+        .getInheritedWidgetOfExactType<ShareSetListTitleScope>();
     if (scope == null) {
       throw FlutterError(
-        'SetListShareScope.notifierOf() called with a context that has no '
-        'SetListShareScope ancestor.',
+        'ShareSetListTitleScope.notifierOf() called with a context that has no '
+        'ShareSetListTitleScope ancestor.',
       );
     }
-    return scope;
+    return scope.notifier!;
+  }
+}
+
+/// Whether a shared or copied set list includes the caller and band. A live [ValueNotifier]; `true` (the default) when no scope is
+/// mounted. Use [ShareSetListCallerBandScope.notifierOf] to change it from Settings.
+class ShareSetListCallerBandScope
+    extends InheritedNotifier<ValueNotifier<bool>> {
+  const ShareSetListCallerBandScope({
+    super.key,
+    required ValueNotifier<bool> notifier,
+    required super.child,
+  }) : super(notifier: notifier);
+
+  static bool of(BuildContext context) {
+    final scope = context
+        .dependOnInheritedWidgetOfExactType<ShareSetListCallerBandScope>();
+    return scope?.notifier?.value ?? true;
   }
 
-  static ValueNotifier<bool> titleNotifierOf(BuildContext context) =>
-      _scopeOf(context).title;
-  static ValueNotifier<bool> callerBandNotifierOf(BuildContext context) =>
-      _scopeOf(context).callerBand;
-  static ValueNotifier<bool> dateVenueNotifierOf(BuildContext context) =>
-      _scopeOf(context).dateVenue;
+  /// The underlying notifier, without a rebuild dependency.
+  static ValueNotifier<bool> notifierOf(BuildContext context) {
+    final scope = context
+        .getInheritedWidgetOfExactType<ShareSetListCallerBandScope>();
+    if (scope == null) {
+      throw FlutterError(
+        'ShareSetListCallerBandScope.notifierOf() called with a context that has no '
+        'ShareSetListCallerBandScope ancestor.',
+      );
+    }
+    return scope.notifier!;
+  }
+}
+
+/// Whether a shared or copied set list includes the date and venue. A live [ValueNotifier]; `true` (the default) when no scope is
+/// mounted. Use [ShareSetListDateVenueScope.notifierOf] to change it from Settings.
+class ShareSetListDateVenueScope
+    extends InheritedNotifier<ValueNotifier<bool>> {
+  const ShareSetListDateVenueScope({
+    super.key,
+    required ValueNotifier<bool> notifier,
+    required super.child,
+  }) : super(notifier: notifier);
+
+  static bool of(BuildContext context) {
+    final scope = context
+        .dependOnInheritedWidgetOfExactType<ShareSetListDateVenueScope>();
+    return scope?.notifier?.value ?? true;
+  }
+
+  /// The underlying notifier, without a rebuild dependency.
+  static ValueNotifier<bool> notifierOf(BuildContext context) {
+    final scope = context
+        .getInheritedWidgetOfExactType<ShareSetListDateVenueScope>();
+    if (scope == null) {
+      throw FlutterError(
+        'ShareSetListDateVenueScope.notifierOf() called with a context that has no '
+        'ShareSetListDateVenueScope ancestor.',
+      );
+    }
+    return scope.notifier!;
+  }
 }

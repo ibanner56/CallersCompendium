@@ -2939,10 +2939,16 @@ class _CompendiumAppState extends State<CompendiumApp>
       notifier: _markAllSetsStatusNotifier,
       child: child,
     ),
-    (child) => SetListShareScope(
-      title: _shareSetListTitleNotifier,
-      callerBand: _shareSetListCallerBandNotifier,
-      dateVenue: _shareSetListDateVenueNotifier,
+    (child) => ShareSetListTitleScope(
+      notifier: _shareSetListTitleNotifier,
+      child: child,
+    ),
+    (child) => ShareSetListCallerBandScope(
+      notifier: _shareSetListCallerBandNotifier,
+      child: child,
+    ),
+    (child) => ShareSetListDateVenueScope(
+      notifier: _shareSetListDateVenueNotifier,
       child: child,
     ),
     (child) => MatrixCollisionModeScope(

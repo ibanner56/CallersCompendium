@@ -273,15 +273,31 @@ class _ProgramSectionState extends State<ProgramSection> {
   }
 
   // The Sharing toggles are live app preferences: flip the scope's notifier
-  // first, then persist.
-  Future<void> _onShareSetListChanged(
-    ValueNotifier<bool> notifier,
-    String key,
-    bool value,
-  ) async {
-    notifier.value = value;
+  // first, then persist (the same pattern as the history toggles above).
+  Future<void> _onShareSetListTitleChanged(bool value) async {
+    ShareSetListTitleScope.notifierOf(context).value = value;
     final repos = RepositoriesScope.of(context);
-    await persistSetting(repos.settings, key, value);
+    await persistSetting(repos.settings, kShareSetListIncludeTitleKey, value);
+  }
+
+  Future<void> _onShareSetListCallerBandChanged(bool value) async {
+    ShareSetListCallerBandScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await persistSetting(
+      repos.settings,
+      kShareSetListIncludeCallerBandKey,
+      value,
+    );
+  }
+
+  Future<void> _onShareSetListDateVenueChanged(bool value) async {
+    ShareSetListDateVenueScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await persistSetting(
+      repos.settings,
+      kShareSetListIncludeDateVenueKey,
+      value,
+    );
   }
 
   Future<void> _onConfigureMatrixColumns() async {
@@ -295,24 +311,12 @@ class _ProgramSectionState extends State<ProgramSection> {
     _ensureAutoSizeLoaded(context);
     _ensureIndividualTimerLoaded(context);
     _ensureProgramSlotCallerNotesLoaded(context);
-    final setListShare = SetListShareScope.of(context);
+    final setListShare = SetListShareOptions.of(context);
     return _ProgramView(
       setListShare: setListShare,
-      onShareSetListTitleChanged: (v) => _onShareSetListChanged(
-        SetListShareScope.titleNotifierOf(context),
-        kShareSetListIncludeTitleKey,
-        v,
-      ),
-      onShareSetListCallerBandChanged: (v) => _onShareSetListChanged(
-        SetListShareScope.callerBandNotifierOf(context),
-        kShareSetListIncludeCallerBandKey,
-        v,
-      ),
-      onShareSetListDateVenueChanged: (v) => _onShareSetListChanged(
-        SetListShareScope.dateVenueNotifierOf(context),
-        kShareSetListIncludeDateVenueKey,
-        v,
-      ),
+      onShareSetListTitleChanged: _onShareSetListTitleChanged,
+      onShareSetListCallerBandChanged: _onShareSetListCallerBandChanged,
+      onShareSetListDateVenueChanged: _onShareSetListDateVenueChanged,
       venueEntityMode: VenueEntityModeScope.of(context),
       onVenueEntityModeChanged: _onVenueEntityModeChanged,
       onManageVenues: _onManageVenues,

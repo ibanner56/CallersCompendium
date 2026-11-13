@@ -207,7 +207,7 @@ class ProgramExportMenu extends StatelessWidget {
   /// text actions (share, copy) go through here; the `.ccshare`/JSON bundle and
   /// the PDF carry the program whole.
   String _plainText(BuildContext context) {
-    final share = SetListShareScope.of(context);
+    final share = SetListShareOptions.of(context);
     return programToPlainText(
       program,
       includeTitle: share.includeTitle,
@@ -364,7 +364,7 @@ class ProgramExportMenu extends StatelessWidget {
             ? _plainTextWithFigures(context)
             : _plainText(context),
         // The subject line is the title too: leave it off with the title.
-        subject: SetListShareScope.of(context).includeTitle
+        subject: SetListShareOptions.of(context).includeTitle
             ? program.title
             : null,
         sharePositionOrigin: origin,

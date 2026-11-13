@@ -2508,17 +2508,17 @@ void main() {
           ),
           (
             key: kShareSetListIncludeTitleKey,
-            read: (c) => SetListShareScope.of(c).includeTitle,
+            read: (c) => SetListShareOptions.of(c).includeTitle,
             defaultValue: true,
           ),
           (
             key: kShareSetListIncludeCallerBandKey,
-            read: (c) => SetListShareScope.of(c).includeCallerBand,
+            read: (c) => SetListShareOptions.of(c).includeCallerBand,
             defaultValue: true,
           ),
           (
             key: kShareSetListIncludeDateVenueKey,
-            read: (c) => SetListShareScope.of(c).includeDateVenue,
+            read: (c) => SetListShareOptions.of(c).includeDateVenue,
             defaultValue: true,
           ),
           (

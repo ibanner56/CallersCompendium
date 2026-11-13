@@ -123,11 +123,15 @@ Future<ValueNotifier<bool>> _pumpProgram(
           notifier: showPerformedToggles,
           child: MarkAllSetsStatusScope(
             notifier: markAllSetsStatus,
-            child: SetListShareScope(
-              title: shareTitle,
-              callerBand: shareCallerBand,
-              dateVenue: shareDateVenue,
-              child: const SettingsScreen(),
+            child: ShareSetListTitleScope(
+              notifier: shareTitle,
+              child: ShareSetListCallerBandScope(
+                notifier: shareCallerBand,
+                child: ShareSetListDateVenueScope(
+                  notifier: shareDateVenue,
+                  child: const SettingsScreen(),
+                ),
+              ),
             ),
           ),
         ),

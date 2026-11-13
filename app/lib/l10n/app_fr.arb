@@ -3026,23 +3026,23 @@
   },
   "settingsSharingHeader": "Partage",
   "@settingsSharingHeader": {
-    "description": "Settings section header for the options that shape a shared set list."
+    "x-sourceSha256": "bbedc70e985fe0b6b32c173bf2676cab7d103138c05397f2835d821715b48a89"
   },
   "settingsSharingTitleTitle": "Inclure le titre du programme lors du partage d'une liste de danses",
   "@settingsSharingTitleTitle": {
-    "description": "Title of the toggle that includes the program title when a set list is shared."
+    "x-sourceSha256": "aebdf72c702ae63a420e9721c9f2d60b7e0e3eda63a8422461311441b891701d"
   },
   "settingsSharingCallerBandTitle": "Inclure le caller et le groupe lors du partage d'une liste de danses",
   "@settingsSharingCallerBandTitle": {
-    "description": "Title of the toggle that includes the caller and band when a set list is shared."
+    "x-sourceSha256": "308a779b71082f687e4319814675f46518d5780ce4a384ae37dcb890c2967622"
   },
   "settingsSharingDateVenueTitle": "Inclure la date et le lieu lors du partage d'une liste de danses",
   "@settingsSharingDateVenueTitle": {
-    "description": "Title of the toggle that includes the date and venue when a set list is shared."
+    "x-sourceSha256": "57270596e3bcf982854d1c961104e7dc319644ed19c257ed507f1514447267a7"
   },
   "settingsSharingSubtitle": "S'applique au partage ou à la copie de la liste de danses. Le partage du programme complet en fichier .ccshare ou JSON inclut toujours tout.",
   "@settingsSharingSubtitle": {
-    "description": "Subtitle shared by the three set-list sharing toggles, saying they do not affect sharing the whole program."
+    "x-sourceSha256": "61c91bb800816a6e46ff339e821572640e37f0e0de018a560e15284720ab2137"
   },
   "settingsGeneralMatrixExactCollisionTitle": "Signaler uniquement un chevauchement exact des temps",
   "@settingsGeneralMatrixExactCollisionTitle": {

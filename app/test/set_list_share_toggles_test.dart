@@ -37,7 +37,7 @@ final _dance = Dance(
   updatedAt: _now,
 );
 
-/// Pumps the export menu under a [SetListShareScope] with the given toggles.
+/// Pumps the export menu under a the share scopes with the given toggles.
 Future<void> _pump(
   WidgetTester tester, {
   bool title = true,
@@ -58,30 +58,37 @@ Future<void> _pump(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
-      home: SetListShareScope(
-        title: notifiers[0],
-        callerBand: notifiers[1],
-        dateVenue: notifiers[2],
-        child: Scaffold(
-          appBar: AppBar(
-            actions: [
-              ProgramExportMenu(
-                program: _program,
-                titleFor: (_) => "Rory O'More",
-                danceFor: dir == null ? null : (_) => _dance,
-                shareInvoker: (p) async => onShare?.call(p),
-                bundleFileWriter: dir == null
-                    ? null
-                    : (json, fileName) async {
-                        final file = File('${dir.path}/$fileName');
-                        file.writeAsStringSync(json);
-                        return XFile(file.path, mimeType: 'application/json');
-                      },
-                jsonExportDelivery: JsonExportDelivery(
-                  choicePicker: (_) async => JsonExportChoice.share,
-                ),
+      home: ShareSetListTitleScope(
+        notifier: notifiers[0],
+        child: ShareSetListCallerBandScope(
+          notifier: notifiers[1],
+          child: ShareSetListDateVenueScope(
+            notifier: notifiers[2],
+            child: Scaffold(
+              appBar: AppBar(
+                actions: [
+                  ProgramExportMenu(
+                    program: _program,
+                    titleFor: (_) => "Rory O'More",
+                    danceFor: dir == null ? null : (_) => _dance,
+                    shareInvoker: (p) async => onShare?.call(p),
+                    bundleFileWriter: dir == null
+                        ? null
+                        : (json, fileName) async {
+                            final file = File('${dir.path}/$fileName');
+                            file.writeAsStringSync(json);
+                            return XFile(
+                              file.path,
+                              mimeType: 'application/json',
+                            );
+                          },
+                    jsonExportDelivery: JsonExportDelivery(
+                      choicePicker: (_) async => JsonExportChoice.share,
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
