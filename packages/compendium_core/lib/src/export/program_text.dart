@@ -50,7 +50,7 @@ import 'export_labels.dart';
 /// Caller: <caller>
 /// Level: <dancerLevel>
 ///
-/// 1. <dance title | free text>[ — <author suffix>][ — <slot note>][ (guest: <x>; <n> min)][ [performed]]
+/// 1. <dance title | free text>[ — <author suffix>][ — <slot note>][ (guest: <x>; <n> min)]
 ///    ALT: <alt line, same format, no number>
 /// 2. ...
 ///
@@ -223,8 +223,8 @@ List<String> programHeaderLines(
 
 /// Builds the content of a single slot line (without the number or `ALT:`
 /// prefix): the dance title or free text, an optional author suffix, an
-/// optional per-slot note, an optional `(guest: …; N min)` suffix, and a
-/// trailing `[performed]` marker. Throws [ArgumentError] when
+/// optional per-slot note, an optional `(guest: …; N min)` suffix. The
+/// slot's performed status is never rendered. Throws [ArgumentError] when
 /// [canonicalizeDiscouragedTerms] is set without both [renderer] and [dialect].
 String programSlotLine(
   ProgramSlot slot,
@@ -282,8 +282,6 @@ String programSlotLine(
       labels.minutes(slot.plannedTotalMinutes!),
   ];
   if (meta.isNotEmpty) buffer.write(' (${meta.join('; ')})');
-
-  if (slot.performedAt != null) buffer.write(' [${labels.performed}]');
 
   return buffer.toString();
 }

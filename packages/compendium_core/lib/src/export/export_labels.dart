@@ -133,7 +133,7 @@ class ProgramExportLabels {
 
   /// Formats a slot line's author-names suffix, e.g. `"by Jane Smith"`
   /// (issue #1434). Rendered after the dance title/free text, before the
-  /// guest/minutes/performed suffixes, only when the caller resolves at
+  /// guest/minutes suffixes, only when the caller resolves at
   /// least one non-blank author name for that slot's dance.
   final String Function(String names) by;
 
