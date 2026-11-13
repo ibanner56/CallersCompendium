@@ -1132,7 +1132,10 @@ what it protects.
   C6, not C7** — C6 is the beta, and the beta is where real user content first
   leaves a device, which is the event S7 orders the amendment ahead of. C7
   re-checks it at public release, because the date must name the release that
-  actually ships.
+  actually ships. The policy's §9 moves the effective date whenever the policy
+  changes: after #2164 and #2173 changed its text, the maintainer moved it to
+  **November 12, 2026**, so September 21 is the beta's historical date, not
+  the one C7 checks for.
 
   **The scope this card was written against no longer exists.** #1086 removed
   the absolute claims ("We have no servers that receive or hold your content,
@@ -1144,8 +1147,9 @@ what it protects.
 
   This card is kept rather than struck because its `Done when` is still the
   thing C7 checks, and because the unit that verifies a disclosure is not the
-  unit that wrote it. What remains is the C6 pre-transfer check that the
-  deployed policy carries the ratified date, not a document repair.
+  unit that wrote it. What remains is the check that the deployed policy
+  carries a current effective date, one that precedes the transfer it covers
+  and is no earlier than the policy's latest change, not a document repair.
 
 Fully parallel with all code, and best done early: it is the cheapest unit in
 the programme and the only one that can block a release on its own.

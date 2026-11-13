@@ -36,6 +36,13 @@
   device (and deletes the store to remove its contents at once). No decision,
   requirement or described behaviour changed. The decision was relayed for
   #2164, whose description records it.
+- **Erratum (2026-11-12)**: the section on the privacy policy records the
+  first beta's effective date, **September 21, 2026**, and says the policy
+  copies must be deployed with "that date". That is history: the policy's
+  §9 says the effective date moves whenever the policy changes, and after
+  #2164 and #2173 changed its text, the maintainer moved it to **November
+  12, 2026**. Read the requirement as: the deployed policy carries a current
+  effective date before any real user's content leaves a device.
 - **Roadmap item**: Amends the v1 non-goals list in `docs/ROADMAP.md` (removing
   "cloud sync") and supersedes the Later-milestones item "Optional
   device-to-device sync, beyond Apple-native AirDrop support". Referenced by
