@@ -124,10 +124,16 @@ class _ParamRow {
   /// then, and only then: never while the user is choosing or typing in it.
   int defaultEpoch = 0;
 
+  /// The name's field: a name it can't be saved with is said once the field
+  /// is left, not while a valid name passes through one ("is" on the way to
+  /// "isolated").
+  final FocusNode nameFocus = FocusNode();
+
   String get key => controller.text.trim();
 
   void dispose() {
     controller.dispose();
+    nameFocus.dispose();
     label.dispose();
     for (final choice in choices) {
       choice.controller.dispose();
@@ -288,13 +294,23 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
 
   /// What the wording's conditions may test, from the parameters as now
   /// edited, with their values' words in [dialect].
-  WordingVocabulary _templateVocabulary(Dialect dialect) {
+  ///
+  /// With [except], the rows at those indexes are left out: what the help
+  /// under the wording offers, which never suggests a name the figure can't
+  /// be saved with.
+  WordingVocabulary _templateVocabulary(
+    Dialect dialect, {
+    Set<int> except = const {},
+  }) {
     String stored(String text) => canonicalizeGlossaryText(text, dialect);
     return _renderer.userFigureWordingVocabulary(
       UserFigureDefinition(
         template: '{$userFigureMoveSlot}',
         defaultBeats: 0,
-        params: [for (final p in _params) _figureParam(p, stored)],
+        params: [
+          for (final (i, p) in _params.indexed)
+            if (!except.contains(i)) _figureParam(p, stored),
+        ],
       ),
       dialect,
     );
@@ -600,6 +616,27 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
       extra: userFigurePayloadExtra(initialPayload),
     );
   }
+
+  /// Whether the row [index], [row], says its name can't be saved, one of
+  /// [bad] ([_badFigureParams]): said before Save, so a name the wording
+  /// can't use ("center hand") isn't first met as a slot that fails, but
+  /// only once its field is left, so a valid name typed through an invalid
+  /// one ("is" on the way to "isolated") doesn't flash it, or once Save has
+  /// refused it, which doesn't take the focus from the field. An empty one is
+  /// said on Save, in its list.
+  bool _badNameShown(_ParamRow row, int index, Set<int> bad) =>
+      row.key.isNotEmpty &&
+      bad.contains(index) &&
+      (!row.nameFocus.hasFocus || _errors.isNotEmpty);
+
+  /// The rows of a new figure's parameters whose names it can't be saved
+  /// with ([UserFigureIssueCodes.badParamKey]), by index: badly shaped (a
+  /// space, as in "center hand"), reserved, or taken.
+  Set<int> _badFigureParams() => {
+    for (final issue in validateUserFigure(_figureNow((text) => text)))
+      if (issue.code == UserFigureIssueCodes.badParamKey)
+        if (issue.data['index'] case final int index) index,
+  };
 
   UserFigureParam _figureParam(_ParamRow row, String Function(String) store) {
     final choices = row.kind == ParamKind.choice
@@ -966,6 +1003,9 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final dialect = ActiveDialectScope.of(context);
+    final badFigureParams = _kind == UserGlossaryEntryKind.customFigure
+        ? _badFigureParams()
+        : const <int>{};
 
     Widget heading(String title, String help) => Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -1059,7 +1099,13 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
         body: ListView(
           key: const ValueKey('compound-editor'),
           children: [
-            if (_errors.isNotEmpty)
+            // Always a child, so the reasons coming and going never shift
+            // the list's children after it: a shift rebuilds the field being
+            // typed in and its focus falls to another field, which then takes
+            // what is typed next.
+            if (_errors.isEmpty)
+              const SizedBox.shrink()
+            else
               Padding(
                 padding: const EdgeInsets.fromLTRB(
                   AppSpacing.md,
@@ -1161,85 +1207,136 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
                     AppSpacing.xs,
                     0,
                   ),
-                  child: Row(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        flex: 3,
-                        child: TextField(
-                          key: ValueKey('compound-param-$i-name'),
-                          controller: row.controller,
-                          maxLength: _kind == UserGlossaryEntryKind.customFigure
-                              ? maxUserFigureParamKeyLength
-                              : maxCompoundParamKeyLength,
-                          onChanged: (_) => _changed(),
-                          decoration: InputDecoration(
-                            labelText: l10n.compoundEditorParamName,
-                            border: const OutlineInputBorder(),
-                            isDense: true,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        flex: 2,
-                        child: DropdownButtonFormField<ParamKind>(
-                          key: ValueKey('compound-param-$i-kind'),
-                          initialValue: row.kind,
-                          isExpanded: true,
-                          decoration: InputDecoration(
-                            labelText: l10n.compoundEditorParamKind,
-                            border: const OutlineInputBorder(),
-                            isDense: true,
-                          ),
-                          items: [
-                            for (final kind in compoundParamKinds)
-                              // A plain number fills no built-in move's slot
-                              // (a compound's parameter must match the slot's
-                              // kind), so only a figure of your own offers it;
-                              // a row already holding one keeps its entry.
-                              if (kind != ParamKind.number ||
-                                  _kind == UserGlossaryEntryKind.customFigure ||
-                                  row.kind == ParamKind.number)
-                                DropdownMenuItem(
-                                  value: kind,
-                                  child: Text(
-                                    compoundParamKindLabel(l10n, kind),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: Focus(
+                              // Leaving the field shows what is wrong with it.
+                              canRequestFocus: false,
+                              skipTraversal: true,
+                              onFocusChange: (_) => setState(() {}),
+                              // A screen reader hears why with the field,
+                              // as it would the field's own error line.
+                              child: Semantics(
+                                hint: _badNameShown(row, i, badFigureParams)
+                                    ? l10n.userFigureEditorParamNames
+                                    : null,
+                                child: TextField(
+                                  key: ValueKey('compound-param-$i-name'),
+                                  controller: row.controller,
+                                  maxLength:
+                                      _kind ==
+                                          UserGlossaryEntryKind.customFigure
+                                      ? maxUserFigureParamKeyLength
+                                      : maxCompoundParamKeyLength,
+                                  focusNode: row.nameFocus,
+                                  onChanged: (_) => _changed(),
+                                  decoration: InputDecoration(
+                                    labelText: l10n.compoundEditorParamName,
+                                    // Marked here; why is said below the
+                                    // row, where it has the width
+                                    // ([_badNameShown]).
+                                    error:
+                                        _badNameShown(row, i, badFigureParams)
+                                        ? const SizedBox.shrink()
+                                        : null,
+                                    border: const OutlineInputBorder(),
+                                    isDense: true,
                                   ),
                                 ),
-                          ],
-                          onChanged: (kind) {
-                            if (kind == null) return;
-                            if (kind != row.kind) {
-                              // A default of the old kind means nothing in the
-                              // new one, and could even pass for one of it (a
-                              // choice id as text).
-                              row.defaultValue = null;
-                              row.defaultEpoch++;
-                            }
-                            row.kind = kind;
-                            _changed();
-                          },
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.sm),
+                          Expanded(
+                            flex: 2,
+                            child: DropdownButtonFormField<ParamKind>(
+                              key: ValueKey('compound-param-$i-kind'),
+                              initialValue: row.kind,
+                              isExpanded: true,
+                              decoration: InputDecoration(
+                                labelText: l10n.compoundEditorParamKind,
+                                border: const OutlineInputBorder(),
+                                isDense: true,
+                              ),
+                              items: [
+                                for (final kind in compoundParamKinds)
+                                  // A plain number fills no built-in move's
+                                  // slot (a compound's parameter must match
+                                  // the slot's kind), so only a figure of
+                                  // your own offers it; a row already
+                                  // holding one keeps its entry.
+                                  if (kind != ParamKind.number ||
+                                      _kind ==
+                                          UserGlossaryEntryKind.customFigure ||
+                                      row.kind == ParamKind.number)
+                                    DropdownMenuItem(
+                                      value: kind,
+                                      child: Text(
+                                        compoundParamKindLabel(l10n, kind),
+                                      ),
+                                    ),
+                              ],
+                              onChanged: (kind) {
+                                if (kind == null) return;
+                                if (kind != row.kind) {
+                                  // A default of the old kind means nothing
+                                  // in the new one, and could even pass for
+                                  // one of it (a choice id as text).
+                                  row.defaultValue = null;
+                                  row.defaultEpoch++;
+                                }
+                                row.kind = kind;
+                                _changed();
+                              },
+                            ),
+                          ),
+                          IconButton(
+                            key: ValueKey('compound-param-$i-remove'),
+                            tooltip: l10n.compoundEditorRemoveParam,
+                            icon: const Icon(Icons.remove_circle_outline),
+                            onPressed: () {
+                              _params.removeAt(i);
+                              for (final slots in _bindings.values) {
+                                slots.removeWhere(
+                                  (_, b) => identical(b.param, row),
+                                );
+                              }
+                              // Disposed after the frame that stops
+                              // building it.
+                              WidgetsBinding.instance.addPostFrameCallback(
+                                (_) => row.dispose(),
+                              );
+                              _changed();
+                            },
+                          ),
+                        ],
+                      ),
+                      // Under the row, inside it so the list's children never
+                      // shift as it comes and goes, and at the row's width:
+                      // the whole rule, which a field's own error line would
+                      // cut short on a phone.
+                      if (_badNameShown(row, i, badFigureParams))
+                        Padding(
+                          key: ValueKey('compound-param-$i-name-error'),
+                          padding: const EdgeInsetsDirectional.only(
+                            top: AppSpacing.xxs,
+                            end: AppSpacing.sm,
+                          ),
+                          // Not a live region: the field's hint says it, and
+                          // Save's list announces it, not once per row.
+                          child: Text(
+                            l10n.userFigureEditorParamNames,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.error,
+                            ),
+                          ),
                         ),
-                      ),
-                      IconButton(
-                        key: ValueKey('compound-param-$i-remove'),
-                        tooltip: l10n.compoundEditorRemoveParam,
-                        icon: const Icon(Icons.remove_circle_outline),
-                        onPressed: () {
-                          _params.removeAt(i);
-                          for (final slots in _bindings.values) {
-                            slots.removeWhere(
-                              (_, b) => identical(b.param, row),
-                            );
-                          }
-                          // Disposed after the frame that stops building it.
-                          WidgetsBinding.instance.addPostFrameCallback(
-                            (_) => row.dispose(),
-                          );
-                          _changed();
-                        },
-                      ),
                     ],
                   ),
                 ),
@@ -1305,7 +1402,13 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
               ),
             ],
             if (_kind == UserGlossaryEntryKind.customFigure)
-              ..._wordingSection(context, l10n, dialect, heading)
+              ..._wordingSection(
+                context,
+                l10n,
+                dialect,
+                heading,
+                badFigureParams,
+              )
             else if (_kind == UserGlossaryEntryKind.compound) ...[
               heading(
                 l10n.compoundEditorFigures,
@@ -1496,11 +1599,22 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
     AppLocalizations l10n,
     Dialect dialect,
     Widget Function(String title, String help) heading,
+    Set<int> bad,
   ) {
-    final slots = _figureNow((text) => text).slots;
+    // A name the figure can't be saved with ([bad]) is not offered; what is
+    // wrong with it is said under its row ([_badNameShown]).
+    final figure = _figureNow((text) => text);
+    final slots = UserFigureDefinition(
+      template: figure.template,
+      defaultBeats: figure.defaultBeats,
+      params: [
+        for (final (i, p) in figure.params.indexed)
+          if (!bad.contains(i)) p,
+      ],
+    ).slots;
     final preview = _preview(dialect);
     final theme = Theme.of(context);
-    final vocabulary = _templateVocabulary(dialect);
+    final vocabulary = _templateVocabulary(dialect, except: bad);
     final check = _templateCheck(dialect);
     return [
       heading(

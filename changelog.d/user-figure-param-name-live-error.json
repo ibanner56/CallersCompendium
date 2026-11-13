@@ -1,0 +1,15 @@
+{
+  "id": "user-figure-param-name-live-error",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "When you name a parameter of a figure of your own something it can't be saved with, such as “center hand” with a space, the editor now says what's wrong under that parameter as soon as you move on from its name, instead of only in the list after you tap Save. The help under the wording no longer offers that name as `{center hand}` or in its list of what a condition can test, so it no longer suggests a slot that then fails as one.",
+      "When Save refuses a figure of your own, a combination or a term, the field you were typing in keeps the focus, so what you type next goes there instead of into another field, such as the first parameter's name."
+    ]
+  },
+  "core": {
+    "changed": [
+      "`validateUserFigure` adds the parameter's `index` to the data of each per-parameter issue, so an editor can mark the row at fault; of a key taken twice, the later parameter is the one reported."
+    ]
+  }
+}
