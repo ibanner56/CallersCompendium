@@ -3687,8 +3687,8 @@ reconciliation.
 
 > **Amended 2026-10-30.** That this section is amended for a user's merge is
 > the maintainer's decision (N2-1 = (a), 2026-10-30, recorded in
-> `docs/dev/audits/2026-10-behavior/maintainer-decisions-2026-10-30.md` on
-> branch `claude/app-audit-categories-k2pdon`): "Merges record an alias, so a
+> `docs/dev/audits/2026-10-behavior/maintainer-decisions-2026-10-30.md`):
+> "Merges record an alias, so a
 > device that tagged dances offline lands on the merged entry; T1 must still
 > choose the fix for one open risk." The rules below are what the implementing
 > branch built (`docs/design/tags-and-people.md`, T1). Rules 4 to 7 are that
@@ -4179,8 +4179,9 @@ holds nothing back, exactly as the local delete guards do not count it.
 > Recently Deleted, used the level. On 2026-10-29 the maintainer decided that
 > the trash does not protect what its records use (trash-policy, option b). On
 > 2026-10-30 they chose to amend the documents to match rather than reverse
-> that decision (R2-trash-docs, option a). Both are recorded in
-> `docs/dev/audits/2026-10-behavior/` on the audit branch. The local guard and
+> that decision (R2-trash-docs, option a). They are recorded in
+> `docs/dev/audits/2026-10-behavior/maintainer-decisions-2026-10-29.md` and
+> `maintainer-decisions-2026-10-30.md` respectively. The local guard and
 > this count changed together, so an inbound level tombstone is still held
 > pending exactly when a local delete would be refused.
 >

@@ -152,13 +152,13 @@ Design items (each produces a design doc + review):
   rename / delete) alongside shipped presets, a term editor with **live
   preview** + collision validation, and dialect **quick-switch** on the dance
   card / perform screens. Builds on the existing (single-active) editor above.
-  - PR1 (this branch, `dialect-term-editor`): core `Dialect.resolveByName`
+  - PR1 (#89): core `Dialect.resolveByName`
     (custom-wins-over-preset resolver superseding `forName`); app
     `DialectLibraryController` + `DialectLibraryScope` (settings keys
     `custom_dialects` / `active_dialect_ref`) with CRUD, active-fallback on
     delete, and legacy `active_dialect` blob migration. Fully unit-tested;
     wired into the app + UI in PR2/PR3.
-  - PR2 delivered (branch `isaacbanner-dialect-pr2`): the library is wired into
+  - PR2 delivered (#133): the library is wired into
     the app — `DialectLibraryController`/`DialectLibraryScope` mounted in
     `main.dart`, with the controller driving the existing `ActiveDialectScope`
     notifier (a listener mirrors `controller.active` into it) so every existing
@@ -168,7 +168,7 @@ Design items (each produces a design doc + review):
     reusable `DialectEditorScreen` term editor for custom dialects (presets
     offer "Duplicate to customize"). Live preview, collision validation, and
     dance-card/perform quick-switch remain **PR3**.
-  - PR3 delivered (branch `isaacbanner-dialect-pr3`): completes the manager. The
+  - PR3 delivered (#138): completes the manager. The
     `DialectEditorScreen` now reassembles the working dialect on every edit and
     runs core `Dialect.validate()` live — collision (two terms → one word) and
     empty-substitution issues surface inline via the existing

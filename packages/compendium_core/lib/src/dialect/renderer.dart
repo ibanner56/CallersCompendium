@@ -1980,6 +1980,23 @@ class FigureRenderer {
     ).trim();
   }
 
+  /// The forms this renderer prints for every dancer and role token under
+  /// [dialect]: each dancer token's singular subject form ("neighbor"), its
+  /// group form ("neighbors"), and the dialect's role terms in both numbers,
+  /// with the dialect's dancer substitutions in place of the plain forms
+  /// where it has them. Words a move's wording supplies itself, such as the
+  /// "others" of an inverted pair, are not among them. Lower-cased and without blanks; for display
+  /// that sets dancers apart in a rendered line (calling cards), never for
+  /// parsing.
+  Set<String> dancerTerms(Dialect dialect) => {
+    for (final token in [...roleTokens, ...ParamVocab.dancerSets])
+      for (final term in [
+        _displayDancer(token, dialect),
+        _displayGroup(token, dialect),
+      ])
+        if (term.trim().isNotEmpty) term.trim().toLowerCase(),
+  };
+
   /// Display string for a single vocabulary [token] under [dialect], for use in
   /// the dance editor's param choices/labels. Role tokens render as the
   /// dialect's role term (canonical token when unmapped); single-dancer

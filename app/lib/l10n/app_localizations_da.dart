@@ -11962,6 +11962,10 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String get callingCardHelpOptionHighlight =>
+      'For figures: bevægelserne med fed mørkerød skrift, danserne med fed og mængder som ½ eller 3 places i blågrå.';
+
+  @override
   String get settingsCallingCardsSheetsTitle => 'Flere kort pr. side';
 
   @override

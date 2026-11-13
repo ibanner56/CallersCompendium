@@ -4,7 +4,7 @@
 audit finding PLAT-17 ("Dance content cannot be selected or copied piecemeal")
 from the 2026-10 behavior audit. The maintainer answered its five questions on
 2026-10-29/30, each as this note recommended (N5-1 … N5-5 in
-`maintainer-decisions-2026-10-30.md`, on `claude/app-audit-categories-k2pdon`);
+`docs/dev/audits/2026-10-behavior/maintainer-decisions-2026-10-30.md`);
 [Decisions](#decisions) quotes them. Conforms to [ux.md](ux.md) "Cross-cutting
 UX rules". Docs-only: this note changes no app code and settles no D-11 question
 (Save, New and header placement). The Guide citations under "Problem" are for
@@ -263,7 +263,7 @@ The maintainer left no notes on these five.
 Sized like the work plan (see "Sources"). Each touches only the files named.
 Updated 2026-10-30 for the decisions and for what has merged (`main` at
 `90fe5e8`: F10 #2022 and U7 #2033 have merged; F11 #2040 is open). In the audit
-branch's `design-work-plan.md` these are N5-S1 … N5-S3.
+record's `design-work-plan.md` these are N5-S1 … N5-S3.
 
 | # | Branch | Main files | Size | Model | Depends on |
 | --- | --- | --- | --- | --- | --- |
@@ -279,12 +279,11 @@ queue: N5-1 added no setting.
 
 The B29 facts and the branch sizing come from the 2026-10 behavior audit's
 `decided-work-plan.md` (the "B29" entry, the "Design notes" section and the
-hot-files table), which lives at
-`docs/dev/audits/2026-10-behavior/decided-work-plan.md` on branch
-`claude/app-audit-categories-k2pdon` and is not on `main` yet. B29's
+hot-files table), at
+`docs/dev/audits/2026-10-behavior/decided-work-plan.md`. B29's
 right-click handlers and its menu-bar replacement have since shipped (see §6).
 The audit finding is PLAT-17 in
-`reports/PLAT.md` on the same branch.
+`docs/dev/audits/2026-10-behavior/reports/PLAT.md`.
 
 ## Implementation note (N5-S1, 2026-10-30)
 

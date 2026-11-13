@@ -3,6 +3,40 @@ import 'package:test/test.dart';
 import 'package:compendium_core/testing.dart';
 
 void main() {
+  group('dancerTerms', () {
+    final r = FigureRenderer(contraTaxonomy);
+
+    test('the dialect\'s role terms in both numbers, and the dancer forms', () {
+      final terms = r.dancerTerms(Dialect.larksRobins);
+      expect(
+        terms,
+        containsAll([
+          'lark',
+          'larks',
+          'robin',
+          'robins',
+          'neighbor',
+          'neighbors',
+          'partner',
+          'partners',
+          'shadows',
+          'first lark',
+        ]),
+      );
+      expect(terms, isNot(contains('role1s')));
+      expect(terms.every((t) => t == t.toLowerCase() && t.trim() == t), isTrue);
+    });
+
+    test('a dialect\'s dancer substitution replaces the plain form', () {
+      final dialect = Dialect(
+        name: 'Test',
+        dancers: const {'neighbors': 'Neighbours'},
+      );
+      final terms = r.dancerTerms(dialect);
+      expect(terms, contains('neighbours'));
+    });
+  });
+
   final renderer = FigureRenderer(contraTaxonomy);
   final larks = Dialect.larksRobins;
 

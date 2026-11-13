@@ -17583,6 +17583,12 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{1 card didn\'t fit and is cut off at the bottom.} other{{count} cards didn\'t fit and are cut off at the bottom.}}'**
   String exportCallingCardsCutOff(int count);
 
+  /// Help: the figures block's highlight option. Block and option names in this text (title, figures, size=, label=, and the like) are the layout language's own: keep them in English.
+  ///
+  /// In en, this message translates to:
+  /// **'For figures: the moves in bold dark red, the dancers in bold, and amounts such as ½ or 3 places in blue-gray.'**
+  String get callingCardHelpOptionHighlight;
+
   /// Switch title: print calling cards on ordinary paper, several to a page, instead of one per card-sized page.
   ///
   /// In en, this message translates to:

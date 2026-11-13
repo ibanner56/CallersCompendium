@@ -12092,6 +12092,10 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get callingCardHelpOptionHighlight =>
+      'Für figures: Bewegungen fett in Dunkelrot, Tanzende fett und Mengen wie ½ oder 3 places in Blaugrau.';
+
+  @override
   String get settingsCallingCardsSheetsTitle => 'Mehrere Karten pro Seite';
 
   @override

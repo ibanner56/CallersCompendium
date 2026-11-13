@@ -210,6 +210,14 @@ STEPS: tuple[Step, ...] = (
         ),
     ),
     Step(
+        "branch-citations",
+        "docs and code comments cite no git branch but main (the cited record is on main)",
+        (
+            py("tools/ci/test_check_branch_citations.py"),
+            py("tools/ci/check_branch_citations.py"),
+        ),
+    ),
+    Step(
         "pr-gates",
         "the merge-readiness gate script itself still works",
         (py("tools/ci/test_check_pr_review_gates.py"),),

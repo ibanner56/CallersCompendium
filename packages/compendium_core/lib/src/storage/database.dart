@@ -561,60 +561,38 @@ const int kCompendiumSchemaVersion = 41;
 
 /// The oldest on-disk schema version this build can still upgrade.
 ///
-/// Schema versions below this were retired (#837, and again raised to v35):
-/// their `onUpgrade` steps, fixture databases and `drift_schemas/generated/`
-/// dumps have been deleted, so there is no migration path from such a file to
-/// head. `onUpgrade` refuses one explicitly rather than running only the
-/// surviving steps and silently producing a structurally wrong database.
+/// Schema versions below this were retired (#837, then raised to v35, and to
+/// v39 when every release before v0.7.0 was retired): their `onUpgrade` steps,
+/// fixture databases and `drift_schemas/generated/` dumps have been deleted, so
+/// there is no migration path from such a file to head. `onUpgrade` refuses one
+/// explicitly rather than running only the surviving steps and silently
+/// producing a structurally wrong database.
 ///
 /// The value is the schema version shipped by the oldest *supported release*,
-/// `v0.4.0-beta` ("Allemande Left") — not simply the oldest version whose code
-/// still exists. v0.3.1-beta shipped v32 (the last version below this floor
-/// ever shipped) and v0.4.0-beta shipped v35, so a database last opened by
-/// v0.3.1-beta or earlier is below the floor and will be refused; that is
-/// deliberate, on the basis that every tester is on v0.4.0-beta or later.
+/// `v0.7.0-beta` — not simply the oldest version whose code still exists.
+/// v0.6.0-beta shipped v38 (the last version below this floor ever shipped)
+/// and v0.7.0-beta shipped v39, so a database last opened by v0.6.0-beta or
+/// earlier is below the floor and will be refused; that is deliberate, on the
+/// basis that every release before v0.7.0 is retired (maintainer, 2026-11-12).
 ///
 /// Raising this is a user-visible change: databases below the new floor stop
 /// opening. It needs an app `changelog.d/` fragment, stated in user-facing
 /// terms, with the release whose schema version is being adopted named as the reason.
 ///
-/// The floor keeps a real fixture, `test/storage/fixtures/v35.sqlite`, captured
+/// The floor keeps a real fixture, `test/storage/fixtures/v39.sqlite`, captured
 /// from that release's tag. Its name is derived from this constant in
 /// `test/storage/real_release_fixture_test.dart`, so raising the floor fails
 /// that test until a fixture for the new floor is committed.
-const int kMinSupportedSchemaVersion = 35;
+const int kMinSupportedSchemaVersion = 39;
 
 /// The Caller's Compendium local database.
 ///
 /// The per-version schema log — every version from v1, including the
-/// v1–v34 entries retired by #837 and the floor raises since — lives in `docs/design/storage.md` under
+/// v1–v38 entries retired by #837 and the floor raises since — lives in `docs/design/storage.md` under
 /// "Schema version history". **Every bump appends an entry there in the same
 /// PR**; `tools/ci/check_version_history.py` fails the build otherwise. It is
 /// kept there because it is a ledger of decisions already shipped, and it grew
 /// on every bump; what constrains this declaration stays below.
-///
-/// - v35 (issues #1104 and #1233): normalizes persisted figure parameter keys
-///   and consolidates the two legacy pull-by move ids; replaces
-///   `program_slots.planned_minutes` with nullable `walkthrough_minutes` and
-///   `dance_minutes`, copying every existing value to dance minutes. The
-///   taxonomy source JSON is rewritten recursively, including nested
-///   `meanwhile` figures; derived figure/search rows are rebuilt after the
-///   rewrite.
-///
-/// - v38 (issue #1418): adds the nullable `programs.pay_minor_units` (integer,
-///   the caller's pay in the currency's minor units) and `programs.pay_currency`
-///   (ISO 4217 code). Both NULL (every existing row) means no pay recorded.
-///   Purely additive: two `addColumn`s, no back-fill, no derived rebuild.
-///
-/// - v37 (issue #1554): adds the nullable `programs.dialect_name`, the name of
-///   the dialect Perform uses for that program. `null` (every existing row)
-///   means Perform follows the application dialect. Purely additive: one
-///   `addColumn`, no back-fill, no derived rebuild. The value is a soft
-///   reference by name that is never validated or cascaded on dialect rename
-///   or delete.
-///
-/// - v36: adds the nullable queue-time local wire hash to actionable sync
-///   review rows so resolution can reject edits made after enqueue.
 ///
 /// - v34 (issue #1200): adds the Device Sync timestamp triple to the
 ///   difficulty-level vocabulary, converting level deletion into a tombstone.
@@ -882,59 +860,11 @@ class CompendiumDatabase extends _$CompendiumDatabase {
       // throw before any DDL, so there is nothing for them to roll back.
       //
       // `test/storage/migration_atomicity_test.dart` covers both windows: one
-      // test injects a throw after the v38 `addColumn` and asserts the stamp and
+      // test injects a throw after the v40 step's DDL and asserts the stamp and
       // the DDL are unchanged; another lets this transaction commit and then
       // throws from `beforeOpen`, asserting `user_version` already reads the
       // new value even though drift's own stamp never ran.
       await transaction(() async {
-        if (from < 36) {
-          // Review queues were first created (by the since-retired v32
-          // migration) from the Dart table definition of the day, so a file
-          // whose history crossed that build may already have this v36
-          // column; inspect the live schema before adding it.
-          final reviewQueueColumns = await customSelect(
-            "SELECT name FROM pragma_table_info('${reviewQueue.actualTableName}')",
-          ).get();
-          final hasLocalHash = reviewQueueColumns.any(
-            (row) => row.read<String>('name') == reviewQueue.localHash.name,
-          );
-          if (!hasLocalHash) {
-            await m.addColumn(reviewQueue, reviewQueue.localHash);
-          }
-        }
-        if (from < 37) {
-          // Issue #1554. No earlier step recreates `programs` from the current
-          // Dart definition, so the column is normally absent here. The
-          // live-schema check is defensive only: it keeps the step idempotent
-          // if a prior partial run or a hand-restored file already has it.
-          final programColumns = await customSelect(
-            "SELECT name FROM pragma_table_info('${programs.actualTableName}')",
-          ).get();
-          final hasDialectName = programColumns.any(
-            (row) => row.read<String>('name') == programs.dialectName.name,
-          );
-          if (!hasDialectName) {
-            await m.addColumn(programs, programs.dialectName);
-          }
-        }
-        if (from < 38) {
-          // Issue #1418. As in v37, no earlier step recreates `programs` from
-          // the current Dart definition, so the columns are normally absent;
-          // the live-schema check only keeps the step idempotent.
-          final programColumns = await customSelect(
-            "SELECT name FROM pragma_table_info('${programs.actualTableName}')",
-          ).get();
-          final present = {
-            for (final row in programColumns) row.read<String>('name'),
-          };
-          if (!present.contains(programs.payMinorUnits.name)) {
-            await m.addColumn(programs, programs.payMinorUnits);
-          }
-          if (!present.contains(programs.payCurrency.name)) {
-            await m.addColumn(programs, programs.payCurrency);
-          }
-        }
-        if (from < 39) await _ensureV39Schema(m);
         if (from < 40) await _ensureV40Schema(m);
         if (from < 41) await _ensureV41Schema();
 
@@ -948,8 +878,9 @@ class CompendiumDatabase extends _$CompendiumDatabase {
       await customStatement('PRAGMA foreign_keys = ON');
       if (details.wasCreated) return;
       // v39 shipped in pieces: a development build stamped it before every
-      // piece existed, so a file at v39 can lack some, and `from < 39` never
-      // runs for it again. The step is idempotent; run it on every open.
+      // piece existed, so a file at v39 can lack some. v39 is the floor, so no
+      // upgrade step adds them; this is the only place they are ensured. The
+      // step is idempotent; run it on every open.
       if (details.versionNow >= 39) await _ensureV39Schema(createMigrator());
       // Defensive: guards a hand-rolled DB (e.g. restored from an external
       // backup) that lacks either raw FTS5 table. Creating a missing index

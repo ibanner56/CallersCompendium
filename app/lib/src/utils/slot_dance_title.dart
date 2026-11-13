@@ -16,7 +16,7 @@ bool isBlankedDance(Dance dance) =>
 /// slot added on this device before the blank arrived still cites it, and
 /// used to read "— (deleted dance)". It shows "Deleted dance" instead (the
 /// maintainer's decision Q-6, 2026-10-31, recorded in
-/// `docs/dev/audits/2026-10-behavior/` on the audit branch).
+/// `docs/dev/audits/2026-10-behavior/maintainer-decisions-2026-10-30.md`).
 ///
 /// Both tests are needed. A retention sweep marks a dance a slot still cites
 /// as permanently deleted but keeps its title, which that slot goes on

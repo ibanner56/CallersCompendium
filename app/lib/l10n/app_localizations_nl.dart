@@ -12040,6 +12040,10 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String get callingCardHelpOptionHighlight =>
+      'Voor figures: de bewegingen vet in donkerrood, de dansers vet, en hoeveelheden zoals ½ of 3 places in blauwgrijs.';
+
+  @override
   String get settingsCallingCardsSheetsTitle => 'Meerdere kaarten per pagina';
 
   @override

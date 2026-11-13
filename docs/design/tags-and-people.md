@@ -2,13 +2,14 @@
 
 *Design note N2 for audit findings FIND-3 and LIFE-5. Written 2026-10-29
 against `origin/main` at `acacb05`, and re-checked after merging `main` at
-`296b594`. Every `file:line` below is for `296b594` unless it names another
-branch. Of the files cited, only `ux.md` moved between the two.*
+`296b594`. Every `file:line` below is for `296b594`, except those into the
+audit record in `docs/dev/audits/2026-10-behavior/`, which was brought onto
+`main` unchanged. Of the files cited, only `ux.md` moved between the two.*
 
 **Status: decided; T1–T4 built 2026-10-30.** The maintainer asked for this note (below), and
 on 2026-10-29/30 answered all seven of its questions, each as the note
-recommended (N2-1 … N2-7 in `maintainer-decisions-2026-10-30.md` on
-`claude/app-audit-categories-k2pdon`; this note's D-N2-*n* is the file's
+recommended (N2-1 … N2-7 in
+`docs/dev/audits/2026-10-behavior/maintainer-decisions-2026-10-30.md`; this note's D-N2-*n* is the file's
 N2-*n*). [Decisions](#decisions) quotes them. N2-1 leaves one choice to T1: the
 fix for the open risk under [Merge](#merge). Everything still marked
 **Recommendation** without a decision beside it is my view as the note's
@@ -16,9 +17,9 @@ author, with the alternative I rejected.
 
 ## What is already decided
 
-The audit material lives on branch `claude/app-audit-categories-k2pdon`, under
-`docs/dev/audits/2026-10-behavior/`. The maintainer's answers that bind this
-note, quoted from `maintainer-decisions-2026-10-29.md` on that branch:
+The audit material is in `docs/dev/audits/2026-10-behavior/`. The maintainer's
+answers that bind this note, quoted from `maintainer-decisions-2026-10-29.md`
+there:
 
 | Decision | Where | What it means here |
 | --- | --- | --- |
@@ -27,8 +28,8 @@ note, quoted from `maintainer-decisions-2026-10-29.md` on that branch:
 | trash-policy = (b) "Trash doesn't protect" | `:127-130` | A dance in Recently deleted never blocks or changes a rename, merge or delete. |
 | design-duplicates (FIND-9) = (c) "Drop it" | `:327-330` | This note does not propose a duplicate *dance* finder. Merging duplicate *sources* is in scope, because LIFE-5 names sources. |
 
-The work plan's section for this note (`decided-work-plan.md:823-840` on the
-same branch) lists the questions, and `:787-796` sets the constraints common to
+The work plan's section for this note (`decided-work-plan.md:823-840` in the
+same directory) lists the questions, and `:787-796` sets the constraints common to
 all five notes. Each question has its own section below.
 
 **Out of scope.** D-11 is still open, so nothing here places a Save or New
@@ -668,7 +669,7 @@ reads only data that is already there, so it adds no persisted field.
 
 The decision text summarises the details as "a colour, website, notes or
 email". *Planner's reading, accepted by the maintainer 2026-10-30*
-(`design-work-plan.md` ambiguity 7, on the audit branch): it is the
+(`design-work-plan.md` ambiguity 7): it is the
 option's short form, and the full list in the table above stands, so an
 author's location or deceased mark, and a source's author, year or URL, also
 spare a row. Rejected: the narrower list, which would erase a source with a URL
@@ -787,14 +788,13 @@ Each implementation branch updates these in the same PR:
 
 *Planner's readings.* Where an answer left a detail open, the planning session
 proposed a reading in `design-work-plan.md` ("Ambiguities the answers leave
-open", on the audit branch). The maintainer accepted all eight on 2026-10-30
+open"). The maintainer accepted all eight on 2026-10-30
 ("Accept all 8 (Recommended)"), as recorded in `maintainer-decisions-2026-10-30.md`
 under "Design plan / N1–N5". This note labels each one "planner's reading,
 accepted by the maintainer 2026-10-30".
 
 The maintainer answered all seven on 2026-10-29/30, each as recommended. Each
-entry quotes the decision as `maintainer-decisions-2026-10-30.md` (on
-`claude/app-audit-categories-k2pdon`) records it. The maintainer left no notes
+entry quotes the decision as `maintainer-decisions-2026-10-30.md` records it. The maintainer left no notes
 on these seven.
 
 1. **D-N2-1 = N2-1, amend sync-spec §6.6.** "(a) Yes, amend sync-spec §6.6.
@@ -845,7 +845,7 @@ dance as protecting a row.
 The format and sizes follow `decided-work-plan.md`. Size counts changed lines,
 tests included: S < 150, M 150–400, L 400+. Updated 2026-10-30 for the decisions
 and for what has merged (`main` at `90fe5e8`: B12 #2037 and B23 #2035 have
-merged; B7 is in flight; B8 and B13 have not started). In the audit branch's
+merged; B7 is in flight; B8 and B13 have not started). In the audit record's
 `design-work-plan.md` these are N2-T1 … N2-T4.
 
 | # | Branch | Items | Size | Model | Depends on |

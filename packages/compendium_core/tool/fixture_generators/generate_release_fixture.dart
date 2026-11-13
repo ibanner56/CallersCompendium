@@ -3,14 +3,14 @@
 // wrote). Read by `test/storage/real_release_fixture_test.dart`.
 //
 // THIS FILE IS NOT BUILT OR ANALYSED WITH THE REPOSITORY. It is written against
-// the public API of the release it is run on (v0.4.0-beta for v35), which is
+// the public API of the release it is run on (v0.7.0-beta for v39), which is
 // not the API at head; `analysis_options.yaml` excludes this directory for that
 // reason. Run it from a checkout of the release tag, never from head.
 //
-// Recipe (v35 from v0.4.0-beta, commit 04ab10c7, schema 35; v38 from
-// v0.6.0-beta, commit a6d52290, schema 38 -- the same recipe for both tags):
+// Recipe (v39 from v0.7.0-beta, commit 1cf5af66, schema 39; the retired v35
+// and v38 fixtures came from v0.4.0-beta and v0.6.0-beta the same way):
 //
-//   git worktree add --detach <dir> <tag>   # v0.4.0-beta or v0.6.0-beta
+//   git worktree add --detach <dir> <tag>   # v0.7.0-beta
 //   cd <dir>/packages/compendium_core
 //   # standalone resolution at the tag (drops `resolution: workspace` and the
 //   # dev-only dependencies that need the workspace to resolve)
@@ -220,7 +220,7 @@ Future<void> main(List<String> args) async {
   await db.close();
 
   final raw = sqlite3.sqlite3.open(out.path);
-  // The v0.4.0-beta seeder stamps the difficulty levels with the wall clock.
+  // The release's seeder stamps the difficulty levels with the wall clock.
   // Pin them so regenerating yields identical bytes.
   final pinned = t0.millisecondsSinceEpoch ~/ 1000;
   raw.execute(

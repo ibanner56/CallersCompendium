@@ -9,9 +9,9 @@ recommendation: N4-5 builds the batch actions together rather than deferring
 two, and its note drops two of them ("but not mixer or mixed level"). The text
 below follows the answers. Everything still marked as a recommendation is this
 note's, not the maintainer's, and says what it rejected. Line numbers are against `origin/main` at
-`acacb05`. The audit files (`docs/dev/audits/2026-10-behavior/`, including
-`reports/FIND.md` and `decided-work-plan.md`) live on the branch
-`claude/app-audit-categories-k2pdon`, not on `main`. Conforms to
+`acacb05`. The audit files cited by bare name (`reports/FIND.md`,
+`decided-work-plan.md`, `design-work-plan.md` and the maintainer-decision
+files) are in `docs/dev/audits/2026-10-behavior/`. Conforms to
 [ux.md](ux.md) §1 and its cross-cutting rules.*
 
 ## Scope
@@ -292,8 +292,7 @@ without a second change.
   recommend it for the first PR: it would make the bulk path stricter than the
   row path for no stated reason. N4-5's answer did not address it; see
   [Decisions](#decisions), item 5 (no warning: the planner's reading,
-  accepted by the maintainer 2026-10-30; `design-work-plan.md` ambiguity 6, on
-  the audit branch).
+  accepted by the maintainer 2026-10-30; `design-work-plan.md` ambiguity 6).
 
 **Confirmation.** `ux.md:192-193` says to confirm only where Undo is impossible,
 and bulk delete has Undo and a trash. Options:
@@ -438,8 +437,7 @@ must not redesign any of them.
 - **Duplicates.** N3 decided that the single-dance sheet asks before adding a
   dance the program already holds (N3-4 = (b)), with alternates counted
   (N3-6). Bulk reuses that answer. *Planner's reading, accepted by the
-  maintainer 2026-10-30* (`design-work-plan.md` ambiguity 5, on the audit
-  branch): one question per program tapped, not one per dance:
+  maintainer 2026-10-30* (`design-work-plan.md` ambiguity 5): one question per program tapped, not one per dance:
   "4 of 12 dances are already in 'Friday dance'", with **Add all**, **Skip those
   4** and **Cancel**. The marker for a multi-dance selection reads "4 of 12 in
   this program".
@@ -547,14 +545,13 @@ are.
 
 *Planner's readings.* Where an answer left a detail open, the planning session
 proposed a reading in `design-work-plan.md` ("Ambiguities the answers leave
-open", on the audit branch). The maintainer accepted all eight on 2026-10-30
+open"). The maintainer accepted all eight on 2026-10-30
 ("Accept all 8 (Recommended)"), as recorded in `maintainer-decisions-2026-10-30.md`
 under "Design plan / N1–N5". This note labels each one "planner's reading,
 accepted by the maintainer 2026-10-30".
 
 The maintainer answered all six on 2026-10-29/30. Each entry quotes the decision
-as `maintainer-decisions-2026-10-30.md` (on `claude/app-audit-categories-k2pdon`)
-records it, and the maintainer's note verbatim where there is one.
+as `maintainer-decisions-2026-10-30.md` records it, and the maintainer's note verbatim where there is one.
 
 1. **N4-1, hidden selections (Q2).** "(b) Keep them and show the count. The
    count line says 14 selected (9 not shown), with Deselect those not shown; a
@@ -575,7 +572,7 @@ records it, and the maintainer's note verbatim where there is one.
    N3 were decided the same day, so neither pre-emption happens. The sub-question
    whether delete warns when selected dances appear in programs was not
    answered. The *planner's reading, accepted by the maintainer 2026-10-30*
-   (`design-work-plan.md` ambiguity 6, on the audit branch): the note's
+   (`design-work-plan.md` ambiguity 6): the note's
    recommendation, no warning in the first PR. Ambiguity 8, also accepted: "all six together" means the
    same wave as separate branches, not one PR.
 6. **N4-6, selection bar structure.** "(a) Grouped ⋮ menu, Select all icon.
@@ -589,7 +586,7 @@ changed lines, tests included. Each UI branch adds its keys to all six ARBs and
 a `changelog.d` fragment. The sizes are estimates, not measurements. Updated
 2026-10-30 for the decisions above and for what has merged (`main` at
 `90fe5e8`: U9 #2027, F10 #2022 and U7 #2033 have merged; F11 #2040 is open).
-In the audit branch's `design-work-plan.md` these are N4-S1 … N4-S6, with their
+In the audit record's `design-work-plan.md` these are N4-S1 … N4-S6, with their
 guard tests, docs and waves.
 
 | # | Branch | Items | Main files | Size | Model | Depends on |
