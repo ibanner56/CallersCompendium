@@ -23,6 +23,7 @@ import '../figures_support.dart';
 import '../support/fmp_fixture_builder.dart';
 import '../support/test_repositories.dart';
 import '../support/l10n_harness.dart';
+import '../support/pump_until.dart';
 
 /// A drift [drift.QueryInterceptor] that can hold the first write of a commit
 /// open on a caller-controlled gate. Used to freeze [ImportReviewScreen] in its
@@ -3173,21 +3174,15 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('import-continue')));
       // The isolate needs real wall-clock time, which the fake-async test zone
       // does not give it on its own.
-      Future<void> untilFound(Finder f) async {
-        for (var i = 0; i < 100 && f.evaluate().isEmpty; i++) {
-          await tester.runAsync(
-            () => Future<void>.delayed(const Duration(milliseconds: 50)),
-          );
-          await tester.pump();
-        }
-      }
-
-      await untilFound(find.text('Simplicity Swing'));
+      await pumpUntilFound(tester, find.text('Simplicity Swing'));
       expect(find.text('Simplicity Swing'), findsOneWidget);
       expect(find.text('Petronella'), findsOneWidget);
 
       await tester.tap(find.byKey(const ValueKey('import-commit-button')));
-      await untilFound(find.byKey(const ValueKey('import-result-dialog')));
+      await pumpUntilFound(
+        tester,
+        find.byKey(const ValueKey('import-result-dialog')),
+      );
       expect(find.text('Created: 2'), findsOneWidget);
       expect(find.text('Programs: 1'), findsOneWidget);
     });

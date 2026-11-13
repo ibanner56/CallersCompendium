@@ -79,6 +79,7 @@ import 'package:compendium_app/src/screens/app_shell.dart';
 import 'support/full_app_harness.dart';
 import 'support/test_repositories.dart';
 import 'support/noop_sync_transport.dart';
+import 'support/pump_until.dart';
 import 'support/sync_test_network.dart';
 
 class _TrackingSyncCoordinator extends SyncCoordinator {
@@ -2226,13 +2227,7 @@ void main() {
 
       // The snapshot is real file I/O, which FakeAsync would never complete.
       await tester.tap(find.text('Back up + reset'));
-      for (var i = 0; i < 20; i++) {
-        await tester.pump();
-        await tester.runAsync(
-          () => Future<void>.delayed(const Duration(milliseconds: 100)),
-        );
-        if (find.text('Reset app data?').evaluate().isNotEmpty) break;
-      }
+      await pumpUntilFound(tester, find.text('Reset app data?'));
       await tester.pumpAndSettle();
 
       expect(find.text('Reset app data?'), findsOneWidget);
