@@ -1,0 +1,14 @@
+{
+  "id": "program-text-no-performed-marker",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "Shared program text and exported program PDFs no longer add a “[performed]” marker to slots you have marked performed."
+    ]
+  },
+  "core": {
+    "changed": [
+      "`programSlotLine` no longer appends the `[performed]` marker for a slot with `performedAt` set; remove the now-unused `ProgramExportLabels.performed` field."
+    ]
+  }
+}

@@ -94,7 +94,6 @@ class ProgramExportLabels {
     this.notes = 'Notes',
     this.alt = 'ALT',
     this.guest = 'guest',
-    this.performed = 'performed',
     this.unknownDance = 'Untitled dance',
     this.minutes = _englishMinutes,
     this.venue = 'Venue',
@@ -114,7 +113,6 @@ class ProgramExportLabels {
   final String notes;
   final String alt;
   final String guest;
-  final String performed;
   final String unknownDance;
   final String Function(int minutes) minutes;
   final String venue;
@@ -133,7 +131,7 @@ class ProgramExportLabels {
 
   /// Formats a slot line's author-names suffix, e.g. `"by Jane Smith"`
   /// (issue #1434). Rendered after the dance title/free text, before the
-  /// guest/minutes/performed suffixes, only when the caller resolves at
+  /// guest/minutes suffixes, only when the caller resolves at
   /// least one non-blank author name for that slot's dance.
   final String Function(String names) by;
 

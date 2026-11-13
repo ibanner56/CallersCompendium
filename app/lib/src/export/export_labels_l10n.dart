@@ -34,7 +34,6 @@ ProgramExportLabels programExportLabels(AppLocalizations l10n) =>
       notes: l10n.exportLabelNotes,
       alt: l10n.exportLabelAlt,
       guest: l10n.exportLabelGuest,
-      performed: l10n.exportLabelPerformed,
       unknownDance: l10n.exportUnknownDanceLabel,
       minutes: l10n.exportMinutesLabel,
       venue: l10n.exportLabelVenue,

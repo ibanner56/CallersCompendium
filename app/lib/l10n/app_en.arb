@@ -8626,10 +8626,6 @@
   "@exportLabelGuest": {
     "description": "Prefix for a guest caller on an exported set-list slot, e.g. 'guest: Pat'."
   },
-  "exportLabelPerformed": "performed",
-  "@exportLabelPerformed": {
-    "description": "Marker shown in brackets after a set-list slot that has been performed, e.g. '[performed]'."
-  },
   "exportUnknownDanceLabel": "Untitled dance",
   "@exportUnknownDanceLabel": {
     "description": "Placeholder used on an exported set list when a slot's dance title can't be resolved."
