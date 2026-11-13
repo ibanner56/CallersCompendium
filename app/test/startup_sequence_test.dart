@@ -12,6 +12,7 @@ import 'package:sqlite3/sqlite3.dart' as sql;
 
 import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/main.dart';
+import 'package:compendium_app/src/data/set_list_share_scope.dart';
 import 'package:compendium_app/src/data/calling_card_settings_scope.dart';
 import 'package:compendium_app/src/data/app_database.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
@@ -2503,6 +2504,21 @@ void main() {
           (
             key: kMarkAllSetsStatusKey,
             read: MarkAllSetsStatusScope.of,
+            defaultValue: true,
+          ),
+          (
+            key: kShareSetListIncludeTitleKey,
+            read: (c) => SetListShareScope.of(c).includeTitle,
+            defaultValue: true,
+          ),
+          (
+            key: kShareSetListIncludeCallerBandKey,
+            read: (c) => SetListShareScope.of(c).includeCallerBand,
+            defaultValue: true,
+          ),
+          (
+            key: kShareSetListIncludeDateVenueKey,
+            read: (c) => SetListShareScope.of(c).includeDateVenue,
             defaultValue: true,
           ),
           (
