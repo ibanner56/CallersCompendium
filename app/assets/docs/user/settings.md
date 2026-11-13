@@ -988,14 +988,15 @@ with is:
 title size=16 bold width=3 | formation size=8 right width=2
 authors size=8 | level size=8 right
 rule color=#b64545 thickness=1.5
-figures size=10
+figures size=10 highlight
 space 4
 notes size=8 lines=4
 ```
 
 That reads: the title, large and bold, with the formation to its right; the
-authors, with the level to their right; a red line; the figures; a small gap;
-then up to four lines of calling notes.
+authors, with the level to their right; a red line; the figures, with the
+move in bold dark red, the dancers in bold and amounts such as ½ or 3 places in
+blue-gray; a small gap; then up to four lines of calling notes.
 
 Beside the text, the editor shows:
 
@@ -1029,8 +1030,17 @@ The options are `size=12` (text size in points), `bold`, `italic`, `left`,
 `center`, `right`, `color=#b64545`, `lines=3` (at most three lines of a long
 block), `label="Notes: "` (words in front; `label=""` for none) and `width=2`
 (in a row, twice the room of a `width=1` block). `figures` also takes
-`beats=off`, `notes=off` (the figures' own notes), `phrases=off` and
-`dividers=off` (the lines between phrases), and `rule` takes `thickness=2`.
+`beats=off`, `notes=off` (the figures' own notes), `phrases=off`,
+`dividers=off` (the lines between phrases) and `highlight` (the move, the
+dancers and the amounts set apart as above, in your dialect's words), and
+`rule` takes `thickness=2`. With `highlight`, the move is marked wherever a
+figure's line names it — a few moves, such as zig zag, are worded without
+their name — and its red and the amounts' blue-gray take the place of a
+`color=` on that line. A figure whose line holds your own words prints plain:
+one written as free text (your own figures among them), one whose wording
+you have changed, and a combination with either inside it, or with a note on
+one of its parts. A layout you have written yourself keeps its figures
+as they were until you add `highlight`.
 
 A block prints only what the dance has, and only the fields turned on under
 **Defaults** › [**Shared dance fields**](./sharing.md#choose-which-dance-fields-appear)

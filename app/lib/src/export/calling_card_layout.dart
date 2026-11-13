@@ -137,6 +137,7 @@ class CallingCardBlock {
     this.figureNotes = true,
     this.phrases = true,
     this.dividers = true,
+    this.highlight = false,
     this.thickness = 1,
     this.space = 0,
   });
@@ -178,6 +179,10 @@ class CallingCardBlock {
   /// `figures` only: draw a thin line between phrases.
   final bool dividers;
 
+  /// `figures` only: set the moves, the dancers and the amounts apart in
+  /// each figure line (see `calling_card_highlight.dart`).
+  final bool highlight;
+
   /// `rule` only: line thickness in points.
   final double thickness;
 
@@ -216,7 +221,7 @@ const String kDefaultCallingCardLayout = '''
 title size=16 bold width=3 | formation size=8 right width=2
 authors size=8 | level size=8 right
 rule color=#b64545 thickness=1.5
-figures size=10
+figures size=10 highlight
 space 4
 notes size=8 lines=4
 ''';
@@ -283,6 +288,7 @@ Set<String> _optionsFor(CallingCardBlockKind kind) => switch (kind) {
     'notes',
     'phrases',
     'dividers',
+    'highlight',
   },
   CallingCardBlockKind.rule => const {'color', 'thickness', 'width'},
   CallingCardBlockKind.space => const {'size'},
@@ -469,6 +475,7 @@ class _Parser {
     var figureNotes = true;
     var phrases = true;
     var dividers = true;
+    var highlight = false;
     double thickness = 1;
     double? space;
 
@@ -558,7 +565,7 @@ class _Parser {
           } else {
             thickness = n;
           }
-        case 'beats' || 'notes' || 'phrases' || 'dividers':
+        case 'beats' || 'notes' || 'phrases' || 'dividers' || 'highlight':
           final flag = _flag(value);
           if (flag == null) {
             bad();
@@ -571,6 +578,8 @@ class _Parser {
               figureNotes = flag;
             case 'phrases':
               phrases = flag;
+            case 'highlight':
+              highlight = flag;
             default:
               dividers = flag;
           }
@@ -596,6 +605,7 @@ class _Parser {
       figureNotes: figureNotes,
       phrases: phrases,
       dividers: dividers,
+      highlight: highlight,
       thickness: thickness,
       space: space ?? 6,
     );

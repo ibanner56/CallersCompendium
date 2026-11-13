@@ -12108,6 +12108,10 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get callingCardHelpOptionHighlight =>
+      'Pour figures : les mouvements en gras rouge foncé, les danseurs en gras, et les quantités comme ½ ou 3 places en gris bleuté.';
+
+  @override
   String get settingsCallingCardsSheetsTitle => 'Plusieurs fiches par page';
 
   @override

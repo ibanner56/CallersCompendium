@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'package:compendium_app/src/export/calling_card_layout.dart';
 import 'package:compendium_app/src/export/calling_card_pdf.dart';
@@ -6,9 +8,6 @@ import 'package:compendium_app/src/export/calling_card_sample.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_core/testing.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'dart:math' as math;
-import 'dart:typed_data';
-
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
@@ -298,6 +297,38 @@ notes label=""
       expect(latin1.decode(pdf), isNot(contains('Helvetica')));
     },
   );
+
+  test('figures highlight sets the moves and dancers in bold', () async {
+    // Without the phrase column and beats, nothing else on the card is bold,
+    // so the bold face is used only if the figure lines are highlighted.
+    Future<String> raw(String layout) async => latin1.decode(
+      await buildCallingCardsPdf(
+        [_entry(_dance())],
+        layout: CallingCardLayout.parse(layout),
+        size: kDefaultCallingCardSize,
+        dialect: Dialect.canonical,
+        fields: DanceShareField.allExceptTunes,
+        theme: _theme,
+      ),
+    );
+    expect(
+      await raw('figures phrases=off beats=off'),
+      isNot(contains('Helvetica-Bold')),
+    );
+    final highlighted = await raw('figures phrases=off beats=off highlight');
+    expect(highlighted, contains('Helvetica-Bold'));
+    final text = pdfText(
+      await buildCallingCardsPdf(
+        [_entry(_dance())],
+        layout: CallingCardLayout.parse('figures highlight'),
+        size: kDefaultCallingCardSize,
+        dialect: Dialect.canonical,
+        fields: DanceShareField.allExceptTunes,
+        theme: _theme,
+      ),
+    );
+    expect(text, contains('swing'), reason: 'the words are all still there');
+  });
 
   group('several to a page', () {
     test('the grid fits the most cards, turning them when that fits more', () {

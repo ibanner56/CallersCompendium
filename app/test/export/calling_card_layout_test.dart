@@ -96,6 +96,23 @@ figures
       expect(on.beats && on.figureNotes && on.phrases && on.dividers, isTrue);
     });
 
+    test('figures highlight is off unless asked for, and on by default', () {
+      expect(parse('figures').rows.single.single.highlight, isFalse);
+      expect(parse('figures highlight').rows.single.single.highlight, isTrue);
+      expect(
+        parse('figures highlight=off').rows.single.single.highlight,
+        isFalse,
+      );
+      final figures = parse(kDefaultCallingCardLayout).rows
+          .expand((r) => r)
+          .firstWhere((b) => b.kind == CallingCardBlockKind.figures);
+      expect(figures.highlight, isTrue, reason: 'the default layout');
+      expect(
+        parse('title highlight').issues.single.kind,
+        CallingCardIssueKind.unknownOption,
+      );
+    });
+
     test('space takes a bare number; rule takes a thickness', () {
       expect(parse('space 12').rows.single.single.space, 12);
       expect(parse('space size=3').rows.single.single.space, 3);

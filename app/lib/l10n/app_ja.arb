@@ -11582,6 +11582,10 @@
   "@exportCallingCardsCutOff": {
     "x-sourceSha256": "b025c9efc4e669393a66c90e01c55ac6efbec97d37648335a1f21e420849592a"
   },
+  "callingCardHelpOptionHighlight": "figures 用：動きを濃い赤の太字、ダンサーを太字、½ や 3 places などの量を青みがかった灰色で表示します。",
+  "@callingCardHelpOptionHighlight": {
+    "x-sourceSha256": "72204db6b612cb2677022bc6ae5c56028cb7dea8f0351c8eeeab21eb5a3a4020"
+  },
   "settingsCallingCardsSheetsTitle": "1ページに複数枚",
   "@settingsCallingCardsSheetsTitle": {
     "x-sourceSha256": "007bda11261b6308f8db8297b032d3c34ef5de13a70b016bbd3035eece0765a6"

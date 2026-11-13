@@ -11494,6 +11494,10 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get callingCardHelpOptionHighlight =>
+      'figures 用：動きを濃い赤の太字、ダンサーを太字、½ や 3 places などの量を青みがかった灰色で表示します。';
+
+  @override
   String get settingsCallingCardsSheetsTitle => '1ページに複数枚';
 
   @override
