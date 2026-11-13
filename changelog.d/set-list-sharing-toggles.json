@@ -1,0 +1,14 @@
+{
+  "id": "set-list-sharing-toggles",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Settings › Program has a new Sharing section with three switches: include the program title, the caller and band, and the date and venue when you share a set list. All three are on, as before. Turning one off leaves it out of the set list you share or copy as text (the title also leaves the share subject); sharing the whole program as a .ccshare or JSON file always includes everything."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add `includeTitle`, `includeCallerBand` and `includeDateVenue` (default true) to `programToPlainText`, and `includeCallerBand` and `includeDateVenue` to `programHeaderLines`. With no header lines left, `programToPlainText` no longer starts with a blank line."
+    ]
+  }
+}

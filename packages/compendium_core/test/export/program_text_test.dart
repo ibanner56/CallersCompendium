@@ -39,6 +39,110 @@ void main() {
   }[id];
 
   group('programToPlainText', () {
+    group('sharing toggles', () {
+      final full = program(
+        eventDate: DateTime.utc(2026, 7, 10),
+        venue: 'Town Hall',
+        band: 'The Band',
+        caller: 'Pat',
+        dancerLevel: 'Mixed',
+        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+      );
+
+      test('default keeps every header line', () {
+        expect(
+          programToPlainText(full, titleFor: titles),
+          'Friday Contra\n'
+          '2026-07-10 · Town Hall\n'
+          'Band: The Band\n'
+          'Caller: Pat\n'
+          'Level: Mixed\n'
+          '\n'
+          "1. Rory O'More",
+        );
+      });
+
+      test('includeTitle: false drops only the title', () {
+        final text = programToPlainText(
+          full,
+          titleFor: titles,
+          includeTitle: false,
+        );
+        expect(text, isNot(contains('Friday Contra')));
+        expect(text, startsWith('2026-07-10 · Town Hall\n'));
+        expect(text, contains('Caller: Pat'));
+      });
+
+      test('includeCallerBand: false drops band and caller only', () {
+        final text = programToPlainText(
+          full,
+          titleFor: titles,
+          includeCallerBand: false,
+        );
+        expect(text, isNot(contains('Band:')));
+        expect(text, isNot(contains('Caller:')));
+        expect(text, contains('Friday Contra'));
+        expect(text, contains('2026-07-10 · Town Hall'));
+        expect(text, contains('Level: Mixed'));
+      });
+
+      test('includeDateVenue: false drops the date and venue line', () {
+        final text = programToPlainText(
+          full,
+          titleFor: titles,
+          includeDateVenue: false,
+        );
+        expect(text, isNot(contains('2026-07-10')));
+        expect(text, isNot(contains('Town Hall')));
+        expect(text, contains('Band: The Band'));
+        expect(text, contains('Friday Contra'));
+      });
+
+      test('all three off leaves level and the slots', () {
+        expect(
+          programToPlainText(
+            full,
+            titleFor: titles,
+            includeTitle: false,
+            includeCallerBand: false,
+            includeDateVenue: false,
+          ),
+          "Level: Mixed\n\n1. Rory O'More",
+        );
+      });
+
+      test('with no header left, nothing leads with a blank line', () {
+        final text = programToPlainText(
+          program(
+            notes: 'Bring water.',
+            slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          ),
+          titleFor: titles,
+          includeTitle: false,
+        );
+        expect(text, "1. Rory O'More\n\nNotes:\nBring water.");
+        expect(
+          programToPlainText(
+            program(notes: 'Bring water.'),
+            titleFor: titles,
+            includeTitle: false,
+          ),
+          'Notes:\nBring water.',
+        );
+      });
+
+      test('a linked venue is dropped with the date line too', () {
+        final text = programToPlainText(
+          program(venueId: 'v1', band: 'B'),
+          titleFor: titles,
+          venueNameFor: (_) => 'Linked Hall',
+          includeDateVenue: false,
+        );
+        expect(text, isNot(contains('Linked Hall')));
+        expect(text, contains('Band: B'));
+      });
+    });
+
     test('renders numbered primaries in position order', () {
       final text = programToPlainText(
         program(

@@ -73,10 +73,13 @@ String programToPlainText(
   Dialect? dialect,
   bool canonicalizeDiscouragedTerms = false,
   List<String> Function(String danceId)? authorNamesFor,
+  bool includeTitle = true,
+  bool includeCallerBand = true,
+  bool includeDateVenue = true,
 }) {
   _requireCanonicalizationDeps(canonicalizeDiscouragedTerms, renderer, dialect);
   final lines = <String>[
-    program.title.trim(),
+    if (includeTitle) program.title.trim(),
     ...programHeaderLines(
       program,
       venueNameFor: venueNameFor,
@@ -85,12 +88,16 @@ String programToPlainText(
       renderer: renderer,
       dialect: dialect,
       canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+      includeCallerBand: includeCallerBand,
+      includeDateVenue: includeDateVenue,
     ),
   ];
 
   final groups = program.outputGrouped;
   if (groups.isNotEmpty) {
-    lines.add('');
+    // The blank line separates the slots from a header; with every header
+    // line switched off there is none to separate from.
+    if (lines.isNotEmpty) lines.add('');
     var n = 0;
     for (final group in groups) {
       final primary = programSlotLine(
@@ -119,7 +126,7 @@ String programToPlainText(
   }
 
   if (_has(program.notes)) {
-    lines.add('');
+    if (lines.isNotEmpty) lines.add('');
     lines.add('${labels.notes}:');
     lines.add(
       !canonicalizeDiscouragedTerms || renderer == null || dialect == null
@@ -175,7 +182,8 @@ void _requireCanonicalizationDeps(
 /// [formatDate], [labels] and the discouraged-term parameters have the same
 /// contract as on [programToPlainText]; as there, the dancer level is only
 /// converted when [canonicalizeDiscouragedTerms] is set and both [renderer]
-/// and [dialect] are supplied.
+/// and [dialect] are supplied. [includeDateVenue] and [includeCallerBand]
+/// (default `true`) omit the `date · venue` line and the band and caller lines.
 List<String> programHeaderLines(
   Program program, {
   String? Function(String venueId)? venueNameFor,
@@ -184,6 +192,8 @@ List<String> programHeaderLines(
   FigureRenderer? renderer,
   Dialect? dialect,
   bool canonicalizeDiscouragedTerms = false,
+  bool includeCallerBand = true,
+  bool includeDateVenue = true,
 }) {
   _requireCanonicalizationDeps(canonicalizeDiscouragedTerms, renderer, dialect);
   final fmtDate = formatDate ?? isoDate;
@@ -202,10 +212,14 @@ List<String> programHeaderLines(
     if (program.eventDate != null) fmtDate(program.eventDate!),
     ?venueLabel,
   ];
-  if (dateVenue.isNotEmpty) lines.add(dateVenue.join(' · '));
+  if (includeDateVenue && dateVenue.isNotEmpty) {
+    lines.add(dateVenue.join(' · '));
+  }
 
-  if (_has(program.band)) lines.add('${labels.band}: ${program.band!.trim()}');
-  if (_has(program.caller)) {
+  if (includeCallerBand && _has(program.band)) {
+    lines.add('${labels.band}: ${program.band!.trim()}');
+  }
+  if (includeCallerBand && _has(program.caller)) {
     lines.add('${labels.caller}: ${program.caller!.trim()}');
   }
   if (_has(program.dancerLevel)) {

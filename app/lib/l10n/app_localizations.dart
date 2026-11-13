@@ -4655,6 +4655,36 @@ abstract class AppLocalizations {
   /// **'Programs'**
   String get settingsGeneralProgramsHeader;
 
+  /// Settings section header for the options that shape a shared set list.
+  ///
+  /// In en, this message translates to:
+  /// **'Sharing'**
+  String get settingsSharingHeader;
+
+  /// Title of the toggle that includes the program title when a set list is shared.
+  ///
+  /// In en, this message translates to:
+  /// **'Include program title when sharing a set list'**
+  String get settingsSharingTitleTitle;
+
+  /// Title of the toggle that includes the caller and band when a set list is shared.
+  ///
+  /// In en, this message translates to:
+  /// **'Include caller and band when sharing a set list'**
+  String get settingsSharingCallerBandTitle;
+
+  /// Title of the toggle that includes the date and venue when a set list is shared.
+  ///
+  /// In en, this message translates to:
+  /// **'Include date and venue when sharing a set list'**
+  String get settingsSharingDateVenueTitle;
+
+  /// Subtitle shared by the three set-list sharing toggles, saying they do not affect sharing the whole program.
+  ///
+  /// In en, this message translates to:
+  /// **'Applies to sharing or copying the set list. Sharing the whole program as a .ccshare or JSON file always includes everything.'**
+  String get settingsSharingSubtitle;
+
   /// Title of the General settings toggle controlling the programming matrix's same-figure collision check (issue #962).
   ///
   /// In en, this message translates to:

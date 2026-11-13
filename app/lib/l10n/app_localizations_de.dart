@@ -3100,6 +3100,25 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsGeneralProgramsHeader => 'Programme';
 
   @override
+  String get settingsSharingHeader => 'Teilen';
+
+  @override
+  String get settingsSharingTitleTitle =>
+      'Programmtitel beim Teilen einer Setliste einbeziehen';
+
+  @override
+  String get settingsSharingCallerBandTitle =>
+      'Caller und Band beim Teilen einer Setliste einbeziehen';
+
+  @override
+  String get settingsSharingDateVenueTitle =>
+      'Datum und Veranstaltungsort beim Teilen einer Setliste einbeziehen';
+
+  @override
+  String get settingsSharingSubtitle =>
+      'Gilt für das Teilen oder Kopieren der Setliste. Beim Teilen des gesamten Programms als .ccshare- oder JSON-Datei ist immer alles enthalten.';
+
+  @override
   String get settingsGeneralMatrixExactCollisionTitle =>
       'Nur exakte Überschneidung der Schläge markieren';
 

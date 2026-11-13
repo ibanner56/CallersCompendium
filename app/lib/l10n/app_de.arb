@@ -3024,6 +3024,26 @@
   "@settingsGeneralProgramsHeader": {
     "x-sourceSha256": "b6747064b2a6dd95ce21899cbfa4a60ed8980b4819014b7a4fce0d849a599fb2"
   },
+  "settingsSharingHeader": "Teilen",
+  "@settingsSharingHeader": {
+    "description": "Settings section header for the options that shape a shared set list."
+  },
+  "settingsSharingTitleTitle": "Programmtitel beim Teilen einer Setliste einbeziehen",
+  "@settingsSharingTitleTitle": {
+    "description": "Title of the toggle that includes the program title when a set list is shared."
+  },
+  "settingsSharingCallerBandTitle": "Caller und Band beim Teilen einer Setliste einbeziehen",
+  "@settingsSharingCallerBandTitle": {
+    "description": "Title of the toggle that includes the caller and band when a set list is shared."
+  },
+  "settingsSharingDateVenueTitle": "Datum und Veranstaltungsort beim Teilen einer Setliste einbeziehen",
+  "@settingsSharingDateVenueTitle": {
+    "description": "Title of the toggle that includes the date and venue when a set list is shared."
+  },
+  "settingsSharingSubtitle": "Gilt für das Teilen oder Kopieren der Setliste. Beim Teilen des gesamten Programms als .ccshare- oder JSON-Datei ist immer alles enthalten.",
+  "@settingsSharingSubtitle": {
+    "description": "Subtitle shared by the three set-list sharing toggles, saying they do not affect sharing the whole program."
+  },
   "settingsGeneralMatrixExactCollisionTitle": "Nur exakte Überschneidung der Schläge markieren",
   "@settingsGeneralMatrixExactCollisionTitle": {
     "x-sourceSha256": "6877e4a9153aed977728160cf1cccaf58f10d5b1500280fb8c9c0343213f1a2e"

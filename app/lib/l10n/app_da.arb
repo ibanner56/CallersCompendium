@@ -3024,6 +3024,26 @@
   "@settingsGeneralProgramsHeader": {
     "x-sourceSha256": "b6747064b2a6dd95ce21899cbfa4a60ed8980b4819014b7a4fce0d849a599fb2"
   },
+  "settingsSharingHeader": "Deling",
+  "@settingsSharingHeader": {
+    "description": "Settings section header for the options that shape a shared set list."
+  },
+  "settingsSharingTitleTitle": "Medtag programtitel, når en sætliste deles",
+  "@settingsSharingTitleTitle": {
+    "description": "Title of the toggle that includes the program title when a set list is shared."
+  },
+  "settingsSharingCallerBandTitle": "Medtag caller og band, når en sætliste deles",
+  "@settingsSharingCallerBandTitle": {
+    "description": "Title of the toggle that includes the caller and band when a set list is shared."
+  },
+  "settingsSharingDateVenueTitle": "Medtag dato og sted, når en sætliste deles",
+  "@settingsSharingDateVenueTitle": {
+    "description": "Title of the toggle that includes the date and venue when a set list is shared."
+  },
+  "settingsSharingSubtitle": "Gælder, når sætlisten deles eller kopieres. Når hele programmet deles som en .ccshare- eller JSON-fil, er alt altid med.",
+  "@settingsSharingSubtitle": {
+    "description": "Subtitle shared by the three set-list sharing toggles, saying they do not affect sharing the whole program."
+  },
   "settingsGeneralMatrixExactCollisionTitle": "Markér kun nøjagtigt overlappende slag",
   "@settingsGeneralMatrixExactCollisionTitle": {
     "x-sourceSha256": "6877e4a9153aed977728160cf1cccaf58f10d5b1500280fb8c9c0343213f1a2e"

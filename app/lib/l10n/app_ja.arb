@@ -3024,6 +3024,26 @@
   "@settingsGeneralProgramsHeader": {
     "x-sourceSha256": "b6747064b2a6dd95ce21899cbfa4a60ed8980b4819014b7a4fce0d849a599fb2"
   },
+  "settingsSharingHeader": "共有",
+  "@settingsSharingHeader": {
+    "description": "Settings section header for the options that shape a shared set list."
+  },
+  "settingsSharingTitleTitle": "セットリストを共有するときにプログラム名を含める",
+  "@settingsSharingTitleTitle": {
+    "description": "Title of the toggle that includes the program title when a set list is shared."
+  },
+  "settingsSharingCallerBandTitle": "セットリストを共有するときにコーラーとバンドを含める",
+  "@settingsSharingCallerBandTitle": {
+    "description": "Title of the toggle that includes the caller and band when a set list is shared."
+  },
+  "settingsSharingDateVenueTitle": "セットリストを共有するときに日付と会場を含める",
+  "@settingsSharingDateVenueTitle": {
+    "description": "Title of the toggle that includes the date and venue when a set list is shared."
+  },
+  "settingsSharingSubtitle": "セットリストの共有またはコピーに適用されます。プログラム全体を .ccshare または JSON ファイルとして共有する場合は、常にすべてが含まれます。",
+  "@settingsSharingSubtitle": {
+    "description": "Subtitle shared by the three set-list sharing toggles, saying they do not affect sharing the whole program."
+  },
   "settingsGeneralMatrixExactCollisionTitle": "拍の正確な重なりのみをフラグ",
   "@settingsGeneralMatrixExactCollisionTitle": {
     "x-sourceSha256": "6877e4a9153aed977728160cf1cccaf58f10d5b1500280fb8c9c0343213f1a2e"

@@ -3118,6 +3118,25 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsGeneralProgramsHeader => 'Programmes';
 
   @override
+  String get settingsSharingHeader => 'Partage';
+
+  @override
+  String get settingsSharingTitleTitle =>
+      'Inclure le titre du programme lors du partage d\'une liste de danses';
+
+  @override
+  String get settingsSharingCallerBandTitle =>
+      'Inclure le caller et le groupe lors du partage d\'une liste de danses';
+
+  @override
+  String get settingsSharingDateVenueTitle =>
+      'Inclure la date et le lieu lors du partage d\'une liste de danses';
+
+  @override
+  String get settingsSharingSubtitle =>
+      'S\'applique au partage ou à la copie de la liste de danses. Le partage du programme complet en fichier .ccshare ou JSON inclut toujours tout.';
+
+  @override
   String get settingsGeneralMatrixExactCollisionTitle =>
       'Signaler uniquement un chevauchement exact des temps';
 

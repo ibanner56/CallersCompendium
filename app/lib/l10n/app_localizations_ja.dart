@@ -2926,6 +2926,22 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsGeneralProgramsHeader => 'プログラム';
 
   @override
+  String get settingsSharingHeader => '共有';
+
+  @override
+  String get settingsSharingTitleTitle => 'セットリストを共有するときにプログラム名を含める';
+
+  @override
+  String get settingsSharingCallerBandTitle => 'セットリストを共有するときにコーラーとバンドを含める';
+
+  @override
+  String get settingsSharingDateVenueTitle => 'セットリストを共有するときに日付と会場を含める';
+
+  @override
+  String get settingsSharingSubtitle =>
+      'セットリストの共有またはコピーに適用されます。プログラム全体を .ccshare または JSON ファイルとして共有する場合は、常にすべてが含まれます。';
+
+  @override
   String get settingsGeneralMatrixExactCollisionTitle => '拍の正確な重なりのみをフラグ';
 
   @override

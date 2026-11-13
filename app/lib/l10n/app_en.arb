@@ -3906,6 +3906,26 @@
   "@settingsGeneralProgramsHeader": {
     "description": "General settings section header for program-building preferences."
   },
+  "settingsSharingHeader": "Sharing",
+  "@settingsSharingHeader": {
+    "description": "Settings section header for the options that shape a shared set list."
+  },
+  "settingsSharingTitleTitle": "Include program title when sharing a set list",
+  "@settingsSharingTitleTitle": {
+    "description": "Title of the toggle that includes the program title when a set list is shared."
+  },
+  "settingsSharingCallerBandTitle": "Include caller and band when sharing a set list",
+  "@settingsSharingCallerBandTitle": {
+    "description": "Title of the toggle that includes the caller and band when a set list is shared."
+  },
+  "settingsSharingDateVenueTitle": "Include date and venue when sharing a set list",
+  "@settingsSharingDateVenueTitle": {
+    "description": "Title of the toggle that includes the date and venue when a set list is shared."
+  },
+  "settingsSharingSubtitle": "Applies to sharing or copying the set list. Sharing the whole program as a .ccshare or JSON file always includes everything.",
+  "@settingsSharingSubtitle": {
+    "description": "Subtitle shared by the three set-list sharing toggles, saying they do not affect sharing the whole program."
+  },
   "settingsGeneralMatrixExactCollisionTitle": "Flag exact beat overlap only",
   "@settingsGeneralMatrixExactCollisionTitle": {
     "description": "Title of the General settings toggle controlling the programming matrix's same-figure collision check (issue #962)."

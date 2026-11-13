@@ -38,6 +38,7 @@ import 'package:compendium_app/src/data/matrix_collision_mode_scope.dart';
 import 'package:compendium_app/src/data/program_auto_commit_scope.dart';
 import 'package:compendium_app/src/data/program_matrix_column_config_scope.dart';
 import 'package:compendium_app/src/data/reduce_motion_scope.dart';
+import 'package:compendium_app/src/data/set_list_share_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/require_event_date_for_history_scope.dart';
 import 'package:compendium_app/src/data/calling_history_tracking_scope.dart';
@@ -102,6 +103,7 @@ const _expectedAppScopeTypes = <Type>[
   SetListColorCodingScope,
   ShowPerformedTogglesScope,
   MarkAllSetsStatusScope,
+  SetListShareScope,
   MatrixCollisionModeScope,
   ProgramMatrixColumnConfigScope,
   DateFormatScope,
