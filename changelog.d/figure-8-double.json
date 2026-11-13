@@ -1,0 +1,14 @@
+{
+  "id": "figure-8-double",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "A figure 8 can now be marked “double”. It reads “ones lead a double half figure 8 up between twos, twos cast down the outside”: the first pass is mirrored by the other pair, who cast the opposite way (up becomes down, down becomes up, and across becomes “cast to follow”). Lines in that wording are read back as a double figure 8."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add the `double` flag to `figure_8` (taxonomy v39, display wording only: canonical text and beats are unchanged), with a `{double}` and a `{cast}` display slot, and read the double wording back in the ContraDB display dialect."
+    ]
+  }
+}

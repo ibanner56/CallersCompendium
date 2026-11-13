@@ -1259,6 +1259,10 @@ final Taxonomy contraTaxonomy = Taxonomy(
           defaultValue: ParamVocab.unspecified,
           choices: [ParamVocab.unspecified],
         ),
+        // A double figure 8: `who` lead it between the other pair and that
+        // pair casts the mirror way round the outside. Wording only (display
+        // line); canonical text and beats are untouched.
+        'double': ParamSpec(ParamKind.flag, defaultValue: false),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
       renderTemplate: '{who} {fraction} {move}',

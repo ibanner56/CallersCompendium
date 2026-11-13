@@ -78,6 +78,32 @@ void main() {
       );
     });
 
+    test('reads a double figure 8 and its mirrored cast', () {
+      expect(
+        only(
+          'ones lead a double half figure 8 up between twos, '
+          'twos cast down the outside',
+        ).params,
+        {'who': 'ones', 'fraction': 'half', 'where': 'above', 'double': true},
+      );
+      expect(
+        only(
+          'twos lead a double full figure 8 across, ones cast to follow',
+        ).params,
+        {'who': 'twos', 'fraction': 'full', 'where': 'across', 'double': true},
+      );
+    });
+
+    test('a double whose cast is not the mirror is not this wording', () {
+      expect(
+        only(
+          'ones lead a double half figure 8 up between twos, '
+          'twos cast up the outside',
+        ).params['double'],
+        isNull,
+      );
+    });
+
     test('a figure 8 with no direction is left to the existing readers', () {
       // The display writes it for `where: none`; ContraDB's meaning is not
       // established, so it is not read as none.
