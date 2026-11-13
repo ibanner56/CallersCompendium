@@ -222,6 +222,30 @@ void main() {
       }
     });
 
+    test('a bad key is reported with its index: of a key taken twice, the '
+        'later one', () {
+      List<Object?> reported(List<UserFigureParam> params) => [
+        for (final issue in validateUserFigure(definitionWith(params)))
+          if (issue.code == UserFigureIssueCodes.badParamKey)
+            issue.data['index'],
+      ];
+      expect(
+        reported([
+          UserFigureParam(key: 'center', kind: ParamKind.dancerSet),
+          UserFigureParam(key: 'center hand', kind: ParamKind.handedness),
+        ]),
+        [1],
+      );
+      expect(
+        reported([
+          UserFigureParam(key: 'who', kind: ParamKind.dancerSet),
+          UserFigureParam(key: 'hand', kind: ParamKind.handedness),
+          UserFigureParam(key: 'Who', kind: ParamKind.text),
+        ]),
+        [2],
+      );
+    });
+
     test('an empty key is refused, and never throws', () {
       final definition = definitionWith([
         UserFigureParam(key: '', kind: ParamKind.handedness),

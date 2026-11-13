@@ -452,7 +452,9 @@ abstract final class UserFigureIssueCodes {
   static const tooLarge = 'user_figure_too_large';
 
   /// A parameter's key is badly shaped, reserved, taken twice, or equal to
-  /// another parameter's opposite slot.
+  /// another parameter's opposite slot. Its data names the `param` and its
+  /// `index` in the figure's parameters; of a key taken twice, the later
+  /// parameter is the one reported.
   static const badParamKey = 'user_figure_bad_param_key';
 
   /// A parameter's kind is one a figure may not declare (`beats`, which is
@@ -534,8 +536,10 @@ List<ValidationIssue> validateUserFigure(UserFigureDefinition definition) {
       opposites.add(userFigureOppositeSlot(p.key).toLowerCase());
     }
   }
-  for (final p in definition.params) {
-    final data = {'param': p.key};
+  for (final (index, p) in definition.params.indexed) {
+    // The index tells apart two parameters given one key, so an editor can
+    // mark the row at fault rather than both.
+    final data = {'param': p.key, 'index': index};
     final badShape =
         p.key.length > maxUserFigureParamKeyLength ||
         !_paramKeyShape.hasMatch(p.key);
