@@ -6601,9 +6601,6 @@ class AppLocalizationsDa extends AppLocalizations {
   String get exportLabelGuest => 'gæst';
 
   @override
-  String get exportLabelPerformed => 'fremført';
-
-  @override
   String get exportUnknownDanceLabel => 'Unavngiven dans';
 
   @override

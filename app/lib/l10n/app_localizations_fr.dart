@@ -6689,9 +6689,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get exportLabelGuest => 'invité';
 
   @override
-  String get exportLabelPerformed => 'joué';
-
-  @override
   String get exportUnknownDanceLabel => 'Danse sans titre';
 
   @override

@@ -9995,12 +9995,6 @@ abstract class AppLocalizations {
   /// **'guest'**
   String get exportLabelGuest;
 
-  /// Marker shown in brackets after a set-list slot that has been performed, e.g. '[performed]'.
-  ///
-  /// In en, this message translates to:
-  /// **'performed'**
-  String get exportLabelPerformed;
-
   /// Placeholder used on an exported set list when a slot's dance title can't be resolved.
   ///
   /// In en, this message translates to:

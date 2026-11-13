@@ -94,7 +94,6 @@ class ProgramExportLabels {
     this.notes = 'Notes',
     this.alt = 'ALT',
     this.guest = 'guest',
-    this.performed = 'performed',
     this.unknownDance = 'Untitled dance',
     this.minutes = _englishMinutes,
     this.venue = 'Venue',
@@ -114,7 +113,6 @@ class ProgramExportLabels {
   final String notes;
   final String alt;
   final String guest;
-  final String performed;
   final String unknownDance;
   final String Function(int minutes) minutes;
   final String venue;

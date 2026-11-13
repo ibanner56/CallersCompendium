@@ -8,7 +8,7 @@
   },
   "core": {
     "changed": [
-      "`programSlotLine` no longer appends the `[performed]` marker for a slot with `performedAt` set; `ExportLabels.performed` is no longer used by the program text export."
+      "`programSlotLine` no longer appends the `[performed]` marker for a slot with `performedAt` set; remove the now-unused `ProgramExportLabels.performed` field."
     ]
   }
 }
