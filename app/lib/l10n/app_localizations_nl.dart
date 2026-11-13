@@ -3088,6 +3088,25 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsGeneralProgramsHeader => 'Programma\'s';
 
   @override
+  String get settingsSharingHeader => 'Delen';
+
+  @override
+  String get settingsSharingTitleTitle =>
+      'Programmatitel opnemen bij het delen van een setlijst';
+
+  @override
+  String get settingsSharingCallerBandTitle =>
+      'Caller en band opnemen bij het delen van een setlijst';
+
+  @override
+  String get settingsSharingDateVenueTitle =>
+      'Datum en locatie opnemen bij het delen van een setlijst';
+
+  @override
+  String get settingsSharingSubtitle =>
+      'Geldt voor het delen of kopiëren van de setlijst. Het hele programma delen als .ccshare- of JSON-bestand bevat altijd alles.';
+
+  @override
   String get settingsGeneralMatrixExactCollisionTitle =>
       'Alleen exacte overlap van beats markeren';
 

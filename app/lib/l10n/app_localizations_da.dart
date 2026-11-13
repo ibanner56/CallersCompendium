@@ -3071,6 +3071,25 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsGeneralProgramsHeader => 'Programmer';
 
   @override
+  String get settingsSharingHeader => 'Deling';
+
+  @override
+  String get settingsSharingTitleTitle =>
+      'Medtag programtitel, når en sætliste deles';
+
+  @override
+  String get settingsSharingCallerBandTitle =>
+      'Medtag caller og band, når en sætliste deles';
+
+  @override
+  String get settingsSharingDateVenueTitle =>
+      'Medtag dato og sted, når en sætliste deles';
+
+  @override
+  String get settingsSharingSubtitle =>
+      'Gælder, når sætlisten deles eller kopieres. Når hele programmet deles som en .ccshare- eller JSON-fil, er alt altid med.';
+
+  @override
   String get settingsGeneralMatrixExactCollisionTitle =>
       'Markér kun nøjagtigt overlappende slag';
 

@@ -12,6 +12,7 @@ import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/require_event_date_for_history_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/data/mark_all_sets_status_scope.dart';
+import 'package:compendium_app/src/data/set_list_share_scope.dart';
 import 'package:compendium_app/src/data/show_performed_toggles_scope.dart';
 import 'package:compendium_app/src/data/track_history_for_all_callers_scope.dart';
 import 'package:compendium_app/src/data/venue_call_count_scope.dart';
@@ -52,6 +53,9 @@ Future<ValueNotifier<bool>> _pumpProgram(
   final trackAllCallers = ValueNotifier<bool>(false);
   final showPerformedToggles = ValueNotifier<bool>(true);
   final markAllSetsStatus = ValueNotifier<bool>(true);
+  final shareTitle = ValueNotifier<bool>(true);
+  final shareCallerBand = ValueNotifier<bool>(true);
+  final shareDateVenue = ValueNotifier<bool>(true);
   final autoCommit = ValueNotifier<bool>(initialAutoCommit);
   final venueCalls = ValueNotifier<int>(kVenueCallCountDefault);
   onScopeNotifiers?.call(autoCommit, venueCalls);
@@ -66,6 +70,9 @@ Future<ValueNotifier<bool>> _pumpProgram(
   addTearDown(trackAllCallers.dispose);
   addTearDown(showPerformedToggles.dispose);
   addTearDown(markAllSetsStatus.dispose);
+  addTearDown(shareTitle.dispose);
+  addTearDown(shareCallerBand.dispose);
+  addTearDown(shareDateVenue.dispose);
   addTearDown(autoCommit.dispose);
   addTearDown(customThemes.dispose);
 
@@ -116,7 +123,16 @@ Future<ValueNotifier<bool>> _pumpProgram(
           notifier: showPerformedToggles,
           child: MarkAllSetsStatusScope(
             notifier: markAllSetsStatus,
-            child: const SettingsScreen(),
+            child: ShareSetListTitleScope(
+              notifier: shareTitle,
+              child: ShareSetListCallerBandScope(
+                notifier: shareCallerBand,
+                child: ShareSetListDateVenueScope(
+                  notifier: shareDateVenue,
+                  child: const SettingsScreen(),
+                ),
+              ),
+            ),
           ),
         ),
       ),
@@ -188,7 +204,12 @@ void main() {
       find.byKey(const ValueKey('settings-auto-size-perform')),
       findsOneWidget,
     );
-    // Calling history
+    // Calling history (below the fold: the list builds lazily)
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('general-track-history-for-all-callers')),
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
     expect(
       find.byKey(const ValueKey('general-require-performed-for-history')),
       findsOneWidget,
@@ -287,6 +308,48 @@ void main() {
 
     expect(tester.widget<SwitchListTile>(tile).value, isFalse);
     expect(await repos.settings.get(kMarkAllSetsStatusKey), isFalse);
+  });
+
+  testWidgets('Sharing toggles default on, are labelled, and each persists '
+      'its own key', (tester) async {
+    final repos = openTestRepositories();
+    await _pumpProgram(tester, repos);
+
+    // Sharing sits under Programs, above Performance.
+    expect(find.text('Sharing'), findsOneWidget);
+    for (final (key, label, storeKey) in [
+      (
+        'settings-share-set-list-title',
+        'Include program title when sharing a set list',
+        kShareSetListIncludeTitleKey,
+      ),
+      (
+        'settings-share-set-list-caller-band',
+        'Include caller and band when sharing a set list',
+        kShareSetListIncludeCallerBandKey,
+      ),
+      (
+        'settings-share-set-list-date-venue',
+        'Include date and venue when sharing a set list',
+        kShareSetListIncludeDateVenueKey,
+      ),
+    ]) {
+      final tile = find.byKey(ValueKey(key));
+      await tester.scrollUntilVisible(
+        tile,
+        200,
+        scrollable: find.byType(Scrollable).last,
+      );
+      expect(tester.widget<SwitchListTile>(tile).value, isTrue);
+      expect(find.text(label), findsOneWidget);
+      expect(await repos.settings.get(storeKey), isNull);
+
+      await tester.tap(tile);
+      await tester.pumpAndSettle();
+
+      expect(tester.widget<SwitchListTile>(tile).value, isFalse);
+      expect(await repos.settings.get(storeKey), isFalse);
+    }
   });
 
   testWidgets('matrix-columns entry point opens the editor screen', (

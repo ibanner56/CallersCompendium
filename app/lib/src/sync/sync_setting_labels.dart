@@ -65,6 +65,9 @@ String? syncSettingLabel(AppLocalizations l10n, String key) => switch (key) {
   'mark_all_sets_status' => l10n.settingsGeneralMarkAllSetsStatusTitle,
   'matrix_exact_beat_collision' =>
     l10n.settingsGeneralMatrixExactCollisionTitle,
+  'share_set_list_include_caller_band' => l10n.settingsSharingCallerBandTitle,
+  'share_set_list_include_date_venue' => l10n.settingsSharingDateVenueTitle,
+  'share_set_list_include_title' => l10n.settingsSharingTitleTitle,
   'perform_canonical_view' => l10n.performShowCanonicalTerms,
   'perform_stage_mode' => l10n.syncSettingPerformStageTheme,
   'program_dance_share_fields' => l10n.settingsDefaultsShareFieldsHeader,

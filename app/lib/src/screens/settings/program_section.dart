@@ -13,6 +13,7 @@ import '../../data/matrix_collision_mode_scope.dart';
 import '../../data/program_auto_commit_scope.dart';
 import '../../data/persisted_preference.dart';
 import '../../data/repositories_scope.dart';
+import '../../data/set_list_share_scope.dart';
 import '../../data/require_event_date_for_history_scope.dart';
 import '../../data/calling_history_tracking_scope.dart';
 import '../../data/require_performed_for_history_scope.dart';
@@ -271,6 +272,34 @@ class _ProgramSectionState extends State<ProgramSection> {
     await persistSetting(repos.settings, kTrackHistoryForAllCallersKey, value);
   }
 
+  // The Sharing toggles are live app preferences: flip the scope's notifier
+  // first, then persist (the same pattern as the history toggles above).
+  Future<void> _onShareSetListTitleChanged(bool value) async {
+    ShareSetListTitleScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await persistSetting(repos.settings, kShareSetListIncludeTitleKey, value);
+  }
+
+  Future<void> _onShareSetListCallerBandChanged(bool value) async {
+    ShareSetListCallerBandScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await persistSetting(
+      repos.settings,
+      kShareSetListIncludeCallerBandKey,
+      value,
+    );
+  }
+
+  Future<void> _onShareSetListDateVenueChanged(bool value) async {
+    ShareSetListDateVenueScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await persistSetting(
+      repos.settings,
+      kShareSetListIncludeDateVenueKey,
+      value,
+    );
+  }
+
   Future<void> _onConfigureMatrixColumns() async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => const MatrixColumnEditorScreen()),
@@ -282,7 +311,12 @@ class _ProgramSectionState extends State<ProgramSection> {
     _ensureAutoSizeLoaded(context);
     _ensureIndividualTimerLoaded(context);
     _ensureProgramSlotCallerNotesLoaded(context);
+    final setListShare = SetListShareOptions.of(context);
     return _ProgramView(
+      setListShare: setListShare,
+      onShareSetListTitleChanged: _onShareSetListTitleChanged,
+      onShareSetListCallerBandChanged: _onShareSetListCallerBandChanged,
+      onShareSetListDateVenueChanged: _onShareSetListDateVenueChanged,
       venueEntityMode: VenueEntityModeScope.of(context),
       onVenueEntityModeChanged: _onVenueEntityModeChanged,
       onManageVenues: _onManageVenues,
@@ -324,6 +358,10 @@ class _ProgramSectionState extends State<ProgramSection> {
 /// notifiers and persistence.
 class _ProgramView extends StatelessWidget {
   const _ProgramView({
+    required this.setListShare,
+    required this.onShareSetListTitleChanged,
+    required this.onShareSetListCallerBandChanged,
+    required this.onShareSetListDateVenueChanged,
     required this.venueEntityMode,
     required this.onVenueEntityModeChanged,
     required this.onManageVenues,
@@ -356,6 +394,13 @@ class _ProgramView extends StatelessWidget {
     required this.onHistoryOrderIgnoreUndatedChanged,
     required this.onHistoryOrderIgnoreUnperformedChanged,
   });
+
+  /// The Sharing toggles: what a shared or copied set list includes. They
+  /// never affect the `.ccshare` / JSON bundle.
+  final SetListShareOptions setListShare;
+  final ValueChanged<bool> onShareSetListTitleChanged;
+  final ValueChanged<bool> onShareSetListCallerBandChanged;
+  final ValueChanged<bool> onShareSetListDateVenueChanged;
 
   final bool venueEntityMode;
   final ValueChanged<bool> onVenueEntityModeChanged;
@@ -452,6 +497,31 @@ class _ProgramView extends StatelessWidget {
           subtitle: Text(l10n.settingsMatrixColumnsSubtitle),
           trailing: const Icon(Icons.chevron_right),
           onTap: onConfigureMatrixColumns,
+        ),
+        SectionHeader(title: l10n.settingsSharingHeader),
+        SwitchListTile(
+          key: const ValueKey('settings-share-set-list-title'),
+          value: setListShare.includeTitle,
+          onChanged: onShareSetListTitleChanged,
+          title: Text(l10n.settingsSharingTitleTitle),
+          subtitle: Text(l10n.settingsSharingSubtitle),
+          isThreeLine: true,
+        ),
+        SwitchListTile(
+          key: const ValueKey('settings-share-set-list-caller-band'),
+          value: setListShare.includeCallerBand,
+          onChanged: onShareSetListCallerBandChanged,
+          title: Text(l10n.settingsSharingCallerBandTitle),
+          subtitle: Text(l10n.settingsSharingSubtitle),
+          isThreeLine: true,
+        ),
+        SwitchListTile(
+          key: const ValueKey('settings-share-set-list-date-venue'),
+          value: setListShare.includeDateVenue,
+          onChanged: onShareSetListDateVenueChanged,
+          title: Text(l10n.settingsSharingDateVenueTitle),
+          subtitle: Text(l10n.settingsSharingSubtitle),
+          isThreeLine: true,
         ),
         SectionHeader(title: l10n.settingsGeneralPerformanceHeader),
         SwitchListTile(

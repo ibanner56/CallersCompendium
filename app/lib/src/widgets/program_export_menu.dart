@@ -14,6 +14,7 @@ import '../data/active_dialect_scope.dart';
 import '../data/calling_card_settings_scope.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/dance_share_fields_scope.dart';
+import '../data/set_list_share_scope.dart';
 import '../export/calling_card_pdf.dart';
 import '../export/dance_source_lines.dart';
 import '../export/export_labels_l10n.dart';
@@ -202,20 +203,29 @@ class ProgramExportMenu extends StatelessWidget {
     ];
   }
 
-  String _plainText(BuildContext context) => programToPlainText(
-    program,
-    titleFor: titleFor,
-    venueNameFor: _venueNameFor,
-    formatDate: (d) => _formatDate(context, d),
-    labels: programExportLabels(AppLocalizations.of(context)),
-    renderer: FigureRenderer(contraTaxonomy),
-    dialect: ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
-    canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(context),
-    authorNamesFor:
-        DanceShareFieldsScope.of(context).contains(DanceShareField.authors)
-        ? _authorNamesFor
-        : null,
-  );
+  /// The shareable set-list text, under the Program › Sharing toggles. Only the
+  /// text actions (share, copy) go through here; the `.ccshare`/JSON bundle and
+  /// the PDF carry the program whole.
+  String _plainText(BuildContext context) {
+    final share = SetListShareOptions.of(context);
+    return programToPlainText(
+      program,
+      includeTitle: share.includeTitle,
+      includeCallerBand: share.includeCallerBand,
+      includeDateVenue: share.includeDateVenue,
+      titleFor: titleFor,
+      venueNameFor: _venueNameFor,
+      formatDate: (d) => _formatDate(context, d),
+      labels: programExportLabels(AppLocalizations.of(context)),
+      renderer: FigureRenderer(contraTaxonomy),
+      dialect: ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
+      canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(context),
+      authorNamesFor:
+          DanceShareFieldsScope.of(context).contains(DanceShareField.authors)
+          ? _authorNamesFor
+          : null,
+    );
+  }
 
   /// Walks [program.outputGrouped] and yields every primary and alternate dance
   /// that can be resolved via [danceFor], in slot order, deduped by dance id.
@@ -353,7 +363,10 @@ class ProgramExportMenu extends StatelessWidget {
         text: includeFigures
             ? _plainTextWithFigures(context)
             : _plainText(context),
-        subject: program.title,
+        // The subject line is the title too: leave it off with the title.
+        subject: SetListShareOptions.of(context).includeTitle
+            ? program.title
+            : null,
         sharePositionOrigin: origin,
       ),
     );

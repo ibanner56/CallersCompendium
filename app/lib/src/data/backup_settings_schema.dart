@@ -42,6 +42,11 @@ import 'display_defaults.dart'
 import 'formation_colors_controller.dart' show kFormationColorOverridesKey;
 import 'locale_scope.dart' show kLocaleKey;
 import 'mark_all_sets_status_scope.dart' show kMarkAllSetsStatusKey;
+import 'set_list_share_scope.dart'
+    show
+        kShareSetListIncludeCallerBandKey,
+        kShareSetListIncludeDateVenueKey,
+        kShareSetListIncludeTitleKey;
 import 'reduce_motion_scope.dart' show kReduceMotionKey;
 import 'perform_text_scale.dart' show kPerformMinScale;
 import 'regional_formats.dart'
@@ -115,6 +120,9 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
     kSetListColorCodingKey,
     kShowPerformedTogglesKey,
     kMarkAllSetsStatusKey,
+    kShareSetListIncludeTitleKey,
+    kShareSetListIncludeCallerBandKey,
+    kShareSetListIncludeDateVenueKey,
     kUpdateAutoCheckKey,
     kUpdateBetaChannelKey,
     kMatrixExactBeatCollisionKey,

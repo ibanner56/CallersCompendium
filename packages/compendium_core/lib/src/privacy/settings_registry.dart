@@ -381,6 +381,39 @@ final Map<String, DataClassification> settingsClassifications = {
         'and it follows the caller rather than the screen, so it travels like '
         'the other calling-history rules beside it.',
   ),
+  'share_set_list_include_title': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.shareable,
+    note:
+        'A behaviour preference: whether a shared or copied set list (the text '
+        'export) includes the program title. It names no person and holds no content. It '
+        'never governs the .ccshare or JSON bundle, which always carries the '
+        'whole program, and it follows the caller rather than the screen, so '
+        'it travels like the other sharing preferences.',
+  ),
+  'share_set_list_include_caller_band': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.shareable,
+    note:
+        'A behaviour preference: whether a shared or copied set list (the text '
+        'export) includes the caller and band. It names no person and holds no content. It '
+        'never governs the .ccshare or JSON bundle, which always carries the '
+        'whole program, and it follows the caller rather than the screen, so '
+        'it travels like the other sharing preferences.',
+  ),
+  'share_set_list_include_date_venue': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.shareable,
+    note:
+        'A behaviour preference: whether a shared or copied set list (the text '
+        'export) includes the date and venue. It names no person and holds no content. It '
+        'never governs the .ccshare or JSON bundle, which always carries the '
+        'whole program, and it follows the caller rather than the screen, so '
+        'it travels like the other sharing preferences.',
+  ),
   'require_event_date_for_history': _preference,
   'require_performed_for_history': _preference,
   'recency_require_event_date': _preference,
