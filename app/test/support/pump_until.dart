@@ -1,4 +1,3 @@
-import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Pumps until [condition] holds, giving real (wall-clock) async work such as
@@ -8,7 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 /// and then yields to the real event loop via [WidgetTester.runAsync]. The wait
 /// is bounded by a wall-clock [timeout] (generous, so a slow CI runner does not
 /// flake), not by an iteration count; on expiry it fails with
-/// "[description] did not appear within …" instead of a bare finder mismatch.
+/// "Timed out … waiting for [description]" instead of a bare finder mismatch.
 Future<void> pumpUntil(
   WidgetTester tester,
   bool Function() condition, {
@@ -22,8 +21,8 @@ Future<void> pumpUntil(
     if (condition()) return;
     if (watch.elapsed >= timeout) {
       fail(
-        '$description did not appear within ${timeout.inSeconds}s of '
-        'wall-clock time.',
+        'Timed out after ${timeout.inSeconds}s of wall-clock time waiting for '
+        '$description.',
       );
     }
     await tester.runAsync(() => Future<void>.delayed(interval));
