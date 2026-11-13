@@ -1105,8 +1105,8 @@ what it protects.
 
 - **Serves** the ADR's *Blocking prerequisite*; §10.
 - **Inherits** nothing whatsoever.
-- **Produces** amended `docs/dev/store-submission/privacy-policy.md` **and** its
-  mirror `site/privacy/index.html`, changed together, with the effective date
+- **Produces** amended `site/privacy/index.html` **and** its hand-kept mirror
+  `docs/dev/store-submission/privacy-policy.md`, changed together, with the effective date
   bumped; the amendment MUST retire the dated no-cloud-sync claim, correct the
   "before it ships" undertaking to S7's gate, and **add** spec §8's affirmative
   disclosures — that the operator can see all store content except venue
