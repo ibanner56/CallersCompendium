@@ -3,8 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 /// Pumps until [condition] holds, giving real (wall-clock) async work such as
 /// file I/O time to finish between pumps.
 ///
-/// `FakeAsync` never completes real I/O, so each round pumps the widget tree
-/// and then yields to the real event loop via [WidgetTester.runAsync]. The wait
+/// The fake-async test zone never completes real I/O, so each round pumps the
+/// widget tree and then yields to the real event loop via
+/// [WidgetTester.runAsync]. The wait
 /// is bounded by a wall-clock [timeout] (generous, so a slow CI runner does not
 /// flake), not by an iteration count; on expiry it fails with
 /// "Timed out … waiting for [description]" instead of a bare finder mismatch.
