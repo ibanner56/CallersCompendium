@@ -316,6 +316,13 @@ full amount. One saved by an earlier version as "other" with no amount reads
 filled in for you. Your own figures and the per-figure defaults in Settings
 don't offer "other", because they have no amount to go with it.
 
+A figure 8 also has a **Double** switch. Turned on, the first pair leads the
+figure 8 and the other pair casts the mirror way round the outside, as in
+`ones lead a double half figure 8 up between twos, twos cast down the outside`
+(`down between ones, ones cast up the outside` for down, and `twos cast to
+follow` for across). With no direction chosen there is nothing to mirror, so no
+cast is written. It changes the wording only, not the beat count.
+
 A figure whose move this version of the app does not know — one added by a newer
 version, for example — is shown read-only, with a plain explanation. Its data is
 kept untouched, it edits normally again once the app knows the move, and you can
@@ -402,13 +409,15 @@ them being offered, but a row you already picked is still expanded when you
 save.
 
 Versions of the app before 0.10.0 can't read a figure 8 or poussette with an
-"other amount" (see [Adjust a figure](#adjust-a-figure)). On a device that
+"other amount", or a figure 8 marked double (see
+[Adjust a figure](#adjust-a-figure)). On a device that
 hasn't been updated, a combination of yours that uses one is marked **Needs
 repair** and can't be picked or used by a shorthand, though it is kept as it
 is. Repairing it there means changing or removing that figure, which drops the
-amount, and the change then syncs to your other devices, so update the device
+amount or the double, and the change then syncs to your other devices, so update the device
 instead. Dances, backups and shared files that hold such a figure keep it on an
-older version too, which reads it as "other figure 8" without the amount.
+older version too, which reads an amount as "other figure 8" without the
+amount, and a double as an ordinary figure 8.
 
 #### A new figure
 
