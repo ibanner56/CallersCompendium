@@ -4,13 +4,13 @@
 2026-10-30 · **decided, not built.** The maintainer chose "Design note now" for
 `design-history-filters` on 2026-10-29, and answered all nine of this note's
 questions on 2026-10-29/30 (N1-1 … N1-9 in
-`maintainer-decisions-2026-10-30.md`, on `claude/app-audit-categories-k2pdon`).
+`docs/dev/audits/2026-10-behavior/maintainer-decisions-2026-10-30.md`).
 [Decisions](#decisions) quotes each answer. Two answers differ from this
 note's recommendation (N1-4 and N1-6), and the maintainer's note on N1-2 changes
 its presets. The text below now follows the answers. A choice still marked **Recommendation** is this note's,
 not the maintainer's, and a reviewer can overturn it.*
 
-*Update, 2026-10-30: H1 is built* (`claude/called-filter-scopes`): the
+*Update, 2026-10-30: H1 is built* (#2059): the
 `CalledFilter` scopes, `VenueKey`, `cc_venue_key`, `callingHistoryRecencyDateSql`
 with `DanceCallingRecord.recencyDate`, and `ProgramRepository.calledVenues`.
 Two departures from Q1, both the implementer's call: H1 does not pass the setup
@@ -19,7 +19,7 @@ and never searches (passing it would switch the dumped file to WAL for no
 query); and it passes the setup to the benchmarks' timed connections, not
 their schema-only ones. H2 and H3 are not built.
 
-*Update, 2026-10-30: H2 is built* (`claude/history-filter-controls`): **At venue**
+*Update, 2026-10-30: H2 is built* (#2070): **At venue**
 and **Within** in `FacetPanel`'s Calling history section, so both hosts (Collection
 and the picker) have them; H3 is not built. Three calls were the implementer's,
 not the maintainer's:
@@ -75,8 +75,9 @@ much of `calling_history_scope.dart` and `program_repository.dart`).
 
 ## Constraints
 
-These come from `decided-work-plan.md` ("Design notes" and N1) on
-`claude/app-audit-categories-k2pdon`, and from the code.
+These come from `decided-work-plan.md` ("Design notes" and N1) in
+`docs/dev/audits/2026-10-behavior/`, and from the code. The other audit files
+this note cites by bare name are in the same directory.
 
 1. **One meaning of "called".** Every history surface applies the same five rules:
    - **the alternate rule:** `callingHistoryAlternateClause`
@@ -222,7 +223,7 @@ say 1mo, 3mo, 6mo, or since a date on top of that, 1 year is a long while."
 - **Since a date…** opens the date picker.
 - **Never called.** The maintainer's note asks for this as a choice in the same
   control. *Planner's reading, accepted by the maintainer 2026-10-30*
-  (`design-work-plan.md` ambiguity 1, on the audit branch): it is the
+  (`design-work-plan.md` ambiguity 1): it is the
   control's "no window" state, labelled so that it reads as "dances that have
   never been called" when **Not called** is chosen. Today's **Not called** with
   no scope already selects exactly those dances, so this adds a label and a
@@ -527,15 +528,14 @@ Each implementation branch updates these in the same PR:
 
 *Planner's readings.* Where an answer left a detail open, the planning session
 proposed a reading in `design-work-plan.md` ("Ambiguities the answers leave
-open", on the audit branch). The maintainer accepted all eight on 2026-10-30
+open"). The maintainer accepted all eight on 2026-10-30
 ("Accept all 8 (Recommended)"), as recorded in `maintainer-decisions-2026-10-30.md`
 under "Design plan / N1–N5". This note labels each one "planner's reading,
 accepted by the maintainer 2026-10-30".
 
 The maintainer answered every question on 2026-10-29/30. Each entry quotes the
-decision as `maintainer-decisions-2026-10-30.md` (on
-`claude/app-audit-categories-k2pdon`) records it, and the maintainer's own note
-verbatim where there is one.
+decision as `maintainer-decisions-2026-10-30.md` records it, and the
+maintainer's own note verbatim where there is one.
 
 1. **N1-1, venue matching.** "(a) Venue key, like the repeated-venues list. The
    filter always agrees with the dance page's repeated venues, but a typed
@@ -576,7 +576,7 @@ Sizes count changed lines, tests included: S < 150, M 150–400, L 400+. Updated
 2026-10-30 for the decisions above and for what has merged since the note was
 written (`main` at `90fe5e8`: B1 #2032, B6 #2042, B11 #2039, B12 #2037, F10
 #2022, U7 #2033 and U9 #2027 have merged; F11 #2040 is open). The audit
-branch's `design-work-plan.md` gives each branch's guard tests, docs and wave;
+record's `design-work-plan.md` gives each branch's guard tests, docs and wave;
 there these branches are N1-H1, N1-H2 and N1-H3.
 
 | # | Branch | Items | Main files | Size | Model | Depends on |

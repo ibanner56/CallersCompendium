@@ -6,7 +6,8 @@
   assigned". Both were read as counting dances in Recently Deleted. By the
   maintainer's trash-policy decision (2026-10-29, option b; confirmed with
   R2-trash-docs on 2026-10-30, both in
-  `docs/dev/audits/2026-10-behavior/` on the audit branch), only a **live**
+  `docs/dev/audits/2026-10-behavior/maintainer-decisions-2026-10-29.md` and
+  `maintainer-decisions-2026-10-30.md`), only a **live**
   dance's reference blocks deletion. A dance in Recently Deleted keeps its
   reference to the tombstoned level. The text below is left as written; read
   "dance reference" and "assigned" as live dances only. The guard is

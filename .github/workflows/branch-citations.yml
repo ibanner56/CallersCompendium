@@ -1,0 +1,50 @@
+# Documentation and code comments cite no git branch but `main`.
+#
+# The maintainer's rule (2026-11-12): "Design documentation on `main` should
+# not point to files or recorded decisions on another branch." See
+# tools/ci/check_branch_citations.py for what counts as a citation.
+#
+# This lives in its own workflow, like agent-context.yml and
+# docs-bundle-check.yml and for the same reason: ci.yml skips _checks.yml, where
+# this gate also runs, for a Markdown-only change -- and most of what this gate
+# reads is Markdown. Without this workflow the gate would be absent from
+# exactly the PRs most likely to add a citation.
+#
+# It is intentionally cheap (plain python3, no toolchain setup) and is not
+# marked a required status, so it never leaves a required check pending on an
+# unrelated PR.
+name: Branch citations
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**.md'
+      - 'docs/**'
+      - 'tools/ci/check_branch_citations.py'
+      - 'tools/ci/test_check_branch_citations.py'
+      - '.github/workflows/branch-citations.yml'
+  pull_request:
+    paths:
+      - '**.md'
+      - 'docs/**'
+      - 'tools/ci/check_branch_citations.py'
+      - 'tools/ci/test_check_branch_citations.py'
+      - '.github/workflows/branch-citations.yml'
+
+# Least privilege: this check only reads the checked-out code.
+permissions:
+  contents: read
+
+jobs:
+  branch-citations:
+    name: Docs cite no branch but main
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # The ratchet's own suite runs first, so a gate that has only ever been
+      # seen green is not mistaken for one that works.
+      - name: Test the branch-citation ratchet
+        run: python3 tools/ci/test_check_branch_citations.py
+      - name: Guard branch citations (docs and comments cite only main)
+        run: python3 tools/ci/check_branch_citations.py

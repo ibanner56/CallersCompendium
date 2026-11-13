@@ -998,7 +998,7 @@ around both rules above rather than through them:
   blanked dance, because only the deleting device rewrites citers; the app
   shows that slot as "Deleted dance" rather than the placeholder title
   (maintainer decision Q-6, 2026-10-31, recorded in
-  `docs/dev/audits/2026-10-behavior/` on the audit branch). A program share
+  `docs/dev/audits/2026-10-behavior/maintainer-decisions-2026-10-30.md`). A program share
   sends such a slot as a purged-dance text slot reading "Deleted dance" and
   leaves the blank out, and the PDF's figure pages skip it (the maintainer's
   option (a) for follow-up row 49, 2026-11-05); the slot shape is archive
