@@ -6578,10 +6578,6 @@
   "@exportLabelGuest": {
     "x-sourceSha256": "84983c60f7daadc1cb8698621f802c0d9f9a3c3c295c810748fb048115c186ec"
   },
-  "exportLabelPerformed": "uitgevoerd",
-  "@exportLabelPerformed": {
-    "x-sourceSha256": "8b60aa24be25bde4032a2cdb40ef87e45e7ae04eb7c2584fc9d49f44646ed022"
-  },
   "exportUnknownDanceLabel": "Naamloze dans",
   "@exportUnknownDanceLabel": {
     "x-sourceSha256": "7a9740b2e3dc97be3552362760f526eeb5c08f362a72ee6c6a34cfdb44348b70"

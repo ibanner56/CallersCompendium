@@ -421,7 +421,7 @@ void main() {
       expect(text, isNot(contains('(')));
     });
 
-    test('marks performed slots', () {
+    test('does not render performed status', () {
       final text = programToPlainText(
         program(
           slots: [
@@ -431,9 +431,9 @@ void main() {
         ),
         titleFor: titles,
       );
-      expect(text, contains('1. Rory O\'More [performed]'));
+      expect(text, contains('1. Rory O\'More'));
       expect(text, contains('2. The Nice Combination'));
-      expect(text, isNot(contains('2. The Nice Combination [performed]')));
+      expect(text, isNot(contains('performed')));
     });
 
     test('renders header only for an empty program', () {

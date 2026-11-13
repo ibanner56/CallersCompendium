@@ -56,7 +56,7 @@ you have called; `settings.md` §Library/Accessibility/Formats; `imports.md`
 | Venue contacts | n/a | ✗ | opt-in | ✗ | opt-in | ✓ if ticked | ✓ |
 | Pay | n/a | — | — | — | ⚠ | ⚠ becomes the recipient's (OUT-2) | ⚠ lost on older build (OUT-5) |
 | Perform dialect (`dialectName`) | n/a | — | — | — | ⚠ | ⚠ (OUT-2) | ⚠ lost on older build (OUT-5) |
-| Slot performed marks / program status | n/a | `[performed]` | `[performed]` | — | ⚠ | ⚠ feeds the recipient's calling history (OUT-2) | ✓ |
+| Slot performed marks / program status | n/a | — | — | — | ⚠ | ⚠ feeds the recipient's calling history (OUT-2) | ✓ |
 | Slot linked to a dance in the Trash | n/a | "Unknown dance" | same | — | dance dropped | English placeholder with a raw id (OUT-7) | ✓ |
 | User figures used | rendered | — | rendered | own column | ✓ (no notes) | offered | ✓ whole glossary |
 | Settings, dialects, themes, shorthands, snippets, formation colours | — | — | — | — | — | — | ✓ |

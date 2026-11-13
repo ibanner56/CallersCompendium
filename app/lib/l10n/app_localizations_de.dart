@@ -6694,9 +6694,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get exportLabelGuest => 'Gast';
 
   @override
-  String get exportLabelPerformed => 'aufgeführt';
-
-  @override
   String get exportUnknownDanceLabel => 'Unbenannter Tanz';
 
   @override

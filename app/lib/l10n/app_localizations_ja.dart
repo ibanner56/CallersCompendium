@@ -6353,9 +6353,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get exportLabelGuest => 'ゲスト';
 
   @override
-  String get exportLabelPerformed => '実施済み';
-
-  @override
   String get exportUnknownDanceLabel => '無題のダンス';
 
   @override
