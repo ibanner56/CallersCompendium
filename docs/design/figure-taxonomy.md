@@ -1828,6 +1828,24 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
     chosen still validates and is still shown; a figure of your own expands
     it as an unstated amount (no amount is seeded), and a saved `other`
     default is no longer applied (`skipsMoveDefault`).
+  - `figure_8` gains a `double` flag (default false), amending v39 because
+    v39 has not shipped. Display wording only: it changes the figure's line
+    ("ones lead a double half figure 8 up between twos, twos cast down the
+    outside"), not canonical text or beats, so it owes no rebuild. The cast is
+    the first pass mirrored (up -> down, down -> up) by the pair the line names
+    between (`others` included); across casts "to follow"; with no direction
+    stated there is nothing to mirror and no cast clause is written. The
+    display read-back reads the double wording only with its mirrored cast.
+    Because canonical text omits it, a double and a single figure 8 index
+    identically for search; ContraDB has no such param, so none is imported.
+    **Stored only while true** (`figure8DoubleParam`): `entryParams` and the
+    free-text entry's draft both pass through `Taxonomy.dropUnstatedParams`
+    (which also drops an unstated `amount`), and `applyParamChange` removes the
+    key when turned off, so a figure 8 that is not double carries nothing a v38 peer's `validateFigure` would
+    reject as `unknown_param`. Like `amount`, only a figure 8 marked double
+    meets the "Older devices" limit above: a compound of the user's own whose
+    template holds one is marked "needs repair" there. No maintainer decision
+    covers widening that limit, so it is kept to figures that state `double`.
   - **Older devices (taxonomy v38, app 0.9.x).** A v38 build stores, syncs,
     shares and restores an `amount` it receives unchanged (the figure codec
     and the sync figure check never look inside params), renders such a figure

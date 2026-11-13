@@ -25,7 +25,8 @@ void main() {
       expect(
         entry,
         {...effective, ...overrides}
-          ..remove(fractionAmountParam), // seeded only with `other` (#2120)
+          ..remove(fractionAmountParam) // seeded only with `other` (#2120)
+          ..remove(figure8DoubleParam), // stored only while true
         reason:
             '$id: entry params should be its defaults plus '
             '${overrides.isEmpty ? 'nothing' : overrides}',

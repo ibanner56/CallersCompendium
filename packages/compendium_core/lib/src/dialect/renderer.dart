@@ -2615,13 +2615,30 @@ class FigureRenderer {
       final lead = params['lead'] == 'onesRole2'
           ? ''
           : r._displaySubject(params['lead'], dialect);
+      // A double figure 8 (`double`): "ones lead a double half figure 8 up
+      // between twos, twos cast down the outside". The cast mirrors the first
+      // pass (up -> down, down -> up) and names the same pair the between
+      // clause does, `others` included; across casts "to follow". With no
+      // direction stated there is nothing to mirror, so no cast clause.
+      final isDouble = params['double'] == true;
+      final castWay = switch (direction) {
+        'above' => 'down the outside',
+        'below' => 'up the outside',
+        'across' => 'to follow',
+        _ => '',
+      };
+      final cast = isDouble && castWay.isNotEmpty
+          ? '${r._invertPair(directionWho, dialect)} cast $castWay'
+          : '';
       return _displayTemplate({
         'who': who,
+        'double': isDouble ? 'lead a double' : '',
         'half': half,
         'move': move,
         'direction': directionClause,
+        'cast': cast,
         'lead': lead.isEmpty ? '' : '$lead leading',
-      }, '{who} {half} {move} {direction}[, {lead}]');
+      }, '{who} {double} {half} {move} {direction}[, {cast}][, {lead}]');
     },
     // The unified gate (taxonomy v22 — was ContraDB `gate` + TCB
     // `rotation_gate`). Word order, preserved from both predecessors:

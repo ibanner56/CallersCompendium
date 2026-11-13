@@ -315,7 +315,7 @@ const Map<String, FigureDefinition> contraFigureDefinitions = {
     definition:
         'A couple weaves a figure-eight path around two other dancers, crossing between them.',
     description:
-        'In a half figure 8, the couple crosses on a diagonal between the other two dancers and loops around one of them, ending on the opposite side, usually in 8 beats; a full figure 8 repeats that back home, in 16. One dancer crosses first, usually the role2. The figure can say whether the couple goes up, down, or across the set.',
+        'In a half figure 8, the couple crosses on a diagonal between the other two dancers and loops around one of them, ending on the opposite side, usually in 8 beats; a full figure 8 repeats that back home, in 16. One dancer crosses first, usually the role2. The figure can say whether the couple goes up, down, or across the set. In a double figure 8, the other couple casts the mirror way round the outside as the first couple dances it.',
   ),
   // TCB "Poussette" (and "Draw poussette" for contrast).
   // Note: the taxonomy also records who pulls back first, which TCB's
