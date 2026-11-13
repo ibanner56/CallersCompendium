@@ -15,7 +15,7 @@
 
 ## Privacy Policy for Caller's Compendium
 
-**Effective date:** September 21, 2026 · **Last updated:** November 12, 2026
+**Effective date:** November 12, 2026 · **Last updated:** November 12, 2026
 
 Caller's Compendium ("the app") is a free, open-source, local-first application
 for dance callers, developed by Isaac Banner ("we," "us"). This policy explains
