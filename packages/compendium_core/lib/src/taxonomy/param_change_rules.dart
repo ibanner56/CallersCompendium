@@ -37,6 +37,9 @@ void seedChainHand(String moveId, Map<String, Object?> params) {
 ///   named fraction drops the amount, which only `other` reads; and an amount
 ///   a named fraction states is stored as that fraction
 ///   ([fractionParamsForAmount]).
+/// - **a figure 8's `double`** (v39) is stored only while true: turning it off
+///   removes the key, so a figure 8 that is not double carries none
+///   ([figure8DoubleParam]).
 /// - **a `balance` flag** shifts `beats` by +4 (on) or -4 (off) from the
 ///   current count, clamped to 0..64, including a manual override, and returns
 ///   before the rules below.
@@ -68,6 +71,11 @@ String applyParamChange(
     }
   }
   final oldDefault = canonicalBeatsFor(taxonomy, move, params);
+  if (move == 'figure_8' && key == figure8DoubleParam && value != true) {
+    // Stored only while true (see [figure8DoubleParam]); it has no beats rule.
+    params.remove(key);
+    return move;
+  }
   final setByFractionRule = applyFractionAmountChange(
     taxonomy,
     move: move,

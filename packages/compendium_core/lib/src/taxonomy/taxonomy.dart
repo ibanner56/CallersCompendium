@@ -188,6 +188,11 @@ class Taxonomy {
     if (statedFractionAmount(params) == null) {
       params.remove(fractionAmountParam);
     }
+    // A figure 8's `double` is likewise stored only while it is true, for the
+    // same reason: a new figure 8 carries no key a v38 peer would reject.
+    if (moveId == 'figure_8' && params[figure8DoubleParam] != true) {
+      params.remove(figure8DoubleParam);
+    }
     return params;
   }
 

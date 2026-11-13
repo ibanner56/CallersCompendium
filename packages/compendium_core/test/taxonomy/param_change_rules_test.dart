@@ -33,6 +33,29 @@ void main() {
   Map<String, Object?> defaults(String move) =>
       taxonomy.effectiveParams(testFigure(move: move));
 
+  group('figure 8 double (stored only while true)', () {
+    test('a new figure 8 seeds no double key', () {
+      expect(taxonomy.entryParams('figure_8').containsKey('double'), isFalse);
+      // The flag is still a declared param with a false default.
+      expect(
+        taxonomy.effectiveParams(testFigure(move: 'figure_8'))['double'],
+        isFalse,
+      );
+    });
+
+    test('turning it on stores true, and off removes the key', () {
+      final on = change(
+        'figure_8',
+        taxonomy.entryParams('figure_8'),
+        'double',
+        true,
+      );
+      expect(on.params['double'], isTrue);
+      final off = change('figure_8', on.params, 'double', false);
+      expect(off.params.containsKey('double'), isFalse);
+    });
+  });
+
   group('hey length (#576)', () {
     test('a full or half length drops a stale meetTarget', () {
       for (final length in ['half', 'full']) {

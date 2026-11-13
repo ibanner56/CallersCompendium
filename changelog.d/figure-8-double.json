@@ -8,7 +8,7 @@
   },
   "core": {
     "added": [
-      "Add the `double` flag to `figure_8` (taxonomy v39, display wording only: canonical text and beats are unchanged), with a `{double}` and a `{cast}` display slot, and read the double wording back in the ContraDB display dialect."
+      "Add the `double` flag to `figure_8` (taxonomy v39, display wording only: canonical text and beats are unchanged; stored only while true, so no other figure 8 gains a key), with a `{double}` and a `{cast}` display slot, and read the double wording back in the ContraDB display dialect."
     ]
   }
 }

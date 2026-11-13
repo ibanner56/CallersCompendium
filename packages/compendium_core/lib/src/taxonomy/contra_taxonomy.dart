@@ -1261,8 +1261,10 @@ final Taxonomy contraTaxonomy = Taxonomy(
         ),
         // A double figure 8: `who` lead it between the other pair and that
         // pair casts the mirror way round the outside. Wording only (display
-        // line); canonical text and beats are untouched.
-        'double': ParamSpec(ParamKind.flag, defaultValue: false),
+        // line); canonical text and beats are untouched. Stored only while
+        // true (see [figure8DoubleParam]), so a figure 8 that is not double
+        // carries no key an older build would reject.
+        figure8DoubleParam: ParamSpec(ParamKind.flag, defaultValue: false),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
       renderTemplate: '{who} {fraction} {move}',
