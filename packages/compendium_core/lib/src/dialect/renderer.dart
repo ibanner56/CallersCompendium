@@ -2599,6 +2599,14 @@ class FigureRenderer {
     'fifthPartners': 'fifth partner',
   };
 
+  /// The display base renderer for [figure], whose move resolves to [def].
+  ///
+  /// `long_lines` takes none although `forward_and_back`, its target since
+  /// taxonomy v39, has one: it keeps the line it had as a move, "long lines"
+  /// from its template with the direction added by [renderSummary].
+  static _DisplayBaseRenderer? _displayBaseFor(Figure figure, MoveDef def) =>
+      figure.move == 'long_lines' ? null : _displayBaseRenderers[def.id];
+
   /// DISPLAY-ONLY base-line renderers that adopt ContraDB `libfigure`
   /// (`app/javascript/libfigure/figure.js` @13f38a5) `words()` sentence
   /// structure verbatim for moves whose display wording is a base-line
@@ -2608,14 +2616,6 @@ class FigureRenderer {
   /// through [_displayDancer] (dialect-aware + PR1 singularization), or
   /// [_displayGroup] where a plural verb agrees with them; move names through
   /// [_renderMoveName].
-  /// The display base renderer for [figure], whose move resolves to [def].
-  ///
-  /// `long_lines` takes none although `forward_and_back`, its target since
-  /// taxonomy v39, has one: it keeps the line it had as a move, "long lines"
-  /// from its template with the direction added by [renderSummary].
-  static _DisplayBaseRenderer? _displayBaseFor(Figure figure, MoveDef def) =>
-      figure.move == 'long_lines' ? null : _displayBaseRenderers[def.id];
-
   static final Map<String, _DisplayBaseRenderer> _displayBaseRenderers = {
     // Forward and back (taxonomy v39): the formation, then the direction,
     // as long lines reads in its summary: "lines of three forward & back",
