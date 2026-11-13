@@ -1838,9 +1838,10 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
     display read-back reads the double wording only with its mirrored cast.
     Because canonical text omits it, a double and a single figure 8 index
     identically for search; ContraDB has no such param, so none is imported.
-    **Stored only while true** (`figure8DoubleParam`): `entryParams` seeds no
-    `double` key and `applyParamChange` removes it when turned off, so a figure
-    8 that is not double carries nothing a v38 peer's `validateFigure` would
+    **Stored only while true** (`figure8DoubleParam`): `entryParams` and the
+    free-text entry's draft both pass through `Taxonomy.dropUnstatedParams`
+    (which also drops an unstated `amount`), and `applyParamChange` removes the
+    key when turned off, so a figure 8 that is not double carries nothing a v38 peer's `validateFigure` would
     reject as `unknown_param`. Like `amount`, only a figure 8 marked double
     meets the "Older devices" limit above: a compound of the user's own whose
     template holds one is marked "needs repair" there. No maintainer decision
