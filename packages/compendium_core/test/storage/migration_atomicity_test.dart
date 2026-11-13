@@ -7,7 +7,7 @@
 // `lib/src/runtime/api/db_base.dart`, `beforeOpen`). Every step in
 // `CompendiumDatabase.onUpgrade` therefore commits as it goes, so an exception
 // — or a process death — after one step and before the stamp leaves a file
-// whose `user_version` says "v37" but whose tables are already partly at v38.
+// whose `user_version` says "v39" but whose tables are already partly at v40.
 // A step that is not idempotent (the since-retired v35 `program_slots` rebuild
 // was the case that found this: re-entered, its `INSERT … SELECT
 // planned_minutes` failed with `no such column`) then fails on every later
@@ -21,15 +21,16 @@
 // and drift's own (redundant) stamp, which still has the whole of
 // `beforeOpen` to run first.
 //
-// The first test injects a throw right after the v38 step's first `addColumn`
-// and asserts the rollback: the stamp is unchanged *and* the added column is
-// gone, so a real reopen then migrates cleanly. (The v38 step is idempotent, so
-// the reopen would survive a leaked column; the column assertion is what
-// proves the rollback.)
+// The first test starts at the floor (v39) and injects a throw in the v41
+// step, right after it creates its first index, so the whole v40 step has
+// already run. It asserts the rollback: the stamp is unchanged, *and* both the
+// v40 tables and that index are gone, so a real reopen then migrates cleanly.
+// (Both steps are idempotent, so the reopen would survive leaked DDL; the
+// table and index assertions are what prove the rollback.)
 //
-// Mutation the first test catches: remove the `transaction()` wrap.
-// `user_version` still reads 37 (drift never stamped it), but `programs` has
-// already gained `pay_minor_units`.
+// Mutations the first test catches: remove the `transaction()` wrap, or give
+// each step its own transaction. Either way `user_version` still reads 39
+// (drift never stamped it), but `user_glossary_entries` already exists.
 //
 // The second test lets the transaction commit and then throws from
 // `beforeOpen`, before drift's own stamp would run, and asserts
@@ -47,39 +48,41 @@ import 'package:test/test.dart';
 
 import 'generated/schema.dart';
 
-/// Throws after the `programs.pay_minor_units` column is added, i.e. after the
-/// v38 step's first DDL has run and before drift would stamp `user_version`.
-class _ThrowAfterPayColumnAdded extends Migrator {
-  _ThrowAfterPayColumnAdded(super.database);
+/// Records `PRAGMA foreign_keys` at each `createTable` the upgrade makes.
+class _RecordingMigrator extends Migrator {
+  _RecordingMigrator(super.database);
 
   /// `PRAGMA foreign_keys` as seen from inside `onUpgrade`, recorded so the
   /// claim in `database.dart` — that foreign keys are OFF for the whole of
   /// `onUpgrade`, which is what makes the pragma toggle inside `alterTable` a
   /// non-event under the enclosing transaction — is checked, not asserted.
-  /// (No surviving step calls `alterTable`, so this samples at `addColumn`.)
+  /// (No surviving step calls `alterTable`, so this samples at `createTable`.)
   final foreignKeysSeen = <bool>[];
 
   @override
-  Future<void> addColumn(
-    TableInfo<Table, dynamic> table,
-    GeneratedColumn column,
-  ) async {
+  Future<void> createTable(TableInfo<Table, dynamic> table) async {
     foreignKeysSeen.add(
       (await database.customSelect('PRAGMA foreign_keys').getSingle())
           .read<bool>('foreign_keys'),
     );
-    await super.addColumn(table, column);
-    if (table.actualTableName == 'programs' &&
-        column.name == 'pay_minor_units') {
-      throw StateError('injected failure after the v38 addColumn');
-    }
+    await super.createTable(table);
   }
 }
 
-class _FailingAfterV38Column extends CompendiumDatabase {
-  _FailingAfterV38Column(super.executor);
+/// Throws after the v41 step's first index is created: every v40 DDL and one
+/// v41 DDL have run, and drift has not stamped `user_version`.
+class _FailingInV41Step extends CompendiumDatabase {
+  _FailingInV41Step(super.executor);
 
-  late final migrator = _ThrowAfterPayColumnAdded(this);
+  late final migrator = _RecordingMigrator(this);
+
+  @override
+  Future<void> customStatement(String statement, [List<dynamic>? args]) async {
+    await super.customStatement(statement, args);
+    if (statement == citedIdLookupIndexSql.first) {
+      throw StateError('injected failure in the v41 step');
+    }
+  }
 
   @override
   Migrator createMigrator() => migrator;
@@ -112,14 +115,14 @@ void main() {
 
     final historical = GeneratedHelper().databaseForVersion(
       NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
-      37,
+      kMinSupportedSchemaVersion,
     );
     await historical.customSelect('SELECT 1').get();
     await historical.close();
-    expect(_userVersion(raw), 37);
-    expect(_columnsOf(raw, 'programs'), isNot(contains('pay_minor_units')));
+    expect(_userVersion(raw), kMinSupportedSchemaVersion);
+    expect(_tables(raw), isNot(contains('user_glossary_entries')));
 
-    final failing = _FailingAfterV38Column(
+    final failing = _FailingInV41Step(
       NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
     );
     await expectLater(
@@ -141,7 +144,7 @@ void main() {
 
     expect(
       failing.migrator.foreignKeysSeen,
-      [false],
+      [false, false],
       reason:
           'foreign keys must be OFF during onUpgrade (beforeOpen turns them ON '
           'afterwards); if this ever reads true, alterTable will try to toggle '
@@ -149,16 +152,21 @@ void main() {
     );
     expect(
       _userVersion(raw),
-      37,
+      kMinSupportedSchemaVersion,
       reason: 'drift stamps user_version only after onUpgrade returns',
     );
     expect(
-      _columnsOf(raw, 'programs'),
-      isNot(contains('pay_minor_units')),
+      _tables(raw),
+      isNot(contains('user_glossary_entries')),
       reason:
-          'the v38 addColumn ran before the throw; without a transaction '
-          'around the step body the column stays committed under a '
-          'user_version that still says v37',
+          'the whole v40 step ran before the throw; unless every step shares '
+          'one transaction its tables stay committed under a user_version '
+          'that still says v39',
+    );
+    expect(
+      _indexes(raw),
+      isNot(contains(_firstCitedIdIndex)),
+      reason: 'the v41 index created just before the throw must roll back too',
     );
 
     // The proof that the rollback matters: a real reopen now migrates.
@@ -169,8 +177,8 @@ void main() {
     await reopened.customSelect('SELECT 1').get();
     expect(_userVersion(raw), kCompendiumSchemaVersion);
     expect(
-      _columnsOf(raw, 'programs'),
-      containsAll(['pay_minor_units', 'pay_currency']),
+      _tables(raw),
+      containsAll(['user_glossary_entries', 'figure_notes']),
     );
   });
 
@@ -181,11 +189,11 @@ void main() {
 
     final historical = GeneratedHelper().databaseForVersion(
       NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
-      37,
+      kMinSupportedSchemaVersion,
     );
     await historical.customSelect('SELECT 1').get();
     await historical.close();
-    expect(_userVersion(raw), 37);
+    expect(_userVersion(raw), kMinSupportedSchemaVersion);
 
     final failing = _ThrowInBeforeOpen(
       NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
@@ -230,7 +238,21 @@ void main() {
 int _userVersion(sqlite3.Database raw) =>
     raw.select('PRAGMA user_version').first.columnAt(0) as int;
 
-Set<String> _columnsOf(sqlite3.Database raw, String table) => {
-  for (final row in raw.select("SELECT name FROM pragma_table_info('$table')"))
+/// The name of the index `citedIdLookupIndexSql.first` creates.
+final _firstCitedIdIndex = RegExp(
+  r'CREATE INDEX IF NOT EXISTS (\w+)',
+).firstMatch(citedIdLookupIndexSql.first)!.group(1)!;
+
+Set<String> _indexes(sqlite3.Database raw) => {
+  for (final row in raw.select(
+    "SELECT name FROM sqlite_master WHERE type = 'index'",
+  ))
+    row['name'] as String,
+};
+
+Set<String> _tables(sqlite3.Database raw) => {
+  for (final row in raw.select(
+    "SELECT name FROM sqlite_master WHERE type = 'table'",
+  ))
     row['name'] as String,
 };

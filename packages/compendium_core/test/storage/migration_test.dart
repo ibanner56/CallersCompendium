@@ -3,17 +3,17 @@
 // version and asserts the migration behaves.
 //
 // Coverage starts at [kMinSupportedSchemaVersion], not at v1. Schema versions
-// below the floor were retired (#837, floor since raised to v35) along with
+// below the floor were retired (#837, floor since raised to v39) along with
 // their `onUpgrade` steps, fixtures and dumps, so there is nothing left to
 // migrate from; a below-floor database is refused outright, which
 // `schema_floor_test.dart` covers.
 //
 // This file builds its starting databases from the `drift_schemas/` dumps
 // (`GeneratedHelper`), which carry structure only; each test seeds the rows it
-// needs. Two binary fixtures remain, both written by real releases and
-// exercised by `real_release_fixture_test.dart`: the floor version's (v35) and
-// the bridge release's (v38). That is the test that notices a migration
-// destroying data these tests never seeded.
+// needs. One binary fixture remains, written by a real release and exercised by
+// `real_release_fixture_test.dart`: the floor version's (v39, from
+// v0.7.0-beta). That is the test that notices a migration destroying data
+// these tests never seeded.
 //
 // Schema *shape* after migration is covered separately by
 // `schema_verification_test.dart` (#828); this file covers data semantics.
@@ -47,57 +47,12 @@ import 'generated/schema.dart';
 import '../figures_support.dart';
 
 void main() {
-  test('v35 review rows retain legacy null local hashes at v36', () async {
-    final raw = sqlite3.sqlite3.openInMemory();
-    addTearDown(raw.close);
-
-    final historical = GeneratedHelper().databaseForVersion(
-      NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
-      35,
-    );
-    await historical.customSelect('SELECT 1').get();
-    await historical.customStatement(
-      'INSERT INTO review_queue '
-      '(kind, record_id, counterpart_id, reason, candidate_blob, '
-      'candidate_hash, queued_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [
-        'tag',
-        'legacy-local',
-        'legacy-remote',
-        'baselineAbsenceTombstone',
-        '{"id":"legacy-remote"}',
-        'candidate-hash',
-        1,
-      ],
-    );
-    await historical.close();
-
-    final migrated = CompendiumDatabase(
-      NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
-    );
-    addTearDown(migrated.close);
-    await migrated.customSelect('SELECT 1').get();
-
-    final row = await migrated
-        .customSelect(
-          'SELECT local_hash FROM review_queue '
-          'WHERE kind = ? AND record_id = ? AND counterpart_id = ?',
-          variables: [
-            Variable.withString('tag'),
-            Variable.withString('legacy-local'),
-            Variable.withString('legacy-remote'),
-          ],
-        )
-        .getSingle();
-    expect(row.read<String?>('local_hash'), isNull);
-  });
-
   group('re-homed migration-agnostic tests (from the retired v11 group)', () {
     late Directory dir;
     late String dbPath;
 
     setUp(() async {
-      dir = await Directory.systemTemp.createTemp('compendium_core_mig_v35_');
+      dir = await Directory.systemTemp.createTemp('compendium_core_mig_floor_');
       dbPath = p.join(dir.path, 'test.sqlite');
       // Build a floor-version file from its schema snapshot, then drop
       // `dance_fts` so `beforeOpen` repairs it and durably sets
@@ -115,7 +70,7 @@ void main() {
 
     tearDown(() => dir.delete(recursive: true));
 
-    // Re-homed from the retired v11 group (#837, floor raised to v35). The
+    // Re-homed from the retired v11 group (#837; the floor is now v39). The
     // property is not specific to any start version: it asserts that a
     // *failed* derived rebuild is not memoized, so the next `ensureMigrated`
     // retries rather than treating the failure as done. The marker it relies
@@ -156,7 +111,7 @@ void main() {
       await db.close();
     });
 
-    // Also re-homed from the retired v11 group (#837, floor raised to v35).
+    // Also re-homed from the retired v11 group (#837; the floor is now v39).
     test('ensureMigrated with both derivedRebuildRequired and sectionRuleVersion '
         'pending performs exactly one rebuild', () async {
       // Guard for the alreadyRebuilt optimisation (#844): when derivedRebuildRequired
@@ -1471,114 +1426,6 @@ void main() {
     );
   });
 
-  group('v36 -> v37 upgrade (issue #1554 programs.dialect_name)', () {
-    test(
-      'adds a nullable dialect_name and keeps legacy program rows',
-      () async {
-        final raw = sqlite3.sqlite3.openInMemory();
-        final historical = GeneratedHelper().databaseForVersion(
-          NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
-          36,
-        );
-        await historical.customSelect('SELECT 1').get();
-        final before = await historical
-            .customSelect("PRAGMA table_info('programs')")
-            .get();
-        expect(
-          before.map((row) => row.read<String>('name')),
-          isNot(contains('dialect_name')),
-        );
-        await historical.customStatement(
-          "INSERT INTO programs "
-          "(id, title, notes, status, hide_alternates, created_at, updated_at) "
-          "VALUES ('legacy-program', 'Legacy', 'keep', 'draft', 1, 0, 0)",
-        );
-        await historical.close();
-
-        final db = CompendiumDatabase(
-          NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
-        );
-        addTearDown(() async {
-          await db.close();
-          raw.close();
-        });
-        await db.customSelect('SELECT 1').get();
-
-        final columns = await db
-            .customSelect("PRAGMA table_info('programs')")
-            .get();
-        final dialect = columns.singleWhere(
-          (row) => row.read<String>('name') == 'dialect_name',
-        );
-        expect(dialect.read<int>('notnull'), 0, reason: 'must be nullable');
-
-        final row = await db
-            .customSelect(
-              'SELECT title, notes, hide_alternates, dialect_name '
-              "FROM programs WHERE id = 'legacy-program'",
-            )
-            .getSingle();
-        expect(row.read<String>('title'), 'Legacy');
-        expect(row.read<String>('notes'), 'keep');
-        expect(row.read<int>('hide_alternates'), 1);
-        expect(row.read<String?>('dialect_name'), isNull);
-      },
-    );
-  });
-
-  group('v37 -> v38 upgrade (issue #1418 programs.pay_*)', () {
-    test('adds nullable pay columns and keeps legacy program rows', () async {
-      final raw = sqlite3.sqlite3.openInMemory();
-      final historical = GeneratedHelper().databaseForVersion(
-        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
-        37,
-      );
-      await historical.customSelect('SELECT 1').get();
-      final before = await historical
-          .customSelect("PRAGMA table_info('programs')")
-          .get();
-      final beforeNames = before.map((row) => row.read<String>('name'));
-      expect(beforeNames, isNot(contains('pay_minor_units')));
-      expect(beforeNames, isNot(contains('pay_currency')));
-      await historical.customStatement(
-        "INSERT INTO programs "
-        "(id, title, notes, status, hide_alternates, created_at, updated_at) "
-        "VALUES ('legacy-program', 'Legacy', 'keep', 'draft', 1, 0, 0)",
-      );
-      await historical.close();
-
-      final db = CompendiumDatabase(
-        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
-      );
-      addTearDown(() async {
-        await db.close();
-        raw.close();
-      });
-      await db.customSelect('SELECT 1').get();
-
-      final columns = await db
-          .customSelect("PRAGMA table_info('programs')")
-          .get();
-      for (final name in ['pay_minor_units', 'pay_currency']) {
-        final column = columns.singleWhere(
-          (row) => row.read<String>('name') == name,
-        );
-        expect(column.read<int>('notnull'), 0, reason: '$name nullable');
-      }
-
-      final row = await db
-          .customSelect(
-            'SELECT title, notes, hide_alternates, pay_minor_units, '
-            "pay_currency FROM programs WHERE id = 'legacy-program'",
-          )
-          .getSingle();
-      expect(row.read<String>('title'), 'Legacy');
-      expect(row.read<String>('notes'), 'keep');
-      expect(row.read<int>('hide_alternates'), 1);
-      expect(row.read<int?>('pay_minor_units'), isNull);
-      expect(row.read<String?>('pay_currency'), isNull);
-    });
-  });
   group('v40 -> v41 upgrade (cited-id lookup indexes, #1935)', () {
     const indexes = {
       'dance_authors_choreographer_id',
@@ -1789,120 +1636,6 @@ void main() {
       expect(version.read<int>('user_version'), kCompendiumSchemaVersion);
     });
   });
-
-  group('v38 -> v39 upgrade (retained sync fields, sync-spec §6.7)', () {
-    test(
-      'adds an empty retained_sync_fields table and keeps every row',
-      () async {
-        final raw = sqlite3.sqlite3.openInMemory();
-        final historical = GeneratedHelper().databaseForVersion(
-          NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
-          38,
-        );
-        await historical.customSelect('SELECT 1').get();
-        final before = await historical
-            .customSelect(
-              "SELECT name FROM sqlite_master WHERE type = 'table' "
-              "AND name = 'retained_sync_fields'",
-            )
-            .get();
-        expect(before, isEmpty);
-        await historical.customStatement(
-          "INSERT INTO programs "
-          "(id, title, notes, status, hide_alternates, created_at, updated_at) "
-          "VALUES ('legacy-program', 'Legacy', 'keep', 'draft', 1, 0, 0)",
-        );
-        await historical.close();
-
-        final db = CompendiumDatabase(
-          NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
-        );
-        addTearDown(() async {
-          await db.close();
-          raw.close();
-        });
-        await db.customSelect('SELECT 1').get();
-
-        final columns = await db
-            .customSelect("PRAGMA table_info('retained_sync_fields')")
-            .get();
-        expect(
-          {for (final row in columns) row.read<String>('name')},
-          {'kind', 'record_id', 'whole_record', 'payload'},
-        );
-        expect(
-          await db.select(db.retainedSyncFields).get(),
-          isEmpty,
-          reason: 'nothing is back-filled',
-        );
-        final program = await db
-            .customSelect(
-              "SELECT notes FROM programs WHERE id = 'legacy-program'",
-            )
-            .getSingle();
-        expect(program.read<String>('notes'), 'keep');
-      },
-    );
-  });
-  group(
-    'v38 -> v39 upgrade (published manifest fingerprint, sync-spec §6.3)',
-    () {
-      test(
-        'adds two empty baseline_state columns and keeps the epoch row',
-        () async {
-          final raw = sqlite3.sqlite3.openInMemory();
-          final historical = GeneratedHelper().databaseForVersion(
-            NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
-            38,
-          );
-          await historical.customSelect('SELECT 1').get();
-          await historical.customStatement(
-            "INSERT INTO baseline_state (id, epoch) VALUES (1, 'epoch-kept')",
-          );
-          await historical.close();
-
-          final db = CompendiumDatabase(
-            NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
-          );
-          addTearDown(() async {
-            await db.close();
-            raw.close();
-          });
-          await db.customSelect('SELECT 1').get();
-
-          final columns = await db
-              .customSelect("PRAGMA table_info('baseline_state')")
-              .get();
-          expect(
-            {for (final row in columns) row.read<String>('name')},
-            {'id', 'epoch', 'published_manifest_hash', 'published_verified_at'},
-          );
-          final state = await db.select(db.baselineState).getSingle();
-          expect(state.epoch, 'epoch-kept');
-          expect(
-            state.publishedManifestHash,
-            isNull,
-            reason:
-                'nothing is back-filled: the first pass publishes as before',
-          );
-          expect(state.publishedVerifiedAt, isNull);
-
-          final peerManifestColumns = await db
-              .customSelect("PRAGMA table_info('peer_manifests')")
-              .get();
-          expect(
-            {for (final row in peerManifestColumns) row.read<String>('name')},
-            {'peer_id', 'epoch', 'etag', 'body'},
-          );
-          expect(
-            await db.select(db.peerManifests).get(),
-            isEmpty,
-            reason: 'the first pass after the upgrade fetches every manifest',
-          );
-        },
-      );
-    },
-  );
 }
 
 Dance _rollAwayDance({

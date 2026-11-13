@@ -1136,6 +1136,16 @@ void main() {
     },
   );
 
+  // Each retired band is sent to the release that can open it: the newest one
+  // carrying its steps. Out of order, a v34 database would be sent to
+  // v0.9.2-beta, whose own floor (v35) refuses it.
+  test('bridgeTagFor sends each retired band to the release that opens it', () {
+    expect(bridgeTagFor(19), 'v0.1.0-beta.7');
+    expect(bridgeTagFor(34), 'v0.6.0-beta');
+    expect(bridgeTagFor(35), 'v0.9.2-beta');
+    expect(bridgeTagFor(38), 'v0.9.2-beta');
+  });
+
   group('relocateLegacyDatabase', () {
     late File legacy;
     late File target;
