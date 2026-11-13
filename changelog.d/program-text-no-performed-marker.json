@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "changed": [
-      "Sharing a program as text no longer adds a “[performed]” marker to slots you have marked performed."
+      "Shared program text and exported program PDFs no longer add a “[performed]” marker to slots you have marked performed."
     ]
   },
   "core": {
