@@ -173,8 +173,8 @@ void main() {
         'circle': ['singleFile'],
         'contra_corners': ['custom'],
         // ContraDB's half_or_full stops at full, so an amount past it has
-        // no ContraDB value (#2120).
-        'figure_8': ['amount', 'lead'],
+        // no ContraDB value (#2120); it has no double figure 8 either.
+        'figure_8': ['amount', 'double', 'lead'],
         'form_long_waves': ['balance', 'whom', 'whomHand'],
         'gate': ['direction', 'pair', 'travel'],
         'hey': ['meetTarget', 'pass2'],

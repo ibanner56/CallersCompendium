@@ -182,15 +182,26 @@ class Taxonomy {
       final seeded = entry.value.entryDefault;
       if (seeded != null) params[entry.key] = seeded;
     }
-    // A fraction's `amount` (#2120) is seeded only with an `other` fraction,
-    // which is never an entry default: a new figure 8 or poussette stores no
-    // `amount` key at all, so a peer still on taxonomy v38 (whose
-    // `validateFigure` rejects a param it does not know) only ever meets one
-    // on a figure that states an amount.
+    dropUnstatedParams(moveId, params);
+    return params;
+  }
+
+  /// Removes the params a figure keeps only while they are stated, from
+  /// [params] in place: a fraction's `amount` (#2120) unless an `other`
+  /// fraction states it, and a figure 8's `double` unless it is true. Neither
+  /// is an entry default, so a figure 8 or poussette that states neither stores
+  /// no such key, and a peer still on taxonomy v38 (whose `validateFigure`
+  /// rejects a param it does not know) only ever meets one on a figure that
+  /// states it. Every path that fills a figure's params from
+  /// [effectiveParams] (picking the move, and the free-text entry's draft)
+  /// passes through here.
+  void dropUnstatedParams(String moveId, Map<String, Object?> params) {
     if (statedFractionAmount(params) == null) {
       params.remove(fractionAmountParam);
     }
-    return params;
+    if (moveId == 'figure_8' && params[figure8DoubleParam] != true) {
+      params.remove(figure8DoubleParam);
+    }
   }
 
   /// [params] as a figure of [move] stores them: without a value an alias

@@ -950,6 +950,64 @@ void main() {
       );
     });
 
+    group('double figure eight', () {
+      String show(Map<String, Object?> params, {Dialect? dialect}) =>
+          renderer.render(
+            testFigure(move: 'figure_8', params: {'double': true, ...params}),
+            dialect ?? Dialect.canonical,
+          );
+
+      test('leads up and the other pair casts the mirror way', () {
+        expect(
+          show({}),
+          'ones lead a double half figure 8 up between twos, '
+          'twos cast down the outside',
+        );
+        expect(
+          show({'where': 'below', 'who': 'twos'}),
+          'twos lead a double half figure 8 down between ones, '
+          'ones cast up the outside',
+        );
+      });
+
+      test('across casts to follow', () {
+        expect(
+          show({'where': 'across'}),
+          'ones lead a double half figure 8 across, twos cast to follow',
+        );
+      });
+
+      test('a pair with no inverse reads others in both clauses', () {
+        expect(
+          show({'who': 'partners'}),
+          'partner lead a double half figure 8 up between others, '
+          'others cast down the outside',
+        );
+      });
+
+      test('no direction states nothing to mirror, so no cast', () {
+        expect(show({'where': 'none'}), 'ones lead a double half figure 8');
+      });
+
+      test('the lead clause stays last, and false changes nothing', () {
+        expect(
+          show({'lead': 'twosRole1'}),
+          'ones lead a double half figure 8 up between twos, '
+          'twos cast down the outside, second role1 leading',
+        );
+        expect(show({'double': false}), 'ones half figure 8 up between twos');
+      });
+
+      test('canonical text is not affected by the toggle', () {
+        expect(
+          renderer.renderCanonical(
+            Figure(move: 'figure_8', params: {'double': true}),
+          ),
+          renderer.renderCanonical(Figure(move: 'figure_8')),
+        );
+      });
+    });
+
     test('figure eight direction uses the effective default subject', () {
       expect(
         renderer.render(

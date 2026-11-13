@@ -258,6 +258,13 @@ String? chainHandForWho(String who) {
 /// amount, never as a guessed one.
 const String fractionAmountParam = 'amount';
 
+/// The figure 8 param that makes it a double figure 8 (lead it, the other pair
+/// cast the mirror way). A flag stored only while true: [Taxonomy.entryParams]
+/// seeds none and `applyParamChange` removes it when turned off, so a figure 8
+/// that is not double carries no key a peer on taxonomy v38 (whose
+/// `validateFigure` rejects a param it does not know) would refuse.
+const String figure8DoubleParam = 'double';
+
 /// Whether a fraction field with no amount beside it offers [choice] when its
 /// value is [current] (#2120): every fraction but `other`, which would be
 /// stored with no amount. Such fields are a figure of the user's own, whose

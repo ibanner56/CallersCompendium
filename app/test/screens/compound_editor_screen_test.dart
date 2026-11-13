@@ -7,6 +7,7 @@ import 'package:compendium_app/src/widgets/figure_list_editor.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderParagraph;
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/l10n_harness.dart';
@@ -539,11 +540,225 @@ void main() {
         '{move} {if}',
       );
       await save(tester);
+      // Said once in Save's list, and under the name's own row.
+      for (final where in [
+        'compound-editor-errors',
+        'compound-param-0-name-error',
+      ]) {
+        expect(
+          find.descendant(
+            of: find.byKey(ValueKey(where)),
+            matching: find.textContaining('if, then, else, not, and, or, is'),
+          ),
+          findsOneWidget,
+          reason: where,
+        );
+      }
+      expect(await tester.runAsync(repos.userGlossary.listAll), isEmpty);
+    });
+  });
+
+  testWidgets('a refused Save keeps the focus where it was, so what is typed '
+      'next goes there, not into another field', (tester) async {
+    await pump(tester);
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const ValueKey('glossary-entry-kind')),
+        matching: find.text('New figure'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('compound-add-param')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('compound-param-0-name')),
+      'who',
+    );
+    final wording = find.byKey(const ValueKey('user-figure-wording'));
+    await tester.enterText(wording, '{move} {who}');
+    await tester.pumpAndSettle();
+    // Refused: no name, no definition.
+    await save(tester);
+    expect(
+      find.byKey(const ValueKey('compound-editor-errors')),
+      findsOneWidget,
+    );
+    TextField field(Finder f) => tester.widget<TextField>(f);
+    bool focused(Finder f) => tester
+        .widget<EditableText>(
+          find.descendant(of: f, matching: find.byType(EditableText)),
+        )
+        .focusNode
+        .hasFocus;
+    expect(focused(wording), isTrue);
+
+    // The next edit clears the reasons, and the focus still stays.
+    tester.testTextInput.enterText('{move} {who} x');
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('compound-editor-errors')), findsNothing);
+    expect(field(wording).controller!.text, '{move} {who} x');
+    expect(
+      field(
+        find.byKey(const ValueKey('compound-param-0-name')),
+      ).controller!.text,
+      'who',
+    );
+    expect(focused(wording), isTrue);
+    tester.testTextInput.enterText('{move} {who} xy');
+    await tester.pumpAndSettle();
+    expect(field(wording).controller!.text, '{move} {who} xy');
+  });
+
+  group('a new figure\'s parameter name it can\'t be saved with', () {
+    const rule =
+        "Start each parameter's name with a letter, use only letters, digits "
+        'and _, and give each a different name.';
+
+    Future<void> openWithNames(WidgetTester tester) async {
+      await pump(tester);
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const ValueKey('glossary-entry-kind')),
+          matching: find.text('New figure'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      for (final (i, name) in ['center', 'center hand'].indexed) {
+        await tester.tap(find.byKey(const ValueKey('compound-add-param')));
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(ValueKey('compound-param-$i-name')),
+          name,
+        );
+        await tester.pumpAndSettle();
+      }
+    }
+
+    Finder messageUnder(int index) =>
+        find.byKey(ValueKey('compound-param-$index-name-error'));
+
+    InputDecoration decorationOf(WidgetTester tester, int index) => tester
+        .widget<TextField>(find.byKey(ValueKey('compound-param-$index-name')))
+        .decoration!;
+
+    Future<void> leaveTheField(WidgetTester tester) async {
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('is explained under its row once its field is left, before '
+        'Save', (tester) async {
+      final semantics = tester.ensureSemantics();
+      await openWithNames(tester);
+      // Still being typed: nothing yet.
+      expect(messageUnder(1), findsNothing);
+      expect(decorationOf(tester, 1).error, isNull);
+
+      await leaveTheField(tester);
+      expect(messageUnder(0), findsNothing);
+      expect(decorationOf(tester, 0).error, isNull);
       expect(
-        find.textContaining('if, then, else, not, and, or, is'),
+        find.descendant(
+          of: messageUnder(1),
+          matching: find.textContaining(rule),
+        ),
         findsOneWidget,
       );
-      expect(await tester.runAsync(repos.userGlossary.listAll), isEmpty);
+      expect(decorationOf(tester, 1).error, isNotNull, reason: 'marked red');
+      expect(
+        tester
+            .getSemantics(find.byKey(const ValueKey('compound-param-1-name')))
+            .hint,
+        startsWith(rule),
+        reason: 'a screen reader hears why with the field',
+      );
+      semantics.dispose();
+
+      await tester.enterText(
+        find.byKey(const ValueKey('compound-param-1-name')),
+        'centerHand',
+      );
+      await leaveTheField(tester);
+      expect(messageUnder(1), findsNothing);
+      expect(decorationOf(tester, 1).error, isNull);
+    });
+
+    testWidgets('a valid name typed through a reserved one ("is" on the way '
+        'to "isolated") says nothing while it is typed', (tester) async {
+      await openWithNames(tester);
+      final field = find.byKey(const ValueKey('compound-param-1-name'));
+      Future<void> typeEach(List<String> steps) async {
+        for (final typed in steps) {
+          await tester.enterText(field, typed);
+          await tester.pumpAndSettle();
+          expect(messageUnder(1), findsNothing, reason: typed);
+          expect(decorationOf(tester, 1).error, isNull, reason: typed);
+        }
+      }
+
+      await typeEach(['i', 'is']);
+      // Left at "is", it is said: the name is one it can't be saved with.
+      await leaveTheField(tester);
+      expect(messageUnder(1), findsOneWidget);
+      await typeEach(['iso', 'isolated']);
+      await leaveTheField(tester);
+      expect(messageUnder(1), findsNothing);
+    });
+
+    testWidgets('a refused Save says it under the row while its field still '
+        'has the focus', (tester) async {
+      await openWithNames(tester);
+      expect(messageUnder(1), findsNothing, reason: 'still being typed');
+      await tester.tap(find.byKey(const ValueKey('compound-editor-save')));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<EditableText>(
+              find.descendant(
+                of: find.byKey(const ValueKey('compound-param-1-name')),
+                matching: find.byType(EditableText),
+              ),
+            )
+            .focusNode
+            .hasFocus,
+        isTrue,
+        reason: 'Save leaves the focus where it was',
+      );
+      expect(messageUnder(1), findsOneWidget);
+    });
+
+    testWidgets('its whole rule is shown at a phone\'s width', (tester) async {
+      await openWithNames(tester);
+      await tester.binding.setSurfaceSize(const Size(360, 2400));
+      await leaveTheField(tester);
+      final paragraph = tester.renderObject<RenderParagraph>(
+        find.descendant(of: messageUnder(1), matching: find.byType(RichText)),
+      );
+      expect(paragraph.text.toPlainText(), startsWith(rule));
+      expect(paragraph.text.toPlainText(), endsWith('or, is.'));
+      expect(paragraph.didExceedMaxLines, isFalse);
+      // Given all the height its lines take, so none is clipped.
+      expect(
+        paragraph.size.height,
+        greaterThanOrEqualTo(
+          paragraph.getMinIntrinsicHeight(paragraph.size.width),
+        ),
+      );
+      expect(paragraph.size.width, lessThanOrEqualTo(360));
+    });
+
+    testWidgets('is not offered as a slot or a name a condition can test', (
+      tester,
+    ) async {
+      await openWithNames(tester);
+      expect(
+        find.text('You can use: {move}, {beats}, {center}, {otherCenter}'),
+        findsOneWidget,
+      );
+      expect(
+        find.text('A condition can test: beats, center, move, otherCenter'),
+        findsOneWidget,
+      );
     });
   });
 

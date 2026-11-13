@@ -168,7 +168,7 @@ For the whole workflow, see [Backup & portability](./backup-portability.md).
 
 The **Program** section gathers the settings that shape how you build, check, and
 perform your [programs](./glossary.md#program) — venues, the programming matrix,
-Perform mode, and calling history.
+sharing, Perform mode, and calling history.
 
 ### Venues
 
@@ -238,6 +238,22 @@ details are handled when you export.
   - **Restore all defaults** clears every customization and returns the matrix to
     how it ships. Because it discards your renames and custom columns, it asks
     you to confirm first.
+
+### Sharing
+
+These three switches choose what the set list you **share** or **copy** as text
+includes. All three are on, so the set list carries everything unless you turn
+one off.
+
+- **Include program title when sharing a set list** (on) — the program's title,
+  which is also the subject line of the share.
+- **Include caller and band when sharing a set list** (on) — the **Band** and
+  **Caller** lines.
+- **Include date and venue when sharing a set list** (on) — the date and venue
+  line.
+
+They don't change what is shared when you share the whole program as a
+`.ccshare` or JSON file: that file always carries the full program.
 
 ### Performance
 

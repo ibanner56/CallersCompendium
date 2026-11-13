@@ -1806,6 +1806,20 @@ void main() {
       expect(draft.beats, 8);
     });
 
+    test('a typed figure 8 stores no `double` key unless it is double', () {
+      final plain = FigureDraft.fromFreeTextFigure(
+        Figure(move: 'figure_8', params: {'where': 'above'}),
+        contraTaxonomy,
+      );
+      expect(plain.params.containsKey('double'), isFalse);
+      expect(plain.params.containsKey(fractionAmountParam), isFalse);
+      final dbl = FigureDraft.fromFreeTextFigure(
+        Figure(move: 'figure_8', params: {'double': true}),
+        contraTaxonomy,
+      );
+      expect(dbl.params['double'], isTrue);
+    });
+
     test('children of a container line get their derived beats (#1820)', () {
       final draft = FigureDraft.fromFreeTextFigure(
         Figure.meanwhile(

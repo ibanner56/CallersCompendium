@@ -3050,6 +3050,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsGeneralProgramsHeader => 'Programs';
 
   @override
+  String get settingsSharingHeader => 'Sharing';
+
+  @override
+  String get settingsSharingTitleTitle =>
+      'Include program title when sharing a set list';
+
+  @override
+  String get settingsSharingCallerBandTitle =>
+      'Include caller and band when sharing a set list';
+
+  @override
+  String get settingsSharingDateVenueTitle =>
+      'Include date and venue when sharing a set list';
+
+  @override
+  String get settingsSharingSubtitle =>
+      'Applies to sharing or copying the set list. Sharing the whole program as a .ccshare or JSON file always includes everything.';
+
+  @override
   String get settingsGeneralMatrixExactCollisionTitle =>
       'Flag exact beat overlap only';
 

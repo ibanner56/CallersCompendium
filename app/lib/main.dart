@@ -62,6 +62,7 @@ import 'src/data/default_program_caller_scope.dart';
 import 'src/data/track_history_for_all_callers_scope.dart';
 import 'src/data/seed_service.dart';
 import 'src/data/mark_all_sets_status_scope.dart';
+import 'src/data/set_list_share_scope.dart';
 import 'src/data/matrix_collision_mode_scope.dart';
 import 'src/data/program_matrix_column_config_scope.dart';
 import 'src/data/program_auto_commit_scope.dart';
@@ -747,6 +748,24 @@ class _CompendiumAppState extends State<CompendiumApp>
     decode: (Object? v) => v is bool ? v : true,
     encode: (v) => v,
   );
+  final _shareSetListTitleNotifier = PreferenceNotifier<bool>(
+    key: kShareSetListIncludeTitleKey,
+    defaultValue: true,
+    decode: (Object? v) => v is bool ? v : true,
+    encode: (v) => v,
+  );
+  final _shareSetListCallerBandNotifier = PreferenceNotifier<bool>(
+    key: kShareSetListIncludeCallerBandKey,
+    defaultValue: true,
+    decode: (Object? v) => v is bool ? v : true,
+    encode: (v) => v,
+  );
+  final _shareSetListDateVenueNotifier = PreferenceNotifier<bool>(
+    key: kShareSetListIncludeDateVenueKey,
+    defaultValue: true,
+    decode: (Object? v) => v is bool ? v : true,
+    encode: (v) => v,
+  );
   final _matrixExactBeatCollisionNotifier = PreferenceNotifier<bool>(
     key: kMatrixExactBeatCollisionKey,
     defaultValue: true,
@@ -1363,6 +1382,9 @@ class _CompendiumAppState extends State<CompendiumApp>
     _setListColorCodingNotifier,
     _showPerformedTogglesNotifier,
     _markAllSetsStatusNotifier,
+    _shareSetListTitleNotifier,
+    _shareSetListCallerBandNotifier,
+    _shareSetListDateVenueNotifier,
     _matrixExactBeatCollisionNotifier,
     _themeNotifier,
     _collectionTileFieldsNotifier,
@@ -2231,6 +2253,9 @@ class _CompendiumAppState extends State<CompendiumApp>
     _setListColorCodingNotifier.dispose();
     _showPerformedTogglesNotifier.dispose();
     _markAllSetsStatusNotifier.dispose();
+    _shareSetListTitleNotifier.dispose();
+    _shareSetListCallerBandNotifier.dispose();
+    _shareSetListDateVenueNotifier.dispose();
     _matrixExactBeatCollisionNotifier.dispose();
     _programMatrixColumnsNotifier.dispose();
     _dateFormatNotifier.dispose();
@@ -2912,6 +2937,18 @@ class _CompendiumAppState extends State<CompendiumApp>
     ),
     (child) => MarkAllSetsStatusScope(
       notifier: _markAllSetsStatusNotifier,
+      child: child,
+    ),
+    (child) => ShareSetListTitleScope(
+      notifier: _shareSetListTitleNotifier,
+      child: child,
+    ),
+    (child) => ShareSetListCallerBandScope(
+      notifier: _shareSetListCallerBandNotifier,
+      child: child,
+    ),
+    (child) => ShareSetListDateVenueScope(
+      notifier: _shareSetListDateVenueNotifier,
       child: child,
     ),
     (child) => MatrixCollisionModeScope(

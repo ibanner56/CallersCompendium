@@ -1142,18 +1142,21 @@ const Set<String> _figure8Leads = {
   'twosRole2',
 };
 
-/// The figure 8 in the app's display wording (#2121): "WHO FRACTION figure 8
-/// up|down between OTHER | across [, LEAD leading]". A line with no
-/// direction is left to the existing readers: the display writes it for
-/// `where: none`, and whether ContraDB means `none` by it is not established.
-/// Only the whole line is read.
+/// The figure 8 in the app's display wording (#2121): "WHO [lead a double]
+/// FRACTION figure 8 up|down between OTHER | across [, OTHER cast down|up the
+/// outside | to follow] [, LEAD leading]". The cast belongs to the double: it
+/// must be the first pass mirrored, and is read only after "lead a double". A
+/// line with no direction is left to the existing readers: the display writes
+/// it for `where: none` (a double with no direction states no cast either),
+/// and whether ContraDB means `none` by it is not established. Only the whole
+/// line is read.
 FigureMatch? _figure8Display(String text) {
   final s = _Scan(text);
   final who = _displaySubject(s);
+  if (who == null) return null;
+  final isDouble = s.eatPhrase('lead a double');
   final fraction = _displayFraction(s);
-  if (who == null || fraction == null || !s.eatPhrase('figure 8')) {
-    return null;
-  }
+  if (fraction == null || !s.eatPhrase('figure 8')) return null;
   final String where;
   if (s.eat('across')) {
     where = 'across';
@@ -1166,6 +1169,18 @@ FigureMatch? _figure8Display(String text) {
     if (between != (invertPairDancerSet(who) ?? 'others')) return null;
     where = up ? 'above' : 'below';
   }
+  if (isDouble) {
+    final cast = s.eat('others') ? 'others' : _displaySubject(s);
+    if (cast != (invertPairDancerSet(who) ?? 'others') || !s.eat('cast')) {
+      return null;
+    }
+    final bool ok = switch (where) {
+      'above' => s.eatPhrase('down the outside'),
+      'below' => s.eatPhrase('up the outside'),
+      _ => s.eatPhrase('to follow'),
+    };
+    if (!ok) return null;
+  }
   String? lead;
   if (s.peek() != null) {
     lead = _displaySubject(s);
@@ -1175,7 +1190,13 @@ FigureMatch? _figure8Display(String text) {
   if (s.peek() != null) return null;
   return FigureMatch(
     'figure_8',
-    params: {'who': who, ...fraction, 'where': where, 'lead': ?lead},
+    params: {
+      'who': who,
+      ...fraction,
+      'where': where,
+      if (isDouble) 'double': true,
+      'lead': ?lead,
+    },
   );
 }
 

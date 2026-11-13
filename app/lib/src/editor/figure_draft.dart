@@ -149,6 +149,8 @@ class FigureDraft {
             figure.copyWith(params: {...figure.params, ...defaults}),
           ),
         );
+      // As picking the move does: no `amount` or `double` the line left unstated.
+      taxonomy.dropUnstatedParams(figure.move, draft.params);
       draft.beatsTouched = defaults.containsKey('beats');
     }
     // A default `who` is the user's stated choice, as picking the move makes
