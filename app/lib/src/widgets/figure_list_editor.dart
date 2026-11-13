@@ -1776,7 +1776,12 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
   }
 
   // --- Move mutations (live) ------------------------------------------------
-  void _selectMove(String moveId) {
+  void _selectMove(String picked) {
+    final moveId = _storedMoveIdForPick(
+      widget.taxonomy,
+      picked,
+      widget.moveParamDefaults?[picked],
+    );
     if (widget.draft.move == moveId) return;
     widget.draft.move = moveId;
     widget.draft.compound = null;
@@ -1801,6 +1806,10 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     // for a role the default just replaced. Seed the role-implied hand
     // afterward, from the now-final `who` — unless the saved default itself
     // named an explicit `hand`, which must win.
+    // A pick stored under another id (forward and back, as long lines) takes
+    // the defaults saved for what was picked, then those of where it is
+    // stored, which win.
+    if (moveId != picked) _applyMoveParamDefaults(picked);
     _applyMoveParamDefaults(moveId);
     final chainOverrides = widget.moveParamDefaults?[moveId];
     if (chainOverrides == null || !chainOverrides.containsKey('hand')) {
@@ -3731,6 +3740,27 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
   }
 }
 
+/// The id a figure of the move [picked] is stored under as it is entered:
+/// [picked] itself, unless its entry params, with the user's saved
+/// [defaults] for it, route it to the other half of an inverse pair
+/// ([Taxonomy.resolvedMoveId]). Forward and back does unless a default names
+/// another formation, since its default formation is long lines, so picking
+/// it starts a long lines (taxonomy v39).
+String _storedMoveIdForPick(
+  Taxonomy taxonomy,
+  String picked,
+  Map<String, Object?>? defaults,
+) => taxonomy.resolvedMoveId(
+  Figure(
+    move: picked,
+    params: {
+      ...taxonomy.entryParams(picked),
+      for (final MapEntry(:key, :value) in (defaults ?? const {}).entries)
+        if (!skipsMoveDefault(key, value)) key: value,
+    },
+  ),
+);
+
 void _rerouteInversePair(FigureDraft draft, Taxonomy taxonomy) {
   final move = draft.move;
   if (move == null) return;
@@ -3864,7 +3894,12 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
         widget.draft.wordingOverride?.trim().isNotEmpty ?? false;
   }
 
-  void _selectMove(String moveId) {
+  void _selectMove(String picked) {
+    final moveId = _storedMoveIdForPick(
+      widget.taxonomy,
+      picked,
+      widget.moveParamDefaults?[picked],
+    );
     final draft = widget.draft;
     if (draft.move == moveId) return;
     draft.move = moveId;
@@ -3881,6 +3916,7 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
     // for a role the default just replaced. Seed the role-implied hand
     // afterward, from the now-final `who` — unless the saved default itself
     // named an explicit `hand`, which must win.
+    if (moveId != picked) _applyMoveParamDefaults(picked);
     _applyMoveParamDefaults(moveId);
     final chainOverrides = widget.moveParamDefaults?[moveId];
     if (chainOverrides == null || !chainOverrides.containsKey('hand')) {

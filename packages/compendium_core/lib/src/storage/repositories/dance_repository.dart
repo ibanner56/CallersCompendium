@@ -522,8 +522,11 @@ class DanceRepository {
       );
     }
     final resolvedId = _taxonomy.resolvedMoveId(figure);
-    return resolvedId != figure.move
-        ? figure.copyWith(move: resolvedId)
+    // Under the id it is routed to, without the value an alias listed as a
+    // move pins (a long lines stores no `formation`, taxonomy v39).
+    final params = _taxonomy.withoutListedAliasPins(resolvedId, figure.params);
+    return resolvedId != figure.move || !identical(params, figure.params)
+        ? figure.copyWith(move: resolvedId, params: params)
         : figure;
   }
 

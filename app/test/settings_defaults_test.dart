@@ -1988,6 +1988,44 @@ void main() {
       });
     });
 
+    testWidgets('long lines is offered as a move, without its formation', (
+      tester,
+    ) async {
+      // An alias of forward and back since taxonomy v39, listed as a move: its
+      // default may not set the formation it pins.
+      final repos = openTestRepositories();
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('move-defaults-add')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('move-defaults-add-picker-input')),
+        'long lines',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(
+          const ValueKey('move-defaults-add-picker-option-long_lines'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('move-default-card-long_lines')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('move-default-long_lines-goBack')),
+        findsWidgets,
+      );
+      expect(
+        find.byKey(const ValueKey('move-default-long_lines-formation')),
+        findsNothing,
+      );
+    });
+
     testWidgets('a figure 8 default offers no amount and no other (#2120)', (
       tester,
     ) async {

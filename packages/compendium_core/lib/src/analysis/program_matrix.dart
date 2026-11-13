@@ -679,14 +679,21 @@ String columnKeyForFigure(
     ParameterizedColumn? best;
     var bestSpecificity = -1;
     for (final column in config.parameterized) {
-      if (column.baseMove != canonicalId) continue;
-      final matches = column.params.entries.every(
+      final constraint = _resolvedConstraint(
+        column.baseMove,
+        column.params,
+        taxonomy,
+      );
+      if (constraint.move != canonicalId) continue;
+      final matches = constraint.params.entries.every(
         (entry) =>
             effective.containsKey(entry.key) &&
             effective[entry.key] == entry.value,
       );
       if (!matches) continue;
-      final specificity = column.params.length;
+      // Counted on the resolved constraint, so a column saved on an alias
+      // ranks as the same column saved on its target with the pin.
+      final specificity = constraint.params.length;
       if (specificity > bestSpecificity) {
         best = column;
         bestSpecificity = specificity;
@@ -730,11 +737,57 @@ String? userFigureColumnKeyOf(
   return userFigureKeyFor(use.id);
 }
 
+/// A column's base [move] and [params] as a constraint on the move it
+/// resolves to. A move is its own constraint. An alias constrains its target
+/// with its pinned params as well as [params], so a column saved on
+/// `long_lines` while it was a move (before taxonomy v39) still matches long
+/// lines, now an alias of `forward_and_back`, and not other formations.
+({String move, Map<String, Object?> params}) _resolvedConstraint(
+  String move,
+  Map<String, Object?> params,
+  Taxonomy taxonomy,
+) {
+  final alias = taxonomy.aliases[move];
+  if (alias == null) return (move: move, params: params);
+  return (move: alias.targetMove, params: {...alias.pinnedParams, ...params});
+}
+
+/// A column constraint ([ParameterizedColumn.baseMove] and params, or a
+/// [StepMatcher]'s) as it is saved: one on [move] that states the value an
+/// alias of it listed as a move pins ([MoveAlias.listedAsMove]) is saved on
+/// that alias without the pin, the inverse of [_resolvedConstraint]. So a
+/// column on forward and back in long lines is saved on `long_lines`, which a
+/// build before taxonomy v39 reads, where `forward_and_back` and `formation`
+/// would match nothing. A constraint that leaves the param unstated is kept:
+/// it is not a long lines column.
+({String move, Map<String, Object?> params}) savedMatrixConstraint(
+  String move,
+  Map<String, Object?> params,
+  Taxonomy taxonomy,
+) {
+  for (final alias in taxonomy.aliases.values) {
+    if (!alias.listedAsMove || alias.targetMove != move) continue;
+    final pins = alias.pinnedParams.entries;
+    if (pins.isEmpty ||
+        !pins.every(
+          (pin) => params.containsKey(pin.key) && params[pin.key] == pin.value,
+        )) {
+      continue;
+    }
+    return (
+      move: alias.id,
+      params: taxonomy.withoutListedAliasPins(alias.id, params),
+    );
+  }
+  return (move: move, params: params);
+}
+
 bool _stepMatchesFigure(Figure figure, StepMatcher step, Taxonomy taxonomy) {
   final canonicalId = taxonomy.resolve(figure.move)?.id;
-  if (canonicalId != step.move) return false;
+  final constraint = _resolvedConstraint(step.move, step.params, taxonomy);
+  if (canonicalId != constraint.move) return false;
   final effective = taxonomy.effectiveParams(figure);
-  return step.params.entries.every(
+  return constraint.params.entries.every(
     (entry) =>
         effective.containsKey(entry.key) && effective[entry.key] == entry.value,
   );
@@ -1031,9 +1084,17 @@ ProgramMatrix buildProgramMatrix(
     } else if (present.remove(id)) {
       columns.add(MatrixColumn(moveId: id, kind: MatrixColumnKind.known));
     }
+    // An alias listed as a move follows its target, where it stood as a move
+    // (`forward_and_back` took `long_lines`' place at taxonomy v39).
+    for (final alias in _listedAliasesOf(id, tax)) {
+      if (present.remove(alias)) {
+        columns.add(MatrixColumn(moveId: alias, kind: MatrixColumnKind.known));
+      }
+    }
   }
 
-  // Aliases whose TARGET move is not itself split (e.g. `see_saw` ->
+  // Aliases (other than those listed as moves, placed above) whose TARGET
+  // move is not itself split (e.g. `see_saw` ->
   // `do_si_do`, `swat_the_flea` -> `box_the_gnat`) keep their own column,
   // distinct from their target's ([columnKeyForFigure] never resolves them) —
   // but they ARE taxonomy entities, not unrecognized ids, so they're
@@ -1173,8 +1234,9 @@ List<MatrixColumn> _applyColumnConfig(
 ///   display name, never its target's — resolving through to the target
 ///   would make two visually distinct figures share one header (issue #933).
 ///   The dialect-substitution lookup keys off the CANONICAL move id either
-///   way (matching [FigureRenderer.displayMoveName]'s rule, since
-///   `dialect.moves` is keyed by canonical id, not alias id). Side-dependent
+///   way, except for an alias listed as a move ([MoveAlias.listedAsMove],
+///   `long_lines`), keyed off its own id (both matching
+///   [FigureRenderer.displayMoveName]'s rule). Side-dependent
 ///   substitutions (those using `%S`, which need a specific figure's
 ///   shoulder/hand) can't be resolved at the column level, so they fall back
 ///   to the display name;
@@ -1224,7 +1286,9 @@ String matrixColumnLabel(
   if (def == null) return column.moveId;
   final alias = taxonomy.aliases[column.moveId];
   final displayName = alias?.displayName ?? def.displayName;
-  final substitution = dialect.moves[def.id];
+  // An alias listed as a move (`long_lines`) is named by its own id only.
+  final substitution =
+      dialect.moves[alias?.listedAsMove ?? false ? alias!.id : def.id];
   if (substitution != null && !substitution.contains('%S')) {
     return substitution;
   }
@@ -1360,10 +1424,11 @@ const Set<String> _splitParentMoveIds = {
 /// Emits, in order: for each move in [Taxonomy.moves] definition order, either
 /// its split sub-columns (swing: every role, each as a bare column plus its
 /// `balance`/`meltdown` sub-columns; hey: `half`/`full`; allemande/chain: every
-/// role) or a single [MatrixColumnKind.known] column; then each alias whose
-/// target move is **not** itself split (a split-target alias folds into the
-/// target's split column and never gets its own — see [columnKeyForFigure]);
-/// then the single trailing [customMove] bucket. The emitted [MatrixColumn.moveId]
+/// role) or a single [MatrixColumnKind.known] column, followed by any alias of
+/// it listed as a move ([MoveAlias.listedAsMove]: `long_lines`); then each
+/// other alias whose target move is **not** itself split (a split-target alias
+/// folds into the target's split column and never gets its own — see
+/// [columnKeyForFigure]); then the single trailing [customMove] bucket. The emitted [MatrixColumn.moveId]
 /// strings are exactly the ids used as column keys elsewhere (`swing:partner`,
 /// `swing:partner:balance`, `hey:full`, `do_si_do`, `customMove`, …), so a
 /// config keyed by them lines up with a built matrix's columns.
@@ -1392,9 +1457,13 @@ List<MatrixColumn> builtInColumnCatalog(Taxonomy taxonomy) {
     } else {
       columns.add(MatrixColumn(moveId: id, kind: MatrixColumnKind.known));
     }
+    for (final alias in _listedAliasesOf(id, taxonomy)) {
+      columns.add(MatrixColumn(moveId: alias, kind: MatrixColumnKind.known));
+    }
   }
 
   for (final alias in taxonomy.aliases.values) {
+    if (alias.listedAsMove) continue; // placed after its target above
     final targetId = taxonomy.resolve(alias.id)?.id;
     if (targetId != null && _splitParentMoveIds.contains(targetId)) continue;
     columns.add(MatrixColumn(moveId: alias.id, kind: MatrixColumnKind.known));
@@ -1405,3 +1474,12 @@ List<MatrixColumn> builtInColumnCatalog(Taxonomy taxonomy) {
   );
   return columns;
 }
+
+/// The ids of [taxonomy]'s aliases of [moveId] listed as moves
+/// ([MoveAlias.listedAsMove]), in declaration order: the built-in catalog and
+/// a built matrix place each right after its target, where `long_lines` stood
+/// while it was a move.
+Iterable<String> _listedAliasesOf(String moveId, Taxonomy taxonomy) => [
+  for (final alias in taxonomy.aliases.values)
+    if (alias.listedAsMove && alias.targetMove == moveId) alias.id,
+];

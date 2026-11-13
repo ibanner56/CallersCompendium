@@ -783,7 +783,16 @@ class _FigureEditor extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final move = _move;
-    final paramSpecs = move?.params ?? const <String, ParamSpec>{};
+    // An alias's pinned params are what it names (`long lines` is forward
+    // and back in long lines), so they are not offered to narrow it.
+    final pinned =
+        taxonomy.aliases[figure.move]?.pinnedParams ??
+        const <String, Object?>{};
+    final paramSpecs = {
+      for (final MapEntry(:key, :value)
+          in (move?.params ?? const <String, ParamSpec>{}).entries)
+        if (!pinned.containsKey(key)) key: value,
+    };
     final any = figure.isAnyFigure;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -840,7 +849,16 @@ class _FigureEditor extends StatelessWidget {
                       figure: figure,
                       paramKey: entry.key,
                       spec: entry.value,
-                      choices: choices,
+                      choices: [
+                        for (final choice in choices)
+                          if (!_storedAsListedAlias(
+                            taxonomy,
+                            move?.id,
+                            entry.key,
+                            choice,
+                          ))
+                            choice,
+                      ],
                       dialect: dialect,
                       onChanged: onChanged,
                     ),
@@ -904,9 +922,9 @@ class _MoveField extends StatelessWidget {
       fieldKey: 'has-figure-${figure.id}',
       userFigures: UserFiguresScope.shownCatalogOf(context),
       dialect: dialect,
-      onSelected: (m) {
-        if (figure.move != m.id || _userFigureId != null) {
-          figure.move = m.id;
+      onSelected: (id) {
+        if (figure.move != id || _userFigureId != null) {
+          figure.move = id;
           figure.params.clear();
           onChanged();
         }
@@ -939,7 +957,9 @@ class _MoveField extends StatelessWidget {
 /// Advanced builder's "has figure" rows and the By-Phrase panel so both search
 /// moves identically.
 ///
-/// [onSelected] fires when the user picks a move; [onCleared] (optional) fires
+/// [onSelected] fires with the id of the move the user picks, or of an alias
+/// listed as a move ([MoveAlias.listedAsMove]: `long_lines`), which is
+/// searched under its own id; [onCleared] (optional) fires
 /// when the field is emptied. Multi-select callers (e.g. the By-Phrase panel)
 /// show chosen moves as chips and remount this field with a fresh [initialText]
 /// after each pick so the input is ready for the next entry.
@@ -959,7 +979,7 @@ class MoveTypeAheadField extends StatelessWidget {
   });
 
   final Taxonomy taxonomy;
-  final ValueChanged<MoveDef> onSelected;
+  final ValueChanged<String> onSelected;
 
   /// The user's own figures to offer before the moves (#1023), each found by
   /// its name in [dialect] and marked as theirs. Offered only with
@@ -1004,7 +1024,9 @@ class MoveTypeAheadField extends StatelessWidget {
     // dialect's move names, exact-name-first order and the cap are the
     // editor's, not a second copy of them. Aliases are not offered: a figure
     // leaf compiles to `move = ?` on the stored id, and the search bar reads
-    // an alias's name as text instead.
+    // an alias's name as text instead. An alias listed as a move is
+    // (`long_lines`, [MoveAlias.listedAsMove]): its figures are stored under
+    // its own id, and it was a move until taxonomy v39.
     return MoveAutocomplete(
       taxonomy: taxonomy,
       dialect: dialect,
@@ -1032,8 +1054,8 @@ class MoveTypeAheadField extends StatelessWidget {
           if (view != null) onUserFigureSelected?.call(view);
           return;
         }
-        final move = taxonomy.moves[option.id];
-        if (move != null) onSelected(move);
+        // A move, or an alias listed as a move: the only aliases offered.
+        if (taxonomy.resolve(option.id) != null) onSelected(option.id);
       },
     );
   }
@@ -1200,3 +1222,21 @@ class _ParamDropdown extends StatelessWidget {
     );
   }
 }
+
+/// Whether a figure of [moveId] whose [param] is [value] is stored under an
+/// alias listed as a move ([MoveAlias.listedAsMove]) instead: a forward and
+/// back in long lines is stored as `long_lines` (taxonomy v39), so a leaf for
+/// `forward_and_back` in long lines, which compiles to the stored id, could
+/// never match. That value is searched by picking the alias.
+bool _storedAsListedAlias(
+  Taxonomy taxonomy,
+  String? moveId,
+  String param,
+  String value,
+) => taxonomy.aliases.values.any(
+  (alias) =>
+      alias.listedAsMove &&
+      alias.targetMove == moveId &&
+      alias.pinnedParams.length == 1 &&
+      alias.pinnedParams[param] == value,
+);

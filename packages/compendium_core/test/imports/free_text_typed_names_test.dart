@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:test/test.dart';
 
 /// Free text reads what a caller types (#1826): every taxonomy display name
@@ -15,6 +16,12 @@ void main() {
     // `custom`; reading it as an empty custom would lose the word.
     'custom': 'the unparsed-text sentinel, not a call',
   };
+
+  /// Display names whose move, at the defaults the bare name states, is
+  /// stored under an alias's id ([Taxonomy.resolvedMoveId]). A forward and
+  /// back states no formation, so it is in long lines, its default, and is
+  /// stored as `long_lines` (taxonomy v39).
+  const storedAs = {'forward_and_back': 'long_lines'};
 
   String describe(List<Figure> fs) => fs
       .map(
@@ -45,7 +52,8 @@ void main() {
                 fs.length == 1 &&
                 !fs.single.isCustom &&
                 fs.single.note == null &&
-                taxonomy.resolvedMoveId(fs.single) == move.id;
+                taxonomy.resolvedMoveId(fs.single) ==
+                    (storedAs[move.id] ?? move.id);
             if (!ok) failures.add('"$typed" -> ${describe(fs)}');
           }
         }
@@ -60,6 +68,14 @@ void main() {
         final fs = parseFreeTextFigureEntry(move!.displayName);
         expect(fs.single.isCustom, isTrue);
         expect(fs.single.params['text'], move.displayName);
+      }
+    });
+
+    test('every stored-as entry is a move routed to its alias', () {
+      for (final MapEntry(key: id, value: aliasId) in storedAs.entries) {
+        expect(taxonomy.moves[id], isNotNull, reason: 'stale entry "$id"');
+        expect(taxonomy.aliases[aliasId]?.targetMove, id);
+        expect(taxonomy.resolvedMoveId(testFigure(move: id)), aliasId);
       }
     });
 

@@ -1,5 +1,6 @@
 import '../dialect/canonicalize.dart';
 import '../dialect/dialect.dart';
+import '../dialect/renderer.dart' show FigureRenderer;
 import '../model/figure.dart';
 import '../taxonomy/contra_taxonomy.dart';
 import '../taxonomy/taxonomy.dart';
@@ -822,8 +823,70 @@ List<Figure> _parseSplit(
       [split.text, ...readTexts]
           .map((text) => _displayedCourtesyTurn(text, split.beats, names))
           .nonNulls
-          .firstOrNull;
+          .firstOrNull ??
+      _displayedForwardAndBack(split.text, split.beats, names, dialect);
   return named == null ? raw : [named];
+}
+
+final RegExp _whitespaceRun = RegExp(r'\s+');
+
+/// Punctuation a caller may end a displayed line with.
+final RegExp _closingStop = RegExp(r'\s*[.!]$');
+
+/// A forward and back as the app displays one (taxonomy v39): a formation's
+/// words, then `forward & back` (or `forward and back`, or [dialect]'s name
+/// for the move), or `forward` alone when the dancers do not come back. Read
+/// only here, so imports' grammar is unchanged: no source writes these
+/// formations this way, and long lines, which sources do write, the grammar
+/// already reads. The figure is returned under the id it would be stored
+/// with, so a formation of long lines reads as `long_lines`.
+Figure? _displayedForwardAndBack(
+  String text,
+  int beats,
+  Taxonomy taxonomy,
+  Dialect? dialect,
+) {
+  final spec = taxonomy.moves['forward_and_back']?.params['formation'];
+  final formations = spec?.choices;
+  if (formations == null) return null;
+  final line = text
+      .trim()
+      .replaceFirst(_closingStop, '')
+      .replaceAll(_whitespaceRun, ' ')
+      .toLowerCase();
+  final dialectName = dialect?.moves['forward_and_back'];
+  // Each ending the display writes, with whether it means coming back.
+  final endings = <(String, bool)>[
+    ('forward & back', true),
+    ('forward and back', true),
+    if (dialectName != null && !dialectName.contains('%'))
+      (dialectName.trim().replaceAll(_whitespaceRun, ' ').toLowerCase(), true),
+    ('forward', false),
+  ];
+  for (final (ending, goBack) in endings) {
+    if (ending.isEmpty || !line.endsWith(' $ending')) continue;
+    final words = line.substring(0, line.length - ending.length - 1);
+    for (final token in formations) {
+      if (FigureRenderer.displayToken(token, spec, Dialect.canonical) !=
+          words) {
+        continue;
+      }
+      final figure = Figure(
+        move: 'forward_and_back',
+        params: {
+          'formation': token,
+          if (!goBack) 'goBack': false,
+          if (beats > 0) 'beats': beats,
+        },
+      );
+      final stored = taxonomy.resolvedMoveId(figure);
+      return figure.copyWith(
+        move: stored,
+        params: taxonomy.withoutListedAliasPins(stored, figure.params),
+      );
+    }
+  }
+  return null;
 }
 
 /// A courtesy turn naming `whom` as the app displays one (#2121), read only

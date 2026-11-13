@@ -148,9 +148,15 @@ String formationDisplayLabel(
 /// Not dialect-aware by design — callers that need a dialect term reach for
 /// [FigureRenderer.displayToken] (or [FigureRenderer.singleDancerDefaultTerm])
 /// and fall back to this.
-String humanizeToken(String token) => token
-    .replaceAllMapped(RegExp(r'(?<=[a-z])(?=[A-Z])'), (_) => ' ')
-    .toLowerCase();
+///
+/// A capital that starts a word after a one-letter capital word is a break
+/// too (`inARing` -> "in a ring"), as in the core renderer's humanizer.
+String humanizeToken(String token) =>
+    token.replaceAllMapped(_camelBoundary, (_) => ' ').toLowerCase();
+
+final RegExp _camelBoundary = RegExp(
+  r'(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])',
+);
 
 /// The discrete, pickable value vocabulary for a figure parameter, or `null`
 /// when the parameter has no closed vocabulary (rotation/beats/text). Used to

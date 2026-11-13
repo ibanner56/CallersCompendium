@@ -115,6 +115,52 @@ void main() {
   // "Has tag" row (#1412)
   // -------------------------------------------------------------------------
 
+  group('long lines, listed as a move (taxonomy v39)', () {
+    testWidgets('offers no formation to narrow it by', (tester) async {
+      await _pump(
+        tester,
+        root: BuilderGroup(children: [BuilderFigure(move: 'long_lines')]),
+      );
+      expect(find.text('Any formation'), findsNothing);
+    });
+
+    testWidgets('picking long lines sets the row to long lines', (
+      tester,
+    ) async {
+      final figure = BuilderFigure(move: 'swing');
+      await _pump(tester, root: BuilderGroup(children: [figure]));
+
+      final fieldKey = ValueKey('has-figure-${figure.id}-input');
+      await tester.enterText(find.byKey(fieldKey), 'long lines');
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(ValueKey('has-figure-${figure.id}-option-long_lines')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(figure.move, 'long_lines');
+    });
+
+    testWidgets('forward and back offers every formation but long lines', (
+      tester,
+    ) async {
+      // A forward and back in long lines is stored as long lines, which a
+      // forward and back leaf (matching the stored id) can never find.
+      final figure = BuilderFigure(move: 'forward_and_back');
+      await _pump(tester, root: BuilderGroup(children: [figure]));
+      expect(find.text('Any formation'), findsOneWidget);
+      final dropdown = tester.widget<DropdownButton<String?>>(
+        find.byKey(ValueKey('param-${figure.id}-formation')),
+      );
+      final values = [for (final item in dropdown.items!) item.value];
+      expect(values, [
+        null,
+        for (final formation in forwardAndBackFormations)
+          if (formation != 'longLines') formation,
+      ]);
+    });
+  });
+
   group('"Has tag" row', () {
     final tags = [
       Tag(id: 't1', name: 'Smooth'),

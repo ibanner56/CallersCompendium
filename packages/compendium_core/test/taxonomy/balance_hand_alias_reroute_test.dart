@@ -416,16 +416,20 @@ void main() {
   // -------------------------------------------------------------------------
 
   group('alias enumeration', () {
-    test('exactly five aliases in the contra taxonomy', () {
-      expect(tax.aliases.length, 5);
+    test('exactly six aliases in the contra taxonomy', () {
+      expect(tax.aliases.length, 6);
     });
 
-    test('exactly two handedness inverse pairs', () {
+    test('exactly three inverse pairs: two handedness, one formation', () {
       final pairs = tax.aliases.values
           .where((a) => a.inversePairId != null)
           .toList();
-      expect(pairs.length, 2);
-      expect(pairs.map((a) => a.id).toSet(), {'swat_the_flea', 'see_saw'});
+      expect(pairs.length, 3);
+      expect(pairs.map((a) => a.id).toSet(), {
+        'swat_the_flea',
+        'see_saw',
+        'long_lines',
+      });
     });
 
     test('meltdown_swing has no inverse pair', () {

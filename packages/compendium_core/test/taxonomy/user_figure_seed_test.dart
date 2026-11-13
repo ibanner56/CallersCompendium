@@ -27,7 +27,10 @@ void main() {
       if (seed.unusedParams.isNotEmpty) {
         failures.add('$id: unused ${seed.unusedParams}');
       }
-      if (seed.copiedFrom != contraTaxonomy.resolve(id)!.id) {
+      // Copied from the move it names, except an alias listed as a move
+      // (`long_lines`), copied as itself, as it was while it was a move.
+      final listed = contraTaxonomy.aliases[id]?.listedAsMove ?? false;
+      if (seed.copiedFrom != (listed ? id : contraTaxonomy.resolve(id)!.id)) {
         failures.add('$id: copiedFrom ${seed.copiedFrom}');
       }
       // It reads back as it was written.

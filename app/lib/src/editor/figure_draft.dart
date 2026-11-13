@@ -679,7 +679,12 @@ class FigureDraft {
     return Figure(
       schemaVersion: schemaVersion,
       move: id,
-      params: _canonicalParams(id, canonicalizeNote),
+      // Without the value an alias listed as a move pins: a long lines the
+      // editor seeded with `formation: longLines` stores none (taxonomy v39).
+      params: contraTaxonomy.withoutListedAliasPins(
+        id,
+        _canonicalParams(id, canonicalizeNote),
+      ),
       note: trimmedNote.isEmpty ? null : trimmedNote,
       progression: progression,
       assumedSubject: assumedSubject,

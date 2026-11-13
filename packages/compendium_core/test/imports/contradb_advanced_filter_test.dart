@@ -388,6 +388,8 @@ void main() {
         'turn_as_couples',
         'orbit',
         'circular_hey',
+        // ContraDB has long lines only; `long_lines` (its alias) maps to it.
+        'forward_and_back',
         // Each is a subset of ContraDB's single `form an ocean wave`.
         'pass_the_ocean',
         'form_short_waves',
@@ -536,6 +538,7 @@ void main() {
         'courtesy_turn',
         'custom',
         'form_short_waves',
+        'forward_and_back',
         'meltdown_swing',
         'orbit',
         'pass_the_ocean',

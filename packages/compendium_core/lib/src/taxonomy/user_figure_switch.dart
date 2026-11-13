@@ -264,5 +264,15 @@ List<Figure> switchUserFigureUsesIn(
   final refused = taxonomy
       .validateFigure(switched)
       .any((issue) => issue.severity == ValidationSeverity.error);
-  return refused ? freeze() : switched;
+  if (refused) return freeze();
+  // A switch to forward and back in long lines is a long lines, stored
+  // without the formation it pins (taxonomy v39): shorthands and default
+  // lists are not routed on write the way dances are, and a build before
+  // v39 reads neither `forward_and_back` nor `formation`.
+  final stored = taxonomy.resolvedMoveId(switched);
+  if (!(taxonomy.aliases[stored]?.listedAsMove ?? false)) return switched;
+  return switched.copyWith(
+    move: stored,
+    params: taxonomy.withoutListedAliasPins(stored, switched.params),
+  );
 });

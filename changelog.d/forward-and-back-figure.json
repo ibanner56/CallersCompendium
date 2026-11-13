@@ -1,0 +1,35 @@
+{
+  "id": "forward-and-back-figure",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "A new figure, forward and back, names the formation dancers go forward and back in: long lines, in squares, lines of three, four, five or six, as couples, head couples, side couples, in a ring, in lines at heads or in lines at sides. It shows in the figure's line (“lines of three forward & back”, or “in a ring forward” when the dancers don't come back), and typing that line into the dance editor reads it back as the figure."
+    ],
+    "changed": [
+      "Long lines is now forward and back in long lines. Your long lines figures are unchanged and still read “long lines”; changing a long lines figure's formation turns it into a forward and back, and a forward and back set to long lines is saved as long lines.",
+      "Typing just “forward and back” into the dance editor now reads it as long lines, the usual formation, instead of keeping it as text.",
+      "A dialect's own name or wording for long lines keeps applying to it, and a name you give forward and back does not rename long lines. The dialect editor, Advanced search's Has figure and the per-figure defaults in Settings still offer long lines on its own.",
+      "A program matrix column you built on long lines keeps counting long lines, and opens in the column editor as forward and back in long lines."
+    ],
+    "data_migrations": [
+      "Taxonomy 39: no migration and no index rebuild; long lines figures you already have are stored, shown and searched exactly as before.",
+      "Devices still on 0.9.x show a forward and back figure by its internal name, as they do any figure added since. Long lines figures entered on this version read there exactly as before."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add the `forward_and_back` move (taxonomy v39): `formation` (a `ParamKind.choice` of `forwardAndBackFormations`, default `longLines`), `goBack` and `beats`, with long lines' `goBack`-driven beats. Add `forwardAndBackFormations`.",
+      "Add `MoveAlias.listedAsMove`: such an alias is offered where moves are and aliases are not, and a dialect's name and wording for it apply to it while its target's never do. Set for `long_lines` only.",
+      "Add `Taxonomy.withoutListedAliasPins`: the params a figure stores without the value an alias listed as a move pins. The dance repository's write-time routing, the free-text read-back and `switchUserFigureUsesIn` (which also routes a use switched to long lines to `long_lines`) apply it, so a `long_lines` never stores `formation`.",
+      "Add `savedMatrixConstraint`: a matrix column or compound step on `forward_and_back` stating `formation: longLines` is saved on `long_lines` without it."
+    ],
+    "changed": [
+      "`long_lines` is now an alias of `forward_and_back` pinning `formation: longLines`, with `inversePairId: forward_and_back`, so `resolvedMoveId` routes between the two on `formation`. Its canonical text (`long lines`) and display lines are unchanged; its effective params gain `formation: longLines`. Free-text entry's typed names and the figure editor's move pick start a figure under the id it is stored with, so a bare `forward_and_back` starts as `long_lines`.",
+      "Render a `forward_and_back` as `<formation> forward & back` (verbose `forward and back`), or `<formation> forward` without `goBack`; canonical text is `<formation> forward and back`. The renderer's camelCase humanizer, and the app's `humanizeToken`, break before a capital that starts a word after a one-letter word (`inARing` → `in a ring`).",
+      "Free-text entry reads a displayed forward and back back as that figure; the import grammar is unchanged.",
+      "Program matrix parameterized and compound columns whose base move is an alias match its target with the alias's pinned params added, and a column for an alias listed as a move is labelled by the dialect's name for that alias.",
+      "`figureSnippetSignature` of an alias listed as a move is its own id without its pinned params, so every `long_lines` keeps the signature `long_lines`.",
+      "`FilterCompiler` never maps an alias's id through a dialect's move names, as it already did not a move's."
+    ]
+  }
+}

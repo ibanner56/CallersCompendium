@@ -104,7 +104,16 @@ const Map<String, FigureDefinition> contraFigureDefinitions = {
     description:
         'Each dancer travels one position counterclockwise around the ring while turning clockwise, ending facing the center. Many communities add a clap at the end. It takes 4 beats on its own or 8 with the balance in the ring that usually comes first, and it is often repeated.',
   ),
-  // TCB "Long lines, go forward and back", "Forward and back".
+  // TCB "Forward and back"; contra_taxonomy.dart `forward_and_back`
+  // (formation default long lines, goBack flag, 8 or 4 beats). Long lines is
+  // its alias since taxonomy v39 and keeps its own entry below.
+  'forward_and_back': FigureDefinition(
+    definition:
+        'Dancers in a named formation walk forward together toward the center or the facing dancers, then back to place.',
+    description:
+        'The figure names the formation: long lines, lines of three to six, squares, couples, head or side couples, a ring, or lines at the heads or sides. Forward and back usually takes 8 beats, 4 in and 4 out; a figure that goes forward only takes 4.',
+  ),
+  // TCB "Long lines, go forward and back".
   'long_lines': FigureDefinition(
     definition:
         'Dancers in lines along each side of the set join hands, walk forward toward the other line, and back.',

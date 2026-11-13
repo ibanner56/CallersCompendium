@@ -32,7 +32,14 @@ Set<String> _wordingSlotNames(String wording) => _wordingPlaceholder
     .allMatches(wording)
     .map((match) => _slotBase(match[1]!))
     .toSet();
-final RegExp _camelBoundary = RegExp(r'(?<=[a-z])(?=[A-Z])');
+
+/// A word break in a camelCase token: before a capital that follows a
+/// lowercase letter, or before a capital that starts a word after a
+/// one-letter capital word (`inARing` -> "in a ring", v39). Keep in step with
+/// the app's `humanizeToken`.
+final RegExp _camelBoundary = RegExp(
+  r'(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])',
+);
 
 /// Shape of the single-dancer identity tokens ([ParamVocab.singleDancers]) —
 /// one couple (`ones`/`twos`) × one role. Unlike [roleTokens] these are
@@ -351,7 +358,14 @@ class FigureRenderer {
           final alias = taxonomy.aliases[figure.move];
           final displayName = alias?.displayName ?? def.displayName;
           final moveName = _collapseSpaces(
-            _renderMoveName(def.id, displayName, params, dialect),
+            _renderMoveName(
+              def.id,
+              displayName,
+              params,
+              dialect,
+              false,
+              figure.move,
+            ),
           );
           out = out.contains(moveName)
               ? out.replaceFirst(moveName, '$connective $moveName')
@@ -584,7 +598,7 @@ class FigureRenderer {
     if (!forCanonical) {
       final wording = _resolvedMoveWording(figure, dialect, def.id, params);
       if (_isUsableMoveWording(wording)) {
-        final displayBase = _displayBaseRenderers[def.id];
+        final displayBase = _displayBaseFor(figure, def);
         final wordingSlots = _renderTemplateSlots(
           figure,
           def,
@@ -670,7 +684,7 @@ class FigureRenderer {
             ? _spliceAssumedSubjectMarker(displayLine)
             : _stripSubjectMark(displayLine);
       }
-      final displayBase = _displayBaseRenderers[def.id];
+      final displayBase = _displayBaseFor(figure, def);
       if (displayBase != null) {
         final line = _assembleDisplayTemplate(
           displayBase(this, def, params, dialect, verbose, decimals),
@@ -1055,8 +1069,12 @@ class FigureRenderer {
       displayName,
       taxonomy.effectiveParams(figure),
       dialect,
+      false,
+      figure.move,
     );
-    final hasDialectMoveSubstitution = dialect.moves.containsKey(def.id);
+    final hasDialectMoveSubstitution = dialect.moves.containsKey(
+      _listedAsMove(figure.move) ? figure.move : def.id,
+    );
     final isTakeOnly =
         def.id == 'give_and_take' && figure.params['give'] == false;
     final sourceName = isTakeOnly ? 'take' : renderedName;
@@ -1115,6 +1133,7 @@ class FigureRenderer {
       'hey': 'doing a hey',
       'lead_up_the_center': 'leading up the center',
       'long_lines': 'forming long lines',
+      'forward_and_back': 'going forward and back',
       'mad_robin': 'doing a mad robin',
       'pass_through': 'passing through',
       'pass_the_ocean': 'passing the ocean',
@@ -1165,11 +1184,18 @@ class FigureRenderer {
     return words.join(' ');
   }
 
+  static final RegExp _forwardWord = RegExp(r'\bforward\b');
+
   String _gerundiveRenderedFallback(String moveId, String rendered) {
     // Its display line spells the name around the side ("slide left along
     // set"), so the name is not found whole and only the verb changes.
     if (moveId == 'slide_along_set') {
       return rendered.replaceFirst(RegExp(r'\bslide\b'), 'sliding');
+    }
+    // Its display line reads "forward & back", or "forward" alone, not its
+    // name "forward and back"; the direction takes the verb.
+    if (moveId == 'forward_and_back') {
+      return rendered.replaceFirst(_forwardWord, 'going forward');
     }
     if (moveId != 'zig_zag') return rendered;
     final zigged = rendered.replaceFirst(RegExp(r'\bzig\b'), 'zigging');
@@ -1218,6 +1244,7 @@ class FigureRenderer {
           params,
           dialect,
           forCanonical,
+          figure.move,
         );
         continue;
       }
@@ -1361,6 +1388,15 @@ class FigureRenderer {
   ]) {
     final moveId = canonicalMoveId ?? taxonomy.resolve(figure.move)?.id;
     if (moveId == null) return null;
+    // An alias with its own dialect name ([MoveAlias.listedAsMove])
+    // takes only the dialect's wording for itself, never its target's.
+    if (_listedAsMove(figure.move)) {
+      final aliasWording = dialect.moveWordings[figure.move];
+      return _isUsableMoveWording(aliasWording) &&
+              _wordingFitsMove(figure.move, aliasWording!)
+          ? aliasWording
+          : null;
+    }
     final params = effectiveParams ?? taxonomy.effectiveParams(figure);
     final branch = _moveWordingBranch(moveId, params);
     if (branch != null) {
@@ -1415,15 +1451,21 @@ class FigureRenderer {
   WordingVocabulary moveWordingVocabulary(String moveId, Dialect dialect) {
     final def = taxonomy.resolve(moveId);
     if (def == null) return WordingVocabulary(const []);
+    // An alias listed as a move (`long_lines`) words its pinned params into
+    // its name, so they are neither slots nor conditions of its wordings.
+    final pinned = _listedAsMove(moveId)
+        ? taxonomy.aliases[moveId]!.pinnedParams
+        : const <String, Object?>{};
     return WordingVocabulary([
       for (final MapEntry(key: name, value: spec) in _moveWordingSubjects(
         def,
       ).entries)
-        WordingName(
-          name,
-          spec,
-          spec == null ? const [] : _wordingValueWords(name, spec, dialect),
-        ),
+        if (!pinned.containsKey(name))
+          WordingName(
+            name,
+            spec,
+            spec == null ? const [] : _wordingValueWords(name, spec, dialect),
+          ),
     ]);
   }
 
@@ -1675,6 +1717,9 @@ class FigureRenderer {
   String? moveWordingTemplate(String moveId) {
     final def = taxonomy.resolve(moveId);
     if (def == null) return null;
+    // An alias with its own dialect name starts from the line it shows, its
+    // name alone (`long lines`), not its target's.
+    if (_listedAsMove(moveId)) return '{move}';
     final canonicalMoveId = def.id;
     final seed = _moveWordingSeedTemplates[canonicalMoveId];
     if (seed != null) return seed;
@@ -1788,18 +1833,34 @@ class FigureRenderer {
     return false;
   }
 
+  /// Whether [moveId] is an alias a dialect names on its own
+  /// ([MoveAlias.listedAsMove]).
+  bool _listedAsMove(String moveId) =>
+      taxonomy.aliases[moveId]?.listedAsMove ?? false;
+
   String _renderMoveName(
     String moveId,
     String displayName,
     Map<String, Object?> params,
     Dialect dialect, [
     bool forCanonical = false,
+    String? figureMove,
   ]) {
     // Display path: fall back to a built-in `%S` move-name override (e.g.
     // shoulder_round → "%S shoulder round") when the dialect provides none, so
     // the shoulder word surfaces even under the canonical/identity dialect.
     // ContraDB `gyreWords` expands `%S` to the shoulder side. Never applied to
     // the canonical render (the search/dedupe text keeps the bare move name).
+    //
+    // [figureMove] is the figure's own id. An alias with its own dialect name
+    // ([MoveAlias.listedAsMove]) takes only that, never its target's.
+    if (figureMove != null && _listedAsMove(figureMove)) {
+      return _applyMoveSubstitution(
+        dialect.moves[figureMove],
+        displayName,
+        params,
+      );
+    }
     final substitution =
         dialect.moves[moveId] ??
         (forCanonical ? null : _displayMoveNameOverrides[moveId]);
@@ -1969,8 +2030,9 @@ class FigureRenderer {
     final def = taxonomy.resolve(moveId);
     final alias = taxonomy.aliases[moveId];
     final displayName = alias?.displayName ?? def?.displayName ?? moveId;
-    // Move substitutions are keyed by the canonical move id.
-    final canonicalId = def?.id ?? moveId;
+    // Move substitutions are keyed by the canonical move id, except for an
+    // alias with its own dialect name ([MoveAlias.listedAsMove]).
+    final canonicalId = _listedAsMove(moveId) ? moveId : def?.id ?? moveId;
     // Trimmed so a %S substitution with a missing side word never surfaces a
     // stray leading/trailing space in the editor's move field.
     return _applyMoveSubstitution(
@@ -2546,7 +2608,44 @@ class FigureRenderer {
   /// through [_displayDancer] (dialect-aware + PR1 singularization), or
   /// [_displayGroup] where a plural verb agrees with them; move names through
   /// [_renderMoveName].
+  /// The display base renderer for [figure], whose move resolves to [def].
+  ///
+  /// `long_lines` takes none although `forward_and_back`, its target since
+  /// taxonomy v39, has one: it keeps the line it had as a move, "long lines"
+  /// from its template with the direction added by [renderSummary].
+  static _DisplayBaseRenderer? _displayBaseFor(Figure figure, MoveDef def) =>
+      figure.move == 'long_lines' ? null : _displayBaseRenderers[def.id];
+
   static final Map<String, _DisplayBaseRenderer> _displayBaseRenderers = {
+    // Forward and back (taxonomy v39): the formation, then the direction,
+    // as long lines reads in its summary: "lines of three forward & back",
+    // "in a ring forward" when `goBack` is false. The direction is part of
+    // the terse line here, so [renderSummary] appends nothing. A dialect name
+    // for the move replaces "forward & back"; "forward" alone is a direction
+    // word, not the move's name, and is never substituted.
+    'forward_and_back': (r, def, params, dialect, verbose, decimals) {
+      final formation = r._renderValue(
+        'formation',
+        params['formation'],
+        def.params['formation'],
+        dialect,
+        verbose,
+        decimals,
+        false,
+      );
+      final move = params['goBack'] == false
+          ? 'forward'
+          : r._renderMoveName(
+              def.id,
+              verbose ? def.displayName : 'forward & back',
+              params,
+              dialect,
+            );
+      return _displayTemplate({
+        'formation': formation,
+        'move': move,
+      }, '{formation} {move}');
+    },
     // Swing (issue #543). Reproduces the terse `{who} {prefix} {move}` line
     // (byte-identical to the template expansion) and appends an ending-facing
     // clause ONLY when `endFacing` is non-default. The default `in` (across)

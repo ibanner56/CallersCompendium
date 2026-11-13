@@ -88,9 +88,12 @@ class ParamBeats {
 /// An alias entry: resolves to a canonical move with pinned params
 /// (e.g. `see saw` → `do_si_do{shoulder: left}`).
 ///
-/// When [inversePairId] is set, this alias is one half of a two-valued
-/// inverse pair: toggling the pinned param to its opposite value should
-/// re-route the figure to [inversePairId] (and vice versa). The taxonomy's
+/// When [inversePairId] is set, this alias is one half of an inverse pair:
+/// moving the pinned param off the pinned value should re-route the figure
+/// to [inversePairId], and that move taking the pinned value should re-route
+/// it back. The axis need not be two-valued: `long_lines` pins
+/// `forward_and_back.formation` to one of twelve formations, and any other
+/// formation is a `forward_and_back`. The taxonomy's
 /// [Taxonomy.resolvedMoveId] uses this to enforce the invariant at write
 /// time.
 @immutable
@@ -102,6 +105,7 @@ class MoveAlias {
     this.pinnedParams = const {},
     this.searchKeywords = const [],
     this.inversePairId,
+    this.listedAsMove = false,
   });
 
   final String id;
@@ -116,4 +120,16 @@ class MoveAlias {
   /// `'do_si_do'`. `null` when the alias is not part of an inverse pair
   /// (e.g. `meltdown_swing`).
   final String? inversePairId;
+
+  /// Whether this alias stands as a move of its own outside the taxonomy:
+  /// pickers that offer moves and not aliases (the dialect editor, Advanced
+  /// search's "Has figure", Settings' per-move defaults) offer it too, without
+  /// its pinned params, and a dialect's name and wording for it apply to it
+  /// while its target's never do. False for every alias but `long_lines`
+  /// (taxonomy v39), which was a move until then: its figures are stored
+  /// under its own id, so a search must be able to name it; dialects hold
+  /// entries keyed on it; and its name is a formation where its target's,
+  /// `forward_and_back`, is a direction, so a name for one would misread the
+  /// other. Every other alias takes its target's dialect entries.
+  final bool listedAsMove;
 }

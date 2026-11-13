@@ -459,6 +459,84 @@ void main() {
     );
   });
 
+  testWidgets('long lines keeps its own move row and wording row', (
+    tester,
+  ) async {
+    // Long lines is an alias of forward and back since taxonomy v39, but a
+    // dialect still names it on its own, as it did when it was a move.
+    await setScreenSize(tester, const Size(1200, 2400));
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: DialectEditorScreen(
+          initial: Dialect(name: 'Lines', moves: const {'long_lines': 'lines'}),
+        ),
+      ),
+    );
+
+    final movesToggle = find.byKey(const ValueKey('dialect-moves-toggle'));
+    await reveal(tester, movesToggle);
+    await tester.tap(movesToggle);
+    await tester.pumpAndSettle();
+    final row = find.byKey(const ValueKey('dialect-move-long_lines'));
+    expect(row, findsOneWidget);
+    expect(tester.widget<TextField>(row).controller!.text, 'lines');
+    expect(find.text('long lines'), findsWidgets);
+    final moves = tester.widget<DropdownButton<String>>(
+      find.byKey(const ValueKey('dialect-add-move')),
+    );
+    final offered = moves.items!.map((item) => item.value).toSet();
+    expect(offered, contains('forward_and_back'));
+    expect(offered, isNot(contains('long_lines')));
+
+    final wordingsToggle = find.byKey(
+      const ValueKey('dialect-wordings-toggle'),
+    );
+    await reveal(tester, wordingsToggle);
+    await tester.tap(wordingsToggle);
+    await tester.pumpAndSettle();
+    final wordings = tester.widget<DropdownButton<String>>(
+      find.byKey(const ValueKey('dialect-add-move-wording')),
+    );
+    expect(
+      wordings.items!.map((item) => item.value),
+      containsAll(['long_lines', 'forward_and_back']),
+    );
+  });
+
+  testWidgets('a forward and back wording previews a forward and back', (
+    tester,
+  ) async {
+    // At its defaults a forward and back is a long lines, which never takes
+    // forward and back's wording, so the preview shows another formation.
+    await setScreenSize(tester, const Size(1200, 2400));
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: DialectEditorScreen(
+          initial: Dialect(
+            name: 'Worded',
+            moveWordings: const {'forward_and_back': 'all {formation} {move}'},
+          ),
+        ),
+      ),
+    );
+    final toggle = find.byKey(const ValueKey('dialect-wordings-toggle'));
+    await reveal(tester, toggle);
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+    final preview = find.byKey(
+      const ValueKey('dialect-wording-preview-forward_and_back'),
+    );
+    await reveal(tester, preview);
+    expect(
+      tester.widget<Text>(preview).data,
+      'Preview: all in squares forward & back',
+    );
+  });
+
   testWidgets('move substitution hints wrap on narrow surfaces', (
     tester,
   ) async {
