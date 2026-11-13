@@ -953,7 +953,7 @@ void main() {
     group('double figure eight', () {
       String show(Map<String, Object?> params, {Dialect? dialect}) =>
           renderer.render(
-            Figure(move: 'figure_8', params: {'double': true, ...params}),
+            testFigure(move: 'figure_8', params: {'double': true, ...params}),
             dialect ?? Dialect.canonical,
           );
 
