@@ -1313,7 +1313,7 @@
 {"in":"#945, the high-value corpus case: 674+ occurrences of this shape)","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"#945, the high-value corpus case: 674+ occurrences of this shape)\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Men trade by right","scrub":"role1s trade by right","fanOut":"[{\"schemaVersion\":1,\"move\":\"pass_by\",\"params\":{\"who\":\"role1s\",\"shoulder\":\"right\"}}]"}
 {"in":"\"trade the wave\" stays custom","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"\\\"trade the wave\\\" stays custom\"},\"customOrigin\":\"importGap\"}]"}
-{"in":"Trade the wave","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Trade the wave\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"Trade the wave","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Trade the wave\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"trade_the_wave\"}]"}
 {"in":"cross trails","fanOut":"[{\"schemaVersion\":1,\"move\":\"cross_trails\"}]"}
 {"in":"\"Cross trail through (PR;NL)\" → cross_trails (annotation dropped)","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"\\\"Cross trail through (PR;NL)\\\" → cross_trails (annotation dropped)\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Cross trail through (PR;NL)","fanOut":"[{\"schemaVersion\":1,\"move\":\"cross_trails\",\"params\":{\"shoulder\":\"right\",\"who\":\"partners\",\"who2\":\"neighbors\"}}]"}

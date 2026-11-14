@@ -2,6 +2,7 @@ import '../model/figure.dart';
 import '../taxonomy/contra_taxonomy.dart';
 import '../taxonomy/dance_vocabulary.dart'
     show displayDirectionPhrases, displayFacingPhrases, seriesDancerWords;
+import '../taxonomy/param_opposites.dart';
 import '../taxonomy/param_types.dart';
 import '../taxonomy/taxonomy.dart';
 import 'contradb_dancer_vocab.dart';
@@ -244,6 +245,7 @@ const List<FigureMatch? Function(String)> _recognizers =
       _passTheOceanDisplay,
       _formAShortWave,
       _formShortWavesDisplay,
+      _tradeTheWaveDisplay,
       // Ahead of [_formLongWaves], which takes any tail as its note and so
       // would read the display's clause as a note.
       _formLongWavesDisplay,
@@ -756,6 +758,77 @@ FigureMatch? _formShortWavesDisplay(String text) {
     },
   );
 }
+
+/// trade_the_wave (taxonomy v39) in the app's own display wording: "trade the
+/// wave - all step forward and face AXIS, TRADERS pass right shoulder and
+/// reform new short waves facing the other direction - CENTER by the HAND in
+/// the center, SIDES by the HAND on the sides [- and balance]". ContraDB has no
+/// such figure, so only the display's line is read, whole. The display derives
+/// TRADERS from SIDES (`others` when they have no opposite) and the side hand
+/// from the center hand, so a line where either disagrees is not this wording
+/// and is not read.
+FigureMatch? _tradeTheWaveDisplay(String text) {
+  final s = _Scan(text);
+  if (!s.eatPhrase('trade the wave - all step forward and face')) return null;
+  final axis = _tradeTheWaveAxis(s);
+  if (axis == null || !s.previousTokenEndsWith(',')) return null;
+  final String? traders;
+  if (s.eat('others')) {
+    traders = null;
+  } else {
+    traders = _displaySubject(s);
+    if (traders == null) return null;
+  }
+  if (!s.eatPhrase(
+    'pass right shoulder and reform new short waves facing the other '
+    'direction -',
+  )) {
+    return null;
+  }
+  final center = _displaySubject(s);
+  if (center == null || !s.eatPhrase('by the')) return null;
+  final centerHand = _leftRight(s.peek());
+  if (centerHand == null) return null;
+  s.take();
+  if (!s.eatPhrase('in the center') || !s.previousTokenEndsWith(',')) {
+    return null;
+  }
+  final sides = _displaySubject(s);
+  if (sides == null || !s.eatPhrase('by the')) return null;
+  if (s.peek() != _otherSide(centerHand)) return null;
+  s.take();
+  if (!s.eatPhrase('on the sides')) return null;
+  if (ParamOpposites.of(ParamKind.dancerSet, sides) != traders) return null;
+  final balance = s.eatPhrase('- and balance');
+  if (s.peek() != null) return null;
+  return FigureMatch(
+    'trade_the_wave',
+    params: {
+      'axis': axis,
+      if (balance) 'balance': true,
+      'center': center,
+      'centerHand': centerHand,
+      'sides': sides,
+    },
+  );
+}
+
+/// The axis trade the wave's display names after "face": a direction token
+/// as the renderer humanizes it ("across", "right diagonal", "up").
+String? _tradeTheWaveAxis(_Scan s) {
+  for (final MapEntry(key: words, value: token) in _tradeTheWaveAxes.entries) {
+    if (s.eatPhrase(words)) return token;
+  }
+  return null;
+}
+
+/// [ParamVocab.directions] by their displayed words, for [_tradeTheWaveAxis].
+final Map<String, String> _tradeTheWaveAxes = {
+  for (final token in ParamVocab.directions)
+    token.replaceAllMapped(_capital, (m) => ' ${m[0]!.toLowerCase()}'): token,
+};
+
+final RegExp _capital = RegExp('[A-Z]');
 
 /// form_long_waves in the app's own display wording (#2121), which says
 /// "facing" where ContraDB says "face" and adds the pair held and a balance:

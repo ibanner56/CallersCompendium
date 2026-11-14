@@ -286,7 +286,7 @@ Object _combine<T>(
 ///   the other, so each is a strict subset of it.
 /// - Collection moves with no ContraDB figure (`two_hand_turn`,
 ///   `courtesy_turn`, `star_through`, `turn_as_couples`, `orbit`,
-///   `circular_hey`).
+///   `circular_hey`, `trade_the_wave`).
 ///
 /// `allemande` maps to `allemande` **or** `allemande orbit`: the importer
 /// turns a real `allemande orbit` line into `meanwhile[allemande, orbit]`

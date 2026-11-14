@@ -1361,7 +1361,7 @@ final List<_Recognizer> _recognizers = [
   // "Men/Women/Neighbor trade" and "trade by [the] left/right [shoulder]"
   // (issue #945) → pass_by (the pair change places). Still excludes
   // "trade the wave"/"trade the line" internally, which corpus evidence shows
-  // are distinct, unmodelled whole-wave/whole-line constructions.
+  // are distinct whole-wave/whole-line constructions, not a pass by.
   _tradePassBy,
   // "Men pass left" / "Women cross by right" → pass_by (who + shoulder). Placed
   // after the "pass …" family (_passTheOcean/_passThrough) and _crossTrails; it
@@ -3021,8 +3021,13 @@ _Match? _formLongWave(List<String> w) {
 /// this is the MWSD "Trade By" call and should structure; a corpus scan of
 /// ~24k dances found 709 `trade by` occurrences and zero instances of `trade
 /// by the` used any other way). `trade the wave` / `trade the line` remain
-/// excluded: corpus evidence supports them as distinct, unmodelled
-/// whole-wave/line constructions rather than a two-dancer pass-by.
+/// excluded: corpus evidence supports them as distinct whole-wave/line
+/// constructions rather than a two-dancer pass-by. Trade the wave is the
+/// `trade_the_wave` move since taxonomy v39, but no recognizer here reads it:
+/// a source's bare "Trade the wave" names none of the wave it ends in, so an
+/// import keeps it as text. Free-text entry reads the move's bare name, as it
+/// does every move's, and its whole display line
+/// (`contradb_figure_dialect.dart`).
 _Match? _tradePassBy(List<String> w) {
   if (_hasPhrase(w, ['trade', 'the', 'wave']) ||
       _hasPhrase(w, ['trade', 'the', 'line'])) {

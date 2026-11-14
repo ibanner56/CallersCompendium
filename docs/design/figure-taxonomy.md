@@ -109,7 +109,7 @@ hey · mad robin · orbit · pass by · pass through · petronella ·
 poussette · promenade · pull by (dancers/direction) · revolving door ·
 right left through · roll away · Rory O'More · slice · slide along set ·
 square through · stand still · star · star promenade · swing (alias:
-meltdown swing) · turn alone · zig zag
+meltdown swing) · trade the wave (v39, not in ContraDB) · turn alone · zig zag
 
 Parameter-level details (per-move param sets, defaults, valid beats) follow
 ContraDB's definitions as surveyed in research/contradb.md and are finalized
@@ -1963,6 +1963,53 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
       would reject the key as `unknown_param`, and its shorthand mappings drop a
       whole mapping holding such a figure, so a long lines entered on v39 must
       read on v38 exactly as one entered there.
+  - v39 also adds `trade_the_wave`, the Modern Western Square Dance call: from
+    short waves everyone steps forward, turns to face the other way and trades
+    with the dancer facing the same way, passing right shoulders, reforming
+    short waves facing the other direction with centers and ends swapped. It
+    was added from a figure of the user's own of the same name, which the PR
+    that adds it quotes, and the choices below that are not that figure's are
+    the authoring session's, each with its reason.
+    - Params are that figure's, key for key, so switching one's uses to the
+      move (#1023) maps every parameter to the one of the same key: `sides`
+      (`dancerSet`, default `neighbors`), `center` (`dancerSet`, `role1s`),
+      `centerHand` (`handedness`, `right`), `axis` (`direction`, `across`) and
+      `balance` (`flag`). As in `form_short_waves`, `center`, `centerHand` and
+      `sides` name the wave the figure ends in, and the side hand is the other
+      hand. The defaults are the figure's, and are also the wave trading
+      `form_short_waves`' default wave gives.
+    - `balance` defaults to false with an entry default of true, and `beats`
+      to 4 with an entry default of 8, as `pass_the_ocean`'s do; `paramBeats`
+      is 8 with the balance and 4 without. The figure of the user's own
+      defaulted its balance to true; a stored default of false is the
+      authoring session's choice, so that a figure stating no balance (a
+      typed bare name) never asserts one.
+    - Wording: canonical text is the move name alone (`trade the wave`), as
+      `form_short_waves`' is. The display is the figure's own line: "trade the
+      wave - all step forward and face across, partners pass right shoulder
+      and reform new short waves facing the other direction - role1s by the
+      right in the center, neighbors by the left on the sides[ - and
+      balance]". The dancers who trade are `sides`' opposite as a figure of
+      your own computes it (`ParamOpposites`: partners and neighbors swap),
+      and `others` when `sides` has none. The trade always passes right
+      shoulders: the call has no left-shoulder form. The dancers are plural
+      throughout, the verb agreeing with them: a figure of your own's live
+      display writes them singular ("neighbor pass"), but its stored line, and
+      so every use's text, is plural.
+    - Reading: free-text entry reads the whole display line back (a reader in
+      `contradb_figure_dialect.dart`, as for the other wave figures), refusing a
+      line whose traders are not `sides`' opposite or whose two hands are the
+      same, and reads the bare name as the move, as it does every move's. No
+      importer reads it: The Caller's Box writes a bare "Trade the wave", which
+      names none of the wave it ends in, so it stays custom text, and ContraDB
+      has no such figure, so its advanced filter refuses a `trade_the_wave`
+      leaf.
+    - Migration: none, and no rebuild: nothing could store a `trade_the_wave`
+      before v39, and no stored figure is converted. Uses of a figure of your
+      own with this name become the move only through the existing switch
+      (#1023), which the user starts. **Older devices (v38).** A
+      `trade_the_wave` figure is an unknown move there and displays as its raw
+      id, as every added move does.
 
 ## Open questions (to resolve during implementation, with user input)
 

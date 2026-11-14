@@ -546,6 +546,7 @@ void main() {
         'pull_by_direction',
         'star_promenade',
         'star_through',
+        'trade_the_wave',
         'turn_as_couples',
         'two_hand_turn',
       ]);

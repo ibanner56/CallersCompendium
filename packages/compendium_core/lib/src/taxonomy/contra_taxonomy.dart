@@ -1778,6 +1778,41 @@ final Taxonomy contraTaxonomy = Taxonomy(
       ],
       // Beats mirror form_an_ocean_wave: param-dependent (balance), not encoded.
     ),
+    // v39: the Modern Western Square Dance call, from short waves: everyone
+    // steps forward, turns to face the other way, and trades places with the
+    // dancer facing the same way, passing right shoulders, to reform short
+    // waves facing the other direction with centers and ends swapped. Its
+    // params are those of the figure of the user's own it was added from (the
+    // PR that adds it quotes that figure), key for key, so a switch from a
+    // figure of your own with the same keys maps one to one; like
+    // `form_short_waves`, `center`, `centerHand` and `sides` name the wave
+    // the figure ENDS in, and the side hand is the other one. Its defaults are
+    // that figure's, which are also what trading `form_short_waves`' default
+    // wave gives (role2s by the left and neighbors become role1s by the right
+    // and neighbors). The balance is stored off and seeded on, as
+    // `pass_the_ocean`'s is, so a figure that states none (an import) never
+    // asserts one.
+    const MoveDef(
+      id: 'trade_the_wave',
+      displayName: 'trade the wave',
+      params: {
+        'sides': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
+        'center': ParamSpec(ParamKind.dancerSet, defaultValue: 'role1s'),
+        'centerHand': ParamSpec(ParamKind.handedness, defaultValue: 'right'),
+        'axis': ParamSpec(ParamKind.direction, defaultValue: 'across'),
+        'balance': ParamSpec(
+          ParamKind.flag,
+          defaultValue: false,
+          entryDefault: true,
+        ),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 4, entryDefault: 8),
+      },
+      renderTemplate: '{move}',
+      searchKeywords: ['trade wave'],
+      // 4 for the trade, 4 more for the balance.
+      goodBeats: [4, 8],
+      paramBeats: ParamBeats(param: 'balance', byValue: {true: 8, false: 4}),
+    ),
     const MoveDef(
       id: customMoveId,
       displayName: 'custom',
