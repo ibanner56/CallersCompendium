@@ -1157,6 +1157,7 @@ class FigureRenderer {
       'star': 'starring',
       'turn_single': 'turning single',
       'turn_alone': 'turning alone',
+      'trade_the_wave': 'trading the wave',
       'turn_as_couples': 'turning as couples',
       'up_the_hall': 'going up the hall',
       'pull_by': 'pulling by',
@@ -3584,6 +3585,60 @@ class FigureRenderer {
         'body': body,
         'balance': balance,
       }, '{head}[ - {body}]{balance}');
+    },
+    // `trade_the_wave` (v39), worded as the figure of the user's own it was
+    // added from: "trade the wave - all step forward and face across,
+    // partners pass right shoulder and reform new short waves facing the other
+    // direction - role1s by the right in the center, neighbors by the left on
+    // the sides - and balance". `center`, `centerHand` and `sides` name the
+    // wave it ends in, as `form_short_waves`' do, and the side hand is the
+    // other one. The dancers who trade are the pair facing the same way, which
+    // is the opposite of the sides pair ([ParamOpposites]: partners <->
+    // neighbors); a sides pair with no opposite says "others", as
+    // [_invertPair] does. Subjects are plural, the verb agreeing with them.
+    // The trade always passes right shoulders (the call has no left form).
+    'trade_the_wave': (r, def, params, dialect, verbose, decimals) {
+      final move = r._renderMoveName(def.id, def.displayName, params, dialect);
+      final sidesRaw = params['sides'];
+      final traders = ParamOpposites.of(ParamKind.dancerSet, sidesRaw);
+      final straders = traders is String
+          ? r._displaySubject(traders, dialect, plural: true)
+          : 'others';
+      final scenter = r._displaySubject(
+        params['center'],
+        dialect,
+        plural: true,
+      );
+      final ssides = r._displaySubject(sidesRaw, dialect, plural: true);
+      final centerHandRaw = params['centerHand'];
+      final centerHand = _displayScalar(centerHandRaw);
+      final sideHand = centerHandRaw == 'right'
+          ? 'left'
+          : centerHandRaw == 'left'
+          ? 'right'
+          : _displayScalar(centerHandRaw);
+      final centerClause = [
+        scenter,
+        centerHand.isEmpty ? '' : 'by the $centerHand',
+        'in the center',
+      ].where((s) => s.isNotEmpty).join(' ');
+      final sideClause = [
+        ssides,
+        sideHand.isEmpty ? '' : 'by the $sideHand',
+        'on the sides',
+      ].where((s) => s.isNotEmpty).join(' ');
+      return _displayTemplate(
+        {
+          'move': move,
+          'axis': _displayScalar(params['axis']),
+          'traders': straders,
+          'body': '$centerClause, $sideClause',
+          'balance': _balanceSuffix(params['balance']),
+        },
+        '{move} - all step forward[ and face {axis}], {traders} pass right '
+        'shoulder and reform new short waves facing the other direction - '
+        '{body}{balance}',
+      );
     },
     // ContraDB `starWords`: `star <hand> [- <grip> -] <n> places`. The grip
     // clause appears between the hand and the count for the two non-`none`

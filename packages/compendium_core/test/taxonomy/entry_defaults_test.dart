@@ -14,6 +14,7 @@ void main() {
     'box_the_gnat': {'balance': true, 'beats': 8},
     'box_circulate': {'balance': true, 'beats': 8},
     'pass_the_ocean': {'balance': true, 'beats': 8},
+    'trade_the_wave': {'balance': true, 'beats': 8},
     'form_long_waves': {'balance': true, 'beats': 4},
   };
 

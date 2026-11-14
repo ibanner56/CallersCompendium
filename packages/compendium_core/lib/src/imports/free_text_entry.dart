@@ -7,7 +7,8 @@ import '../taxonomy/taxonomy.dart';
 import '../validation/validation.dart';
 import 'beat_implied_balance.dart';
 import 'callersbox_figure_dialect.dart' show hasTopLevelSeparator;
-import 'contradb_figure_dialect.dart' show readDisplayedCourtesyTurnWithWhom;
+import 'contradb_figure_dialect.dart'
+    show readDisplayedCourtesyTurnWithWhom, readDisplayedTradeTheWave;
 import 'figure_front_end_fan_out.dart';
 import 'figure_text_scrub.dart';
 import 'shorthand_mappings.dart';
@@ -824,6 +825,10 @@ List<Figure> _parseSplit(
           .map((text) => _displayedCourtesyTurn(text, split.beats, names))
           .nonNulls
           .firstOrNull ??
+      [split.text, ...readTexts]
+          .map((text) => _displayedTradeTheWave(text, split.beats, names))
+          .nonNulls
+          .firstOrNull ??
       _displayedForwardAndBack(split.text, split.beats, names, dialect);
   return named == null ? raw : [named];
 }
@@ -894,6 +899,22 @@ Figure? _displayedForwardAndBack(
 /// says why). A figure [taxonomy] rejects is a miss.
 Figure? _displayedCourtesyTurn(String text, int beats, Taxonomy taxonomy) {
   final match = readDisplayedCourtesyTurnWithWhom(text);
+  if (match == null) return null;
+  final figure = Figure(
+    move: match.moveId,
+    params: {...match.params, if (beats > 0) 'beats': beats},
+  );
+  final invalid = taxonomy
+      .validateFigure(figure)
+      .any((i) => i.severity == ValidationSeverity.error);
+  return invalid ? null : figure;
+}
+
+/// A trade the wave as the app displays one (taxonomy v39), read only here
+/// so imports are unchanged ([readDisplayedTradeTheWave] says why). A figure
+/// [taxonomy] rejects is a miss.
+Figure? _displayedTradeTheWave(String text, int beats, Taxonomy taxonomy) {
+  final match = readDisplayedTradeTheWave(text);
   if (match == null) return null;
   final figure = Figure(
     move: match.moveId,
