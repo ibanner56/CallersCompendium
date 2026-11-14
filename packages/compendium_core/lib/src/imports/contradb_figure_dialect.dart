@@ -245,7 +245,6 @@ const List<FigureMatch? Function(String)> _recognizers =
       _passTheOceanDisplay,
       _formAShortWave,
       _formShortWavesDisplay,
-      _tradeTheWaveDisplay,
       // Ahead of [_formLongWaves], which takes any tail as its note and so
       // would read the display's clause as a note.
       _formLongWavesDisplay,
@@ -767,7 +766,13 @@ FigureMatch? _formShortWavesDisplay(String text) {
 /// TRADERS from SIDES (`others` when they have no opposite) and the side hand
 /// from the center hand, so a line where either disagrees is not this wording
 /// and is not read.
-FigureMatch? _tradeTheWaveDisplay(String text) {
+///
+/// Only free-text entry calls it (`parseFreeTextFigureEntry`), so a figure the
+/// app displays reads back; it is not one of this reader's recognizers, so no
+/// import reads it, as for [readDisplayedCourtesyTurnWithWhom]. A source that
+/// writes trade the wave writes it bare (The Caller's Box), and the move is
+/// added with no census of how sources state its wave.
+FigureMatch? readDisplayedTradeTheWave(String text) {
   final s = _Scan(text);
   if (!s.eatPhrase('trade the wave - all step forward and face')) return null;
   final axis = _tradeTheWaveAxis(s);

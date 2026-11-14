@@ -85,6 +85,9 @@ void main() {
       final beats = tax.moves['trade_the_wave']!.paramBeats!;
       expect(beats.param, 'balance');
       expect(beats.byValue, {true: 8, false: 4});
+      // Beats left unstated follow the balance.
+      expect(tax.effectiveParams(trade({'balance': true}))['beats'], 8);
+      expect(tax.effectiveParams(trade({'balance': false}))['beats'], 4);
       expect(tax.validateFigure(trade({'balance': true, 'beats': 8})), isEmpty);
       expect(tax.validateFigure(trade({'beats': 4})), isEmpty);
     });
@@ -142,6 +145,11 @@ void main() {
         renderer.renderSummary(trade(), Dialect.larksRobins),
         contains('larks by the right in the center'),
       );
+      // The dancers who trade, derived from the sides, are named so too.
+      expect(
+        renderer.renderSummary(trade({'sides': 'role1s'}), Dialect.larksRobins),
+        contains('face across, robins pass right shoulder'),
+      );
     });
   });
 
@@ -182,6 +190,16 @@ void main() {
     test('the import grammar keeps a bare "Trade the wave" as text: it names '
         'no wave', () {
       expect(parseFigureLine('Trade the wave')!.isCustom, isTrue);
+    });
+
+    test('no import reads the displayed line: only free-text entry does', () {
+      expect(parseFigureLine(useText)!.isCustom, isTrue);
+      expect(parseContraDbFigureLine(useText)!.isCustom, isTrue);
+      expect(parseFigureLinesFanOut(useText, beats: 8).single.isCustom, isTrue);
+    });
+
+    test('a note that would start with its name keeps the line as text', () {
+      expect(read('neighbors balance, trade the wave').single.isCustom, isTrue);
     });
   });
 

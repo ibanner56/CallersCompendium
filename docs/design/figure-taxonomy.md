@@ -121,7 +121,10 @@ has no such figure at all (0 hits for "courtesy" repo-wide — it treats the
 courtesy turn as an unparameterized sub-component of `chain` and `right left
 through`), while The Caller's Box writes one as its own figure line 115 times in
 the 24,107-dance corpus. Such a move is added only with a corpus census behind
-each of its params; see the version history below.
+each of its params; see the version history below. A move added at a user's
+request instead (`circular_hey`, v36; `trade_the_wave`, v39) is defined by that
+request, which its version-history entry records, and an importer reads it
+only where a census supports doing so.
 
 ## Implementation status (v0.1 engine, roadmap 2.4)
 
@@ -1967,9 +1970,9 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
     short waves everyone steps forward, turns to face the other way and trades
     with the dancer facing the same way, passing right shoulders, reforming
     short waves facing the other direction with centers and ends swapped. It
-    was added from a figure of the user's own of the same name, which the PR
-    that adds it quotes, and the choices below that are not that figure's are
-    the authoring session's, each with its reason.
+    was added from a figure of the user's own of the same name, which
+    `trade_the_wave_test.dart` reproduces, and the choices below that are not
+    that figure's are the authoring session's, each with its reason.
     - Params are that figure's, key for key, so switching one's uses to the
       move (#1023) maps every parameter to the one of the same key: `sides`
       (`dancerSet`, default `neighbors`), `center` (`dancerSet`, `role1s`),
@@ -1977,7 +1980,8 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
       `balance` (`flag`). As in `form_short_waves`, `center`, `centerHand` and
       `sides` name the wave the figure ends in, and the side hand is the other
       hand. The defaults are the figure's, and are also the wave trading
-      `form_short_waves`' default wave gives.
+      `form_short_waves`' default wave gives and the one The Caller's Box
+      glossary's sample notation ends in.
     - `balance` defaults to false with an entry default of true, and `beats`
       to 4 with an entry default of 8, as `pass_the_ocean`'s do; `paramBeats`
       is 8 with the balance and 4 without. The figure of the user's own
@@ -1996,14 +2000,18 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
       throughout, the verb agreeing with them: a figure of your own's live
       display writes them singular ("neighbor pass"), but its stored line, and
       so every use's text, is plural.
-    - Reading: free-text entry reads the whole display line back (a reader in
-      `contradb_figure_dialect.dart`, as for the other wave figures), refusing a
-      line whose traders are not `sides`' opposite or whose two hands are the
-      same, and reads the bare name as the move, as it does every move's. No
-      importer reads it: The Caller's Box writes a bare "Trade the wave", which
-      names none of the wave it ends in, so it stays custom text, and ContraDB
-      has no such figure, so its advanced filter refuses a `trade_the_wave`
-      leaf.
+    - Reading: free-text entry reads the whole display line back
+      (`readDisplayedTradeTheWave`, called from free-text entry only, as the
+      courtesy turn's `whom` reader is), refusing a line whose traders are not
+      `sides`' opposite or whose two hands are the same, and reads the bare
+      name as the move, as it does every move's. No importer reads it, so
+      imports are unchanged: The Caller's Box writes a bare "Trade the wave",
+      which names none of the wave it ends in, so it stays custom text, and
+      ContraDB has no such figure, so its advanced filter refuses a
+      `trade_the_wave` leaf. The note-tail rule now sees `trade the wave` (and
+      the search keyword `trade wave`) as a move's name, so a typed line whose
+      note would start with it (`neighbors balance, trade the wave`) stays
+      custom rather than a figure with that note.
     - Migration: none, and no rebuild: nothing could store a `trade_the_wave`
       before v39, and no stored figure is converted. Uses of a figure of your
       own with this name become the move only through the existing switch

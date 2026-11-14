@@ -3027,7 +3027,7 @@ _Match? _formLongWave(List<String> w) {
 /// a source's bare "Trade the wave" names none of the wave it ends in, so an
 /// import keeps it as text. Free-text entry reads the move's bare name, as it
 /// does every move's, and its whole display line
-/// (`contradb_figure_dialect.dart`).
+/// (`readDisplayedTradeTheWave`, which no import calls).
 _Match? _tradePassBy(List<String> w) {
   if (_hasPhrase(w, ['trade', 'the', 'wave']) ||
       _hasPhrase(w, ['trade', 'the', 'line'])) {

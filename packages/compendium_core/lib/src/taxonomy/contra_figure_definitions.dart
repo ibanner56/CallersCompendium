@@ -434,15 +434,15 @@ const Map<String, FigureDefinition> contraFigureDefinitions = {
     description:
         'As they cross, the center dancers, usually the role2s, join left hands and turn a quarter, while the others step past and take right hands at the ends. It usually takes 4 beats, and a balance in the new wave often comes next.',
   ),
-  // contra_taxonomy.dart `trade_the_wave` (taxonomy v39; neither reference
-  // has an entry). Adapted from the definition and description of the figure
-  // of the user's own the move was added from, which the PR that adds it
-  // quotes; the definition is shortened to the 25-word limit.
+  // TCB "Trade the wave"; contra_taxonomy.dart `trade_the_wave` (taxonomy
+  // v39). The move was added from a figure of the user's own, which
+  // trade_the_wave_test.dart reproduces; this text is our own, checked
+  // against both. TCB's sample notation matches the move's defaults.
   'trade_the_wave': FigureDefinition(
     definition:
         'Dancers in a short wave trade with the dancer facing the same way, reforming it facing the other way with centers and ends swapped.',
     description:
-        'From Modern Western Square Dance: dancers loop to the other side of a wave of four and retake hands in a new wave facing the other direction. Everyone takes a step forward and turns to face across, passing someone by the right shoulder to reform the wave. The centers end up on the ends and the ends become the new centers. The hands swap too, the ends retaking the other hand with the same dancer they held in the original wave. It takes 4 beats, or 8 with a balance in the new wave.',
+        'A call borrowed from Modern Western Square Dance. Each dancer steps forward, turns to face along the line of the wave, and walks past the dancer who faced the same way, right shoulder to right shoulder, to take their place. The new wave faces the opposite way: the old ends are now in the center and the old centers on the ends. Each dancer joins the same hand as before, so the hand held in the center and the hand held on the ends swap. It takes 4 beats, or 8 with a balance in the new wave.',
   ),
   // contra_taxonomy.dart alias `pull_by_dancers` -> pull_by {who: neighbors}.
   'pull_by_dancers': FigureDefinition(
