@@ -1155,6 +1155,7 @@ class FigureRenderer {
       'star_through': 'starring through',
       'stand_still': 'standing still',
       'star': 'starring',
+      'starburst': 'doing a starburst',
       'turn_single': 'turning single',
       'turn_alone': 'turning alone',
       'turn_as_couples': 'turning as couples',

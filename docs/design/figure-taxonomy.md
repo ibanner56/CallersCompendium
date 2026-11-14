@@ -76,7 +76,7 @@ searchKeywords: [allemande, almond]
 | spinDirection | clockwise, counterclockwise | |
 | rotation | 0.25 … 2.5 in quarter steps | replaces ContraDB degrees (90–900) |
 | places | 1 … 10 int | ring/star travel; replaces ContraDB degrees; renders "N places" |
-| number | 0 … 99 int | a plain count for a figure of your own; renders the digits alone, no unit word (user figures only, no built-in move uses it) |
+| number | 0 … 99 int | a plain count; renders the digits alone, no unit word. Figures of your own, and `starburst.travel` (v39), the one built-in slot of this kind |
 | fraction | 1/4, 1/2, 3/4, full, other | figure 8, poussette; `other` states its amount in the move's `amount` param (v39) |
 | beats | 0–64 int | 0 allowed for formation labels |
 | direction | along, across, rightDiagonal, leftDiagonal, in, out, up, down | |
@@ -108,8 +108,8 @@ lines; v39, formations beyond ContraDB) · gate · give & take ·
 hey · mad robin · orbit · pass by · pass through · petronella ·
 poussette · promenade · pull by (dancers/direction) · revolving door ·
 right left through · roll away · Rory O'More · slice · slide along set ·
-square through · stand still · star · star promenade · swing (alias:
-meltdown swing) · turn alone · zig zag
+square through · stand still · star · starburst (v39, not in ContraDB) ·
+star promenade · swing (alias: meltdown swing) · turn alone · zig zag
 
 Parameter-level details (per-move param sets, defaults, valid beats) follow
 ContraDB's definitions as surveyed in research/contradb.md and are finalized
@@ -120,8 +120,11 @@ ContraDB does not model. `courtesy_turn` (v23) is the clearest case: ContraDB
 has no such figure at all (0 hits for "courtesy" repo-wide — it treats the
 courtesy turn as an unparameterized sub-component of `chain` and `right left
 through`), while The Caller's Box writes one as its own figure line 115 times in
-the 24,107-dance corpus. Such a move is added only with a corpus census behind
-each of its params; see the version history below.
+the 24,107-dance corpus. Such a move is added with a corpus census behind
+each of its params, or at the maintainer's request (`circular_hey`, v36, whose
+params were partly the implementing author's choices; `starburst`, v39, whose
+params are those of the maintainer's own figure); see the version history
+below.
 
 ## Implementation status (v0.1 engine, roadmap 2.4)
 
@@ -1963,6 +1966,53 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
       would reject the key as `unknown_param`, and its shorthand mappings drop a
       whole mapping holding such a figure, so a long lines entered on v39 must
       read on v38 exactly as one entered there.
+  - v39 also adds `starburst`: a zig zag's path danced without hands, the
+    dancers arcing out of the set around `travel` couples and back in on the
+    side they started. It is in neither ContraDB nor The Caller's Box. The
+    maintainer asked for it in the session that wrote this, from a figure of
+    their own of that name, keeping its parameters, defaults and wording
+    template, except that `travel` is a `ParamKind.number` where theirs was
+    `places`; the PR that adds it records the request.
+    - Params: `direction` (`spinDirection`, default `counterclockwise`),
+      `travel` (`number`, default 1: the couples passed, not places around a
+      ring, so it renders as the digits alone), `who` (`dancerSet`, default
+      `role1s`, the dancers who lead), `whom` (`dancerPair`, default
+      `partners`, those they lead out), and `beats` (default 8, `goodBeats`
+      `[8]`, the author's choice from that figure's 8 default beats). Search
+      keyword `dolphin loop`. `starburst` is the first built-in
+      slot of `ParamKind.number`, so the combination editor now offers that
+      kind as well as the figure-of-your-own editor.
+    - Wording: the template of the figure of the maintainer's own, with its
+      literal `starburst` replaced by `{move}`, is the canonical
+      `renderTemplate`: `{move} {direction} around {travel}, {who} lead {whom}
+      out of the set`. The display takes the same template, and so, as their
+      figure did, names a positional dancer in the singular, as the display
+      does wherever one appears (`role2s lead partner out of the set`). As a
+      modifier side it reads `doing a starburst`.
+    - Free text reads the display line back
+      (`readDisplayedStarburst`, called only by free-text entry, so no
+      import's grammar changes). Every slot is required and only the whole
+      line is read. Under a dialect whose roles are lead and follow, the
+      verb `lead` is also a role word, and canonicalizing the whole line
+      reads it as one before a dancer it does not take as an object (`leads
+      lead third neighbor`), so the reader also tries each `lead` with the
+      role words on either side canonicalized apart.
+    - As for `forward_and_back`, the new name and keyword are now move words
+      to the note-tail rule, so a typed line whose note names one stays custom
+      (`(8) Slice left, starburst` or `…, dolphin loop`, where `…, sunburst`
+      is still a slice with that note), and a glossary entry named `dolphin
+      loop` now meets a shipped figure's keyword, as `starburst` meets its
+      name.
+    - ContraDB has no such figure, so its advanced filter refuses a
+      `starburst` leaf.
+    - Migration: none, and no rebuild: no stored figure can reference a move
+      that did not exist. A v38 build displays a `starburst` by its raw id, as
+      it does every added move. A figure of your own named starburst now
+      shares a shipped figure's name, which the app reports as it does any
+      such collision (#1023). A switch must map every parameter, and maps one
+      only onto a parameter of the same kind, so a figure of your own whose
+      `travel` is `places` (as the maintainer's export declared it) cannot
+      switch its uses to the move; it can be renamed.
 
 ## Open questions (to resolve during implementation, with user input)
 

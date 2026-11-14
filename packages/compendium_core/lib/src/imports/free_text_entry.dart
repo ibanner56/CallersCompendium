@@ -7,7 +7,8 @@ import '../taxonomy/taxonomy.dart';
 import '../validation/validation.dart';
 import 'beat_implied_balance.dart';
 import 'callersbox_figure_dialect.dart' show hasTopLevelSeparator;
-import 'contradb_figure_dialect.dart' show readDisplayedCourtesyTurnWithWhom;
+import 'contradb_figure_dialect.dart'
+    show readDisplayedCourtesyTurnWithWhom, readDisplayedStarburst;
 import 'figure_front_end_fan_out.dart';
 import 'figure_text_scrub.dart';
 import 'shorthand_mappings.dart';
@@ -824,7 +825,11 @@ List<Figure> _parseSplit(
           .map((text) => _displayedCourtesyTurn(text, split.beats, names))
           .nonNulls
           .firstOrNull ??
-      _displayedForwardAndBack(split.text, split.beats, names, dialect);
+      _displayedForwardAndBack(split.text, split.beats, names, dialect) ??
+      [split.text, ...readTexts, ..._starburstVerbSplits(split.text, dialect)]
+          .map((text) => _displayedStarburst(text, split.beats, names))
+          .nonNulls
+          .firstOrNull;
   return named == null ? raw : [named];
 }
 
@@ -894,6 +899,45 @@ Figure? _displayedForwardAndBack(
 /// says why). A figure [taxonomy] rejects is a miss.
 Figure? _displayedCourtesyTurn(String text, int beats, Taxonomy taxonomy) {
   final match = readDisplayedCourtesyTurnWithWhom(text);
+  if (match == null) return null;
+  final figure = Figure(
+    move: match.moveId,
+    params: {...match.params, if (beats > 0) 'beats': beats},
+  );
+  final invalid = taxonomy
+      .validateFigure(figure)
+      .any((i) => i.severity == ValidationSeverity.error);
+  return invalid ? null : figure;
+}
+
+/// The verb `lead` as a whole word, any case.
+final RegExp _leadVerb = RegExp(r'\blead\b', caseSensitive: false);
+
+/// [text] with [dialect]'s role words canonicalized on each side of one `lead`
+/// in turn, that `lead` kept as typed: one reading per `lead` in the line.
+///
+/// A starburst's display ("…, leads lead third neighbor out of the set")
+/// names its leaders and those they lead around the verb `lead`, which is a
+/// role word under a dialect whose roles are lead and follow. Read as a whole
+/// line, [canonicalizeText] keeps `lead` a verb only before a word it knows
+/// as a dancer's (`partner`), so before `third neighbor`, `centers` or
+/// `first lead` the verb becomes `role1` and the line no longer reads. Each
+/// side canonicalized on its own keeps the verb whichever dancer follows it.
+/// Trying every `lead` covers a subject that holds the word itself (`first
+/// lead lead partner …`).
+Iterable<String> _starburstVerbSplits(String text, Dialect? dialect) sync* {
+  if (dialect == null) return;
+  for (final verb in _leadVerb.allMatches(text)) {
+    yield '${canonicalizeText(text.substring(0, verb.start), dialect)}'
+        '${verb[0]}'
+        '${canonicalizeText(text.substring(verb.end), dialect)}';
+  }
+}
+
+/// A starburst as the app displays one (taxonomy v39), read only here
+/// ([readDisplayedStarburst] says why). A figure [taxonomy] rejects is a miss.
+Figure? _displayedStarburst(String text, int beats, Taxonomy taxonomy) {
+  final match = readDisplayedStarburst(text);
   if (match == null) return null;
   final figure = Figure(
     move: match.moveId,
