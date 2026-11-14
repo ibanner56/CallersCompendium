@@ -1019,6 +1019,39 @@ FigureMatch? readDisplayedCourtesyTurnWithWhom(String text) {
   );
 }
 
+/// A starburst in the app's display wording (taxonomy v39): "starburst SPIN
+/// around N, WHO lead WHOM out of the set". No source writes this figure, so
+/// only free-text entry calls it (`parseFreeTextFigureEntry`), so a figure the
+/// app displays reads back, and no import's grammar changes. Every slot is
+/// required and only the whole line is read: a line that leaves one out is
+/// not this display, and stays as typed.
+///
+/// [name] is the move's name as the line writes it: `starburst`, or a
+/// dialect's name for it, lowercase and single-spaced.
+FigureMatch? readDisplayedStarburst(String text, {String name = 'starburst'}) {
+  final s = _Scan(text);
+  if (name.isEmpty || !s.eatPhrase(name)) return null;
+  final direction = _displaySpin(s);
+  if (direction == null || !s.eat('around')) return null;
+  final travel = int.tryParse(s.peek() ?? '');
+  if (travel == null) return null;
+  s.take();
+  final who = _displaySubject(s);
+  if (who == null || !s.eat('lead')) return null;
+  final whom = _displaySubject(s);
+  if (whom == null || !s.eatPhrase('out of the set')) return null;
+  if (s.peek() != null) return null;
+  return FigureMatch(
+    'starburst',
+    params: {
+      'direction': direction,
+      'travel': travel,
+      'who': who,
+      'whom': whom,
+    },
+  );
+}
+
 /// A set-relative facing as the app's display words it, one of
 /// [displayFacingPhrases] (#2121).
 String? _displayFacing(_Scan s) {

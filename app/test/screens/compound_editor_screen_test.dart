@@ -330,6 +330,20 @@ void main() {
       expect(figure.template, '{move} {n}');
     });
 
+    testWidgets('a combination offers a number parameter: starburst\'s '
+        'travel is one (taxonomy v39)', (tester) async {
+      await pump(tester, initial: twoPullBys());
+      await tester.tap(find.byKey(const ValueKey('compound-param-0-kind')));
+      await tester.pumpAndSettle();
+      expect(
+        find.descendant(
+          of: find.byType(DropdownMenuItem<ParamKind>),
+          matching: find.text('number'),
+        ),
+        findsWidgets,
+      );
+    });
+
     testWidgets('a combination keeps the dance form chosen for it', (
       tester,
     ) async {
