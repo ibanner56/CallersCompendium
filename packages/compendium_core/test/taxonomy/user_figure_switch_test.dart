@@ -110,6 +110,36 @@ void main() {
       );
     });
 
+    test('places maps onto a plain number, never the other way', () {
+      // Every places count (1 to 10) is a number (0 to 99); a number can be 0
+      // or above 10, which no places holds.
+      expect(
+        userFigureSwitchTargets(
+          UserFigureParam(key: 'n', kind: ParamKind.places),
+          'starburst',
+          taxonomy,
+        ),
+        ['travel'],
+      );
+      expect(
+        userFigureSwitchTargets(
+          UserFigureParam(key: 'n', kind: ParamKind.number),
+          'circle',
+          taxonomy,
+        ),
+        isEmpty,
+        reason: 'circle.places is places',
+      );
+      expect(
+        userFigureSwitchTargets(
+          UserFigureParam(key: 'n', kind: ParamKind.places),
+          'circle',
+          taxonomy,
+        ),
+        ['places'],
+      );
+    });
+
     test('a choice maps to any parameter that takes words', () {
       expect(userFigureSwitchTargets(mine.params[1], 'swing', taxonomy), [
         'who',

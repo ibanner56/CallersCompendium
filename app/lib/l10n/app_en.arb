@@ -659,7 +659,7 @@
   },
   "userFigureSwitchNoTarget": "{name} has nothing your {param} can become. Remove it from your figure first, or rename yours instead.",
   "@userFigureSwitchNoTarget": {
-    "description": "Shown when one of the user's parameters (#1023) has no parameter of the same kind in the app's figure, so the switch can't be made; {name} is the app's figure, {param} the user's parameter.",
+    "description": "Shown when one of the user's parameters (#1023) has no parameter in the app's figure that can take all its values (one of the same kind, or a plain number for places), so the switch can't be made; {name} is the app's figure, {param} the user's parameter.",
     "placeholders": {
       "name": {
         "type": "String"

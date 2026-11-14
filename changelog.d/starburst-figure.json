@@ -7,7 +7,7 @@
       "A combination of figures can now have a plain number parameter, since starburst's count of couples passed is one."
     ],
     "changed": [
-      "A figure of your own named starburst now shares its name with the app's, and its Glossary page offers to rename it or switch its uses to the app's starburst. A switch needs its count to be a plain number parameter: one whose count is in places cannot switch, and can be renamed instead. A glossary entry named “dolphin loop” now shares starburst's search keyword."
+      "A figure of your own named starburst now shares its name with the app's, and its Glossary page offers to rename it or switch its uses to the app's starburst. A glossary entry named “dolphin loop” now shares starburst's search keyword."
     ],
     "data_migrations": [
       "Taxonomy 39: no migration and no index rebuild. Devices still on 0.9.x show a starburst by its internal name, as they do any figure added since."

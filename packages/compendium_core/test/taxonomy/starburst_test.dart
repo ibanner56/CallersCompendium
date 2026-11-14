@@ -68,10 +68,10 @@ void main() {
       );
     });
 
-    test('a figure of your own of its name can switch travel to it only '
-        'from a number', () {
-      // The export it was added from declared travel as places; a switch maps
-      // a parameter only onto one of the same kind.
+    test('a figure of your own of its name can switch travel to it from a '
+        'number or from places', () {
+      // The export it was added from declared travel as places. Every places
+      // count (1 to 10) is a number (0 to 99), so the switch offers it.
       expect(shippedFigureNamed('Starburst', tax), 'starburst');
       List<String> targets(ParamKind kind) => userFigureSwitchTargets(
         UserFigureParam(key: 'travel', kind: kind),
@@ -79,7 +79,76 @@ void main() {
         tax,
       );
       expect(targets(ParamKind.number), ['travel']);
-      expect(targets(ParamKind.places), isEmpty);
+      expect(targets(ParamKind.places), ['travel']);
+    });
+
+    test('the maintainer\'s exported figure switches its uses to the move', () {
+      // Mutation caught: a switch that maps places only onto places, which
+      // leaves `travel` with no target, so the mapping is incomplete.
+      final export = decodeUserFigureDefinition({
+        'form': 'contra',
+        'template':
+            'starburst {direction} around {travel}, {who} lead {whom} out of '
+            'the set',
+        'defaultBeats': 8,
+        'params': [
+          {
+            'key': 'direction',
+            'kind': 'spinDirection',
+            'default': 'counterclockwise',
+          },
+          {'key': 'travel', 'kind': 'places', 'default': 1},
+          {'key': 'who', 'kind': 'dancerSet', 'default': 'role1s'},
+          {'key': 'whom', 'kind': 'dancerPair', 'default': 'partners'},
+        ],
+      })!;
+      expect(export.param('travel')!.kind, ParamKind.places);
+      final mineRenderer = FigureRenderer(
+        tax,
+        userFigures: UserFigureCatalog.fromEntries([
+          UserGlossaryEntry(
+            id: 'mine',
+            kindName: UserGlossaryEntryKind.customFigure.name,
+            name: 'starburst',
+            definition: 'Mine.',
+            description: 'Mine.',
+            payload: export.toJson(),
+            createdAt: DateTime.utc(2026),
+          ),
+        ]),
+      );
+      final draft = userFigureUseFigure(
+        id: 'mine',
+        args: example,
+        text: 'placeholder',
+      );
+      final use = userFigureUseFigure(
+        id: 'mine',
+        args: example,
+        text: mineRenderer.renderUserFigureCanonical(draft)!,
+      );
+      expect(use.params['text'], contains('around 2 places'));
+      final mapping = UserFigureSwitch(
+        target: 'starburst',
+        params: {
+          for (final key in ['direction', 'travel', 'who', 'whom']) key: key,
+        },
+      );
+      expect(userFigureSwitchProblems(export, mapping, tax), isEmpty);
+      final switched = switchUserFigureUsesIn(
+        [use],
+        'mine',
+        export,
+        mapping,
+        tax,
+        mineRenderer,
+      );
+      expect(switched.single.move, 'starburst');
+      expect(switched.single.params, {...example, 'beats': 8});
+      expect(
+        renderer.renderCanonical(switched.single),
+        'starburst clockwise around 2, role2s lead partners out of the set',
+      );
     });
 
     test('a combination can bind a number parameter to travel', () {
