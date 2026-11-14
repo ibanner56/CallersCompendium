@@ -1,0 +1,22 @@
+{
+  "id": "trade-the-wave-figure",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "A new figure, trade the wave: from short waves, everyone steps forward, faces the other way and passes right shoulders with the dancer facing the same way, reforming the waves with centers and ends swapped. Choose the wave it ends in (who is in the center and by which hand, who is on the sides), the direction everyone faces, and whether it ends with a balance. Typing the figure's line, or just “trade the wave”, into the dance editor reads it as the figure."
+    ],
+    "changed": [
+      "If you made a figure of your own called trade the wave, its page now offers **Switch to the app's figure**, as for any built-in figure that shares a name with one of yours. A figure with the same parameter names as the built-in one (sides, center, centerHand, axis and balance) has each matched for you. Nothing switches until you choose to."
+    ],
+    "data_migrations": [
+      "Taxonomy 39: no migration and no index rebuild for this figure.",
+      "Devices still on 0.9.x show a trade the wave figure by its internal name, as they do any figure added since."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add the `trade_the_wave` move (taxonomy v39): `sides`, `center`, `centerHand`, `axis`, `balance` (stored default false, entry default true) and `beats` (4, or 8 with the balance, by `paramBeats`). Canonical text is the move name alone; the display line names the dancers who trade as the opposite of `sides` (`ParamOpposites`) and the side hand as the other hand.",
+      "Free-text entry reads a displayed trade the wave back as that figure; the import grammar still keeps a bare `Trade the wave` as custom text, and the ContraDB advanced filter refuses a `trade_the_wave` leaf."
+    ]
+  }
+}

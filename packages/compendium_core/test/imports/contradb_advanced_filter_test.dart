@@ -548,6 +548,7 @@ void main() {
         'star_promenade',
         'star_through',
         'starburst',
+        'trade_the_wave',
         'turn_as_couples',
         'two_hand_turn',
       ]);
