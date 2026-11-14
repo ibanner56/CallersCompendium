@@ -1245,6 +1245,11 @@ void main() {
         'onesRole2': ['first role2', 'first robin', 'first follow'],
         'twosRole1': ['second role1', 'second lark', 'second lead'],
         'twosRole2': ['second role2', 'second robin', 'second follow'],
+        // v39: the third and fourth couples' dancers.
+        'threesRole1': ['third role1', 'third lark', 'third lead'],
+        'threesRole2': ['third role2', 'third robin', 'third follow'],
+        'foursRole1': ['fourth role1', 'fourth lark', 'fourth lead'],
+        'foursRole2': ['fourth role2', 'fourth robin', 'fourth follow'],
       };
       for (final token in singleDancers) {
         test('$token under every shipped dialect', () {
@@ -1278,7 +1283,7 @@ void main() {
 
       test('not spec-gated: the label is right with no spec to hand', () {
         // Unlike the `dialect.dancers` lookup, which needs a dancer-kind spec,
-        // these four are a closed structural vocabulary — like the role tokens
+        // these are a closed structural vocabulary — like the role tokens
         // above, they read correctly whatever the caller has.
         expect(
           FigureRenderer.displayToken('twosRole2', null, larks),
@@ -1306,9 +1311,10 @@ void main() {
           FigureRenderer.displayToken('onesRole', dancerSpec, larks),
           'ones role',
         );
+        // v39 added the threes and fours, but there is no fifth couple.
         expect(
-          FigureRenderer.displayToken('threesRole1', dancerSpec, larks),
-          'threes role1',
+          FigureRenderer.displayToken('fivesRole1', dancerSpec, larks),
+          'fives role1',
         );
         // Case-sensitive: the canonical token is camelCase.
         expect(

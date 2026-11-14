@@ -2067,6 +2067,34 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
       only onto a parameter of the same kind, so a figure of your own whose
       `travel` is `places` (as the maintainer's export declared it) cannot
       switch its uses to the move; it can be renamed.
+  - v39 also adds the third and fourth couples' dancers: `threesRole1`,
+    `threesRole2`, `foursRole1` and `foursRole2`, appended to
+    `ParamVocab.singleDancers` and so at the end of `ParamVocab.dancerSets`,
+    after `twosRole2`. The maintainer asked for them, and for that place in the
+    list, in the session that wrote this; the token names, the wording and
+    everything below are the author's calls.
+    - Domain: every param that takes any dancer (no `choices`, or
+      `_dancerOrUnspecified`: `gate`, `mad_robin.who`, `courtesy_turn`,
+      `promenade` and `pull_by`) offers them. `figure_8.lead` and `dolphin_hey.whom` keep the four
+      ones-and-twos dancers of ContraDB's `chooser_dancer`: the dancers of
+      those figures are the ones and twos. They are not hey meet targets
+      (single dancers never are) and have no pair inverse or opposite.
+    - Wording: the display reads them as `third`/`fourth` and the role's
+      singular term, as it reads the ones and twos (`third lark`, `fourth
+      follow`); a dialect's `dancers` substitution wins, and the dialect
+      editor lists them.
+    - Reading: free-text entry reads them back wherever it reads `first lark`
+      (the figure parser, the dancer-and-name table, the display-line
+      readers), and the role canonicalizer counts `fourth`/`4th` as a
+      determiner and an ordinal, as it counted `third`, so `fourth follow`
+      stays a role under Leads/Follows. ContraDB has no such dancer and never
+      names one, and its advanced filter skips them.
+    - Migration: none, and no rebuild: nothing could store them before.
+      **Older devices (v38).** A v38 build displays one humanized (`threes
+      role1`), and its figure editor replaces a value it does not know with
+      the param's default when the figure is opened (for a param whose
+      default is `unspecified`, such as `gate.who`, "not stated"), so editing
+      such a figure there loses it, as v37 did for v38's corners.
 
 ## Open questions (to resolve during implementation, with user input)
 

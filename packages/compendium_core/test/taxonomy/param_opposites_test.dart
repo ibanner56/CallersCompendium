@@ -71,6 +71,11 @@ void main() {
           'onesRole2': null,
           'twosRole1': null,
           'twosRole2': null,
+          // v39: the third and fourth couples' dancers, single dancers too.
+          'threesRole1': null,
+          'threesRole2': null,
+          'foursRole1': null,
+          'foursRole2': null,
           u: u,
         },
       ),

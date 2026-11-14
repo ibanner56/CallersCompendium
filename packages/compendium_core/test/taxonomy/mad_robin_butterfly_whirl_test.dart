@@ -75,6 +75,10 @@ void main() {
         'onesRole2',
         'twosRole1',
         'twosRole2',
+        'threesRole1',
+        'threesRole2',
+        'foursRole1',
+        'foursRole2',
         ParamVocab.unspecified,
       ]);
       expect(def.params['who']!.validate(ParamVocab.unspecified), isTrue);

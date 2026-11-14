@@ -119,9 +119,13 @@ const List<String> forwardAndBackFormations = [
   'inLinesAtSides',
 ];
 
-// The four single-dancer identities (ContraDB chooser_dancer: 1st/2nd couple x
-// role), for moves that name an individual dancer.
-const _singleDancers = ParamVocab.singleDancers;
+// The four single-dancer identities of ContraDB's chooser_dancer (1st/2nd
+// couple x role), for moves that name one dancer of the two couples dancing
+// them. Spelled out rather than taken from [ParamVocab.singleDancers], which
+// v39 extends with the third and fourth couples' dancers: a figure 8's lead
+// and a dolphin hey's dolphin are one of the ones and twos, so those domains
+// are unchanged (the author's call).
+const _singleDancers = ['onesRole1', 'onesRole2', 'twosRole1', 'twosRole2'];
 
 // v20 (issue #295): the pair relationship named by a TCB line, or the
 // `unspecified` sentinel when the source states none. Exactly the
@@ -1309,7 +1313,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
         'lead': ParamSpec(
           ParamKind.dancerSet,
           defaultValue: 'onesRole2',
-          choices: ['onesRole1', 'onesRole2', 'twosRole1', 'twosRole2'],
+          choices: _singleDancers,
         ),
         'fraction': ParamSpec(ParamKind.fraction, defaultValue: 'half'),
         // The amount an `other` fraction states (v39, #2120): read only while

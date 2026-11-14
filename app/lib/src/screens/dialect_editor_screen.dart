@@ -1711,7 +1711,7 @@ class _MoveWordingsEditor extends StatelessWidget {
 
 /// Editable dancer-substitution list, parallel to [_MoveSubstitutionsEditor].
 /// Enumerates the whole dancer vocabulary — the positional/relational sets AND
-/// the single-dancer identities (`onesRole1` … `twosRole2`) — minus the
+/// the single-dancer identities (`onesRole1` … `foursRole2`) — minus the
 /// role-driven `role1s`/`role2s`, which flow through role-term substitution
 /// instead, and lets the caller override each with preferred wording.
 ///

@@ -1,0 +1,18 @@
+{
+  "id": "third-fourth-couple-dancers",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "You can name one dancer of the third or fourth couple: the dancer list now ends with the third and fourth couples' dancers, after the first and second, and they read in your dialect's role words (“third lark”, “fourth robin”). Typing one in the dance editor, as in “third lark swing”, reads it as that dancer. A figure 8's lead and a dolphin hey's dolphin are still one of the first and second couples."
+    ],
+    "data_migrations": [
+      "Taxonomy 39: no migration and no index rebuild for these dancers.",
+      "Devices still on 0.9.x show one by its internal name (“threes role1”), and opening the figure in their dance editor replaces it with that setting's default, or with “not stated” where that is the default."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add `threesRole1`, `threesRole2`, `foursRole1` and `foursRole2` to `ParamVocab.singleDancers` (taxonomy v39), at the end of `ParamVocab.dancerSets`. They display as `third`/`fourth` and the role's singular term, and free-text entry reads them back. `figure_8.lead` and `dolphin_hey.whom` keep the four ones-and-twos dancers; ContraDB never names them, and the ContraDB advanced filter does not send them."
+    ]
+  }
+}

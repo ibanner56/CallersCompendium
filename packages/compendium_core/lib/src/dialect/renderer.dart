@@ -42,10 +42,21 @@ final RegExp _camelBoundary = RegExp(
 );
 
 /// Shape of the single-dancer identity tokens ([ParamVocab.singleDancers]) —
-/// one couple (`ones`/`twos`) × one role. Unlike [roleTokens] these are
-/// COMPOUND, so a whole-token membership test never matches them and the
-/// embedded role would never be substituted (issue #832).
-final RegExp _singleDancerShape = RegExp(r'^(ones|twos)(Role[12])$');
+/// one couple (`ones`/`twos`/`threes`/`fours`) × one role. Unlike
+/// [roleTokens] these are COMPOUND, so a whole-token membership test never
+/// matches them and the embedded role would never be substituted (issue
+/// #832).
+final RegExp _singleDancerShape = RegExp(
+  r'^(ones|twos|threes|fours)(Role[12])$',
+);
+
+/// The ordinal each [_singleDancerShape] couple reads as.
+const Map<String, String> _singleDancerOrdinals = {
+  'ones': 'first',
+  'twos': 'second',
+  'threes': 'third',
+  'fours': 'fourth',
+};
 
 /// A display template's computed slots and literal sentence structure.
 typedef _DisplayTemplate = ({Map<String, String> slots, String template});
@@ -1872,7 +1883,7 @@ class FigureRenderer {
   /// DISPLAY-ONLY rendering of a single dancer/role [token] for the
   /// [_displayBaseRenderers] base lines: role tokens map to the dialect role
   /// term (canonical token when unmapped), single-dancer identities take
-  /// [_singleDancerTerm] (substitution, else `<first|second> <role>`),
+  /// [_singleDancerTerm] (substitution, else `<ordinal> <role>`),
   /// [Dialect.dancers] substitutions win next, then positional dancer sets read
   /// as the PR1 singular subject (`partners` → `partner`), else the token
   /// humanizes. Mirrors the display-path branch of [_renderValue]; never used
@@ -1972,13 +1983,14 @@ class FigureRenderer {
   }
 
   /// DISPLAY-ONLY: the DEFAULT label for a single-dancer identity [token]
-  /// (`onesRole1` …), as `<first|second> <role singular>` — e.g. `first lark`
+  /// (`onesRole1` …), as `<ordinal> <role singular>` — e.g. `first lark`
   /// under larks/robins, `first role1` under the canonical dialect. Returns
   /// `null` for every other token, so callers can chain it ahead of their own
   /// fallback. Mirrors ContraDB's `chooser_dancer` "first/second
   /// gentlespoon/ladle" naming (`app/javascript/libfigure/chooser.js`
-  /// @13f38a5). The ordinal (ones→first, twos→second) is fixed structural
-  /// vocabulary; the role word is the active dialect's role term.
+  /// @13f38a5), extended to the third and fourth couples (v39). The ordinal
+  /// (ones→first, twos→second, threes→third, fours→fourth) is fixed
+  /// structural vocabulary; the role word is the active dialect's role term.
   ///
   /// DELIBERATELY IGNORES [Dialect.dancers]: this is the wording a token reads
   /// as with NO substitution set. The dialect editor labels its substitution
@@ -1988,7 +2000,7 @@ class FigureRenderer {
   static String? singleDancerDefaultTerm(String token, Dialect dialect) {
     final match = _singleDancerShape.firstMatch(token);
     if (match == null) return null;
-    final ordinal = match[1] == 'ones' ? 'first' : 'second';
+    final ordinal = _singleDancerOrdinals[match[1]]!;
     final role = match[2]!.toLowerCase(); // Role1 -> role1
     return '$ordinal ${_roleTerm(role, dialect)}';
   }
@@ -2009,7 +2021,7 @@ class FigureRenderer {
 
   /// DISPLAY-ONLY: label for a single-dancer identity [value], via
   /// [_singleDancerTerm]. A value that does not match the
-  /// `(ones|twos)(Role1|Role2)` shape falls back to [_displayDancer] so unknown
+  /// `(ones|twos|threes|fours)(Role1|Role2)` shape falls back to [_displayDancer] so unknown
   /// values are still surfaced, not blanked.
   String _singleDancerLabel(Object? value, Dialect dialect) {
     if (value is! String) return _displaySubject(value, dialect);
@@ -2073,7 +2085,7 @@ class FigureRenderer {
   /// `twos role2` — issue #832.
   ///
   /// The single-dancer branch is NOT spec-gated, mirroring [roleTokens]: these
-  /// four are a closed structural vocabulary, so the label is right whatever
+  /// are a closed structural vocabulary, so the label is right whatever
   /// spec (or none) the caller has to hand.
   static String displayToken(String token, ParamSpec? spec, Dialect dialect) {
     if (roleTokens.contains(token)) return _roleTerm(token, dialect);
@@ -2143,7 +2155,7 @@ class FigureRenderer {
         (spec?.kind == ParamKind.dancerSet ||
             spec?.kind == ParamKind.dancerPair)) {
       // Display-only: a single-dancer identity reads as its substitution, else
-      // `<first|second> <role term>` (issue #832). GATED ON !forCanonical — the
+      // `<ordinal> <role term>` (issue #832). GATED ON !forCanonical — the
       // canonical render must keep emitting the humanized raw token
       // ("twos role2"), because that text is persisted to
       // `dance_figures.canonicalText` / `dance_fts` and is the dedupe key.

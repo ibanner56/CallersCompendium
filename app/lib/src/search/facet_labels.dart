@@ -266,7 +266,7 @@ String figureParamKeyLabel(
 /// Dancer sets/pairs are dialect vocabulary and route through
 /// [FigureRenderer.displayToken]; every other kind is structural vocabulary and
 /// is humanized. The single-dancer identities (`twosRole2`) are dancer
-/// vocabulary too, and read as `<first|second> <role term>` unless the dialect
+/// vocabulary too, and read as `<ordinal> <role term>` unless the dialect
 /// rewords them — before issue #832 they fell through to humanization and this
 /// picker showed `twos role2`. The stored value is always the canonical token
 /// regardless of the label shown.

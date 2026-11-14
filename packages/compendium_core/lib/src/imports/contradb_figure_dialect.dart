@@ -1336,8 +1336,9 @@ FigureMatch? _swingEndFacingDisplay(String text) {
 }
 
 /// A subject as the app's display writes it (#2121): any [_subject], the
-/// singular the display uses for a pair (`neighbor`, `partner`, `shadow`), or
-/// a corner pairing ContraDB does not name (`third corners`, `opposites`).
+/// singular the display uses for a pair (`neighbor`, `partner`, `shadow`), a
+/// corner pairing ContraDB does not name (`third corners`, `opposites`), or a
+/// third or fourth couple's dancer (`third role1`, v39).
 String? _displaySubject(_Scan s) {
   if (_subject(s) case final who?) return who;
   for (final MapEntry(key: phrase, value: token) in _displayOnlySubjects) {
@@ -1346,9 +1347,16 @@ String? _displaySubject(_Scan s) {
   return null;
 }
 
-/// The subjects [_displaySubject] reads beyond [_subject].
+/// The subjects [_displaySubject] reads beyond [_subject]. The third and
+/// fourth couples' dancers (v39) are the display's `third role1` … `fourth
+/// role2` once a role word is canonical; ContraDB has no such dancer, so
+/// [_subject] does not read them.
 const List<MapEntry<String, String>> _displayOnlySubjects = [
   MapEntry('third corners', 'thirdCorners'),
+  MapEntry('third role1', 'threesRole1'),
+  MapEntry('third role2', 'threesRole2'),
+  MapEntry('fourth role1', 'foursRole1'),
+  MapEntry('fourth role2', 'foursRole2'),
   MapEntry('opposites', 'opposites'),
   MapEntry('neighbor', 'neighbors'),
   MapEntry('partner', 'partners'),
