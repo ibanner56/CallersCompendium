@@ -52,7 +52,8 @@ built figure.
 - A single-dancer identity is the one dancer token with a **derived default**
   rather than a humanized one: with no substitution set it renders
   `<first|second|third|fourth> <role singular>` ("second robin"), composed
-  from the active `roles`, mirroring ContraDB's `chooser_dancer` naming. Setting a `dancers`
+  from the active `roles`, mirroring ContraDB's `chooser_dancer` naming,
+  extended to the third and fourth couples (v39). Setting a `dancers`
   entry overrides that wording (a caller who says "robin two" enters it there);
   the ordinal construction is the default, not a hardcoded choice (issue #832).
 - `discouragedTerms` is **user-editable data with shipped defaults**, not

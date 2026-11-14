@@ -24,7 +24,9 @@ void main() {
     );
   });
 
-  test('any dancer param takes them; the figure 8 lead and dolphin do not', () {
+  test('any dancer param takes them, and so do the single-dancer params', () {
+    // Maintainer decision: the figure 8's lead and the dolphin hey's dolphin
+    // name any single dancer, the third and fourth couples' included.
     const any = ParamSpec(ParamKind.dancerSet, defaultValue: 'role1s');
     for (final token in added) {
       expect(any.validate(token), isTrue, reason: token);
@@ -34,7 +36,7 @@ void main() {
       ]) {
         expect(
           contraTaxonomy.moves[move]!.params[param]!.validate(token),
-          isFalse,
+          isTrue,
           reason: '$move.$param $token',
         );
       }
@@ -58,6 +60,22 @@ void main() {
         params: {'who': 'foursRole1', 'whom': 'threesRole2'},
       ),
       testFigure(
+        move: 'figure_8',
+        params: {'who': 'ones', 'where': 'above', 'lead': 'threesRole2'},
+      ),
+      testFigure(
+        move: 'figure_8',
+        params: {'who': 'ones', 'where': 'above', 'lead': 'foursRole1'},
+      ),
+      testFigure(
+        move: 'dolphin_hey',
+        params: {'who': 'ones', 'whom': 'foursRole2'},
+      ),
+      testFigure(
+        move: 'dolphin_hey',
+        params: {'who': 'ones', 'whom': 'threesRole1'},
+      ),
+      testFigure(
         move: 'starburst',
         params: {
           'direction': 'clockwise',
@@ -75,7 +93,7 @@ void main() {
         expect(read, hasLength(1), reason: reason);
         expect(read.single.isCustom, isFalse, reason: reason);
         expect(read.single.move, figure.move, reason: reason);
-        for (final key in ['who', 'whom']) {
+        for (final key in ['who', 'whom', 'lead']) {
           if (figure.params[key] case final String token) {
             expect(read.single.params[key], token, reason: reason);
           }
@@ -104,6 +122,33 @@ void main() {
         }
       }
     }
+  });
+
+  test("The Caller's Box's M3/W3/M4/W4 are the third and fourth couples'", () {
+    // Maintainer decision: read as M1/W1/M2/W2 are, by couple number.
+    for (final (code, token) in [
+      ('M3', 'threesRole1'),
+      ('W3', 'threesRole2'),
+      ('M4', 'foursRole1'),
+      ('W4', 'foursRole2'),
+    ]) {
+      final f = parseFigureLine(
+        '$code figure eight up',
+        frontEnd: tcbFigureFrontEnd,
+      );
+      expect(f?.move, 'figure_8', reason: code);
+      expect(f?.params['who'], token, reason: code);
+    }
+  });
+
+  test('re-checking an import kept as text reads an M3 line', () {
+    // The changelog's promise: an earlier import's custom text upgrades.
+    final result = reparseImportGapFigures([
+      customFigure('W4 figure eight up', origin: CustomOrigin.importGap),
+    ]);
+    expect(result.upgradedCount, 1);
+    expect(result.figures.single.move, 'figure_8');
+    expect(result.figures.single.params['who'], 'foursRole2');
   });
 
   test('they display as the third and fourth couple', () {

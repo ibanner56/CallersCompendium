@@ -103,15 +103,15 @@ abstract final class ParamVocab {
     'centers',
   ];
 
-  /// Single-dancer identities — one couple × one role. The first four are
-  /// ContraDB's chooser_dancer "first/second gentlespoon/ladle" (2.4a PR3),
-  /// the only dancers figure_8's `lead` and dolphin_hey's `whom` offer.
+  /// Single-dancer identities — one couple × one role — for moves that name
+  /// an individual (figure_8's `lead`, dolphin_hey's `whom`) and wherever a
+  /// param takes any dancer. The first four are ContraDB's chooser_dancer
+  /// "first/second gentlespoon/ladle" (2.4a PR3).
   ///
   /// The third and fourth couples' dancers (taxonomy v39) sit at the end of
   /// the list, so the picker reads ... `twosRole2`, `threesRole1`, ...,
   /// `foursRole2`: a three- or four-couple set, or a square, can name one
-  /// dancer of couple 3 or 4 wherever a param takes any dancer. ContraDB has
-  /// no such dancer.
+  /// dancer of couple 3 or 4. ContraDB has no such dancer.
   static const List<String> singleDancers = [
     'onesRole1',
     'onesRole2',

@@ -119,13 +119,10 @@ const List<String> forwardAndBackFormations = [
   'inLinesAtSides',
 ];
 
-// The four single-dancer identities of ContraDB's chooser_dancer (1st/2nd
-// couple x role), for moves that name one dancer of the two couples dancing
-// them. Spelled out rather than taken from [ParamVocab.singleDancers], which
-// v39 extends with the third and fourth couples' dancers: a figure 8's lead
-// and a dolphin hey's dolphin are one of the ones and twos, so those domains
-// are unchanged (the author's call).
-const _singleDancers = ['onesRole1', 'onesRole2', 'twosRole1', 'twosRole2'];
+// The single-dancer identities (ContraDB chooser_dancer: 1st/2nd couple x
+// role, which v39 extends with the 3rd and 4th couples'), for moves that name
+// an individual dancer.
+const _singleDancers = ParamVocab.singleDancers;
 
 // v20 (issue #295): the pair relationship named by a TCB line, or the
 // `unspecified` sentinel when the source states none. Exactly the

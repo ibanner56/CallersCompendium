@@ -3,7 +3,8 @@
   "user_visible": true,
   "app": {
     "added": [
-      "You can name one dancer of the third or fourth couple: the dancer list now ends with the third and fourth couples' dancers, after the first and second, and they read in your dialect's role words (“third lark”, “fourth robin”). Typing one in the dance editor, as in “third lark swing”, reads it as that dancer. A figure 8's lead and a dolphin hey's dolphin are still one of the first and second couples."
+      "You can name one dancer of the third or fourth couple: the dancer list now ends with the third and fourth couples' dancers, after the first and second, and they read in your dialect's role words (“third lark”, “fourth robin”). Typing one in the dance editor, as in “third lark swing”, reads it as that dancer. A figure 8's lead and a dolphin hey's dolphin can be any of them too.",
+      "The Caller's Box's M3, W3, M4 and W4 now read as the third and fourth couples' dancers, as M1, W1, M2 and W2 read as the first and second couples'. A line an earlier import kept as text for one of them becomes the figure when you re-check unrecognized figures."
     ],
     "data_migrations": [
       "Taxonomy 39: no migration and no index rebuild for these dancers.",
@@ -12,7 +13,7 @@
   },
   "core": {
     "added": [
-      "Add `threesRole1`, `threesRole2`, `foursRole1` and `foursRole2` to `ParamVocab.singleDancers` (taxonomy v39), at the end of `ParamVocab.dancerSets`. They display as `third`/`fourth` and the role's singular term, and free-text entry reads them back. `figure_8.lead` and `dolphin_hey.whom` keep the four ones-and-twos dancers; ContraDB never names them, and the ContraDB advanced filter does not send them."
+      "Add `threesRole1`, `threesRole2`, `foursRole1` and `foursRole2` to `ParamVocab.singleDancers` (taxonomy v39), at the end of `ParamVocab.dancerSets`. They display as `third`/`fourth` and the role's singular term, and free-text entry reads them back. `figure_8.lead` and `dolphin_hey.whom` take all eight single dancers, and The Caller's Box codes `M3`/`W3`/`M4`/`W4` map to the new four (`dancerWords`); ContraDB never names them, and the ContraDB advanced filter does not send them."
     ]
   }
 }
