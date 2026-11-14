@@ -2835,7 +2835,10 @@ class _MoveDefaultsEditor extends StatelessWidget {
                   for (final entry in def.params.entries)
                     // A default has no amount beside its fraction, so neither
                     // the amount nor a fraction of `other` is offered (#2120).
-                    if (entry.key != fractionAmountParam)
+                    // An alias listed as a move (`long lines`) has no default
+                    // for the param it pins: that value is what it names.
+                    if (entry.key != fractionAmountParam &&
+                        !_pinsAsListedMove(moveId, entry.key))
                       FigureParamEditor(
                         key: ValueKey('move-default-$moveId-${entry.key}'),
                         keyPrefix: 'move-default-$moveId',
@@ -2960,4 +2963,13 @@ class _UserFigureDefaultsLinks extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Whether [moveId] is an alias listed as a move ([MoveAlias.listedAsMove])
+/// that pins [param].
+bool _pinsAsListedMove(String moveId, String param) {
+  final alias = contraTaxonomy.aliases[moveId];
+  return alias != null &&
+      alias.listedAsMove &&
+      alias.pinnedParams.containsKey(param);
 }

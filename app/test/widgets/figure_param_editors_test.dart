@@ -886,6 +886,10 @@ void main() {
     expect(humanizeToken('rightDiagonal'), 'right diagonal');
     expect(humanizeToken('threeQuarter'), 'three quarter');
     expect(humanizeToken('who'), 'who');
+    // A one-letter word ends where the next capitalised word starts
+    // (taxonomy v39's `forward_and_back.formation`).
+    expect(humanizeToken('inARing'), 'in a ring');
+    expect(humanizeToken('inLinesAtHeads'), 'in lines at heads');
   });
 
   // --- Sentinel write-back protection (issue #726) --------------------------

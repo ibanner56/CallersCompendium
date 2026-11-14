@@ -33,7 +33,9 @@ import 'user_figure_definition.dart';
 ///
 /// An alias is copied as the move it names, starting from the values it pins
 /// where the move's parameters can hold them (a "pull by neighbors" copy has
-/// neighbors as its default).
+/// neighbors as its default). An alias listed as a move
+/// ([MoveAlias.listedAsMove]: long lines) is copied as itself: from its own
+/// wording, without the parameters it pins, copied from its own id.
 ///
 /// The result always validates ([validateUserFigure] reports no error), so
 /// the editor can open on it.
@@ -48,11 +50,16 @@ UserFigureDefinition? userFigureSeedFromMove(
   if (def == null) return null;
 
   // An alias starts from the values it pins (a "pull by neighbors" copy from
-  // neighbors), where its move's parameter can hold them.
-  final pinned = taxonomy.aliases[moveId]?.pinnedParams ?? const {};
+  // neighbors), where its move's parameter can hold them. One listed as a move
+  // (`long lines`, [MoveAlias.listedAsMove]) is copied as itself: its name
+  // already says what it pins, so it offers no such parameter.
+  final alias = taxonomy.aliases[moveId];
+  final listed = alias != null && alias.listedAsMove;
+  final pinned = alias?.pinnedParams ?? const {};
   final params = <UserFigureParam>[];
   for (final MapEntry(:key, value: moveSpec) in def.params.entries) {
     if (moveSpec.kind == ParamKind.beats) continue;
+    if (listed && pinned.containsKey(key)) continue;
     if (params.length == maxUserFigureParams) break;
     final pin = pinned[key];
     final spec = pin != null && moveSpec.validate(pin)
@@ -104,7 +111,7 @@ UserFigureDefinition? userFigureSeedFromMove(
       FigureRenderer.isValidMoveWordingTemplate(template) &&
       probe.slots.containsAll(userFigureTemplateSlots(template));
   final template = [
-    renderer.moveWordingTemplate(def.id),
+    renderer.moveWordingTemplate(listed ? moveId : def.id),
     def.renderTemplate,
   ].firstWhere(fits, orElse: () => '{$userFigureMoveSlot}')!;
 
@@ -121,7 +128,7 @@ UserFigureDefinition? userFigureSeedFromMove(
             used.contains(userFigureOppositeSlot(p.key)))
           p,
     ],
-    copiedFrom: def.id,
+    copiedFrom: listed ? moveId : def.id,
   );
   assert(
     !validateUserFigure(

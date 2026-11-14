@@ -101,13 +101,27 @@ String? figureSnippetSignature(Figure figure, Taxonomy taxonomy) {
   if (figure.isCustom) return null;
   final def = taxonomy.resolve(figure.move);
   if (def == null) return null;
+  // An alias listed as a move (`long_lines`, a move until taxonomy v39) keeps
+  // the signature it had as one: its own id, without the params it pins. So
+  // every long lines keeps the key `long_lines` (no signature version bump),
+  // and a forward and back in long lines, which is stored as long lines,
+  // shares it.
+  final alias = taxonomy.aliases[taxonomy.resolvedMoveId(figure)];
+  final listed = alias != null && alias.listedAsMove ? alias : null;
+  final keyId = listed?.id ?? def.id;
+  final pinned = listed?.pinnedParams ?? const <String, Object?>{};
 
   final salient =
       _salientParamNames(def.renderTemplate)
-          .where((name) => name != 'beats' && def.params.containsKey(name))
+          .where(
+            (name) =>
+                name != 'beats' &&
+                def.params.containsKey(name) &&
+                !pinned.containsKey(name),
+          )
           .toList()
         ..sort();
-  if (salient.isEmpty) return def.id;
+  if (salient.isEmpty) return keyId;
 
   final effective = taxonomy.effectiveParams(figure);
   // An `other` fraction's amount (#2120) is not in the template, but it is
@@ -127,7 +141,7 @@ String? figureSnippetSignature(Figure figure, Taxonomy taxonomy) {
     if (value == null) continue;
     parts.add('$name=${_normalizeValue(value)}');
   }
-  return parts.isEmpty ? def.id : '${def.id}(${parts.join(',')})';
+  return parts.isEmpty ? keyId : '$keyId(${parts.join(',')})';
 }
 
 final RegExp _placeholder = RegExp(r'\{(\w+)\}');

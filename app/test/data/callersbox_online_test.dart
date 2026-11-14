@@ -412,6 +412,18 @@ void main() {
       expect(query.isEmpty, isFalse);
     });
 
+    test('long lines asks for long lines, not its target forward and back', () {
+      final selections = ByPhraseSelections();
+      selections.match['A1'] = ['long_lines', 'forward_and_back'];
+
+      final query = CallersBoxPhraseQuery.fromSelections(
+        selections,
+        contraTaxonomy,
+      );
+
+      expect(query.phrasePos[1], ['long lines', 'forward and back']);
+    });
+
     test('non-standard phrase labels fall back to the global fields', () {
       final selections = ByPhraseSelections();
       selections.match['C1'] = ['swing'];

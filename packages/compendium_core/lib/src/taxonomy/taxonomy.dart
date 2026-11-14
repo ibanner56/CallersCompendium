@@ -38,9 +38,11 @@ class Taxonomy {
       }
     }
     // Build the inverse-pair lookup table from aliases that declare one.
-    // Each alias with an inversePairId pins exactly ONE param on a two-valued
-    // axis; the lookup maps (moveId, paramKey, oppositeValue) → counterpartId
-    // in BOTH directions.
+    // Each alias with an inversePairId pins exactly ONE param; the lookup maps
+    // (moveId, paramKey, pinnedValue) → counterpartId in BOTH directions. The
+    // axis may have more than two values (`long_lines` ⇄ `forward_and_back`
+    // on `formation`): the alias side routes away on any value but its pin,
+    // and the target side routes to the alias on the pin alone.
     final pairs = <String, _InversePairEntry>{};
     for (final alias in aliases) {
       final inversePairId = alias.inversePairId;
@@ -202,6 +204,28 @@ class Taxonomy {
     }
   }
 
+  /// [params] as a figure of [move] stores them: without a value an alias
+  /// listed as a move ([MoveAlias.listedAsMove]) pins, which the alias
+  /// supplies itself. So a `long_lines` never stores `formation: longLines`:
+  /// a build before taxonomy v39 knows no `formation`, and its
+  /// [validateFigure] rejects the key, which drops, among others, a synced
+  /// shorthand holding the figure. Every other alias keeps what it stores.
+  /// Returns [params] itself when nothing is dropped.
+  Map<String, Object?> withoutListedAliasPins(
+    String move,
+    Map<String, Object?> params,
+  ) {
+    final alias = aliases[move];
+    if (alias == null || !alias.listedAsMove) return params;
+    bool pinned(String key, Object? value) =>
+        alias.pinnedParams.containsKey(key) && alias.pinnedParams[key] == value;
+    if (!params.entries.any((e) => pinned(e.key, e.value))) return params;
+    return {
+      for (final e in params.entries)
+        if (!pinned(e.key, e.value)) e.key: e.value,
+    };
+  }
+
   /// Converts v34 move ids and parameter keys to the v35 representation.
   ///
   /// This is intentionally recursive: structural containers store child
@@ -333,8 +357,9 @@ class Taxonomy {
   /// Returns the move id [figure] should carry given its effective params.
   ///
   /// For inverse-pair aliases (`box_the_gnat` ⇄ `swat_the_flea` on `hand`,
-  /// `do_si_do` ⇄ `see_saw` on `shoulder`), the move id routes to the half
-  /// whose pin matches the effective param value. Returns [figure.move]
+  /// `do_si_do` ⇄ `see_saw` on `shoulder`, `forward_and_back` ⇄ `long_lines`
+  /// on `formation`), the move id routes to the half whose pin matches the
+  /// effective param value. Returns [figure.move]
   /// unchanged when no re-routing applies.
   ///
   /// Call when an authoring surface needs the effective move (the editor may

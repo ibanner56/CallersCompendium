@@ -201,9 +201,9 @@ class _MoveMultiField extends StatelessWidget {
             // New capability (see MoveTypeAheadField.fieldKey doc comment):
             // this call site had no ValueKeys on the field/options before.
             fieldKey: keyPrefix,
-            onSelected: (m) {
-              if (!moves.contains(m.id)) {
-                moves.add(m.id);
+            onSelected: (id) {
+              if (!moves.contains(id)) {
+                moves.add(id);
                 onChanged();
               }
             },

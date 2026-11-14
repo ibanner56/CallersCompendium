@@ -392,6 +392,57 @@ void main() {
     expect(find.text('backing up'), findsOneWidget);
   });
 
+  testWidgets('picking forward and back starts a long lines (taxonomy v39)', (
+    tester,
+  ) async {
+    // Its default formation is long lines, and a forward and back in long
+    // lines is stored as long lines, so the row is one from the start.
+    final drafts = <FigureDraft>[FigureDraft()];
+    await _pump(tester, drafts);
+    await _selectMove(tester, 0, 'forward and back', 'forward_and_back');
+
+    expect(drafts.single.move, 'long_lines');
+    // The figure it stores carries no formation: a build before taxonomy v39
+    // rejects the key, and drops a synced shorthand holding it.
+    final figure = drafts.single.toFigure()!;
+    expect(figure.move, 'long_lines');
+    expect(figure.params, isNot(contains('formation')));
+  });
+
+  testWidgets('a forward and back default applies when the pick routes', (
+    tester,
+  ) async {
+    final drafts = <FigureDraft>[FigureDraft()];
+    await _pump(
+      tester,
+      drafts,
+      moveParamDefaults: const {
+        'forward_and_back': {'goBack': false},
+      },
+    );
+    await _selectMove(tester, 0, 'forward and back', 'forward_and_back');
+
+    expect(drafts.single.move, 'long_lines');
+    expect(drafts.single.params['goBack'], isFalse);
+  });
+
+  testWidgets('a forward and back default formation keeps the pick', (
+    tester,
+  ) async {
+    final drafts = <FigureDraft>[FigureDraft()];
+    await _pump(
+      tester,
+      drafts,
+      moveParamDefaults: const {
+        'forward_and_back': {'formation': 'inARing'},
+      },
+    );
+    await _selectMove(tester, 0, 'forward and back', 'forward_and_back');
+
+    expect(drafts.single.move, 'forward_and_back');
+    expect(drafts.single.params['formation'], 'inARing');
+  });
+
   testWidgets('move selector initializes modifier children', (tester) async {
     final drafts = <FigureDraft>[FigureDraft()];
     await _pump(tester, drafts);

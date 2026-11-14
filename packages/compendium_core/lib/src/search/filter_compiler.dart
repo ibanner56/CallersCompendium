@@ -915,7 +915,13 @@ class FilterCompiler {
   /// (`{swing: 'chain'}`). Mapping the id would make picking the built-in chain
   /// search swings, and leave chain itself unsearchable under that dialect.
   String _canonicalizeMove(String move) {
-    if (taxonomy?.moves.containsKey(move) ?? false) return move;
+    // An alias's id is a built-in id too (`long_lines`, a move until taxonomy
+    // v39, and every other alias the type-aheads offer).
+    final t = taxonomy;
+    if (t != null &&
+        (t.moves.containsKey(move) || t.aliases.containsKey(move))) {
+      return move;
+    }
     return _moveReverse[move.toLowerCase()] ?? move;
   }
 

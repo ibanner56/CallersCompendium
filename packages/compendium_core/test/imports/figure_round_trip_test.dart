@@ -86,7 +86,10 @@ String? _failure(
 ) {
   final read = parseFreeTextFigureEntry(text, dialect: dialect);
   final back = [for (final f in read) renderer.renderSummary(f, dialect)];
-  if (read.length == 1 && read.single.move == figure.move) {
+  // Its own move, or the one it would be stored as: a forward and back in
+  // long lines is stored, and so reads back, as `long_lines` (taxonomy v39).
+  final moves = {figure.move, contraTaxonomy.resolvedMoveId(figure)};
+  if (read.length == 1 && moves.contains(read.single.move)) {
     return back.single == text ? null : 'reads back as "${back.single}"';
   }
   return 'reads as ${read.map((f) => f.move).toList()}: "${back.join(' | ')}"';

@@ -42,7 +42,11 @@ searchKeywords: [allemande, almond]
   migrations. Stored figures carry `schemaVersion` so old data always parses.
 - **Aliases** are entries that resolve to a canonical move with pinned params
   (seesaw → dosido{shoulder: left}; swat the flea → box the gnat{hand:
-  left}). Search de-aliases automatically.
+  left}; long lines → forward and back{formation: longLines}). A structured
+  search matches the id a figure is stored under, so a search for the move
+  does not find its alias's figures. An alias with an `inversePairId` routes
+  a figure between itself and its target as the pinned param changes
+  (`Taxonomy.resolvedMoveId`).
 - **`custom`** is a first-class move: `{text, beats}`; its text is
   dialect-processed and FTS-indexed. `contra corners` and `turn alone` embed an
   optional custom sub-text the same way.
@@ -98,9 +102,10 @@ box circulate · box the gnat (alias: swat the flea) · butterfly whirl ·
 California twirl · chain (role-parameterized, not "ladies chain") · circle ·
 circular hey (alias: square hey; v36, not in ContraDB) · contra corners · cross trails · **custom** · dosido (alias: seesaw) ·
 dolphin hey · down the hall · up the hall · facing star · figure 8 ·
-form long wave / ocean wave / long waves · gate · give & take ·
+form long wave / ocean wave / long waves · forward and back (alias: long
+lines; v39, formations beyond ContraDB) · gate · give & take ·
 **shoulder round** (was gyre/gypsy; keyword-searchable under old names) ·
-hey · long lines · mad robin · orbit · pass by · pass through · petronella ·
+hey · mad robin · orbit · pass by · pass through · petronella ·
 poussette · promenade · pull by (dancers/direction) · revolving door ·
 right left through · roll away · Rory O'More · slice · slide along set ·
 square through · stand still · star · star promenade · swing (alias:
@@ -1864,6 +1869,100 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
     the `unspecified` default, the editor drops it with a named fraction, and
     compound expansion does not seed one (an `other` argument expands as an
     unstated amount).
+  - v39 also adds `forward_and_back`, forward and back in a named formation,
+    and makes `long_lines`, a move until now, its alias. The formation list,
+    the alias, its `longLines` default, routing between the two ids, and
+    keeping dialect entries keyed on `long_lines` are the maintainer's choices
+    in the session that wrote this, recorded in the description of the PR
+    that adds it.
+    - `forward_and_back` has `long_lines`' params, `goBack` and `beats` with its
+      `paramBeats` (8 with `goBack`, 4 without), plus `formation`: a
+      `ParamKind.choice` of `longLines`, `inSquares`, `linesOfThree`,
+      `linesOfFour`, `linesOfFive`, `linesOfSix`, `asCouples`, `headCouples`,
+      `sideCouples`, `inARing`, `inLinesAtHeads` and `inLinesAtSides`
+      (`forwardAndBackFormations`), defaulting to `longLines`. ContraDB has
+      long lines only, so its advanced filter refuses a `forward_and_back`
+      leaf, and `long_lines` there carries no formation.
+    - `long_lines` is an alias pinning `formation: longLines`, with
+      `inversePairId: forward_and_back`, so `resolvedMoveId` routes a long lines
+      whose formation changes to `forward_and_back`, and a forward and back left
+      in long lines to `long_lines`. This is the first inverse pair on an axis of
+      more than two values; the routing already handled one (the alias side
+      routes away on any value but its pin, the target side back on the pin
+      alone), so only its documentation changed. Stored `long_lines` figures
+      keep their source JSON, canonical text (`long lines`) and display lines;
+      their effective params gain `formation: longLines`, the alias's pin.
+      Importers and the `while` modifier still produce and recognise
+      `long_lines`. A figure starts under the id it is stored with: picking
+      forward and back in the figure editor, or typing a bare `forward and
+      back`, gives a long lines, since long lines is the default formation.
+    - Wording: a forward and back displays as its formation then `forward &
+      back` (verbose `forward and back`), or `forward` without `goBack` (`lines
+      of three forward & back`, `in a ring forward`); its canonical text is
+      `<formation> forward and back` either way, as `goBack` never was in long
+      lines' canonical text. `long_lines` keeps its own lines: the display base
+      renderer for `forward_and_back` is not used for it. Both camelCase
+      humanizers (the renderer's and the app's `humanizeToken`) now break
+      before a capital that starts a word after a one-letter capital word, so
+      `inARing` reads `in a ring`; no earlier token has that shape, so no
+      canonical text changes.
+    - `MoveAlias.listedAsMove` (true for `long_lines` alone) keeps long lines
+      standing as a move outside the taxonomy. The pickers that offer moves and
+      not aliases (the dialect editor, Advanced search's "Has figure", Settings'
+      per-move defaults) offer it, without its pinned `formation`: its figures
+      are stored under `long_lines`, so a structured search must be able to
+      name it. A dialect's name and wording for it apply to it and its
+      target's never: dialects hold entries keyed on `long_lines` from when it
+      was a move, and long lines' name is a formation where forward and back's
+      is a direction, so a name for one would misread the other. A search never
+      maps an alias's id through a dialect's names, as it never did a move's.
+    - Free text reads a forward and back's displayed line back (a reader used
+      by free-text entry only, so imports are unchanged), and a bare `forward
+      and back` reads as long lines, the default formation. The note-tail rule
+      now sees `forward and back` as a move's name, so `(8) Slice left, forward
+      and back` typed as free text stays custom rather than a slice with that
+      note.
+    - A copy of long lines into a figure of your own is a long lines (its
+      wording `{move}`, no formation parameter, copied from `long_lines`), and
+      its wordings in a dialect offer no `formation` slot or condition: its
+      name already says the formation. A note repeating long lines' own name is
+      read as its name, as for every move (#1975). Picking forward and back in
+      the figure editor applies the defaults saved for it, then long lines'
+      when the pick is stored as long lines; a default formation other than
+      long lines keeps it a forward and back.
+    - The walkthrough-snippet signature (`figureSnippetSignature`) of an alias
+      listed as a move is its own id without the params it pins, so every long
+      lines keeps the key `long_lines` it had as a move (a forward and back in
+      long lines shares it) and no signature version bump is owed; the other
+      formations sign as `forward_and_back(formation=…)`. The re-import diff key
+      (`figureCanonicalKey`) of a long lines changes, to `forward_and_back` with
+      its formation, but it is computed on both sides of each diff and never
+      stored, so nothing is migrated.
+    - A matrix column saved on `long_lines` (parameterized or a compound step)
+      matches its target with the alias's pin added, so it still counts long
+      lines and no other formation. The column editor opens it as forward and
+      back in long lines, and saves a column or step on forward and back that
+      states long lines back on `long_lines` without the pin
+      (`savedMatrixConstraint`), so a build before v39 still reads it; one that
+      leaves the formation open stays on `forward_and_back`. Specificity counts the resolved constraint, so a
+      column saved on long lines ranks as the same column saved on forward and
+      back with the pin. The built-in long lines column follows forward and
+      back's, where it stood as a move, and is labelled by a dialect's name for
+      long lines, never for forward and back.
+    - Migration: none, and no rebuild: no stored figure's canonical text
+      changes, since nothing could store a `forward_and_back` before v39.
+      **Older devices (v38).** A `forward_and_back` figure is an unknown move
+      there and displays as its raw id, as every added move does. No long lines
+      stores `formation`: `Taxonomy.withoutListedAliasPins` drops the alias's pin
+      where a figure is built for storage (the editor's `FigureDraft.toFigure`,
+      the dance repository's write-time routing, the free-text read-back, and
+      switching a figure of your own to forward and back, which also routes a
+      use switched to long lines to `long_lines`, since shorthands and default
+      lists are not routed on write as dances are), although the editor seeds
+      and shows it. A v38 build's `validateFigure`
+      would reject the key as `unknown_param`, and its shorthand mappings drop a
+      whole mapping holding such a figure, so a long lines entered on v39 must
+      read on v38 exactly as one entered there.
 
 ## Open questions (to resolve during implementation, with user input)
 

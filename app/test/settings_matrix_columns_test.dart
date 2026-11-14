@@ -43,6 +43,17 @@ final _parameterizedTaxonomy = Taxonomy(
   ],
 );
 
+/// Forward and back with its `long_lines` alias (taxonomy v39), plus swing.
+final _longLinesTaxonomy = Taxonomy(
+  version: contraTaxonomy.version,
+  form: contraTaxonomy.form,
+  moves: [
+    contraTaxonomy.moves['swing']!,
+    contraTaxonomy.moves['forward_and_back']!,
+  ],
+  aliases: [contraTaxonomy.aliases['long_lines']!],
+);
+
 /// A stateful harness that renders [MatrixColumnEditor], keeps the edited
 /// config in state (so the editor re-reads it after each change, exactly as the
 /// real settings pane does), and exposes the latest config to assertions.
@@ -731,6 +742,103 @@ void main() {
 
       expect(read().parameterized.single.baseMove, 'swing');
       expect(read().parameterized.single.params, isEmpty);
+    });
+
+    testWidgets('a column saved on long lines opens as forward and back in '
+        'long lines', (tester) async {
+      // Long lines was a move until taxonomy v39; a column saved on it then
+      // must keep matching long lines once edited, not reset to another move.
+      const id = 'param:forward-only';
+      final initial = MatrixColumnConfig(
+        order: const [id],
+        parameterized: const [
+          ParameterizedColumn(
+            id: id,
+            baseMove: 'long_lines',
+            params: {'goBack': false},
+          ),
+        ],
+      );
+      final read = await _pumpEditor(
+        tester,
+        initial: initial,
+        taxonomy: _longLinesTaxonomy,
+      );
+      final editFinder = find.byKey(
+        const ValueKey('matrix-column-edit-details-param:forward-only'),
+      );
+      await tester.scrollUntilVisible(editFinder, 400);
+      await tester.tap(editFinder);
+      await tester.pumpAndSettle();
+
+      expect(
+        tester
+            .widget<DropdownButtonFormField<String>>(
+              find.byKey(const ValueKey('matrix-parameterized-move')),
+            )
+            .initialValue,
+        'forward_and_back',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('matrix-parameterized-label')),
+        'Forward only',
+      );
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('matrix-parameterized-save')));
+      await tester.pumpAndSettle();
+
+      // Saved back as a long lines column, which a build before v39 reads.
+      expect(read().parameterized.single.baseMove, 'long_lines');
+      expect(read().parameterized.single.params, {'goBack': false});
+    });
+
+    testWidgets('a compound step saved on long lines keeps its formation', (
+      tester,
+    ) async {
+      const id = 'compound:lines-swing';
+      final initial = MatrixColumnConfig(
+        order: const [id],
+        compound: const [
+          CompoundColumn(
+            id: id,
+            steps: [
+              StepMatcher(move: 'long_lines'),
+              StepMatcher(move: 'swing'),
+            ],
+          ),
+        ],
+      );
+      final read = await _pumpEditor(
+        tester,
+        initial: initial,
+        taxonomy: _longLinesTaxonomy,
+      );
+      final editFinder = find.byKey(
+        const ValueKey('matrix-column-edit-details-compound:lines-swing'),
+      );
+      await tester.scrollUntilVisible(editFinder, 400);
+      await tester.tap(editFinder);
+      await tester.pumpAndSettle();
+
+      expect(
+        tester
+            .widget<DropdownButtonFormField<String>>(
+              find.byKey(const ValueKey('matrix-compound-step-move-0')),
+            )
+            .initialValue,
+        'forward_and_back',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('matrix-compound-label')),
+        'Lines then swing',
+      );
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('matrix-compound-save')));
+      await tester.pumpAndSettle();
+
+      final step = read().compound.single.steps.first;
+      expect(step.move, 'long_lines');
+      expect(step.params, isEmpty);
     });
 
     testWidgets('reorders parameterized and built-in columns together', (

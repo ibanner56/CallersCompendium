@@ -19,6 +19,7 @@ Future<void> _pump(
   bool Function(String text)? submitsAsText,
   List<MoveOption> compoundOptions = const [],
   bool includeModifier = false,
+  bool includeAliases = true,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
@@ -33,6 +34,7 @@ Future<void> _pump(
           submitsAsText: submitsAsText,
           compoundOptions: compoundOptions,
           includeModifier: includeModifier,
+          includeAliases: includeAliases,
         ),
       ),
     ),
@@ -110,6 +112,41 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(const ValueKey('move-option-see_saw')), findsOneWidget);
+    });
+
+    testWidgets('without aliases still offers long lines, listed as a move', (
+      tester,
+    ) async {
+      await _pump(tester, includeAliases: false);
+      await tester.enterText(
+        find.byKey(const ValueKey('move-input')),
+        'long lines',
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('move-option-long_lines')),
+        findsOneWidget,
+      );
+
+      await tester.enterText(
+        find.byKey(const ValueKey('move-input')),
+        'seesaw',
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('move-option-see_saw')), findsNothing);
+    });
+
+    testWidgets('with aliases offers long lines once', (tester) async {
+      await _pump(tester);
+      await tester.enterText(
+        find.byKey(const ValueKey('move-input')),
+        'long lines',
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('move-option-long_lines')),
+        findsOneWidget,
+      );
     });
 
     testWidgets('never hides a move that shares a dialect term with another', (

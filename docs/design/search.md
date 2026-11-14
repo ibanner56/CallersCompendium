@@ -869,7 +869,10 @@ tree. This section specifies the mapping; the widget shipped as
   offers both moves, as the editor does, and each searches its own move: the
   compiler never maps a built-in move id through the dialect's names
   (`FilterCompiler._canonicalizeMove`). Aliases are not offered (a figure leaf
-  matches the stored id; the search bar reads an alias's name as text). The
+  matches the stored id; the search bar reads an alias's name as text), except
+  one listed as a move (`MoveAlias.listedAsMove`: `long_lines`, a move until
+  taxonomy v39), whose figures are stored under its own id; its pinned
+  `formation` is not offered as a param. The
   By phrase chips read in the active dialect. `params` = named-param pickers
   from the move's schema; `section` = dropdown of the dance form's phrase labels (`A1 A2 B1 B2 …`).
 - **Sequence row**: two figure-row editors joined by "then"; each side is a

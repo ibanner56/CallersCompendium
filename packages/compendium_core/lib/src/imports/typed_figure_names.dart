@@ -296,5 +296,9 @@ Figure? _figureFor(_Named named, int beats, Taxonomy taxonomy) {
   final rejected = taxonomy
       .validateFigure(figure)
       .any((i) => i.severity == ValidationSeverity.error);
-  return rejected ? null : figure;
+  if (rejected) return null;
+  // Under the id it is stored with: a bare `forward and back` is in long
+  // lines, its default formation, so it reads as `long_lines` (taxonomy v39).
+  final stored = taxonomy.resolvedMoveId(figure);
+  return stored == figure.move ? figure : figure.copyWith(move: stored);
 }

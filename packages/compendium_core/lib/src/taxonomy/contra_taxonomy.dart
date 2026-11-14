@@ -100,6 +100,25 @@ const _heyMeetTargetChoices = [
   ParamVocab.unspecified,
 ];
 
+/// `forward_and_back.formation` (v39): the formation dancers go forward and
+/// back in. Each token humanizes to its label ("lines of three", "in a
+/// ring"); `longLines` is the default and the value the `long_lines` alias
+/// pins.
+const List<String> forwardAndBackFormations = [
+  'longLines',
+  'inSquares',
+  'linesOfThree',
+  'linesOfFour',
+  'linesOfFive',
+  'linesOfSix',
+  'asCouples',
+  'headCouples',
+  'sideCouples',
+  'inARing',
+  'inLinesAtHeads',
+  'inLinesAtSides',
+];
+
 // The four single-dancer identities (ContraDB chooser_dancer: 1st/2nd couple x
 // role), for moves that name an individual dancer.
 const _singleDancers = ParamVocab.singleDancers;
@@ -372,14 +391,30 @@ final Taxonomy contraTaxonomy = Taxonomy(
       // ContraDB petronellaGoodBeats: `beats === (balance ? 8 : 4)`.
       paramBeats: ParamBeats(param: 'balance', byValue: {true: 8, false: 4}),
     ),
+    // v39: forward and back in any formation. `long_lines` (a move until v38)
+    // is now its alias, pinning `formation: longLines`, so it carries exactly
+    // the params `long_lines` had plus `formation`. The default is
+    // `longLines`, so a forward and back that states no formation is long
+    // lines, and the alias routes both ways on that value
+    // ([MoveAlias.inversePairId]): a long lines whose formation is changed
+    // becomes a forward and back, and a forward and back left in long lines
+    // is stored as long lines, keeping long lines' canonical text.
     const MoveDef(
-      id: 'long_lines',
-      displayName: 'long lines',
+      id: 'forward_and_back',
+      displayName: 'forward and back',
       params: {
+        'formation': ParamSpec(
+          ParamKind.choice,
+          defaultValue: 'longLines',
+          choices: forwardAndBackFormations,
+        ),
         'goBack': ParamSpec(ParamKind.flag, defaultValue: true),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
-      renderTemplate: '{move}',
+      // Canonical: the formation, then the name. The `long_lines` alias blanks
+      // its pinned formation and reads "long lines", as that move always did.
+      // `goBack` is in neither, as it never was for long lines.
+      renderTemplate: '{formation} {move}',
       goodBeats: [4, 8],
       // ContraDB longLinesChange/GoodBeats: `beats = goBack ? 8 : 4`.
       paramBeats: ParamBeats(param: 'goBack', byValue: {true: 8, false: 4}),
@@ -1036,7 +1071,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
         ),
         'whom': ParamSpec(ParamKind.dancerSet, defaultValue: 'partners'),
         // `give` == false is ContraDB's "take only". Like other beat-shaping
-        // flags (roll_away.halfSashay, long_lines.goBack) it is not a render
+        // flags (roll_away.halfSashay, forward_and_back.goBack) it is not a render
         // token; the give/take wording is a display nuance, not canonical text.
         'give': ParamSpec(ParamKind.flag, defaultValue: true),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
@@ -1780,6 +1815,20 @@ final Taxonomy contraTaxonomy = Taxonomy(
       targetMove: 'box_the_gnat',
       pinnedParams: {'hand': 'left'},
       inversePairId: 'box_the_gnat',
+    ),
+    // v39: a move until v38, kept as an alias so stored `long_lines` figures,
+    // the importers that produce it and the dialects keyed on it are
+    // unchanged. Routes to `forward_and_back` when the formation leaves long
+    // lines, and back again when it returns.
+    const MoveAlias(
+      id: 'long_lines',
+      displayName: 'long lines',
+      targetMove: 'forward_and_back',
+      pinnedParams: {'formation': 'longLines'},
+      inversePairId: 'forward_and_back',
+      // Dialects hold names and wordings keyed on it from when it was a move,
+      // and its name is the formation where its target's is the direction.
+      listedAsMove: true,
     ),
     const MoveAlias(
       id: 'meltdown_swing',

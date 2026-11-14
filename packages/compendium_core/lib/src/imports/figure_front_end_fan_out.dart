@@ -291,7 +291,10 @@ Iterable<String> _allNotes(
 
 /// Whether [note] is nothing but [figure]'s own move name.
 bool _namesOwnMove(String note, Figure figure, Taxonomy taxonomy) {
-  final name = taxonomy.resolve(figure.move)?.displayName;
+  // An alias's own name (`long lines`), not its target's.
+  final name =
+      taxonomy.aliases[figure.move]?.displayName ??
+      taxonomy.resolve(figure.move)?.displayName;
   return name != null && note.trim().toLowerCase() == name.trim().toLowerCase();
 }
 

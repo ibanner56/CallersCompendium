@@ -752,7 +752,10 @@ class _ParameterizedColumnDialogState
       !mapEquals(_params, _startParams);
 
   String _initialMove() {
-    final initialMove = widget.initial?.baseMove;
+    final initialMove = _editableMove(
+      widget.taxonomy,
+      widget.initial?.baseMove,
+    );
     if (initialMove != null && widget.taxonomy.moves.containsKey(initialMove)) {
       return initialMove;
     }
@@ -760,8 +763,13 @@ class _ParameterizedColumnDialogState
   }
 
   Map<String, Object?> _initialParams() {
-    final params = widget.initial?.params;
-    if (params == null) return {};
+    final initial = widget.initial;
+    if (initial == null) return {};
+    final params = _editableParams(
+      widget.taxonomy,
+      initial.baseMove,
+      initial.params,
+    );
     return {
       for (final entry in params.entries)
         if (_move.params.containsKey(entry.key))
@@ -915,13 +923,21 @@ class _ParameterizedColumnDialogState
             key: const ValueKey('matrix-parameterized-save'),
             onPressed: _label.text.trim().isEmpty
                 ? null
-                : () => Navigator.of(context).pop(
-                    _ParameterizedColumnDraft(
-                      baseMove: _baseMove,
-                      params: Map<String, Object?>.of(_params),
-                      label: _label.text.trim(),
-                    ),
-                  ),
+                : () {
+                    // Saved as a long lines column when it is one (v39).
+                    final saved = savedMatrixConstraint(
+                      _baseMove,
+                      Map<String, Object?>.of(_params),
+                      widget.taxonomy,
+                    );
+                    Navigator.of(context).pop(
+                      _ParameterizedColumnDraft(
+                        baseMove: saved.move,
+                        params: saved.params,
+                        label: _label.text.trim(),
+                      ),
+                    );
+                  },
             child: Text(l10n.commonSave),
           ),
         ],
@@ -1006,11 +1022,13 @@ class _CompoundColumnDialogState extends State<_CompoundColumnDialog> {
       : widget.taxonomy.moves.keys.first;
 
   _CompoundStepDraft _draftFor(StepMatcher? initial) {
-    final move = _moveOrDefault(initial?.move);
+    final move = _moveOrDefault(_editableMove(widget.taxonomy, initial?.move));
     final def = widget.taxonomy.moves[move]!;
     final params = <String, Object?>{};
-    for (final entry
-        in initial?.params.entries ?? const <MapEntry<String, Object?>>[]) {
+    final initialParams = initial == null
+        ? const <String, Object?>{}
+        : _editableParams(widget.taxonomy, initial.move, initial.params);
+    for (final entry in initialParams.entries) {
       final spec = def.params[entry.key];
       if (spec != null) {
         params[entry.key] = spec.validate(entry.value)
@@ -1090,7 +1108,14 @@ class _CompoundColumnDialogState extends State<_CompoundColumnDialog> {
   _CompoundColumnDraft _saveDraft() => _CompoundColumnDraft(
     steps: [
       for (final step in _steps)
-        StepMatcher(move: step.move, params: Map.of(step.params)),
+        if (savedMatrixConstraint(
+              step.move,
+              Map.of(step.params),
+              widget.taxonomy,
+            )
+            case (:final move, :final params))
+          // Saved as a long lines step when it is one (v39).
+          StepMatcher(move: move, params: params),
     ],
     label: _label.text.trim(),
   );
@@ -1272,3 +1297,18 @@ class _CompoundColumnDialogState extends State<_CompoundColumnDialog> {
     );
   }
 }
+
+/// The move a saved column's base [move] is edited as: an alias opens as its
+/// target. Only a column saved on `long_lines` while it was a move (before
+/// taxonomy v39) can name one; the picker offers moves alone.
+String? _editableMove(Taxonomy taxonomy, String? move) =>
+    move == null ? null : taxonomy.aliases[move]?.targetMove ?? move;
+
+/// A saved column's [params] as edited under [_editableMove]: an alias's
+/// pinned params join them, so the column still matches what it did (core's
+/// `columnKeyForFigure` reads an alias base move the same way).
+Map<String, Object?> _editableParams(
+  Taxonomy taxonomy,
+  String move,
+  Map<String, Object?> params,
+) => {...?taxonomy.aliases[move]?.pinnedParams, ...params};

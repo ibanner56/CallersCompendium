@@ -1211,7 +1211,12 @@ class CallersBoxPhraseQuery {
     List<String> toLines(List<String> moveIds) {
       final out = <String>[];
       for (final id in moveIds) {
-        final line = (taxonomy.resolve(id)?.displayName ?? id).trim();
+        // An alias's own name (`long lines`), not its target's.
+        final line =
+            (taxonomy.aliases[id]?.displayName ??
+                    taxonomy.resolve(id)?.displayName ??
+                    id)
+                .trim();
         if (line.isNotEmpty) out.add(line);
       }
       return out;

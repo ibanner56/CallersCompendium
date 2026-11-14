@@ -109,6 +109,8 @@ class MoveAutocomplete extends StatefulWidget {
   /// dialog, or runs a search, must not act because focus moved.
   final bool commitOnBlur;
 
+  /// Whether to offer aliases. An alias listed as a move
+  /// ([MoveAlias.listedAsMove]) is offered either way.
   final bool includeAliases;
 
   /// Whether to offer the structural `modifier` option alongside taxonomy
@@ -376,6 +378,21 @@ class _MoveAutocompleteState extends State<MoveAutocomplete> {
             id: m.id,
             displayName: renderer.displayMoveName(m.id, dialect),
           ),
+      // An alias listed as a move (`long lines`, a move until taxonomy v39)
+      // is offered wherever moves are, with them, aliases or not.
+      if (!widget.includeAliases)
+        for (final a in widget.taxonomy.aliases.values)
+          if (a.listedAsMove &&
+              matches(
+                a.id,
+                a.displayName,
+                renderer.displayMoveName(a.id, dialect),
+                a.searchKeywords,
+              ))
+            MoveOption(
+              id: a.id,
+              displayName: renderer.displayMoveName(a.id, dialect),
+            ),
     ];
     if (widget.includeAliases) {
       // An alias whose label equals one already offered (the v34 "pull by"

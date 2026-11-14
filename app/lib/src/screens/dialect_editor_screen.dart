@@ -45,7 +45,8 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
   final _discouragedInput = TextEditingController();
 
   /// One controller per move that currently has (or is being given) a
-  /// substitution row, keyed by canonical move id.
+  /// substitution row, keyed by canonical move id, or by the id of an alias
+  /// listed as a move ([MoveAlias.listedAsMove]: `long_lines`).
   final Map<String, TextEditingController> _moveCtrls = {};
   final Map<String, TextEditingController> _wordingCtrls = {};
   final Map<String, Map<String, TextEditingController>> _branchWordingCtrls =
@@ -1068,8 +1069,8 @@ class _MoveSubstitutionsEditor extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final overridden = controllers.keys.toList().reversed;
     final available = [
-      for (final m in contraTaxonomy.moves.values)
-        if (m.id != customMoveId && !controllers.containsKey(m.id)) m.id,
+      for (final id in _dialectNameableMoveIds)
+        if (!controllers.containsKey(id)) id,
     ]..sort((a, b) => label(a).toLowerCase().compareTo(label(b).toLowerCase()));
     available.addAll([
       for (final key in userFigureKeys)
@@ -1199,8 +1200,20 @@ String _entryLabel(
         ? l10n.dialectEditorUserFigureGone
         : renderer.renderFreeText(view.name, dialect);
   }
-  return contraTaxonomy.moves[id]?.displayName ?? id;
+  return contraTaxonomy.moves[id]?.displayName ??
+      contraTaxonomy.aliases[id]?.displayName ??
+      id;
 }
+
+/// The ids a dialect can name or word: every move but `custom`, and every
+/// alias listed as a move ([MoveAlias.listedAsMove]), which a dialect names
+/// on its own: `long lines`, a move until taxonomy v39.
+Iterable<String> get _dialectNameableMoveIds => [
+  for (final m in contraTaxonomy.moves.values)
+    if (m.id != customMoveId) m.id,
+  for (final a in contraTaxonomy.aliases.values)
+    if (a.listedAsMove) a.id,
+];
 
 String _branchLabel(String branch, AppLocalizations l10n) => switch (branch) {
   'inOnly' => l10n.dialectEditorMoveWordingBranchInOnly,
@@ -1275,11 +1288,9 @@ class _MoveWordingsEditor extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final configured = controllers.keys.toList().reversed;
     final available = [
-      for (final move in contraTaxonomy.moves.values)
-        if (move.id != customMoveId &&
-            !controllers.containsKey(move.id) &&
-            !branchControllers.containsKey(move.id))
-          move.id,
+      for (final id in _dialectNameableMoveIds)
+        if (!controllers.containsKey(id) && !branchControllers.containsKey(id))
+          id,
     ]..sort((a, b) => label(a).toLowerCase().compareTo(label(b).toLowerCase()));
     available.addAll([
       for (final key in userFigureKeys)
@@ -1367,7 +1378,7 @@ class _MoveWordingsEditor extends StatelessWidget {
     final previewDialect = dialect.copyWith(
       moveWordings: {...dialect.moveWordings, id: check.stored ?? ''},
     );
-    final preview = _renderer.render(Figure(move: id), previewDialect);
+    final preview = _renderer.render(_wordedFigure(id), previewDialect);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -1976,4 +1987,25 @@ class _DialectPreview extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A figure of [moveId] that a wording for [moveId] words: one at its
+/// defaults, unless those make it a figure stored under an alias listed as a
+/// move ([MoveAlias.listedAsMove]), which takes only its own wording. A
+/// forward and back at its defaults is a long lines (taxonomy v39), so it is
+/// previewed in the first formation that keeps it a forward and back.
+Figure _wordedFigure(String moveId) {
+  final plain = Figure(move: moveId);
+  if (contraTaxonomy.resolvedMoveId(plain) == moveId) return plain;
+  for (final alias in contraTaxonomy.aliases.values) {
+    if (!alias.listedAsMove || alias.targetMove != moveId) continue;
+    for (final param in alias.pinnedParams.keys) {
+      final spec = contraTaxonomy.moves[moveId]?.params[param];
+      for (final value in spec?.choices ?? const <String>[]) {
+        final figure = Figure(move: moveId, params: {param: value});
+        if (contraTaxonomy.resolvedMoveId(figure) == moveId) return figure;
+      }
+    }
+  }
+  return plain;
 }

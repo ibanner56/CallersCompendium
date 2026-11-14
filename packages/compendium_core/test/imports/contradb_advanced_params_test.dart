@@ -178,6 +178,10 @@ void main() {
         'form_long_waves': ['balance', 'whom', 'whomHand'],
         'gate': ['direction', 'pair', 'travel'],
         'hey': ['meetTarget', 'pass2'],
+        // The alias pins it to long lines, the only formation ContraDB has
+        // (taxonomy v39); any other is a `forward_and_back`, which ContraDB
+        // does not define.
+        'long_lines': ['formation'],
         'mad_robin': ['direction', 'whom'],
         'poussette': ['amount'],
         'promenade': ['destination', 'singleFile'],

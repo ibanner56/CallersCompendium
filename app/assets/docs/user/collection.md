@@ -373,7 +373,9 @@ the moves — inside your dances. It works by stacking up rows and groups:
 1. Add a **Has figure** row and pick a move with the type-ahead field — start
    typing and choose from the matches. It finds moves by the names the dance
    editor uses, including your dialect's own names for them (alternative names
-   such as *seesaw* are not offered here). While **Custom Figures** is on, your own
+   such as *seesaw* are not offered here, but *long lines* is, beside *forward
+   and back*: a forward and back in long lines is saved as long lines, so
+   pick long lines to find those). While **Custom Figures** is on, your own
    new figures are offered too, marked as yours and listed before the built-in
    moves unless you type a move's exact name, which comes first; picking one finds
    the dances that use it. A use that shows its stored line instead of your
