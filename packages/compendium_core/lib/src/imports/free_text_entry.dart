@@ -827,7 +827,7 @@ List<Figure> _parseSplit(
           .firstOrNull ??
       _displayedForwardAndBack(split.text, split.beats, names, dialect) ??
       [split.text, ...readTexts, ..._starburstVerbSplits(split.text, dialect)]
-          .map((text) => _displayedStarburst(text, split.beats, names))
+          .map((text) => _displayedStarburst(text, split.beats, names, dialect))
           .nonNulls
           .firstOrNull;
   return named == null ? raw : [named];
@@ -935,9 +935,27 @@ Iterable<String> _starburstVerbSplits(String text, Dialect? dialect) sync* {
 }
 
 /// A starburst as the app displays one (taxonomy v39), read only here
-/// ([readDisplayedStarburst] says why). A figure [taxonomy] rejects is a miss.
-Figure? _displayedStarburst(String text, int beats, Taxonomy taxonomy) {
-  final match = readDisplayedStarburst(text);
+/// ([readDisplayedStarburst] says why), under its own name or [dialect]'s name
+/// for it, which the display writes in its place. A figure [taxonomy] rejects
+/// is a miss.
+Figure? _displayedStarburst(
+  String text,
+  int beats,
+  Taxonomy taxonomy,
+  Dialect? dialect,
+) {
+  final dialectName = dialect?.moves['starburst'];
+  final match =
+      readDisplayedStarburst(text) ??
+      (dialectName == null || dialectName.contains('%')
+          ? null
+          : readDisplayedStarburst(
+              text,
+              name: dialectName
+                  .trim()
+                  .replaceAll(_whitespaceRun, ' ')
+                  .toLowerCase(),
+            ));
   if (match == null) return null;
   final figure = Figure(
     move: match.moveId,

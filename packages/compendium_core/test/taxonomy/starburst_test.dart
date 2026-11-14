@@ -283,6 +283,16 @@ void main() {
       }
     });
 
+    test('under a dialect\'s name for it', () {
+      // Mutation caught: reading only the literal `starburst`.
+      final named = Dialect(name: 'Named', moves: {'starburst': 'Sun Burst'});
+      final line = renderer.renderSummary(starburst(example), named);
+      expect(line, startsWith('Sun Burst clockwise around 2'));
+      expect(read(line, named)?.params, example);
+      // Its name is the dialect's only where the dialect gives one.
+      expect(read(line), isNull);
+    });
+
     test('only the whole display line, every slot stated', () {
       // A bare `starburst` reads as the move by its name, as every move's
       // name does; a line that goes on must be the whole display.

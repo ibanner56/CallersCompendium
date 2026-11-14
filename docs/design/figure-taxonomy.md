@@ -1991,12 +1991,13 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
       modifier side it reads `doing a starburst`.
     - Free text reads the display line back
       (`readDisplayedStarburst`, called only by free-text entry, so no
-      import's grammar changes). Every slot is required and only the whole
-      line is read. Under a dialect whose roles are lead and follow, the
-      verb `lead` is also a role word, and canonicalizing the whole line
-      reads it as one before a dancer it does not take as an object (`leads
-      lead third neighbor`), so the reader also tries each `lead` with the
-      role words on either side canonicalized apart.
+      import's grammar changes), under its own name or a dialect's name for
+      it. Every slot is required and only the whole line is read. Under a
+      dialect whose roles are lead and follow, the verb `lead` is also a role
+      word, and canonicalizing the whole line reads it as one before a dancer
+      it does not take as an object (`leads lead third neighbor`), so the
+      reader also tries each `lead` with the role words on either side
+      canonicalized apart.
     - As for `forward_and_back`, the new name and keyword are now move words
       to the note-tail rule, so a typed line whose note names one stays custom
       (`(8) Slice left, starburst` or `…, dolphin loop`, where `…, sunburst`
