@@ -1210,6 +1210,32 @@ final Taxonomy contraTaxonomy = Taxonomy(
       renderTemplate: '{who} {move} {slide}',
       goodBeats: [6],
     ),
+    // v39: a zig zag's path without hands, the dancers arcing out of the set
+    // past `travel` couples and back in on the side they started. Not in
+    // ContraDB or The Caller's Box: its params, defaults and wording are those
+    // of the maintainer's figure of their own of that name, added at their
+    // request, with `travel` a plain number rather than places. `goodBeats` is
+    // the author's, from that figure's 8 default beats. `travel`
+    // counts couples passed, not places around a ring, so it renders as the
+    // digits alone ("around 2").
+    const MoveDef(
+      id: 'starburst',
+      displayName: 'starburst',
+      params: {
+        'direction': ParamSpec(
+          ParamKind.spinDirection,
+          defaultValue: 'counterclockwise',
+        ),
+        'travel': ParamSpec(ParamKind.number, defaultValue: 1),
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'role1s'),
+        'whom': ParamSpec(ParamKind.dancerPair, defaultValue: 'partners'),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
+      },
+      renderTemplate:
+          '{move} {direction} around {travel}, {who} lead {whom} out of the set',
+      searchKeywords: ['dolphin loop'],
+      goodBeats: [8],
+    ),
     const MoveDef(
       id: 'slice',
       displayName: 'slice',

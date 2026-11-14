@@ -32,8 +32,9 @@ enum ParamKind {
   places,
 
   /// A plain whole number, 0–99, worded as the digits alone: no "place(s)",
-  /// "change(s)" or other unit. For a figure of your own whose count is not a
-  /// distance around a ring, where [places] would add its own word.
+  /// "change(s)" or other unit. For a count that is not a distance around a
+  /// ring, where [places] would add its own word: a figure of your own's, or
+  /// `starburst.travel`, the couples passed (taxonomy v39).
   number,
 
   /// `quarter` / `half` / `threeQuarter` / `full` / `other` (figure 8,

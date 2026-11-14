@@ -1,0 +1,25 @@
+{
+  "id": "starburst-figure",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "A new figure, starburst: dancers trace a zig zag's path without hands, arcing out of the set around one or more couples and back in on the side they started. It reads like “starburst clockwise around 2, robins lead partner out of the set”, in your own role words, a search for “dolphin loop” finds it, and typing that line into the dance editor reads it back as the figure.",
+      "A combination of figures can now have a plain number parameter, since starburst's count of couples passed is one."
+    ],
+    "changed": [
+      "A figure of your own named starburst now shares its name with the app's, and its Glossary page offers to rename it or switch its uses to the app's starburst. A switch needs its count to be a plain number parameter: one whose count is in places cannot switch, and can be renamed instead. A glossary entry named “dolphin loop” now shares starburst's search keyword."
+    ],
+    "data_migrations": [
+      "Taxonomy 39: no migration and no index rebuild. Devices still on 0.9.x show a starburst by its internal name, as they do any figure added since."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add the `starburst` move (taxonomy v39): `direction` (`spinDirection`, default `counterclockwise`), `travel` (`ParamKind.number`, default 1), `who` (`dancerSet`, default `role1s`), `whom` (`dancerPair`, default `partners`) and `beats` (default 8), with search keyword `dolphin loop` and a glossary definition. Canonical text is `starburst <direction> around <travel>, <who> lead <whom> out of the set`.",
+      "Add `readDisplayedStarburst`, which free-text entry alone calls to read a starburst's display line back; no import grammar reads it."
+    ],
+    "changed": [
+      "The ContraDB advanced filter refuses a `starburst` leaf: ContraDB has no such figure."
+    ]
+  }
+}

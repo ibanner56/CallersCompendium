@@ -298,6 +298,17 @@ const Map<String, FigureDefinition> contraFigureDefinitions = {
     description:
         'Holding near hands with the dancer beside them, each pair steps forward and to one side, usually the left, then forward and to the other, sliding past the oncoming couple until everyone has moved on to face someone new. It usually takes 6 beats and can finish by forming a ring or with the trailing dancers catching hands.',
   ),
+  // contra_taxonomy.dart `starburst` (taxonomy v39; direction default
+  // counterclockwise, travel default 1, who default role1s, whom default
+  // partners, 8 beats). In neither reference: the text is the maintainer's,
+  // from the figure of their own the move was added from, lightly edited by
+  // the author of this entry (spelling, voice, and the closing beat count).
+  'starburst': FigureDefinition(
+    definition:
+        'Weave the line without hands, the trailing dancer overtaking as couples reenter the set.',
+    description:
+        'Like a zig zag with pizazz, tracing the same path on the floor but without taking hands and always facing forward in the direction of travel. Dancers arc around the outside of the set around one or more couples, coming back into the major set and ending on the same side they started. The number after the starburst says how many couples dancers pass as they travel along the outside of the set, and the direction is the overall rotation of the arc they walk on the floor. It usually takes 8 beats.',
+  ),
   // TCB "Slice".
   'slice': FigureDefinition(
     definition:
