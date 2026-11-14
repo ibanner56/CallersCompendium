@@ -88,7 +88,8 @@ void main() {
   });
 
   group('targets and values', () {
-    test('a parameter maps to one of the same kind, never to beats', () {
+    test('a parameter maps to one of the same kind, never to beats (places '
+        'also to a number, below)', () {
       expect(userFigureSwitchTargets(mine.params.first, 'swing', taxonomy), [
         'who',
       ]);
@@ -259,7 +260,7 @@ void main() {
       );
     });
 
-    test('a parameter maps to a target of its kind, and only once', () {
+    test('a parameter maps to a target that can take it, and only once', () {
       expect(
         userFigureSwitchProblems(
           mine,

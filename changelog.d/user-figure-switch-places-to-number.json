@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "changed": [
-      "Switching a figure of your own to the app's figure of the same name can now turn a places parameter into a plain number parameter, which takes every count places can. Your starburst figure, whose count is in places, can now switch to the app's starburst: each dance keeps its count, which reads “around 2” instead of “around 2 places”."
+      "Switching a figure of your own to the app's figure of the same name can now turn a places parameter into a plain number parameter, which takes every count places can. So a starburst figure of your own whose count is in places can now switch to the app's starburst. Each dance keeps its count, and the line then reads as the app's starburst does: “around 2”, with no “places”."
     ]
   },
   "core": {

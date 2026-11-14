@@ -848,7 +848,7 @@ abstract class AppLocalizations {
   /// **'Your {choice} becomes'**
   String userFigureSwitchChoice(String choice);
 
-  /// Shown when one of the user's parameters (#1023) has no parameter in the app's figure that can take all its values (one of the same kind, or a plain number for places), so the switch can't be made; {name} is the app's figure, {param} the user's parameter.
+  /// Shown when one of the user's parameters (#1023) has no parameter in the app's figure it can become (for a choice, none that takes words; for any other kind, none of the same kind that takes all its values, or a plain number for places), so the switch can't be made; {name} is the app's figure, {param} the user's parameter.
   ///
   /// In en, this message translates to:
   /// **'{name} has nothing your {param} can become. Remove it from your figure first, or rename yours instead.'**

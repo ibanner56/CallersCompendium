@@ -2068,8 +2068,9 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
       count places can (`userFigureSwitchTargets`). So a figure of your own
       whose `travel` is `places`, as the maintainer's export declared it, can
       switch its uses to the move; each count is kept, and reads `around 2`
-      where it read `around 2 places`. That widening was added at the
-      maintainer's request in the PR after the one that added the move.
+      where it read `around 2 places`. The maintainer asked for that widening
+      as a follow-up to #2200, which added the move and whose description
+      proposed it.
 
 ## Open questions (to resolve during implementation, with user input)
 

@@ -17,8 +17,10 @@ import 'custom_figure_detail.dart' show compoundParamKindLabel;
 ///
 /// A parameter or value whose name the target shares is chosen to start
 /// with; the rest are left for the user. A parameter the target has nothing
-/// of its kind for can't be mapped, and says so: the user can remove it from
-/// their figure first, or rename theirs instead.
+/// that can take it for ([userFigureSwitchTargets]: one of its kind, a plain
+/// number for places, any word-taking parameter for a choice) can't be
+/// mapped, and says so: the user can remove it from their figure first, or
+/// rename theirs instead.
 class UserFigureSwitchScreen extends StatefulWidget {
   const UserFigureSwitchScreen({
     super.key,
