@@ -134,9 +134,9 @@ These facts were checked against the code on 12 November 2026:
   `DanceForm.ecd`). They hold contra moves too, because there is no ECD
   taxonomy yet.
 - `FormationShape` has no square value.
-- The taxonomy is per-form by design (`Taxonomy.form`). In practice 61
+- The taxonomy is per-form by design (`Taxonomy.form`). In practice 63
   non-test Dart files under `packages/` and `app/` refer to `contraTaxonomy`
-  by name, 56 of them under a `lib/` directory. Some are contra-only by
+  by name, 58 of them under a `lib/` directory. Some are contra-only by
   nature (the ContraDB and Caller's Box importers). The rest handle any dance
   and would need to resolve the taxonomy from the dance (§11).
 - `MoveDef` supports a beat default per move and a `ParamBeats` table that
@@ -197,7 +197,7 @@ nothing was taken.
 ## 5. Design principles
 
 Each principle is a proposal by this ADR's author. None has been decided
-yet.
+yet, except the `sq_` prefix in §5.1, which the maintainer accepted (Q5).
 
 ### 5.1 Squares own their call IDs, and the IDs carry a prefix
 
@@ -300,8 +300,8 @@ every call through Advanced, and singing-call figures must fit 64 beats.
   Thru's entry says "SS odd numbers: add 2 to previous count". ⚠ This ADR
   reads that as: only odd counts add 2 from a static square, so Heads Square
   Thru 4 stays 10. The other reading, that every count adds 2, gives 12
-  (Q9). Because the maintainer is not sure it is exactly either, the
-  default is 10 and both 10 and 12 are in `goodBeats`. The +2 applies only
+  (Q9). The maintainer is not sure it is exactly either, so this ADR
+  proposes a default of 10 with both 10 and 12 in `goodBeats`. The +2 applies only
   to calls defined from facing dancers or facing couples, which is what the
   Convention covers. The app cannot tell where
   the dancers are (§5.4), so the adjustment is driven by an explicit
@@ -431,7 +431,7 @@ defaults to 4).
 | `fullAround` | The "full around" version | yes/no (Shoot the Star) |
 | `onHand` | The hand on which a nested call starts | `2`–`5` (Square Thru) |
 | `fromStaticSquare` | The call starts from a static square (§5.3) | yes/no |
-| `from` | The stated start, where it changes the program (§5.2) | `wave`, `facingCouples`, `line` |
+| `from` | The stated start, where it changes the program (§5.2) | `wave`, `facingCouples`, `line`, `columns` |
 | `call` | One nested call (§5.6) | a figure |
 | `beats` | Beats, as in contra (§5.3) | `0`–`64` |
 
@@ -715,10 +715,11 @@ three forms, and a dropdown beyond that. It is never a two-way switch.
     file, through the existing re-import flow.
 - **The Caller's Box** has some square dances, per the maintainer (Q7).
   Its importer today treats every dance as contra. Phase 3 starts with a
-  survey of how Caller's Box marks a square (its formation list includes
-  "Grid Contra/Square", per
-  [callersbox.md](../research/callersbox.md)) and how its square figure
-  lines read, then routes those dances to the square parser.
+  survey of how Caller's Box marks a square and how its square figure lines
+  read, then routes those dances to the square parser. Its formation list
+  includes "Grid Contra/Square" ([callersbox.md](../research/callersbox.md)),
+  but that may mean grid-formation contras rather than modern western
+  squares, so the survey must not assume it is the marker.
 - Other square sources (for example the output of Sd, or plain-text
   sequences) can follow if callers ask for them.
 
