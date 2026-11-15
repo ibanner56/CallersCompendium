@@ -383,7 +383,10 @@ Rules for the output:
   `check_pr_review_gates.py findings` prints and what the thread-resolution gate
   counts, so a Suspected item's thread must be resolved before the merge gate
   passes (the gate counts only resolved threads, so a reply that dismisses it
-  is not enough on its own). `findings` prints only the first 160 characters of each
+  is not enough on its own). Resolving it is not enough either: the merge gate
+  passes only an `APPROVE`, so an item stays until a later round drops it, and
+  a dispute is settled by your next round re-judging it (step 5), not by the
+  author's reply. `findings` prints only the first 160 characters of each
   comment, newlines collapsed, so start each inline comment with the ID,
   severity and title: `B1 blocker: <title>`, `N2 minor: <title>`,
   `S1 suspected: <title>`; the rest of the comment is that finding's block.

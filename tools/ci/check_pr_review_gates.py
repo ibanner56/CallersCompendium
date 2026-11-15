@@ -11,9 +11,12 @@ hand-rolled versions read as PASS when they should have failed:
                 that ``GET /pulls/<N>/comments``, thread state and the inline
                 comment count are all blind to. Reads every page of review
                 bodies, every round. For a Claude review (the default) it also prints
-                the latest ``## Review verdict:`` line and FAILS on
-                ``BLOCK``: a finding on a line outside the diff exists only in
-                the review body, so no inline comment or thread records it.
+                the latest ``## Review verdict:`` line and FAILS on anything
+                but ``APPROVE``. ``BLOCK`` because a finding on a line outside
+                the diff exists only in the review body, so no inline comment
+                or thread records it; ``APPROVE-WITH-NITS`` because resolving a
+                thread does not clear its item -- only a later round that no
+                longer raises it does.
 ``review``      Review freshness, filtered by *reviewer identity* rather than
                 ``.[-1].commit_id`` -- author replies are recorded as review
                 entries and carry the new head SHA, so the naive read matches
@@ -362,6 +365,24 @@ def gate_findings(
                 summary = (
                     "BLOCK verdict in the latest verdict-bearing review; its "
                     f"findings may be body-only, so read the review body -- {summary}"
+                )
+            elif verdict == "APPROVE-WITH-NITS":
+                # Resolving a thread does not clear its item: on #2196 and
+                # #2192 the author dismissed the reviewer's item, resolved the
+                # thread, and merged. An item clears when a later round no
+                # longer raises it -- after a fix, or after a dispute on its
+                # thread that the reviewer accepts on a re-run.
+                ok = False
+                summary = (
+                    "APPROVE-WITH-NITS verdict in the latest verdict-bearing "
+                    "review; fix each item, or dispute it on its thread and "
+                    f"re-run the review, until a round reads APPROVE -- {summary}"
+                )
+            elif verdict != "APPROVE":
+                ok = False
+                summary = (
+                    f"unrecognised verdict {verdict!r} in the latest "
+                    f"verdict-bearing review; only APPROVE passes -- {summary}"
                 )
     return ok, [summary, *lines]
 

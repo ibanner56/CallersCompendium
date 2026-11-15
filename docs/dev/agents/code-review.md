@@ -138,8 +138,9 @@ so it has no inline comment and no thread, and neither `findings` nor
 `threads` lists it. What `findings --reviewer claude` does read from the body is
 the latest `## Review verdict:` line (entries without one, such as the empty
 review entry a reply to an inline thread records, are skipped): it prints it
-and fails on `BLOCK`, so a body-only blocker cannot pass the gate. Read the body itself for
-the findings. There is no `Suppressed comments` block.
+and fails on anything but `APPROVE`, so neither a body-only blocker nor a nit
+whose thread was resolved without a fix can pass the gate. Read the body itself
+for the findings. There is no `Suppressed comments` block.
 
 Status label: while `review: claude` is on,
 [`claude-review-status.yml`](../../../.github/workflows/claude-review-status.yml)
@@ -206,23 +207,38 @@ What a round is given and asked for:
   code (a value set elsewhere, data in an existing database); they are written as
   "Fails if X", never make the verdict `BLOCK` (they can keep it from being a
   clean `APPROVE`), and want a one-line confirm or dismiss.
-  They are inline comments like any finding, so `gate threads` counts them:
-  reply to confirm or dismiss each, then resolve its thread before merging (the
-  gate counts only resolved threads). `findings` prints the first 160 characters
-  of each comment with newlines collapsed, so the rubric leads each comment with
-  the ID, severity and title. For a Claude review it passes unless the latest
-  verdict is `BLOCK`; for Copilot it is informational and always passes.
+  They are inline comments like any finding, so `gate threads` counts them.
+  `findings` prints the first 160 characters of each comment with newlines
+  collapsed, so the rubric leads each comment with the ID, severity and title.
+  For a Claude review it passes only when the latest verdict is `APPROVE`; for
+  Copilot it is informational and always passes.
   The job cannot run tests or scripts, so it never reports that something is
   merely unverified, and the workflow (not the rubric) leaves out the template's
   "Verification the author still owes" checklist. CI runs the preflight gates,
   its first item, but nothing in CI or the merge gate reads the other two (a new
   guard test proven red before green, docs updated in the PR): those stay the
   author's, and a Claude review does not check them.
+- **A nit blocks the merge until a round drops it.** A minor finding or a
+  Suspected item makes the verdict `APPROVE-WITH-NITS`, and `findings` fails on
+  it. Resolving the thread does not clear the item: on #2196 and #2192 the
+  author replied "Dismissed", resolved the thread and merged, with the verdict
+  still `APPROVE-WITH-NITS` on the merged head. Clear each item one of two ways:
+  - **Fix it.** The push starts a new round, which does not re-raise a finding
+    the head fixed.
+  - **Dispute it**, with evidence on its thread (what you ran or read, not what
+    you assume), then re-run the review on the same head by removing
+    `review: claude` and adding it back. The next round reads the reply and
+    re-judges the item: it drops it, or says what the reply missed. If it keeps
+    an item you still believe is wrong, take it to the maintainer rather than
+    re-running until it goes away.
+
+  Resolve each thread once its item is fixed or dropped; `threads` still
+  requires that.
 - **A `Coverage` section** lists every changed file and the disposition of each
   hazard class. `APPROVE` requires it to be complete, so an `APPROVE` over a
   thin `Coverage` is a reason to distrust the review, not to merge. The merge
-  gate does not read `Coverage`, and reads the verdict only to fail on `BLOCK`:
-  an `APPROVE` or `APPROVE-WITH-NITS` is printed, not trusted, and a PR
+  gate does not read `Coverage`, and reads the verdict only to fail on anything
+  but `APPROVE`: an `APPROVE` is printed, not trusted, and a PR
   where no Claude entry carries a verdict line is printed as such without
   failing, since `claude.yml` also
   posts as `claude[bot]`.

@@ -202,7 +202,7 @@
   description: "Claude review verdict APPROVE: no findings, no suspected items"
 - name: "claude: nits"
   color: "E3B341"
-  description: "Claude review verdict APPROVE-WITH-NITS: non-blocking items remain"
+  description: "Claude review verdict APPROVE-WITH-NITS: minor or suspected items remain; merge gate fails"
 - name: "claude: blocked"
   color: "CF222E"
   description: "Claude review verdict BLOCK: at least one blocker"
