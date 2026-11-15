@@ -141,14 +141,18 @@ void main() {
     }
   });
 
-  test('re-checking an import kept as text reads an M3 line', () {
+  test('re-checking an import kept as text reads an M3 or W4 line', () {
     // The changelog's promise: an earlier import's custom text upgrades.
     final result = reparseImportGapFigures([
+      customFigure('M3 figure eight up', origin: CustomOrigin.importGap),
       customFigure('W4 figure eight up', origin: CustomOrigin.importGap),
     ]);
-    expect(result.upgradedCount, 1);
-    expect(result.figures.single.move, 'figure_8');
-    expect(result.figures.single.params['who'], 'foursRole2');
+    expect(result.upgradedCount, 2);
+    expect([for (final f in result.figures) f.move], ['figure_8', 'figure_8']);
+    expect(
+      [for (final f in result.figures) f.params['who']],
+      ['threesRole1', 'foursRole2'],
+    );
   });
 
   test('they display as the third and fourth couple', () {
