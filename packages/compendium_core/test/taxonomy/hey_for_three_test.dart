@@ -197,6 +197,25 @@ void main() {
       expect(read('Hey for three')?.params, isEmpty);
     });
 
+    test('its name with the numeral, bare or in the display line', () {
+      // Mutation caught: dropping `hey for 3` from the typed phrasings, or
+      // the reader's `hey for 3` retry; either leaves the line custom.
+      for (final line in ['hey for 3', 'Hey for 3.', 'HEY FOR 3']) {
+        expect(read(line)?.params, isEmpty, reason: line);
+      }
+      expect(read('(16) hey for 3')?.params, {'beats': 16});
+      expect(
+        read(
+          'hey for 3 - start with second robin passing first lark by left '
+          'shoulders',
+          Dialect.presets.singleWhere((d) => d.name == 'Larks/Robins'),
+        )?.params,
+        {'who': 'twosRole2', 'whom': 'onesRole1', 'shoulder': 'left'},
+      );
+      // The numeral names only this move: a hey for four is still a hey.
+      expect(parseFreeTextFigureEntry('hey for 4').single.move, 'hey');
+    });
+
     test('under a dialect\'s name for it', () {
       final named = Dialect(name: 'Named', moves: {'hey_for_three': 'Hey 3'});
       final line = renderer.renderSummary(heyForThree(), named);
@@ -228,6 +247,7 @@ void main() {
           'right shoulders';
       expect(parseFigureLinesFanOut(line).single.isCustom, isTrue);
       expect(parseFigureLinesFanOut('hey for three').single.isCustom, isTrue);
+      expect(parseFigureLinesFanOut('hey for 3').single.isCustom, isTrue);
     });
   });
 }

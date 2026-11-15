@@ -998,7 +998,8 @@ Figure? _displayedStarburst(
 }
 
 /// A hey for three as the app displays one (taxonomy v39), read only here
-/// ([readDisplayedHeyForThree] says why), under its own name or [dialect]'s
+/// ([readDisplayedHeyForThree] says why), under its own name, that name with
+/// the numeral (`hey for 3`, as a caller types the bare name), or [dialect]'s
 /// name for it, which the display writes in its place. A figure [taxonomy]
 /// rejects is a miss.
 Figure? _displayedHeyForThree(
@@ -1010,6 +1011,7 @@ Figure? _displayedHeyForThree(
   final dialectName = dialect?.moves['hey_for_three'];
   final match =
       readDisplayedHeyForThree(text) ??
+      readDisplayedHeyForThree(text, name: 'hey for 3') ??
       (dialectName == null || dialectName.contains('%')
           ? null
           : readDisplayedHeyForThree(
