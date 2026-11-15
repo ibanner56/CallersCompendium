@@ -1,0 +1,24 @@
+{
+  "id": "hey-for-three-figure",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "A new figure, hey for three: three dancers weave past one another along a figure-eight path. It takes the same choices as the dolphin hey and reads like it, “hey for three - start with second robin passing first lark by right shoulders”, in your own role words, except that the dancer who starts is one dancer, chosen from the same list as the dancer they pass. Typing that line, or just “hey for three”, into the dance editor reads it as the figure."
+    ],
+    "changed": [
+      "If you made a figure of your own called hey for three, its Glossary page now offers to rename it or switch its uses to the app's figure, as for any built-in figure that shares a name with one of yours. Nothing switches until you choose to."
+    ],
+    "data_migrations": [
+      "Taxonomy 39: no migration and no index rebuild for this figure. Devices still on 0.9.x show a hey for three by its internal name, as they do any figure added since."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add the `hey_for_three` move (taxonomy v39): the `dolphin_hey` params, template, beats (default 16, `goodBeats` `[16]`) and display wording, except that `who` takes only `ParamVocab.singleDancers`, as `whom` does, defaulting to `twosRole2`. Canonical text is `<who> hey for three <shoulder>`, with a glossary definition.",
+      "Add `readDisplayedHeyForThree`, which free-text entry alone calls to read a hey for three's display line back; no import grammar reads it."
+    ],
+    "changed": [
+      "The ContraDB advanced filter refuses a `hey_for_three` leaf: ContraDB has no such figure."
+    ]
+  }
+}

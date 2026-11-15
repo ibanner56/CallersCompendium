@@ -1656,6 +1656,33 @@ final Taxonomy contraTaxonomy = Taxonomy(
       renderTemplate: '{who} {move} {shoulder}',
       goodBeats: [16],
     ),
+    // v39: a hey for three, added at the maintainer's request with
+    // `dolphin_hey`'s params, beats and wording, except that `who` (the dancer
+    // who starts) is one dancer, offering the single-dancer list `whom` offers,
+    // where `dolphin_hey.who` takes any dancers. Its default is the author's:
+    // `dolphin_hey`'s `ones` is not one dancer, so `who` takes `twosRole2`,
+    // keeping `whom`'s default and so not starting the hey by passing
+    // themselves. Not in ContraDB or The Caller's Box's grammar.
+    const MoveDef(
+      id: 'hey_for_three',
+      displayName: 'hey for three',
+      params: {
+        'who': ParamSpec(
+          ParamKind.dancerSet,
+          defaultValue: 'twosRole2',
+          choices: _singleDancers,
+        ),
+        'whom': ParamSpec(
+          ParamKind.dancerSet,
+          defaultValue: 'onesRole1',
+          choices: _singleDancers,
+        ),
+        'shoulder': ParamSpec(ParamKind.shoulder, defaultValue: 'right'),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 16),
+      },
+      renderTemplate: '{who} {move} {shoulder}',
+      goodBeats: [16],
+    ),
     const MoveDef(
       id: 'form_long_waves',
       displayName: 'form long waves',

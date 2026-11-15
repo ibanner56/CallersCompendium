@@ -388,6 +388,7 @@ void main() {
         'turn_as_couples',
         'orbit',
         'circular_hey',
+        'hey_for_three',
         'starburst',
         // ContraDB has long lines only; `long_lines` (its alias) maps to it.
         'forward_and_back',
@@ -540,6 +541,7 @@ void main() {
         'custom',
         'form_short_waves',
         'forward_and_back',
+        'hey_for_three',
         'meltdown_swing',
         'orbit',
         'pass_the_ocean',

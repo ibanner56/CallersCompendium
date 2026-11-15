@@ -1052,6 +1052,36 @@ FigureMatch? readDisplayedStarburst(String text, {String name = 'starburst'}) {
   );
 }
 
+/// A hey for three in the app's display wording (taxonomy v39), the dolphin
+/// hey's with a single dancer starting: "hey for three - start with WHO
+/// passing WHOM by SIDE shoulders", where WHO and WHOM are single dancers
+/// ("second role2", as [_singleDancer] reads one). No source's grammar reads
+/// this figure, so only free-text entry calls it (`parseFreeTextFigureEntry`),
+/// so a figure the app displays reads back, and no import's grammar changes.
+/// Every slot is required and only the whole line is read: a line that leaves
+/// one out is not this display, and stays as typed.
+///
+/// [name] is the move's name as the line writes it: `hey for three`, or a
+/// dialect's name for it, lowercase and single-spaced.
+FigureMatch? readDisplayedHeyForThree(
+  String text, {
+  String name = 'hey for three',
+}) {
+  final s = _Scan(text);
+  if (name.isEmpty || !s.eatPhrase(name)) return null;
+  if (!s.eat('-') || !s.eatPhrase('start with')) return null;
+  final who = _singleDancer(s);
+  if (who == null || !s.eat('passing')) return null;
+  final whom = _singleDancer(s);
+  if (whom == null || !s.eat('by')) return null;
+  final shoulder = _shoulderPhrase(s);
+  if (shoulder == null || s.peek() != null) return null;
+  return FigureMatch(
+    'hey_for_three',
+    params: {'who': who, 'whom': whom, 'shoulder': shoulder},
+  );
+}
+
 /// A set-relative facing as the app's display words it, one of
 /// [displayFacingPhrases] (#2121).
 String? _displayFacing(_Scan s) {
