@@ -413,6 +413,16 @@ const Map<String, FigureDefinition> contraFigureDefinitions = {
     description:
         'The pair trades places each time it loops around an end: the front dancer swings wide and the one behind cuts inside to take the front. It is usually danced across the set, starting with the couple in the middle. The figure names who starts it and by which shoulder. A full dolphin hey usually takes 16 beats.',
   ),
+  // contra_taxonomy.dart `hey_for_three` (taxonomy v39; who and whom single
+  // dancers, shoulder default right, 16 beats). Neither reference was
+  // consulted for this entry: the text is the author's, describing the figure
+  // the app models, and the beat count is the taxonomy's default.
+  'hey_for_three': FigureDefinition(
+    definition:
+        'Three dancers weave past one another along a figure-eight path, alternating shoulders.',
+    description:
+        'The dancer who starts passes the named dancer by the named shoulder, then each dancer passes the next by the other shoulder, looping around the ends until all three are home. The figure names who starts it, whom they pass first, and by which shoulder. A full hey for three usually takes 16 beats.',
+  ),
   // TCB "Long wave", "Balance wave".
   'form_long_waves': FigureDefinition(
     definition:

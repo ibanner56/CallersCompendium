@@ -1189,6 +1189,7 @@ class FigureRenderer {
       'form_short_waves': 'forming short waves',
       'give_and_take': 'giving and taking',
       'hey': 'doing a hey',
+      'hey_for_three': 'doing a hey for three',
       'lead_up_the_center': 'leading up the center',
       'long_lines': 'forming long lines',
       'forward_and_back': 'going forward and back',
@@ -3488,6 +3489,24 @@ class FigureRenderer {
     'dolphin_hey': (r, def, params, dialect, verbose, decimals) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
       final swho = r._displaySubject(params['who'], dialect);
+      final swhom = r._singleDancerLabel(params['whom'], dialect);
+      final sh = params['shoulder'];
+      final shoulder = sh == null
+          ? ''
+          : '${_humanize(sh.toString())} shoulders';
+      return _displayTemplate({
+        'move': move,
+        'who': swho,
+        'whom': swhom,
+        'shoulder': shoulder,
+      }, '{move} - start with {who} passing {whom} by {shoulder}');
+    },
+    // `dolphin_hey`'s wording (taxonomy v39), with `who` a single dancer too:
+    // "hey for three - start with second robin passing first lark by right
+    // shoulders". Both dancers render via [_singleDancerLabel].
+    'hey_for_three': (r, def, params, dialect, verbose, decimals) {
+      final move = r._renderMoveName(def.id, def.displayName, params, dialect);
+      final swho = r._singleDancerLabel(params['who'], dialect);
       final swhom = r._singleDancerLabel(params['whom'], dialect);
       final sh = params['shoulder'];
       final shoulder = sh == null

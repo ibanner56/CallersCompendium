@@ -105,7 +105,7 @@ dolphin hey · down the hall · up the hall · facing star · figure 8 ·
 form long wave / ocean wave / long waves · forward and back (alias: long
 lines; v39, formations beyond ContraDB) · gate · give & take ·
 **shoulder round** (was gyre/gypsy; keyword-searchable under old names) ·
-hey · mad robin · orbit · pass by · pass through · petronella ·
+hey · hey for three (v39, not in ContraDB) · mad robin · orbit · pass by · pass through · petronella ·
 poussette · promenade · pull by (dancers/direction) · revolving door ·
 right left through · roll away · Rory O'More · slice · slide along set ·
 square through · stand still · star · starburst (v39, not in ContraDB) ·
@@ -123,9 +123,9 @@ courtesy turn as an unparameterized sub-component of `chain` and `right left
 through`), while The Caller's Box writes one as its own figure line 115 times in
 the 24,107-dance corpus. Such a move is added only with a corpus census behind
 each of its params; see the version history below. A move added at a user's
-request instead (`circular_hey`, v36; `trade_the_wave` and `starburst`, v39) is
-defined by that request, which its version-history entry records, and an
-importer reads it only where a census supports doing so.
+request instead (`circular_hey`, v36; `trade_the_wave`, `starburst` and
+`hey_for_three`, v39) is defined by that request, which its version-history
+entry records, and an importer reads it only where a census supports doing so.
 
 ## Implementation status (v0.1 engine, roadmap 2.4)
 
@@ -2111,6 +2111,40 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
       the param's default when the figure is opened (for a param whose
       default is `unspecified`, such as `gate.who`, "not stated"), so editing
       such a figure there loses it, as v37 did for v38's corners.
+  - v39 also adds `hey_for_three`. The maintainer asked for it in the session
+    that wrote this: "matching the parameters and display text for 'dolphin
+    hey' except that the 'who' param matches the specific dancers list used
+    for 'whom' rather than including all dancer options". The PR that adds it
+    records the request.
+    - Params: the dolphin hey's, in its order: `who`, `whom`, `shoulder`
+      (default `right`) and `beats` (default 16, `goodBeats` `[16]`), with
+      its canonical template `{who} {move} {shoulder}` and no search keyword.
+      `who`, the dancer who starts, takes `ParamVocab.singleDancers`, as
+      `whom` (default `onesRole1`) does, where `dolphin_hey.who` takes any
+      dancers. Its default, `twosRole2`, is the author's call: the dolphin
+      hey's `ones` is not one dancer, and `onesRole1` would start the hey
+      passing themselves under `whom`'s default, so `whom` keeps the dolphin
+      hey's default and `who` takes the other couple's role2.
+    - Wording: the dolphin hey's display under the move's own name: `hey for
+      three - start with second robin passing first lark by right
+      shoulders`. Both dancers render as single dancers, in the dialect's
+      words. As a modifier side it reads `doing a hey for three`. The
+      glossary text is the author's; no reference was consulted.
+    - Reading: free-text entry reads the bare name and the whole display
+      line back (`readDisplayedHeyForThree`, called only by free-text entry,
+      as starburst's reader is), under its own name or a dialect's name for
+      it, reading role words by the dialect. No importer reads it, so imports
+      are unchanged: ContraDB has no such figure, and its advanced filter
+      refuses a `hey_for_three` leaf. The Caller's Box corpus has one line
+      for it (`Hey for 3 along set (N1 pass R, N2 L-sh, …)`), which states a
+      direction and a four-pass list the move has no slots for; it stays
+      custom text.
+    - Migration: none, and no rebuild: no stored figure can reference a move
+      that did not exist. A v38 build displays a `hey_for_three` by its raw
+      id, as it does every added move. A figure of your own named hey for
+      three now shares a shipped figure's name, which the app reports as it
+      does any such collision (#1023), offering to switch its uses to the
+      move.
 
 ## Open questions (to resolve during implementation, with user input)
 
