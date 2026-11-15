@@ -713,8 +713,8 @@ three forms, and a dropdown beyond that. It is never a two-way switch.
     square calls, re-reads custom lines with the square parser, and leaves
     anything else as it is. The caller can also re-import from the original
     file, through the existing re-import flow.
-- **The Caller's Box** has some square dances, per the maintainer (Q7).
-  Its importer today treats every dance as contra. Phase 3 starts with a
+- **The Caller's Box** may have some square dances: the maintainer believes
+  it does (Q7), and the phase-3 survey confirms it first. Its importer today treats every dance as contra. Phase 3 starts with a
   survey of how Caller's Box marks a square and how its square figure lines
   read, then routes those dances to the square parser. Its formation list
   includes "Grid Contra/Square" ([callersbox.md](../research/callersbox.md)),
@@ -773,8 +773,9 @@ saved as separate records, and ideally the editor can put a break into
 another dance; it is acceptable if that is not doable.* §8.1 proposes a
 copy-in.
 
-**Q7. Import sources.** *Answered by the maintainer (15 November 2026): The
-Caller's Box has some squares.* §8.4 adds it to phase 3.
+**Q7. Import sources.** *The maintainer believes The Caller's Box has some
+squares (15 November 2026).* §8.4 adds it to phase 3, which first surveys
+Caller's Box to confirm it.
 
 **Q8. Allemande.** Keep `allemande` separate from `arm_turn` (§7.1), or make
 Allemande Left an alias of a left arm turn with the corner?
