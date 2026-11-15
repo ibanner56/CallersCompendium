@@ -3,7 +3,7 @@
 #
 #   claude: reviewing  gray    a round is requested or running on the current head
 #   claude: approved   green   verdict APPROVE (no findings, no Suspected items)
-#   claude: nits       yellow  verdict APPROVE-WITH-NITS (non-blocking items remain)
+#   claude: nits       yellow  verdict APPROVE-WITH-NITS (minor or suspected items remain)
 #   claude: blocked    red     verdict BLOCK
 #
 # Only a true APPROVE is green. The verdict is the first line of the review body

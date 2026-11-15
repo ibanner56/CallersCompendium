@@ -28,11 +28,13 @@ reasoning below when a gate fails, or when you are checking by hand.
   If `hasNextPage` is true (or `totalCount` exceeds the nodes returned), fetch
   the rest with `after: "<endCursor>"` before concluding anything.
 
-- **No `BLOCK` verdict in the latest Claude review.** Only when Claude is the
-  reviewer (the default). A blocker on a line outside the diff exists in
-  the review body only, so no inline comment or thread records it and the other
-  gates pass. `findings` prints the latest `## Review verdict:` line and fails on
-  `BLOCK`. Details:
+- **The latest Claude review reads `APPROVE`.** Only when Claude is the
+  reviewer (the default). `findings` prints the latest `## Review verdict:`
+  line and fails on anything else. On `BLOCK` because a blocker on a line
+  outside the diff exists in the review body only, so no inline comment or
+  thread records it and the other gates pass. On `APPROVE-WITH-NITS` because a
+  resolved thread is not a cleared item: fix each item, or dispute it and
+  re-run the review so the next round re-judges it. Details:
   [code-review.md](code-review.md#requesting-a-claude-review).
 
 - **CI green on the commit being merged.** Re-check after any push; a green run
@@ -95,7 +97,7 @@ Turning auto-merge on is a merge that waits for one thing: GitHub merges when
 the `official` ruleset is satisfied. That ruleset requires only `Merge gate`,
 and `Merge gate` reads CI job results only (its `needs` in
 [`ci.yml`](../../../.github/workflows/ci.yml)). It does not wait for a review of
-the current head, for open threads, or for a `BLOCK` verdict.
+the current head, for open threads, or for an `APPROVE` verdict.
 [`.claude/settings.json`](../../../.claude/settings.json) lets Claude Code
 sessions enable auto-merge without a prompt, so the gates have to be cleared
 before you enable it, not after:
