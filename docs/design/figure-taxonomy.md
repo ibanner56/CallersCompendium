@@ -2133,7 +2133,9 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
     - Reading: free-text entry reads the bare name and the whole display
       line back (`readDisplayedHeyForThree`, called only by free-text entry,
       as starburst's reader is), under its own name or a dialect's name for
-      it, reading role words by the dialect. No importer reads it, so imports
+      it, reading role words by the dialect. It also reads the name with the
+      numeral, `hey for 3`, alone (a typed phrasing, as `hey for 4` is the
+      hey's) or opening the display line; no importer reads either. No importer reads it, so imports
       are unchanged: ContraDB has no such figure, and its advanced filter
       refuses a `hey_for_three` leaf. The figure-text corpus fixture has one
       line for it, from a beta tester's Caller's Companion library (`Hey for
