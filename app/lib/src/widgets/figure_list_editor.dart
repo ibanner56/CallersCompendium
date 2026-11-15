@@ -16,6 +16,7 @@ import '../editor/user_figure_draft.dart';
 import '../glossary/custom_figures.dart';
 import '../search/facet_labels.dart';
 import 'compound_argument_editor.dart';
+import 'container_title_length_limit.dart';
 import 'figure_param_editors.dart';
 import 'import_gap_badge.dart';
 import 'lingo_text_editing_controller.dart';
@@ -2994,6 +2995,22 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                   ],
                 ),
                 const SizedBox(height: 8),
+                // The group's optional name, shown before its figures
+                // ("flutterwheel - …"). Offered for every kind and at every
+                // level, since a nested group is built here too.
+                _ContainerTitleField(
+                  fieldKey: '$keyPrefix-container-title',
+                  value: draft.containerTitle,
+                  // Measured as Save stores it: role words canonicalized in
+                  // this dialect, as the dance editor's Save does.
+                  measure: (text) =>
+                      canonicalizeText(text.trim(), widget.dialect).length,
+                  onChanged: (text) {
+                    draft.containerTitle = text;
+                    widget.onChanged();
+                  },
+                ),
+                const SizedBox(height: 8),
                 if (isSequence) ...[
                   // A sequence's count is its steps' counts added up: each
                   // step edits its own, so there is no field here to edit.
@@ -4689,6 +4706,72 @@ class _SnippetFieldState extends State<_SnippetField> {
           onChanged: widget.onChanged,
         ),
       ],
+    );
+  }
+}
+
+/// The optional title of a meanwhile, modifier or sequence group: one line,
+/// held by [ContainerTitleLengthLimit] to what the model stores
+/// ([kMaxContainerTitleLength] UTF-16 code units after Save's role-word
+/// canonicalization, which [measure] computes), so Save never cuts what the
+/// field shows. Blank means no title.
+class _ContainerTitleField extends StatefulWidget {
+  const _ContainerTitleField({
+    required this.fieldKey,
+    required this.value,
+    required this.measure,
+    required this.onChanged,
+  });
+
+  final String fieldKey;
+  final String value;
+  final int Function(String text) measure;
+  final ValueChanged<String> onChanged;
+
+  @override
+  State<_ContainerTitleField> createState() => _ContainerTitleFieldState();
+}
+
+class _ContainerTitleFieldState extends State<_ContainerTitleField> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.value);
+  }
+
+  @override
+  void didUpdateWidget(_ContainerTitleField old) {
+    super.didUpdateWidget(old);
+    if (widget.value != old.value && _controller.text != widget.value) {
+      _controller.text = widget.value;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return TextField(
+      key: ValueKey(widget.fieldKey),
+      controller: _controller,
+      maxLines: 1,
+      inputFormatters: [ContainerTitleLengthLimit(measure: widget.measure)],
+      textInputAction: TextInputAction.done,
+      decoration: InputDecoration(
+        labelText: l10n.danceEditorGroupTitleLabel,
+        helperText: l10n.danceEditorGroupTitleHelper,
+        helperMaxLines: 3,
+        isDense: true,
+        border: const OutlineInputBorder(),
+      ),
+      onChanged: widget.onChanged,
     );
   }
 }

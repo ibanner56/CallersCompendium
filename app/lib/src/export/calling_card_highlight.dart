@@ -17,12 +17,13 @@ typedef CallingCardSpan = ({String text, CallingCardSpanKind kind});
 /// text prints plain, since a word such as "lead" or "once" there is not
 /// reliably a dancer or an amount. That is a figure written as free text (a
 /// custom figure, which is also how the user's own figures are stored), one
-/// with its wording overridden, and a container (meanwhile, modifier,
-/// sequence) any of whose figures is either, or has a note, which its line
-/// shows in parentheses.
+/// with its wording overridden, a container (meanwhile, modifier, sequence)
+/// with a title, which opens its line, and a container any of whose figures
+/// is any of these, or has a note, which its line shows in parentheses.
 bool callingCardHighlights(Figure figure) {
   if (figure.move == customMove) return false;
   if (figure.wordingOverride?.trim().isNotEmpty ?? false) return false;
+  if (figure.containerTitle != null) return false;
   for (final inner in figure.subFigures) {
     if (inner.note?.trim().isNotEmpty ?? false) return false;
     if (!callingCardHighlights(inner)) return false;

@@ -204,6 +204,30 @@ void main() {
         ),
         isFalse,
       );
+      // A titled container: the title opens its line, in the user's words.
+      // A nested titled group counts the same as a top-level one.
+      final ownWords = [
+        Figure(move: 'swing', params: const {'who': 'partners'}),
+        Figure(move: 'balance', params: const {'who': 'neighbors'}),
+      ];
+      expect(
+        callingCardHighlights(
+          Figure.sequence(figures: ownWords, beats: 8, title: 'lead once'),
+        ),
+        isFalse,
+      );
+      expect(
+        callingCardHighlights(
+          Figure.meanwhile(
+            figures: [
+              Figure.sequence(figures: ownWords, beats: 8, title: 'lead once'),
+              Figure(move: 'swing', params: const {'who': 'partners'}),
+            ],
+            beats: 8,
+          ),
+        ),
+        isFalse,
+      );
       // A container of the app's own wording is highlighted.
       expect(
         callingCardHighlights(

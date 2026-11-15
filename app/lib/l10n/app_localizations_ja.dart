@@ -7982,6 +7982,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorAddWordingOverride => 'このダンスの呼び方をカスタマイズ';
 
   @override
+  String get danceEditorGroupTitleLabel => 'グループ名（任意）';
+
+  @override
+  String get danceEditorGroupTitleHelper =>
+      'グループ全体の名前（例：Flutterwheel）。グループのフィギュアの前に表示され、そのあとにダッシュが続きます。';
+
+  @override
   String get danceEditorWordingOverrideLabel => 'このダンスでのフィギュアの呼び方';
 
   @override

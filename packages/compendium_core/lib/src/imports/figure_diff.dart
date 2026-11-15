@@ -51,7 +51,8 @@ const int kMaxFigureDiffLines = 200;
 /// other-kind nested level) folds its ordered child keys into one composite
 /// key. The container remains a single flat-list element, so this yields one
 /// key per list position, matching [diffFigures]' one-key-per-figure sequence
-/// model. A custom/free-text figure ([Figure.isCustom]) has no taxonomy
+/// model. (The list comparisons expand a TOP-LEVEL sequence into its steps
+/// before keying, so its composite key is used only for a nested one.) A custom/free-text figure ([Figure.isCustom]) has no taxonomy
 /// identity, so it keys on its own line text (`params['text']`), trimmed and
 /// with internal whitespace collapsed — there is no structure to hide
 /// dialect noise behind, so the text itself (once trivial formatting noise is
@@ -78,6 +79,13 @@ const int kMaxFigureDiffLines = 200;
 /// dance, not a different one — notation/bookkeeping, not choreography). This
 /// is an intentional, owner-approved consequence: it is what keeps timing- or
 /// progression-only edits from ever surfacing #686's "Variation?" prompt.
+///
+/// A container's [Figure.containerTitle] is also left out. That is not part
+/// of #686, which predates titles: the change that added titles decided it,
+/// because a title names a group as a note annotates a figure, and a renamed
+/// group is the same choreography. Keying on it was rejected because it
+/// would make a title-only edit read as a variation, the case #686 exists to
+/// avoid. A container keys on its kind and its children alone.
 ///
 /// This is a **different, narrower-scoped-on-params-but-broader-on-set**
 /// key than `figureSnippetSignature` (#411's walkthrough-snippet-library key):
@@ -228,12 +236,39 @@ class FigureDiffResult {
 
 const ListEquality<String> _stringListEquality = ListEquality<String>();
 
+/// [figures] as two dances' figure lists are compared: a top-level
+/// `sequence` stands as its steps, in order, where the same figures written
+/// in separate rows would. Grouping figures into a sequence ("balance and
+/// swing" kept as one line), or naming the group, therefore never makes two
+/// dances differ, as it never changes what search finds either (the search
+/// indexer gives a top-level sequence's steps groups of their own).
+///
+/// This is the maintainer's decision, made with container titles and
+/// recorded in the description of the pull request that added them: The
+/// Caller's Box importer began reading a named compound as one titled
+/// sequence, and without it a copy of that dance matched only by title and
+/// author (from another source, or entered by hand, its compound as separate
+/// rows) stopped counting as identical, so an unattended program import saved
+/// a duplicate "variation" instead of reusing it. (A re-import from the same
+/// source is matched by source and id and never reaches this comparison.) Only a TOP-LEVEL sequence is expanded: one nested in a
+/// meanwhile or modifier is concurrent with the other side and keeps its
+/// composite key ([figureCanonicalKey]), as the search indexer keeps it in
+/// its parent's group.
+List<Figure> _comparableFigures(List<Figure> figures) => [
+  for (final figure in figures)
+    if (figure.isSequence && figure.subFigures.isNotEmpty)
+      ...figure.subFigures
+    else
+      figure,
+];
+
 /// Cheap identical/differ check (issue #686): compares [oldFigures] and
 /// [newFigures] via [figureCanonicalKey] alone — an `O(n)` key computation
 /// plus a list-equality check, with **no** `O(n·m)` LCS pass and no
 /// rendering. Canonicalization-aware in exactly the same way [diffFigures]
 /// is (dialect wording, `beats`, and progression never count as a
-/// difference) since it uses the same per-figure key.
+/// difference) since it uses the same per-figure key, and like it compares a
+/// top-level sequence as its steps ([_comparableFigures]).
 ///
 /// Non-interactive callers that only need to decide skip-vs-auto-import
 /// (issue #686's program-import resolver) and never inspect
@@ -246,6 +281,8 @@ bool figuresCanonicallyIdentical({
   required List<Figure> newFigures,
   required Taxonomy taxonomy,
 }) {
+  oldFigures = _comparableFigures(oldFigures);
+  newFigures = _comparableFigures(newFigures);
   final oldKeys = [for (final f in oldFigures) figureCanonicalKey(f, taxonomy)];
   final newKeys = [for (final f in newFigures) figureCanonicalKey(f, taxonomy)];
   return _stringListEquality.equals(oldKeys, newKeys);
@@ -260,7 +297,10 @@ bool figuresCanonicallyIdentical({
 /// differently under different dialects, or differ only in `beats`/
 /// progression/note/etc (see [figureCanonicalKey]), compare as the identical
 /// figure — a reader on a different dialect never sees a phantom
-/// "variation". [renderer] + [dialect] only control the *display* text of
+/// "variation". A top-level sequence is compared as its steps
+/// ([_comparableFigures]), so a dance that only groups figures differently is
+/// identical, and a changed line inside a sequence is shown as that step,
+/// under the section the step starts in. [renderer] + [dialect] only control the *display* text of
 /// [FigureDiffEntry.displayText]; they never affect [FigureDiffResult.identical]
 /// or which lines are added/removed. The text is [FigureRenderer.renderSummary]
 /// (or its canonical-discouraged-terms variant, when
@@ -294,6 +334,9 @@ FigureDiffResult diffFigures({
           decimals: decimals,
         )
       : renderer.renderSummary(figure, dialect, decimals: decimals);
+  // A top-level sequence is compared, and shown, as its steps.
+  oldFigures = _comparableFigures(oldFigures);
+  newFigures = _comparableFigures(newFigures);
   final oldKeys = [for (final f in oldFigures) figureCanonicalKey(f, taxonomy)];
   final newKeys = [for (final f in newFigures) figureCanonicalKey(f, taxonomy)];
 

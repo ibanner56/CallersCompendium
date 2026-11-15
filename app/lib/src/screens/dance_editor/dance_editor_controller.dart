@@ -109,7 +109,8 @@ class DanceEditorController extends ChangeNotifier {
   String _canonicalizeNote(String typed) =>
       canonicalizeText(typed.trim(), _activeDialect);
 
-  /// Renders every [FigureDraft.note] (and custom figures' `params['text']`) in [drafts] (recursing into structural
+  /// Renders every [FigureDraft.note] (and custom figures' `params['text']`,
+  /// and groups' [FigureDraft.containerTitle]) in [drafts] (recursing into structural
   /// container children) from canonical storage into the active
   /// dialect via [_renderNote], so `draft.note` holds active-dialect text while
   /// being edited. Called once, right after each site that seeds `figureDrafts`
@@ -128,13 +129,18 @@ class DanceEditorController extends ChangeNotifier {
           !isUserFigureDraft(draft)) {
         draft.params['text'] = _renderNote(text);
       }
+      // A group's title is saved through the same chokepoint as a note, so it
+      // is shown back in the active dialect the same way.
+      if (draft.isContainerDraft && draft.containerTitle.isNotEmpty) {
+        draft.containerTitle = _renderNote(draft.containerTitle);
+      }
       if (draft.containerChildren case final children?) {
         _renderDraftTextRecursively(children);
       }
     }
   }
 
-  /// [drafts] with their note and custom-figure text rewritten from [from]
+  /// [drafts] with their note, custom-figure text and group title rewritten from [from]
   /// into [to], the same text [_renderDraftTextRecursively] renders and Save
   /// canonicalizes (AUTH-17). Canonicalizing against the dialect the text was
   /// written in, rather than the one active at Save, is what keeps a custom
@@ -156,6 +162,9 @@ class DanceEditorController extends ChangeNotifier {
             text.isNotEmpty &&
             !isUserFigureDraft(draft)) {
           draft.params['text'] = convert(text);
+        }
+        if (draft.isContainerDraft && draft.containerTitle.isNotEmpty) {
+          draft.containerTitle = convert(draft.containerTitle);
         }
         if (draft.containerChildren case final children?) {
           convertAll(children);
@@ -606,7 +615,9 @@ class DanceEditorController extends ChangeNotifier {
     for (var i = 0; i < a.length; i++) {
       final x = a[i];
       final y = b[i];
-      if (x.note != y.note || x.params['text'] != y.params['text']) {
+      if (x.note != y.note ||
+          x.params['text'] != y.params['text'] ||
+          x.params[containerTitleKey] != y.params[containerTitleKey]) {
         return false;
       }
       if (!_sameDraftText(

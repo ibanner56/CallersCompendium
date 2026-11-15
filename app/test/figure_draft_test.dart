@@ -467,4 +467,68 @@ void main() {
       expect(FigureDraft.fromFigure(original).toFigure(), original);
     });
   });
+
+  group('FigureDraft container title', () {
+    FigureDraft sequence() => FigureDraft(
+      sequenceFigures: [
+        FigureDraft(move: 'balance', params: {'who': 'partners', 'beats': 4}),
+        FigureDraft(move: 'swing', params: {'who': 'partners', 'beats': 12}),
+      ],
+    );
+
+    test('round-trips through fromFigure and toFigure, nested included', () {
+      final inner = Figure.sequence(
+        figures: [
+          Figure(move: 'balance', params: const {'beats': 4}),
+          Figure(move: 'swing', params: const {'beats': 4}),
+        ],
+        beats: 8,
+        title: 'Balance and swing',
+      );
+      final figure = Figure.meanwhile(
+        figures: [
+          inner,
+          Figure(move: 'swing'),
+        ],
+        beats: 8,
+        title: 'Both at once',
+      );
+      final draft = FigureDraft.fromFigure(figure);
+      expect(draft.containerTitle, 'Both at once');
+      expect(
+        draft.containerChildren!.first.containerTitle,
+        'Balance and swing',
+      );
+      final rebuilt = draft.toFigure()!;
+      expect(rebuilt.containerTitle, 'Both at once');
+      expect(rebuilt.subFigures.first.containerTitle, 'Balance and swing');
+    });
+
+    test('a blank title removes it, and an untitled group stores no key', () {
+      final draft = sequence()..containerTitle = 'Name';
+      expect(draft.toFigure()!.containerTitle, 'Name');
+      draft.containerTitle = '   ';
+      expect(draft.params.containsKey(containerTitleKey), isFalse);
+      expect(draft.toFigure()!.params.containsKey(containerTitleKey), isFalse);
+    });
+
+    test('saves the title through the note canonicalizer, then normalized', () {
+      final draft = sequence()..containerTitle = '  larks\nbalance  ';
+      final built = draft.toFigure(
+        canonicalizeNote: (text) => text.trim().replaceAll('larks', 'role1s'),
+      )!;
+      expect(built.containerTitle, 'role1s balance');
+    });
+
+    test('survives a clone', () {
+      final draft = sequence()..containerTitle = 'Name';
+      expect(draft.clone().containerTitle, 'Name');
+    });
+
+    test('a non-string title from a damaged draft reads as none', () {
+      final draft = sequence()..params[containerTitleKey] = 7;
+      expect(draft.containerTitle, '');
+      expect(draft.toFigure()!.containerTitle, isNull);
+    });
+  });
 }

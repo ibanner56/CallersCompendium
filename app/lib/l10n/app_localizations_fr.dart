@@ -8436,6 +8436,13 @@ class AppLocalizationsFr extends AppLocalizations {
       'Personnaliser la formulation de cette danse';
 
   @override
+  String get danceEditorGroupTitleLabel => 'Titre du groupe (facultatif)';
+
+  @override
+  String get danceEditorGroupTitleHelper =>
+      'Un nom pour l\'ensemble du groupe, par exemple Flutterwheel. Il s\'affiche avant les figures du groupe, suivi d\'un tiret.';
+
+  @override
   String get danceEditorWordingOverrideLabel =>
       'Formulation de la figure pour cette danse';
 

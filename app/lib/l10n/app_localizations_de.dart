@@ -8421,6 +8421,13 @@ class AppLocalizationsDe extends AppLocalizations {
       'Wortlaut für diesen Tanz anpassen';
 
   @override
+  String get danceEditorGroupTitleLabel => 'Gruppentitel (optional)';
+
+  @override
+  String get danceEditorGroupTitleHelper =>
+      'Ein Name für die ganze Gruppe, etwa Flutterwheel. Er steht vor den Figuren der Gruppe, gefolgt von einem Gedankenstrich.';
+
+  @override
   String get danceEditorWordingOverrideLabel =>
       'Figurenwortlaut für diesen Tanz';
 
