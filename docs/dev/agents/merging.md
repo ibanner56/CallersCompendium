@@ -104,11 +104,14 @@ before you enable it, not after:
   every gate except `ci` passes:
 
   ```sh
-  for g in findings review threads; do python3 tools/ci/check_pr_review_gates.py $g <PR>; done
+  python3 tools/ci/check_pr_review_gates.py findings <PR> &&
+  python3 tools/ci/check_pr_review_gates.py review <PR> &&
+  python3 tools/ci/check_pr_review_gates.py threads <PR> &&
   python3 tools/ci/check_pr_review_gates.py closes <PR> --closes <ISSUE>...
   ```
 
-  `ci` is the gate auto-merge waits on.
+  The chain stops at the first `FAIL` or `SKIP`, so its exit status is `0`
+  only when all four pass. `ci` is the gate auto-merge waits on.
 - **After any push, disable auto-merge first**, then clear the gates again on
   the new head. Otherwise the PR can merge as soon as CI on the new head goes
   green, before that head has been reviewed.
