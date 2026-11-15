@@ -313,3 +313,53 @@ process that holds it may be killed without warning by the very reaper this
 prevents, and the OS then drops the lock with no PID file to go stale.
 
 Rule: [verification.md](verification.md#one-full-preflight-per-change-run-by-the-session-that-owns-the-change).
+
+## #1314: a squashed sync pinned the merge base
+
+`athenaeum` was then a long-lived branch synced with `main` in both directions.
+A squash rewrites the merge into a single-parent commit, so git never records
+the source branch as an ancestor and the merge base does not advance. PR #1314
+("Merge main into athenaeum") was squash-merged this way. The *content* of
+`main` landed correctly, but the merge base stayed pinned at `8f180a9a`, and
+every later merge in either direction re-derived twenty-one commits of
+already-resolved diff. `app/lib/main.dart`, `app/test/settings_backup_test.dart`
+and `app/test/startup_sequence_test.dart` conflicted again, with the same
+hunks, against resolutions that were already committed — and would have
+conflicted again on every subsequent sync, because nothing about re-resolving
+them teaches git where the real base is.
+
+The rule that came out of it was to merge a sync between long-lived branches
+with **Create a merge commit**. `athenaeum` has since been retired, and `main`
+accepts squash merges only, so the repair below can land only on a target
+branch that allows a merge commit.
+
+If a sync has already been squashed, do not re-resolve the phantom conflicts —
+that buries the problem one merge deeper. Restore the missing parent instead,
+with a merge that changes no files:
+
+```sh
+git checkout athenaeum
+git merge -s ours --no-ff <the-source-commit-the-squash-integrated>
+git merge main        # now a normal, minimal merge
+```
+
+`-s ours` keeps the current tree and records the second parent, so the merge
+base advances to `<the-source-commit>`. It asserts that the squash already
+integrated that commit faithfully, which is a claim to verify before you make
+it, not after — the assertion is permanent. Replay the merge the squash stood
+in for and compare:
+
+```sh
+git checkout --detach <pre-squash-tip>
+git merge --no-commit --no-ff <the-source-commit-the-squash-integrated>
+git diff <squash-commit> -- . ':!<each><conflicted><path>'
+```
+
+An empty diff means every path git merged on its own matches the squash. Read
+the conflicted paths by hand and confirm both sides survived; a file that is
+absent from the squash is only correct if the branch deleted it on purpose
+(`BackupControllerScope` was such a case — deleted by `athenaeum` in favour of
+`SyncWriterLifecycleScope`, and older than the merge base, so its absence was
+intent and not loss).
+
+Rule: [merging.md](merging.md#branch-sync-prs).
