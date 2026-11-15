@@ -2129,11 +2129,17 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
       three - start with second robin passing first lark by right
       shoulders`. Both dancers render as single dancers, in the dialect's
       words. As a modifier side it reads `doing a hey for three`. The
-      glossary text is the author's; no reference was consulted.
+      glossary text is checked against The Caller's Box's "Hey for three"
+      entry, which the maintainer supplied after #2205 merged. That entry
+      says only that some variants make a couple one of the three; the
+      glossary names the dolphin hey as one of them, which is the author's
+      reading, and its beat count is the taxonomy's.
     - Reading: free-text entry reads the bare name and the whole display
       line back (`readDisplayedHeyForThree`, called only by free-text entry,
       as starburst's reader is), under its own name or a dialect's name for
-      it, reading role words by the dialect. No importer reads it, so imports
+      it, reading role words by the dialect. It also reads the name with the
+      numeral, `hey for 3`, alone (a typed phrasing, as `hey for 4` is the
+      hey's) or opening the display line. No importer reads it, so imports
       are unchanged: ContraDB has no such figure, and its advanced filter
       refuses a `hey_for_three` leaf. The figure-text corpus fixture has one
       line for it, from a beta tester's Caller's Companion library (`Hey for

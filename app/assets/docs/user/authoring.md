@@ -168,7 +168,8 @@ figure unless the line is read as above. The app also reads `hey for four`,
 what they mean (`ravens chain` is the same as `robins chain`), unless your own
 role terms use that word, in which case it means your role. `hey for four` (or
 `hey for 4`) is a full hey, 16 beats, unless you give it a count of 8, as in
-`(8) hey for four`, which makes it a half hey.
+`(8) hey for four`, which makes it a half hey. `hey for 3` is the hey for
+three, as `hey for three` is.
 
 A count can also be written in brackets, `(16) circle left` or `[16] circle
 left`, and goes at the end as well: `circle left (16)` or `circle left [16]`.
