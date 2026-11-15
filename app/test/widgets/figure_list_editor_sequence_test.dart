@@ -355,4 +355,105 @@ void main() {
       findsNothing,
     );
   });
+
+  testWidgets('a group takes an optional title, shown before its figures', (
+    tester,
+  ) async {
+    final drafts = [
+      FigureDraft(sequenceFigures: [_step('balance', 4), _step('swing', 12)]),
+    ];
+    await _pump(tester, drafts);
+    await _open(tester, 0);
+
+    final field = find.byKey(const ValueKey('figure-0-container-title'));
+    expect(field, findsOneWidget);
+    await tester.enterText(field, 'Flutterwheel');
+    await tester.pumpAndSettle();
+
+    expect(drafts.single.containerTitle, 'Flutterwheel');
+    final figure = drafts.single.toFigure()!;
+    expect(figure.containerTitle, 'Flutterwheel');
+    expect(
+      find.textContaining('Flutterwheel - ', findRichText: true),
+      findsWidgets,
+    );
+
+    // Clearing the field clears the title.
+    await tester.enterText(field, '');
+    await tester.pumpAndSettle();
+    expect(drafts.single.params.containsKey(containerTitleKey), isFalse);
+    expect(drafts.single.toFigure()!.containerTitle, isNull);
+  });
+
+  testWidgets('a group nested in another has its own title field', (
+    tester,
+  ) async {
+    final inner = FigureDraft(
+      sequenceFigures: [_step('balance', 4), _step('swing', 4)],
+    );
+    final drafts = [
+      FigureDraft(meanwhileSides: [inner, _step('swing', 8)])
+        ..params['beats'] = 8,
+    ];
+    await _pump(tester, drafts);
+    await _open(tester, 0);
+    await tester.tap(
+      find.byKey(ValueKey('nested-container-${inner.id}')).first,
+    );
+    await tester.pumpAndSettle();
+
+    final fields = find.byWidgetPredicate(
+      (widget) =>
+          widget is TextField &&
+          widget.key is ValueKey<String> &&
+          (widget.key! as ValueKey<String>).value.endsWith('-container-title'),
+    );
+    expect(fields, findsNWidgets(2));
+  });
+
+  testWidgets('the title field counts length as the model does, so save never '
+      'cuts what it shows', (tester) async {
+    final drafts = [
+      FigureDraft(sequenceFigures: [_step('balance', 4), _step('swing', 12)]),
+    ];
+    await _pump(tester, drafts);
+    await _open(tester, 0);
+    // 41 emoji: 41 characters to the reader, 82 UTF-16 code units.
+    await tester.enterText(
+      find.byKey(const ValueKey('figure-0-container-title')),
+      '\u{1F483}' * 41,
+    );
+    await tester.pumpAndSettle();
+
+    final title = drafts.single.containerTitle;
+    expect(title.length, lessThanOrEqualTo(kMaxContainerTitleLength));
+    expect(title, '\u{1F483}' * 40);
+    expect(drafts.single.toFigure()!.containerTitle, title);
+  });
+
+  testWidgets('the title field measures role words as Save stores them, so '
+      'save keeps all it shows', (tester) async {
+    final drafts = [
+      FigureDraft(sequenceFigures: [_step('balance', 4), _step('swing', 12)]),
+    ];
+    await _pump(tester, drafts);
+    await _open(tester, 0);
+    // 80 units as typed; "men" is stored as "role1s", three units longer.
+    await tester.enterText(
+      find.byKey(const ValueKey('figure-0-container-title')),
+      'men ${'x' * 76}',
+    );
+    await tester.pumpAndSettle();
+
+    final shown = drafts.single.containerTitle;
+    expect(shown.length, lessThan(kMaxContainerTitleLength));
+    final saved = drafts.single.toFigure(
+      canonicalizeNote: (text) =>
+          canonicalizeText(text.trim(), Dialect.canonical),
+    )!;
+    expect(
+      saved.containerTitle,
+      canonicalizeText(shown.trim(), Dialect.canonical),
+    );
+  });
 }

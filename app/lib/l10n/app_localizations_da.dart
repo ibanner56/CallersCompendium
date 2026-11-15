@@ -8325,6 +8325,13 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceEditorAddWordingOverride => 'Tilpas ordlyden for denne dans';
 
   @override
+  String get danceEditorGroupTitleLabel => 'Gruppetitel (valgfri)';
+
+  @override
+  String get danceEditorGroupTitleHelper =>
+      'Et navn for hele gruppen, f.eks. Flutterwheel. Det vises foran gruppens figurer, efterfulgt af en tankestreg.';
+
+  @override
   String get danceEditorWordingOverrideLabel => 'Figurordlyd for denne dans';
 
   @override

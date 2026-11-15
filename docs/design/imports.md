@@ -488,14 +488,54 @@ such a unit and reads it in one of three ways, in order:
   covering `allemande x`, `catch all eight`, `do paso`, `dixie style to a wave`,
   `modified revolving door`, `vicious circle` and others.
 
-  **The parent's shorthand name is preserved as a `note` on the FIRST child**,
-  verbatim after scrubbing. That note is load-bearing at this breadth: it is
-  what keeps a choreographically meaningful qualifier — the "interrupted" in
-  `Interrupted square through 2`, the "modified" in `Modified right and left
-  through with partner`, or a whole name like `Georgia Rang Tang` — from
-  vanishing when the block is expressed as its parts. It is never truncated or
-  normalized away (only `scrubFigureText`'s repo-wide gendered-term
-  canonicalization applies, exactly as on any other stored text).
+  **The parent's shorthand name is kept, verbatim after scrubbing.** That name
+  is load-bearing at this breadth: it is what keeps a choreographically
+  meaningful qualifier — the "interrupted" in `Interrupted square through 2`,
+  the "modified" in `Modified right and left through with partner`, or a whole
+  name like `Georgia Rang Tang` — from vanishing when the block is expressed
+  as its parts. It is never truncated or normalized away (only
+  `scrubFigureText`'s repo-wide gendered-term canonicalization applies,
+  exactly as on any other stored text). Where it goes:
+
+  - Normally the children become **one `sequence` titled with the name**
+    (`params['title']`, see [domain-model.md](domain-model.md)), which every
+    surface shows as `Neighbor flutterwheel - robins allemande right ½ and
+    neighbor star promenade ½`. The sequence carries the parent's beats, which
+    the exact-sum guard has already proven equal to the children's, so section
+    totals are unchanged; each child keeps only its own note.
+  - The block stays **flat**, the children emitted one by one with the name
+    as a `note` on the FIRST child (the reading before container titles),
+    when it cannot be a sequence: longer than the dance's longest phrase (a
+    sequence must fit one), fewer than two or more than four figures
+    (`kMaxSequenceFigures`), a figure that is itself a sequence or nests too
+    deep, or a name longer than a title holds (80 units), which the title would
+    have to shorten.
+  - It also stays flat when the **cross-line merge** consumed any of its
+    figures: a fold inside the block (`Interrupted square through 2`'s
+    `(4) Partner balance` folds into its square through) or across its edge (a
+    balance line before it folding into its first child, a balance-wave line
+    after it folding into its last). Grouping runs after the merge and groups a
+    block only when every figure it emitted came through untouched, in order,
+    so grouping can never cost a fold: the choreography is exactly the flat
+    reading's, and only its grouping differs.
+
+  A dance imported from The Caller's Box before container titles is matched
+  on re-import by its source and id, as always, and the re-import replaces its
+  figures with the grouped reading. Where the grouping matters is an
+  *ambiguous* match, by title and author: the same dance arriving from another
+  source, through a share file without its source link, or entered by hand,
+  with the compound as separate rows. The figure comparisons that decide
+  those (`figuresCanonicallyIdentical`, `diffFigures`) compare a top-level
+  sequence as its steps, so the import review shows no change and an
+  unattended program import reuses the dance rather than saving a variation.
+  That is the maintainer's decision, recorded in the pull request that added
+  container titles; see `_comparableFigures` in `figure_diff.dart`. Two
+  unattended paths compare the exact choreography fingerprint instead, in
+  which the name moved from the first step's note to the sequence's title,
+  so they still see the two as different: Device Sync's fresh-attach dedupe
+  asks about them rather than merging, and a received share file's
+  `autoResolveAmbiguous` imports the incoming dance as a separate one unless
+  the authors confirm the match.
 - **Anything else** → one `customFigure` with the parent text (colon stripped)
   and the parent's beats, the scrubbed decomposition in its `note`. This is the
   fallback whenever **any** child fails to structure, so a block is never
@@ -1780,8 +1820,8 @@ has to be judged in its own context.
   compound shorthands, so neither becomes a move — `Grand right and left
   (<pass list>)` fans into one `pull_by_dancers` per stated pass (see
   "Compound-shorthand fan-out" above) and `flutterwheel` emits the
-  `allemande` + `star promenade` children TCB itself writes (see "Compound
-  figures" above). A pass code the taxonomy cannot faithfully represent, any
+  `allemande` + `star promenade` children TCB itself writes, as one sequence
+  titled with the block's name (see "Compound figures" above). A pass code the taxonomy cannot faithfully represent, any
   leftover prose, or a child that fails to structure all keep the line custom.
   **Balance a wave (#295, taxonomy v21):** see *Balance-a-wave lines* below.
   **Courtesy turn (taxonomy v23):** TCB writes a standalone courtesy turn on

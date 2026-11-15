@@ -1,0 +1,26 @@
+{
+  "id": "container-title",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "A meanwhile, modifier or sequence group can have a name. Type it in Group title (optional) at the top of the group, and the group's line starts with it, followed by a dash: “Flutterwheel - robins allemande right ½ and neighbor star promenade ½”. The name shows wherever the line does, comes before your own wording if you customize it, and is found by search. A group inside another group has its own title."
+    ],
+    "changed": [
+      "A Caller's Box compound written as a name over its indented parts, such as “(8) Neighbor flutterwheel:”, now imports as one sequence titled with that name, instead of its parts in separate rows with the name in the first one's note. A compound whose parts fold into a neighboring line, that has more than four parts, or that is longer than one phrase of the dance, imports as before.",
+      "When a dance is compared with one you already have, on import or when importing a program, figures grouped into a sequence now count the same as those figures in separate rows. Grouping or naming figures alone no longer makes a dance a variation, so a copy you already have from another source, or entered by hand, still matches a Caller's Box import that groups its figures."
+    ],
+    "data_migrations": [
+      "No migration and no index rebuild: a title is stored with the group's figures, and groups you already have have none. Devices still on an older version keep a group's title when they sync it, but do not show it."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add an optional container title: `params['title']` (`containerTitleKey`) on a meanwhile, modifier or sequence, read through `Figure.containerTitle`, set by the container factories' `title` argument (or `extraParams['title']`), and normalized by `normalizeContainerTitle` (whitespace collapsed, trimmed, clamped to `kMaxContainerTitleLength`, 80) in the factories and the figure codec; a blank or non-string title is not stored.",
+      "Every `FigureRenderer` render of a titled container, `renderCanonical` included, opens with `<title> - `, the title shown through the free-text role substitution."
+    ],
+    "changed": [
+      "The Caller's Box adapter groups an unknown compound parent whose children all structure (#295) into one sequence titled with the scrubbed parent name, after the cross-line merge and only when every figure the block emitted came through it untouched, the block has two to four figures that a sequence may hold and fits the dance's longest phrase, and the name fits a title unchanged. Otherwise it keeps the flat reading, the name a note on the first child.",
+      "`figuresCanonicallyIdentical` and `diffFigures` compare a top-level sequence as its steps, so a dance whose figures differ only in grouping (or a group's title) is identical, and a changed step inside a sequence is reported as that step. `figureCanonicalKey` is unchanged."
+    ]
+  }
+}

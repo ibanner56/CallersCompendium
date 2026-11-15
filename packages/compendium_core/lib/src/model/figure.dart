@@ -87,6 +87,40 @@ int maxContainerChildren(String move) =>
 /// decoders.
 const int kMaxContainerDepth = 2;
 
+/// Key of a structural container's optional **title** in its `params`: a
+/// caller-meaningful name for the group ("flutterwheel") shown before the
+/// group's own wording as `"<title> - <rest>"`.
+///
+/// It lives in `params` rather than as a [Figure] field so it is additive for
+/// every build that predates it: the figure codec and Device Sync carry a
+/// container's params through untouched, so an older build keeps the title it
+/// cannot show instead of dropping it. Read it through [Figure.containerTitle],
+/// which normalizes it, never by hand.
+const String containerTitleKey = 'title';
+
+/// Upper bound on a container title's length, in UTF-16 code units. A title
+/// is a name, not prose; [normalizeContainerTitle] clamps (never rejects) so
+/// an oversized title from an untrusted file cannot fail an import.
+const int kMaxContainerTitleLength = 80;
+
+/// The stored form of a container title: [raw] with every run of whitespace
+/// (line breaks included) collapsed to one space, trimmed, and clamped to
+/// [kMaxContainerTitleLength] without splitting a surrogate pair. `null` when
+/// [raw] is not a string or holds nothing but whitespace, which means "no
+/// title".
+String? normalizeContainerTitle(Object? raw) {
+  if (raw is! String) return null;
+  final collapsed = raw.replaceAll(_titleWhitespace, ' ').trim();
+  if (collapsed.isEmpty) return null;
+  if (collapsed.length <= kMaxContainerTitleLength) return collapsed;
+  var end = kMaxContainerTitleLength;
+  final last = collapsed.codeUnitAt(end - 1);
+  if (last >= 0xD800 && last <= 0xDBFF) end -= 1;
+  return collapsed.substring(0, end).trimRight();
+}
+
+final RegExp _titleWhitespace = RegExp(r'\s+');
+
 const DeepCollectionEquality _paramsEquality = DeepCollectionEquality();
 
 /// How a [customMove] [Figure] came to exist. Only meaningful when
@@ -146,6 +180,8 @@ class Figure {
   /// Enforces the structural caps for **programmatic** construction. A meanwhile
   /// may contain ordinary figures or modifier or sequence containers, but never
   /// another meanwhile and never a container below that nested one.
+  ///
+  /// Every container kind takes an optional [title]; see [_container].
   factory Figure.meanwhile({
     required List<Figure> figures,
     required int beats,
@@ -153,6 +189,7 @@ class Figure {
     bool progression = false,
     Map<String, Object?> extraParams = const {},
     String? wordingOverride,
+    String? title,
   }) {
     _validateContainer(
       containerMove: meanwhileMove,
@@ -167,6 +204,7 @@ class Figure {
       progression: progression,
       extraParams: extraParams,
       wordingOverride: wordingOverride,
+      title: title,
     );
   }
 
@@ -182,6 +220,7 @@ class Figure {
     bool progression = false,
     Map<String, Object?> extraParams = const {},
     String? wordingOverride,
+    String? title,
   }) {
     _validateContainer(
       containerMove: modifierMove,
@@ -196,6 +235,7 @@ class Figure {
       progression: progression,
       extraParams: extraParams,
       wordingOverride: wordingOverride,
+      title: title,
     );
   }
 
@@ -214,6 +254,7 @@ class Figure {
     bool progression = false,
     Map<String, Object?> extraParams = const {},
     String? wordingOverride,
+    String? title,
   }) {
     _validateContainer(
       containerMove: sequenceMove,
@@ -228,9 +269,15 @@ class Figure {
       progression: progression,
       extraParams: extraParams,
       wordingOverride: wordingOverride,
+      title: title,
     );
   }
 
+  /// Shared body of the three container factories. [title] (or, when it is
+  /// null, an `extraParams[containerTitleKey]`) is stored normalized
+  /// ([normalizeContainerTitle]) under [containerTitleKey], and left out
+  /// altogether when it normalizes to nothing, so an untitled container's
+  /// params are exactly what they were before titles existed.
   static Figure _container({
     required String move,
     required List<Figure> figures,
@@ -239,17 +286,25 @@ class Figure {
     required bool progression,
     required Map<String, Object?> extraParams,
     String? wordingOverride,
-  }) => Figure(
-    move: move,
-    params: {
-      ...extraParams,
-      'beats': beats,
-      'figures': List<Figure>.unmodifiable(figures),
-    },
-    note: note,
-    progression: progression,
-    wordingOverride: wordingOverride,
-  );
+    String? title,
+  }) {
+    final normalizedTitle = normalizeContainerTitle(
+      title ?? extraParams[containerTitleKey],
+    );
+    return Figure(
+      move: move,
+      params: {
+        for (final entry in extraParams.entries)
+          if (entry.key != containerTitleKey) entry.key: entry.value,
+        'beats': beats,
+        'figures': List<Figure>.unmodifiable(figures),
+        containerTitleKey: ?normalizedTitle,
+      },
+      note: note,
+      progression: progression,
+      wordingOverride: wordingOverride,
+    );
+  }
 
   static void _validateContainer({
     required String containerMove,
@@ -397,6 +452,13 @@ class Figure {
     }
     return const [];
   }
+
+  /// The container's optional title ([containerTitleKey]), normalized, or
+  /// null for an untitled container and for every ordinary figure: the key
+  /// means nothing outside a container, so a stray `title` param on a
+  /// taxonomy move or custom figure is never read as one.
+  String? get containerTitle =>
+      isContainer ? normalizeContainerTitle(params[containerTitleKey]) : null;
 
   /// Duration in beats; 0 when unset (taxonomy defaults apply at a higher
   /// layer) — 0 is also legitimate for formation labels.

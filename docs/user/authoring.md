@@ -499,6 +499,16 @@ the dance's page, in Perform and when printed. For example,
 **Customize wording for this dance** on the group itself, your wording replaces
 the whole line, its sides' notes included.
 
+Any group, a meanwhile, a modifier or a sequence, can also have a name. Type it
+in **Group title (optional)** at the top of the group, and the group's line
+starts with it, followed by a dash: a sequence titled **Flutterwheel** reads
+**Flutterwheel - robins allemande right ½ and neighbor star promenade ½**. Use
+it for a figure you call by one name but write as its parts. The name is shown
+wherever the line is, comes before your own wording if you customize it, and is
+found by search. Role words in it, such as larks or gents, follow each reader's
+dialect, as they do in a note. A group inside another group has a title field
+of its own. Leave the field empty for no name.
+
 ### Modifier figures
 
 Use **Group with next as modifier** when one figure describes the main action

@@ -20,7 +20,8 @@ import '../model/figure.dart';
 /// Structural container figures (`meanwhile`, `modifier` and `sequence`) carry
 /// their children in `params['figures']`; those children are (de)serialized
 /// recursively through this same codec and the shared beat count lives in
-/// `params['beats']`. This is all additive — there is **no**
+/// `params['beats']`. A container's optional title is `params['title']`
+/// ([containerTitleKey]), written only when present. This is all additive — there is **no**
 /// `figureSchemaVersion` bump. Decoding is tolerant: unknown keys are ignored (so files written by newer
 /// app versions still load), a missing `schemaVersion` is treated as version 1,
 /// a missing/unknown `customOrigin` decodes as `userEntered`, and a
@@ -201,17 +202,26 @@ String? _optionalOverride(Object? raw) {
 /// * non-object / junk entries are ignored;
 /// * only a container of another kind may nest, and only one level deep;
 /// * the child count is clamped to the kind's [maxContainerChildren];
-/// * deeper or same-kind containers are dropped rather than flattened.
+/// * deeper or same-kind containers are dropped rather than flattened;
+/// * the optional title ([containerTitleKey]) is kept only in its normalized
+///   form ([normalizeContainerTitle]): a non-string or blank one is dropped,
+///   and a multi-line or oversized one is collapsed and clamped, never
+///   rejected.
 Map<String, Object?> _decodeContainerParams(
   String move,
   Map<String, Object?> params,
   int depth,
-) => {
-  ...params,
-  'figures': List<Figure>.unmodifiable(
-    _decodeContainerChildren(params['figures'], move, depth),
-  ),
-};
+) {
+  final title = normalizeContainerTitle(params[containerTitleKey]);
+  return {
+    for (final entry in params.entries)
+      if (entry.key != containerTitleKey) entry.key: entry.value,
+    'figures': List<Figure>.unmodifiable(
+      _decodeContainerChildren(params['figures'], move, depth),
+    ),
+    containerTitleKey: ?title,
+  };
+}
 
 List<Figure> _decodeContainerChildren(
   Object? raw,

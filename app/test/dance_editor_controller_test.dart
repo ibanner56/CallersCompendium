@@ -863,6 +863,49 @@ void main() {
     expect(figuresOf(rebuilt).single.note, 'Open role2s chain to neighbor');
   });
 
+  test('load renders a group title into the active dialect, nested too, and '
+      'buildDance canonicalizes it back', () async {
+    final repos = openTestRepositories();
+    final controller = DanceEditorController(
+      repositories: repos,
+      danceId: 'd1',
+      dialect: Dialect.larksRobins,
+    );
+    addTearDown(controller.dispose);
+
+    Figure step(String move) =>
+        testFigure(move: move, params: const {'beats': 4});
+    final stored = sampleDance(id: 'd1').copyWith(
+      figures: [
+        Figure.sequence(
+          beats: 8,
+          figures: [step('balance'), step('swing')],
+          title: 'Open role2s chain to neighbor',
+        ),
+        Figure.meanwhile(
+          beats: 8,
+          figures: [
+            Figure.sequence(
+              beats: 8,
+              figures: [step('balance'), step('swing')],
+              title: 'role1s lead',
+            ),
+            Figure(move: 'orbit', params: const {'beats': 8}),
+          ],
+        ),
+      ],
+    );
+    await controller.load(dance: stored, fieldDefs: const []);
+
+    final [sequence, meanwhile] = controller.figureDrafts;
+    expect(sequence.containerTitle, 'Open robins chain to neighbor');
+    expect(meanwhile.meanwhileSides!.first.containerTitle, 'larks lead');
+
+    final [top, nested] = figuresOf(controller.buildDance());
+    expect(top.containerTitle, 'Open role2s chain to neighbor');
+    expect(nested.subFigures.first.containerTitle, 'role1s lead');
+  });
+
   test('buildDance canonicalizes a typed figure note before persistence '
       '(#715)', () async {
     final repos = openTestRepositories();
@@ -2722,6 +2765,59 @@ void main() {
       );
 
       test(
+        'a group title restored under another dialect saves the right roles',
+        () async {
+          Dance titleDance() => sampleDance(id: 'd1').copyWith(
+            figures: [
+              Figure.sequence(
+                beats: 8,
+                figures: [
+                  Figure(move: 'balance', params: const {'beats': 4}),
+                  Figure(move: 'swing', params: const {'beats': 4}),
+                ],
+                title: 'role1s flutterwheel',
+              ),
+            ],
+          );
+          final repos = openTestRepositories();
+          final first = DanceEditorController(
+            repositories: repos,
+            danceId: 'd1',
+            dialect: ravens,
+            debounce: testDebounce,
+          );
+          await first.load(dance: titleDance(), fieldDefs: const []);
+          expect(
+            first.figureDrafts.single.containerTitle,
+            'ravens flutterwheel',
+          );
+          first.titleController.text = 'Edited';
+          first.onTextEdited();
+          expect(await draftPersisted(repos, 'editor_draft:d1'), isTrue);
+          await settleDebounce();
+          first.dispose();
+
+          final second = DanceEditorController(
+            repositories: repos,
+            danceId: 'd1',
+            dialect: Dialect.larksRobins,
+          );
+          addTearDown(second.dispose);
+          await second.load(dance: titleDance(), fieldDefs: const []);
+          second.applyRestoredDraft(second.pendingDraft!);
+
+          expect(
+            second.figureDrafts.single.containerTitle,
+            'larks flutterwheel',
+          );
+          expect(
+            figuresOf(second.buildDance()).single.containerTitle,
+            'role1s flutterwheel',
+          );
+        },
+      );
+
+      test(
         'a draft restored under the same dialect keeps the text as typed',
         () async {
           final repos = openTestRepositories();
@@ -2773,6 +2869,47 @@ void main() {
           expect(controller.dirty, isFalse);
         },
       );
+
+      test('a dialect change re-renders a group title when nothing else names '
+          'a role', () async {
+        final controller = DanceEditorController(
+          repositories: openTestRepositories(),
+          danceId: 'd1',
+          dialect: ravens,
+          debounce: testDebounce,
+        );
+        addTearDown(controller.dispose);
+        await controller.load(
+          dance: sampleDance(id: 'd1').copyWith(
+            figures: [
+              Figure.sequence(
+                beats: 8,
+                figures: [
+                  testFigure(move: 'balance', params: const {'beats': 4}),
+                  testFigure(move: 'swing', params: const {'beats': 4}),
+                ],
+                title: 'role1s flutterwheel',
+              ),
+            ],
+          ),
+          fieldDefs: const [],
+        );
+        expect(
+          controller.figureDrafts.single.containerTitle,
+          'ravens flutterwheel',
+        );
+
+        controller.updateDialect(Dialect.larksRobins);
+
+        expect(
+          controller.figureDrafts.single.containerTitle,
+          'larks flutterwheel',
+        );
+        expect(
+          figuresOf(controller.buildDance()).single.containerTitle,
+          'role1s flutterwheel',
+        );
+      });
 
       test(
         'a dialect change re-renders sequence step text, nested too',

@@ -76,6 +76,10 @@ void main() {
     'userFigureRefKey',
     'userFigureArgsKey',
     'userFigureCheckKey',
+    // The key of a group's optional title inside a container figure's
+    // params: part of a dance's stored figures, classified with
+    // `dances.figures_json`, not settings.
+    'containerTitleKey',
     // The payload key of a term's source citation (#1023): part of a
     // glossary entry, classified with `user_glossary_entries.payload_json`.
     'glossaryTermSourceKey',

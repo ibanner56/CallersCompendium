@@ -262,11 +262,19 @@ class FigureRenderer {
             dialect,
             canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
           );
-    if (override != null) return override;
+    // The override, meanwhile and sequence branches return without going
+    // through [_render], so they add a container's title themselves.
+    String titled(String line) => _withContainerTitle(
+      line,
+      figure,
+      dialect,
+      canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+    );
+    if (override != null) return titled(override);
     if (figure.isMeanwhile) {
       final children = figure.subFigures;
-      if (children.isEmpty) return meanwhileMove;
-      return children
+      if (children.isEmpty) return titled(meanwhileMove);
+      final sides = children
           .map(
             (child) => _withChildNote(
               _renderSummary(
@@ -282,24 +290,27 @@ class FigureRenderer {
             ),
           )
           .join(' while ');
+      return titled(sides);
     }
     if (figure.isSequence) {
       final children = figure.subFigures;
-      if (children.isEmpty) return sequenceMove;
-      return _sequenceLine(
-        children,
-        [
-          for (final child in children)
-            _renderSummary(
-              child,
-              dialect,
-              verbose: verbose,
-              decimals: decimals,
-              canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
-            ),
-        ],
-        dialect,
-        canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+      if (children.isEmpty) return titled(sequenceMove);
+      return titled(
+        _sequenceLine(
+          children,
+          [
+            for (final child in children)
+              _renderSummary(
+                child,
+                dialect,
+                verbose: verbose,
+                decimals: decimals,
+                canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+              ),
+          ],
+          dialect,
+          canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+        ),
       );
     }
     if (!figure.isCustom &&
@@ -432,7 +443,33 @@ class FigureRenderer {
   /// ContraDB-parity display transforms — silenced default direction/facing,
   /// omitted default subject, singularized positional dancer sets, and the
   /// shoulder_round shoulder injection — are applied.
+  ///
+  /// A titled container's line, canonical included, opens with its title
+  /// ([_withContainerTitle]); every path through here gets it, so a
+  /// container branch below never adds it itself.
   String _render(
+    Figure figure,
+    Dialect dialect, {
+    bool verbose = false,
+    bool decimals = false,
+    bool forCanonical = false,
+    bool canonicalizeDiscouragedTerms = false,
+  }) => _withContainerTitle(
+    _renderUntitled(
+      figure,
+      dialect,
+      verbose: verbose,
+      decimals: decimals,
+      forCanonical: forCanonical,
+      canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+    ),
+    figure,
+    dialect,
+    canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+  );
+
+  /// [_render] without a container's title.
+  String _renderUntitled(
     Figure figure,
     Dialect dialect, {
     bool verbose = false,
@@ -979,10 +1016,18 @@ class FigureRenderer {
             dialect,
             canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
           );
-    if (override != null) return override;
+    // As in [_renderSummary]: these branches skip [_render], so they add a
+    // container's title themselves.
+    String titled(String line) => _withContainerTitle(
+      line,
+      figure,
+      dialect,
+      canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+    );
+    if (override != null) return titled(override);
     if (figure.isMeanwhile) {
       final children = figure.subFigures;
-      if (children.isEmpty) return meanwhileMove;
+      if (children.isEmpty) return titled(meanwhileMove);
       final rendered = [
         _withChildNote(
           _renderGerundive(
@@ -1010,25 +1055,27 @@ class FigureRenderer {
             canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
           ),
       ];
-      return rendered.join(' while ');
+      return titled(rendered.join(' while '));
     }
     if (figure.isSequence) {
       final children = figure.subFigures;
-      if (children.isEmpty) return sequenceMove;
-      return _sequenceLine(
-        children,
-        [
-          for (final child in children)
-            _renderGerundive(
-              child,
-              dialect,
-              verbose: verbose,
-              decimals: decimals,
-              canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
-            ),
-        ],
-        dialect,
-        canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+      if (children.isEmpty) return titled(sequenceMove);
+      return titled(
+        _sequenceLine(
+          children,
+          [
+            for (final child in children)
+              _renderGerundive(
+                child,
+                dialect,
+                verbose: verbose,
+                decimals: decimals,
+                canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+              ),
+          ],
+          dialect,
+          canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+        ),
       );
     }
     return _renderGerundive(
@@ -1732,6 +1779,32 @@ class FigureRenderer {
     final figure = Figure(move: canonicalMoveId);
     final params = taxonomy.effectiveParams(figure);
     return base(this, def, params, Dialect.canonical, false, false).template;
+  }
+
+  /// [line], the text of [figure], opened with the container's title when
+  /// [figure] is a titled container: `"<title> - <line>"`, so a group the
+  /// caller knows by a name ("flutterwheel") shows that name beside the
+  /// figures it is made of. [line] unchanged for an untitled container and
+  /// for every ordinary figure.
+  ///
+  /// The title is free text, shown as a top-level note's text is: role words
+  /// in [dialect] (canonical tokens under [Dialect.canonical], so the
+  /// canonical line, and with it the search index, carries the title in a
+  /// dialect-free form). It is a name, so it keeps no emphasis marks and is
+  /// never parsed for them. Stored containers had no title before this, so
+  /// adding it to the canonical line changes no existing index row.
+  String _withContainerTitle(
+    String line,
+    Figure figure,
+    Dialect dialect, {
+    required bool canonicalizeDiscouragedTerms,
+  }) {
+    final title = figure.containerTitle;
+    if (title == null) return line;
+    final shown = canonicalizeDiscouragedTerms
+        ? renderFreeTextWithCanonicalDiscouragedTerms(title, dialect)
+        : renderFreeText(title, dialect);
+    return '$shown - $line';
   }
 
   String? _renderWordingOverride(

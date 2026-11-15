@@ -161,7 +161,10 @@ decide what counts and override all four.
   is not blocked, so `deriveSections` adds a `sequence_exceeds_phrase` warning
   for any sequence, top-level or nested, that is longer, and the dance can
   still be saved. A shorthand that expands to a sequence drops an inline count
-  (`bs (20)`), as one expanding to several figures does. No importer builds a sequence. ADR-006 §5.4
+  (`bs (20)`), as one expanding to several figures does. One importer builds
+  a sequence: The Caller's Box, for a named compound block whose children all
+  structure (`(8) Neighbor flutterwheel:` over its indented parts), titled
+  with the block's name; see [imports.md](imports.md) §1. ADR-006 §5.4
   originally proposed no sequence container; it was added for contra on the
   maintainer's request in the PR that introduced it.
 - Containers accept 2–6 children (2–4 for a `sequence`) and may nest a
@@ -171,6 +174,37 @@ decide what counts and override all four.
   by tolerant decoders; ordinary leaf figures may appear at either level. This
   bounded rule applies consistently to persistence, archive sanitization,
   editing, and derived indexing.
+- **Container title**: any container may carry an optional name in
+  `params['title']` (`containerTitleKey`), read through
+  `Figure.containerTitle`: a caller-meaningful name for the group
+  ("flutterwheel") that every render, canonical included, shows before the
+  group's own line as `"<title> - <rest>"`. It is single-line, at most
+  `kMaxContainerTitleLength` (**80**) UTF-16 units, and normalized
+  (whitespace collapsed, trimmed, clamped, never rejected) by the container
+  factories and the codec; a blank one is not stored. It lives in `params`
+  rather than as a `Figure` field so it is additive for older builds, whose
+  codec and Device Sync carry a container's params through untouched (they
+  keep it without showing it). A `title` param on an ordinary figure is never
+  read as one. When two dances' figures are compared
+  (`figuresCanonicallyIdentical`, `diffFigures`), a top-level sequence counts
+  as its steps, so grouping or naming figures alone never makes a dance a
+  "variation" (the maintainer's decision, made with container titles).
+
+  The editor saves a title through the same role-word canonicalization as a
+  figure's note and a custom figure's text, and shows it back in the reader's
+  dialect. The change that added titles decided this, not the maintainer:
+  a title names choreography, figure-like text that sits on the figure's
+  line, and the Caller's Box importer already stores the names it titles with
+  through `scrubFigureText` ("Open role2s chain to neighbor"), so a typed title
+  and an imported one read alike in every dialect. The alternative, storing a
+  typed title verbatim as dance titles are (#613), was rejected because an
+  imported title would then follow the reader's dialect and a typed one would
+  not. The cost #613 avoids for dance titles is accepted here: a title using
+  a role synonym as an ordinary word, such as "Lady Walpole spin", is stored
+  as "role2 Walpole spin" and reads "robin Walpole spin" under Larks/Robins.
+  The editor's length limit measures a title after that rewrite, so Save
+  never shortens what was typed. It is a name, not choreography, so the figure-diff
+  key (`figureCanonicalKey`) leaves it out, as it does notes.
 - **Display convention** (#594): every human-facing render
   (`FigureRenderer.render`/`renderVerbose`/`renderSummary` — the dance detail
   table, Perform, plain-text export, and PDF export all use these) joins a
@@ -181,7 +215,10 @@ decide what counts and override all four.
   previous step's drops it, so the line reads "ones balance and swing".
   `renderCanonical` is **untouched** — it still joins sides
   with the structural `meanwhile` move id (`sequence` for a sequence, every
-  step in full), so the dedupe/FTS key stays byte-stable. Every surface reads the shared beat count once from
+  step in full), so the dedupe/FTS key stays byte-stable. A titled container
+  opens every render, `renderCanonical` included, with `"<title> - "`, so its
+  name is searchable; no container stored before titles has one, so no
+  existing index row changes. Every surface reads the shared beat count once from
   `deriveSections`, so the pair never double-counts on screen or in export.
 - Section labels (A1/B2…) are **derived** from cumulative beats +
   phraseStructure, not stored — keeps reordering/beat edits consistent.

@@ -15,7 +15,9 @@ import '../figures_support.dart';
 ///   #3403 A2 `[2] 3rd neighbors pull by right` + `[2] 2nd neighbors pull by
 ///   left`. ContraDB carries no grand-right-and-left figure at all.
 /// * `(8) <who> flutterwheel:` + indented children → the children, which TCB
-///   itself writes as `allemande ½` + `star promenade ½`.
+///   itself writes as `allemande ½` + `star promenade ½`, as one sequence
+///   titled with the block's name (`"Neighbor flutterwheel - …"`), so the
+///   name stays with the figures it names.
 ///
 /// The negatives matter as much as the positives: a pass code the taxonomy
 /// cannot faithfully represent, or any leftover prose, must keep the line
@@ -46,6 +48,20 @@ int _totalBeats(Iterable<Figure> figures) =>
     figures.fold(0, (sum, f) => sum + f.beats);
 
 String _text(Figure f) => f.params['text'] as String;
+
+/// The figures a dance dances, in order: a top-level sequence's children in
+/// its place, as a caller reads them.
+List<Figure> _danced(List<Figure> figures) => [
+  for (final f in figures)
+    if (f.isSequence) ...f.subFigures else f,
+];
+
+/// The one titled sequence a named compound block becomes.
+Figure _named(List<Figure> figures) {
+  expect(figures, hasLength(1));
+  expect(figures.single.isSequence, isTrue);
+  return figures.single;
+}
 
 void main() {
   // --- Part A: grand right and left ------------------------------------------
@@ -383,11 +399,16 @@ void main() {
 
   group('an unknown compound parent emits TCB\'s own children (#295)', () {
     test('neighbor flutterwheel becomes allemande + star promenade', () async {
-      final figures = await _figures([
+      final imported = await _figures([
         '(8) Neighbor flutterwheel:',
         '     (4) Women allemande right 1/2',
         '     (4) Neighbor star promenade 1/2 (WR) (hand-in-hand with neighbor)',
       ]);
+      // One sequence named for the block, holding TCB's own children.
+      final group = _named(imported);
+      expect(group.containerTitle, 'Neighbor flutterwheel');
+      expect(group.beats, 8);
+      final figures = group.subFigures;
       expect(figures.map((f) => f.move), ['allemande', 'star_promenade']);
       expect(figures[0].params['who'], 'role2s');
       expect(figures[0].params['hand'], 'right');
@@ -399,19 +420,28 @@ void main() {
       expect(figures.any((f) => f.isCustom), isFalse);
     });
 
-    test('the shorthand parent name is preserved on the first child', () async {
-      final figures = await _figures([
-        '(8) Partner flutterwheel:',
-        '     (4) Women allemande right 1/2',
-        '     (4) Partner star promenade 1/2 (WR) (hand-in-hand with partner)',
-      ]);
-      expect(figures.first.note?.toLowerCase(), contains('flutterwheel'));
-      expect(figures.first.note?.toLowerCase(), contains('partner'));
-      // The parent's shorthand name rides on the FIRST child only — it must
-      // never be duplicated onto the second.
+    test('the shorthand parent name is the group\'s title, and no child\'s '
+        'note', () async {
+      final group = _named(
+        await _figures([
+          '(8) Partner flutterwheel:',
+          '     (4) Women allemande right 1/2',
+          '     (4) Partner star promenade 1/2 (WR) (hand-in-hand with partner)',
+        ]),
+      );
+      expect(group.containerTitle, 'Partner flutterwheel');
+      expect(group.note, isNull);
+      final figures = group.subFigures;
+      // The title carries the name, so no child repeats it as a note.
+      expect(figures.first.note, isNull);
       expect(
         figures[1].note?.toLowerCase() ?? '',
         isNot(contains('flutterwheel')),
+      );
+      // Every display line opens with the name.
+      expect(
+        FigureRenderer(contraTaxonomy).renderSummary(group, Dialect.canonical),
+        startsWith('Partner flutterwheel - '),
       );
       // Taxonomy v26 (#843): the star promenade's own annotations now survive.
       // `(WR)` becomes the center note (canonical role token, so it renders
@@ -463,7 +493,9 @@ void main() {
 
     variants.forEach((label, lines) {
       test('corpus variant: $label', () async {
-        final figures = await _figures(lines);
+        final group = _named(await _figures(lines));
+        expect(group.containerTitle?.toLowerCase(), contains('flutterwheel'));
+        final figures = group.subFigures;
         expect(figures.map((f) => f.move), ['allemande', 'star_promenade']);
         expect(figures.any((f) => f.isCustom), isFalse);
         // Children's beats always total the parent's stated beats.
@@ -471,6 +503,7 @@ void main() {
           RegExp(r'^\((\d+)\)').firstMatch(lines.first)!.group(1)!,
         );
         expect(_totalBeats(figures), parentBeats);
+        expect(group.beats, parentBeats);
       });
     });
 
@@ -500,13 +533,131 @@ void main() {
         '     (4) Women allemande right 1/2',
         '     (4) Neighbor star promenade 1/2 (WR) (hand-in-hand with neighbor)',
       ]);
-      expect(figures.map((f) => f.move), [
+      expect(figures.map((f) => f.move), ['balance_the_ring', sequenceMove]);
+      expect(_danced(figures).map((f) => f.move), [
         'balance_the_ring',
         'allemande',
         'star_promenade',
       ]);
       expect(_totalBeats(figures), 12);
     });
+  });
+
+  // --- Grouping a named block never costs a fold or a figure -----------------
+
+  group('a named block stays flat when grouping it would change it', () {
+    test('a balance line folded into its first child keeps it flat, and '
+        'keeps the fold', () async {
+      final figures = await _figures([
+        '(4) Partner balance',
+        '(16) Swing and circle:',
+        '     (8) Partner swing',
+        '     (8) Circle left 3/4',
+      ]);
+      // The balance folds into the swing exactly as it did before titles:
+      // grouping must not steal a figure the fold consumed.
+      expect(figures.any((f) => f.isContainer), isFalse);
+      expect(figures.map((f) => f.move), ['swing', 'circle']);
+      expect(figures.first.params['prefix'], 'balance');
+      expect(_totalBeats(figures), 20);
+      // The name stays where it was, on the first child.
+      expect(figures.first.note, contains('Swing and circle'));
+    });
+
+    test('a line folded into its last child keeps it flat, and keeps the '
+        'fold', () async {
+      final figures = await _figures([
+        '(8) Ocean opener:',
+        '     (4) Neighbor allemande right 1/2',
+        '     (4) Pass the ocean',
+        '(4) Balance wave',
+      ]);
+      expect(figures.any((f) => f.isContainer), isFalse);
+      expect(figures.map((f) => f.move), ['allemande', 'pass_the_ocean']);
+      expect(figures.last.params['balance'], isTrue);
+      expect(_totalBeats(figures), 12);
+    });
+
+    test('a fold inside the block keeps it flat (interrupted square '
+        'through)', () async {
+      final figures = await _figures([
+        '(8) Interrupted square through 2:',
+        '     (4) Partner balance (RH)',
+        '     (4) Square through 2 (PR;N1L)',
+      ]);
+      expect(figures.single.move, 'square_through');
+      expect(figures.single.note, 'Interrupted square through 2');
+    });
+
+    test(
+      'a block longer than the dance\'s longest phrase keeps it flat',
+      () async {
+        // Eight-beat phrases: a sequence must fit one, as the editor requires.
+        final adapter = CallersBoxAdapter();
+        Future<List<Figure>> eightBeatPhrases(List<String> lines) async {
+          final payload = jsonEncode({
+            'ID': '9002',
+            'Name': 'Short phrases',
+            'Permission': 'full',
+            'PhraseStructure': '8*4*2',
+            'phrases': [
+              {'name': 'A1', 'figures': lines},
+            ],
+          });
+          final found = await adapter.discover(ImportRequest(payload: payload));
+          return figuresOf(
+            adapter.parse(await adapter.fetch(found.single)).dance,
+          );
+        }
+
+        final long = await eightBeatPhrases([
+          '(16) Georgia Rang Tang:',
+          '     (4) Partner allemande right 3/4',
+          '     (4) Women pass left',
+          '     (4) N2 neighbor allemande left 1',
+          '     (4) Women pass right',
+        ]);
+        expect(long.any((f) => f.isContainer), isFalse);
+        expect(long.first.note, 'Georgia Rang Tang');
+
+        // One that fits the phrase is still grouped.
+        final fits = await eightBeatPhrases([
+          '(8) Neighbor flutterwheel:',
+          '     (4) Women allemande right 1/2',
+          '     (4) Neighbor star promenade 1/2 (WR)',
+        ]);
+        expect(_named(fits).containerTitle, 'Neighbor flutterwheel');
+      },
+    );
+
+    test('more figures than a sequence holds keeps it flat', () async {
+      final figures = await _figures([
+        '(20) Allemande marathon:',
+        '     (4) Neighbor allemande right 1/2',
+        '     (4) Partner allemande left 1/2',
+        '     (4) Neighbor allemande right 1/2',
+        '     (4) Partner allemande left 1/2',
+        '     (4) Neighbor allemande right 1/2',
+      ]);
+      expect(figures, hasLength(kMaxSequenceFigures + 1));
+      expect(figures.any((f) => f.isContainer), isFalse);
+      expect(figures.first.note, 'Allemande marathon');
+    });
+
+    test(
+      'a name longer than a title holds keeps it flat, name intact',
+      () async {
+        final name = 'Neighbor flutterwheel ${'very ' * 20}slowly';
+        expect(name.length, greaterThan(kMaxContainerTitleLength));
+        final figures = await _figures([
+          '(8) $name:',
+          '     (4) Women allemande right 1/2',
+          '     (4) Neighbor star promenade 1/2 (WR)',
+        ]);
+        expect(figures.any((f) => f.isContainer), isFalse);
+        expect(figures.first.note, name);
+      },
+    );
   });
 
   // --- The decomposition rule is GENERAL, not flutterwheel-only --------------
@@ -608,16 +759,25 @@ void main() {
 
     families.forEach((label, spec) {
       test('$label decomposes with its name kept verbatim', () async {
-        final figures = await _figures(spec.lines);
+        final imported = await _figures(spec.lines);
+        final figures = _danced(imported);
         expect(figures.map((f) => f.move), spec.moves);
         expect(figures.any((f) => f.isCustom), isFalse);
         // The children's own beats total the parent's exactly — no drift.
         expect(_totalBeats(figures), spec.beats);
+        expect(_totalBeats(imported), spec.beats);
         // The shorthand name is load-bearing now that the rule is general: the
         // qualifier ("Interrupted", "Modified", "Open", …) must survive
-        // verbatim, never truncated or normalized away.
-        expect(figures.first.note, spec.note);
-        expect(figures.skip(1).every((f) => f.note == null), isTrue);
+        // verbatim, never truncated or normalized away. A block of two to
+        // four figures carries it as its sequence's title; one whose
+        // figures fold into one (interrupted square through) keeps it as
+        // that figure's note.
+        if (spec.moves.length == 1) {
+          expect(imported.single.note, spec.note);
+        } else {
+          expect(_named(imported).containerTitle, spec.note);
+          expect(figures.every((f) => f.note == null), isTrue);
+        }
       });
     });
 
@@ -627,20 +787,25 @@ void main() {
         // The sharpest contrast in the corpus (#19305): `revolving_door` is a
         // taxonomy move, so the bare parent collapses; the "Modified …"
         // shorthand is not, so TCB's own children win.
-        final modified = await _figures([
-          '(10) Modified revolving door:',
-          '     (2) Partner star promenade 1/4 (WR) [with N1]',
-          '     (8) Women allemande right 1',
-        ]);
+        final group = _named(
+          await _figures([
+            '(10) Modified revolving door:',
+            '     (2) Partner star promenade 1/4 (WR) [with N1]',
+            '     (8) Women allemande right 1',
+          ]),
+        );
+        expect(group.containerTitle, 'Modified revolving door');
+        final modified = group.subFigures;
         expect(modified.map((f) => f.move), ['star_promenade', 'allemande']);
         // v26 (#843): the star promenade's `(WR)` center annotation and its
         // `[with N1]` qualifier both survive now — the latter was silently
-        // dropped before — and combine ahead of the parent's shorthand name.
+        // dropped before. The block's name is the title, not part of it.
         expect(
           modified.first.note,
-          'role2s by the right in the center; with N1 — Modified revolving door',
+          'role2s by the right in the center; with N1',
         );
         expect(_totalBeats(modified), 10);
+        expect(group.beats, 10);
 
         final bare = await _figures([
           '(6) Revolving door:',
@@ -693,7 +858,7 @@ void main() {
     test(
       'the block is consumed as ONE compound, not parent + children',
       () async {
-        final figures = await _figures(block);
+        final figures = _named(await _figures(block)).subFigures;
         // Two figures (the children), NOT three (a custom parent plus them).
         expect(figures.length, 2);
         expect(figures.map((f) => f.move), ['allemande', 'star_promenade']);

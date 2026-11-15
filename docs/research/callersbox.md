@@ -298,6 +298,13 @@ children. `Modified revolving door` (#19305) is the sharpest illustration: the
 bare `Revolving door` collapses to the taxonomy move, while the "Modified"
 variant decomposes and keeps its name in the note.
 
+*Since container titles:* the name is now kept as the **title of one
+sequence** holding the children (`Modified revolving door - …`) when the block
+has two to four figures that come through the cross-line merge untouched and
+fit one phrase of the dance, and the name fits a title. The first-child note above is the fallback for every other block
+(`Interrupted square through 2`, whose balance child folds into its square
+through, is one). See [imports.md](../design/imports.md) §1.
+
 Whole-corpus effect of #295 (grand right and left + the general compound rule),
 measured with `tool/tcb_coverage.dart` on the same mirror before and after:
 **75.09% → 76.24%** of figure lines structured.
