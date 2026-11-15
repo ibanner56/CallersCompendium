@@ -12317,6 +12317,18 @@ abstract class AppLocalizations {
   /// **'Customize wording for this dance'**
   String get danceEditorAddWordingOverride;
 
+  /// Label for the optional title of a meanwhile, modifier or sequence group of figures in the dance editor: a name callers know the group by, such as Flutterwheel.
+  ///
+  /// In en, this message translates to:
+  /// **'Group title (optional)'**
+  String get danceEditorGroupTitleLabel;
+
+  /// Helper text under the group title field: the title is shown in front of the group's figures as 'Title - figures'. Flutterwheel is the name of a contra dance figure; keep it as is.
+  ///
+  /// In en, this message translates to:
+  /// **'A name for the whole group, such as Flutterwheel. It is shown before the group\'s figures, followed by a dash.'**
+  String get danceEditorGroupTitleHelper;
+
   /// Label for the per-figure display wording override field.
   ///
   /// In en, this message translates to:

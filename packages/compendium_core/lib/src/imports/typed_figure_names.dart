@@ -178,6 +178,10 @@ final List<MapEntry<String, String>> _dancerPhrases = [
     'first role2': 'onesRole2',
     'second role1': 'twosRole1',
     'second role2': 'twosRole2',
+    'third role1': 'threesRole1',
+    'third role2': 'threesRole2',
+    'fourth role1': 'foursRole1',
+    'fourth role2': 'foursRole2',
     for (final MapEntry(key: noun, value: byOrdinal)
         in seriesDancerWords.entries)
       for (final MapEntry(key: ordinal, value: token) in byOrdinal.entries) ...{

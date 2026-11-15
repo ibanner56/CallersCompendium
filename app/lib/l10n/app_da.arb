@@ -8106,6 +8106,14 @@
   "@danceEditorAddWordingOverride": {
     "x-sourceSha256": "96cc21c207cb28a6f3e778e37321df2e4668b079b8639863872d662628c1a8f7"
   },
+  "danceEditorGroupTitleLabel": "Gruppetitel (valgfri)",
+  "@danceEditorGroupTitleLabel": {
+    "x-sourceSha256": "aa82d8d8c72e86621cbbc60cd91eca1549efa5b9e339723cb9642ec2ee398cae"
+  },
+  "danceEditorGroupTitleHelper": "Et navn for hele gruppen, f.eks. Flutterwheel. Det vises foran gruppens figurer, efterfulgt af en tankestreg.",
+  "@danceEditorGroupTitleHelper": {
+    "x-sourceSha256": "71f5ca760816643c3e85324323b1bacd37089664fd53e80738c37be1845c5111"
+  },
   "danceEditorWordingOverrideLabel": "Figurordlyd for denne dans",
   "@danceEditorWordingOverrideLabel": {
     "x-sourceSha256": "fcd6694dec4af263e410ae7ea671e17e63561aafaab0d3c3f25961429c2eaf06"

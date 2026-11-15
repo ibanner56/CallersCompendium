@@ -55,6 +55,7 @@ void main() {
               ),
             ],
             beats: 16,
+            title: 'Hollow Valley Spin',
           ),
           Figure.meanwhile(
             figures: [
@@ -62,6 +63,20 @@ void main() {
                 move: customMove,
                 params: const {'text': 'nested meanwhile custom text'},
                 note: 'nested meanwhile note',
+              ),
+              Figure(move: 'swing'),
+            ],
+            beats: 8,
+          ),
+          Figure.meanwhile(
+            figures: [
+              Figure.sequence(
+                figures: [
+                  Figure(move: 'balance'),
+                  Figure(move: 'swing'),
+                ],
+                beats: 8,
+                title: 'Twin Rivers Shuffle',
               ),
               Figure(move: 'swing'),
             ],
@@ -115,6 +130,8 @@ void main() {
       'nested modifier note', // nested figure note
       'nested meanwhile custom text', // nested custom figure params['text']
       'nested meanwhile note', // nested figure note
+      'Hollow Valley Spin', // container title
+      'Twin Rivers Shuffle', // nested container title
       'scoop them up gently', // figure note
       'commissioned for Sam', // custom-field value
       // Custom-field definitions.

@@ -42,10 +42,21 @@ final RegExp _camelBoundary = RegExp(
 );
 
 /// Shape of the single-dancer identity tokens ([ParamVocab.singleDancers]) —
-/// one couple (`ones`/`twos`) × one role. Unlike [roleTokens] these are
-/// COMPOUND, so a whole-token membership test never matches them and the
-/// embedded role would never be substituted (issue #832).
-final RegExp _singleDancerShape = RegExp(r'^(ones|twos)(Role[12])$');
+/// one couple (`ones`/`twos`/`threes`/`fours`) × one role. Unlike
+/// [roleTokens] these are COMPOUND, so a whole-token membership test never
+/// matches them and the embedded role would never be substituted (issue
+/// #832).
+final RegExp _singleDancerShape = RegExp(
+  r'^(ones|twos|threes|fours)(Role[12])$',
+);
+
+/// The ordinal each [_singleDancerShape] couple reads as.
+const Map<String, String> _singleDancerOrdinals = {
+  'ones': 'first',
+  'twos': 'second',
+  'threes': 'third',
+  'fours': 'fourth',
+};
 
 /// A display template's computed slots and literal sentence structure.
 typedef _DisplayTemplate = ({Map<String, String> slots, String template});
@@ -262,11 +273,19 @@ class FigureRenderer {
             dialect,
             canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
           );
-    if (override != null) return override;
+    // The override, meanwhile and sequence branches return without going
+    // through [_render], so they add a container's title themselves.
+    String titled(String line) => _withContainerTitle(
+      line,
+      figure,
+      dialect,
+      canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+    );
+    if (override != null) return titled(override);
     if (figure.isMeanwhile) {
       final children = figure.subFigures;
-      if (children.isEmpty) return meanwhileMove;
-      return children
+      if (children.isEmpty) return titled(meanwhileMove);
+      final sides = children
           .map(
             (child) => _withChildNote(
               _renderSummary(
@@ -282,24 +301,27 @@ class FigureRenderer {
             ),
           )
           .join(' while ');
+      return titled(sides);
     }
     if (figure.isSequence) {
       final children = figure.subFigures;
-      if (children.isEmpty) return sequenceMove;
-      return _sequenceLine(
-        children,
-        [
-          for (final child in children)
-            _renderSummary(
-              child,
-              dialect,
-              verbose: verbose,
-              decimals: decimals,
-              canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
-            ),
-        ],
-        dialect,
-        canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+      if (children.isEmpty) return titled(sequenceMove);
+      return titled(
+        _sequenceLine(
+          children,
+          [
+            for (final child in children)
+              _renderSummary(
+                child,
+                dialect,
+                verbose: verbose,
+                decimals: decimals,
+                canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+              ),
+          ],
+          dialect,
+          canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+        ),
       );
     }
     if (!figure.isCustom &&
@@ -432,7 +454,33 @@ class FigureRenderer {
   /// ContraDB-parity display transforms — silenced default direction/facing,
   /// omitted default subject, singularized positional dancer sets, and the
   /// shoulder_round shoulder injection — are applied.
+  ///
+  /// A titled container's line, canonical included, opens with its title
+  /// ([_withContainerTitle]); every path through here gets it, so a
+  /// container branch below never adds it itself.
   String _render(
+    Figure figure,
+    Dialect dialect, {
+    bool verbose = false,
+    bool decimals = false,
+    bool forCanonical = false,
+    bool canonicalizeDiscouragedTerms = false,
+  }) => _withContainerTitle(
+    _renderUntitled(
+      figure,
+      dialect,
+      verbose: verbose,
+      decimals: decimals,
+      forCanonical: forCanonical,
+      canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+    ),
+    figure,
+    dialect,
+    canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+  );
+
+  /// [_render] without a container's title.
+  String _renderUntitled(
     Figure figure,
     Dialect dialect, {
     bool verbose = false,
@@ -979,10 +1027,18 @@ class FigureRenderer {
             dialect,
             canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
           );
-    if (override != null) return override;
+    // As in [_renderSummary]: these branches skip [_render], so they add a
+    // container's title themselves.
+    String titled(String line) => _withContainerTitle(
+      line,
+      figure,
+      dialect,
+      canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+    );
+    if (override != null) return titled(override);
     if (figure.isMeanwhile) {
       final children = figure.subFigures;
-      if (children.isEmpty) return meanwhileMove;
+      if (children.isEmpty) return titled(meanwhileMove);
       final rendered = [
         _withChildNote(
           _renderGerundive(
@@ -1010,25 +1066,27 @@ class FigureRenderer {
             canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
           ),
       ];
-      return rendered.join(' while ');
+      return titled(rendered.join(' while '));
     }
     if (figure.isSequence) {
       final children = figure.subFigures;
-      if (children.isEmpty) return sequenceMove;
-      return _sequenceLine(
-        children,
-        [
-          for (final child in children)
-            _renderGerundive(
-              child,
-              dialect,
-              verbose: verbose,
-              decimals: decimals,
-              canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
-            ),
-        ],
-        dialect,
-        canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+      if (children.isEmpty) return titled(sequenceMove);
+      return titled(
+        _sequenceLine(
+          children,
+          [
+            for (final child in children)
+              _renderGerundive(
+                child,
+                dialect,
+                verbose: verbose,
+                decimals: decimals,
+                canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+              ),
+          ],
+          dialect,
+          canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+        ),
       );
     }
     return _renderGerundive(
@@ -1734,6 +1792,32 @@ class FigureRenderer {
     return base(this, def, params, Dialect.canonical, false, false).template;
   }
 
+  /// [line], the text of [figure], opened with the container's title when
+  /// [figure] is a titled container: `"<title> - <line>"`, so a group the
+  /// caller knows by a name ("flutterwheel") shows that name beside the
+  /// figures it is made of. [line] unchanged for an untitled container and
+  /// for every ordinary figure.
+  ///
+  /// The title is free text, shown as a top-level note's text is: role words
+  /// in [dialect] (canonical tokens under [Dialect.canonical], so the
+  /// canonical line, and with it the search index, carries the title in a
+  /// dialect-free form). It is a name, so it keeps no emphasis marks and is
+  /// never parsed for them. Stored containers had no title before this, so
+  /// adding it to the canonical line changes no existing index row.
+  String _withContainerTitle(
+    String line,
+    Figure figure,
+    Dialect dialect, {
+    required bool canonicalizeDiscouragedTerms,
+  }) {
+    final title = figure.containerTitle;
+    if (title == null) return line;
+    final shown = canonicalizeDiscouragedTerms
+        ? renderFreeTextWithCanonicalDiscouragedTerms(title, dialect)
+        : renderFreeText(title, dialect);
+    return '$shown - $line';
+  }
+
   String? _renderWordingOverride(
     Figure figure,
     Dialect dialect, {
@@ -1872,7 +1956,7 @@ class FigureRenderer {
   /// DISPLAY-ONLY rendering of a single dancer/role [token] for the
   /// [_displayBaseRenderers] base lines: role tokens map to the dialect role
   /// term (canonical token when unmapped), single-dancer identities take
-  /// [_singleDancerTerm] (substitution, else `<first|second> <role>`),
+  /// [_singleDancerTerm] (substitution, else `<ordinal> <role>`),
   /// [Dialect.dancers] substitutions win next, then positional dancer sets read
   /// as the PR1 singular subject (`partners` → `partner`), else the token
   /// humanizes. Mirrors the display-path branch of [_renderValue]; never used
@@ -1972,13 +2056,14 @@ class FigureRenderer {
   }
 
   /// DISPLAY-ONLY: the DEFAULT label for a single-dancer identity [token]
-  /// (`onesRole1` …), as `<first|second> <role singular>` — e.g. `first lark`
+  /// (`onesRole1` …), as `<ordinal> <role singular>` — e.g. `first lark`
   /// under larks/robins, `first role1` under the canonical dialect. Returns
   /// `null` for every other token, so callers can chain it ahead of their own
   /// fallback. Mirrors ContraDB's `chooser_dancer` "first/second
   /// gentlespoon/ladle" naming (`app/javascript/libfigure/chooser.js`
-  /// @13f38a5). The ordinal (ones→first, twos→second) is fixed structural
-  /// vocabulary; the role word is the active dialect's role term.
+  /// @13f38a5), extended to the third and fourth couples (v39). The ordinal
+  /// (ones→first, twos→second, threes→third, fours→fourth) is fixed
+  /// structural vocabulary; the role word is the active dialect's role term.
   ///
   /// DELIBERATELY IGNORES [Dialect.dancers]: this is the wording a token reads
   /// as with NO substitution set. The dialect editor labels its substitution
@@ -1988,7 +2073,7 @@ class FigureRenderer {
   static String? singleDancerDefaultTerm(String token, Dialect dialect) {
     final match = _singleDancerShape.firstMatch(token);
     if (match == null) return null;
-    final ordinal = match[1] == 'ones' ? 'first' : 'second';
+    final ordinal = _singleDancerOrdinals[match[1]]!;
     final role = match[2]!.toLowerCase(); // Role1 -> role1
     return '$ordinal ${_roleTerm(role, dialect)}';
   }
@@ -2009,7 +2094,7 @@ class FigureRenderer {
 
   /// DISPLAY-ONLY: label for a single-dancer identity [value], via
   /// [_singleDancerTerm]. A value that does not match the
-  /// `(ones|twos)(Role1|Role2)` shape falls back to [_displayDancer] so unknown
+  /// `(ones|twos|threes|fours)(Role1|Role2)` shape falls back to [_displayDancer] so unknown
   /// values are still surfaced, not blanked.
   String _singleDancerLabel(Object? value, Dialect dialect) {
     if (value is! String) return _displaySubject(value, dialect);
@@ -2073,7 +2158,7 @@ class FigureRenderer {
   /// `twos role2` — issue #832.
   ///
   /// The single-dancer branch is NOT spec-gated, mirroring [roleTokens]: these
-  /// four are a closed structural vocabulary, so the label is right whatever
+  /// are a closed structural vocabulary, so the label is right whatever
   /// spec (or none) the caller has to hand.
   static String displayToken(String token, ParamSpec? spec, Dialect dialect) {
     if (roleTokens.contains(token)) return _roleTerm(token, dialect);
@@ -2143,7 +2228,7 @@ class FigureRenderer {
         (spec?.kind == ParamKind.dancerSet ||
             spec?.kind == ParamKind.dancerPair)) {
       // Display-only: a single-dancer identity reads as its substitution, else
-      // `<first|second> <role term>` (issue #832). GATED ON !forCanonical — the
+      // `<ordinal> <role term>` (issue #832). GATED ON !forCanonical — the
       // canonical render must keep emitting the humanized raw token
       // ("twos role2"), because that text is persisted to
       // `dance_figures.canonicalText` / `dance_fts` and is the dedupe key.

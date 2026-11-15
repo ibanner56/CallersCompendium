@@ -121,9 +121,11 @@ final Set<String> _determiners = {
   'first',
   'second',
   'third',
+  'fourth',
   '1st',
   '2nd',
   '3rd',
+  '4th',
   'other',
   'my',
   'his',
@@ -186,7 +188,16 @@ const Set<String> _relativePronouns = {'this', 'that', 'which'};
 
 /// Ordinals: determiners (for the base form: "second follow") that also name
 /// one item as the subject ("the second follows the first").
-const Set<String> _ordinals = {'first', 'second', 'third', '1st', '2nd', '3rd'};
+const Set<String> _ordinals = {
+  'first',
+  'second',
+  'third',
+  'fourth',
+  '1st',
+  '2nd',
+  '3rd',
+  '4th',
+};
 
 /// Counts and quantities. After a determiner they make the following plural
 /// role a noun ("the two leads down the hall"), never a singular subject.

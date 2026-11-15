@@ -199,6 +199,16 @@ EXPORT_RE = re.compile(
 # Each must say why it is not an identity key. Naming the functions (not just
 # the file) keeps a third normalizer added to an exempt file a violation.
 ALTERNATE_TITLE_EXEMPTIONS: dict[str, frozenset[str]] = {
+    # The stored form of a meanwhile/modifier/sequence group's optional title
+    # (`params['title']`): whitespace collapsed, trimmed and clamped. It names a
+    # group of figures inside a dance, not a dance, and is not a dance-title
+    # key; dance titles still use `normalizeTitle`. Its output is stored inside
+    # `figures_json`, so it reaches the choreography fingerprint and figure
+    # comparisons only as stored data, written identically by the container
+    # factories and the figure codec on every device.
+    "packages/compendium_core/lib/src/model/figure.dart": frozenset(
+        {"normalizeContainerTitle"}
+    ),
     # Online-source query text and exact-title matching (`lookupUniqueExactTitle`).
     # They fold only typographic punctuation and keep articles and ASCII
     # punctuation, so an unattended program import never treats `Archive` as

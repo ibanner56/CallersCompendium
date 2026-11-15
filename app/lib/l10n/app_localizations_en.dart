@@ -8291,6 +8291,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Customize wording for this dance';
 
   @override
+  String get danceEditorGroupTitleLabel => 'Group title (optional)';
+
+  @override
+  String get danceEditorGroupTitleHelper =>
+      'A name for the whole group, such as Flutterwheel. It is shown before the group\'s figures, followed by a dash.';
+
+  @override
   String get danceEditorWordingOverrideLabel => 'Figure wording for this dance';
 
   @override

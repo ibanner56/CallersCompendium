@@ -447,4 +447,89 @@ void main() {
       expect(identical(oldFigures, newFigures), isFalse);
     });
   });
+
+  group('a top-level sequence is compared as its steps', () {
+    final balance = testFigure(
+      move: 'balance',
+      params: const {'who': 'partners', 'beats': 4},
+    );
+    final swing = testFigure(
+      move: 'swing',
+      params: const {'who': 'partners', 'beats': 12},
+    );
+    final circle = testFigure(
+      move: 'circle',
+      params: const {'direction': 'left', 'places': 3, 'beats': 8},
+    );
+    bool same(List<Figure> a, List<Figure> b) =>
+        figuresCanonicallyIdentical(
+          oldFigures: a,
+          newFigures: b,
+          taxonomy: tax,
+        ) &&
+        diff(a, b).identical;
+
+    test('grouping figures, or naming the group, is no difference', () {
+      final grouped = Figure.sequence(figures: [balance, swing], beats: 16);
+      final named = Figure.sequence(
+        figures: [balance, swing],
+        beats: 16,
+        title: 'Balance and swing',
+      );
+      expect(same([balance, swing, circle], [grouped, circle]), isTrue);
+      expect(same([named, circle], [balance, swing, circle]), isTrue);
+      expect(same([grouped], [named]), isTrue);
+    });
+
+    test('a Caller\'s Box compound imported flat matches it imported as a '
+        'titled sequence', () {
+      // Before container titles: the steps in rows, the block's name the
+      // first step's note. After: one sequence titled with the name.
+      final flat = [balance.copyWith(note: 'Neighbor flutterwheel'), swing];
+      final titled = [
+        Figure.sequence(
+          figures: [balance, swing],
+          beats: 16,
+          title: 'Neighbor flutterwheel',
+        ),
+      ];
+      expect(same(flat, titled), isTrue);
+    });
+
+    test('different steps still differ, shown as the step that changed', () {
+      final result = diff(
+        [
+          Figure.sequence(figures: [balance, swing], beats: 16),
+        ],
+        [
+          Figure.sequence(figures: [balance, circle], beats: 12),
+        ],
+      );
+      expect(result.identical, isFalse);
+      expect(result.entries.map((e) => (e.kind, e.phraseLabel)), [
+        (FigureDiffKind.removed, 'A1'),
+        (FigureDiffKind.added, 'A1'),
+      ]);
+      expect(
+        result.entries.first.displayText,
+        renderer.renderSummary(swing, dialect),
+      );
+    });
+
+    test('a sequence nested in a meanwhile is not expanded: its steps are '
+        'not concurrent with the other side', () {
+      final nested = Figure.meanwhile(
+        figures: [
+          Figure.sequence(figures: [balance, swing], beats: 16),
+          circle,
+        ],
+        beats: 16,
+      );
+      final threeSides = Figure.meanwhile(
+        figures: [balance, swing, circle],
+        beats: 16,
+      );
+      expect(same([nested], [threeSides]), isFalse);
+    });
+  });
 }

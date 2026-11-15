@@ -43,15 +43,17 @@ built figure.
 - `dancers` substitutes the dancer tokens (ContraDB's parallel `dancers` map) —
   the positional/relational sets (`neighbors`, `ones`, `partners`,
   `nextNeighbors`, `centers`) **and** the single-dancer identities
-  (`onesRole1`/`onesRole2`/`twosRole1`/`twosRole2`). The role-driven tokens
-  `role1s`/`role2s` are **excluded**: they flow through role-term substitution
+  (`onesRole1`/`onesRole2`/`twosRole1`/`twosRole2`, and from taxonomy v39
+  `threesRole1`/`threesRole2`/`foursRole1`/`foursRole2`). The role-driven
+  tokens `role1s`/`role2s` are **excluded**: they flow through role-term substitution
   (`roles`) instead, so they are never listed here. Like `moves`, presets ship
   an **empty** `dancers` map — no gendered or house-specific dancer terms are
   baked in.
 - A single-dancer identity is the one dancer token with a **derived default**
   rather than a humanized one: with no substitution set it renders
-  `<first|second> <role singular>` ("second robin"), composed from the active
-  `roles`, mirroring ContraDB's `chooser_dancer` naming. Setting a `dancers`
+  `<first|second|third|fourth> <role singular>` ("second robin"), composed
+  from the active `roles`, mirroring ContraDB's `chooser_dancer` naming,
+  extended to the third and fourth couples (v39). Setting a `dancers`
   entry overrides that wording (a caller who says "robin two" enters it there);
   the ordinal construction is the default, not a hardcoded choice (issue #832).
 - `discouragedTerms` is **user-editable data with shipped defaults**, not

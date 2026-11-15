@@ -40,8 +40,10 @@ import '../taxonomy/contra_taxonomy.dart' show contraTaxonomy;
 /// one of three readings: a known parent name structures to a single
 /// taxonomy figure (children subsumed into its note); an unknown parent whose
 /// children ALL structure expands to those children, each keeping its own
-/// beats; anything else falls back to one [customFigure] with the parent text
-/// and the children in its note. See `docs/design/imports.md` §1 and
+/// beats, grouped as one sequence titled with the parent's name where the
+/// merge left them whole ([CallersBoxAdapter._groupNamedCompounds]); anything
+/// else falls back to one [customFigure] with the parent text and the
+/// children in its note. See `docs/design/imports.md` §1 and
 /// §"Shared free-text figure parser".
 ///
 /// ## Dialect scrubbing (the headline ask)
@@ -228,7 +230,14 @@ class CallersBoxAdapter implements SourceAdapter {
     final permission = (_asString(dance['Permission'])?.trim() ?? '')
         .toLowerCase();
     final isFull = permission == 'full';
-    final figures = isFull ? _parseFigures(dance['phrases']) : const <Figure>[];
+    final figures = isFull
+        ? _parseFigures(
+            dance['phrases'],
+            longestPhraseBeats: PhraseStructure.parseOrStandard(
+              phraseStructure,
+            ).longestPhraseBeats,
+          )
+        : const <Figure>[];
     if (!isFull) {
       issues.add(
         ImportIssue(
@@ -287,7 +296,13 @@ class CallersBoxAdapter implements SourceAdapter {
   /// never crosses a section boundary: TCB phrase entries map to the A1/A2/…
   /// sections, and the balance+move / hall+bend pairs it folds are always
   /// written within a single phrase entry.
-  List<Figure> _parseFigures(Object? phrases) {
+  ///
+  /// [longestPhraseBeats] is the dance's longest phrase: a named compound
+  /// longer than it is not grouped ([_groupNamedCompounds]).
+  List<Figure> _parseFigures(
+    Object? phrases, {
+    required int longestPhraseBeats,
+  }) {
     if (phrases is! List) return const [];
     final figures = <Figure>[];
     for (final phrase in phrases) {
@@ -304,8 +319,17 @@ class CallersBoxAdapter implements SourceAdapter {
         rawLines.add(text);
       }
       final standaloneSquareThroughs = Map<Figure, String>.identity();
-      final merged = _mergeCrossLineFigures(
-        _parsePhraseFigures(rawLines, standaloneSquareThroughs),
+      final namedCompounds = <_NamedCompound>[];
+      final merged = _groupNamedCompounds(
+        _mergeCrossLineFigures(
+          _parsePhraseFigures(
+            rawLines,
+            standaloneSquareThroughs,
+            namedCompounds,
+          ),
+        ),
+        namedCompounds,
+        longestPhraseBeats: longestPhraseBeats,
       );
       figures.addAll([
         for (final f in merged)
@@ -322,10 +346,13 @@ class CallersBoxAdapter implements SourceAdapter {
   /// compound convention ([_tryParseCompound]) into one or more figures and
   /// routing every other line through the per-line parser unchanged.
   /// [standaloneSquareThroughs] collects the square throughs the per-line
-  /// parser leaves for after the merge (see [_parseFigureLine]).
+  /// parser leaves for after the merge (see [_parseFigureLine]), and
+  /// [namedCompounds] the named blocks emitted as their children, for
+  /// [_groupNamedCompounds] to group after the merge.
   List<Figure> _parsePhraseFigures(
     List<String> rawLines,
     Map<Figure, String> standaloneSquareThroughs,
+    List<_NamedCompound> namedCompounds,
   ) {
     final out = <Figure>[];
     var i = 0;
@@ -333,6 +360,7 @@ class CallersBoxAdapter implements SourceAdapter {
       final compound = _tryParseCompound(rawLines, i);
       if (compound != null) {
         out.addAll(compound.figures);
+        if (compound.named case final named?) namedCompounds.add(named);
         i = compound.nextIndex;
         continue;
       }
@@ -363,7 +391,10 @@ class CallersBoxAdapter implements SourceAdapter {
   ///   emit the CHILDREN, each carrying its OWN stated beats. The exact-sum
   ///   guard below already proves those sum to the parent's, so the section
   ///   total is byte-identical to the collapsed reading. The parent's shorthand
-  ///   name is preserved as a `note` on the FIRST child rather than dropped.
+  ///   name is preserved as a `note` on the FIRST child rather than dropped,
+  ///   and the block is recorded as a [_NamedCompound] so that, after the
+  ///   cross-line merge, [_groupNamedCompounds] can make it one sequence
+  ///   titled with that name instead.
   /// - **Anything else** — one [customFigure] with the parent text and the
   ///   parent's beats, children in the note. This is the fallback whenever ANY
   ///   child fails to structure, so a block is never half-structured.
@@ -441,7 +472,20 @@ class CallersBoxAdapter implements SourceAdapter {
         // custom figure whose definition is stranded in a note.
         final children = _structuredCompoundChildren(childTexts, childBeats);
         if (children != null) {
-          return _Compound(_withParentShorthandNote(children, parsed), i);
+          final emitted = _withParentShorthandNote(children, parsed);
+          final name = (parsed.params['text'] as String? ?? '').trim();
+          return _Compound(
+            emitted,
+            i,
+            named: name.isEmpty
+                ? null
+                : _NamedCompound(
+                    name: name,
+                    beats: parentBeats,
+                    emitted: emitted,
+                    children: children,
+                  ),
+          );
         }
         base = parsed; // unknown parent → already-scrubbed custom fallback
       } else {
@@ -516,6 +560,87 @@ class CallersBoxAdapter implements SourceAdapter {
     r'^\(4\)\s+on other diagonal,\s+fall back to s2$',
     caseSensitive: false,
   );
+
+  /// Makes each named compound block ([_NamedCompound]) one sequence titled
+  /// with the block's name, `"flutterwheel - <its figures>"`, in place of its
+  /// children emitted one by one with the name as the first child's note.
+  ///
+  /// It runs AFTER the cross-line merge and groups a block only when every
+  /// figure it emitted came through that merge untouched, still adjacent and
+  /// in order (the same objects, compared by identity). A fold that consumed
+  /// any of them, inside the block or across its edge (a balance line before
+  /// it folding into its first child), means the block keeps the flat form
+  /// the merge produced. So grouping never costs a fold: the choreography is
+  /// exactly what the flat form says, and only its grouping differs.
+  ///
+  /// A block also stays flat when it cannot be a sequence: longer than
+  /// [longestPhraseBeats], the dance's longest phrase (a sequence must fit
+  /// one, as the editor requires and `deriveSections` warns), fewer than two or
+  /// more than [kMaxSequenceFigures] figures, a figure that is itself a
+  /// sequence, a nested container deeper than the model allows, or a name the
+  /// title would have to shorten or rewrite ([normalizeContainerTitle]). The
+  /// first-child note says the name in full there, as it always has.
+  ///
+  /// The sequence carries the block's own [_NamedCompound.beats], which the
+  /// compound guard has already proven equal to its children's sum, so the
+  /// section totals are unchanged; the first child gets its own note back.
+  static List<Figure> _groupNamedCompounds(
+    List<Figure> figures,
+    List<_NamedCompound> named, {
+    required int longestPhraseBeats,
+  }) {
+    if (named.isEmpty) return figures;
+    final byFirst = Map<Figure, _NamedCompound>.identity();
+    for (final block in named) {
+      byFirst[block.emitted.first] = block;
+    }
+    final out = <Figure>[];
+    var i = 0;
+    while (i < figures.length) {
+      final block = byFirst[figures[i]];
+      final grouped = block == null || block.beats > longestPhraseBeats
+          ? null
+          : _namedSequence(block, figures, i);
+      if (grouped != null) {
+        out.add(grouped);
+        i += block!.emitted.length;
+        continue;
+      }
+      out.add(figures[i]);
+      i += 1;
+    }
+    return out;
+  }
+
+  /// [block] as one titled sequence when its figures sit untouched at
+  /// [figures] from [start] and it can be a sequence, else `null`. See
+  /// [_groupNamedCompounds].
+  static Figure? _namedSequence(
+    _NamedCompound block,
+    List<Figure> figures,
+    int start,
+  ) {
+    final emitted = block.emitted;
+    if (emitted.length < 2 || emitted.length > kMaxSequenceFigures) {
+      return null;
+    }
+    if (start + emitted.length > figures.length) return null;
+    for (var k = 0; k < emitted.length; k++) {
+      if (!identical(figures[start + k], emitted[k])) return null;
+    }
+    if (normalizeContainerTitle(block.name) != block.name) return null;
+    try {
+      return Figure.sequence(
+        figures: block.children,
+        beats: block.beats,
+        title: block.name,
+      );
+    } on ArgumentError {
+      // A child the model will not hold in a sequence (another sequence, or
+      // a container below a container): keep the block flat.
+      return null;
+    }
+  }
 
   /// Parses a compound's children into structured figures, or `null` when ANY
   /// child fails to structure — the all-or-nothing guard that keeps a block from
@@ -1937,12 +2062,34 @@ class CallersBoxAdapter implements SourceAdapter {
 /// parent (known parent, or an unstructurable decomposition), or the structured
 /// children when TCB's own decomposition is preferred (#295) — and [nextIndex],
 /// the index of the first line AFTER the consumed block, so the caller resumes
-/// there.
+/// there. [named] is set for the #295 reading, whose block
+/// [CallersBoxAdapter._groupNamedCompounds] may make one titled sequence.
 class _Compound {
-  const _Compound(this.figures, this.nextIndex);
+  const _Compound(this.figures, this.nextIndex, {this.named});
 
   final List<Figure> figures;
   final int nextIndex;
+  final _NamedCompound? named;
+}
+
+/// A compound block read as its structured children (#295), remembered so it
+/// can become one sequence titled [name] after the cross-line merge.
+///
+/// [emitted] are the exact figure objects the block put in the phrase (the
+/// first carrying [name] as its note); [children] are the same figures with
+/// the first's own note, for the sequence. [beats] is the parent line's count.
+class _NamedCompound {
+  const _NamedCompound({
+    required this.name,
+    required this.beats,
+    required this.emitted,
+    required this.children,
+  });
+
+  final String name;
+  final int beats;
+  final List<Figure> emitted;
+  final List<Figure> children;
 }
 
 /// The moves a preceding balance folds into ([CallersBoxAdapter]'s Fold 1),

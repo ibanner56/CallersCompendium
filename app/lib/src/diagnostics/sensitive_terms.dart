@@ -86,6 +86,8 @@ Future<Set<String>> collectSensitiveTerms(
         if (value is String) add(value);
       }
     }
+    // A group's title is the user's own words, like a note.
+    add(figure.containerTitle);
     for (final child in figure.subFigures) {
       addFigureContent(child);
     }

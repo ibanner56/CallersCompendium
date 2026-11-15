@@ -787,8 +787,9 @@ bool _isSameRolePair(List<String> w, int i) =>
 ///
 /// It also reads the names the figure display writes (#2121): the neighbour,
 /// partner and shadow series ([seriesDancer]), `same roles`, `centers`, and
-/// `first`/`second` before a role word. Those are the implementing author's
-/// call, so that a figure reads back from its own displayed text.
+/// `first`/`second` (and, from v39, `third`/`fourth`) before a role word.
+/// Those are the implementing author's call, so that a figure reads back from
+/// its own displayed text.
 String? _takeNamedDancerAt(List<String> w, int i) {
   final word = w[i];
   final next = i + 1 < w.length ? w[i + 1] : null;
@@ -869,6 +870,10 @@ const Map<(String, String?), String> _singleDancers = {
   ('first', 'role2'): 'onesRole2',
   ('second', 'role1'): 'twosRole1',
   ('second', 'role2'): 'twosRole2',
+  ('third', 'role1'): 'threesRole1',
+  ('third', 'role2'): 'threesRole2',
+  ('fourth', 'role1'): 'foursRole1',
+  ('fourth', 'role2'): 'foursRole2',
 };
 
 /// The words after which "opposite" describes something rather than naming the

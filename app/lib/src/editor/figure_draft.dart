@@ -308,6 +308,26 @@ class FigureDraft {
   /// Whether this draft is a compound placeholder; see [compound].
   bool get isCompoundPlaceholder => compound != null;
 
+  /// A group's optional title as typed, or `''` for none: the name shown
+  /// before the group's own wording (`"<title> - <rest>"`). It is kept in
+  /// [params] under [containerTitleKey], as the built [Figure] keeps it, so
+  /// the autosave draft and every copy of [params] carry it with no field of
+  /// its own. Meaningless outside a group; turning a group back into one
+  /// figure replaces [params], which drops it.
+  String get containerTitle => switch (params[containerTitleKey]) {
+    final String title => title,
+    _ => '',
+  };
+
+  /// Sets the group's title; a blank [value] removes it.
+  set containerTitle(String value) {
+    if (value.trim().isEmpty) {
+      params.remove(containerTitleKey);
+    } else {
+      params[containerTitleKey] = value;
+    }
+  }
+
   /// Whether this draft is a meanwhile group. Mirrors [Figure.isMeanwhile].
   bool get isMeanwhileGroup => meanwhileSides != null;
 
@@ -650,6 +670,10 @@ class FigureDraft {
       final extraParams = Map<String, Object?>.of(params)
         ..remove('beats')
         ..remove('figures');
+      // The title is figure-like text, like a custom figure's, so it goes
+      // through the same [canonicalizeNote] chokepoint; the factory then
+      // stores it normalized, or drops it when nothing is left.
+      final rawTitle = extraParams.remove(containerTitleKey);
       final build = switch (kind) {
         modifierMove => Figure.modifier,
         sequenceMove => Figure.sequence,
@@ -662,6 +686,7 @@ class FigureDraft {
         note: trimmedNote.isEmpty ? null : trimmedNote,
         progression: progression,
         wordingOverride: _trimOptionalOverride(wordingOverride),
+        title: rawTitle is String ? canonicalizeNote(rawTitle) : null,
       );
       final trimmedWalkthrough = walkthroughOverride?.trim();
       return rebuilt.copyWith(

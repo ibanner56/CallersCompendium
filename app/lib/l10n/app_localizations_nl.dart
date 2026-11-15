@@ -8382,6 +8382,13 @@ class AppLocalizationsNl extends AppLocalizations {
       'Woording voor deze dans aanpassen';
 
   @override
+  String get danceEditorGroupTitleLabel => 'Groepstitel (optioneel)';
+
+  @override
+  String get danceEditorGroupTitleHelper =>
+      'Een naam voor de hele groep, zoals Flutterwheel. Die staat vóór de figuren van de groep, gevolgd door een streepje.';
+
+  @override
   String get danceEditorWordingOverrideLabel =>
       'Woording van de figuur voor deze dans';
 

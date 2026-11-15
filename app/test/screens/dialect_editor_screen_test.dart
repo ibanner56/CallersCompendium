@@ -984,43 +984,52 @@ void main() {
       );
     }
 
-    testWidgets('the add menu offers all four, labelled by dialect', (
-      tester,
-    ) async {
-      await openDancers(tester, Dialect.larksRobins);
-      final menu = addMenu(tester);
+    testWidgets(
+      'the add menu offers every single dancer, labelled by dialect',
+      (tester) async {
+        await openDancers(tester, Dialect.larksRobins);
+        final menu = addMenu(tester);
 
-      expect(menu.values, containsAll(ParamVocab.singleDancers));
-      // THE TRAP: labelled through the dialect, never as the raw token.
-      expect(
-        menu.labels,
-        containsAll([
-          'first lark',
-          'first robin',
-          'second lark',
-          'second robin',
-        ]),
-      );
-      for (final raw in [
-        'ones role1',
-        'ones role2',
-        'twos role1',
-        'twos role2',
-      ]) {
+        expect(menu.values, containsAll(ParamVocab.singleDancers));
+        // THE TRAP: labelled through the dialect, never as the raw token.
         expect(
           menu.labels,
-          isNot(contains(raw)),
-          reason: 'the raw token "$raw" must never reach the settings UI',
+          containsAll([
+            'first lark',
+            'first robin',
+            'second lark',
+            'second robin',
+            'third lark',
+            'third robin',
+            'fourth lark',
+            'fourth robin',
+          ]),
         );
-      }
+        for (final raw in [
+          'ones role1',
+          'ones role2',
+          'twos role1',
+          'twos role2',
+          'threes role1',
+          'threes role2',
+          'fours role1',
+          'fours role2',
+        ]) {
+          expect(
+            menu.labels,
+            isNot(contains(raw)),
+            reason: 'the raw token "$raw" must never reach the settings UI',
+          );
+        }
 
-      // The group dancer sets are still there, still humanized.
-      expect(menu.values, containsAll(['neighbors', 'nextNeighbors']));
-      expect(menu.labels, contains('next neighbors'));
-      // Role-driven tokens stay excluded (role-term substitution owns them).
-      expect(menu.values, isNot(contains('role1s')));
-      expect(menu.values, isNot(contains('role2s')));
-    });
+        // The group dancer sets are still there, still humanized.
+        expect(menu.values, containsAll(['neighbors', 'nextNeighbors']));
+        expect(menu.labels, contains('next neighbors'));
+        // Role-driven tokens stay excluded (role-term substitution owns them).
+        expect(menu.values, isNot(contains('role1s')));
+        expect(menu.values, isNot(contains('role2s')));
+      },
+    );
 
     testWidgets('an existing identity row is labelled by dialect', (
       tester,

@@ -10817,6 +10817,14 @@
   "@danceEditorAddWordingOverride": {
     "description": "Button that reveals the optional per-figure display wording override for the current dance."
   },
+  "danceEditorGroupTitleLabel": "Group title (optional)",
+  "@danceEditorGroupTitleLabel": {
+    "description": "Label for the optional title of a meanwhile, modifier or sequence group of figures in the dance editor: a name callers know the group by, such as Flutterwheel."
+  },
+  "danceEditorGroupTitleHelper": "A name for the whole group, such as Flutterwheel. It is shown before the group's figures, followed by a dash.",
+  "@danceEditorGroupTitleHelper": {
+    "description": "Helper text under the group title field: the title is shown in front of the group's figures as 'Title - figures'. Flutterwheel is the name of a contra dance figure; keep it as is."
+  },
   "danceEditorWordingOverrideLabel": "Figure wording for this dance",
   "@danceEditorWordingOverrideLabel": {
     "description": "Label for the per-figure display wording override field."
