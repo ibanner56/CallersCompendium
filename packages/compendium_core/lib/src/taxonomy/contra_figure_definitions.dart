@@ -413,15 +413,18 @@ const Map<String, FigureDefinition> contraFigureDefinitions = {
     description:
         'The pair trades places each time it loops around an end: the front dancer swings wide and the one behind cuts inside to take the front. It is usually danced across the set, starting with the couple in the middle. The figure names who starts it and by which shoulder. A full dolphin hey usually takes 16 beats.',
   ),
-  // contra_taxonomy.dart `hey_for_three` (taxonomy v39; who and whom single
-  // dancers, shoulder default right, 16 beats). Neither reference was
-  // consulted for this entry: the text is the author's, describing the figure
-  // the app models, and the beat count is the taxonomy's default.
+  // TCB "Hey for three" (as the maintainer supplied it, 2026-11-15: a hey for
+  // four less one dancer and one loop, a figure 8 traced by three dancers each
+  // weaving alone, with variants in which a couple is one of the three, and
+  // borrowed from English country dance). The couple variant is the app's
+  // `dolphin_hey`; this move's `who` and `whom` are single dancers
+  // (taxonomy v39). The beat count is the taxonomy's default, not TCB's,
+  // which states none.
   'hey_for_three': FigureDefinition(
     definition:
         'Three dancers weave past one another along a figure-eight path, alternating shoulders.',
     description:
-        'The dancer who starts passes the named dancer by the named shoulder, then each dancer passes the next by the other shoulder, looping around the ends until all three are home. The figure names who starts it, whom they pass first, and by which shoulder. A full hey for three usually takes 16 beats.',
+        'A call borrowed from English country dance: a hey for four with one dancer fewer and one loop fewer, each of the three weaving alone. The dancer who starts passes the named dancer by the named shoulder, then each dancer passes the next by the other shoulder, looping around the ends until all three are home. The figure names who starts it, whom they pass first, and by which shoulder. When a couple weaves together as one of the three, it is a dolphin hey. A full hey for three usually takes 16 beats.',
   ),
   // TCB "Long wave", "Balance wave".
   'form_long_waves': FigureDefinition(

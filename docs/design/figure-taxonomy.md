@@ -2129,7 +2129,9 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
       three - start with second robin passing first lark by right
       shoulders`. Both dancers render as single dancers, in the dialect's
       words. As a modifier side it reads `doing a hey for three`. The
-      glossary text is the author's; no reference was consulted.
+      glossary text is checked against The Caller's Box's "Hey for three"
+      entry, which the maintainer supplied after #2205 merged; its couple
+      variant is the dolphin hey, and its beat count is the taxonomy's.
     - Reading: free-text entry reads the bare name and the whole display
       line back (`readDisplayedHeyForThree`, called only by free-text entry,
       as starburst's reader is), under its own name or a dialect's name for
