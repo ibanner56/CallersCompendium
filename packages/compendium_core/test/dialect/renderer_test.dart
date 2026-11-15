@@ -1218,7 +1218,7 @@ void main() {
     });
   });
 
-  // Issue #832. The four single-dancer identities are COMPOUND tokens, so the
+  // Issue #832. The single-dancer identities are COMPOUND tokens, so the
   // whole-token `roleTokens` membership test never matched them and their
   // embedded role was never substituted: every display path fell through to
   // `_humanize` and read "twos role2". The right construction already existed
@@ -1484,7 +1484,8 @@ void main() {
           for (final e in heyDef.params.entries)
             e.key: e.key == 'meetTarget'
                 // Drop ONLY the `choices` narrowing, so the renderer takes its
-                // `?? ParamVocab.dancerSets` fallback — which admits the four.
+                // `?? ParamVocab.dancerSets` fallback — which admits the single
+                // dancers.
                 ? ParamSpec(e.value.kind, defaultValue: e.value.defaultValue)
                 : e.value,
         },
