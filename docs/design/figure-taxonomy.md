@@ -2135,10 +2135,10 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
       as starburst's reader is), under its own name or a dialect's name for
       it, reading role words by the dialect. No importer reads it, so imports
       are unchanged: ContraDB has no such figure, and its advanced filter
-      refuses a `hey_for_three` leaf. The Caller's Box corpus has one line
-      for it (`Hey for 3 along set (N1 pass R, N2 L-sh, …)`), which states a
-      direction and a four-pass list the move has no slots for; it stays
-      custom text.
+      refuses a `hey_for_three` leaf. The figure-text corpus fixture has one
+      line for it, from a beta tester's Caller's Companion library (`Hey for
+      3 along set (N1 pass R, N2 L-sh, …)`), which states a direction and a
+      four-pass list the move has no slots for; it stays custom text.
     - Migration: none, and no rebuild: no stored figure can reference a move
       that did not exist. A v38 build displays a `hey_for_three` by its raw
       id, as it does every added move. A figure of your own named hey for
