@@ -69,11 +69,11 @@ are inputs to the design, not proposals:
 ### 1.2 The proposal in brief
 
 Everything below is proposed by this ADR's author for the maintainer to
-accept or change.
+accept or change, except where §10 records the maintainer's answer.
 
 - **One taxonomy per dance form**, with square call IDs carrying an `sq_`
   prefix so they can never be mistaken for contra moves, including by older
-  builds (§5.1).
+  builds (§5.1; the maintainer accepted the prefix, Q5).
 - **Program membership is data that depends on the CALLERLAB edition**
   (§5.2). CALLERLAB replaced its Basic, Mainstream and SSD programs with a
   new Mainstream program on 1 September 2026, and moved several calls into a
@@ -300,8 +300,10 @@ every call through Advanced, and singing-call figures must fit 64 beats.
   Thru's entry says "SS odd numbers: add 2 to previous count". ⚠ This ADR
   reads that as: only odd counts add 2 from a static square, so Heads Square
   Thru 4 stays 10. The other reading, that every count adds 2, gives 12
-  (Q9). The +2 applies only to calls defined from facing dancers or facing
-  couples, which is what the Convention covers. The app cannot tell where
+  (Q9). Because the maintainer is not sure it is exactly either, the
+  default is 10 and both 10 and 12 are in `goodBeats`. The +2 applies only
+  to calls defined from facing dancers or facing couples, which is what the
+  Convention covers. The app cannot tell where
   the dancers are (§5.4), so the adjustment is driven by an explicit
   `fromStaticSquare` flag. For a `singingCall` or `break` the editor sets it
   on the first call; for `patter` it starts off, because a module may begin
@@ -656,8 +658,14 @@ is on:
 - **Keeper or mixer** uses the existing `mixer` flag, which the importer
   already sets from the same `SubType`.
 - The **record or tune** uses the existing `tunes` field.
-- A singing call and its usual break can be linked with the existing
-  `DanceLink` (Q6).
+- **Breaks are their own records** (`squareKind=break`), as the maintainer
+  decided (Q6). A singing call and its usual break are linked with the
+  existing `DanceLink`. The maintainer would also like the editor to put a
+  break into another dance, if that is doable. Phase 3 proposes doing this
+  by **copying** the break's calls into the other dance at the cursor, as
+  ordinary lines, so no new structure is needed. Later edits to the break
+  do not change the copy. A live reference that follows the break's edits
+  would be a new structural construct and is left for later.
 
 `progression` is unused for squares, and contra-only formation choices do
 not appear in the square editor.
@@ -705,8 +713,14 @@ three forms, and a dropdown beyond that. It is never a two-way switch.
     square calls, re-reads custom lines with the square parser, and leaves
     anything else as it is. The caller can also re-import from the original
     file, through the existing re-import flow.
+- **The Caller's Box** has some square dances, per the maintainer (Q7).
+  Its importer today treats every dance as contra. Phase 3 starts with a
+  survey of how Caller's Box marks a square (its formation list includes
+  "Grid Contra/Square", per
+  [callersbox.md](../research/callersbox.md)) and how its square figure
+  lines read, then routes those dances to the square parser.
 - Other square sources (for example the output of Sd, or plain-text
-  sequences) are Q7.
+  sequences) can follow if callers ask for them.
 
 ## 9. Delivery phases
 
@@ -716,8 +730,9 @@ three forms, and a dropdown beyond that. It is never a two-way switch.
    `FormationShape.square`, the glossary selector, and tests.
 2. **Plus.** The §7.2 registry, and the `call` parameter (§5.6) with all the
    surfaces it touches.
-3. **Entry and import.** Square editor behavior, shorthand, the Caller's
-   Companion square parser, and the migration of earlier square imports.
+3. **Entry and import.** Square editor behavior, shorthand, inserting a
+   copy of a break (§8.1), the square parser for Caller's Companion and
+   The Caller's Box, and the migration of earlier square imports.
 4. **Advanced (stretch).** Judgment: **moderate, not trivial.** Phase 2
    provides the main mechanism, but Advanced adds parameter-dependent
    programs, overlapping timing, the Swing name clash and new formations
@@ -748,21 +763,26 @@ formation the caller states ("from a zero box", "normal lines"), as an
 optional, never-computed parameter? Useful for modules, but not needed for
 phase 1. *Recommendation: defer.*
 
-**Q5. ID prefix.** §5.1 proposes `sq_`. Is that acceptable, and should
-ADR-006 adopt `ecd_` to match?
+**Q5. ID prefix.** *Answered by the maintainer (15 November 2026): the
+`sq_` prefix is accepted.* Still open: should ADR-006 adopt `ecd_` to
+match?
 
-**Q6. Breaks.** Should a singing call's break be a separate `break` record
-linked by `DanceLink`, as proposed, or stored inside the singing-call record?
+**Q6. Breaks.** *Answered by the maintainer (15 November 2026): breaks are
+saved as separate records, and ideally the editor can put a break into
+another dance; it is acceptable if that is not doable.* §8.1 proposes a
+copy-in.
 
-**Q7. Import sources.** Besides Caller's Companion, which sources of square
-choreography do you use and want imported?
+**Q7. Import sources.** *Answered by the maintainer (15 November 2026): The
+Caller's Box has some squares.* §8.4 adds it to phase 3.
 
 **Q8. Allemande.** Keep `allemande` separate from `arm_turn` (§7.1), or make
 Allemande Left an alias of a left arm turn with the corner?
 
 **Q9. Square Thru from a static square.** Is Heads Square Thru 4 timed 10
-(only odd counts add 2, as §5.3 reads the table) or 12? *Recommendation: 10, pending
-confirmation from a caller.*
+(only odd counts add 2, as §5.3 reads the table) or 12? The maintainer is
+not sure it is exactly one or the other (15 November 2026). *Proposed: the
+default stays 10, and `goodBeats` for an even count from a static square
+covers 10 to 12, so neither count raises a warning.*
 
 ## 11. Consequences and revisit triggers
 
