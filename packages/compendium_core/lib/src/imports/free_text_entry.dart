@@ -10,6 +10,7 @@ import 'callersbox_figure_dialect.dart' show hasTopLevelSeparator;
 import 'contradb_figure_dialect.dart'
     show
         readDisplayedCourtesyTurnWithWhom,
+        readDisplayedHeyForThree,
         readDisplayedStarburst,
         readDisplayedTradeTheWave;
 import 'figure_front_end_fan_out.dart';
@@ -836,6 +837,12 @@ List<Figure> _parseSplit(
       [split.text, ...readTexts, ..._starburstVerbSplits(split.text, dialect)]
           .map((text) => _displayedStarburst(text, split.beats, names, dialect))
           .nonNulls
+          .firstOrNull ??
+      [split.text, ...readTexts]
+          .map(
+            (text) => _displayedHeyForThree(text, split.beats, names, dialect),
+          )
+          .nonNulls
           .firstOrNull;
   return named == null ? raw : [named];
 }
@@ -973,6 +980,39 @@ Figure? _displayedStarburst(
       (dialectName == null || dialectName.contains('%')
           ? null
           : readDisplayedStarburst(
+              text,
+              name: dialectName
+                  .trim()
+                  .replaceAll(_whitespaceRun, ' ')
+                  .toLowerCase(),
+            ));
+  if (match == null) return null;
+  final figure = Figure(
+    move: match.moveId,
+    params: {...match.params, if (beats > 0) 'beats': beats},
+  );
+  final invalid = taxonomy
+      .validateFigure(figure)
+      .any((i) => i.severity == ValidationSeverity.error);
+  return invalid ? null : figure;
+}
+
+/// A hey for three as the app displays one (taxonomy v39), read only here
+/// ([readDisplayedHeyForThree] says why), under its own name or [dialect]'s
+/// name for it, which the display writes in its place. A figure [taxonomy]
+/// rejects is a miss.
+Figure? _displayedHeyForThree(
+  String text,
+  int beats,
+  Taxonomy taxonomy,
+  Dialect? dialect,
+) {
+  final dialectName = dialect?.moves['hey_for_three'];
+  final match =
+      readDisplayedHeyForThree(text) ??
+      (dialectName == null || dialectName.contains('%')
+          ? null
+          : readDisplayedHeyForThree(
               text,
               name: dialectName
                   .trim()
