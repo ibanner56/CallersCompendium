@@ -714,9 +714,10 @@ three forms, and a dropdown beyond that. It is never a two-way switch.
     anything else as it is. The caller can also re-import from the original
     file, through the existing re-import flow.
 - **The Caller's Box** may have some square dances: the maintainer believes
-  it does (Q7), and the phase-3 survey confirms it first. Its importer today treats every dance as contra. Phase 3 starts with a
-  survey of how Caller's Box marks a square and how its square figure lines
-  read, then routes those dances to the square parser. Its formation list
+  it does (Q7). Its importer today treats every dance as contra. Phase 3
+  starts with a survey that confirms whether it has squares, how it marks
+  them and how their figure lines read, then routes those dances to the
+  square parser. Its formation list
   includes "Grid Contra/Square" ([callersbox.md](../research/callersbox.md)),
   but that may mean grid-formation contras rather than modern western
   squares, so the survey must not assume it is the marker.
