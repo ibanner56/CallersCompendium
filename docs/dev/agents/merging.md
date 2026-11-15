@@ -28,11 +28,13 @@ reasoning below when a gate fails, or when you are checking by hand.
   If `hasNextPage` is true (or `totalCount` exceeds the nodes returned), fetch
   the rest with `after: "<endCursor>"` before concluding anything.
 
-- **No `BLOCK` verdict in the latest Claude review.** Only when Claude is the
-  reviewer (the default). A blocker on a line outside the diff exists in
-  the review body only, so no inline comment or thread records it and the other
-  gates pass. `findings` prints the latest `## Review verdict:` line and fails on
-  `BLOCK`. Details:
+- **The latest Claude review reads `APPROVE`.** Only when Claude is the
+  reviewer (the default). `findings` prints the latest `## Review verdict:`
+  line and fails on anything else. On `BLOCK` because a blocker on a line
+  outside the diff exists in the review body only, so no inline comment or
+  thread records it and the other gates pass. On `APPROVE-WITH-NITS` because a
+  resolved thread is not a cleared item: fix each item, or dispute it and
+  re-run the review so the next round re-judges it. Details:
   [code-review.md](code-review.md#requesting-a-claude-review).
 
 - **CI green on the commit being merged.** Re-check after any push; a green run
@@ -88,6 +90,35 @@ reasoning below when a gate fails, or when you are checking by hand.
 
 - **The PR closes only the issues you intend** (below).
 - **State verified from the remote**, not from memory or a stale local checkout.
+
+## Enabling auto-merge counts as merging
+
+Turning auto-merge on is a merge that waits for one thing: GitHub merges when
+the `official` ruleset is satisfied. That ruleset requires only `Merge gate`,
+and `Merge gate` reads CI job results only (its `needs` in
+[`ci.yml`](../../../.github/workflows/ci.yml)). It does not wait for a review of
+the current head, for open threads, or for an `APPROVE` verdict.
+[`.claude/settings.json`](../../../.claude/settings.json) lets Claude Code
+sessions enable auto-merge without a prompt, so the gates have to be cleared
+before you enable it, not after:
+
+- Enable it only once the Claude review of the current head has posted and
+  every gate except `ci` passes:
+
+  ```sh
+  python3 tools/ci/check_pr_review_gates.py findings <PR> &&
+  python3 tools/ci/check_pr_review_gates.py review <PR> &&
+  python3 tools/ci/check_pr_review_gates.py threads <PR> &&
+  python3 tools/ci/check_pr_review_gates.py closes <PR> --closes <ISSUE>...
+  ```
+
+  The chain stops at the first `FAIL` or `SKIP`, so its exit status is `0`
+  only when all four pass. `ci` is the gate auto-merge waits on.
+- **After any push, disable auto-merge first**, then clear the gates again on
+  the new head. Otherwise the PR can merge as soon as CI on the new head goes
+  green, before that head has been reviewed.
+- Never enable it on a branch-sync PR (below): the ruleset allows squash only,
+  so auto-merge would squash it.
 
 ## When GraphQL is refused (Claude Code cloud sessions)
 

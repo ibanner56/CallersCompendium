@@ -467,7 +467,8 @@ symlink you can point your editor/PATH at — see the FVM docs.)
    (Claude by default, the review the `review: claude` label requests, read from
    its latest entry with a `## Review verdict:` line; add
    `--reviewer copilot` if you requested Copilot instead), unresolved threads (with `totalCount`, so a truncated page is visible),
-   for a Claude review that its latest `## Review verdict:` is not `BLOCK`,
+   for a Claude review that its latest `## Review verdict:` is `APPROVE` (a
+   `BLOCK` or `APPROVE-WITH-NITS` fails),
    checks on the current head, and that the PR closes exactly the issues you
    named — a branch name or a sentence containing a closing verb can create a
    link on its own. See
