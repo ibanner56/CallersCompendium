@@ -85,13 +85,24 @@ List<String>? _wordValues(ParamSpec spec) => switch (spec.kind) {
   ParamKind.flag => null,
 };
 
+/// Whether every value a parameter of kind [from] can hold is a value of
+/// kind [to] too, so that a use maps across unchanged: places (1 to 10) onto
+/// a plain number (0 to 99), for a figure of your own whose count was places
+/// switching to `starburst.travel` (taxonomy v39). The value is kept as it
+/// is; only its wording changes, from "2 places" to "2". Not the other way
+/// round: 0 and 11 to 99 are no places.
+bool _widens(ParamKind from, ParamKind to) =>
+    from == ParamKind.places && to == ParamKind.number;
+
 /// The parameters of [target] that [param] can map to in a switch
 /// ([UserFigureSwitch]), in the move's order:
 /// - a choice, to any that takes words ([userFigureSwitchValues] not
 ///   empty), value by value;
 /// - any other kind, to one of the same kind that takes every value [param]
 ///   can hold, so that no use is lost to a narrower list (a dancer set onto a
-///   "who" that only takes role1s or role2s is not offered).
+///   "who" that only takes role1s or role2s is not offered);
+/// - places, also to a plain number, which takes every count places can hold
+///   ([_widens]).
 ///
 /// Never the target's beats, whose count each use carries apart, nor a
 /// parameter an alias pins (a "meltdown swing" is always a meltdown): a
@@ -112,7 +123,7 @@ List<String> userFigureSwitchTargets(
         (value) => value != ParamVocab.unspecified,
       );
     }
-    if (spec.kind != param.kind) return false;
+    if (spec.kind != param.kind) return _widens(param.kind, spec.kind);
     if (mine == null) return true;
     final theirs = _wordValues(spec) ?? const [];
     return mine.every(theirs.contains);

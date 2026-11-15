@@ -923,7 +923,9 @@ The Glossary lists them too, when it is shown. While it is on:
   yours becomes, and which of its values each of your options becomes; where a
   name matches, it is chosen for you. An option can become any parameter that
   takes words, such as a hand or who; any other parameter, one of the same
-  kind that takes all its values. Two of yours can't become the same one.
+  kind that takes all its values. A places parameter can also become a plain
+  number, which takes every count places can; the count then reads without
+  the word "places". Two of yours can't become the same one.
   Every one must be chosen, so a parameter the app's figure has nothing for
   stops the switch: remove it from your figure first, or rename yours.
   **Switch** then says how many dances use your figure, as deleting does, and

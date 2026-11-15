@@ -1,0 +1,14 @@
+{
+  "id": "user-figure-switch-places-to-number",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "Switching a figure of your own to the app's figure of the same name can now turn a places parameter into a plain number parameter, which takes every count places can. So a starburst figure of your own whose count is in places can now switch to the app's starburst. Each dance keeps its count, and the line then reads as the app's starburst does: “around 2”, with no “places”."
+    ]
+  },
+  "core": {
+    "changed": [
+      "`userFigureSwitchTargets` offers a `ParamKind.number` target for a `ParamKind.places` parameter, as well as one of its own kind; the value is kept as it is. A number parameter still never maps onto places."
+    ]
+  }
+}

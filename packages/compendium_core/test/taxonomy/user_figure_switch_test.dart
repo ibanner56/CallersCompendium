@@ -88,7 +88,8 @@ void main() {
   });
 
   group('targets and values', () {
-    test('a parameter maps to one of the same kind, never to beats', () {
+    test('a parameter maps to one of the same kind, never to beats (places '
+        'also to a number, below)', () {
       expect(userFigureSwitchTargets(mine.params.first, 'swing', taxonomy), [
         'who',
       ]);
@@ -107,6 +108,36 @@ void main() {
           taxonomy,
         ),
         isEmpty,
+      );
+    });
+
+    test('places maps onto a plain number, never the other way', () {
+      // Every places count (1 to 10) is a number (0 to 99); a number can be 0
+      // or above 10, which no places holds.
+      expect(
+        userFigureSwitchTargets(
+          UserFigureParam(key: 'n', kind: ParamKind.places),
+          'starburst',
+          taxonomy,
+        ),
+        ['travel'],
+      );
+      expect(
+        userFigureSwitchTargets(
+          UserFigureParam(key: 'n', kind: ParamKind.number),
+          'circle',
+          taxonomy,
+        ),
+        isEmpty,
+        reason: 'circle.places is places',
+      );
+      expect(
+        userFigureSwitchTargets(
+          UserFigureParam(key: 'n', kind: ParamKind.places),
+          'circle',
+          taxonomy,
+        ),
+        ['places'],
       );
     });
 
@@ -229,7 +260,7 @@ void main() {
       );
     });
 
-    test('a parameter maps to a target of its kind, and only once', () {
+    test('a parameter maps to a target that can take it, and only once', () {
       expect(
         userFigureSwitchProblems(
           mine,

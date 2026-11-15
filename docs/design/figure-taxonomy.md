@@ -2063,10 +2063,14 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
       that did not exist. A v38 build displays a `starburst` by its raw id, as
       it does every added move. A figure of your own named starburst now
       shares a shipped figure's name, which the app reports as it does any
-      such collision (#1023). A switch must map every parameter, and maps one
-      only onto a parameter of the same kind, so a figure of your own whose
-      `travel` is `places` (as the maintainer's export declared it) cannot
-      switch its uses to the move; it can be renamed.
+      such collision (#1023). A switch must map every parameter, onto one of
+      the same kind or, for `places`, onto a plain `number`, which takes every
+      count places can (`userFigureSwitchTargets`). So a figure of your own
+      whose `travel` is `places`, as the maintainer's export declared it, can
+      switch its uses to the move; each count is kept, and reads `around 2`
+      where it read `around 2 places`. The maintainer asked for that widening
+      as a follow-up to #2200, which added the move and whose description
+      proposed it.
   - v39 also adds the third and fourth couples' dancers: `threesRole1`,
     `threesRole2`, `foursRole1` and `foursRole2`, appended to
     `ParamVocab.singleDancers` and so at the end of `ParamVocab.dancerSets`,
