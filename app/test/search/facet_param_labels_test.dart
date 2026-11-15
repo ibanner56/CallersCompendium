@@ -100,6 +100,10 @@ void main() {
         'onesRole2': ['first robin', 'first lady', 'first role2'],
         'twosRole1': ['second lark', 'second gent', 'second role1'],
         'twosRole2': ['second robin', 'second lady', 'second role2'],
+        'threesRole1': ['third lark', 'third gent', 'third role1'],
+        'threesRole2': ['third robin', 'third lady', 'third role2'],
+        'foursRole1': ['fourth lark', 'fourth gent', 'fourth role1'],
+        'foursRole2': ['fourth robin', 'fourth lady', 'fourth role2'],
       };
       // The full domain, under every dialect shape: pinning only the reported
       // `twosRole2` would pass while the general bug survived.

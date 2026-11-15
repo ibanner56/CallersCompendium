@@ -1664,7 +1664,8 @@ has to be judged in its own context.
   through (variant kept as a note), weave-the-line `with <dancer>`, relationship
   N-suffix (`with/to neighbor N2`, in either word order), explicit dancer codes
   (M1/W1/M2/W2 →
-  ones/twos single-dancer identities), same-role neighbor subjects
+  ones/twos single-dancer identities, and since taxonomy v39 M3/W3/M4/W4 →
+  threes/fours), same-role neighbor subjects
   (`Same-role neighbor swing` → `who: sameRoles`; maintainer ruling that
   same-sex = same-role; `N2 same-role neighbor` has no ordinal token and stays
   custom), S-prefix shadow subjects (`S1`/`S-1 shadow` → `shadows`, `S-1` by

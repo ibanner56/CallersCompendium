@@ -1245,13 +1245,9 @@ FigureMatch? _poussetteDisplay(String text) {
   );
 }
 
-/// The dancers a figure 8's `lead` names.
-const Set<String> _figure8Leads = {
-  'onesRole1',
-  'onesRole2',
-  'twosRole1',
-  'twosRole2',
-};
+/// The dancers a figure 8's `lead` names: every single dancer (v39 adds the
+/// third and fourth couples').
+const Set<String> _figure8Leads = {...ParamVocab.singleDancers};
 
 /// The figure 8 in the app's display wording (#2121): "WHO [lead a double]
 /// FRACTION figure 8 up|down between OTHER | across [, OTHER cast down|up the
@@ -1336,8 +1332,9 @@ FigureMatch? _swingEndFacingDisplay(String text) {
 }
 
 /// A subject as the app's display writes it (#2121): any [_subject], the
-/// singular the display uses for a pair (`neighbor`, `partner`, `shadow`), or
-/// a corner pairing ContraDB does not name (`third corners`, `opposites`).
+/// singular the display uses for a pair (`neighbor`, `partner`, `shadow`), a
+/// corner pairing ContraDB does not name (`third corners`, `opposites`), or a
+/// third or fourth couple's dancer (`third role1`, v39).
 String? _displaySubject(_Scan s) {
   if (_subject(s) case final who?) return who;
   for (final MapEntry(key: phrase, value: token) in _displayOnlySubjects) {
@@ -1346,9 +1343,16 @@ String? _displaySubject(_Scan s) {
   return null;
 }
 
-/// The subjects [_displaySubject] reads beyond [_subject].
+/// The subjects [_displaySubject] reads beyond [_subject]. The third and
+/// fourth couples' dancers (v39) are the display's `third role1` … `fourth
+/// role2` once a role word is canonical; ContraDB has no such dancer, so
+/// [_subject] does not read them.
 const List<MapEntry<String, String>> _displayOnlySubjects = [
   MapEntry('third corners', 'thirdCorners'),
+  MapEntry('third role1', 'threesRole1'),
+  MapEntry('third role2', 'threesRole2'),
+  MapEntry('fourth role1', 'foursRole1'),
+  MapEntry('fourth role2', 'foursRole2'),
   MapEntry('opposites', 'opposites'),
   MapEntry('neighbor', 'neighbors'),
   MapEntry('partner', 'partners'),
@@ -2047,7 +2051,8 @@ FigureMatch? _madRobin(String text) {
 
 /// dolphinHeyWords. Renders as: "dolphin hey - start with WHO passing WHOM by
 /// SHOULDER", where WHOM is a single dancer ("[the] first|second
-/// gentlespoon|ladle", scrubbed to "first|second role1|role2").
+/// gentlespoon|ladle", scrubbed to "first|second role1|role2"; the app's
+/// display also writes the third and fourth couples', v39).
 FigureMatch? _dolphinHey(String text) {
   final s = _Scan(text);
   if (!s.eatPhrase('dolphin hey')) return null;
@@ -2066,29 +2071,33 @@ FigureMatch? _dolphinHey(String text) {
   return FigureMatch('dolphin_hey', params: params, note: s.note());
 }
 
-/// Consumes a single-dancer identity `[the] first|second role1|role2` →
-/// `onesRole1`/`onesRole2`/`twosRole1`/`twosRole2`.
+/// Consumes a single-dancer identity `[the] first|second|third|fourth
+/// role1|role2` → `onesRole1` … `foursRole2`. ContraDB names only the first
+/// and second; the third and fourth are the app's display (v39).
 String? _singleDancer(_Scan s) {
   s.eat('the');
-  final String couple;
-  if (s.eat('first')) {
-    couple = 'ones';
-  } else if (s.eat('second')) {
-    couple = 'twos';
-  } else {
-    return null;
-  }
+  final couple = _singleDancerCouples[s.peek()];
+  if (couple == null) return null;
+  s.take();
   final role = s.peek();
   if (role == 'role1' || role == 'role1s') {
     s.take();
-    return couple == 'ones' ? 'onesRole1' : 'twosRole1';
+    return '${couple}Role1';
   }
   if (role == 'role2' || role == 'role2s') {
     s.take();
-    return couple == 'ones' ? 'onesRole2' : 'twosRole2';
+    return '${couple}Role2';
   }
   return null;
 }
+
+/// The couple each [_singleDancer] ordinal names.
+const Map<String, String> _singleDancerCouples = {
+  'first': 'ones',
+  'second': 'twos',
+  'third': 'threes',
+  'fourth': 'fours',
+};
 
 /// pass by (generic renderer): `<who> pass by [<side> shoulders]`.
 FigureMatch? _passBy(String text) {

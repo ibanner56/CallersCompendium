@@ -61,10 +61,16 @@ const Map<String, String> dancerWords = {
   // M1 = active role1 (onesRole1), W1 = active role2 (onesRole2), M2 = inactive
   // role1 (twosRole1), W2 = inactive role2 (twosRole2). Bare codes only —
   // line-order annotations like "(M1-W2-M2-W1)" are stripped before recognition.
+  // M3/W3 and M4/W4 are the third and fourth couples' dancers in the same way
+  // (taxonomy v39, maintainer decision).
   'm1': 'onesRole1',
   'w1': 'onesRole2',
   'm2': 'twosRole1',
   'w2': 'twosRole2',
+  'm3': 'threesRole1',
+  'w3': 'threesRole2',
+  'm4': 'foursRole1',
+  'w4': 'foursRole2',
 };
 
 /// The neighbour, partner and shadow series as the figure display names them

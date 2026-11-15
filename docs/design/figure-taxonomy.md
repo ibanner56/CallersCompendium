@@ -2067,6 +2067,46 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
       only onto a parameter of the same kind, so a figure of your own whose
       `travel` is `places` (as the maintainer's export declared it) cannot
       switch its uses to the move; it can be renamed.
+  - v39 also adds the third and fourth couples' dancers: `threesRole1`,
+    `threesRole2`, `foursRole1` and `foursRole2`, appended to
+    `ParamVocab.singleDancers` and so at the end of `ParamVocab.dancerSets`,
+    after `twosRole2`. In the session that wrote this the maintainer asked
+    for "third role1s/role2s and fourth role1s/role2s" at the end of the
+    dancer list, confirmed the reading as one dancer of the third or fourth
+    couple, and asked for `figure_8.lead` and `dolphin_hey.whom` to offer them
+    and for The Caller's Box's `M3`/`W3`/`M4`/`W4` to read as them. The token
+    names and the rest below are the author's calls.
+    - Domain: every param that takes any dancer (no `choices`, or
+      `_dancerOrUnspecified`: `gate`, `mad_robin.who`, `courtesy_turn`,
+      `promenade` and `pull_by`) offers them, and so do the single-dancer
+      params `figure_8.lead` and `dolphin_hey.whom`, which now take all of
+      `ParamVocab.singleDancers` rather than ContraDB's `chooser_dancer` four.
+      They are not hey meet targets (single dancers never are) and have no
+      pair inverse or opposite.
+    - Wording: the display reads them as `third`/`fourth` and the role's
+      singular term, as it reads the ones and twos (`third lark`, `fourth
+      follow`); a dialect's `dancers` substitution wins, and the dialect
+      editor lists them.
+    - Reading: free-text entry reads them back wherever it reads `first lark`
+      (the figure parser, the dancer-and-name table, the display-line
+      readers), and the role canonicalizer counts `fourth`/`4th` as a
+      determiner and an ordinal, as it counted `third`, so `fourth follow`
+      stays a role under Leads/Follows. That includes the figure 8's
+      `LEAD leading` and the dolphin hey's `passing WHOM`. ContraDB has no
+      such dancer and never names one, and its advanced filter skips them.
+    - The Caller's Box: `M3`/`W3` and `M4`/`W4` are the third and fourth
+      couples' role1 and role2 (`dancerWords`), as `M1`/`W1` and `M2`/`W2`
+      are the ones' and twos', so `M3 figure eight up` reads with `who`
+      `threesRole1`. A line an earlier import kept as custom text for one of
+      them reads as the figure when the user re-checks unrecognized figures.
+      The per-role annotation synthesis is unchanged: `(M1 past M3, W1 past
+      W2)` still declines.
+    - Migration: none, and no rebuild: nothing could store them before.
+      **Older devices (v38).** A v38 build displays one humanized (`threes
+      role1`), and its figure editor replaces a value it does not know with
+      the param's default when the figure is opened (for a param whose
+      default is `unspecified`, such as `gate.who`, "not stated"), so editing
+      such a figure there loses it, as v37 did for v38's corners.
 
 ## Open questions (to resolve during implementation, with user input)
 

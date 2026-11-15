@@ -1986,8 +1986,9 @@ FigureMatch? _perRoleChoreoAnnotation(String scrubbed) {
       //
       // `_looksLikePerRoleBody` blocks digit-bearing forms like
       // `M1 past M3, W1 past W2` that match the structural pattern but have
-      // couple-specific people codes with no representable mapping.  Those
-      // decline here rather than freezing gendered shorthand in a note.
+      // couple-specific people codes, which the per-role synthesis (it writes
+      // `role1s`/`role2s`) cannot represent.  Those decline here rather than
+      // freezing gendered shorthand in a note.
       notes.add(body);
     }
     // All-uppercase / code-like: shape rule skips.
@@ -2126,9 +2127,9 @@ final RegExp _perRoleClauseRe = RegExp(r'^([WM])(\d?)\s+(.+)$');
 ///
 /// Used in [_perRoleChoreoAnnotation] to prevent verbatim preservation of
 /// digit-bearing forms like `M1 past M3, W1 past W2` whose couple-specific
-/// codes (`M1`, `W2`) have no representable mapping in the dancer-set
-/// vocabulary.  Such bodies decline rather than freezing gendered shorthand
-/// in a note.
+/// codes (`M1`, `W2`) name one dancer, not the role group (`role1s`/`role2s`)
+/// the per-role synthesis writes.  Such bodies decline rather than freezing
+/// gendered shorthand in a note.
 bool _looksLikePerRoleBody(String body) {
   final commaIdx = body.indexOf(',');
   if (commaIdx < 0) return false;
