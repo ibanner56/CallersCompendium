@@ -311,7 +311,7 @@ Set<Object>? _universe(ParamKind kind, ParamSpec? spec) {
       ParamKind.spinDirection => [...ParamVocab.spins, ParamVocab.unspecified],
       ParamKind.direction => [...ParamVocab.directions, ParamVocab.unspecified],
       ParamKind.fraction => [...ParamVocab.fractions],
-      ParamKind.rotation => [ParamVocab.unspecified],
+      ParamKind.rotation || ParamKind.places => [ParamVocab.unspecified],
       ParamKind.choice => spec?.choices,
       _ => null,
     },

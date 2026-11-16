@@ -1397,7 +1397,8 @@ final Taxonomy contraTaxonomy = Taxonomy(
     ),
     // --- Roadmap 2.4a: places family (PR4) ---
     // Moves whose travel is measured in "places" around a ring/star
-    // (ParamKind.places, int 1..10). Each move keeps a simple typical-beats
+    // (ParamKind.places, int 1..10; circle and star may also leave it
+    // unstated, v39). Each move keeps a simple typical-beats
     // list in goodBeats, but ContraDB's *conditional* rules — square through's
     // 2-4 place restriction and the moves' param-dependent places/beats ratios
     // — are intentionally not encoded/enforced (they can't be captured by the
@@ -1421,7 +1422,14 @@ final Taxonomy contraTaxonomy = Taxonomy(
           defaultValue: 'left',
           choices: ['left', 'right'],
         ),
-        'places': ParamSpec(ParamKind.places, defaultValue: 3),
+        // v39: a dance may leave the distance unstated (the sentinel renders
+        // as nothing: "circle left"). The default stays 3, so a figure that
+        // omits the param, and a new one in the editor, still read 3 places.
+        'places': ParamSpec(
+          ParamKind.places,
+          defaultValue: 3,
+          choices: [ParamVocab.unspecified],
+        ),
         // Issue #634: ContraDB free text occasionally renders a single-file
         // circulation around the ring as "promenade single file around the
         // circle N places" (real render: Travels with Rick and Kim #455) — a
@@ -1458,11 +1466,18 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // ContraDB forces a hand selection (no default); the
         // editor offers 'left'.
         'hand': ParamSpec(ParamKind.handedness, defaultValue: 'left'),
-        'places': ParamSpec(ParamKind.places, defaultValue: 4),
+        // v39: may be left unstated, as `circle.places` may.
+        'places': ParamSpec(
+          ParamKind.places,
+          defaultValue: 4,
+          choices: [ParamVocab.unspecified],
+        ),
         // grip is a canonical render token since taxonomy v27 (issue #749):
         // emitted in ALL render paths (render / renderVerbose / renderSummary /
         // renderCanonical) as a " - wrist grip - " / " - hands across - " clause
-        // (ContraDB `starWords` parity). 'none' is the unspecified value — no
+        // (ContraDB `starWords` parity); with no count to lead into (places
+        // unstated, v39) the closing dash is dropped. 'none' is the unspecified
+        // value — no
         // clause in any render path. The FTS inclusion makes stars searchable
         // by "wrist grip" or "hands across".
         'grip': ParamSpec(
