@@ -224,7 +224,7 @@ decide what counts and override all four.
   phraseStructure, not stored — keeps reordering/beat edits consistent.
 
 ### Formation
-Canonical enum seeded from the TCB vocabulary (duple improper/reverse progression
+Canonical enum seeded from the TCB vocabulary (duple improper/progressed improper/reverse progression
 improper/becket(cw|ccw)/proper/indecent…, triple minor, 3-face-3, 4-face-4,
 circle mixer, Sicilian circle, scatter mixer, longways, triplet, grid, quadruplet,
 other) **plus** an optional free-text `detail`. Enum-with-detail avoids ContraDB's

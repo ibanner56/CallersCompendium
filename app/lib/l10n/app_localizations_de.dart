@@ -4048,6 +4048,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get commonFormationDupleImproper => 'Improper';
 
   @override
+  String get commonFormationProgressedImproper =>
+      'Improper, bereits weitergerückt';
+
+  @override
   String get commonFormationReverseProgressionImproper =>
       'Improper mit umgekehrter Progression';
 

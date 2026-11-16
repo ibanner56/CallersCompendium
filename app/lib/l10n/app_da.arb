@@ -4060,6 +4060,10 @@
   "@commonFormationDupleImproper": {
     "x-sourceSha256": "808a0c372428e6e217915030f238b73e494ec4fbb18e8fd5ec2004b7237e2031"
   },
+  "commonFormationProgressedImproper": "Improper, allerede progresseret",
+  "@commonFormationProgressedImproper": {
+    "x-sourceSha256": "acd6b205deeb0da526a85ebf3ef8a12fd2eca062ef472de6e93b31ace24d4541"
+  },
   "commonFormationReverseProgressionImproper": "Improper med omvendt progression",
   "@commonFormationReverseProgressionImproper": {
     "x-sourceSha256": "9883e2a8bdb86a8f098ec334a376e1ab4a57617832057c384fd3e423d8b7dabb"

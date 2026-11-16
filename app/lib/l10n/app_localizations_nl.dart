@@ -4032,6 +4032,10 @@ class AppLocalizationsNl extends AppLocalizations {
   String get commonFormationDupleImproper => 'Improper';
 
   @override
+  String get commonFormationProgressedImproper =>
+      'Improper, reeds doorgeschoven';
+
+  @override
   String get commonFormationReverseProgressionImproper =>
       'Improper met omgekeerde progressie';
 
