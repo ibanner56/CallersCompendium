@@ -186,14 +186,24 @@ class FigureParamEditor extends StatelessWidget {
           onChanged: onChanged,
         );
       case ParamKind.places:
+        // A places spec may opt into the `unspecified` sentinel by listing it
+        // in `choices` (taxonomy v39: `circle.places`, `star.places`). For
+        // those an empty field is "not stated", not an error, and stores the
+        // sentinel; showing the default instead would claim a distance the
+        // dance never gave.
+        final placesUnset =
+            spec.choices?.contains(ParamVocab.unspecified) ?? false;
         return _IntField(
           fieldKey: _key,
           label: figureParamKeyLabel(l10n, paramKey, moveId: moveId),
           value: value is int
               ? value! as int
+              : (placesUnset && value == ParamVocab.unspecified)
+              ? null
               : (spec.defaultValue is int ? spec.defaultValue! as int : 1),
           min: 1,
           max: 10,
+          allowsUnset: placesUnset,
           onChanged: onChanged,
         );
       case ParamKind.text:
@@ -516,14 +526,22 @@ class _IntField extends StatefulWidget {
     required this.min,
     required this.max,
     required this.onChanged,
+    this.allowsUnset = false,
   });
 
   final String fieldKey;
   final String label;
-  final int value;
+
+  /// The stored number, or `null` for "not stated" (only with [allowsUnset]),
+  /// which shows as an empty field.
+  final int? value;
   final int min;
   final int max;
   final ValueChanged<Object?> onChanged;
+
+  /// Whether the param admits [ParamVocab.unspecified]: an empty field then
+  /// reports the sentinel and is not an error.
+  final bool allowsUnset;
 
   @override
   State<_IntField> createState() => _IntFieldState();
@@ -541,7 +559,7 @@ class _IntFieldState extends State<_IntField> {
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController(text: widget.value.toString());
+    _controller = TextEditingController(text: widget.value?.toString() ?? '');
   }
 
   @override
@@ -552,7 +570,7 @@ class _IntFieldState extends State<_IntField> {
     // differs from what the user is looking at, to avoid fighting the cursor.
     if (widget.value != old.value &&
         int.tryParse(_controller.text.trim()) != widget.value) {
-      _controller.text = widget.value.toString();
+      _controller.text = widget.value?.toString() ?? '';
       _invalid = false;
     }
   }
@@ -566,6 +584,7 @@ class _IntFieldState extends State<_IntField> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
     return SizedBox(
       width: 96,
       child: TextField(
@@ -575,12 +594,30 @@ class _IntFieldState extends State<_IntField> {
         decoration: InputDecoration(
           labelText: widget.label,
           isDense: true,
+          // The label floats while the field is empty so this hint shows,
+          // as the dropdowns show "not stated" for the same sentinel.
+          floatingLabelBehavior: widget.allowsUnset
+              ? FloatingLabelBehavior.always
+              : null,
+          hintText: widget.allowsUnset ? l10n.danceEditorParamNotStated : null,
+          hintStyle: widget.allowsUnset
+              ? theme.textTheme.bodyMedium?.copyWith(
+                  fontStyle: FontStyle.italic,
+                  color: theme.colorScheme.onSurfaceVariant,
+                )
+              : null,
           errorText: _invalid
               ? l10n.danceEditorIntParamRangeError(widget.min, widget.max)
               : null,
         ),
         onChanged: (text) {
-          final n = int.tryParse(text.trim());
+          final trimmed = text.trim();
+          if (widget.allowsUnset && trimmed.isEmpty) {
+            widget.onChanged(ParamVocab.unspecified);
+            if (_invalid) setState(() => _invalid = false);
+            return;
+          }
+          final n = int.tryParse(trimmed);
           final valid = n != null && n >= widget.min && n <= widget.max;
           if (valid) widget.onChanged(n);
           if (_invalid == valid) setState(() => _invalid = !valid);

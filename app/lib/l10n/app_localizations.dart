@@ -13772,7 +13772,7 @@ abstract class AppLocalizations {
   /// **'Less'**
   String get danceEditorLessTooltip;
 
-  /// Shown in the figure parameter editor when the source never stated a value for this parameter, so none may be assumed. Used by the rotation stepper and by the choice dropdowns whose parameter admits the unstated state.
+  /// Shown in the figure parameter editor when the source never stated a value for this parameter, so none may be assumed. Used by the rotation stepper, by the choice dropdowns whose parameter admits the unstated state, and as the placeholder of an empty places field that admits it (a circle's or star's places).
   ///
   /// In en, this message translates to:
   /// **'not stated'**
@@ -13796,7 +13796,7 @@ abstract class AppLocalizations {
   /// **'Clear (not stated)'**
   String get danceEditorParamClearTooltip;
 
-  /// Error shown under an integer figure parameter field (beats, places) while its text is empty, not a whole number, or outside the allowed range; the draft keeps its last valid value meanwhile.
+  /// Error shown under an integer figure parameter field (beats, places) while its text is empty, not a whole number, or outside the allowed range; the draft keeps its last valid value meanwhile. A circle's or star's places field may be left empty, which means not stated and shows no error.
   ///
   /// In en, this message translates to:
   /// **'Enter a whole number from {min} to {max}'**

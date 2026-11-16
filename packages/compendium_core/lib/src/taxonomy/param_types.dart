@@ -26,6 +26,9 @@ enum ParamKind {
   /// facing star, square through). Stored as places directly (not ContraDB's
   /// degrees), analogous to [rotation] being stored in turns.
   ///
+  /// A spec may opt into [ParamVocab.unspecified] by listing it in
+  /// [ParamSpec.choices], as `circle.places` and `star.places` do (v39).
+  ///
   /// Also the 1–10 whole-number kind for `circular_hey.changes`, a count of
   /// changes rather than a distance; the renderer words that param "N changes"
   /// by name.
@@ -160,7 +163,8 @@ abstract final class ParamVocab {
   /// The rule, deliberately stated instead of enumerated: a param admits the
   /// sentinel **iff** it names it explicitly in [ParamSpec.choices] and its
   /// [ParamKind]'s validator consults `choices` — every kind with a closed
-  /// vocabulary does, plus [ParamKind.rotation] by an explicit opt-in. Nothing
+  /// vocabulary does, plus [ParamKind.rotation] and [ParamKind.places] by an
+  /// explicit opt-in. Nothing
   /// admits it implicitly. That includes the semantically typed kinds, which is
   /// why `form_long_waves.hand` can be a [ParamKind.handedness] and still mean
   /// "not stated" (issue #739); a param does NOT have to be laundered through
@@ -432,6 +436,14 @@ class ParamSpec {
             value <= 2.5 &&
             (value * 4) % 1 == 0;
       case ParamKind.places:
+        // Like a rotation, a count of places MAY opt into the "source stated
+        // nothing" sentinel by listing it in [choices] (taxonomy v39:
+        // `circle.places` and `star.places`, which a dance may leave unstated).
+        if (value is String) {
+          return choices != null &&
+              value == ParamVocab.unspecified &&
+              choices!.contains(value);
+        }
         return value is int && value >= 1 && value <= 10;
       case ParamKind.number:
         return value is int && value >= 0 && value <= 99;

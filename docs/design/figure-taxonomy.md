@@ -75,7 +75,7 @@ searchKeywords: [allemande, almond]
 | handedness / shoulder | right, left | |
 | spinDirection | clockwise, counterclockwise | |
 | rotation | 0.25 … 2.5 in quarter steps | replaces ContraDB degrees (90–900) |
-| places | 1 … 10 int | ring/star travel; replaces ContraDB degrees; renders "N places" |
+| places | 1 … 10 int | ring/star travel; replaces ContraDB degrees; renders "N places". `circle.places` and `star.places` may also be `unspecified`, which renders nothing (v39) |
 | number | 0 … 99 int | a plain count; renders the digits alone, no unit word. Figures of your own, and `starburst.travel` (v39), the one built-in slot of this kind |
 | fraction | 1/4, 1/2, 3/4, full, other | figure 8, poussette; `other` states its amount in the move's `amount` param (v39) |
 | beats | 0–64 int | 0 allowed for formation labels |
@@ -2151,6 +2151,56 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
       three now shares a shipped figure's name, which the app reports as it
       does any such collision (#1023), offering to switch its uses to the
       move.
+  - v39 also lets a dance leave a circle's or star's distance unstated. The
+    maintainer asked for it in the session that wrote this: "Remove the
+    requirement that a circle or a star set a value for places in the dance
+    editor." The PR that adds it records the request; the design below is
+    the author's.
+    - Params: `circle.places` and `star.places` list `ParamVocab.unspecified`
+      in `choices`, and `ParamKind.places` now admits the sentinel when a spec
+      lists it, as `ParamKind.rotation` does (`ParamSpec.validate`,
+      `paramDomain`; a compound param bound to no slot admits it too, as an
+      unbound rotation does). Their defaults stay 3
+      and 4, so a figure that omits `places` still reads that many places, and
+      a new figure in the editor starts with that many unless the user's own
+      Settings default for the move leaves it unstated.
+      Making `unspecified` the default instead was rejected: it would change
+      how every stored figure that omits `places` renders (a figure the parser
+      read from `circle left` with no count), which the request did not ask
+      for. `facing_star.places`, `square_through.places` and
+      `circular_hey.changes` still require a number; the request named only
+      the circle and the star.
+    - Editor: the places field of a param that admits the sentinel may be left
+      empty. Empty stores `unspecified` and shows "not stated" instead of the
+      range error; a field opened on the sentinel is empty. Any other text
+      that is not a count from 1 to 10 is still an error. Every editor built
+      on the param's spec gets this: the dance editor, the Settings per-move
+      defaults, the program matrix's figure columns, and a compound's argument
+      bound to such a slot (which shows the empty field rather than a made-up
+      count; a compound's argument summary now reads "not stated" for the
+      sentinel of any kind but text, where it read "unspecified").
+    - Wording: the sentinel renders as nothing on every path, display and
+      canonical, single file included: `circle left`, `star right - wrist
+      grip` (the grip clause drops the dash that would lead into the count),
+      `single file promenade right (circle, counterclockwise)`.
+      Snippet signatures write it as `places=unspecified`, and
+      `describeFigureSignature` now reads that token back for any numeric
+      param that admits it (`gate.travel` too, which used to fall back to the
+      raw signature).
+    - Reading: no reader produces the sentinel. A line with no count, such as
+      `circle left` or the display of an unstated circle, still reads as
+      `places` omitted, so it comes back with the default. Free-text entry of
+      an unstated circle's display line therefore gains a count.
+    - Migration: none, and no rebuild: no stored figure could hold the
+      sentinel before, and every canonical text is unchanged. **Older devices
+      (v38).** A v38 build has no sentinel in these specs, so it renders such a
+      figure as `circle left unspecified` (`star left unspecified`, `star left
+      - wrist grip - unspecified`). Its places field shows the default without
+      writing it back, so the sentinel survives until the user edits that
+      field there. Its `validateFigure` rejects the sentinel, so there a
+      synced compound whose template holds an unstated circle or star reports
+      an invalid template, and a compound argument of `unspecified` does not
+      expand.
 
 ## Open questions (to resolve during implementation, with user input)
 
