@@ -1,6 +1,7 @@
 import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/src/widgets/compound_argument_editor.dart';
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -9,15 +10,18 @@ import '../support/l10n_harness.dart';
 /// A compound's places argument bound to a circle's places (taxonomy v39)
 /// may be "not stated", as the circle's own field may.
 void main() {
-  CompoundDefinition definition(String move) => CompoundDefinition(
-    params: const [CompoundParam(key: 'n', kind: ParamKind.places)],
-    figures: [
-      Figure(move: move, params: const {'places': ParamVocab.unspecified}),
-    ],
-    bindings: const [
-      CompoundSlotBinding(figureIndex: 0, slotKey: 'places', paramKey: 'n'),
-    ],
-  );
+  // The template's own places: unstated where the move admits it, else a
+  // count (a facing star's template cannot hold the sentinel).
+  CompoundDefinition definition(String move, {Object places = 3}) =>
+      CompoundDefinition(
+        params: const [CompoundParam(key: 'n', kind: ParamKind.places)],
+        figures: [
+          testFigure(move: move, params: {'places': places}),
+        ],
+        bindings: const [
+          CompoundSlotBinding(figureIndex: 0, slotKey: 'places', paramKey: 'n'),
+        ],
+      );
 
   Future<Object? Function()> pump(
     WidgetTester tester,
@@ -54,7 +58,7 @@ void main() {
 
   testWidgets('bound to a circle: an unstated argument shows empty, and can '
       'be emptied again', (tester) async {
-    final def = definition('circle');
+    final def = definition('circle', places: ParamVocab.unspecified);
     expect(
       allowedValues(def, 'n', contraTaxonomy),
       contains(ParamVocab.unspecified),
@@ -88,9 +92,12 @@ void main() {
   test('the summary reads "not stated", not the sentinel token', () {
     final l10n = lookupAppLocalizations(const Locale('en'));
     expect(
-      compoundArgumentsText(l10n, definition('circle'), const {
-        'n': ParamVocab.unspecified,
-      }, Dialect.canonical),
+      compoundArgumentsText(
+        l10n,
+        definition('circle', places: ParamVocab.unspecified),
+        const {'n': ParamVocab.unspecified},
+        Dialect.canonical,
+      ),
       'not stated',
     );
   });
