@@ -376,7 +376,8 @@ def gate_findings(
                 summary = (
                     "APPROVE-WITH-NITS verdict in the latest verdict-bearing "
                     "review; fix each item, or dispute it on its thread and "
-                    f"re-run the review, until a round reads APPROVE -- {summary}"
+                    "re-run the review, until a round reads APPROVE (a dispute "
+                    f"the reviewer upholds goes to the maintainer) -- {summary}"
                 )
             elif verdict != "APPROVE":
                 ok = False
