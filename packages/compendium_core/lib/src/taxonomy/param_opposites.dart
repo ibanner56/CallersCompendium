@@ -126,7 +126,11 @@ Set<Object>? paramDomain(ParamSpec spec) {
       if (choices?.contains(ParamVocab.unspecified) ?? false)
         ParamVocab.unspecified,
     },
-    ParamKind.places => {for (var i = 1; i <= 10; i++) i},
+    ParamKind.places => {
+      for (var i = 1; i <= 10; i++) i,
+      if (choices?.contains(ParamVocab.unspecified) ?? false)
+        ParamVocab.unspecified,
+    },
     ParamKind.number => {for (var i = 0; i <= 99; i++) i},
     ParamKind.beats => {for (var i = 0; i <= 64; i++) i},
     ParamKind.flag => {true, false},

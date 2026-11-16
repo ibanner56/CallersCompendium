@@ -220,6 +220,9 @@ String describeFigureSignature(
 /// [spec]'s [ParamKind]. Returns `null` when the token can't be represented for
 /// that kind (so the caller falls back to the raw signature).
 Object? _coerceSignatureValue(ParamSpec spec, String token) {
+  // A numeric kind that admits "not stated" (a circle's or star's places,
+  // `gate.turn`) signs it as the sentinel's own token.
+  if (token == ParamVocab.unspecified && spec.validate(token)) return token;
   switch (spec.kind) {
     case ParamKind.rotation:
       return num.tryParse(token);

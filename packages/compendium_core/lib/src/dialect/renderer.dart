@@ -856,10 +856,7 @@ class FigureRenderer {
             : turnRaw == 'right'
             ? 'counterclockwise'
             : turn; // tolerant-decode fallback
-        final placesRaw = params['places'];
-        final places = placesRaw is int
-            ? _formatPlaces(placesRaw)
-            : _displayScalar(placesRaw);
+        final places = _ringPlaces(params['places']);
         return _collapseSpaces(
           [
             'single file promenade',
@@ -2023,6 +2020,15 @@ class FigureRenderer {
   /// stated nothing for this param (issue #295). Base lines drop the whole
   /// clause in that case instead of writing the word "unspecified".
   static bool _isUnspecified(Object? value) => value == ParamVocab.unspecified;
+
+  /// A circle's or star's `places` (taxonomy v39): a count as "N places", and
+  /// the [ParamVocab.unspecified] sentinel, which both admit, as nothing, so an
+  /// unstated distance reads "circle left". Any other value humanizes, which
+  /// surfaces malformed data rather than hiding it. Used by the display
+  /// entries and the canonical single-file circle, which bypass the template's
+  /// own sentinel handling in [_renderValue].
+  static String _ringPlaces(Object? value) =>
+      value is int ? _formatPlaces(value) : _displayChoice(value);
 
   /// DISPLAY-ONLY: a `choice` param for the base lines, rendering the
   /// [ParamVocab.unspecified] sentinel as nothing and otherwise humanizing
@@ -3757,18 +3763,22 @@ class FigureRenderer {
     'star': (r, def, params, dialect, verbose, decimals) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
       final hand = _displayScalar(params['hand']);
-      final placesRaw = params['places'];
-      final places = placesRaw is int
-          ? _formatPlaces(placesRaw)
-          : _displayScalar(placesRaw);
+      final places = _ringPlaces(params['places']);
       final grip = params['grip'];
-      final gripClause = grip == 'none' || grip == null
+      final gripWords = grip == 'none' || grip == null
           ? ''
           : grip == 'wristGrip'
-          ? ' - wrist grip -'
+          ? 'wrist grip'
           : grip == 'handsAcross'
-          ? ' - hands across -'
-          : ' - ${_humanize(grip.toString())} -';
+          ? 'hands across'
+          : _humanize(grip.toString());
+      // The closing dash separates the grip from the count, so an unstated
+      // count (v39) drops it: "star left - wrist grip".
+      final gripClause = gripWords.isEmpty
+          ? ''
+          : places.isEmpty
+          ? ' - $gripWords'
+          : ' - $gripWords -';
       return _displayTemplate({
         'move': move,
         'hand': hand,
@@ -3892,10 +3902,7 @@ class FigureRenderer {
     // by this entry. Canonical uses a distinct form to include "circle" as a
     // searchable token despite phrasing as "promenade".
     'circle': (r, def, params, dialect, verbose, decimals) {
-      final placesRaw = params['places'];
-      final places = placesRaw is int
-          ? _formatPlaces(placesRaw)
-          : _displayScalar(placesRaw);
+      final places = _ringPlaces(params['places']);
       if (params['singleFile'] == true) {
         // v30 (#989): render `turn` raw (`left`/`right`) like every other
         // move's turn/direction param, for consistency with the rest of the

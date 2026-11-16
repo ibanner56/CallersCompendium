@@ -1421,7 +1421,14 @@ final Taxonomy contraTaxonomy = Taxonomy(
           defaultValue: 'left',
           choices: ['left', 'right'],
         ),
-        'places': ParamSpec(ParamKind.places, defaultValue: 3),
+        // v39: a dance may leave the distance unstated (the sentinel renders
+        // as nothing: "circle left"). The default stays 3, so a figure that
+        // omits the param, and a new one in the editor, still read 3 places.
+        'places': ParamSpec(
+          ParamKind.places,
+          defaultValue: 3,
+          choices: [ParamVocab.unspecified],
+        ),
         // Issue #634: ContraDB free text occasionally renders a single-file
         // circulation around the ring as "promenade single file around the
         // circle N places" (real render: Travels with Rick and Kim #455) — a
@@ -1458,7 +1465,12 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // ContraDB forces a hand selection (no default); the
         // editor offers 'left'.
         'hand': ParamSpec(ParamKind.handedness, defaultValue: 'left'),
-        'places': ParamSpec(ParamKind.places, defaultValue: 4),
+        // v39: may be left unstated, as `circle.places` may.
+        'places': ParamSpec(
+          ParamKind.places,
+          defaultValue: 4,
+          choices: [ParamVocab.unspecified],
+        ),
         // grip is a canonical render token since taxonomy v27 (issue #749):
         // emitted in ALL render paths (render / renderVerbose / renderSummary /
         // renderCanonical) as a " - wrist grip - " / " - hands across - " clause

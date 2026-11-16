@@ -794,6 +794,87 @@ void main() {
     expect(find.text('Enter a whole number from 1 to 10'), findsOneWidget);
   });
 
+  group('a places field that admits "not stated" (v39: circle, star)', () {
+    const error = 'Enter a whole number from 1 to 10';
+
+    for (final move in ['circle', 'star']) {
+      testWidgets('$move: emptying the field stores the sentinel, no error', (
+        tester,
+      ) async {
+        final read = await _pumpEditor(
+          tester,
+          paramKey: 'places',
+          spec: contraTaxonomy.resolve(move)!.params['places']!,
+          value: 3,
+        );
+        final field = find.byKey(const ValueKey('p-places'));
+        await tester.enterText(field, '');
+        await tester.pump();
+        expect(read(), ParamVocab.unspecified);
+        expect(find.text(error), findsNothing);
+        expect(find.text('not stated'), findsOneWidget);
+
+        await tester.enterText(field, '2');
+        await tester.pump();
+        expect(read(), 2);
+      });
+    }
+
+    testWidgets('opens empty on the sentinel and writes nothing back', (
+      tester,
+    ) async {
+      final read = await _pumpEditor(
+        tester,
+        paramKey: 'places',
+        spec: contraTaxonomy.resolve('circle')!.params['places']!,
+        value: ParamVocab.unspecified,
+      );
+      await tester.pumpAndSettle();
+      final field = tester.widget<TextField>(
+        find.byKey(const ValueKey('p-places')),
+      );
+      expect(field.controller!.text, isEmpty);
+      expect(find.text('not stated'), findsOneWidget);
+      expect(read(), isNull);
+    });
+
+    testWidgets('still flags a number out of range or not a number', (
+      tester,
+    ) async {
+      final read = await _pumpEditor(
+        tester,
+        paramKey: 'places',
+        spec: contraTaxonomy.resolve('star')!.params['places']!,
+        value: 4,
+      );
+      final field = find.byKey(const ValueKey('p-places'));
+      await tester.enterText(field, '11');
+      await tester.pump();
+      expect(read(), isNull);
+      expect(find.text(error), findsOneWidget);
+      await tester.enterText(field, 'abc');
+      await tester.pump();
+      expect(read(), isNull);
+      expect(find.text(error), findsOneWidget);
+    });
+
+    testWidgets('a places field without the sentinel still requires a number', (
+      tester,
+    ) async {
+      final read = await _pumpEditor(
+        tester,
+        paramKey: 'places',
+        spec: contraTaxonomy.resolve('facing_star')!.params['places']!,
+        value: 3,
+      );
+      await tester.enterText(find.byKey(const ValueKey('p-places')), '');
+      await tester.pump();
+      expect(read(), isNull);
+      expect(find.text(error), findsOneWidget);
+      expect(find.text('not stated'), findsNothing);
+    });
+  });
+
   testWidgets('text field round-trips a value', (tester) async {
     final read = await _pumpEditor(
       tester,

@@ -1,0 +1,18 @@
+{
+  "id": "unstated-circle-star-places",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "In the dance editor, a circle's or a star's places can now be left empty, for a dance that doesn't say how far to go. The field shows “not stated” instead of an error, and the figure reads “circle left” or “star right” with no count. A new circle or star still starts with its usual count."
+    ],
+    "data_migrations": [
+      "Taxonomy 39: no migration and no index rebuild. Devices still on 0.9.x show a circle or star with no count as “circle left unspecified”."
+    ]
+  },
+  "core": {
+    "changed": [
+      "`circle.places` and `star.places` admit `ParamVocab.unspecified` (taxonomy v39), and `ParamKind.places` now accepts the sentinel wherever a spec lists it in `choices`, as `ParamKind.rotation` does. It renders as nothing, and a star's grip clause drops its closing dash when no count follows.",
+      "`describeFigureSignature` reads an `unspecified` token back for a numeric param that admits it, instead of falling back to the raw signature."
+    ]
+  }
+}
