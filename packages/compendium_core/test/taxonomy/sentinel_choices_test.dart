@@ -50,8 +50,8 @@ void main() {
       // `spinDirection`s, each listing the sentinel in `choices`. The rest sit
       // on `ParamKind.choice` (`gate.direction`, `swing.endFacing`) or
       // `dancerSet`/`dancerPair` (`_dancerOrUnspecified`, `_heyPass2Choices`,
-      // `_heyMeetTargetChoices`, `_pairOrUnspecified`); `gate.turn` and the v39
-      // fraction `amount`s are the `rotation`s that opt in, and
+      // `_heyMeetTargetChoices`, `_pairOrUnspecified`); `gate.travel` and the
+      // v39 fraction `amount`s are the `rotation`s that opt in, and
       // `circle.places` / `star.places` the `places` (v39). It exists to catch the NEXT author who
       // declares a sentinel on a kind the editor doesn't render it for. If this
       // ever fails, the fix is either: (a) move the param to a kind already in

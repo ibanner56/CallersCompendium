@@ -2185,7 +2185,7 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
       `single file promenade right (circle, counterclockwise)`.
       Snippet signatures write it as `places=unspecified`, and
       `describeFigureSignature` now reads that token back for any numeric
-      param that admits it (`gate.turn` too, which used to fall back to the
+      param that admits it (`gate.travel` too, which used to fall back to the
       raw signature).
     - Reading: no reader produces the sentinel. A line with no count, such as
       `circle left` or the display of an unstated circle, still reads as
