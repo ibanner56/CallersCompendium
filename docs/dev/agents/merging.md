@@ -34,7 +34,8 @@ reasoning below when a gate fails, or when you are checking by hand.
   outside the diff exists in the review body only, so no inline comment or
   thread records it and the other gates pass. On `APPROVE-WITH-NITS` because a
   resolved thread is not a cleared item: fix each item, or dispute it and
-  re-run the review so the next round re-judges it. Details:
+  re-run the review so the next round re-judges it. A dispute the reviewer
+  upholds goes to the maintainer. Details:
   [code-review.md](code-review.md#requesting-a-claude-review).
 
 - **CI green on the commit being merged.** Re-check after any push; a green run
@@ -91,19 +92,19 @@ reasoning below when a gate fails, or when you are checking by hand.
 - **The PR closes only the issues you intend** (below).
 - **State verified from the remote**, not from memory or a stale local checkout.
 
-## Enabling auto-merge counts as merging
+## Merging as an agent
 
-Turning auto-merge on is a merge that waits for one thing: GitHub merges when
-the `official` ruleset is satisfied. That ruleset requires only `Merge gate`,
-and `Merge gate` reads CI job results only (its `needs` in
-[`ci.yml`](../../../.github/workflows/ci.yml)). It does not wait for a review of
-the current head, for open threads, or for an `APPROVE` verdict.
+GitHub merges when the `official` ruleset is satisfied. That ruleset requires
+only `Merge gate`, allows squash only, and lets nobody bypass it. `Merge gate`
+reads CI job results only (its `needs` in
+[`ci.yml`](../../../.github/workflows/ci.yml)), so nothing on GitHub waits for a
+review of the current head, for open threads, or for an `APPROVE` verdict:
+clear those gates yourself, before either path below.
 [`.claude/settings.json`](../../../.claude/settings.json) lets Claude Code
-sessions enable auto-merge without a prompt, so the gates have to be cleared
-before you enable it, not after:
+sessions take both without a prompt.
 
-- Enable it only once the Claude review of the current head has posted and
-  every gate except `ci` passes:
+- **CI still running: enable auto-merge.** Enable it only once the Claude
+  review of the current head has posted and every gate except `ci` passes:
 
   ```sh
   python3 tools/ci/check_pr_review_gates.py findings <PR> &&
@@ -113,10 +114,21 @@ before you enable it, not after:
   ```
 
   The chain stops at the first `FAIL` or `SKIP`, so its exit status is `0`
-  only when all four pass. `ci` is the gate auto-merge waits on.
-- **After any push, disable auto-merge first**, then clear the gates again on
-  the new head. Otherwise the PR can merge as soon as CI on the new head goes
-  green, before that head has been reviewed.
+  only when all four pass. `ci` is the gate auto-merge waits on. **After any
+  push, disable auto-merge first**, then clear the gates again on the new head.
+  Otherwise the PR can merge as soon as CI on the new head goes green, before
+  that head has been reviewed.
+- **CI already green: merge directly.** GitHub refuses to enable auto-merge on
+  a PR whose checks have all passed, which is common when CI finishes before
+  the review posts (#2208). Squash-merge once
+  `check_pr_review_gates.py all <PR> --closes <ISSUE>...` exits `0`, and pass
+  the head SHA the gates checked as the expected head (`sha` in the REST merge
+  call, `expectedHeadSha` in the GitHub MCP tool), so a push in between fails
+  the merge instead of landing an unchecked commit.
+
+A PR whose `findings` gate fails is merged by neither path. When the reviewer
+upholds an item the author disputes, the maintainer decides, and merges by hand
+([code-review.md](code-review.md#requesting-a-claude-review)).
 
 ## When GraphQL is refused (Claude Code cloud sessions)
 

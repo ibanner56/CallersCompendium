@@ -228,12 +228,21 @@ What a round is given and asked for:
   - **Dispute it**, with evidence on its thread (what you ran or read, not what
     you assume), then re-run the review on the same head by removing
     `review: claude` and adding it back. The next round reads the reply and
-    re-judges the item: it drops it, or says what the reply missed. If it keeps
-    an item you still believe is wrong, take it to the maintainer rather than
-    re-running until it goes away.
+    re-judges the item: it drops it, or says what the reply missed.
 
   Resolve each thread once its item is fixed or dropped; `threads` still
   requires that.
+
+  If the next round upholds an item you still believe is wrong, **the
+  maintainer decides**; do not keep re-running the review in the hope that the
+  item goes away. Put the item, your evidence and the reviewer's re-judgment to
+  the maintainer in your session, not on the PR: agents post under the
+  maintainer's GitHub account, so a comment there cannot show who ruled.
+  - **The maintainer sides with the reviewer:** fix the item.
+  - **The maintainer sides with you:** post the ruling on the item's thread,
+    saying the maintainer made it, and resolve the thread. Then hand the PR
+    back: the maintainer merges it by hand. `findings` still fails on the
+    `APPROVE-WITH-NITS`, so neither enable auto-merge nor merge it yourself.
 - **A `Coverage` section** lists every changed file and the disposition of each
   hazard class. `APPROVE` requires it to be complete, so an `APPROVE` over a
   thin `Coverage` is a reason to distrust the review, not to merge. The merge
