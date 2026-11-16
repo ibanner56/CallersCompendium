@@ -2159,8 +2159,11 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
     - Params: `circle.places` and `star.places` list `ParamVocab.unspecified`
       in `choices`, and `ParamKind.places` now admits the sentinel when a spec
       lists it, as `ParamKind.rotation` does (`ParamSpec.validate`,
-      `paramDomain`). Their defaults stay 3 and 4, so a figure that omits
-      `places`, and a new figure in the editor, still read that many places.
+      `paramDomain`; a compound param bound to no slot admits it too, as an
+      unbound rotation does). Their defaults stay 3
+      and 4, so a figure that omits `places` still reads that many places, and
+      a new figure in the editor starts with that many unless the user's own
+      Settings default for the move leaves it unstated.
       Making `unspecified` the default instead was rejected: it would change
       how every stored figure that omits `places` renders (a figure the parser
       read from `circle left` with no count), which the request did not ask
@@ -2170,7 +2173,12 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
     - Editor: the places field of a param that admits the sentinel may be left
       empty. Empty stores `unspecified` and shows "not stated" instead of the
       range error; a field opened on the sentinel is empty. Any other text
-      that is not a count from 1 to 10 is still an error.
+      that is not a count from 1 to 10 is still an error. Every editor built
+      on the param's spec gets this: the dance editor, the Settings per-move
+      defaults, the program matrix's figure columns, and a compound's argument
+      bound to such a slot (which shows the empty field rather than a made-up
+      count; a compound's argument summary now reads "not stated" for the
+      sentinel of any kind but text, where it read "unspecified").
     - Wording: the sentinel renders as nothing on every path, display and
       canonical, single file included: `circle left`, `star right - wrist
       grip` (the grip clause drops the dash that would lead into the count),
@@ -2186,9 +2194,13 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
     - Migration: none, and no rebuild: no stored figure could hold the
       sentinel before, and every canonical text is unchanged. **Older devices
       (v38).** A v38 build has no sentinel in these specs, so it renders such a
-      figure as `circle left unspecified`. Its places field shows the default
-      without writing it back, so the sentinel survives until the user edits
-      that field there.
+      figure as `circle left unspecified` (`star left unspecified`, `star left
+      - wrist grip - unspecified`). Its places field shows the default without
+      writing it back, so the sentinel survives until the user edits that
+      field there. Its `validateFigure` rejects the sentinel, so there a
+      synced compound whose template holds an unstated circle or star reports
+      an invalid template, and a compound argument of `unspecified` does not
+      expand.
 
 ## Open questions (to resolve during implementation, with user input)
 

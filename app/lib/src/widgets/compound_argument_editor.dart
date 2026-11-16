@@ -16,6 +16,10 @@ String compoundArgumentsText(
 ) => [
   for (final param in definition.params)
     switch (args[param.key]) {
+      // "Not stated", as the argument's own editor shows it: a sentinel the
+      // spec built below does not list would otherwise read "unspecified".
+      ParamVocab.unspecified when param.kind != ParamKind.text =>
+        l10n.danceEditorParamNotStated,
       final String value => figureParamChoiceLabel(
         l10n,
         ParamSpec(param.kind, defaultValue: null),
@@ -140,9 +144,10 @@ class CompoundArgumentEditor extends StatelessWidget {
                       offersFractionChoice(v, value)))
                 v,
           ],
-          // Listing the sentinel is how a rotation admits "not stated": its
-          // stepper then shows that state, and offers Clear, rather than 1.
-          ParamKind.rotation
+          // Listing the sentinel is how a rotation or a count of places admits
+          // "not stated": its stepper or field then shows that state (an empty
+          // places field, v39), rather than a number it never held.
+          ParamKind.rotation || ParamKind.places
               when allowed?.contains(ParamVocab.unspecified) ?? false =>
             const [ParamVocab.unspecified],
           _ => null,

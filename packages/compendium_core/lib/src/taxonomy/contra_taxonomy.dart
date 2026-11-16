@@ -1397,7 +1397,8 @@ final Taxonomy contraTaxonomy = Taxonomy(
     ),
     // --- Roadmap 2.4a: places family (PR4) ---
     // Moves whose travel is measured in "places" around a ring/star
-    // (ParamKind.places, int 1..10). Each move keeps a simple typical-beats
+    // (ParamKind.places, int 1..10; circle and star may also leave it
+    // unstated, v39). Each move keeps a simple typical-beats
     // list in goodBeats, but ContraDB's *conditional* rules — square through's
     // 2-4 place restriction and the moves' param-dependent places/beats ratios
     // — are intentionally not encoded/enforced (they can't be captured by the
@@ -1474,7 +1475,9 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // grip is a canonical render token since taxonomy v27 (issue #749):
         // emitted in ALL render paths (render / renderVerbose / renderSummary /
         // renderCanonical) as a " - wrist grip - " / " - hands across - " clause
-        // (ContraDB `starWords` parity). 'none' is the unspecified value — no
+        // (ContraDB `starWords` parity); with no count to lead into (places
+        // unstated, v39) the closing dash is dropped. 'none' is the unspecified
+        // value — no
         // clause in any render path. The FTS inclusion makes stars searchable
         // by "wrist grip" or "hands across".
         'grip': ParamSpec(

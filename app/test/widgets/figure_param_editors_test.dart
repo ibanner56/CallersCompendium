@@ -797,6 +797,22 @@ void main() {
   group('a places field that admits "not stated" (v39: circle, star)', () {
     const error = 'Enter a whole number from 1 to 10';
 
+    // The hint stays in the tree at opacity 0 while the field holds text
+    // (`InputDecoration.maintainHintSize`), so finding its text proves
+    // nothing: read whether it is actually shown.
+    bool hintShown(WidgetTester tester) =>
+        tester
+            .widget<AnimatedOpacity>(
+              find
+                  .ancestor(
+                    of: find.text('not stated'),
+                    matching: find.byType(AnimatedOpacity),
+                  )
+                  .first,
+            )
+            .opacity ==
+        1.0;
+
     for (final move in ['circle', 'star']) {
       testWidgets('$move: emptying the field stores the sentinel, no error', (
         tester,
@@ -808,15 +824,17 @@ void main() {
           value: 3,
         );
         final field = find.byKey(const ValueKey('p-places'));
+        expect(hintShown(tester), isFalse, reason: 'it holds 3');
         await tester.enterText(field, '');
-        await tester.pump();
+        await tester.pumpAndSettle();
         expect(read(), ParamVocab.unspecified);
         expect(find.text(error), findsNothing);
-        expect(find.text('not stated'), findsOneWidget);
+        expect(hintShown(tester), isTrue);
 
         await tester.enterText(field, '2');
-        await tester.pump();
+        await tester.pumpAndSettle();
         expect(read(), 2);
+        expect(hintShown(tester), isFalse);
       });
     }
 
@@ -834,8 +852,29 @@ void main() {
         find.byKey(const ValueKey('p-places')),
       );
       expect(field.controller!.text, isEmpty);
-      expect(find.text('not stated'), findsOneWidget);
+      expect(hintShown(tester), isTrue);
       expect(read(), isNull);
+    });
+
+    testWidgets('follows the value between a count and the sentinel', (
+      tester,
+    ) async {
+      final spec = contraTaxonomy.resolve('circle')!.params['places']!;
+      String text() => tester
+          .widget<TextField>(find.byKey(const ValueKey('p-places')))
+          .controller!
+          .text;
+      await _pumpEditor(tester, paramKey: 'places', spec: spec, value: 3);
+      expect(text(), '3');
+      await _pumpEditor(
+        tester,
+        paramKey: 'places',
+        spec: spec,
+        value: ParamVocab.unspecified,
+      );
+      expect(text(), isEmpty);
+      await _pumpEditor(tester, paramKey: 'places', spec: spec, value: 5);
+      expect(text(), '5');
     });
 
     testWidgets('still flags a number out of range or not a number', (

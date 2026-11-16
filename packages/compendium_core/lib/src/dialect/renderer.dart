@@ -3752,7 +3752,8 @@ class FigureRenderer {
       );
     },
     // ContraDB `starWords`: `star <hand> [- <grip> -] <n> places`. The grip
-    // clause appears between the hand and the count for the two non-`none`
+    // clause appears between the hand and the count (or, with the count
+    // unstated, v39, ends the line without its closing dash) for the two non-`none`
     // grips ("- wrist grip -" and "- hands across -"; real ContraDB renders:
     // Al's Safeway Produce, Strange New Worlds, Sweet Vicki, Fun Dance for
     // Marjorie). `none` (the default / unspecified value) emits no clause so
