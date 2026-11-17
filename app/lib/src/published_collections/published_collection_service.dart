@@ -161,7 +161,7 @@ Future<bool> _verifyPublishedSignature(
 ) => verifyManifestSignatureWith(
   manifestBytes,
   signatureText,
-  publicKeysBase64: const [kPublishedCollectionPublicKey],
+  publicKeysBase64: kPublishedCollectionPublicKeys,
 );
 
 Future<List<int>> _fetchBytes(Uri uri, int maxBytes) async {

@@ -10398,6 +10398,10 @@
   "@publishedCollectionsUnavailable": {
     "x-sourceSha256": "286ca7d1f2dfaf05d973b18f9d8167ca700dd94c02afc27cd91e74f85abbd35f"
   },
+  "publishedCollectionsUnverified": "Gepubliceerde collecties konden niet worden geverifieerd, dus er is niets geladen. Werk de app bij als dit blijft gebeuren.",
+  "@publishedCollectionsUnverified": {
+    "x-sourceSha256": "0fd4b1c6ff67d093225db9044263a0966296ef759e8fae1cc0db6e0bde414593"
+  },
   "publishedCollectionsOffline": "Gepubliceerde collecties konden niet worden bereikt. Controleer je verbinding en probeer het opnieuw.",
   "@publishedCollectionsOffline": {
     "x-sourceSha256": "9d5685db1bd84a665edf1099bdca7fbbe48285bd68a1426598c99ee55c348fa5"

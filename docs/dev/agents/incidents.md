@@ -143,8 +143,9 @@ name, with a reason**, so that the next non-settings `…Key` constant still fai
 loudly. A cleverer pattern would have dropped both silently — do not narrow a
 ratchet's detection pattern to make a false positive go away.
 (The update key later became the list `kUpdateManifestPublicKeys` (security-2),
-which the pattern does not match; `kPublishedCollectionPublicKey` is the
-exclusion that remains.)
+which the pattern does not match, and `kPublishedCollectionPublicKey` became
+`kPublishedCollectionPublicKeys` (#2161) the same way, so neither exclusion
+remains.)
 
 Rule: [`.github/instructions/privacy-registry.instructions.md`](../../../.github/instructions/privacy-registry.instructions.md).
 

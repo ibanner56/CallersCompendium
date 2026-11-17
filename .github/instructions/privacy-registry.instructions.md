@@ -71,11 +71,13 @@ indistinguishable from a guess.
 
 ## Do not narrow a ratchet to silence a false positive
 
-The settings ratchet flags `kPublishedCollectionPublicKey`, which is the Ed25519
-root of trust for the published-collection feed rather than a preference. It is
-excluded **by name, with a reason**, so the next non-settings `…Key` constant
-still fails loudly. A cleverer detection pattern would have dropped both
-silently.
+The settings ratchet flagged `kPublishedCollectionPublicKey`, which was the
+Ed25519 root of trust for the published-collection feed rather than a
+preference. It was excluded **by name, with a reason**, so the next
+non-settings `…Key` constant still failed loudly. A cleverer detection pattern
+would have dropped both silently. (That key is now the list
+`kPublishedCollectionPublicKeys` (#2161), which the pattern does not match;
+the same rule applies to the next false positive.)
 
 ## Before pushing
 

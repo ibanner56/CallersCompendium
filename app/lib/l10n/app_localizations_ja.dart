@@ -10311,6 +10311,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get publishedCollectionsUnavailable => '公開コレクションは一時的に利用できません。';
 
   @override
+  String get publishedCollectionsUnverified =>
+      '公開コレクションを検証できなかったため、何も読み込まれませんでした。この問題が続く場合は、アプリを更新してください。';
+
+  @override
   String get publishedCollectionsOffline =>
       '公開コレクションに接続できませんでした。接続を確認してもう一度お試しください。';
 

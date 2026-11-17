@@ -14048,7 +14048,11 @@
   },
   "publishedCollectionsUnavailable": "Published collections are temporarily unavailable.",
   "@publishedCollectionsUnavailable": {
-    "description": "Non-leaking error shown when the signed catalog or an archive was fetched but failed an integrity or trust check."
+    "description": "Non-leaking error shown when the signed catalog or an archive was fetched but failed an integrity or trust check other than an unrecognized catalog signature."
+  },
+  "publishedCollectionsUnverified": "Published collections could not be verified, so nothing was loaded. If this keeps happening, update the app.",
+  "@publishedCollectionsUnverified": {
+    "description": "Error shown when the signed published-collection catalog's signature does not match any key this app trusts. After a signing-key change, updating the app is the fix; it could also mean the catalog was tampered with, so the wording does not claim either cause."
   },
   "publishedCollectionsOffline": "Published collections could not be reached. Check your connection and try again.",
   "@publishedCollectionsOffline": {

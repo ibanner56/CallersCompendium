@@ -411,9 +411,11 @@ void main() {
       expect(sink.errors.single, contains('unsupported'));
     });
 
-    testWidgets('an integrity failure stays "temporarily unavailable"', (
-      tester,
-    ) async {
+    testWidgets('an unrecognized catalog signature suggests updating the app '
+        '(#2161)', (tester) async {
+      // After a signing-key rotation, an install that predates the new key
+      // can only recover by updating, so "temporarily unavailable" would
+      // promise a Retry that never succeeds.
       final service = PublishedCollectionService(
         bytesFetcher: (uri, _) async =>
             uri.toString() == kPublishedCollectionManifestUrl
@@ -424,8 +426,30 @@ void main() {
       await pump(tester, service);
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('temporarily unavailable'), findsOneWidget);
+      expect(find.textContaining('could not be verified'), findsOneWidget);
+      expect(find.textContaining('update the app'), findsOneWidget);
+      expect(find.textContaining('temporarily unavailable'), findsNothing);
+      // It may also be a transient bad response, so Retry stays available.
+      expect(find.text('Retry'), findsOneWidget);
       expect(sink.errors.single, contains('invalidSignature'));
+    });
+
+    testWidgets('a missing signature stays "temporarily unavailable"', (
+      tester,
+    ) async {
+      final service = PublishedCollectionService(
+        bytesFetcher: (uri, _) async =>
+            uri.toString() == kPublishedCollectionManifestUrl
+            ? utf8.encode(manifest())
+            : utf8.encode('   '),
+        signatureVerifier: (_, _) async => true,
+      );
+      await pump(tester, service);
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('temporarily unavailable'), findsOneWidget);
+      expect(find.textContaining('could not be verified'), findsNothing);
+      expect(sink.errors.single, contains('missingSignature'));
     });
 
     testWidgets('a failed archive download is classified, logged, and can be '
