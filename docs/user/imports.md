@@ -202,7 +202,8 @@ be verified** (its signature did not match a key this app trusts; if it keeps
 happening, update the app, because the catalog may have moved to a newer
 signing key), or it is **temporarily unavailable** (it failed another safety
 check, so nothing was imported). Choose **Retry** to try again without leaving
-the screen (it is not offered when the fix is to update the app). Failures are
+the screen (it is not offered when the catalog or collection is in a format
+only a newer app can read). Failures are
 recorded in **Settings** → **Diagnostics**.
 
 ## Bring in a list of dance titles

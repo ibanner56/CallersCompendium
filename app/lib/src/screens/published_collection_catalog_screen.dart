@@ -400,11 +400,11 @@ String _failureMessage(
       catalog
           ? l10n.publishedCollectionsNeedsNewerApp
           : l10n.publishedCollectionUnsupported,
+    PublishedCollectionFetchFailure.invalidSignature =>
+      l10n.publishedCollectionsUnverified,
     PublishedCollectionFetchFailure.redirectRefused ||
     PublishedCollectionFetchFailure.responseTooLarge ||
     PublishedCollectionFetchFailure.malformed ||
-    PublishedCollectionFetchFailure.invalidSignature =>
-      l10n.publishedCollectionsUnverified,
     PublishedCollectionFetchFailure.missingSignature ||
     PublishedCollectionFetchFailure.digestMismatch ||
     PublishedCollectionFetchFailure.byteCountMismatch =>

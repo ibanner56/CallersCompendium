@@ -40,7 +40,7 @@ This is the operator runbook for cutting a desktop release. It documents the
 - [Software Bill of Materials (SBOM)](#software-bill-of-materials-sbom) — 93 lines
 - [Publishing the update manifest (GitHub Pages)](#publishing-the-update-manifest-github-pages) — 124 lines
 - [Signing the update manifest (Ed25519, issue #431)](#signing-the-update-manifest-ed25519-issue-431) — 96 lines
-- [Signing the published-collection catalog (Ed25519, issue #2161)](#signing-the-published-collection-catalog-ed25519-issue-2161) — 73 lines
+- [Signing the published-collection catalog (Ed25519, issue #2161)](#signing-the-published-collection-catalog-ed25519-issue-2161) — 76 lines
 - [Landing page and user guides (GitHub Pages)](#landing-page-and-user-guides-github-pages) — 74 lines
 - [Dry run (no release created)](#dry-run-no-release-created) — 36 lines
 - [macOS (Developer ID signed + notarized)](#macos-developer-id-signed--notarized) — 85 lines
@@ -977,11 +977,13 @@ trust the key Analect is signing with:
    Analect keeps signing with the current key, so every install still verifies.
 3. **Wait until that release is widespread.** Installs that predate it trust
    only the old key and will reject the catalog after step 4 until they update.
-   They see "Published collections could not be verified… update the app" in
-   **Import** → **Published collections**; only builds that contain #2161 say
-   so, and older ones say "temporarily unavailable".
+   They see "Published collections could not be verified… update the app" on
+   the **Published collections** screen; only builds that contain #2161 say so,
+   and older ones say "temporarily unavailable".
 4. **Switch Analect's signer** in one Analect change: replace the
-   `ANALECT_SIGNING_KEY_B64` secret with the next private key and update
+   `ANALECT_SIGNING_KEY_B64` secret with the next private key, **base64
+   encoded** (`base64 < analect_next_signing_key.pem | tr -d '\n'`; unlike
+   `UPDATE_SIGNING_KEY`, a pasted PEM fails as "not valid base64"), and update
    Analect's `PINNED_PUBLIC_KEY` to the next public key, then re-run its Pages
    workflow so the live catalog is re-signed. Changing only one of the two makes
    the publish fail rather than ship a bad signature.
