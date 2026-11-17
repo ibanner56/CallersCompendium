@@ -36,6 +36,72 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-11-16
+
+### Added
+
+- A figure 8 or poussette can now be danced an amount none of quarter, half, three quarter or full states, such as one and a half: pick “other amount…” in the dance editor and set the amount. It shows in the figure's line (“ones 1½ figure 8 up between twos”), and a 1½ figure 8 is counted as 24 beats.
+- Imported figure 8 and poussette lines that state an amount such as “1 1/2” keep it, instead of losing it or being kept only as text.
+- Experimental: calling cards set the figures apart as Yona Appletree's Contra Card does — the move in bold dark red, the dancers in bold, and amounts such as ½ or 3 places in blue-gray, in your dialect's words. The default card layout does this; add highlight to the figures line of a layout of your own to have it there.
+- Experimental: print calling cards on ordinary paper. Turn on Several cards to a page in Settings › Experimental › Calling cards, and the cards are laid out as many to a page as fit on the paper you choose when printing, with marks to cut along — four 3 × 5 cards to a Letter page, four A6 or eight A7 to an A4 page.
+- Experimental: print a dance, or every dance in a program, as calling cards to hold while you call — one small card per dance, 3 × 5 inches unless you choose another size, with the title, formation and authors at the top and the figures phrase by phrase below, after the design of Yona Appletree's Contra Card. Turn on Print calling cards in Settings › Experimental › Calling cards, then choose Print calling card from a dance's Export menu or Print calling cards from a program's.
+- Experimental: lay out your calling cards in Settings › Experimental › Calling cards › Card layout. Each line of the layout is one row of the card; the editor lists any line it can't read, shows a sample dance on your card as you type, and has the blocks and options to tap in, with four example layouts to start from. A card too full for its size shrinks to fit, down to half size.
+- A meanwhile, modifier or sequence group can have a name. Type it in Group title (optional) at the top of the group, and the group's line starts with it, followed by a dash: “Flutterwheel - robins allemande right ½ and neighbor star promenade ½”. The name shows wherever the line does, comes before your own wording if you customize it, and is found by search. A group inside another group has its own title.
+- A figure of your own can now have a plain number parameter (0 to 99) that reads as the digits alone. The existing places parameter always adds the word "place" or "places".
+- A figure 8 can now be marked “double”. It reads “ones lead a double half figure 8 up between twos, twos cast down the outside”: the first pass is mirrored by the other pair, who cast the opposite way (up becomes down, down becomes up, and across becomes “cast to follow”). Lines in that wording are read back as a double figure 8.
+- A new figure, forward and back, names the formation dancers go forward and back in: long lines, in squares, lines of three, four, five or six, as couples, head couples, side couples, in a ring, in lines at heads or in lines at sides. It shows in the figure's line (“lines of three forward & back”, or “in a ring forward” when the dancers don't come back), and typing that line into the dance editor reads it back as the figure.
+- A new figure, hey for three: three dancers weave past one another along a figure-eight path. It takes the same choices as the dolphin hey and reads like it, “hey for three - start with second robin passing first lark by right shoulders”, in your own role words, except that the dancer who starts is one dancer, chosen from the same list as the dancer they pass. Typing that line, or just “hey for three” or “hey for 3”, into the dance editor reads it as the figure.
+- You can select, search, color, and export Progressed improper formations.
+- Settings › Program has a new Sharing section with three switches: include the program title, the caller and band, and the date and venue when you share a set list. All three are on, as before. Turning one off leaves it out of the set list you share or copy as text (the title also leaves the share subject); sharing the whole program as a .ccshare or JSON file always includes everything.
+- A new figure, starburst: dancers trace a zig zag's path without hands, arcing out of the set around one or more couples and back in on the side they started. It reads like “starburst clockwise around 2, robins lead partner out of the set”, in your own role words, a search for “dolphin loop” finds it, and typing that line into the dance editor reads it back as the figure.
+- A combination of figures can now have a plain number parameter, since starburst's count of couples passed is one.
+- You can name one dancer of the third or fourth couple: the dancer list now ends with the third and fourth couples' dancers, after the first and second, and they read in your dialect's role words (“third lark”, “fourth robin”). Typing one in the dance editor, as in “third lark swing”, reads it as that dancer. A figure 8's lead and a dolphin hey's dolphin can be any of them too.
+- The Caller's Box's M3, W3, M4 and W4 now read as the third and fourth couples' dancers, as M1, W1, M2 and W2 read as the first and second couples'. A line an earlier import kept as text for one of them becomes the figure when you re-check unrecognized figures.
+- A new figure, trade the wave: from short waves, everyone steps forward, faces the other way and passes right shoulders with the dancer facing the same way, reforming the waves with centers and ends swapped. Choose the wave it ends in (who is in the center and by which hand, who is on the sides), the direction everyone faces, and whether it ends with a balance. Typing the figure's line, or just “trade the wave”, into the dance editor reads it as the figure.
+
+### Changed
+
+- A figure 8 or poussette saved before this version as “other” with no amount now reads “an unstated amount of figure 8” instead of “other figure 8”, and the dance editor asks you to choose the amount. Nothing is filled in for you.
+- Figures of your own no longer offer “other” for a fraction, because the amount could not be carried through to the figure they become, and nor do the per-figure defaults in Settings, which have no amount to go with it. A figure of your own that already uses “other” keeps working, as an unstated amount; an “other” default already saved in Settings is no longer applied to new figures.
+- The spoken (verbose) wording of a poussette now spells out its fraction (“three quarters poussette”), as a figure 8's already did.
+- The privacy policy and the break-glass access record now say that a Device Sync operator's break-glass access logs what it reads — which device's index of synced items, or which synced item by a hash of its content — before reading it, and never the content itself. Those identifiers, and the store version, are removed from the log after 30 days, the same as the sync storage path.
+- A Caller's Box compound written as a name over its indented parts, such as “(8) Neighbor flutterwheel:”, now imports as one sequence titled with that name, instead of its parts in separate rows with the name in the first one's note. A compound whose parts fold into a neighboring line, that has more than four parts, or that is longer than one phrase of the dance, imports as before.
+- When a dance is compared with one you already have, on import or when importing a program, figures grouped into a sequence now count the same as those figures in separate rows. Grouping or naming figures alone no longer makes a dance a variation, so a copy you already have from another source, or entered by hand, still matches a Caller's Box import that groups its figures.
+- Long lines is now forward and back in long lines. Your long lines figures are unchanged and still read “long lines”; changing a long lines figure's formation turns it into a forward and back, and a forward and back set to long lines is saved as long lines.
+- Typing just “forward and back” into the dance editor now reads it as long lines, the usual formation, instead of keeping it as text.
+- A dialect's own name or wording for long lines keeps applying to it, and a name you give forward and back does not rename long lines. The dialect editor, Advanced search's Has figure and the per-figure defaults in Settings still offer long lines on its own.
+- A program matrix column you built on long lines keeps counting long lines, and opens in the column editor as forward and back in long lines.
+- If you made a figure of your own called hey for three, its Glossary page now offers to rename it or switch its uses to the app's figure, as for any built-in figure that shares a name with one of yours. Nothing switches until you choose to.
+- Choosing a .ccshare or .usr file in Import now switches the import source to match, so you no longer have to change it yourself first.
+- Shared program text and exported program PDFs no longer add a “[performed]” marker to slots you have marked performed.
+- Version 0.7.0 now says, when it checks for updates, that its support ends on November 30, 2026, and asks you to update before then. Versions before 0.7.0 can't show this notice; they are already retired.
+- A figure of your own named starburst now shares its name with the app's, and its Glossary page offers to rename it or switch its uses to the app's starburst. A glossary entry named “dolphin loop” now shares starburst's search keyword.
+- If you made a figure of your own called trade the wave, its page now offers **Switch to the app's figure**, as for any built-in figure that shares a name with one of yours. A figure with the same parameter names as the built-in one (sides, center, centerHand, axis and balance) has each matched for you. Nothing switches until you choose to.
+- In the dance editor, a circle's or a star's places can now be left empty, for a dance that doesn't say how far to go. The field shows “not stated” instead of an error, and the figure reads “circle left” or “star right” with no count. A new circle or star still starts with its usual count. A combination of figures whose circle or star leaves its places unstated can leave that argument unstated too.
+- Switching a figure of your own to the app's figure of the same name can now turn a places parameter into a plain number parameter, which takes every count places can. So a starburst figure of your own whose count is in places can now switch to the app's starburst. Each dance keeps its count, and the line then reads as the app's starburst does: “around 2”, with no “places”.
+
+### Fixed
+
+- Marking a dance as performed in a program no longer scrolls the program back to the top.
+- When you name a parameter of a figure of your own something it can't be saved with, such as “center hand” with a space, the editor now says what's wrong under that parameter as soon as you move on from its name, instead of only in the list after you tap Save. The help under the wording no longer offers that name as `{center hand}` or in its list of what a condition can test, so it no longer suggests a slot that then fails as one.
+- When Save refuses a figure of your own, a combination or a term, the field you were typing in keeps the focus, so what you type next goes there instead of into another field, such as the first parameter's name.
+
+### Data / Migrations
+
+- Taxonomy 38 → 39: figure 8 and poussette gain an `amount`, used when their fraction is “other”. On first launch a one-time rebuild of the search index re-derives the text of every stored figure; your dances themselves are not changed, and an “other” saved without an amount stays that way, because the original amount was never stored and cannot be recovered.
+- Devices still on 0.9.x: a figure 8 or poussette with an amount syncs, shares and restores there unchanged, reading as “other figure 8” without the amount. A combination of your own that uses one is marked Needs repair on such a device and can't be used there until it is updated; repairing it there would remove the amount from all your devices, so update instead.
+- No migration and no index rebuild: a title is stored with the group's figures, and groups you already have have none. Devices still on an older version keep a group's title when they sync it, but do not show it.
+- Taxonomy 39: no migration and no index rebuild; long lines figures you already have are stored, shown and searched exactly as before.
+- Devices still on 0.9.x show a forward and back figure by its internal name, as they do any figure added since. Long lines figures entered on this version read there exactly as before.
+- Taxonomy 39: no migration and no index rebuild for this figure. Devices still on 0.9.x show a hey for three by its internal name, as they do any figure added since.
+- Your collection can no longer be brought up to date from a version before 0.7.0. If you last opened it with 0.6.0 or earlier, this version won't open it: the startup screen names the release to open it with first (0.9.2 for a collection last opened by 0.4.0 to 0.6.0), and offers to back it up and start fresh. Collections last opened by 0.7.0 or later are not affected.
+- Taxonomy 39: no migration and no index rebuild. Devices still on 0.9.x show a starburst by its internal name, as they do any figure added since.
+- Taxonomy 39: no migration and no index rebuild for these dancers.
+- Devices still on 0.9.x show one by its internal name (“threes role1”), and opening the figure in their dance editor replaces it with that setting's default, or with “not stated” where that is the default.
+- Taxonomy 39: no migration and no index rebuild for this figure.
+- Devices still on 0.9.x show a trade the wave figure by its internal name, as they do any figure added since.
+- Taxonomy 39: no migration and no index rebuild. Devices still on 0.9.x show a circle or star with no count with the word “unspecified” in place of the count, and there a combination of figures that contains one can't be used.
+
 ## [0.9.2] - 2026-11-12
 
 ### Changed

@@ -18,7 +18,7 @@ const String kAppTagline =
     'Your dances, your dialect — in the hall or on the road.';
 
 /// Marketing/display version. Mirror the exact `version:` in `app/pubspec.yaml`.
-const String kAppVersion = '0.9.2';
+const String kAppVersion = '0.10.0';
 
 /// Human-facing release codename.
 ///
@@ -27,7 +27,7 @@ const String kAppVersion = '0.9.2';
 /// current release codename as a fallback.
 const String kAppCodename = String.fromEnvironment(
   'CALLERS_COMPENDIUM_RELEASE_CODENAME',
-  defaultValue: 'End Effects',
+  defaultValue: 'Forward and Back',
 );
 
 /// Release identity the strict updater compares with manifest versions.

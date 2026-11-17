@@ -21,6 +21,62 @@ core version. They are left that way deliberately — do not renumber them.
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-11-16
+
+### Added
+
+- Add the `amount` param to `figure_8` and `poussette` (taxonomy v39): a `ParamKind.rotation` opting into the `unspecified` sentinel, read only while `fraction` is `other`. Add `fractionAmountParam`, `fractionParamsForAmount`, `fractionTokenForAmount`, `isFractionAmount`, `statedFractionAmount`, `hidesFractionAmount`, `offersFractionChoice` and `kFractionOtherSeedAmount`.
+- Add `ParamBeats.beatsPerAmount` and `ParamBeats.derive`: `figure_8` derives 16 beats per full amount for an `other` fraction, and validation no longer flags a derived count as atypical.
+- Add `taxonomyV39CanonicalRebuildDoneKey`, a one-time canonical/FTS rebuild listed in `oneTimeRepairMarkers`.
+- FigureRenderer.dancerTerms: the forms the renderer prints for every dancer and role token under a dialect, for display that sets dancers apart in a rendered line.
+- Classify the calling_card_print setting (whether calling cards are offered, their size and layout) as a shareable app-user preference.
+- DanceCardContent.formation and DanceCardContent.level: the formation and level labels on their own, gated by their DanceShareField like the rest of the card.
+- Add an optional container title: `params['title']` (`containerTitleKey`) on a meanwhile, modifier or sequence, read through `Figure.containerTitle`, set by the container factories' `title` argument (or `extraParams['title']`), and normalized by `normalizeContainerTitle` (whitespace collapsed, trimmed, clamped to `kMaxContainerTitleLength`, 80) in the factories and the figure codec; a blank or non-string title is not stored.
+- Every `FigureRenderer` render of a titled container, `renderCanonical` included, opens with `<title> - `, the title shown through the free-text role substitution.
+- Add `ParamKind.number`, a whole number 0–99 rendered as its digits alone.
+- Add the `double` flag to `figure_8` (taxonomy v39, display wording only: canonical text and beats are unchanged; stored only while true, so no other figure 8 gains a key), with a `{double}` and a `{cast}` display slot, and read the double wording back in the ContraDB display dialect.
+- Add the `forward_and_back` move (taxonomy v39): `formation` (a `ParamKind.choice` of `forwardAndBackFormations`, default `longLines`), `goBack` and `beats`, with long lines' `goBack`-driven beats. Add `forwardAndBackFormations`.
+- Add `MoveAlias.listedAsMove`: such an alias is offered where moves are and aliases are not, and a dialect's name and wording for it apply to it while its target's never do. Set for `long_lines` only.
+- Add `Taxonomy.withoutListedAliasPins`: the params a figure stores without the value an alias listed as a move pins. The dance repository's write-time routing, the free-text read-back and `switchUserFigureUsesIn` (which also routes a use switched to long lines to `long_lines`) apply it, so a `long_lines` never stores `formation`.
+- Add `savedMatrixConstraint`: a matrix column or compound step on `forward_and_back` stating `formation: longLines` is saved on `long_lines` without it.
+- Add the `hey_for_three` move (taxonomy v39): the `dolphin_hey` params, template, beats (default 16, `goodBeats` `[16]`) and display wording, except that `who` takes only `ParamVocab.singleDancers`, as `whom` does, defaulting to `twosRole2`. Canonical text is `<who> hey for three <shoulder>`, with a glossary definition.
+- Add `readDisplayedHeyForThree`, which free-text entry alone calls to read a hey for three's display line back, under its name or `hey for 3`; free-text entry also reads a bare `hey for 3` as the move. No import grammar reads either.
+- Add `FormationShape.progressedImproper`; Callers Box imports of "Duple Minor - Progressed improper" now keep it as a first-class shape instead of reading it as Improper.
+- Add `includeTitle`, `includeCallerBand` and `includeDateVenue` (default true) to `programToPlainText`, and `includeCallerBand` and `includeDateVenue` to `programHeaderLines`. With no header lines left, `programToPlainText` no longer starts with a blank line.
+- Add the `starburst` move (taxonomy v39): `direction` (`spinDirection`, default `counterclockwise`), `travel` (`ParamKind.number`, default 1), `who` (`dancerSet`, default `role1s`), `whom` (`dancerPair`, default `partners`) and `beats` (default 8), with search keyword `dolphin loop` and a glossary definition. Canonical text is `starburst <direction> around <travel>, <who> lead <whom> out of the set`.
+- Add `readDisplayedStarburst`, which free-text entry alone calls to read a starburst's display line back; no import grammar reads it.
+- Add `threesRole1`, `threesRole2`, `foursRole1` and `foursRole2` to `ParamVocab.singleDancers` (taxonomy v39), at the end of `ParamVocab.dancerSets`. They display as `third`/`fourth` and the role's singular term, and free-text entry reads them back. `figure_8.lead` and `dolphin_hey.whom` take all eight single dancers, and The Caller's Box codes `M3`/`W3`/`M4`/`W4` map to the new four (`dancerWords`); ContraDB never names them, and the ContraDB advanced filter does not send them.
+- Add the `trade_the_wave` move (taxonomy v39): `sides`, `center`, `centerHand`, `axis`, `balance` (stored default false, entry default true) and `beats` (4, or 8 with the balance, by `paramBeats`). Canonical text is the move name alone; the display line names the dancers who trade as the opposite of `sides` (`ParamOpposites`) and the side hand as the other hand.
+- Free-text entry reads a displayed trade the wave back as that figure; the import grammar still keeps a bare `Trade the wave` as custom text, and the ContraDB advanced filter refuses a `trade_the_wave` leaf.
+
+### Changed
+
+- Render an `other` fraction as its amount (`1½`, `two`, `one and a half` verbose), or as `an unstated amount of` (`unstated amount` in canonical text) when it states none. The poussette's verbose rendering now uses the spelled-out fraction words.
+- The ContraDB adapter keeps a quarter-step `half_or_full` amount up to 2.5 as `other` with `amount`; the figure parser reads a mixed amount (`1 1/2`) for a figure 8 or poussette; the display read-back reads the new wording.
+- `applyParamChange` seeds the amount when the fraction becomes `other` (unless `seedFractionAmount` is false, as compound expansion passes), drops it for a named fraction, stores an amount a named fraction states as that fraction, and refuses a non-numeric amount; the rule is also public as `applyFractionAmountChange`. `Taxonomy.entryParams` no longer seeds the `amount` default, and `skipsMoveDefault` keeps a saved `other` or amount per-move default from being applied.
+- `figureSnippetSignature` and `figureCanonicalKey` include the amount only while it is stated, so every key a pre-v39 figure had is unchanged; the v1 snippet-signature migration renames a legacy `amount` only for `orbit`.
+- The calling_card_print setting's classification note mentions that it also records whether cards print several to a page.
+- The Caller's Box adapter groups an unknown compound parent whose children all structure (#295) into one sequence titled with the scrubbed parent name, after the cross-line merge and only when every figure the block emitted came through it untouched, the block has two to four figures that a sequence may hold and fits the dance's longest phrase, and the name fits a title unchanged. Otherwise it keeps the flat reading, the name a note on the first child.
+- `figuresCanonicallyIdentical` and `diffFigures` compare a top-level sequence as its steps, so a dance whose figures differ only in grouping (or a group's title) is identical, and a changed step inside a sequence is reported as that step. `figureCanonicalKey` is unchanged.
+- `long_lines` is now an alias of `forward_and_back` pinning `formation: longLines`, with `inversePairId: forward_and_back`, so `resolvedMoveId` routes between the two on `formation`. Its canonical text (`long lines`) and display lines are unchanged; its effective params gain `formation: longLines`. Free-text entry's typed names and the figure editor's move pick start a figure under the id it is stored with, so a bare `forward_and_back` starts as `long_lines`.
+- Render a `forward_and_back` as `<formation> forward & back` (verbose `forward and back`), or `<formation> forward` without `goBack`; canonical text is `<formation> forward and back`. The renderer's camelCase humanizer, and the app's `humanizeToken`, break before a capital that starts a word after a one-letter word (`inARing` → `in a ring`).
+- Free-text entry reads a displayed forward and back back as that figure; the import grammar is unchanged.
+- Program matrix parameterized and compound columns whose base move is an alias match its target with the alias's pinned params added, and a column for an alias listed as a move is labelled by the dialect's name for that alias.
+- `figureSnippetSignature` of an alias listed as a move is its own id without its pinned params, so every `long_lines` keeps the signature `long_lines`.
+- `FilterCompiler` never maps an alias's id through a dialect's move names, as it already did not a move's.
+- The ContraDB advanced filter refuses a `hey_for_three` leaf: ContraDB has no such figure.
+- `programSlotLine` no longer appends the `[performed]` marker for a slot with `performedAt` set; remove the now-unused `ProgramExportLabels.performed` field.
+- The ContraDB advanced filter refuses a `starburst` leaf: ContraDB has no such figure.
+- `circle.places` and `star.places` admit `ParamVocab.unspecified` (taxonomy v39), and `ParamKind.places` now accepts the sentinel wherever a spec lists it in `choices`, as `ParamKind.rotation` does. It renders as nothing, and a star's grip clause drops its closing dash when no count follows.
+- A compound places param bound to `circle.places` or `star.places` admits the sentinel (from the slot's `paramDomain`), and one bound to no slot admits it too, as an unbound rotation does.
+- `describeFigureSignature` reads an `unspecified` token back for a numeric param that admits it, instead of falling back to the raw signature.
+- `validateUserFigure` adds the parameter's `index` to the data of each per-parameter issue, so an editor can mark the row at fault; of a key taken twice, the later parameter is the one reported.
+- `userFigureSwitchTargets` offers a `ParamKind.number` target for a `ParamKind.places` parameter, as well as one of its own kind; the value is kept as it is. A number parameter still never maps onto places.
+
+### Removed
+
+- Retire on-disk schema versions v35–v38: `kMinSupportedSchemaVersion` is now 39, the schema `v0.7.0-beta` shipped. Their upgrade steps, schema dumps, generated schema classes and the v35 and v38 release fixtures are deleted; the floor fixture is now `v39.sqlite`, captured from `v0.7.0-beta`.
+
 ## [0.10.2] - 2026-11-12
 
 ### Added
