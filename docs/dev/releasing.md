@@ -40,7 +40,7 @@ This is the operator runbook for cutting a desktop release. It documents the
 - [Software Bill of Materials (SBOM)](#software-bill-of-materials-sbom) — 93 lines
 - [Publishing the update manifest (GitHub Pages)](#publishing-the-update-manifest-github-pages) — 124 lines
 - [Signing the update manifest (Ed25519, issue #431)](#signing-the-update-manifest-ed25519-issue-431) — 96 lines
-- [Signing the published-collection catalog (Ed25519, issue #2161)](#signing-the-published-collection-catalog-ed25519-issue-2161) — 76 lines
+- [Signing the published-collection catalog (Ed25519, issue #2161)](#signing-the-published-collection-catalog-ed25519-issue-2161) — 84 lines
 - [Landing page and user guides (GitHub Pages)](#landing-page-and-user-guides-github-pages) — 74 lines
 - [Dry run (no release created)](#dry-run-no-release-created) — 36 lines
 - [macOS (Developer ID signed + notarized)](#macos-developer-id-signed--notarized) — 85 lines
@@ -961,6 +961,14 @@ publishing side.
 - Keep an offline backup of every pinned private key (current and next) the way
   the update key is kept. A lost private key cannot be recovered; installs that
   pin only that key can then verify nothing new until they update by hand.
+- **Where the next key is (recorded 2026-11-17).** The private half of the
+  pinned *next* key (`LJiuOr9D…DnE=`) is the Azure Key Vault secret
+  `analect-signing-knext` in the maintainer's `protege` vault (resource group
+  `callerscompendium`). Its value is the single-line base64 of the PEM, which
+  is the form `ANALECT_SIGNING_KEY_B64` takes. Before relying on it, check it:
+  base64-decode it, and `openssl pkey -pubout -outform DER | tail -c 32 |
+  base64` must print the next key pinned in `kPublishedCollectionPublicKeys`.
+  Update this entry whenever the key moves or a rotation retires it.
 
 ### Published-collection key rotation
 
