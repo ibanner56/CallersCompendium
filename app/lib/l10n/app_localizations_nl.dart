@@ -10807,6 +10807,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Gepubliceerde collecties zijn tijdelijk niet beschikbaar.';
 
   @override
+  String get publishedCollectionsUnverified =>
+      'Gepubliceerde collecties konden niet worden geverifieerd, dus er is niets geladen. Werk de app bij als dit blijft gebeuren.';
+
+  @override
   String get publishedCollectionsOffline =>
       'Gepubliceerde collecties konden niet worden bereikt. Controleer je verbinding en probeer het opnieuw.';
 

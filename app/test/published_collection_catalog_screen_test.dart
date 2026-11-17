@@ -411,9 +411,11 @@ void main() {
       expect(sink.errors.single, contains('unsupported'));
     });
 
-    testWidgets('an integrity failure stays "temporarily unavailable"', (
-      tester,
-    ) async {
+    testWidgets('an unrecognized catalog signature suggests updating the app '
+        '(#2161)', (tester) async {
+      // After a signing-key rotation, an install that predates the new key
+      // can only recover by updating, so "temporarily unavailable" would
+      // promise a Retry that never succeeds.
       final service = PublishedCollectionService(
         bytesFetcher: (uri, _) async =>
             uri.toString() == kPublishedCollectionManifestUrl
@@ -424,9 +426,96 @@ void main() {
       await pump(tester, service);
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('temporarily unavailable'), findsOneWidget);
+      expect(find.textContaining('could not be verified'), findsOneWidget);
+      expect(find.textContaining('update the app'), findsOneWidget);
+      expect(find.textContaining('temporarily unavailable'), findsNothing);
+      // It may also be a transient bad response, so Retry stays available.
+      expect(find.text('Retry'), findsOneWidget);
       expect(sink.errors.single, contains('invalidSignature'));
     });
+
+    testWidgets('a missing signature stays "temporarily unavailable"', (
+      tester,
+    ) async {
+      final service = PublishedCollectionService(
+        bytesFetcher: (uri, _) async =>
+            uri.toString() == kPublishedCollectionManifestUrl
+            ? utf8.encode(manifest())
+            : utf8.encode('   '),
+        signatureVerifier: (_, _) async => true,
+      );
+      await pump(tester, service);
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('temporarily unavailable'), findsOneWidget);
+      expect(find.textContaining('could not be verified'), findsNothing);
+      expect(sink.errors.single, contains('missingSignature'));
+    });
+
+    // Every failure code, on both the catalog and the archive path, maps to
+    // exactly one of the four messages. Written out by hand so that moving a
+    // code between arms of the mapping fails here (#2161 review).
+    const reached = 'could not be reached';
+    const newer = 'newer app version';
+    const unverified = 'could not be verified';
+    const unavailable = 'temporarily unavailable';
+    const expected = <PublishedCollectionFetchFailure, String>{
+      PublishedCollectionFetchFailure.unavailable: reached,
+      PublishedCollectionFetchFailure.unsupported: newer,
+      PublishedCollectionFetchFailure.invalidSignature: unverified,
+      PublishedCollectionFetchFailure.redirectRefused: unavailable,
+      PublishedCollectionFetchFailure.responseTooLarge: unavailable,
+      PublishedCollectionFetchFailure.malformed: unavailable,
+      PublishedCollectionFetchFailure.missingSignature: unavailable,
+      PublishedCollectionFetchFailure.digestMismatch: unavailable,
+      PublishedCollectionFetchFailure.byteCountMismatch: unavailable,
+    };
+    test('the message table covers every failure code', () {
+      expect(
+        expected.keys.toSet(),
+        PublishedCollectionFetchFailure.values.toSet(),
+      );
+    });
+    for (final archive in [false, true]) {
+      for (final MapEntry(key: code, value: message) in expected.entries) {
+        testWidgets(
+          '${archive ? 'archive' : 'catalog'} ${code.name} reads as "$message"',
+          (tester) async {
+            final service = PublishedCollectionService(
+              bytesFetcher: (uri, _) async {
+                final url = uri.toString();
+                if (!archive && url == kPublishedCollectionManifestUrl) {
+                  throw PublishedCollectionFetchException(code);
+                }
+                if (url == kPublishedCollectionManifestUrl) {
+                  return utf8.encode(manifest());
+                }
+                if (url == kPublishedCollectionSignatureUrl) {
+                  return utf8.encode('signature');
+                }
+                throw PublishedCollectionFetchException(code);
+              },
+              signatureVerifier: (_, _) async => true,
+            );
+            await pump(tester, service);
+            await tester.pumpAndSettle();
+            if (archive) {
+              await tester.tap(find.text('Import collection'));
+              await tester.pumpAndSettle();
+            }
+
+            for (final phrase in {reached, newer, unverified, unavailable}) {
+              expect(
+                find.textContaining(phrase),
+                phrase == message ? findsOneWidget : findsNothing,
+                reason: phrase,
+              );
+            }
+            expect(sink.errors.single, contains(code.name));
+          },
+        );
+      }
+    }
 
     testWidgets('a failed archive download is classified, logged, and can be '
         'retried', (tester) async {

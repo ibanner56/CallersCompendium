@@ -65,11 +65,11 @@ void main() {
   /// silently. Mirrors the allowlist precedent in
   /// `test/l10n/no_hardcoded_ui_strings_test.dart`.
   const notSettingsKeys = <String>{
-    // The Ed25519 public key that published-collection manifests are verified
-    // against — a trust anchor, not a persisted user setting. (The update
-    // manifest's keys are a `const List<String> kUpdateManifestPublicKeys`
-    // since security-2, a shape [declaration] does not match.)
-    'kPublishedCollectionPublicKey',
+    // (The Ed25519 trust anchors are not listed: the update manifest's keys
+    // became `const List<String> kUpdateManifestPublicKeys` in security-2 and
+    // the published-collection catalog's became
+    // `kPublishedCollectionPublicKeys` in #2161, a shape [declaration] does
+    // not match.)
     // The keys inside a custom figure's params that refer to a figure of your
     // own (#1023): parts of a dance's stored figures, classified with
     // `dances.figures_json`, not settings.

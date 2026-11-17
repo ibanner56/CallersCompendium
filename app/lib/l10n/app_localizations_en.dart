@@ -10694,6 +10694,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Published collections are temporarily unavailable.';
 
   @override
+  String get publishedCollectionsUnverified =>
+      'Published collections could not be verified, so nothing was loaded. If this keeps happening, update the app.';
+
+  @override
   String get publishedCollectionsOffline =>
       'Published collections could not be reached. Check your connection and try again.';
 

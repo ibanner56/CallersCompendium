@@ -15764,11 +15764,17 @@ abstract class AppLocalizations {
   /// **'Loading published collections…'**
   String get publishedCollectionsLoading;
 
-  /// Non-leaking error shown when the signed catalog or an archive was fetched but failed an integrity or trust check.
+  /// Non-leaking error shown when the signed catalog or an archive was fetched but failed an integrity or trust check other than an unrecognized catalog signature.
   ///
   /// In en, this message translates to:
   /// **'Published collections are temporarily unavailable.'**
   String get publishedCollectionsUnavailable;
+
+  /// Error shown when the signed published-collection catalog's signature does not match any key this app trusts. After a signing-key change, updating the app is the fix; it could also mean the catalog was tampered with, or that a network (for example a captive portal) replaced the signature file, so the wording does not claim any one cause.
+  ///
+  /// In en, this message translates to:
+  /// **'Published collections could not be verified, so nothing was loaded. If this keeps happening, update the app.'**
+  String get publishedCollectionsUnverified;
 
   /// Error shown when the signed published-collection catalog or an archive could not be fetched because the network is unreachable.
   ///

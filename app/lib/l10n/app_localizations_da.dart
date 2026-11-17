@@ -10736,6 +10736,10 @@ class AppLocalizationsDa extends AppLocalizations {
       'Udgivne samlinger er midlertidigt utilgængelige.';
 
   @override
+  String get publishedCollectionsUnverified =>
+      'Udgivne samlinger kunne ikke bekræftes, så intet blev indlæst. Opdater appen, hvis det bliver ved med at ske.';
+
+  @override
   String get publishedCollectionsOffline =>
       'Udgivne samlinger kunne ikke nås. Tjek din forbindelse, og prøv igen.';
 

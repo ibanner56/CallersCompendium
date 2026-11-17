@@ -10862,6 +10862,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Veröffentlichte Sammlungen sind vorübergehend nicht verfügbar.';
 
   @override
+  String get publishedCollectionsUnverified =>
+      'Veröffentlichte Sammlungen konnten nicht überprüft werden, daher wurde nichts geladen. Aktualisieren Sie die App, wenn das weiterhin passiert.';
+
+  @override
   String get publishedCollectionsOffline =>
       'Veröffentlichte Sammlungen konnten nicht erreicht werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.';
 

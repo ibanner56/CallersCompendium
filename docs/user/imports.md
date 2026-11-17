@@ -196,12 +196,15 @@ only if you tick **Also update title and credit** on its row; a corrected note
 never does.
 
 If the catalog or a collection cannot be loaded, the message tells you which of
-three things happened: the catalog **could not be reached** (check your
-connection), it **needs a newer app version** (update the app), or it is
-**temporarily unavailable** (it failed a safety check, so nothing was imported).
-Choose **Retry** to try again without leaving the screen (it is not offered when
-the fix is to update the app). Failures are recorded in **Settings** →
-**Diagnostics**.
+four things happened: the catalog **could not be reached** (check your
+connection), it **needs a newer app version** (update the app), it **could not
+be verified** (its signature did not match a key this app trusts; if it keeps
+happening, update the app, because the catalog may have moved to a newer
+signing key), or it is **temporarily unavailable** (it failed another safety
+check, so nothing was imported). Choose **Retry** to try again without leaving
+the screen (it is not offered when the catalog or collection is in a format
+only a newer app can read). Failures are
+recorded in **Settings** → **Diagnostics**.
 
 ## Bring in a list of dance titles
 

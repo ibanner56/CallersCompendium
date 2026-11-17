@@ -381,9 +381,13 @@ class _PublishedCollectionCatalogState
 
 /// Plain-language reason for a failed published-collection fetch. A transport
 /// failure reads as "offline" and an unreadable newer format as "needs a newer
-/// app"; every integrity or trust failure reads as "unavailable" (the cause is
-/// in the diagnostics log, not shown). [catalog] selects the whole-catalog
-/// wording of the newer-app case.
+/// app". A catalog signature that no pinned key verifies reads as "couldn't be
+/// verified" and suggests updating the app if it persists, because after a
+/// signing-key rotation that is the only fix for an install that predates the
+/// new key (#2161); it could equally be tampering, so it is not worded as a
+/// certainty. Every other integrity or trust failure reads as "unavailable"
+/// (the cause is in the diagnostics log, not shown). [catalog] selects the
+/// whole-catalog wording of the newer-app case.
 String _failureMessage(
   AppLocalizations l10n,
   PublishedCollectionFetchFailure code, {
@@ -396,11 +400,12 @@ String _failureMessage(
       catalog
           ? l10n.publishedCollectionsNeedsNewerApp
           : l10n.publishedCollectionUnsupported,
+    PublishedCollectionFetchFailure.invalidSignature =>
+      l10n.publishedCollectionsUnverified,
     PublishedCollectionFetchFailure.redirectRefused ||
     PublishedCollectionFetchFailure.responseTooLarge ||
     PublishedCollectionFetchFailure.malformed ||
     PublishedCollectionFetchFailure.missingSignature ||
-    PublishedCollectionFetchFailure.invalidSignature ||
     PublishedCollectionFetchFailure.digestMismatch ||
     PublishedCollectionFetchFailure.byteCountMismatch =>
       l10n.publishedCollectionsUnavailable,
