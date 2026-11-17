@@ -15770,7 +15770,7 @@ abstract class AppLocalizations {
   /// **'Published collections are temporarily unavailable.'**
   String get publishedCollectionsUnavailable;
 
-  /// Error shown when the signed published-collection catalog's signature does not match any key this app trusts. After a signing-key change, updating the app is the fix; it could also mean the catalog was tampered with, so the wording does not claim either cause.
+  /// Error shown when the signed published-collection catalog's signature does not match any key this app trusts. After a signing-key change, updating the app is the fix; it could also mean the catalog was tampered with, or that a network (for example a captive portal) replaced the signature file, so the wording does not claim any one cause.
   ///
   /// In en, this message translates to:
   /// **'Published collections could not be verified, so nothing was loaded. If this keeps happening, update the app.'**
