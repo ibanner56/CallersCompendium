@@ -6209,6 +6209,12 @@ abstract class AppLocalizations {
   /// **'Improper'**
   String get commonFormationDupleImproper;
 
+  /// Formation shape value: improper formation already progressed.
+  ///
+  /// In en, this message translates to:
+  /// **'Progressed improper'**
+  String get commonFormationProgressedImproper;
+
   /// Formation shape value: improper formation with reverse progression.
   ///
   /// In en, this message translates to:

@@ -266,6 +266,7 @@ String _dateVenue(
 String _englishFormationLabel(Formation formation) {
   final base = switch (formation.shape) {
     FormationShape.dupleImproper => 'Improper',
+    FormationShape.progressedImproper => 'Progressed improper',
     FormationShape.reverseProgressionImproper => 'Reverse progression improper',
     FormationShape.becketCw => 'Becket (CW)',
     FormationShape.becketCcw => 'Becket (CCW)',

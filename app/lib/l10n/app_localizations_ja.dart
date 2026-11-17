@@ -3813,6 +3813,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get commonFormationDupleImproper => 'インプロパー';
 
   @override
+  String get commonFormationProgressedImproper => '進行済みインプロパー';
+
+  @override
   String get commonFormationReverseProgressionImproper => '逆進行インプロパー';
 
   @override

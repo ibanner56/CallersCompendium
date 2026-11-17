@@ -4062,6 +4062,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get commonFormationDupleImproper => 'Improper';
 
   @override
+  String get commonFormationProgressedImproper => 'Improper déjà progressé';
+
+  @override
   String get commonFormationReverseProgressionImproper =>
       'Improper à progression inversée';
 

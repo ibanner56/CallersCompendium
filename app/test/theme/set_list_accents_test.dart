@@ -20,6 +20,10 @@ void main() {
         FormationFamily.contraLongways,
       );
       expect(
+        formationFamilyOf(FormationShape.progressedImproper),
+        FormationFamily.contraLongways,
+      );
+      expect(
         formationFamilyOf(FormationShape.reverseProgressionImproper),
         FormationFamily.contraLongways,
       );

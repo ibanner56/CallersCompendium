@@ -5054,6 +5054,10 @@
   "@commonFormationDupleImproper": {
     "description": "Formation shape value: duple improper."
   },
+  "commonFormationProgressedImproper": "Progressed improper",
+  "@commonFormationProgressedImproper": {
+    "description": "Formation shape value: improper formation already progressed."
+  },
   "commonFormationReverseProgressionImproper": "Reverse progression improper",
   "@commonFormationReverseProgressionImproper": {
     "description": "Formation shape value: improper formation with reverse progression."

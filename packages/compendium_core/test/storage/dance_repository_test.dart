@@ -47,6 +47,17 @@ void main() {
       expect(loaded, dance);
     });
 
+    test('round-trips progressed improper formation', () async {
+      final dance = sampleDance().copyWith(
+        formation: const Formation(FormationShape.progressedImproper),
+      );
+      await dances.create(dance);
+
+      final loaded = await dances.getById(dance.id);
+
+      expect(loaded?.formation.shape, FormationShape.progressedImproper);
+    });
+
     test('round-trips reverse progression improper formation', () async {
       final dance = sampleDance().copyWith(
         formation: const Formation(FormationShape.reverseProgressionImproper),

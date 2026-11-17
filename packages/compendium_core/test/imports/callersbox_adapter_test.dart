@@ -456,6 +456,28 @@ void main() {
         },
       );
 
+      test('classifies progressed improper exactly', () async {
+        final draft = await _importOne(
+          jsonEncode(
+            _dance(
+              formationBase: 'Duple Minor - Progressed improper',
+              formationDetail: 'chestnut',
+            ),
+          ),
+        );
+        expect(draft.dance.formation.shape, FormationShape.progressedImproper);
+        expect(draft.dance.formation.detail, 'chestnut');
+      });
+
+      test('does not broaden progressed improper matching', () async {
+        final draft = await _importOne(
+          jsonEncode(
+            _dance(formationBase: 'Duple Minor - Progressed improper variant'),
+          ),
+        );
+        expect(draft.dance.formation.shape, FormationShape.dupleImproper);
+      });
+
       test('classifies reverse progression improper exactly', () async {
         final draft = await _importOne(
           jsonEncode(

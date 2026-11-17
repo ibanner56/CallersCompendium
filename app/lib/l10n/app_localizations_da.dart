@@ -4002,6 +4002,10 @@ class AppLocalizationsDa extends AppLocalizations {
   String get commonFormationDupleImproper => 'Improper';
 
   @override
+  String get commonFormationProgressedImproper =>
+      'Improper, allerede progresseret';
+
+  @override
   String get commonFormationReverseProgressionImproper =>
       'Improper med omvendt progression';
 
