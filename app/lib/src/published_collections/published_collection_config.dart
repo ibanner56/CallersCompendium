@@ -24,7 +24,9 @@ const String kPublishedCollectionSignatureUrl =
 const List<String> kPublishedCollectionPublicKeys = [
   // Current: the key Compendium Analect signs the catalog with today.
   'wT1TeOTv4opmfWstQXB8mFnLQEPgfQTKqR95ipYqaHk=',
-  // Next: pinned by the maintainer ahead of the next rotation (not yet set).
+  // Next: generated offline by the maintainer on 2026-11-17 and pinned ahead
+  // of the next rotation (#2161). Analect does not sign with it yet.
+  'LJiuOr9DlY44l18BCqGCLL/+nd8WtiVut+gC85OwDnE=',
 ];
 
 /// Signed collections have no product/entity cap. This is only a high
