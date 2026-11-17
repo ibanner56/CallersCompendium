@@ -90,15 +90,15 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 - Taxonomy 38 → 39: figure 8 and poussette gain an `amount`, used when their fraction is “other”. On first launch a one-time rebuild of the search index re-derives the text of every stored figure; your dances themselves are not changed, and an “other” saved without an amount stays that way, because the original amount was never stored and cannot be recovered.
 - Devices still on 0.9.x: a figure 8 or poussette with an amount syncs, shares and restores there unchanged, reading as “other figure 8” without the amount. A combination of your own that uses one is marked Needs repair on such a device and can't be used there until it is updated; repairing it there would remove the amount from all your devices, so update instead.
-- No migration and no index rebuild: a title is stored with the group's figures, and groups you already have have none. Devices still on an older version keep a group's title when they sync it, but do not show it.
+- Group titles: no migration and no index rebuild. A title is stored with the group's figures, and groups you already have have none. Devices still on an older version keep a group's title when they sync it, but do not show it.
 - Taxonomy 39: no migration and no index rebuild; long lines figures you already have are stored, shown and searched exactly as before.
 - Devices still on 0.9.x show a forward and back figure by its internal name, as they do any figure added since. Long lines figures entered on this version read there exactly as before.
 - Taxonomy 39: no migration and no index rebuild for this figure. Devices still on 0.9.x show a hey for three by its internal name, as they do any figure added since.
 - Your collection can no longer be brought up to date from a version before 0.7.0. If you last opened it with 0.6.0 or earlier, this version won't open it: the startup screen names the release to open it with first (0.9.2 for a collection last opened by 0.4.0 to 0.6.0), and offers to back it up and start fresh. Collections last opened by 0.7.0 or later are not affected.
 - Taxonomy 39: no migration and no index rebuild. Devices still on 0.9.x show a starburst by its internal name, as they do any figure added since.
-- Taxonomy 39: no migration and no index rebuild for these dancers.
-- Devices still on 0.9.x show one by its internal name (“threes role1”), and opening the figure in their dance editor replaces it with that setting's default, or with “not stated” where that is the default.
-- Taxonomy 39: no migration and no index rebuild for this figure.
+- Taxonomy 39, the third and fourth couples' dancers: no migration and no index rebuild.
+- Devices still on 0.9.x show a third or fourth couple's dancer by its internal name (“threes role1”), and opening the figure in their dance editor replaces it with that setting's default, or with “not stated” where that is the default.
+- Taxonomy 39, trade the wave: no migration and no index rebuild for this figure.
 - Devices still on 0.9.x show a trade the wave figure by its internal name, as they do any figure added since.
 - Taxonomy 39: no migration and no index rebuild. Devices still on 0.9.x show a circle or star with no count with the word “unspecified” in place of the count, and there a combination of figures that contains one can't be used.
 
