@@ -167,6 +167,29 @@ class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
     return token;
   }
 
+  /// The colour to draw a status icon in, for a status chip or banner tinted
+  /// with [token] (one of the status tokens above) at [statusTintAlpha].
+  ///
+  /// [_chipSafe] can only ease a token toward the surface, which lightens the
+  /// icon along with the tint; in a few palettes (Everforest Light's Broken,
+  /// for one) no single colour then gives both the label 4.5:1 and the icon
+  /// 3:1 on the tint. The icon is therefore moved apart from the token, toward
+  /// `onSurface`, only as far as it needs to clear 3:1 on the tint laid over
+  /// the canvas and over `surfaceContainerLow`. The tint and the border keep
+  /// [token], so the label and border guarantees are untouched; where the
+  /// token already clears 3:1, the icon is the token.
+  static Color statusIconColor(Color token, ColorScheme scheme) {
+    final tints = [
+      for (final tier in [scheme.surface, scheme.surfaceContainerLow])
+        Color.alphaBlend(token.withValues(alpha: statusTintAlpha), tier),
+    ];
+    for (var step = 0; step <= 20; step++) {
+      final c = Color.lerp(token, scheme.onSurface, step / 20)!;
+      if (tints.every((tint) => Wcag.contrastRatio(c, tint) >= 3)) return c;
+    }
+    return scheme.onSurface;
+  }
+
   @override
   AppThemeExtension copyWith({
     Color? statusDraft,

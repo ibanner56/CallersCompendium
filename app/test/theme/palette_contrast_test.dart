@@ -219,10 +219,10 @@ void main() {
                 tint,
                 aaText,
               );
-              // The chip's icon is drawn in the token on that same tint.
+              // The chip's icon is drawn on that same tint.
               expectRatio(
                 '$role icon/$role tint on $tierRole',
-                token,
+                AppThemeExtension.statusIconColor(token, scheme),
                 tint,
                 aaNonText,
               );
