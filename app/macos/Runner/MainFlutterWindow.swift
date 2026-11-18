@@ -29,6 +29,15 @@ class MainFlutterWindow: NSWindow {
     BackupVolumeBridge.shared.register(
       messenger: flutterViewController.engine.binaryMessenger)
 
+    // Brand surface behind the first frame, so the window doesn't flash the
+    // system grey before Flutter draws: light #F4F6FA / dark #121A24 (the
+    // app's light and dark scheme surfaces).
+    self.backgroundColor = NSColor(name: nil) { appearance in
+      appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        ? NSColor(srgbRed: 0x12 / 255, green: 0x1A / 255, blue: 0x24 / 255, alpha: 1)
+        : NSColor(srgbRed: 0xF4 / 255, green: 0xF6 / 255, blue: 0xFA / 255, alpha: 1)
+    }
+
     super.awakeFromNib()
   }
 }

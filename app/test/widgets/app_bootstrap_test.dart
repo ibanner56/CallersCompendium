@@ -10,6 +10,7 @@ import 'package:compendium_app/src/data/migration_guard.dart';
 import 'package:compendium_app/src/update/retirement_banner.dart'
     show kReleasesPageUrl;
 import 'package:compendium_app/src/widgets/app_bootstrap.dart';
+import 'package:compendium_app/src/widgets/brand_mark.dart';
 
 import '../support/fake_url_launcher.dart';
 import '../support/l10n_harness.dart';
@@ -38,6 +39,7 @@ void main() {
 
     // Migration still running: loading, content gated.
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.byType(BrandMark), findsOneWidget);
     expect(find.text('Collection ready'), findsNothing);
 
     completer.complete();
@@ -74,6 +76,9 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Collection ready'), findsNothing);
+    // The brand mark replaces the generic Material error glyph (audit B-06).
+    expect(find.byType(BrandMark), findsOneWidget);
+    expect(find.byIcon(Icons.error_outline), findsNothing);
 
     await tester.tap(find.text('Retry'));
     expect(retried, isTrue);

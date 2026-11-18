@@ -1,0 +1,10 @@
+{
+  "id": "launch-screens-startup-brand",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "The app now opens on its own light or dark background with the Caller's Compendium mark on iPhone, iPad and Android, and on a matching background on Mac, instead of a blank white or black screen.",
+      "The brand mark now appears on the startup screens and on the empty Programs list."
+    ]
+  }
+}
