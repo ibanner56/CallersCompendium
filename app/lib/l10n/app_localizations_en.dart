@@ -3234,7 +3234,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsGeneralAutoSizePerformSubtitle =>
-      'Scale each card so the full dance or slot fits the screen without scrolling. Turn off to set the size yourself with A- / A+.';
+      'Scale each card to fit the screen, but never below your usual text size: a longer dance or slot scrolls instead. Turn off to set the size yourself with A- / A+.';
 
   @override
   String get settingsShowIndividualPerformTimerTitle =>
@@ -3243,6 +3243,14 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsShowIndividualPerformTimerSubtitle =>
       'Show elapsed time while performing a single dance. The timer starts when it appears and can be paused.';
+
+  @override
+  String get settingsConfirmPerformExitTitle =>
+      'Confirm before leaving Perform';
+
+  @override
+  String get settingsConfirmPerformExitSubtitle =>
+      'Ask before the close button or Back takes you out of Perform. Turn this off to leave in one tap; program Perform keeps your place either way.';
 
   @override
   String get settingsShowProgramSlotCallerNotesTitle =>
@@ -6158,6 +6166,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String performSlotPosition(int current, int total) {
     return 'Slot $current of $total';
   }
+
+  @override
+  String get performProgramClockLabel => 'Program';
+
+  @override
+  String get performSlotClockLabel => 'Slot';
 
   @override
   String performShowingSlot(String label) {

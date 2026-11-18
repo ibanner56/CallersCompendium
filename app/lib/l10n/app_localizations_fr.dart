@@ -3315,7 +3315,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsGeneralAutoSizePerformSubtitle =>
-      'Ajuste chaque fiche pour que la danse ou le créneau complet tienne à l’écran sans défilement. Désactivez pour régler la taille vous-même avec A- / A+.';
+      'Ajuste chaque fiche à l’écran, sans jamais descendre sous votre taille de texte habituelle : une danse ou un créneau plus long défile alors. Désactivez pour régler la taille vous-même avec A- / A+.';
 
   @override
   String get settingsShowIndividualPerformTimerTitle =>
@@ -3324,6 +3324,14 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get settingsShowIndividualPerformTimerSubtitle =>
       'Afficher le temps écoulé pendant l\'exécution d\'une danse seule. Le minuteur démarre lorsqu\'il s\'affiche et peut être mis en pause.';
+
+  @override
+  String get settingsConfirmPerformExitTitle =>
+      'Confirmer avant de quitter Perform';
+
+  @override
+  String get settingsConfirmPerformExitSubtitle =>
+      'Demander avant que le bouton de fermeture ou Retour ne vous fasse quitter Perform. Désactivez pour quitter d’un seul toucher ; le Perform d’un programme garde votre position dans tous les cas.';
 
   @override
   String get settingsShowProgramSlotCallerNotesTitle =>
@@ -6276,6 +6284,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String performSlotPosition(int current, int total) {
     return 'Créneau $current sur $total';
   }
+
+  @override
+  String get performProgramClockLabel => 'Programme';
+
+  @override
+  String get performSlotClockLabel => 'Créneau';
 
   @override
   String performShowingSlot(String label) {

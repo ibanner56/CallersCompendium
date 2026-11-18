@@ -29,6 +29,7 @@ String? syncSettingLabel(AppLocalizations l10n, String key) => switch (key) {
   'collection_tile_visible_fields' => l10n.settingsDefaultsCollectionCardHeader,
   'colour_dance_theme' => l10n.settingsAppearanceColourDanceTitle,
   'confirm_before_delete' => l10n.settingsGeneralConfirmBeforeDeleteTitle,
+  'confirm_perform_exit' => l10n.settingsConfirmPerformExitTitle,
   'custom_dialects' => l10n.settingsDialectHeader,
   'custom_themes' => l10n.settingsAppearanceCustomThemesHeader,
   'date_format' => l10n.settingsDateFormatTitle,

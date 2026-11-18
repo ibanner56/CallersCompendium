@@ -3099,7 +3099,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsGeneralAutoSizePerformSubtitle =>
-      '各カードのサイズを調整して、ダンスまたはスロット全体がスクロールなしで画面に収まるようにします。A- / A+で自分でサイズを設定する場合はオフにしてください。';
+      '各カードを画面に収まるように調整しますが、通常の文字サイズより小さくはしません。長いダンスやスロットはスクロールで表示します。A- / A+で自分でサイズを設定する場合はオフにしてください。';
 
   @override
   String get settingsShowIndividualPerformTimerTitle => '個別のパフォームでタイマーを表示';
@@ -3107,6 +3107,13 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get settingsShowIndividualPerformTimerSubtitle =>
       '1曲だけをパフォームしている間の経過時間を表示します。タイマーが表示されると開始し、一時停止できます。';
+
+  @override
+  String get settingsConfirmPerformExitTitle => 'パフォームを終了する前に確認する';
+
+  @override
+  String get settingsConfirmPerformExitSubtitle =>
+      '閉じるボタンや戻る操作でパフォームを終了する前に確認します。オフにすると1回のタップで終了します。プログラムのパフォームでは、どちらの場合も現在の位置が保持されます。';
 
   @override
   String get settingsShowProgramSlotCallerNotesTitle =>
@@ -5940,6 +5947,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String performSlotPosition(int current, int total) {
     return 'スロット $current/$total';
   }
+
+  @override
+  String get performProgramClockLabel => 'プログラム';
+
+  @override
+  String get performSlotClockLabel => 'スロット';
 
   @override
   String performShowingSlot(String label) {
