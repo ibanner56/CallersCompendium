@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "Importing dances from Caller's Box, ContraDB or Caller's Companion now reads \"Proper Triplet\", \"Improper Triplet\", \"Triplet\" and \"Improper Quadruplet\" as the triplet and quadruplet formations they are, instead of as duple proper, duple improper or triple minor. The \"Proper\" or \"Improper\" start is kept in the formation's detail."
+      "Importing dances from Caller's Box, ContraDB or Caller's Companion now reads \"Proper Triplet\", \"Improper Triplet\", \"Triplet\" and \"Improper Quadruplet\" as the triplet and quadruplet formations they are, and \"Triple Minor - Improper\" or \"Triple Minor - Proper\" as triple minor, instead of as duple proper, duple improper or the wrong set shape. The \"Proper\" or \"Improper\" start is kept in the formation's detail."
     ]
   },
   "core": {

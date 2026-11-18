@@ -66,7 +66,9 @@ import 'structured_draft.dart';
 /// [Dance.callingNotes]. ContraDB `hook` → [Dance.hook]; `notes` →
 /// [Dance.callingNotes]; normalized `preamble` → [Formation.detail].
 /// `start_type` free text is classified to a [FormationShape] best-effort;
-/// recognized text is shape-only, while an unclassifiable string yields a
+/// recognized text is shape-only (except that a set shape such as a triplet
+/// keeps its Proper / Improper / Indecent start word as detail, ahead of any
+/// preamble), while an unclassifiable string yields a
 /// warning and [FormationShape.other]. If both an unclassifiable `start_type`
 /// and a preamble are present, both normalized values are retained in detail.
 ///

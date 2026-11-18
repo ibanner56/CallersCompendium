@@ -61,7 +61,9 @@ import 'structured_draft.dart';
 /// ## Metadata
 /// - `h1.dance-show-title` → title (missing → a `ContraDB dance <id>` stub).
 /// - `p.dance-show-formation` → [FormationShape] best-effort; recognized text
-///   is shape-only unless a preamble supplies [Formation.detail], while unknown
+///   is shape-only unless a preamble supplies [Formation.detail] or the name is
+///   a set shape (triplet, quadruplet, triple minor), whose Proper / Improper /
+///   Indecent start word is kept as detail ahead of any preamble, while unknown
 ///   text is kept as normalized detail on [FormationShape.other] with a warning.
 /// - `div.dance-show-preamble` → normalized [Formation.detail], before unknown
 ///   formation text when both are present.

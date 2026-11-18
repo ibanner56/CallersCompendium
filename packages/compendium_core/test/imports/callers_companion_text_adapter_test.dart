@@ -501,6 +501,8 @@ A1 (8) Do the thing
       ('Improper Quadruplet (2341)', FormationShape.quadruplet, 'Improper'),
       ('Quadruplet', FormationShape.quadruplet, null),
       ('Triple Minor', FormationShape.tripleMinor, null),
+      ('Triple Minor - Improper', FormationShape.tripleMinor, 'Improper'),
+      ('Triple Minor - Proper', FormationShape.tripleMinor, 'Proper'),
       ('Duple Minor - Proper', FormationShape.dupleProper, null),
       ('Improper', FormationShape.dupleImproper, null),
     ];

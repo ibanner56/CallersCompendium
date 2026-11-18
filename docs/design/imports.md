@@ -617,7 +617,9 @@ declines the collapse.
   caller's own description of the start, is the detail. A square whose `SubType`
   starts "Mixer" is a mixer (in a real file only squares have one). A formation
   type read this way adds no "Type:" line to the calling notes. The CC text
-  export, which gives one formation string, keeps the single-string mapping, its
+  export, which gives one formation string, keeps the single-string mapping (a set
+  shape such as "Proper Triplet" is read as that shape, with the start word as
+  detail, before the Proper / Improper words are tried), its
   "Type:" note for these types, and `mixer: false`. `SetItem.AlternateDance`
   marks an alternate "ALT" in a real file, which is read as true.
 - **Program slots link to dances the commit did not write (INTAKE-1).** A slot
@@ -946,14 +948,19 @@ declines the collapse.
   and routes each figure line through the shared free-text parser.
   Formation text is normalized before classification; recognized formation text
   is stored as shape only unless the page's optional
-  `div.dance-show-preamble` supplies normalized `Formation.detail`; unclassified
+  `div.dance-show-preamble` supplies normalized `Formation.detail`, or the name
+  is a set shape (triplet, quadruplet, triple minor), which keeps its Proper /
+  Improper / Indecent start word as detail, ahead of any preamble and joined
+  with `; `; unclassified
   formation text is retained as detail, after any preamble and with a warning.
 - A second, **deprecated** adapter (`ContraDbAdapter`) maps ContraDB's internal
   `figures_json` positional move/parameter model move-for-move onto our taxonomy
   (positional→named table per move, gyre → shoulder_round term migration). It is
   **`@Deprecated` and wired into no live path** — that JSON input is unobtainable
   from the site — and is retained only as reference prior art plus its unit tests.
-  Its recognized `start_type` is shape-only; normalized `preamble` is stored in
+  Its recognized `start_type` is shape-only, except that a set shape (triplet,
+  quadruplet, triple minor) keeps its Proper / Improper / Indecent start word as
+  detail, ahead of any preamble; normalized `preamble` is stored in
   `Formation.detail`, and only `notes` is stored in `callingNotes`. If an
   unclassified `start_type` and preamble coexist, both are retained in detail
   with the preamble first.

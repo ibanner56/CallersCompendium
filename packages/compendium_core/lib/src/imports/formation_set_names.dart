@@ -16,8 +16,8 @@ typedef FormationSetName = ({FormationShape shape, String? qualifier});
 ///
 /// The start word ("Proper", "Improper", "Indecent") is returned as
 /// [FormationSetName.qualifier] for the caller to keep as the formation's
-/// detail, the way a triplet's start is kept by the Caller's Companion
-/// import. It is null when the name states none.
+/// detail, the way the Caller's Companion `.USR` path keeps a triple minor's
+/// start. It is null when the name states none.
 FormationSetName? classifyFormationSetName(String lower) {
   final FormationShape shape;
   if (lower.contains('quadruplet')) {
