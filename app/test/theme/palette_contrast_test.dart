@@ -8,6 +8,7 @@ import 'package:compendium_app/src/theme/app_theme.dart';
 import 'package:compendium_app/src/theme/app_theme_extension.dart';
 import 'package:compendium_app/src/theme/color_schemes.dart';
 import 'package:compendium_app/src/theme/palette_schemes.dart';
+import 'package:compendium_app/src/theme/set_list_accents.dart';
 
 /// WCAG 2.x relative-luminance contrast ratio (mirrors the derivation helper
 /// and `high_contrast_theme_test.dart`).
@@ -55,9 +56,183 @@ final Map<String, ColorScheme> _galleryPalettes = {
   'noctisLilac': GalleryPalettes.noctisLilac,
 };
 
+/// Every selectable scheme: the gallery plus the three built-ins that are not
+/// in it (Blue Hour light/dark and High contrast). 34 in all; the last test in
+/// this file pins that to [AppThemeSelection] so a new palette cannot be left
+/// out.
+final Map<String, ColorScheme> _allSchemes = {
+  'light': AppColorSchemes.light,
+  'dark': AppColorSchemes.dark,
+  'highContrast': AppColorSchemes.highContrast,
+  ..._galleryPalettes,
+};
+
+ThemeData _themeFor(String name, ColorScheme scheme) => name == 'highContrast'
+    ? AppTheme.highContrast
+    : AppTheme.fromScheme(scheme);
+
 void main() {
   const double aaText = 4.5; // body text & icons
   const double aaNonText = 3.0; // large text & non-text UI
+
+  group('Every selectable scheme — contrast and tier pairs', () {
+    _allSchemes.forEach((name, scheme) {
+      group(name, () {
+        void expectRatio(String role, Color fg, Color bg, double target) {
+          expect(
+            _contrast(fg, bg),
+            greaterThanOrEqualTo(target),
+            reason: '$name: $role must clear $target:1',
+          );
+        }
+
+        test('surface-container tiers are distinct from surface', () {
+          expect(
+            scheme.surfaceContainerLow,
+            isNot(scheme.surface),
+            reason: '$name: cards would sit flat on the canvas',
+          );
+          expect(scheme.surfaceContainer, isNot(scheme.surfaceContainerLow));
+          expect(scheme.surfaceContainerHigh, isNot(scheme.surfaceContainer));
+          expect(
+            scheme.surfaceContainerHighest,
+            isNot(scheme.surfaceContainerHigh),
+          );
+          // Dim and Bright straddle the canvas in Material 3's direction.
+          final dark = scheme.brightness == Brightness.dark;
+          expect(
+            dark ? scheme.surfaceBright : scheme.surfaceDim,
+            isNot(scheme.surface),
+            reason: '$name: surfaceDim/surfaceBright left at default',
+          );
+        });
+
+        // Every tier something is drawn on: the canvas, cards (Low), menus
+        // (default), dialogs (High), filled inputs (Highest), and Material's
+        // Lowest, Dim and Bright.
+        final tiers = <(String, Color)>[
+          ('surface', scheme.surface),
+          ('surfaceContainerLowest', scheme.surfaceContainerLowest),
+          ('surfaceContainerLow', scheme.surfaceContainerLow),
+          ('surfaceContainer', scheme.surfaceContainer),
+          ('surfaceContainerHigh', scheme.surfaceContainerHigh),
+          ('surfaceContainerHighest', scheme.surfaceContainerHighest),
+          ('surfaceDim', scheme.surfaceDim),
+          ('surfaceBright', scheme.surfaceBright),
+        ];
+
+        // Dim and Bright are left out of the checks below: neither the app
+        // nor Flutter's Material widgets draw anything on them.
+        final drawnTiers = tiers.where(
+          (t) => t.$1 != 'surfaceDim' && t.$1 != 'surfaceBright',
+        );
+
+        test('text and accents clear AA on the canvas and every container '
+            'tier', () {
+          for (final (role, tier) in drawnTiers) {
+            for (final (fgRole, fg) in [
+              ('onSurface', scheme.onSurface),
+              ('onSurfaceVariant', scheme.onSurfaceVariant),
+              ('primary', scheme.primary),
+              ('secondary', scheme.secondary),
+              ('tertiary', scheme.tertiary),
+              ('error', scheme.error),
+            ]) {
+              expectRatio('$fgRole/$role', fg, tier, aaText);
+            }
+          }
+        });
+
+        test('outline (input and chip borders) clears 3:1 on every '
+            'container tier', () {
+          for (final (role, tier) in drawnTiers) {
+            expectRatio('outline/$role', scheme.outline, tier, aaNonText);
+          }
+        });
+
+        test('SnackBar action reads on inverseSurface', () {
+          expectRatio(
+            'inversePrimary/inverseSurface',
+            scheme.inversePrimary,
+            scheme.inverseSurface,
+            aaText,
+          );
+        });
+
+        test('chip border is a visible boundary', () {
+          final side =
+              _themeFor(name, scheme).chipTheme.shape as RoundedRectangleBorder;
+          expectRatio(
+            'chip border/surface',
+            side.side.color,
+            scheme.surface,
+            aaNonText,
+          );
+        });
+
+        test('set-list accents clear 3:1 on the canvas', () {
+          for (final family in FormationFamily.values) {
+            final accent = setListAccent(
+              family,
+              brightPalette: scheme.brightness == Brightness.dark,
+            )!;
+            for (final (role, bg) in [
+              ('surface', scheme.surface),
+              ('surfaceContainerLow', scheme.surfaceContainerLow),
+            ]) {
+              expectRatio('${family.name} accent/$role', accent, bg, aaNonText);
+            }
+          }
+        });
+
+        test('status chips: label on tint, full-alpha border', () {
+          final ext = _themeFor(name, scheme).extension<AppThemeExtension>()!;
+          for (final (role, token) in [
+            ('statusDraft', ext.statusDraft),
+            ('statusFinalized', ext.statusFinalized),
+            ('statusPerformed', ext.statusPerformed),
+            ('statusDeprecated', ext.statusDeprecated),
+            ('statusBroken', ext.statusBroken),
+          ]) {
+            // A chip sits on the canvas, or on a card or bottom sheet (Low).
+            for (final (tierRole, tier) in [
+              ('surface', scheme.surface),
+              ('surfaceContainerLow', scheme.surfaceContainerLow),
+            ]) {
+              final tint = Color.alphaBlend(
+                token.withValues(alpha: AppThemeExtension.statusTintAlpha),
+                tier,
+              );
+              expectRatio(
+                'onSurface/$role tint on $tierRole',
+                scheme.onSurface,
+                tint,
+                aaText,
+              );
+            }
+            for (final (tierRole, tier) in [
+              ('surface', scheme.surface),
+              ('surfaceContainerLow', scheme.surfaceContainerLow),
+            ]) {
+              expectRatio('$role border/$tierRole', token, tier, aaNonText);
+            }
+          }
+          // The ContraDB import's numbered markers use the same tint behind
+          // an onSurface number, over primary or onSurfaceVariant.
+          for (final (role, token) in [
+            ('primary', scheme.primary),
+            ('onSurfaceVariant', scheme.onSurfaceVariant),
+          ]) {
+            final tint = Color.alphaBlend(
+              token.withValues(alpha: AppThemeExtension.statusTintAlpha),
+              scheme.surface,
+            );
+            expectRatio('onSurface/$role tint', scheme.onSurface, tint, aaText);
+          }
+        });
+      });
+    });
+  });
 
   group('Gallery palettes — WCAG 2.2 AA (§4A / §7 UX-6)', () {
     _galleryPalettes.forEach((name, scheme) {
@@ -150,6 +325,15 @@ void main() {
         });
       });
     });
+  });
+
+  test('these pairs cover every selectable scheme', () {
+    final pinned = AppThemeSelection.values
+        .where((s) => s.isPinned)
+        .map((s) => s.scheme)
+        .toSet();
+    expect(_allSchemes.values.toSet(), pinned);
+    expect(_allSchemes, hasLength(34));
   });
 
   test('every non-system selection resolves to a scheme', () {
