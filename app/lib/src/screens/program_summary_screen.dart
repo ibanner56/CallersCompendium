@@ -11,7 +11,6 @@ import '../data/date_format_scope.dart';
 import '../data/refresh_coalescer.dart';
 import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
-import '../data/app_theme_scope.dart';
 import '../data/callersbox_online.dart';
 import '../data/contradb_online.dart';
 import '../data/import_io.dart';
@@ -1491,13 +1490,11 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     final theme = Theme.of(context);
     final danceId = slot.danceId;
     // Colour-code accent (issue #270): a *redundant* cue paired with the
-    // formation text below. Suppressed when the user disables it. High contrast
-    // is either the app's high-contrast theme or the OS setting, in which case
-    // we use the brighter high-contrast palette.
+    // formation text below. Suppressed when the user disables it. Dark and
+    // high-contrast themes (the app's or the OS setting) use the brighter
+    // palette.
     final colorCodingEnabled = SetListColorCodingScope.of(context);
-    final highContrast =
-        (AppThemeScope.maybeOf(context)?.isHighContrast ?? false) ||
-        MediaQuery.highContrastOf(context);
+    final brightAccents = setListAccentsBright(context);
 
     Widget leading = SizedBox(
       width: 28,
@@ -1623,7 +1620,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
               userColor: FormationColorsScope.of(
                 context,
               )?.overrideFor(dance.formation.shape),
-              highContrast: highContrast,
+              brightPalette: brightAccents,
             )
           : null;
       // Expose the formation and, for mixer-flagged dances, the mixer term to AT

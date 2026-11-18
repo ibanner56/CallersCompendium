@@ -134,7 +134,14 @@ user-adjustable size/weight/line-spacing).
   surfaces use comfortable density; selected adaptively by platform.
 - **Shape:** corner radii 8 / 12 / 16, dialogs 28.
 - **Elevation:** prefer tonal `surfaceContainer` tiers over drop shadows (M3
-  idiom); HC theme swaps tonal cues for outlines.
+  idiom). Every scheme, built-in and gallery, defines the full ladder —
+  Lowest, Low, default, High, Highest, Dim, Bright — so cards and bottom
+  sheets (Low), popup and anchored menus and nav bars (default), dialogs (High)
+  and filled inputs (Highest) each sit on their own tone instead of falling back
+  to `surface`. The HC theme keeps the tiers and adds a visible outline to
+  cards, dialogs, bottom sheets, popup menus and anchored (`MenuAnchor`) menus.
+  Legacy `DropdownButton` menus, autocomplete option lists and the date and
+  time pickers are not yet covered by either.
 
 ### 1e. Structure — new `app/lib/src/theme/`
 
@@ -160,7 +167,7 @@ pairs color with an icon + text label** — no color-only meaning
 **`ProgramStatus` — `{ draft, finalized, performed }`** (already rendered as
 icon+text by `program_status_chip.dart`; tokens add theme-driven color):
 
-- `statusDraft` → neutral/outline + `edit_note_outlined` "Draft"
+- `statusDraft` → onSurfaceVariant, eased by `_chipSafe` (below) + `edit_note_outlined` "Draft"
 - `statusFinalized` → a "done" green + `check_circle_outline` "Finalized": the
   palette's secondary when it is already green-to-cyan, otherwise a green
   derived from primary's saturation and lightness, made to clear 3:1 as an icon
@@ -169,17 +176,25 @@ icon+text by `program_status_chip.dart`; tokens add theme-driven color):
   where it is red or orange — either way a finished program read like a warning.
   `status_chip_contrast_test.dart` holds every bundled palette to it: Finalized
   at least 60° in hue from Broken and 30° from Performed.
-- `statusPerformed` → tertiary + `event_available_outlined` "Performed"
+- `statusPerformed` → tertiary, eased by `_chipSafe` + `event_available_outlined` "Performed"
 
 **`DanceStatus` — `{ active, deprecated, broken, draft, variation }`** (already icon+text in
 `dance_list_tile.dart`):
 
 - `statusActive` → no chip (default)
-- `statusDeprecated` → onSurfaceVariant + `history_toggle_off` "Deprecated"
-- `statusBroken` → error, eased toward the surface only as far as the chip label needs to stay AA
-  (`AppThemeExtension._chipSafe`) + `report_problem_outlined` "Broken"
+- `statusDeprecated` → onSurfaceVariant, eased by `_chipSafe` + `history_toggle_off` "Deprecated"
+- `statusBroken` → error, eased by `_chipSafe` + `report_problem_outlined` "Broken"
+
 - `draft` → statusDeprecated + `edit_note_outlined` "Draft"
 - `variation` → statusDeprecated + `alt_route` "Variation"
+
+`AppThemeExtension._chipSafe` eases each status token (Finalized's green
+included) toward the surface only as far as the chip's `onSurface` label needs
+to clear AA on the token's 10% tint, laid over the canvas or a card or sheet
+(`surfaceContainerLow`). The token stays at least 3:1 against those two as a
+border; the icon, drawn on the tint itself, can fall just under 3:1 (Broken in
+Everforest Light measures 2.9:1), and chips on dialogs and menus are not
+covered.
 
 **Other semantic tokens:**
 
@@ -448,7 +463,14 @@ requested; it's a natural extension of the same registry.
 - **Every gallery palette clears the same bar as Hearth**: WCAG 2.2 **AA** per
   `research/accessibility-baseline.md` — body text ≥ 4.5:1, large text &
   non-text UI ≥ 3:1 — validated by the same contrast test used for §1a during
-  implementation.
+  implementation. Beyond the on-color pairs, `palette_contrast_test.dart`
+  holds every selectable scheme to: onSurface, onSurfaceVariant, primary,
+  secondary, tertiary and error as text (4.5:1) on the surface and on every
+  surface-container tier (cards, menus, dialogs, the filled-input fill); the
+  input and chip border (`outline`) at 3:1 on the same tiers; the SnackBar
+  action (`inversePrimary`) on `inverseSurface`; and the set-list formation
+  accents at 3:1 on the surface and card tier. User-made custom themes are
+  checked only by the theme editor's advisory badges (§4B).
 - Several famous themes are **below AA on some pairings** (Solarized is
   intentionally low-contrast; Monokai comments; low-emphasis text on many dark
   themes). Policy: **preserve the identity hue, tune the tone** until the pairing

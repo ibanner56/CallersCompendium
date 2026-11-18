@@ -167,4 +167,39 @@ void main() {
       );
     });
   });
+
+  // Tonal tiers everywhere, and in High contrast only, a visible outline on
+  // cards, sheets, menus and dialogs.
+  group('High contrast outlines its containers; standard themes do not', () {
+    BorderSide sideOf(ShapeBorder? shape) =>
+        (shape as RoundedRectangleBorder?)?.side ?? BorderSide.none;
+    Map<String, BorderSide> containerSides(ThemeData t) => {
+      'card': sideOf(t.cardTheme.shape),
+      'dialog': sideOf(t.dialogTheme.shape),
+      'bottomSheet': sideOf(t.bottomSheetTheme.shape),
+      'popupMenu': sideOf(t.popupMenuTheme.shape),
+      'menu':
+          t.menuTheme.style?.side?.resolve(<WidgetState>{}) ?? BorderSide.none,
+    };
+
+    test('highContrast', () {
+      final theme = AppTheme.highContrast;
+      containerSides(theme).forEach((name, side) {
+        expect(side.style, BorderStyle.solid, reason: '$name has no outline');
+        expect(side.width, greaterThanOrEqualTo(1.0), reason: name);
+        expect(side.color, theme.colorScheme.outline, reason: name);
+      });
+    });
+
+    for (final (name, theme) in [
+      ('light', AppTheme.light),
+      ('dark', AppTheme.dark),
+    ]) {
+      test(name, () {
+        containerSides(theme).forEach((role, side) {
+          expect(side, BorderSide.none, reason: '$name $role is outlined');
+        });
+      });
+    }
+  });
 }
