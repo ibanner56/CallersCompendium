@@ -1111,29 +1111,6 @@ void main() {
     expect(await repos.programs.listAll(), isEmpty);
     expect(await repos.dances.listAll(), isEmpty);
   });
-}
-
-/// Builds a minimal ContraDB program page with a configurable [title] and an
-/// optional contributor `user:` link.
-String _programWith({
-  String title = 'Barn Dance',
-  String? contributorHref,
-  String? contributor,
-}) {
-  final userLine = (contributorHref != null && contributor != null)
-      ? '<p>user: <strong><a href="$contributorHref">$contributor</a></strong></p>'
-      : '';
-  return '''
-<html><body>
-<div class="programs-show-content"><div class="container">
-  <h1>$title</h1>
-  $userLine
-</div></div>
-<div id="activity-1" class="activity-breakdown">
-  <h2 class="activity-breakdown-dance-title"><a href="/dances/185">Courageous Soul</a></h2>
-</div>
-</body></html>
-''';
 
   group('leaving with input', () {
     Future<void> back(WidgetTester tester) async {
@@ -1195,4 +1172,27 @@ String _programWith({
       expect(find.byKey(const ValueKey('contradb-program-url')), findsNothing);
     });
   });
+}
+
+/// Builds a minimal ContraDB program page with a configurable [title] and an
+/// optional contributor `user:` link.
+String _programWith({
+  String title = 'Barn Dance',
+  String? contributorHref,
+  String? contributor,
+}) {
+  final userLine = (contributorHref != null && contributor != null)
+      ? '<p>user: <strong><a href="$contributorHref">$contributor</a></strong></p>'
+      : '';
+  return '''
+<html><body>
+<div class="programs-show-content"><div class="container">
+  <h1>$title</h1>
+  $userLine
+</div></div>
+<div id="activity-1" class="activity-breakdown">
+  <h2 class="activity-breakdown-dance-title"><a href="/dances/185">Courageous Soul</a></h2>
+</div>
+</body></html>
+''';
 }
