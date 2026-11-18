@@ -232,7 +232,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
         final sideBySide =
             constraints.maxWidth >= SettingsScreen.sideBySideBreakpoint;
         final query = _search.text.trim();
-        final results = searchSettings(l10n, query: query);
+        // A row a section shows only in some states (an update that was found,
+        // Custom Figures on) is not offered when it is not on screen: the
+        // result would open a section without it.
+        final results = query.isEmpty
+            ? const <SettingsSearchEntry>[]
+            : [
+                for (final entry in searchSettings(l10n, query: query))
+                  if (entry.isVisible(context)) entry,
+              ];
         final searchBar = _SettingsSearchBar(
           controller: _search,
           focusNode: _searchFocus,
@@ -333,7 +341,10 @@ class _SettingsSearchBar extends StatelessWidget {
         textInputAction: TextInputAction.search,
         decoration: InputDecoration(
           prefixIcon: const Icon(Icons.search),
-          hintText: l10n.settingsSearchHint,
+          // A label, not a hint: the hint vanishes once the field has text,
+          // leaving the filled box with no on-screen name and screen readers
+          // nothing stable to announce (WCAG 3.3.2, 4.1.2).
+          labelText: l10n.settingsSearchLabel,
           border: const OutlineInputBorder(),
           isDense: true,
           suffixIcon: controller.text.isEmpty

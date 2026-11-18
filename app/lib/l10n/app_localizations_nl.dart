@@ -395,7 +395,7 @@ class AppLocalizationsNl extends AppLocalizations {
       'Nieuwe functies kunnen hier verschijnen terwijl ze nog in ontwikkeling zijn.';
 
   @override
-  String get settingsSearchHint => 'Instellingen zoeken';
+  String get settingsSearchLabel => 'Instellingen zoeken';
 
   @override
   String get settingsSearchClear => 'Zoekopdracht wissen';

@@ -392,7 +392,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'New features may appear here while they are still in development.';
 
   @override
-  String get settingsSearchHint => 'Search settings';
+  String get settingsSearchLabel => 'Search settings';
 
   @override
   String get settingsSearchClear => 'Clear search';

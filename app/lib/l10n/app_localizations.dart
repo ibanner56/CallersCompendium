@@ -692,11 +692,11 @@ abstract class AppLocalizations {
   /// **'New features may appear here while they are still in development.'**
   String get settingsExperimentalPlaceholder;
 
-  /// Hint text in the Settings screen's search field, which finds a setting by name across every section.
+  /// Label of the Settings screen's search field, which finds a setting by name across every section. The label stays visible (and is the field's accessible name) after the user types.
   ///
   /// In en, this message translates to:
   /// **'Search settings'**
-  String get settingsSearchHint;
+  String get settingsSearchLabel;
 
   /// Tooltip of the button that clears the Settings search field.
   ///

@@ -28,6 +28,12 @@ class UpdateScope extends InheritedNotifier<UpdateController> {
     return scope.notifier!;
   }
 
+  /// The controller, or null where no [UpdateScope] is above [context], for a
+  /// caller that describes the update rows only when there is one. Registers a
+  /// rebuild dependency, as [of] does.
+  static UpdateController? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<UpdateScope>()?.notifier;
+
   /// The controller for read-and-mutate use, without a rebuild dependency.
   static UpdateController controllerOf(BuildContext context) {
     final scope = context.getInheritedWidgetOfExactType<UpdateScope>();

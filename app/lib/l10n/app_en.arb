@@ -489,9 +489,9 @@
   "@settingsExperimentalPlaceholder": {
     "description": "Placeholder text explaining that the Experimental settings section will contain features still in development."
   },
-  "settingsSearchHint": "Search settings",
-  "@settingsSearchHint": {
-    "description": "Hint text in the Settings screen's search field, which finds a setting by name across every section."
+  "settingsSearchLabel": "Search settings",
+  "@settingsSearchLabel": {
+    "description": "Label of the Settings screen's search field, which finds a setting by name across every section. The label stays visible (and is the field's accessible name) after the user types."
   },
   "settingsSearchClear": "Clear search",
   "@settingsSearchClear": {

@@ -276,4 +276,40 @@ void main() {
     expect(userFigureUseOf(first())?.attached ?? false, isFalse);
     expect(first().params['text'], 'role2s zoom');
   });
+
+  testWidgets('the search offers the user-figure defaults row only while '
+      'Custom Figures shows it', (tester) async {
+    await pump(tester);
+    await tester.enterText(
+      find.byKey(const ValueKey('settings-search')),
+      'user figures',
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('settings-search-result-defaults.userFigures')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('the search does not offer the user-figure defaults row while '
+      'Custom Figures is off', (tester) async {
+    await pump(tester, customFigures: false);
+    await tester.enterText(
+      find.byKey(const ValueKey('settings-search')),
+      'user figures',
+    );
+    await tester.pumpAndSettle();
+
+    // Defaults has no such row with Custom Figures off, so offering the
+    // result would open a section that cannot show it.
+    expect(
+      find.byKey(const ValueKey('settings-search-result-defaults.userFigures')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('settings-search-no-matches')),
+      findsOneWidget,
+    );
+  });
 }

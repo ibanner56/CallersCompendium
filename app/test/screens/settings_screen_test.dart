@@ -50,6 +50,7 @@ import 'package:compendium_app/src/sync/sync_coordinator.dart';
 import 'package:compendium_app/src/sync/sync_http_client.dart';
 import 'package:compendium_app/src/sync/sync_network.dart';
 import 'package:compendium_app/src/sync/sync_scope.dart';
+import 'package:compendium_app/src/update/install_kind.dart';
 import 'package:compendium_app/src/update/update_controller.dart';
 import 'package:compendium_app/src/update/update_scope.dart';
 import 'package:compendium_app/src/widgets/notice_card.dart';
@@ -145,6 +146,11 @@ _pumpSettings(
   /// Provides a [SyncWriterLifecycleScope] with this reset hook when given.
   Future<bool> Function()? resetToCleanInstall,
 
+  /// How the app copy was installed, so a test can make the Updates section
+  /// the store copy a mobile build is (no check, no beta channel). Defaults to
+  /// the real detection, which is a standard copy in a test.
+  InstallKind? installKind,
+
   /// Wraps the in-memory database's executor, so a test can fail one query.
   drift.QueryInterceptor? interceptor,
 }) async {
@@ -193,7 +199,10 @@ _pumpSettings(
     initialTrackHistoryForAllCallers,
   );
   final canonicalDiscouragedTermsNotifier = ValueNotifier<bool>(true);
-  final updateController = UpdateController(repos.settings);
+  final updateController = UpdateController(
+    repos.settings,
+    installKind: installKind,
+  );
   await updateController.load();
   final syncSettings = _ControllableSyncSettings(repos.db)
     ..failing = syncSettingsUnreadable;
@@ -6349,6 +6358,71 @@ void main() {
         find.byKey(
           const ValueKey('settings-search-result-general.reduceMotion'),
         ),
+        findsNothing,
+      );
+    });
+
+    testWidgets('the search box has a name that stays when it is filled', (
+      tester,
+    ) async {
+      await _pumpSettings(tester);
+      final semantics = tester.ensureSemantics();
+
+      // A hint would vanish with the first typed character, leaving the filled
+      // box unnamed on screen and to a screen reader (WCAG 3.3.2, 4.1.2).
+      expect(find.bySemanticsLabel('Search settings'), findsOneWidget);
+      await tester.enterText(find.byKey(searchField), 'Reduce motion');
+      await tester.pumpAndSettle();
+      expect(find.text('Search settings'), findsOneWidget);
+      expect(find.bySemanticsLabel('Search settings'), findsOneWidget);
+      semantics.dispose();
+    });
+
+    testWidgets('a store copy lists its store note, not the update check', (
+      tester,
+    ) async {
+      await _pumpSettings(tester, installKind: InstallKind.store);
+
+      await tester.enterText(find.byKey(searchField), 'update');
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('settings-search-result-updates.store')),
+        findsOneWidget,
+      );
+      // The Updates section a store copy shows has neither row, so the search
+      // must not offer them.
+      expect(
+        find.byKey(const ValueKey('settings-search-result-updates.checkNow')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('settings-search-result-updates.betaChannel'),
+        ),
+        findsNothing,
+      );
+    });
+
+    testWidgets('a copy that updates itself lists the check and the beta '
+        'channel, not the store note', (tester) async {
+      await _pumpSettings(tester, installKind: InstallKind.standard);
+
+      await tester.enterText(find.byKey(searchField), 'update');
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('settings-search-result-updates.checkNow')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('settings-search-result-updates.betaChannel'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('settings-search-result-updates.store')),
         findsNothing,
       );
     });

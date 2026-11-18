@@ -388,8 +388,8 @@
   "@settingsExperimentalPlaceholder": {
     "x-sourceSha256": "a268657b05fd60bc06b7df9f6abc968d3f880d899c7599cf0c000ff6dce634f5"
   },
-  "settingsSearchHint": "Rechercher dans les paramètres",
-  "@settingsSearchHint": {
+  "settingsSearchLabel": "Rechercher dans les paramètres",
+  "@settingsSearchLabel": {
     "x-sourceSha256": "255b076dd82855431a4ce9a722d77d41f47755ab11be14fc686fd71415cdeef0"
   },
   "settingsSearchClear": "Effacer la recherche",

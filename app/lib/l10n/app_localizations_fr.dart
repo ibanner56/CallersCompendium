@@ -403,7 +403,7 @@ class AppLocalizationsFr extends AppLocalizations {
       'De nouvelles fonctionnalités peuvent apparaître ici pendant qu’elles sont encore en développement.';
 
   @override
-  String get settingsSearchHint => 'Rechercher dans les paramètres';
+  String get settingsSearchLabel => 'Rechercher dans les paramètres';
 
   @override
   String get settingsSearchClear => 'Effacer la recherche';

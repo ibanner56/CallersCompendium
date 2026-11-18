@@ -380,7 +380,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsExperimentalPlaceholder => '開発中の新機能がここに表示される場合があります。';
 
   @override
-  String get settingsSearchHint => '設定を検索';
+  String get settingsSearchLabel => '設定を検索';
 
   @override
   String get settingsSearchClear => '検索をクリア';

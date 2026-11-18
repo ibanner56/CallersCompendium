@@ -1,6 +1,10 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../data/user_figures_scope.dart';
+import '../../sync/sync_scope.dart';
+import '../../update/install_kind.dart';
+import '../../update/update_scope.dart';
 import 'settings_section.dart';
 
 /// One row of [settingsSearchIndex]: a setting the user can find by name.
@@ -10,6 +14,11 @@ import 'settings_section.dart';
 /// lowercase English terms a user might type for this setting ("dark mode" for
 /// the theme gallery); they supplement the localized label, which is what the
 /// app actually shows.
+///
+/// [visible] covers the rows a section shows only in some states (an update
+/// that was found, Custom Figures turned on). A result that opened a section
+/// without its row would be a dead end, so the screen drops the invisible ones
+/// ([isVisible]) before listing them.
 @immutable
 class SettingsSearchEntry {
   const SettingsSearchEntry(
@@ -17,6 +26,7 @@ class SettingsSearchEntry {
     this.section,
     this.label, {
     this.keywords = const [],
+    this.visible,
   });
 
   /// Stable identifier for keys, tests and the index's own coverage check.
@@ -30,6 +40,16 @@ class SettingsSearchEntry {
 
   /// Extra lowercase English search terms.
   final List<String> keywords;
+
+  /// Whether the row is on screen in [BuildContext]'s app state, for a row the
+  /// section shows conditionally. Null means always shown, as most rows are;
+  /// the predicate must use a lookup that registers a rebuild dependency
+  /// (`UpdateScope.maybeOf`, `SyncScope.maybeOf` and
+  /// `UserFiguresScope.shownCatalogOf` do), so the results follow the state.
+  final bool Function(BuildContext context)? visible;
+
+  /// Whether the row is on screen right now: [visible], else yes.
+  bool isVisible(BuildContext context) => visible?.call(context) ?? true;
 }
 
 /// Every setting row Settings shows, for [searchSettings].
@@ -37,8 +57,15 @@ class SettingsSearchEntry {
 /// The index duplicates each row's title on purpose: the sections are
 /// independent widgets that build only when selected (and, on the narrow
 /// layout, not at all once a section page is pushed), so there is nothing
-/// mounted to scan. Keeping it exhaustive is a test obligation —
-/// `settings_search_test.dart` fails when a section has no entries.
+/// mounted to scan. Keeping it exhaustive is a test obligation, and a manual
+/// one: `settings_search_test.dart` fails when a section has no entries, and
+/// when one of Experimental's groups has none, but nothing there compares the
+/// index row by row against what each section renders, because the sections
+/// build lazily and their conditional rows would each need an exclusion.
+///
+/// A row a section shows only in some states carries a visibility predicate
+/// ([SettingsSearchEntry.visible]), so the result opens a section that really
+/// shows it.
 ///
 /// Order is section order, then source order within a section, which is also
 /// the order results appear in.
@@ -145,188 +172,6 @@ final List<SettingsSearchEntry> settingsSearchIndex = [
     SettingsSection.general,
     (l) => l.backupReminderTitle,
     keywords: ['reminder', 'cadence'],
-  ),
-
-  // Appearance
-  SettingsSearchEntry(
-    'appearance.theme',
-    SettingsSection.appearance,
-    (l) => l.settingsAppearanceThemeHeader,
-    keywords: ['theme', 'colour', 'dark mode', 'light'],
-  ),
-  SettingsSearchEntry(
-    'appearance.customThemes',
-    SettingsSection.appearance,
-    (l) => l.settingsAppearanceCustomThemesHeader,
-    keywords: ['custom theme', 'my themes'],
-  ),
-  SettingsSearchEntry(
-    'appearance.newTheme',
-    SettingsSection.appearance,
-    (l) => l.settingsAppearanceNewThemeButton,
-    keywords: ['new theme', 'create theme'],
-  ),
-  SettingsSearchEntry(
-    'appearance.colourDance',
-    SettingsSection.appearance,
-    (l) => l.settingsAppearanceColourDanceTitle,
-    keywords: ['colour dance', 'tint', 'accent'],
-  ),
-  SettingsSearchEntry(
-    'appearance.setListColourCoding',
-    SettingsSection.appearance,
-    (l) => l.settingsAppearanceSetListColorTitle,
-    keywords: ['set list colours', 'colour coding'],
-  ),
-  SettingsSearchEntry(
-    'appearance.formationColours',
-    SettingsSection.appearance,
-    (l) => l.settingsAppearanceFormationColoursTitle,
-    keywords: ['formation colours', 'stage colours'],
-  ),
-  SettingsSearchEntry(
-    'appearance.tagColours',
-    SettingsSection.appearance,
-    (l) => l.settingsAppearanceTagColoursTitle,
-    keywords: ['tag colours', 'labels'],
-  ),
-
-  // Dialect
-  SettingsSearchEntry(
-    'dialect.new',
-    SettingsSection.dialect,
-    (l) => l.settingsDialectNewButton,
-    keywords: ['create dialect', 'terminology'],
-  ),
-  SettingsSearchEntry(
-    'dialect.duplicateFrom',
-    SettingsSection.dialect,
-    (l) => l.settingsDialectDuplicateFrom,
-    keywords: ['copy dialect', 'duplicate preset'],
-  ),
-
-  // Language & region
-  SettingsSearchEntry(
-    'regional.appLanguage',
-    SettingsSection.regional,
-    (l) => l.settingsAppLanguageTitle,
-    keywords: ['language', 'locale', 'translation'],
-  ),
-  SettingsSearchEntry(
-    'regional.dateFormat',
-    SettingsSection.regional,
-    (l) => l.settingsDateFormatTitle,
-    keywords: ['date format', 'dmy', 'iso'],
-  ),
-  SettingsSearchEntry(
-    'regional.customDatePattern',
-    SettingsSection.regional,
-    (l) => l.settingsDateFormatCustomPatternLabel,
-    keywords: ['pattern', 'format string', 'custom date'],
-  ),
-  SettingsSearchEntry(
-    'regional.firstDayOfWeek',
-    SettingsSection.regional,
-    (l) => l.settingsFirstDayOfWeekTitle,
-    keywords: ['week start', 'monday', 'calendar'],
-  ),
-
-  // Updates
-  SettingsSearchEntry(
-    'updates.retirement',
-    SettingsSection.updates,
-    (l) => l.settingsUpdatesRetirementTitle,
-    keywords: ['end of support', 'retired'],
-  ),
-  SettingsSearchEntry(
-    'updates.checkNow',
-    SettingsSection.updates,
-    (l) => l.settingsUpdatesCheckNowTitle,
-    keywords: ['check for updates', 'refresh'],
-  ),
-  SettingsSearchEntry(
-    'updates.portable',
-    SettingsSection.updates,
-    (l) => l.settingsUpdatesPortableTitle,
-    keywords: ['portable', 'zip', 'download release'],
-  ),
-  SettingsSearchEntry(
-    'updates.download',
-    SettingsSection.updates,
-    (l) => l.settingsUpdatesDownloadTitle,
-    keywords: ['download', 'install', 'update'],
-  ),
-  SettingsSearchEntry(
-    'updates.betaChannel',
-    SettingsSection.updates,
-    (l) => l.settingsUpdatesBetaTitle,
-    keywords: ['beta', 'prerelease', 'channel'],
-  ),
-  SettingsSearchEntry(
-    'updates.automaticChecks',
-    SettingsSection.updates,
-    (l) => l.settingsUpdatesAutoTitle,
-    keywords: ['automatic', 'background check'],
-  ),
-
-  // Diagnostics
-  SettingsSearchEntry(
-    'diagnostics.fullDetail',
-    SettingsSection.diagnostics,
-    (l) => l.diagnosticsFullDetailTitle,
-    keywords: ['unredacted', 'raw log', 'privacy'],
-  ),
-  SettingsSearchEntry(
-    'diagnostics.shareLog',
-    SettingsSection.diagnostics,
-    (l) => l.diagnosticsExportShareLogTitle,
-    keywords: ['export', 'share', 'save log'],
-  ),
-  SettingsSearchEntry(
-    'diagnostics.clearLog',
-    SettingsSection.diagnostics,
-    (l) => l.diagnosticsClearLogRowTitle,
-    keywords: ['clear', 'delete log', 'reset'],
-  ),
-
-  // Experimental
-  SettingsSearchEntry(
-    'experimental.showGlossary',
-    SettingsSection.experimental,
-    (l) => l.settingsExperimentalShowGlossaryTitle,
-    keywords: ['glossary', 'definitions', 'navigation'],
-  ),
-  SettingsSearchEntry(
-    'experimental.showCustomFigures',
-    SettingsSection.experimental,
-    (l) => l.settingsExperimentalShowCustomFiguresTitle,
-    keywords: ['custom figures', 'own figures'],
-  ),
-  SettingsSearchEntry(
-    'experimental.manageCustomFigures',
-    SettingsSection.experimental,
-    (l) => l.settingsExperimentalCustomFiguresManageTitle,
-    keywords: ['edit figures', 'manage figures'],
-  ),
-
-  // About
-  SettingsSearchEntry(
-    'about.userGuide',
-    SettingsSection.about,
-    (l) => l.settingsAboutUserGuideTitle,
-    keywords: ['help', 'manual', 'guide'],
-  ),
-  SettingsSearchEntry(
-    'about.viewSource',
-    SettingsSection.about,
-    (l) => l.settingsAboutViewSourceTitle,
-    keywords: ['source code', 'repository', 'github'],
-  ),
-  SettingsSearchEntry(
-    'about.viewLicenses',
-    SettingsSection.about,
-    (l) => l.settingsAboutViewLicensesTitle,
-    keywords: ['licenses', 'credits', 'acknowledgements'],
   ),
 
   // Program
@@ -455,6 +300,90 @@ final List<SettingsSearchEntry> settingsSearchIndex = [
     SettingsSection.program,
     (l) => l.settingsHistoryOrderIgnoreUnperformedTitle,
     keywords: ['history order', 'performed', 'last called'],
+  ),
+
+  // Appearance
+  SettingsSearchEntry(
+    'appearance.theme',
+    SettingsSection.appearance,
+    (l) => l.settingsAppearanceThemeHeader,
+    keywords: ['theme', 'colour', 'dark mode', 'light'],
+  ),
+  SettingsSearchEntry(
+    'appearance.customThemes',
+    SettingsSection.appearance,
+    (l) => l.settingsAppearanceCustomThemesHeader,
+    keywords: ['custom theme', 'my themes'],
+  ),
+  SettingsSearchEntry(
+    'appearance.newTheme',
+    SettingsSection.appearance,
+    (l) => l.settingsAppearanceNewThemeButton,
+    keywords: ['new theme', 'create theme'],
+  ),
+  SettingsSearchEntry(
+    'appearance.colourDance',
+    SettingsSection.appearance,
+    (l) => l.settingsAppearanceColourDanceTitle,
+    keywords: ['colour dance', 'tint', 'accent'],
+  ),
+  SettingsSearchEntry(
+    'appearance.setListColourCoding',
+    SettingsSection.appearance,
+    (l) => l.settingsAppearanceSetListColorTitle,
+    keywords: ['set list colours', 'colour coding'],
+  ),
+  SettingsSearchEntry(
+    'appearance.formationColours',
+    SettingsSection.appearance,
+    (l) => l.settingsAppearanceFormationColoursTitle,
+    keywords: ['formation colours', 'stage colours'],
+  ),
+  SettingsSearchEntry(
+    'appearance.tagColours',
+    SettingsSection.appearance,
+    (l) => l.settingsAppearanceTagColoursTitle,
+    keywords: ['tag colours', 'labels'],
+  ),
+
+  // Dialect
+  SettingsSearchEntry(
+    'dialect.new',
+    SettingsSection.dialect,
+    (l) => l.settingsDialectNewButton,
+    keywords: ['create dialect', 'terminology'],
+  ),
+  SettingsSearchEntry(
+    'dialect.duplicateFrom',
+    SettingsSection.dialect,
+    (l) => l.settingsDialectDuplicateFrom,
+    keywords: ['copy dialect', 'duplicate preset'],
+  ),
+
+  // Language & region
+  SettingsSearchEntry(
+    'regional.appLanguage',
+    SettingsSection.regional,
+    (l) => l.settingsAppLanguageTitle,
+    keywords: ['language', 'locale', 'translation'],
+  ),
+  SettingsSearchEntry(
+    'regional.dateFormat',
+    SettingsSection.regional,
+    (l) => l.settingsDateFormatTitle,
+    keywords: ['date format', 'dmy', 'iso'],
+  ),
+  SettingsSearchEntry(
+    'regional.customDatePattern',
+    SettingsSection.regional,
+    (l) => l.settingsDateFormatCustomPatternLabel,
+    keywords: ['pattern', 'format string', 'custom date'],
+  ),
+  SettingsSearchEntry(
+    'regional.firstDayOfWeek',
+    SettingsSection.regional,
+    (l) => l.settingsFirstDayOfWeekTitle,
+    keywords: ['week start', 'monday', 'calendar'],
   ),
 
   // Defaults
@@ -701,8 +630,201 @@ final List<SettingsSearchEntry> settingsSearchIndex = [
     SettingsSection.defaults,
     (l) => l.settingsDefaultsUserFiguresTitle,
     keywords: ['custom figures', 'user figures'],
+    // The rows link to the user's own figures, so Defaults shows them only
+    // while Custom Figures is on and at least one exists.
+    visible: (context) => !UserFiguresScope.shownCatalogOf(context).isEmpty,
+  ),
+
+  // Updates
+  //
+  // Which rows exist depends on the copy and on what the last check found
+  // (`UpdatesSection.build`): a store copy gets one note in place of the check
+  // and the beta channel, and the assisted download and portable rows appear
+  // only once there is an update to download or a notice to show.
+  SettingsSearchEntry(
+    'updates.retirement',
+    SettingsSection.updates,
+    (l) => l.settingsUpdatesRetirementTitle,
+    keywords: ['end of support', 'retired'],
+    visible: (context) =>
+        UpdateScope.maybeOf(context)?.retirementNotice != null,
+  ),
+  SettingsSearchEntry(
+    'updates.store',
+    SettingsSection.updates,
+    (l) => l.settingsUpdatesStoreTitle,
+    keywords: ['app store', 'store copy', 'installed from'],
+    visible: (context) => UpdateScope.maybeOf(context)?.offersUpdates == false,
+  ),
+  SettingsSearchEntry(
+    'updates.checkNow',
+    SettingsSection.updates,
+    (l) => l.settingsUpdatesCheckNowTitle,
+    keywords: ['check for updates', 'refresh'],
+    visible: _offersUpdates,
+  ),
+  SettingsSearchEntry(
+    'updates.download',
+    SettingsSection.updates,
+    (l) => l.settingsUpdatesDownloadTitle,
+    keywords: ['download', 'install', 'update'],
+    visible: (context) =>
+        UpdateScope.maybeOf(context)?.canAssistDownload ?? false,
+  ),
+  SettingsSearchEntry(
+    'updates.portable',
+    SettingsSection.updates,
+    (l) => l.settingsUpdatesPortableTitle,
+    keywords: ['portable', 'zip', 'download release'],
+    visible: (context) {
+      final controller = UpdateScope.maybeOf(context);
+      return controller?.installKind == InstallKind.portable &&
+          controller?.foundUpdate != null;
+    },
+  ),
+  SettingsSearchEntry(
+    'updates.betaChannel',
+    SettingsSection.updates,
+    (l) => l.settingsUpdatesBetaTitle,
+    keywords: ['beta', 'prerelease', 'channel'],
+    visible: _offersUpdates,
+  ),
+  SettingsSearchEntry(
+    'updates.automaticChecks',
+    SettingsSection.updates,
+    (l) => l.settingsUpdatesAutoTitle,
+    keywords: ['automatic', 'background check'],
+  ),
+
+  // Diagnostics
+  SettingsSearchEntry(
+    'diagnostics.fullDetail',
+    SettingsSection.diagnostics,
+    (l) => l.diagnosticsFullDetailTitle,
+    keywords: ['unredacted', 'raw log', 'privacy'],
+  ),
+  SettingsSearchEntry(
+    'diagnostics.shareLog',
+    SettingsSection.diagnostics,
+    (l) => l.diagnosticsExportShareLogTitle,
+    keywords: ['export', 'share', 'save log'],
+  ),
+  SettingsSearchEntry(
+    'diagnostics.clearLog',
+    SettingsSection.diagnostics,
+    (l) => l.diagnosticsClearLogRowTitle,
+    keywords: ['clear', 'delete log', 'reset'],
+  ),
+
+  // Experimental
+  SettingsSearchEntry(
+    'experimental.showGlossary',
+    SettingsSection.experimental,
+    (l) => l.settingsExperimentalShowGlossaryTitle,
+    keywords: ['glossary', 'definitions', 'navigation'],
+  ),
+  SettingsSearchEntry(
+    'experimental.showCustomFigures',
+    SettingsSection.experimental,
+    (l) => l.settingsExperimentalShowCustomFiguresTitle,
+    keywords: ['custom figures', 'own figures'],
+  ),
+  SettingsSearchEntry(
+    'experimental.manageCustomFigures',
+    SettingsSection.experimental,
+    (l) => l.settingsExperimentalCustomFiguresManageTitle,
+    keywords: ['edit figures', 'manage figures'],
+  ),
+  // Calling cards, Device Sync and Developer options are groups inside the
+  // Experimental pane, below the Glossary group, so they are indexed here.
+  SettingsSearchEntry(
+    'experimental.callingCards',
+    SettingsSection.experimental,
+    (l) => l.settingsCallingCardsEnableTitle,
+    keywords: ['cards', 'print', 'export'],
+  ),
+  SettingsSearchEntry(
+    'experimental.callingCardSize',
+    SettingsSection.experimental,
+    (l) => l.settingsCallingCardsSizeTitle,
+    keywords: ['cards', 'size', 'dimensions', 'index card'],
+  ),
+  SettingsSearchEntry(
+    'experimental.callingCardSheets',
+    SettingsSection.experimental,
+    (l) => l.settingsCallingCardsSheetsTitle,
+    keywords: ['cards', 'paper', 'cut', 'print'],
+  ),
+  SettingsSearchEntry(
+    'experimental.callingCardLandscape',
+    SettingsSection.experimental,
+    (l) => l.settingsCallingCardsLandscapeTitle,
+    keywords: ['cards', 'orientation', 'wide'],
+  ),
+  SettingsSearchEntry(
+    'experimental.callingCardLayout',
+    SettingsSection.experimental,
+    (l) => l.settingsCallingCardsLayoutTitle,
+    keywords: ['cards', 'layout', 'what goes on a card'],
+  ),
+  SettingsSearchEntry(
+    'experimental.deviceSync',
+    SettingsSection.experimental,
+    (l) => l.settingsSyncEnableTitle,
+    keywords: ['sync', 'pair', 'devices', 'cloud'],
+  ),
+  SettingsSearchEntry(
+    'experimental.deviceSyncWifiOnly',
+    SettingsSection.experimental,
+    (l) => l.settingsSyncWifiOnlyTitle,
+    keywords: ['sync', 'wifi', 'mobile data'],
+    visible: _syncEnabled,
+  ),
+  SettingsSearchEntry(
+    'experimental.deviceSyncExcludeImports',
+    SettingsSection.experimental,
+    (l) => l.settingsSyncExcludeImportsTitle,
+    keywords: ['sync', 'imports', 'unused dances'],
+    visible: _syncEnabled,
+  ),
+  SettingsSearchEntry(
+    'experimental.developerResetDatabase',
+    SettingsSection.experimental,
+    (l) => l.settingsDeveloperResetTitle,
+    keywords: ['reset', 'wipe', 'clean install'],
+  ),
+
+  // About
+  SettingsSearchEntry(
+    'about.userGuide',
+    SettingsSection.about,
+    (l) => l.settingsAboutUserGuideTitle,
+    keywords: ['help', 'manual', 'guide'],
+  ),
+  SettingsSearchEntry(
+    'about.viewSource',
+    SettingsSection.about,
+    (l) => l.settingsAboutViewSourceTitle,
+    keywords: ['source code', 'repository', 'github'],
+  ),
+  SettingsSearchEntry(
+    'about.viewLicenses',
+    SettingsSection.about,
+    (l) => l.settingsAboutViewLicensesTitle,
+    keywords: ['licenses', 'credits', 'acknowledgements'],
   ),
 ];
+
+/// Whether this copy checks for and installs its own updates
+/// (`UpdateController.offersUpdates`): true on a downloaded build, false on a
+/// store copy and where no [UpdateScope] is above the context.
+bool _offersUpdates(BuildContext context) =>
+    UpdateScope.maybeOf(context)?.offersUpdates ?? false;
+
+/// Whether Device Sync is switched on, which is what shows the rest of its
+/// rows.
+bool _syncEnabled(BuildContext context) =>
+    SyncScope.maybeOf(context)?.enabled ?? false;
 
 /// The settings whose title, section name or synonym contains [query], in
 /// index order. Empty for a blank query, which shows the normal section

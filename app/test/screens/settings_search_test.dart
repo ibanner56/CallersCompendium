@@ -33,6 +33,27 @@ void main() {
       }
     });
 
+    test('covers every group of the Experimental section', () {
+      // Experimental is the one section whose groups are separate widgets
+      // (Glossary, Calling cards, Device Sync, Developer options), so a
+      // section-level check cannot notice a whole group going unindexed.
+      const groupEntries = {
+        'Glossary': 'experimental.showGlossary',
+        'Calling cards': 'experimental.callingCards',
+        'Device Sync': 'experimental.deviceSync',
+        'Developer options': 'experimental.developerResetDatabase',
+      };
+      for (final MapEntry(key: group, value: id) in groupEntries.entries) {
+        expect(
+          settingsSearchIndex.where((entry) => entry.id == id),
+          hasLength(1),
+          reason:
+              'Experimental\'s $group group has no search entry, so '
+              'Ctrl/Cmd-F cannot find its settings',
+        );
+      }
+    });
+
     test('every entry resolves to a non-empty title', () {
       for (final entry in settingsSearchIndex) {
         expect(entry.label(l10n).trim(), isNotEmpty, reason: entry.id);
@@ -58,6 +79,41 @@ void main() {
       final diagnostics = idsFor('Diagnostics');
       expect(diagnostics, contains('diagnostics.clearLog'));
       expect(diagnostics, contains('diagnostics.fullDetail'));
+    });
+
+    test('finds Experimental\'s Calling cards, Device Sync and Developer '
+        'options rows', () {
+      expect(idsFor('calling cards'), contains('experimental.callingCards'));
+      expect(idsFor('Card size'), contains('experimental.callingCardSize'));
+      expect(
+        idsFor('Several cards to a page'),
+        contains('experimental.callingCardSheets'),
+      );
+      expect(
+        idsFor('Landscape'),
+        contains('experimental.callingCardLandscape'),
+      );
+      expect(idsFor('Card layout'), contains('experimental.callingCardLayout'));
+      expect(idsFor('sync'), contains('experimental.deviceSync'));
+      expect(
+        idsFor('Reset database'),
+        contains('experimental.developerResetDatabase'),
+      );
+    });
+
+    test('lists results in sidebar order', () {
+      // "share" matches Program, Defaults and Diagnostics, whose sidebar order
+      // is the opposite of the order the blocks used to sit in.
+      final sections = [
+        for (final entry in searchSettings(l10n, query: 'share'))
+          entry.section.index,
+      ];
+      expect(sections, isNotEmpty);
+      expect(
+        sections,
+        orderedEquals([...sections]..sort()),
+        reason: 'results must follow the sidebar, as the index says they do',
+      );
     });
 
     test('is case-insensitive and ignores surrounding spaces', () {

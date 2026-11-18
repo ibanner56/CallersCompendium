@@ -395,7 +395,7 @@ class AppLocalizationsDa extends AppLocalizations {
       'Nye funktioner vises muligvis her, mens de stadig er under udvikling.';
 
   @override
-  String get settingsSearchHint => 'Søg i indstillinger';
+  String get settingsSearchLabel => 'Søg i indstillinger';
 
   @override
   String get settingsSearchClear => 'Ryd søgning';
