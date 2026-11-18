@@ -1372,6 +1372,36 @@ void main() {
       });
     }
 
+    testWidgets('a program archived on one device only is shown as a '
+        'difference, as a date', (tester) async {
+      final repos = await _pump(tester);
+      await tester.runAsync(() async {
+        await repos.programs.create(
+          Program(
+            id: 'p1',
+            title: 'Friday dance',
+            createdAt: _tie,
+            updatedAt: _tie,
+          ),
+        );
+        await _queueRecordTie(
+          repos,
+          SyncRecordKind.program,
+          'p1',
+          (body) => {...body, 'archivedAt': '2026-09-15T12:00:00.000Z'},
+        );
+      });
+      await _open(tester);
+
+      expect(find.textContaining('Archived'), findsWidgets);
+      expect(find.text('This device: Not set'), findsOneWidget);
+      expect(find.textContaining('Another device: '), findsOneWidget);
+      // The value is a formatted day, whatever the time zone, never the raw
+      // wire timestamp.
+      expect(find.textContaining('2026-09-15T'), findsNothing);
+      expect(find.textContaining('only in details this view'), findsNothing);
+    });
+
     testWidgets("a dialect shows the terms that differ, not just its name", (
       tester,
     ) async {

@@ -178,6 +178,8 @@ ArchiveProgramsResult buildArchivePrograms(
         dialectName: program.dialectName,
         payMinorUnits: program.payMinorUnits,
         payCurrency: program.payCurrency,
+        // Not archived: the share bundles strip `archivedAt`, and a program
+        // received from someone else belongs in the receiver's list anyway.
         slots: slots,
         createdAt: timestamp,
         updatedAt: timestamp,

@@ -54,6 +54,7 @@ const Map<SyncRecordKind, Set<String>> generatedShareableWirePaths = {
     'walkthrough',
   },
   SyncRecordKind.program: {
+    'archivedAt',
     'band',
     'caller',
     'createdAt',

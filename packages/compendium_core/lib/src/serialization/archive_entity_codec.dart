@@ -247,6 +247,10 @@ Map<String, Object?> archiveProgramToJson(
   // instead (`requiredBackupVersion`), and a share file not at all (#1885).
   if (p.payMinorUnits != null) 'payMinorUnits': p.payMinorUnits,
   if (p.payCurrency != null) 'payCurrency': p.payCurrency,
+  // Only when set, for the same wire-hash reason. Stamped by the backup
+  // envelope (`requiredBackupVersion`), like pay; share files never carry it,
+  // because the share bundles strip it (`sanitizeProgramForShare`).
+  if (p.archivedAt != null) 'archivedAt': archiveIso(p.archivedAt!),
   'slots': [
     for (final s in p.slots)
       archiveProgramSlotToJson(s, includeOptionalFields: includeOptionalFields),

@@ -5360,6 +5360,37 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String get programsArchive => 'Archiveren';
+
+  @override
+  String get programsUnarchive => 'Uit archief halen';
+
+  @override
+  String programsArchivedSnack(String title) {
+    return '“$title” gearchiveerd.';
+  }
+
+  @override
+  String programsUnarchivedSnack(String title) {
+    return '“$title” uit het archief gehaald.';
+  }
+
+  @override
+  String get programsArchivedLabel => 'Gearchiveerd';
+
+  @override
+  String get programsShowArchived => 'Gearchiveerde tonen';
+
+  @override
+  String get programsHideArchived => 'Gearchiveerde verbergen';
+
+  @override
+  String get programsAllArchivedTitle => 'Geen programma\'s om te tonen';
+
+  @override
+  String get programsAllArchivedBody => 'Al je programma\'s zijn gearchiveerd.';
+
+  @override
   String get programsDiscardTitle => 'Wijzigingen verwerpen?';
 
   @override

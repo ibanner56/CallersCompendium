@@ -21,7 +21,10 @@ import 'custom_theme.dart';
 /// stamped only when present ([requiredBackupVersion]), so a backup with none
 /// of them still writes v1 byte for byte, and an older build refuses to
 /// replace-restore one that has them rather than silently dropping them.
-const int backupSchemaVersion = backupSchemaVersionGlossary;
+///
+/// v3 is stamped when a program in the backup is archived
+/// ([backupSchemaVersionArchivedPrograms]).
+const int backupSchemaVersion = backupSchemaVersionArchivedPrograms;
 
 /// The envelope version every backup carrying none of the conditional data
 /// in [requiredBackupVersion] is written under.
@@ -46,6 +49,15 @@ const int backupSchemaVersionGlossary = 2;
 /// but also refuse v2, and no version number can tell them from 0.5.x.
 const int backupSchemaVersionProgramPay = 2;
 
+/// The envelope version a backup is written under when a program in it is
+/// archived (`archivedAt`, schema v42).
+///
+/// Builds up to 0.10.0 read envelope v2 but not `archivedAt`, so they would
+/// restore such a backup and bring every archived program back into the
+/// Programs list without a word. v3 makes them refuse a replace-restore
+/// instead. A backup with no archived program keeps the version it had.
+const int backupSchemaVersionArchivedPrograms = 3;
+
 /// The envelope version [doc] must be written under so that no build that
 /// would silently drop part of it restores it: the highest version any of its
 /// conditional data needs, otherwise [backupSchemaVersionBase].
@@ -56,6 +68,9 @@ const int backupSchemaVersionProgramPay = 2;
 /// archive entity gains a key that names no case here or in the core
 /// `requiredSchemaVersion`.
 int requiredBackupVersion(BackupDocument doc) {
+  if (doc.core.programs.any((p) => p.archivedAt != null)) {
+    return backupSchemaVersionArchivedPrograms;
+  }
   if (doc.hasGlossary) return backupSchemaVersionGlossary;
   // `Program` keeps the two pay keys set together, so one stands for both.
   final hasProgramPay = doc.core.programs.any(

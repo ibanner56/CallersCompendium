@@ -1009,6 +1009,31 @@ void main() {
       },
     );
 
+    test('re-import keeps a program the caller archived archived', () async {
+      final first = await importer.import(
+        _ccUsrBytes(),
+        now: now,
+        venueEntityMode: false,
+        newId: sequentialIds(),
+        newSlotId: sequentialIds(),
+      );
+      final programId = first.programs.single.id;
+      final archivedAt = DateTime.utc(2026, 7, 15);
+      expect(await programs.archive(programId, at: archivedAt), isTrue);
+
+      // `.USR` data cannot express an archived program, so the rebuild must
+      // carry it forward rather than bring the program back into the list.
+      final second = await importer.import(
+        _ccUsrBytes(),
+        now: DateTime.utc(2026, 8, 1),
+        venueEntityMode: false,
+        newId: sequentialIds(),
+        newSlotId: sequentialIds(),
+      );
+      expect(second.updatedProgramCount, 1);
+      expect((await programs.getById(programId))!.archivedAt, archivedAt);
+    });
+
     group('a prior venue link that no row backs', () {
       // The repository's save guard refuses a dead id, so the column is
       // rewritten directly: the state #2076 leaves on a restore.

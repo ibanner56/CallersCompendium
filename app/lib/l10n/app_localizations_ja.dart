@@ -5089,6 +5089,37 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get programsArchive => 'アーカイブ';
+
+  @override
+  String get programsUnarchive => 'アーカイブを解除';
+
+  @override
+  String programsArchivedSnack(String title) {
+    return '「$title」をアーカイブしました。';
+  }
+
+  @override
+  String programsUnarchivedSnack(String title) {
+    return '「$title」のアーカイブを解除しました。';
+  }
+
+  @override
+  String get programsArchivedLabel => 'アーカイブ済み';
+
+  @override
+  String get programsShowArchived => 'アーカイブ済みを表示';
+
+  @override
+  String get programsHideArchived => 'アーカイブ済みを非表示';
+
+  @override
+  String get programsAllArchivedTitle => '表示するプログラムがありません';
+
+  @override
+  String get programsAllArchivedBody => 'すべてのプログラムがアーカイブされています。';
+
+  @override
   String get programsDiscardTitle => '変更を破棄しますか？';
 
   @override

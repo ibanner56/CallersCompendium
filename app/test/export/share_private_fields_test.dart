@@ -1,5 +1,7 @@
 /// Share files omit the caller's pay, Perform dialect and dance ratings, while
-/// Backup keeps them (maintainer decision R2-out2-export, 2026-10-30).
+/// Backup keeps them (maintainer decision R2-out2-export, 2026-10-30). The
+/// same split holds for a program's archived state (the maintainer's decision
+/// when archiving was added, 2026-11-18).
 ///
 /// The fields stay `shareable` in the registry, so the strip is in the share
 /// bundle builders; these tests pin both halves of the split.
@@ -30,13 +32,15 @@ Program _program() => Program(
   dialectName: 'Gender-free',
   payMinorUnits: 25000,
   payCurrency: 'USD',
+  archivedAt: DateTime.utc(2025, 12, 31),
   slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
   createdAt: _now,
   updatedAt: _now,
 );
 
 void main() {
-  test('program share bundle drops pay, dialect and dance rating', () {
+  test('program share bundle drops pay, dialect, archived state and dance '
+      'rating', () {
     final json = buildProgramShareBundle(
       _program(),
       blankedDanceSlotText: 'Deleted dance',
@@ -53,10 +57,12 @@ void main() {
     expect(program.payMinorUnits, isNull);
     expect(program.payCurrency, isNull);
     expect(program.dialectName, isNull);
+    expect(program.archivedAt, isNull);
     expect(archive.dances.single.rating, isNull);
     final raw = jsonDecode(json) as Map<String, dynamic>;
     final rawProgram = (raw['programs'] as List).single as Map<String, dynamic>;
     expect(rawProgram.containsKey('payMinorUnits'), isFalse);
+    expect(rawProgram.containsKey('archivedAt'), isFalse);
     expect(json, isNot(contains('25000')));
     expect(json, isNot(contains('Gender-free')));
   });
@@ -93,7 +99,8 @@ void main() {
     expect(archive.dances.single.title, "Rory O'More");
   });
 
-  test('backup mode of the same codec keeps pay, dialect and rating', () {
+  test('backup mode of the same codec keeps pay, dialect, archived state and '
+      'rating', () {
     final json = encodeArchive(
       CompendiumArchive(
         exportedAt: _now,
@@ -106,6 +113,7 @@ void main() {
     expect(archive.programs.single.payMinorUnits, 25000);
     expect(archive.programs.single.payCurrency, 'USD');
     expect(archive.programs.single.dialectName, 'Gender-free');
+    expect(archive.programs.single.archivedAt, DateTime.utc(2025, 12, 31));
     expect(archive.dances.single.rating, 4);
   });
 

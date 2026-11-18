@@ -83,6 +83,7 @@ const _programFields = [
   SyncWireField('dialectName', ['programs.dialect_name']),
   SyncWireField('payMinorUnits', ['programs.pay_minor_units']),
   SyncWireField('payCurrency', ['programs.pay_currency']),
+  SyncWireField('archivedAt', ['programs.archived_at']),
   SyncWireField('slots', []),
   SyncWireField('slots.id', ['program_slots.id']),
   SyncWireField('slots.position', ['program_slots.position']),

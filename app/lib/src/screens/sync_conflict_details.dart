@@ -171,6 +171,7 @@ Map<String, String> _fieldLabels(AppLocalizations l10n, SyncRecordKind kind) =>
         'dialectName': l10n.programsDialectFieldLabel,
         'payMinorUnits': l10n.programsPayLabel,
         'payCurrency': l10n.programsPayCurrencyLabel,
+        'archivedAt': l10n.programsArchivedLabel,
       },
       SyncRecordKind.choreographer => {
         'name': l10n.syncConflictFieldName,
@@ -1066,6 +1067,15 @@ class SyncConflictComparison extends StatelessWidget {
         case 'eventDate':
           return formatEventDate(
             syncConflictCalendarDate(value as String),
+            DateFormatScope.of(context),
+            MaterialLocalizations.of(context),
+            l10n,
+          );
+        case 'archivedAt':
+          // The day this version was archived, on the reader's own calendar;
+          // a version that is not archived shows "Not set" above.
+          return formatEventDate(
+            DateTime.parse(value as String).toLocal(),
             DateFormatScope.of(context),
             MaterialLocalizations.of(context),
             l10n,

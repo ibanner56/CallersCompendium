@@ -828,7 +828,13 @@ steps that can still fire are v40 onward.
   called and the venue counts still count it, and search still finds it. It is
   an ordinary content edit: `ProgramRepository.archive` and `unarchive` advance
   `updated_at` and leave `existence_at` alone. Device Sync and backups carry
-  it; program share files drop it (`sanitizeProgramForShare`). Added by the
+  it; program share files drop it (`sanitizeProgramForShare`). The archive
+  key is written only when set, so an unarchived program keeps its sync wire
+  hash, and a backup holding an archived program is written under backup
+  envelope v3 (`backupSchemaVersionArchivedPrograms`), so 0.10.0 and older
+  refuse to replace-restore it instead of unarchiving everything; the core
+  archive version is unchanged. A Caller's Companion re-import keeps a
+  program's archived state, as it keeps its venue link. Added by the
   `from < 42` step with `Migrator.addColumn`, guarded on `pragma_table_info`.
   No data rewritten, no derived rebuild.
 
