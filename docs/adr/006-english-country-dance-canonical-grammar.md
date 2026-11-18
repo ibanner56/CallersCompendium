@@ -774,9 +774,9 @@ Points to notice:
 - **A1 is one sequence** because the source writes it as one clause, "set
   forward and turn single back to place" (§5.4).
 - **B2 is one sequence** because its second star returns to where the first
-  began ("and back"), which §5.4 requires. The source splits that sentence
-  across two phrases with an ellipsis, and gives each half its bars, so each
-  star keeps its 4 bars. A sequence can hold a single span instead (§5.5),
+  began ("and back"), which §5.4 requires. B2 is one 8-bar phrase. The
+  source splits the sentence across its two 4-bar halves with an ellipsis,
+  and gives each half its bars, so each star keeps its 4 bars. A sequence can hold a single span instead (§5.5),
   but here that would lose bars the source states (R2).
 - **"And back" is kept.** The second star carries `destination = place`:
   dancers end where the line began, which is where the first star started
