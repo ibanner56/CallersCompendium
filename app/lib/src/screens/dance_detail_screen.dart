@@ -26,6 +26,7 @@ import '../export/share_file.dart';
 import '../search/dance_detail_data.dart';
 import '../search/facet_labels.dart';
 import '../theme/app_shapes.dart';
+import '../theme/app_theme_extension.dart';
 import '../theme/app_spacing.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/launch_external_url.dart';
@@ -1524,7 +1525,7 @@ class _StatusBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.xs),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
+        color: color.withValues(alpha: AppThemeExtension.statusTintAlpha),
         borderRadius: AppShapes.borderRadiusSmall,
       ),
       child: Row(

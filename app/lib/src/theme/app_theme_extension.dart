@@ -34,6 +34,15 @@ class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
     required this.focusRingWidth,
   });
 
+  /// The alpha of the tinted fill behind a status token — the status chip and
+  /// the dance-status banner on the detail screen and Perform card — and, for
+  /// one look, behind the numbered markers in the ContraDB import (tinted
+  /// with primary or onSurfaceVariant). [_chipSafe] eases each status token
+  /// until an `onSurface` label clears AA on this tint, so a site that uses a
+  /// stronger alpha loses that guarantee; `palette_contrast_test.dart` checks
+  /// the marker tints at this alpha too.
+  static const double statusTintAlpha = 0.10;
+
   // ProgramStatus tokens.
   final Color statusDraft;
   final Color statusFinalized;
@@ -75,10 +84,10 @@ class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
     bool highContrast = false,
   }) {
     return AppThemeExtension(
-      statusDraft: scheme.onSurfaceVariant,
+      statusDraft: _chipSafe(scheme.onSurfaceVariant, scheme),
       statusFinalized: _doneColor(scheme),
-      statusPerformed: scheme.tertiary,
-      statusDeprecated: scheme.onSurfaceVariant,
+      statusPerformed: _chipSafe(scheme.tertiary, scheme),
+      statusDeprecated: _chipSafe(scheme.onSurfaceVariant, scheme),
       statusBroken: _chipSafe(scheme.error, scheme),
       dialectAccent: scheme.tertiary,
       performSurface: const Color(0xFF0A0705),
@@ -95,10 +104,11 @@ class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
   /// A palette's secondary when it is already green-to-cyan (hue 90–180°), as
   /// its designer chose it; otherwise a green at hue 140° with the primary's
   /// saturation and lightness. Either way it is then moved away from the
-  /// surface until it clears 3:1 as an icon. Neither secondary nor primary
-  /// works for every palette: in Blue Hour secondary is a dusty rose, and in
-  /// High contrast, Monokai and Gruvbox primary is red or orange — both read
-  /// as a warning beside Broken.
+  /// surface until it clears 3:1 as an icon on the canvas and on the container
+  /// tiers (a chip can sit on a card or sheet). Neither secondary nor
+  /// primary works for every palette: in Blue Hour secondary is a dusty rose,
+  /// and in High contrast, Monokai and Gruvbox primary is red or orange — both
+  /// read as a warning beside Broken.
   static Color _doneColor(ColorScheme scheme) {
     final secondary = HSLColor.fromColor(scheme.secondary);
     final primary = HSLColor.fromColor(scheme.primary);
@@ -115,7 +125,9 @@ class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
         : 0.02;
     for (var step = 0; step < 50; step++) {
       if (Wcag.contrastRatio(green.toColor(), scheme.surface) >=
-          Wcag.aaNonText) {
+              Wcag.aaNonText &&
+          Wcag.contrastRatio(green.toColor(), scheme.surfaceContainerHighest) >=
+              Wcag.aaNonText) {
         break;
       }
       green = green.withLightness(
@@ -126,16 +138,28 @@ class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
   }
 
   /// [token] eased toward the surface only as far as needed for the status
-  /// chip's `onSurface` label to clear AA against the chip's 10% [token] tint
-  /// (see `StatusChip`). `scheme.error` is derived to read as text on the
-  /// surface, which can darken (or, on dark themes, lighten) the tint enough to
-  /// pull the label below 4.5:1; this token is only an icon, border and tint,
-  /// so it is relaxed independently and leaves `scheme.error` untouched.
+  /// chip's `onSurface` label to clear AA against the [statusTintAlpha] tint
+  /// (see `StatusChip`), laid over the canvas or over `surfaceContainerLow`,
+  /// the tier of the cards and bottom sheets a chip can sit on. `scheme.error`
+  /// is derived to read as text on the surface, which can darken (or, on dark
+  /// themes, lighten) the tint enough to pull the label below 4.5:1, and the
+  /// same holds for onSurfaceVariant and tertiary behind Draft, Deprecated and
+  /// Performed. The status token is only an icon, border and tint, so it is
+  /// relaxed independently and leaves the scheme's own roles untouched.
   static Color _chipSafe(Color token, ColorScheme scheme) {
     for (var step = 0; step <= 20; step++) {
       final c = Color.lerp(token, scheme.surface, step / 20)!;
-      final fill = Color.alphaBlend(c.withValues(alpha: 0.10), scheme.surface);
-      if (Wcag.meetsAA(scheme.onSurface, fill)) return c;
+      final tint = c.withValues(alpha: statusTintAlpha);
+      if (Wcag.meetsAA(
+            scheme.onSurface,
+            Color.alphaBlend(tint, scheme.surface),
+          ) &&
+          Wcag.meetsAA(
+            scheme.onSurface,
+            Color.alphaBlend(tint, scheme.surfaceContainerLow),
+          )) {
+        return c;
+      }
     }
     // No candidate can pass (e.g. a custom theme whose onSurface already
     // fails against its surface): keep the original token rather than fading

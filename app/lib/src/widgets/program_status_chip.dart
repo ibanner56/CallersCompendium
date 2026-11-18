@@ -87,12 +87,15 @@ Color danceStatusColor(DanceStatus status, ThemeData theme) {
 }
 
 /// Shared status-chip construction (icon + text) tinted with a semantic
-/// [color] using the §2 treatment: a 10% [color] fill, a 50% [color] border,
-/// and a [color]-tinted icon. The label text uses the theme's `onSurface` so it
-/// always clears WCAG AA (≥4.5:1) against the tinted fill in every bundled
-/// theme, including high-contrast. Both [ProgramStatusChip] and
-/// [DanceStatusChip] delegate here so program and dance status render
-/// identically.
+/// [color] using the §2 treatment: a [AppThemeExtension.statusTintAlpha]
+/// [color] fill, a full-alpha [color] border, and a [color]-tinted icon. The
+/// label text uses the theme's `onSurface`, which clears WCAG AA (≥4.5:1)
+/// against the tinted fill in every bundled theme, including high contrast,
+/// when the chip sits on the canvas or on a card or sheet
+/// (`surfaceContainerLow`); `palette_contrast_test.dart` checks both. On the
+/// higher tiers (menus, dialogs) it is not guaranteed. Both
+/// [ProgramStatusChip] and [DanceStatusChip] delegate here so program and
+/// dance status render identically.
 class StatusChip extends StatelessWidget {
   const StatusChip({
     super.key,
@@ -111,8 +114,12 @@ class StatusChip extends StatelessWidget {
     return Chip(
       avatar: Icon(icon, size: 16, color: color),
       label: Text(label, style: TextStyle(color: theme.colorScheme.onSurface)),
-      backgroundColor: color.withValues(alpha: 0.10),
-      side: BorderSide(color: color.withValues(alpha: 0.5)),
+      backgroundColor: color.withValues(
+        alpha: AppThemeExtension.statusTintAlpha,
+      ),
+      // Full alpha: at 50% the border fell below the 3:1 a component boundary
+      // needs. The token itself clears 3:1 on the surface.
+      side: BorderSide(color: color),
       visualDensity: VisualDensity.compact,
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
     );
