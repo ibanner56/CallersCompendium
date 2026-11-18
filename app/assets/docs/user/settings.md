@@ -258,7 +258,8 @@ They don't change what is shared when you share the whole program as a
 ### Performance
 
 - **Auto-size Perform cards** (on) — scales each card so it fits the screen in
-  [Perform mode](./glossary.md#perform-mode). Turn it off when you'd rather size
+  [Perform mode](./glossary.md#perform-mode), but never below your usual text
+  size; a card too long for that scrolls. Turn it off when you'd rather size
   the text yourself using the **A−** and **A+** buttons while performing. See
   [Perform mode](./perform.md) for more. Like the stage theme and the text size
   you pick in Perform, this setting belongs to this device: it is not synced to
@@ -269,6 +270,10 @@ They don't change what is shared when you share the whole program as a
 - **Show caller notes in program Perform** (on) — shows each non-empty
   per-slot caller note above the dance title while performing a program. Turn it
   off when you want the program card to show only the dance's own details.
+- **Confirm before leaving Perform** (on) — makes the close button and Back ask
+  *Exit Perform?* before taking you out of Perform, so a stray tap can't drop
+  you out mid-dance. Turn it off to leave in one tap; a program's place and
+  clock are kept either way. See [Leaving Perform](./perform.md#leaving-perform).
 
 ### Calling history
 
