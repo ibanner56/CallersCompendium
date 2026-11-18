@@ -1276,8 +1276,8 @@ Sync is off and open while it is on.
   sends. Until you update it,
   that older device may wrongly say this one isn't taking its changes; see
   **"Needs you"** above. A choice that was waiting under **Choose which
-  version to keep** for one of those four settings from before you updated is
-  dropped, since there is nothing left to choose.
+  version to keep** for one of those four sync settings from before you updated
+  is dropped, since there is nothing left to choose.
 
 **Connecting.** Once Device Sync is on, choose **Connect**, then either:
 
