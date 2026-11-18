@@ -183,7 +183,10 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   resets when another top-level destination is chosen or the app restarts.
   A row's ⋮ menu offers Archive (Unarchive on an archived row) after
   Duplicate; the summary and the builder offer it after Duplicate too, and
-  archiving there leaves the program as Delete does.
+  archiving there leaves the program as Delete does. On the wide layout, the
+  open program also closes when it stops being listed (archived from its row,
+  or hidden by Hide archived). Restoring a program from Recently deleted
+  unarchives it; a delete's Undo does not.
 - Builder: two-pane — program (ordered slots) | collection picker with the
   same filter panel as Collection, including caller-scoped Called / Not called
   history filtering, and Collection's Search in, sort (session-only, opening in

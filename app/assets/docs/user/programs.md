@@ -75,7 +75,9 @@ direction the list opens with, see
   the app (Collection, Glossary, Settings or the guide) or close it. You can
   also archive a program from its summary or the builder, next to
   **Duplicate**; that closes the program, as **Delete** does, and from the
-  builder it saves your unsaved edits first. A duplicate of an archived
+  builder it saves your unsaved edits first. On a wide screen, a program you
+  have open also closes when you archive it from its row, or when **Hide
+  archived** hides it. A duplicate of an archived
   program is not archived. Archiving syncs to your other devices and is kept
   in [backups](./settings.md#backup--restore), but a program you
   [share](./sharing.md#share-a-program-with-its-dances) arrives unarchived.
@@ -86,7 +88,9 @@ direction the list opens with, see
   [dances](./collection.md#keep-your-collection-tidy). Deleting from the
   builder saves any edits you haven't saved yet first, so the program you
   restore, or bring back with **Undo**, is the one you were editing. If you
-  cleared the title, it keeps its saved title.
+  cleared the title, it keeps its saved title. A program you deleted while it
+  was archived comes back from Recently deleted unarchived, so it shows in the
+  list; **Undo** puts it back exactly as it was, still archived.
 
   Deleting a program also takes it out of the
   [calling history](#track-what-you-have-called) of every dance in it, and
