@@ -98,7 +98,8 @@ program when it is time to call, and step back out when you are done.
 no signal. It is the same set of pages you are reading now.
 
 To jump straight to a dance or program you can name, choose **Search** — in the
-navigation rail on a wide screen, or in the app bar on a narrow one — or press
+navigation rail, or at the right end of the bar across the top, on a wide
+screen, or in the app bar on a narrow one — or press
 **Ctrl-K** (**Cmd-K** on macOS); see
 [Jump straight to a dance or program](./collection.md#jump-straight-to-a-dance-or-program).
 On a computer you can also use keyboard shortcuts, your mouse's **Back** button,

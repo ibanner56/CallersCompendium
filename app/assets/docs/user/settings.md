@@ -21,7 +21,8 @@ section.*
 **Settings** is a top-level destination, marked with a gear icon and labeled
 **Settings**. On a narrow screen (like a phone) it's a tab in the bottom
 navigation; on a wide screen (a tablet or desktop) it's in the side navigation
-rail. On a computer you can also press **Ctrl-,** (**Cmd-,** on a Mac), or
+rail, or a tab in the bar across the top if you turned **Horizontal navigation
+bar** on. On a computer you can also press **Ctrl-,** (**Cmd-,** on a Mac), or
 choose **Settings…** in the **Caller's Compendium** menu on a Mac (see
 [Using the keyboard](./accessibility.md#using-the-keyboard)).
 
@@ -1266,7 +1267,8 @@ Sync is off and open while it is on.
   turns sync on.
 - A few other settings depend on the screen they are used on, so they stay on
   each device too: **App language**, **Reduce motion**, **Auto-size Perform
-  cards**, and Perform's stage theme and text size. Unlike the sync settings
+  cards**, **Horizontal navigation bar** (desktop only), and Perform's stage
+  theme and text size. Unlike the sync settings
   above, a backup includes them. Your theme and custom themes do sync. A
   device still on an older version of the app keeps syncing the language,
   **Reduce motion**, **Auto-size Perform cards** and stage theme settings with

@@ -43,8 +43,8 @@ import '../theme/app_shapes.dart';
 /// All destinations are kept alive in an [IndexedStack] so switching preserves
 /// each screen's state (selection, scroll, in-progress edits). Settings and the
 /// User Guide are first-class destinations alongside Collection and Programs
-/// rather than pushed routes, so the persistent shell chrome (rail search /
-/// bottom bar) stays visible while they're open.
+/// rather than pushed routes, so the persistent shell chrome (rail or top-bar
+/// search / bottom bar) stays visible while they're open.
 class AppShell extends StatefulWidget {
   const AppShell({
     super.key,
@@ -141,10 +141,10 @@ class AppShellState extends State<AppShell> {
     });
   }
 
-  /// The destinations the rail (wide) and the bottom bar (narrow) list, in
-  /// order. The User Guide is deliberately *not* here: it is the
-  /// bottom-of-rail Help affordance on wide layouts and a trailing bottom-bar
-  /// destination on narrow ones.
+  /// The destinations the rail, the top bar (wide) and the bottom bar (narrow)
+  /// list, in order. The User Guide is deliberately *not* here: it is the
+  /// bottom-of-rail Help affordance or a trailing top-bar tab on wide layouts,
+  /// and a trailing bottom-bar destination on narrow ones.
   List<_Destination> get _navDestinations => [
     _Destination.collection,
     _Destination.programs,
@@ -200,7 +200,8 @@ class AppShellState extends State<AppShell> {
   bool get _guideSelected => _current == _Destination.guide;
 
   /// Selects the destination at [index] in the visible list: [_navDestinations]
-  /// on the rail, and the same list followed by the Guide on the bottom bar.
+  /// on the rail, and the same list followed by the Guide on the top bar and
+  /// the bottom bar.
   void _onSelect(int index) {
     final visible = _navDestinations;
     setState(
@@ -220,7 +221,8 @@ class AppShellState extends State<AppShell> {
   /// to the matching section and opens that item's route. Called by the root
   /// `MaterialApp`'s Ctrl/Cmd-K action through the app's
   /// `GlobalKey<AppShellState>` (so it works from pushed routes too) and by the
-  /// persistent rail search affordance (`ux-modernization.md` §6).
+  /// persistent rail and top-bar search affordances
+  /// (`ux-modernization.md` §6).
   ///
   /// Both kinds land on a **read view** — [DanceDetailScreen] and
   /// [ProgramSummaryScreen] — rather than an editor. Search is a way to reach
@@ -344,12 +346,18 @@ class AppShellState extends State<AppShell> {
     setState(() => _current = _Destination.guide);
   }
 
-  /// Keeps the Programs shell's State, with the Perform place it holds for
-  /// each open program (GIG-14), when this shell swaps the rail for the
-  /// bottom bar: the two layouts put the pages at different tree positions,
-  /// so without it a rotation across [AppShell.railBreakpoint] rebuilds the
-  /// Programs shell from scratch.
-  final _programsShellKey = GlobalKey();
+  /// Keeps every destination's State when the shell changes layout: the
+  /// Collection's open dance, the Settings and Guide scroll positions and
+  /// focus, and the Programs shell's Perform place for each open program
+  /// (GIG-14).
+  ///
+  /// The three layouts are different widget trees — a [Row] around the rail, a
+  /// [Column] under the top bar, and the bare body on narrow screens — so
+  /// Flutter would otherwise unmount the pages and inflate fresh ones both on
+  /// a rotation across [AppShell.railBreakpoint] and when the "Horizontal
+  /// navigation bar" setting flips a wide window from rail to top bar. Moving
+  /// the one [IndexedStack] subtree under this key preserves it in every case.
+  final _shellBodyKey = GlobalKey();
 
   /// One page per [_Destination], in enum order.
   List<Widget> _buildPages() => [
@@ -359,7 +367,7 @@ class AppShellState extends State<AppShell> {
           commands: _collectionCommands,
           isActive: _current == _Destination.collection,
         ),
-        _Destination.programs => ProgramsShell(key: _programsShellKey),
+        _Destination.programs => const ProgramsShell(),
         // Built only while shown, so a hidden Glossary costs nothing.
         _Destination.glossary =>
           _showGlossary ? const GlossaryScreen() : const SizedBox.shrink(),
@@ -397,6 +405,7 @@ class AppShellState extends State<AppShell> {
         // chrome in the common case.
         final nav = _navDestinations;
         final body = Column(
+          key: _shellBodyKey,
           children: [
             const InstallLocationBanner(),
             const RetirementBanner(),
@@ -564,7 +573,8 @@ class AppShellState extends State<AppShell> {
 /// This is a desktop toolbar, not the narrow layout's [NavigationBar]: the
 /// destinations are compact icon-and-label tabs gathered on the left beside the
 /// brand, with search at the far right, rather than evenly spread across the
-/// window with stacked icons and labels.
+/// window with stacked icons and labels. The tab cluster scrolls sideways when
+/// large system text makes it wider than the window.
 class _TopNavBar extends StatelessWidget {
   const _TopNavBar({
     required this.selectedIndex,
@@ -590,8 +600,10 @@ class _TopNavBar extends StatelessWidget {
       color: theme.colorScheme.surface,
       child: SafeArea(
         bottom: false,
-        child: SizedBox(
-          height: 56,
+        // A minimum, not a fixed height: at large system text sizes the labels
+        // grow and the bar grows with them instead of clipping the tabs.
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 56),
           child: Row(
             children: [
               const SizedBox(width: AppSpacing.sm),
@@ -607,24 +619,32 @@ class _TopNavBar extends StatelessWidget {
               ),
               const SizedBox(width: AppSpacing.xs),
               // One tight group at the leading edge: compact tabs rather than
-              // the mobile bar's evenly-spread, stacked destinations.
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                spacing: 2,
-                children: [
-                  for (var i = 0; i < destinations.length; i++)
-                    _TopNavTab(
-                      key: ValueKey('top-nav-$i'),
-                      icon: destinations[i].icon,
-                      selectedIcon:
-                          destinations[i].selectedIcon ?? destinations[i].icon,
-                      label: destinations[i].label,
-                      selected: i == selectedIndex,
-                      onTap: () => onDestinationSelected(i),
-                    ),
-                ],
+              // the mobile bar's evenly-spread, stacked destinations. The
+              // cluster takes the room between the brand and search and scrolls
+              // sideways when large system text makes it wider than the window,
+              // rather than overflowing the bar.
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    spacing: 2,
+                    children: [
+                      for (var i = 0; i < destinations.length; i++)
+                        _TopNavTab(
+                          key: ValueKey('top-nav-$i'),
+                          icon: destinations[i].icon,
+                          selectedIcon:
+                              destinations[i].selectedIcon ??
+                              destinations[i].icon,
+                          label: destinations[i].label,
+                          selected: i == selectedIndex,
+                          onTap: () => onDestinationSelected(i),
+                        ),
+                    ],
+                  ),
+                ),
               ),
-              const Spacer(),
               _TopNavSearchButton(onPressed: onSearch),
               const SizedBox(width: AppSpacing.sm),
             ],
@@ -665,10 +685,14 @@ class _TopNavTab extends StatelessWidget {
     return Semantics(
       button: true,
       selected: selected,
-      label: label,
-      onTap: onTap,
+      // The tooltip repeats the visible label, and the InkWell already supplies
+      // the tap action and the focusable node. Leaving them off here lets the
+      // InkWell's node, the text and this flag merge into one node — the tab is
+      // not announced twice, and the node keyboard focus lands on is the one
+      // that carries `selected`.
       child: Tooltip(
         message: label,
+        excludeFromSemantics: true,
         child: Material(
           color: selected ? scheme.secondaryContainer : Colors.transparent,
           borderRadius: AppShapes.borderRadiusLarge,

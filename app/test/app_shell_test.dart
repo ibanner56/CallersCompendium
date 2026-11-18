@@ -36,6 +36,7 @@ Future<void> _pump(
   ImportPicker? reimportPicker,
   ValueNotifier<bool>? showGlossary,
   ValueNotifier<bool>? horizontalTopNav,
+  TextScaler textScaler = TextScaler.noScaling,
 }) async {
   await tester.binding.setSurfaceSize(size);
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -87,19 +88,22 @@ Future<void> _pump(
       },
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
-      builder: (context, child) => RepositoriesScope(
-        repositories: repos,
-        child: UpdateScope(
-          controller: updateController,
-          child: AppThemeScope(
-            notifier: themeNotifier,
-            child: CustomThemesScope(
-              controller: customThemes,
-              child: ActiveDialectScope(
-                notifier: notifier,
-                child: RequirePerformedForHistoryScope(
-                  notifier: requirePerformedNotifier,
-                  child: scoped(child!),
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(textScaler: textScaler),
+        child: RepositoriesScope(
+          repositories: repos,
+          child: UpdateScope(
+            controller: updateController,
+            child: AppThemeScope(
+              notifier: themeNotifier,
+              child: CustomThemesScope(
+                controller: customThemes,
+                child: ActiveDialectScope(
+                  notifier: notifier,
+                  child: RequirePerformedForHistoryScope(
+                    notifier: requirePerformedNotifier,
+                    child: scoped(child!),
+                  ),
                 ),
               ),
             ),
@@ -197,22 +201,49 @@ void main() {
       // Search stays at the far end, away from the cluster.
       expect(tester.getRect(search).left, greaterThan(last.right));
 
-      // The same destinations switch. Selection is exposed to assistive tech.
+      // The same destinations switch. Each tab is one semantics node — not an
+      // outer "selected" wrapper around a second, focusable node — so the state
+      // is announced where keyboard focus lands.
+      for (final label in ['Collection', 'Programs', 'Settings', 'Guide']) {
+        expect(
+          find.descendant(of: topBar, matching: find.bySemanticsLabel(label)),
+          findsOneWidget,
+          reason: '$label should be announced once, not once per wrapper',
+        );
+      }
       expect(
         tester.getSemantics(tabs[0]),
-        isSemantics(isSelected: true, hasTapAction: true),
+        isSemantics(
+          label: 'Collection',
+          isButton: true,
+          isSelected: true,
+          isFocusable: true,
+          hasTapAction: true,
+        ),
       );
       await tester.tap(tabs[1]);
       await tester.pumpAndSettle();
       expect(
         tester.getSemantics(tabs[1]),
-        isSemantics(isSelected: true, hasTapAction: true),
+        isSemantics(
+          label: 'Programs',
+          isButton: true,
+          isSelected: true,
+          isFocusable: true,
+          hasTapAction: true,
+        ),
       );
       await tester.tap(tabs[3]);
       await tester.pumpAndSettle();
       expect(
         tester.getSemantics(tabs[3]),
-        isSemantics(isSelected: true, hasTapAction: true),
+        isSemantics(
+          label: 'Guide',
+          isButton: true,
+          isSelected: true,
+          isFocusable: true,
+          hasTapAction: true,
+        ),
       );
       expect(find.byType(UserGuideScreen), findsOneWidget);
     } finally {
@@ -243,6 +274,92 @@ void main() {
 
       expect(find.byType(NavigationRail), findsOneWidget);
       expect(find.byType(NavigationBar), findsNothing);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
+
+  testWidgets('flipping the horizontal navigation setting keeps the pages '
+      'alive', (tester) async {
+    // A wide rail and a wide top bar are different widget trees (Row vs
+    // Column), so without a shared key Flutter unmounts every page and inflates
+    // fresh ones: the open dance, the scroll positions and keyboard focus would
+    // all be lost by a single preference flip.
+    final repos = openTestRepositories();
+    final now = DateTime.utc(2026, 1, 1);
+    await repos.dances.create(
+      Dance(
+        id: 'd1',
+        title: 'Kept Dance',
+        authorIds: const [],
+        tagIds: const [],
+        form: DanceForm.contra,
+        formation: const Formation(FormationShape.dupleImproper),
+        status: DanceStatus.active,
+        figures: const [],
+        customFields: const [],
+        hook: '',
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+    final topNav = ValueNotifier<bool>(false);
+    addTearDown(topNav.dispose);
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    try {
+      await _pump(
+        tester,
+        repos,
+        size: const Size(1200, 900),
+        horizontalTopNav: topNav,
+      );
+      await tester.tap(find.text('Kept Dance'));
+      await tester.pumpAndSettle();
+      expect(find.byType(DanceDetailScreen), findsOneWidget);
+
+      topNav.value = true;
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('horizontal-top-nav')), findsOneWidget);
+      expect(
+        find.byType(DanceDetailScreen),
+        findsOneWidget,
+        reason:
+            'the Collection page, and the dance open in it, must survive '
+            'the rail-to-top-bar swap',
+      );
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
+
+  testWidgets('the top bar lays out at the minimum wide width with large '
+      'system text', (tester) async {
+    // The desktop OS text-size setting can double every label. The ranked tabs
+    // must scroll instead of overflowing the bar, and search must stay on
+    // screen at the narrowest wide window.
+    final repos = openTestRepositories();
+    final topNav = ValueNotifier<bool>(true);
+    addTearDown(topNav.dispose);
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    try {
+      await _pump(
+        tester,
+        repos,
+        size: const Size(900, 900),
+        horizontalTopNav: topNav,
+        textScaler: const TextScaler.linear(2),
+      );
+
+      expect(find.byKey(const ValueKey('horizontal-top-nav')), findsOneWidget);
+      // A RenderFlex overflow is reported as an exception during layout.
+      expect(tester.takeException(), isNull);
+      expect(
+        tester
+            .getRect(find.byKey(const ValueKey('global-search-button')))
+            .right,
+        lessThanOrEqualTo(900),
+      );
     } finally {
       debugDefaultTargetPlatformOverride = null;
     }
