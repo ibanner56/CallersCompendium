@@ -2590,6 +2590,52 @@ void main() {
       expect(await repo.callingHistoryForDance('d1'), hasLength(1));
     });
 
+    test('updateAndReadBack(keepStoredArchivedAt) keeps an archive or '
+        'unarchive that landed after the caller read the program', () async {
+      await repo.create(sampleProgram());
+      final staleUnarchived = (await repo.getById('p1'))!;
+      // Archived after the caller's read, before its write.
+      await repo.archive('p1', at: at);
+      final archivedAt = (await repo.getById('p1'))!.archivedAt;
+      final saved = await repo.updateAndReadBack(
+        staleUnarchived.copyWith(
+          title: 'Edited',
+          updatedAt: at.add(const Duration(hours: 1)),
+        ),
+        keepStoredArchivedAt: true,
+      );
+      expect(saved.title, 'Edited');
+      expect(saved.archivedAt, archivedAt);
+
+      // And the other way round: unarchived after a read of the archived copy.
+      final staleArchived = saved;
+      await repo.unarchive('p1', at: at.add(const Duration(hours: 2)));
+      final resaved = await repo.updateAndReadBack(
+        staleArchived.copyWith(
+          title: 'Edited again',
+          updatedAt: at.add(const Duration(hours: 3)),
+        ),
+        keepStoredArchivedAt: true,
+      );
+      expect(resaved.title, 'Edited again');
+      expect(resaved.archivedAt, isNull);
+    });
+
+    test(
+      'updateAndReadBack without the flag writes the caller\'s value',
+      () async {
+        await repo.create(sampleProgram());
+        await repo.archive('p1', at: at);
+        final saved = await repo.updateAndReadBack(
+          (await repo.getById('p1'))!.copyWith(
+            clearArchivedAt: true,
+            updatedAt: at.add(const Duration(hours: 1)),
+          ),
+        );
+        expect(saved.archivedAt, isNull);
+      },
+    );
+
     test('duplicating an archived program gives an unarchived copy', () async {
       await repo.create(sampleProgram());
       await repo.archive('p1', at: at);

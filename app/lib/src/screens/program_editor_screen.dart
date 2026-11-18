@@ -3202,6 +3202,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     // The archived state takes the stored value always: nothing in the
     // builder edits it, and the copy this editor loaded can be stale (archived
     // or unarchived elsewhere meanwhile, or by this builder's own Unarchive).
+    // The value that counts is read inside the update's own transaction
+    // (`keepStoredArchivedAt` below); `before` only fills in the copy.
     final before = existing == null
         ? null
         : await _repos.programs.getById(existing.id, includeDeleted: true);
@@ -3234,7 +3236,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       provenance: existing?.provenance,
     );
     if (existing != null) {
-      final stored = await _repos.programs.updateAndReadBack(persisted);
+      // The stored archived state is taken inside the write's transaction, so
+      // an Archive or Unarchive that lands after `before` was read survives.
+      final stored = await _repos.programs.updateAndReadBack(
+        persisted,
+        keepStoredArchivedAt: true,
+      );
       _adoptStoredVenueId(sent: draft.venueId, stored: stored.venueId);
       return stored;
     }

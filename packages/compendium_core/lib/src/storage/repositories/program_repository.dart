@@ -432,15 +432,35 @@ class ProgramRepository {
   ///
   /// The result is the exact token [replaceIfUnchanged] compares against: no
   /// other write can land between this write and its read-back.
-  Future<Program> updateAndReadBack(Program program) =>
-      _db.transaction(() async {
-        await _upsert(program);
-        final stored = await getById(program.id);
-        if (stored == null) {
-          throw StateError('program "${program.id}" vanished inside its write');
-        }
-        return stored;
-      });
+  ///
+  /// With [keepStoredArchivedAt], the stored `archived_at` is kept rather
+  /// than [program]'s, read inside the same transaction as the write. For a
+  /// caller that never edits the archived state (the program builder): an
+  /// [archive] or [unarchive] that lands while its copy is in flight then
+  /// survives the save, which a read made before the transaction could not
+  /// promise.
+  Future<Program> updateAndReadBack(
+    Program program, {
+    bool keepStoredArchivedAt = false,
+  }) => _db.transaction(() async {
+    if (keepStoredArchivedAt) {
+      final storedArchivedAt =
+          await (_db.selectOnly(_db.programs)
+                ..addColumns([_db.programs.archivedAt])
+                ..where(_db.programs.id.equals(program.id)))
+              .map((row) => row.read(_db.programs.archivedAt))
+              .getSingleOrNull();
+      program = storedArchivedAt == null
+          ? program.copyWith(clearArchivedAt: true)
+          : program.copyWith(archivedAt: asUtc(storedArchivedAt));
+    }
+    await _upsert(program);
+    final stored = await getById(program.id);
+    if (stored == null) {
+      throw StateError('program "${program.id}" vanished inside its write');
+    }
+    return stored;
+  });
 
   /// Atomically replaces the program [expected] describes with [replacement],
   /// but only if the stored program still equals [expected] (a value returned
