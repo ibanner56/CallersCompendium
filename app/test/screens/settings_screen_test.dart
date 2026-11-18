@@ -50,9 +50,11 @@ import 'package:compendium_app/src/sync/sync_coordinator.dart';
 import 'package:compendium_app/src/sync/sync_http_client.dart';
 import 'package:compendium_app/src/sync/sync_network.dart';
 import 'package:compendium_app/src/sync/sync_scope.dart';
+import 'package:compendium_app/src/theme/app_spacing.dart';
 import 'package:compendium_app/src/update/update_controller.dart';
 import 'package:compendium_app/src/update/update_scope.dart';
 import 'package:compendium_app/src/widgets/notice_card.dart';
+import 'package:compendium_app/src/widgets/readable_width.dart';
 import 'package:compendium_app/src/widgets/section_header.dart';
 
 import '../support/controllable_sync_transport.dart';
@@ -141,6 +143,9 @@ _pumpSettings(
 
   /// Wires a [ShowCustomFiguresScope] around the screen when given.
   ValueNotifier<bool>? showCustomFigures,
+
+  /// The surface's text direction; RTL mirrors the side-by-side layout.
+  TextDirection textDirection = TextDirection.ltr,
 
   /// Provides a [SyncWriterLifecycleScope] with this reset hook when given.
   Future<bool> Function()? resetToCleanInstall,
@@ -294,7 +299,10 @@ _pumpSettings(
             ),
           );
         },
-        home: SettingsScreen(backupSaver: backupSaver),
+        home: Directionality(
+          textDirection: textDirection,
+          child: SettingsScreen(backupSaver: backupSaver),
+        ),
       ),
     ),
   );
@@ -1357,6 +1365,57 @@ void main() {
       expect(
         find.byKey(const ValueKey('settings-nav-dialect')),
         findsOneWidget,
+      );
+    });
+
+    testWidgets('content pane starts beside the sidebar on a desktop window', (
+      tester,
+    ) async {
+      await _pumpSettings(tester, surfaceSize: const Size(1600, 900));
+      final sidebar = find.byKey(const ValueKey('settings-nav-appearance'));
+      // The selected (default) Appearance pane's first block.
+      final firstBlock = find.byType(SectionHeader).first;
+
+      final gap =
+          tester.getTopLeft(firstBlock).dx - tester.getRect(sidebar).right;
+      expect(
+        gap,
+        lessThanOrEqualTo(AppSpacing.xxl),
+        reason:
+            'the pane is anchored to the sidebar, not centred in the window',
+      );
+      // Still capped at the reading width, with the surplus on the far side.
+      expect(
+        tester.getSize(firstBlock).width,
+        lessThanOrEqualTo(kReadableContentWidth),
+      );
+    });
+
+    testWidgets('content pane still starts beside the sidebar in RTL', (
+      tester,
+    ) async {
+      await _pumpSettings(
+        tester,
+        surfaceSize: const Size(1600, 900),
+        textDirection: TextDirection.rtl,
+      );
+      final sidebar = find.byKey(const ValueKey('settings-nav-appearance'));
+      final firstBlock = find.byType(SectionHeader).first;
+
+      // The Row mirrors, so the pane's leading edge is the right one, next to
+      // the sidebar.
+      final gap =
+          tester.getRect(sidebar).left - tester.getTopRight(firstBlock).dx;
+      expect(
+        gap,
+        lessThanOrEqualTo(AppSpacing.xxl),
+        reason:
+            'the pane follows the sidebar in RTL instead of stranding the '
+            'content at the opposite edge',
+      );
+      expect(
+        tester.getSize(firstBlock).width,
+        lessThanOrEqualTo(kReadableContentWidth),
       );
     });
 

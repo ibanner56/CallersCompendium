@@ -569,7 +569,10 @@ shell** (`screens/settings_screen.dart`):
   content in `_content`.
 - **Wide (≥ 720 px):** a left sidebar list + a content pane side by side
   (`_SettingsSidebar`), selection shown by the highlighted tile **and** a filled
-  icon (never color alone). **Narrow:** the sidebar is a list whose rows push the
+  icon (never color alone). The pane keeps the 760 px reading cap and starts
+  immediately after the sidebar (`ReadableColumnScope`), so the section list is
+  anchored to the content it selects instead of the content floating centred
+  across the window. **Narrow:** the sidebar is a list whose rows push the
   section as its own page with a back-navigable app bar.
 - Each section is its own widget (`_AppearanceView`, `_DialectView`), so state
   (theme selection, dialect) stays lifted in the screen and the panes rebuild

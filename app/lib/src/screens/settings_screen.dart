@@ -6,6 +6,7 @@ import '../data/import_io.dart';
 import '../diagnostics/crash_log_io.dart';
 import '../diagnostics/crash_log_store.dart';
 import '../theme/app_spacing.dart';
+import '../widgets/readable_width.dart';
 import 'settings/about_section.dart';
 import 'settings/appearance_section.dart';
 import 'settings/defaults_section.dart';
@@ -23,8 +24,10 @@ export 'settings/settings_keys.dart';
 
 /// Settings screen: a master–detail layout with a sidebar of sections and a
 /// content pane. On wide viewports the sidebar and the selected section sit
-/// side by side; on narrow viewports the sidebar is a list whose rows push the
-/// section as its own page. Adding a settings page is just a new
+/// side by side, the pane capped at the readable width and starting immediately
+/// after the sidebar (not centred in the window, which would strand the content
+/// from the section list); on narrow viewports the sidebar is a list whose rows
+/// push the section as its own page. Adding a settings page is just a new
 /// [_SettingsSection] value plus its content in [_SettingsScreenState._content].
 ///
 /// Changes take effect immediately (live update via the relevant scope).
@@ -209,7 +212,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
                 const VerticalDivider(width: 1, thickness: 1),
-                Expanded(child: _content(context, _section)),
+                Expanded(
+                  // Anchored at the start so the pane sits beside the section
+                  // list instead of being centred across the rest of the
+                  // window (see [ReadableColumnScope]).
+                  child: ReadableColumnScope(
+                    alignment: ReadableColumnAlignment.start,
+                    child: _content(context, _section),
+                  ),
+                ),
               ],
             ),
           );

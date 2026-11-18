@@ -1,0 +1,9 @@
+{
+  "id": "settings-pane-anchored-to-sidebar",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "On a wide window, Settings now starts beside its category list instead of sitting in the middle of the screen, so the categories and the settings they open are easier to read together."
+    ]
+  }
+}

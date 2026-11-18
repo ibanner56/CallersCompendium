@@ -164,9 +164,12 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   fields) keeps a heading above it, because a floating label belongs to one
   field, not a group.
 - **Reading width**: dance detail, this form, the Settings panes and the user
-  guide's text stop growing at 760 px and stay centred, with the scrollbar at
-  the window edge (`widgets/readable_width.dart`; maintainer decision D-8,
-  2026-10-29). The program screens are not yet capped.
+  guide's text stop growing at 760 px (`widgets/readable_width.dart`; maintainer
+  decision D-8, 2026-10-29). Dance detail, the editor form and the guide centre
+  that column with the scrollbar at the window edge; a Settings pane in the
+  desktop side-by-side layout starts at its section sidebar instead, so the
+  categories and the content they select read as one column rather than being
+  split across the window. The program screens are not yet capped.
 - Autosave drafts; explicit save commits; undo history.
 
 ### 4. Programs list & builder
