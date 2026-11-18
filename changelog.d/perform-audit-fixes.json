@@ -1,0 +1,18 @@
+{
+  "id": "perform-audit-fixes",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "You can turn off the Exit Perform? question in Settings › Program › Performance with Confirm before leaving Perform, so the close button and Back leave Perform in one tap."
+    ],
+    "changed": [
+      "In program Perform, the footer labels its two clocks Program and Slot, and the program title wraps onto a second line instead of being cut short on a phone.",
+      "Perform's footer stops growing at twice its normal size when you use a very large device text size, leaving more room for the card."
+    ],
+    "fixed": [
+      "Closing the Adjust program sheet by swiping it down, tapping outside it, or going back now keeps your reorders and performed marks instead of discarding them.",
+      "With the stage theme on, the Exit Perform? question and the Tap tempo, Jump to slot and Adjust program panels now appear in the dark stage theme instead of the app's theme.",
+      "Auto-size in Perform no longer shrinks the figures below your device's text size; a dance too long to fit at that size scrolls instead, so a larger text setting always gives larger figures."
+    ]
+  }
+}

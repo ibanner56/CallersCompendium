@@ -269,6 +269,10 @@ They don't change what is shared when you share the whole program as a
 - **Show caller notes in program Perform** (on) — shows each non-empty
   per-slot caller note above the dance title while performing a program. Turn it
   off when you want the program card to show only the dance's own details.
+- **Confirm before leaving Perform** (on) — makes the close button and Back ask
+  *Exit Perform?* before taking you out of Perform, so a stray tap can't drop
+  you out mid-dance. Turn it off to leave in one tap; a program's place and
+  clock are kept either way. See [Leaving Perform](./perform.md#leaving-perform).
 
 ### Calling history
 
