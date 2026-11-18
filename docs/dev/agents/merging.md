@@ -34,7 +34,7 @@ reasoning below when a gate fails, or when you are checking by hand.
   outside the diff exists in the review body only, so no inline comment or
   thread records it and the other gates pass. On `APPROVE-WITH-NITS` because a
   resolved thread is not a cleared item: fix each item, or dispute it and
-  re-run the review so the next round re-judges it. A dispute the reviewer
+  re-request the review so the next round re-judges it. A dispute the reviewer
   upholds goes to the maintainer. Details:
   [code-review.md](code-review.md#requesting-a-claude-review).
 
