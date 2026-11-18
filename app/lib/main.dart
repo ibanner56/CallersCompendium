@@ -961,7 +961,7 @@ class _CompendiumAppState extends State<CompendiumApp>
   /// close. Failing that, a page leaves through [NavigatorState.maybePop],
   /// which consults its `PopScope` exactly as the system back gesture does, so
   /// an editor with unsaved changes asks first and Perform asks before it
-  /// closes. A dialog that does not close on a tap outside stays: it is
+  /// closes unless its confirmation is turned off. A dialog that does not close on a tap outside stays: it is
   /// waiting for an answer.
   void _goBack() {
     final focused = FocusManager.instance.primaryFocus?.context;
