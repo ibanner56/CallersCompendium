@@ -258,7 +258,8 @@ They don't change what is shared when you share the whole program as a
 ### Performance
 
 - **Auto-size Perform cards** (on) — scales each card so it fits the screen in
-  [Perform mode](./glossary.md#perform-mode). Turn it off when you'd rather size
+  [Perform mode](./glossary.md#perform-mode), but never below your usual text
+  size; a card too long for that scrolls. Turn it off when you'd rather size
   the text yourself using the **A−** and **A+** buttons while performing. See
   [Perform mode](./perform.md) for more. Like the stage theme and the text size
   you pick in Perform, this setting belongs to this device: it is not synced to

@@ -82,13 +82,12 @@ lighting. Toggle it off to fall back to your usual app theme. Its tooltip reads
 so there is no guessing, and it stays where you put it — next time too.
 
 **Auto-size text to screen.** Out of the box this is on: the card scales so the
-current dance's full text fits the screen without scrolling, recomputing whenever
-you move to a new dance or slot, rotate the device, or resize the window. So the
-text is always as large as it can be while still fitting. It never shrinks the
-figures below the size of ordinary text in the rest of the app, which follows
-your device's text-size setting: a dance too long to fit at that size scrolls
-instead, so a larger text setting always means larger figures. It starts however
-you set **Auto-size Perform cards** in
+current dance's full text fits the screen, recomputing whenever you move to a
+new dance or slot, rotate the device, or resize the window. So the text is as
+large as it can be while still fitting. It never shrinks the figure lines below
+the size of ordinary text in the rest of the app, which follows your device's
+text-size setting: a dance too long to fit at that size scrolls instead of
+getting smaller. It starts however you set **Auto-size Perform cards** in
 [Settings › Program › Performance](./settings.md#performance), and the in-view
 toggle flips it until you leave Perform.
 
@@ -300,12 +299,6 @@ When the stage theme is on, this question — like the other panels Perform
 opens, such as **Tap tempo** and **Adjust program** — appears in the stage theme
 too, rather than as a bright panel over the dark stage.
 
-If you would rather leave in one tap, turn off **Confirm before leaving
-Perform** in [Settings › Program › Performance](./settings.md#performance).
-**Exit Perform mode**, **Ctrl-W** and **Back** then leave straight away. Nothing
-is lost either way: a program keeps your place and clock, and a single dance
-never keeps its place.
-
 **Keep performing** returns you to the card; **Exit** leaves. When you are
 calling a program, your place and the clock are kept for as long as that
 program stays open, so you can step out to check something and choose **Perform
@@ -317,6 +310,12 @@ back from it to the list — or performing a single dance starts the next sessio
 fresh. For that reason the
 exit check on a single dance says so instead of promising a resume: *Performing
 a single dance doesn't keep your place, so the next time starts fresh.*
+
+If you would rather leave in one tap, turn off **Confirm before leaving
+Perform** in [Settings › Program › Performance](./settings.md#performance).
+**Exit Perform mode**, **Ctrl-W** and **Back** then leave straight away. Leaving
+that way keeps exactly what the question describes above: a program's place and
+clock while the program stays open, and nothing for a single dance.
 
 ## Print or share a single dance
 

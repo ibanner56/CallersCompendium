@@ -12,7 +12,7 @@
     "fixed": [
       "Closing the Adjust program sheet by swiping it down, tapping outside it, or going back now keeps your reorders and performed marks instead of discarding them.",
       "With the stage theme on, the Exit Perform? question and the Tap tempo, Jump to slot and Adjust program panels now appear in the dark stage theme instead of the app's theme.",
-      "Auto-size in Perform no longer shrinks the figures below your device's text size; a dance too long to fit at that size scrolls instead, so a larger text setting always gives larger figures."
+      "Auto-size in Perform no longer shrinks the figures below your device's usual text size; a dance too long to fit at that size scrolls instead."
     ]
   }
 }

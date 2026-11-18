@@ -3282,7 +3282,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsGeneralAutoSizePerformSubtitle =>
-      'Schaal elke kaart zodat de volledige dans of het slot op het scherm past zonder scrollen. Uitschakelen om de grootte zelf in te stellen met A− / A+.';
+      'Schaal elke kaart zodat die op het scherm past, maar nooit kleiner dan je gebruikelijke tekstgrootte: een langere dans of een langer slot scrolt dan. Uitschakelen om de grootte zelf in te stellen met A− / A+.';
 
   @override
   String get settingsShowIndividualPerformTimerTitle =>

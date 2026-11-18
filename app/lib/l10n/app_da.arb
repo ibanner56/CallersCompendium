@@ -3236,9 +3236,9 @@
   "@settingsGeneralAutoSizePerformTitle": {
     "x-sourceSha256": "c0bfd33d0a019dedc10bf06f44fe22d10462da2a9e4e1412d8167e5c8bfcb664"
   },
-  "settingsGeneralAutoSizePerformSubtitle": "Skalér hvert kort, så den fulde dans eller slot passer på skærmen uden at skulle rulle. Deaktiver for at angive størrelsen selv med A- / A+.",
+  "settingsGeneralAutoSizePerformSubtitle": "Skalér hvert kort, så det passer på skærmen, men aldrig mindre end din sædvanlige tekststørrelse: en længere dans eller slot ruller i stedet. Deaktiver for at angive størrelsen selv med A- / A+.",
   "@settingsGeneralAutoSizePerformSubtitle": {
-    "x-sourceSha256": "5fc58c7fdd31965d66905ccee7c0b386915c511918a7c617de33fdd92c66d0f0"
+    "x-sourceSha256": "374076544dee2c6b2dd1d60aa28c5ffa118b3d3d09d76c614a6649fa0cf89970"
   },
   "settingsShowIndividualPerformTimerTitle": "Vis timer til individuel Perform",
   "@settingsShowIndividualPerformTimerTitle": {

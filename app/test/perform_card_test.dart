@@ -350,6 +350,54 @@ void main() {
   }
 
   testWidgets(
+    'auto-size never draws a free-text card below the OS-scaled body size',
+    (tester) async {
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.binding.setSurfaceSize(const Size(420, 220));
+      const systemScale = 3.0;
+      final long = List.filled(12, 'Waltz break, then announcements').join(' ');
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: Builder(
+            builder: (context) => MediaQuery(
+              data: MediaQuery.of(
+                context,
+              ).copyWith(textScaler: const TextScaler.linear(systemScale)),
+              child: Scaffold(
+                body: PerformTextCard(
+                  text: long,
+                  textScale: 1.0,
+                  renderer: _renderer,
+                  dialect: Dialect.larksRobins,
+                  autoSize: true,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      final paragraph = tester.renderObject<RenderParagraph>(
+        find.byKey(const ValueKey('perform-text')),
+      );
+      final drawn = paragraph.textScaler.scale(paragraph.text.style!.fontSize!);
+      final body =
+          Theme.of(
+            tester.element(find.byType(PerformTextCard)),
+          ).textTheme.bodyLarge!.fontSize! *
+          systemScale;
+      expect(drawn, greaterThanOrEqualTo(body - 0.01));
+      // The card's own body is larger than ordinary body text, so its floor
+      // sits below it: the card does shrink, just not past the body size.
+      expect(drawn, lessThan(body * 1.5));
+    },
+  );
+
+  testWidgets(
     'auto-size keeps the whole card reachable by scrolling when even the '
     'smallest fit overflows a very short window (never clipped, issue #527)',
     (tester) async {

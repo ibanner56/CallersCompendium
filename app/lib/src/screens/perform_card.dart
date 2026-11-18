@@ -106,7 +106,8 @@ class PerformCard extends StatelessWidget {
   final String? callerNote;
 
   /// When `true`, ignore [textScale] and auto-scale so the full card fits the
-  /// viewport without scrolling (ROADMAP G.1). When `false`, use [textScale]
+  /// viewport (ROADMAP G.1), but never below the OS body text size: a card too
+  /// long to fit at that size scrolls (see [performMinAutoScale]). When `false`, use [textScale]
   /// (the manual A-/A+ size, Phase 5.1).
   final bool autoSize;
 
@@ -347,7 +348,8 @@ class PerformFitScaleCache {
 
 /// Auto-scales [builder]'s content to the largest text scale in
 /// `[minScale, maxScale]` whose full natural height fits the available viewport
-/// without scrolling (ROADMAP G.1).
+/// without scrolling (ROADMAP G.1), or settles at `minScale` and scrolls when
+/// nothing in that range fits.
 ///
 /// Uses a [LayoutBuilder] for the viewport and a post-frame measurement of the
 /// content's natural (unbounded) height via a [GlobalKey], binary-searching the

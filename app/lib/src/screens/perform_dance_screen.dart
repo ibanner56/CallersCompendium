@@ -170,7 +170,9 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
           // diagnostics: silent — auto-size pref read failed; keeps on-by-default value.
         });
     loadConfirmPerformExit(context).then((value) {
-      if (mounted) _confirmExit = value;
+      if (mounted && value != _confirmExit) {
+        setState(() => _confirmExit = value);
+      }
     });
     settings
         .get(kShowIndividualPerformTimerKey)
@@ -354,10 +356,14 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
 
   /// Wraps the Perform scaffold so an implicit pop (system back /
   /// predictive-back gesture) is intercepted and routed through the same
-  /// [_confirmAndExit] confirmation as the close control (issue #612).
+  /// [_confirmAndExit] confirmation as the close control (issue #612), while
+  /// the confirmation is on.
   Widget _guardExit({required Widget child}) {
     return PopScope(
-      canPop: false,
+      // With the confirmation turned off, Perform pops like any route, so
+      // gesture-driven back (the iOS edge swipe, which a non-poppable route
+      // disables) leaves at once too.
+      canPop: !_confirmExit,
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) return;
         _confirmAndExit();

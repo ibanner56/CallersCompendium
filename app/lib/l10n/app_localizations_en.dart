@@ -3231,7 +3231,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsGeneralAutoSizePerformSubtitle =>
-      'Scale each card so the full dance or slot fits the screen without scrolling. Turn off to set the size yourself with A- / A+.';
+      'Scale each card to fit the screen, but never below your usual text size: a longer dance or slot scrolls instead. Turn off to set the size yourself with A- / A+.';
 
   @override
   String get settingsShowIndividualPerformTimerTitle =>

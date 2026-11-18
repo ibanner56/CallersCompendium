@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 
@@ -38,11 +39,12 @@ class PerformAdjustSheet extends StatefulWidget {
 
   final Program program;
 
-  /// Called with the working copy after every edit. The opener keeps the
-  /// latest value and applies it when the sheet closes without a result
-  /// (swipe-down, barrier tap, back), so **Done** is not the only way to keep
-  /// the edits.
-  final ValueChanged<Program>? onEdited;
+  /// Called after every edit with the working copy, or with `null` once the
+  /// edits have cancelled out (a mark cleared again, a slot moved back). The
+  /// opener keeps the latest value and applies it when the sheet closes
+  /// without a result (swipe-down, barrier tap, back), so **Done** is not the
+  /// only way to keep the edits.
+  final ValueChanged<Program?>? onEdited;
 
   /// The group the reading view is on. The current group and everything after
   /// it are reorderable; already-passed groups stay fixed.
@@ -90,12 +92,13 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
 
   final _noteController = TextEditingController();
 
-  /// Records that [_working] now differs from the program the sheet opened
+  /// Records whether [_working] now differs from the program the sheet opened
   /// with, and reports it to [PerformAdjustSheet.onEdited]. Called inside each
-  /// edit's `setState`, after [_working] is assigned.
+  /// edit's `setState`, after [_working] is assigned. Edits that cancel out
+  /// leave nothing to apply, so closing the sheet after them changes nothing.
   void _markChanged() {
-    _changed = true;
-    widget.onEdited?.call(_working);
+    _changed = !listEquals(_working.slots, widget.program.slots);
+    widget.onEdited?.call(_changed ? _working : null);
   }
 
   @override

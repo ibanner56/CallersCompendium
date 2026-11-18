@@ -3313,7 +3313,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsGeneralAutoSizePerformSubtitle =>
-      'Ajuste chaque fiche pour que la danse ou le créneau complet tienne à l’écran sans défilement. Désactivez pour régler la taille vous-même avec A- / A+.';
+      'Ajuste chaque fiche à l’écran, sans jamais descendre sous votre taille de texte habituelle : une danse ou un créneau plus long défile alors. Désactivez pour régler la taille vous-même avec A- / A+.';
 
   @override
   String get settingsShowIndividualPerformTimerTitle =>

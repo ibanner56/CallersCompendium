@@ -3236,9 +3236,9 @@
   "@settingsGeneralAutoSizePerformTitle": {
     "x-sourceSha256": "c0bfd33d0a019dedc10bf06f44fe22d10462da2a9e4e1412d8167e5c8bfcb664"
   },
-  "settingsGeneralAutoSizePerformSubtitle": "Jede Karte so skalieren, dass der vollständige Tanz oder Slot ohne Scrollen auf den Bildschirm passt. Deaktivieren, um die Größe selbst mit A− / A+ einzustellen.",
+  "settingsGeneralAutoSizePerformSubtitle": "Jede Karte so skalieren, dass sie auf den Bildschirm passt, aber nie kleiner als deine übliche Textgröße: Ein längerer Tanz oder Slot wird stattdessen gescrollt. Deaktivieren, um die Größe selbst mit A− / A+ einzustellen.",
   "@settingsGeneralAutoSizePerformSubtitle": {
-    "x-sourceSha256": "5fc58c7fdd31965d66905ccee7c0b386915c511918a7c617de33fdd92c66d0f0"
+    "x-sourceSha256": "374076544dee2c6b2dd1d60aa28c5ffa118b3d3d09d76c614a6649fa0cf89970"
   },
   "settingsShowIndividualPerformTimerTitle": "Timer für einzelne Perform-Ansicht anzeigen",
   "@settingsShowIndividualPerformTimerTitle": {

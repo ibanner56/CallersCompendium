@@ -3097,7 +3097,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsGeneralAutoSizePerformSubtitle =>
-      '各カードのサイズを調整して、ダンスまたはスロット全体がスクロールなしで画面に収まるようにします。A- / A+で自分でサイズを設定する場合はオフにしてください。';
+      '各カードを画面に収まるように調整しますが、通常の文字サイズより小さくはしません。長いダンスやスロットはスクロールで表示します。A- / A+で自分でサイズを設定する場合はオフにしてください。';
 
   @override
   String get settingsShowIndividualPerformTimerTitle => '個別のパフォームでタイマーを表示';

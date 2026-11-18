@@ -4976,7 +4976,7 @@ abstract class AppLocalizations {
   /// Subtitle explaining the auto-size Perform cards toggle. 'A-' and 'A+' refer to text-size controls.
   ///
   /// In en, this message translates to:
-  /// **'Scale each card so the full dance or slot fits the screen without scrolling. Turn off to set the size yourself with A- / A+.'**
+  /// **'Scale each card to fit the screen, but never below your usual text size: a longer dance or slot scrolls instead. Turn off to set the size yourself with A- / A+.'**
   String get settingsGeneralAutoSizePerformSubtitle;
 
   /// Title of the Program settings toggle that shows an elapsed timer while performing a single dance outside a program.

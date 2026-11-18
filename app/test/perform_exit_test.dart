@@ -166,6 +166,25 @@ void main() {
         expect(_performShowing(), isFalse);
       });
 
+      testWidgets('the route is poppable, so gesture back works, only when '
+          'the setting is off', (tester) async {
+        await _pushPerform(tester, surface, confirmExit: false);
+        final route = ModalRoute.of(
+          tester.element(find.byKey(ValueKey(surface.exitKey))),
+        )!;
+        expect(route.popDisposition, RoutePopDisposition.pop);
+      });
+
+      testWidgets('the route blocks a gesture pop while the setting is on', (
+        tester,
+      ) async {
+        await _pushPerform(tester, surface, confirmExit: true);
+        final route = ModalRoute.of(
+          tester.element(find.byKey(ValueKey(surface.exitKey))),
+        )!;
+        expect(route.popDisposition, RoutePopDisposition.doNotPop);
+      });
+
       testWidgets('still asks on system Back when the setting is on', (
         tester,
       ) async {

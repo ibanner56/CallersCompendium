@@ -317,6 +317,33 @@ void main() {
       });
     }
 
+    testWidgets('edits that cancel out change nothing when the sheet closes', (
+      tester,
+    ) async {
+      final persisted = await _pumpAdjustable(
+        tester,
+        dances: dances,
+        program: twoSlots(),
+      );
+      await _openAdjust(tester);
+      final mark = find.byKey(const ValueKey('adjust-mark-performed'));
+      await tester.tap(mark);
+      await tester.pumpAndSettle();
+      await tester.tap(mark);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('adjust-move-down-0')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('adjust-move-up-1')));
+      await tester.pumpAndSettle();
+
+      await dismissals['swipe down']!(tester);
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('adjust-done')), findsNothing);
+      expect(persisted, isEmpty);
+      expect(find.text('Undo'), findsNothing);
+    });
+
     testWidgets('closing the sheet with no edits changes nothing', (
       tester,
     ) async {

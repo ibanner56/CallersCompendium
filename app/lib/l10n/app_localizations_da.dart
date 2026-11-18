@@ -3255,7 +3255,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsGeneralAutoSizePerformSubtitle =>
-      'Skalér hvert kort, så den fulde dans eller slot passer på skærmen uden at skulle rulle. Deaktiver for at angive størrelsen selv med A- / A+.';
+      'Skalér hvert kort, så det passer på skærmen, men aldrig mindre end din sædvanlige tekststørrelse: en længere dans eller slot ruller i stedet. Deaktiver for at angive størrelsen selv med A- / A+.';
 
   @override
   String get settingsShowIndividualPerformTimerTitle =>

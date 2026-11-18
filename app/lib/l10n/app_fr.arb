@@ -3236,9 +3236,9 @@
   "@settingsGeneralAutoSizePerformTitle": {
     "x-sourceSha256": "c0bfd33d0a019dedc10bf06f44fe22d10462da2a9e4e1412d8167e5c8bfcb664"
   },
-  "settingsGeneralAutoSizePerformSubtitle": "Ajuste chaque fiche pour que la danse ou le créneau complet tienne à l’écran sans défilement. Désactivez pour régler la taille vous-même avec A- / A+.",
+  "settingsGeneralAutoSizePerformSubtitle": "Ajuste chaque fiche à l’écran, sans jamais descendre sous votre taille de texte habituelle : une danse ou un créneau plus long défile alors. Désactivez pour régler la taille vous-même avec A- / A+.",
   "@settingsGeneralAutoSizePerformSubtitle": {
-    "x-sourceSha256": "5fc58c7fdd31965d66905ccee7c0b386915c511918a7c617de33fdd92c66d0f0"
+    "x-sourceSha256": "374076544dee2c6b2dd1d60aa28c5ffa118b3d3d09d76c614a6649fa0cf89970"
   },
   "settingsShowIndividualPerformTimerTitle": "Afficher le minuteur pour un Perform individuel",
   "@settingsShowIndividualPerformTimerTitle": {

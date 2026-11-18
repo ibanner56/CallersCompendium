@@ -471,6 +471,18 @@ void main() {
     },
   );
 
+  testWidgets('confirm-before-leaving-Perform toggle shows a stored off', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.settings.set(kConfirmPerformExitKey, false);
+
+    await _pumpProgram(tester, repos);
+
+    final toggle = find.byKey(const ValueKey('settings-confirm-perform-exit'));
+    expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
+  });
+
   testWidgets(
     'program caller notes toggle defaults on, is accessible, and persists',
     (tester) async {

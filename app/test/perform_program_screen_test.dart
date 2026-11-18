@@ -2364,6 +2364,44 @@ void main() {
     expect(appBar.bottom, greaterThanOrEqualTo(titleRect.bottom));
   });
 
+  testWidgets('a long timing line on a narrow phone does not shrink the '
+      'slot position above it', (tester) async {
+    final data = await _dataWith([_dance(id: 'd1', title: 'First Dance')]);
+    await _pumpProgram(
+      tester,
+      program: _program([
+        _slot(
+          id: 's1',
+          position: 0,
+          danceId: 'd1',
+          // Planned minutes lengthen the timing line; a zero walkthrough
+          // keeps the dance-start button out, so the position has the whole
+          // centre of the bar to itself.
+          walkthroughMinutes: 0,
+          danceMinutes: 8,
+        ),
+      ]),
+      data: data,
+      surfaceSize: const Size(360, 800),
+    );
+
+    expect(tester.takeException(), isNull);
+    expect(find.byKey(const ValueKey('perform-planned')), findsOneWidget);
+    final position = find.byKey(const ValueKey('perform-position'));
+    // Laid-out height against on-screen height: equal means no FittedBox
+    // scaled the position down to make room for the timing line.
+    expect(
+      tester.getRect(position).height,
+      closeTo(tester.getSize(position).height, 0.01),
+    );
+    // The timing line itself is the one that gives way.
+    final clock = find.byKey(const ValueKey('perform-clock'));
+    expect(
+      tester.getRect(clock).height,
+      lessThan(tester.getSize(clock).height),
+    );
+  });
+
   group('Perform bottom bar and Undo (CS-36)', () {
     Future<List<Program>> pumpPushed(
       WidgetTester tester, {

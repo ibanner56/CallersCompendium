@@ -535,7 +535,9 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
           // diagnostics: silent — a11y prefs load/parse failed; keeps defaults.
         });
     loadConfirmPerformExit(context).then((value) {
-      if (mounted) _confirmExit = value;
+      if (mounted && value != _confirmExit) {
+        setState(() => _confirmExit = value);
+      }
     });
     settings
         .get(kShowProgramSlotCallerNotesKey)
@@ -654,12 +656,16 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
 
   /// Wraps a Perform scaffold so an implicit pop (system back / predictive-back
   /// gesture) is intercepted and routed through the same [_confirmAndExit]
-  /// confirmation as the close control (issue #434). Applied to *both* the
+  /// confirmation as the close control (issue #434), while the confirmation is
+  /// on. Applied to *both* the
   /// populated and empty-state builds so a single tap / back never drops the
   /// caller out — the guard's contract holds regardless of slot count.
   Widget _guardExit({required Widget child}) {
     return PopScope(
-      canPop: false,
+      // With the confirmation turned off, Perform pops like any route, so
+      // gesture-driven back (the iOS edge swipe, which a non-poppable route
+      // disables) leaves at once too.
+      canPop: !_confirmExit,
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) return;
         _confirmAndExit();
@@ -1095,9 +1101,10 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     final enrichment = SearchEnrichment.fromDialects(
       library?.all ?? const <Dialect>[],
     );
-    // The sheet reports every edit as it happens; [latest] keeps the last one
-    // so a sheet dismissed without Done (swipe down, barrier tap, Back) still
-    // commits its edits rather than discarding them. They
+    // The sheet reports every edit as it happens (null once the edits cancel
+    // out); [latest] keeps the last report so a sheet dismissed without Done
+    // (swipe down, barrier tap, Back) still commits its edits rather than
+    // discarding them. They
     // are applied with the same undo as Done, so keeping them is cheap to
     // reverse, while losing reorders made mid-gig is not.
     Program? latest;
@@ -1170,13 +1177,14 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
         : ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
   }
 
-  /// The program title's type: `titleMedium`'s metrics with no colour, so the
-  /// AppBar's own foreground colour (from whichever theme is active) applies.
+  /// The program title's type: the AppBar's usual `titleLarge` metrics, with no
+  /// colour, so the AppBar's own foreground colour (from whichever theme is
+  /// active) applies.
   TextStyle _programTitleStyle(BuildContext context) {
-    final base = Theme.of(context).textTheme.titleMedium;
+    final base = Theme.of(context).textTheme.titleLarge;
     return TextStyle(
-      fontSize: base?.fontSize ?? 16,
-      height: base?.height ?? 1.5,
+      fontSize: base?.fontSize ?? 22,
+      height: base?.height ?? 1.27,
       fontWeight: base?.fontWeight,
       letterSpacing: base?.letterSpacing,
     );
@@ -1188,12 +1196,13 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     context,
   ).clamp(maxScaleFactor: kPerformChromeMaxTextScale);
 
-  /// Tall enough for two lines of the program title, and
-  /// never shorter than the standard toolbar.
+  /// Tall enough for two lines of the program title, and never shorter than
+  /// the standard toolbar. At the default text size two lines fit the standard
+  /// toolbar exactly, so it grows only with a larger text setting.
   double _toolbarHeight(BuildContext context) {
     final style = _programTitleStyle(context);
     final line = _chromeScaler(context).scale(style.fontSize!) * style.height!;
-    return math.max(kToolbarHeight, 2 * line + 8);
+    return math.max(kToolbarHeight, 2 * line);
   }
 
   /// The program title in the AppBar. It wraps onto a second line rather than
@@ -1531,7 +1540,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
           // Grow with the (capped) system text size (A11Y-01): the fixed
           // 80 px bar cannot hold the position + timing lines at large
           // scales.
-          height: MediaQuery.textScalerOf(context).scale(80).clamp(80.0, 200.0),
+          height: math.max(80.0, MediaQuery.textScalerOf(context).scale(80)),
           child: Row(
             children: [
               _buildPauseButton(),
@@ -1551,23 +1560,38 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                     // outer ambient theme.
                     builder: (context) {
                       final textTheme = Theme.of(context).textTheme;
-                      // Fallback for scales beyond the clamped bar height.
-                      final readout = FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              l10n.performSlotPosition(
-                                _groupIndex + 1,
-                                _groups.length,
-                              ),
-                              key: const ValueKey('perform-position'),
-                              style: textTheme.titleMedium,
+                      // Each line scales down to the available width on its
+                      // own, so a long timing line (labels, planned minutes)
+                      // on a narrow phone never shrinks the position above
+                      // it. The outer FittedBox is only the fallback for a
+                      // height beyond the capped bar; the width it would
+                      // otherwise leave unbounded is pinned to the slot's.
+                      final readout = LayoutBuilder(
+                        builder: (context, constraints) => FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxWidth: constraints.maxWidth,
                             ),
-                            const SizedBox(height: 2),
-                            _buildTimingLine(slot, textTheme),
-                          ],
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    l10n.performSlotPosition(
+                                      _groupIndex + 1,
+                                      _groups.length,
+                                    ),
+                                    key: const ValueKey('perform-position'),
+                                    style: textTheme.titleMedium,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                _buildTimingLine(slot, textTheme),
+                              ],
+                            ),
+                          ),
                         ),
                       );
                       if (!_hasSeparateWalkthrough(slot)) {
@@ -1747,12 +1771,11 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Each clock carries a short visible label: two
-                  // bare "0:04" readouts gave no hint which timed
-                  // the evening and which the dance. The words match the
-                  // semantic label above ("Program time …, slot time …").
-                  const Icon(Icons.timer_outlined, size: 16),
-                  const SizedBox(width: 4),
+                  // Each clock carries a short visible label: two bare "0:04"
+                  // readouts gave no hint which timed the evening and which
+                  // the dance. The words match the semantic label above
+                  // ("Program time …, slot time …"), and replace the generic
+                  // timer icon, which said only that these are clocks.
                   Text(
                     l10n.performProgramClockLabel,
                     key: const ValueKey('perform-clock-label'),
