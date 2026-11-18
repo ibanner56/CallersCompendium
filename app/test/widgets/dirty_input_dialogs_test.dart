@@ -102,6 +102,21 @@ void main() {
     expect(find.byKey(const ValueKey('library-rename-dialog')), findsNothing);
   });
 
+  testWidgets('rename dialog: a reopened dialog seeded with a pending name '
+      'keeps it on an outside tap', (tester) async {
+    await _pumpOpener(
+      tester,
+      (c) => showLibraryRenameDialog(
+        c,
+        currentName: 'Old',
+        fieldLabel: 'Name',
+        initialText: 'Pending name',
+      ),
+    );
+    await _tapOutside(tester);
+    expect(find.byKey(const ValueKey('library-rename-dialog')), findsOneWidget);
+  });
+
   testWidgets('add-choice dialog: outside tap keeps typed text', (
     tester,
   ) async {

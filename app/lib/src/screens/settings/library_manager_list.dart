@@ -431,7 +431,9 @@ class _RenameDialogState extends State<_RenameDialog> {
     final l10n = AppLocalizations.of(context);
     return DirtyDialogGuard(
       listenable: _controller,
-      isDirty: () => _controller.text != widget.initialText,
+      // Against the name being renamed, not the seed: a dialog reopened with
+      // the name typed last time starts out holding text the user has not saved.
+      isDirty: () => _controller.text != widget.currentName,
       child: AlertDialog(
         key: const ValueKey('library-rename-dialog'),
         title: Text(l10n.libraryManagerRenameTitle(widget.currentName)),
