@@ -105,10 +105,15 @@ label stays on, so freshness takes care of itself. A push by a non-human actor,
 such as Copilot, fails the action's actor check: no round runs, the
 `claude-review` check on that head goes red (so `check_pr_review_gates.py ci`
 fails on it), and the head has no Claude review. Have someone with write access
-remove the label and add it back to start a round on that head. To review the
-same head again, do the same. To stop further rounds, remove the label. Each
-round costs a model run on the maintainer's Claude subscription, so remove the
-label once you no longer need reviews.
+remove the label and add it back to start a round on that head. That round
+reviews the head, but it runs as a new check suite, so the red run stays in
+the gate's view (see [Retrying a failed round](#retrying-a-failed-round)) and
+`ci` keeps failing until the next push by a human moves the head. Whether
+re-running the red run instead would pass the action's actor check is
+untested. To re-request a review of a head whose last round succeeded, remove
+the label and add it back; that adds no red run. To stop further rounds,
+remove the label. Each round costs a model run on the maintainer's Claude
+subscription, so remove the label once you no longer need reviews.
 
 A round can also end with Claude finished and no review posted: the model ends
 its turn without submitting (#1893 had three such rounds). The job then fails
@@ -117,10 +122,49 @@ that head. The step accepts only a `claude[bot]` review entry of the head newer
 than the newest one on the PR when the round started, so a review from an
 earlier round on the same head does not count. An inline-thread reply that
 `claude.yml` posts during the round also records such an entry, and would pass
-the step. To try again, remove the label and add it back. Re-running the failed
-job reuses its original event: after a newer push it files its review against
-that run's old head, although `gh pr diff` gives it the PR's current diff, and
-it runs even if the label has since been removed. By default the action hides
+the step.
+
+### Retrying a failed round
+
+When a round on the current head failed (no review posted, the action
+erroring, or, as on #2222, the maintainer's usage limit cutting it off),
+**re-run the failed job; do not remove the label and add it back.** The
+reason is how the `ci` gate sees check runs. It reads the head's check runs
+from the REST API, whose default `filter=latest` keeps the newest run of each
+check name *within one check suite*:
+
+- a **re-run** is a new attempt in the failed run's own suite, so it replaces
+  the failed run in the gate's view;
+- **removing the label and adding it back** starts a new workflow run, which
+  is a new suite, so the failed run stays in view and `ci` fails however the
+  new round ends.
+
+Evidence: [incidents.md](incidents.md#2222-a-relabelled-review-left-ci-red).
+
+To re-run:
+
+1. Wait until the failed run has completed; a run still in progress cannot be
+   re-run.
+2. Find its ID: the `claude-review` check's details link on the PR, or
+   `gh run list --workflow claude-code-review.yml --branch <BRANCH>`.
+3. Make sure no other round is running on the PR. Every round shares one
+   concurrency group with `cancel-in-progress`, so a re-run started during
+   another round cancels one of them.
+4. `gh run rerun <RUN_ID> --failed` (or *Re-run failed jobs* on the run).
+5. When it finishes, run `check_pr_review_gates.py ci <PR>`. If it still
+   fails, read the check names it prints.
+
+A re-run is a full round: it costs a model run and posts a fresh verdict,
+which can raise new findings that the next push must address.
+
+Re-run only while the head is unchanged. A re-run reuses its original event:
+after a newer push it files its review against that run's old head, although
+`gh pr diff` gives it the PR's current diff, and it runs even if the label has
+since been removed. After a human's newer push there is nothing to retry: the
+push starts its own round, and the failed run is on a superseded commit,
+which `ci` does not read.
+
+By default the action hides
 the model's turns from the log, so a round with no review, or one where the
 action failed after Claude ran (at the 80-turn limit, for example), uploads its
 transcript as a `claude-review-transcript-<attempt>` artifact on the run, kept
@@ -128,6 +172,8 @@ for 7 days. The Claude token's value and anything shaped like an Anthropic or
 GitHub token are replaced before upload, but the repository is public, so any
 signed-in GitHub user can download it. A round stopped by the 30-minute timeout,
 or cancelled by a newer push, writes no transcript.
+
+### What a round posts
 
 Each round submits **one** PR review, using
 [`.github/skills/code-review/SKILL.md`](../../../.github/skills/code-review/SKILL.md)
@@ -226,9 +272,12 @@ What a round is given and asked for:
   - **Fix it.** The push starts a new round, which does not re-raise a finding
     the head fixed.
   - **Dispute it**, with evidence on its thread (what you ran or read, not what
-    you assume), then re-run the review on the same head by removing
+    you assume), then re-request the review on the same head by removing
     `review: claude` and adding it back. The next round reads the reply and
-    re-judges the item: it drops it, or says what the reply missed.
+    re-judges the item: it drops it, or says what the reply missed. If that
+    round fails rather than posting a verdict, retry it by re-running its job,
+    not by relabelling again
+    ([Retrying a failed round](#retrying-a-failed-round)).
 
   Resolve each thread once its item is fixed or dropped; `threads` still
   requires that.
