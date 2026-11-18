@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:compendium_app/src/theme/app_shapes.dart';
 import 'package:compendium_app/src/theme/app_theme.dart';
 import 'package:compendium_app/src/theme/app_typography.dart';
+import 'package:compendium_app/src/widgets/app_date_picker.dart';
 
 /// UX-2 (`ux-modernization.md` §5, §7): the app-level component sub-themes are
 /// present and satisfy the interactive-target and shape acceptance criteria.
@@ -131,13 +132,22 @@ void main() {
           ),
           home: Builder(
             builder: (context) => TextButton(
-              onPressed: () => showDatePicker(
-                context: context,
-                initialDate: DateTime(2026, 10, 23),
-                firstDate: DateTime(2020),
-                lastDate: DateTime(2030),
-                builder: uncapped ? uncappedDialogBuilder : null,
-              ),
+              // The uncapped case goes through the app's own helper, which
+              // is how the app opens the picker; the capped one is the bare
+              // Flutter helper under the app's dialog cap.
+              onPressed: () => uncapped
+                  ? showAppDatePicker(
+                      context: context,
+                      initialDate: DateTime(2026, 10, 23),
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2030),
+                    )
+                  : showDatePicker(
+                      context: context,
+                      initialDate: DateTime(2026, 10, 23),
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2030),
+                    ),
               child: const Text('pick'),
             ),
           ),

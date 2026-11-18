@@ -11,7 +11,8 @@ import '../theme/app_theme_extension.dart';
 /// that changes the focused pixels by roughly 1.2:1 — too faint to see across
 /// a room or to meet WCAG 2.4.13 (Focus Appearance). Buttons, chips and inputs
 /// can take a state-aware border from their themes, but [ListTile],
-/// [NavigationRail], [NavigationBar], [Checkbox], [Switch] and [Radio] cannot.
+/// [NavigationRail], [NavigationBar], [Checkbox], [Switch] and radio buttons
+/// cannot.
 /// One layer above the app therefore draws the same ring for every focusable
 /// widget, *outside* its bounds: the ring's pixels were the canvas before, so
 /// its contrast is the ring colour against the surface tiers, which

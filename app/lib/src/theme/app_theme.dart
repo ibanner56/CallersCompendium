@@ -42,8 +42,9 @@ class AppTheme {
   /// passes `AppMotion.styleFor(context)` instead.
   ///
   /// iOS and macOS keep the Cupertino builder at zero duration rather than a
-  /// bare instant one: the edge swipe back lives in that builder, and a
-  /// swipe the user drags is motion they drive, not motion the app adds.
+  /// bare instant one, because the edge swipe back lives in that builder.
+  /// Pushes and completed swipes are instant; a swipe let go before halfway
+  /// still slides the page back, a motion the user started.
   static ThemeData withoutMotion(ThemeData theme) => theme.copyWith(
     pageTransitionsTheme: const PageTransitionsTheme(
       builders: <TargetPlatform, PageTransitionsBuilder>{

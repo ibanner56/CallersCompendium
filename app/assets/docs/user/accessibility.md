@@ -226,8 +226,8 @@ A few smaller settings and behaviors round out the experience:
   switch off the app's animations and the fade between themes even when your
   device allows motion: screens, dialogs, date pickers and bottom sheets then
   appear at once instead of sliding or fading in, and expanding sections open
-  without animating. On iPhone and iPad you can still swipe from the left edge
-  to go back. Turning it off stops the app removing its own animations, but
+  without animating. On iPhone and iPad you can still swipe in from the edge of
+  the screen to go back. Turning it off stops the app removing its own animations, but
   cannot restore animations your device's setting has already shortened.
 - **Confirm before delete** (**Settings › General**) adds a prompt before you
   delete a dance or a program from its **⋮** menu, from its own screen, or from
