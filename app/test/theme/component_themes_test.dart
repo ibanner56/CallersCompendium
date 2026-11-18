@@ -331,6 +331,25 @@ void main() {
             hc ? theme.colorScheme.outline : isNull,
           );
         });
+
+        test('a disabled checkbox keeps looking disabled', () {
+          // High contrast's full-strength box outline must not reach a
+          // disabled box, or an inert row looks like one you can tick.
+          for (final states in [
+            {WidgetState.disabled},
+            {WidgetState.disabled, WidgetState.selected},
+          ]) {
+            final side = WidgetStateProperty.resolveAs<BorderSide?>(
+              theme.checkboxTheme.side,
+              states,
+            );
+            expect(
+              side?.color,
+              isNot(theme.colorScheme.outline),
+              reason: '$name $states draws the enabled outline',
+            );
+          }
+        });
       });
     }
 
