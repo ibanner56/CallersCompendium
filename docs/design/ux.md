@@ -184,8 +184,9 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   A row's ⋮ menu offers Archive (Unarchive on an archived row) after
   Duplicate; the summary and the builder offer it after Duplicate too, and
   archiving there leaves the program as Delete does. On the wide layout, the
-  open program also closes when it stops being listed (archived from its row,
-  or hidden by Hide archived). Restoring a program from Recently deleted
+  open program also closes when it stops being listed (archived from its row
+  or elsewhere, hidden by Hide archived, or by the Show archived reset when
+  Programs is left), including a selection handed over by a rotation. Restoring a program from Recently deleted
   unarchives it; a delete's Undo does not.
 - Builder: two-pane — program (ordered slots) | collection picker with the
   same filter panel as Collection, including caller-scoped Called / Not called

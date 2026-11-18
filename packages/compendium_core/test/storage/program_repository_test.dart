@@ -2659,6 +2659,18 @@ void main() {
       expect(restored.updatedAt.isAfter(kept.updatedAt), isTrue);
     });
 
+    test('restore(unarchive) leaves a live archived program archived: a '
+        'stale Recently deleted row must not unarchive it', () async {
+      await repo.create(sampleProgram());
+      await repo.archive('p1', at: at);
+      await repo.restore(
+        'p1',
+        at: at.add(const Duration(hours: 1)),
+        unarchive: true,
+      );
+      expect((await repo.getById('p1'))!.isArchived, isTrue);
+    });
+
     test('duplicating an archived program gives an unarchived copy', () async {
       await repo.create(sampleProgram());
       await repo.archive('p1', at: at);

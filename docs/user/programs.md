@@ -75,9 +75,10 @@ direction the list opens with, see
   the app (Collection, Glossary, Settings or the guide) or close it. You can
   also archive a program from its summary or the builder, next to
   **Duplicate**; that closes the program, as **Delete** does, and from the
-  builder it saves your unsaved edits first. On a wide screen, a program you
-  have open also closes when you archive it from its row, or when **Hide
-  archived** hides it. A duplicate of an archived
+  builder it saves your unsaved edits first. On a wide screen, an archived
+  program you have open also closes when the list stops showing it: when you
+  archive it from its row, choose **Hide archived**, or leave Programs (which
+  turns **Show archived** off). A duplicate of an archived
   program is not archived. Archiving syncs to your other devices and is kept
   in [backups](./settings.md#backup--restore), but a program you
   [share](./sharing.md#share-a-program-with-its-dances) arrives unarchived.

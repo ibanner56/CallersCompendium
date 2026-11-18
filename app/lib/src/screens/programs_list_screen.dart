@@ -74,10 +74,14 @@ class ProgramsListScreen extends StatefulWidget {
   final void Function(String programId)? onSelectProgram;
 
   /// Called (split-pane mode) when the selected program ([selectedProgramId])
-  /// stops being listed while it still exists: archived from its row with
-  /// archived programs hidden, or hidden by "Hide archived". The host closes
-  /// it, as it does when the program leaves through its own Archive or Delete
-  /// (the maintainer's decision on #2218).
+  /// stops being listed while it still exists, for whatever reason: archived
+  /// from its row (or by a sync or import) while archived programs are hidden,
+  /// hidden by "Hide archived", or hidden when leaving the Programs tab turns
+  /// "Show archived" off. It is also checked when a rotation into the split
+  /// layout hands over a selection. The host closes it, as it does when the
+  /// program leaves through its own Archive or Delete (the maintainer's
+  /// decision on #2218; the tab-leave case is this list's own consequence of
+  /// it).
   final VoidCallback? onSelectedProgramHidden;
 
   /// Whether the Programs destination is the one showing. Leaving it (true to
@@ -143,6 +147,13 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.isActive && !widget.isActive && _showArchived) {
       setState(() => _showArchived = false);
+      _closeHiddenSelection();
+    } else if (oldWidget.selectedProgramId != widget.selectedProgramId ||
+        (oldWidget.onSelectedProgramHidden == null) !=
+            (widget.onSelectedProgramHidden == null)) {
+      // A rotation into the split layout hands this list a selection (and the
+      // callback) the narrow layout kept while the list could not report it:
+      // a program hidden while narrow must close now, not at the next write.
       _closeHiddenSelection();
     }
   }

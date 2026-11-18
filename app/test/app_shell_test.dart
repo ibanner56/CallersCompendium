@@ -310,6 +310,67 @@ void main() {
       expect(await repos.programs.getById('p2'), isNotNull);
     });
 
+    testWidgets('wide: leaving Programs with Show archived on closes an open '
+        'archived program', (tester) async {
+      final repos = await seeded();
+      await _pump(tester, repos, size: const Size(1400, 900));
+      await tester.tap(find.text('Programs').last);
+      await tester.pumpAndSettle();
+      await showArchived(tester);
+      await tester.tap(find.text('Archived Program'));
+      await tester.pumpAndSettle();
+      expect(find.byType(ProgramSummaryPane), findsOneWidget);
+
+      await tester.tap(find.text('Collection').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Programs').last);
+      await tester.pumpAndSettle();
+      expect(find.text('Archived Program'), findsNothing);
+      expect(find.byType(ProgramSummaryPane), findsNothing);
+    });
+
+    testWidgets('wide: a program deleted from its row is not closed by the '
+        'hidden-program check', (tester) async {
+      final repos = await seeded();
+      await _pump(tester, repos, size: const Size(1400, 900));
+      await tester.tap(find.text('Programs').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Live Program'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('program-actions-p1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('program-action-delete')));
+      await tester.pumpAndSettle();
+      expect((await repos.programs.getById('p1')), isNull);
+      // Deleting keeps the behaviour it had before archiving existed: the
+      // pane stays, saying the program is unavailable.
+      expect(find.byType(ProgramSummaryPane), findsOneWidget);
+    });
+
+    testWidgets('a program archived while narrow is closed on rotating back to '
+        'wide', (tester) async {
+      final repos = await seeded();
+      await _pump(tester, repos, size: const Size(1400, 900));
+      await tester.tap(find.text('Programs').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Live Program'));
+      await tester.pumpAndSettle();
+      expect(find.byType(ProgramSummaryPane), findsOneWidget);
+
+      await tester.binding.setSurfaceSize(const Size(600, 1200));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('program-actions-p1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('program-action-archive')));
+      await tester.pumpAndSettle();
+      expect((await repos.programs.getById('p1'))!.isArchived, isTrue);
+
+      await tester.binding.setSurfaceSize(const Size(1400, 900));
+      await tester.pumpAndSettle();
+      expect(find.byType(ProgramSummaryPane), findsNothing);
+    });
+
     testWidgets('wide: archiving from the summary pane closes the program', (
       tester,
     ) async {

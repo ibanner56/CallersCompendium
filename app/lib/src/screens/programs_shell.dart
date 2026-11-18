@@ -53,7 +53,9 @@ class _ProgramsShellState extends State<ProgramsShell> {
   /// pane that launches Perform is rebuilt on every breakpoint crossing while
   /// Perform stays open on top, so the place is kept here, keyed by program
   /// id, and dropped when the program is closed: another program selected,
-  /// the program deleted, or the narrow summary left.
+  /// the program deleted or archived, the program hidden from the list (see
+  /// [ProgramsListScreen.onSelectedProgramHidden]), or the narrow summary
+  /// left.
   final _performResume = PerformResumeStore();
 
   /// Selects [id] (or nothing), closing the program selected before.

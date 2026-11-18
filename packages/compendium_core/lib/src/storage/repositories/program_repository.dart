@@ -2021,8 +2021,11 @@ class ProgramRepository {
   /// after reviving it, and the Caller's Companion re-import, whose undo would
   /// not re-tombstone a revived venue.
   ///
-  /// With [unarchive], an archived program also comes back unarchived, in the
-  /// same transaction, through [unarchive]'s stamping (so the change syncs).
+  /// With [unarchive], an archived program that was in Recently deleted also
+  /// comes back unarchived, in the same transaction, with
+  /// [ProgramRepository.unarchive]'s stamping (so the change syncs). A program
+  /// that is live already (a stale Recently deleted row, after a sync revived
+  /// it) keeps its archived state.
   /// Recently deleted passes it, by the maintainer's decision on #2218: a
   /// program restored there should be one the Programs list shows. An Undo
   /// right after a delete does not: it puts back exactly what was deleted.
@@ -2055,10 +2058,13 @@ class ProgramRepository {
         ).restore(venueId, at: at, clearPending: false);
       }
     }
+    // Read before the stamp clears it: only a program that was actually in
+    // Recently deleted is unarchived by its restore.
+    final wasDeleted = unarchive && (await isDeletedById(id) ?? false);
     await _stampExistence(id, at: at, deleted: false);
     // `_setArchivedAt` acts only on a live program, which the stamp above has
     // just made this one.
-    if (unarchive) await _setArchivedAt(id, archivedAt: null, at: at);
+    if (wasDeleted) await _setArchivedAt(id, archivedAt: null, at: at);
     if (clearPending) {
       await clearPendingSyncDeletionForRestore(
         _db,
