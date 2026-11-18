@@ -54,6 +54,31 @@ error paths, and edge cases. UI changes include widget tests where practical
 and must satisfy the [accessibility baseline](docs/research/accessibility-baseline.md)
 (semantics, keyboard, contrast) — a11y is an acceptance criterion, not polish.
 
+### Screenshots for UI changes
+A PR that changes anything a user can see includes screenshots of the change in
+its body. Without them the PR is not ready for review — a reviewer who cannot
+see the change cannot tell a fix from a regression.
+
+- **What counts:** every surface whose appearance or wording changes — screens,
+  dialogs, navigation, empty and error states, platform chrome. Not just
+  layout; a renamed button or a new tooltip is a UI change.
+- **Before and after**, of the same surface at the same size, so the reviewer
+  can see what moved. A brand-new surface has no "before": the after shot is
+  enough.
+- **A short recording** instead of stills when the change is motion, timing, or
+  a transition (attach a `.gif` or `.mp4` to the body).
+- **Attached to the PR body**, not linked from the branch. A link to a file on
+  the branch stops resolving when the branch is deleted; an uploaded attachment
+  stays with the PR.
+- **The build that changed.** State the platform, window size, and build the
+  shot is from — a screenshot of a different platform or of a debug banner over
+  the area under review demonstrates nothing.
+
+When no device or simulator is available, a golden rendered with
+`fvm flutter test --update-goldens` is acceptable evidence if it covers the
+whole surface that changed; say in the body that it is a golden, and at which
+surface size.
+
 ### Versioned formats: bank changes in the unreleased vNext
 Three version numbers mark formats other installs depend on:
 
