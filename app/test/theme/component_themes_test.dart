@@ -360,11 +360,7 @@ void main() {
               if (name == 'highContrast') {
                 expect(color, dimmed, reason: '$role $states');
               } else {
-                expect(
-                  color,
-                  isNot(scheme.outline),
-                  reason: '$name $role $states is outlined',
-                );
+                expect(color, isNull, reason: '$name $role $states');
               }
             }
             if (name == 'highContrast') {
@@ -376,14 +372,15 @@ void main() {
             }
           });
           if (name == 'highContrast') {
-            // An errored checkbox keeps Material's error colour.
-            expect(
-              WidgetStateProperty.resolveAs<BorderSide?>(
-                theme.checkboxTheme.side,
-                {WidgetState.error},
-              )?.color,
-              scheme.error,
-            );
+            // An errored checkbox keeps Material's error colour, and a
+            // disabled one is dimmed even when it is also in error.
+            Color? checkbox(Set<WidgetState> states) =>
+                WidgetStateProperty.resolveAs<BorderSide?>(
+                  theme.checkboxTheme.side,
+                  states,
+                )?.color;
+            expect(checkbox({WidgetState.error}), scheme.error);
+            expect(checkbox({WidgetState.disabled, WidgetState.error}), dimmed);
           }
         });
       });

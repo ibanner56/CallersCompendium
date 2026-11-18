@@ -64,7 +64,8 @@ Open **Settings › Appearance** to choose how the app looks. You'll find:
   separation between text and background. Cards, dialogs, popup menus, bottom
   sheets, suggestion lists, the date and time pickers and buttons (icon buttons
   included) also get a visible outline, so you can see their edges without
-  relying on shading. Drop-down lists are not outlined yet.
+  relying on shading. The lists that open from drop-down fields are not
+  outlined yet.
 
 There are additional palettes and custom themes to explore as well, but those four
 are the ones most people reach for first — see
