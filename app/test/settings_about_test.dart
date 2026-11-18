@@ -111,6 +111,7 @@ void main() {
 
     // AGPL-3.0 license notice + source offer and link.
     expect(find.textContaining('AGPL-3.0'), findsWidgets);
+    expect(find.textContaining('(AGPL-3.0-only)'), findsOneWidget);
     expect(
       find.textContaining('Affero General Public License'),
       findsOneWidget,

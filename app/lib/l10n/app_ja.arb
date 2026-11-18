@@ -1736,7 +1736,7 @@
   "@settingsAboutVersion": {
     "x-sourceSha256": "d7f0eb30563030d3528997697d6a1e1a7b90be868efb52da1a13b7d1ee7f299a"
   },
-  "settingsAboutVersionLine": "{appName} ·「{codename}」 · {license}",
+  "settingsAboutVersionLine": "{appName} · 「{codename}」 · {license}",
   "@settingsAboutVersionLine": {
     "x-sourceSha256": "060fed61c59a6d71fac50dbd4c83e2af6c684fbc164a2f1ae44638bc1a3d6018"
   },
