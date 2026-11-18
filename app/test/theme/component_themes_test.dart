@@ -332,21 +332,57 @@ void main() {
           );
         });
 
-        test('a disabled checkbox keeps looking disabled', () {
-          // High contrast's full-strength box outline must not reach a
-          // disabled box, or an inert row looks like one you can tick.
-          for (final states in [
-            {WidgetState.disabled},
-            {WidgetState.disabled, WidgetState.selected},
-          ]) {
-            final side = WidgetStateProperty.resolveAs<BorderSide?>(
+        test('a disabled control keeps looking disabled', () {
+          // High contrast outlines controls at full strength. A disabled
+          // control must not get that outline, or an inert control looks like
+          // one you can press; it takes onSurface at 38% instead.
+          final scheme = theme.colorScheme;
+          final dimmed = scheme.onSurface.withValues(alpha: 0.38);
+          final outlines = <String, BorderSide? Function(Set<WidgetState>)>{
+            'iconButton': (s) => theme.iconButtonTheme.style?.side?.resolve(s),
+            'segmentedButton': (s) =>
+                theme.segmentedButtonTheme.style?.side?.resolve(s),
+            'switch track': (s) {
+              final c = theme.switchTheme.trackOutlineColor?.resolve(s);
+              return c == null ? null : BorderSide(color: c);
+            },
+            'checkbox': (s) => WidgetStateProperty.resolveAs<BorderSide?>(
               theme.checkboxTheme.side,
-              states,
-            );
+              s,
+            ),
+          };
+          outlines.forEach((role, resolve) {
+            for (final states in [
+              {WidgetState.disabled},
+              {WidgetState.disabled, WidgetState.selected},
+            ]) {
+              final color = resolve(states)?.color;
+              if (name == 'highContrast') {
+                expect(color, dimmed, reason: '$role $states');
+              } else {
+                expect(
+                  color,
+                  isNot(scheme.outline),
+                  reason: '$name $role $states is outlined',
+                );
+              }
+            }
+            if (name == 'highContrast') {
+              expect(
+                resolve({WidgetState.selected})?.color,
+                scheme.outline,
+                reason: '$role enabled',
+              );
+            }
+          });
+          if (name == 'highContrast') {
+            // An errored checkbox keeps Material's error colour.
             expect(
-              side?.color,
-              isNot(theme.colorScheme.outline),
-              reason: '$name $states draws the enabled outline',
+              WidgetStateProperty.resolveAs<BorderSide?>(
+                theme.checkboxTheme.side,
+                {WidgetState.error},
+              )?.color,
+              scheme.error,
             );
           }
         });
