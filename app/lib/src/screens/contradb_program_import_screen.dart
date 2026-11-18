@@ -17,6 +17,7 @@ import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../theme/app_shapes.dart';
+import '../theme/app_theme_extension.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/app_bar_text_action.dart';
 
@@ -1132,10 +1133,16 @@ class _ContraDbProgramImportScreenState
       dense: true,
       leading: CircleAvatar(
         radius: 12,
-        backgroundColor: color.withValues(alpha: 0.15),
+        backgroundColor: color.withValues(
+          alpha: AppThemeExtension.statusTintAlpha,
+        ),
+        // The number is text, so it takes onSurface (AA on the tint) rather
+        // than the accent, which only clears AA on the bare surface.
         child: Text(
           '${index + 1}',
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(color: color),
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
         ),
       ),
       title: Text(primary),

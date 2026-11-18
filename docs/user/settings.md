@@ -392,7 +392,8 @@ There's a **High contrast** theme for maximum legibility — see the
   a mixer rather than a contra, even if you have given that formation its own
   color (see [Formation colors](#formation-colors) below). The formation (and "Mixer" when applicable) is
   always shown as text on the row too, so rows stay fully readable without relying
-  on color, and the family tints adapt to the High contrast theme. On by default;
+  on color, and the family tints switch to a brighter set on dark themes and
+  High contrast. On by default;
   turn it off to hide the tints (your own formation colors are hidden with them).
 
 ### Formation colors
