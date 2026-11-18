@@ -598,10 +598,13 @@ version for comparison only.
 Every movement in which dancers travel accepts an optional `destination`,
 stated by the source or by the person entering the dance (R9). That is the
 maintainer's decision; the §7 tables don't repeat it. Movements with no
-movement implied don't take one. This ADR reads that as `honor`, `clap`,
-`turn_alone`, `balance`, `balance_ring`, `arch`, `form_short_wave` and
-`form_long_wave`; reviewers may disagree with individual entries. `set` does
-take one, because a set can travel ("set forward").
+movement implied don't take one: `set`, `honor`, `clap`, `balance`,
+`balance_ring`, `arch`, `form_short_wave` and `form_long_wave`. A set
+happens in place. When dancers set while travelling ("fall back setting"),
+the set is a modifier on the travelling figure (§5.6), and that figure
+carries the destination. `set` and `turn_alone` are the maintainer's
+calls; the rest of the list is this ADR's reading, and reviewers may
+disagree with individual entries.
 
 When no destination is stated, none is stored, and that means the same as
 `unspecified`.
@@ -627,6 +630,7 @@ already means the dancers end where the line began. It doesn't take
 | `neighbor's place` | Where the dancer's neighbor was when the line began | "to neighbor's place" |
 | `diagonal's place` | Where the dancer on that dancer's diagonal was when the line began | "to diagonal's place" |
 | `all improper` | Everyone ends improper: on the opposite side of the set from their proper side | "ending improper" |
+| `all proper` | Everyone ends on their proper side | "ending proper" |
 
 - **Numbered places depend on the formation.** The editor offers only the
   places a formation has: two in a duple minor, three in a triple minor or
@@ -652,7 +656,7 @@ transcriptions (§3). Each count is of captions, not of performances.
 
 | Movement | Parameters | Draft display | Notes |
 | --- | --- | --- | --- |
-| `set` | `who`, `whom`, `where`, `direction` | `{who} set [{direction}] [{where}] [to {whom}]` | `direction` is left/right, rendered only when not right. `whom` is used when dancers set to someone other than each other ("set to partner"). `where` is the line the dancers face along. Evidence: 13 captions in 7 dances. Only *The Shrewsbury Lasses* states a direction ("set right and honor, set left and honor to W2"), and it names a single dancer as `whom`. ⚠ Is "set forward" a `where`, or a different figure? |
+| `set` | `who`, `whom`, `where`, `direction` | `{who} set [{direction}] [{where}] [to {whom}]` | `direction` is left/right, rendered only when not right. `whom` is used when dancers set to someone other than each other ("set to partner"). `where` is the line the dancers face along. Evidence: 13 captions in 7 dances. Only *The Shrewsbury Lasses* states a direction ("set right and honor, set left and honor to W2"), and it names a single dancer as `whom`. A set happens in place and takes no `destination` (§6.4). Setting while travelling ("fall back setting") is a `modifier` whose core is the travelling figure (§5.6). ⚠ Is "set forward" a `where`, or a different figure? |
 | `honor` | `who`, `whom` | `{who} step and honor {whom}` | "Honour"/"Honor" is a display dialect, not two entries. |
 | `clap` | none | `clap` | |
 
@@ -661,7 +665,7 @@ transcriptions (§3). Each count is of captions, not of performances.
 | Movement | Parameters | Draft display | Notes |
 | --- | --- | --- | --- |
 | `turn_single` | `who`, `shoulder`, `destination` | `{who} turn single [{shoulder}] [{to \| back to} {destination}]` | Renders "back to" when `destination = place`, otherwise "to". Evidence: 13 captions in 7 dances. 5 state a side, always as "turn single left/right", never as a shoulder. 2 state a destination. ⚠ Is `shoulder` the right name for the side (Q13)? |
-| `turn_alone` | `who`, `custom` | *as contra*: `{who} turn alone` | Identical to contra `turn_alone`. A separate movement from `turn_single`, not an alias of it. `custom` is contra's free-text note. |
+| `turn_alone` | `who`, `custom` | *as contra*: `{who} turn alone` | Identical to contra `turn_alone` apart from the optional `destination` ("turn alone back to place", §6.4). A separate movement from `turn_single`, not an alias of it. `custom` is contra's free-text note. |
 | `hand_turn` | `who`, `hand`, `grip`, `travel`, `direction` | `{who} {hand}-hand turn {travel}`; aliases display as `{who} two-hand turn [{direction}] {travel}` and `{who} arm {hand} [{travel}]` | One movement for every turn of two dancers connected by hand or arm (§4). `hand` is `right`, `left` or `both`. `grip` is `hand` or `arm`, and `arm` can't be combined with `both`. `direction` is the rotation, used only with both hands, where the hand doesn't imply it (for sources such as Heywood's "two-hand turn anticlockwise"). Aliases, which can all be entered and searched: "right-hand turn", "turn by the right" (`hand=right`); "two-hand turn" (`hand=both`); "arm right", "arm left" (`grip=arm`). "Two-hand turn" and "arm right/left" are shown under their own names. The one-hand aliases fix the same values, so which of them a line shows is a dialect choice (§4). The parameters are modelled on contra `allemande` and `two_hand_turn`, but "allemande" is **not** an ECD alias. Evidence: one-hand turns, 6 captions in 3 dances, 2 with an extent ("right turn half"). Two-hand turns, 21 captions in 12 dances: 12 state an extent (9 half, 3 once and a half), 2 an ending facing ("and face down", "open to face new neighbors"), and none a rotation. No arm-turn caption states an extent other than once around. ⚠ How should `direction` be worded, and should the movement take `endFacing` (Q13)? |
 | `shoulder_round` | `who`, `shoulder`, `travel` | *as contra* | Not a turn (§4). Alias: "gyre". "Gypsy" is **not** an alias. It is a discouraged term: the app recognizes it in imported or typed text, stores it as shoulder round, and flags it in the editor, but never offers it. Siding is a separate movement (§7.5). |
 | `swing` | `who`, `endFacing` | *as contra* | Rare in ECD, included for coverage. Unlike contra's `swing`, it has no `prefix`: "balance and swing" is a sequence or two lines (§5.4). |
@@ -698,7 +702,7 @@ transcriptions (§3). Each count is of captions, not of performances.
 | --- | --- | --- | --- |
 | `cross` | `who`, `shoulder`, `where` | `{who} cross [diagonally] passing {shoulder} shoulder [{where}]` | Roughly the union of contra *pass through* and *pass by*. Evidence: 10 captions in 7 dances ("Women cross", "Partners cross", "cross in middle left shoulder"). One gives an ending facing ("cross with partner and face right"). |
 | `right_left_through` | `who`, `whom`, `where`, `withHands` | `[{who} dance a] right and left through [{where}], {with \| without} hands, {others} courtesy turning {whom}` | ⚠ In a three-couple selection, "the others" is not always a single pair. |
-| `fall_back` | `who`, `where` | `[{who}] fall back [{where}]` | `where` defaults to `across` and is then not shown. `who` defaults to everyone. Evidence: 4 captions in 4 dances, all "fall back with neighbor", one "a double". ⚠ This suggests a `whom`. |
+| `fall_back` | `who`, `where` | `[{who}] fall back [{where}]` | `where` defaults to `across` and is then not shown. `who` defaults to everyone. Evidence: 4 captions in 4 dances, all "fall back with neighbor", one "a double". "Fall back setting" is a `modifier`: `fall_back` as the core, `set` as the modifier (§6.4). ⚠ This suggests a `whom`, and perhaps the `distance` that `forward_and_back` has. |
 | `forward_and_back` | `who`, `where`, `formation`, `distance`, `goBack` | `[{who}] [{formation}] {where} [a {distance}] [and back]` | Aliases: "up a double", "down a double" (`distance = double`), "forward and back", "lines forward and back". `where` is `up`, `down` or `forward`. `distance` is shown only when stated, so "Lines of three forward and back" doesn't gain "a double". `goBack` records "and back": the return is the same movement reversed, with nothing of its own to state, so it is a flag rather than a second step (§5.4), and it replaces `destination = place` (§6.4). A bare "Forward" is `goBack = no`. `formation` names the grouping ("lines of three"). Contra's nearest move, also `forward_and_back` since contra taxonomy v39, has `formation` and `goBack` (Appendix A). Evidence: 6 captions in 4 dances ("Up a double, and back", "Down a double, and back", "All up a double, and back", "Lines of three forward and back", "Line of four up a double and back, bending the line", "Forward"). The last-but-one is a `modifier` with a bend of the line (§7.6). ⚠ Promoted from open in this revision; its shape is this ADR's proposal. Does `distance` need values other than `double`, such as a single? How does it relate to `line` and `fall_back` (Q10)? |
 | `back_to_back` | `who`, `shoulder`, `travel`, `where` | `{who} {shoulder}-shoulder back-to-back [{where}] {travel}` | Like contra dosido, but always named by shoulder, plus `where` (across/along). Evidence: 3 captions, none stating a shoulder. |
 | `siding` | `who`, `shoulder`, `where`, `style` | `{who} {shoulder}-shoulder [{style}] siding [{where}]` (draft) | The parameters of `back_to_back` except `travel`, plus `style` (`straight` or `swirly`). An unstated style is `unspecified`. Captioned "Left Siding" (*Alexander's Birth Day*), and "Right/Left shoulder siding" in later passes of the *Double Jubilee* video. |
