@@ -185,6 +185,16 @@ void main() {
           }
         });
 
+        test('focus ring clears 3:1 on every surface tier', () {
+          // FocusRingLayer draws the ring outside the focused widget, over
+          // whatever tier the widget sits on, so it must stand out from all.
+          final ext = _themeFor(name, scheme).extension<AppThemeExtension>()!;
+          for (final (role, tier) in drawnTiers) {
+            expectRatio('focusRing/$role', ext.focusRing, tier, aaNonText);
+          }
+          expect(ext.focusRingWidth, greaterThanOrEqualTo(2));
+        });
+
         test('status chips: label on tint, full-alpha border', () {
           final ext = _themeFor(name, scheme).extension<AppThemeExtension>()!;
           for (final (role, token) in [

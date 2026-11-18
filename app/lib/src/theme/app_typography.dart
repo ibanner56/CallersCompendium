@@ -10,6 +10,13 @@ import 'package:flutter/material.dart';
 ///
 /// Font families are registered in `app/pubspec.yaml`. Roboto stays bundled as
 /// a documented fallback.
+///
+/// Atkinson Hyperlegible is bundled at 400 and 700 only (plus italic), so its
+/// styles ask for exactly those weights (audit B-05). The labels asked for
+/// 600 and the Perform body for 500, weights with no file behind them, so
+/// what was drawn depended on the engine's nearest-weight fallback. They now
+/// name the nearest bundled weight under the CSS matching rule (600 → 700,
+/// 500 → 400). Fraunces is a variable font and takes any weight.
 class AppTypography {
   const AppTypography._();
 
@@ -116,7 +123,7 @@ class AppTypography {
       fontFamily: bodyFamily,
       fontFamilyFallback: _fallback,
       fontSize: 14,
-      fontWeight: FontWeight.w600,
+      fontWeight: FontWeight.w700,
       height: 1.43,
       letterSpacing: 0.1,
     ),
@@ -124,7 +131,7 @@ class AppTypography {
       fontFamily: bodyFamily,
       fontFamilyFallback: _fallback,
       fontSize: 12,
-      fontWeight: FontWeight.w600,
+      fontWeight: FontWeight.w700,
       height: 1.33,
       letterSpacing: 0.5,
     ),
@@ -132,7 +139,7 @@ class AppTypography {
       fontFamily: bodyFamily,
       fontFamilyFallback: _fallback,
       fontSize: 11,
-      fontWeight: FontWeight.w600,
+      fontWeight: FontWeight.w700,
       height: 1.45,
       letterSpacing: 0.5,
     ),
@@ -159,7 +166,7 @@ class AppTypography {
     fontFamily: bodyFamily,
     fontFamilyFallback: _fallback,
     fontSize: 28,
-    fontWeight: FontWeight.w500,
+    fontWeight: FontWeight.w400,
     height: 1.29,
   );
 
@@ -170,7 +177,18 @@ class AppTypography {
     fontFamily: bodyFamily,
     fontFamilyFallback: _fallback,
     fontSize: 24,
-    fontWeight: FontWeight.w500,
+    fontWeight: FontWeight.w400,
     height: 1.33,
+  );
+
+  /// App-bar titles (audit B-04, decision DS-04): the display face at the
+  /// size Material gives a top app bar's title, so a screen's name reads as
+  /// a heading rather than as one more label.
+  static const TextStyle screenTitle = TextStyle(
+    fontFamily: displayFamily,
+    fontFamilyFallback: _fallback,
+    fontSize: 22,
+    fontWeight: FontWeight.w600,
+    height: 1.27,
   );
 }

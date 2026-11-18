@@ -1,0 +1,12 @@
+{
+  "id": "theme-audit-components",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "When you move through the app with the keyboard, the focused control now gets a solid outline just outside it, including list rows, navigation items, checkboxes, switches and radio buttons.",
+      "With Reduce motion on, screens, dialogs and bottom sheets appear at once instead of animating in, and expanding sections open without animating.",
+      "Screen titles now sit at the left of the title bar on every platform and are set in the app's display typeface, as are dialog titles and the titles of empty screens; the title bar no longer changes colour when content scrolls under it.",
+      "Menus, bottom sheets, tooltips, segmented buttons, expanding sections and the add button now share the app's rounded corners; in High contrast, segmented buttons, expanding sections, the add button and the title bar are outlined like cards and dialogs."
+    ]
+  }
+}

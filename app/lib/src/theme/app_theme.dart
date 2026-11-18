@@ -100,6 +100,16 @@ class AppTheme {
       bottomSheetTheme: components.bottomSheet,
       popupMenuTheme: components.popupMenu,
       menuTheme: components.menu,
+      appBarTheme: components.appBar,
+      floatingActionButtonTheme: components.floatingActionButton,
+      iconButtonTheme: components.iconButton,
+      segmentedButtonTheme: components.segmentedButton,
+      expansionTileTheme: components.expansionTile,
+      tooltipTheme: components.tooltip,
+      dropdownMenuTheme: components.dropdownMenu,
+      progressIndicatorTheme: components.progressIndicator,
+      switchTheme: components.switchTheme,
+      checkboxTheme: components.checkbox,
       extensions: <ThemeExtension<dynamic>>[extension],
     );
   }

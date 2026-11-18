@@ -108,6 +108,23 @@ is co-owned with Phase 5 Perform mode.
 | focus ring `#FFD54A` / surface (≥3:1) | focus | 14.22 |
 | outline `#FFF3EC` / surface (≥3:1) | borders | 18.44 |
 
+**Keyboard focus (audit A-01).** Material's focus cue is a translucent fill of
+the focus colour (about 1.2:1 against the unfocused state), too faint to find
+across a room. `FocusRingLayer` draws the theme's `focusRing` at
+`focusRingWidth` (2px primary; 3px ochre in HC) as an outline 2px outside the
+keyboard-focused control, above every route, for every control including those
+whose Material themes cannot draw one (list tiles, navigation rail/bar,
+checkboxes, switches, radios). Text fields keep their own focused border
+instead. `palette_contrast_test.dart` holds the ring to 3:1 against every
+surface tier in every scheme.
+
+**Motion (audit A-15).** `AppMotion` names the five animation durations in use
+(120 / 200 / 250 / 500 / 1400 ms). With the in-app Reduce motion switch on, the
+theme swaps in instant page transitions and an instant `ExpansionTile`, and
+every `showDialog` / `showModalBottomSheet` call passes
+`AppMotion.styleFor(context)` (a source-scan test enforces it), since dialogs
+and sheets have no theme hook for their animation.
+
 ### 1c. Typography
 
 - **Display / headings: Fraunces** — a warm optical-size serif; character
@@ -120,9 +137,15 @@ Proposed M3 `TextTheme` (sizes in logical px):
 
 | Style | Family / weight | display | headline | title | body | label |
 |---|---|---|---|---|---|---|
-| large | — | 57 Fraunces w600 | 32 Fraunces | 22 Atkinson w700 | 16 Atkinson w400 | 14 Atkinson w600 |
+| large | — | 57 Fraunces w600 | 32 Fraunces | 22 Atkinson w700 | 16 Atkinson w400 | 14 Atkinson w700 |
 | medium | — | 45 | 28 | 16 | 14 | 12 |
 | small | — | 36 | 24 | 14 | 12 | 11 |
+
+Atkinson Hyperlegible ships at 400 and 700 only, so its styles use exactly
+those weights (labels 700, Perform body 400; theme audit B-05). Screen titles in
+the app bar, empty-state titles and dialog titles use Fraunces (audit B-04,
+decision DS-04), with app-bar titles leading rather than centred on every
+platform (DS-03).
 
 Perform mode uses its own scale (Atkinson Bold, ~28px floor, **no upper bound**,
 user-adjustable size/weight/line-spacing).
@@ -134,14 +157,15 @@ user-adjustable size/weight/line-spacing).
   surfaces use comfortable density; selected adaptively by platform.
 - **Shape:** corner radii 8 / 12 / 16, dialogs 28.
 - **Elevation:** prefer tonal `surfaceContainer` tiers over drop shadows (M3
-  idiom). Every scheme, built-in and gallery, defines the full ladder —
-  Lowest, Low, default, High, Highest, Dim, Bright — so cards and bottom
-  sheets (Low), popup and anchored menus and nav bars (default), dialogs (High)
-  and filled inputs (Highest) each sit on their own tone instead of falling back
-  to `surface`. The HC theme keeps the tiers and adds a visible outline to
-  cards, dialogs, bottom sheets, popup menus and anchored (`MenuAnchor`) menus.
-  Legacy `DropdownButton` menus, autocomplete option lists and the date and
-  time pickers are not yet covered by either.
+  idiom). App bars keep the canvas colour when content scrolls under them (no
+  scrolled-under tint). Every scheme, built-in and gallery, defines the full
+  ladder — Lowest, Low, default, High, Highest, Dim, Bright — so cards and
+  bottom sheets (Low), popup and anchored menus and nav bars (default), dialogs
+  (High) and filled inputs (Highest) each sit on their own tone instead of
+  falling back to `surface`. The HC theme keeps the tiers and adds a visible
+  outline to cards, dialogs, bottom sheets, popup menus and anchored
+  (`MenuAnchor`) menus. Legacy `DropdownButton` menus, autocomplete option
+  lists and the date and time pickers are not yet covered by either.
 
 ### 1e. Structure — new `app/lib/src/theme/`
 

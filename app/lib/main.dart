@@ -139,6 +139,7 @@ import 'src/widgets/command_palette.dart';
 import 'src/widgets/ecd_convert_prompt_dialog.dart';
 import 'src/widgets/online_import_dialogs.dart';
 import 'src/widgets/online_import_snack_bar.dart';
+import 'src/widgets/focus_ring_layer.dart';
 import 'src/theme/app_motion.dart';
 
 AppData _defaultAppDataFactory() => AppData(openAppDatabase());
@@ -3147,7 +3148,9 @@ class _CompendiumAppState extends State<CompendiumApp>
                       _goBack();
                     }
                   },
-                  child: scoped,
+                  // Above every route, so dialogs and sheets get the ring
+                  // too (audit A-01).
+                  child: FocusRingLayer(child: scoped),
                 ),
               ),
             );

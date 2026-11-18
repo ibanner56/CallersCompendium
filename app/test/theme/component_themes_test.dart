@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/theme/app_shapes.dart';
 import 'package:compendium_app/src/theme/app_theme.dart';
+import 'package:compendium_app/src/theme/app_typography.dart';
 
 /// UX-2 (`ux-modernization.md` §5, §7): the app-level component sub-themes are
 /// present and satisfy the interactive-target and shape acceptance criteria.
@@ -201,5 +202,157 @@ void main() {
         });
       });
     }
+  });
+
+  group('C-10 / P-03 / P-04 / B-04: shared component themes', () {
+    for (final (name, theme) in [
+      ('light', AppTheme.light),
+      ('dark', AppTheme.dark),
+      ('highContrast', AppTheme.highContrast),
+    ]) {
+      group(name, () {
+        test(
+          'app bar: leading title, no scrolled-under tint, display face',
+          () {
+            final bar = theme.appBarTheme;
+            expect(bar.centerTitle, isFalse);
+            expect(bar.scrolledUnderElevation, 0);
+            expect(bar.surfaceTintColor, Colors.transparent);
+            expect(bar.backgroundColor, theme.colorScheme.surface);
+            expect(bar.titleTextStyle?.fontFamily, AppTypography.displayFamily);
+          },
+        );
+
+        test('dialog titles are set explicitly in the display face', () {
+          expect(
+            theme.dialogTheme.titleTextStyle?.fontFamily,
+            AppTypography.displayFamily,
+          );
+        });
+
+        test('unthemed components now use AppShapes radii', () {
+          BorderRadiusGeometry? radius(Object? shape) =>
+              (shape as RoundedRectangleBorder?)?.borderRadius;
+          expect(
+            radius(theme.floatingActionButtonTheme.shape),
+            AppShapes.borderRadiusLarge,
+          );
+          expect(
+            radius(theme.popupMenuTheme.shape),
+            AppShapes.borderRadiusSmall,
+          );
+          expect(
+            radius(theme.menuTheme.style?.shape?.resolve({})),
+            AppShapes.borderRadiusSmall,
+          );
+          expect(
+            radius(theme.dropdownMenuTheme.menuStyle?.shape?.resolve({})),
+            AppShapes.borderRadiusSmall,
+          );
+          expect(
+            radius(theme.iconButtonTheme.style?.shape?.resolve({})),
+            AppShapes.borderRadiusSmall,
+          );
+          expect(
+            radius(theme.segmentedButtonTheme.style?.shape?.resolve({})),
+            AppShapes.borderRadiusSmall,
+          );
+          expect(
+            radius(theme.expansionTileTheme.shape),
+            AppShapes.borderRadiusMedium,
+          );
+          expect(
+            radius(theme.expansionTileTheme.collapsedShape),
+            AppShapes.borderRadiusMedium,
+          );
+          expect(
+            (theme.tooltipTheme.decoration as BoxDecoration?)?.borderRadius,
+            AppShapes.borderRadiusSmall,
+          );
+          expect(
+            theme.progressIndicatorTheme.borderRadius,
+            AppShapes.borderRadiusSmall,
+          );
+        });
+
+        test('High contrast, and only High contrast, outlines them', () {
+          final hc = name == 'highContrast';
+          BorderSide sideOf(Object? shape) =>
+              (shape as RoundedRectangleBorder?)?.side ?? BorderSide.none;
+          final sides = <String, BorderSide>{
+            'fab': sideOf(theme.floatingActionButtonTheme.shape),
+            'expansionTile': sideOf(theme.expansionTileTheme.shape),
+            'segmentedButton':
+                theme.segmentedButtonTheme.style?.side?.resolve({}) ??
+                BorderSide.none,
+            'appBar':
+                (theme.appBarTheme.shape as Border?)?.bottom ?? BorderSide.none,
+            'dropdownMenu':
+                theme.dropdownMenuTheme.menuStyle?.side?.resolve({}) ??
+                BorderSide.none,
+            'checkbox (ticked)':
+                WidgetStateProperty.resolveAs<BorderSide?>(
+                  theme.checkboxTheme.side,
+                  {WidgetState.selected},
+                ) ??
+                BorderSide.none,
+          };
+          sides.forEach((role, side) {
+            if (hc) {
+              expect(
+                side.style,
+                BorderStyle.solid,
+                reason: '$role: no outline',
+              );
+              expect(side.color, theme.colorScheme.outline, reason: role);
+            } else {
+              expect(side, BorderSide.none, reason: '$name $role is outlined');
+            }
+          });
+          expect(
+            theme.switchTheme.trackOutlineColor?.resolve({
+              WidgetState.selected,
+            }),
+            hc ? theme.colorScheme.outline : isNull,
+          );
+        });
+      });
+    }
+
+    testWidgets('a long screen title at 2x text does not overflow the bar', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(360, 640));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: MediaQuery(
+            data: const MediaQueryData(
+              size: Size(360, 640),
+              textScaler: TextScaler.linear(2),
+            ),
+            child: Scaffold(
+              appBar: AppBar(
+                title: const Text('Contra dance collection settings'),
+                actions: [
+                  IconButton(onPressed: () {}, icon: const Icon(Icons.search)),
+                  IconButton(onPressed: () {}, icon: const Icon(Icons.sort)),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+      expect(tester.takeException(), isNull);
+      final title = tester.getRect(
+        find.text('Contra dance collection settings'),
+      );
+      final bar = tester.getRect(find.byType(AppBar));
+      expect(
+        bar.contains(title.topLeft) && bar.contains(title.bottomLeft),
+        isTrue,
+      );
+    });
   });
 }

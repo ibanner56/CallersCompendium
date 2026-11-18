@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'app_shapes.dart';
 import 'app_theme_extension.dart';
+import 'app_typography.dart';
 
 /// App-level component sub-themes (UX-2, `ux-modernization.md` §5).
 ///
@@ -36,6 +37,16 @@ class ComponentThemes {
     this.bottomSheet = const BottomSheetThemeData(),
     this.popupMenu = const PopupMenuThemeData(),
     this.menu = const MenuThemeData(),
+    this.appBar = const AppBarTheme(),
+    this.floatingActionButton = const FloatingActionButtonThemeData(),
+    this.iconButton = const IconButtonThemeData(),
+    this.segmentedButton = const SegmentedButtonThemeData(),
+    this.expansionTile = const ExpansionTileThemeData(),
+    this.tooltip = const TooltipThemeData(),
+    this.dropdownMenu = const DropdownMenuThemeData(),
+    this.progressIndicator = const ProgressIndicatorThemeData(),
+    this.switchTheme = const SwitchThemeData(),
+    this.checkbox = const CheckboxThemeData(),
   });
 
   final CardThemeData card;
@@ -51,13 +62,24 @@ class ComponentThemes {
   final NavigationBarThemeData navigationBar;
   final SnackBarThemeData snackBar;
 
-  /// Bottom sheets, popup menus and [MenuAnchor] menus. The standard theme
-  /// leaves them on Material's defaults, which now sit on distinct surface
-  /// tiers; High contrast also outlines them, as it already did cards and
-  /// dialogs.
+  // The components below are themed alike in both treatments by
+  // [_withSharedComponents]: AppShapes radii everywhere, plus an outline in
+  // High contrast where the component is a container or control boundary.
+  // Sheets and menus sit on distinct surface tiers, and High contrast
+  // outlines them, as it does cards and dialogs.
   final BottomSheetThemeData bottomSheet;
   final PopupMenuThemeData popupMenu;
   final MenuThemeData menu;
+  final AppBarTheme appBar;
+  final FloatingActionButtonThemeData floatingActionButton;
+  final IconButtonThemeData iconButton;
+  final SegmentedButtonThemeData segmentedButton;
+  final ExpansionTileThemeData expansionTile;
+  final TooltipThemeData tooltip;
+  final DropdownMenuThemeData dropdownMenu;
+  final ProgressIndicatorThemeData progressIndicator;
+  final SwitchThemeData switchTheme;
+  final CheckboxThemeData checkbox;
 
   /// Every snackbar floats, as the Undo snackbar already does (#463), instead of
   /// docking to the bottom edge and covering the controls beneath it. The theme
@@ -76,9 +98,142 @@ class ComponentThemes {
     AppThemeExtension ext, {
     bool highContrast = false,
   }) {
-    return highContrast
+    final base = highContrast
         ? ComponentThemes._highContrast(scheme, ext)
         : ComponentThemes._standard(scheme, ext);
+    return base._withSharedComponents(scheme, highContrast: highContrast);
+  }
+
+  // --- Both treatments: the components audit C-10 found unthemed ----------
+
+  ComponentThemes _withSharedComponents(
+    ColorScheme scheme, {
+    required bool highContrast,
+  }) {
+    // The one outline High contrast adds; none elsewhere.
+    final side = highContrast
+        ? BorderSide(color: scheme.outline, width: 1.5)
+        : BorderSide.none;
+    final menuStyle = MenuStyle(
+      shape: const WidgetStatePropertyAll(
+        RoundedRectangleBorder(borderRadius: AppShapes.borderRadiusSmall),
+      ),
+      side: highContrast ? WidgetStatePropertyAll(side) : null,
+    );
+    final tileShape = RoundedRectangleBorder(
+      borderRadius: AppShapes.borderRadiusMedium,
+      side: side,
+    );
+
+    return ComponentThemes(
+      card: card,
+      dialog: dialog.copyWith(
+        // Set here rather than left to Material's default so dialog titles
+        // stay in the display face if that default changes (audit B-04).
+        titleTextStyle: AppTypography.textTheme.headlineSmall!.copyWith(
+          color: scheme.onSurface,
+        ),
+      ),
+      input: input,
+      divider: divider,
+      filledButton: filledButton,
+      outlinedButton: outlinedButton,
+      textButton: textButton,
+      chip: chip,
+      listTile: listTile,
+      navigationRail: navigationRail,
+      navigationBar: navigationBar,
+      snackBar: snackBar,
+      bottomSheet: BottomSheetThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(AppShapes.radiusDialog),
+          ),
+          side: side,
+        ),
+      ),
+      popupMenu: PopupMenuThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: AppShapes.borderRadiusSmall,
+          side: side,
+        ),
+      ),
+      menu: MenuThemeData(style: menuStyle),
+      dropdownMenu: DropdownMenuThemeData(menuStyle: menuStyle),
+      appBar: AppBarTheme(
+        // Leading titles on every platform (audit P-03, decision DS-03).
+        centerTitle: false,
+        // No Material scrolled-under tint (audit P-04): the bar keeps the
+        // canvas colour whatever scrolls beneath it.
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
+        backgroundColor: scheme.surface,
+        foregroundColor: scheme.onSurface,
+        titleTextStyle: AppTypography.screenTitle.copyWith(
+          color: scheme.onSurface,
+        ),
+        // High contrast separates the bar from the page with a rule, since
+        // the bar and page share one colour.
+        shape: highContrast ? Border(bottom: side) : null,
+      ),
+      floatingActionButton: FloatingActionButtonThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: AppShapes.borderRadiusLarge,
+          side: side,
+        ),
+      ),
+      // Icon buttons share the buttons' small radius, so their hover and press
+      // highlights match the focus ring drawn round them.
+      iconButton: const IconButtonThemeData(
+        style: ButtonStyle(
+          shape: WidgetStatePropertyAll(
+            RoundedRectangleBorder(borderRadius: AppShapes.borderRadiusSmall),
+          ),
+        ),
+      ),
+      segmentedButton: SegmentedButtonThemeData(
+        style: ButtonStyle(
+          shape: const WidgetStatePropertyAll(
+            RoundedRectangleBorder(borderRadius: AppShapes.borderRadiusSmall),
+          ),
+          side: highContrast ? WidgetStatePropertyAll(side) : null,
+        ),
+      ),
+      expansionTile: ExpansionTileThemeData(
+        shape: tileShape,
+        collapsedShape: tileShape,
+      ),
+      tooltip: TooltipThemeData(
+        decoration: BoxDecoration(
+          color: scheme.inverseSurface,
+          borderRadius: AppShapes.borderRadiusSmall,
+        ),
+        textStyle: AppTypography.textTheme.bodySmall!.copyWith(
+          color: scheme.onInverseSurface,
+        ),
+      ),
+      progressIndicator: const ProgressIndicatorThemeData(
+        borderRadius: AppShapes.borderRadiusSmall,
+      ),
+      // High contrast keeps a visible track outline on a switch that is on
+      // (Material drops it), and a box outline on a ticked checkbox.
+      switchTheme: highContrast
+          ? SwitchThemeData(
+              trackOutlineColor: WidgetStatePropertyAll(scheme.outline),
+              trackOutlineWidth: const WidgetStatePropertyAll(1.5),
+            )
+          : const SwitchThemeData(),
+      checkbox: highContrast
+          ? CheckboxThemeData(
+              // A state-aware side, because a plain BorderSide is drawn only
+              // while the box is unticked.
+              side: WidgetStateBorderSide.resolveWith(
+                (_) => BorderSide(color: scheme.outline, width: 2),
+              ),
+            )
+          : const CheckboxThemeData(),
+    );
   }
 
   // --- Light / dark: Material 3 filled / tonal treatment (UX-2) -------------
@@ -239,32 +394,6 @@ class ComponentThemes {
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
       ),
       snackBar: _snackBarTheme,
-      // Tonal tiers are as invisible at HC as elevation is, so sheets and
-      // menus get the same outline as cards and dialogs.
-      bottomSheet: BottomSheetThemeData(
-        shape: RoundedRectangleBorder(
-          borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(AppShapes.radiusDialog),
-          ),
-          side: BorderSide(color: scheme.outline, width: 1.5),
-        ),
-      ),
-      popupMenu: PopupMenuThemeData(
-        shape: RoundedRectangleBorder(
-          borderRadius: AppShapes.borderRadiusSmall,
-          side: BorderSide(color: scheme.outline, width: 1.5),
-        ),
-      ),
-      menu: MenuThemeData(
-        style: MenuStyle(
-          shape: const WidgetStatePropertyAll(
-            RoundedRectangleBorder(borderRadius: AppShapes.borderRadiusSmall),
-          ),
-          side: WidgetStatePropertyAll(
-            BorderSide(color: scheme.outline, width: 1.5),
-          ),
-        ),
-      ),
     );
   }
 }
