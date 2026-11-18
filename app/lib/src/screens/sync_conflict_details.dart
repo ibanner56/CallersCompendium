@@ -1072,10 +1072,12 @@ class SyncConflictComparison extends StatelessWidget {
             l10n,
           );
         case 'archivedAt':
-          // The day this version was archived, on the reader's own calendar;
-          // a version that is not archived shows "Not set" above.
-          return formatEventDate(
-            DateTime.parse(value as String).toLocal(),
+          // When this version was archived, in the reader's own time: a stamp
+          // the app writes itself, so the time is shown too, or two versions
+          // archived the same day would read alike. A version that is not
+          // archived shows "Not set" above.
+          return formatEventDateTime(
+            DateTime.parse(value as String),
             DateFormatScope.of(context),
             MaterialLocalizations.of(context),
             l10n,

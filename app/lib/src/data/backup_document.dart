@@ -52,10 +52,12 @@ const int backupSchemaVersionProgramPay = 2;
 /// The envelope version a backup is written under when a program in it is
 /// archived (`archivedAt`, schema v42).
 ///
-/// Builds up to 0.10.0 read envelope v2 but not `archivedAt`, so they would
-/// restore such a backup and bring every archived program back into the
-/// Programs list without a word. v3 makes them refuse a replace-restore
-/// instead. A backup with no archived program keeps the version it had.
+/// No build up to 0.10.0 reads `archivedAt`, and 0.8.0 to 0.10.0 accept
+/// envelope v2, so they would replace-restore such a backup and bring its
+/// archived programs back into the Programs list without a word. v3 makes 0.5.2
+/// to 0.10.0 refuse a replace-restore instead (a merge restore there stays
+/// best-effort, as for pay; builds before 0.5.2 do not check). A backup with
+/// no archived program keeps the version it had.
 const int backupSchemaVersionArchivedPrograms = 3;
 
 /// The envelope version [doc] must be written under so that no build that

@@ -446,6 +446,33 @@ void main() {
       );
     });
 
+    testWidgets('after Unarchive in the builder, an adjustment says nothing '
+        'changed elsewhere', (tester) async {
+      final repos = openTestRepositories();
+      await seed(repos);
+      await repos.programs.archive('p1', at: DateTime.utc(2026, 2, 1));
+      await pumpHome(tester, repos, const ProgramEditorScreen(programId: 'p1'));
+      // The builder's own write moves the program's stamp; its copy must
+      // follow it, or Perform takes the write for a change elsewhere.
+      await tester.tap(find.byKey(const ValueKey('archive-program')));
+      await tester.pumpAndSettle();
+      expect((await repos.programs.getById('p1'))!.isArchived, isFalse);
+      await tester.tap(find.byKey(const ValueKey('perform-program')));
+      await tester.pumpAndSettle();
+
+      await markCurrentPerformed(tester);
+
+      expect(tester.takeException(), isNull);
+      expect(
+        (await repos.programs.getById('p1'))!.slots.first.performedAt,
+        isNotNull,
+      );
+      expect(
+        find.text(l10nOf(tester).performProgramChangedElsewhere),
+        findsNothing,
+      );
+    });
+
     testWidgets('with unsaved edits, a change elsewhere found by an '
         'overtaken write still reaches the builder', (tester) async {
       final delayed = openTestRepositoriesWithDelayedPrograms();

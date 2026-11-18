@@ -5386,7 +5386,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get programsArchive => 'Archivieren';
 
   @override
-  String get programsUnarchive => 'Aus Archiv holen';
+  String get programsUnarchive => 'Aus dem Archiv holen';
 
   @override
   String programsArchivedSnack(String title) {

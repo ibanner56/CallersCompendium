@@ -60,8 +60,9 @@ const int _kTogglePerformedAttempts = 3;
 ///
 /// The programs list reloads unconditionally when this route pops, so the
 /// screen only self-manages what it must: **Edit** opens the builder (reloading
-/// in place, or popping if the builder deleted the program), **Delete** pops
-/// back to the list, and **Duplicate** re-targets this screen at the new copy.
+/// in place, or popping if the builder deleted or archived the program),
+/// **Delete** and **Archive** pop back to the list, and **Duplicate** re-targets
+/// this screen at the new copy.
 class ProgramSummaryScreen extends StatefulWidget {
   const ProgramSummaryScreen({
     super.key,
@@ -742,7 +743,9 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
 
   Future<void> _delete() async {
     final source = _program;
-    if (source == null || _deleting) return;
+    // Both guards, as in the builder: an Archive still in flight would leave the
+    // view as well, and two exits pop the route underneath.
+    if (source == null || _deleting || _archiving) return;
     _deleting = true;
     try {
       await _deleteConfirmed(source);

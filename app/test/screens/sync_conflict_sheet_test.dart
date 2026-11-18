@@ -1373,7 +1373,7 @@ void main() {
     }
 
     testWidgets('a program archived on one device only is shown as a '
-        'difference, as a date', (tester) async {
+        'difference', (tester) async {
       final repos = await _pump(tester);
       await tester.runAsync(() async {
         await repos.programs.create(
@@ -1396,10 +1396,41 @@ void main() {
       expect(find.textContaining('Archived'), findsWidgets);
       expect(find.text('This device: Not set'), findsOneWidget);
       expect(find.textContaining('Another device: '), findsOneWidget);
-      // The value is a formatted day, whatever the time zone, never the raw
-      // wire timestamp.
+      // A formatted value, never the raw wire timestamp.
       expect(find.textContaining('2026-09-15T'), findsNothing);
       expect(find.textContaining('only in details this view'), findsNothing);
+    });
+
+    testWidgets('two versions archived an hour apart on the same day read '
+        'differently: the time is shown', (tester) async {
+      final repos = await _pump(tester);
+      await tester.runAsync(() async {
+        await repos.programs.create(
+          Program(
+            id: 'p1',
+            title: 'Friday dance',
+            archivedAt: DateTime.utc(2026, 9, 15, 10),
+            createdAt: _tie,
+            updatedAt: _tie,
+          ),
+        );
+        await _queueRecordTie(
+          repos,
+          SyncRecordKind.program,
+          'p1',
+          (body) => {...body, 'archivedAt': '2026-09-15T11:00:00.000Z'},
+        );
+      });
+      await _open(tester);
+
+      String valueOf(String prefix) => tester
+          .widget<Text>(find.textContaining(prefix))
+          .data!
+          .substring(prefix.length);
+      final mine = valueOf('This device: ');
+      final theirs = valueOf('Another device: ');
+      expect(mine, isNot('Not set'));
+      expect(mine, isNot(theirs));
     });
 
     testWidgets("a dialect shows the terms that differ, not just its name", (

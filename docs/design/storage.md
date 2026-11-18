@@ -831,9 +831,11 @@ steps that can still fire are v40 onward.
   it; program share files drop it (`sanitizeProgramForShare`). The archive
   key is written only when set, so an unarchived program keeps its sync wire
   hash, and a backup holding an archived program is written under backup
-  envelope v3 (`backupSchemaVersionArchivedPrograms`), so 0.10.0 and older
-  refuse to replace-restore it instead of unarchiving everything; the core
-  archive version is unchanged. A Caller's Companion re-import keeps a
+  envelope v3 (`backupSchemaVersionArchivedPrograms`), so 0.5.2 to 0.10.0
+  refuse to replace-restore it instead of restoring its archived programs
+  unarchived (builds before 0.5.2 do not check, and a merge restore on an older
+  build stays best-effort and drops the field, as for pay); the core archive
+  version is unchanged. A Caller's Companion re-import keeps a
   program's archived state, as it keeps its venue link. Added by the
   `from < 42` step with `Migrator.addColumn`, guarded on `pragma_table_info`.
   No data rewritten, no derived rebuild.

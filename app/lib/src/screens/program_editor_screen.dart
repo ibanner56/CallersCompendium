@@ -141,7 +141,10 @@ class ProgramEditorScreen extends StatefulWidget {
   /// Called after a successful save with the program's id (embedded mode).
   final void Function(String programId)? onSaved;
 
-  /// Called after a successful soft-delete (embedded mode).
+  /// Called when the program leaves the builder from its own actions
+  /// (embedded mode): after a successful soft-delete, or after Archive, which
+  /// leaves the way Delete does (also when the program was already archived
+  /// or deleted elsewhere, so the archive wrote nothing).
   final VoidCallback? onDeleted;
 
   /// Called after duplication with the new copy's id (embedded mode).
@@ -3257,7 +3260,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   }
 
   Future<void> _save() async {
-    if (_pickerImporting) return;
+    // A save racing an Archive or Delete would write after the program has
+    // left; both save the edits on screen themselves first.
+    if (_pickerImporting || _archiving || _deleting) return;
     if (_parsedPay().isInvalid) {
       // The pay field lives in the collapsed "More details" drawer, whose
       // fields are not built (so not validated) while it is closed: open it and
@@ -3372,7 +3377,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   }
 
   Future<void> _delete() async {
-    if (_pickerImporting || _deleting) return;
+    // Both guards: a Delete started while an Archive is still saving would pop
+    // twice, the second pop taking the route underneath (or a dialog).
+    if (_pickerImporting || _deleting || _archiving) return;
     final source = _existing;
     if (source == null) return;
     // The title on screen, which a delete saves first (LIFE-14); a blank one
@@ -3561,9 +3568,20 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         at: DateTime.now().toUtc(),
       );
       if (!mounted) return;
+      // Adopt the write's stamp along with the cleared state, so this copy
+      // matches the stored program again (when nothing else changed meanwhile)
+      // and Perform's compare-and-replace does not report a change elsewhere.
+      // Only these two fields: anything else that changed elsewhere stays a
+      // difference, as it should.
+      final stored = await _repos.programs.getById(source.id);
+      if (!mounted) return;
       final current = _existing;
       if (current != null && current.id == source.id) {
-        _existing = current.copyWith(clearArchivedAt: true);
+        _existing = current.copyWith(
+          clearArchivedAt: stored?.archivedAt == null,
+          archivedAt: stored?.archivedAt,
+          updatedAt: stored?.updatedAt,
+        );
       }
       if (unarchived) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -3736,7 +3754,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 key: const ValueKey('delete-program'),
                 tooltip: l10n.commonDelete,
                 icon: const Icon(Icons.delete_outline),
-                onPressed: _pickerImporting || _deleting ? null : _delete,
+                onPressed: _pickerImporting || _deleting || _archiving
+                    ? null
+                    : _delete,
               ),
             ],
           ],
@@ -3753,7 +3773,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             ? FloatingActionButton.extended(
                 key: const ValueKey('save-program'),
                 heroTag: 'save-program',
-                onPressed: _saving || _pickerImporting ? null : _save,
+                onPressed:
+                    _saving || _pickerImporting || _archiving || _deleting
+                    ? null
+                    : _save,
                 icon: const Icon(Icons.save_outlined),
                 label: Text(l10n.commonSave),
               )
@@ -3770,7 +3793,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 _loadError == null &&
                 _tabController.index == 0 &&
                 !_saving &&
-                !_pickerImporting) {
+                !_pickerImporting &&
+                !_archiving &&
+                !_deleting) {
               unawaited(_save());
             }
             return null;
@@ -3837,7 +3862,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         ),
         PopupMenuItem<void>(
           key: const ValueKey('delete-program'),
-          enabled: !_pickerImporting && !_deleting,
+          enabled: !_pickerImporting && !_deleting && !_archiving,
           onTap: _delete,
           child: ListTile(
             leading: const Icon(Icons.delete_outline),

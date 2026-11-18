@@ -466,6 +466,43 @@ void main() {
       expect(popped, ['archived']);
     });
 
+    testWidgets('while Archive is saving the edits on screen, Delete and Save '
+        'are disabled, so the builder cannot leave twice', (tester) async {
+      final delayed = openTestRepositoriesWithDelayedPrograms();
+      final repos = delayed.repos;
+      await repos.programs.create(_program('p1', 'Alpha'));
+      final popped = await pumpBuilder(
+        tester,
+        repos,
+        size: const Size(1200, 900),
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'Alpha renamed',
+      );
+      await tester.pump();
+
+      delayed.programs.holdNextWrite();
+      await tester.tap(find.byKey(const ValueKey('archive-program')));
+      await delayed.programs.writeStarted;
+      await tester.pump();
+      IconButton button(String key) =>
+          tester.widget<IconButton>(find.byKey(ValueKey(key)));
+      expect(button('delete-program').onPressed, isNull);
+      expect(button('archive-program').onPressed, isNull);
+      final save = tester.widget<FloatingActionButton>(
+        find.byKey(const ValueKey('save-program')),
+      );
+      expect(save.onPressed, isNull);
+
+      delayed.programs.releaseWrite();
+      await tester.pumpAndSettle();
+      final stored = (await repos.programs.getById('p1'))!;
+      expect(stored.isArchived, isTrue);
+      expect(stored.isDeleted, isFalse);
+      expect(popped, ['archived']);
+    });
+
     testWidgets('a save after Unarchive does not archive the program again, '
         'and a save never unarchives one', (tester) async {
       final repos = await seeded();

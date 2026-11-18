@@ -81,7 +81,10 @@ void main() {
 
     test('a backup this build writes for pay is one it, and 0.8.0 and '
         'later, restore', () {
-      expect(backupSchemaVersionProgramPay, lessThan(backupSchemaVersion + 1));
+      expect(
+        backupSchemaVersionProgramPay,
+        lessThanOrEqualTo(backupSchemaVersion),
+      );
       expect(backupSchemaVersionProgramPay, backupSchemaVersionGlossary);
     });
   });

@@ -8,7 +8,7 @@
     ],
     "data_migrations": [
       "The database moves from schema v41 → 42 to remember which programs you archived. Nothing in your library changes.",
-      "A backup that holds an archived program is written as backup version 3, so 0.10.0 and older refuse to replace your library with it instead of unarchiving everything."
+      "A backup that holds an archived program is written as backup version 3, so versions 0.5.2 to 0.10.0 refuse to replace your library with it, instead of restoring your archived programs unarchived."
     ]
   },
   "core": {

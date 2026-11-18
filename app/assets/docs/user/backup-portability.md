@@ -87,8 +87,9 @@ A backup holds **everything** you've built, including:
   including fields marked **Include in sharing** off, along with where each
   dance was imported from.
 - All your programs, with their [slots](./glossary.md#slot),
-  [alternates](./glossary.md#alt), event details, pay, Perform dialect, and
-  which dances you've marked as performed.
+  [alternates](./glossary.md#alt), event details, pay, Perform dialect,
+  which dances you've marked as performed, and which programs you've
+  [archived](./programs.md#create-and-manage-programs).
 - The dances and programs in **Recently deleted**, so you can still restore
   them after bringing the backup back.
 - Your custom fields, tags, authors, published sources, difficulty levels,
@@ -153,7 +154,10 @@ backup is refused the same way, with its size and the limit.
 > newer version. That includes 0.6.0 and 0.7.0, which could read pay and Perform
 > dialects: a backup can't tell them apart from 0.5.2 to 0.5.4, which would
 > restore it without them. Versions before 0.5.2 don't check, and may restore it
-> without those details. Install the current version before you restore.
+> without those details. A backup that holds an archived program needs version
+> 0.11.0 or later to replace your library: versions 0.5.2 to 0.10.0 refuse
+> that, rather than bring your archived programs back unarchived. Install the
+> current version before you restore.
 
 ### Restoring while Device Sync is connected
 

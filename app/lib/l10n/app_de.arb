@@ -5336,7 +5336,7 @@
   "@programsArchive": {
     "x-sourceSha256": "66f4804ee23ddc092d1bae43cb88186aa541187fff7c1cc8a4aa17e59a9f4123"
   },
-  "programsUnarchive": "Aus Archiv holen",
+  "programsUnarchive": "Aus dem Archiv holen",
   "@programsUnarchive": {
     "x-sourceSha256": "f565318d124534cfe0a7630d518f548cd339e464f48d50eda453abd3728ac2a7"
   },
