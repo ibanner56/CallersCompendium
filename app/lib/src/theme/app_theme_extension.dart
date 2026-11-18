@@ -177,7 +177,10 @@ class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
   /// `onSurface`, only as far as it needs to clear 3:1 on the tint laid over
   /// the canvas and over `surfaceContainerLow`. The tint and the border keep
   /// [token], so the label and border guarantees are untouched; where the
-  /// token already clears 3:1, the icon is the token.
+  /// token already clears 3:1, the icon is the token. If no step clears 3:1
+  /// (a custom theme whose `onSurface` itself falls short), the icon is
+  /// `onSurface`, the strongest colour on offer, without that guarantee;
+  /// `palette_contrast_test.dart` holds every bundled palette to it.
   static Color statusIconColor(Color token, ColorScheme scheme) {
     final tints = [
       for (final tier in [scheme.surface, scheme.surfaceContainerLow])

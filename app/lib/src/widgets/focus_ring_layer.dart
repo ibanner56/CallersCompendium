@@ -24,8 +24,9 @@ import '../theme/app_theme_extension.dart';
 /// * a focus scope, or a node covering most of the layer — the page-level
 ///   `Focus(autofocus: true)` wrappers that exist only to receive keyboard
 ///   shortcuts, where a ring round the whole page says nothing;
-/// * a node scrolled out of its scrollable's viewport (the ring is clipped to
-///   every enclosing viewport, so it never paints over an app bar).
+/// * a node scrolled out of its scrollable's viewport. The ring is clipped to
+///   every enclosing viewport, widened only by the ring's own width, so a row
+///   half under an app bar shows at most that sliver of ring over the bar.
 class FocusRingLayer extends StatefulWidget {
   const FocusRingLayer({super.key, required this.child});
 

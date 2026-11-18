@@ -111,7 +111,7 @@ is co-owned with Phase 5 Perform mode.
 **Keyboard focus.** Material's focus cue is a translucent fill of
 the focus colour (about 1.2:1 against the unfocused state), too faint to find
 across a room. `FocusRingLayer` draws the theme's `focusRing` at
-`focusRingWidth` (2px primary; 3px ochre in HC) as an outline 2px outside the
+`focusRingWidth` (2px primary; 3px yellow `#FFD54A` in HC) as an outline 2px outside the
 keyboard-focused control, above every route, for every control including those
 whose Material themes cannot draw one (list tiles, navigation rail/bar,
 checkboxes, switches, radios). Text fields keep their own focused border
@@ -123,7 +123,12 @@ surface tier in every scheme.
 theme swaps in instant page transitions and an instant `ExpansionTile`, and
 every `showDialog` / `showModalBottomSheet` call passes
 `AppMotion.styleFor(context)` (a source-scan test enforces it), since dialogs
-and sheets have no theme hook for their animation.
+and sheets have no theme hook for their animation. Flutter's `showDatePicker`
+takes no animation style, so the app opens the date picker through
+`showAppDatePicker`, which builds the same `DatePickerDialog` and passes the
+style; the scan also rejects the bare picker helpers. On iOS and macOS the
+instant page transition is the Cupertino one at zero duration, because the
+edge swipe back lives in that transition builder.
 
 ### 1c. Typography
 
