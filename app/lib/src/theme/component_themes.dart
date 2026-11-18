@@ -67,8 +67,9 @@ class ComponentThemes {
   // The components below are themed alike in both treatments by
   // [_withSharedComponents]: AppShapes radii everywhere, plus an outline in
   // High contrast where the component is a container or control boundary.
-  // Sheets and menus sit on distinct surface tiers, and High contrast
-  // outlines them, as it does cards and dialogs.
+  // Sheets and the menus themed here (popup, anchored and M3 dropdown menus)
+  // sit on distinct surface tiers, and High contrast outlines them, as it
+  // does cards and dialogs. Legacy DropdownButton menus take no theme border.
   final BottomSheetThemeData bottomSheet;
   final PopupMenuThemeData popupMenu;
   final MenuThemeData menu;
@@ -118,6 +119,16 @@ class ComponentThemes {
     final side = highContrast
         ? BorderSide(color: scheme.outline, width: 1.5)
         : BorderSide.none;
+    // A disabled control keeps an outline in High contrast, but dimmed to
+    // Material's disabled onSurface, so it does not read as pressable.
+    final disabledOutline = scheme.onSurface.withValues(alpha: 0.38);
+    final controlSide = highContrast
+        ? WidgetStateProperty.resolveWith<BorderSide?>(
+            (states) => states.contains(WidgetState.disabled)
+                ? side.copyWith(color: disabledOutline)
+                : side,
+          )
+        : null;
     final menuStyle = MenuStyle(
       shape: const WidgetStatePropertyAll(
         RoundedRectangleBorder(borderRadius: AppShapes.borderRadiusSmall),
@@ -201,7 +212,7 @@ class ComponentThemes {
           shape: const WidgetStatePropertyAll(
             RoundedRectangleBorder(borderRadius: AppShapes.borderRadiusSmall),
           ),
-          side: highContrast ? WidgetStatePropertyAll(side) : null,
+          side: controlSide,
         ),
       ),
       segmentedButton: SegmentedButtonThemeData(
@@ -209,7 +220,7 @@ class ComponentThemes {
           shape: const WidgetStatePropertyAll(
             RoundedRectangleBorder(borderRadius: AppShapes.borderRadiusSmall),
           ),
-          side: highContrast ? WidgetStatePropertyAll(side) : null,
+          side: controlSide,
         ),
       ),
       expansionTile: ExpansionTileThemeData(
@@ -232,19 +243,26 @@ class ComponentThemes {
       // (Material drops it), and a box outline on a ticked checkbox.
       switchTheme: highContrast
           ? SwitchThemeData(
-              trackOutlineColor: WidgetStatePropertyAll(scheme.outline),
+              trackOutlineColor: WidgetStateProperty.resolveWith(
+                (states) => states.contains(WidgetState.disabled)
+                    ? disabledOutline
+                    : scheme.outline,
+              ),
               trackOutlineWidth: const WidgetStatePropertyAll(1.5),
             )
           : const SwitchThemeData(),
       checkbox: highContrast
           ? CheckboxThemeData(
               // A state-aware side, because a plain BorderSide is drawn only
-              // while the box is unticked. A disabled box keeps Material's
-              // dimmed onSurface, so an inert row still reads as inert.
+              // while the box is unticked. A disabled box is dimmed like the
+              // other disabled controls, and an errored box keeps the error
+              // colour, as Material's default does.
               side: WidgetStateBorderSide.resolveWith(
                 (states) => BorderSide(
                   color: states.contains(WidgetState.disabled)
-                      ? scheme.onSurface.withValues(alpha: 0.38)
+                      ? disabledOutline
+                      : states.contains(WidgetState.error)
+                      ? scheme.error
                       : scheme.outline,
                   width: 2,
                 ),
