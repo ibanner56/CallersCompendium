@@ -2020,11 +2020,18 @@ class ProgramRepository {
   /// the venue back: the archive merge, which overwrites the program straight
   /// after reviving it, and the Caller's Companion re-import, whose undo would
   /// not re-tombstone a revived venue.
+  ///
+  /// With [unarchive], an archived program also comes back unarchived, in the
+  /// same transaction, through [unarchive]'s stamping (so the change syncs).
+  /// Recently deleted passes it, by the maintainer's decision on #2218: a
+  /// program restored there should be one the Programs list shows. An Undo
+  /// right after a delete does not: it puts back exactly what was deleted.
   Future<void> restore(
     String id, {
     required DateTime at,
     bool clearPending = true,
     bool reviveReferences = true,
+    bool unarchive = false,
   }) => _db.transaction(() async {
     if (reviveReferences) {
       final row = await (_db.select(
@@ -2049,6 +2056,9 @@ class ProgramRepository {
       }
     }
     await _stampExistence(id, at: at, deleted: false);
+    // `_setArchivedAt` acts only on a live program, which the stamp above has
+    // just made this one.
+    if (unarchive) await _setArchivedAt(id, archivedAt: null, at: at);
     if (clearPending) {
       await clearPendingSyncDeletionForRestore(
         _db,

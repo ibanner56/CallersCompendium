@@ -261,6 +261,55 @@ void main() {
       });
     }
 
+    testWidgets('wide: archiving the open program from its row closes it', (
+      tester,
+    ) async {
+      final repos = await seeded();
+      await _pump(tester, repos, size: const Size(1400, 900));
+      await tester.tap(find.text('Programs').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Live Program'));
+      await tester.pumpAndSettle();
+      expect(find.byType(ProgramSummaryPane), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('program-actions-p1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('program-action-archive')));
+      await tester.pumpAndSettle();
+      expect((await repos.programs.getById('p1'))!.isArchived, isTrue);
+      expect(find.byType(ProgramSummaryPane), findsNothing);
+    });
+
+    testWidgets('wide: Hide archived closes an open archived program, and '
+        'leaves an open unarchived one', (tester) async {
+      final repos = await seeded();
+      await _pump(tester, repos, size: const Size(1400, 900));
+      await tester.tap(find.text('Programs').last);
+      await tester.pumpAndSettle();
+      await showArchived(tester);
+
+      // An unarchived program stays open across Hide archived.
+      await tester.tap(find.text('Live Program'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('programs-more-actions')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Hide archived'));
+      await tester.pumpAndSettle();
+      expect(find.byType(ProgramSummaryPane), findsOneWidget);
+
+      // An archived one closes.
+      await showArchived(tester);
+      await tester.tap(find.text('Archived Program'));
+      await tester.pumpAndSettle();
+      expect(find.byType(ProgramSummaryPane), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('programs-more-actions')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Hide archived'));
+      await tester.pumpAndSettle();
+      expect(find.byType(ProgramSummaryPane), findsNothing);
+      expect(await repos.programs.getById('p2'), isNotNull);
+    });
+
     testWidgets('wide: archiving from the summary pane closes the program', (
       tester,
     ) async {

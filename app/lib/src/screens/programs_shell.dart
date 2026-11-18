@@ -124,6 +124,7 @@ class _ProgramsShellState extends State<ProgramsShell> {
               selectedProgramId: _selectedProgramId,
               performResumeStore: _performResume,
               isActive: widget.isActive,
+              onSelectedProgramHidden: () => _select(null),
             ),
           ),
         ),

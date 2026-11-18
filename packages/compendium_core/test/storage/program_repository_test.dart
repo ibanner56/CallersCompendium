@@ -2636,6 +2636,29 @@ void main() {
       },
     );
 
+    test('restore keeps an archived program archived unless asked to '
+        'unarchive it', () async {
+      await repo.create(sampleProgram(id: 'p1'));
+      await repo.create(sampleProgram(id: 'p2'));
+      for (final id in ['p1', 'p2']) {
+        await repo.archive(id, at: at);
+        await repo.softDelete(id, at: at.add(const Duration(hours: 1)));
+      }
+      final restoreAt = at.add(const Duration(hours: 2));
+
+      // An Undo right after a delete puts back exactly what was deleted.
+      await repo.restore('p1', at: restoreAt);
+      final kept = (await repo.getById('p1'))!;
+      expect(kept.isArchived, isTrue);
+
+      // Recently deleted restores it unarchived, stamped so the change syncs.
+      await repo.restore('p2', at: restoreAt, unarchive: true);
+      final restored = (await repo.getById('p2'))!;
+      expect(restored.isDeleted, isFalse);
+      expect(restored.isArchived, isFalse);
+      expect(restored.updatedAt.isAfter(kept.updatedAt), isTrue);
+    });
+
     test('duplicating an archived program gives an unarchived copy', () async {
       await repo.create(sampleProgram());
       await repo.archive('p1', at: at);

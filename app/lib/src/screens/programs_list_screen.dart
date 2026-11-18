@@ -68,9 +68,17 @@ class ProgramsListScreen extends StatefulWidget {
     this.selectedProgramId,
     this.performResumeStore,
     this.isActive = true,
+    this.onSelectedProgramHidden,
   });
 
   final void Function(String programId)? onSelectProgram;
+
+  /// Called (split-pane mode) when the selected program ([selectedProgramId])
+  /// stops being listed while it still exists: archived from its row with
+  /// archived programs hidden, or hidden by "Hide archived". The host closes
+  /// it, as it does when the program leaves through its own Archive or Delete
+  /// (the maintainer's decision on #2218).
+  final VoidCallback? onSelectedProgramHidden;
 
   /// Whether the Programs destination is the one showing. Leaving it (true to
   /// false) hides archived programs again; see the class comment.
@@ -135,10 +143,29 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.isActive && !widget.isActive && _showArchived) {
       setState(() => _showArchived = false);
+      _closeHiddenSelection();
     }
   }
 
-  void _toggleShowArchived() => setState(() => _showArchived = !_showArchived);
+  void _toggleShowArchived() {
+    setState(() => _showArchived = !_showArchived);
+    _closeHiddenSelection();
+  }
+
+  /// Tells the host when the selected program is in the data but no longer
+  /// listed, after the frame (the host's `setState` must not run mid-build).
+  void _closeHiddenSelection() {
+    final selected = widget.selectedProgramId;
+    final onHidden = widget.onSelectedProgramHidden;
+    if (selected == null || onHidden == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || widget.selectedProgramId != selected) return;
+      final all = _programs ?? const <Program>[];
+      final exists = all.any((p) => p.id == selected);
+      final listed = _visiblePrograms.any((p) => p.id == selected);
+      if (exists && !listed) onHidden();
+    });
+  }
 
   /// The live Programs list (issue #768).
   ///
@@ -360,6 +387,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
       _venuesById = snapshot.venuesById;
       _loadError = null;
     });
+    _closeHiddenSelection();
     final focusIds = _pendingFocusIds;
     if (focusIds.isEmpty) return;
     _pendingFocusIds = const [];
