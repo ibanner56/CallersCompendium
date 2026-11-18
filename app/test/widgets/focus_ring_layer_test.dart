@@ -155,4 +155,35 @@ void main() {
     await tester.pump();
     expect(ring(tester), isNull);
   });
+
+  testWidgets('after a layout-only move, the ring asks for the frame that '
+      'repaints it', (tester) async {
+    // A wheel tick or a resize produces one frame. The ring measures after
+    // that frame's layout, so it must schedule the next frame itself, or it
+    // stays where the row used to be until something else asks for a frame.
+    final top = ValueNotifier<double>(0);
+    addTearDown(top.dispose);
+    final tile = ListTile(title: const Text('Row'), onTap: () {});
+    await pump(
+      tester,
+      ValueListenableBuilder<double>(
+        valueListenable: top,
+        builder: (_, t, _) => Padding(
+          padding: EdgeInsets.only(top: t),
+          child: SizedBox(width: 300, child: tile),
+        ),
+      ),
+    );
+    await tabTo(tester, find.byWidget(tile));
+    FocusRingPainter painter() => tester
+        .widgetList<CustomPaint>(find.byType(CustomPaint))
+        .map((p) => p.painter)
+        .whereType<FocusRingPainter>()
+        .single;
+    top.value = 50;
+    await tester.pump();
+    expect(tester.binding.hasScheduledFrame, isTrue);
+    await tester.pump();
+    expect(painter().rect, boundsOfFocused(tester));
+  });
 }
