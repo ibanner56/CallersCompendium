@@ -549,6 +549,8 @@ class ContraDbAdapter implements SourceAdapter {
       shape = FormationShape.dupleIndecent;
     } else if (lower.contains('proper')) {
       shape = FormationShape.dupleProper;
+    } else if (lower.contains('triple')) {
+      shape = FormationShape.tripleMinor;
     } else if (lower.contains('sicilian')) {
       shape = FormationShape.sicilianCircle;
     } else if (lower.contains('scatter')) {

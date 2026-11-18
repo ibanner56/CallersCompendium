@@ -846,6 +846,8 @@ void main() {
     const cases = <(String, FormationShape, String?)>[
       ('Proper Triplet (231)', FormationShape.triplet, 'Proper'),
       ('Improper Triplet', FormationShape.triplet, 'Improper'),
+      ('Indecent Triplet', FormationShape.triplet, 'Indecent'),
+      ('Improper (triple progression)', FormationShape.dupleImproper, null),
       ('Triplet', FormationShape.triplet, null),
       ('Improper Quadruplet (2341)', FormationShape.quadruplet, 'Improper'),
       ('Quadruplet', FormationShape.quadruplet, null),
@@ -860,5 +862,13 @@ void main() {
         expect(f.detail, detail);
       });
     }
+
+    test('keeps the start word ahead of the preamble detail', () async {
+      final draft = await _importOne(
+        jsonEncode(_dance(startType: 'Proper Triplet', preamble: 'chestnut')),
+      );
+      expect(draft.dance.formation.shape, FormationShape.triplet);
+      expect(draft.dance.formation.detail, 'Proper; chestnut');
+    });
   });
 }

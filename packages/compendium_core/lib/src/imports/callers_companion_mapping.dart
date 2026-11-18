@@ -1027,8 +1027,14 @@ Formation _mapFormation(String? raw, List<ImportIssue> issues) {
   if (value.contains('improper')) {
     return const Formation(FormationShape.dupleImproper);
   }
+  if (value.contains('proper') && value.contains('triple')) {
+    return const Formation(FormationShape.tripleMinor);
+  }
   if (value.contains('proper')) {
     return const Formation(FormationShape.dupleProper);
+  }
+  if (value.contains('triple')) {
+    return const Formation(FormationShape.tripleMinor);
   }
   if (value.contains('sicilian')) {
     return const Formation(FormationShape.sicilianCircle);

@@ -495,6 +495,8 @@ A1 (8) Do the thing
     const cases = <(String, FormationShape, String?)>[
       ('Proper Triplet (231)', FormationShape.triplet, 'Proper'),
       ('Improper Triplet', FormationShape.triplet, 'Improper'),
+      ('Indecent Triplet', FormationShape.triplet, 'Indecent'),
+      ('Improper (triple progression)', FormationShape.dupleImproper, null),
       ('Triplet', FormationShape.triplet, null),
       ('Improper Quadruplet (2341)', FormationShape.quadruplet, 'Improper'),
       ('Quadruplet', FormationShape.quadruplet, null),

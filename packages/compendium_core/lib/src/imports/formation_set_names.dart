@@ -11,7 +11,8 @@ typedef FormationSetName = ({FormationShape shape, String? qualifier});
 /// Importers must try this **before** their `proper` / `improper` /
 /// `indecent` checks: those words also qualify set shapes, so testing them
 /// first reads "Proper Triplet" as a duple proper. Within this function
-/// `triplet` is tested before `triple`, because "triplet" contains "triple".
+/// `triplet` is tested before `triple minor`, and a bare "triple" is left to
+/// the caller.
 ///
 /// The start word ("Proper", "Improper", "Indecent") is returned as
 /// [FormationSetName.qualifier] for the caller to keep as the formation's
@@ -23,7 +24,9 @@ FormationSetName? classifyFormationSetName(String lower) {
     shape = FormationShape.quadruplet;
   } else if (lower.contains('triplet')) {
     shape = FormationShape.triplet;
-  } else if (lower.contains('triple')) {
+  } else if (lower.contains('triple minor')) {
+    // Only the phrase: a bare "triple" (e.g. a progression remark) keeps its
+    // place in each mapper, after the start words.
     shape = FormationShape.tripleMinor;
   } else {
     return null;

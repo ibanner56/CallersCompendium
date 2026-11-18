@@ -413,6 +413,8 @@ class ContraDbHtmlAdapter implements SourceAdapter {
       shape = FormationShape.dupleImproper;
     } else if (lower.contains('indecent')) {
       shape = FormationShape.dupleIndecent;
+    } else if (lower.contains('triple')) {
+      shape = FormationShape.tripleMinor;
     } else if (lower.contains('proper')) {
       shape = FormationShape.dupleProper;
     } else if (lower.contains('four facing four') ||
