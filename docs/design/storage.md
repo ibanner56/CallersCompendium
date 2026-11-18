@@ -836,7 +836,9 @@ steps that can still fire are v40 onward.
   unarchived (builds before 0.5.2 do not check, and a merge restore on an older
   build stays best-effort and drops the field, as for pay); the core archive
   version is unchanged. A Caller's Companion re-import keeps a
-  program's archived state, as it keeps its venue link. Added by the
+  program's archived state, as it keeps its venue link. A restore from
+  Recently deleted clears it (`restore(unarchive: true)`, which stamps like
+  `unarchive`); a delete's Undo does not. Added by the
   `from < 42` step with `Migrator.addColumn`, guarded on `pragma_table_info`.
   No data rewritten, no derived rebuild.
 
