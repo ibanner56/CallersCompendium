@@ -437,7 +437,7 @@ void main() {
 
   testWidgets(
     'confirm-before-leaving-Perform toggle defaults on, is accessible, and '
-    'persists (DS-08)',
+    'persists',
     (tester) async {
       final handle = tester.ensureSemantics();
       final repos = openTestRepositories();

@@ -343,7 +343,7 @@ final Map<String, DataClassification> settingsClassifications = {
     subject: DataSubject.appUser,
     egress: EgressClass.shareable,
     note:
-        'Whether leaving Perform asks first (UI/UX audit DS-08). A habit of '
+        'Whether leaving Perform asks first. A habit of '
         'the caller rather than a property of the screen, like '
         'confirm_before_delete, so it travels with their other preferences; '
         'unlike auto_size_perform_cards it does not depend on screen size.',

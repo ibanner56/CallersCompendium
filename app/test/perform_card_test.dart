@@ -282,7 +282,7 @@ void main() {
   }
 
   /// The app's body text size under [systemScale] — the floor auto-size may
-  /// not shrink the figures below (UI/UX audit A-03, decision DS-12 option A).
+  /// not shrink the figures below.
   double osBodySize(WidgetTester tester, double systemScale) {
     final context = tester.element(find.byType(PerformCard));
     return Theme.of(context).textTheme.bodyLarge!.fontSize! * systemScale;
@@ -291,7 +291,7 @@ void main() {
   for (final systemScale in const [1.0, 3.0]) {
     testWidgets(
       'auto-size never draws the figures below the OS-scaled body size; a '
-      'card too tall for that scrolls instead (A-03, ${systemScale}x text)',
+      'card too tall for that scrolls instead (${systemScale}x text)',
       (tester) async {
         addTearDown(() => tester.binding.setSurfaceSize(null));
         final c = await _controllerWith(null);

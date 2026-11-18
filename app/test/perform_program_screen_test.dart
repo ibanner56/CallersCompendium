@@ -2305,10 +2305,10 @@ void main() {
     );
   });
 
-  // UI/UX audit P-12: the footer showed two bare "0:04" readouts, and the
+  // The footer used to show two bare "0:04" readouts, and the
   // program title truncated to "Glen Echo Fr…" on a 390 pt phone.
   testWidgets('the footer labels which clock is the program and which the '
-      'slot, and the program title wraps instead of truncating (P-12)', (
+      'slot, and the program title wraps instead of truncating', (
     tester,
   ) async {
     final data = await _dataWith([_dance(id: 'd1', title: 'First Dance')]);
@@ -2591,7 +2591,7 @@ void main() {
           // The bar itself grows with the system text size (A11Y-01) rather
           // than leaning on the FittedBox below to shrink the position/timing
           // lines into the fixed 80 px — but only up to the chrome cap
-          // (kPerformChromeMaxTextScale, UI/UX audit A-03), so at 3× it stays
+          // (kPerformChromeMaxTextScale), so at 3× it stays
           // at the 2× height instead of squeezing the card. At these scales
           // the lines are shrunk to fit the bar's *width* either way, so the
           // containment checks below pass with a fixed-height bar; the height

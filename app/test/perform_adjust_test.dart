@@ -259,10 +259,10 @@ void main() {
     expect(persisted.single.slots.map((s) => s.position).toList(), [0, 1, 2]);
   });
 
-  // UI/UX audit U-01: only Done used to return the edits, so a swipe down or
+  // Only Done used to return the edits, so a swipe down or
   // a tap on the barrier silently threw away reorders and performed-marks made
   // mid-gig. Every way of closing the sheet now keeps them.
-  group('closing the sheet without Done keeps the edits (U-01)', () {
+  group('closing the sheet without Done keeps the edits', () {
     final dances = [
       _dance(id: 'd1', title: 'First Dance'),
       _dance(id: 'd2', title: 'Second Dance'),

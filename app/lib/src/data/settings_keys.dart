@@ -75,7 +75,7 @@ const bool kAutoSizePerformDefault = true;
 const String kShowIndividualPerformTimerKey = 'show_individual_perform_timer';
 
 /// Key used to persist the default-on "confirm before leaving Perform"
-/// preference (UI/UX audit DS-08). Stored as a bool; absent/unset or a non-bool
+/// preference. Stored as a bool; absent/unset or a non-bool
 /// means on ([kConfirmPerformExitDefault]), so the close control and system
 /// back ask before dropping the caller out of the stage view. Turning it off
 /// makes them leave Perform at once — nothing is lost by leaving, since program

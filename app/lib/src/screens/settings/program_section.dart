@@ -122,7 +122,7 @@ class _ProgramSectionState extends State<ProgramSection> {
     await persistSetting(repos.settings, kShowIndividualPerformTimerKey, value);
   }
 
-  /// "Confirm before leaving Perform" (UI/UX audit DS-08): read lazily like
+  /// "Confirm before leaving Perform": read lazily like
   /// the toggles above; a late read never overwrites the user's own flip.
   void _ensureConfirmPerformExitLoaded(BuildContext context) {
     if (_confirmPerformExitRequested) return;
@@ -462,7 +462,7 @@ class _ProgramView extends StatelessWidget {
   final bool showIndividualPerformTimer;
   final ValueChanged<bool> onShowIndividualPerformTimerChanged;
 
-  /// Whether leaving Perform asks first (UI/UX audit DS-08). On by default.
+  /// Whether leaving Perform asks first. On by default.
   final bool confirmPerformExit;
   final ValueChanged<bool> onConfirmPerformExitChanged;
   final bool showProgramSlotCallerNotes;

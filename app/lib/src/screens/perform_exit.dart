@@ -14,8 +14,7 @@ import '../data/settings_keys.dart'
 /// (the screens pass their Scaffold's context): [showDialog] captures the
 /// themes of the context it is given, so a context above the stage theme drew
 /// the dialog in the app theme — a near-white panel over the dark stage in
-/// light mode (UI/UX audit P-02). [body] is the screen's own explanation of
-/// what leaving keeps.
+/// light mode. [body] is the screen's own explanation of what leaving keeps.
 Future<bool> showPerformExitDialog(
   BuildContext stageContext, {
   required String body,
@@ -45,8 +44,8 @@ Future<bool> showPerformExitDialog(
   return confirmed == true;
 }
 
-/// Reads the "Confirm before leaving Perform" setting (UI/UX audit DS-08) for
-/// a Perform screen. Resolves to [kConfirmPerformExitDefault] (ask) when the
+/// Reads the "Confirm before leaving Perform" setting for a Perform screen.
+/// Resolves to [kConfirmPerformExitDefault] (ask) when the
 /// value is unset, not a bool, or unreadable, so a failed read never removes
 /// the guard.
 Future<bool> loadConfirmPerformExit(BuildContext context) async {

@@ -18,8 +18,8 @@ import '../widgets/collection_picker.dart';
 /// [Navigator.pop] when the caller taps **Done** (or `null` when nothing
 /// changed). Every edit is also reported through [onEdited] as it happens, so
 /// a sheet closed any other way — swipe down, barrier tap, system back — still
-/// hands its edits to the caller instead of silently discarding them (UI/UX
-/// audit U-01). [PerformProgramScreen] then applies the result live with a
+/// hands its edits to the caller instead of silently discarding them.
+/// [PerformProgramScreen] then applies the result live with a
 /// single SnackBar undo and persists it — so the reading view underneath is
 /// never disturbed while adjusting.
 class PerformAdjustSheet extends StatefulWidget {

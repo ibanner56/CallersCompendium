@@ -11,8 +11,8 @@ const double kPerformDefaultScale = 1.8;
 /// intent is lost). There is deliberately no practical upper bound.
 const double kPerformMinScale = 1.0;
 
-/// Lower bound for the *auto-size* fit search only (ROADMAP G.1; UI/UX audit
-/// A-03, decision DS-12 option A): the card's own body text may shrink to fit
+/// Lower bound for the *auto-size* fit search only (ROADMAP G.1): the card's
+/// own body text may shrink to fit
 /// the viewport, but never below the user's OS-scaled body text size.
 ///
 /// The card's text is composed on top of the system text scale, so a card
@@ -43,9 +43,9 @@ const double kPerformMaxAutoScale = 12.0;
 const double kPerformScaleStep = 0.2;
 
 /// Ceiling on the system text scale applied to Perform's chrome — the program
-/// footer (position and timers) and the program title (UI/UX audit A-03,
-/// P-12). The card itself always follows the full system scale. Uncapped, an
-/// accessibility text size grew the footer to triple size while auto-size
-/// shrank the figures to fit the space left. 2.0 still honours a 200% text
+/// footer (position and timers) and the program title. The card itself always
+/// follows the full system scale. Uncapped, an accessibility text size grew the
+/// footer to triple size while auto-size shrank the figures to fit the space
+/// left. 2.0 still honours a 200% text
 /// enlargement (WCAG 1.4.4) for the chrome, and stops it there.
 const double kPerformChromeMaxTextScale = 2.0;

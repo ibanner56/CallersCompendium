@@ -603,7 +603,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   /// Keys the Scaffold, which sits below [PerformStageTheme]: its context is
   /// the one dialogs and sheets are opened from, so the exit dialog and the
   /// metronome, jump and adjust sheets render in the stage theme rather than
-  /// the app theme (UI/UX audit P-02).
+  /// the app theme.
   final GlobalKey _stageKey = GlobalKey(debugLabel: 'perform-program-stage');
 
   /// A context inside the stage theme, for [showDialog] and
@@ -620,7 +620,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   /// clock are preserved regardless (via [dispose] → [PerformProgramScreen.onExit]),
   /// so confirming resumes on re-entry rather than losing the place — which is
   /// why the caller may turn the confirmation off in Settings ([_confirmExit],
-  /// UI/UX audit DS-08), making the close control and Back leave at once.
+  /// making the close control and Back leave at once.
   ///
   /// [_exitDialogShowing] prevents re-entrancy (issue #666, parity with
   /// #612): without it, rapid taps on the close button (or repeated back
@@ -1097,7 +1097,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     );
     // The sheet reports every edit as it happens; [latest] keeps the last one
     // so a sheet dismissed without Done (swipe down, barrier tap, Back) still
-    // commits its edits rather than discarding them (UI/UX audit U-01). They
+    // commits its edits rather than discarding them. They
     // are applied with the same undo as Done, so keeping them is cheap to
     // reverse, while losing reorders made mid-gig is not.
     Program? latest;
@@ -1188,7 +1188,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     context,
   ).clamp(maxScaleFactor: kPerformChromeMaxTextScale);
 
-  /// Tall enough for two lines of the program title (UI/UX audit P-12), and
+  /// Tall enough for two lines of the program title, and
   /// never shorter than the standard toolbar.
   double _toolbarHeight(BuildContext context) {
     final style = _programTitleStyle(context);
@@ -1197,8 +1197,8 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   }
 
   /// The program title in the AppBar. It wraps onto a second line rather than
-  /// truncating after a dozen characters on a phone (UI/UX audit P-12: "Glen
-  /// Echo Fr…" at 390 pt), and ellipsizes only beyond that.
+  /// truncating after a dozen characters on a phone (a 390 pt
+  /// screen showed only "Glen Echo Fr…"), and ellipsizes only beyond that.
   Widget _buildProgramTitle(BuildContext context) {
     return MediaQuery(
       data: MediaQuery.of(context).copyWith(textScaler: _chromeScaler(context)),
@@ -1519,7 +1519,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
 
   /// The program footer: pause, previous, the position and timing readout,
   /// next. It is chrome, so it follows the system text size only up to
-  /// [kPerformChromeMaxTextScale] (UI/UX audit A-03): at an accessibility
+  /// [kPerformChromeMaxTextScale]: at an accessibility
   /// size it no longer grows to triple height and squeezes the card the caller
   /// is reading.
   Widget _buildFooter(ProgramSlot slot) {
@@ -1747,8 +1747,8 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Each clock carries a short visible label (UI/UX audit
-                  // P-12): two bare "0:04" readouts gave no hint which timed
+                  // Each clock carries a short visible label: two
+                  // bare "0:04" readouts gave no hint which timed
                   // the evening and which the dance. The words match the
                   // semantic label above ("Program time …, slot time …").
                   const Icon(Icons.timer_outlined, size: 16),

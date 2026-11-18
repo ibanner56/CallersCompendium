@@ -1,7 +1,6 @@
-// Leaving Perform and the dialogs and sheets it opens (UI/UX audit P-02,
-// DS-08): the exit confirmation can be turned off in Settings, and every
-// Perform dialog and sheet renders in the stage theme the caller is looking at
-// rather than the app theme behind it.
+// Leaving Perform and the dialogs and sheets it opens: the exit confirmation
+// can be turned off in Settings, and every Perform dialog and sheet renders in
+// the stage theme the caller is looking at rather than the app theme behind it.
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
@@ -146,7 +145,7 @@ void main() {
       });
 
       testWidgets('leaves at once from the close control when the setting is '
-          'off (DS-08)', (tester) async {
+          'off', (tester) async {
         await _pushPerform(tester, surface, confirmExit: false);
 
         await tester.tap(find.byKey(ValueKey(surface.exitKey)));
@@ -179,7 +178,7 @@ void main() {
       });
 
       testWidgets('the exit dialog is drawn in the stage theme over a light '
-          'app theme (P-02)', (tester) async {
+          'app theme', (tester) async {
         await _pushPerform(tester, surface);
         await tester.tap(find.byKey(ValueKey(surface.exitKey)));
         await tester.pumpAndSettle();
@@ -202,7 +201,7 @@ void main() {
         expect(_themeOf(tester, _exitDialog).brightness, Brightness.light);
       });
 
-      testWidgets('the metronome sheet is drawn in the stage theme (P-02)', (
+      testWidgets('the metronome sheet is drawn in the stage theme', (
         tester,
       ) async {
         await _pushPerform(tester, surface);
@@ -221,7 +220,7 @@ void main() {
     ('jump', 'perform-jump'),
     ('adjust', 'perform-adjust'),
   ]) {
-    testWidgets('the program $name sheet is drawn in the stage theme (P-02)', (
+    testWidgets('the program $name sheet is drawn in the stage theme', (
       tester,
     ) async {
       await _pushPerform(tester, _Surface.program);

@@ -303,7 +303,7 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
   /// confirmation first. Mirrors [PerformProgramScreen]'s guard exactly,
   /// sharing [showPerformExitDialog] so the two Perform surfaces stay
   /// consistent. The caller can turn the confirmation off in Settings
-  /// ([_confirmExit], UI/UX audit DS-08); the close control and Back then
+  /// ([_confirmExit]); the close control and Back then
   /// leave at once.
   ///
   /// [_exitDialogShowing] prevents re-entrancy: without it, rapid taps on the
@@ -321,7 +321,7 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
 
   /// Keys the Scaffold, which sits below [PerformStageTheme]: its context is
   /// the one dialogs and sheets are opened from, so they render in the stage
-  /// theme rather than the app theme (UI/UX audit P-02).
+  /// theme rather than the app theme.
   final GlobalKey _stageKey = GlobalKey(debugLabel: 'perform-dance-stage');
 
   /// A context inside the stage theme, for [showDialog] and
