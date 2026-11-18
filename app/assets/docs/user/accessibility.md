@@ -35,7 +35,8 @@ case. Perform text starts large — sized to be readable at arm's length — and
 there's a very wide range beyond that.
 
 - **Auto-size** fits each card's text to the screen, but never shrinks the
-  figure lines below your system text size; a card too long for that scrolls.
+  figure lines or their notes below your system text size; a card too long for
+  that scrolls.
   It's on by default. Set how it starts under **Settings › Program › Auto-size
   Perform cards**, and flip it for the night with **Auto-size text to screen**
   in Perform itself.

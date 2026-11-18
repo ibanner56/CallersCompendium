@@ -84,10 +84,12 @@ so there is no guessing, and it stays where you put it — next time too.
 **Auto-size text to screen.** Out of the box this is on: the card scales so the
 current dance's full text fits the screen, recomputing whenever you move to a
 new dance or slot, rotate the device, or resize the window. So the text is as
-large as it can be while still fitting. It never shrinks the figure lines below
-the size of ordinary text in the rest of the app, which follows your device's
-text-size setting: a dance too long to fit at that size scrolls instead of
-getting smaller. It starts however you set **Auto-size Perform cards** in
+large as it can be while still fitting. It never shrinks the figure lines, their
+notes or the dance's status line below the size of ordinary text in the rest of
+the app, which follows your device's text-size setting: a dance too long to fit
+at that size scrolls instead of getting smaller. The beat count beside each
+figure follows the same rule, except that it still stops growing at 1.3 times
+its usual size so it doesn't crowd the figure. It starts however you set **Auto-size Perform cards** in
 [Settings › Program › Performance](./settings.md#performance), and the in-view
 toggle flips it until you leave Perform.
 
