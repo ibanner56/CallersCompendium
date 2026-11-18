@@ -239,9 +239,15 @@ class ComponentThemes {
       checkbox: highContrast
           ? CheckboxThemeData(
               // A state-aware side, because a plain BorderSide is drawn only
-              // while the box is unticked.
+              // while the box is unticked. A disabled box keeps Material's
+              // dimmed onSurface, so an inert row still reads as inert.
               side: WidgetStateBorderSide.resolveWith(
-                (_) => BorderSide(color: scheme.outline, width: 2),
+                (states) => BorderSide(
+                  color: states.contains(WidgetState.disabled)
+                      ? scheme.onSurface.withValues(alpha: 0.38)
+                      : scheme.outline,
+                  width: 2,
+                ),
               ),
             )
           : const CheckboxThemeData(),

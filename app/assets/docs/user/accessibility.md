@@ -61,10 +61,10 @@ Open **Settings › Appearance** to choose how the app looks. You'll find:
 - **Light** — a bright theme for well-lit rooms and daytime prep.
 - **Dark** — an easy-on-the-eyes theme that suits calling on a dark stage.
 - **High contrast** — a dedicated theme tuned for strong legibility, with bold
-  separation between text and background. Cards, dialogs, menus, bottom sheets,
-  suggestion lists, the date and time pickers and buttons (icon buttons
+  separation between text and background. Cards, dialogs, popup menus, bottom
+  sheets, suggestion lists, the date and time pickers and buttons (icon buttons
   included) also get a visible outline, so you can see their edges without
-  relying on shading.
+  relying on shading. The drop-down lists in forms are not outlined yet.
 
 There are additional palettes and custom themes to explore as well, but those four
 are the ones most people reach for first — see
