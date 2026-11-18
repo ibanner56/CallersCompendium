@@ -195,7 +195,7 @@ void main() {
           expect(ext.focusRingWidth, greaterThanOrEqualTo(2));
         });
 
-        test('status chips: label on tint, full-alpha border', () {
+        test('status chips: label and icon on tint, full-alpha border', () {
           final ext = _themeFor(name, scheme).extension<AppThemeExtension>()!;
           for (final (role, token) in [
             ('statusDraft', ext.statusDraft),
@@ -218,6 +218,13 @@ void main() {
                 scheme.onSurface,
                 tint,
                 aaText,
+              );
+              // The chip's icon is drawn in the token on that same tint.
+              expectRatio(
+                '$role icon/$role tint on $tierRole',
+                token,
+                tint,
+                aaNonText,
               );
             }
             for (final (tierRole, tier) in [
