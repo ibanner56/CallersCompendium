@@ -84,9 +84,12 @@ class _OsTextScale extends InheritedWidget {
 /// floor for the figures.
 ///
 /// [maxScaleFactor] keeps an existing cap (the beats label's); where the cap is
-/// below the floor, the cap wins. Above the auto-size floor, and in manual
-/// mode (whose in-view scale is at least 1.0), this changes nothing: those
-/// texts are then already at least the OS body size.
+/// below the floor, the cap wins. This changes nothing wherever the text's own
+/// composed scale already reaches the OS body size: always in manual mode
+/// (whose in-view scale is at least 1.0), and in auto-size once the in-view
+/// scale is at least `bodyLarge / fontSize`. Between the fit's floor and that
+/// scale the text is raised, so a note can be larger relative to its figure
+/// line than at the default size.
 Widget _atLeastOsBodySize(
   BuildContext context, {
   required double? fontSize,

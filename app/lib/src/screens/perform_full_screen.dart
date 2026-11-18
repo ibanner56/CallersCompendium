@@ -126,8 +126,9 @@ class TogglePerformFullScreenIntent extends Intent {
 ///
 /// Its action is always enabled and always consumes the key, even when the
 /// window is not full screen: Escape must never fall through to an ancestor
-/// that would treat it as "back", because leaving Perform takes a deliberate
-/// confirmation (`docs/design/ux.md` §5). A binding nearer the focused widget
+/// that would treat it as "back": Escape never leaves Perform
+/// (`docs/design/ux.md` §5), and with the exit confirmation turned off in
+/// Settings, a "back" would leave it at once. A binding nearer the focused widget
 /// still gets Escape first: in program Perform, the open walkthrough overlay's
 /// binding closes it. Single-dance Perform binds no Escape of its own, so there
 /// Escape always reaches this intent.

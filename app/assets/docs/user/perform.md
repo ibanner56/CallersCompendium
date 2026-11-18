@@ -88,8 +88,8 @@ large as it can be while still fitting. It never shrinks the figure lines, their
 notes or the dance's status line below the size of ordinary text in the rest of
 the app, which follows your device's text-size setting: a dance too long to fit
 at that size scrolls instead of getting smaller. The beat count beside each
-figure follows the same rule, except that it still stops growing at 1.3 times
-its usual size so it doesn't crowd the figure. It starts however you set **Auto-size Perform cards** in
+figure has a fixed largest size, so it doesn't crowd the figure: at a large
+device text size it can be smaller than your usual text. It starts however you set **Auto-size Perform cards** in
 [Settings › Program › Performance](./settings.md#performance), and the in-view
 toggle flips it until you leave Perform.
 

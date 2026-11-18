@@ -22,7 +22,7 @@ const double kPerformMinScale = 1.0;
 /// card scrolls instead of shrinking further. The earlier fixed floor of 0.2
 /// (issue #527) let a long dance shrink to a fifth of the user's size, so at
 /// accessibility text sizes — where the footer also grows — the figures came
-/// out *smaller* than at the default text size. Clamped to `(0, 1]`: the floor
+/// out *smaller* than at the default text size. Clamped to `[0.01, 1]`: the floor
 /// never forces a card above its natural size.
 double performMinAutoScale({
   required double bodyFontSize,

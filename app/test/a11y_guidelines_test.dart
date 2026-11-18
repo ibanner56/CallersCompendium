@@ -236,8 +236,8 @@ void main() {
     },
     landedOn: find.byKey(const ValueKey('adjust-done')),
     atLargeText: (tester) async {
-      // Done was pushed past the right edge of a 360dp screen. Closing
-      // the sheet any other way discards the edits, so Done must stay reachable.
+      // Done was pushed past the right edge of a 360dp screen. Done is the
+      // sheet's labelled way to finish, so it must stay reachable.
       final done = find.byKey(const ValueKey('adjust-done'));
       expect(done.hitTestable(), findsOneWidget);
       expect(tester.getRect(done).right, lessThanOrEqualTo(_phone.width));

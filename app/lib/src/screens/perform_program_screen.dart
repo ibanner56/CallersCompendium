@@ -53,9 +53,10 @@ import 'settings_screen.dart'
 /// quick-switch, so Perform has no separate canonical toggle. This view is
 /// read-only: no destructive actions are reachable.
 ///
-/// Exit is guarded (issue #434): a single stray tap on the close control (or a
-/// system back) can no longer drop the caller out mid-set — it asks for a
-/// deliberate confirmation first. The live position + running clock are handed
+/// Exit is guarded (issue #434): by default a single stray tap on the close
+/// control (or a system back) can no longer drop the caller out mid-set — it
+/// asks for a deliberate confirmation first, unless the caller turned that off
+/// in Settings. The live position + running clock are handed
 /// back through [onExit] on every teardown so the launching screen can resume
 /// Perform exactly where the caller left off.
 
