@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 
 import '../../l10n/app_localizations.dart';
-import '../data/app_theme_scope.dart';
 import '../data/formation_colors_scope.dart';
 import '../data/set_list_color_coding_scope.dart';
 import '../search/facet_labels.dart';
@@ -529,9 +528,7 @@ class _SlotTile extends StatelessWidget {
     // tint (PRES-12) — see setListAccentForRow. The mixer term is also
     // appended to the subtitle text so colour is never the sole cue (ux.md §4).
     final colorCodingEnabled = SetListColorCodingScope.of(context);
-    final highContrast =
-        (AppThemeScope.maybeOf(context)?.isHighContrast ?? false) ||
-        MediaQuery.highContrastOf(context);
+    final brightAccents = setListAccentsBright(context);
     final accent = (formation != null && colorCodingEnabled)
         ? setListAccentForRow(
             formation!.shape,
@@ -539,7 +536,7 @@ class _SlotTile extends StatelessWidget {
             userColor: FormationColorsScope.of(
               context,
             )?.overrideFor(formation!.shape),
-            highContrast: highContrast,
+            brightPalette: brightAccents,
           )
         : null;
 

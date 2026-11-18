@@ -1,6 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:compendium_app/src/theme/app_theme.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/formation_colors_controller.dart';
@@ -55,6 +56,10 @@ Future<void> _pumpWide(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
+      // The app answers the OS high-contrast flag with its High contrast
+      // theme (`highContrastTheme` in main.dart); the flag below is set
+      // inside the app, after the theme is chosen, so pass that theme here.
+      theme: highContrast ? AppTheme.highContrast : null,
 
       builder: (context, child) {
         Widget tree = RepositoriesScope(
@@ -176,14 +181,14 @@ void main() {
         d1,
         setListAccentForShape(
           FormationShape.dupleImproper,
-          highContrast: false,
+          brightPalette: false,
         ),
       );
       expect(
         d2,
         setListAccentForShape(
           FormationShape.sicilianCircle,
-          highContrast: false,
+          brightPalette: false,
         ),
       );
       expect(d1, isNot(d2));
@@ -227,9 +232,7 @@ void main() {
     );
   });
 
-  testWidgets('high-contrast uses the brighter high-contrast palette', (
-    tester,
-  ) async {
+  testWidgets('High contrast uses the bright palette', (tester) async {
     final repos = openTestRepositories();
     await _seedProgram(repos);
     await _pumpWide(tester, repos, colorCoding: true, highContrast: true);
@@ -240,7 +243,7 @@ void main() {
     expect(d1, isNotNull);
     expect(
       d1,
-      setListAccentForShape(FormationShape.dupleImproper, highContrast: true),
+      setListAccentForShape(FormationShape.dupleImproper, brightPalette: true),
     );
     // And it is *not* the light-theme accent.
     expect(
@@ -248,7 +251,7 @@ void main() {
       isNot(
         setListAccentForShape(
           FormationShape.dupleImproper,
-          highContrast: false,
+          brightPalette: false,
         ),
       ),
     );
@@ -270,7 +273,7 @@ void main() {
       setListAccentForShapeAndMixer(
         FormationShape.dupleImproper,
         true,
-        highContrast: false,
+        brightPalette: false,
       ),
     );
     // Must not be the plain contra teal.
@@ -279,7 +282,7 @@ void main() {
       isNot(
         setListAccentForShape(
           FormationShape.dupleImproper,
-          highContrast: false,
+          brightPalette: false,
         ),
       ),
     );
@@ -337,14 +340,14 @@ void main() {
         _accentBorderColor(tester, 's1'),
         setListAccentForShape(
           FormationShape.sicilianCircle,
-          highContrast: false,
+          brightPalette: false,
         ),
       );
       // s2 is a mixer-flagged duple improper: the shape is coloured, but the
       // mixer accent is a safety cue and stays.
       expect(
         _accentBorderColor(tester, 's2'),
-        setListAccent(FormationFamily.mixer, highContrast: false),
+        setListAccent(FormationFamily.mixer, brightPalette: false),
       );
     });
 

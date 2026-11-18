@@ -29,12 +29,12 @@ void main() {
 
       test('${selection.name}: label clears 4.5:1 against the tinted fill', () {
         final ext = AppThemeExtension.fromColorScheme(scheme);
-        // StatusChip draws its label in onSurface over a 10% color fill that
-        // composites over the surface behind the chip.
+        // StatusChip draws its label in onSurface over a statusTintAlpha
+        // color fill that composites over the surface behind the chip.
         final textColor = scheme.onSurface;
         _statusTokens(ext).forEach((role, token) {
           final fill = Color.alphaBlend(
-            token.withValues(alpha: 0.10),
+            token.withValues(alpha: AppThemeExtension.statusTintAlpha),
             scheme.surface,
           );
           final ratio = Wcag.contrastRatio(textColor, fill);
@@ -123,6 +123,25 @@ void main() {
       expected,
       isNot(theme.extension<AppThemeExtension>()!.statusDeprecated),
     );
+  });
+
+  testWidgets('StatusChip fills at statusTintAlpha with a full-alpha border', (
+    tester,
+  ) async {
+    await pumpDanceChip(tester, DanceStatus.broken);
+    final context = tester.element(find.byType(DanceStatusChip));
+    final token = Theme.of(
+      context,
+    ).extension<AppThemeExtension>()!.statusBroken;
+    final chip = tester.widget<Chip>(find.byType(Chip));
+    // The label's AA guarantee is computed at this alpha; a stronger fill
+    // would void it.
+    expect(
+      chip.backgroundColor,
+      token.withValues(alpha: AppThemeExtension.statusTintAlpha),
+    );
+    // A half-alpha border fell below the 3:1 a component boundary needs.
+    expect(chip.side?.color, token);
   });
 
   testWidgets('new dance statuses render distinct icon and text pairs', (
