@@ -609,9 +609,13 @@ disagree with individual entries.
 When no destination is stated, none is stored, and that means the same as
 `unspecified`.
 
-**Display.** A stated destination is always shown (R2, R4). Unless a
-movement's own display formula places it, it is added at the end of the
-line: ", to {destination}". `place` reads "back to place". A movement may
+**Display.** A stated destination is always shown (R2, R4), next to the
+figure that carries it. Unless a movement's own display formula places it,
+it is added at the end of that figure's own text: ", to {destination}". In
+a sequence, that is the end of the step, not of the whole line, so "partners
+cross to partner's place and fall back" reads "partners cross, to partner's
+place, and fall back", never "... fall back, to partner's place".
+`place` reads "back to place". A movement may
 word it differently, as `turn_single` does, and as `star` does when it ends a
 sequence ("and back by the left"). Which movements reword it is part of
 their draft display in §7.
