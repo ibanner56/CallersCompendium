@@ -21,7 +21,9 @@ enum ReadableColumnAlignment {
   /// The column starts at the leading edge and the surplus stays on the far
   /// side. For a pane beside a navigation column — the Settings content pane
   /// next to its section list — where centring strands the content across the
-  /// window from the list that selects it.
+  /// window from the list that selects it. Leading follows the ambient
+  /// [TextDirection], so in a right-to-left layout the column sits on the
+  /// right, next to a sidebar that has mirrored to the right with it.
   start,
 }
 
@@ -62,10 +64,15 @@ class ReadableColumnScope extends InheritedWidget {
 /// `Center`/`ConstrainedBox` around it, so the scrollbar and the scroll area
 /// stay at the window edge. Insets never shrink below [base], so a narrow
 /// viewport is laid out exactly as before.
+///
+/// [alignment] is read against [textDirection], which matters for
+/// [ReadableColumnAlignment.start]: the column goes to the left edge under
+/// [TextDirection.ltr] and to the right edge under [TextDirection.rtl].
 EdgeInsets readableContentPadding(
   double viewportWidth, [
   EdgeInsets base = EdgeInsets.zero,
   ReadableColumnAlignment alignment = ReadableColumnAlignment.centre,
+  TextDirection textDirection = TextDirection.ltr,
 ]) {
   if (!viewportWidth.isFinite) return base;
   final surplus = math.max(0.0, viewportWidth - kReadableContentWidth);
@@ -74,13 +81,12 @@ EdgeInsets readableContentPadding(
       left: math.max(base.left, surplus / 2),
       right: math.max(base.right, surplus / 2),
     ),
+    // Everything the base gutter does not use stays to the trailing side,
+    // which keeps the column's own width at the cap.
+    ReadableColumnAlignment.start when textDirection == TextDirection.rtl =>
+      base.copyWith(left: math.max(base.left, surplus - base.right)),
     ReadableColumnAlignment.start => base.copyWith(
-      // Everything the base gutter does not use stays to the trailing side,
-      // which keeps the column's own width at the cap.
-      right: math.max(
-        base.right,
-        viewportWidth - kReadableContentWidth - base.left,
-      ),
+      right: math.max(base.right, surplus - base.left),
     ),
   };
 }
@@ -125,6 +131,7 @@ class ReadableListView extends StatelessWidget {
           constraints.maxWidth,
           padding ?? MediaQuery.paddingOf(context).copyWith(left: 0, right: 0),
           ReadableColumnScope.of(context),
+          Directionality.maybeOf(context) ?? TextDirection.ltr,
         ),
         children: children,
       ),
@@ -161,6 +168,7 @@ class ReadableScrollView extends StatelessWidget {
           constraints.maxWidth,
           padding,
           ReadableColumnScope.of(context),
+          Directionality.maybeOf(context) ?? TextDirection.ltr,
         ),
         child: child,
       ),

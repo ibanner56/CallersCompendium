@@ -54,6 +54,41 @@ void main() {
       // 16 + 760 + 384 fills the 1160 px viewport.
       expect(wide, const EdgeInsets.fromLTRB(16, 8, 384, 88));
     });
+
+    test(
+      'start alignment under RTL leaves the surplus on the leading side',
+      () {
+        final padding = readableContentPadding(
+          kReadableContentWidth + 400,
+          EdgeInsets.zero,
+          ReadableColumnAlignment.start,
+          TextDirection.rtl,
+        );
+        expect(padding.left, 400);
+        expect(padding.right, 0);
+      },
+    );
+
+    test('start alignment under RTL keeps a base trailing gutter', () {
+      const base = EdgeInsets.fromLTRB(16, 8, 16, 88);
+      expect(
+        readableContentPadding(
+          360,
+          base,
+          ReadableColumnAlignment.start,
+          TextDirection.rtl,
+        ),
+        base,
+      );
+      final wide = readableContentPadding(
+        kReadableContentWidth + 400,
+        base,
+        ReadableColumnAlignment.start,
+        TextDirection.rtl,
+      );
+      // Mirrored: 384 + 760 + 16 fills the 1160 px viewport.
+      expect(wide, const EdgeInsets.fromLTRB(384, 8, 16, 88));
+    });
   });
 
   group('ReadableListView / ReadableScrollView', () {
@@ -104,6 +139,32 @@ void main() {
         expect(tester.getSize(find.byType(ListView)).width, 1600);
       },
     );
+
+    testWidgets('a start-aligned scope anchors to the leading edge in RTL', (
+      tester,
+    ) async {
+      await setScreenSize(tester, const Size(1600, 900));
+      const key = ValueKey('row');
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Directionality(
+            textDirection: TextDirection.rtl,
+            child: Scaffold(
+              body: ReadableColumnScope(
+                alignment: ReadableColumnAlignment.start,
+                child: ReadableListView(
+                  children: const [SizedBox(key: key, height: 40)],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      expect(tester.getSize(find.byKey(key)).width, kReadableContentWidth);
+      expect(tester.getTopRight(find.byKey(key)).dx, 1600);
+      // The viewport still spans the window; only the content is anchored.
+      expect(tester.getSize(find.byType(ListView)).width, 1600);
+    });
 
     testWidgets('ReadableListView keeps the bottom safe-area inset', (
       tester,

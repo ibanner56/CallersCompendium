@@ -144,6 +144,9 @@ _pumpSettings(
   /// Wires a [ShowCustomFiguresScope] around the screen when given.
   ValueNotifier<bool>? showCustomFigures,
 
+  /// The surface's text direction; RTL mirrors the side-by-side layout.
+  TextDirection textDirection = TextDirection.ltr,
+
   /// Provides a [SyncWriterLifecycleScope] with this reset hook when given.
   Future<bool> Function()? resetToCleanInstall,
 
@@ -296,7 +299,10 @@ _pumpSettings(
             ),
           );
         },
-        home: SettingsScreen(backupSaver: backupSaver),
+        home: Directionality(
+          textDirection: textDirection,
+          child: SettingsScreen(backupSaver: backupSaver),
+        ),
       ),
     ),
   );
@@ -1379,6 +1385,34 @@ void main() {
             'the pane is anchored to the sidebar, not centred in the window',
       );
       // Still capped at the reading width, with the surplus on the far side.
+      expect(
+        tester.getSize(firstBlock).width,
+        lessThanOrEqualTo(kReadableContentWidth),
+      );
+    });
+
+    testWidgets('content pane still starts beside the sidebar in RTL', (
+      tester,
+    ) async {
+      await _pumpSettings(
+        tester,
+        surfaceSize: const Size(1600, 900),
+        textDirection: TextDirection.rtl,
+      );
+      final sidebar = find.byKey(const ValueKey('settings-nav-appearance'));
+      final firstBlock = find.byType(SectionHeader).first;
+
+      // The Row mirrors, so the pane's leading edge is the right one, next to
+      // the sidebar.
+      final gap =
+          tester.getRect(sidebar).left - tester.getTopRight(firstBlock).dx;
+      expect(
+        gap,
+        lessThanOrEqualTo(AppSpacing.xxl),
+        reason:
+            'the pane follows the sidebar in RTL instead of stranding the '
+            'content at the opposite edge',
+      );
       expect(
         tester.getSize(firstBlock).width,
         lessThanOrEqualTo(kReadableContentWidth),
