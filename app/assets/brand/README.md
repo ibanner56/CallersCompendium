@@ -107,7 +107,9 @@ see
 
 The pre-Flutter launch surface uses the app's scheme surfaces (light `#F4F6FA`,
 dark `#121A24`) with the full `mark.svg` centred (tan open-book pages on the
-light ground, cream on dark, as for the small mark). Android 12+ instead shows
+light ground, cream on dark, as for the small mark). It follows the operating
+system's light/dark setting only; the app's own theme choice is not known
+before Flutter starts. Android 12+ instead shows
 the system splash on Soft Dark `#1E2A38` behind the launcher icon. The rasters
 (iOS `LaunchImage.imageset`, Android `drawable*/launch_mark.png`) come from
 `tools/brand/generate_launch_assets.py` (needs only `rsvg-convert`); the colours

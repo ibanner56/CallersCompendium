@@ -340,6 +340,9 @@ void main() {
     progress.value = const DerivedRebuildProgress(completed: 1, total: 4);
     await tester.pump();
 
+    // The determinate branch keeps the brand mark too.
+    expect(find.byType(BrandMark), findsOneWidget);
+
     indicator = tester.widget<CircularProgressIndicator>(
       find.byType(CircularProgressIndicator),
     );

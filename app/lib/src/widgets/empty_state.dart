@@ -25,7 +25,8 @@ class EmptyState extends StatelessWidget {
   /// Buttons shown under the copy, wrapped when the pane is narrow.
   final List<Widget> actions;
 
-  /// The muted, 64px [Icon] every empty state leads with.
+  /// The muted, 64px [Icon] most empty states lead with (the Programs list
+  /// leads with a [BrandMark] instead).
   static Widget glyph(BuildContext context, IconData data) => Icon(
     data,
     size: 64,
