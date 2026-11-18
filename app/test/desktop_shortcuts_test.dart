@@ -277,6 +277,37 @@ void main() {
       expect(find.byType(PerformProgramScreen), findsOneWidget);
     });
 
+    testWidgets('Ctrl-W and Cmd-W leave Perform at once when its exit '
+        'confirmation is off', (tester) async {
+      final appData = await _pump(tester);
+      await appData.repositories.settings.set(kConfirmPerformExitKey, false);
+      await _openProgramSummary(tester);
+      for (final modifier in [
+        LogicalKeyboardKey.controlLeft,
+        LogicalKeyboardKey.metaLeft,
+      ]) {
+        await tester.tap(find.byKey(const ValueKey('summary-perform')));
+        await tester.pumpAndSettle();
+        expect(find.byType(PerformProgramScreen), findsOneWidget);
+        await _press(tester, LogicalKeyboardKey.keyW, modifier: modifier);
+        expect(
+          find.byKey(const ValueKey('perform-exit-dialog')),
+          findsNothing,
+          reason: '$modifier',
+        );
+        expect(
+          find.byType(PerformProgramScreen),
+          findsNothing,
+          reason: '$modifier',
+        );
+        expect(
+          find.byKey(const ValueKey('summary-perform')),
+          findsOneWidget,
+          reason: '$modifier',
+        );
+      }
+    });
+
     testWidgets('Esc on the shell does nothing', (tester) async {
       await _pump(tester);
 

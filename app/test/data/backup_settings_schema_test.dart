@@ -29,6 +29,7 @@ import 'package:compendium_app/src/screens/settings/settings_keys.dart'
         kCollectionTileVisibleFieldsKey,
         kCustomFieldSharingDisclosureKey,
         kEcdConvertPromptDismissedKey,
+        kConfirmPerformExitKey,
         kProgramDanceShareFieldsKey,
         kProgramMatrixColumnsKey,
         kShowIndividualPerformTimerKey,
@@ -195,6 +196,21 @@ void main() {
         validateBackupSettingValue(kShowIndividualPerformTimerKey, null),
         isFalse,
       );
+    });
+
+    test('Perform exit confirmation setting accepts only bools', () {
+      for (final value in const [true, false]) {
+        expect(
+          validateBackupSettingValue(kConfirmPerformExitKey, value),
+          isTrue,
+        );
+      }
+      for (final value in const <Object?>['true', 1, null]) {
+        expect(
+          validateBackupSettingValue(kConfirmPerformExitKey, value),
+          isFalse,
+        );
+      }
     });
 
     test('aggressive beats update (#689) accepts only bools', () {

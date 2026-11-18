@@ -236,7 +236,8 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
 - Full screen (PLAT-9): phones and tablets go immersive for the whole view.
   Desktop offers a toolbar toggle plus F11 (Ctrl-Cmd-F on macOS); Esc leaves
   full screen but never Perform. Ctrl/Cmd-W and mouse Back reach Perform's
-  exit confirmation, as system back does, and the app-wide shortcuts
+  exit confirmation, as system back does, while **Confirm before leaving
+  Perform** is on (the default); with it off, all three leave at once. The app-wide shortcuts
   (Ctrl/Cmd-K, -N, -F, -,) do nothing while performing. Exit restores the window's entry state, and no
   window frame is persisted while the window is full screen.
 - Navigation: giant next/prev hit zones at screen edges (44pt+), on-screen
@@ -249,7 +250,7 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   slot to advance to, so those four keys only scroll its card (or its
   walkthrough while that is open), stopping at the ends.
 - Zero destructive actions reachable; exit via deliberate gesture/button with
-  confirm. Optional: per-slot timer/clock display.
+  confirm by default (Settings › Program › Performance). Optional: per-slot timer/clock display.
 - On-the-fly: reorder remaining slots, insert from quick-search, add ad-hoc
   note — all in an "adjust" sheet, never disturbing the reading view.
 

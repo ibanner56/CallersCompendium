@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
@@ -54,6 +56,59 @@ double _autoScaleFloor(BuildContext context, double? cardFontSize) =>
       bodyFontSize: Theme.of(context).textTheme.bodyLarge?.fontSize ?? 16,
       cardFontSize: cardFontSize ?? 16,
     );
+
+/// The system text scale a dance card's in-view scale is composed on, carried
+/// past the card's own `MediaQuery` override so the card's smaller text can be
+/// floored against it ([_atLeastOsBodySize]).
+class _OsTextScale extends InheritedWidget {
+  const _OsTextScale({required this.scale, required super.child});
+
+  final double scale;
+
+  static double? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<_OsTextScale>()?.scale;
+
+  @override
+  bool updateShouldNotify(_OsTextScale oldWidget) => oldWidget.scale != scale;
+}
+
+/// Keeps [child]'s text, drawn at [fontSize], at least as large as the app's
+/// OS-scaled body text (`bodyLarge`), however far the auto-size fit shrinks
+/// the card.
+///
+/// The fit's floor ([_autoScaleFloor]) is computed from the figure lines, the
+/// card's main text. Text drawn smaller than the figure lines (figure notes,
+/// the beats label, the status banner) would otherwise sit below the OS body
+/// size at that floor. Raising each of them to the OS body size on its own
+/// keeps the floor's promise for every line of the card without lowering the
+/// floor for the figures.
+///
+/// [maxScaleFactor] keeps an existing cap (the beats label's); where the cap is
+/// below the floor, the cap wins. Above the auto-size floor, and in manual
+/// mode (whose in-view scale is at least 1.0), this changes nothing: those
+/// texts are then already at least the OS body size.
+Widget _atLeastOsBodySize(
+  BuildContext context, {
+  required double? fontSize,
+  double maxScaleFactor = double.infinity,
+  required Widget child,
+}) {
+  final osScale = _OsTextScale.maybeOf(context);
+  if (osScale == null || fontSize == null || fontSize <= 0) {
+    return maxScaleFactor.isFinite
+        ? MediaQuery.withClampedTextScaling(
+            maxScaleFactor: maxScaleFactor,
+            child: child,
+          )
+        : child;
+  }
+  final body = Theme.of(context).textTheme.bodyLarge?.fontSize ?? 16;
+  return MediaQuery.withClampedTextScaling(
+    minScaleFactor: math.min(osScale * body / fontSize, maxScaleFactor),
+    maxScaleFactor: maxScaleFactor,
+    child: child,
+  );
+}
 
 /// Scrolls [controller] in [direction] (1 down, -1 up) for a Perform key:
 /// most of a viewport by default (so a pedal that sends arrows needs few
@@ -135,51 +190,54 @@ class PerformCard extends StatelessWidget {
     final canonicalDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
       context,
     );
-    return MediaQuery(
-      data: mediaQuery.copyWith(textScaler: _effectiveScaler(context, scale)),
-      child: Padding(
-        padding: EdgeInsets.all(AppSpacing.lg * chrome),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _Header(
-              dance: dance,
-              callerNote: callerNote,
-              authorNames: authorNames,
-              renderer: renderer,
-              dialect: dialect,
-              canonicalizeDiscouragedTerms: canonicalDiscouragedTerms,
-              difficultyLevel: difficultyLevel,
-              chromeScale: chrome,
-            ),
-            SizedBox(height: AppSpacing.lg * chrome),
-            _Figures(
-              figures: switch (dance.figuresSource) {
-                DecodedFigures(:final figures) => figures,
-                UnreadableFigures() => const <Figure>[],
-              },
-              phraseStructure: dance.phraseStructure,
-              renderer: renderer,
-              dialect: dialect,
-              chromeScale: chrome,
-            ),
-            if (dance.callingNotes.isNotEmpty) ...[
-              SizedBox(height: AppSpacing.lg * chrome),
-              _SectionTitle(AppLocalizations.of(context).performCallingNotes),
-              SizedBox(height: AppSpacing.xs * chrome),
-              Text(
-                canonicalDiscouragedTerms
-                    ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(
-                        dance.callingNotes,
-                        dialect,
-                      )
-                    : renderer.renderFreeText(dance.callingNotes, dialect),
-                style: Theme.of(
-                  context,
-                ).textTheme.headlineSmall?.merge(AppTypography.performBody),
+    return _OsTextScale(
+      scale: mediaQuery.textScaler.scale(1),
+      child: MediaQuery(
+        data: mediaQuery.copyWith(textScaler: _effectiveScaler(context, scale)),
+        child: Padding(
+          padding: EdgeInsets.all(AppSpacing.lg * chrome),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _Header(
+                dance: dance,
+                callerNote: callerNote,
+                authorNames: authorNames,
+                renderer: renderer,
+                dialect: dialect,
+                canonicalizeDiscouragedTerms: canonicalDiscouragedTerms,
+                difficultyLevel: difficultyLevel,
+                chromeScale: chrome,
               ),
+              SizedBox(height: AppSpacing.lg * chrome),
+              _Figures(
+                figures: switch (dance.figuresSource) {
+                  DecodedFigures(:final figures) => figures,
+                  UnreadableFigures() => const <Figure>[],
+                },
+                phraseStructure: dance.phraseStructure,
+                renderer: renderer,
+                dialect: dialect,
+                chromeScale: chrome,
+              ),
+              if (dance.callingNotes.isNotEmpty) ...[
+                SizedBox(height: AppSpacing.lg * chrome),
+                _SectionTitle(AppLocalizations.of(context).performCallingNotes),
+                SizedBox(height: AppSpacing.xs * chrome),
+                Text(
+                  canonicalDiscouragedTerms
+                      ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+                          dance.callingNotes,
+                          dialect,
+                        )
+                      : renderer.renderFreeText(dance.callingNotes, dialect),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.headlineSmall?.merge(AppTypography.performBody),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -193,7 +251,8 @@ class PerformCard extends StatelessWidget {
     if (autoSize) {
       return _FitToHeight(
         // The floor is the figure rows' size: they are the choreography the
-        // caller reads, drawn in [AppTypography.performBody].
+        // caller reads, drawn in [AppTypography.performBody]. The card's
+        // smaller text is floored separately ([_atLeastOsBodySize]).
         minScale: _autoScaleFloor(context, AppTypography.performBody.fontSize),
         maxScale: kPerformMaxAutoScale,
         resetToken: Object.hash(
@@ -913,7 +972,11 @@ class _Header extends StatelessWidget {
         ],
         if (dance.status != DanceStatus.active) ...[
           SizedBox(height: AppSpacing.md * chromeScale),
-          _StatusBanner(status: dance.status),
+          _atLeastOsBodySize(
+            context,
+            fontSize: theme.textTheme.titleLarge?.fontSize,
+            child: _StatusBanner(status: dance.status),
+          ),
         ],
       ],
     );
@@ -1223,6 +1286,10 @@ class _FigureRow extends StatelessWidget {
       fontStyle: FontStyle.italic,
       color: theme.colorScheme.onSurfaceVariant,
     );
+    final beatsStyle = theme.textTheme.titleMedium?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
     return Semantics(
       label: semanticsLabel,
       excludeSemantics: true,
@@ -1264,7 +1331,14 @@ class _FigureRow extends StatelessWidget {
                       style: textStyle,
                     ),
                   if (noteText.isNotEmpty)
-                    Text.rich(_emphasisSpan(noteSpans!), style: noteStyle),
+                    _atLeastOsBodySize(
+                      context,
+                      fontSize: noteStyle?.fontSize,
+                      child: Text.rich(
+                        _emphasisSpan(noteSpans!),
+                        style: noteStyle,
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -1275,16 +1349,17 @@ class _FigureRow extends StatelessWidget {
             ],
             // The label sits in the right-hand column of every row, so its
             // width is subtracted from the figure text on every line. Capped
-            // so the figure keeps its width at large print sizes (UX4-2).
-            MediaQuery.withClampedTextScaling(
+            // so the figure keeps its width at large print sizes (UX4-2), and
+            // floored at the OS body size under that cap when auto-size
+            // shrinks the card.
+            _atLeastOsBodySize(
+              context,
+              fontSize: beatsStyle?.fontSize,
               maxScaleFactor: kBeatsLabelMaxTextScale,
               child: Text(
                 beatsLabel,
                 textAlign: TextAlign.end,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                ),
+                style: beatsStyle,
               ),
             ),
           ],

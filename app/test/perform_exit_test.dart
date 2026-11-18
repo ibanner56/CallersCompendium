@@ -1,6 +1,8 @@
 // Leaving Perform and the dialogs and sheets it opens: the exit confirmation
 // can be turned off in Settings, and every Perform dialog and sheet renders in
 // the stage theme the caller is looking at rather than the app theme behind it.
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
@@ -53,6 +55,24 @@ enum _Surface {
   final String exitKey;
 }
 
+/// A settings store whose read of the exit setting waits for [gate], when one
+/// is given, and then fails when [fail] is set. Other keys read normally.
+class _ExitSettings extends SettingsRepository {
+  _ExitSettings(super.db, {this.gate, this.fail = false});
+
+  final Completer<void>? gate;
+  final bool fail;
+
+  @override
+  Future<Object?> get(String key) async {
+    if (key == kConfirmPerformExitKey) {
+      if (gate != null) await gate!.future;
+      if (fail) throw StateError('settings store unavailable');
+    }
+    return super.get(key);
+  }
+}
+
 /// Pushes [surface] over a home route under a *light* app theme, so a dialog
 /// that escaped the stage theme would show as light.
 Future<void> _pushPerform(
@@ -60,10 +80,17 @@ Future<void> _pushPerform(
   _Surface surface, {
   bool? confirmExit,
   bool stageMode = true,
+  Completer<void>? exitReadGate,
+  bool exitReadFails = false,
 }) async {
   await tester.binding.setSurfaceSize(const Size(1400, 2400));
   addTearDown(() => tester.binding.setSurfaceSize(null));
-  final repos = openTestRepositories();
+  final db = openWidgetTestDatabase();
+  final repos = CompendiumRepositories(
+    db,
+    contraTaxonomy,
+    settings: _ExitSettings(db, gate: exitReadGate, fail: exitReadFails),
+  );
   final dances = [_dance('d1', 'First Dance'), _dance('d2', 'Second Dance')];
   for (final d in dances) {
     await repos.dances.create(d);
@@ -196,6 +223,53 @@ void main() {
         expect(_performShowing(), isTrue);
       });
 
+      testWidgets('asks first while the setting has not been read yet, then '
+          'follows it', (tester) async {
+        final gate = Completer<void>();
+        await _pushPerform(
+          tester,
+          surface,
+          confirmExit: false,
+          exitReadGate: gate,
+        );
+        final route = ModalRoute.of(
+          tester.element(find.byKey(ValueKey(surface.exitKey))),
+        )!;
+        expect(route.popDisposition, RoutePopDisposition.doNotPop);
+
+        await tester.tap(find.byKey(ValueKey(surface.exitKey)));
+        await tester.pumpAndSettle();
+        expect(_exitDialog, findsOneWidget);
+        await tester.tap(find.byKey(const ValueKey('perform-exit-cancel')));
+        await tester.pumpAndSettle();
+        expect(_performShowing(), isTrue);
+
+        // Once the stored "off" arrives, the close control leaves at once.
+        gate.complete();
+        await tester.pumpAndSettle();
+        expect(route.popDisposition, RoutePopDisposition.pop);
+        await tester.tap(find.byKey(ValueKey(surface.exitKey)));
+        await tester.pumpAndSettle();
+        expect(_exitDialog, findsNothing);
+        expect(_performShowing(), isFalse);
+      });
+
+      testWidgets('keeps asking when the setting cannot be read', (
+        tester,
+      ) async {
+        await _pushPerform(
+          tester,
+          surface,
+          confirmExit: false,
+          exitReadFails: true,
+        );
+
+        await tester.tap(find.byKey(ValueKey(surface.exitKey)));
+        await tester.pumpAndSettle();
+        expect(_exitDialog, findsOneWidget);
+        expect(_performShowing(), isTrue);
+      });
+
       testWidgets('the exit dialog is drawn in the stage theme over a light '
           'app theme', (tester) async {
         await _pushPerform(tester, surface);
@@ -252,4 +326,23 @@ void main() {
       );
     });
   }
+
+  testWidgets("the adjust sheet's insert picker is drawn in the stage theme", (
+    tester,
+  ) async {
+    await _pushPerform(tester, _Surface.program);
+    await tester.tap(find.byKey(const ValueKey('perform-adjust')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('adjust-insert-dance')));
+    await tester.pumpAndSettle();
+
+    final picker = find.byKey(const ValueKey('adjust-picker'));
+    expect(picker, findsOneWidget);
+    final theme = _themeOf(tester, picker);
+    expect(theme.brightness, Brightness.dark);
+    expect(
+      theme.colorScheme.surface,
+      AppTheme.highContrast.colorScheme.surface,
+    );
+  });
 }

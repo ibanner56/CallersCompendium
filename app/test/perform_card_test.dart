@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/src/data/formation_colors_controller.dart';
 import 'package:compendium_app/src/data/formation_colors_scope.dart';
@@ -344,6 +346,95 @@ void main() {
         expect(
           find.textContaining('robins chain across the set.'),
           findsOneWidget,
+        );
+      },
+    );
+  }
+
+  for (final systemScale in const [1.0, 3.0]) {
+    testWidgets(
+      'at the auto-size floor, figure notes, the beats label and the status '
+      'banner are not drawn below the OS-scaled body size '
+      '(${systemScale}x text)',
+      (tester) async {
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        final c = await _controllerWith(null);
+        // Figure notes, the beats label and the status banner are drawn
+        // smaller than the figure lines the fit's floor is computed from.
+        final dance = Dance(
+          id: 'tall-notes',
+          title: 'Notes',
+          figures: [
+            for (var i = 0; i < 8; i++)
+              Figure(
+                move: 'chain',
+                params: {'who': 'role2s', 'beats': 16},
+                note: 'Note $i',
+              ),
+          ],
+          status: DanceStatus.deprecated,
+          createdAt: _now,
+          updatedAt: _now,
+        );
+        await tester.binding.setSurfaceSize(const Size(720, 620));
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: Builder(
+              builder: (context) => MediaQuery(
+                data: MediaQuery.of(
+                  context,
+                ).copyWith(textScaler: TextScaler.linear(systemScale)),
+                child: Scaffold(
+                  body: SafeArea(
+                    child: FormationColorsScope(
+                      controller: c,
+                      child: PerformCard(
+                        dance: dance,
+                        renderer: _renderer,
+                        dialect: Dialect.larksRobins,
+                        textScale: 1.0,
+                        autoSize: true,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+
+        double drawn(Finder finder) {
+          final paragraph = tester.renderObject<RenderParagraph>(finder);
+          return paragraph.textScaler.scale(paragraph.text.style!.fontSize!);
+        }
+
+        final body = osBodySize(tester, systemScale);
+        // The card is at the floor: its figure lines are at the OS body size
+        // and it scrolls. Without that, the checks below prove nothing.
+        expect(scrollPosition(tester).maxScrollExtent, greaterThan(0.0));
+        expect(figureFontSize(tester), closeTo(body, 0.5));
+
+        expect(
+          drawn(find.text('Note 0')),
+          greaterThanOrEqualTo(body - 0.01),
+          reason: 'figure note',
+        );
+        expect(
+          drawn(find.text('Deprecated')),
+          greaterThanOrEqualTo(body - 0.01),
+          reason: 'status banner',
+        );
+        // The beats label keeps its cap, which wins where it is lower.
+        final beatsFloor =
+            body / systemScale * math.min(systemScale, kBeatsLabelMaxTextScale);
+        expect(
+          drawn(find.text('16 beats').first),
+          greaterThanOrEqualTo(beatsFloor - 0.01),
+          reason: 'beats label',
         );
       },
     );
