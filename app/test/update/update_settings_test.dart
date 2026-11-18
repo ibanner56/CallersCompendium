@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:compendium_app/l10n/app_localizations.dart';
+import 'package:compendium_app/src/app_metadata.dart';
 import 'package:compendium_app/src/screens/settings/updates_section.dart';
 import 'package:compendium_app/src/update/artifact_downloader.dart';
 import 'package:compendium_app/src/update/artifact_handoff.dart';
@@ -109,6 +110,26 @@ void main() {
 
     expect(_switch(tester, 'updates-auto-toggle').value, isFalse);
     expect(_switch(tester, 'updates-beta-toggle').value, isFalse);
+  });
+
+  testWidgets('status lines show the running release identity, beta suffix '
+      'included', (tester) async {
+    final repos = openTestRepositories();
+    final controller = _controller(repos, <UpdateChannel>[]);
+    addTearDown(controller.dispose);
+
+    await _pump(tester, controller);
+    expect(find.text("You're on version $kUpdaterVersion."), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('updates-check-now')));
+    await tester.pumpAndSettle();
+    expect(
+      find.text(
+        "Couldn't check for updates right now. "
+        "You're on version $kUpdaterVersion.",
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('manual check works with beta off and fetches stable', (

@@ -276,13 +276,13 @@ class UpdatesSection extends StatelessWidget {
   String _statusText(AppLocalizations l10n, UpdateController controller) {
     switch (controller.status) {
       case UpdateCheckStatus.idle:
-        return l10n.settingsUpdatesStatusIdle(kAppVersion);
+        return l10n.settingsUpdatesStatusIdle(kUpdaterVersion);
       case UpdateCheckStatus.checking:
         return l10n.settingsUpdatesStatusChecking;
       case UpdateCheckStatus.noUpdate:
-        return l10n.settingsUpdatesStatusNoUpdate(kAppVersion);
+        return l10n.settingsUpdatesStatusNoUpdate(kUpdaterVersion);
       case UpdateCheckStatus.couldNotCheck:
-        return l10n.settingsUpdatesStatusCouldNotCheck(kAppVersion);
+        return l10n.settingsUpdatesStatusCouldNotCheck(kUpdaterVersion);
       case UpdateCheckStatus.newerFormat:
         return l10n.settingsUpdatesStatusNewerFormat;
       case UpdateCheckStatus.updateAvailable:
