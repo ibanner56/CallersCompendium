@@ -833,4 +833,32 @@ void main() {
       );
     });
   });
+
+  // FODA vol. 2: Thatcher Pass is "Proper Triplet (231)", Chris' Crossing
+  // is "Improper Quadruplet (2341)". The set shape wins over the
+  // proper/improper word, which is kept as the formation detail.
+  group('formation names that carry a set shape and a start word', () {
+    Future<Formation> read(String startType) async {
+      final draft = await _importOne(jsonEncode(_dance(startType: startType)));
+      return draft.dance.formation;
+    }
+
+    const cases = <(String, FormationShape, String?)>[
+      ('Proper Triplet (231)', FormationShape.triplet, 'Proper'),
+      ('Improper Triplet', FormationShape.triplet, 'Improper'),
+      ('Triplet', FormationShape.triplet, null),
+      ('Improper Quadruplet (2341)', FormationShape.quadruplet, 'Improper'),
+      ('Quadruplet', FormationShape.quadruplet, null),
+      ('Triple Minor', FormationShape.tripleMinor, null),
+      ('Duple Minor - Proper', FormationShape.dupleProper, null),
+      ('Improper', FormationShape.dupleImproper, null),
+    ];
+    for (final (name, shape, detail) in cases) {
+      test('"$name"', () async {
+        final f = await read(name);
+        expect(f.shape, shape);
+        expect(f.detail, detail);
+      });
+    }
+  });
 }

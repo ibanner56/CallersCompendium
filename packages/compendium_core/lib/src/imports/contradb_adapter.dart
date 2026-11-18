@@ -9,6 +9,7 @@ import '../util/text_sanitizer.dart';
 import 'author_tokenizer.dart';
 import 'contradb_dancer_vocab.dart';
 import 'figure_text_scrub.dart';
+import 'formation_set_names.dart';
 import 'import_error.dart';
 import 'raw_record.dart';
 import 'source_adapter.dart';
@@ -531,26 +532,29 @@ class ContraDbAdapter implements SourceAdapter {
     final lower = text.toLowerCase();
 
     FormationShape? shape;
+    // Set shapes first: "Proper Triplet (231)" is a triplet, not a duple proper.
+    final set = classifyFormationSetName(lower);
     if (lower.contains('becket')) {
       shape = (lower.contains('ccw') || lower.contains('counter'))
           ? FormationShape.becketCcw
           : FormationShape.becketCw;
+    } else if (set != null) {
+      return Formation(
+        set.shape,
+        detail: joinFormationDetail(set.qualifier, detail),
+      );
     } else if (lower.contains('improper')) {
       shape = FormationShape.dupleImproper;
     } else if (lower.contains('indecent')) {
       shape = FormationShape.dupleIndecent;
     } else if (lower.contains('proper')) {
       shape = FormationShape.dupleProper;
-    } else if (lower.contains('triple')) {
-      shape = FormationShape.tripleMinor;
     } else if (lower.contains('sicilian')) {
       shape = FormationShape.sicilianCircle;
     } else if (lower.contains('scatter')) {
       shape = FormationShape.scatterMixer;
     } else if (lower.contains('circle')) {
       shape = FormationShape.circleMixer;
-    } else if (lower.contains('quadruplet')) {
-      shape = FormationShape.quadruplet;
     } else if (lower.contains('longways')) {
       shape = FormationShape.longways;
     }

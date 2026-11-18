@@ -1,0 +1,14 @@
+{
+  "id": "import-triplet-quadruplet-formation",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Importing dances from Caller's Box, ContraDB or Caller's Companion now reads \"Proper Triplet\", \"Improper Triplet\", \"Triplet\" and \"Improper Quadruplet\" as the triplet and quadruplet formations they are, instead of as duple proper, duple improper or triple minor. The \"Proper\" or \"Improper\" start is kept in the formation's detail."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "Check set shapes (quadruplet, triplet, triple minor) before the proper/improper/indecent words, and triplet before triple, in the Caller's Box, ContraDB (JSON and HTML) and Caller's Companion text formation mappers; keep the start word as the formation detail."
+    ]
+  }
+}

@@ -11,6 +11,7 @@ import 'beat_implied_balance.dart';
 import 'callersbox_figure_dialect.dart';
 import 'figure_parser.dart';
 import 'figure_text_scrub.dart';
+import 'formation_set_names.dart';
 import 'import_error.dart';
 import 'raw_record.dart';
 import 'source_adapter.dart';
@@ -1702,8 +1703,15 @@ class CallersBoxAdapter implements SourceAdapter {
 
     final lower = base.toLowerCase();
     FormationShape? shape;
+    // Set shapes first: "Proper Triplet (231)" is a triplet, not a duple proper.
+    final set = classifyFormationSetName(lower);
     if (lower.contains('becket')) {
       shape = _becketShape(dance['Direction'], lower, issues);
+    } else if (set != null) {
+      return Formation(
+        set.shape,
+        detail: joinFormationDetail(set.qualifier, extra),
+      );
     } else if (lower == 'duple minor - progressed improper') {
       shape = FormationShape.progressedImproper;
     } else if (lower == 'duple minor - reverse progression improper') {
@@ -1714,10 +1722,6 @@ class CallersBoxAdapter implements SourceAdapter {
       shape = FormationShape.dupleIndecent;
     } else if (lower.contains('proper')) {
       shape = FormationShape.dupleProper;
-    } else if (lower.contains('triple')) {
-      shape = FormationShape.tripleMinor;
-    } else if (lower.contains('triplet')) {
-      shape = FormationShape.triplet;
     } else if (lower.contains('four facing four') ||
         lower.contains('four face four')) {
       shape = FormationShape.fourFaceFour;
@@ -1732,8 +1736,6 @@ class CallersBoxAdapter implements SourceAdapter {
       shape = FormationShape.grid;
     } else if (lower.contains('circle')) {
       shape = FormationShape.circleMixer;
-    } else if (lower.contains('quadruplet')) {
-      shape = FormationShape.quadruplet;
     } else if (lower.contains('longways')) {
       shape = FormationShape.longways;
     }
