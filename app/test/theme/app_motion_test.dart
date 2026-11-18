@@ -22,6 +22,33 @@ void main() {
       }
     });
 
+    testWidgets('iOS keeps its edge swipe back', (tester) async {
+      // The Cupertino back gesture lives in its page transition builder, so
+      // an instant transition must still come from that builder.
+      final key = GlobalKey<NavigatorState>();
+      await tester.pumpWidget(
+        MaterialApp(
+          navigatorKey: key,
+          theme: theme.copyWith(platform: TargetPlatform.iOS),
+          home: const Scaffold(body: Text('first')),
+        ),
+      );
+      key.currentState!.push(
+        MaterialPageRoute<void>(
+          builder: (_) => const Scaffold(body: Text('second')),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('second'), findsOneWidget);
+      expect(find.text('first'), findsNothing);
+      final gesture = await tester.startGesture(const Offset(5, 300));
+      await gesture.moveBy(const Offset(400, 0));
+      await gesture.up();
+      await tester.pumpAndSettle();
+      expect(find.text('first'), findsOneWidget);
+      expect(find.text('second'), findsNothing);
+    });
+
     test('expansion tiles open without animating', () {
       expect(
         theme.expansionTileTheme.expansionAnimationStyle,

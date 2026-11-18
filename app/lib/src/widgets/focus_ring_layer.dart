@@ -62,7 +62,9 @@ class FocusRingLayerState extends State<FocusRingLayer> {
     // without a focus change, so re-measure after every frame. A persistent
     // callback cannot be removed, so a disposed state ignores it. setState
     // runs only when the rectangle moved, so this never keeps frames coming
-    // on its own.
+    // on its own; when it does run, it runs from a post-frame callback,
+    // where (unlike during the persistent callbacks) it schedules the frame
+    // that repaints the ring.
     SchedulerBinding.instance.addPersistentFrameCallback(_onFrame);
   }
 
@@ -82,7 +84,10 @@ class FocusRingLayerState extends State<FocusRingLayer> {
       ..scheduleFrame();
   }
 
-  void _onFrame(Duration _) => _measure();
+  void _onFrame(Duration _) {
+    if (!mounted) return;
+    SchedulerBinding.instance.addPostFrameCallback((_) => _measure());
+  }
 
   void _measure() {
     if (!mounted) return;
