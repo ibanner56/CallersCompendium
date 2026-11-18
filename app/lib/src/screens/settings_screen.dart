@@ -242,12 +242,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
         final appBar = AppBar(
           title: Text(l10n.settingsTitle),
           automaticallyImplyLeading: false,
-          bottom: searchBar,
         );
         // While a query is typed, the results replace the navigation — either
         // pane on the wide layout, the section list on the narrow one — because
         // a match can live in any section.
-        final Widget body = query.isEmpty
+        final Widget panes = query.isEmpty
             ? (sideBySide
                   ? Row(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -281,16 +280,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onOpen: (entry) => _openResult(entry, sideBySide: sideBySide),
               );
 
-        return Scaffold(appBar: appBar, body: body);
+        return Scaffold(
+          appBar: appBar,
+          body: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              searchBar,
+              Expanded(child: panes),
+            ],
+          ),
+        );
       },
     );
   }
 }
 
-/// The Settings search field, in the app bar so it is present on both layouts
+/// The Settings search field, above the panes so it is present on both layouts
 /// and Ctrl/Cmd-F has something to focus on every visit.
-class _SettingsSearchBar extends StatelessWidget
-    implements PreferredSizeWidget {
+///
+/// It sits at the top of the body rather than in the app bar's `bottom`: a text
+/// field carries its own [Scrollable], and putting the field after the panes in
+/// tree order would make it the last one, which is where test helpers (and
+/// anything else scrolling "the content") look for the pane's list.
+class _SettingsSearchBar extends StatelessWidget {
   const _SettingsSearchBar({
     required this.controller,
     required this.focusNode,
@@ -304,15 +316,12 @@ class _SettingsSearchBar extends StatelessWidget
   final VoidCallback onClear;
 
   @override
-  Size get preferredSize => const Size.fromHeight(64);
-
-  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.md,
-        0,
+        AppSpacing.sm,
         AppSpacing.md,
         AppSpacing.sm,
       ),

@@ -565,6 +565,31 @@ void main() {
       expect(field.focusNode?.hasFocus, isTrue);
       expect(find.byKey(_palette), findsNothing);
     });
+
+    testWidgets('Ctrl-F from an open Settings section returns to the search', (
+      tester,
+    ) async {
+      await _pump(tester);
+      await tester.tap(find.text('Settings'));
+      await tester.pumpAndSettle();
+      // The narrow layout opens a section as its own page.
+      await tester.tap(find.byKey(const ValueKey('settings-nav-appearance')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('settings-nav-appearance')),
+        findsNothing,
+      );
+
+      await _press(
+        tester,
+        LogicalKeyboardKey.keyF,
+        modifier: LogicalKeyboardKey.controlLeft,
+      );
+
+      final field = tester.widget<TextField>(find.byKey(_settingsSearch));
+      expect(field.focusNode?.hasFocus, isTrue);
+      expect(find.byKey(_palette), findsNothing);
+    });
   });
 
   group('Ctrl/Cmd-A selects the Collection\'s results', () {

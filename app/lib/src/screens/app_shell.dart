@@ -292,7 +292,8 @@ class AppShellState extends State<AppShell> {
   /// thing on each tab: the Collection's dance search, the Glossary's move
   /// search, and Settings' search over setting names. Programs deliberately
   /// falls through to global search, whose palette finds programs; the Guide
-  /// has no search of its own.
+  /// has no search of its own. A Settings section opened as its own page (the
+  /// narrow layout) comes back to the tab's search rather than the palette.
   void focusSearch() {
     final onTop = ModalRoute.of(context)?.isCurrent ?? false;
     if (onTop) {
@@ -303,6 +304,13 @@ class AppShellState extends State<AppShell> {
         _Destination.programs || _Destination.guide => false,
       };
       if (handled) return;
+    } else if (_current == _Destination.settings) {
+      // On the narrow layout a section opens as its own page. Settings search
+      // covers every section, so the key means the same thing there: step back
+      // to the Settings tab and focus its box, rather than opening the global
+      // palette over a page the search does not cover.
+      _returnToShellThen(() => _settingsCommands.focusSearch());
+      return;
     }
     openSearch();
   }
