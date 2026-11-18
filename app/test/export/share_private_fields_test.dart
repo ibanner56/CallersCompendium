@@ -1,7 +1,7 @@
 /// Share files omit the caller's pay, Perform dialect and dance ratings, while
 /// Backup keeps them (maintainer decision R2-out2-export, 2026-10-30). The
 /// same split holds for a program's archived state (the maintainer's decision
-/// when archiving was added, 2026-11-18).
+/// when archiving was added, 2026-11-18, recorded in #2218).
 ///
 /// The fields stay `shareable` in the registry, so the strip is in the share
 /// bundle builders; these tests pin both halves of the split.

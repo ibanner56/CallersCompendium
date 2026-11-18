@@ -55,7 +55,8 @@ Dance sanitizeDanceForShare(Dance dance) =>
 /// Withholds the caller's private business details of a [Program] from a
 /// **share file**: pay (amount and currency), the Perform dialect name, and
 /// whether the caller archived it (the maintainer's decision when archiving
-/// was added, 2026-11-18: sync and backups keep it, share files drop it), so a
+/// was added, 2026-11-18, recorded in #2218: sync and backups keep it, share
+/// files drop it), so a
 /// recipient always gets a program that shows in their list.
 /// See [sanitizeDanceForShare] for why this is not an egress class.
 Program sanitizeProgramForShare(Program program) => program.copyWith(

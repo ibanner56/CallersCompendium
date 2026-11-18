@@ -638,7 +638,8 @@ final Map<String, DataClassification> fieldClassifications = {
         'same way: it says when the program left the list, not anything about '
         'a person. Egress: own devices and backups yes, share files no (the '
         'maintainer chose "sync and backups keep it, share files drop it" '
-        'when archiving was added, 2026-11-18; sanitizeProgramForShare), so a '
+        'when archiving was added, 2026-11-18, recorded in #2218; '
+        'sanitizeProgramForShare), so a '
         'recipient always gets an unarchived program. Kept shareable because '
         'deviceLocal would stop sync.',
   ),
