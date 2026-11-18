@@ -101,9 +101,9 @@ The **General** section gathers everyday behavior into small groups.
   *Reduce Motion* setting by default; turn this switch on to
   switch off the app's animations and the fade between themes even when your
   device allows motion — screens, dialogs and bottom sheets appear at once, and
-  expanding sections open without animating. Turning it off stops the app removing its own
-  animations, but cannot restore animations your device's setting has already
-  shortened. This setting belongs to this device: it is not synced to your
+  expanding sections open without animating. Turning it off stops the app
+  removing its own animations, but cannot restore animations your device's
+  setting has already shortened. This setting belongs to this device: it is not synced to your
   other devices, but a backup includes it.
 - **Always show verbose figure text** — shows the full spoken-style
   [figure](./glossary.md#figure) wording on screen in the dance view, not only to

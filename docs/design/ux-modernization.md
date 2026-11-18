@@ -142,9 +142,9 @@ Proposed M3 `TextTheme` (sizes in logical px):
 | small | — | 36 | 24 | 14 | 12 | 11 |
 
 Atkinson Hyperlegible ships at 400 and 700 only, so its styles use exactly
-those weights (labels 700, Perform body 400). Screen titles in the app bar, empty-state
-titles and dialog titles use Fraunces, with app-bar titles leading rather than
-centred on every platform.
+those weights (labels 700, Perform body 400). Screen titles in the app bar,
+empty-state titles and dialog titles use Fraunces, with app-bar titles leading
+rather than centred on every platform.
 
 Perform mode uses its own scale (Atkinson Bold, ~28px floor, **no upper bound**,
 user-adjustable size/weight/line-spacing).
@@ -161,10 +161,14 @@ user-adjustable size/weight/line-spacing).
   ladder — Lowest, Low, default, High, Highest, Dim, Bright — so cards and
   bottom sheets (Low), popup and anchored menus and nav bars (default), dialogs
   (High) and filled inputs (Highest) each sit on their own tone instead of
-  falling back to `surface`. The HC theme keeps the tiers and adds a visible
-  outline to cards, dialogs, bottom sheets, popup menus and anchored
-  (`MenuAnchor`) menus. Legacy `DropdownButton` menus, autocomplete option
-  lists and the date and time pickers are not yet covered by either.
+  falling back to `surface`; the wide-layout autocomplete option list sits on
+  the menu tier too, and the date and time pickers on the dialog tier. The HC
+  theme keeps the tiers and adds a visible outline to cards, dialogs, bottom
+  sheets, popup menus, anchored (`MenuAnchor`) menus, autocomplete option
+  lists, the date and time pickers, and icon buttons. Legacy `DropdownButton`
+  menus are not covered: Flutter paints that menu with a fixed decoration and
+  offers no theme or constructor hook for a border, so outlining it means
+  moving those fields to `DropdownMenu`.
 
 ### 1e. Structure — new `app/lib/src/theme/`
 
@@ -215,9 +219,13 @@ icon+text by `program_status_chip.dart`; tokens add theme-driven color):
 included) toward the surface only as far as the chip's `onSurface` label needs
 to clear AA on the token's 10% tint, laid over the canvas or a card or sheet
 (`surfaceContainerLow`). The token stays at least 3:1 against those two as a
-border; the icon, drawn on the tint itself, can fall just under 3:1 (Broken in
-Everforest Light measures 2.9:1), and chips on dialogs and menus are not
-covered.
+border. Easing can leave the token just under 3:1 against its own tint (Broken
+in Everforest Light measures 2.9:1), and in that palette no single colour gives
+both the label 4.5:1 and the icon 3:1 on the tint, so the icon is drawn in
+`AppThemeExtension.statusIconColor`: the token moved toward `onSurface` only as
+far as it needs to clear 3:1 on the tint over both tiers, and the token itself
+wherever it already does. `palette_contrast_test.dart` checks the label, icon
+and border in every scheme. Chips on dialogs and menus are not covered.
 
 **Other semantic tokens:**
 

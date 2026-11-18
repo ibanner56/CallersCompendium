@@ -402,8 +402,10 @@ class _ResponsiveAutocompleteState<T extends Object>
             alignment: AlignmentDirectional.topStart,
             child: Material(
               elevation: 4,
-              // Shaped like the app's popup menus, so High contrast outlines
-              // the option list as it does every other menu.
+              // On the menu tier and shaped like the app's popup menus, so
+              // High contrast outlines the option list as it does every other
+              // menu.
+              color: Theme.of(context).colorScheme.surfaceContainer,
               shape: Theme.of(context).popupMenuTheme.shape,
               clipBehavior: Clip.antiAlias,
               child: ConstrainedBox(
