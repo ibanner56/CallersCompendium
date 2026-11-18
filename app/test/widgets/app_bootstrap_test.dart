@@ -76,7 +76,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Collection ready'), findsNothing);
-    // The brand mark replaces the generic Material error glyph (audit B-06).
+    // The brand mark replaces the generic Material error glyph.
     expect(find.byType(BrandMark), findsOneWidget);
     expect(find.byIcon(Icons.error_outline), findsNothing);
 
