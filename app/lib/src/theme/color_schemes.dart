@@ -3,9 +3,18 @@ import 'package:flutter/material.dart';
 /// Palette "Blue Hour" — cool daylight/petrol canvas with warm lantern-amber
 /// accents (evolved from the original warm "Hearth"). Full [ColorScheme]s (not
 /// a single seed) so the high-contrast theme can reliably hit the 7:1 Perform
-/// target defined in `docs/research/accessibility-baseline.md`. Hex values and
-/// their WCAG contrast ratios are documented in
-/// `docs/design/ux-modernization.md` §1a/§1b.
+/// target defined in `docs/research/accessibility-baseline.md`. The main hex
+/// values and their WCAG contrast ratios are documented in
+/// `docs/design/ux-modernization.md` §1a/§1b; the surface tiers are derived
+/// as described below and live here only.
+///
+/// Every scheme defines the full surface-container ladder: Low, default, High
+/// and Highest step from `surface` toward the authored Highest in quarters,
+/// Lowest steps away from the foreground, and Dim/Bright follow Material 3 (Dim
+/// is the light canvas darkened past Highest; Bright is the dark canvas
+/// lightened past it). This is the same ladder `GalleryPalettes` derives, so
+/// cards, menus, dialogs and inputs sit on distinct tones in every theme rather
+/// than all falling back to `surface`.
 ///
 /// These are pure data (no widgets), consumed by [AppTheme].
 class AppColorSchemes {
@@ -35,7 +44,13 @@ class AppColorSchemes {
     surface: Color(0xFFF4F6FA),
     onSurface: Color(0xFF1A222C),
     onSurfaceVariant: Color(0xFF48515C),
+    surfaceContainerLowest: Color(0xFFFBFBFD),
+    surfaceContainerLow: Color(0xFFF0F2F7),
+    surfaceContainer: Color(0xFFECEFF4),
+    surfaceContainerHigh: Color(0xFFE7ECF2),
     surfaceContainerHighest: Color(0xFFE3E8EF),
+    surfaceDim: Color(0xFFDFE4EC),
+    surfaceBright: Color(0xFFF4F6FA),
     outline: Color(0xFF727C87),
     outlineVariant: Color(0xFFC7CDD6),
     shadow: Color(0xFF000000),
@@ -70,7 +85,13 @@ class AppColorSchemes {
     surface: Color(0xFF121A24),
     onSurface: Color(0xFFE7ECF1),
     onSurfaceVariant: Color(0xFFB4C1CE),
+    surfaceContainerLowest: Color(0xFF0D1219),
+    surfaceContainerLow: Color(0xFF17202B),
+    surfaceContainer: Color(0xFF1C2632),
+    surfaceContainerHigh: Color(0xFF202C3A),
     surfaceContainerHighest: Color(0xFF253241),
+    surfaceDim: Color(0xFF121A24),
+    surfaceBright: Color(0xFF2A3848),
     outline: Color(0xFF7B8896),
     outlineVariant: Color(0xFF384654),
     shadow: Color(0xFF000000),
@@ -106,7 +127,13 @@ class AppColorSchemes {
     surface: Color(0xFF1E2A38),
     onSurface: Color(0xFFE7ECF1),
     onSurfaceVariant: Color(0xFFB4C1CE),
+    surfaceContainerLowest: Color(0xFF151D27),
+    surfaceContainerLow: Color(0xFF222F3D),
+    surfaceContainer: Color(0xFF273442),
+    surfaceContainerHigh: Color(0xFF2C3847),
     surfaceContainerHighest: Color(0xFF303D4C),
+    surfaceDim: Color(0xFF1E2A38),
+    surfaceBright: Color(0xFF344251),
     outline: Color(0xFF7B8896),
     outlineVariant: Color(0xFF43515F),
     shadow: Color(0xFF000000),
@@ -139,7 +166,13 @@ class AppColorSchemes {
     surface: Color(0xFF0A0705),
     onSurface: Color(0xFFFFF3EC),
     onSurfaceVariant: Color(0xFFFFF3EC),
+    surfaceContainerLowest: Color(0xFF070504),
+    surfaceContainerLow: Color(0xFF0F0B08),
+    surfaceContainer: Color(0xFF140F0C),
+    surfaceContainerHigh: Color(0xFF1A130F),
     surfaceContainerHighest: Color(0xFF1F1712),
+    surfaceDim: Color(0xFF0A0705),
+    surfaceBright: Color(0xFF241B15),
     outline: Color(0xFFFFF3EC),
     outlineVariant: Color(0xFFFFF3EC),
     shadow: Color(0xFF000000),

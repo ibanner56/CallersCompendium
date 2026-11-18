@@ -33,6 +33,9 @@ class ComponentThemes {
     required this.navigationRail,
     required this.navigationBar,
     required this.snackBar,
+    this.bottomSheet = const BottomSheetThemeData(),
+    this.popupMenu = const PopupMenuThemeData(),
+    this.menu = const MenuThemeData(),
   });
 
   final CardThemeData card;
@@ -47,6 +50,14 @@ class ComponentThemes {
   final NavigationRailThemeData navigationRail;
   final NavigationBarThemeData navigationBar;
   final SnackBarThemeData snackBar;
+
+  /// Bottom sheets, popup menus and [MenuAnchor] menus. The standard theme
+  /// leaves them on Material's defaults, which now sit on distinct surface
+  /// tiers; High contrast also outlines them, as it already did cards and
+  /// dialogs.
+  final BottomSheetThemeData bottomSheet;
+  final PopupMenuThemeData popupMenu;
+  final MenuThemeData menu;
 
   /// Every snackbar floats, as the Undo snackbar already does (#463), instead of
   /// docking to the bottom edge and covering the controls beneath it. The theme
@@ -121,7 +132,9 @@ class ComponentThemes {
       chip: ChipThemeData(
         shape: RoundedRectangleBorder(
           borderRadius: AppShapes.borderRadiusSmall,
-          side: BorderSide(color: scheme.outlineVariant),
+          // outline, not outlineVariant: a chip's border is its boundary and
+          // needs 3:1 on the surface; outlineVariant was ~1.5:1.
+          side: BorderSide(color: scheme.outline),
         ),
       ),
       listTile: const ListTileThemeData(
@@ -226,6 +239,32 @@ class ComponentThemes {
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
       ),
       snackBar: _snackBarTheme,
+      // Tonal tiers are as invisible at HC as elevation is, so sheets and
+      // menus get the same outline as cards and dialogs.
+      bottomSheet: BottomSheetThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(AppShapes.radiusDialog),
+          ),
+          side: BorderSide(color: scheme.outline, width: 1.5),
+        ),
+      ),
+      popupMenu: PopupMenuThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: AppShapes.borderRadiusSmall,
+          side: BorderSide(color: scheme.outline, width: 1.5),
+        ),
+      ),
+      menu: MenuThemeData(
+        style: MenuStyle(
+          shape: const WidgetStatePropertyAll(
+            RoundedRectangleBorder(borderRadius: AppShapes.borderRadiusSmall),
+          ),
+          side: WidgetStatePropertyAll(
+            BorderSide(color: scheme.outline, width: 1.5),
+          ),
+        ),
+      ),
     );
   }
 }
