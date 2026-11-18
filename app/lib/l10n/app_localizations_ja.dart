@@ -1820,7 +1820,7 @@ class AppLocalizationsJa extends AppLocalizations {
     String codename,
     String license,
   ) {
-    return '$appName ·「$codename」 · $license';
+    return '$appName · 「$codename」 · $license';
   }
 
   @override
