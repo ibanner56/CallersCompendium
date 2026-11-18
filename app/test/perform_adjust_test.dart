@@ -259,6 +259,82 @@ void main() {
     expect(persisted.single.slots.map((s) => s.position).toList(), [0, 1, 2]);
   });
 
+  // UI/UX audit U-01: only Done used to return the edits, so a swipe down or
+  // a tap on the barrier silently threw away reorders and performed-marks made
+  // mid-gig. Every way of closing the sheet now keeps them.
+  group('closing the sheet without Done keeps the edits (U-01)', () {
+    final dances = [
+      _dance(id: 'd1', title: 'First Dance'),
+      _dance(id: 'd2', title: 'Second Dance'),
+    ];
+    Program twoSlots() => _program([
+      _slot(id: 's1', position: 0, danceId: 'd1'),
+      _slot(id: 's2', position: 1, danceId: 'd2'),
+    ]);
+
+    final dismissals = <String, Future<void> Function(WidgetTester)>{
+      'swipe down': (tester) => tester.fling(
+        find.byKey(const ValueKey('adjust-done')),
+        const Offset(0, 1500),
+        3000,
+      ),
+      'barrier tap': (tester) => tester.tapAt(const Offset(700, 20)),
+      'system Back': (tester) => tester.binding.handlePopRoute(),
+    };
+
+    for (final MapEntry(key: how, value: dismiss) in dismissals.entries) {
+      testWidgets('a reorder and a performed-mark survive $how', (
+        tester,
+      ) async {
+        final persisted = await _pumpAdjustable(
+          tester,
+          dances: dances,
+          program: twoSlots(),
+        );
+        await _openAdjust(tester);
+        await tester.tap(find.byKey(const ValueKey('adjust-mark-performed')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('adjust-move-down-0')));
+        await tester.pumpAndSettle();
+
+        await dismiss(tester);
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(const ValueKey('adjust-done')), findsNothing);
+        expect(persisted, hasLength(1));
+        expect(persisted.single.slots.map((s) => s.danceId).toList(), [
+          'd2',
+          'd1',
+        ]);
+        expect(
+          persisted.single.slots.firstWhere((s) => s.id == 's1').performedAt,
+          isNotNull,
+        );
+        // The reading view follows the moved dance, and the change is
+        // offered for undo exactly as after Done.
+        expect(find.text('Slot 2 of 2'), findsOneWidget);
+        expect(find.text('Undo'), findsOneWidget);
+      });
+    }
+
+    testWidgets('closing the sheet with no edits changes nothing', (
+      tester,
+    ) async {
+      final persisted = await _pumpAdjustable(
+        tester,
+        dances: dances,
+        program: twoSlots(),
+      );
+      await _openAdjust(tester);
+      await dismissals['barrier tap']!(tester);
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('adjust-done')), findsNothing);
+      expect(persisted, isEmpty);
+      expect(find.text('Undo'), findsNothing);
+    });
+  });
+
   testWidgets('insert a dance from quick-search lands after the current slot', (
     tester,
   ) async {

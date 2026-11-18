@@ -3293,6 +3293,14 @@ class AppLocalizationsNl extends AppLocalizations {
       'Verstreken tijd tonen tijdens het uitvoeren van een enkele dans. De timer start zodra deze wordt weergegeven en kan worden gepauzeerd.';
 
   @override
+  String get settingsConfirmPerformExitTitle =>
+      'Bevestigen voor Uitvoeren verlaten';
+
+  @override
+  String get settingsConfirmPerformExitSubtitle =>
+      'Vragen voordat de sluitknop of Terug je uit Uitvoeren haalt. Zet dit uit om met één tik te vertrekken; programma-Uitvoeren onthoudt je plek hoe dan ook.';
+
+  @override
   String get settingsShowProgramSlotCallerNotesTitle =>
       'Callernotities in programma-Perform tonen';
 
@@ -6231,6 +6239,12 @@ class AppLocalizationsNl extends AppLocalizations {
   String performSlotPosition(int current, int total) {
     return 'Slot $current van $total';
   }
+
+  @override
+  String get performProgramClockLabel => 'Programma';
+
+  @override
+  String get performSlotClockLabel => 'Slot';
 
   @override
   String performShowingSlot(String label) {

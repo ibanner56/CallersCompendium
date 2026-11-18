@@ -16,9 +16,12 @@ import '../widgets/collection_picker.dart';
 ///
 /// Edits a private working copy of the [Program] and returns it via
 /// [Navigator.pop] when the caller taps **Done** (or `null` when nothing
-/// changed / the sheet is dismissed). [PerformProgramScreen] then applies the
-/// result live with a single SnackBar undo and persists it — so the reading
-/// view underneath is never disturbed while adjusting.
+/// changed). Every edit is also reported through [onEdited] as it happens, so
+/// a sheet closed any other way — swipe down, barrier tap, system back — still
+/// hands its edits to the caller instead of silently discarding them (UI/UX
+/// audit U-01). [PerformProgramScreen] then applies the result live with a
+/// single SnackBar undo and persists it — so the reading view underneath is
+/// never disturbed while adjusting.
 class PerformAdjustSheet extends StatefulWidget {
   const PerformAdjustSheet({
     super.key,
@@ -30,9 +33,16 @@ class PerformAdjustSheet extends StatefulWidget {
     required this.enrichment,
     this.danceOverrides = const {},
     this.authorNameOverrides = const {},
+    this.onEdited,
   });
 
   final Program program;
+
+  /// Called with the working copy after every edit. The opener keeps the
+  /// latest value and applies it when the sheet closes without a result
+  /// (swipe-down, barrier tap, back), so **Done** is not the only way to keep
+  /// the edits.
+  final ValueChanged<Program>? onEdited;
 
   /// The group the reading view is on. The current group and everything after
   /// it are reorderable; already-passed groups stay fixed.
@@ -79,6 +89,14 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
   );
 
   final _noteController = TextEditingController();
+
+  /// Records that [_working] now differs from the program the sheet opened
+  /// with, and reports it to [PerformAdjustSheet.onEdited]. Called inside each
+  /// edit's `setState`, after [_working] is assigned.
+  void _markChanged() {
+    _changed = true;
+    widget.onEdited?.call(_working);
+  }
 
   @override
   void dispose() {
@@ -179,7 +197,7 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
     ];
     setState(() {
       _working = _working.copyWith(slots: slots, updatedAt: now);
-      _changed = true;
+      _markChanged();
     });
     final nowPerformed = edited?.performedAt != null;
     final l10n = AppLocalizations.of(context);
@@ -201,7 +219,7 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
       _working = _withSlots(
         _flatten([...groups.sublist(0, start), ...movable]),
       );
-      _changed = true;
+      _markChanged();
     });
     final l10n = AppLocalizations.of(context);
     _announce(
@@ -221,7 +239,7 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
     flat.insert(at, ProgramSlot(id: uuidV4(), position: at, danceId: danceId));
     setState(() {
       _working = _withSlots(flat);
-      _changed = true;
+      _markChanged();
     });
     final title =
         (widget.danceOverrides[danceId] ?? widget.data.dancesById[danceId])
@@ -239,7 +257,7 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
     flat.insert(at, ProgramSlot(id: uuidV4(), position: at, text: text));
     setState(() {
       _working = _withSlots(flat);
-      _changed = true;
+      _markChanged();
       _noteController.clear();
     });
     _announce(l10n.performAddedNoteAnnounce);
@@ -339,8 +357,10 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
         children: [
           // Expanded (not Flexible, which would leave Done next to the title):
           // the title takes the free width, so Done stays at the trailing edge,
-          // and at large text it wraps instead of pushing Done off-screen
-          // (dismissing the sheet any other way discards the edits).
+          // and at large text it wraps instead of pushing Done off-screen.
+          // Done is not the only way to keep the edits — any dismissal keeps
+          // them (see [PerformAdjustSheet.onEdited]) — but it is the explicit
+          // one, so it must stay reachable.
           Expanded(
             child: Semantics(
               header: true,

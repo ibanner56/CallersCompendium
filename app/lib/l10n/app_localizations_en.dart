@@ -3242,6 +3242,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Show elapsed time while performing a single dance. The timer starts when it appears and can be paused.';
 
   @override
+  String get settingsConfirmPerformExitTitle =>
+      'Confirm before leaving Perform';
+
+  @override
+  String get settingsConfirmPerformExitSubtitle =>
+      'Ask before the close button or Back takes you out of Perform. Turn this off to leave in one tap; program Perform keeps your place either way.';
+
+  @override
   String get settingsShowProgramSlotCallerNotesTitle =>
       'Show caller notes in program Perform';
 
@@ -6155,6 +6163,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String performSlotPosition(int current, int total) {
     return 'Slot $current of $total';
   }
+
+  @override
+  String get performProgramClockLabel => 'Program';
+
+  @override
+  String get performSlotClockLabel => 'Slot';
 
   @override
   String performShowingSlot(String label) {

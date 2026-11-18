@@ -3324,6 +3324,14 @@ class AppLocalizationsFr extends AppLocalizations {
       'Afficher le temps écoulé pendant l\'exécution d\'une danse seule. Le minuteur démarre lorsqu\'il s\'affiche et peut être mis en pause.';
 
   @override
+  String get settingsConfirmPerformExitTitle =>
+      'Confirmer avant de quitter Perform';
+
+  @override
+  String get settingsConfirmPerformExitSubtitle =>
+      'Demander avant que le bouton de fermeture ou Retour ne vous fasse quitter Perform. Désactivez pour quitter d’un seul toucher ; le Perform d’un programme garde votre position dans tous les cas.';
+
+  @override
   String get settingsShowProgramSlotCallerNotesTitle =>
       'Afficher les notes du caller dans le Perform d’un programme';
 
@@ -6274,6 +6282,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String performSlotPosition(int current, int total) {
     return 'Créneau $current sur $total';
   }
+
+  @override
+  String get performProgramClockLabel => 'Programme';
+
+  @override
+  String get performSlotClockLabel => 'Créneau';
 
   @override
   String performShowingSlot(String label) {

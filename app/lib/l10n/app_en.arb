@@ -4136,6 +4136,14 @@
   "@settingsShowIndividualPerformTimerSubtitle": {
     "description": "Subtitle explaining the default-on individual Perform elapsed-timer toggle."
   },
+  "settingsConfirmPerformExitTitle": "Confirm before leaving Perform",
+  "@settingsConfirmPerformExitTitle": {
+    "description": "Title of the Program settings toggle that makes the Perform close button and system Back ask before leaving Perform."
+  },
+  "settingsConfirmPerformExitSubtitle": "Ask before the close button or Back takes you out of Perform. Turn this off to leave in one tap; program Perform keeps your place either way.",
+  "@settingsConfirmPerformExitSubtitle": {
+    "description": "Subtitle of the Program settings toggle that makes leaving Perform ask for confirmation."
+  },
   "settingsShowProgramSlotCallerNotesTitle": "Show caller notes in program Perform",
   "@settingsShowProgramSlotCallerNotesTitle": {
     "description": "Title of the default-on Program settings toggle that shows non-empty per-slot caller notes above dance titles in program Perform."
@@ -8077,6 +8085,14 @@
         "example": "8"
       }
     }
+  },
+  "performProgramClockLabel": "Program",
+  "@performProgramClockLabel": {
+    "description": "Short visible label in the program Perform footer, shown before the clock that times the whole program (the evening). Keep it to one short word; the footer is narrow."
+  },
+  "performSlotClockLabel": "Slot",
+  "@performSlotClockLabel": {
+    "description": "Short visible label in the program Perform footer, shown before the clock that times the current slot (dance). Keep it to one short word, matching the word used in 'Slot {current} of {total}'."
   },
   "performShowingSlot": "Showing {label}",
   "@performShowingSlot": {

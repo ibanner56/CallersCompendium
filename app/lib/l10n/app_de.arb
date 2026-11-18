@@ -3248,6 +3248,14 @@
   "@settingsShowIndividualPerformTimerSubtitle": {
     "x-sourceSha256": "c3f8f61c6df18fe8d4ce2b3aa7fd6b904e66b2f7874e047dee26af2c2ed7f46f"
   },
+  "settingsConfirmPerformExitTitle": "Vor dem Verlassen von Perform bestätigen",
+  "@settingsConfirmPerformExitTitle": {
+    "x-sourceSha256": "51ffa9c62cf3c22d19a567ff271ae0a951733c579d3f370c4e9187bc1ccfd553"
+  },
+  "settingsConfirmPerformExitSubtitle": "Nachfragen, bevor die Schließen-Schaltfläche oder Zurück dich aus Perform führt. Deaktivieren, um mit einem Tippen zu verlassen; die Programm-Perform-Ansicht behält deine Position in jedem Fall.",
+  "@settingsConfirmPerformExitSubtitle": {
+    "x-sourceSha256": "f026552392de593fd9a91c80a6eca88d57fa984ead2bf47f6f57d40afe17e90f"
+  },
   "settingsShowProgramSlotCallerNotesTitle": "Caller-Notizen in der Programm-Perform-Ansicht anzeigen",
   "@settingsShowProgramSlotCallerNotesTitle": {
     "x-sourceSha256": "b4907be54d3c1a8b08fb8a4f29d9209dac0d2a4bd0d4ae4b6f70de7ca34c577f"
@@ -6169,6 +6177,14 @@
   "performSlotPosition": "Slot {current} von {total}",
   "@performSlotPosition": {
     "x-sourceSha256": "28323c1441741396297f14b41af654cd27b5734ce4d41f3096bfe1a572d972eb"
+  },
+  "performProgramClockLabel": "Programm",
+  "@performProgramClockLabel": {
+    "x-sourceSha256": "90920d93e2c7e6323a947c6edb0e31a9702002e329af32a67fea53f221983cb0"
+  },
+  "performSlotClockLabel": "Slot",
+  "@performSlotClockLabel": {
+    "x-sourceSha256": "79689782061dec13dc61a80c224f96c6443d61cdd6e50f7c8cace113ba74f761"
   },
   "performShowingSlot": "{label} wird angezeigt",
   "@performShowingSlot": {

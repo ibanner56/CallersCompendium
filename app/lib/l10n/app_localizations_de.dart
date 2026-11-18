@@ -3306,6 +3306,14 @@ class AppLocalizationsDe extends AppLocalizations {
       'Verstrichene Zeit beim Ausführen eines einzelnen Tanzes anzeigen. Der Timer startet, sobald er angezeigt wird, und kann pausiert werden.';
 
   @override
+  String get settingsConfirmPerformExitTitle =>
+      'Vor dem Verlassen von Perform bestätigen';
+
+  @override
+  String get settingsConfirmPerformExitSubtitle =>
+      'Nachfragen, bevor die Schließen-Schaltfläche oder Zurück dich aus Perform führt. Deaktivieren, um mit einem Tippen zu verlassen; die Programm-Perform-Ansicht behält deine Position in jedem Fall.';
+
+  @override
   String get settingsShowProgramSlotCallerNotesTitle =>
       'Caller-Notizen in der Programm-Perform-Ansicht anzeigen';
 
@@ -6258,6 +6266,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String performSlotPosition(int current, int total) {
     return 'Slot $current von $total';
   }
+
+  @override
+  String get performProgramClockLabel => 'Programm';
+
+  @override
+  String get performSlotClockLabel => 'Slot';
 
   @override
   String performShowingSlot(String label) {

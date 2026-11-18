@@ -8,6 +8,7 @@ import 'package:compendium_app/src/widgets/formation_color_badge.dart';
 import 'package:compendium_app/src/widgets/program_status_chip.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderParagraph;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/test_repositories.dart';
@@ -271,29 +272,82 @@ void main() {
   ScrollPosition scrollPosition(WidgetTester tester) =>
       tester.state<ScrollableState>(find.byType(Scrollable).first).position;
 
-  testWidgets(
-    'auto-size shrinks a tall card to fit a smaller-than-fullscreen window '
-    'without scrolling (issue #527)',
-    (tester) async {
-      addTearDown(() => tester.binding.setSurfaceSize(null));
-      final c = await _controllerWith(null);
+  /// The size a figure row's text is actually drawn at: its style's font size
+  /// through the paragraph's own text scaler (system scale × in-view scale).
+  double figureFontSize(WidgetTester tester) {
+    final paragraph = tester.renderObject<RenderParagraph>(
+      find.textContaining('robins chain').first,
+    );
+    return paragraph.textScaler.scale(paragraph.text.style!.fontSize!);
+  }
 
-      // A window well below full screen — the reported repro. Before the fix the
-      // auto-fit search was floored at the manual large-print scale (1.0) and
-      // could not shrink the card, so the trailing section (calling notes / B
-      // figures) fell off the viewport and was unreachable.
-      await pumpAutoSized(tester, tallDance(), const Size(720, 620), c);
+  /// The app's body text size under [systemScale] — the floor auto-size may
+  /// not shrink the figures below (UI/UX audit A-03, decision DS-12 option A).
+  double osBodySize(WidgetTester tester, double systemScale) {
+    final context = tester.element(find.byType(PerformCard));
+    return Theme.of(context).textTheme.bodyLarge!.fontSize! * systemScale;
+  }
 
-      expect(tester.takeException(), isNull);
-      // The whole card fits: nothing to scroll.
-      expect(scrollPosition(tester).maxScrollExtent, lessThan(1.0));
-      // …and the last section is actually laid out and visible.
-      expect(
-        find.textContaining('robins chain across the set.'),
-        findsOneWidget,
-      );
-    },
-  );
+  for (final systemScale in const [1.0, 3.0]) {
+    testWidgets(
+      'auto-size never draws the figures below the OS-scaled body size; a '
+      'card too tall for that scrolls instead (A-03, ${systemScale}x text)',
+      (tester) async {
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        final c = await _controllerWith(null);
+
+        // The issue #527 window: smaller than full screen, too short for the
+        // whole tall card at a readable size. The fit used to shrink the card
+        // to a fifth of the user's size to avoid scrolling; at accessibility
+        // text sizes that drew the figures *smaller* than at the default size.
+        await tester.binding.setSurfaceSize(const Size(720, 620));
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: Builder(
+              builder: (context) => MediaQuery(
+                data: MediaQuery.of(
+                  context,
+                ).copyWith(textScaler: TextScaler.linear(systemScale)),
+                child: Scaffold(
+                  body: SafeArea(
+                    child: FormationColorsScope(
+                      controller: c,
+                      child: PerformCard(
+                        dance: tallDance(),
+                        renderer: _renderer,
+                        dialect: Dialect.larksRobins,
+                        textScale: 1.0,
+                        autoSize: true,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        expect(
+          figureFontSize(tester),
+          greaterThanOrEqualTo(osBodySize(tester, systemScale) - 0.01),
+        );
+        // Below the floor the card scrolls rather than clipping…
+        final pos = scrollPosition(tester);
+        expect(pos.maxScrollExtent, greaterThan(0.0));
+        // …and its last section stays reachable.
+        pos.jumpTo(pos.maxScrollExtent);
+        await tester.pump();
+        expect(
+          find.textContaining('robins chain across the set.'),
+          findsOneWidget,
+        );
+      },
+    );
+  }
 
   testWidgets(
     'auto-size keeps the whole card reachable by scrolling when even the '
@@ -333,13 +387,13 @@ void main() {
       addTearDown(() => tester.binding.setSurfaceSize(null));
       final c = await _controllerWith(null);
 
-      // Same window as the #527 "shrink to fit" repro: tall enough content
-      // that the search needs several frames to converge, so a stray visible
-      // frame would be caught.
+      // A window the tall card fits at a scale above the auto-size floor but
+      // well below the ceiling, so the search needs several frames to grow
+      // and bisect to converge, and a stray visible frame would be caught.
       await pumpAutoSizedWithMotionSetting(
         tester,
         tallDance(),
-        const Size(720, 620),
+        const Size(720, 1400),
         c,
         reduceMotion: true,
       );
@@ -383,7 +437,7 @@ void main() {
       await pumpAutoSizedWithMotionSetting(
         tester,
         tallDance(),
-        const Size(720, 620),
+        const Size(720, 1400),
         c,
         reduceMotion: false,
       );

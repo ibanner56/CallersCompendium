@@ -6,7 +6,7 @@ import '../data/capitalize_figures_scope.dart';
 import '../data/decimal_turns_scope.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/perform_text_scale.dart'
-    show kPerformMaxAutoScale, kPerformMinAutoScale;
+    show kPerformMaxAutoScale, performMinAutoScale;
 import '../data/reduce_motion_scope.dart';
 import '../../l10n/app_localizations.dart';
 import '../search/facet_labels.dart';
@@ -43,6 +43,16 @@ TextScaler _effectiveScaler(BuildContext context, double scale) {
 /// path (scale >= 1.0) keep their current spacing exactly — only the
 /// shrink-to-fit case is affected.
 double _chromeScale(double scale) => scale < 1.0 ? scale : 1.0;
+
+/// The auto-size floor for a card whose body text is drawn at [cardFontSize]:
+/// the scale at which that text matches the app's OS-scaled body text
+/// (`bodyLarge`), so auto-size never makes the card harder to read than the
+/// rest of the app (see [performMinAutoScale]).
+double _autoScaleFloor(BuildContext context, double? cardFontSize) =>
+    performMinAutoScale(
+      bodyFontSize: Theme.of(context).textTheme.bodyLarge?.fontSize ?? 16,
+      cardFontSize: cardFontSize ?? 16,
+    );
 
 /// Scrolls [controller] in [direction] (1 down, -1 up) for a Perform key:
 /// most of a viewport by default (so a pedal that sends arrows needs few
@@ -180,7 +190,9 @@ class PerformCard extends StatelessWidget {
     );
     if (autoSize) {
       return _FitToHeight(
-        minScale: kPerformMinAutoScale,
+        // The floor is the figure rows' size: they are the choreography the
+        // caller reads, drawn in [AppTypography.performBody].
+        minScale: _autoScaleFloor(context, AppTypography.performBody.fontSize),
         maxScale: kPerformMaxAutoScale,
         resetToken: Object.hash(
           dance.id,
@@ -261,7 +273,10 @@ class PerformTextCard extends StatelessWidget {
   Widget build(BuildContext context) {
     if (autoSize) {
       return _FitToHeight(
-        minScale: kPerformMinAutoScale,
+        minScale: _autoScaleFloor(
+          context,
+          Theme.of(context).textTheme.displaySmall?.fontSize,
+        ),
         maxScale: kPerformMaxAutoScale,
         resetToken: Object.hash(text, canonicalizeDiscouragedTerms, dialect),
         builder: _body,

@@ -3107,6 +3107,13 @@ class AppLocalizationsJa extends AppLocalizations {
       '1曲だけをパフォームしている間の経過時間を表示します。タイマーが表示されると開始し、一時停止できます。';
 
   @override
+  String get settingsConfirmPerformExitTitle => 'パフォームを終了する前に確認する';
+
+  @override
+  String get settingsConfirmPerformExitSubtitle =>
+      '閉じるボタンや戻る操作でパフォームを終了する前に確認します。オフにすると1回のタップで終了します。プログラムのパフォームでは、どちらの場合も現在の位置が保持されます。';
+
+  @override
   String get settingsShowProgramSlotCallerNotesTitle =>
       'プログラムのパフォームでコーラーのメモを表示';
 
@@ -5938,6 +5945,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String performSlotPosition(int current, int total) {
     return 'スロット $current/$total';
   }
+
+  @override
+  String get performProgramClockLabel => 'プログラム';
+
+  @override
+  String get performSlotClockLabel => 'スロット';
 
   @override
   String performShowingSlot(String label) {
