@@ -24,6 +24,7 @@ import 'settings_screen.dart'
         kAutoSizePerformKey,
         kConfirmPerformExitDefault,
         kShowIndividualPerformTimerKey;
+import '../theme/app_motion.dart';
 
 /// Full-screen, large-print Perform mode for a single [Dance]
 /// (`docs/design/ux.md` §5; ROADMAP 5.1). Entered explicitly from the dance
@@ -296,6 +297,7 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
       context: _stageContext,
       showDragHandle: true,
       builder: (_) => const SafeArea(child: TapTempoMetronome()),
+      sheetAnimationStyle: AppMotion.styleFor(context),
     );
   }
 

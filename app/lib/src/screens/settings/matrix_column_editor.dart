@@ -19,6 +19,7 @@ import '../../widgets/dropdown_selection.dart';
 import '../../widgets/section_header.dart';
 import '../../widgets/dirty_dialog_guard.dart';
 import '../../widgets/figure_param_editors.dart';
+import '../../theme/app_motion.dart';
 
 /// Editor surface for the program matrix's built-in (and custom-bucket) columns.
 ///
@@ -192,6 +193,7 @@ class MatrixColumnEditor extends StatelessWidget {
         initialValue: config.renames[id] ?? '',
         defaultLabel: _defaultLabel(column),
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     // A dismissed dialog (null) leaves the rename unchanged; an explicit empty
     // string clears the override.
@@ -202,6 +204,7 @@ class MatrixColumnEditor extends StatelessWidget {
     final draft = await showDialog<_ParameterizedColumnDraft>(
       context: context,
       builder: (context) => _ParameterizedColumnDialog(taxonomy: _taxonomy),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (draft == null) return;
     final id = '$parameterizedColumnIdPrefix${uuidV4()}';
@@ -224,6 +227,7 @@ class MatrixColumnEditor extends StatelessWidget {
     final draft = await showDialog<_CompoundColumnDraft>(
       context: context,
       builder: (context) => _CompoundColumnDialog(taxonomy: _taxonomy),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (draft == null) return;
     final id = '$compoundColumnIdPrefix${uuidV4()}';
@@ -250,6 +254,7 @@ class MatrixColumnEditor extends StatelessWidget {
         initial: column,
         initialLabel: config.renames[column.id] ?? '',
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (draft == null) return;
     final compounds = [
@@ -286,6 +291,7 @@ class MatrixColumnEditor extends StatelessWidget {
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (confirmed != true) return;
 
@@ -320,6 +326,7 @@ class MatrixColumnEditor extends StatelessWidget {
         initial: column,
         initialLabel: config.renames[column.id] ?? '',
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (draft == null) return;
     final parameterized = [
@@ -362,6 +369,7 @@ class MatrixColumnEditor extends StatelessWidget {
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (confirmed != true) return;
 
@@ -405,6 +413,7 @@ class MatrixColumnEditor extends StatelessWidget {
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (confirmed ?? false) _restoreTrueDefaults();
   }

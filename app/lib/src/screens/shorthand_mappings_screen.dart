@@ -15,6 +15,7 @@ import 'compound_shorthand_editor_screen.dart';
 import '../data/shorthand_mappings_controller.dart';
 import '../data/shorthand_mappings_scope.dart';
 import 'shorthand_mapping_editor_screen.dart';
+import '../theme/app_motion.dart';
 
 /// Manager for the user's shorthand → figure(s) mappings (issue #420), reached
 /// from the "Free-text entry" area of Settings. Mirrors the dialect library
@@ -212,6 +213,7 @@ class ShorthandMappingsScreen extends StatelessWidget {
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (confirmed != true) return;
     await controller.removeAt(index);
@@ -397,6 +399,7 @@ class _CompoundShorthandsSectionState
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (confirmed != true) return;
     if (compoundIndex != null) {

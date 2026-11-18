@@ -35,6 +35,26 @@ class AppTheme {
   /// uses the outline-driven variation via [highContrast].
   static ThemeData fromScheme(ColorScheme scheme) => _build(scheme);
 
+  /// [theme] with page transitions and the [ExpansionTile] animation turned
+  /// off, for the in-app Reduce motion switch (audit A-15). Dialogs and
+  /// bottom sheets have no theme hook for their animation, so each call site
+  /// passes `AppMotion.styleFor(context)` instead.
+  static ThemeData withoutMotion(ThemeData theme) => theme.copyWith(
+    pageTransitionsTheme: const PageTransitionsTheme(
+      builders: <TargetPlatform, PageTransitionsBuilder>{
+        TargetPlatform.android: _NoTransitionsBuilder(),
+        TargetPlatform.iOS: _NoTransitionsBuilder(),
+        TargetPlatform.macOS: _NoTransitionsBuilder(),
+        TargetPlatform.windows: _NoTransitionsBuilder(),
+        TargetPlatform.linux: _NoTransitionsBuilder(),
+        TargetPlatform.fuchsia: _NoTransitionsBuilder(),
+      },
+    ),
+    expansionTileTheme: theme.expansionTileTheme.copyWith(
+      expansionAnimationStyle: AnimationStyle.noAnimation,
+    ),
+  );
+
   static ThemeData _build(ColorScheme scheme, {bool highContrast = false}) {
     final textTheme = AppTypography.textTheme.apply(
       bodyColor: scheme.onSurface,
@@ -83,4 +103,24 @@ class AppTheme {
       extensions: <ThemeExtension<dynamic>>[extension],
     );
   }
+}
+
+/// A page transition that shows the new route at once.
+class _NoTransitionsBuilder extends PageTransitionsBuilder {
+  const _NoTransitionsBuilder();
+
+  @override
+  Duration get transitionDuration => Duration.zero;
+
+  @override
+  Duration get reverseTransitionDuration => Duration.zero;
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) => child;
 }

@@ -6,6 +6,7 @@ import '../data/active_dialect_scope.dart';
 import '../data/walkthrough_snippet_library_scope.dart';
 import '../theme/destructive_button_style.dart';
 import '../widgets/dirty_dialog_guard.dart';
+import '../theme/app_motion.dart';
 
 /// Manager for the user's personal walkthrough snippet library (#411), reached
 /// from Settings › Defaults. Lists each saved per-figure snippet (a readable
@@ -89,6 +90,7 @@ class WalkthroughSnippetsScreen extends StatelessWidget {
     final result = await showDialog<String>(
       context: context,
       builder: (ctx) => _EditSnippetDialog(initial: current),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (result == null) return;
     await controller.setSnippet(signature, result);
@@ -120,6 +122,7 @@ class WalkthroughSnippetsScreen extends StatelessWidget {
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (confirm == true) {
       await controller.removeSnippet(signature);

@@ -7,6 +7,7 @@ import '../../theme/app_spacing.dart';
 import '../../theme/keyboard_dismiss.dart';
 import '../../utils/undo_snack_bar.dart';
 import '../../widgets/readable_width.dart';
+import '../../theme/app_motion.dart';
 
 /// One entry of a [LibraryManagerList]: a tag, an author or a source.
 @immutable
@@ -185,6 +186,7 @@ class _LibraryManagerListState extends State<LibraryManagerList> {
           ],
         ),
       ),
+      sheetAnimationStyle: AppMotion.styleFor(context),
     );
     // Run the action once the sheet has gone, so a dialog it opens is not
     // stacked over a closing sheet.
@@ -387,6 +389,7 @@ Future<String?> showLibraryRenameDialog(
       initialText: initialText ?? currentName,
       fieldLabel: fieldLabel,
     ),
+    animationStyle: AppMotion.styleFor(context),
   );
   if (name == null || name.isEmpty || name == currentName) return null;
   return name;
@@ -476,6 +479,7 @@ Future<LibraryManagerEntry?> showLibraryMergePicker(
         ),
     searchHint: searchHint,
   ),
+  animationStyle: AppMotion.styleFor(context),
 );
 
 class _MergePickerDialog extends StatefulWidget {
@@ -584,6 +588,7 @@ Future<String?> showLibraryMergeOffer(
     matches: matches,
     droppedFor: droppedFor,
   ),
+  animationStyle: AppMotion.styleFor(context),
 );
 
 class _MergeOfferDialog extends StatefulWidget {
@@ -715,6 +720,7 @@ Future<bool> showLibraryMergeConfirm(
         ),
       ],
     ),
+    animationStyle: AppMotion.styleFor(context),
   );
   return merge ?? false;
 }

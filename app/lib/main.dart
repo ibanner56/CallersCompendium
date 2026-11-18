@@ -139,6 +139,7 @@ import 'src/widgets/command_palette.dart';
 import 'src/widgets/ecd_convert_prompt_dialog.dart';
 import 'src/widgets/online_import_dialogs.dart';
 import 'src/widgets/online_import_snack_bar.dart';
+import 'src/theme/app_motion.dart';
 
 AppData _defaultAppDataFactory() => AppData(openAppDatabase());
 
@@ -1660,6 +1661,7 @@ class _CompendiumAppState extends State<CompendiumApp>
           key: ValueKey('incoming-dance-preview-loading'),
         ),
       ),
+      animationStyle: AppMotion.styleFor(navContext),
     );
 
     late OnlinePreview preview;
@@ -1827,6 +1829,7 @@ class _CompendiumAppState extends State<CompendiumApp>
           ],
         ),
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     // A dismissed dialog (blocked above, but belt-and-braces) is the safe
     // default: decline, so the guard fails closed.
@@ -2368,6 +2371,7 @@ class _CompendiumAppState extends State<CompendiumApp>
             ),
           ],
         ),
+        animationStyle: AppMotion.styleFor(context),
       );
       return; // Snapshot failed: do NOT wipe.
     }
@@ -2411,6 +2415,7 @@ class _CompendiumAppState extends State<CompendiumApp>
           ],
         ),
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (confirmed != true) return;
 
@@ -2451,6 +2456,7 @@ class _CompendiumAppState extends State<CompendiumApp>
           ],
         ),
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (confirmed != true) return;
 
@@ -2546,6 +2552,7 @@ class _CompendiumAppState extends State<CompendiumApp>
                 ),
               ],
             ),
+            animationStyle: AppMotion.styleFor(context),
           );
           unawaited(dialog);
         }
@@ -3037,6 +3044,11 @@ class _CompendiumAppState extends State<CompendiumApp>
           }
         }
 
+        ThemeData reduceMotion(ThemeData theme) =>
+            _reduceMotionNotifier.value == true
+            ? AppTheme.withoutMotion(theme)
+            : theme;
+
         return MaterialApp(
           onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
           locale: _localeNotifier.value,
@@ -3087,10 +3099,14 @@ class _CompendiumAppState extends State<CompendiumApp>
             ),
             _DismissProbe: _DismissProbeAction(_dismissProbes),
           },
-          theme: lightTheme,
-          darkTheme: darkTheme,
-          highContrastTheme: AppTheme.highContrast,
-          highContrastDarkTheme: AppTheme.highContrast,
+          // With the in-app Reduce motion switch on, every theme slot drops
+          // page transitions and the expansion-tile animation (audit A-15).
+          // The OS setting needs no help here: route and expansion
+          // controllers already shorten themselves when the platform asks.
+          theme: reduceMotion(lightTheme),
+          darkTheme: reduceMotion(darkTheme),
+          highContrastTheme: reduceMotion(AppTheme.highContrast),
+          highContrastDarkTheme: reduceMotion(AppTheme.highContrast),
           themeMode: themeMode,
           // The in-app Reduce motion switch, when set, wins over the OS in both
           // directions. Flutter's own `AnimationController`s read the OS flag

@@ -66,6 +66,7 @@ import '../widgets/program_matrix_table.dart';
 import '../widgets/program_slot_list_editor.dart';
 import '../widgets/program_status_chip.dart';
 import '../utils/slot_dance_title.dart';
+import '../theme/app_motion.dart';
 
 /// Full-screen Program Builder (`docs/design/ux.md` §4).
 ///
@@ -470,6 +471,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           ),
         ),
       ),
+      sheetAnimationStyle: AppMotion.styleFor(context),
     );
   }
 
@@ -514,6 +516,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           ),
         ),
       ),
+      sheetAnimationStyle: AppMotion.styleFor(context),
     );
   }
 
@@ -1563,6 +1566,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     final key = _pendingDraftKey;
     _pendingDraftKey = null;
@@ -2618,6 +2622,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final text = await showDialog<String>(
       context: context,
       builder: (_) => const _FreeTextSlotDialog(),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (text == null || text.isEmpty || !mounted) return;
     setState(() {
@@ -4269,6 +4274,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             ),
           );
         },
+        sheetAnimationStyle: AppMotion.styleFor(context),
       );
     } finally {
       importingDisposed = true;
@@ -4385,6 +4391,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             ),
           );
         },
+        sheetAnimationStyle: AppMotion.styleFor(context),
       );
       return result ?? selectedDanceId;
     } finally {

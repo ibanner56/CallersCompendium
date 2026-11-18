@@ -5,6 +5,7 @@ import '../../l10n/app_localizations.dart';
 import '../data/dance_reimport.dart';
 import '../data/default_import_tags.dart';
 import '../data/online_search.dart';
+import '../theme/app_motion.dart';
 
 /// Shows the resolution dialog for a confident title+author match with
 /// differing figures (issue #797). Returns the chosen [DedupeResolution], or
@@ -74,6 +75,7 @@ Future<DedupeResolution?> showOnlineImportVariationDialog(
         ),
     ],
   ),
+  animationStyle: AppMotion.styleFor(context),
 );
 
 /// Shows a resolution dialog when a confident title+author match with
@@ -166,6 +168,7 @@ Future<DedupeResolution?> showOnlineImportCrossSourceDuplicateDialog(
       ),
     ],
   ),
+  animationStyle: AppMotion.styleFor(context),
 );
 
 /// Shows the existing dances that may be the incoming one under a differently
@@ -226,6 +229,7 @@ Future<DedupeResolution?> showOnlineImportPossibleMatchDialog(
       ),
     ],
   ),
+  animationStyle: AppMotion.styleFor(context),
 );
 
 /// Commits [preview] through [service] and resolves the confirmation outcomes

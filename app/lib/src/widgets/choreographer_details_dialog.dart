@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 
 import 'dirty_dialog_guard.dart';
+import '../theme/app_motion.dart';
 
 /// A modal dialog for editing a [Choreographer]'s shared contact details.
 ///
@@ -32,6 +33,7 @@ class ChoreographerDetailsDialog extends StatefulWidget {
   ) => showDialog<Choreographer>(
     context: context,
     builder: (_) => ChoreographerDetailsDialog(choreographer: choreographer),
+    animationStyle: AppMotion.styleFor(context),
   );
 
   @override

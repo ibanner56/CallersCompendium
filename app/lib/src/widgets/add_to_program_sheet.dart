@@ -5,6 +5,7 @@ import '../../l10n/app_localizations.dart';
 import '../editor/program_slot_rebase.dart';
 import '../utils/undo_snack_bar.dart';
 import 'add_to_program_list.dart';
+import '../theme/app_motion.dart';
 
 /// Opens a modal bottom sheet listing existing (non-deleted) programs so the
 /// user can append the dance identified by [danceId] as a new slot at the end
@@ -160,6 +161,7 @@ Future<void> showAddToProgramSheet(
         ),
       );
     },
+    sheetAnimationStyle: AppMotion.styleFor(context),
   );
 }
 
@@ -256,6 +258,7 @@ Future<bool> _confirmAddAgain(
         ),
       ],
     ),
+    animationStyle: AppMotion.styleFor(sheetContext),
   );
   return again ?? false;
 }

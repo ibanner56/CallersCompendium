@@ -12,6 +12,7 @@ import '../widgets/color_edit_dialog.dart';
 import '../widgets/load_error_view.dart';
 import '../widgets/tag_chip.dart';
 import 'settings/library_manager_list.dart';
+import '../theme/app_motion.dart';
 
 /// The Tags manager (FIND-3, `docs/design/tags-and-people.md` T2): rename,
 /// merge, colour and delete tags. Reached from Settings › General › Library ›
@@ -309,6 +310,7 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
     final picked = await showDialog<Color>(
       context: context,
       builder: (_) => ColorEditDialog(title: tag.name, initial: seed),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (picked == null || !mounted) return;
     // Stored fully opaque, matching what the picker produces and what

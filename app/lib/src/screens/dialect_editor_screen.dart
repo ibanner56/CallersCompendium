@@ -12,6 +12,7 @@ import '../widgets/confirm_discard_changes.dart';
 import '../widgets/section_header.dart';
 import '../widgets/wording_condition_notes.dart';
 import '../widgets/app_bar_text_action.dart';
+import '../theme/app_motion.dart';
 
 /// Full-screen term editor for a single named [Dialect] (`docs/design/ux.md`
 /// §6). Edits the pieces a dialect can set — role terms (gendered terms live
@@ -591,6 +592,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
             ),
           ],
         ),
+        animationStyle: AppMotion.styleFor(context),
       );
       if (!mounted || confirmed != true) return;
     }
@@ -640,6 +642,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (confirmed == true && mounted) _restoreDiscouragedDefaults();
   }
@@ -772,6 +775,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (confirmed == true && mounted) _restoreMoveWordings();
   }

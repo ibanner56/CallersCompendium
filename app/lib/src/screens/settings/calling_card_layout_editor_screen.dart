@@ -24,6 +24,7 @@ import '../../theme/app_shapes.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/app_bar_text_action.dart';
 import 'calling_card_labels.dart';
+import '../../theme/app_motion.dart';
 
 /// Turns a one-page PDF into a PNG of its first page at [dpi]. Defaults to
 /// [rasterizeCallingCard]; tests replace it, since the platform rasterizer is
@@ -231,6 +232,7 @@ class _CallingCardLayoutEditorScreenState
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (ok == true && mounted) _replaceText(kDefaultCallingCardLayout);
   }

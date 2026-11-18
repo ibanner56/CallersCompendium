@@ -32,6 +32,7 @@ import 'dance_editor/dance_editor_form.dart';
 import 'dance_editor/name_picker.dart';
 import 'settings/library_manager_list.dart';
 import 'settings/settings_keys.dart';
+import '../theme/app_motion.dart';
 
 /// Dance editor (`docs/design/ux.md` §3). Covers the metadata form — title,
 /// authors (with inline choreographer/tag creation), formation, form/type,
@@ -623,6 +624,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
 
     if (!mounted) return;

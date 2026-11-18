@@ -6,6 +6,7 @@ import '../sync/sync_scope.dart';
 import '../theme/app_spacing.dart';
 import '../widgets/confirm_discard_changes.dart';
 import '../widgets/notice_card.dart';
+import '../theme/app_motion.dart';
 
 /// A modal bottom sheet for creating or editing a reusable [Venue].
 ///
@@ -52,6 +53,7 @@ class VenueEditorSheet extends StatefulWidget {
       // unsaved changes; see the class comment.
       enableDrag: false,
       builder: (_) => VenueEditorSheet(initial: initial, seedName: seedName),
+      sheetAnimationStyle: AppMotion.styleFor(context),
     );
   }
 

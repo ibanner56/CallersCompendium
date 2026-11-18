@@ -44,6 +44,7 @@ import 'published_collection_catalog_screen.dart';
 import '../published_collections/published_collection_manifest.dart';
 import '../published_collections/published_collection_service.dart';
 import '../theme/app_shapes.dart';
+import '../theme/app_motion.dart';
 
 /// Soft threshold (issue #432) on the number of entities in a **shared** bundle
 /// (dances + choreographers + programs + venues, via
@@ -1634,6 +1635,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
   }
 
@@ -2632,6 +2634,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (!mounted) return;
     if (undone) {

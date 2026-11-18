@@ -45,6 +45,7 @@ import '../published_collection_navigation.dart';
 import '../reparse_custom_figures_screen.dart';
 import '../reference_manager_screen.dart';
 import '../tag_manager_screen.dart';
+import '../../theme/app_motion.dart';
 
 /// The General settings section: app-wide toggles, soft-delete retention,
 /// backup/restore, and the import launcher. Owns its async loads + load-race
@@ -286,6 +287,7 @@ class _GeneralSectionState extends State<GeneralSection> {
           idleLabel: idleLabel,
           progressLabel: progressLabel,
         ),
+        animationStyle: AppMotion.styleFor(context),
       ),
     );
     var closed = false;
@@ -320,6 +322,7 @@ class _GeneralSectionState extends State<GeneralSection> {
       final choice = await showDialog<_RestoreChoice>(
         context: context,
         builder: (_) => _RestoreBackupDialog(picker: picker),
+        animationStyle: AppMotion.styleFor(context),
       );
       if (choice == null || choice.json.trim().isEmpty || !mounted) return;
 

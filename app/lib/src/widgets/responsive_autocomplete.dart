@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'program_matrix_table.dart' show ProgramMatrixTable;
+import '../theme/app_motion.dart';
 
 /// Builds a single option row (e.g. a [ListTile]) for [option]. [onSelected]
 /// is pre-bound to that option — the tile just calls it on tap — so callers
@@ -318,6 +319,7 @@ class _ResponsiveAutocompleteState<T extends Object>
           ),
         );
       },
+      sheetAnimationStyle: AppMotion.styleFor(context),
     );
     if (!mounted) return;
     setState(() => _sheetOpen = false);

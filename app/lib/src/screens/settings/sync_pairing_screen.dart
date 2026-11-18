@@ -17,6 +17,7 @@ import '../../sync/sync_scope.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/notice_card.dart';
 import 'sync_failure_labels.dart';
+import '../../theme/app_motion.dart';
 
 /// Whether the user is creating a new store or attaching to one that already
 /// exists. The pairing surface must ask this explicitly and never infer it
@@ -345,6 +346,7 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
   }
 

@@ -35,6 +35,7 @@ import 'settings_screen.dart'
         kAutoSizePerformKey,
         kConfirmPerformExitDefault,
         kShowProgramSlotCallerNotesKey;
+import '../theme/app_motion.dart';
 
 /// Full-screen, large-print Perform mode for a whole [Program]
 /// (`docs/design/ux.md` §5; ROADMAP 5.2 — program navigation).
@@ -810,6 +811,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
       context: _stageContext,
       showDragHandle: true,
       builder: (_) => const SafeArea(child: TapTempoMetronome()),
+      sheetAnimationStyle: AppMotion.styleFor(context),
     );
   }
 
@@ -851,6 +853,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
           ),
         );
       },
+      sheetAnimationStyle: AppMotion.styleFor(context),
     );
     if (target != null && mounted) {
       setState(() {
@@ -1124,6 +1127,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
         dialect: _effectiveDialect(context),
         enrichment: enrichment,
       ),
+      sheetAnimationStyle: AppMotion.styleFor(context),
     );
     final edited = returned ?? latest;
     if (edited == null || !mounted) return;

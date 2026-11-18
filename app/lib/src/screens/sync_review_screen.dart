@@ -7,6 +7,7 @@ import '../data/sync_writer_lifecycle_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../theme/app_spacing.dart';
 import 'settings/sync_notice_labels.dart' show syncRecordKindLabel;
+import '../theme/app_motion.dart';
 
 /// Displays persisted sync decisions and exposes merge / keep-both actions for
 /// every reason the resolver supports: the §6.6 baseline-absence tombstone,
@@ -81,6 +82,7 @@ class _SyncReviewScreenState extends State<SyncReviewScreen> {
           ? normalizeTitle
           : (value) => normalizeShareableText(value).toLowerCase(),
     ),
+    animationStyle: AppMotion.styleFor(context),
   );
 
   /// Warns before a merge that destroys device-local contact details.
@@ -108,6 +110,7 @@ class _SyncReviewScreenState extends State<SyncReviewScreen> {
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     return confirmed ?? false;
   }

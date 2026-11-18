@@ -11,6 +11,7 @@ import '../theme/app_spacing.dart';
 import '../theme/destructive_button_style.dart';
 import '../widgets/confirm_discard_changes.dart';
 import 'settings/settings_keys.dart';
+import '../theme/app_motion.dart';
 
 /// Localized label for a [CustomFieldType]. Mirrors the app-side enum-label
 /// helper pattern (see `search/facet_labels.dart`): the enum lives in the
@@ -142,6 +143,7 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
         inUse: inUse,
         usedChoiceValues: usedChoiceValues,
       ),
+      sheetAnimationStyle: AppMotion.styleFor(context),
     );
     if (result != null) {
       final isNew = existing == null;
@@ -233,6 +235,7 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
   }
 
@@ -257,6 +260,7 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (confirmed != true || !mounted) return;
 

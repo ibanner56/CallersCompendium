@@ -21,6 +21,7 @@ import '../../widgets/section_header.dart';
 import '../formation_colors_screen.dart';
 import '../tag_manager_screen.dart';
 import '../theme_editor_screen.dart';
+import '../../theme/app_motion.dart';
 
 /// The Appearance settings section: owns the theme write and reads the live
 /// theme / custom-theme scopes.
@@ -482,6 +483,7 @@ class _CustomThemesSection extends StatelessWidget {
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (confirmed != true) return;
     await controller.delete(theme.id);

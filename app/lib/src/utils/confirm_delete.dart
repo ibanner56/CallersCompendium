@@ -9,6 +9,7 @@ import '../data/require_event_date_for_history_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
 import '../theme/destructive_button_style.dart';
+import '../theme/app_motion.dart';
 
 /// Shared gate for destructive delete actions (ROADMAP G.7 "Confirm before
 /// delete").
@@ -129,6 +130,7 @@ Future<bool> _confirmDeleteIfEnabled(
         ),
       ],
     ),
+    animationStyle: AppMotion.styleFor(context),
   );
   return confirmed ?? false;
 }

@@ -8,6 +8,7 @@ import '../data/set_list_color_coding_scope.dart';
 import '../search/facet_labels.dart';
 import '../theme/set_list_accents.dart';
 import 'preview_hold_listener.dart';
+import '../theme/app_motion.dart';
 
 /// Editable, reorderable list of a program's slots for the builder
 /// (`docs/design/ux.md` §4).
@@ -417,6 +418,7 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
         danceTitle: widget.danceTitles,
         onPickReplacementDance: widget.onPickReplacementDance,
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (result != null && mounted) {
       if (slot.isAlt && !result.isAlt) {

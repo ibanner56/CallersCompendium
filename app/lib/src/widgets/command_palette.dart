@@ -9,6 +9,7 @@ import '../data/repositories_scope.dart';
 import '../data/sort_ignore_articles_scope.dart';
 import '../search/facet_labels.dart';
 import 'skeleton.dart';
+import '../theme/app_motion.dart';
 
 /// The kind of entity a [CommandResult] points at, so the shell knows which
 /// section to switch to and which route to open.
@@ -61,6 +62,7 @@ Future<CommandResult?> showCommandPalette(BuildContext context) {
     context: context,
     barrierLabel: l10n.commandPaletteBarrierLabel,
     builder: (_) => const CommandPalette(),
+    animationStyle: AppMotion.styleFor(context),
   );
 }
 
@@ -260,9 +262,7 @@ class _CommandPaletteState extends State<CommandPalette> {
       Scrollable.ensureVisible(
         context,
         alignment: 0.5,
-        duration: reduceMotion
-            ? Duration.zero
-            : const Duration(milliseconds: 120),
+        duration: reduceMotion ? Duration.zero : AppMotion.quick,
         curve: Curves.easeOut,
       );
     });

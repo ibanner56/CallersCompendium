@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../theme/destructive_button_style.dart';
+import '../theme/app_motion.dart';
 
 /// What the user chose in [confirmDiscardChanges].
 enum DiscardChangesChoice {
@@ -90,6 +91,7 @@ Future<DiscardChangesChoice> confirmDiscardChanges(
         ],
       );
     },
+    animationStyle: AppMotion.styleFor(context),
   );
   return choice ?? DiscardChangesChoice.keepEditing;
 }

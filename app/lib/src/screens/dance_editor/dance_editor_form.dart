@@ -24,6 +24,7 @@ import 'links_editor.dart';
 import 'name_picker.dart';
 import 'source_citations_editor.dart';
 import '../../theme/app_shapes.dart';
+import '../../theme/app_motion.dart';
 
 /// The dance editor's scrolling metadata form. Presentational only: it reads
 /// the working draft from [controller] and routes edits back through the
@@ -905,6 +906,7 @@ Future<bool?> _promptSnippetDivergence(BuildContext context) {
         ),
       ],
     ),
+    animationStyle: AppMotion.styleFor(context),
   );
 }
 
@@ -957,6 +959,7 @@ Future<void> _fillWalkthroughFromSnippets(
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (replace != true) return;
   }

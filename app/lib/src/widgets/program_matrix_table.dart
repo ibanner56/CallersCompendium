@@ -5,6 +5,7 @@ import '../../l10n/app_localizations.dart';
 import '../data/reduce_motion_scope.dart';
 import '../search/facet_labels.dart' show formationIcon, formationLabel;
 import '../theme/app_shapes.dart';
+import '../theme/app_motion.dart';
 
 /// Read-only **programming matrix** (moves × dances) for the Program builder's
 /// Matrix tab (`docs/design/ux.md` §4).
@@ -630,7 +631,7 @@ class _HideableColumnHeaderState extends State<_HideableColumnHeader> {
                 // Reduce motion: snap between the resting and revealed opacity.
                 duration: ReduceMotionScope.of(context)
                     ? Duration.zero
-                    : const Duration(milliseconds: 120),
+                    : AppMotion.quick,
                 child: SizedBox(
                   width: _glyphSize,
                   height: _glyphSize,

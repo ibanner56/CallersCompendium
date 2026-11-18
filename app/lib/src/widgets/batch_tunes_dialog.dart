@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../theme/app_motion.dart';
 
 /// Shows the batch **add tunes** picker for the Collection multi-select flow.
 ///
@@ -17,6 +18,7 @@ Future<Set<String>?> showBatchTunesDialog(BuildContext context) {
   return showDialog<Set<String>>(
     context: context,
     builder: (_) => const _BatchTunesDialog(),
+    animationStyle: AppMotion.styleFor(context),
   );
 }
 

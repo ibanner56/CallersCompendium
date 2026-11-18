@@ -40,6 +40,7 @@ import '../../widgets/settings_dropdown_row.dart';
 import '../glossary/compound_editor_screen.dart';
 import 'default_import_tags_editor.dart';
 import 'settings_keys.dart';
+import '../../theme/app_motion.dart';
 
 /// The Defaults settings section: owns all Display/Program/Dance-authoring
 /// default loads, saves, per-setting load-race guards, and text controllers.
@@ -630,6 +631,7 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           ],
         ),
       ),
+      sheetAnimationStyle: AppMotion.styleFor(context),
     );
   }
 
@@ -1359,6 +1361,7 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
     final label = await showDialog<String>(
       context: context,
       builder: (context) => const _AddLevelDialog(),
+      animationStyle: AppMotion.styleFor(context),
     );
     final normalized = label?.trim() ?? '';
     if (!mounted || normalized.isEmpty) return;
@@ -2904,6 +2907,7 @@ class _MoveDefaultsEditor extends StatelessWidget {
           ],
         );
       },
+      animationStyle: AppMotion.styleFor(context),
     );
   }
 }

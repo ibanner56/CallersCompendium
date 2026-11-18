@@ -10,6 +10,7 @@ import '../theme/app_spacing.dart';
 import '../utils/undo_snack_bar.dart';
 import 'settings/sync_notice_labels.dart' show syncRecordKindLabel;
 import 'sync_conflict_details.dart';
+import '../theme/app_motion.dart';
 
 /// How many records await a conflict choice.
 Future<int> syncConflictCount(CompendiumRepositories repositories) =>
@@ -85,6 +86,7 @@ Future<void> _presentSyncConflictChoice(
           child: body(context),
         ),
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
   }
   return showModalBottomSheet<void>(
@@ -100,6 +102,7 @@ Future<void> _presentSyncConflictChoice(
         child: body(context),
       ),
     ),
+    sheetAnimationStyle: AppMotion.styleFor(context),
   );
 }
 
@@ -736,6 +739,7 @@ class _ConflictGroupTile extends StatelessWidget {
             ),
           ],
         ),
+        animationStyle: AppMotion.styleFor(context),
       );
     }
     return Navigator.of(context).push(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import 'update_controller.dart';
+import '../theme/app_motion.dart';
 
 /// Asks whether a verified macOS update should be mounted and the app closed.
 ///
@@ -35,6 +36,7 @@ Future<void> promptForMacosUpdate(
         ],
       );
     },
+    animationStyle: AppMotion.styleFor(context),
   );
   if (approved == true && context.mounted) {
     await controller.installPendingMacosUpdate();

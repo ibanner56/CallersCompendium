@@ -21,6 +21,7 @@ import '../../widgets/figure_list_editor.dart';
 import '../../widgets/user_figure_argument_editor.dart';
 import '../../widgets/wording_condition_notes.dart';
 import 'custom_figure_detail.dart' show compoundParamKindLabel;
+import '../../theme/app_motion.dart';
 
 final FigureRenderer _renderer = FigureRenderer(contraTaxonomy);
 
@@ -942,6 +943,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
             ),
           ],
         ),
+        animationStyle: AppMotion.styleFor(context),
       );
       if (saveAnyway != true || !mounted) return false;
     }

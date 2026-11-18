@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../glossary/cc_term_import.dart';
+import '../theme/app_motion.dart';
 
 /// The opt-in step, after a Caller's Companion file is imported, that offers
 /// its terms for the user's Glossary (#1023, maintainer decision 7), each as a
@@ -108,6 +109,7 @@ class _ImportCcTermsScreenState extends State<ImportCcTermsScreen> {
     final edited = await showDialog<CcTermDraft>(
       context: context,
       builder: (_) => _EditTermDialog(draft: _drafts[index]),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (edited == null || !mounted) return;
     setState(() {

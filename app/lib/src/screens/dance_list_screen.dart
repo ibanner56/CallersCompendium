@@ -78,6 +78,7 @@ import 'dance_detail_screen.dart';
 import 'dance_editor_screen.dart';
 import 'dance_reimport_flow.dart';
 import 'published_collection_navigation.dart';
+import '../theme/app_motion.dart';
 
 /// Collection screen: browse and search the dance library
 /// (`docs/design/ux.md` §1). A unified full-text search bar, a one-tap facet
@@ -1274,6 +1275,7 @@ class _DanceListScreenState extends State<DanceListScreen>
             ),
           ),
         ),
+        animationStyle: AppMotion.styleFor(context),
       ),
     );
     final fetch = _previewFetchFor(result);
@@ -2143,6 +2145,7 @@ class _DanceListScreenState extends State<DanceListScreen>
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (confirmed != true || !mounted) return;
 

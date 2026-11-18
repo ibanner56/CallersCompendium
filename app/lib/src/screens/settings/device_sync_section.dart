@@ -30,6 +30,7 @@ import 'sync_failure_labels.dart';
 import 'sync_notice_labels.dart';
 import 'sync_pairing_screen.dart';
 import 'sync_support_codes.dart';
+import '../../theme/app_motion.dart';
 
 /// Device Sync settings and status (spec §6.1, §6.12, §6.14).
 ///
@@ -257,6 +258,7 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     ).whenComplete(() => _replacementDialogShowing = false);
   }
 
@@ -406,6 +408,7 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (confirmed != true || !mounted) return;
     final messenger = ScaffoldMessenger.maybeOf(context);

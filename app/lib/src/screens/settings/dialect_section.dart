@@ -12,6 +12,7 @@ import '../../widgets/section_header.dart';
 import '../dialect_editor_screen.dart';
 import 'dance_details_section.dart';
 import '../../theme/app_shapes.dart';
+import '../../theme/app_motion.dart';
 
 /// The Dialect settings section: reads the live dialect library controller
 /// from [DialectLibraryScope] and renders the library manager.
@@ -101,6 +102,7 @@ class _DialectLibrarySection extends StatelessWidget {
             ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (source == null) return;
     await controller.duplicate(
@@ -154,6 +156,7 @@ class _DialectLibrarySection extends StatelessWidget {
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (confirmed != true) return;
     await controller.delete(dialect.name);
@@ -177,6 +180,7 @@ class _DialectLibrarySection extends StatelessWidget {
         confirmLabel: confirmLabel,
         initial: initial,
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (name == null || name.isEmpty) return null;
     return name;

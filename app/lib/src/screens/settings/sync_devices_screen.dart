@@ -12,6 +12,7 @@ import '../../theme/app_spacing.dart';
 import '../../theme/destructive_button_style.dart';
 import 'sync_device_labels.dart';
 import 'sync_failure_labels.dart';
+import '../../theme/app_motion.dart';
 
 /// Pushes the list of the *other* devices attached to this store.
 ///
@@ -68,6 +69,7 @@ Future<void> confirmAndWipeStore(
             ),
           ],
         ),
+        animationStyle: AppMotion.styleFor(context),
       );
     case _:
       messenger?.showSnackBar(
@@ -135,6 +137,7 @@ Future<bool> _confirmSyncWipe(BuildContext context) async {
         ],
       );
     },
+    animationStyle: AppMotion.styleFor(context),
   );
   return confirmed ?? false;
 }
@@ -207,6 +210,7 @@ class _SyncDevicesScreenState extends State<SyncDevicesScreen> {
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (confirmed != true || !mounted) return;
     final messenger = ScaffoldMessenger.maybeOf(context);

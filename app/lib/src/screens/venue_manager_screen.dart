@@ -12,6 +12,7 @@ import '../widgets/link_typed_venues_offer.dart';
 import '../theme/app_spacing.dart';
 import '../theme/destructive_button_style.dart';
 import 'venue_editor_sheet.dart';
+import '../theme/app_motion.dart';
 
 /// A full-screen manager to browse, search, create, edit, and delete the
 /// reusable [Venue] records. Reached from Settings ▸ Venues.
@@ -166,6 +167,7 @@ class _VenueManagerScreenState extends State<VenueManagerScreen> {
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (confirmed != true || !mounted) return;
     await _delete(venue);

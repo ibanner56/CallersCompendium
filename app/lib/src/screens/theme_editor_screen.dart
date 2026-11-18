@@ -11,6 +11,7 @@ import '../widgets/app_bar_text_action.dart';
 import '../widgets/confirm_discard_changes.dart';
 import '../theme/app_shapes.dart';
 import '../theme/app_spacing.dart';
+import '../theme/app_motion.dart';
 
 /// Full-role editor for a [CustomTheme] (`docs/design/ux-modernization.md`
 /// §4B). Lets the user rename the theme and edit every major color role, with
@@ -65,6 +66,7 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
       context: context,
       builder: (_) =>
           ColorEditDialog(title: title, initial: _colorOf(role.key)),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (picked != null) {
       setState(() => _setTheme(_theme.withColor(role.key, picked)));

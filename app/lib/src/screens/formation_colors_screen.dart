@@ -9,6 +9,7 @@ import '../theme/set_list_accents.dart';
 import '../widgets/color_edit_dialog.dart';
 import '../widgets/formation_color_badge.dart';
 import '../widgets/section_header.dart';
+import '../theme/app_motion.dart';
 
 /// Settings screen for the user's per-[FormationShape] label colors
 /// (issue #367). Lists every formation shape with a live preview of how its
@@ -39,6 +40,7 @@ class FormationColorsScreen extends StatelessWidget {
         title: formationShapeLabel(l10n, shape),
         initial: seed,
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (picked != null) await controller.setColor(shape, picked);
   }
