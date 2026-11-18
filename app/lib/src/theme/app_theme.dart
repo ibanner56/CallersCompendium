@@ -36,7 +36,7 @@ class AppTheme {
   static ThemeData fromScheme(ColorScheme scheme) => _build(scheme);
 
   /// [theme] with page transitions and the [ExpansionTile] animation turned
-  /// off, for the in-app Reduce motion switch (audit A-15). Dialogs and
+  /// off, for the in-app Reduce motion switch. Dialogs and
   /// bottom sheets have no theme hook for their animation, so each call site
   /// passes `AppMotion.styleFor(context)` instead.
   static ThemeData withoutMotion(ThemeData theme) => theme.copyWith(

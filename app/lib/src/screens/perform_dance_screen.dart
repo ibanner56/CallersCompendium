@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 
 import '../data/active_dialect_scope.dart';
 import '../data/repositories_scope.dart';
+import '../theme/app_motion.dart';
 import '../data/perform_text_scale.dart';
 import '../../l10n/app_localizations.dart';
 import '../widgets/colour_dance_theme.dart';
@@ -24,7 +25,6 @@ import 'settings_screen.dart'
         kAutoSizePerformKey,
         kConfirmPerformExitDefault,
         kShowIndividualPerformTimerKey;
-import '../theme/app_motion.dart';
 
 /// Full-screen, large-print Perform mode for a single [Dance]
 /// (`docs/design/ux.md` §5; ROADMAP 5.1). Entered explicitly from the dance

@@ -204,7 +204,7 @@ void main() {
     }
   });
 
-  group('C-10 / P-03 / P-04 / B-04: shared component themes', () {
+  group('shared component themes', () {
     for (final (name, theme) in [
       ('light', AppTheme.light),
       ('dark', AppTheme.dark),

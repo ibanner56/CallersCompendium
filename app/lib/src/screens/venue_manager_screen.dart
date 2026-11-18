@@ -9,10 +9,10 @@ import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/link_typed_venues_offer.dart';
+import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
 import '../theme/destructive_button_style.dart';
 import 'venue_editor_sheet.dart';
-import '../theme/app_motion.dart';
 
 /// A full-screen manager to browse, search, create, edit, and delete the
 /// reusable [Venue] records. Reached from Settings ▸ Venues.

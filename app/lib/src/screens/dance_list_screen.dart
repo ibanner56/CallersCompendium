@@ -38,6 +38,7 @@ import '../search/collection_query.dart';
 import '../search/collection_query_labels.dart';
 import '../search/collection_selection.dart';
 import '../search/dance_detail_data.dart';
+import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
 import '../theme/destructive_button_style.dart';
 import '../theme/keyboard_dismiss.dart';
@@ -78,7 +79,6 @@ import 'dance_detail_screen.dart';
 import 'dance_editor_screen.dart';
 import 'dance_reimport_flow.dart';
 import 'published_collection_navigation.dart';
-import '../theme/app_motion.dart';
 
 /// Collection screen: browse and search the dance library
 /// (`docs/design/ux.md` §1). A unified full-text search bar, a one-tap facet

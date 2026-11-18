@@ -5,8 +5,7 @@ import '../theme/app_shapes.dart';
 import '../theme/app_theme_extension.dart';
 
 /// Draws the theme's keyboard-focus ring ([AppThemeExtension.focusRing],
-/// [AppThemeExtension.focusRingWidth]) around whatever has keyboard focus
-/// (theme audit A-01).
+/// [AppThemeExtension.focusRingWidth]) around whatever has keyboard focus.
 ///
 /// Material's own focus cue is the theme's `focusColor`, a translucent fill
 /// that changes the focused pixels by roughly 1.2:1 — too faint to see across

@@ -9,13 +9,13 @@ import '../data/figure_summary.dart';
 import '../data/repositories_scope.dart';
 import '../data/show_custom_figures_scope.dart';
 import '../editor/figure_draft.dart';
+import '../theme/app_motion.dart';
 import '../theme/destructive_button_style.dart';
 import '../widgets/compound_argument_editor.dart';
 import 'compound_shorthand_editor_screen.dart';
 import '../data/shorthand_mappings_controller.dart';
 import '../data/shorthand_mappings_scope.dart';
 import 'shorthand_mapping_editor_screen.dart';
-import '../theme/app_motion.dart';
 
 /// Manager for the user's shorthand → figure(s) mappings (issue #420), reached
 /// from the "Free-text entry" area of Settings. Mirrors the dialect library

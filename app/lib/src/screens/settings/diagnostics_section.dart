@@ -10,11 +10,11 @@ import '../../diagnostics/error_log.dart';
 import '../../diagnostics/sensitive_terms.dart';
 import '../../diagnostics/sync_diagnostics.dart';
 import '../../sync/sync_scope.dart';
+import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/destructive_button_style.dart';
 import '../../widgets/readable_width.dart';
 import '../../widgets/section_header.dart';
-import '../../theme/app_motion.dart';
 
 /// Gathers the user-content terms the scrubbed export must redact. Defaults to
 /// [collectSensitiveTerms] over the ambient repositories; injectable in tests.

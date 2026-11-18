@@ -6,9 +6,9 @@ import '../../l10n/app_localizations.dart';
 import '../data/formation_colors_scope.dart';
 import '../data/set_list_color_coding_scope.dart';
 import '../search/facet_labels.dart';
+import '../theme/app_motion.dart';
 import '../theme/set_list_accents.dart';
 import 'preview_hold_listener.dart';
-import '../theme/app_motion.dart';
 
 /// Editable, reorderable list of a program's slots for the builder
 /// (`docs/design/ux.md` §4).

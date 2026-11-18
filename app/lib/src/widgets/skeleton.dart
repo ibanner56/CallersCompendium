@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../data/reduce_motion_scope.dart';
-import '../theme/app_spacing.dart';
 import '../theme/app_motion.dart';
+import '../theme/app_spacing.dart';
 
 /// Content-shaped loading placeholders ("skeletons").
 ///

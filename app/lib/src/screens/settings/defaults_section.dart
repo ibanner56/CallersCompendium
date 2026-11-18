@@ -26,6 +26,7 @@ import '../../search/collection_data.dart';
 import '../../search/facet_labels.dart';
 import '../../search/program_sort.dart';
 import '../../search/program_sort_labels.dart';
+import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/keyboard_dismiss.dart';
 import '../../utils/undo_snack_bar.dart';
@@ -40,7 +41,6 @@ import '../../widgets/settings_dropdown_row.dart';
 import '../glossary/compound_editor_screen.dart';
 import 'default_import_tags_editor.dart';
 import 'settings_keys.dart';
-import '../../theme/app_motion.dart';
 
 /// The Defaults settings section: owns all Display/Program/Dance-authoring
 /// default loads, saves, per-setting load-race guards, and text controllers.

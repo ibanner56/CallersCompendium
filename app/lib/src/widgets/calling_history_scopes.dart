@@ -9,8 +9,8 @@ import '../data/regional_formats.dart';
 import '../diagnostics/error_log.dart';
 import '../search/called_venue_choices.dart';
 import '../search/collection_query.dart';
-import '../theme/app_shapes.dart';
 import '../theme/app_motion.dart';
+import '../theme/app_shapes.dart';
 
 /// The two controls under the Filters panel's Called / Not called chips:
 /// **At venue** and **Within** (`docs/design/history-filters.md`, N1-H2).

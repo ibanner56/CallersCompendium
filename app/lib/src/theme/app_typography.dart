@@ -12,7 +12,7 @@ import 'package:flutter/material.dart';
 /// a documented fallback.
 ///
 /// Atkinson Hyperlegible is bundled at 400 and 700 only (plus italic), so its
-/// styles ask for exactly those weights (audit B-05). The labels asked for
+/// styles ask for exactly those weights. The labels asked for
 /// 600 and the Perform body for 500, weights with no file behind them, so
 /// what was drawn depended on the engine's nearest-weight fallback. They now
 /// name the nearest bundled weight under the CSS matching rule (600 → 700,
@@ -181,7 +181,7 @@ class AppTypography {
     height: 1.33,
   );
 
-  /// App-bar titles (audit B-04, decision DS-04): the display face at the
+  /// App-bar titles: the display face at the
   /// size Material gives a top app bar's title, so a screen's name reads as
   /// a heading rather than as one more label.
   static const TextStyle screenTitle = TextStyle(

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/app_theme_labels_l10n.dart';
 import '../data/custom_theme.dart';
+import '../theme/app_motion.dart';
 import '../theme/wcag.dart';
 import '../widgets/color_edit_dialog.dart';
 import '../widgets/notice_card.dart';
@@ -11,7 +12,6 @@ import '../widgets/app_bar_text_action.dart';
 import '../widgets/confirm_discard_changes.dart';
 import '../theme/app_shapes.dart';
 import '../theme/app_spacing.dart';
-import '../theme/app_motion.dart';
 
 /// Full-role editor for a [CustomTheme] (`docs/design/ux-modernization.md`
 /// §4B). Lets the user rename the theme and edit every major color role, with

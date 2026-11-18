@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/theme/app_typography.dart';
 
-/// Audit B-05: Atkinson Hyperlegible is bundled at 400 and 700 only
+/// Atkinson Hyperlegible is bundled at 400 and 700 only
 /// (`app/pubspec.yaml`), so every Atkinson style must ask for one of those.
 /// A weight with no file behind it is drawn by the engine's fallback, not as
 /// written.
@@ -45,7 +45,7 @@ void main() {
     }
   });
 
-  test('screen titles use the display face (B-04)', () {
+  test('screen titles use the display face', () {
     expect(AppTypography.screenTitle.fontFamily, AppTypography.displayFamily);
   });
 }

@@ -16,6 +16,7 @@ import '../data/repositories_scope.dart';
 import '../editor/program_slot_rebase.dart';
 import '../../l10n/app_localizations.dart';
 import '../search/collection_data.dart';
+import '../theme/app_motion.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/colour_dance_theme.dart';
 import '../widgets/dialect_quick_switch.dart';
@@ -35,7 +36,6 @@ import 'settings_screen.dart'
         kAutoSizePerformKey,
         kConfirmPerformExitDefault,
         kShowProgramSlotCallerNotesKey;
-import '../theme/app_motion.dart';
 
 /// Full-screen, large-print Perform mode for a whole [Program]
 /// (`docs/design/ux.md` §5; ROADMAP 5.2 — program navigation).

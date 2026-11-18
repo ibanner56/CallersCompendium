@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/reduce_motion_scope.dart';
 
-/// Motion tokens (theme audit A-15): the five animation durations the app
+/// Motion tokens: the five animation durations the app
 /// uses, named once so a new animation picks a step rather than a fresh
 /// number. Debounce and polling intervals are timers, not motion, and stay
 /// where they are.

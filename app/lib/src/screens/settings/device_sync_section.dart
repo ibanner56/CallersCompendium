@@ -18,6 +18,7 @@ import '../../sync/sync_coordinator.dart'
     show SyncFailureCauseTier, SyncPassResult, SyncPassStatus;
 import '../../sync/sync_http_client.dart' show isDefaultSyncEndpoint;
 import '../../sync/sync_scope.dart';
+import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/collapsible_section.dart';
 import '../../widgets/notice_card.dart';
@@ -30,7 +31,6 @@ import 'sync_failure_labels.dart';
 import 'sync_notice_labels.dart';
 import 'sync_pairing_screen.dart';
 import 'sync_support_codes.dart';
-import '../../theme/app_motion.dart';
 
 /// Device Sync settings and status (spec §6.1, §6.12, §6.14).
 ///

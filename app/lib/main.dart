@@ -118,6 +118,7 @@ import 'src/screens/settings_screen.dart'
         kTrackHistoryForAllCallersKey,
         kVenueCallCountKey,
         kVenueEntityModeKey;
+import 'src/theme/app_motion.dart';
 import 'src/theme/app_theme.dart';
 import 'src/app_metadata.dart';
 import 'src/sync/sync_controller.dart';
@@ -137,10 +138,9 @@ import 'src/widgets/app_menu_bar.dart';
 import 'src/widgets/app_shortcuts.dart';
 import 'src/widgets/command_palette.dart';
 import 'src/widgets/ecd_convert_prompt_dialog.dart';
+import 'src/widgets/focus_ring_layer.dart';
 import 'src/widgets/online_import_dialogs.dart';
 import 'src/widgets/online_import_snack_bar.dart';
-import 'src/widgets/focus_ring_layer.dart';
-import 'src/theme/app_motion.dart';
 
 AppData _defaultAppDataFactory() => AppData(openAppDatabase());
 
@@ -3101,7 +3101,7 @@ class _CompendiumAppState extends State<CompendiumApp>
             _DismissProbe: _DismissProbeAction(_dismissProbes),
           },
           // With the in-app Reduce motion switch on, every theme slot drops
-          // page transitions and the expansion-tile animation (audit A-15).
+          // page transitions and the expansion-tile animation.
           // The OS setting needs no help here: route and expansion
           // controllers already shorten themselves when the platform asks.
           theme: reduceMotion(lightTheme),
@@ -3149,7 +3149,7 @@ class _CompendiumAppState extends State<CompendiumApp>
                     }
                   },
                   // Above every route, so dialogs and sheets get the ring
-                  // too (audit A-01).
+                  // too.
                   child: FocusRingLayer(child: scoped),
                 ),
               ),

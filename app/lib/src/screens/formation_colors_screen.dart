@@ -4,12 +4,12 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/formation_colors_controller.dart';
 import '../search/facet_labels.dart';
+import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
 import '../theme/set_list_accents.dart';
 import '../widgets/color_edit_dialog.dart';
 import '../widgets/formation_color_badge.dart';
 import '../widgets/section_header.dart';
-import '../theme/app_motion.dart';
 
 /// Settings screen for the user's per-[FormationShape] label colors
 /// (issue #367). Lists every formation shape with a live preview of how its

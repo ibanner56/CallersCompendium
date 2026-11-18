@@ -8,8 +8,8 @@ import '../data/import_io.dart';
 import '../data/online_search.dart';
 import '../diagnostics/error_log.dart';
 import '../search/dance_detail_data.dart';
-import 'dance_detail_screen.dart';
 import '../theme/app_motion.dart';
+import 'dance_detail_screen.dart';
 
 enum _ReimportSource { callersBox, contraDb, link, json }
 

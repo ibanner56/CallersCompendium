@@ -45,7 +45,7 @@ class EmptyState extends StatelessWidget {
             const SizedBox(height: AppSpacing.md),
             Text(
               title,
-              // The display face, as for screen titles (audit B-04).
+              // The display face, as for screen titles.
               style: theme.textTheme.headlineSmall,
               textAlign: TextAlign.center,
             ),

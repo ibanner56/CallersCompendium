@@ -9,6 +9,7 @@ import '../../data/walkthrough_snippet_library_controller.dart';
 import '../../data/walkthrough_snippet_library_scope.dart';
 import '../../editor/figure_draft.dart';
 import '../../search/facet_labels.dart';
+import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/destructive_button_style.dart';
 import '../../theme/keyboard_dismiss.dart';
@@ -24,7 +25,6 @@ import 'links_editor.dart';
 import 'name_picker.dart';
 import 'source_citations_editor.dart';
 import '../../theme/app_shapes.dart';
-import '../../theme/app_motion.dart';
 
 /// The dance editor's scrolling metadata form. Presentational only: it reads
 /// the working draft from [controller] and routes edits back through the

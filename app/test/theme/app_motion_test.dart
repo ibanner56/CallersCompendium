@@ -7,7 +7,7 @@ import 'package:compendium_app/src/data/reduce_motion_scope.dart';
 import 'package:compendium_app/src/theme/app_motion.dart';
 import 'package:compendium_app/src/theme/app_theme.dart';
 
-/// Audit A-15: Reduce motion reaches page transitions, expansion tiles,
+/// Reduce motion reaches page transitions, expansion tiles,
 /// dialogs and bottom sheets.
 void main() {
   group('AppTheme.withoutMotion', () {

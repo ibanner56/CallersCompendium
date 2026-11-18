@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/walkthrough_snippet_library_scope.dart';
+import '../theme/app_motion.dart';
 import '../theme/destructive_button_style.dart';
 import '../widgets/dirty_dialog_guard.dart';
-import '../theme/app_motion.dart';
 
 /// Manager for the user's personal walkthrough snippet library (#411), reached
 /// from Settings › Defaults. Lists each saved per-figure snippet (a readable

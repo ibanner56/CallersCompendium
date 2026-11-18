@@ -42,6 +42,7 @@ import '../export/share_sanitization.dart';
 import '../search/collection_data.dart';
 import '../search/dance_detail_data.dart';
 import '../search/facet_labels.dart' show formationDisplayLabel;
+import '../theme/app_motion.dart';
 import '../theme/app_shapes.dart';
 import '../theme/app_spacing.dart';
 import '../theme/keyboard_dismiss.dart';
@@ -66,7 +67,6 @@ import '../widgets/program_matrix_table.dart';
 import '../widgets/program_slot_list_editor.dart';
 import '../widgets/program_status_chip.dart';
 import '../utils/slot_dance_title.dart';
-import '../theme/app_motion.dart';
 
 /// Full-screen Program Builder (`docs/design/ux.md` §4).
 ///

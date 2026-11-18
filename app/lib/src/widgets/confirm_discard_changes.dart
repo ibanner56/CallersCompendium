@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
-import '../theme/destructive_button_style.dart';
 import '../theme/app_motion.dart';
+import '../theme/destructive_button_style.dart';
 
 /// What the user chose in [confirmDiscardChanges].
 enum DiscardChangesChoice {

@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../theme/app_motion.dart';
 import '../../theme/destructive_button_style.dart';
 import 'settings_keys.dart';
 import '../../data/app_theme_labels_l10n.dart';
@@ -21,7 +22,6 @@ import '../../widgets/section_header.dart';
 import '../formation_colors_screen.dart';
 import '../tag_manager_screen.dart';
 import '../theme_editor_screen.dart';
-import '../../theme/app_motion.dart';
 
 /// The Appearance settings section: owns the theme write and reads the live
 /// theme / custom-theme scopes.

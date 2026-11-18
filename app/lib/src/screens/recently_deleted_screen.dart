@@ -6,9 +6,9 @@ import '../data/repositories_scope.dart';
 import '../data/soft_delete_retention.dart';
 import '../widgets/empty_state.dart';
 import '../diagnostics/error_log.dart';
+import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
 import '../theme/destructive_button_style.dart';
-import '../theme/app_motion.dart';
 
 /// Per-entity configuration for [RecentlyDeletedScreen].
 ///

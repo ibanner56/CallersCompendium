@@ -53,7 +53,7 @@ void main() {
 
     expect(disableAnimationsBelowApp(tester), isTrue);
     expect(app.themeAnimationStyle, AnimationStyle.noAnimation);
-    // Audit A-15: every theme slot drops page transitions and the
+    // Every theme slot drops page transitions and the
     // expansion-tile animation.
     for (final theme in [
       app.theme!,

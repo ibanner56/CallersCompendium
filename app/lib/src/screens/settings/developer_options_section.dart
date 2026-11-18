@@ -7,9 +7,9 @@ import '../../data/sync_writer_lifecycle_scope.dart';
 import '../../diagnostics/error_log.dart';
 import '../../sync/sync_controller.dart';
 import '../../sync/sync_scope.dart';
+import '../../theme/app_motion.dart';
 import '../../theme/destructive_button_style.dart';
 import '../../widgets/collapsible_section.dart';
-import '../../theme/app_motion.dart';
 
 /// Tools for development and support, folded away by default.
 ///

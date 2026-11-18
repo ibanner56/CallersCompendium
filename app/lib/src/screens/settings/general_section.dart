@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart' show ValueListenable, kDebugMode;
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../theme/app_motion.dart';
 import '../../theme/destructive_button_style.dart';
 import 'settings_keys.dart';
 import '../../data/sync_writer_lifecycle_scope.dart';
@@ -45,7 +46,6 @@ import '../published_collection_navigation.dart';
 import '../reparse_custom_figures_screen.dart';
 import '../reference_manager_screen.dart';
 import '../tag_manager_screen.dart';
-import '../../theme/app_motion.dart';
 
 /// The General settings section: app-wide toggles, soft-delete retention,
 /// backup/restore, and the import launcher. Owns its async loads + load-race

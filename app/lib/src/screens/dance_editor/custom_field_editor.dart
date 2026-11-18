@@ -2,12 +2,12 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/lingo_text_editing_controller.dart';
 import 'choice_option.dart' show AddChoiceResult;
 import '../../widgets/dropdown_selection.dart';
 import 'lingo_discouraged_hint.dart';
-import '../../theme/app_motion.dart';
 
 /// Renders the editor control for a single [CustomFieldDef], dispatching on its
 /// [CustomFieldType]. Text/number fields are backed by [textController] (a

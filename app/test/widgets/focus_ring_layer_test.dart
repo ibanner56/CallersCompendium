@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:compendium_app/src/theme/app_theme.dart';
 import 'package:compendium_app/src/widgets/focus_ring_layer.dart';
 
-/// Audit A-01: keyboard focus draws the theme's focus ring round controls
+/// Keyboard focus draws the theme's focus ring round controls
 /// whose Material themes cannot draw one themselves.
 void main() {
   Future<void> pump(WidgetTester tester, Widget body) async {

@@ -6,11 +6,11 @@ import '../data/repositories_scope.dart';
 import '../data/sync_writer_lifecycle_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../sync/sync_setting_labels.dart';
+import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
 import '../utils/undo_snack_bar.dart';
 import 'settings/sync_notice_labels.dart' show syncRecordKindLabel;
 import 'sync_conflict_details.dart';
-import '../theme/app_motion.dart';
 
 /// How many records await a conflict choice.
 Future<int> syncConflictCount(CompendiumRepositories repositories) =>

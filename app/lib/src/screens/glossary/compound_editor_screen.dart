@@ -14,6 +14,7 @@ import '../../data/shorthand_mappings_scope.dart';
 import '../../editor/figure_draft.dart';
 import '../../editor/pending_move_text_controller.dart';
 import '../../search/facet_labels.dart';
+import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/app_bar_text_action.dart';
 import '../../widgets/confirm_discard_changes.dart';
@@ -21,7 +22,6 @@ import '../../widgets/figure_list_editor.dart';
 import '../../widgets/user_figure_argument_editor.dart';
 import '../../widgets/wording_condition_notes.dart';
 import 'custom_figure_detail.dart' show compoundParamKindLabel;
-import '../../theme/app_motion.dart';
 
 final FigureRenderer _renderer = FigureRenderer(contraTaxonomy);
 

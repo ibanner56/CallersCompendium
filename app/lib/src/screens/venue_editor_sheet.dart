@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../sync/sync_scope.dart';
+import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
 import '../widgets/confirm_discard_changes.dart';
 import '../widgets/notice_card.dart';
-import '../theme/app_motion.dart';
 
 /// A modal bottom sheet for creating or editing a reusable [Venue].
 ///

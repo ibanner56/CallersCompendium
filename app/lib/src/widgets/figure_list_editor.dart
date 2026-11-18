@@ -22,8 +22,8 @@ import 'import_gap_badge.dart';
 import 'lingo_text_editing_controller.dart';
 import 'move_autocomplete.dart';
 import 'user_figure_use_editor.dart';
-import '../theme/app_shapes.dart';
 import '../theme/app_motion.dart';
+import '../theme/app_shapes.dart';
 
 /// Move id of the placeholder "stand still" figure that seeds new dances while
 /// Free-text entry is off (see `defaultNewDanceFigureTemplate`). Activating

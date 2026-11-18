@@ -4,11 +4,11 @@ import 'package:markdown/markdown.dart' as md;
 
 import '../../../l10n/app_localizations.dart';
 import '../../data/reduce_motion_scope.dart';
+import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/readable_width.dart';
 import 'user_guide_docs.dart';
 import '../../theme/app_shapes.dart';
-import '../../theme/app_motion.dart';
 
 /// Renders a single bundled user-guide document as Markdown.
 ///

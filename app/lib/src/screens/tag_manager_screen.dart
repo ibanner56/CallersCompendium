@@ -8,11 +8,11 @@ import '../data/collection_filter_scope.dart';
 import '../data/repositories_scope.dart';
 import '../data/tag_edits.dart';
 import '../diagnostics/error_log.dart';
+import '../theme/app_motion.dart';
 import '../widgets/color_edit_dialog.dart';
 import '../widgets/load_error_view.dart';
 import '../widgets/tag_chip.dart';
 import 'settings/library_manager_list.dart';
-import '../theme/app_motion.dart';
 
 /// The Tags manager (FIND-3, `docs/design/tags-and-people.md` T2): rename,
 /// merge, colour and delete tags. Reached from Settings › General › Library ›

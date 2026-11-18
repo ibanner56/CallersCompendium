@@ -108,7 +108,7 @@ is co-owned with Phase 5 Perform mode.
 | focus ring `#FFD54A` / surface (≥3:1) | focus | 14.22 |
 | outline `#FFF3EC` / surface (≥3:1) | borders | 18.44 |
 
-**Keyboard focus (audit A-01).** Material's focus cue is a translucent fill of
+**Keyboard focus.** Material's focus cue is a translucent fill of
 the focus colour (about 1.2:1 against the unfocused state), too faint to find
 across a room. `FocusRingLayer` draws the theme's `focusRing` at
 `focusRingWidth` (2px primary; 3px ochre in HC) as an outline 2px outside the
@@ -118,7 +118,7 @@ checkboxes, switches, radios). Text fields keep their own focused border
 instead. `palette_contrast_test.dart` holds the ring to 3:1 against every
 surface tier in every scheme.
 
-**Motion (audit A-15).** `AppMotion` names the five animation durations in use
+**Motion.** `AppMotion` names the five animation durations in use
 (120 / 200 / 250 / 500 / 1400 ms). With the in-app Reduce motion switch on, the
 theme swaps in instant page transitions and an instant `ExpansionTile`, and
 every `showDialog` / `showModalBottomSheet` call passes
@@ -142,10 +142,9 @@ Proposed M3 `TextTheme` (sizes in logical px):
 | small | — | 36 | 24 | 14 | 12 | 11 |
 
 Atkinson Hyperlegible ships at 400 and 700 only, so its styles use exactly
-those weights (labels 700, Perform body 400; theme audit B-05). Screen titles in
-the app bar, empty-state titles and dialog titles use Fraunces (audit B-04,
-decision DS-04), with app-bar titles leading rather than centred on every
-platform (DS-03).
+those weights (labels 700, Perform body 400). Screen titles in the app bar, empty-state
+titles and dialog titles use Fraunces, with app-bar titles leading rather than
+centred on every platform.
 
 Perform mode uses its own scale (Atkinson Bold, ~28px floor, **no upper bound**,
 user-adjustable size/weight/line-spacing).

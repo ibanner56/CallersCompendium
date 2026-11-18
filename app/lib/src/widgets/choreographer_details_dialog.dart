@@ -2,9 +2,9 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../theme/app_motion.dart';
 
 import 'dirty_dialog_guard.dart';
-import '../theme/app_motion.dart';
 
 /// A modal dialog for editing a [Choreographer]'s shared contact details.
 ///

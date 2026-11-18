@@ -8,8 +8,8 @@ import '../data/reduce_motion_scope.dart';
 import '../data/repositories_scope.dart';
 import '../data/sort_ignore_articles_scope.dart';
 import '../search/facet_labels.dart';
-import 'skeleton.dart';
 import '../theme/app_motion.dart';
+import 'skeleton.dart';
 
 /// The kind of entity a [CommandResult] points at, so the shell knows which
 /// section to switch to and which route to open.

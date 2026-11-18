@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../data/dialect_library_controller.dart';
 import '../../data/dialect_library_scope.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/destructive_button_style.dart';
 import '../../theme/keyboard_dismiss.dart';
@@ -12,7 +13,6 @@ import '../../widgets/section_header.dart';
 import '../dialect_editor_screen.dart';
 import 'dance_details_section.dart';
 import '../../theme/app_shapes.dart';
-import '../../theme/app_motion.dart';
 
 /// The Dialect settings section: reads the live dialect library controller
 /// from [DialectLibraryScope] and renders the library manager.

@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../diagnostics/error_log.dart';
+import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/keyboard_dismiss.dart';
 import '../../utils/undo_snack_bar.dart';
 import '../../widgets/readable_width.dart';
-import '../../theme/app_motion.dart';
 
 /// One entry of a [LibraryManagerList]: a tag, an author or a source.
 @immutable

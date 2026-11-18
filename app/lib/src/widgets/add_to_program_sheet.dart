@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../editor/program_slot_rebase.dart';
+import '../theme/app_motion.dart';
 import '../utils/undo_snack_bar.dart';
 import 'add_to_program_list.dart';
-import '../theme/app_motion.dart';
 
 /// Opens a modal bottom sheet listing existing (non-deleted) programs so the
 /// user can append the dance identified by [danceId] as a new slot at the end

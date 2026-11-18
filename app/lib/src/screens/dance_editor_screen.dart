@@ -18,6 +18,7 @@ import '../diagnostics/error_log.dart';
 import '../editor/draft_save_health.dart';
 import '../editor/editor_snapshot.dart';
 import '../search/dance_editor_reference_data.dart';
+import '../theme/app_motion.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/scroll_to_error.dart';
 import '../utils/shortcut_platform.dart';
@@ -32,7 +33,6 @@ import 'dance_editor/dance_editor_form.dart';
 import 'dance_editor/name_picker.dart';
 import 'settings/library_manager_list.dart';
 import 'settings/settings_keys.dart';
-import '../theme/app_motion.dart';
 
 /// Dance editor (`docs/design/ux.md` §3). Covers the metadata form — title,
 /// authors (with inline choreographer/tag creation), formation, form/type,

@@ -14,10 +14,10 @@ import '../../sync/sync_coordinator.dart' show SyncPassStatus;
 import '../../sync/sync_failure.dart';
 import '../../sync/sync_http_client.dart';
 import '../../sync/sync_scope.dart';
+import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/notice_card.dart';
 import 'sync_failure_labels.dart';
-import '../../theme/app_motion.dart';
 
 /// Whether the user is creating a new store or attaching to one that already
 /// exists. The pairing surface must ask this explicitly and never infer it

@@ -8,11 +8,11 @@ import '../../sync/sync_controller.dart';
 import '../../sync/sync_coordinator.dart' show SyncPeerSummary;
 import '../../sync/sync_failure.dart';
 import '../../sync/sync_scope.dart';
+import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/destructive_button_style.dart';
 import 'sync_device_labels.dart';
 import 'sync_failure_labels.dart';
-import '../../theme/app_motion.dart';
 
 /// Pushes the list of the *other* devices attached to this store.
 ///

@@ -104,7 +104,7 @@ class ComponentThemes {
     return base._withSharedComponents(scheme, highContrast: highContrast);
   }
 
-  // --- Both treatments: the components audit C-10 found unthemed ----------
+  // --- Both treatments: components Material otherwise leaves unthemed ----
 
   ComponentThemes _withSharedComponents(
     ColorScheme scheme, {
@@ -129,7 +129,7 @@ class ComponentThemes {
       card: card,
       dialog: dialog.copyWith(
         // Set here rather than left to Material's default so dialog titles
-        // stay in the display face if that default changes (audit B-04).
+        // stay in the display face if that default changes.
         titleTextStyle: AppTypography.textTheme.headlineSmall!.copyWith(
           color: scheme.onSurface,
         ),
@@ -161,9 +161,9 @@ class ComponentThemes {
       menu: MenuThemeData(style: menuStyle),
       dropdownMenu: DropdownMenuThemeData(menuStyle: menuStyle),
       appBar: AppBarTheme(
-        // Leading titles on every platform (audit P-03, decision DS-03).
+        // Leading titles on every platform.
         centerTitle: false,
-        // No Material scrolled-under tint (audit P-04): the bar keeps the
+        // No Material scrolled-under tint: the bar keeps the
         // canvas colour whatever scrolls beneath it.
         elevation: 0,
         scrolledUnderElevation: 0,

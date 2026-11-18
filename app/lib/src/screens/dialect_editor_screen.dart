@@ -6,13 +6,13 @@ import '../../l10n/app_localizations.dart';
 import '../data/user_figures_scope.dart';
 import '../data/validation_issue_labels.dart';
 import '../search/facet_labels.dart' show humanizeToken;
+import '../theme/app_motion.dart';
 import '../theme/destructive_button_style.dart';
 import '../widgets/collapsible_section.dart';
 import '../widgets/confirm_discard_changes.dart';
 import '../widgets/section_header.dart';
 import '../widgets/wording_condition_notes.dart';
 import '../widgets/app_bar_text_action.dart';
-import '../theme/app_motion.dart';
 
 /// Full-screen term editor for a single named [Dialect] (`docs/design/ux.md`
 /// §6). Edits the pieces a dialect can set — role terms (gendered terms live

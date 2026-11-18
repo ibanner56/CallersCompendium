@@ -13,13 +13,13 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../search/facet_labels.dart';
+import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/destructive_button_style.dart';
 import '../../widgets/dropdown_selection.dart';
 import '../../widgets/section_header.dart';
 import '../../widgets/dirty_dialog_guard.dart';
 import '../../widgets/figure_param_editors.dart';
-import '../../theme/app_motion.dart';
 
 /// Editor surface for the program matrix's built-in (and custom-bucket) columns.
 ///

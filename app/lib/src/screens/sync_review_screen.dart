@@ -5,9 +5,9 @@ import '../../l10n/app_localizations.dart';
 import '../data/repositories_scope.dart';
 import '../data/sync_writer_lifecycle_scope.dart';
 import '../diagnostics/error_log.dart';
+import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
 import 'settings/sync_notice_labels.dart' show syncRecordKindLabel;
-import '../theme/app_motion.dart';
 
 /// Displays persisted sync decisions and exposes merge / keep-both actions for
 /// every reason the resolver supports: the §6.6 baseline-absence tombstone,

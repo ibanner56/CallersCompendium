@@ -43,8 +43,8 @@ import 'import_shorthand_seed_screen.dart';
 import 'published_collection_catalog_screen.dart';
 import '../published_collections/published_collection_manifest.dart';
 import '../published_collections/published_collection_service.dart';
-import '../theme/app_shapes.dart';
 import '../theme/app_motion.dart';
+import '../theme/app_shapes.dart';
 
 /// Soft threshold (issue #432) on the number of entities in a **shared** bundle
 /// (dances + choreographers + programs + venues, via

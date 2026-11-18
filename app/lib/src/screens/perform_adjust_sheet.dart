@@ -4,11 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 
 import '../search/collection_data.dart';
+import '../theme/app_motion.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
 import '../utils/slot_dance_title.dart';
 import '../widgets/collection_picker.dart';
-import '../theme/app_motion.dart';
 
 /// The non-destructive in-event "adjust" sheet for Performance mode
 /// (`docs/design/ux.md` §5: "reorder remaining slots, insert from quick-search,
