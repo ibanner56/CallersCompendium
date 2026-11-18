@@ -371,12 +371,12 @@ def gate_findings(
                 # #2192 the author dismissed the reviewer's item, resolved the
                 # thread, and merged. An item clears when a later round no
                 # longer raises it -- after a fix, or after a dispute on its
-                # thread that the reviewer accepts on a re-requested round.
+                # thread that the reviewer accepts on a re-run.
                 ok = False
                 summary = (
                     "APPROVE-WITH-NITS verdict in the latest verdict-bearing "
                     "review; fix each item, or dispute it on its thread and "
-                    "re-request the review, until a round reads APPROVE (a dispute "
+                    "re-run the review, until a round reads APPROVE (a dispute "
                     f"the reviewer upholds goes to the maintainer) -- {summary}"
                 )
             elif verdict != "APPROVE":
