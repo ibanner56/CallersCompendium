@@ -192,6 +192,12 @@ Performed program is legitimate (the dance you forgot to log).
   statuses identically. In the open group a status chip separates Draft from
   Finalized. In the Performed group it is redundant but harmless; the build may
   omit it there.
+- **Archived programs** *(added with program archiving, schema v42; a later
+  change, not one of this note's decisions)*: never offered, in either group.
+  Archiving takes a program out of the Programs list, and the sheet follows
+  it. When every program is archived, the empty state says so ("No programs to
+  show") rather than "No programs yet". The caller unarchives a program to add
+  to it again.
 
 ### 4.3 The "already contains" marker
 

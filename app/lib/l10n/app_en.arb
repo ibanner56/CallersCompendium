@@ -6365,7 +6365,7 @@
   },
   "programsMoreActions": "More actions",
   "@programsMoreActions": {
-    "description": "Tooltip for the overflow (⋮) menu holding Mark all performed, Duplicate and Delete on the program builder's and summary's narrow toolbars."
+    "description": "Tooltip for the overflow (⋮) menu holding Mark all performed, Duplicate, Archive and Delete on the program builder's and summary's narrow toolbars."
   },
   "danceSectionFigures": "Figures",
   "@danceSectionFigures": {

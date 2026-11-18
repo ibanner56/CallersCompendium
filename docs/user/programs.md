@@ -62,6 +62,23 @@ direction the list opens with, see
   as a starting point. The copy starts as a **Draft** with no performed marks,
   no pay and no event date, so it doesn't put a second entry on last month's
   date into your calling history. Give it the new date when you know it.
+- **Archive** a program you're done with but want to keep, from the same menu.
+  It leaves the list (an **Undo** option appears) but is not deleted: it never
+  expires, it still counts in your
+  [calling history](#track-what-you-have-called), and search still finds it.
+  An archived program is not offered on the **Add to program** sheet. To see
+  archived programs, choose **Show archived** in the **More actions** (⋮) menu
+  in the **Programs** toolbar, just above **Recently deleted**. They are listed
+  with the others, marked **Archived**, and their row menu offers **Unarchive**
+  instead. Choose **Hide archived** to hide them again. The list keeps showing
+  them while you open programs and come back, until you go to another part of
+  the app (Collection, Glossary, Settings or the guide) or close it. You can
+  also archive a program from its summary or the builder, next to
+  **Duplicate**; that closes the program, as **Delete** does, and from the
+  builder it saves your unsaved edits first. A duplicate of an archived
+  program is not archived. Archiving syncs to your other devices and is kept
+  in [backups](./settings.md#backup--restore), but a program you
+  [share](./sharing.md#share-a-program-with-its-dances) arrives unarchived.
 - **Delete** a program from the same menu, or by swiping its row. An **Undo**
   option appears, and the program moves to **Recently deleted** (in the **More actions** menu in the
   **Programs** toolbar), where you can
@@ -603,7 +620,7 @@ just show a check on dances already marked. To mark
 every unperformed dance at once, use **Mark all performed** in the program
 editor or on a saved program's summary; it offers a one-tap **Undo**. On a
 phone, or wherever the summary pane is narrow, it is in the **More actions** (⋮)
-menu, with **Duplicate** and **Delete**. On a program's own screen these
+menu, with **Duplicate**, **Archive** and **Delete**. On a program's own screen these
 actions (and **Export**) are in the top bar, beside the title "Program"; the
 program's name is on its own line below it. Mark all performed skips alternates,
 and so does setting a program's status to **Performed**: mark the alternates you
@@ -641,7 +658,8 @@ yourself, and control the repeated-venues summary.
 
 A program in **Recently deleted** is in no one's history, so deleting a program
 removes it from the history of each dance it holds, and restoring it brings
-those entries back. After the retention window the program is gone for good and
+those entries back. To put a program away without losing its history,
+[archive](#create-and-manage-programs) it instead. After the retention window the program is gone for good and
 so is that history.
 
 ## Where to go next

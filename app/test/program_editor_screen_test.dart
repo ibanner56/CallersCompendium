@@ -3853,6 +3853,9 @@ void main() {
 
     final saved = await delayed.repos.programs.getById('p1');
     expect(saved!.archivedAt, archivedAt);
+    // The builder's own copy follows the merge too, so it offers Unarchive.
+    expect(find.byTooltip('Unarchive'), findsOneWidget);
+    expect(find.byTooltip('Archive'), findsNothing);
   });
 
   testWidgets('persisted Undo preserves a local re-mark during live read', (
