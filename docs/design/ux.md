@@ -21,7 +21,10 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
 - **Phones/tablets**: bottom navigation (Collection, Programs, Glossary when
   turned on, Settings, Guide);
   Perform is a mode, not a tab — entered explicitly, exits back to context.
-- **Desktop**: left nav rail; list/detail split panes, where the row open in
+- **Desktop**: left nav rail, or a horizontal bar across the top when the
+  "Horizontal navigation bar" setting in Settings ▸ Appearance is on (a
+  per-screen preference, so it is not synced); list/detail split panes, where
+  the row open in
   the detail pane carries a `primary` bar down its left edge (plus a `primary`
   title; `selectedRowShape`, issue #2156 — a bar and not a fill, because the
   gallery palettes leave text no contrast to spare for a fill under it). In

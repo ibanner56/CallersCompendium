@@ -2411,6 +2411,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get themeEditorPairOutline => 'Outline on surface';
 
   @override
+  String get settingsAppearanceNavigationHeader => 'Navigation';
+
+  @override
+  String get settingsAppearanceHorizontalNavTitle =>
+      'Horizontal navigation bar';
+
+  @override
+  String get settingsAppearanceHorizontalNavSubtitle =>
+      'Place the main sections in a bar across the top of the window instead of down the left. Only desktop windows wide enough for the side rail are affected.';
+
+  @override
   String get settingsAppearanceEasterEggsHeader => 'Easter eggs';
 
   @override

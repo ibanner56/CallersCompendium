@@ -1,4 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/foundation.dart'
+    show debugDefaultTargetPlatformOverride;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -6,6 +8,7 @@ import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/app_theme_scope.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/custom_themes_scope.dart';
+import 'package:compendium_app/src/data/horizontal_top_nav_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/set_list_color_coding_scope.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
@@ -24,6 +27,7 @@ Future<ValueNotifier<bool>> _pumpAppearance(
   CompendiumRepositories repos, {
   bool initialColorCoding = true,
   Locale? locale,
+  ValueNotifier<bool>? horizontalTopNav,
 }) async {
   await tester.binding.setSurfaceSize(const Size(1200, 900));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -31,11 +35,13 @@ Future<ValueNotifier<bool>> _pumpAppearance(
   final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);
   final theme = ValueNotifier<AppThemeSelection>(AppThemeSelection.system);
   final colorCoding = ValueNotifier<bool>(initialColorCoding);
+  final topNav = horizontalTopNav ?? ValueNotifier<bool>(false);
   final customThemes = CustomThemesController(repos.settings);
   await customThemes.load();
   addTearDown(dialect.dispose);
   addTearDown(theme.dispose);
   addTearDown(colorCoding.dispose);
+  if (horizontalTopNav == null) addTearDown(topNav.dispose);
   addTearDown(customThemes.dispose);
 
   await tester.pumpWidget(
@@ -51,9 +57,12 @@ Future<ValueNotifier<bool>> _pumpAppearance(
             controller: customThemes,
             child: ActiveDialectScope(
               notifier: dialect,
-              child: SetListColorCodingScope(
-                notifier: colorCoding,
-                child: const SettingsScreen(),
+              child: HorizontalTopNavScope(
+                notifier: topNav,
+                child: SetListColorCodingScope(
+                  notifier: colorCoding,
+                  child: const SettingsScreen(),
+                ),
               ),
             ),
           ),
@@ -143,6 +152,52 @@ void main() {
     );
     expect(notifier.value, isFalse);
     expect(await repos.settings.get(kSetListColorCodingKey), isFalse);
+  });
+
+  testWidgets('the horizontal navigation toggle is desktop-only', (
+    tester,
+  ) async {
+    // The test binding's default platform is a phone, where there is no left
+    // rail to move; offering the toggle there would be a control with no
+    // effect.
+    await _pumpAppearance(tester, openTestRepositories());
+
+    expect(
+      find.byKey(const ValueKey('appearance-horizontal-top-nav')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('toggling the horizontal navigation bar persists and flips the '
+      'scope', (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    final topNav = ValueNotifier<bool>(false);
+    addTearDown(topNav.dispose);
+    try {
+      final repos = openTestRepositories();
+      await _pumpAppearance(tester, repos, horizontalTopNav: topNav);
+
+      final toggle = find.byKey(
+        const ValueKey('appearance-horizontal-top-nav'),
+      );
+      await tester.scrollUntilVisible(
+        toggle,
+        240,
+        scrollable: find.byType(Scrollable).last,
+      );
+      expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
+
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+
+      expect(tester.widget<SwitchListTile>(toggle).value, isTrue);
+      expect(topNav.value, isTrue);
+      expect(await repos.settings.get(kHorizontalTopNavKey), isTrue);
+    } finally {
+      // Cleared before the body returns: the binding checks foundation debug
+      // variables before any addTearDown callback runs.
+      debugDefaultTargetPlatformOverride = null;
+    }
   });
 
   group('theme gallery labels are localized (CS-47)', () {

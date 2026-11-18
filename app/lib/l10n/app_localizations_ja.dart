@@ -2308,6 +2308,16 @@ class AppLocalizationsJa extends AppLocalizations {
   String get themeEditorPairOutline => 'サーフェス上のアウトライン';
 
   @override
+  String get settingsAppearanceNavigationHeader => 'ナビゲーション';
+
+  @override
+  String get settingsAppearanceHorizontalNavTitle => '横方向のナビゲーションバー';
+
+  @override
+  String get settingsAppearanceHorizontalNavSubtitle =>
+      '主要なセクションを左側ではなくウィンドウ上部のバーに配置します。サイドバーを表示できる幅広のデスクトップウィンドウにのみ適用されます。';
+
+  @override
   String get settingsAppearanceEasterEggsHeader => 'イースターエッグ';
 
   @override

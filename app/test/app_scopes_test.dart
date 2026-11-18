@@ -33,6 +33,7 @@ import 'package:compendium_app/src/data/dialect_library_scope.dart';
 import 'package:compendium_app/src/data/editor_draft_shutdown_scope.dart';
 import 'package:compendium_app/src/data/first_day_of_week_scope.dart';
 import 'package:compendium_app/src/data/formation_colors_scope.dart';
+import 'package:compendium_app/src/data/horizontal_top_nav_scope.dart';
 import 'package:compendium_app/src/data/locale_scope.dart';
 import 'package:compendium_app/src/data/matrix_collision_mode_scope.dart';
 import 'package:compendium_app/src/data/program_auto_commit_scope.dart';
@@ -101,6 +102,7 @@ const _expectedAppScopeTypes = <Type>[
   ConfirmBeforeDeleteScope,
   ColourDanceThemeScope,
   SetListColorCodingScope,
+  HorizontalTopNavScope,
   ShowPerformedTogglesScope,
   MarkAllSetsStatusScope,
   ShareSetListTitleScope,

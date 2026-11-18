@@ -7,6 +7,7 @@ import '../../l10n/app_localizations.dart';
 import '../data/callersbox_online.dart';
 import '../data/collection_filter_scope.dart';
 import '../data/contradb_online.dart';
+import '../data/horizontal_top_nav_scope.dart';
 import '../data/import_io.dart';
 import '../data/online_search.dart';
 import '../data/repositories_scope.dart';
@@ -35,7 +36,9 @@ import '../theme/app_shapes.dart';
 /// "Show glossary" setting is on ([ShowGlossaryScope]).
 ///
 /// - **Narrow (< 900 px):** bottom [NavigationBar].
-/// - **Wide (≥ 900 px):** left [NavigationRail].
+/// - **Wide (≥ 900 px):** left [NavigationRail], or a bar across the top when
+///   the desktop-only "Horizontal navigation bar" Appearance setting is on
+///   ([HorizontalTopNavScope]).
 ///
 /// All destinations are kept alive in an [IndexedStack] so switching preserves
 /// each screen's state (selection, scroll, in-progress edits). Settings and the
@@ -378,6 +381,13 @@ class AppShellState extends State<AppShell> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final wide = constraints.maxWidth >= AppShell.railBreakpoint;
+        // The horizontal top bar is a desktop-window choice: a narrow layout
+        // already has its bar across the screen, and a phone or tablet has no
+        // left rail to move. Reading the scope registers the rebuild that turns
+        // the setting on and off live.
+        final topNav =
+            isDesktopNavPlatform(Theme.of(context).platform) &&
+            HorizontalTopNavScope.of(context);
         // The app-wide update banners sit above the active tab's content so a
         // newer version — or an announced end of support for this one —
         // surfaces on any destination (Collection, Programs, Glossary,
@@ -399,6 +409,44 @@ class AppShellState extends State<AppShell> {
             ),
           ],
         );
+
+        if (wide && topNav) {
+          return Scaffold(
+            body: Column(
+              children: [
+                _TopNavBar(
+                  // The top bar lists [_navDestinations] followed by the
+                  // Guide, so an index past the list selects the Guide.
+                  selectedIndex: _guideSelected
+                      ? nav.length
+                      : nav.indexOf(_current),
+                  onDestinationSelected: _onSelect,
+                  destinations: [
+                    for (final d in nav)
+                      NavigationDestination(
+                        icon: _navIcon(d),
+                        selectedIcon: _navIcon(d, selected: true),
+                        label: _destinationLabel(l10n, d),
+                      ),
+                    NavigationDestination(
+                      key: const ValueKey('user-guide-destination'),
+                      icon: _navIcon(_Destination.guide),
+                      selectedIcon: _navIcon(
+                        _Destination.guide,
+                        selected: true,
+                      ),
+                      label: _destinationLabel(l10n, _Destination.guide),
+                    ),
+                  ],
+                  onSearch: openSearch,
+                  brandLabel: l10n.appTitle,
+                ),
+                const Divider(height: 1, thickness: 1),
+                Expanded(child: body),
+              ],
+            ),
+          );
+        }
 
         if (wide) {
           return Scaffold(
@@ -509,6 +557,117 @@ class AppShellState extends State<AppShell> {
   }
 }
 
+/// The wide-layout alternative to the left [NavigationRail]: the same
+/// destinations in a bar across the top, with the brand mark and search
+/// affordance leading the row. Shown when the desktop-only "Horizontal
+/// navigation bar" Appearance setting is on ([HorizontalTopNavScope]).
+///
+/// Uses Material's [NavigationBar] so selection, keyboard traversal and screen
+/// reader semantics match the narrow layout's bar rather than being
+/// re-implemented.
+class _TopNavBar extends StatelessWidget {
+  const _TopNavBar({
+    required this.selectedIndex,
+    required this.onDestinationSelected,
+    required this.destinations,
+    required this.onSearch,
+    required this.brandLabel,
+  });
+
+  final int selectedIndex;
+  final ValueChanged<int> onDestinationSelected;
+  final List<NavigationDestination> destinations;
+  final VoidCallback onSearch;
+
+  /// Localized app title for the decorative brand tile's semantic label.
+  final String brandLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Material(
+      key: const ValueKey('horizontal-top-nav'),
+      color: theme.colorScheme.surface,
+      child: SafeArea(
+        bottom: false,
+        child: Row(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.sm,
+                vertical: AppSpacing.sm,
+              ),
+              // Same full-color tile as the rail's header, so the mark stays
+              // legible on every theme surface including high-contrast ones.
+              child: BrandMark(
+                size: 32,
+                showTile: true,
+                semanticLabel: brandLabel,
+              ),
+            ),
+            _TopNavSearchButton(onPressed: onSearch),
+            const VerticalDivider(
+              width: 1,
+              thickness: 1,
+              indent: AppSpacing.sm,
+              endIndent: AppSpacing.sm,
+            ),
+            Expanded(
+              child: NavigationBar(
+                selectedIndex: selectedIndex,
+                onDestinationSelected: onDestinationSelected,
+                destinations: destinations,
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The top bar's global-search affordance: an icon, a visible "Search" label
+/// and the platform's keyboard hint, mirroring the rail's [_RailSearchButton]
+/// so search stays discoverable wherever the destinations are.
+class _TopNavSearchButton extends StatelessWidget {
+  const _TopNavSearchButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final hint = _searchShortcutHint(Theme.of(context));
+    return Tooltip(
+      message: l10n.navSearchTooltip(hint),
+      child: TextButton.icon(
+        key: const ValueKey('global-search-button'),
+        onPressed: onPressed,
+        icon: const Icon(Icons.search),
+        label: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(l10n.navSearch),
+            const SizedBox(width: AppSpacing.xs),
+            _ShortcutHint(hint),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The platform-appropriate label for the global-search shortcut: the
+/// Command-K glyph on Apple platforms, `Ctrl K` elsewhere.
+String _searchShortcutHint(ThemeData theme) {
+  final isApple =
+      theme.platform == TargetPlatform.macOS ||
+      theme.platform == TargetPlatform.iOS;
+  return isApple ? '\u2318K' : 'Ctrl K';
+}
+
 /// The desktop nav-rail global-search affordance. Unlike a bare icon button it
 /// carries a visible "Search" label and a platform-appropriate keyboard hint
 /// (⌘K on Apple platforms, Ctrl K elsewhere) so the feature — and its
@@ -525,10 +684,7 @@ class _RailSearchButton extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final isApple =
-        theme.platform == TargetPlatform.macOS ||
-        theme.platform == TargetPlatform.iOS;
-    final hint = isApple ? '\u2318K' : 'Ctrl K';
+    final hint = _searchShortcutHint(theme);
     return Tooltip(
       message: l10n.navSearchTooltip(hint),
       child: Semantics(

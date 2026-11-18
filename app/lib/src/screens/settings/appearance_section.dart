@@ -11,6 +11,7 @@ import '../../data/custom_theme.dart';
 import '../../data/custom_themes_controller.dart';
 import '../../data/custom_themes_scope.dart';
 import '../../data/formation_colors_scope.dart';
+import '../../data/horizontal_top_nav_scope.dart';
 import '../../data/persisted_preference.dart';
 import '../../data/repositories_scope.dart';
 import '../../data/set_list_color_coding_scope.dart';
@@ -62,6 +63,15 @@ class _AppearanceSectionState extends State<AppearanceSection> {
     await persistSetting(repos.settings, kSetListColorCodingKey, value);
   }
 
+  /// Persists the desktop-only "Horizontal navigation bar" toggle: flip the
+  /// live scope notifier immediately, then write through in the background, the
+  /// same optimistic pattern as the other Appearance switches.
+  Future<void> _onHorizontalTopNavChanged(bool value) async {
+    HorizontalTopNavScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await persistSetting(repos.settings, kHorizontalTopNavKey, value);
+  }
+
   @override
   Widget build(BuildContext context) {
     final themeSelected = AppThemeScope.of(context);
@@ -82,6 +92,8 @@ class _AppearanceSectionState extends State<AppearanceSection> {
       onColourDanceThemeChanged: _onColourDanceThemeChanged,
       setListColorCoding: SetListColorCodingScope.of(context),
       onSetListColorCodingChanged: _onSetListColorCodingChanged,
+      horizontalTopNav: HorizontalTopNavScope.of(context),
+      onHorizontalTopNavChanged: _onHorizontalTopNavChanged,
     );
   }
 }
@@ -97,6 +109,8 @@ class _AppearanceView extends StatelessWidget {
     required this.onColourDanceThemeChanged,
     required this.setListColorCoding,
     required this.onSetListColorCodingChanged,
+    required this.horizontalTopNav,
+    required this.onHorizontalTopNavChanged,
   });
 
   final AppThemeSelection? themeSelected;
@@ -107,10 +121,15 @@ class _AppearanceView extends StatelessWidget {
   final ValueChanged<bool> onColourDanceThemeChanged;
   final bool setListColorCoding;
   final ValueChanged<bool> onSetListColorCodingChanged;
+  final bool horizontalTopNav;
+  final ValueChanged<bool> onHorizontalTopNavChanged;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    // A phone or tablet has no left rail to rearrange at its narrow width, so
+    // the toggle is offered only where it can take effect (desktop windows).
+    final desktop = isDesktopNavPlatform(Theme.of(context).platform);
     return ReadableListView(
       children: [
         SectionHeader(title: l10n.settingsAppearanceThemeHeader),
@@ -134,6 +153,17 @@ class _AppearanceView extends StatelessWidget {
             seedScheme: seedScheme,
           ),
         ),
+        if (desktop) ...[
+          SectionHeader(title: l10n.settingsAppearanceNavigationHeader),
+          SwitchListTile(
+            key: const ValueKey('appearance-horizontal-top-nav'),
+            value: horizontalTopNav,
+            onChanged: onHorizontalTopNavChanged,
+            title: Text(l10n.settingsAppearanceHorizontalNavTitle),
+            subtitle: Text(l10n.settingsAppearanceHorizontalNavSubtitle),
+            isThreeLine: true,
+          ),
+        ],
         SectionHeader(title: l10n.settingsAppearanceEasterEggsHeader),
         SwitchListTile(
           key: const ValueKey('appearance-colour-dance-theme'),

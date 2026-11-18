@@ -365,6 +365,14 @@ There's a **High contrast** theme for maximum legibility — see the
 - Saved custom themes can be selected, edited, duplicated, or deleted at any time.
   They sync to your other devices along with your other settings when sync is on, and deleting a theme deletes it on those devices too.
 
+### Navigation
+
+- **Horizontal navigation bar** (desktop only, off by default) — put the main
+  sections in a bar across the top of the window instead of down the left. It
+  applies to desktop windows wide enough for the side rail; a narrow window
+  keeps its bottom bar. This is a per-screen choice, so it does not sync to your
+  other devices.
+
 ### Easter eggs
 
 - **Color-named dances tint the theme** (off by default) — a playful surprise:

@@ -2344,6 +2344,18 @@
   "@themeEditorPairOutline": {
     "x-sourceSha256": "99b7bdbf2e12071cf313ae0bc216ed066e8d70a77db51c118ba1d01e9ab99060"
   },
+  "settingsAppearanceNavigationHeader": "Navigatie",
+  "@settingsAppearanceNavigationHeader": {
+    "x-sourceSha256": "3db65f8c2a7d1861b4bca37da3adec5aa7905931eb6faddbc595a35f75e6ca40"
+  },
+  "settingsAppearanceHorizontalNavTitle": "Horizontale navigatiebalk",
+  "@settingsAppearanceHorizontalNavTitle": {
+    "x-sourceSha256": "0152b6391169d1020a62ca1f0de7a5f0c6cd476aa7e5f25fc9d58c6d538ea182"
+  },
+  "settingsAppearanceHorizontalNavSubtitle": "Plaats de hoofdsecties in een balk bovenaan het venster in plaats van aan de linkerkant. Alleen bureaubladvensters die breed genoeg zijn voor de zijbalk worden beïnvloed.",
+  "@settingsAppearanceHorizontalNavSubtitle": {
+    "x-sourceSha256": "d6c20de2104e470c4a20ce4086696a3674111a76111d67a51636b8da9ddb1100"
+  },
   "settingsAppearanceEasterEggsHeader": "Verrassingen",
   "@settingsAppearanceEasterEggsHeader": {
     "x-sourceSha256": "1a420070d362964df352f37d1b6c07e5c3ceeb52372cc9e6848f1dd0741f0a59"

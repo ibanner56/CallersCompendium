@@ -60,6 +60,7 @@ import 'src/data/calling_history_tracking_scope.dart';
 import 'src/data/require_performed_for_history_scope.dart';
 import 'src/data/default_program_caller_scope.dart';
 import 'src/data/track_history_for_all_callers_scope.dart';
+import 'src/data/horizontal_top_nav_scope.dart';
 import 'src/data/seed_service.dart';
 import 'src/data/mark_all_sets_status_scope.dart';
 import 'src/data/set_list_share_scope.dart';
@@ -736,6 +737,15 @@ class _CompendiumAppState extends State<CompendiumApp>
     decode: (Object? v) => v is bool ? v : true,
     encode: (v) => v,
   );
+
+  /// Desktop-only: lay the shell's navigation across the top instead of down
+  /// the left. Absent means off, the rail this app has always used.
+  final _horizontalTopNavNotifier = PreferenceNotifier<bool>(
+    key: kHorizontalTopNavKey,
+    defaultValue: false,
+    decode: (Object? v) => v is bool ? v : false,
+    encode: (v) => v,
+  );
   final _showPerformedTogglesNotifier = PreferenceNotifier<bool>(
     key: kShowPerformedTogglesKey,
     defaultValue: true,
@@ -1380,6 +1390,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     _autoCommitProgramChangesNotifier,
     _colourDanceThemeNotifier,
     _setListColorCodingNotifier,
+    _horizontalTopNavNotifier,
     _showPerformedTogglesNotifier,
     _markAllSetsStatusNotifier,
     _shareSetListTitleNotifier,
@@ -2251,6 +2262,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     _autoCommitProgramChangesNotifier.dispose();
     _colourDanceThemeNotifier.dispose();
     _setListColorCodingNotifier.dispose();
+    _horizontalTopNavNotifier.dispose();
     _showPerformedTogglesNotifier.dispose();
     _markAllSetsStatusNotifier.dispose();
     _shareSetListTitleNotifier.dispose();
@@ -2929,6 +2941,10 @@ class _CompendiumAppState extends State<CompendiumApp>
     ),
     (child) => SetListColorCodingScope(
       notifier: _setListColorCodingNotifier,
+      child: child,
+    ),
+    (child) => HorizontalTopNavScope(
+      notifier: _horizontalTopNavNotifier,
       child: child,
     ),
     (child) => ShowPerformedTogglesScope(

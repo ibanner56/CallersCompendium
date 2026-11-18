@@ -473,7 +473,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; classified here so the catalogue has one source of truth. `settings.value_json` is `deviceLocal` at the column level so a blanket sync cannot happen by accident — these entries decide what actually travels.
 
-**117 settings keys**: 74 shareable, 12 device-local, 29 device-scoped, 1 protocol-identifier, 1 store-address. 4 personal data by category.
+**118 settings keys**: 74 shareable, 13 device-local, 29 device-scoped, 1 protocol-identifier, 1 store-address. 4 personal data by category.
 
 | Key | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |
@@ -544,6 +544,7 @@ Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; 
 | `free_text_entry` | `dpv:NonPersonalData` | app user | shareable |  |
 | `history_order_ignore_undated` | `dpv:NonPersonalData` | app user | shareable |  |
 | `history_order_ignore_unperformed` | `dpv:NonPersonalData` | app user | shareable |  |
+| `horizontal_top_nav` | `dpv:NonPersonalData` | app user | **device-local** | Screen-bound: whether the main sections sit across the top or down the left is a choice about one window, and a narrow window on another device has no rail to move. It is never synced. deviceLocal, not deviceScoped: it is withheld for what it means on another screen, not for what it contains, and deviceScoped would also drop it from the user's own backups, which should give it back on restore. The implementer's call, following the settings-sync-scope precedent for other screen-bound preferences (app_locale, perform_text_scale). |
 | `last_backup_at` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
 | `last_used_collection_sort` | `dpv:NonPersonalData` | app user | shareable |  |
 | `last_used_collection_sort_direction` | `dpv:NonPersonalData` | app user | shareable |  |

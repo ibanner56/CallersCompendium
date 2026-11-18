@@ -9,6 +9,7 @@ import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/app_theme_scope.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/custom_themes_scope.dart';
+import 'package:compendium_app/src/data/horizontal_top_nav_scope.dart';
 import 'package:compendium_app/src/data/import_io.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
@@ -34,6 +35,7 @@ Future<void> _pump(
   required Size size,
   ImportPicker? reimportPicker,
   ValueNotifier<bool>? showGlossary,
+  ValueNotifier<bool>? horizontalTopNav,
 }) async {
   await tester.binding.setSurfaceSize(size);
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -57,6 +59,19 @@ Future<void> _pump(
   );
   addTearDown(updateController.dispose);
   final shellKey = GlobalKey<AppShellState>();
+  // Optional scopes are only mounted when a test supplies their notifier, so
+  // every other test keeps the production defaults (glossary hidden, rail).
+  Widget scoped(Widget child) {
+    var tree = child;
+    if (showGlossary != null) {
+      tree = ShowGlossaryScope(notifier: showGlossary, child: tree);
+    }
+    if (horizontalTopNav != null) {
+      tree = HorizontalTopNavScope(notifier: horizontalTopNav, child: tree);
+    }
+    return tree;
+  }
+
   await tester.pumpWidget(
     MaterialApp(
       // Mirrors the root MaterialApp in main.dart, which owns Ctrl/Cmd-K.
@@ -84,12 +99,7 @@ Future<void> _pump(
                 notifier: notifier,
                 child: RequirePerformedForHistoryScope(
                   notifier: requirePerformedNotifier,
-                  child: showGlossary == null
-                      ? child!
-                      : ShowGlossaryScope(
-                          notifier: showGlossary,
-                          child: child!,
-                        ),
+                  child: scoped(child!),
                 ),
               ),
             ),
@@ -123,6 +133,102 @@ void main() {
   testWidgets('wide layout uses a NavigationRail', (tester) async {
     final repos = openTestRepositories();
     await _pump(tester, repos, size: const Size(1200, 900));
+
+    expect(find.byType(NavigationRail), findsOneWidget);
+    expect(find.byType(NavigationBar), findsNothing);
+  });
+
+  testWidgets('the horizontal navigation setting puts the destinations across '
+      'the top', (tester) async {
+    final repos = openTestRepositories();
+    final topNav = ValueNotifier<bool>(true);
+    addTearDown(topNav.dispose);
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    try {
+      await _pump(
+        tester,
+        repos,
+        size: const Size(1200, 900),
+        horizontalTopNav: topNav,
+      );
+
+      expect(find.byType(NavigationRail), findsNothing);
+      final topBar = find.byKey(const ValueKey('horizontal-top-nav'));
+      expect(topBar, findsOneWidget);
+      final bar = find.descendant(
+        of: topBar,
+        matching: find.byType(NavigationBar),
+      );
+      expect(bar, findsOneWidget);
+      // It is a top bar, not the narrow layout's bottom bar.
+      expect(tester.getRect(topBar).bottom, lessThan(120));
+      // Brand and search keep the rail's leading affordances and are in the bar.
+      expect(
+        find.descendant(of: topBar, matching: find.byType(BrandMark)),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: topBar,
+          matching: find.byKey(const ValueKey('global-search-button')),
+        ),
+        findsOneWidget,
+      );
+
+      // The same destinations switch, and the guide is the trailing one.
+      await tester.tap(find.text('Programs').last);
+      await tester.pumpAndSettle();
+      expect(tester.widget<NavigationBar>(bar).selectedIndex, 1);
+      await tester.tap(find.text('Guide').last);
+      await tester.pumpAndSettle();
+      expect(tester.widget<NavigationBar>(bar).selectedIndex, 3);
+      expect(find.byType(UserGuideScreen), findsOneWidget);
+    } finally {
+      // Cleared before the body returns: the binding checks foundation debug
+      // variables before any addTearDown callback runs.
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
+
+  testWidgets('turning the horizontal navigation setting off restores the '
+      'rail live', (tester) async {
+    final repos = openTestRepositories();
+    final topNav = ValueNotifier<bool>(true);
+    addTearDown(topNav.dispose);
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    try {
+      await _pump(
+        tester,
+        repos,
+        size: const Size(1200, 900),
+        horizontalTopNav: topNav,
+      );
+      expect(find.byType(NavigationRail), findsNothing);
+
+      topNav.value = false;
+      await tester.pumpAndSettle();
+
+      expect(find.byType(NavigationRail), findsOneWidget);
+      expect(find.byType(NavigationBar), findsNothing);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
+
+  testWidgets('the horizontal navigation setting is ignored off desktop', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    // True here, but the test binding's default platform is a phone: the
+    // setting is desktop-only, so the wide layout keeps its rail.
+    final topNav = ValueNotifier<bool>(true);
+    addTearDown(topNav.dispose);
+    await _pump(
+      tester,
+      repos,
+      size: const Size(1200, 900),
+      horizontalTopNav: topNav,
+    );
 
     expect(find.byType(NavigationRail), findsOneWidget);
     expect(find.byType(NavigationBar), findsNothing);

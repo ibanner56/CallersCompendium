@@ -59,6 +59,7 @@ import 'package:compendium_app/src/data/display_defaults.dart'
 import 'package:compendium_app/src/data/matrix_collision_mode_scope.dart';
 import 'package:compendium_app/src/data/program_auto_commit_scope.dart';
 import 'package:compendium_app/src/data/reduce_motion_scope.dart';
+import 'package:compendium_app/src/data/horizontal_top_nav_scope.dart';
 import 'package:compendium_app/src/data/set_list_color_coding_scope.dart';
 import 'package:compendium_app/src/data/mark_all_sets_status_scope.dart';
 import 'package:compendium_app/src/data/show_performed_toggles_scope.dart';
@@ -2490,6 +2491,11 @@ void main() {
             key: kSetListColorCodingKey,
             read: SetListColorCodingScope.of,
             defaultValue: true,
+          ),
+          (
+            key: kHorizontalTopNavKey,
+            read: HorizontalTopNavScope.of,
+            defaultValue: false,
           ),
           (
             key: kShowPerformedTogglesKey,
