@@ -564,9 +564,15 @@ As Appearance grew (gallery + custom themes) and Dialect is set to expand, the
 single scrolling Settings page became unwieldy. Settings is now a **master–detail
 shell** (`screens/settings_screen.dart`):
 
-- A `_SettingsSection` enum (currently **Appearance**, **Dialect**) is the single
-  source of truth for the sidebar; adding a page is one enum value plus its
-  content in `_content`.
+- A `SettingsSection` enum
+  (`screens/settings/settings_section.dart`) is the single source of truth for
+  the sidebar, in the order it declares; adding a page is one enum value plus
+  its content in `_content`.
+- A search bar above the panes finds a setting by name across every section
+  (`settings_search.dart`: a hand-maintained index, because the sections other
+  than the open one are not mounted), and Ctrl/Cmd-F focuses it. Choosing a
+  result opens the section that holds it, and a row a section shows only in some
+  states is offered only while it is there.
 - **Wide (≥ 720 px):** a left sidebar list + a content pane side by side
   (`_SettingsSidebar`), selection shown by the highlighted tile **and** a filled
   icon (never color alone). **Narrow:** the sidebar is a list whose rows push the

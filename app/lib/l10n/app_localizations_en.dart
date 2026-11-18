@@ -392,6 +392,17 @@ class AppLocalizationsEn extends AppLocalizations {
       'New features may appear here while they are still in development.';
 
   @override
+  String get settingsSearchLabel => 'Search settings';
+
+  @override
+  String get settingsSearchClear => 'Clear search';
+
+  @override
+  String settingsSearchNoMatches(String query) {
+    return 'No settings match \"$query\".';
+  }
+
+  @override
   String get glossaryTitle => 'Glossary';
 
   @override

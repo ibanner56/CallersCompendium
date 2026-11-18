@@ -50,6 +50,7 @@ import 'package:compendium_app/src/sync/sync_coordinator.dart';
 import 'package:compendium_app/src/sync/sync_http_client.dart';
 import 'package:compendium_app/src/sync/sync_network.dart';
 import 'package:compendium_app/src/sync/sync_scope.dart';
+import 'package:compendium_app/src/update/install_kind.dart';
 import 'package:compendium_app/src/update/update_controller.dart';
 import 'package:compendium_app/src/update/update_scope.dart';
 import 'package:compendium_app/src/widgets/notice_card.dart';
@@ -145,6 +146,11 @@ _pumpSettings(
   /// Provides a [SyncWriterLifecycleScope] with this reset hook when given.
   Future<bool> Function()? resetToCleanInstall,
 
+  /// How the app copy was installed, so a test can make the Updates section
+  /// the store copy a mobile build is (no check, no beta channel). Defaults to
+  /// the real detection, which is a standard copy in a test.
+  InstallKind? installKind,
+
   /// Wraps the in-memory database's executor, so a test can fail one query.
   drift.QueryInterceptor? interceptor,
 }) async {
@@ -193,7 +199,10 @@ _pumpSettings(
     initialTrackHistoryForAllCallers,
   );
   final canonicalDiscouragedTermsNotifier = ValueNotifier<bool>(true);
-  final updateController = UpdateController(repos.settings);
+  final updateController = UpdateController(
+    repos.settings,
+    installKind: installKind,
+  );
   await updateController.load();
   final syncSettings = _ControllableSyncSettings(repos.db)
     ..failing = syncSettingsUnreadable;
@@ -1512,7 +1521,9 @@ void main() {
     testWidgets('settings sections render via the shared SectionHeader', (
       tester,
     ) async {
-      await _pumpSettings(tester);
+      // Taller than the default so Appearance's second header is still built:
+      // the search bar above the panes takes a band of the viewport.
+      await _pumpSettings(tester, surfaceSize: const Size(1000, 2800));
 
       // The Appearance section is shown by default; its headers are rendered
       // by the shared SectionHeader (extracted from this screen so the dance
@@ -6238,6 +6249,182 @@ void main() {
       await tester.pumpAndSettle();
       expect(custom.value, isFalse);
       expect(await harness.repos.settings.get(kShowCustomFiguresKey), isFalse);
+    });
+  });
+
+  group('SettingsScreen — search', () {
+    const searchField = ValueKey('settings-search');
+
+    testWidgets('a setting name in another section is listed with its '
+        'section', (tester) async {
+      await _pumpSettings(tester);
+
+      await tester.enterText(find.byKey(searchField), 'Reduce motion');
+      await tester.pumpAndSettle();
+
+      final result = find.byKey(
+        const ValueKey('settings-search-result-general.reduceMotion'),
+      );
+      expect(result, findsOneWidget);
+      expect(
+        find.descendant(of: result, matching: find.text('Reduce motion')),
+        findsOneWidget,
+      );
+      // The section it lives in, as the row's subtitle.
+      expect(
+        find.descendant(of: result, matching: find.text('General')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('choosing a result selects the section that holds it', (
+      tester,
+    ) async {
+      await _pumpSettings(tester);
+
+      await tester.enterText(find.byKey(searchField), 'Reduce motion');
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(
+          const ValueKey('settings-search-result-general.reduceMotion'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        tester
+            .widget<ListTile>(
+              find.byKey(const ValueKey('settings-nav-general')),
+            )
+            .selected,
+        isTrue,
+      );
+      // The query is cleared, so the normal navigation is back.
+      expect(find.byKey(searchField), findsOneWidget);
+      expect(
+        find.byKey(
+          const ValueKey('settings-search-result-general.reduceMotion'),
+        ),
+        findsNothing,
+      );
+    });
+
+    testWidgets('on the narrow layout a result opens its section page', (
+      tester,
+    ) async {
+      await _pumpSettings(tester, surfaceSize: const Size(500, 900));
+
+      await tester.enterText(find.byKey(searchField), 'dark mode');
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('settings-search-result-appearance.theme')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('settings-nav-appearance')),
+        findsNothing,
+      );
+      expect(find.text('Appearance'), findsOneWidget);
+    });
+
+    testWidgets('a query with no match says so', (tester) async {
+      await _pumpSettings(tester);
+
+      await tester.enterText(find.byKey(searchField), 'zzzz-no-setting');
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('settings-search-no-matches')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('the clear button restores the section navigation', (
+      tester,
+    ) async {
+      await _pumpSettings(tester);
+
+      await tester.enterText(find.byKey(searchField), 'Reduce motion');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('settings-search-clear')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('settings-nav-general')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('settings-search-result-general.reduceMotion'),
+        ),
+        findsNothing,
+      );
+    });
+
+    testWidgets('the search box has a name that stays when it is filled', (
+      tester,
+    ) async {
+      await _pumpSettings(tester);
+      final semantics = tester.ensureSemantics();
+
+      // A hint would vanish with the first typed character, leaving the filled
+      // box unnamed on screen and to a screen reader (WCAG 3.3.2, 4.1.2).
+      expect(find.bySemanticsLabel('Search settings'), findsOneWidget);
+      await tester.enterText(find.byKey(searchField), 'Reduce motion');
+      await tester.pumpAndSettle();
+      expect(find.text('Search settings'), findsOneWidget);
+      expect(find.bySemanticsLabel('Search settings'), findsOneWidget);
+      semantics.dispose();
+    });
+
+    testWidgets('a store copy lists its store note, not the update check', (
+      tester,
+    ) async {
+      await _pumpSettings(tester, installKind: InstallKind.store);
+
+      await tester.enterText(find.byKey(searchField), 'update');
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('settings-search-result-updates.store')),
+        findsOneWidget,
+      );
+      // The Updates section a store copy shows has neither row, so the search
+      // must not offer them.
+      expect(
+        find.byKey(const ValueKey('settings-search-result-updates.checkNow')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('settings-search-result-updates.betaChannel'),
+        ),
+        findsNothing,
+      );
+    });
+
+    testWidgets('a copy that updates itself lists the check and the beta '
+        'channel, not the store note', (tester) async {
+      await _pumpSettings(tester, installKind: InstallKind.standard);
+
+      await tester.enterText(find.byKey(searchField), 'update');
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('settings-search-result-updates.checkNow')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('settings-search-result-updates.betaChannel'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('settings-search-result-updates.store')),
+        findsNothing,
+      );
     });
   });
 }

@@ -403,6 +403,17 @@ class AppLocalizationsFr extends AppLocalizations {
       'De nouvelles fonctionnalités peuvent apparaître ici pendant qu’elles sont encore en développement.';
 
   @override
+  String get settingsSearchLabel => 'Rechercher dans les paramètres';
+
+  @override
+  String get settingsSearchClear => 'Effacer la recherche';
+
+  @override
+  String settingsSearchNoMatches(String query) {
+    return 'Aucun paramètre ne correspond à « $query ».';
+  }
+
+  @override
   String get glossaryTitle => 'Glossaire';
 
   @override

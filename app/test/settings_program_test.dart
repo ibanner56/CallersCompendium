@@ -300,6 +300,9 @@ void main() {
       200,
       scrollable: find.byType(Scrollable).last,
     );
+    // The search bar shortens the pane, so this row starts below the viewport:
+    // the scroll `ensureVisible` starts has to settle before the tap lands.
+    await tester.pumpAndSettle();
     expect(tester.widget<SwitchListTile>(tile).value, isTrue);
     expect(find.text('Mark all performed sets the status'), findsOneWidget);
 
