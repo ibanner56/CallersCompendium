@@ -20,8 +20,8 @@ const double selectedRowBarWidth = 4;
 ///
 /// The cue is a bar, not a fill, because the gallery palettes tune their text
 /// to only just clear 4.5:1 against `surface`: a 12 % `primary` tint takes
-/// `onSurfaceVariant` text below 4.5:1 on 21 of the 31 gallery palettes (as
-/// low as 3.54:1), and `secondaryContainer` puts High contrast's `onSurface`
+/// `onSurfaceVariant` text below 4.5:1 on 8 of the 31 non-built-in palettes
+/// (Soft dark and the 30 gallery palettes; as low as 4.36:1), and `secondaryContainer` puts High contrast's `onSurface`
 /// text at 1.19:1. The bar is non-text UI, and `primary` against `surface` is
 /// held to 3:1 for every gallery palette by
 /// `test/theme/palette_contrast_test.dart`.
