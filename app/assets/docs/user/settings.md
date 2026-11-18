@@ -1615,11 +1615,11 @@ fails, your data is unchanged but the device has already left the store. Your ot
 
 The **About** section tells you what you're running and where it comes from.
 
-- App name, **Version**, and the app's tagline.
+- App name, **Version** (shown once, including a beta suffix when you have a beta build), and the app's tagline, "Your caller's box, in the palm of your hand".
 - A **User guide** link that opens the built-in offline guides — the same pages
   you're reading now. The guide is written in English only; when the app is set
   to another language, each guide page starts with a one-line notice saying so.
-- License info: the app is free software under **AGPL-3.0**, with **View source on
+- License info: the app is free software under **AGPL-3.0-only**, with **View source on
   GitHub**.
 - Bundled-font credits — Fraunces, Atkinson Hyperlegible, and Roboto, under the
   SIL Open Font License.

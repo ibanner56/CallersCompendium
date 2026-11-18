@@ -120,7 +120,6 @@ class _AboutView extends StatelessWidget {
           onTap: () => showLicensePage(
             context: context,
             applicationName: kAppName,
-            applicationVersion: kAppVersion,
             applicationLegalese: l10n.settingsAboutLegalese,
           ),
         ),
@@ -135,7 +134,6 @@ class _AboutView extends StatelessWidget {
           child: Text(
             l10n.settingsAboutVersionLine(
               kAppName,
-              kAppVersion,
               kAppCodename,
               kAppLicenseSpdx,
             ),
@@ -151,8 +149,8 @@ class _AboutView extends StatelessWidget {
 
 /// The centered brand home shown at the very top of the About section: the
 /// full-color app mark, the [kAppName] wordmark in Fraunces, the current
-/// version, and a one-line mission ([kAppTagline]). Carries the app identity
-/// so the sections below can focus on compliance and attribution content.
+/// version, and a one-line tagline (`settingsAboutTagline`). Carries the app
+/// identity so the sections below can focus on compliance and attribution content.
 class _AboutBrandHeader extends StatelessWidget {
   const _AboutBrandHeader();
 
@@ -180,7 +178,7 @@ class _AboutBrandHeader extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.xxs),
           Text(
-            l10n.settingsAboutVersion(kAppVersion, kAppCodename),
+            l10n.settingsAboutVersion(kUpdaterVersion, kAppCodename),
             textAlign: TextAlign.center,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
@@ -188,7 +186,7 @@ class _AboutBrandHeader extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            kAppTagline,
+            l10n.settingsAboutTagline,
             textAlign: TextAlign.center,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
