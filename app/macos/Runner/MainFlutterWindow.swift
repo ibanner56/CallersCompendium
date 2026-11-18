@@ -31,7 +31,10 @@ class MainFlutterWindow: NSWindow {
 
     // Brand surface behind the first frame, so the window doesn't flash the
     // system grey before Flutter draws: light #F4F6FA / dark #121A24 (the
-    // app's light and dark scheme surfaces).
+    // app's light and dark scheme surfaces). FlutterView's own layer defaults
+    // to opaque black and takes a static colour, so it is set to clear to let
+    // this appearance-aware window colour show through until the first frame.
+    flutterViewController.backgroundColor = .clear
     self.backgroundColor = NSColor(name: nil) { appearance in
       appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
         ? NSColor(srgbRed: 0x12 / 255, green: 0x1A / 255, blue: 0x24 / 255, alpha: 1)
