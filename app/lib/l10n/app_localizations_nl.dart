@@ -2444,6 +2444,17 @@ class AppLocalizationsNl extends AppLocalizations {
   String get themeEditorPairOutline => 'Omlijning op oppervlak';
 
   @override
+  String get settingsAppearanceNavigationHeader => 'Navigatie';
+
+  @override
+  String get settingsAppearanceHorizontalNavTitle =>
+      'Horizontale navigatiebalk';
+
+  @override
+  String get settingsAppearanceHorizontalNavSubtitle =>
+      'Plaats de hoofdsecties in een balk bovenaan het venster in plaats van aan de linkerkant. Alleen bureaubladvensters die breed genoeg zijn voor de zijbalk worden beïnvloed.';
+
+  @override
   String get settingsAppearanceEasterEggsHeader => 'Verrassingen';
 
   @override

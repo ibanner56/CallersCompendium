@@ -2452,6 +2452,17 @@ class AppLocalizationsDe extends AppLocalizations {
   String get themeEditorPairOutline => 'Umriss auf Oberfläche';
 
   @override
+  String get settingsAppearanceNavigationHeader => 'Navigation';
+
+  @override
+  String get settingsAppearanceHorizontalNavTitle =>
+      'Horizontale Navigationsleiste';
+
+  @override
+  String get settingsAppearanceHorizontalNavSubtitle =>
+      'Ordne die Hauptbereiche in einer Leiste oben im Fenster statt links an. Nur Desktop-Fenster, die breit genug für die Seitenleiste sind, sind betroffen.';
+
+  @override
   String get settingsAppearanceEasterEggsHeader => 'Easter Eggs';
 
   @override

@@ -109,10 +109,12 @@ class CollectionShell extends StatefulWidget {
 /// The Collection's own commands, for callers above it: the app shell runs
 /// them for Ctrl/Cmd-N, Ctrl/Cmd-F and the macOS menu bar (PLAT-7, PLAT-8).
 ///
-/// Each returns whether a mounted Collection took it. The shell's layouts put
-/// the Collection at different tree positions, so a breakpoint crossing mounts
-/// a new [CollectionShell] before the old one goes; the newest one wins, and
-/// the old one's dispose leaves it attached.
+/// Each returns whether a mounted Collection took it. The app shell moves this
+/// page, with the rest of the body, to the new tree position when the layout
+/// changes — a breakpoint crossing or the horizontal navigation setting — so
+/// there is normally one mounted [CollectionShell] throughout; if a layout ever
+/// mounts a second, the newest one wins, and the old one's dispose leaves it
+/// attached.
 class CollectionCommands {
   _CollectionShellState? _shell;
 

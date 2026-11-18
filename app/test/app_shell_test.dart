@@ -9,6 +9,7 @@ import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/app_theme_scope.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/custom_themes_scope.dart';
+import 'package:compendium_app/src/data/horizontal_top_nav_scope.dart';
 import 'package:compendium_app/src/data/import_io.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
@@ -34,6 +35,8 @@ Future<void> _pump(
   required Size size,
   ImportPicker? reimportPicker,
   ValueNotifier<bool>? showGlossary,
+  ValueNotifier<bool>? horizontalTopNav,
+  TextScaler textScaler = TextScaler.noScaling,
 }) async {
   await tester.binding.setSurfaceSize(size);
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -57,6 +60,19 @@ Future<void> _pump(
   );
   addTearDown(updateController.dispose);
   final shellKey = GlobalKey<AppShellState>();
+  // Optional scopes are only mounted when a test supplies their notifier, so
+  // every other test keeps the production defaults (glossary hidden, rail).
+  Widget scoped(Widget child) {
+    var tree = child;
+    if (showGlossary != null) {
+      tree = ShowGlossaryScope(notifier: showGlossary, child: tree);
+    }
+    if (horizontalTopNav != null) {
+      tree = HorizontalTopNavScope(notifier: horizontalTopNav, child: tree);
+    }
+    return tree;
+  }
+
   await tester.pumpWidget(
     MaterialApp(
       // Mirrors the root MaterialApp in main.dart, which owns Ctrl/Cmd-K.
@@ -72,24 +88,22 @@ Future<void> _pump(
       },
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
-      builder: (context, child) => RepositoriesScope(
-        repositories: repos,
-        child: UpdateScope(
-          controller: updateController,
-          child: AppThemeScope(
-            notifier: themeNotifier,
-            child: CustomThemesScope(
-              controller: customThemes,
-              child: ActiveDialectScope(
-                notifier: notifier,
-                child: RequirePerformedForHistoryScope(
-                  notifier: requirePerformedNotifier,
-                  child: showGlossary == null
-                      ? child!
-                      : ShowGlossaryScope(
-                          notifier: showGlossary,
-                          child: child!,
-                        ),
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(textScaler: textScaler),
+        child: RepositoriesScope(
+          repositories: repos,
+          child: UpdateScope(
+            controller: updateController,
+            child: AppThemeScope(
+              notifier: themeNotifier,
+              child: CustomThemesScope(
+                controller: customThemes,
+                child: ActiveDialectScope(
+                  notifier: notifier,
+                  child: RequirePerformedForHistoryScope(
+                    notifier: requirePerformedNotifier,
+                    child: scoped(child!),
+                  ),
                 ),
               ),
             ),
@@ -123,6 +137,248 @@ void main() {
   testWidgets('wide layout uses a NavigationRail', (tester) async {
     final repos = openTestRepositories();
     await _pump(tester, repos, size: const Size(1200, 900));
+
+    expect(find.byType(NavigationRail), findsOneWidget);
+    expect(find.byType(NavigationBar), findsNothing);
+  });
+
+  testWidgets('the horizontal navigation setting puts a compact destination '
+      'cluster at the top left', (tester) async {
+    final handle = tester.ensureSemantics();
+    final repos = openTestRepositories();
+    final topNav = ValueNotifier<bool>(true);
+    addTearDown(topNav.dispose);
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    try {
+      await _pump(
+        tester,
+        repos,
+        size: const Size(1200, 900),
+        horizontalTopNav: topNav,
+      );
+
+      expect(find.byType(NavigationRail), findsNothing);
+      // Desktop toolbar, not the narrow layout's evenly-spread NavigationBar.
+      expect(find.byType(NavigationBar), findsNothing);
+      final topBar = find.byKey(const ValueKey('horizontal-top-nav'));
+      expect(topBar, findsOneWidget);
+      expect(tester.getRect(topBar).bottom, lessThan(120));
+      expect(
+        find.descendant(of: topBar, matching: find.byType(BrandMark)),
+        findsOneWidget,
+      );
+      final search = find.byKey(const ValueKey('global-search-button'));
+      expect(find.descendant(of: topBar, matching: search), findsOneWidget);
+
+      final tabs = [
+        for (var i = 0; i < 4; i++) find.byKey(ValueKey('top-nav-$i')),
+      ];
+      for (final label in ['Collection', 'Programs', 'Settings', 'Guide']) {
+        expect(
+          find.descendant(of: topBar, matching: find.text(label)),
+          findsOneWidget,
+        );
+      }
+      // The destinations are one tight group at the leading edge, not spread
+      // across the window.
+      final first = tester.getRect(tabs.first);
+      final last = tester.getRect(tabs.last);
+      expect(first.left, lessThan(120));
+      // The test font gives every glyph a full em, so this ceiling is generous;
+      // it still fails if the tabs grow into the mobile bar's even spread.
+      expect(
+        last.right - first.left,
+        lessThan(620),
+        reason: 'tab rects: ${[for (final t in tabs) tester.getRect(t)]}',
+      );
+      for (var i = 0; i < tabs.length - 1; i++) {
+        expect(
+          tester.getRect(tabs[i + 1]).left - tester.getRect(tabs[i]).right,
+          lessThanOrEqualTo(4),
+          reason: 'destination tabs should sit close together',
+        );
+      }
+      // Search stays at the far end, away from the cluster.
+      expect(tester.getRect(search).left, greaterThan(last.right));
+
+      // The same destinations switch. Each tab is one semantics node — not an
+      // outer "selected" wrapper around a second, focusable node — so the state
+      // is announced where keyboard focus lands.
+      for (final label in ['Collection', 'Programs', 'Settings', 'Guide']) {
+        expect(
+          find.descendant(of: topBar, matching: find.bySemanticsLabel(label)),
+          findsOneWidget,
+          reason: '$label should be announced once, not once per wrapper',
+        );
+      }
+      expect(
+        tester.getSemantics(tabs[0]),
+        isSemantics(
+          label: 'Collection',
+          isButton: true,
+          isSelected: true,
+          isFocusable: true,
+          hasTapAction: true,
+        ),
+      );
+      await tester.tap(tabs[1]);
+      await tester.pumpAndSettle();
+      expect(
+        tester.getSemantics(tabs[1]),
+        isSemantics(
+          label: 'Programs',
+          isButton: true,
+          isSelected: true,
+          isFocusable: true,
+          hasTapAction: true,
+        ),
+      );
+      await tester.tap(tabs[3]);
+      await tester.pumpAndSettle();
+      expect(
+        tester.getSemantics(tabs[3]),
+        isSemantics(
+          label: 'Guide',
+          isButton: true,
+          isSelected: true,
+          isFocusable: true,
+          hasTapAction: true,
+        ),
+      );
+      expect(find.byType(UserGuideScreen), findsOneWidget);
+    } finally {
+      handle.dispose();
+      // Cleared before the body returns: the binding checks foundation debug
+      // variables before any addTearDown callback runs.
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
+
+  testWidgets('turning the horizontal navigation setting off restores the '
+      'rail live', (tester) async {
+    final repos = openTestRepositories();
+    final topNav = ValueNotifier<bool>(true);
+    addTearDown(topNav.dispose);
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    try {
+      await _pump(
+        tester,
+        repos,
+        size: const Size(1200, 900),
+        horizontalTopNav: topNav,
+      );
+      expect(find.byType(NavigationRail), findsNothing);
+
+      topNav.value = false;
+      await tester.pumpAndSettle();
+
+      expect(find.byType(NavigationRail), findsOneWidget);
+      expect(find.byType(NavigationBar), findsNothing);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
+
+  testWidgets('flipping the horizontal navigation setting keeps the pages '
+      'alive', (tester) async {
+    // A wide rail and a wide top bar are different widget trees (Row vs
+    // Column), so without a shared key Flutter unmounts every page and inflates
+    // fresh ones: the open dance, the scroll positions and keyboard focus would
+    // all be lost by a single preference flip.
+    final repos = openTestRepositories();
+    final now = DateTime.utc(2026, 1, 1);
+    await repos.dances.create(
+      Dance(
+        id: 'd1',
+        title: 'Kept Dance',
+        authorIds: const [],
+        tagIds: const [],
+        form: DanceForm.contra,
+        formation: const Formation(FormationShape.dupleImproper),
+        status: DanceStatus.active,
+        figures: const [],
+        customFields: const [],
+        hook: '',
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+    final topNav = ValueNotifier<bool>(false);
+    addTearDown(topNav.dispose);
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    try {
+      await _pump(
+        tester,
+        repos,
+        size: const Size(1200, 900),
+        horizontalTopNav: topNav,
+      );
+      await tester.tap(find.text('Kept Dance'));
+      await tester.pumpAndSettle();
+      expect(find.byType(DanceDetailScreen), findsOneWidget);
+
+      topNav.value = true;
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('horizontal-top-nav')), findsOneWidget);
+      expect(
+        find.byType(DanceDetailScreen),
+        findsOneWidget,
+        reason:
+            'the Collection page, and the dance open in it, must survive '
+            'the rail-to-top-bar swap',
+      );
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
+
+  testWidgets('the top bar lays out at the minimum wide width with large '
+      'system text', (tester) async {
+    // The desktop OS text-size setting can double every label. The ranked tabs
+    // must scroll instead of overflowing the bar, and search must stay on
+    // screen at the narrowest wide window.
+    final repos = openTestRepositories();
+    final topNav = ValueNotifier<bool>(true);
+    addTearDown(topNav.dispose);
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    try {
+      await _pump(
+        tester,
+        repos,
+        size: const Size(900, 900),
+        horizontalTopNav: topNav,
+        textScaler: const TextScaler.linear(2),
+      );
+
+      expect(find.byKey(const ValueKey('horizontal-top-nav')), findsOneWidget);
+      // A RenderFlex overflow is reported as an exception during layout.
+      expect(tester.takeException(), isNull);
+      expect(
+        tester
+            .getRect(find.byKey(const ValueKey('global-search-button')))
+            .right,
+        lessThanOrEqualTo(900),
+      );
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
+
+  testWidgets('the horizontal navigation setting is ignored off desktop', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    // True here, but the test binding's default platform is a phone: the
+    // setting is desktop-only, so the wide layout keeps its rail.
+    final topNav = ValueNotifier<bool>(true);
+    addTearDown(topNav.dispose);
+    await _pump(
+      tester,
+      repos,
+      size: const Size(1200, 900),
+      horizontalTopNav: topNav,
+    );
 
     expect(find.byType(NavigationRail), findsOneWidget);
     expect(find.byType(NavigationBar), findsNothing);

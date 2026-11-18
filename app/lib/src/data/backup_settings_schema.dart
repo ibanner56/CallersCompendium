@@ -40,6 +40,7 @@ import 'display_defaults.dart'
         tryDecodeDefaultImportTagNames,
         tryDecodeStartingProgramTemplate;
 import 'formation_colors_controller.dart' show kFormationColorOverridesKey;
+import 'horizontal_top_nav_scope.dart' show kHorizontalTopNavKey;
 import 'locale_scope.dart' show kLocaleKey;
 import 'mark_all_sets_status_scope.dart' show kMarkAllSetsStatusKey;
 import 'set_list_share_scope.dart'
@@ -118,6 +119,7 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
     kShowCustomFiguresKey,
     kConfirmBeforeDeleteKey,
     kSetListColorCodingKey,
+    kHorizontalTopNavKey,
     kShowPerformedTogglesKey,
     kMarkAllSetsStatusKey,
     kShareSetListIncludeTitleKey,

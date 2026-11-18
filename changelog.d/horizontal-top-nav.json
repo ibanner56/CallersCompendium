@@ -1,0 +1,9 @@
+{
+  "id": "horizontal-top-nav",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "On desktop, Appearance settings now offers a Horizontal navigation bar option that moves the main sections from the left rail to a bar across the top of the window."
+    ]
+  }
+}

@@ -106,6 +106,20 @@ final Map<String, DataClassification> settingsClassifications = {
         '(settings-sync-scope, 2026-10-29).',
   ),
   'set_list_color_coding': _preference,
+  'horizontal_top_nav': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.deviceLocal,
+    note:
+        'Screen-bound: whether the main sections sit across the top or down '
+        'the left is a choice about one window, and a narrow window on another '
+        'device has no rail to move. It is never synced. deviceLocal, not '
+        'deviceScoped: it is withheld for what it means on another screen, not '
+        'for what it contains, and deviceScoped would also drop it from the '
+        "user's own backups, which should give it back on restore. The "
+        "implementer's call, following the settings-sync-scope precedent for "
+        'other screen-bound preferences (app_locale, perform_text_scale).',
+  ),
 
   // -- Dialect and rendering ------------------------------------------------
   'active_dialect': _preference,

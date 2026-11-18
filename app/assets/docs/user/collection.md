@@ -685,7 +685,8 @@ so the selection is clear however you are reading the screen.
 ## Jump straight to a dance or program
 
 Anywhere in the app except Perform mode, the **Search** button — in the
-navigation rail on a wide screen, or in the app bar on a narrow one — or the
+navigation rail, or at the right end of the bar across the top, on a wide
+screen, or in the app bar on a narrow one — or the
 keyboard shortcut **Ctrl-K** (**Cmd-K** on macOS) opens a single search box over
 whatever you are doing. Type, and matching **Dances** and **Programs** are listed
 in groups; choose one and you go straight there.

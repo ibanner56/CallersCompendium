@@ -2466,6 +2466,17 @@ class AppLocalizationsFr extends AppLocalizations {
   String get themeEditorPairOutline => 'Contour sur surface';
 
   @override
+  String get settingsAppearanceNavigationHeader => 'Navigation';
+
+  @override
+  String get settingsAppearanceHorizontalNavTitle =>
+      'Barre de navigation horizontale';
+
+  @override
+  String get settingsAppearanceHorizontalNavSubtitle =>
+      'Placez les sections principales dans une barre en haut de la fenêtre au lieu de la colonne de gauche. Seules les fenêtres de bureau assez larges pour la barre latérale sont concernées.';
+
+  @override
   String get settingsAppearanceEasterEggsHeader => 'Easter eggs';
 
   @override

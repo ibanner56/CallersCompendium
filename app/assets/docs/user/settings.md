@@ -21,7 +21,8 @@ section.*
 **Settings** is a top-level destination, marked with a gear icon and labeled
 **Settings**. On a narrow screen (like a phone) it's a tab in the bottom
 navigation; on a wide screen (a tablet or desktop) it's in the side navigation
-rail. On a computer you can also press **Ctrl-,** (**Cmd-,** on a Mac), or
+rail, or a tab in the bar across the top if you turned **Horizontal navigation
+bar** on. On a computer you can also press **Ctrl-,** (**Cmd-,** on a Mac), or
 choose **Settings…** in the **Caller's Compendium** menu on a Mac (see
 [Using the keyboard](./accessibility.md#using-the-keyboard)).
 
@@ -364,6 +365,14 @@ There's a **High contrast** theme for maximum legibility — see the
   start from something familiar. You can tune any color in it.
 - Saved custom themes can be selected, edited, duplicated, or deleted at any time.
   They sync to your other devices along with your other settings when sync is on, and deleting a theme deletes it on those devices too.
+
+### Navigation
+
+- **Horizontal navigation bar** (desktop only, off by default) — put the main
+  sections in a bar across the top of the window instead of down the left. It
+  applies to desktop windows wide enough for the side rail; a narrow window
+  keeps its bottom bar. This is a per-screen choice, so it does not sync to your
+  other devices.
 
 ### Easter eggs
 
@@ -1259,7 +1268,8 @@ Sync is off and open while it is on.
   turns sync on.
 - A few other settings depend on the screen they are used on, so they stay on
   each device too: **App language**, **Reduce motion**, **Auto-size Perform
-  cards**, and Perform's stage theme and text size. Unlike the sync settings
+  cards**, **Horizontal navigation bar** (desktop only), and Perform's stage
+  theme and text size. Unlike the sync settings
   above, a backup includes them. Your theme and custom themes do sync. A
   device still on an older version of the app keeps syncing the language,
   **Reduce motion**, **Auto-size Perform cards** and stage theme settings with
@@ -1267,8 +1277,8 @@ Sync is off and open while it is on.
   sends. Until you update it,
   that older device may wrongly say this one isn't taking its changes; see
   **"Needs you"** above. A choice that was waiting under **Choose which
-  version to keep** for one of those four settings from before you updated is
-  dropped, since there is nothing left to choose.
+  version to keep** for one of those four sync settings from before you updated
+  is dropped, since there is nothing left to choose.
 
 **Connecting.** Once Device Sync is on, choose **Connect**, then either:
 

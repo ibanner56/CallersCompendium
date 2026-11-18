@@ -2430,6 +2430,16 @@ class AppLocalizationsDa extends AppLocalizations {
   String get themeEditorPairOutline => 'Kontur på overflade';
 
   @override
+  String get settingsAppearanceNavigationHeader => 'Navigation';
+
+  @override
+  String get settingsAppearanceHorizontalNavTitle => 'Vandret navigationslinje';
+
+  @override
+  String get settingsAppearanceHorizontalNavSubtitle =>
+      'Placer hovedafsnittene i en linje øverst i vinduet i stedet for ned ad venstre side. Kun skrivebordsvinduer, der er brede nok til sidebjælken, påvirkes.';
+
+  @override
   String get settingsAppearanceEasterEggsHeader => 'Påskeæg';
 
   @override

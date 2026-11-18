@@ -36,7 +36,9 @@ It is **local-first**, and that shapes everything else:
 - **It runs everywhere you call.** The same app, adapted to each screen size,
   runs on Linux, macOS, Windows, Android, and iOS/iPadOS. On a phone you get a
   single-column layout with a bottom navigation bar; on a tablet or desktop you
-  get side-by-side list and detail panes and a left navigation rail.
+  get side-by-side list and detail panes and a left navigation rail (or, on a
+  desktop, a bar across the top if you turn that on in
+  [Settings › Appearance](./settings.md#navigation)).
 
 Because your whole library lives in one place on your device, you can move it to
 a new machine any time with a single backup file — see the
@@ -83,7 +85,8 @@ Two small things worth knowing on day one:
 ## A tour of the app
 
 Four destinations are always one step away in the navigation (a bottom bar on a
-phone, a left rail on a tablet or desktop): **Collection**, **Programs**,
+phone, a left rail on a tablet or desktop — or a bar across the top on a
+desktop, if you turn that on): **Collection**, **Programs**,
 **Settings**, and **Guide**. A fifth, **Glossary**, appears between **Programs**
 and **Settings** if you turn it on in **Settings ▸ Experimental** (see
 [Settings](settings.md#glossary-and-custom-figures)).
@@ -95,7 +98,8 @@ program when it is time to call, and step back out when you are done.
 no signal. It is the same set of pages you are reading now.
 
 To jump straight to a dance or program you can name, choose **Search** — in the
-navigation rail on a wide screen, or in the app bar on a narrow one — or press
+navigation rail, or at the right end of the bar across the top, on a wide
+screen, or in the app bar on a narrow one — or press
 **Ctrl-K** (**Cmd-K** on macOS); see
 [Jump straight to a dance or program](./collection.md#jump-straight-to-a-dance-or-program).
 On a computer you can also use keyboard shortcuts, your mouse's **Back** button,

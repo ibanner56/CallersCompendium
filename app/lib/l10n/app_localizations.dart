@@ -3631,6 +3631,24 @@ abstract class AppLocalizations {
   /// **'Outline on surface'**
   String get themeEditorPairOutline;
 
+  /// Section header for navigation-layout options in Appearance settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Navigation'**
+  String get settingsAppearanceNavigationHeader;
+
+  /// Toggle title: move the main navigation from the left rail to a bar across the top.
+  ///
+  /// In en, this message translates to:
+  /// **'Horizontal navigation bar'**
+  String get settingsAppearanceHorizontalNavTitle;
+
+  /// Explanation for the horizontal-navigation toggle, noting it applies to wide desktop windows only.
+  ///
+  /// In en, this message translates to:
+  /// **'Place the main sections in a bar across the top of the window instead of down the left. Only desktop windows wide enough for the side rail are affected.'**
+  String get settingsAppearanceHorizontalNavSubtitle;
+
   /// Section header for playful optional visual features in Appearance settings.
   ///
   /// In en, this message translates to:

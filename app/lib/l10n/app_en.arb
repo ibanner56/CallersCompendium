@@ -3020,6 +3020,18 @@
   "@themeEditorPairOutline": {
     "description": "Label of the live WCAG contrast badge for the \"Outline on surface\" color pair in the custom-theme editor."
   },
+  "settingsAppearanceNavigationHeader": "Navigation",
+  "@settingsAppearanceNavigationHeader": {
+    "description": "Section header for navigation-layout options in Appearance settings."
+  },
+  "settingsAppearanceHorizontalNavTitle": "Horizontal navigation bar",
+  "@settingsAppearanceHorizontalNavTitle": {
+    "description": "Toggle title: move the main navigation from the left rail to a bar across the top."
+  },
+  "settingsAppearanceHorizontalNavSubtitle": "Place the main sections in a bar across the top of the window instead of down the left. Only desktop windows wide enough for the side rail are affected.",
+  "@settingsAppearanceHorizontalNavSubtitle": {
+    "description": "Explanation for the horizontal-navigation toggle, noting it applies to wide desktop windows only."
+  },
   "settingsAppearanceEasterEggsHeader": "Easter eggs",
   "@settingsAppearanceEasterEggsHeader": {
     "description": "Section header for playful optional visual features in Appearance settings."
