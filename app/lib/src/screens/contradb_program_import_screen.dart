@@ -48,6 +48,9 @@ enum _ImportMode {
 /// creates no program and takes back every dance it imported, so a half-built
 /// program of notes never claims the archives had nothing.
 ///
+/// Going back with a URL, a search or a fetched program on screen (including a
+/// shared link) asks first; going back while the import commits does not.
+///
 /// Pushed as a route; pops with the created program's id on success (null if the
 /// user backs out), mirroring [PlaintextProgramImportScreen]. Commit shows an
 /// undo SnackBar that hard-deletes the just-created program and the dances

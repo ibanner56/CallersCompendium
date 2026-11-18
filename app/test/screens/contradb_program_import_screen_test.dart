@@ -51,6 +51,7 @@ Future<void> _pump(
   required ContraDbOnline contraDb,
   CallersBoxOnline? callersBox,
   ContraDbProgramSearch? programSearch,
+  String? initialUrl,
 }) async {
   await tester.binding.setSurfaceSize(const Size(600, 1200));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -71,6 +72,7 @@ Future<void> _pump(
                     contraDbOnline: contraDb,
                     callersBoxOnline: callersBox,
                     programSearch: programSearch,
+                    initialUrl: initialUrl,
                   ),
                 ),
               ),
@@ -1155,6 +1157,19 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('discard-confirm')));
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('contradb-program-url')), findsNothing);
+    });
+
+    testWidgets('back from a shared link asks first', (tester) async {
+      final repos = openTestRepositories();
+      await _pump(
+        tester,
+        repos,
+        programFetcher: (_) async => _programHtml,
+        contraDb: ContraDbOnline(htmlFetcher: (_) async => ''),
+        initialUrl: 'https://contradb.com/programs/33',
+      );
+      await back(tester);
+      expect(find.byKey(const ValueKey('discard-cancel')), findsOneWidget);
     });
 
     testWidgets('back with nothing entered leaves without asking', (

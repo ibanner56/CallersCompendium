@@ -139,6 +139,29 @@ void main() {
     );
   });
 
+  testWidgets('a tap outside the edit dialog keeps text typed into it', (
+    tester,
+  ) async {
+    await openScreen(tester, [twirl]);
+    const name = ValueKey('cc-term-edit-name');
+
+    // Untouched, the barrier still closes it.
+    await tester.tap(find.byKey(const ValueKey('cc-term-import-edit-0')));
+    await tester.pumpAndSettle();
+    await tester.tapAt(const Offset(4, 4));
+    await tester.pumpAndSettle();
+    expect(find.byKey(name), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('cc-term-import-edit-0')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(name), 'Twirl, twice');
+    await tester.pump();
+    await tester.tapAt(const Offset(4, 4));
+    await tester.pumpAndSettle();
+    expect(find.byKey(name), findsOneWidget);
+    expect(find.text('Twirl, twice'), findsOneWidget);
+  });
+
   testWidgets('a term with no definition is offered unticked until it has '
       'one', (tester) async {
     await openScreen(tester, [noDefinition]);
