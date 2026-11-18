@@ -429,7 +429,6 @@ class AppShellState extends State<AppShell> {
                         label: _destinationLabel(l10n, d),
                       ),
                     NavigationDestination(
-                      key: const ValueKey('user-guide-destination'),
                       icon: _navIcon(_Destination.guide),
                       selectedIcon: _navIcon(
                         _Destination.guide,
@@ -558,13 +557,14 @@ class AppShellState extends State<AppShell> {
 }
 
 /// The wide-layout alternative to the left [NavigationRail]: the same
-/// destinations in a bar across the top, with the brand mark and search
-/// affordance leading the row. Shown when the desktop-only "Horizontal
-/// navigation bar" Appearance setting is on ([HorizontalTopNavScope]).
+/// destinations in a bar across the top. Shown when the desktop-only
+/// "Horizontal navigation bar" Appearance setting is on
+/// ([HorizontalTopNavScope]).
 ///
-/// Uses Material's [NavigationBar] so selection, keyboard traversal and screen
-/// reader semantics match the narrow layout's bar rather than being
-/// re-implemented.
+/// This is a desktop toolbar, not the narrow layout's [NavigationBar]: the
+/// destinations are compact icon-and-label tabs gathered on the left beside the
+/// brand, with search at the far right, rather than evenly spread across the
+/// window with stacked icons and labels.
 class _TopNavBar extends StatelessWidget {
   const _TopNavBar({
     required this.selectedIndex,
@@ -590,38 +590,115 @@ class _TopNavBar extends StatelessWidget {
       color: theme.colorScheme.surface,
       child: SafeArea(
         bottom: false,
-        child: Row(
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.sm,
-                vertical: AppSpacing.sm,
-              ),
+        child: SizedBox(
+          height: 56,
+          child: Row(
+            children: [
+              const SizedBox(width: AppSpacing.sm),
               // Same full-color tile as the rail's header, so the mark stays
               // legible on every theme surface including high-contrast ones.
-              child: BrandMark(
-                size: 32,
-                showTile: true,
-                semanticLabel: brandLabel,
+              BrandMark(size: 32, showTile: true, semanticLabel: brandLabel),
+              const SizedBox(width: AppSpacing.sm),
+              const VerticalDivider(
+                width: 1,
+                thickness: 1,
+                indent: 12,
+                endIndent: 12,
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              // One tight group at the leading edge: compact tabs rather than
+              // the mobile bar's evenly-spread, stacked destinations.
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                spacing: 2,
+                children: [
+                  for (var i = 0; i < destinations.length; i++)
+                    _TopNavTab(
+                      key: ValueKey('top-nav-$i'),
+                      icon: destinations[i].icon,
+                      selectedIcon:
+                          destinations[i].selectedIcon ?? destinations[i].icon,
+                      label: destinations[i].label,
+                      selected: i == selectedIndex,
+                      onTap: () => onDestinationSelected(i),
+                    ),
+                ],
+              ),
+              const Spacer(),
+              _TopNavSearchButton(onPressed: onSearch),
+              const SizedBox(width: AppSpacing.sm),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// One compact destination tab in [_TopNavBar]: icon and label side by side,
+/// with a rounded selected pill and the filled icon. Desktop density, so the
+/// destinations read as a cluster on the left instead of the mobile bar's
+/// full-width distribution.
+class _TopNavTab extends StatelessWidget {
+  const _TopNavTab({
+    super.key,
+    required this.icon,
+    required this.selectedIcon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final Widget icon;
+  final Widget selectedIcon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final foreground = selected
+        ? scheme.onSecondaryContainer
+        : scheme.onSurfaceVariant;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      onTap: onTap,
+      child: Tooltip(
+        message: label,
+        child: Material(
+          color: selected ? scheme.secondaryContainer : Colors.transparent,
+          borderRadius: AppShapes.borderRadiusLarge,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: AppShapes.borderRadiusLarge,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.xs,
+                vertical: 12,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconTheme.merge(
+                    data: IconThemeData(color: foreground, size: 18),
+                    child: selected ? selectedIcon : icon,
+                  ),
+                  const SizedBox(width: AppSpacing.xxs),
+                  Text(
+                    label,
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: foreground,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
             ),
-            _TopNavSearchButton(onPressed: onSearch),
-            const VerticalDivider(
-              width: 1,
-              thickness: 1,
-              indent: AppSpacing.sm,
-              endIndent: AppSpacing.sm,
-            ),
-            Expanded(
-              child: NavigationBar(
-                selectedIndex: selectedIndex,
-                onDestinationSelected: onDestinationSelected,
-                destinations: destinations,
-                backgroundColor: Colors.transparent,
-                elevation: 0,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

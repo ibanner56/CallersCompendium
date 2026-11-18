@@ -138,8 +138,9 @@ void main() {
     expect(find.byType(NavigationBar), findsNothing);
   });
 
-  testWidgets('the horizontal navigation setting puts the destinations across '
-      'the top', (tester) async {
+  testWidgets('the horizontal navigation setting puts a compact destination '
+      'cluster at the top left', (tester) async {
+    final handle = tester.ensureSemantics();
     final repos = openTestRepositories();
     final topNav = ValueNotifier<bool>(true);
     addTearDown(topNav.dispose);
@@ -153,37 +154,69 @@ void main() {
       );
 
       expect(find.byType(NavigationRail), findsNothing);
+      // Desktop toolbar, not the narrow layout's evenly-spread NavigationBar.
+      expect(find.byType(NavigationBar), findsNothing);
       final topBar = find.byKey(const ValueKey('horizontal-top-nav'));
       expect(topBar, findsOneWidget);
-      final bar = find.descendant(
-        of: topBar,
-        matching: find.byType(NavigationBar),
-      );
-      expect(bar, findsOneWidget);
-      // It is a top bar, not the narrow layout's bottom bar.
       expect(tester.getRect(topBar).bottom, lessThan(120));
-      // Brand and search keep the rail's leading affordances and are in the bar.
       expect(
         find.descendant(of: topBar, matching: find.byType(BrandMark)),
         findsOneWidget,
       );
-      expect(
-        find.descendant(
-          of: topBar,
-          matching: find.byKey(const ValueKey('global-search-button')),
-        ),
-        findsOneWidget,
-      );
+      final search = find.byKey(const ValueKey('global-search-button'));
+      expect(find.descendant(of: topBar, matching: search), findsOneWidget);
 
-      // The same destinations switch, and the guide is the trailing one.
-      await tester.tap(find.text('Programs').last);
+      final tabs = [
+        for (var i = 0; i < 4; i++) find.byKey(ValueKey('top-nav-$i')),
+      ];
+      for (final label in ['Collection', 'Programs', 'Settings', 'Guide']) {
+        expect(
+          find.descendant(of: topBar, matching: find.text(label)),
+          findsOneWidget,
+        );
+      }
+      // The destinations are one tight group at the leading edge, not spread
+      // across the window.
+      final first = tester.getRect(tabs.first);
+      final last = tester.getRect(tabs.last);
+      expect(first.left, lessThan(120));
+      // The test font gives every glyph a full em, so this ceiling is generous;
+      // it still fails if the tabs grow into the mobile bar's even spread.
+      expect(
+        last.right - first.left,
+        lessThan(620),
+        reason: 'tab rects: ${[for (final t in tabs) tester.getRect(t)]}',
+      );
+      for (var i = 0; i < tabs.length - 1; i++) {
+        expect(
+          tester.getRect(tabs[i + 1]).left - tester.getRect(tabs[i]).right,
+          lessThanOrEqualTo(4),
+          reason: 'destination tabs should sit close together',
+        );
+      }
+      // Search stays at the far end, away from the cluster.
+      expect(tester.getRect(search).left, greaterThan(last.right));
+
+      // The same destinations switch. Selection is exposed to assistive tech.
+      expect(
+        tester.getSemantics(tabs[0]),
+        isSemantics(isSelected: true, hasTapAction: true),
+      );
+      await tester.tap(tabs[1]);
       await tester.pumpAndSettle();
-      expect(tester.widget<NavigationBar>(bar).selectedIndex, 1);
-      await tester.tap(find.text('Guide').last);
+      expect(
+        tester.getSemantics(tabs[1]),
+        isSemantics(isSelected: true, hasTapAction: true),
+      );
+      await tester.tap(tabs[3]);
       await tester.pumpAndSettle();
-      expect(tester.widget<NavigationBar>(bar).selectedIndex, 3);
+      expect(
+        tester.getSemantics(tabs[3]),
+        isSemantics(isSelected: true, hasTapAction: true),
+      );
       expect(find.byType(UserGuideScreen), findsOneWidget);
     } finally {
+      handle.dispose();
       // Cleared before the body returns: the binding checks foundation debug
       // variables before any addTearDown callback runs.
       debugDefaultTargetPlatformOverride = null;
