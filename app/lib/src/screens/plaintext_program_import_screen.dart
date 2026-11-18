@@ -47,7 +47,8 @@ import '../widgets/confirm_discard_changes.dart';
 /// SnackBar that hard-deletes the just-created program. Dances the online pass
 /// imported are tracked in a [ProgramImportRollback]: Undo removes them along
 /// with the program, and backing out without creating the program removes them
-/// at once (docs/user/programs.md).
+/// at once (docs/user/programs.md). Backing out with a list entered asks first
+/// ([DiscardChangesGuard]), except while the program is being written.
 class PlaintextProgramImportScreen extends StatefulWidget {
   const PlaintextProgramImportScreen({
     super.key,

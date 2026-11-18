@@ -2,7 +2,11 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/src/screens/dance_editor/choice_option.dart'
+    show AddChoiceResult;
+import 'package:compendium_app/src/screens/dance_editor/custom_field_editor.dart';
 import 'package:compendium_app/src/screens/settings/library_manager_list.dart';
+import 'package:compendium_app/src/widgets/program_slot_list_editor.dart';
 import 'package:compendium_app/src/widgets/published_source_details_dialog.dart';
 
 import '../support/l10n_harness.dart';
@@ -85,5 +89,98 @@ void main() {
     await tester.pumpAndSettle();
     await _tapOutside(tester);
     expect(find.byKey(const ValueKey('library-rename-dialog')), findsOneWidget);
+  });
+
+  testWidgets('rename dialog: untouched dialog closes on outside tap', (
+    tester,
+  ) async {
+    await _pumpOpener(
+      tester,
+      (c) => showLibraryRenameDialog(c, currentName: 'Old', fieldLabel: 'Name'),
+    );
+    await _tapOutside(tester);
+    expect(find.byKey(const ValueKey('library-rename-dialog')), findsNothing);
+  });
+
+  testWidgets('add-choice dialog: outside tap keeps typed text', (
+    tester,
+  ) async {
+    await _pumpOpener(
+      tester,
+      (c) => showAddChoiceOptionDialog(
+        c,
+        label: 'Level',
+        onAddOption: (_) async => AddChoiceResult.added,
+      ),
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('add-option-input')),
+      'Advanced',
+    );
+    await tester.pumpAndSettle();
+    await _tapOutside(tester);
+    expect(find.byKey(const ValueKey('add-option-input')), findsOneWidget);
+  });
+
+  group('slot edit dialog', () {
+    Future<void> openSlotEdit(WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: Scaffold(
+            body: ProgramSlotListEditor(
+              slots: [ProgramSlot(id: 's1', position: 0, text: 'Caller note')],
+              danceTitles: (id) => 'Dance $id',
+              formationFor: (_) => null,
+              mixerFor: (_) => false,
+              onReorder: (_, _) {},
+              onSlotChanged: (_, _) {},
+              onPromoteAlternate: (_, _) {},
+              onRemove: (_) {},
+              onCreateDance: (_) {},
+              onPickReplacementDance: () async => 'd2',
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.byKey(const ValueKey('slot-0-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Edit slot'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('outside tap keeps an edited note', (tester) async {
+      await openSlotEdit(tester);
+      await tester.enterText(
+        find.byKey(const ValueKey('slot-edit-note')),
+        'Caller note, longer',
+      );
+      await tester.pumpAndSettle();
+      await _tapOutside(tester);
+      expect(find.byKey(const ValueKey('slot-edit-note')), findsOneWidget);
+    });
+
+    testWidgets('outside tap keeps a toggled alternate flag', (tester) async {
+      await openSlotEdit(tester);
+      await tester.tap(find.byKey(const ValueKey('slot-edit-alt')));
+      await tester.pumpAndSettle();
+      await _tapOutside(tester);
+      expect(find.byKey(const ValueKey('slot-edit-note')), findsOneWidget);
+    });
+
+    testWidgets('outside tap keeps a picked replacement dance', (tester) async {
+      await openSlotEdit(tester);
+      await tester.tap(find.byKey(const ValueKey('slot-edit-replace-dance')));
+      await tester.pumpAndSettle();
+      await _tapOutside(tester);
+      expect(find.byKey(const ValueKey('slot-edit-note')), findsOneWidget);
+    });
+
+    testWidgets('untouched dialog closes on outside tap', (tester) async {
+      await openSlotEdit(tester);
+      await _tapOutside(tester);
+      expect(find.byKey(const ValueKey('slot-edit-note')), findsNothing);
+    });
   });
 }
