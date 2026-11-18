@@ -147,7 +147,10 @@ class ProgramStatusChip extends StatelessWidget {
 
 /// Compact chip marking an archived program (icon + text), shown beside its
 /// [ProgramStatusChip] on the Programs list row and the summary. Neutral
-/// colour: archiving is not a status, and the label carries the meaning.
+/// colour: archiving is not a status, and the label carries the meaning. It
+/// uses the scheme's `outline`, which clears the chip's label and border
+/// contrast in every bundled theme; `onSurfaceVariant` fell short of 4.5:1
+/// for the label in Everforest Light (`palette_contrast_test.dart`).
 class ProgramArchivedChip extends StatelessWidget {
   const ProgramArchivedChip({super.key});
 
@@ -156,7 +159,7 @@ class ProgramArchivedChip extends StatelessWidget {
     key: const ValueKey('program-archived-chip'),
     icon: Icons.archive_outlined,
     label: AppLocalizations.of(context).programsArchivedLabel,
-    color: Theme.of(context).colorScheme.onSurfaceVariant,
+    color: Theme.of(context).colorScheme.outline,
   );
 }
 
