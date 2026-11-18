@@ -821,6 +821,17 @@ steps that can still fire are v40 onward.
   `from < 41` step, guarded by `IF NOT EXISTS`. Pure DDL: no columns or tables
   added, no data rewritten, no derived rebuild.
 
+- v42: program archiving. Adds the nullable `programs.archived_at` column
+  (`Program.archivedAt`); NULL, which every existing row gets, means not
+  archived. Archiving hides a program from the Programs list (unless "Show
+  archived" is on) and from the Add to program sheet; calling history, Last
+  called and the venue counts still count it, and search still finds it. It is
+  an ordinary content edit: `ProgramRepository.archive` and `unarchive` advance
+  `updated_at` and leave `existence_at` alone. Device Sync and backups carry
+  it; program share files drop it (`sanitizeProgramForShare`). Added by the
+  `from < 42` step with `Migrator.addColumn`, guarded on `pragma_table_info`.
+  No data rewritten, no derived rebuild.
+
 ## The delete model
 
 Every syncable kind — dances, programs, choreographers, tags, published

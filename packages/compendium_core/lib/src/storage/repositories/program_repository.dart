@@ -668,6 +668,54 @@ class ProgramRepository {
     });
   }
 
+  /// Archives the live program [id]: stamps `archived_at` with [at] and gives
+  /// it an `updated_at` after its current one (at or after [at]), so the
+  /// change travels in Device Sync as an ordinary newer program record.
+  /// `existence_at` is untouched: archiving is a content edit, not an
+  /// existence transition. Returns whether it wrote: `false` when the program
+  /// is missing, in Recently deleted, or already archived (its first
+  /// `archived_at` is kept).
+  ///
+  /// Only this column and `updated_at` are written, so an archive cannot
+  /// overwrite an edit that landed after the caller read the program.
+  Future<bool> archive(String id, {required DateTime at}) =>
+      _setArchivedAt(id, archivedAt: at, at: at);
+
+  /// Reverses [archive] for the live program [id], with the same stamping.
+  /// Returns `false` when the program is missing, in Recently deleted, or not
+  /// archived.
+  Future<bool> unarchive(String id, {required DateTime at}) =>
+      _setArchivedAt(id, archivedAt: null, at: at);
+
+  Future<bool> _setArchivedAt(
+    String id, {
+    required DateTime? archivedAt,
+    required DateTime at,
+  }) {
+    assertUtc(at, 'at');
+    return _db.transaction(() async {
+      final row =
+          await (_db.select(_db.programs)
+                ..where((t) => t.id.equals(id) & t.deletedAt.isNull()))
+              .getSingleOrNull();
+      if (row == null) return false;
+      if ((row.archivedAt != null) == (archivedAt != null)) return false;
+      final current = asUtc(row.updatedAt);
+      await (_db.update(_db.programs)..where((t) => t.id.equals(id))).write(
+        ProgramsCompanion(
+          archivedAt: Value(archivedAt),
+          updatedAt: Value(
+            nextStoredTimestamp(
+              now: at.isAfter(current) ? at : current.add(storedTimestampTick),
+              current: [current],
+            ),
+          ),
+        ),
+      );
+      return true;
+    });
+  }
+
   // --- Linking typed venues to a venue record (GIG-7 = (b)) ---------------
 
   /// The live programs that carry [name] as typed venue text and no linked
@@ -776,6 +824,7 @@ class ProgramRepository {
     assertUtc(program.createdAt, 'program.createdAt');
     assertUtc(program.updatedAt, 'program.updatedAt');
     assertUtcOrNull(program.deletedAt, 'program.deletedAt');
+    assertUtcOrNull(program.archivedAt, 'program.archivedAt');
     assertUtcOrNull(program.eventDate, 'program.eventDate');
     for (final slot in program.slots) {
       assertUtcOrNull(slot.performedAt, 'slot.performedAt');
@@ -905,6 +954,7 @@ class ProgramRepository {
               createdAt: program.createdAt,
               updatedAt: program.updatedAt,
               deletedAt: Value(program.deletedAt),
+              archivedAt: Value(program.archivedAt),
             ),
           );
       await seedExistenceIfMissing(
@@ -2251,6 +2301,7 @@ class ProgramRepository {
       row.dialectName == null &&
       row.payMinorUnits == null &&
       row.payCurrency == null &&
+      row.archivedAt == null &&
       await (_db.selectOnly(_db.programSlots)
                 ..addColumns([_db.programSlots.id])
                 ..where(_db.programSlots.programId.equals(row.id))
@@ -2301,6 +2352,7 @@ class ProgramRepository {
         dialectName: Value(normalizeShareableTextOrNull(null)),
         payMinorUnits: const Value(null),
         payCurrency: const Value(null),
+        archivedAt: const Value(null),
         updatedAt: Value(
           nextStoredTimestamp(
             now: now.isAfter(current) ? now : current.add(storedTimestampTick),
@@ -2335,6 +2387,7 @@ class ProgramRepository {
     createdAt: asUtc(row.createdAt),
     updatedAt: asUtc(row.updatedAt),
     deletedAt: asUtcOrNull(row.deletedAt),
+    archivedAt: asUtcOrNull(row.archivedAt),
     provenance: provenance,
   );
 

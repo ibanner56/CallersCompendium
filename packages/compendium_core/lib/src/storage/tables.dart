@@ -310,6 +310,13 @@ class Programs extends Table {
   /// other two.
   DateTimeColumn get existenceAt => dateTime().nullable()();
 
+  /// When the caller archived the program (schema v42); `null` (every program
+  /// before v42) means it is not archived. Hides the program from the Programs
+  /// list and the Add to program sheet, nothing more: calling history still
+  /// counts it. Declared last because `ALTER TABLE ADD COLUMN` appends it there
+  /// on a migrated database, so a fresh one gets the same column order.
+  DateTimeColumn get archivedAt => dateTime().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }

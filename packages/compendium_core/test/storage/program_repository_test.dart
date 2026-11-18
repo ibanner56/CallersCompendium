@@ -2494,6 +2494,117 @@ void main() {
     });
   });
 
+  group('archive / unarchive', () {
+    final at = DateTime.utc(2026, 5, 1, 12);
+
+    test('archive stamps archived_at and advances updated_at', () async {
+      await repo.create(sampleProgram());
+      expect(await repo.archive('p1', at: at), isTrue);
+      final stored = await repo.getById('p1');
+      expect(stored!.archivedAt, at);
+      expect(stored.isArchived, isTrue);
+      expect(stored.updatedAt, at);
+      expect(stored.title, 'Spring Dance 2026', reason: 'content untouched');
+    });
+
+    test('a stamp at or before updated_at still advances it', () async {
+      await repo.create(sampleProgram(updatedAt: DateTime.utc(2026, 6)));
+      await repo.archive('p1', at: DateTime.utc(2026, 1, 1));
+      final stored = await repo.getById('p1');
+      expect(stored!.updatedAt.isAfter(DateTime.utc(2026, 6)), isTrue);
+    });
+
+    test(
+      'archiving twice keeps the first stamp and reports no write',
+      () async {
+        await repo.create(sampleProgram());
+        await repo.archive('p1', at: at);
+        final first = await repo.getById('p1');
+        expect(
+          await repo.archive('p1', at: at.add(const Duration(days: 1))),
+          isFalse,
+        );
+        expect(await repo.getById('p1'), first);
+      },
+    );
+
+    test('unarchive clears archived_at and advances updated_at', () async {
+      await repo.create(sampleProgram());
+      await repo.archive('p1', at: at);
+      final archived = await repo.getById('p1');
+      final later = at.add(const Duration(hours: 1));
+      expect(await repo.unarchive('p1', at: later), isTrue);
+      final stored = await repo.getById('p1');
+      expect(stored!.archivedAt, isNull);
+      expect(stored.updatedAt.isAfter(archived!.updatedAt), isTrue);
+      expect(await repo.unarchive('p1', at: later), isFalse);
+    });
+
+    test('does not archive a missing or trashed program', () async {
+      expect(await repo.archive('missing', at: at), isFalse);
+      await repo.create(sampleProgram());
+      await repo.softDelete('p1', at: at);
+      expect(await repo.archive('p1', at: at), isFalse);
+      final stored = await repo.getById('p1', includeDeleted: true);
+      expect(stored!.archivedAt, isNull);
+    });
+
+    test('update and listAll round-trip archivedAt', () async {
+      await repo.create(sampleProgram().copyWith(archivedAt: at));
+      expect((await repo.getById('p1'))!.archivedAt, at);
+      expect((await repo.listAll()).single.archivedAt, at);
+      await repo.update(
+        (await repo.getById('p1'))!.copyWith(clearArchivedAt: true),
+      );
+      expect((await repo.getById('p1'))!.archivedAt, isNull);
+    });
+
+    test('an archived program still counts toward calling history', () async {
+      await dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Dance d1',
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      await repo.create(
+        sampleProgram(
+          eventDate: DateTime.utc(2026, 2, 1),
+          slots: [
+            ProgramSlot(
+              id: 's1',
+              position: 0,
+              danceId: 'd1',
+              performedAt: DateTime.utc(2026, 2, 1),
+            ),
+          ],
+        ),
+      );
+      final before = await repo.lastCalledByDance();
+      final countsBefore = await repo.countByDance();
+      await repo.archive('p1', at: at);
+      expect(await repo.lastCalledByDance(), before);
+      expect(before, isNotEmpty);
+      expect(await repo.countByDance(), countsBefore);
+      expect(await repo.callingHistoryForDance('d1'), hasLength(1));
+    });
+
+    test('duplicating an archived program gives an unarchived copy', () async {
+      await repo.create(sampleProgram());
+      await repo.archive('p1', at: at);
+      var n = 0;
+      final copy = await repo.duplicate(
+        id: 'p1',
+        newId: 'p2',
+        newSlotId: () => 'slot-${n++}',
+        now: at,
+      );
+      expect(copy.archivedAt, isNull);
+      expect((await repo.getById('p2'))!.archivedAt, isNull);
+    });
+  });
+
   group('renameDialect', () {
     final stamp = DateTime.utc(2026, 6, 1);
 

@@ -78,7 +78,8 @@ void main() {
       // table (sync-spec §6.7), and leaves the taxonomy alone too. Schema 40
       // (#709) adds the user glossary tables, taxonomy untouched. Schema 41
       // (#1935) adds lookup indexes on the dance join tables, likewise.
-      expect(kCompendiumSchemaVersion, 41);
+      // Schema 42 adds the nullable programs.archived_at, taxonomy untouched.
+      expect(kCompendiumSchemaVersion, 42);
     });
 
     test('registers with the maintainer-ruled param set', () {
