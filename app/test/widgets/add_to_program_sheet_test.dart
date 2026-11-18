@@ -205,6 +205,42 @@ void main() {
   });
 
   group('the sheet', () {
+    testWidgets('never offers an archived program, open or Performed', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.programs.create(_program('live'));
+      await repos.programs.create(
+        _program('shelved').copyWith(archivedAt: _now),
+      );
+      await repos.programs.create(
+        _program(
+          'shelved-done',
+          status: ProgramStatus.performed,
+        ).copyWith(archivedAt: _now),
+      );
+      await _openSheet(tester, repos);
+
+      expect(_row('live'), findsOneWidget);
+      expect(_row('shelved'), findsNothing);
+      expect(_row('shelved-done'), findsNothing);
+      expect(find.textContaining('Performed ('), findsNothing);
+    });
+
+    testWidgets('with every program archived, says so rather than "No '
+        'programs yet"', (tester) async {
+      final repos = openTestRepositories();
+      await repos.programs.create(
+        _program('shelved').copyWith(archivedAt: _now),
+      );
+      await _openSheet(tester, repos);
+
+      expect(_row('shelved'), findsNothing);
+      expect(find.text('No programs to show'), findsOneWidget);
+      expect(find.text('All your programs are archived.'), findsOneWidget);
+      expect(find.text('No programs yet'), findsNothing);
+    });
+
     testWidgets('lists an open program above a Performed one, whatever its '
         'edit time', (tester) async {
       final repos = openTestRepositories();

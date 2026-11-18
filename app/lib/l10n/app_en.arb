@@ -6907,11 +6907,11 @@
   },
   "programsAllArchivedTitle": "No programs to show",
   "@programsAllArchivedTitle": {
-    "description": "Title of the Programs list empty state when every program is archived and archived programs are hidden."
+    "description": "Title of the empty state when every program is archived: on the Programs list while archived programs are hidden, and in the add-to-program sheet, which never offers archived programs."
   },
   "programsAllArchivedBody": "All your programs are archived.",
   "@programsAllArchivedBody": {
-    "description": "Body of the Programs list empty state when every program is archived and archived programs are hidden. Followed by Show archived and New program buttons."
+    "description": "Body of the empty state when every program is archived. On the Programs list (while archived programs are hidden) it is followed by Show archived and New program buttons; in the add-to-program sheet it sits below the pinned New program row."
   },
   "programsDiscardTitle": "Discard changes?",
   "@programsDiscardTitle": {

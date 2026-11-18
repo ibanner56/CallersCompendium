@@ -3812,6 +3812,49 @@ void main() {
     expect(saved.slots.single.performedAt, laterPerformedAt);
   });
 
+  testWidgets('persisted Undo keeps an archive made elsewhere meanwhile', (
+    tester,
+  ) async {
+    final delayed = openTestRepositoriesWithDelayedPrograms();
+    await delayed.repos.dances.create(_dance(id: 'd1', title: 'Newly Called'));
+    await delayed.repos.programs.create(
+      _program(
+        id: 'p1',
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(
+      tester,
+      delayed.repos,
+      programId: 'p1',
+      autoCommit: true,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pump();
+    delayed.programs.holdNextConditionalRollback();
+    await tester.tap(find.byType(SnackBarAction));
+    await delayed.programs.conditionalRollbackStarted;
+    final live = await delayed.repos.programs.getById('p1');
+    final archivedAt = DateTime.utc(2030, 1, 1, 0, 0, 1);
+    delayed.programs.holdNextRead();
+    delayed.programs.releaseConditionalRollback();
+    await delayed.programs.readStarted;
+    // Another device archives the program while the Undo is merging.
+    await delayed.repos.programs.update(
+      live!.copyWith(archivedAt: archivedAt, updatedAt: DateTime.now().toUtc()),
+    );
+    delayed.programs.releaseRead();
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+
+    final saved = await delayed.repos.programs.getById('p1');
+    expect(saved!.archivedAt, archivedAt);
+  });
+
   testWidgets('persisted Undo preserves a local re-mark during live read', (
     tester,
   ) async {

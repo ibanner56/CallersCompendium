@@ -195,6 +195,91 @@ void main() {
     expect(find.text('Nav Target Program'), findsNothing);
   });
 
+  group('Show archived on the Programs list', () {
+    Future<CompendiumRepositories> seeded() async {
+      final repos = openTestRepositories();
+      final now = DateTime.utc(2026, 1, 1);
+      await repos.programs.create(
+        Program(
+          id: 'p1',
+          title: 'Live Program',
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+      await repos.programs.create(
+        Program(
+          id: 'p2',
+          title: 'Archived Program',
+          archivedAt: now,
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+      return repos;
+    }
+
+    Future<void> showArchived(WidgetTester tester) async {
+      await tester.tap(find.byKey(const ValueKey('programs-more-actions')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Show archived'));
+      await tester.pumpAndSettle();
+      expect(find.text('Archived Program'), findsOneWidget);
+    }
+
+    for (final destination in ['Collection', 'Settings']) {
+      testWidgets('outlasts opening a program, and resets when $destination '
+          'is chosen', (tester) async {
+        final repos = await seeded();
+        await _pump(tester, repos, size: const Size(500, 900));
+        await tester.tap(find.text('Programs').last);
+        await tester.pumpAndSettle();
+        expect(find.text('Archived Program'), findsNothing);
+        await showArchived(tester);
+
+        // Open the archived program's summary and its builder, then come back.
+        await tester.tap(find.text('Archived Program'));
+        await tester.pumpAndSettle();
+        expect(find.byType(ProgramSummaryScreen), findsOneWidget);
+        await tester.tap(find.byKey(const ValueKey('open-builder')));
+        await tester.pumpAndSettle();
+        expect(find.byType(ProgramEditorScreen), findsOneWidget);
+        await tester.pageBack();
+        await tester.pumpAndSettle();
+        await tester.pageBack();
+        await tester.pumpAndSettle();
+        expect(find.text('Archived Program'), findsOneWidget);
+
+        await tester.tap(
+          find.widgetWithText(NavigationDestination, destination),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Programs').last);
+        await tester.pumpAndSettle();
+        expect(find.text('Live Program'), findsOneWidget);
+        expect(find.text('Archived Program'), findsNothing);
+      });
+    }
+
+    testWidgets('wide: archiving from the summary pane closes the program', (
+      tester,
+    ) async {
+      final repos = await seeded();
+      await _pump(tester, repos, size: const Size(1400, 900));
+      await tester.tap(find.text('Programs').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Live Program'));
+      await tester.pumpAndSettle();
+      expect(find.byType(ProgramSummaryPane), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('summary-archive')));
+      await tester.pumpAndSettle();
+      expect((await repos.programs.getById('p1'))!.isArchived, isTrue);
+      expect(find.byType(ProgramSummaryPane), findsNothing);
+      expect(find.text('Live Program'), findsNothing);
+    });
+  });
+
   testWidgets('a rotation across the rail breakpoint mid-set keeps the '
       "program's Perform place (GIG-14)", (tester) async {
     final repos = openTestRepositories();

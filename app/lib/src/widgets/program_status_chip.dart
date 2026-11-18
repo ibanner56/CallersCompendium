@@ -138,6 +138,21 @@ class ProgramStatusChip extends StatelessWidget {
   }
 }
 
+/// Compact chip marking an archived program (icon + text), shown beside its
+/// [ProgramStatusChip] on the Programs list row and the summary. Neutral
+/// colour: archiving is not a status, and the label carries the meaning.
+class ProgramArchivedChip extends StatelessWidget {
+  const ProgramArchivedChip({super.key});
+
+  @override
+  Widget build(BuildContext context) => StatusChip(
+    key: const ValueKey('program-archived-chip'),
+    icon: Icons.archive_outlined,
+    label: AppLocalizations.of(context).programsArchivedLabel,
+    color: Theme.of(context).colorScheme.onSurfaceVariant,
+  );
+}
+
 /// Compact status chip for a dance's non-active [DanceStatus] (Deprecated /
 /// Broken). Shares [StatusChip] with [ProgramStatusChip] so dance status finally
 /// uses the `statusDeprecated` / `statusBroken` tokens instead of a plain chip.

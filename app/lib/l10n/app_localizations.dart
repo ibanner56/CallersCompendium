@@ -8171,13 +8171,13 @@ abstract class AppLocalizations {
   /// **'Hide archived'**
   String get programsHideArchived;
 
-  /// Title of the Programs list empty state when every program is archived and archived programs are hidden.
+  /// Title of the empty state when every program is archived: on the Programs list while archived programs are hidden, and in the add-to-program sheet, which never offers archived programs.
   ///
   /// In en, this message translates to:
   /// **'No programs to show'**
   String get programsAllArchivedTitle;
 
-  /// Body of the Programs list empty state when every program is archived and archived programs are hidden. Followed by Show archived and New program buttons.
+  /// Body of the empty state when every program is archived. On the Programs list (while archived programs are hidden) it is followed by Show archived and New program buttons; in the add-to-program sheet it sits below the pinned New program row.
   ///
   /// In en, this message translates to:
   /// **'All your programs are archived.'**
