@@ -29,6 +29,31 @@ void main() {
       final wide = readableContentPadding(kReadableContentWidth + 400, base);
       expect(wide, const EdgeInsets.fromLTRB(200, 8, 200, 88));
     });
+
+    test('start alignment leaves the surplus on the trailing side only', () {
+      final padding = readableContentPadding(
+        kReadableContentWidth + 400,
+        EdgeInsets.zero,
+        ReadableColumnAlignment.start,
+      );
+      expect(padding.left, 0);
+      expect(padding.right, 400);
+    });
+
+    test('start alignment keeps a base leading gutter inside the cap', () {
+      const base = EdgeInsets.fromLTRB(16, 8, 16, 88);
+      expect(
+        readableContentPadding(360, base, ReadableColumnAlignment.start),
+        base,
+      );
+      final wide = readableContentPadding(
+        kReadableContentWidth + 400,
+        base,
+        ReadableColumnAlignment.start,
+      );
+      // 16 + 760 + 384 fills the 1160 px viewport.
+      expect(wide, const EdgeInsets.fromLTRB(16, 8, 384, 88));
+    });
   });
 
   group('ReadableListView / ReadableScrollView', () {
@@ -55,6 +80,30 @@ void main() {
       // The viewport (and so the scrollbar) still spans the window.
       expect(tester.getSize(find.byType(ListView)).width, 1600);
     });
+
+    testWidgets(
+      'a start-aligned scope anchors the column to the leading edge',
+      (tester) async {
+        await setScreenSize(tester, const Size(1600, 900));
+        const key = ValueKey('row');
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: ReadableColumnScope(
+                alignment: ReadableColumnAlignment.start,
+                child: ReadableListView(
+                  children: const [SizedBox(key: key, height: 40)],
+                ),
+              ),
+            ),
+          ),
+        );
+        expect(tester.getSize(find.byKey(key)).width, kReadableContentWidth);
+        expect(tester.getTopLeft(find.byKey(key)).dx, 0);
+        // The viewport (and so the scrollbar) still spans the window.
+        expect(tester.getSize(find.byType(ListView)).width, 1600);
+      },
+    );
 
     testWidgets('ReadableListView keeps the bottom safe-area inset', (
       tester,
