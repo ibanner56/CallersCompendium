@@ -1,0 +1,13 @@
+{
+  "id": "theme-colour-contrast",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "Cards, bottom sheets, menus, dialogs and text fields now sit on their own shades of the background in every built-in and gallery theme, instead of blending into it; in High contrast, bottom sheets and popup menus also get an outline, as cards and dialogs already did.",
+      "Text and icons drawn in a theme's accent colours, secondary text, the Undo button on a snackbar, and the borders of text fields and chips now meet WCAG AA contrast on the background, cards, menus, dialogs and text fields in every built-in and gallery theme.",
+      "Set-list colour coding uses its brighter tints on every dark theme, not only High contrast, so the row accents stay visible on a dark background.",
+      "Status chips draw their border at full strength, so it stands out from the background.",
+      "To meet those contrast targets, some gallery themes' accent colours are now noticeably darker (on light themes) or lighter (on dark themes), and on several light themes buttons and chips filled with a secondary or tertiary accent now carry white text instead of black. Each colour keeps its hue."
+    ]
+  }
+}

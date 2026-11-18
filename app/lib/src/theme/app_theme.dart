@@ -77,6 +77,9 @@ class AppTheme {
       navigationRailTheme: components.navigationRail,
       navigationBarTheme: components.navigationBar,
       snackBarTheme: components.snackBar,
+      bottomSheetTheme: components.bottomSheet,
+      popupMenuTheme: components.popupMenu,
+      menuTheme: components.menu,
       extensions: <ThemeExtension<dynamic>>[extension],
     );
   }
