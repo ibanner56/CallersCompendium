@@ -110,6 +110,8 @@ class AppTheme {
       progressIndicatorTheme: components.progressIndicator,
       switchTheme: components.switchTheme,
       checkboxTheme: components.checkbox,
+      datePickerTheme: components.datePicker,
+      timePickerTheme: components.timePicker,
       extensions: <ThemeExtension<dynamic>>[extension],
     );
   }

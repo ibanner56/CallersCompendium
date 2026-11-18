@@ -290,6 +290,11 @@ void main() {
             'dropdownMenu':
                 theme.dropdownMenuTheme.menuStyle?.side?.resolve({}) ??
                 BorderSide.none,
+            'iconButton':
+                theme.iconButtonTheme.style?.side?.resolve({}) ??
+                BorderSide.none,
+            'datePicker': sideOf(theme.datePickerTheme.shape),
+            'timePicker': sideOf(theme.timePickerTheme.shape),
             'checkbox (ticked)':
                 WidgetStateProperty.resolveAs<BorderSide?>(
                   theme.checkboxTheme.side,

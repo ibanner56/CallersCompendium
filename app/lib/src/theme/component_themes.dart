@@ -47,6 +47,8 @@ class ComponentThemes {
     this.progressIndicator = const ProgressIndicatorThemeData(),
     this.switchTheme = const SwitchThemeData(),
     this.checkbox = const CheckboxThemeData(),
+    this.datePicker = const DatePickerThemeData(),
+    this.timePicker = const TimePickerThemeData(),
   });
 
   final CardThemeData card;
@@ -80,6 +82,8 @@ class ComponentThemes {
   final ProgressIndicatorThemeData progressIndicator;
   final SwitchThemeData switchTheme;
   final CheckboxThemeData checkbox;
+  final DatePickerThemeData datePicker;
+  final TimePickerThemeData timePicker;
 
   /// Every snackbar floats, as the Undo snackbar already does (#463), instead of
   /// docking to the bottom edge and covering the controls beneath it. The theme
@@ -122,6 +126,11 @@ class ComponentThemes {
     );
     final tileShape = RoundedRectangleBorder(
       borderRadius: AppShapes.borderRadiusMedium,
+      side: side,
+    );
+    // The date and time pickers are dialogs, shaped and outlined like them.
+    final pickerShape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(AppShapes.radiusDialog),
       side: side,
     );
 
@@ -184,12 +193,15 @@ class ComponentThemes {
         ),
       ),
       // Icon buttons share the buttons' small radius, so their hover and press
-      // highlights match the focus ring drawn round them.
-      iconButton: const IconButtonThemeData(
+      // highlights match the focus ring drawn round them. High contrast
+      // outlines them like its other buttons, since an icon alone does not
+      // show where the control's bounds are.
+      iconButton: IconButtonThemeData(
         style: ButtonStyle(
-          shape: WidgetStatePropertyAll(
+          shape: const WidgetStatePropertyAll(
             RoundedRectangleBorder(borderRadius: AppShapes.borderRadiusSmall),
           ),
+          side: highContrast ? WidgetStatePropertyAll(side) : null,
         ),
       ),
       segmentedButton: SegmentedButtonThemeData(
@@ -233,6 +245,8 @@ class ComponentThemes {
               ),
             )
           : const CheckboxThemeData(),
+      datePicker: DatePickerThemeData(shape: pickerShape),
+      timePicker: TimePickerThemeData(shape: pickerShape),
     );
   }
 
