@@ -31,8 +31,10 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   (Ctrl/Cmd-K); and a desktop keyboard map (PLAT-7), bound to Control and
   Command alike (in a macOS text field Ctrl-F and Ctrl-N keep moving the
   cursor): Ctrl/Cmd-S saves the open dance or program editor,
-  Ctrl/Cmd-N opens a new dance, Ctrl/Cmd-F focuses the Collection's search box
-  (global search anywhere else), Ctrl/Cmd-A selects every dance in the
+  Ctrl/Cmd-N opens a new dance, Ctrl/Cmd-F focuses the current tab's search box
+  (the Collection, the Glossary or Settings; on a Settings section page it goes
+  back to the Settings search), and opens global search on Programs, the Guide
+  and over other pushed pages; Ctrl/Cmd-A selects every dance in the
   Collection's current results (only while focus is in the list, never in a
   text field, and it never deselects), Ctrl/Cmd-, opens Settings, and Esc or
   Ctrl/Cmd-W goes back. A mouse's Back button goes back too, and a right-click

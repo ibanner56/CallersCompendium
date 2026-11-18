@@ -43,10 +43,13 @@ you step back to switch sections. There are ten sections, always in this order:
 The search bar above the sections finds a setting by name wherever it lives,
 including in a section you haven't opened. Type what the setting is called —
 **Reduce motion**, **Backup reminder** — and choose a result to open the section
-that holds it. It also matches a section's name, so **Diagnostics** lists that
-section's settings, and a few everyday words the app doesn't show, so **dark
-mode** finds the theme gallery. On a computer, **Ctrl-F** (**Cmd-F** on a Mac)
-puts the cursor in the search bar from anywhere in Settings (see
+that holds it. Only settings your copy shows at that moment are listed, so a row
+that appears in some states, such as **Download & install update** once an
+update is found, is offered while it is there. The search also matches a
+section's name, so **Diagnostics** lists that section's settings, and a few
+everyday words the app doesn't show, so **dark mode** finds the theme gallery.
+On a computer, **Ctrl-F** (**Cmd-F** on a Mac) puts the cursor in the search bar
+from anywhere in Settings (see
 [Using the keyboard](./accessibility.md#using-the-keyboard)).
 
 ## General

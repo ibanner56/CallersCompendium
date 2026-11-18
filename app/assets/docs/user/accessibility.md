@@ -135,9 +135,11 @@ and Linux and **Cmd** on a Mac:
 - **Ctrl-N** (**Cmd-N**) starts a new dance.
 - **Ctrl-F** (**Cmd-F**) puts the cursor in the search box of the tab you are
   on, and selects what's already there: the **Collection**'s dance search, the
-  **Glossary**'s move search, or **Settings**' search over setting names. On
-  **Programs** and the **Guide**, which have no search box of their own, it opens
-  Quick search.
+  **Glossary**'s move search, or **Settings**' search over setting names. Over an
+  open page, such as a dance or a figure, it opens Quick search; on a **Settings**
+  section page it goes back to the Settings search bar instead. On **Programs**
+  and the **Guide**, which have no search box of their own, it opens Quick
+  search.
 - **Ctrl-A** (**Cmd-A**) selects every dance in the **Collection**'s current
   results and starts selecting if you weren't. It works while the keyboard focus
   is in the list of dances; in the search box it selects the text, as usual.
@@ -150,11 +152,12 @@ and Linux and **Cmd** on a Mac:
   the page you're on, as the back button does, so an editor with unsaved
   changes asks you first. A mouse's **Back** button does the same.
 
-Ctrl-N and Ctrl-, take you out of whatever page you're on. If that page is an
-editor with unsaved changes, it asks about them first; answer, then press the
-keys again. They do nothing while a dialog is open. While performing, Ctrl-N, Ctrl-F
-and Ctrl-, do nothing, and Esc closes an open walkthrough when you are calling
-a program and otherwise only leaves full screen (see below); Ctrl-W and a
+Ctrl-N and Ctrl-, take you out of whatever page you're on, and so does Ctrl-F from
+a Settings section page, which goes back to the Settings search bar. If that page
+is an editor with unsaved changes, it asks about them first; answer, then press
+the keys again. They do nothing while a dialog is open. While performing, Ctrl-N,
+Ctrl-F and Ctrl-, do nothing, and Esc closes an open walkthrough when you are
+calling a program and otherwise only leaves full screen (see below); Ctrl-W and a
 mouse's Back button ask whether to stop performing, as the back button does.
 
 **Right-click.** On a computer, right-click a dance in the **Collection**, or a

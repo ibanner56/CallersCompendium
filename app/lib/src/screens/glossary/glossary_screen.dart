@@ -22,6 +22,19 @@ import '../../widgets/sync_now_action.dart';
 import 'compound_editor_screen.dart';
 import 'custom_figure_detail.dart';
 
+/// The Glossary's own commands, for callers above it: the app shell runs
+/// [focusSearch] for Ctrl/Cmd-F (PLAT-7).
+///
+/// Returns whether a mounted Glossary took it, as [CollectionCommands] does:
+/// the shell builds the Glossary only while the destination is shown, so an
+/// absent screen means the command falls through to global search.
+class GlossaryCommands {
+  _GlossaryScreenState? _screen;
+
+  /// Moves the keyboard focus to the move search box and selects its text.
+  bool focusSearch() => _screen?._focusSearch() ?? false;
+}
+
 /// The Glossary destination (issue #695): the shipped, read-only reference of
 /// the app's bundled figures, shown in the user's dialect, and — while the
 /// nested "Custom Figures" setting is on — the user's own compound figures
@@ -39,19 +52,6 @@ import 'custom_figure_detail.dart';
 /// The global command palette searches dances and programs, not figures, so
 /// this screen deliberately has no app-bar global-search action: its own
 /// search field is the glossary's search.
-/// The Glossary's own commands, for callers above it: the app shell runs
-/// [focusSearch] for Ctrl/Cmd-F (PLAT-7).
-///
-/// Returns whether a mounted Glossary took it, as [CollectionCommands] does:
-/// the shell builds the Glossary only while the destination is shown, so an
-/// absent screen means the command falls through to global search.
-class GlossaryCommands {
-  _GlossaryScreenState? _screen;
-
-  /// Moves the keyboard focus to the move search box and selects its text.
-  bool focusSearch() => _screen?._focusSearch() ?? false;
-}
-
 class GlossaryScreen extends StatefulWidget {
   const GlossaryScreen({super.key, this.entries, this.commands});
 
