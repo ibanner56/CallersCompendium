@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
 import 'package:flutter/material.dart';
 
 import 'app_theme_extension.dart';
@@ -39,12 +40,16 @@ class AppTheme {
   /// off, for the in-app Reduce motion switch. Dialogs and
   /// bottom sheets have no theme hook for their animation, so each call site
   /// passes `AppMotion.styleFor(context)` instead.
+  ///
+  /// iOS and macOS keep the Cupertino builder at zero duration rather than a
+  /// bare instant one: the edge swipe back lives in that builder, and a
+  /// swipe the user drags is motion they drive, not motion the app adds.
   static ThemeData withoutMotion(ThemeData theme) => theme.copyWith(
     pageTransitionsTheme: const PageTransitionsTheme(
       builders: <TargetPlatform, PageTransitionsBuilder>{
         TargetPlatform.android: _NoTransitionsBuilder(),
-        TargetPlatform.iOS: _NoTransitionsBuilder(),
-        TargetPlatform.macOS: _NoTransitionsBuilder(),
+        TargetPlatform.iOS: _InstantCupertinoTransitionsBuilder(),
+        TargetPlatform.macOS: _InstantCupertinoTransitionsBuilder(),
         TargetPlatform.windows: _NoTransitionsBuilder(),
         TargetPlatform.linux: _NoTransitionsBuilder(),
         TargetPlatform.fuchsia: _NoTransitionsBuilder(),
@@ -135,4 +140,17 @@ class _NoTransitionsBuilder extends PageTransitionsBuilder {
     Animation<double> secondaryAnimation,
     Widget child,
   ) => child;
+}
+
+/// The Cupertino page transition at zero duration: the page appears at once,
+/// but the builder still installs the edge swipe back.
+class _InstantCupertinoTransitionsBuilder
+    extends CupertinoPageTransitionsBuilder {
+  const _InstantCupertinoTransitionsBuilder();
+
+  @override
+  Duration get transitionDuration => Duration.zero;
+
+  @override
+  Duration get reverseTransitionDuration => Duration.zero;
 }

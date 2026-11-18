@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:compendium_app/src/data/reduce_motion_scope.dart';
 import 'package:compendium_app/src/theme/app_motion.dart';
 import 'package:compendium_app/src/theme/app_theme.dart';
+import 'package:compendium_app/src/widgets/app_date_picker.dart';
 
 /// Reduce motion reaches page transitions, expansion tiles,
 /// dialogs and bottom sheets.
@@ -140,6 +141,67 @@ void main() {
     }
     expect(seen, greaterThan(100), reason: 'the scan found too few calls');
     expect(missing, isEmpty);
+  });
+
+  for (final (reduce, instant) in [(true, true), (false, false)]) {
+    testWidgets('showAppDatePicker opens '
+        '${instant ? 'at once' : 'animated'} with Reduce motion '
+        '${reduce ? 'on' : 'off'}', (tester) async {
+      final notifier = ValueNotifier<bool?>(reduce);
+      addTearDown(notifier.dispose);
+      await tester.pumpWidget(
+        ReduceMotionScope(
+          notifier: notifier,
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) => TextButton(
+                onPressed: () => showAppDatePicker(
+                  context: context,
+                  initialDate: DateTime(2000, 6, 15),
+                  firstDate: DateTime(2000),
+                  lastDate: DateTime(2001),
+                ),
+                child: const Text('pick'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('pick'));
+      await tester.pump();
+      await tester.pump();
+      final route = ModalRoute.of(
+        tester.element(find.byType(DatePickerDialog)),
+      )!;
+      expect(route.animation!.isCompleted, instant);
+      await tester.pumpAndSettle();
+    });
+  }
+
+  // Flutter's picker helpers open their dialog with no AnimationStyle, so
+  // the app opens the date picker through showAppDatePicker instead.
+  test('no picker helper that ignores Reduce motion is called', () {
+    final call = RegExp(
+      r'(?<![\w.])(showDatePicker|showTimePicker|showDateRangePicker)\s*\(',
+    );
+    final found = <String>[];
+    var helperCalls = 0;
+    for (final file in Directory('lib').listSync(recursive: true)) {
+      if (file is! File || !file.path.endsWith('.dart')) continue;
+      final src = file.readAsStringSync();
+      helperCalls += RegExp(r'showAppDatePicker\(').allMatches(src).length;
+      for (final m in call.allMatches(src)) {
+        final lineStart = src.lastIndexOf('\n', m.start) + 1;
+        if (src.substring(lineStart, m.start).trimLeft().startsWith('//')) {
+          continue;
+        }
+        final line = '\n'.allMatches(src.substring(0, m.start)).length + 1;
+        found.add('${file.path}:$line ${m.group(1)}');
+      }
+    }
+    // The positive control: the scan reads the files the pickers live in.
+    expect(helperCalls, greaterThanOrEqualTo(3));
+    expect(found, isEmpty);
   });
 }
 

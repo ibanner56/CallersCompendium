@@ -49,6 +49,7 @@ import '../theme/keyboard_dismiss.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/safe_name.dart';
 import '../utils/undo_snack_bar.dart';
+import '../widgets/app_date_picker.dart';
 import '../widgets/app_shortcuts.dart';
 import '../widgets/collection_picker.dart';
 import '../widgets/confirm_discard_changes.dart';
@@ -4847,12 +4848,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         : DateTime(stored.year, stored.month, stored.day);
     // The date picker follows the platform locale's first day of week; a
     // configurable first-day-of-week preference is a future item (ROADMAP G.8).
-    final picked = await showDatePicker(
+    final picked = await showAppDatePicker(
       context: context,
       initialDate: initial,
       firstDate: DateTime(now.year - 10),
       lastDate: DateTime(now.year + 10),
-      builder: uncappedDialogBuilder,
     );
     if (picked != null) {
       setState(() {
