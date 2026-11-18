@@ -210,6 +210,12 @@ class AppShellState extends State<AppShell> {
   /// Reaches the Collection's own commands (New dance, Import, search).
   final _collectionCommands = CollectionCommands();
 
+  /// Reaches the Glossary's own commands (search).
+  final _glossaryCommands = GlossaryCommands();
+
+  /// Reaches Settings' own commands (the settings search).
+  final _settingsCommands = SettingsCommands();
+
   /// Guards against a second palette while one is open (a held Ctrl-K repeats).
   bool _paletteOpen = false;
 
@@ -278,16 +284,25 @@ class AppShellState extends State<AppShell> {
   void showGuide() =>
       _returnToShellThen(() => setState(() => _current = _Destination.guide));
 
-  /// Runs Ctrl/Cmd-F: focuses the Collection's search box when the Collection
-  /// is showing with nothing over it, and opens global search everywhere else
-  /// (the Programs list, Settings, a pushed page), which is the search those
-  /// places offer.
+  /// Runs Ctrl/Cmd-F: focuses the search box of the destination that is
+  /// showing, and opens global search everywhere else (the Programs list, a
+  /// pushed page).
+  ///
+  /// Each destination owns its own search, and the same key means the same
+  /// thing on each tab: the Collection's dance search, the Glossary's move
+  /// search, and Settings' search over setting names. Programs deliberately
+  /// falls through to global search, whose palette finds programs; the Guide
+  /// has no search of its own.
   void focusSearch() {
     final onTop = ModalRoute.of(context)?.isCurrent ?? false;
-    if (onTop &&
-        _current == _Destination.collection &&
-        _collectionCommands.focusSearch()) {
-      return;
+    if (onTop) {
+      final handled = switch (_current) {
+        _Destination.collection => _collectionCommands.focusSearch(),
+        _Destination.glossary => _glossaryCommands.focusSearch(),
+        _Destination.settings => _settingsCommands.focusSearch(),
+        _Destination.programs || _Destination.guide => false,
+      };
+      if (handled) return;
     }
     openSearch();
   }
@@ -359,8 +374,13 @@ class AppShellState extends State<AppShell> {
         _Destination.programs => ProgramsShell(key: _programsShellKey),
         // Built only while shown, so a hidden Glossary costs nothing.
         _Destination.glossary =>
-          _showGlossary ? const GlossaryScreen() : const SizedBox.shrink(),
-        _Destination.settings => SettingsScreen(onOpenGuide: _openGuide),
+          _showGlossary
+              ? GlossaryScreen(commands: _glossaryCommands)
+              : const SizedBox.shrink(),
+        _Destination.settings => SettingsScreen(
+          onOpenGuide: _openGuide,
+          commands: _settingsCommands,
+        ),
         // Kept alive alongside the other destinations;
         // [UserGuideScreen.isActive] lets the offscreen guide avoid
         // intercepting system back.

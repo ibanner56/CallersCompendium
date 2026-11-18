@@ -489,6 +489,24 @@
   "@settingsExperimentalPlaceholder": {
     "description": "Placeholder text explaining that the Experimental settings section will contain features still in development."
   },
+  "settingsSearchHint": "Search settings",
+  "@settingsSearchHint": {
+    "description": "Hint text in the Settings screen's search field, which finds a setting by name across every section."
+  },
+  "settingsSearchClear": "Clear search",
+  "@settingsSearchClear": {
+    "description": "Tooltip of the button that clears the Settings search field."
+  },
+  "settingsSearchNoMatches": "No settings match \"{query}\".",
+  "@settingsSearchNoMatches": {
+    "description": "Shown in Settings when no setting name matches the search text.",
+    "placeholders": {
+      "query": {
+        "type": "String",
+        "example": "motion"
+      }
+    }
+  },
   "glossaryTitle": "Glossary",
   "@glossaryTitle": {
     "description": "App bar title of the Glossary screen, a read-only reference of the app's built-in dance figures."

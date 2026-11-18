@@ -1512,7 +1512,9 @@ void main() {
     testWidgets('settings sections render via the shared SectionHeader', (
       tester,
     ) async {
-      await _pumpSettings(tester);
+      // Taller than the default so Appearance's second header is still built:
+      // the search bar above the panes takes a band of the viewport.
+      await _pumpSettings(tester, surfaceSize: const Size(1000, 2800));
 
       // The Appearance section is shown by default; its headers are rendered
       // by the shared SectionHeader (extracted from this screen so the dance
@@ -6238,6 +6240,117 @@ void main() {
       await tester.pumpAndSettle();
       expect(custom.value, isFalse);
       expect(await harness.repos.settings.get(kShowCustomFiguresKey), isFalse);
+    });
+  });
+
+  group('SettingsScreen — search', () {
+    const searchField = ValueKey('settings-search');
+
+    testWidgets('a setting name in another section is listed with its '
+        'section', (tester) async {
+      await _pumpSettings(tester);
+
+      await tester.enterText(find.byKey(searchField), 'Reduce motion');
+      await tester.pumpAndSettle();
+
+      final result = find.byKey(
+        const ValueKey('settings-search-result-general.reduceMotion'),
+      );
+      expect(result, findsOneWidget);
+      expect(
+        find.descendant(of: result, matching: find.text('Reduce motion')),
+        findsOneWidget,
+      );
+      // The section it lives in, as the row's subtitle.
+      expect(
+        find.descendant(of: result, matching: find.text('General')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('choosing a result selects the section that holds it', (
+      tester,
+    ) async {
+      await _pumpSettings(tester);
+
+      await tester.enterText(find.byKey(searchField), 'Reduce motion');
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(
+          const ValueKey('settings-search-result-general.reduceMotion'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        tester
+            .widget<ListTile>(
+              find.byKey(const ValueKey('settings-nav-general')),
+            )
+            .selected,
+        isTrue,
+      );
+      // The query is cleared, so the normal navigation is back.
+      expect(find.byKey(searchField), findsOneWidget);
+      expect(
+        find.byKey(
+          const ValueKey('settings-search-result-general.reduceMotion'),
+        ),
+        findsNothing,
+      );
+    });
+
+    testWidgets('on the narrow layout a result opens its section page', (
+      tester,
+    ) async {
+      await _pumpSettings(tester, surfaceSize: const Size(500, 900));
+
+      await tester.enterText(find.byKey(searchField), 'dark mode');
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('settings-search-result-appearance.theme')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('settings-nav-appearance')),
+        findsNothing,
+      );
+      expect(find.text('Appearance'), findsOneWidget);
+    });
+
+    testWidgets('a query with no match says so', (tester) async {
+      await _pumpSettings(tester);
+
+      await tester.enterText(find.byKey(searchField), 'zzzz-no-setting');
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('settings-search-no-matches')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('the clear button restores the section navigation', (
+      tester,
+    ) async {
+      await _pumpSettings(tester);
+
+      await tester.enterText(find.byKey(searchField), 'Reduce motion');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('settings-search-clear')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('settings-nav-general')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('settings-search-result-general.reduceMotion'),
+        ),
+        findsNothing,
+      );
     });
   });
 }

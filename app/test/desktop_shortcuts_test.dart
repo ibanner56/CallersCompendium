@@ -3,6 +3,7 @@
 // which invokes the same intents, is covered in `app_menu_bar_test.dart`.
 import 'package:compendium_app/main.dart';
 import 'package:compendium_app/src/data/app_database.dart';
+import 'package:compendium_app/src/data/show_glossary_scope.dart';
 import 'package:compendium_app/src/screens/app_shell.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/dance_editor_screen.dart';
@@ -23,6 +24,8 @@ import 'support/full_app_harness.dart';
 
 const _palette = ValueKey('command-palette');
 const _searchField = ValueKey('collection-search-field');
+const _glossarySearch = ValueKey('glossary-search');
+const _settingsSearch = ValueKey('settings-search');
 
 /// Wide enough for the dance editor's form, which overflows a narrow window
 /// under the test font.
@@ -31,6 +34,7 @@ const _wide = Size(1200, 1600);
 Future<AppData> _pump(
   WidgetTester tester, {
   Size size = const Size(500, 900),
+  bool showGlossary = false,
 }) async {
   // Narrow by default, so the dance detail is a pushed route rather than the
   // inline pane.
@@ -39,6 +43,8 @@ Future<AppData> _pump(
   final appData = openTestAppData();
   final repos = appData.repositories;
   final stamp = DateTime.utc(2026, 1, 1);
+  // Seeded before the app loads, so the Glossary destination is in the nav.
+  if (showGlossary) await repos.settings.set(kShowGlossaryKey, true);
   // ignore: unused_result
   await repos.choreographers.upsert(
     Choreographer(id: 'c1', name: 'Gene Hubert'),
@@ -513,6 +519,51 @@ void main() {
       );
 
       expect(find.byKey(_palette), findsOneWidget);
+    });
+
+    testWidgets('Ctrl-F focuses the Glossary move search', (tester) async {
+      await _pump(tester, showGlossary: true);
+      await tester.tap(find.text('Glossary'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byKey(_glossarySearch), 'hey');
+      await tester.pump();
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pump();
+
+      await _press(
+        tester,
+        LogicalKeyboardKey.keyF,
+        modifier: LogicalKeyboardKey.controlLeft,
+      );
+
+      final field = tester.widget<TextField>(find.byKey(_glossarySearch));
+      expect(field.focusNode?.hasFocus, isTrue);
+      expect(
+        field.controller?.selection,
+        const TextSelection(baseOffset: 0, extentOffset: 3),
+      );
+      expect(find.byKey(_palette), findsNothing);
+    });
+
+    testWidgets('Ctrl-F focuses the Settings search box', (tester) async {
+      await _pump(tester);
+      await _press(
+        tester,
+        LogicalKeyboardKey.comma,
+        modifier: LogicalKeyboardKey.controlLeft,
+      );
+      expect(_settingsShowing(tester), isTrue);
+
+      await _press(
+        tester,
+        LogicalKeyboardKey.keyF,
+        modifier: LogicalKeyboardKey.controlLeft,
+      );
+
+      final field = tester.widget<TextField>(find.byKey(_settingsSearch));
+      expect(field.focusNode?.hasFocus, isTrue);
+      expect(find.byKey(_palette), findsNothing);
     });
   });
 

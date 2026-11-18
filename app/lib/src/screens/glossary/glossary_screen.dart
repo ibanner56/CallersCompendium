@@ -39,12 +39,29 @@ import 'custom_figure_detail.dart';
 /// The global command palette searches dances and programs, not figures, so
 /// this screen deliberately has no app-bar global-search action: its own
 /// search field is the glossary's search.
+/// The Glossary's own commands, for callers above it: the app shell runs
+/// [focusSearch] for Ctrl/Cmd-F (PLAT-7).
+///
+/// Returns whether a mounted Glossary took it, as [CollectionCommands] does:
+/// the shell builds the Glossary only while the destination is shown, so an
+/// absent screen means the command falls through to global search.
+class GlossaryCommands {
+  _GlossaryScreenState? _screen;
+
+  /// Moves the keyboard focus to the move search box and selects its text.
+  bool focusSearch() => _screen?._focusSearch() ?? false;
+}
+
 class GlossaryScreen extends StatefulWidget {
-  const GlossaryScreen({super.key, this.entries});
+  const GlossaryScreen({super.key, this.entries, this.commands});
 
   /// The figures to list; defaults to the shipped glossary. A test seam.
   @visibleForTesting
   final List<FigureGlossaryEntry>? entries;
+
+  /// The shell's handle on this screen's commands (Ctrl/Cmd-F), as
+  /// [CollectionCommands] is for the Collection.
+  final GlossaryCommands? commands;
 
   /// Width (logical pixels) at which list and detail sit side by side.
   static const double splitBreakpoint = 900;
@@ -117,12 +134,30 @@ class _ShownEntry {
 
 class _GlossaryScreenState extends State<GlossaryScreen> {
   final _search = TextEditingController();
+  final _searchFocus = FocusNode();
   String _query = '';
   String? _selectedId;
 
   CompendiumRepositories? _repos;
   StreamSubscription<List<UserGlossaryEntry>>? _userEntriesSub;
   List<UserGlossaryEntry> _userEntries = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    widget.commands?._screen = this;
+  }
+
+  @override
+  void didUpdateWidget(GlossaryScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.commands, widget.commands)) {
+      if (oldWidget.commands?._screen == this) {
+        oldWidget.commands?._screen = null;
+      }
+      widget.commands?._screen = this;
+    }
+  }
 
   @override
   void didChangeDependencies() {
@@ -138,9 +173,22 @@ class _GlossaryScreenState extends State<GlossaryScreen> {
 
   @override
   void dispose() {
+    if (widget.commands?._screen == this) widget.commands?._screen = null;
     unawaited(_userEntriesSub?.cancel());
+    _searchFocus.dispose();
     _search.dispose();
     super.dispose();
+  }
+
+  /// Moves the keyboard focus to the move search box and selects what is
+  /// already there, as the Collection's search does (Ctrl/Cmd-F).
+  bool _focusSearch() {
+    _searchFocus.requestFocus();
+    _search.selection = TextSelection(
+      baseOffset: 0,
+      extentOffset: _search.text.length,
+    );
+    return true;
   }
 
   List<FigureGlossaryEntry> get _entries => widget.entries ?? _shippedEntries;
@@ -387,6 +435,7 @@ class _GlossaryScreenState extends State<GlossaryScreen> {
           _wide = wide;
           final list = _GlossaryList(
             search: _search,
+            searchFocus: _searchFocus,
             onQueryChanged: (q) => setState(() => _query = q),
             entries: shown,
             query: _query,
@@ -427,6 +476,7 @@ class _GlossaryScreenState extends State<GlossaryScreen> {
 class _GlossaryList extends StatelessWidget {
   const _GlossaryList({
     required this.search,
+    required this.searchFocus,
     required this.onQueryChanged,
     required this.entries,
     required this.query,
@@ -435,6 +485,7 @@ class _GlossaryList extends StatelessWidget {
   });
 
   final TextEditingController search;
+  final FocusNode searchFocus;
   final ValueChanged<String> onQueryChanged;
   final List<_ShownEntry> entries;
   final String query;
@@ -457,6 +508,7 @@ class _GlossaryList extends StatelessWidget {
           child: TextField(
             key: const ValueKey('glossary-search'),
             controller: search,
+            focusNode: searchFocus,
             onChanged: onQueryChanged,
             decoration: InputDecoration(
               prefixIcon: const Icon(Icons.search),

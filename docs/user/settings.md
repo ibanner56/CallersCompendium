@@ -40,6 +40,15 @@ you step back to switch sections. There are ten sections, always in this order:
 9. **Experimental**
 10. **About**
 
+The search bar above the sections finds a setting by name wherever it lives,
+including in a section you haven't opened. Type what the setting is called —
+**Reduce motion**, **Backup reminder** — and choose a result to open the section
+that holds it. It also matches a section's name, so **Diagnostics** lists that
+section's settings, and a few everyday words the app doesn't show, so **dark
+mode** finds the theme gallery. On a computer, **Ctrl-F** (**Cmd-F** on a Mac)
+puts the cursor in the search bar from anywhere in Settings (see
+[Using the keyboard](./accessibility.md#using-the-keyboard)).
+
 ## General
 
 The **General** section gathers everyday behavior into small groups.
@@ -791,8 +800,9 @@ open or close it.
 closed while both Show glossary and Custom Figures are off.
 
 The Glossary is a reference to the figures built into the app. Search it by a
-figure's name, an older name for it, or a word from its definition. Select a
-figure to see:
+figure's name, an older name for it, or a word from its definition. On a
+computer, **Ctrl-F** (**Cmd-F** on a Mac) puts the cursor in the search box.
+Select a figure to see:
 
 - a one-line definition and a short description of how it's danced
 - an **Example** of how the figure is written

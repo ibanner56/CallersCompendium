@@ -395,6 +395,17 @@ class AppLocalizationsNl extends AppLocalizations {
       'Nieuwe functies kunnen hier verschijnen terwijl ze nog in ontwikkeling zijn.';
 
   @override
+  String get settingsSearchHint => 'Instellingen zoeken';
+
+  @override
+  String get settingsSearchClear => 'Zoekopdracht wissen';
+
+  @override
+  String settingsSearchNoMatches(String query) {
+    return 'Geen instellingen komen overeen met ‘$query’.';
+  }
+
+  @override
   String get glossaryTitle => 'Woordenlijst';
 
   @override

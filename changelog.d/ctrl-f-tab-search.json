@@ -1,0 +1,10 @@
+{
+  "id": "ctrl-f-tab-search",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Settings has a search bar that finds a setting by name anywhere in Settings, and opens the section that holds it.",
+      "Ctrl-F (Cmd-F on a Mac) now puts the cursor in the search box of the tab you are on: the Collection's dance search, the Glossary's move search, or Settings' search. Programs and the Guide still open Quick search."
+    ]
+  }
+}

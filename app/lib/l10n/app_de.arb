@@ -388,6 +388,18 @@
   "@settingsExperimentalPlaceholder": {
     "x-sourceSha256": "a268657b05fd60bc06b7df9f6abc968d3f880d899c7599cf0c000ff6dce634f5"
   },
+  "settingsSearchHint": "Einstellungen suchen",
+  "@settingsSearchHint": {
+    "x-sourceSha256": "255b076dd82855431a4ce9a722d77d41f47755ab11be14fc686fd71415cdeef0"
+  },
+  "settingsSearchClear": "Suche löschen",
+  "@settingsSearchClear": {
+    "x-sourceSha256": "3b7ea51793e9d906afa06afb86252abb48e1125cc96a7f5efabcfd8597ea183a"
+  },
+  "settingsSearchNoMatches": "Keine Einstellungen passen zu „{query}“.",
+  "@settingsSearchNoMatches": {
+    "x-sourceSha256": "8d6060f28408ab9488d8f92217b668d4c107009b90757be2ed3b6efd9827e6c5"
+  },
   "glossaryTitle": "Glossar",
   "@glossaryTitle": {
     "x-sourceSha256": "4c4e436f9a453c776dbf011f98d932d615988bb08bddec6051625340e88d012f"

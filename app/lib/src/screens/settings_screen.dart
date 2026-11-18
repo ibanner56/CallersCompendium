@@ -15,17 +15,25 @@ import 'settings/experimental_section.dart';
 import 'settings/general_section.dart';
 import 'settings/program_section.dart';
 import 'settings/regional_section.dart';
+import 'settings/settings_search.dart';
+import 'settings/settings_section.dart';
 import 'settings/updates_section.dart';
 
 /// Re-exported so existing consumers (`main.dart`, the Perform screens, tests)
 /// can keep importing the persistence keys from `settings_screen.dart`.
 export 'settings/settings_keys.dart';
+export 'settings/settings_section.dart' show SettingsSection;
 
 /// Settings screen: a master–detail layout with a sidebar of sections and a
 /// content pane. On wide viewports the sidebar and the selected section sit
 /// side by side; on narrow viewports the sidebar is a list whose rows push the
 /// section as its own page. Adding a settings page is just a new
-/// [_SettingsSection] value plus its content in [_SettingsScreenState._content].
+/// [SettingsSection] value plus its content in [_SettingsScreenState._content].
+///
+/// A search bar above the panes finds a setting by name across every section
+/// ([settingsSearchIndex]), since most settings are not on screen while another
+/// section is open. Ctrl/Cmd-F focuses it from anywhere on the tab
+/// ([SettingsCommands]).
 ///
 /// Changes take effect immediately (live update via the relevant scope).
 class SettingsScreen extends StatefulWidget {
@@ -39,6 +47,7 @@ class SettingsScreen extends StatefulWidget {
     this.crashLogStore,
     this.diagnosticsLogSaver,
     this.sensitiveTermsProvider,
+    this.commands,
   });
 
   /// Test seam for delivering an exported backup file; defaults to
@@ -77,6 +86,10 @@ class SettingsScreen extends StatefulWidget {
   /// gathering them from the ambient repositories.
   final SensitiveTermsProvider? sensitiveTermsProvider;
 
+  /// The shell's handle on this screen's commands (the settings search, which
+  /// Ctrl/Cmd-F focuses), as `CollectionCommands` is for the Collection.
+  final SettingsCommands? commands;
+
   /// Viewport width (logical px) at/above which the sidebar and content sit
   /// side by side instead of the sidebar pushing a detail page.
   static const double sideBySideBreakpoint = 720;
@@ -94,91 +107,117 @@ class SettingsScreen extends StatefulWidget {
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-/// The selectable sections in Settings. Declaration order is sidebar order; add
-/// a value (and its content in [_SettingsScreenState._content]) to add a page.
-enum _SettingsSection {
-  general(Icons.tune_outlined, Icons.tune),
-  program(Icons.event_note_outlined, Icons.event_note),
-  appearance(Icons.palette_outlined, Icons.palette),
-  dialect(Icons.groups_outlined, Icons.groups),
-  regional(Icons.translate_outlined, Icons.translate),
-  defaults(Icons.settings_suggest_outlined, Icons.settings_suggest),
-  updates(Icons.update_outlined, Icons.update),
-  diagnostics(Icons.bug_report_outlined, Icons.bug_report),
-  experimental(Icons.psychology_outlined, Icons.psychology),
-  about(Icons.info_outline, Icons.info);
-
-  const _SettingsSection(this.icon, this.selectedIcon);
-
-  final IconData icon;
-  final IconData selectedIcon;
-}
-
-/// The localized sidebar/app-bar label for [section].
+/// The Settings screen's own commands, for callers above it: the app shell runs
+/// [focusSearch] for Ctrl/Cmd-F (PLAT-7).
 ///
-/// Every section title is sourced from the ARB (`AppLocalizations`) so the
-/// section navigation renders in the selected UI language.
-String _sectionLabel(BuildContext context, _SettingsSection section) {
-  final l10n = AppLocalizations.of(context);
-  return switch (section) {
-    _SettingsSection.general => l10n.settingsGeneralTitle,
-    _SettingsSection.program => l10n.settingsProgramTitle,
-    _SettingsSection.appearance => l10n.settingsAppearanceTitle,
-    _SettingsSection.dialect => l10n.settingsDialectTitle,
-    _SettingsSection.regional => l10n.settingsLanguageRegionTitle,
-    _SettingsSection.defaults => l10n.settingsDefaultsTitle,
-    _SettingsSection.updates => l10n.settingsUpdatesTitle,
-    _SettingsSection.diagnostics => l10n.settingsDiagnosticsTitle,
-    _SettingsSection.experimental => l10n.settingsExperimentalTitle,
-    _SettingsSection.about => l10n.settingsAboutTitle,
-  };
+/// Returns whether a mounted Settings screen took it, as [CollectionCommands]
+/// does.
+class SettingsCommands {
+  _SettingsScreenState? _screen;
+
+  /// Moves the keyboard focus to the settings search box and selects its text.
+  bool focusSearch() => _screen?._focusSearch() ?? false;
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  _SettingsSection _section = _SettingsSection.appearance;
+  SettingsSection _section = SettingsSection.appearance;
+
+  /// The settings-search box's state. The field is always built (wide and
+  /// narrow layouts alike) so Ctrl/Cmd-F can focus it without opening anything.
+  final _search = TextEditingController();
+  final _searchFocus = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    widget.commands?._screen = this;
+  }
+
+  @override
+  void didUpdateWidget(SettingsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.commands, widget.commands)) {
+      if (oldWidget.commands?._screen == this) {
+        oldWidget.commands?._screen = null;
+      }
+      widget.commands?._screen = this;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (widget.commands?._screen == this) widget.commands?._screen = null;
+    _searchFocus.dispose();
+    _search.dispose();
+    super.dispose();
+  }
+
+  /// Moves the keyboard focus to the settings search box and selects what is
+  /// already there, as the Collection's search does (Ctrl/Cmd-F).
+  bool _focusSearch() {
+    _searchFocus.requestFocus();
+    _search.selection = TextSelection(
+      baseOffset: 0,
+      extentOffset: _search.text.length,
+    );
+    return true;
+  }
+
+  /// Shows the section that holds a search result: in place on the wide
+  /// layout, as its own page on the narrow one, and clears the query so the
+  /// normal navigation comes back.
+  void _openResult(SettingsSearchEntry entry, {required bool sideBySide}) {
+    setState(() {
+      _search.clear();
+      _section = entry.section;
+    });
+    if (!sideBySide) _openSection(entry.section);
+  }
 
   /// Builds the content pane for [section]. Each section is its own widget that
   /// owns its async I/O and load-race guards; this shell only routes to them and
   /// threads the backup/import test seams into the General section.
-  Widget _content(BuildContext context, _SettingsSection section) {
+  Widget _content(BuildContext context, SettingsSection section) {
     switch (section) {
-      case _SettingsSection.appearance:
+      case SettingsSection.appearance:
         return const AppearanceSection();
-      case _SettingsSection.dialect:
+      case SettingsSection.dialect:
         return const DialectSection();
-      case _SettingsSection.regional:
+      case SettingsSection.regional:
         return const RegionalSection();
-      case _SettingsSection.general:
+      case SettingsSection.general:
         return GeneralSection(
           backupSaver: widget.backupSaver,
           backupPicker: widget.backupPicker,
           importPicker: widget.importPicker,
           urlFetcher: widget.urlFetcher,
         );
-      case _SettingsSection.defaults:
+      case SettingsSection.defaults:
         return const DefaultsSection();
-      case _SettingsSection.program:
+      case SettingsSection.program:
         return const ProgramSection();
-      case _SettingsSection.updates:
+      case SettingsSection.updates:
         return const UpdatesSection();
-      case _SettingsSection.diagnostics:
+      case SettingsSection.diagnostics:
         return DiagnosticsSection(
           store: widget.crashLogStore,
           logSaver: widget.diagnosticsLogSaver,
           sensitiveTermsProvider: widget.sensitiveTermsProvider,
         );
-      case _SettingsSection.experimental:
+      case SettingsSection.experimental:
         return ExperimentalSection(backupSaver: widget.backupSaver);
-      case _SettingsSection.about:
+      case SettingsSection.about:
         return AboutSection(onOpenGuide: widget.onOpenGuide);
     }
   }
 
-  void _openSection(_SettingsSection section) {
+  void _openSection(SettingsSection section) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (routeContext) => Scaffold(
-          appBar: AppBar(title: Text(_sectionLabel(routeContext, section))),
+          appBar: AppBar(
+            title: Text(settingsSectionLabel(routeContext, section)),
+          ),
           body: _content(routeContext, section),
         ),
       ),
@@ -187,51 +226,159 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return LayoutBuilder(
       builder: (context, constraints) {
         final sideBySide =
             constraints.maxWidth >= SettingsScreen.sideBySideBreakpoint;
+        final query = _search.text.trim();
+        final results = searchSettings(l10n, query: query);
+        final searchBar = _SettingsSearchBar(
+          controller: _search,
+          focusNode: _searchFocus,
+          onChanged: (_) => setState(() {}),
+          onClear: () => setState(_search.clear),
+        );
+        final appBar = AppBar(
+          title: Text(l10n.settingsTitle),
+          automaticallyImplyLeading: false,
+          bottom: searchBar,
+        );
+        // While a query is typed, the results replace the navigation — either
+        // pane on the wide layout, the section list on the narrow one — because
+        // a match can live in any section.
+        final Widget body = query.isEmpty
+            ? (sideBySide
+                  ? Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        SizedBox(
+                          width: SettingsScreen._sideBySideSidebarWidth,
+                          child: _SettingsSidebar(
+                            selected: _section,
+                            onSelect: (s) => setState(() => _section = s),
+                          ),
+                        ),
+                        const VerticalDivider(width: 1, thickness: 1),
+                        Expanded(child: _content(context, _section)),
+                      ],
+                    )
+                  : ListView(
+                      children: [
+                        for (final s in SettingsSection.values)
+                          ListTile(
+                            key: ValueKey('settings-nav-${s.name}'),
+                            leading: Icon(s.icon),
+                            title: Text(settingsSectionLabel(context, s)),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: () => _openSection(s),
+                          ),
+                      ],
+                    ))
+            : _SettingsSearchResults(
+                entries: results,
+                query: query,
+                onOpen: (entry) => _openResult(entry, sideBySide: sideBySide),
+              );
 
-        if (sideBySide) {
-          return Scaffold(
-            appBar: AppBar(
-              title: Text(AppLocalizations.of(context).settingsTitle),
-              automaticallyImplyLeading: false,
-            ),
-            body: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                SizedBox(
-                  width: SettingsScreen._sideBySideSidebarWidth,
-                  child: _SettingsSidebar(
-                    selected: _section,
-                    onSelect: (s) => setState(() => _section = s),
-                  ),
-                ),
-                const VerticalDivider(width: 1, thickness: 1),
-                Expanded(child: _content(context, _section)),
-              ],
-            ),
-          );
-        }
+        return Scaffold(appBar: appBar, body: body);
+      },
+    );
+  }
+}
 
-        return Scaffold(
-          appBar: AppBar(
-            title: Text(AppLocalizations.of(context).settingsTitle),
-            automaticallyImplyLeading: false,
-          ),
-          body: ListView(
-            children: [
-              for (final s in _SettingsSection.values)
-                ListTile(
-                  key: ValueKey('settings-nav-${s.name}'),
-                  leading: Icon(s.icon),
-                  title: Text(_sectionLabel(context, s)),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => _openSection(s),
+/// The Settings search field, in the app bar so it is present on both layouts
+/// and Ctrl/Cmd-F has something to focus on every visit.
+class _SettingsSearchBar extends StatelessWidget
+    implements PreferredSizeWidget {
+  const _SettingsSearchBar({
+    required this.controller,
+    required this.focusNode,
+    required this.onChanged,
+    required this.onClear,
+  });
+
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onClear;
+
+  @override
+  Size get preferredSize => const Size.fromHeight(64);
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.md,
+        0,
+        AppSpacing.md,
+        AppSpacing.sm,
+      ),
+      child: TextField(
+        key: const ValueKey('settings-search'),
+        controller: controller,
+        focusNode: focusNode,
+        onChanged: onChanged,
+        textInputAction: TextInputAction.search,
+        decoration: InputDecoration(
+          prefixIcon: const Icon(Icons.search),
+          hintText: l10n.settingsSearchHint,
+          border: const OutlineInputBorder(),
+          isDense: true,
+          suffixIcon: controller.text.isEmpty
+              ? null
+              : IconButton(
+                  key: const ValueKey('settings-search-clear'),
+                  icon: const Icon(Icons.close),
+                  tooltip: l10n.settingsSearchClear,
+                  onPressed: onClear,
                 ),
-            ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The settings whose names match the typed query, each naming the section
+/// that holds it.
+class _SettingsSearchResults extends StatelessWidget {
+  const _SettingsSearchResults({
+    required this.entries,
+    required this.query,
+    required this.onOpen,
+  });
+
+  final List<SettingsSearchEntry> entries;
+  final String query;
+  final ValueChanged<SettingsSearchEntry> onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    if (entries.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Text(
+            l10n.settingsSearchNoMatches(query),
+            key: const ValueKey('settings-search-no-matches'),
+            textAlign: TextAlign.center,
           ),
+        ),
+      );
+    }
+    return ListView.builder(
+      itemCount: entries.length,
+      itemBuilder: (context, i) {
+        final entry = entries[i];
+        return ListTile(
+          key: ValueKey('settings-search-result-${entry.id}'),
+          leading: Icon(entry.section.icon),
+          title: Text(entry.label(l10n)),
+          subtitle: Text(settingsSectionLabel(context, entry.section)),
+          onTap: () => onOpen(entry),
         );
       },
     );
@@ -243,19 +390,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
 class _SettingsSidebar extends StatelessWidget {
   const _SettingsSidebar({required this.selected, required this.onSelect});
 
-  final _SettingsSection selected;
-  final ValueChanged<_SettingsSection> onSelect;
+  final SettingsSection selected;
+  final ValueChanged<SettingsSection> onSelect;
 
   @override
   Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
       children: [
-        for (final s in _SettingsSection.values)
+        for (final s in SettingsSection.values)
           ListTile(
             key: ValueKey('settings-nav-${s.name}'),
             leading: Icon(s == selected ? s.selectedIcon : s.icon),
-            title: Text(_sectionLabel(context, s)),
+            title: Text(settingsSectionLabel(context, s)),
             selected: s == selected,
             onTap: () => onSelect(s),
           ),

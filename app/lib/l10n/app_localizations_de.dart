@@ -396,6 +396,17 @@ class AppLocalizationsDe extends AppLocalizations {
       'Neue Funktionen können hier erscheinen, während sie sich noch in Entwicklung befinden.';
 
   @override
+  String get settingsSearchHint => 'Einstellungen suchen';
+
+  @override
+  String get settingsSearchClear => 'Suche löschen';
+
+  @override
+  String settingsSearchNoMatches(String query) {
+    return 'Keine Einstellungen passen zu „$query“.';
+  }
+
+  @override
   String get glossaryTitle => 'Glossar';
 
   @override

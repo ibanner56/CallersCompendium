@@ -133,8 +133,11 @@ and Linux and **Cmd** on a Mac:
   **Save** button does. In the program builder that's on the **Build** tab,
   where the button is.
 - **Ctrl-N** (**Cmd-N**) starts a new dance.
-- **Ctrl-F** (**Cmd-F**) puts the cursor in the **Collection**'s search box and
-  selects what's already there. Anywhere else it opens Quick search.
+- **Ctrl-F** (**Cmd-F**) puts the cursor in the search box of the tab you are
+  on, and selects what's already there: the **Collection**'s dance search, the
+  **Glossary**'s move search, or **Settings**' search over setting names. On
+  **Programs** and the **Guide**, which have no search box of their own, it opens
+  Quick search.
 - **Ctrl-A** (**Cmd-A**) selects every dance in the **Collection**'s current
   results and starts selecting if you weren't. It works while the keyboard focus
   is in the list of dances; in the search box it selects the text, as usual.
