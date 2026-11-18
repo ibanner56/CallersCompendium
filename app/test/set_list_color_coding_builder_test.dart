@@ -127,11 +127,14 @@ void main() {
     final a1 = _accent(tester, 's1');
     expect(
       a0,
-      setListAccentForShape(FormationShape.dupleImproper, highContrast: false),
+      setListAccentForShape(FormationShape.dupleImproper, brightPalette: false),
     );
     expect(
       a1,
-      setListAccentForShape(FormationShape.sicilianCircle, highContrast: false),
+      setListAccentForShape(
+        FormationShape.sicilianCircle,
+        brightPalette: false,
+      ),
     );
     expect(a0, isNot(a1));
   });
@@ -159,7 +162,7 @@ void main() {
         setListAccentForShapeAndMixer(
           FormationShape.dupleImproper,
           true,
-          highContrast: false,
+          brightPalette: false,
         ),
       );
       // Must not be the plain contra teal.
@@ -168,7 +171,7 @@ void main() {
         isNot(
           setListAccentForShape(
             FormationShape.dupleImproper,
-            highContrast: false,
+            brightPalette: false,
           ),
         ),
       );
@@ -211,12 +214,12 @@ void main() {
         _accent(tester, 's1'),
         setListAccentForShape(
           FormationShape.sicilianCircle,
-          highContrast: false,
+          brightPalette: false,
         ),
       );
       expect(
         _accent(tester, 's2'),
-        setListAccent(FormationFamily.mixer, highContrast: false),
+        setListAccent(FormationFamily.mixer, brightPalette: false),
       );
     });
 

@@ -11,6 +11,7 @@ import '../data/reduce_motion_scope.dart';
 import '../../l10n/app_localizations.dart';
 import '../search/facet_labels.dart';
 import '../theme/app_shapes.dart';
+import '../theme/app_theme_extension.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_typography.dart';
@@ -1334,7 +1335,7 @@ class _StatusBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.sm),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
+        color: color.withValues(alpha: AppThemeExtension.statusTintAlpha),
         borderRadius: AppShapes.borderRadiusSmall,
       ),
       child: Row(
