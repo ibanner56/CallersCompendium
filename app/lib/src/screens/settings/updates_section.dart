@@ -1,7 +1,6 @@
 // Part of the Settings screen, split by section (Stage-7 item 7.2).
 import 'package:flutter/material.dart';
 
-import '../../app_metadata.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../theme/app_spacing.dart';
 import '../../update/artifact_handoff.dart';
@@ -276,13 +275,19 @@ class UpdatesSection extends StatelessWidget {
   String _statusText(AppLocalizations l10n, UpdateController controller) {
     switch (controller.status) {
       case UpdateCheckStatus.idle:
-        return l10n.settingsUpdatesStatusIdle(kUpdaterVersion);
+        return l10n.settingsUpdatesStatusIdle(
+          controller.currentVersion.toString(),
+        );
       case UpdateCheckStatus.checking:
         return l10n.settingsUpdatesStatusChecking;
       case UpdateCheckStatus.noUpdate:
-        return l10n.settingsUpdatesStatusNoUpdate(kUpdaterVersion);
+        return l10n.settingsUpdatesStatusNoUpdate(
+          controller.currentVersion.toString(),
+        );
       case UpdateCheckStatus.couldNotCheck:
-        return l10n.settingsUpdatesStatusCouldNotCheck(kUpdaterVersion);
+        return l10n.settingsUpdatesStatusCouldNotCheck(
+          controller.currentVersion.toString(),
+        );
       case UpdateCheckStatus.newerFormat:
         return l10n.settingsUpdatesStatusNewerFormat;
       case UpdateCheckStatus.updateAvailable:
