@@ -19,6 +19,7 @@ import '../diagnostics/error_log.dart';
 import '../theme/app_shapes.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/app_bar_text_action.dart';
+import '../widgets/confirm_discard_changes.dart';
 
 /// How the user is choosing which ContraDB program to import.
 enum _ImportMode {
@@ -638,65 +639,80 @@ class _ContraDbProgramImportScreenState
     }
   }
 
+  /// Whether backing out now would lose a pasted URL, a typed search or a
+  /// fetched program. Not while the import is being written.
+  bool get _hasInputToLose =>
+      !_committing &&
+      (_program != null ||
+          _urlController.text.trim().isNotEmpty ||
+          _searchController.text.trim().isNotEmpty);
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.importContraDbTitle),
-        actions: [
-          AppBarTextAction(
-            key: const ValueKey('contradb-program-commit'),
-            label: l10n.importAction,
-            icon: Icons.download_done,
-            busy: _committing,
-            onPressed: _canCommit ? _commit : null,
-          ),
-        ],
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              SegmentedButton<_ImportMode>(
-                key: const ValueKey('contradb-program-mode'),
-                segments: [
-                  ButtonSegment(
-                    value: _ImportMode.url,
-                    icon: const Icon(Icons.link),
-                    label: Text(l10n.importContraDbPasteUrl),
-                  ),
-                  ButtonSegment(
-                    value: _ImportMode.search,
-                    icon: const Icon(Icons.search),
-                    label: Text(l10n.importContraDbSearchByName),
-                  ),
-                ],
-                selected: {_mode},
-                onSelectionChanged: _canFetch
-                    ? (selection) => _onModeChanged(selection.first)
-                    : null,
-              ),
-              const SizedBox(height: 12),
-              if (_mode == _ImportMode.url)
-                ..._urlEntry()
-              else
-                ..._searchEntry(),
-              const SizedBox(height: 12),
-              TextField(
-                key: const ValueKey('contradb-program-title'),
-                controller: _titleController,
-                decoration: InputDecoration(
-                  labelText: l10n.importProgramTitleLabel,
-                  border: const OutlineInputBorder(),
+    // The URL and search fields have no setState listener of their own, so the
+    // guard listens to them directly.
+    return ListenableBuilder(
+      listenable: Listenable.merge([_urlController, _searchController]),
+      builder: (context, child) =>
+          DiscardChangesGuard(dirty: _hasInputToLose, child: child!),
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(l10n.importContraDbTitle),
+          actions: [
+            AppBarTextAction(
+              key: const ValueKey('contradb-program-commit'),
+              label: l10n.importAction,
+              icon: Icons.download_done,
+              busy: _committing,
+              onPressed: _canCommit ? _commit : null,
+            ),
+          ],
+        ),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SegmentedButton<_ImportMode>(
+                  key: const ValueKey('contradb-program-mode'),
+                  segments: [
+                    ButtonSegment(
+                      value: _ImportMode.url,
+                      icon: const Icon(Icons.link),
+                      label: Text(l10n.importContraDbPasteUrl),
+                    ),
+                    ButtonSegment(
+                      value: _ImportMode.search,
+                      icon: const Icon(Icons.search),
+                      label: Text(l10n.importContraDbSearchByName),
+                    ),
+                  ],
+                  selected: {_mode},
+                  onSelectionChanged: _canFetch
+                      ? (selection) => _onModeChanged(selection.first)
+                      : null,
                 ),
-              ),
-              const SizedBox(height: 16),
-              if (_committing) _buildCommitProgress(),
-              Expanded(child: _buildBody()),
-            ],
+                const SizedBox(height: 12),
+                if (_mode == _ImportMode.url)
+                  ..._urlEntry()
+                else
+                  ..._searchEntry(),
+                const SizedBox(height: 12),
+                TextField(
+                  key: const ValueKey('contradb-program-title'),
+                  controller: _titleController,
+                  decoration: InputDecoration(
+                    labelText: l10n.importProgramTitleLabel,
+                    border: const OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                if (_committing) _buildCommitProgress(),
+                Expanded(child: _buildBody()),
+              ],
+            ),
           ),
         ),
       ),

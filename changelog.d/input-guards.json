@@ -1,0 +1,9 @@
+{
+  "id": "input-guards",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Text you have typed is no longer lost to a stray tap outside a dialog, Esc or Back: the source-details, slot-edit, note, custom-choice, glossary-term edit, rename and dialect-name dialogs stay open while they hold edits, and importing a set list from pasted text or ContraDB asks before discarding what you entered."
+    ]
+  }
+}

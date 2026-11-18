@@ -6,6 +6,7 @@ import '../../diagnostics/error_log.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/keyboard_dismiss.dart';
 import '../../utils/undo_snack_bar.dart';
+import '../../widgets/dirty_dialog_guard.dart';
 import '../../widgets/readable_width.dart';
 
 /// One entry of a [LibraryManagerList]: a tag, an author or a source.
@@ -428,29 +429,33 @@ class _RenameDialogState extends State<_RenameDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return AlertDialog(
-      key: const ValueKey('library-rename-dialog'),
-      title: Text(l10n.libraryManagerRenameTitle(widget.currentName)),
-      content: TextField(
-        key: const ValueKey('library-rename-field'),
-        controller: _controller,
-        autofocus: true,
-        decoration: InputDecoration(labelText: widget.fieldLabel),
-        textInputAction: TextInputAction.done,
-        onSubmitted: (_) => _submit(),
+    return DirtyDialogGuard(
+      listenable: _controller,
+      isDirty: () => _controller.text != widget.initialText,
+      child: AlertDialog(
+        key: const ValueKey('library-rename-dialog'),
+        title: Text(l10n.libraryManagerRenameTitle(widget.currentName)),
+        content: TextField(
+          key: const ValueKey('library-rename-field'),
+          controller: _controller,
+          autofocus: true,
+          decoration: InputDecoration(labelText: widget.fieldLabel),
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) => _submit(),
+        ),
+        actions: [
+          TextButton(
+            key: const ValueKey('library-rename-cancel'),
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            key: const ValueKey('library-rename-confirm'),
+            onPressed: _submit,
+            child: Text(l10n.libraryManagerRename),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          key: const ValueKey('library-rename-cancel'),
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.commonCancel),
-        ),
-        FilledButton(
-          key: const ValueKey('library-rename-confirm'),
-          onPressed: _submit,
-          child: Text(l10n.libraryManagerRename),
-        ),
-      ],
     );
   }
 }

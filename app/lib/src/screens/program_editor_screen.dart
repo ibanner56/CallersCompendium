@@ -51,6 +51,7 @@ import '../utils/undo_snack_bar.dart';
 import '../widgets/app_shortcuts.dart';
 import '../widgets/collection_picker.dart';
 import '../widgets/confirm_discard_changes.dart';
+import '../widgets/dirty_dialog_guard.dart';
 import '../widgets/notice_card.dart';
 import '../widgets/venue_picker.dart';
 import 'dance_editor_screen.dart';
@@ -4909,30 +4910,34 @@ class _FreeTextSlotDialogState extends State<_FreeTextSlotDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return AlertDialog(
-      title: Text(l10n.programsAddNoteBreakDialogTitle),
-      content: TextField(
-        key: const ValueKey('free-text-slot-input'),
-        controller: _controller,
-        autofocus: true,
-        decoration: InputDecoration(
-          labelText: l10n.programsFreeTextLabel,
-          hintText: l10n.programsFreeTextHint,
-          border: const OutlineInputBorder(),
+    return DirtyDialogGuard(
+      listenable: _controller,
+      isDirty: () => _controller.text.isNotEmpty,
+      child: AlertDialog(
+        title: Text(l10n.programsAddNoteBreakDialogTitle),
+        content: TextField(
+          key: const ValueKey('free-text-slot-input'),
+          controller: _controller,
+          autofocus: true,
+          decoration: InputDecoration(
+            labelText: l10n.programsFreeTextLabel,
+            hintText: l10n.programsFreeTextHint,
+            border: const OutlineInputBorder(),
+          ),
+          onSubmitted: (value) => Navigator.of(context).pop(value.trim()),
         ),
-        onSubmitted: (value) => Navigator.of(context).pop(value.trim()),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            key: const ValueKey('free-text-slot-add'),
+            onPressed: () => Navigator.of(context).pop(_controller.text.trim()),
+            child: Text(l10n.commonAdd),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.commonCancel),
-        ),
-        FilledButton(
-          key: const ValueKey('free-text-slot-add'),
-          onPressed: () => Navigator.of(context).pop(_controller.text.trim()),
-          child: Text(l10n.commonAdd),
-        ),
-      ],
     );
   }
 }

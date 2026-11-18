@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import 'dirty_dialog_guard.dart';
 
 /// A modal dialog for editing a [PublishedSource]'s shared bibliographic
 /// details.
@@ -66,6 +67,17 @@ class _PublishedSourceDetailsDialogState
     super.dispose();
   }
 
+  /// Whether any field differs from the record the dialog opened with. Compared
+  /// as typed (not trimmed), so adding a space still counts as an edit.
+  bool _isDirty() {
+    final s = widget.source;
+    return _titleController.text != s.title ||
+        _authorController.text != (s.author ?? '') ||
+        _yearController.text != (s.year?.toString() ?? '') ||
+        _urlController.text != (s.url ?? '') ||
+        _notesController.text != (s.notes ?? '');
+  }
+
   /// Empty/whitespace text maps to `null` for optional fields.
   String? _trimmedOrNull(TextEditingController controller) {
     final trimmed = controller.text.trim();
@@ -98,101 +110,111 @@ class _PublishedSourceDetailsDialogState
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    return AlertDialog(
-      title: Text(l10n.danceEditorSourceDetailsTitle),
-      content: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                l10n.danceEditorSourceDetailsIntro,
-                style: theme.textTheme.bodySmall,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                key: const ValueKey('source-title-field'),
-                controller: _titleController,
-                autofocus: true,
-                textInputAction: TextInputAction.next,
-                decoration: InputDecoration(
-                  labelText: l10n.danceEditorTitleRequiredLabel,
-                  border: const OutlineInputBorder(),
+    return DirtyDialogGuard(
+      listenable: Listenable.merge([
+        _titleController,
+        _authorController,
+        _yearController,
+        _urlController,
+        _notesController,
+      ]),
+      isDirty: _isDirty,
+      child: AlertDialog(
+        title: Text(l10n.danceEditorSourceDetailsTitle),
+        content: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.danceEditorSourceDetailsIntro,
+                  style: theme.textTheme.bodySmall,
                 ),
-                validator: (value) => (value == null || value.trim().isEmpty)
-                    ? l10n.danceEditorTitleRequired
-                    : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                key: const ValueKey('source-author-field'),
-                controller: _authorController,
-                textInputAction: TextInputAction.next,
-                decoration: InputDecoration(
-                  labelText: l10n.danceEditorSourceAuthorEditorLabel,
-                  border: const OutlineInputBorder(),
+                const SizedBox(height: 16),
+                TextFormField(
+                  key: const ValueKey('source-title-field'),
+                  controller: _titleController,
+                  autofocus: true,
+                  textInputAction: TextInputAction.next,
+                  decoration: InputDecoration(
+                    labelText: l10n.danceEditorTitleRequiredLabel,
+                    border: const OutlineInputBorder(),
+                  ),
+                  validator: (value) => (value == null || value.trim().isEmpty)
+                      ? l10n.danceEditorTitleRequired
+                      : null,
                 ),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                key: const ValueKey('source-year-field'),
-                controller: _yearController,
-                keyboardType: TextInputType.number,
-                textInputAction: TextInputAction.next,
-                decoration: InputDecoration(
-                  labelText: l10n.danceEditorYearLabel,
-                  border: const OutlineInputBorder(),
+                const SizedBox(height: 12),
+                TextFormField(
+                  key: const ValueKey('source-author-field'),
+                  controller: _authorController,
+                  textInputAction: TextInputAction.next,
+                  decoration: InputDecoration(
+                    labelText: l10n.danceEditorSourceAuthorEditorLabel,
+                    border: const OutlineInputBorder(),
+                  ),
                 ),
-                validator: (value) {
-                  final text = value?.trim() ?? '';
-                  if (text.isEmpty) return null;
-                  final parsed = int.tryParse(text);
-                  if (parsed == null) return l10n.danceEditorEnterWholeNumber;
-                  if (parsed <= 0) return l10n.danceEditorEnterPositiveYear;
-                  return null;
-                },
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                key: const ValueKey('source-url-field'),
-                controller: _urlController,
-                keyboardType: TextInputType.url,
-                textInputAction: TextInputAction.next,
-                decoration: InputDecoration(
-                  labelText: l10n.danceEditorUrlLabel,
-                  border: const OutlineInputBorder(),
+                const SizedBox(height: 12),
+                TextFormField(
+                  key: const ValueKey('source-year-field'),
+                  controller: _yearController,
+                  keyboardType: TextInputType.number,
+                  textInputAction: TextInputAction.next,
+                  decoration: InputDecoration(
+                    labelText: l10n.danceEditorYearLabel,
+                    border: const OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    final text = value?.trim() ?? '';
+                    if (text.isEmpty) return null;
+                    final parsed = int.tryParse(text);
+                    if (parsed == null) return l10n.danceEditorEnterWholeNumber;
+                    if (parsed <= 0) return l10n.danceEditorEnterPositiveYear;
+                    return null;
+                  },
                 ),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                key: const ValueKey('source-notes-field'),
-                controller: _notesController,
-                minLines: 2,
-                maxLines: 5,
-                decoration: InputDecoration(
-                  labelText: l10n.danceEditorNotesLabel,
-                  border: const OutlineInputBorder(),
-                  alignLabelWithHint: true,
+                const SizedBox(height: 12),
+                TextFormField(
+                  key: const ValueKey('source-url-field'),
+                  controller: _urlController,
+                  keyboardType: TextInputType.url,
+                  textInputAction: TextInputAction.next,
+                  decoration: InputDecoration(
+                    labelText: l10n.danceEditorUrlLabel,
+                    border: const OutlineInputBorder(),
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 12),
+                TextFormField(
+                  key: const ValueKey('source-notes-field'),
+                  controller: _notesController,
+                  minLines: 2,
+                  maxLines: 5,
+                  decoration: InputDecoration(
+                    labelText: l10n.danceEditorNotesLabel,
+                    border: const OutlineInputBorder(),
+                    alignLabelWithHint: true,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
+        actions: [
+          TextButton(
+            key: const ValueKey('source-cancel'),
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            key: const ValueKey('source-save'),
+            onPressed: _save,
+            child: Text(l10n.commonSave),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          key: const ValueKey('source-cancel'),
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.commonCancel),
-        ),
-        FilledButton(
-          key: const ValueKey('source-save'),
-          onPressed: _save,
-          child: Text(l10n.commonSave),
-        ),
-      ],
     );
   }
 }

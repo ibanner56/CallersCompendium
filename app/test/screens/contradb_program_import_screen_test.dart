@@ -1134,4 +1134,65 @@ String _programWith({
 </div>
 </body></html>
 ''';
+
+  group('leaving with input', () {
+    Future<void> back(WidgetTester tester) async {
+      await tester
+          .state<NavigatorState>(find.byType(Navigator).first)
+          .maybePop();
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('back with a typed URL asks first; empty leaves freely', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pump(
+        tester,
+        repos,
+        programFetcher: (_) async => _programHtml,
+        contraDb: ContraDbOnline(htmlFetcher: (_) async => ''),
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('contradb-program-url')),
+        'https://contradb.com/programs/33',
+      );
+      await tester.pumpAndSettle();
+
+      await back(tester);
+      expect(find.byKey(const ValueKey('discard-cancel')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('discard-cancel')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('contradb-program-url')), findsOne);
+
+      // Fetching a program is input worth keeping too.
+      await tester.tap(find.byKey(const ValueKey('contradb-program-fetch')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('contradb-program-url')),
+        '',
+      );
+      await tester.pumpAndSettle();
+      await back(tester);
+      expect(find.byKey(const ValueKey('discard-cancel')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('discard-confirm')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('contradb-program-url')), findsNothing);
+    });
+
+    testWidgets('back with nothing entered leaves without asking', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pump(
+        tester,
+        repos,
+        programFetcher: (_) async => _programHtml,
+        contraDb: ContraDbOnline(htmlFetcher: (_) async => ''),
+      );
+      await back(tester);
+      expect(find.byKey(const ValueKey('discard-cancel')), findsNothing);
+      expect(find.byKey(const ValueKey('contradb-program-url')), findsNothing);
+    });
+  });
 }
