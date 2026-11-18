@@ -13,7 +13,7 @@ library;
 /// Human-facing application name.
 const String kAppName = "Caller's Compendium";
 
-/// Marketing version (always bare `X.Y.Z`). Mirror the exact `version:` in `app/pubspec.yaml`.
+/// Marketing version, always bare (no beta suffix). Mirror the exact `version:` in `app/pubspec.yaml`.
 const String kAppVersion = '0.10.0';
 
 /// Human-facing release codename.
