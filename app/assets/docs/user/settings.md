@@ -232,7 +232,8 @@ details are handled when you export.
   changes are saved and apply to **every** program, both on screen and in the
   printed PDF — distinct from the per-session eye icon in a matrix's own header,
   which only hides a column until you reopen that program. In the editor you can:
-  - **Reorder** columns by dragging the handle on the left of each row.
+  - **Reorder** columns by dragging the handle on the left of each row, or with
+    the **Move up** and **Move down** buttons under its name.
   - **Rename** a column with a name that suits your callers; leave the field
     empty to fall back to the built-in name (shown as a hint).
   - **Remove** a column you never use, or **restore** one you removed earlier —
@@ -370,7 +371,9 @@ The **Appearance** section controls how the app looks.
 
 A gallery of built-in themes: **System** (follows your device), **Light**,
 **Dark**, and a set of named color palettes, including high-contrast and
-editor-inspired schemes. Selecting a theme previews and applies it right away.
+editor-inspired schemes. The default themes are listed Light, Dark, Soft dark,
+then High contrast, and on a phone the theme cards sit in two columns. Selecting
+a theme previews and applies it right away.
 There's a **High contrast** theme for maximum legibility — see the
 [Accessibility guide](./accessibility.md) for when it helps.
 
@@ -622,8 +625,9 @@ open this group. You can override any of them per dance, and
 [Write & edit dances](./authoring.md) covers them in context.
 
 - **Level** — open this to manage the difficulty levels used by dance editors,
-  collection filters, and batch actions. Add a level, rename it, or drag it into
-  a different position; renaming keeps existing dances attached to that level.
+  collection filters, and batch actions. Add a level, rename it, or move it to
+  a different position by dragging it or with its **Move up** and **Move down**
+  buttons; renaming keeps existing dances attached to that level.
   A level can't be removed while any dance uses it. A dance in **Recently
   deleted** doesn't count, so it won't stop you removing a level, and restoring
   that dance brings the level back. Until then, that dance is backed up without

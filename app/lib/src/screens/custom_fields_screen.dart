@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import '../widgets/reorder_move_buttons.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -834,6 +835,16 @@ class _ChoicesEditorState extends State<_ChoicesEditor> {
                           color: Theme.of(context).colorScheme.secondary,
                         ),
                       ),
+                    ReorderMoveButtons(
+                      keyPrefix: 'choice-$choice',
+                      name: choice,
+                      onMoveUp: index == 0
+                          ? null
+                          : () => widget.onReorder(index, index - 1),
+                      onMoveDown: index == widget.choices.length - 1
+                          ? null
+                          : () => widget.onReorder(index, index + 1),
+                    ),
                     IconButton(
                       key: ValueKey('remove-choice-$choice'),
                       icon: const Icon(Icons.remove_circle_outline),

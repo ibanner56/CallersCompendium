@@ -27,6 +27,10 @@ import 'name_picker.dart';
 import 'source_citations_editor.dart';
 import '../../theme/app_shapes.dart';
 
+/// Narrowest form width at which the rating (five stars plus Clear) fits beside
+/// the Progression dropdown without wrapping.
+const double _ratingBesideMinWidth = 600;
+
 /// The dance editor's scrolling metadata form. Presentational only: it reads
 /// the working draft from [controller] and routes edits back through the
 /// controller's mutation methods (which own undo/autosave), plus a handful of
@@ -342,6 +346,9 @@ class DanceEditorForm extends StatelessWidget {
                 ],
                 const SizedBox(height: AppSpacing.md),
                 DropdownButtonFormField<DanceForm>(
+                  // Field values read at the same weight as typed text; the dropdown's
+                  // default is the bolder titleMedium.
+                  style: Theme.of(context).textTheme.bodyLarge,
                   key: const ValueKey('form-field'),
                   isExpanded: true,
                   decoration: InputDecoration(
@@ -361,6 +368,9 @@ class DanceEditorForm extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSpacing.md),
                 DropdownButtonFormField<FormationShape>(
+                  // Field values read at the same weight as typed text; the dropdown's
+                  // default is the bolder titleMedium.
+                  style: Theme.of(context).textTheme.bodyLarge,
                   key: const ValueKey('formation-field'),
                   isExpanded: true,
                   decoration: InputDecoration(
@@ -416,28 +426,42 @@ class DanceEditorForm extends StatelessWidget {
                   contentPadding: EdgeInsets.zero,
                 ),
                 const SizedBox(height: AppSpacing.md),
-                // Progression and Rating share one line.
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: EnumDropdown<Progression>(
-                        fieldKey: 'progression',
-                        label: l10n.commonProgression,
-                        value: controller.progression,
-                        values: Progression.values,
-                        labelOf: (value) => progressionLabel(l10n, value),
-                        onChanged: controller.setProgression,
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Expanded(
-                      child: RatingField(
-                        value: controller.rating,
-                        onChanged: controller.setRating,
-                      ),
-                    ),
-                  ],
+                // Progression and Rating share one line when there is room for
+                // all five stars plus Clear beside the dropdown; on a phone the
+                // rating takes its own row so the stars never wrap.
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final progression = EnumDropdown<Progression>(
+                      fieldKey: 'progression',
+                      label: l10n.commonProgression,
+                      value: controller.progression,
+                      values: Progression.values,
+                      labelOf: (value) => progressionLabel(l10n, value),
+                      onChanged: controller.setProgression,
+                    );
+                    final rating = RatingField(
+                      value: controller.rating,
+                      onChanged: controller.setRating,
+                    );
+                    if (constraints.maxWidth < _ratingBesideMinWidth) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          progression,
+                          const SizedBox(height: AppSpacing.md),
+                          rating,
+                        ],
+                      );
+                    }
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: progression),
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(child: rating),
+                      ],
+                    );
+                  },
                 ),
                 const SizedBox(height: AppSpacing.md),
                 TextFormField(

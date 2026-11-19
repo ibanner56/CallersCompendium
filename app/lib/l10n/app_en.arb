@@ -393,6 +393,10 @@
       }
     }
   },
+  "colorEditHexInvalid": "Enter six hex digits, like #804020.",
+  "@colorEditHexInvalid": {
+    "description": "Error under the colour dialog's Hex field when Apply is pressed while the field holds something that is not a six-digit hex colour."
+  },
   "colorEditHexLabel": "Hex",
   "@colorEditHexLabel": {
     "description": "Field label for the hexadecimal color input in the shared color-picker dialog."
@@ -12178,6 +12182,30 @@
   "@danceEditorMoveDown": {
     "description": "Menu item label for moving a figure row downward."
   },
+  "commonMoveItemUp": "Move {name} up",
+  "@commonMoveItemUp": {
+    "description": "Tooltip and screen-reader label for the button that moves one item of a reorderable settings list up a position, the keyboard and switch alternative to dragging.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Intermediate"
+      }
+    }
+  },
+  "commonMoveItemDown": "Move {name} down",
+  "@commonMoveItemDown": {
+    "description": "Tooltip and screen-reader label for the button that moves one item of a reorderable settings list down a position, the keyboard and switch alternative to dragging.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Intermediate"
+      }
+    }
+  },
+  "danceEditorFigureCutState": "Cut",
+  "@danceEditorFigureCutState": {
+    "description": "Badge and screen-reader text on a figure row that has been cut and is waiting to be pasted somewhere else; says the row's state, where danceEditorCut is the menu action that puts it there."
+  },
   "danceEditorCut": "Cut",
   "@danceEditorCut": {
     "description": "Menu item label for cutting a figure row before pasting it elsewhere."
@@ -12966,7 +12994,7 @@
       }
     }
   },
-  "collectionPickerSearchLabel": "Find a dance to add",
+  "collectionPickerSearchLabel": "Find a dance",
   "@collectionPickerSearchLabel": {
     "description": "Label for the search field in the collection picker (adding a dance to a program)."
   },

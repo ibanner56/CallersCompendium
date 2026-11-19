@@ -316,6 +316,10 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String get colorEditHexInvalid =>
+      'Voer zes hexadecimale cijfers in, bijvoorbeeld #804020.';
+
+  @override
   String get colorEditHexLabel => 'Hex';
 
   @override
@@ -9357,6 +9361,19 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorMoveDown => 'Omlaag verplaatsen';
 
   @override
+  String commonMoveItemUp(String name) {
+    return '$name omhoog verplaatsen';
+  }
+
+  @override
+  String commonMoveItemDown(String name) {
+    return '$name omlaag verplaatsen';
+  }
+
+  @override
+  String get danceEditorFigureCutState => 'Geknipt';
+
+  @override
   String get danceEditorCut => 'Knippen';
 
   @override
@@ -9904,7 +9921,7 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String get collectionPickerSearchLabel => 'Een dans zoeken om toe te voegen';
+  String get collectionPickerSearchLabel => 'Een dans zoeken';
 
   @override
   String collectionPickerFilters(int count) {
