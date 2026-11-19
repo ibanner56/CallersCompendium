@@ -3492,6 +3492,29 @@ void main() {
         );
       });
 
+      test('with no count counts its steps at the user\'s Move defaults '
+          'too', () async {
+        final repos = openTestRepositories();
+        final controller = await openEcd(repos, const []);
+        addTearDown(controller.dispose);
+        final figures = typed(
+          '1st corners set forward and turn single back to place',
+        );
+        final setMove = figures.single.subFigures.first.move;
+        // A control: the line's first step is a set, at its default count.
+        expect(setMove, 'ecd_set');
+        controller.moveParamDefaults = const {
+          'ecd_set': {'beats': 8},
+        };
+
+        controller.insertFreeTextFigures(figures);
+
+        final sequence = controller.figureDrafts.single;
+        expect(sequence.sequenceSpanStated, isFalse);
+        expect(sequence.sequenceFigures!.first.params['beats'], 8);
+        expect(sequence.sequenceFigures!.any((s) => s.untimed), isFalse);
+      });
+
       test('with no count counts its steps at their defaults', () async {
         final repos = openTestRepositories();
         final controller = await openEcd(repos, const []);

@@ -121,19 +121,29 @@ class FigureDraft {
   }
 
   /// After [_fillDerivedParams] has given a typed English sequence's steps
-  /// their default counts: when those add up to the line's [span], the
-  /// sequence counts its steps, as it reads back once saved
-  /// ([FigureDraft.fromFigure]). When they don't, the line stated its own
-  /// span ("… back to place (16)"), so each step the line gave no count is
-  /// left untimed under it, as the parser read it (ADR-006 §5.5).
+  /// their counts. A line typed with no count of its own has the span the
+  /// parser derives, its steps' counts at the taxonomy's defaults: such a
+  /// sequence counts its steps, at the counts just filled in (the user's Move
+  /// defaults included), as it reads back once saved
+  /// ([FigureDraft.fromFigure]). Any other span the line stated ("… back to
+  /// place (16)"), so each step the line gave no count is left untimed under
+  /// it, as the parser read it (ADR-006 §5.5).
   static void _keepUntimedUnderSpan(
     FigureDraft draft,
     List<Figure> sources,
     int span,
+    Taxonomy taxonomy,
   ) {
     final steps = draft.sequenceFigures!;
-    if (steps.every((step) => step.params['beats'] is int) &&
-        steps.fold(0, (sum, step) => sum + step.beats) == span) {
+    final derived = sources.fold(
+      0,
+      (sum, source) =>
+          sum +
+          (source.isContainer || stepStatesTiming(source)
+              ? source.beats
+              : (taxonomy.effectiveParams(source)['beats'] as int? ?? 0)),
+    );
+    if (span == derived) {
       draft.beatsTouched = false;
       draft.syncContainerBeats();
       return;
@@ -165,7 +175,7 @@ class FigureDraft {
         );
       }
       if (span != null) {
-        _keepUntimedUnderSpan(draft, sources, span);
+        _keepUntimedUnderSpan(draft, sources, span, taxonomy);
         return;
       }
       // A group typed with no count of its own follows its sides (AUTH-11).
