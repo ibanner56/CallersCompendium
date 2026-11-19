@@ -1,6 +1,6 @@
+// Part of the Settings screen, split by section (Stage-7 item 7.2).
 import 'dart:async';
 
-// Part of the Settings screen, split by section (Stage-7 item 7.2).
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
@@ -480,7 +480,10 @@ class _CustomThemesSection extends StatelessWidget {
     // Choosing a built-in theme also leaves no custom theme active, so the
     // controller alone cannot tell it from no choice: Undo makes the theme
     // active again only if the built-in selection has not changed since,
-    // even if it has changed back. The listener goes when the prompt closes.
+    // even if it has changed back. (Tapping the built-in theme already
+    // selected changes nothing, so it does not count.) The listener goes when
+    // Undo runs or the prompt closes; a prompt cleared from the queue before
+    // it ever showed never closes, and then leaves this listener behind.
     final selection = AppThemeScope.notifierOf(context);
     var chosenSince = false;
     void onChosen() => chosenSince = true;
@@ -502,11 +505,14 @@ class _CustomThemesSection extends StatelessWidget {
       undoLabel: l10n.commonUndo,
       undoFailedMessage: l10n.commonUndoFailed,
       accessibleNavigation: accessibleNavigation,
-      onUndo: () => controller.restoreDeleted(
-        removed,
-        index: index,
-        wasActive: wasActive && !chosenSince,
-      ),
+      onUndo: () {
+        selection.removeListener(onChosen);
+        return controller.restoreDeleted(
+          removed,
+          index: index,
+          wasActive: wasActive && !chosenSince,
+        );
+      },
     );
     unawaited(prompt.closed.then((_) => selection.removeListener(onChosen)));
   }
