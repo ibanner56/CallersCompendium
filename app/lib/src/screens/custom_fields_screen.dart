@@ -9,7 +9,8 @@ import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
-import '../theme/destructive_button_style.dart';
+import '../utils/confirm_delete.dart';
+import '../utils/undo_snack_bar.dart';
 import '../widgets/confirm_discard_changes.dart';
 import 'settings/settings_keys.dart';
 
@@ -239,41 +240,32 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
     );
   }
 
+  /// Deletes [def] at once and offers Undo, asking first only when "Confirm
+  /// before delete" is on (see `confirm_delete.dart`). A field still holding a
+  /// value on a live dance is not deleted: the repository refuses, and the
+  /// snackbar says why instead.
   Future<void> _delete(CustomFieldDef def) async {
+    if (!await confirmDeleteIfEnabled(context, itemLabel: def.label)) return;
+    if (!mounted) return;
     final l10n = AppLocalizations.of(context);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.customFieldsDeleteTitle),
-        content: Text(l10n.customFieldsDeleteBody(def.label)),
-        actions: [
-          TextButton(
-            key: const ValueKey('delete-cancel'),
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(l10n.commonCancel),
-          ),
-          FilledButton(
-            style: destructiveFilledButtonStyle(Theme.of(ctx).colorScheme),
-            key: const ValueKey('delete-confirm'),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(l10n.commonDelete),
-          ),
-        ],
-      ),
-      animationStyle: AppMotion.styleFor(context),
-    );
-    if (confirmed != true || !mounted) return;
-
     final messenger = ScaffoldMessenger.of(context);
+    final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
+    final repos = _repos;
     try {
-      await _repos.customFieldDefs.delete(def.id);
-      messenger.showSnackBar(
-        SnackBar(
-          key: const ValueKey('delete-success-snackbar'),
-          content: Text(l10n.commonDeletedSnack(def.label)),
-        ),
+      await repos.customFieldDefs.delete(def.id);
+      // No reload: the delete tombstones the row and the stream re-emits;
+      // Undo's restore clears the tombstone and it re-emits again.
+      showUndoSnackBar(
+        messenger,
+        key: const ValueKey('delete-success-snackbar'),
+        actionKey: const ValueKey('custom-field-delete-undo'),
+        message: l10n.commonDeletedSnack(def.label),
+        undoLabel: l10n.commonUndo,
+        undoFailedMessage: l10n.commonUndoFailed,
+        accessibleNavigation: accessibleNavigation,
+        onUndo: () =>
+            repos.customFieldDefs.restore(def.id, at: DateTime.now().toUtc()),
       );
-      // No reload: the delete tombstones the row and the stream re-emits.
     } on CustomFieldInUseException catch (e, st) {
       logCaughtError(e, st, source: 'custom_fields_screen._delete');
       if (!mounted) return;

@@ -1994,14 +1994,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsDialectDuplicateToCustomize => 'カスタマイズのために複製';
 
   @override
-  String get settingsDialectDeleteTitle => 'ダイアレクトを削除しますか？';
-
-  @override
-  String settingsDialectDeleteConfirmBody(String name) {
-    return '「$name」は完全に削除されます。';
-  }
-
-  @override
   String settingsDialectEditConflictSnack(String name) {
     return '「$name」は編集中に名前が変更されたか削除されたため、変更は保存されませんでした。';
   }
@@ -2355,14 +2347,6 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get settingsAppearanceCustomThemesEmpty =>
       '現在のテーマをコピーして色を調整できます。カスタムテーマは、同期がオンのとき、他のデバイスと同期されます。';
-
-  @override
-  String get settingsAppearanceDeleteThemeTitle => 'テーマを削除しますか？';
-
-  @override
-  String settingsAppearanceDeleteThemeBody(String name) {
-    return '「$name」は完全に削除されます。';
-  }
 
   @override
   String settingsAppearanceCustomThemeSemantic(String name) {
@@ -3030,17 +3014,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsMatrixColumnsParameterizedDelete => 'パラメーター付き列を削除';
 
   @override
-  String get settingsMatrixColumnsParameterizedDeleteTitle =>
-      'パラメーター付き列を削除しますか？';
-
-  @override
-  String get settingsMatrixColumnsParameterizedDeleteBody =>
-      '列とその一致条件をマトリックスから削除します。この操作は元に戻せません。';
-
-  @override
-  String get settingsMatrixColumnsParameterizedDeleteConfirm => '列を削除';
-
-  @override
   String get settingsMatrixColumnsCompoundAdd => '複合列を追加';
 
   @override
@@ -3078,16 +3051,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsMatrixColumnsCompoundDelete => '複合列を削除';
-
-  @override
-  String get settingsMatrixColumnsCompoundDeleteTitle => '複合列を削除しますか？';
-
-  @override
-  String get settingsMatrixColumnsCompoundDeleteBody =>
-      '列と一致するシーケンスをマトリックスから削除します。この操作は元に戻せません。';
-
-  @override
-  String get settingsMatrixColumnsCompoundDeleteConfirm => '列を削除';
 
   @override
   String get settingsGeneralPerformanceHeader => 'パフォーマンス';
@@ -3270,7 +3233,27 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsGeneralConfirmBeforeDeleteSubtitle =>
-      'ダンスやプログラムを削除する前に確認を求めます。削除は元に戻せます。これはその前に明示的な確認を追加するだけです。';
+      '元に戻せる削除の前に確認します。元に戻せない削除は常に確認します。';
+
+  @override
+  String get settingsGeneralUndoPromptTitle => '「元に戻す」の表示';
+
+  @override
+  String get settingsGeneralUndoPromptSubtitle =>
+      '削除や変更のあと「元に戻す」を画面に表示しておく時間です。ポインターを合わせている間やキーボードで移動している間も表示されたままになります。';
+
+  @override
+  String settingsGeneralUndoPromptSeconds(int seconds) {
+    String _temp0 = intl.Intl.pluralLogic(
+      seconds,
+      locale: localeName,
+      other: '$seconds秒',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsGeneralUndoPromptUntilClosed => '閉じるまで';
 
   @override
   String get settingsGeneralDeletedItemsHeader => '最近削除したアイテム';
@@ -3890,6 +3873,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String commonDeletedSnack(String title) {
     return '「$title」を削除しました。';
   }
+
+  @override
+  String get commonCantBeUndone => 'この操作は元に戻せません。';
 
   @override
   String get importGapMessage =>
@@ -7862,6 +7848,9 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get importReviewEditOverwriteConfirm => '置き換える';
+
+  @override
   String get importReviewEditReimportTitle => '今すぐ既存のダンスに再インポートしますか？';
 
   @override
@@ -8075,13 +8064,6 @@ class AppLocalizationsJa extends AppLocalizations {
     );
     return '$_temp0';
   }
-
-  @override
-  String get settingsWalkthroughSnippetDeleteTitle => 'スニペットを削除しますか？';
-
-  @override
-  String get settingsWalkthroughSnippetDeleteBody =>
-      'このフィギュアに保存された既定値を削除します。ダンスにすでに書いたウォークスルーのテキストは保持されます。';
 
   @override
   String get settingsWalkthroughSnippetEditTitle => 'スニペットを編集';
@@ -9368,14 +9350,6 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get shorthandMappingsDeleteTitle => 'ショートハンドを削除しますか？';
-
-  @override
-  String shorthandMappingsDeleteBody(String token) {
-    return '「$token」は完全に削除されます。';
-  }
-
-  @override
   String get shorthandMappingsActionsTooltip => 'ショートハンドのアクション';
 
   @override
@@ -9742,14 +9716,6 @@ class AppLocalizationsJa extends AppLocalizations {
       'コレクションのスキャン中に問題が発生しました。何も変更されていません。もう一度お試しください。';
 
   @override
-  String get customFieldsDeleteTitle => 'カスタムフィールドを削除';
-
-  @override
-  String customFieldsDeleteBody(String label) {
-    return '「$label」を削除しますか？この操作は元に戻せません。';
-  }
-
-  @override
   String customFieldsDeleteInUse(String label, int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -10002,7 +9968,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String recentlyDeletedDeleteBody(String title) {
-    return '「$title」はすぐに削除され、復元できません。';
+    return '「$title」を今すぐ削除します。';
   }
 
   @override
@@ -10130,19 +10096,6 @@ class AppLocalizationsJa extends AppLocalizations {
       other: '$count件のプログラムをリンクしました。',
     );
     return '$_temp0';
-  }
-
-  @override
-  String get venueManagerDeleteTitle => '会場を削除しますか？';
-
-  @override
-  String venueManagerDeleteBody(String name) {
-    return '「$name」を完全に削除しますか？この操作は元に戻せません。';
-  }
-
-  @override
-  String venueManagerDeletedSnack(String name) {
-    return '「$name」を削除しました';
   }
 
   @override

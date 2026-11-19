@@ -849,15 +849,24 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('compound-shorthand-delete')));
       await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(const ValueKey('compound-shorthand-delete-confirm')),
-      );
-      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsNothing);
       expect(
         [for (final c in controller.compoundShorthands) c.token],
         ['other'],
       );
       expect(find.text('"GRL2" deleted.'), findsOneWidget);
+
+      // Undo puts it back where it was.
+      final before = controller.compoundShorthands;
+      await tester.tap(
+        find.byKey(const ValueKey('compound-shorthand-delete-undo')),
+      );
+      await tester.pumpAndSettle();
+      expect(controller.compoundShorthands, hasLength(before.length + 1));
+      expect(
+        controller.compoundShorthands.map((c) => c.token),
+        contains('GRL2'),
+      );
     });
 
     // UX2-1b: backing out of an edited shorthand asks before losing it.

@@ -11,6 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pdf/pdf.dart' show PdfPageFormat;
 import 'package:printing/printing.dart' show LayoutCallback;
 
+import 'package:compendium_app/src/data/undo_prompt_duration_scope.dart';
 import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/confirm_before_delete_scope.dart';
@@ -3212,7 +3213,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
-    await tester.pump(const Duration(seconds: 7));
+    await tester.pump(const Duration(seconds: kUndoPromptDefaultSeconds + 1));
     await tester.pumpAndSettle();
     expect(find.byType(SnackBarAction), findsNothing);
 

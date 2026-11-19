@@ -25,6 +25,7 @@ import '../../widgets/notice_card.dart';
 import '../../widgets/section_header.dart';
 import '../sync_conflict_sheet.dart';
 import '../sync_review_screen.dart';
+import '../../theme/destructive_button_style.dart';
 import 'sync_device_labels.dart';
 import 'sync_devices_screen.dart';
 import 'sync_failure_labels.dart';
@@ -402,6 +403,9 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
             ),
           ),
           FilledButton(
+            style: destructiveFilledButtonStyle(
+              Theme.of(dialogContext).colorScheme,
+            ),
             key: const ValueKey('sync-disconnect-confirm'),
             onPressed: () => Navigator.of(dialogContext).pop(true),
             child: Text(l10n.settingsSyncDisconnectConfirmAction),

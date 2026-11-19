@@ -127,6 +127,26 @@ class CustomThemesController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Puts [theme] back at [index] (clamped): Undo of [delete]. When
+  /// [wasActive] and no custom theme has been made active since, it is made
+  /// active again. (A built-in theme chosen in between leaves no custom theme
+  /// active either, so Undo then makes the restored one active.) Throws [ArgumentError] when a theme with its id exists.
+  Future<void> restoreDeleted(
+    CustomTheme theme, {
+    required int index,
+    required bool wasActive,
+  }) async {
+    if (byId(theme.id) != null) {
+      throw ArgumentError.value(theme.id, 'theme.id', 'already exists');
+    }
+    _themes.insert(index.clamp(0, _themes.length), theme);
+    final reactivate = wasActive && _activeId == null;
+    if (reactivate) _activeId = theme.id;
+    await _persistThemes();
+    if (reactivate) await _persistActive();
+    notifyListeners();
+  }
+
   /// Sets the active custom theme (or clears it with `null` to hand control
   /// back to the built-in [AppThemeSelection]).
   Future<void> setActive(String? id) async {

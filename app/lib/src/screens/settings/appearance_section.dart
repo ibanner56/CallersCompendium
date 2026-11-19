@@ -2,8 +2,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
-import '../../theme/app_motion.dart';
-import '../../theme/destructive_button_style.dart';
+import '../../utils/confirm_delete.dart';
+import '../../utils/undo_snack_bar.dart';
 import 'settings_keys.dart';
 import '../../data/app_theme_labels_l10n.dart';
 import '../../data/app_theme_scope.dart';
@@ -463,32 +463,33 @@ class _CustomThemesSection extends StatelessWidget {
     );
   }
 
+  /// Deletes the custom [theme] at once and offers Undo, asking first only
+  /// when "Confirm before delete" is on (see `confirm_delete.dart`).
   Future<void> _confirmDelete(BuildContext context, CustomTheme theme) async {
+    if (!await confirmDeleteIfEnabled(context, itemLabel: theme.name)) return;
+    if (!context.mounted) return;
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.maybeOf(context);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.settingsAppearanceDeleteThemeTitle),
-        content: Text(l10n.settingsAppearanceDeleteThemeBody(theme.name)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(l10n.commonCancel),
-          ),
-          FilledButton(
-            style: destructiveFilledButtonStyle(Theme.of(ctx).colorScheme),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(l10n.commonDelete),
-          ),
-        ],
+    final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
+    // Read after the confirmation, so Undo puts back what was removed.
+    final removed = controller.byId(theme.id);
+    if (removed == null) return;
+    final index = controller.themes.indexOf(removed);
+    final wasActive = controller.activeId == removed.id;
+    await controller.delete(removed.id);
+    if (messenger == null) return;
+    showUndoSnackBar(
+      messenger,
+      actionKey: const ValueKey('custom-theme-delete-undo'),
+      message: l10n.commonDeletedSnack(removed.name),
+      undoLabel: l10n.commonUndo,
+      undoFailedMessage: l10n.commonUndoFailed,
+      accessibleNavigation: accessibleNavigation,
+      onUndo: () => controller.restoreDeleted(
+        removed,
+        index: index,
+        wasActive: wasActive,
       ),
-      animationStyle: AppMotion.styleFor(context),
-    );
-    if (confirmed != true) return;
-    await controller.delete(theme.id);
-    messenger?.showSnackBar(
-      SnackBar(content: Text(l10n.commonDeletedSnack(theme.name))),
     );
   }
 

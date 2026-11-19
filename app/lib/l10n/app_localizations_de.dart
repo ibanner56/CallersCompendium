@@ -2106,14 +2106,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsDialectDuplicateToCustomize => 'Duplizieren zum Anpassen';
 
   @override
-  String get settingsDialectDeleteTitle => 'Dialekt löschen?';
-
-  @override
-  String settingsDialectDeleteConfirmBody(String name) {
-    return '„$name“ wird dauerhaft entfernt.';
-  }
-
-  @override
   String settingsDialectEditConflictSnack(String name) {
     return '\"$name\" wurde umbenannt oder gelöscht, während du es bearbeitet hast. Deine Änderungen wurden nicht gespeichert.';
   }
@@ -2503,14 +2495,6 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get settingsAppearanceCustomThemesEmpty =>
       'Aktuelles Design kopieren und beliebige Farben anpassen. Benutzerdefinierte Designs werden mit Ihren anderen Geräten synchronisiert, wenn die Synchronisierung aktiviert ist.';
-
-  @override
-  String get settingsAppearanceDeleteThemeTitle => 'Design löschen?';
-
-  @override
-  String settingsAppearanceDeleteThemeBody(String name) {
-    return '„$name“ wird dauerhaft entfernt.';
-  }
 
   @override
   String settingsAppearanceCustomThemeSemantic(String name) {
@@ -3219,18 +3203,6 @@ class AppLocalizationsDe extends AppLocalizations {
       'Parametrisierte Spalte löschen';
 
   @override
-  String get settingsMatrixColumnsParameterizedDeleteTitle =>
-      'Parametrisierte Spalte löschen?';
-
-  @override
-  String get settingsMatrixColumnsParameterizedDeleteBody =>
-      'Dies entfernt die Spalte und ihre Abgleichregeln aus der Matrix. Dies kann nicht rückgängig gemacht werden.';
-
-  @override
-  String get settingsMatrixColumnsParameterizedDeleteConfirm =>
-      'Spalte löschen';
-
-  @override
   String get settingsMatrixColumnsCompoundAdd =>
       'Zusammengesetzte Spalte hinzufügen';
 
@@ -3274,17 +3246,6 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get settingsMatrixColumnsCompoundDelete =>
       'Zusammengesetzte Spalte löschen';
-
-  @override
-  String get settingsMatrixColumnsCompoundDeleteTitle =>
-      'Zusammengesetzte Spalte löschen?';
-
-  @override
-  String get settingsMatrixColumnsCompoundDeleteBody =>
-      'Dadurch werden die Spalte und ihre passende Sequenz aus der Matrix entfernt. Dies kann nicht rückgängig gemacht werden.';
-
-  @override
-  String get settingsMatrixColumnsCompoundDeleteConfirm => 'Spalte löschen';
 
   @override
   String get settingsGeneralPerformanceHeader => 'Perform-Modus';
@@ -3479,7 +3440,28 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsGeneralConfirmBeforeDeleteSubtitle =>
-      'Vor dem Löschen eines Tanzes oder Programms um Bestätigung bitten. Löschvorgänge können noch rückgängig gemacht werden; dies fügt nur eine explizite Abfrage vorweg hinzu.';
+      'Vor dem Löschen von allem nachfragen, was sich rückgängig machen lässt. Löschvorgänge, die sich nicht rückgängig machen lassen, fragen immer vorher nach.';
+
+  @override
+  String get settingsGeneralUndoPromptTitle => 'Rückgängig-Hinweis';
+
+  @override
+  String get settingsGeneralUndoPromptSubtitle =>
+      'Wie lange der Hinweis „Rückgängig“ nach dem Löschen oder Ändern sichtbar bleibt. Er bleibt auch, solange Sie mit dem Zeiger darauf zeigen oder ihn mit der Tastatur ansteuern.';
+
+  @override
+  String settingsGeneralUndoPromptSeconds(int seconds) {
+    String _temp0 = intl.Intl.pluralLogic(
+      seconds,
+      locale: localeName,
+      other: '$seconds Sekunden',
+      one: '1 Sekunde',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsGeneralUndoPromptUntilClosed => 'Bis ich ihn schließe';
 
   @override
   String get settingsGeneralDeletedItemsHeader => 'Zuletzt gelöscht';
@@ -4128,6 +4110,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String commonDeletedSnack(String title) {
     return '„$title“ gelöscht.';
   }
+
+  @override
+  String get commonCantBeUndone => 'Das lässt sich nicht rückgängig machen.';
 
   @override
   String get importGapMessage =>
@@ -8299,6 +8284,9 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get importReviewEditOverwriteConfirm => 'Ersetzen';
+
+  @override
   String get importReviewEditReimportTitle =>
       'Jetzt auf den vorhandenen Tanz neu importieren?';
 
@@ -8522,13 +8510,6 @@ class AppLocalizationsDe extends AppLocalizations {
     );
     return '$_temp0';
   }
-
-  @override
-  String get settingsWalkthroughSnippetDeleteTitle => 'Ausschnitt löschen?';
-
-  @override
-  String get settingsWalkthroughSnippetDeleteBody =>
-      'Dies entfernt den gespeicherten Standard für diese Figur. Tänze behalten jeden bereits geschriebenen Ablauftext.';
 
   @override
   String get settingsWalkthroughSnippetEditTitle => 'Ausschnitt bearbeiten';
@@ -9859,14 +9840,6 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get shorthandMappingsDeleteTitle => 'Abkürzung löschen?';
-
-  @override
-  String shorthandMappingsDeleteBody(String token) {
-    return '„$token“ wird dauerhaft entfernt.';
-  }
-
-  @override
   String get shorthandMappingsActionsTooltip => 'Abkürzungs-Aktionen';
 
   @override
@@ -10262,14 +10235,6 @@ class AppLocalizationsDe extends AppLocalizations {
       'Beim Scannen Ihrer Sammlung ist etwas schiefgelaufen. Es wurde nichts geändert. Sie können es erneut versuchen.';
 
   @override
-  String get customFieldsDeleteTitle => 'Benutzerdefiniertes Feld löschen';
-
-  @override
-  String customFieldsDeleteBody(String label) {
-    return '„$label“ löschen? Dies kann nicht rückgängig gemacht werden.';
-  }
-
-  @override
   String customFieldsDeleteInUse(String label, int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -10538,7 +10503,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String recentlyDeletedDeleteBody(String title) {
-    return '„$title“ wird sofort gelöscht und kann nicht wiederhergestellt werden.';
+    return '„$title“ wird jetzt gelöscht.';
   }
 
   @override
@@ -10673,19 +10638,6 @@ class AppLocalizationsDe extends AppLocalizations {
       one: '1 Programm verknüpft.',
     );
     return '$_temp0';
-  }
-
-  @override
-  String get venueManagerDeleteTitle => 'Veranstaltungsort löschen?';
-
-  @override
-  String venueManagerDeleteBody(String name) {
-    return '„$name“ dauerhaft löschen? Dies kann nicht rückgängig gemacht werden.';
-  }
-
-  @override
-  String venueManagerDeletedSnack(String name) {
-    return '„$name“ gelöscht';
   }
 
   @override

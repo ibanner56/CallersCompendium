@@ -1932,14 +1932,6 @@
   "@settingsDialectDuplicateToCustomize": {
     "x-sourceSha256": "38e6ec3ccb117e6f2219f9b5c797f817517cad4a8a49a62a7dc610800b7e3abd"
   },
-  "settingsDialectDeleteTitle": "Slet dialekt?",
-  "@settingsDialectDeleteTitle": {
-    "x-sourceSha256": "670220a9739cfe2072e0bece788c469adf6909434230eb4a194ce25b9338b023"
-  },
-  "settingsDialectDeleteConfirmBody": "„{name}“ fjernes permanent.",
-  "@settingsDialectDeleteConfirmBody": {
-    "x-sourceSha256": "1d5d8e93bb74d70ab97fe737fb2069d9ebeed30d083e70526f4e3207b13941a2"
-  },
   "settingsDialectEditConflictSnack": "\"{name}\" blev omdøbt eller slettet, mens du redigerede den, så dine ændringer blev ikke gemt.",
   "@settingsDialectEditConflictSnack": {
     "x-sourceSha256": "9e3281ba02ea73d6457c7fde6f74101343054453e9bcd3dbc84e5967101cb3a0"
@@ -2403,14 +2395,6 @@
   "settingsAppearanceCustomThemesEmpty": "Kopier det aktuelle tema og juster en vilkårlig farve. Brugerdefinerede temaer synkroniseres til dine andre enheder, når synkronisering er slået til.",
   "@settingsAppearanceCustomThemesEmpty": {
     "x-sourceSha256": "95b8a0f6f3b5190ec400652935ba9981213e44fc2eacb56637799159e84c7d3f"
-  },
-  "settingsAppearanceDeleteThemeTitle": "Slet tema?",
-  "@settingsAppearanceDeleteThemeTitle": {
-    "x-sourceSha256": "25231c611da05d6c4d224219a2be27440a7eeda9d838586da123871a0ae8b8d7"
-  },
-  "settingsAppearanceDeleteThemeBody": "„{name}“ fjernes permanent.",
-  "@settingsAppearanceDeleteThemeBody": {
-    "x-sourceSha256": "1d5d8e93bb74d70ab97fe737fb2069d9ebeed30d083e70526f4e3207b13941a2"
   },
   "settingsAppearanceCustomThemeSemantic": "Brugerdefineret tema {name}",
   "@settingsAppearanceCustomThemeSemantic": {
@@ -3152,18 +3136,6 @@
   "@settingsMatrixColumnsParameterizedDelete": {
     "x-sourceSha256": "7994bc0925b189b9c13c938e0033b4e54116dfc13f0b1c2a3a3fe5200ac61c11"
   },
-  "settingsMatrixColumnsParameterizedDeleteTitle": "Slet parameteriseret kolonne?",
-  "@settingsMatrixColumnsParameterizedDeleteTitle": {
-    "x-sourceSha256": "2b4e4e65aa54f6d0964fe893dc508a355149a0555a674e0cc83c813527a1a8fb"
-  },
-  "settingsMatrixColumnsParameterizedDeleteBody": "Dette fjerner kolonnen og dens matchregler fra matrixen. Det kan ikke fortrydes.",
-  "@settingsMatrixColumnsParameterizedDeleteBody": {
-    "x-sourceSha256": "a8306396270aaffdc91b27aaaa13bcf8f059dba3cc0c00f72ca9baa6f8bac573"
-  },
-  "settingsMatrixColumnsParameterizedDeleteConfirm": "Slet kolonne",
-  "@settingsMatrixColumnsParameterizedDeleteConfirm": {
-    "x-sourceSha256": "837dbb2c66b1a90f46e7de1ea5b51e2da583a675dd6a3d4131dc2a7d44b0eaef"
-  },
   "settingsMatrixColumnsCompoundAdd": "Tilføj sammensat kolonne",
   "@settingsMatrixColumnsCompoundAdd": {
     "x-sourceSha256": "4d622803476d89e16f3fd2ff9833f4af49c048b9e9db21d1a7152ac5acb0f2bf"
@@ -3215,18 +3187,6 @@
   "settingsMatrixColumnsCompoundDelete": "Slet sammensat kolonne",
   "@settingsMatrixColumnsCompoundDelete": {
     "x-sourceSha256": "5b58577782347f9594b07fb21cbdc6e9e8bb760cfb40940c20b31c86df9cfb11"
-  },
-  "settingsMatrixColumnsCompoundDeleteTitle": "Slet sammensat kolonne?",
-  "@settingsMatrixColumnsCompoundDeleteTitle": {
-    "x-sourceSha256": "98831941b3740465659d3cc8318d4bdd24f9288e858ec211f9cf69cccf7def38"
-  },
-  "settingsMatrixColumnsCompoundDeleteBody": "Dette fjerner kolonnen og dens matchende sekvens fra matrixen. Det kan ikke fortrydes.",
-  "@settingsMatrixColumnsCompoundDeleteBody": {
-    "x-sourceSha256": "b1e004080248e7e1e2d07c1add004fd0dc616326cf6479d4557902be999c16d1"
-  },
-  "settingsMatrixColumnsCompoundDeleteConfirm": "Slet kolonne",
-  "@settingsMatrixColumnsCompoundDeleteConfirm": {
-    "x-sourceSha256": "837dbb2c66b1a90f46e7de1ea5b51e2da583a675dd6a3d4131dc2a7d44b0eaef"
   },
   "settingsGeneralPerformanceHeader": "Performance",
   "@settingsGeneralPerformanceHeader": {
@@ -3420,9 +3380,25 @@
   "@settingsGeneralConfirmBeforeDeleteTitle": {
     "x-sourceSha256": "e50478c6b6675dce9d50140c6e80675ac0ea226e32ec85afc5f9de7dfe2c8b1f"
   },
-  "settingsGeneralConfirmBeforeDeleteSubtitle": "Bed om bekræftelse inden sletning af en dans eller et program. Sletninger kan stadig fortrydes; dette tilføjer blot en eksplicit prompt først.",
+  "settingsGeneralConfirmBeforeDeleteSubtitle": "Spørg, før du sletter noget, der kan fortrydes. Sletninger, der ikke kan fortrydes, spørger altid først.",
   "@settingsGeneralConfirmBeforeDeleteSubtitle": {
-    "x-sourceSha256": "419e365a3cf53bc03a9f35dc1356ceef19d6904929d93ec0de5321c44bde3b6b"
+    "x-sourceSha256": "4eb85e1611e5dad6ee02310dffdc2920b14bc3a7ef89408aefd1d5129a8e219f"
+  },
+  "settingsGeneralUndoPromptTitle": "Fortryd-besked",
+  "@settingsGeneralUndoPromptTitle": {
+    "x-sourceSha256": "7f397daeec86ec261af3848f27c9d22fc72ea50ce0fd8e0569b97f7b18f8279b"
+  },
+  "settingsGeneralUndoPromptSubtitle": "Hvor længe Fortryd bliver på skærmen, efter du har slettet eller ændret noget. Den bliver også, mens du peger på den eller går til den med tastaturet.",
+  "@settingsGeneralUndoPromptSubtitle": {
+    "x-sourceSha256": "a7413035c721cf3d6997e91ef4a1752303c1a97eed468990f59020ff3b97686b"
+  },
+  "settingsGeneralUndoPromptSeconds": "{seconds, plural, =1{1 sekund} other{{seconds} sekunder}}",
+  "@settingsGeneralUndoPromptSeconds": {
+    "x-sourceSha256": "d8a703be939152a8a89055024319ae900c7817591652a4c19725dc4cd28b77a6"
+  },
+  "settingsGeneralUndoPromptUntilClosed": "Indtil jeg lukker den",
+  "@settingsGeneralUndoPromptUntilClosed": {
+    "x-sourceSha256": "3376640f07a8541c7288aac8d12fded80dd6c059a28849adebc5cb43bc48c8ef"
   },
   "settingsGeneralDeletedItemsHeader": "For nylig slettet",
   "@settingsGeneralDeletedItemsHeader": {
@@ -4155,6 +4131,10 @@
   "commonDeletedSnack": "„{title}“ slettet.",
   "@commonDeletedSnack": {
     "x-sourceSha256": "5f38a45b4a00f67a9d235d7065a8b3d2ecda59f0802d76dccfd504692fc36adb"
+  },
+  "commonCantBeUndone": "Det kan ikke fortrydes.",
+  "@commonCantBeUndone": {
+    "x-sourceSha256": "17ad35c384c68419f9fee9cc08687c47e418a995a1f9fd03ae2b2e71136c6f31"
   },
   "importGapMessage": "Kunne ikke genkende dette kald – beholdt præcis som skrevet som en ukendt figur.",
   "@importGapMessage": {
@@ -7982,6 +7962,10 @@
   "@importReviewEditOverwriteBody": {
     "x-sourceSha256": "87c2b58d9ba05743231066492919a0091c15c3aabceb593e3d6a6f78624b81b4"
   },
+  "importReviewEditOverwriteConfirm": "Erstat",
+  "@importReviewEditOverwriteConfirm": {
+    "x-sourceSha256": "95e154398a4bc0091aa4d6b607472ac5a89e41fbc84a3a49f823314d6de9eebc"
+  },
   "importReviewEditReimportTitle": "Reimportér på den eksisterende dans nu?",
   "@importReviewEditReimportTitle": {
     "x-sourceSha256": "0ef9a017ae65f8bd0f7ca657bfb1ea8e3bae8ca0a57b4a9cfe4c4e142e01467d"
@@ -8209,14 +8193,6 @@
   "settingsWalkthroughSnippetsCount": "{count, plural, =1{1 uddrag} other{{count} uddrag}}",
   "@settingsWalkthroughSnippetsCount": {
     "x-sourceSha256": "69ad021cf25f5c7b69ff8a939a4181e955ddf77b53fc3c7ceb4d17e4ca12d9ab"
-  },
-  "settingsWalkthroughSnippetDeleteTitle": "Slet uddrag?",
-  "@settingsWalkthroughSnippetDeleteTitle": {
-    "x-sourceSha256": "a67de31046b0930bc0d1b5bd0cd5b98486e3a344dd9a86398c8e5aa70d9e56eb"
-  },
-  "settingsWalkthroughSnippetDeleteBody": "Dette fjerner den gemte standard for denne figur. Danse beholder al gennemgangstekst, du allerede har skrevet.",
-  "@settingsWalkthroughSnippetDeleteBody": {
-    "x-sourceSha256": "e6e2bf4fd7f431e6f777bd2b70f68a9b5dbf63d55a891af49515eca79799a234"
   },
   "settingsWalkthroughSnippetEditTitle": "Rediger uddrag",
   "@settingsWalkthroughSnippetEditTitle": {
@@ -9438,14 +9414,6 @@
   "@shorthandMappingsLimitReached": {
     "x-sourceSha256": "3f8a40d5253e3d42f05fd74e05353a6ffb21fb6de2fd6f6e22da50300ff01c23"
   },
-  "shorthandMappingsDeleteTitle": "Slet kortform?",
-  "@shorthandMappingsDeleteTitle": {
-    "x-sourceSha256": "a8a818eba0a742b81c447939890409c3772364a3796479a44fe26309d848b01b"
-  },
-  "shorthandMappingsDeleteBody": "„{token}“ fjernes permanent.",
-  "@shorthandMappingsDeleteBody": {
-    "x-sourceSha256": "fa03940830f67880e7d42db7656abd65366f1b73949bb6ff5e7e0e877c58a79d"
-  },
   "shorthandMappingsActionsTooltip": "Kortformhandlinger",
   "@shorthandMappingsActionsTooltip": {
     "x-sourceSha256": "8794003dafec4a03b433f702ad1645c759dba638a9aa61e3da40ab8e65dab5e8"
@@ -9754,14 +9722,6 @@
   "@reparseErrorBody": {
     "x-sourceSha256": "58f0ccd25734c5c644ebc925bc1e88cf98be542eb894f5e7c529377380b94acd"
   },
-  "customFieldsDeleteTitle": "Slet brugerdefineret felt",
-  "@customFieldsDeleteTitle": {
-    "x-sourceSha256": "daf3f4f83f61c995c5026363e1ac97ecff288404e66c85724d8f6740eb3c2b2a"
-  },
-  "customFieldsDeleteBody": "Slet „{label}“? Dette kan ikke fortrydes.",
-  "@customFieldsDeleteBody": {
-    "x-sourceSha256": "8d391116314a182474453cdaa2cddb85d34c674df8e042b6602660ad1c18d8f5"
-  },
   "customFieldsDeleteInUse": "Kan ikke slette „{label}“: bruges stadig af {count, plural, =1{1 dans} other{{count} danse}}. Fjern værdien fra alle danse først.",
   "@customFieldsDeleteInUse": {
     "x-sourceSha256": "3216847c71408f8c115cc0f639621a7a700926cf3c3d29fe2bcce0948156a556"
@@ -10058,9 +10018,9 @@
   "@recentlyDeletedDeleteTitle": {
     "x-sourceSha256": "c1b15a3712482b377f34d95ca8c2fc0d47ca1b9e64fd614367c2ee8c06ca5419"
   },
-  "recentlyDeletedDeleteBody": "„{title}“ slettes øjeblikkeligt og kan ikke gendannes.",
+  "recentlyDeletedDeleteBody": "„{title}“ slettes nu.",
   "@recentlyDeletedDeleteBody": {
-    "x-sourceSha256": "28b125de466af8a2e8a3b47dbd79e1d6e625c2f4ea34f0f2b8a1d96fd6d191a7"
+    "x-sourceSha256": "60f16c333e309afe0e749d16b239738039756b07999073957303adf7452fd575"
   },
   "recentlyDeletedDeleteConfirm": "Slet permanent",
   "@recentlyDeletedDeleteConfirm": {
@@ -10181,18 +10141,6 @@
   "venueLinkOfferDone": "{count, plural, =1{1 program knyttet.} other{{count} programmer knyttet.}}",
   "@venueLinkOfferDone": {
     "x-sourceSha256": "431a1aa3f4e20271f7a7aece28cd1fb67ebe75cda7f2b539844ec62712c7a0bb"
-  },
-  "venueManagerDeleteTitle": "Slet spillested?",
-  "@venueManagerDeleteTitle": {
-    "x-sourceSha256": "a9aed6966427e7a9a7a69cb29965442d52da1a8627dfaf18e03624e6f4283efa"
-  },
-  "venueManagerDeleteBody": "Slet „{name}“ permanent? Dette kan ikke fortrydes.",
-  "@venueManagerDeleteBody": {
-    "x-sourceSha256": "833e71d14c9c6ff7b7e3a1472580b40266265e9d4ce80eecaebb6802a20687f4"
-  },
-  "venueManagerDeletedSnack": "Slettede „{name}“",
-  "@venueManagerDeletedSnack": {
-    "x-sourceSha256": "c01d33e1bbf843edb8f635f4bc33095283004bceeac7fd456d43b330d8a904d4"
   },
   "venueManagerDeleteBlocked": "Kan ikke slette „{name}“ mens det stadig er knyttet til et program. Skift eller fjern dets spillested på programmet først.",
   "@venueManagerDeleteBlocked": {

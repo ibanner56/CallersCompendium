@@ -9,6 +9,7 @@ import 'package:flutter/services.dart' show SystemChannels;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/l10n/app_localizations_en.dart';
+import 'package:compendium_app/src/data/confirm_before_delete_scope.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/backup_document.dart'
     show
@@ -139,6 +140,9 @@ _pumpSettings(
   /// Wires a [ShowGlossaryScope] around the screen when given.
   ValueNotifier<bool>? showGlossary,
 
+  /// Turns "Confirm before delete" on for the screen.
+  bool confirmBeforeDelete = false,
+
   /// Wires a [ShowCustomFiguresScope] around the screen when given.
   ValueNotifier<bool>? showCustomFigures,
 
@@ -193,6 +197,8 @@ _pumpSettings(
     initialTrackHistoryForAllCallers,
   );
   final canonicalDiscouragedTermsNotifier = ValueNotifier<bool>(true);
+  final confirmBeforeDeleteNotifier = ValueNotifier<bool>(confirmBeforeDelete);
+  addTearDown(confirmBeforeDeleteNotifier.dispose);
   final updateController = UpdateController(repos.settings);
   await updateController.load();
   final syncSettings = _ControllableSyncSettings(repos.db)
@@ -269,17 +275,21 @@ _pumpSettings(
                                   controller: shorthandMappings,
                                   child: WalkthroughSnippetLibraryScope(
                                     controller: walkthroughSnippets,
-                                    child: showGlossary == null
-                                        ? child!
-                                        : ShowGlossaryScope(
-                                            notifier: showGlossary,
-                                            child: showCustomFigures == null
-                                                ? child!
-                                                : ShowCustomFiguresScope(
-                                                    notifier: showCustomFigures,
-                                                    child: child!,
-                                                  ),
-                                          ),
+                                    child: ConfirmBeforeDeleteScope(
+                                      notifier: confirmBeforeDeleteNotifier,
+                                      child: showGlossary == null
+                                          ? child!
+                                          : ShowGlossaryScope(
+                                              notifier: showGlossary,
+                                              child: showCustomFigures == null
+                                                  ? child!
+                                                  : ShowCustomFiguresScope(
+                                                      notifier:
+                                                          showCustomFigures,
+                                                      child: child!,
+                                                    ),
+                                            ),
+                                    ),
                                   ),
                                 ),
                               ),
@@ -835,7 +845,7 @@ void main() {
       );
     });
 
-    testWidgets('deleting a custom dialect removes it after confirming', (
+    testWidgets('deleting a custom dialect removes it at once, with Undo', (
       tester,
     ) async {
       final ctx = await _pumpSettings(tester);
@@ -848,9 +858,8 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Delete'));
       await tester.pumpAndSettle();
-      // Confirm.
-      await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
-      await tester.pumpAndSettle();
+      // No dialog: "Confirm before delete" is off by default.
+      expect(find.byType(AlertDialog), findsNothing);
 
       expect(ctx.dialectLibrary.customByName('Doomed'), isNull);
       expect(find.byKey(const ValueKey('dialect-tile-Doomed')), findsNothing);
@@ -858,12 +867,19 @@ void main() {
       expect(ctx.dialectLibrary.active, equals(Dialect.larksRobins));
       // The delete is acknowledged by name (B10).
       expect(find.text('"Doomed" deleted.'), findsOneWidget);
+
+      // Undo brings it back, active again.
+      await tester.tap(find.byKey(const ValueKey('dialect-delete-undo')));
+      await tester.pumpAndSettle();
+      expect(ctx.dialectLibrary.customByName('Doomed'), isNotNull);
+      expect(ctx.dialectLibrary.activeName, 'Doomed');
+      expect(find.byKey(const ValueKey('dialect-tile-Doomed')), findsOneWidget);
     });
 
-    testWidgets('cancelling the delete keeps the dialect and says nothing', (
+    testWidgets('with Confirm before delete on, Cancel keeps the dialect', (
       tester,
     ) async {
-      final ctx = await _pumpSettings(tester);
+      final ctx = await _pumpSettings(tester, confirmBeforeDelete: true);
       await ctx.dialectLibrary.upsert(Dialect(name: 'Keeper'));
       await openDialect(tester);
       await tester.pumpAndSettle();
@@ -872,7 +888,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Delete'));
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+      await tester.tap(find.byKey(const ValueKey('confirm-delete-cancel')));
       await tester.pumpAndSettle();
 
       expect(ctx.dialectLibrary.customByName('Keeper'), isNotNull);
@@ -1306,9 +1322,8 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('deleting a custom theme removes it and says so by name', (
-      tester,
-    ) async {
+    testWidgets('deleting a custom theme removes it, says so by name, and '
+        'Undo brings it back', (tester) async {
       final ctx = await _pumpSettings(tester);
       final created = await ctx.customThemes.duplicate(
         name: 'Doomed Theme',
@@ -1318,18 +1333,23 @@ void main() {
       await tester.pumpAndSettle();
 
       await chooseDelete(tester, created.id);
-      await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
-      await tester.pumpAndSettle();
+      // No dialog: "Confirm before delete" is off by default.
+      expect(find.byType(AlertDialog), findsNothing);
 
       expect(ctx.customThemes.byId(created.id), isNull);
       expect(find.byKey(ValueKey('custom-${created.id}')), findsNothing);
       expect(find.text('"Doomed Theme" deleted.'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('custom-theme-delete-undo')));
+      await tester.pumpAndSettle();
+      expect(ctx.customThemes.byId(created.id), isNotNull);
+      expect(find.byKey(ValueKey('custom-${created.id}')), findsOneWidget);
     });
 
-    testWidgets('cancelling the delete keeps the theme and says nothing', (
+    testWidgets('with Confirm before delete on, Cancel keeps the theme', (
       tester,
     ) async {
-      final ctx = await _pumpSettings(tester);
+      final ctx = await _pumpSettings(tester, confirmBeforeDelete: true);
       final created = await ctx.customThemes.duplicate(
         name: 'Keeper Theme',
         brightness: Brightness.dark,
@@ -1338,7 +1358,7 @@ void main() {
       await tester.pumpAndSettle();
 
       await chooseDelete(tester, created.id);
-      await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+      await tester.tap(find.byKey(const ValueKey('confirm-delete-cancel')));
       await tester.pumpAndSettle();
 
       expect(ctx.customThemes.byId(created.id), isNotNull);

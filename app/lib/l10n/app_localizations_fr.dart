@@ -2119,14 +2119,6 @@ class AppLocalizationsFr extends AppLocalizations {
       'Dupliquer pour personnaliser';
 
   @override
-  String get settingsDialectDeleteTitle => 'Supprimer le dialecte ?';
-
-  @override
-  String settingsDialectDeleteConfirmBody(String name) {
-    return '« $name » sera définitivement supprimé.';
-  }
-
-  @override
   String settingsDialectEditConflictSnack(String name) {
     return '\"$name\" a été renommé ou supprimé pendant votre modification ; vos changements n\'ont pas été enregistrés.';
   }
@@ -2517,14 +2509,6 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get settingsAppearanceCustomThemesEmpty =>
       'Copiez le thème actuel et ajustez n’importe quelle couleur. Les thèmes personnalisés se synchronisent avec vos autres appareils lorsque la synchronisation est activée.';
-
-  @override
-  String get settingsAppearanceDeleteThemeTitle => 'Supprimer le thème ?';
-
-  @override
-  String settingsAppearanceDeleteThemeBody(String name) {
-    return '« $name » sera définitivement supprimé.';
-  }
 
   @override
   String settingsAppearanceCustomThemeSemantic(String name) {
@@ -3237,18 +3221,6 @@ class AppLocalizationsFr extends AppLocalizations {
       'Supprimer la colonne paramétrée';
 
   @override
-  String get settingsMatrixColumnsParameterizedDeleteTitle =>
-      'Supprimer la colonne paramétrée ?';
-
-  @override
-  String get settingsMatrixColumnsParameterizedDeleteBody =>
-      'La colonne et ses règles de correspondance seront supprimées de la matrice. Cette action est irréversible.';
-
-  @override
-  String get settingsMatrixColumnsParameterizedDeleteConfirm =>
-      'Supprimer la colonne';
-
-  @override
   String get settingsMatrixColumnsCompoundAdd => 'Ajouter une colonne composée';
 
   @override
@@ -3291,18 +3263,6 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get settingsMatrixColumnsCompoundDelete =>
       'Supprimer la colonne composée';
-
-  @override
-  String get settingsMatrixColumnsCompoundDeleteTitle =>
-      'Supprimer la colonne composée ?';
-
-  @override
-  String get settingsMatrixColumnsCompoundDeleteBody =>
-      'La colonne et sa séquence correspondante seront supprimées de la matrice. Cette action est irréversible.';
-
-  @override
-  String get settingsMatrixColumnsCompoundDeleteConfirm =>
-      'Supprimer la colonne';
 
   @override
   String get settingsGeneralPerformanceHeader => 'Performance';
@@ -3498,7 +3458,29 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsGeneralConfirmBeforeDeleteSubtitle =>
-      'Demander une confirmation avant de supprimer une danse ou un programme. Les suppressions peuvent toujours être annulées ; cela ajoute simplement une confirmation explicite.';
+      'Demander avant de supprimer tout ce qui peut être annulé. Les suppressions irréversibles demandent toujours confirmation.';
+
+  @override
+  String get settingsGeneralUndoPromptTitle => 'Message Annuler';
+
+  @override
+  String get settingsGeneralUndoPromptSubtitle =>
+      'Durée d’affichage du bouton Annuler après une suppression ou une modification. Il reste aussi affiché tant que vous le survolez ou que vous y accédez au clavier.';
+
+  @override
+  String settingsGeneralUndoPromptSeconds(int seconds) {
+    String _temp0 = intl.Intl.pluralLogic(
+      seconds,
+      locale: localeName,
+      other: '$seconds secondes',
+      one: '1 seconde',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsGeneralUndoPromptUntilClosed =>
+      'Jusqu’à ce que je le ferme';
 
   @override
   String get settingsGeneralDeletedItemsHeader => 'Récemment supprimées';
@@ -4141,6 +4123,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String commonDeletedSnack(String title) {
     return '« $title » supprimé.';
   }
+
+  @override
+  String get commonCantBeUndone => 'Cette action est irréversible.';
 
   @override
   String get importGapMessage =>
@@ -8312,6 +8297,9 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get importReviewEditOverwriteConfirm => 'Remplacer';
+
+  @override
   String get importReviewEditReimportTitle =>
       'Ré-importer sur la danse existante maintenant ?';
 
@@ -8537,13 +8525,6 @@ class AppLocalizationsFr extends AppLocalizations {
     );
     return '$_temp0';
   }
-
-  @override
-  String get settingsWalkthroughSnippetDeleteTitle => 'Supprimer l\'extrait ?';
-
-  @override
-  String get settingsWalkthroughSnippetDeleteBody =>
-      'Cela supprime la valeur par défaut enregistrée pour cette figure. Les danses conservent le texte de déroulé que vous avez déjà écrit.';
 
   @override
   String get settingsWalkthroughSnippetEditTitle => 'Modifier l\'extrait';
@@ -9877,14 +9858,6 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get shorthandMappingsDeleteTitle => 'Supprimer l’abréviation ?';
-
-  @override
-  String shorthandMappingsDeleteBody(String token) {
-    return '« $token » sera définitivement supprimé.';
-  }
-
-  @override
   String get shorthandMappingsActionsTooltip => 'Actions de l’abréviation';
 
   @override
@@ -10281,14 +10254,6 @@ class AppLocalizationsFr extends AppLocalizations {
       'Une erreur s’est produite lors de l’analyse de votre collection. Rien n’a été modifié. Vous pouvez réessayer.';
 
   @override
-  String get customFieldsDeleteTitle => 'Supprimer le champ personnalisé';
-
-  @override
-  String customFieldsDeleteBody(String label) {
-    return 'Supprimer « $label » ? Cette action est irréversible.';
-  }
-
-  @override
   String customFieldsDeleteInUse(String label, int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -10555,7 +10520,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String recentlyDeletedDeleteBody(String title) {
-    return '« $title » sera supprimé immédiatement et ne pourra pas être récupéré.';
+    return '« $title » va être supprimé maintenant.';
   }
 
   @override
@@ -10690,19 +10655,6 @@ class AppLocalizationsFr extends AppLocalizations {
       one: '1 programme lié.',
     );
     return '$_temp0';
-  }
-
-  @override
-  String get venueManagerDeleteTitle => 'Supprimer le lieu ?';
-
-  @override
-  String venueManagerDeleteBody(String name) {
-    return 'Supprimer définitivement « $name » ? Cette action est irréversible.';
-  }
-
-  @override
-  String venueManagerDeletedSnack(String name) {
-    return '« $name » supprimé';
   }
 
   @override

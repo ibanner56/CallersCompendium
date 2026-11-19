@@ -9,27 +9,25 @@ import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/link_typed_venues_offer.dart';
-import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
-import '../theme/destructive_button_style.dart';
+import '../utils/confirm_delete.dart';
+import '../utils/undo_snack_bar.dart';
 import 'venue_editor_sheet.dart';
 
 /// A full-screen manager to browse, search, create, edit, and delete the
 /// reusable [Venue] records. Reached from Settings ▸ Venues.
 ///
-/// Deletion is **irreversible from the UI but soft at the storage layer**, and
-/// guarded: the repository throws when a venue is still referenced by a
-/// program's `venueId`. That guard error is caught and surfaced as a friendly
-/// message rather than crashing (the user must unlink the venue from those
-/// programs first).
+/// Deletion is **soft**, offers Undo, and is guarded: the repository throws
+/// when a venue is still referenced by a live program's `venueId`. That guard
+/// error is caught and surfaced as a friendly message rather than crashing
+/// (the user must unlink the venue from those programs first), and no Undo is
+/// offered for a delete that did not happen.
 ///
-/// The two halves of that first clause were previously stated as one — the doc
-/// read "deletion is permanent (venues are not soft-deleted)", which is true of
-/// what the user can do and false of what the database holds.
 /// `VenueRepository.delete` tombstones via `stampExistenceTransition` unless
-/// `permanent: true`, which this screen never passes, and venues have no
-/// entry in the recently-deleted screen — so nothing can bring one back, while
-/// the row itself survives.
+/// `permanent: true`, which this screen never passes, and Undo calls
+/// `VenueRepository.restore` on the same row. Venues have no entry in the
+/// recently-deleted screen, so once the Undo prompt has gone nothing in the
+/// app brings one back, while the row itself survives.
 ///
 /// The distinction is load-bearing in both directions: the tombstone write is
 /// what re-emits on the watched stream below (a hard delete would too, but the
@@ -145,45 +143,19 @@ class _VenueManagerScreenState extends State<VenueManagerScreen> {
     // No reload: the upsert writes `venues`, which this screen watches.
   }
 
-  Future<void> _confirmDelete(Venue venue) async {
-    final l10n = AppLocalizations.of(context);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.venueManagerDeleteTitle),
-        content: Text(l10n.venueManagerDeleteBody(venue.name)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(l10n.commonCancel),
-          ),
-          FilledButton(
-            style: destructiveFilledButtonStyle(
-              Theme.of(dialogContext).colorScheme,
-            ),
-            key: const ValueKey('venue-delete-confirm'),
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(l10n.commonDelete),
-          ),
-        ],
-      ),
-      animationStyle: AppMotion.styleFor(context),
-    );
-    if (confirmed != true || !mounted) return;
-    await _delete(venue);
-  }
-
+  /// Deletes [venue] at once and offers Undo, asking first only when
+  /// "Confirm before delete" is on (see `confirm_delete.dart`). A venue still
+  /// linked to a program is not deleted: the repository refuses, and the
+  /// snackbar says why instead.
   Future<void> _delete(Venue venue) async {
+    if (!await confirmDeleteIfEnabled(context, itemLabel: venue.name)) return;
+    if (!mounted) return;
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
+    final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
+    final repos = _repos;
     try {
-      await _repos.venues.delete(venue.id);
-      // No reload: the delete tombstones the row in `venues`, which this
-      // screen watches, so the list drops it without being told.
-      if (!mounted) return;
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.venueManagerDeletedSnack(venue.name))),
-      );
+      await repos.venues.delete(venue.id);
     } on StateError catch (e, stackTrace) {
       // The delete guard fired: the venue is still linked to one or more
       // programs. Surface a friendly, actionable message instead of crashing.
@@ -195,7 +167,21 @@ class _VenueManagerScreenState extends State<VenueManagerScreen> {
           content: Text(l10n.venueManagerDeleteBlocked(venue.name)),
         ),
       );
+      return;
     }
+    // No reload: the delete tombstones the row in `venues`, which this screen
+    // watches, so the list drops it without being told, and Undo's restore
+    // brings it back the same way.
+    showUndoSnackBar(
+      messenger,
+      key: const ValueKey('venue-delete-undo-snackbar'),
+      actionKey: const ValueKey('venue-delete-undo'),
+      message: l10n.commonDeletedSnack(venue.name),
+      undoLabel: l10n.commonUndo,
+      undoFailedMessage: l10n.commonUndoFailed,
+      accessibleNavigation: accessibleNavigation,
+      onUndo: () => repos.venues.restore(venue.id, at: DateTime.now().toUtc()),
+    );
   }
 
   @override
@@ -300,7 +286,7 @@ class _VenueManagerScreenState extends State<VenueManagerScreen> {
             key: ValueKey('venue-manager-delete-${venue.id}'),
             tooltip: l10n.venueManagerDeleteTooltip(venue.name),
             icon: const Icon(Icons.delete_outline),
-            onPressed: () => _confirmDelete(venue),
+            onPressed: () => _delete(venue),
           ),
         );
       },

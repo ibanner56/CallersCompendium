@@ -270,8 +270,9 @@ understands, such as `swing`, replaces that reading every time you type it. The
 editor warns you when your shorthand is such a word, but still lets you save
 it. The app keeps up to 500 of these
 shorthands; once you have that many, **New shorthand** tells you so, and you
-can add another after deleting one. Shorthands only apply while **Free-text
-entry** is on.
+can add another after deleting one. Deleting a shorthand offers **Undo**, which
+puts it back where it was unless you have given its token to another shorthand
+since. Shorthands only apply while **Free-text entry** is on.
 
 With **Custom Figures** on, the same screen also lists **Shorthands for your own
 figures**. Choose **New shorthand for one of your figures**, type the
