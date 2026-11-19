@@ -315,9 +315,9 @@ void main() {
       expect(read.move, 'ecd_forward_and_back');
       expect(read.params['who'], ['sideCouples']);
       // A figure 8's `where: none` states no direction, so there is nothing
-      // to keep. (One entered by hand also stores the editor's `lead`, which
-      // its words hide and the ECD figure eight has no place for, so it
-      // stays contra.)
+      // to keep. One that also stores a `lead` (the contra editor seeds one)
+      // stays contra: its words hide it, and a figure 8 has no twin to say
+      // the ECD figure eight's `lead` means the same.
       expect(
         ecdReadingOfContraWording(
           _f('figure_8', {'who': 'ones', 'where': 'none'}),
@@ -326,7 +326,7 @@ void main() {
       );
       expect(
         ecdReadingOfContraWording(
-          _f('figure_8', {...contraTaxonomy.entryParams('figure_8')}),
+          _f('figure_8', {'who': 'ones', 'where': 'none', 'lead': 'onesRole2'}),
         ),
         isNull,
       );
