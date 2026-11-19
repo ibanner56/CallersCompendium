@@ -9287,6 +9287,11 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String commonMovedItemPosition(String name, int position, int count) {
+    return '$name verplaatst naar positie $position van $count';
+  }
+
+  @override
   String get danceEditorFigureCutState => 'Geknipt';
 
   @override

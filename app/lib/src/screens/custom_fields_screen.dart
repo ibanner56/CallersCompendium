@@ -847,10 +847,26 @@ class _ChoicesEditorState extends State<_ChoicesEditor> {
                       name: choice,
                       onMoveUp: index == 0
                           ? null
-                          : () => widget.onReorder(index, index - 1),
+                          : () {
+                              widget.onReorder(index, index - 1);
+                              announceMoved(
+                                context,
+                                name: choice,
+                                position: index,
+                                count: widget.choices.length,
+                              );
+                            },
                       onMoveDown: index == widget.choices.length - 1
                           ? null
-                          : () => widget.onReorder(index, index + 1),
+                          : () {
+                              widget.onReorder(index, index + 1);
+                              announceMoved(
+                                context,
+                                name: choice,
+                                position: index + 2,
+                                count: widget.choices.length,
+                              );
+                            },
                     ),
                     IconButton(
                       key: ValueKey('remove-choice-$choice'),

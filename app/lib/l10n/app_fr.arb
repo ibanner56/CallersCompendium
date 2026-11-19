@@ -9010,6 +9010,10 @@
   "@commonMoveItemDown": {
     "x-sourceSha256": "1e94688825c76d7fa4426844a1adbeca4bbcb22c33c1e053d51714f3f518526e"
   },
+  "commonMovedItemPosition": "{name} déplacé à la position {position} sur {count}",
+  "@commonMovedItemPosition": {
+    "x-sourceSha256": "ebf9180932c3b44b43c8fa1109d208cdd186b739a667ff7e72f1ca19387ca72d"
+  },
   "danceEditorFigureCutState": "Coupé",
   "@danceEditorFigureCutState": {
     "x-sourceSha256": "1f45f02561f41db9483cfc00675900237967b8e382b9750d33f677812fe70842"

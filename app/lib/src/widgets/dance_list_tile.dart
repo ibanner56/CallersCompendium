@@ -149,7 +149,6 @@ class DanceListTile extends StatelessWidget {
     final tile = ListTile(
       selected: selected,
       shape: selectedRowShape(context, selected: selected),
-      visualDensity: VisualDensity.compact,
       onLongPress: onLongPress,
       leading: selectionMode
           ? Checkbox(
