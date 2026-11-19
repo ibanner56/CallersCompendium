@@ -855,7 +855,10 @@ final Taxonomy contraTaxonomy = Taxonomy(
       // "to …") is the renderer's.
       renderTemplate: '{who} {move} {direction} {places} {whom} {destination}',
       searchKeywords: ['cast off', 'cast down', 'cast up', 'cast back'],
-      goodBeats: [2, 4, 8],
+      // The beats of the 1,461 casts read from the 1,563 public Caller's Box
+      // dances that mention one (2026-11-19): 4 on 1,007, 8 on 181, 2 on 128,
+      // 3 on 75, 6 on 48, and no other count above 3.
+      goodBeats: [2, 3, 4, 6, 8],
     ),
     const MoveDef(
       id: 'stand_still',

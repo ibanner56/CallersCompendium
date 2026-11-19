@@ -1567,19 +1567,21 @@ shared reading", "becomes an unrecognized figure") over the bare verb.
 
 Which is which, derived from the code rather than from memory:
 
-- `tcbFigureFrontEnd` registers **twenty-one** pre-recognizers: `_hey`,
+- `tcbFigureFrontEnd` registers **twenty-two** pre-recognizers: `_hey`,
   `_circulate`, `_waveBalanceCirculate`, `_circulateCrossBracket`,
   `_handBalanceSquareThrough`, `_squareThroughPassList`,
   `_balanceHandAnnotation`, `_balancePairHandAnnotation`, `_gateAnnotation`,
-  `_courtesyTurnAnnotation`, `_walkForwardAnnotation`, `_chainAnnotation`,
-  `_starPromenadeAnnotation`, `_promenadeAnnotation`,
+  `_courtesyTurnAnnotation`, `_tcbCast`, `_walkForwardAnnotation`,
+  `_chainAnnotation`, `_starPromenadeAnnotation`, `_promenadeAnnotation`,
   `_rightLeftThroughAnnotation`, `_singleFileCircleRecognizer`,
   `_bracketAnnotation`, `_weaveSlideAnnotation`, `_perRoleChoreoAnnotation`,
-  `_proseAnnotation` and `_decodeSideRunAnnotation`. All but two are the
+  `_proseAnnotation` and `_decodeSideRunAnnotation`. All but three are the
   falls-through kind. `_squareThroughPassList` sends a `without hands` line
-  whose pass list does not decode to `custom` (#1971), and
+  whose pass list does not decode to `custom` (#1971),
   `_bracketAnnotation` does the same for a leading bracket that names no
-  modelled subject. The front end also has a veto (`_tcbDeclineToCustom`).
+  modelled subject, and `_tcbCast` (taxonomy v40) does it for a cast back by
+  dancers that are not a role, and for a `(past …)` count the line
+  contradicts. The front end also has a veto (`_tcbDeclineToCustom`).
 - `contraDbHtmlFigureFrontEnd` registers its **entire grammar** as
   pre-recognizers, **and** supplies a veto. Both halves matter, and they pull in
   opposite directions, which is why this front end is the one most likely to be
@@ -1863,6 +1865,28 @@ has to be judged in its own context.
   to partner:`, `Wheel chain to neighbor:`) now decompose, because their
   all-or-nothing child list was previously blocked by the unstructurable
   courtesy-turn tail.
+  **Cast (taxonomy v40, #770):** the shared reader takes
+  `[<dancer>] cast [off [n] | up | down | back [<shoulder>] | <shoulder>]
+  [<n> place(s)] [around <dancer>] [to <destination> | to <dancer>]`, where a
+  shoulder is `right`/`clockwise` or `left`/`counterclockwise`, `off` is down
+  one place unless a count follows, and `to <dancer>` (`to P2`) becomes a note.
+  It also reads the display's own wording ("cast back right 2 places around
+  twos to partner's place"). The front end's `_tcbCast` adds the two pieces
+  of TCB notation: `(past twos; threes)` counts into `places` and is kept as
+  a note, and a role's `cast back` turns over the right shoulder (role2s) or
+  the left (role1s), while a cast back by any other named dancers stays
+  `custom`. A bare `Hand cast` is the `hand_cast` alias of `gate`. Over the
+  1,563 public dances whose figures mention a cast, the `custom` cast lines
+  fell from 2,060 to 463. See the v40 entry in
+  [figure-taxonomy.md](figure-taxonomy.md#taxonomy-version-history) for what
+  stays custom and why.
+  *Secondary effect:* a `;` line whose only unstructurable clause was a cast
+  now splits (`Partner lead down; cast up to place`), and a compound parent
+  whose children include casts can now decompose (`Butterfly double figure
+  eight 1/2:` in dances 7867 and 7868, a sequence titled with the parent's
+  name). Dance 19800's two-beat `Women cast back || Men go forward` still
+  folds into the following meltdown swing; the fold now recognizes the
+  structured cast side.
   **Walk forward (#733, NO taxonomy change):** TCB writes `walk forward` on 879
   figure lines; it is three families, none of which needs a move. A bare
   `[<dancer>] walk forward` clause is read TOGETHER with the clause that follows

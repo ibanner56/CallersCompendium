@@ -40,7 +40,7 @@ import 'while_container.dart';
 /// `()`/`[]` recognition-only annotation strip. Pass this as the `frontEnd` to
 /// [parseFigureLine]/[parseFigureLines] to recognize the full TCB dialect.
 ///
-/// **Pre-recognizer ordering.** The first sixteen entries (through
+/// **Pre-recognizer ordering.** The first seventeen entries (through
 /// `_singleFileCircleRecognizer`) all anchor on a move keyword, and all
 /// require a successful resolution to their own move, so in most cases
 /// order is not correctness-critical.  Four overlapping anchor pairs each
@@ -177,7 +177,7 @@ final RegExp _roleSplitAmountRe = RegExp(
 ///   `Circle left 3/4; face up` yields `circle` plus the note `face up` instead
 ///   of one custom figure. Nothing is lost and no move is fabricated — the same
 ///   trade #729 made for annotations. Every clause outside the allowlist still
-///   collapses the whole line (`…; bend the line`, `…; cast down to place`, and
+///   collapses the whole line (`…; bend the line`, `…; separate`, and
 ///   every unapproved `form <formation>` label). Exact approved formation labels
 ///   use the note fallback, and `fall back` is consumed only after an approved
 ///   parent move. The note is the
@@ -485,8 +485,9 @@ const int _maxNoteFallbackClauses = 8;
 ///   wordings the maintainer did NOT rule on (`finish improper`,
 ///   `finish progressed`, `finish next to partner`, `finish with …`,
 ///   `return to original place`, `return to place. role2 one follow`) and,
-///   deliberately, the whole `cast up/down/back to place` family — those lines
-///   must keep falling to custom so a future census of `cast` counts them.
+///   deliberately, the whole `cast up/down/back to place` family. A cast is a
+///   move, never commentary: since taxonomy v40 (#770) such a clause reads as
+///   a `cast` figure of its own, so it must not be swept into a note.
 /// - **`role2s turn around` — 132**, and **`role1s turn around` — 96.** Matched
 ///   by [_turnAroundClause], a PREFIX rule mirroring [_facingClause], so the 17
 ///   annotated variants (`… (cw)`, `… [with n2]`, `… (by left)`) come with them

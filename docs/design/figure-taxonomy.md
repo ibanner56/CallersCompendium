@@ -127,11 +127,12 @@ Adopted from ContraDB, with renames noted:
 
 allemande · arch & dive · balance · balance the ring ·
 box circulate · box the gnat (alias: swat the flea) · butterfly whirl ·
-California twirl · chain (role-parameterized, not "ladies chain") · circle ·
+California twirl · cast (v40, not in ContraDB) · chain (role-parameterized, not "ladies chain") · circle ·
 circular hey (alias: square hey; v36, not in ContraDB) · contra corners · cross trails · **custom** · dosido (alias: seesaw) ·
 dolphin hey · down the hall · up the hall · facing star · figure 8 ·
 form long wave / ocean wave / long waves · forward and back (alias: long
-lines; v39, formations beyond ContraDB) · gate · give & take ·
+lines; v39, formations beyond ContraDB) · gate (alias: hand cast, v40) ·
+give & take ·
 **shoulder round** (was gyre/gypsy; keyword-searchable under old names) ·
 hey · hey for three (v39, not in ContraDB) · mad robin · orbit · pass by · pass through · petronella ·
 poussette · promenade · pull by (dancers/direction) · revolving door ·
@@ -149,8 +150,9 @@ ContraDB does not model. `courtesy_turn` (v23) is the clearest case: ContraDB
 has no such figure at all (0 hits for "courtesy" repo-wide — it treats the
 courtesy turn as an unparameterized sub-component of `chain` and `right left
 through`), while The Caller's Box writes one as its own figure line 115 times in
-the 24,107-dance corpus. Such a move is added only with a corpus census behind
-each of its params; see the version history below. A move added at a user's
+the 24,107-dance corpus. `cast` (v40) is another: ContraDB defines no cast,
+and The Caller's Box writes one on about 2,000 lines. Such a move is added only
+with a corpus census behind each of its params; see the version history below. A move added at a user's
 request instead (`circular_hey`, v36; `trade_the_wave`, `starburst` and
 `hey_for_three`, v39) is defined by that request, which its version-history
 entry records, and an importer reads it only where a census supports doing so.
@@ -2229,6 +2231,59 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
       synced compound whose template holds an unstated circle or star reports
       an invalid template, and a compound argument of `unspecified` does not
       expand.
+- **v40 (`cast` and the `hand_cast` alias, issue #770):** the largest family
+  of Caller's Box lines the taxonomy could not hold. Of the 2,066 lines
+  mentioning a cast in the 1,563 public dances whose figures mention one
+  (fetched 2026-11-19; `docs/research/callersbox.md`), 2,060 were `custom`;
+  463 still are.
+  - **`cast`** (`who`, `direction`, `places`, `whom`, `destination`, `beats`
+    4). Every param but `beats` defaults to `unspecified`, because the source
+    writes casts with every part optional. The maintainer's rulings
+    (2026-11-19), each recorded where it applies:
+    - `direction` is `left`/`right` (the shoulder turned over), `up`/`down`,
+      or unstated. "Clockwise" is the right shoulder and "counterclockwise"
+      the left.
+    - The display reads an unstated direction as "cast back", a shoulder as
+      "cast back left/right", and up/down bare. The canonical (search and
+      dedupe) line keeps the stored token: `role2s cast right`.
+    - "Cast off" is `down` with `places` 1 unless the line states a number:
+      the glossary's "ones peel down the outside into second place" is a cast
+      down one place. Whether the cast is assisted is not a param; the
+      glossary says it "depends on your community".
+    - The shape is shared with ECD's `ecd_cast` from the start, so ADR-006 F5
+      maps one to the other. `destination` holds ECD's destination tokens plus
+      `top` and `bottom`; `cast_vocabulary.dart` holds the contra side, and a
+      test pins that it contains every ECD destination. The ECD side is the
+      ECD taxonomy's to change.
+  - **`hand_cast`**, an alias of `gate` pinning nothing: the maintainer's
+    ruling, on The Caller's Box glossary calling each "very similar" to the
+    other. It is stored and shown under its own name, with the gate's params
+    all unstated. Only a bare "Hand cast" reads as one; "Ones hand cast" stays
+    custom, because the source does not say which of a gate's dancer slots
+    "ones" fills.
+  - The Caller's Box readings, in its front end
+    (`callersbox_figure_dialect.dart`, `_tcbCast`): a role's "cast back" is
+    over the right shoulder for role2s and the left for role1s (the
+    maintainer's ruling, likened to a chain's role-implied hand, and written
+    explicitly as a chain's hand is); a cast back by other named dancers
+    stays custom, as the maintainer asked; `(past twos; threes)` counts into
+    `places` and is kept as a note; `[with N1]` is a note, as on other moves.
+    The shared reader leaves the role rule out on purpose: free-text entry of
+    the display line "robins cast back" must read back unchanged.
+  - **Not modelled, so still custom:** multi-step `;` lines whose other
+    clauses do not parse (207 lines, mostly `lead through …; separate; cast
+    …`), "others follow"/"inverting lines" riders (95), `behind <dancer>` and
+    `around the major set`, endpoints outside the destination list ("to ends
+    of line of four"), and casts by dancers the contra vocabulary does not
+    name (`Threes`, `role1 one`), which no move reads.
+  - `cast.direction` takes no opposite in `ParamOpposites`: like
+    `circle.direction` it is a free-form choice slot, and its values are two
+    pairs on different axes.
+  - Migration: none, and no rebuild: a new move and alias, nothing renamed or
+    removed, so no stored figure changes and every canonical text stays as it
+    was. **Older devices (v39)** show a synced `cast` as the bare word "cast"
+    and a `hand_cast` as "hand_cast", flag both as unknown moves, and keep
+    their params intact (the #358 raw-id fallback).
 
 ### ECD taxonomy versions
 

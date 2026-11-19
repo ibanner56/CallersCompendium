@@ -989,6 +989,72 @@ should be measured against the real implementation when one exists.
 The harness itself was not committed, so this census is reproducible only by
 rebuilding it — the same gap every earlier census in this document has.
 
+### Figure-line census: cast (2026-11-19, issue #770, taxonomy v40)
+
+**Population — a live fetch, not the mirror.** The local mirror was not
+available, so this census fetched only the dances it needed. The by-line search
+(`index.php?pos_lines=cast&pos_mode=any_any&show_all`, one request) states
+**2,346** dances whose figures match "cast"; the **1,563** of them marked `Ⓕ`
+(`Permission: full`) were fetched one at a time from
+`dance.php?id=N&format=JSON`, at least 0.4 s apart, with no failures. Every
+fetched record parsed and reported `Permission: full`. The search's match is a
+substring match, so the population is every public dance with "cast" anywhere
+in a figure line — complete for the cast family, but not a sample of the corpus
+as a whole.
+
+Method: each record through the real `CallersBoxAdapter`, every figure encoded,
+once on `origin/main` at `4d27438f` and once with the v40 change, then compared
+figure by figure with containers recursed. "Cast lines" are leaf figures; a
+custom one counts when its text matches `\bcast`.
+
+| | before | after |
+| --- | ---: | ---: |
+| figure lines mentioning a cast | 2,066 | 2,066 |
+| `custom` cast leaves | 2,060 | 463 |
+| `cast` figures | 0 | 1,461 |
+| `hand_cast` figures | 0 | 140 |
+
+1,276 of the 1,563 dances change. In every one, the only figures removed are
+`custom` cast lines, and the total beats of the dance are unchanged. Besides
+`cast` and `hand_cast`, the only figures added are the other clauses of lines
+that now split or decompose: 2 `down_the_hall` and 8 `up_the_hall` (`Partner
+lead down; cast up to place`, `Ones lead up (past twos); cast down (past
+twos)`), 1 `roll_away` (`P1 partner roll away (…); women cast back`), and 4
+`pass_by` from the compound parent `Butterfly double figure eight 1/2:` in
+dances 7867 and 7868, which now decomposes into a sequence titled with that
+name.
+
+The wording after the word `cast`, over all 2,066 lines: `down` 750, `off` 666,
+`up` 240, nothing 152 (137 of them a bare `Hand cast`), `back` 101,
+`clockwise` 58, `counterclockwise` 52, `right` 13, `around` 12, `left` 10.
+Beats on the 1,461 casts: 4 on 1,007, 8 on 181, 2 on 128, 3 on 75, 6 on 48,
+no other count above 3.
+
+What stays `custom` (463), by shape:
+
+| shape | lines | example |
+| --- | ---: | --- |
+| `;` lines whose other clauses do not structure | 207 | `Ones lead down through twos; separate; cast up to place` |
+| "others follow" / "inverting lines" riders | 95 | `Ones cast down to bottom, inverting lines. Others follow` |
+| a dancer no move reads, and other single-clause oddities | 54 | `role1 one cast down`, `Threes cast up`, `Ones hand cast` |
+| an endpoint outside the destination list | 43 | `Twos cast up to ends of line of four`, `Ends cast back to P2` |
+| inside a double figure eight | 26 | `Double figure eight (ones cross up, twos cast down)` |
+| `around the major set` | 25 | `Women cast counterclockwise around the major set (past N2) (men assist)` |
+| `behind <dancer>` | 13 | `Men allemande left 1/2 \|\| Women cast clockwise behind partner` |
+
+The "dancer no move reads" rows are not a cast gap: `Threes swing` and `Woman
+one swing` are `custom` too.
+
+The glossary entries this rests on (`Glossary.htm`, read 2026-11-19): **Cast**
+("a rather fuzzy term … to individually go somewhere, on the outside of the
+set"), **Cast off** (unassisted or assisted, "depends on your community"),
+**Cast down** (the parenthesis lists the couples passed), **Hand cast** ("a cast
+off figure done with hands … very similar to a gate") and **Gate** ("similar to
+a hand cast"). ContraDB's `libfigure` defines no cast figure (0 matches for
+"cast" in `figure.es6` at `master`, read 2026-11-19).
+
+The harness was not committed, like the others in this document.
+
 ## Open questions
 
 - Fraction of dances at each permission tier (only a crawl or the maintainers can
