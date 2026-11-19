@@ -156,7 +156,7 @@ user-adjustable size/weight/line-spacing).
 
 ### 1d. Spacing, density, shape, elevation
 
-- **Spacing:** 4px base grid — tokens `space` 4 / 8 / 12 / 16 / 24 / 32 / 48.
+- **Spacing:** 4px base grid — tokens `space` 4 / 8 / 12 / 16 / 24 / 32 / 48, plus a 2 for optical insets (`AppSpacing.xxxs`). `EdgeInsets` takes tokens, never number literals, and corner radii take `AppShapes`; `app/test/theme/spacing_literals_test.dart` and `radius_tokens_test.dart` fail on a literal, and `tools/codemod/spacing_tokens.py` rewrites them.
 - **Density:** desktop lists/tables/matrix use `VisualDensity.compact`; touch
   surfaces use comfortable density; selected adaptively by platform.
 - **Shape:** corner radii 8 / 12 / 16, dialogs 28.
