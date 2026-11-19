@@ -229,20 +229,25 @@ void main() {
       expect(read.wordingOverride, 'gents chain');
     });
 
+    test('with the values its words show, never fewer', () {
+      // The list shows "neighbor balance & pull by right": the balance is
+      // read too (a balance, then the pull by), never dropped.
+      final read = ecdReadingOfContraWording(
+        _f('pull_by', {
+          'who': 'neighbors',
+          'balance': true,
+          'hand': 'right',
+          'beats': 4,
+        }),
+      )!;
+      expect(read.subFigures.map((f) => f.move), [
+        'ecd_balance',
+        'ecd_pull_by',
+      ]);
+      expect(read.params['beats'], 4);
+    });
+
     test('not when its words hide a value it states', () {
-      // The list shows "neighbor balance & pull by right"; the balance must
-      // not be lost.
-      expect(
-        ecdReadingOfContraWording(
-          _f('pull_by', {
-            'who': 'neighbors',
-            'balance': true,
-            'hand': 'right',
-            'beats': 4,
-          }),
-        ),
-        isNull,
-      );
       // "partner promenade" does not show who it ends with.
       expect(
         ecdReadingOfContraWording(
@@ -250,6 +255,32 @@ void main() {
         ),
         isNull,
       );
+    });
+
+    test('as a sequence at the top level only', () {
+      // "partner balance & swing" reads as an ECD balance then swing, and
+      // keeps the 16 beats the contra balance and swing danced.
+      final swing = _f('swing', {'who': 'partners', 'prefix': 'balance'});
+      final read = ecdReadingOfContraWording(swing)!;
+      expect(read.isSequence, isTrue);
+      expect(read.subFigures.map((f) => f.move), ['ecd_balance', 'ecd_swing']);
+      expect(read.params['beats'], 16);
+      final top = migrateEcdDance(
+        figures: [swing],
+        formation: const Formation(FormationShape.dupleMinor),
+      );
+      expect(top.figures.single.isSequence, isTrue);
+      // Inside a sequence it stays contra: containers never nest.
+      final nested = migrateEcdDance(
+        figures: [
+          Figure.sequence(figures: [swing, _f('circle')], beats: 24),
+        ],
+        formation: const Formation(FormationShape.dupleMinor),
+      );
+      expect(nested.figures.single.subFigures.map((f) => f.move), [
+        'swing',
+        'ecd_circle',
+      ]);
     });
 
     test('not when its subject was assumed (R2)', () {

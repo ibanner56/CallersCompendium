@@ -207,16 +207,16 @@ Figure? ecdReadingOfContraWording(Figure figure, {int? ringDancers}) {
   );
   if (stored == null) {
     final danced = contraTaxonomy.effectiveParams(figure)['beats'];
-    final ecd = shippedTaxonomies.forForm(DanceForm.ecd);
-    if (danced != null && ecd.effectiveParams(out)['beats'] != danced) {
+    // A container's span is always stored; a leaf's count may be its usual.
+    final usual = out.isContainer
+        ? out.params['beats']
+        : ecdTaxonomy.effectiveParams(out)['beats'];
+    if (danced != null && usual != danced) {
       out = out.copyWith(params: {...out.params, 'beats': danced});
     }
   }
-  // The ECD form's registry, which adds the containers to ECD's moves.
-  final invalid = shippedTaxonomies
-      .forForm(DanceForm.ecd)
-      .validateFigure(out)
-      .any((issue) => issue.severity == ValidationSeverity.error);
+  // Containers are structural, not taxonomy moves: each leaf is checked.
+  final invalid = !_leavesValidInEcd(out);
   return invalid ? null : out;
 }
 
@@ -233,6 +233,12 @@ String? _shownWords(Figure figure) {
     return null;
   }
 }
+
+bool _leavesValidInEcd(Figure figure) => figure.isContainer
+    ? figure.subFigures.every(_leavesValidInEcd)
+    : !ecdTaxonomy
+          .validateFigure(figure)
+          .any((issue) => issue.severity == ValidationSeverity.error);
 
 bool _allEcd(Figure figure) => figure.isContainer
     ? figure.subFigures.every(_allEcd)

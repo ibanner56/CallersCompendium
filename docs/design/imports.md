@@ -2286,9 +2286,10 @@ migration that turns them into ECD figures. Nothing runs it on its own.
      validation or whose subject was assumed, nor the moves whose words mean
      something else in ECD: those left out of the twin table for their
      `who`, and a petronella, whose contra words hide whether it includes the
-     balance. A reading is kept only when it is wholly ECD moves and
-     validates in the ECD registry; a reading that is a container replaces
-     only a top-level figure, so containers never nest. The figure keeps its
+     balance. A reading is kept only when every leaf is an ECD move that
+     validates against `ecdTaxonomy`. It can be a sequence ("partner balance
+     & swing" is a balance, then a swing, keeping the 16 beats it danced),
+     which replaces only a top-level figure, so containers never nest. The figure keeps its
      note, mark and overrides, and its contra count as below;
   3. import-gap custom lines are re-read with the ECD grammar
      (`reparseImportGapFigures` with ECD's taxonomy); user-entered customs are
