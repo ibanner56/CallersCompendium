@@ -18,7 +18,8 @@
     ],
     "changed": [
       "`Dialect.validate` reports `gendered_role_term` for a gendered word in a role term, substitution, move wording or branch entry, and `Dialect.fromJson` replaces a gendered role term with the Larks/Robins term and drops gendered substitutions and wordings.",
-      "`syncCollectionEntries` labels a dialect whose name is gendered with `Dialect.customName`."
+      "`syncCollectionEntries` labels a dialect whose name is gendered with `Dialect.customName`.",
+      "`FigureRenderer.moveWordingTemplate` seeds an English Country Dance movement's wording with each switch group (`[{?flag}words]`) written as the condition `[if flag then words]`, so the seed saves and reads as the movement does by default."
     ]
   }
 }

@@ -1857,7 +1857,11 @@ class FigureRenderer {
     if (seed != null) return seed;
     final base = _displayBaseRenderers[canonicalMoveId];
     if (base == null) {
-      return _displayRenderTemplates[canonicalMoveId] ?? def.renderTemplate;
+      final template =
+          _displayRenderTemplates[canonicalMoveId] ?? def.renderTemplate;
+      return isEcdMove(canonicalMoveId)
+          ? ecdTemplateAsWording(template)
+          : template;
     }
     final figure = Figure(move: canonicalMoveId);
     final params = taxonomy.effectiveParams(figure);

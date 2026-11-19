@@ -174,3 +174,15 @@ String? ecdStarReturn(Object? hand) =>
 String _words(String token) => token
     .replaceAllMapped(RegExp('(?<=[a-z])(?=[A-Z])'), (_) => ' ')
     .toLowerCase();
+
+final RegExp _flagGroup = RegExp(r'\[([^\[\]]*)\{\?(\w+)\}([^\[\]]*)\]');
+
+/// [template], an ECD display template, as a wording a caller can edit and
+/// save: each group kept by a switch, `[{?flag}words]`, becomes the wording
+/// condition `[if flag then words]` that says the same. Wording templates
+/// already drop a `[ ... ]` group whose slots are all empty, so the other
+/// groups stay as they are.
+String ecdTemplateAsWording(String template) => template.replaceAllMapped(
+  _flagGroup,
+  (m) => '[if ${m[2]} then ${('${m[1]}${m[3]}').trim()}]',
+);
