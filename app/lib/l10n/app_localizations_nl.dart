@@ -8529,6 +8529,12 @@ class AppLocalizationsNl extends AppLocalizations {
       'Wanneer de dans is gecomponeerd (jaar, of voeg maand/dag toe)';
 
   @override
+  String get danceEditorInterpretedByLabel => 'Geïnterpreteerd door';
+
+  @override
+  String get danceEditorInterpretedOnLabel => 'Geïnterpreteerd';
+
+  @override
   String get danceEditorRevisedLabel => 'Herzien';
 
   @override

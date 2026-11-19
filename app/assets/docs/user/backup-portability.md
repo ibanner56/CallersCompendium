@@ -159,8 +159,9 @@ backup is refused the same way, with its size and the limit.
 > without those details. Install the current version before you restore.
 >
 > The same goes for a backup that holds an English country dance formation
-> (such as duple minor), a dance marked improper, or a dance's meter or key:
-> versions without them refuse it as coming from a newer version.
+> (such as duple minor), a dance marked improper, a dance's meter or key, or
+> who interpreted a dance and when: versions without them refuse it as coming
+> from a newer version.
 
 ### Restoring while Device Sync is connected
 

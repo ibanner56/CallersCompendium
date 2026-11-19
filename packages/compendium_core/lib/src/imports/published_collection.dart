@@ -289,9 +289,12 @@ class _PublishedGenericJsonAdapter implements SourceAdapter {
           exportedAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
           dances: [_withRelatedTargetsByExternalId(dance)],
           choreographers: [
-            for (final authorId in dance.authorIds)
-              if (_choreographersById[authorId] != null)
-                _choreographersById[authorId]!,
+            for (final personId in {
+              ...dance.authorIds,
+              ...dance.interpreterIds,
+            })
+              if (_choreographersById[personId] != null)
+                _choreographersById[personId]!,
           ],
           difficultyLevels: [
             if (difficultyLevelId != null &&
@@ -358,10 +361,19 @@ class _PublishedGenericJsonAdapter implements SourceAdapter {
       final name = namesById[id]?.trim();
       if (seen.add(id) && name != null && name.isNotEmpty) names.add(name);
     }
+    final interpreterNames = <String>[];
+    final seenInterpreters = <String>{};
+    for (final id in dance.interpreterIds) {
+      final name = namesById[id]?.trim();
+      if (seenInterpreters.add(id) && name != null && name.isNotEmpty) {
+        interpreterNames.add(name);
+      }
+    }
     return StructuredDraft(
       dance: dance,
       raw: raw,
       authorNames: names,
+      interpreterNames: interpreterNames,
       difficultyLevelLabel: difficultyLevel?.label,
       difficultyLevelIdIsCanonical: difficultyLevel != null,
     );

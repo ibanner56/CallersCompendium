@@ -300,6 +300,7 @@ void main() {
     // aliasing would be hiding exactly the mismatch the test exists to find.
     const keyAliases = <String, String>{
       'dance_authors.choreographer_id': 'choreographers.id',
+      'dance_interpreters.choreographer_id': 'choreographers.id',
       'dance_tags.tag_id': 'tags.id',
       'dance_sources.source_id': 'published_sources.id',
       'dance_links.target_dance_id': 'dances.id',
@@ -836,6 +837,7 @@ const _valuePairs = <String, List<Object?>>{
   'dances.mixer': [false, true],
   'dances.formation_improper': [false, true],
   'dances.composed_on': ['1989', '1990'],
+  'dances.interpreted_on': ['1995', '1996-07'],
   'dances.revised_on': ['2004-03-15', '2005-04-16'],
   'dances.created_at': _earlier,
   'dances.updated_at': _earlier,
@@ -922,6 +924,10 @@ class _Fixture {
     Choreographer(
       id: _str('dance_authors.choreographer_id'),
       name: 'Aux Author',
+    ),
+    Choreographer(
+      id: _str('dance_interpreters.choreographer_id'),
+      name: 'Aux Interpreter',
     ),
   ];
 
@@ -1092,6 +1098,8 @@ class _Fixture {
       sourceVersion: _str('provenance.source_version'),
     ),
     composedOn: PartialDate.parse(_str('dances.composed_on')),
+    interpreterIds: [_str('dance_interpreters.choreographer_id')],
+    interpretedOn: PartialDate.parse(_str('dances.interpreted_on')),
     revisedOn: PartialDate.parse(_str('dances.revised_on')),
     createdAt: _date('dances.created_at'),
     updatedAt: _date('dances.updated_at'),

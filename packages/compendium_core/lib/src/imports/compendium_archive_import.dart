@@ -958,6 +958,7 @@ class CompendiumArchiveImporter {
               quality: record.draft.quality,
               issues: record.draft.issues,
               authorNames: record.draft.authorNames,
+              interpreterNames: record.draft.interpreterNames,
               difficultyLevelLabel: record.draft.difficultyLevelLabel,
               difficultyLevelIdIsCanonical:
                   record.draft.difficultyLevelIdIsCanonical,

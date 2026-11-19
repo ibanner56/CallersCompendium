@@ -215,7 +215,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 ### Database columns
 
-**252 columns**: 171 shareable, 21 device-local, 33 device-scoped, 25 derived, 2 protocol-identifier. 30 personal data by category.
+**256 columns**: 175 shareable, 21 device-local, 33 device-scoped, 25 derived, 2 protocol-identifier. 30 personal data by category.
 
 | Table | Column | Category | Path | Subject | Egress | Why |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -276,6 +276,9 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `dance_fts` | `notes` | `dpv:NonPersonalData` | NonPersonalData | — | derived | Rebuilt from authoritative columns on write; recomputed on arrival. |
 | `dance_fts` | `sources` | `dpv:NonPersonalData` | NonPersonalData | — | derived | Rebuilt from authoritative columns on write; recomputed on arrival. |
 | `dance_fts` | `title` | `dpv:NonPersonalData` | NonPersonalData | — | derived | Rebuilt from authoritative columns on write; recomputed on arrival. |
+| `dance_interpreters` | `choreographer_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
+| `dance_interpreters` | `dance_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
+| `dance_interpreters` | `position` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dance_links` | `dance_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
 | `dance_links` | `id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
 | `dance_links` | `kind` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
@@ -310,6 +313,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `dances` | `formation_shape` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `hook` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
+| `dances` | `interpreted_on` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `level_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
 | `dances` | `meter` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `mixed_level` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |

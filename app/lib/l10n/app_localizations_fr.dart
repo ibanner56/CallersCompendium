@@ -8585,6 +8585,12 @@ class AppLocalizationsFr extends AppLocalizations {
       'Quand la danse a été composée (année, ou ajoutez mois/jour)';
 
   @override
+  String get danceEditorInterpretedByLabel => 'Interprétée par';
+
+  @override
+  String get danceEditorInterpretedOnLabel => 'Interprétée';
+
+  @override
   String get danceEditorRevisedLabel => 'Révisée';
 
   @override

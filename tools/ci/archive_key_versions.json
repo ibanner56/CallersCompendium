@@ -64,6 +64,8 @@
     "sourceCitations": "baseline",
     "provenance": "baseline",
     "composedOn": "baseline",
+    "interpreterIds": "archiveSchemaVersionEcdDanceFields",
+    "interpretedOn": "archiveSchemaVersionEcdDanceFields",
     "revisedOn": "baseline",
     "createdAt": "baseline",
     "updatedAt": "baseline",

@@ -17,6 +17,7 @@ void markSyncAppliedTablesUpdated(
         tables.addAll({
           database.dances,
           database.danceAuthors,
+          database.danceInterpreters,
           database.danceFigures,
           database.customFieldValues,
           database.danceTags,
@@ -40,6 +41,7 @@ void markSyncAppliedTablesUpdated(
         tables.addAll({
           database.choreographers,
           database.danceAuthors,
+          database.danceInterpreters,
           database.dances,
         });
       case SyncRecordKind.tag:

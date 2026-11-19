@@ -8470,6 +8470,12 @@ class AppLocalizationsDa extends AppLocalizations {
       'Hvornår dansen blev komponeret (år, eller tilføj måned/dag)';
 
   @override
+  String get danceEditorInterpretedByLabel => 'Fortolket af';
+
+  @override
+  String get danceEditorInterpretedOnLabel => 'Fortolket';
+
+  @override
   String get danceEditorRevisedLabel => 'Revideret';
 
   @override
