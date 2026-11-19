@@ -7,6 +7,7 @@ import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
 import '../editor/figure_draft.dart';
 import '../editor/pending_move_text_controller.dart';
+import '../theme/app_spacing.dart';
 import '../utils/scroll_to_error.dart';
 import '../widgets/figure_list_editor.dart';
 import '../widgets/shorthand_shadow_warning.dart';
@@ -236,7 +237,12 @@ class _ShorthandMappingEditorScreenState
           scrollCacheExtent: const ScrollCacheExtent.pixels(4000),
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.md,
+                AppSpacing.md,
+                AppSpacing.xs,
+              ),
               child: TextField(
                 key: const ValueKey('shorthand-token-field'),
                 controller: _tokenController,
@@ -259,7 +265,12 @@ class _ShorthandMappingEditorScreenState
               controller: _tokenController,
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.xs,
+                AppSpacing.md,
+                AppSpacing.xxs,
+              ),
               child: Text(
                 l10n.shorthandEditorExpandsTo,
                 style: theme.textTheme.labelLarge?.copyWith(
@@ -268,7 +279,12 @@ class _ShorthandMappingEditorScreenState
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                0,
+                AppSpacing.md,
+                AppSpacing.xxs,
+              ),
               child: Text(
                 l10n.shorthandEditorExpandsToHelp,
                 style: theme.textTheme.bodySmall,
@@ -277,7 +293,12 @@ class _ShorthandMappingEditorScreenState
             if (_figuresError != null)
               Padding(
                 key: _figuresErrorKey,
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.md,
+                  0,
+                  AppSpacing.md,
+                  AppSpacing.xs,
+                ),
                 child: Text(
                   _figuresError!,
                   key: const ValueKey('shorthand-validation-error'),
@@ -285,7 +306,7 @@ class _ShorthandMappingEditorScreenState
                 ),
               ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
               child: FigureListEditor(
                 drafts: _drafts,
                 pendingMoveTextController: _pendingMoveText,

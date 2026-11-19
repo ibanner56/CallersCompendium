@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import '../theme/app_spacing.dart';
 import 'dashed_border.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
@@ -973,7 +974,7 @@ class _FigureListEditorState extends State<FigureListEditor>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
             child: Text(
               l10n.danceFiguresEmpty,
               style: theme.textTheme.bodyMedium,
@@ -1167,7 +1168,7 @@ class _FigureListEditorState extends State<FigureListEditor>
         // Cut-in-progress banner.
         if (_cutDraftId != null)
           Padding(
-            padding: const EdgeInsets.only(bottom: 4),
+            padding: const EdgeInsets.only(bottom: AppSpacing.xxs),
             child: Row(
               children: [
                 Icon(
@@ -1265,7 +1266,7 @@ class _FigureListEditorState extends State<FigureListEditor>
               _buildAddAffordance(context, empty: false),
               if (_cutDraftId != null)
                 Padding(
-                  padding: const EdgeInsets.only(left: 8),
+                  padding: const EdgeInsets.only(left: AppSpacing.xs),
                   child: _PasteButton(
                     key: const ValueKey('paste-end'),
                     semanticsLabel: l10n.danceEditorPasteAtEndOfFigureList,
@@ -1301,7 +1302,7 @@ class _FigureListEditorState extends State<FigureListEditor>
       container: true,
       explicitChildNodes: true,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
         child: Focus(
           // A key-handler wrapper only (Escape to cancel); it must not become a
           // tab stop of its own around the field.
@@ -1368,7 +1369,7 @@ class _FigureListEditorState extends State<FigureListEditor>
               // beside it they left the field too narrow for its help at phone
               // width, where the help was cut off mid-word (#1830).
               Padding(
-                padding: const EdgeInsets.only(top: 4),
+                padding: const EdgeInsets.only(top: AppSpacing.xxs),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -1392,7 +1393,7 @@ class _FigureListEditorState extends State<FigureListEditor>
               if (confirmation != null)
                 Padding(
                   key: _key('free-text-confirmation'),
-                  padding: const EdgeInsets.only(top: 4),
+                  padding: const EdgeInsets.only(top: AppSpacing.xxs),
                   // Spoken by [_announce]; a second, live-region copy would be
                   // read twice.
                   child: ExcludeSemantics(
@@ -2070,9 +2071,12 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       dashed: widget.isCut,
       color: Theme.of(context).colorScheme.onSurface,
       child: Card(
-        margin: const EdgeInsets.symmetric(vertical: 4),
+        margin: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+          padding: const EdgeInsets.symmetric(
+            vertical: AppSpacing.xxs,
+            horizontal: AppSpacing.xs,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -2203,7 +2207,10 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
               onTap: widget.onActivate,
               borderRadius: AppShapes.borderRadiusSmall,
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                padding: const EdgeInsets.symmetric(
+                  vertical: AppSpacing.xs,
+                  horizontal: AppSpacing.xxs,
+                ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -2250,7 +2257,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                               children: [
                                 Padding(
                                   padding: const EdgeInsetsDirectional.only(
-                                    end: 4,
+                                    end: AppSpacing.xxs,
                                   ),
                                   child: Icon(
                                     Icons.person_outline,
@@ -2278,7 +2285,9 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                             ),
                           if (widget.isCut)
                             Padding(
-                              padding: const EdgeInsets.only(top: 2),
+                              padding: const EdgeInsets.only(
+                                top: AppSpacing.xxxs,
+                              ),
                               child: Row(
                                 key: _key('cut-badge'),
                                 mainAxisSize: MainAxisSize.min,
@@ -2310,7 +2319,9 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                             ),
                           if (hasNote)
                             Padding(
-                              padding: const EdgeInsets.only(top: 2),
+                              padding: const EdgeInsets.only(
+                                top: AppSpacing.xxxs,
+                              ),
                               child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -2345,14 +2356,14 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                     if (isImportGap) ...[
                       const SizedBox(width: 8),
                       const Padding(
-                        padding: EdgeInsets.only(top: 2),
+                        padding: EdgeInsets.only(top: AppSpacing.xxxs),
                         child: ImportGapBadge(),
                       ),
                     ],
                     if (hasMove) ...[
                       const SizedBox(width: 8),
                       Padding(
-                        padding: const EdgeInsets.only(top: 2),
+                        padding: const EdgeInsets.only(top: AppSpacing.xxxs),
                         child: Text(
                           beatsLabel,
                           textAlign: TextAlign.end,
@@ -2637,14 +2648,17 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       canRequestFocus: false,
       onKeyEvent: _handleEditorKey,
       child: Padding(
-        padding: const EdgeInsets.only(top: 4, bottom: 4),
+        padding: const EdgeInsets.only(
+          top: AppSpacing.xxs,
+          bottom: AppSpacing.xxs,
+        ),
         child: Container(
           decoration: BoxDecoration(
             border: Border.all(color: theme.colorScheme.outlineVariant),
             borderRadius: AppShapes.borderRadiusSmall,
             color: theme.colorScheme.surfaceContainerLow,
           ),
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(AppSpacing.sm),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -2760,14 +2774,17 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       canRequestFocus: false,
       onKeyEvent: _handleEditorKey,
       child: Padding(
-        padding: const EdgeInsets.only(top: 4, bottom: 4),
+        padding: const EdgeInsets.only(
+          top: AppSpacing.xxs,
+          bottom: AppSpacing.xxs,
+        ),
         child: Container(
           decoration: BoxDecoration(
             border: Border.all(color: theme.colorScheme.outlineVariant),
             borderRadius: AppShapes.borderRadiusSmall,
             color: theme.colorScheme.surfaceContainerLow,
           ),
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(AppSpacing.sm),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -2864,14 +2881,17 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       canRequestFocus: false,
       onKeyEvent: _handleEditorKey,
       child: Padding(
-        padding: const EdgeInsets.only(top: 4, bottom: 4),
+        padding: const EdgeInsets.only(
+          top: AppSpacing.xxs,
+          bottom: AppSpacing.xxs,
+        ),
         child: Container(
           decoration: BoxDecoration(
             border: Border.all(color: theme.colorScheme.outlineVariant),
             borderRadius: AppShapes.borderRadiusSmall,
             color: theme.colorScheme.surfaceContainerLow,
           ),
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(AppSpacing.sm),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -2974,14 +2994,17 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       canRequestFocus: false,
       onKeyEvent: _handleEditorKey,
       child: Padding(
-        padding: const EdgeInsets.only(top: 4, bottom: 4),
+        padding: const EdgeInsets.only(
+          top: AppSpacing.xxs,
+          bottom: AppSpacing.xxs,
+        ),
         child: Container(
           decoration: BoxDecoration(
             border: Border.all(color: theme.colorScheme.outlineVariant),
             borderRadius: AppShapes.borderRadiusSmall,
             color: theme.colorScheme.surfaceContainerLow,
           ),
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(AppSpacing.sm),
           child: Semantics(
             container: true,
             label: switch (kind) {
@@ -3051,7 +3074,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                   ),
                   if (draft.beats > beatLimit)
                     Padding(
-                      padding: const EdgeInsets.only(top: 4),
+                      padding: const EdgeInsets.only(top: AppSpacing.xxs),
                       child: Text(
                         l10n.danceEditorSequenceOverPhrase(
                           draft.beats,
@@ -3086,7 +3109,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                 if (widget.showWordingOverride) _buildWordingOverride(context),
                 for (var i = 0; i < sides.length; i++)
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.only(bottom: AppSpacing.xs),
                     child: sides[i].isContainerDraft
                         ? Semantics(
                             container: true,
@@ -3244,7 +3267,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                   )
                 else
                   Padding(
-                    padding: const EdgeInsets.only(top: 4),
+                    padding: const EdgeInsets.only(top: AppSpacing.xxs),
                     child: Text(
                       sides.length < cap
                           ? l10n.danceEditorSequencePhraseFull(beatLimit)
@@ -3424,14 +3447,17 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       canRequestFocus: false,
       onKeyEvent: _handleEditorKey,
       child: Padding(
-        padding: const EdgeInsets.only(top: 4, bottom: 4),
+        padding: const EdgeInsets.only(
+          top: AppSpacing.xxs,
+          bottom: AppSpacing.xxs,
+        ),
         child: Container(
           decoration: BoxDecoration(
             border: Border.all(color: theme.colorScheme.outlineVariant),
             borderRadius: AppShapes.borderRadiusSmall,
             color: theme.colorScheme.surfaceContainerLow,
           ),
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(AppSpacing.sm),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -3609,7 +3635,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
         ),
         if (_showMoreOptions)
           Padding(
-            padding: const EdgeInsets.only(top: 4),
+            padding: const EdgeInsets.only(top: AppSpacing.xxs),
             child: paramWrap(extra),
           ),
       ],
@@ -4109,7 +4135,7 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
         ),
       },
       child: Container(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.all(AppSpacing.xs),
         decoration: BoxDecoration(
           border: Border.all(color: theme.colorScheme.outlineVariant),
           borderRadius: AppShapes.borderRadiusSmall,
@@ -4505,7 +4531,7 @@ class _LingoCustomTextFieldState extends State<_LingoCustomTextField> {
         // WCAG requirement not to rely on visual styling alone.
         if (hint != null)
           Padding(
-            padding: const EdgeInsets.only(top: 2),
+            padding: const EdgeInsets.only(top: AppSpacing.xxxs),
             child: Row(
               children: [
                 Icon(
@@ -4884,7 +4910,7 @@ class _WordingOverrideFieldState extends State<_WordingOverrideField> {
         ),
         if (widget.preview.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.only(top: 4),
+            padding: const EdgeInsets.only(top: AppSpacing.xxs),
             child: Text(
               l10n.danceEditorWordingOverridePreview(widget.preview),
               key: ValueKey('${widget.fieldKey}-preview'),
@@ -4917,7 +4943,7 @@ class _BeatSummary extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final mismatch = totalBeats != expectedBeats;
     return Padding(
-      padding: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.only(top: AppSpacing.sm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -4925,12 +4951,12 @@ class _BeatSummary extends StatelessWidget {
             l10n.danceEditorBeatTotal(totalBeats, expectedBeats),
             key: _key('beats-total'),
             style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
             ),
           ),
           if (mismatch)
             Padding(
-              padding: const EdgeInsets.only(top: 4),
+              padding: const EdgeInsets.only(top: AppSpacing.xxs),
               child: Row(
                 key: _key('beats-warning'),
                 children: [

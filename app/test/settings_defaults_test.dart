@@ -1,3 +1,4 @@
+import 'support/announcements.dart';
 import 'dart:async';
 import 'dart:convert';
 
@@ -788,6 +789,8 @@ void main() {
     expect(button(before.first, 'up').onPressed, isNull);
     expect(button(before.last, 'down').onPressed, isNull);
 
+    final announced = recordAnnouncements();
+    final firstLabel = (await repos.difficultyLevels.listAll()).first.label;
     await tester.tap(
       find.byKey(ValueKey('difficulty-level-${before.first}-move-down')),
     );
@@ -797,6 +800,7 @@ void main() {
         .map((l) => l.id)
         .toList();
     expect(after, [before[1], before[0], ...before.skip(2)]);
+    expect(announced, ['$firstLabel moved to position 2 of ${before.length}']);
 
     await tester.tap(
       find.byKey(ValueKey('difficulty-level-${before.first}-move-up')),

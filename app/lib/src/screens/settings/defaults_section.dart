@@ -1480,13 +1480,23 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
     if (_reordering) return;
     _reordering = true;
     try {
-      await _reorderNow(oldIndex, newIndex);
+      final moved = await _reorderNow(oldIndex, newIndex);
+      if (moved != null && mounted) {
+        announceMoved(
+          context,
+          name: moved.label,
+          position: newIndex + 1,
+          count: _levels.length,
+        );
+      }
     } finally {
       _reordering = false;
     }
   }
 
-  Future<void> _reorderNow(int oldIndex, int newIndex) async {
+  /// The level that moved, or `null` when the write failed (the list is then
+  /// reloaded to what is stored).
+  Future<DifficultyLevel?> _reorderNow(int oldIndex, int newIndex) async {
     final updated = List<DifficultyLevel>.of(_levels);
     final level = updated.removeAt(oldIndex);
     updated.insert(newIndex, level);
@@ -1496,10 +1506,12 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
         context,
       ).difficultyLevels.reorder(updated.map((level) => level.id).toList());
       await _reload();
+      return level;
     } catch (error, stackTrace) {
       logCaughtError(error, stackTrace, source: 'defaults_section._reorder');
       _report(error);
       await _reload();
+      return null;
     }
   }
 

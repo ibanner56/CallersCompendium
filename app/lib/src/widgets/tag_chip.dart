@@ -37,9 +37,11 @@ class TagChip extends StatelessWidget {
   final VoidCallback? onPressed;
   final String? tooltip;
 
-  /// Applies the compact density the Collection list rows use. Dance detail
-  /// lays its chips out at the default density, and the two must keep their
-  /// existing, differing chrome — this feature changes colour, not spacing.
+  /// Applies the compact density the Collection list rows use to a plain chip.
+  /// A tappable one ([onPressed]) ignores it and keeps the platform's own
+  /// density and full touch target. Dance detail lays its chips out at the
+  /// default density, and the two must keep their existing, differing chrome —
+  /// this feature changes colour, not spacing.
   final bool dense;
 
   @override
@@ -53,16 +55,13 @@ class TagChip extends StatelessWidget {
       name,
       style: foreground == null ? null : TextStyle(color: foreground),
     );
-    final visualDensity = dense ? VisualDensity.compact : null;
-    final tapTargetSize = dense ? MaterialTapTargetSize.shrinkWrap : null;
     if (onPressed case final onPressed?) {
+      // A tappable chip keeps the platform's density and full touch target.
       return ActionChip(
         avatar: avatar,
         label: label,
         tooltip: tooltip,
         backgroundColor: background,
-        visualDensity: visualDensity,
-        materialTapTargetSize: tapTargetSize,
         onPressed: onPressed,
       );
     }
@@ -70,8 +69,8 @@ class TagChip extends StatelessWidget {
       avatar: avatar,
       label: label,
       backgroundColor: background,
-      visualDensity: visualDensity,
-      materialTapTargetSize: tapTargetSize,
+      visualDensity: dense ? VisualDensity.compact : null,
+      materialTapTargetSize: dense ? MaterialTapTargetSize.shrinkWrap : null,
     );
   }
 }

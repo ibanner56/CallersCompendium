@@ -1088,7 +1088,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         _statusLine(program),
         if (program.isArchived)
           const Padding(
-            padding: EdgeInsets.only(top: 4),
+            padding: EdgeInsets.only(top: AppSpacing.xxs),
             child: Align(
               alignment: AlignmentDirectional.centerStart,
               child: ProgramArchivedChip(),
@@ -1140,7 +1140,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         ),
         const SizedBox(height: 8),
         ..._buildSetList(program),
-        const SizedBox(height: 80),
+        const SizedBox(height: AppSpacing.fabClearance),
       ],
     );
   }
@@ -1559,7 +1559,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     if (program.slots.isEmpty) {
       return [
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
           child: Text(
             AppLocalizations.of(context).programsSummaryEmptySetList,
             key: const ValueKey('summary-set-list-empty'),
@@ -1691,7 +1691,11 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         // The dance no longer resolves (deleted/tombstoned). Render a graceful,
         // non-interactive fallback rather than a broken tappable row.
         return Padding(
-          padding: EdgeInsets.only(left: indented ? 32 : 0, top: 4, bottom: 4),
+          padding: EdgeInsets.only(
+            left: indented ? AppSpacing.xl : 0,
+            top: AppSpacing.xxs,
+            bottom: AppSpacing.xxs,
+          ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1811,9 +1815,9 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
                       )
                     : null,
                 padding: EdgeInsets.only(
-                  left: accent != null ? 8 : 0,
-                  top: 8,
-                  bottom: 8,
+                  left: accent != null ? AppSpacing.xs : 0,
+                  top: AppSpacing.xs,
+                  bottom: AppSpacing.xs,
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1879,7 +1883,11 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
             )
           : null;
       return Padding(
-        padding: EdgeInsets.only(left: indented ? 32 : 0, top: 2, bottom: 2),
+        padding: EdgeInsets.only(
+          left: indented ? AppSpacing.xl : 0,
+          top: AppSpacing.xxxs,
+          bottom: AppSpacing.xxxs,
+        ),
         child: showToggle || restoreButton != null
             ? Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1899,7 +1907,11 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         ? text
         : _displayProse(text);
     return Padding(
-      padding: EdgeInsets.only(left: indented ? 32 : 0, top: 6, bottom: 6),
+      padding: EdgeInsets.only(
+        left: indented ? AppSpacing.xl : 0,
+        top: AppSpacing.xs,
+        bottom: AppSpacing.xs,
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1977,7 +1989,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   Widget _summaryRow(IconData icon, String text) {
     final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
       child: Row(
         children: [
           Icon(icon, size: 18, color: theme.colorScheme.onSurfaceVariant),

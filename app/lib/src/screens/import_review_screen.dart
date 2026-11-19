@@ -12,6 +12,7 @@ import '../data/dialect_library_scope.dart';
 import '../data/show_custom_figures_scope.dart';
 import '../glossary/cc_term_import.dart';
 import '../glossary/user_figure_import.dart';
+import '../theme/app_spacing.dart';
 import 'import_cc_terms_screen.dart';
 import 'import_user_figures_screen.dart';
 import '../data/callersbox_online.dart';
@@ -1439,7 +1440,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     );
     final hasAmbiguous = batch.records.any((r) => r.verdict.isAmbiguous);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Wrap(
         spacing: 8,
         runSpacing: 8,
@@ -2536,7 +2537,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                 ),
                 if (programOutcome.updated > 0)
                   Padding(
-                    padding: const EdgeInsets.only(top: 4),
+                    padding: const EdgeInsets.only(top: AppSpacing.xxs),
                     child: Text(
                       l10n.importReviewProgramsUpdated(programOutcome.updated),
                       key: const ValueKey('import-programs-updated'),
@@ -2544,7 +2545,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                   ),
                 if (programNames.isNotEmpty)
                   Padding(
-                    padding: const EdgeInsets.only(top: 4),
+                    padding: const EdgeInsets.only(top: AppSpacing.xxs),
                     child: Column(
                       key: const ValueKey('import-program-names'),
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2562,7 +2563,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                   ),
                   for (final issue in programIssues)
                     Padding(
-                      padding: const EdgeInsets.only(top: 4),
+                      padding: const EdgeInsets.only(top: AppSpacing.xxs),
                       child: Text('• ${importIssueMessage(l10n, issue)}'),
                     ),
                 ],
@@ -2576,7 +2577,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                 ),
                 for (final issue in notes)
                   Padding(
-                    padding: const EdgeInsets.only(top: 4),
+                    padding: const EdgeInsets.only(top: AppSpacing.xxs),
                     child: Text('• ${importIssueMessage(l10n, issue)}'),
                   ),
               ],
@@ -2588,7 +2589,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                 ),
                 for (final e in errors)
                   Padding(
-                    padding: const EdgeInsets.only(top: 4),
+                    padding: const EdgeInsets.only(top: AppSpacing.xxs),
                     child: Text('• ${importRecordErrorMessage(l10n, e)}'),
                   ),
               ],
@@ -2886,7 +2887,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         ? preflightTitleList(_pasteController.text)
         : null;
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.md),
       children: [
         if (_sourcePickerSources.length > 1 && !_isPublishedImport) ...[
           Text(
@@ -2988,7 +2989,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           ),
           if (_payloadBytes != null)
             Padding(
-              padding: const EdgeInsets.only(top: 12),
+              padding: const EdgeInsets.only(top: AppSpacing.sm),
               child: Row(
                 key: const ValueKey('import-usr-chosen'),
                 children: [
@@ -3037,7 +3038,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           ),
           if (titlePreflight.duplicateLines > 0)
             Padding(
-              padding: const EdgeInsets.only(top: 4),
+              padding: const EdgeInsets.only(top: AppSpacing.xxs),
               child: Text(
                 l10n.importReviewTitleListDuplicates(
                   titlePreflight.duplicateLines,
@@ -3048,7 +3049,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
             ),
           if (_titleListError != null)
             Padding(
-              padding: const EdgeInsets.only(top: 8),
+              padding: const EdgeInsets.only(top: AppSpacing.xs),
               child: Semantics(
                 container: true,
                 liveRegion: true,
@@ -3147,7 +3148,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           ),
           if (_fetchError != null)
             Padding(
-              padding: const EdgeInsets.only(top: 8),
+              padding: const EdgeInsets.only(top: AppSpacing.xs),
               child: Row(
                 key: const ValueKey('import-url-error'),
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -3336,7 +3337,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         Expanded(
           child: ListView(
             key: const ValueKey('import-review-list'),
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(AppSpacing.sm),
             children: [
               if (_showSoftCapWarning) _buildSoftCapWarning(context),
               ?batchWarnings,
@@ -3357,7 +3358,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         ),
         SafeArea(
           child: Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(AppSpacing.sm),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -3432,13 +3433,13 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     final l10n = AppLocalizations.of(context);
     return ListView(
       key: const ValueKey('import-review-list'),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppSpacing.sm),
       children: [
         _buildTitleListSummary(context, titleList),
         if (titleList.stoppedAfterConnectionFailure)
           _buildTitleListConnectionBanner(context),
         Padding(
-          padding: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.only(bottom: AppSpacing.xs),
           child: Text(
             l10n.importReviewTitleListNothingToImport,
             key: const ValueKey('import-titles-nothing-to-import'),
@@ -3446,7 +3447,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         ),
         ..._buildTitleListGroups(context, titleList),
         Padding(
-          padding: const EdgeInsets.only(top: 8),
+          padding: const EdgeInsets.only(top: AppSpacing.xs),
           child: Align(
             alignment: Alignment.centerLeft,
             child: OutlinedButton.icon(
@@ -3482,8 +3483,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     ];
     return Container(
       key: const ValueKey('import-titles-summary'),
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      margin: const EdgeInsets.only(bottom: AppSpacing.xs),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.sm,
+      ),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHighest,
         borderRadius: AppShapes.borderRadiusSmall,
@@ -3499,7 +3503,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           Text(parts.join(' · ')),
           if (titleList.duplicateLines > 0)
             Padding(
-              padding: const EdgeInsets.only(top: 4),
+              padding: const EdgeInsets.only(top: AppSpacing.xxs),
               child: Text(
                 l10n.importReviewTitleListDuplicates(titleList.duplicateLines),
                 style: Theme.of(context).textTheme.bodySmall,
@@ -3564,7 +3568,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     return Card(
       key: ValueKey('import-titles-group-$key'),
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(AppSpacing.sm),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -3579,7 +3583,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
             ),
             for (final row in rows)
               Padding(
-                padding: const EdgeInsets.only(top: 8),
+                padding: const EdgeInsets.only(top: AppSpacing.xs),
                 child: Column(
                   key: ValueKey('import-titles-$key-${row.title}'),
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -3623,7 +3627,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       label: l10n.importReviewWarningPrefix(message),
       child: ExcludeSemantics(
         child: Padding(
-          padding: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.only(bottom: AppSpacing.xs),
           child: NoticeCard(
             key: const ValueKey('import-titles-connection-banner'),
             kind: NoticeKind.warning,
@@ -3651,14 +3655,14 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       label: l10n.importReviewWarningPrefix(message),
       child: ExcludeSemantics(
         child: Padding(
-          padding: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.only(bottom: AppSpacing.xs),
           child: NoticeCard(
             key: const ValueKey('import-soft-cap-warning'),
             kind: NoticeKind.warning,
             icon: Icons.info_outline,
             child: Text(
               message,
-              style: const TextStyle(fontWeight: FontWeight.w600),
+              style: const TextStyle(fontWeight: FontWeight.w700),
             ),
           ),
         ),
@@ -3684,7 +3688,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         Expanded(
           child: ListView(
             key: const ValueKey('import-review-list'),
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(AppSpacing.sm),
             children: [
               if (_showSoftCapWarning) _buildSoftCapWarning(context),
               ?banner,
@@ -3706,7 +3710,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         ),
         SafeArea(
           child: Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(AppSpacing.sm),
             child: Align(
               alignment: Alignment.centerRight,
               child: FilledButton.icon(
@@ -3741,7 +3745,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           kind: NoticeKind.warning,
           child: Text(
             message,
-            style: const TextStyle(fontWeight: FontWeight.w600),
+            style: const TextStyle(fontWeight: FontWeight.w700),
           ),
         ),
       ),
@@ -3765,7 +3769,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           kind: NoticeKind.warning,
           child: Text(
             message,
-            style: const TextStyle(fontWeight: FontWeight.w600),
+            style: const TextStyle(fontWeight: FontWeight.w700),
           ),
         ),
       ),
@@ -3795,10 +3799,10 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
             children: [
               for (final message in messages)
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
+                  padding: const EdgeInsets.only(bottom: AppSpacing.xxs),
                   child: Text(
                     messages.length == 1 ? message : '• $message',
-                    style: const TextStyle(fontWeight: FontWeight.w600),
+                    style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                 ),
             ],
@@ -3819,7 +3823,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         children: [
           for (final e in errors)
             Padding(
-              padding: const EdgeInsets.only(top: 4),
+              padding: const EdgeInsets.only(top: AppSpacing.xxs),
               child: Text('• ${importRecordErrorMessage(l10n, e)}'),
             ),
         ],
@@ -3849,12 +3853,15 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
             ? 'import-ambiguous-group-$groupId'
             : 'import-program-line-$lineIndex',
       ),
-      padding: const EdgeInsets.only(top: 12, bottom: 4),
+      padding: const EdgeInsets.only(
+        top: AppSpacing.sm,
+        bottom: AppSpacing.xxs,
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Padding(
-            padding: EdgeInsets.only(top: 2),
+            padding: EdgeInsets.only(top: AppSpacing.xxxs),
             child: Icon(Icons.help_outline, size: 18),
           ),
           const SizedBox(width: 6),
@@ -3878,7 +3885,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     return Card(
       key: ValueKey('import-row-$i'),
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(AppSpacing.sm),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -3896,7 +3903,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
             _buildMetadata(context, i, draft),
             for (final issue in draft.issues)
               Padding(
-                padding: const EdgeInsets.only(top: 4),
+                padding: const EdgeInsets.only(top: AppSpacing.xxs),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -4005,7 +4012,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     );
     return Padding(
       key: ValueKey('import-row-$index-metadata'),
-      padding: const EdgeInsets.only(top: 4),
+      padding: const EdgeInsets.only(top: AppSpacing.xxs),
       child: Text(
         details.join(' · '),
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -4047,10 +4054,10 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     final choice = _choices[i];
     return Card(
       key: ValueKey('import-row-$i-variation'),
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: AppSpacing.xs),
       color: theme.colorScheme.surfaceContainerHighest,
       child: Padding(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.all(AppSpacing.xs),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -4089,7 +4096,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     // still be imported as a new dance (or, below, as a variation).
     final figureless = draftHasNoFigures(_batch!.records[i].draft);
     final noFiguresNote = Padding(
-      padding: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.only(bottom: AppSpacing.xxs),
       child: Text(
         l10n.importFigurelessCannotReplace,
         key: ValueKey('import-row-$i-no-figures-note'),
@@ -4117,7 +4124,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: const EdgeInsets.only(bottom: 4),
+              padding: const EdgeInsets.only(bottom: AppSpacing.xxs),
               child: Text(
                 l10n.importReviewPossibleTitleMatch,
                 style: Theme.of(context).textTheme.labelMedium,
@@ -4149,7 +4156,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           children: [
             group,
             Padding(
-              padding: const EdgeInsetsDirectional.only(start: 32),
+              padding: const EdgeInsetsDirectional.only(start: AppSpacing.xl),
               child: CheckboxListTile(
                 key: ValueKey('import-row-$i-title-and-credit'),
                 dense: true,
@@ -4229,7 +4236,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: const EdgeInsets.only(bottom: 4),
+              padding: const EdgeInsets.only(bottom: AppSpacing.xxs),
               child: Text(
                 l10n.importReviewPossibleMatch,
                 style: Theme.of(context).textTheme.labelMedium,
@@ -4348,7 +4355,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     return Center(
       key: const ValueKey('import-message'),
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

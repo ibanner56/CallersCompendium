@@ -1427,7 +1427,7 @@ class _StatusBanner extends StatelessWidget {
     final (:icon, :label) = danceStatusPresentation(status, l10n);
     final color = danceStatusColor(status, theme);
     final style = theme.textTheme.titleLarge?.copyWith(
-      fontWeight: FontWeight.w600,
+      fontWeight: FontWeight.w700,
     );
     final iconSize =
         (style?.fontSize ?? 22) * MediaQuery.textScalerOf(context).scale(1);

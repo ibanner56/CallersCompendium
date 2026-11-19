@@ -1,3 +1,4 @@
+import 'support/announcements.dart';
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
@@ -295,10 +296,16 @@ void main() {
       expect(button(catalogIds.first, 'up').onPressed, isNull);
       expect(button(catalogIds.last, 'down').onPressed, isNull);
 
+      final announced = recordAnnouncements();
       await tester.tap(
         find.byKey(ValueKey('matrix-column-${catalogIds.first}-move-down')),
       );
       await tester.pumpAndSettle();
+      expect(announced, hasLength(1));
+      expect(
+        announced.single,
+        endsWith('moved to position 2 of ${catalogIds.length}'),
+      );
 
       final expected = [...catalogIds];
       expected.insert(1, expected.removeAt(0));

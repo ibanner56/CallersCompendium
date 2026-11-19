@@ -9344,6 +9344,11 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String commonMovedItemPosition(String name, int position, int count) {
+    return '$name déplacé à la position $position sur $count';
+  }
+
+  @override
   String get danceEditorFigureCutState => 'Coupé';
 
   @override

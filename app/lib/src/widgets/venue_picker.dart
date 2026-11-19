@@ -8,6 +8,7 @@ import '../../l10n/app_localizations.dart';
 import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../screens/venue_editor_sheet.dart';
+import '../theme/app_spacing.dart';
 import 'link_typed_venues_offer.dart';
 import 'responsive_autocomplete.dart';
 
@@ -188,7 +189,7 @@ class _VenuePickerState extends State<VenuePicker> {
     final l10n = AppLocalizations.of(context);
     if (_loading) {
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
         child: Row(
           children: [
             const SizedBox(
@@ -204,7 +205,7 @@ class _VenuePickerState extends State<VenuePicker> {
     }
     if (_error != null) {
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
         child: Row(
           children: [
             Expanded(child: Text(l10n.venueLoadError)),

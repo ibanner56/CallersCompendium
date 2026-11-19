@@ -255,8 +255,11 @@ class _PanelToggle extends StatelessWidget {
         // say what the chip does, and the three tools plus a [trailing] control
         // must share one row on a 390dp phone even with "Filters · 3" showing.
         // The chevron already adds space at the end of the label.
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-        labelPadding: const EdgeInsetsDirectional.only(start: 4, end: 0),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxs),
+        labelPadding: const EdgeInsetsDirectional.only(
+          start: AppSpacing.xxs,
+          end: 0,
+        ),
         // Fills the label slot (no widthFactor), so the chip's visible body grows
         // to the width the row gives it: the spare width becomes padding either
         // side of the centred label, not gaps between natural-width chips. A

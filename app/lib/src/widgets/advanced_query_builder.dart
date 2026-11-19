@@ -6,6 +6,7 @@ import '../data/user_figures_scope.dart';
 import '../search/collection_query.dart';
 import '../search/collection_query_labels.dart';
 import '../search/facet_labels.dart';
+import '../theme/app_spacing.dart';
 import 'move_autocomplete.dart';
 
 /// The "Advanced" boolean-tree query builder (`docs/design/search.md`
@@ -91,12 +92,12 @@ class _GroupView extends StatelessWidget {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 4),
+      margin: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
       color: theme.colorScheme.surfaceContainerHighest.withValues(
         alpha: depth.isEven ? 0.3 : 0.15,
       ),
       child: Padding(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.all(AppSpacing.xs),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -151,7 +152,10 @@ class _GroupView extends StatelessWidget {
             ),
             if (group.children.isEmpty)
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                padding: const EdgeInsets.symmetric(
+                  vertical: AppSpacing.xs,
+                  horizontal: AppSpacing.xxs,
+                ),
                 child: Text(
                   l10n.collectionQueryEmptyGroup,
                   style: theme.textTheme.bodySmall,
@@ -285,7 +289,10 @@ class _AddMenu extends StatelessWidget {
         ),
       ],
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+        padding: const EdgeInsets.symmetric(
+          vertical: AppSpacing.xs,
+          horizontal: AppSpacing.xxs,
+        ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -338,7 +345,7 @@ class _FigureRow extends StatelessWidget {
       onPressed: onRemove,
     );
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
       child: LayoutBuilder(
         builder: (context, constraints) {
           if (constraints.maxWidth < _stackBelow) {
@@ -346,7 +353,10 @@ class _FigureRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Padding(
-                  padding: const EdgeInsets.only(top: 4, bottom: 4),
+                  padding: const EdgeInsets.only(
+                    top: AppSpacing.xxs,
+                    bottom: AppSpacing.xxs,
+                  ),
                   child: Text(l10n.collectionQueryHasFigure),
                 ),
                 Row(
@@ -363,7 +373,10 @@ class _FigureRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Padding(
-                padding: const EdgeInsets.only(top: 12, right: 8),
+                padding: const EdgeInsets.only(
+                  top: AppSpacing.sm,
+                  right: AppSpacing.xs,
+                ),
                 child: Text(l10n.collectionQueryHasFigure),
               ),
               Expanded(child: editor),
@@ -413,11 +426,11 @@ class _TagRow extends StatelessWidget {
       });
     }
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
       child: Row(
         children: [
           Padding(
-            padding: const EdgeInsets.only(right: 8),
+            padding: const EdgeInsets.only(right: AppSpacing.xs),
             child: Text(l10n.collectionQueryHasTag),
           ),
           Expanded(
@@ -478,7 +491,7 @@ class _ThenRow extends StatelessWidget {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -502,7 +515,7 @@ class _ThenRow extends StatelessWidget {
                   onChanged: onChanged,
                 ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
                   child: Text(
                     l10n.collectionQueryThenConnector,
                     style: theme.textTheme.labelMedium,
@@ -702,7 +715,7 @@ class _FigureGroupEditor extends StatelessWidget {
     switch (child) {
       case BuilderFigure():
         return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -731,7 +744,11 @@ class _FigureGroupEditor extends StatelessWidget {
         // Nested group — rendered recursively. No flatten affordance for
         // nested groups (they're added programmatically, not via the UI).
         return Padding(
-          padding: const EdgeInsets.only(left: 8, top: 4, bottom: 4),
+          padding: const EdgeInsets.only(
+            left: AppSpacing.xs,
+            top: AppSpacing.xxs,
+            bottom: AppSpacing.xxs,
+          ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -838,7 +855,7 @@ class _FigureEditor extends StatelessWidget {
         ),
         if (paramSpecs.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.only(top: 4),
+            padding: const EdgeInsets.only(top: AppSpacing.xxs),
             child: Wrap(
               spacing: 8,
               runSpacing: 4,

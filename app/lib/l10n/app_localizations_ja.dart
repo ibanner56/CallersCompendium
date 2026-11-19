@@ -8849,6 +8849,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String commonMovedItemPosition(String name, int position, int count) {
+    return '$nameを$count件中$position番目に移動しました';
+  }
+
+  @override
   String get danceEditorFigureCutState => 'カット済み';
 
   @override

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../theme/app_motion.dart';
+import '../theme/app_spacing.dart';
 import 'dirty_dialog_guard.dart';
 
 /// Shows the batch **add tunes** picker for the Collection multi-select flow.
@@ -72,7 +73,7 @@ class _BatchTunesDialogState extends State<_BatchTunesDialog> {
             children: [
               if (_tunes.isEmpty)
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
                   child: Text(l10n.collectionBatchTunesEmpty),
                 )
               else

@@ -11,6 +11,7 @@ import '../data/user_figures_scope.dart';
 import '../editor/figure_draft.dart';
 import '../editor/user_figure_draft.dart';
 import '../glossary/custom_figures.dart';
+import '../theme/app_spacing.dart';
 import '../utils/scroll_to_error.dart';
 import '../widgets/compound_argument_editor.dart';
 import '../widgets/shorthand_shadow_warning.dart';
@@ -393,7 +394,7 @@ class _CompoundShorthandEditorScreenState
           // element for a child far outside the viewport. Enough to keep the
           // whole form built; an infinite extent breaks semantics.
           scrollCacheExtent: const ScrollCacheExtent.pixels(4000),
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppSpacing.md),
           children: [
             TextField(
               key: const ValueKey('compound-shorthand-token'),
@@ -446,7 +447,7 @@ class _CompoundShorthandEditorScreenState
               ),
               if (pickedFigure != null && useParams != null) ...[
                 Padding(
-                  padding: const EdgeInsets.only(top: 12),
+                  padding: const EdgeInsets.only(top: AppSpacing.sm),
                   child: UserFigureUseEditor(
                     keyPrefix: 'user-figure-shorthand-arg',
                     params: useParams,
@@ -458,7 +459,7 @@ class _CompoundShorthandEditorScreenState
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.only(top: 12),
+                  padding: const EdgeInsets.only(top: AppSpacing.sm),
                   child: Text(
                     l10n.userFigureEditorPreview(
                       UserFiguresScope.rendererOf(context).render(
@@ -474,7 +475,7 @@ class _CompoundShorthandEditorScreenState
               if (picked != null) ...[
                 for (final param in picked.definition.params)
                   Padding(
-                    padding: const EdgeInsets.only(top: 12),
+                    padding: const EdgeInsets.only(top: AppSpacing.sm),
                     child: CompoundArgumentEditor(
                       keyPrefix: 'compound-shorthand-arg',
                       definition: picked.definition,
@@ -489,7 +490,7 @@ class _CompoundShorthandEditorScreenState
                   ),
                 if (expanded != null)
                   Padding(
-                    padding: const EdgeInsets.only(top: 12),
+                    padding: const EdgeInsets.only(top: AppSpacing.sm),
                     child: Text(
                       l10n.danceEditorCompoundExpandsTo(
                         expanded.length,
@@ -504,7 +505,7 @@ class _CompoundShorthandEditorScreenState
             if (_figureError != null)
               Padding(
                 key: _figureErrorKey,
-                padding: const EdgeInsets.only(top: 12),
+                padding: const EdgeInsets.only(top: AppSpacing.sm),
                 child: Text(
                   _figureError!,
                   key: const ValueKey('compound-shorthand-error'),

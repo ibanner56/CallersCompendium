@@ -415,6 +415,10 @@ markers that explain how figures are introduced and reused.*
 Here is how to read it:
 
 - **Dances are rows; moves are columns.**
+- **Large text.** The rows and the header strip grow with your system text
+  size, so dance titles and move names stay readable. A title or move name that
+  still does not fit ends in an ellipsis; **press and hold** it to read it in
+  full.
 - **A pinned Formation column** next to each dance title shows its formation
   (Improper, Becket, triple minor, and so on), so you can spot too many
   non-improper formations stacking up in a row without losing your place
