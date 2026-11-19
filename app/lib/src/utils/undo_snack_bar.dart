@@ -35,7 +35,8 @@ import '../diagnostics/error_log.dart';
 ///
 /// The timing is this helper's own rather than the scaffold's: the snackbar is
 /// shown with `persist: true`, so the scaffold's timer never fires, and the
-/// prompt's content runs a timer it can pause. The scaffold's
+/// prompt's content runs a timer it can pause. As the scaffold's did, it
+/// starts once the prompt has finished coming in. The scaffold's
 /// `_accessibleNavigation` handling only chooses jump-vs-animated *exit*; it
 /// never stopped the auto-dismiss timer by itself, which is why persistence
 /// has always had to be expressed here.
@@ -101,9 +102,8 @@ ScaffoldFeatureController<SnackBar, SnackBarClosedReason> showUndoSnackBar(
 /// one's widget state. The timer therefore belongs to the prompt (one
 /// `showUndoSnackBar` call), not to a copy: it runs while at least one copy
 /// is built (only the snackbar at the head of the queue is) and has finished
-/// its entrance, and pauses while
-/// any visible copy is hovered or holds focus. Whenever it starts again, it
-/// starts from the full time.
+/// coming in, and pauses while any visible copy is hovered or holds focus.
+/// Whenever it starts again, it starts from the full time.
 class _UndoPromptHold {
   _UndoPromptHold(this.messenger, this.timeout);
 
