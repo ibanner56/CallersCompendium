@@ -532,7 +532,8 @@ A compound column adds to the matrix rather than taking anything away: the
 figures in the run still show in their own columns too. It marks presence only,
 and it never raises the alert marker. You can reorder, rename, remove, edit, or
 delete compound columns alongside the others, and they appear the same on
-screen and in the PDF.
+screen and in the PDF. Deleting a compound or parameterized column offers
+**Undo**, which brings back its place, name and hiding too.
 
 ## Print, export, and email a program
 

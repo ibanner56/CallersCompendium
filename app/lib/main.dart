@@ -30,6 +30,7 @@ import 'src/data/collection_facets_scope.dart';
 import 'src/data/collection_tile_fields_scope.dart';
 import 'src/data/dance_share_fields_scope.dart';
 import 'src/data/confirm_before_delete_scope.dart';
+import 'src/data/undo_prompt_duration_scope.dart';
 import 'src/data/contradb_online.dart';
 import 'src/data/custom_themes_controller.dart';
 import 'src/data/custom_themes_scope.dart';
@@ -714,6 +715,12 @@ class _CompendiumAppState extends State<CompendiumApp>
     decode: (Object? v) => v is bool ? v : false,
     encode: (v) => v,
   );
+  final _undoPromptSecondsNotifier = PreferenceNotifier<int>(
+    key: kUndoPromptSecondsKey,
+    defaultValue: kUndoPromptDefaultSeconds,
+    decode: undoPromptSecondsFromStored,
+    encode: (v) => v,
+  );
   final _venueEntityModeNotifier = PreferenceNotifier<bool>(
     key: kVenueEntityModeKey,
     defaultValue: false,
@@ -1378,6 +1385,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     _callingCardSettingsNotifier,
     _aggressiveBeatsUpdateNotifier,
     _confirmBeforeDeleteNotifier,
+    _undoPromptSecondsNotifier,
     _venueEntityModeNotifier,
     _autoCommitProgramChangesNotifier,
     _colourDanceThemeNotifier,
@@ -2251,6 +2259,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     _callingCardSettingsNotifier.dispose();
     _aggressiveBeatsUpdateNotifier.dispose();
     _confirmBeforeDeleteNotifier.dispose();
+    _undoPromptSecondsNotifier.dispose();
     _venueEntityModeNotifier.dispose();
     _autoCommitProgramChangesNotifier.dispose();
     _colourDanceThemeNotifier.dispose();
@@ -3004,168 +3013,178 @@ class _CompendiumAppState extends State<CompendiumApp>
     // custom theme — and both are MaterialApp properties, so the MaterialApp
     // must rebuild when either changes. The locale is likewise a MaterialApp
     // property (drives `locale:`), so it joins the merge too.
-    return ListenableBuilder(
-      listenable: Listenable.merge([
-        _themeNotifier,
-        _customThemes,
-        _localeNotifier,
-        // `themeAnimationStyle` and the `MediaQuery` override below both read it.
-        _reduceMotionNotifier,
-      ]),
-      builder: (context, _) {
-        final selection = _themeNotifier.value;
-        final activeCustom = _customThemes.active;
-        // Wiring cases (`ux-modernization.md` §4 / §4A / §4B):
-        //  • custom active — a locally-saved custom theme wins over the
-        //                    built-in selection; pin its scheme into both slots.
-        //  • system        — follow the OS via themeMode, Hearth light/dark.
-        //  • highContrast  — force the outline-driven HC theme into both slots.
-        //  • pinned        — any other built-in selection pins one concrete
-        //                    scheme into both slots.
-        final ThemeData lightTheme;
-        final ThemeData darkTheme;
-        final ThemeMode themeMode;
-        if (activeCustom != null) {
-          final pinned = AppTheme.fromScheme(activeCustom.toScheme());
-          lightTheme = pinned;
-          darkTheme = pinned;
-          themeMode = activeCustom.themeMode;
-        } else {
-          themeMode = selection.themeMode;
-          if (selection == AppThemeSelection.system) {
-            lightTheme = AppTheme.light;
-            darkTheme = AppTheme.dark;
-          } else if (selection.isHighContrast) {
-            lightTheme = AppTheme.highContrast;
-            darkTheme = AppTheme.highContrast;
-          } else {
-            final pinned = AppTheme.fromScheme(selection.scheme!);
+    // Above MaterialApp, not among the scopes folded into its builder: the
+    // Undo prompt reads it from the ScaffoldMessenger's context, and
+    // MaterialApp builds its ScaffoldMessenger above the builder.
+    return UndoPromptDurationScope(
+      notifier: _undoPromptSecondsNotifier,
+      child: ListenableBuilder(
+        listenable: Listenable.merge([
+          _themeNotifier,
+          _customThemes,
+          _localeNotifier,
+          // `themeAnimationStyle` and the `MediaQuery` override below both read it.
+          _reduceMotionNotifier,
+        ]),
+        builder: (context, _) {
+          final selection = _themeNotifier.value;
+          final activeCustom = _customThemes.active;
+          // Wiring cases (`ux-modernization.md` §4 / §4A / §4B):
+          //  • custom active — a locally-saved custom theme wins over the
+          //                    built-in selection; pin its scheme into both slots.
+          //  • system        — follow the OS via themeMode, Hearth light/dark.
+          //  • highContrast  — force the outline-driven HC theme into both slots.
+          //  • pinned        — any other built-in selection pins one concrete
+          //                    scheme into both slots.
+          final ThemeData lightTheme;
+          final ThemeData darkTheme;
+          final ThemeMode themeMode;
+          if (activeCustom != null) {
+            final pinned = AppTheme.fromScheme(activeCustom.toScheme());
             lightTheme = pinned;
             darkTheme = pinned;
+            themeMode = activeCustom.themeMode;
+          } else {
+            themeMode = selection.themeMode;
+            if (selection == AppThemeSelection.system) {
+              lightTheme = AppTheme.light;
+              darkTheme = AppTheme.dark;
+            } else if (selection.isHighContrast) {
+              lightTheme = AppTheme.highContrast;
+              darkTheme = AppTheme.highContrast;
+            } else {
+              final pinned = AppTheme.fromScheme(selection.scheme!);
+              lightTheme = pinned;
+              darkTheme = pinned;
+            }
           }
-        }
 
-        ThemeData reduceMotion(ThemeData theme) =>
-            _reduceMotionNotifier.value == true
-            ? AppTheme.withoutMotion(theme)
-            : theme;
+          ThemeData reduceMotion(ThemeData theme) =>
+              _reduceMotionNotifier.value == true
+              ? AppTheme.withoutMotion(theme)
+              : theme;
 
-        return MaterialApp(
-          onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
-          locale: _localeNotifier.value,
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          localeListResolutionCallback: (locales, supported) =>
-              resolveSystemLocale(locales, supported),
-          scrollBehavior: const AppScrollBehavior(),
-          navigatorKey: _navigatorKey,
-          navigatorObservers: [_performObserver],
-          scaffoldMessengerKey: _messengerKey,
-          // Replacing these drops Flutter's defaults (arrows, Escape, …), so
-          // spread them back in.
-          // Esc in [appShortcuts] replaces the default's binding; see
-          // [_goBack].
-          shortcuts: {
-            ...WidgetsApp.defaultShortcuts,
-            ...searchShortcuts,
-            ...appShortcuts,
-          },
-          actions: {
-            ...WidgetsApp.defaultActions,
-            OpenSearchIntent: CallbackAction<OpenSearchIntent>(
-              onInvoke: (_) {
-                _openGlobalSearch();
-                return null;
-              },
-            ),
-            // No root action for [SaveIntent]: only an editor saves.
-            NewDanceIntent: _shellCommand<NewDanceIntent>((s) => s.newDance()),
-            ImportDancesIntent: _shellCommand<ImportDancesIntent>(
-              (s) => s.importDances(),
-            ),
-            OpenSettingsIntent: _shellCommand<OpenSettingsIntent>(
-              (s) => s.showSettings(),
-            ),
-            OpenGuideIntent: _shellCommand<OpenGuideIntent>(
-              (s) => s.showGuide(),
-            ),
-            FocusSearchIntent: _shellCommand<FocusSearchIntent>(
-              (s) => s.focusSearch(),
-            ),
-            GoBackIntent: CallbackAction<GoBackIntent>(
-              onInvoke: (_) {
-                _goBack();
-                return null;
-              },
-            ),
-            _DismissProbe: _DismissProbeAction(_dismissProbes),
-          },
-          // With the in-app Reduce motion switch on, every theme slot drops
-          // page transitions and the expansion-tile animation.
-          // The OS setting needs no help here: route and expansion
-          // controllers already shorten themselves when the platform asks.
-          theme: reduceMotion(lightTheme),
-          darkTheme: reduceMotion(darkTheme),
-          highContrastTheme: reduceMotion(AppTheme.highContrast),
-          highContrastDarkTheme: reduceMotion(AppTheme.highContrast),
-          themeMode: themeMode,
-          // The in-app Reduce motion switch, when set, wins over the OS in both
-          // directions. Flutter's own `AnimationController`s read the OS flag
-          // from the platform, not from `MediaQuery`, so what this can reach is
-          // the theme cross-fade (an explicit "on" turns it off here; with the
-          // switch unset the framework already follows the OS) and everything
-          // that reads `MediaQuery.disableAnimations`, such as animated images.
-          themeAnimationStyle: _reduceMotionNotifier.value == true
-              ? AnimationStyle.noAnimation
-              : null,
-          builder: (context, child) {
-            // The data layer opens native file dialogs without a context; give
-            // it the strings for the language now showing.
-            FileDialogLabels.bind(AppLocalizations.of(context));
-            final override = _reduceMotionNotifier.value;
-            final scoped = _appScopeWrappers().reversed.fold<Widget>(
-              child!,
-              (inner, wrap) => wrap(inner),
-            );
-            // Always present, so the tree keeps one shape whatever the switch says.
-            final media = MediaQuery.of(context);
-            final app = MediaQuery(
-              data: override == null
-                  ? media
-                  : media.copyWith(disableAnimations: override),
-              // Inside the override, so the closing overlay sees the in-app
-              // Reduce motion switch and shows a still icon for its spinner.
-              child: AppClosingOverlay(
-                closing: _closingNotifier,
-                child: Listener(
-                  // A mouse's Back button goes back, as Esc does (PLAT-7).
-                  // Desktop only: Android also turns that button into its
-                  // system back, which would go back a second time.
-                  onPointerDown: (event) {
-                    if (_isDesktop &&
-                        event.kind == PointerDeviceKind.mouse &&
-                        event.buttons & kBackMouseButton != 0) {
-                      _goBack();
-                    }
-                  },
-                  // Above every route, so dialogs and sheets get the ring
-                  // too.
-                  child: FocusRingLayer(child: scoped),
-                ),
+          return MaterialApp(
+            onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
+            locale: _localeNotifier.value,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            localeListResolutionCallback: (locales, supported) =>
+                resolveSystemLocale(locales, supported),
+            scrollBehavior: const AppScrollBehavior(),
+            navigatorKey: _navigatorKey,
+            navigatorObservers: [_performObserver],
+            scaffoldMessengerKey: _messengerKey,
+            // Replacing these drops Flutter's defaults (arrows, Escape, …), so
+            // spread them back in.
+            // Esc in [appShortcuts] replaces the default's binding; see
+            // [_goBack].
+            shortcuts: {
+              ...WidgetsApp.defaultShortcuts,
+              ...searchShortcuts,
+              ...appShortcuts,
+            },
+            actions: {
+              ...WidgetsApp.defaultActions,
+              OpenSearchIntent: CallbackAction<OpenSearchIntent>(
+                onInvoke: (_) {
+                  _openGlobalSearch();
+                  return null;
+                },
               ),
-            );
-            return widget.installPlatformMenuBar ? AppMenuBar(child: app) : app;
-          },
-          home: AppBootstrap(
-            future: _bootstrap,
-            onRetry: _retry,
-            onBackUpAndReset: _backUpAndReset,
-            onResetOnly: _resetOnly,
-            builder: _buildReadyApp,
-            rebuildProgress: _derivedRebuildProgress,
-          ),
-        );
-      },
+              // No root action for [SaveIntent]: only an editor saves.
+              NewDanceIntent: _shellCommand<NewDanceIntent>(
+                (s) => s.newDance(),
+              ),
+              ImportDancesIntent: _shellCommand<ImportDancesIntent>(
+                (s) => s.importDances(),
+              ),
+              OpenSettingsIntent: _shellCommand<OpenSettingsIntent>(
+                (s) => s.showSettings(),
+              ),
+              OpenGuideIntent: _shellCommand<OpenGuideIntent>(
+                (s) => s.showGuide(),
+              ),
+              FocusSearchIntent: _shellCommand<FocusSearchIntent>(
+                (s) => s.focusSearch(),
+              ),
+              GoBackIntent: CallbackAction<GoBackIntent>(
+                onInvoke: (_) {
+                  _goBack();
+                  return null;
+                },
+              ),
+              _DismissProbe: _DismissProbeAction(_dismissProbes),
+            },
+            // With the in-app Reduce motion switch on, every theme slot drops
+            // page transitions and the expansion-tile animation.
+            // The OS setting needs no help here: route and expansion
+            // controllers already shorten themselves when the platform asks.
+            theme: reduceMotion(lightTheme),
+            darkTheme: reduceMotion(darkTheme),
+            highContrastTheme: reduceMotion(AppTheme.highContrast),
+            highContrastDarkTheme: reduceMotion(AppTheme.highContrast),
+            themeMode: themeMode,
+            // The in-app Reduce motion switch, when set, wins over the OS in both
+            // directions. Flutter's own `AnimationController`s read the OS flag
+            // from the platform, not from `MediaQuery`, so what this can reach is
+            // the theme cross-fade (an explicit "on" turns it off here; with the
+            // switch unset the framework already follows the OS) and everything
+            // that reads `MediaQuery.disableAnimations`, such as animated images.
+            themeAnimationStyle: _reduceMotionNotifier.value == true
+                ? AnimationStyle.noAnimation
+                : null,
+            builder: (context, child) {
+              // The data layer opens native file dialogs without a context; give
+              // it the strings for the language now showing.
+              FileDialogLabels.bind(AppLocalizations.of(context));
+              final override = _reduceMotionNotifier.value;
+              final scoped = _appScopeWrappers().reversed.fold<Widget>(
+                child!,
+                (inner, wrap) => wrap(inner),
+              );
+              // Always present, so the tree keeps one shape whatever the switch says.
+              final media = MediaQuery.of(context);
+              final app = MediaQuery(
+                data: override == null
+                    ? media
+                    : media.copyWith(disableAnimations: override),
+                // Inside the override, so the closing overlay sees the in-app
+                // Reduce motion switch and shows a still icon for its spinner.
+                child: AppClosingOverlay(
+                  closing: _closingNotifier,
+                  child: Listener(
+                    // A mouse's Back button goes back, as Esc does (PLAT-7).
+                    // Desktop only: Android also turns that button into its
+                    // system back, which would go back a second time.
+                    onPointerDown: (event) {
+                      if (_isDesktop &&
+                          event.kind == PointerDeviceKind.mouse &&
+                          event.buttons & kBackMouseButton != 0) {
+                        _goBack();
+                      }
+                    },
+                    // Above every route, so dialogs and sheets get the ring
+                    // too.
+                    child: FocusRingLayer(child: scoped),
+                  ),
+                ),
+              );
+              return widget.installPlatformMenuBar
+                  ? AppMenuBar(child: app)
+                  : app;
+            },
+            home: AppBootstrap(
+              future: _bootstrap,
+              onRetry: _retry,
+              onBackUpAndReset: _backUpAndReset,
+              onResetOnly: _resetOnly,
+              builder: _buildReadyApp,
+              rebuildProgress: _derivedRebuildProgress,
+            ),
+          );
+        },
+      ),
     );
   }
 }

@@ -45,6 +45,7 @@ import '../published_collections/published_collection_manifest.dart';
 import '../published_collections/published_collection_service.dart';
 import '../theme/app_motion.dart';
 import '../theme/app_shapes.dart';
+import '../theme/destructive_button_style.dart';
 
 /// Soft threshold (issue #432) on the number of entities in a **shared** bundle
 /// (dances + choreographers + programs + venues, via
@@ -1629,9 +1630,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
             child: Text(l10n.commonCancel),
           ),
           FilledButton(
+            style: destructiveFilledButtonStyle(
+              Theme.of(dialogContext).colorScheme,
+            ),
             key: const ValueKey('import-edit-overwrite-continue'),
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(l10n.commonContinue),
+            child: Text(l10n.importReviewEditOverwriteConfirm),
           ),
         ],
       ),

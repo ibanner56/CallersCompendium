@@ -85,7 +85,8 @@ The **General** section gathers everyday behavior into small groups.
   - **Delete** appears only for an entry no dance uses. One still in use can
     only be merged, so no dance loses its author or source.
 
-  Rename, merge and delete happen at once and show an **Undo** in the message at
+  Rename, merge and delete happen at once (a delete asks first only when
+  **Confirm before delete** is on) and show an **Undo** in the message at
   the bottom of the screen; once that message goes, the change stays. A merge's
   dropped details come back with Undo, and are gone after it.
 
@@ -113,14 +114,23 @@ The **General** section gathers everyday behavior into small groups.
   instead of fractions (¾). Screen-reader wording is unaffected, and so are
   printed and exported cards: PDFs, shared text and set-list cards always write
   turns as fractions.
-- **Confirm before delete** — adds a prompt before you delete a dance or program
-  from its **⋮** menu, from the dance or program screen, or from Collection's
-  selection mode. The one exception is swiping a row in the Collection or
-  Programs list: that reveals a **Delete** button, and tapping it deletes with
-  no prompt, because the swipe plus the tap is already a deliberate two-step
-  action. Deletes are still undoable either way. When you delete a program, the
-  prompt also says how many dances lose it from their calling history. A dance
-  already permanently deleted is not counted.
+- **Confirm before delete** — adds a prompt before any delete you can undo: a
+  dance or program from its **⋮** menu, from the dance or program screen, or
+  from Collection's selection mode, and a venue, custom field, tag, author,
+  source, shorthand, dialect, custom theme, walkthrough snippet or matrix
+  column. The one exception is swiping a row in the Collection or Programs
+  list: that reveals a **Delete** button, and tapping it deletes with no
+  prompt, because the swipe plus the tap is already a deliberate two-step
+  action. These deletes offer **Undo** either way. When you delete a program,
+  the prompt also says how many dances lose it from their calling history. A
+  dance already permanently deleted is not counted. A delete that can't be
+  undone always asks first, whether this is on or off.
+- **Undo prompt** — how long the **Undo** message stays on screen after you
+  delete or change something: **6**, **10**, **20** or **30 seconds**, or
+  **Until I close it** (default **10 seconds**). It also stays while you point
+  at it or move to it with the keyboard, and its time starts again when you
+  move away. With a screen reader running it always stays until you act on it
+  or close it.
 
 These are the highlights; the [Accessibility guide](./accessibility.md) gives you
 the full picture.
@@ -189,9 +199,9 @@ sharing, Perform mode, and calling history.
   a matching venue.
 - **Manage venues** — browse, edit, and delete your saved venue records. You can
   also add a venue on the fly while editing a program (when reusable venue records
-  are on). A deleted venue doesn't go to Recently deleted, so you can't restore
-  it on its own. To keep you from stranding a program, a venue can't be
-  deleted while any program is still linked to it; change or remove the venue on
+  are on). Deleting a venue offers **Undo**; it doesn't go to Recently deleted,
+  so once the message has gone you can't restore it on its own. To keep you
+  from stranding a program, a venue can't be deleted while any program is still linked to it; change or remove the venue on
   those programs first, then delete it. A program in **Recently deleted**
   doesn't count, so it won't stop you deleting the venue, and restoring that
   program brings the venue back.
@@ -369,6 +379,7 @@ There's a **High contrast** theme for maximum legibility — see the
 - **New custom theme** — opens an editor seeded from your current theme, so you
   start from something familiar. You can tune any color in it.
 - Saved custom themes can be selected, edited, duplicated, or deleted at any time.
+  Deleting one offers **Undo**, which also makes it your theme again if it was.
   They sync to your other devices along with your other settings when sync is on, and deleting a theme deletes it on those devices too.
 
 ### Easter eggs
@@ -425,7 +436,8 @@ role names and wording the app uses when it describes dances.
   an existing one as a starting point.
 - Preset dialects are read-only, but you can **Duplicate to customize** to make
   your own version.
-- Custom dialects can be edited (**Edit terms**), renamed, or deleted.
+- Custom dialects can be edited (**Edit terms**), renamed, or deleted. Deleting
+  one offers **Undo**, which also makes it active again if it was.
 - One dialect is active at a time; select a dialect in the list to make it
   active.
 
@@ -451,7 +463,8 @@ role names and wording the app uses when it describes dances.
   during free-text entry. This row is grayed out until **Free-text entry** is on. See
   [Figure shorthands](./authoring.md#figure-shorthands).
 - **Walkthrough snippets** — manage your personal, per-figure walkthrough
-  wording. These settings are independent of canonical figure text.
+  wording. These settings are independent of canonical figure text. Deleting a
+  snippet offers **Undo**.
 
 This is the entry point — see [Dialect](./dialects.md) for the full story on
 choosing and customizing wording.

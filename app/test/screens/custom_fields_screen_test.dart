@@ -4,6 +4,7 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/src/data/confirm_before_delete_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/custom_fields_screen.dart';
 import 'package:compendium_app/src/screens/settings/settings_keys.dart';
@@ -19,16 +20,21 @@ import '../support/test_repositories.dart';
 
 Future<void> _pumpScreen(
   WidgetTester tester,
-  CompendiumRepositories repos,
-) async {
+  CompendiumRepositories repos, {
+  bool confirmBeforeDelete = false,
+}) async {
+  final confirm = ValueNotifier<bool>(confirmBeforeDelete);
+  addTearDown(confirm.dispose);
   await tester.binding.setSurfaceSize(const Size(1200, 2400));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
-      builder: (_, child) =>
-          RepositoriesScope(repositories: repos, child: child!),
+      builder: (_, child) => ConfirmBeforeDeleteScope(
+        notifier: confirm,
+        child: RepositoriesScope(repositories: repos, child: child!),
+      ),
       home: const CustomFieldsScreen(),
     ),
   );
@@ -277,7 +283,9 @@ void main() {
       expect(defs.single.label, 'Notes');
     });
 
-    testWidgets('deletes an unused field after confirmation', (tester) async {
+    testWidgets('deletes an unused field at once, and Undo brings it back', (
+      tester,
+    ) async {
       final repos = openTestRepositories();
       // ignore: unused_result
       await repos.customFieldDefs.upsert(
@@ -289,18 +297,26 @@ void main() {
         ),
       );
       await _pumpScreen(tester, repos);
-      // Tap delete icon.
       await tester.tap(find.byKey(const ValueKey('delete-field-f1')));
       await tester.pumpAndSettle();
-      // Confirm the dialog.
-      await tester.tap(find.byKey(const ValueKey('delete-confirm')));
-      await tester.pumpAndSettle();
+      // No dialog: "Confirm before delete" is off by default.
+      expect(find.byType(AlertDialog), findsNothing);
       expect(find.text('Notes'), findsNothing);
       expect(await repos.customFieldDefs.listAll(), isEmpty);
       expect(find.text('"Notes" deleted.'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('custom-field-delete-undo')));
+      await tester.pumpAndSettle();
+      expect(find.text('Notes'), findsOneWidget);
+      expect(
+        [for (final d in await repos.customFieldDefs.listAll()) d.id],
+        ['f1'],
+      );
     });
 
-    testWidgets('cancels delete when user dismisses dialog', (tester) async {
+    testWidgets('Undo refuses once a new field has taken the deleted key', (
+      tester,
+    ) async {
       final repos = openTestRepositories();
       // ignore: unused_result
       await repos.customFieldDefs.upsert(
@@ -314,7 +330,50 @@ void main() {
       await _pumpScreen(tester, repos);
       await tester.tap(find.byKey(const ValueKey('delete-field-f1')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('delete-cancel')));
+
+      // A new field with the same key, made while the prompt is up.
+      // ignore: unused_result
+      await repos.customFieldDefs.upsert(
+        CustomFieldDef(
+          id: 'f2',
+          key: 'notes',
+          label: 'Remarks',
+          type: CustomFieldType.number,
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('custom-field-delete-undo')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('undo-failed-snackbar')),
+        findsOneWidget,
+      );
+      final defs = await repos.customFieldDefs.listAll();
+      expect([for (final d in defs) d.label], ['Remarks']);
+    });
+
+    testWidgets('with Confirm before delete on, Cancel keeps the field', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.customFieldDefs.upsert(
+        CustomFieldDef(
+          id: 'f1',
+          key: 'notes',
+          label: 'Notes',
+          type: CustomFieldType.text,
+        ),
+      );
+      await _pumpScreen(tester, repos, confirmBeforeDelete: true);
+      await tester.tap(find.byKey(const ValueKey('delete-field-f1')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('confirm-delete-dialog')),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const ValueKey('confirm-delete-cancel')));
       await tester.pumpAndSettle();
       expect(find.text('Notes'), findsOneWidget);
       expect(find.text('"Notes" deleted.'), findsNothing);
@@ -344,8 +403,6 @@ void main() {
         );
         await _pumpScreen(tester, repos);
         await tester.tap(find.byKey(const ValueKey('delete-field-f1')));
-        await tester.pumpAndSettle();
-        await tester.tap(find.byKey(const ValueKey('delete-confirm')));
         await tester.pumpAndSettle();
         // Field must still be in the list (not deleted).
         expect(find.text('Notes'), findsOneWidget);
@@ -386,8 +443,6 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('delete-field-f1')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('delete-confirm')));
-      await tester.pumpAndSettle();
 
       expect(failer.fired, isTrue, reason: 'the injected failure must fire');
       expect(
@@ -424,8 +479,6 @@ void main() {
       }
       await _pumpScreen(tester, repos);
       await tester.tap(find.byKey(const ValueKey('delete-field-f1')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('delete-confirm')));
       await tester.pumpAndSettle();
       expect(find.textContaining('3 dances'), findsOneWidget);
     });
@@ -719,8 +772,6 @@ void main() {
         );
         await _pumpScreen(tester, repos);
         await tester.tap(find.byKey(const ValueKey('delete-field-f1')));
-        await tester.pumpAndSettle();
-        await tester.tap(find.byKey(const ValueKey('delete-confirm')));
         await tester.pumpAndSettle();
         // Snackbar must say "1 dance" not "1 dances".
         expect(find.textContaining('1 dance'), findsOneWidget);

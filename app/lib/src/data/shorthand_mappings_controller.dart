@@ -199,6 +199,20 @@ class ShorthandMappingsController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Puts [mapping] back at [index] (clamped to the list): Undo of
+  /// [removeAt]. Throws [ArgumentError] when its token has been taken since,
+  /// or the list has filled up, rather than saving a shorthand the next load
+  /// would drop.
+  Future<void> restoreAt(int index, ShorthandMapping mapping) async {
+    if (hasToken(mapping.token) || _mappings.length >= maxShorthandMappings) {
+      throw ArgumentError.value(mapping, 'mapping', 'cannot be put back');
+    }
+    _mappings = _mappings.toList()
+      ..insert(index.clamp(0, _mappings.length), mapping);
+    await _persist();
+    notifyListeners();
+  }
+
   /// Adds [shorthand] (when [index] is null) or replaces the compound
   /// shorthand at [index]. Rejects, by throwing [ArgumentError], an empty or
   /// over-long token or one any other shorthand of either kind already has;
@@ -243,6 +257,21 @@ class ShorthandMappingsController extends ChangeNotifier {
   Future<void> removeCompoundAt(int index) async {
     if (index < 0 || index >= _compound.length) return;
     _compound = _compound.toList()..removeAt(index);
+    await _persistCompound();
+    notifyListeners();
+  }
+
+  /// Puts [shorthand] back at [index] (clamped): Undo of [removeCompoundAt].
+  /// Throws [ArgumentError] when its token has been taken since, the list has
+  /// filled up, or the next load would drop it.
+  Future<void> restoreCompoundAt(int index, CompoundShorthand shorthand) async {
+    if (hasToken(shorthand.token) ||
+        !CompoundShorthands.keeps(shorthand) ||
+        _compound.length >= maxCompoundShorthands) {
+      throw ArgumentError.value(shorthand, 'shorthand', 'cannot be put back');
+    }
+    _compound = _compound.toList()
+      ..insert(index.clamp(0, _compound.length), shorthand);
     await _persistCompound();
     notifyListeners();
   }
@@ -295,6 +324,24 @@ class ShorthandMappingsController extends ChangeNotifier {
   Future<void> removeUserFigureAt(int index) async {
     if (index < 0 || index >= _userFigure.length) return;
     _userFigure = _userFigure.toList()..removeAt(index);
+    await _persistUserFigure();
+    notifyListeners();
+  }
+
+  /// Puts [shorthand] back at [index] (clamped): Undo of
+  /// [removeUserFigureAt]. Throws [ArgumentError] when its token has been
+  /// taken since, the list has filled up, or the next load would drop it.
+  Future<void> restoreUserFigureAt(
+    int index,
+    UserFigureShorthand shorthand,
+  ) async {
+    if (hasToken(shorthand.token) ||
+        !UserFigureShorthands.keeps(shorthand) ||
+        _userFigure.length >= maxUserFigureShorthands) {
+      throw ArgumentError.value(shorthand, 'shorthand', 'cannot be put back');
+    }
+    _userFigure = _userFigure.toList()
+      ..insert(index.clamp(0, _userFigure.length), shorthand);
     await _persistUserFigure();
     notifyListeners();
   }

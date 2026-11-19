@@ -1,13 +1,10 @@
 import 'dart:async';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
+import '../data/undo_prompt_duration_scope.dart';
 import '../diagnostics/error_log.dart';
-
-/// How long an undo prompt stays visible before auto-dismissing on the default
-/// (non-assistive) path. Chosen to give a comfortable window to react without
-/// lingering over the bottom controls (issue #463).
-const Duration kUndoSnackBarDuration = Duration(seconds: 6);
 
 /// Shows the app-wide "Undo" prompt as a **transient** SnackBar.
 ///
@@ -24,14 +21,24 @@ const Duration kUndoSnackBarDuration = Duration(seconds: 6);
 ///   replace rather than stack.
 /// - [SnackBarBehavior.floating] so the prompt floats above bottom-anchored
 ///   controls instead of covering them.
-/// - a bounded [duration] so it auto-dismisses on its own.
-/// - `persist: accessibleNavigation` so the deliberate, non-timed behavior is
-///   preserved when assistive tech is active (screen-reader users keep as long
-///   as they need to reach the action), while everyone else gets the transient
-///   prompt. This is required because — contrary to a common assumption — the
-///   scaffold's `_accessibleNavigation` handling only chooses jump-vs-animated
-///   *exit*; it does not by itself disable the auto-dismiss timer, so the
-///   persistence has to be expressed through `persist`.
+/// - a bounded duration so it auto-dismisses on its own: [duration] when the
+///   caller passes one, otherwise the user's "Undo prompt" setting
+///   ([UndoPromptDurationScope], read from [messenger]'s context).
+/// - the prompt **stays while a mouse hovers it or keyboard focus is inside
+///   it** (the Undo button, or the close button), and its full time starts
+///   again once the pointer and focus have both left. A keyboard, switch or
+///   slow-reading user reaching for Undo is never timed out mid-reach.
+/// - no time limit at all when assistive technology is active
+///   ([accessibleNavigation]: screen-reader users keep as long as they need to
+///   reach the action) or when the user chose "Until I close it"; such a prompt
+///   shows a close button so it can still be put away.
+///
+/// The timing is this helper's own rather than the scaffold's: the snackbar is
+/// shown with `persist: true`, so the scaffold's timer never fires, and the
+/// prompt's content runs a timer it can pause. The scaffold's
+/// `_accessibleNavigation` handling only chooses jump-vs-animated *exit*; it
+/// never stopped the auto-dismiss timer by itself, which is why persistence
+/// has always had to be expressed here.
 ///
 /// Takes a [ScaffoldMessengerState] (not a [BuildContext]) because several
 /// callers capture the messenger up-front and only show the prompt after an
@@ -58,16 +65,22 @@ ScaffoldFeatureController<SnackBar, SnackBarClosedReason> showUndoSnackBar(
   required bool accessibleNavigation,
   Key? key,
   Key? actionKey,
-  Duration duration = kUndoSnackBarDuration,
+  Duration? duration,
 }) {
+  final chosen = duration ?? UndoPromptDurationScope.read(messenger.context);
+  final timeout = accessibleNavigation ? null : chosen;
+  final hold = _UndoPromptHold(messenger, timeout);
   messenger.clearSnackBars();
-  return messenger.showSnackBar(
+  final controller = messenger.showSnackBar(
     SnackBar(
       key: key,
-      content: Text(message),
+      content: _UndoPromptContent(message: message, hold: hold),
       behavior: SnackBarBehavior.floating,
-      duration: duration,
-      persist: accessibleNavigation,
+      // Never read by the scaffold (persist is true); kept truthful for
+      // anything that inspects the widget.
+      duration: timeout ?? const Duration(seconds: kUndoPromptDefaultSeconds),
+      persist: true,
+      showCloseIcon: timeout == null,
       action: SnackBarAction(
         key: actionKey,
         label: undoLabel,
@@ -76,6 +89,236 @@ ScaffoldFeatureController<SnackBar, SnackBarClosedReason> showUndoSnackBar(
       ),
     ),
   );
+  unawaited(controller.closed.then((_) => hold.close()));
+  return controller;
+}
+
+/// The one timer of one Undo prompt, shared by every copy of its content.
+///
+/// The messenger builds a snackbar into every Scaffold it serves, including
+/// those of routes under the current one, so a prompt can have several
+/// copies at once; and a later prompt with the same key reuses the earlier
+/// one's widget state. The timer therefore belongs to the prompt (one
+/// `showUndoSnackBar` call), not to a copy: it runs while at least one copy
+/// is built (only the snackbar at the head of the queue is), and pauses while
+/// any visible copy is hovered or holds focus. Whenever it starts again, it
+/// starts from the full time.
+class _UndoPromptHold {
+  _UndoPromptHold(this.messenger, this.timeout);
+
+  final ScaffoldMessengerState messenger;
+
+  /// `null`: the prompt never times out.
+  final Duration? timeout;
+
+  final Set<Object> _copies = {};
+  final Set<Object> _holders = {};
+  Timer? _timer;
+  bool _closed = false;
+
+  bool get _held => _holders.isNotEmpty;
+
+  /// The copy [who] has been built: the prompt is showing, so its time runs.
+  void attach(Object who) {
+    if (_copies.add(who) && _copies.length == 1) _restart();
+  }
+
+  /// The copy [who] has gone. With no copy left (the prompt moving between
+  /// Scaffolds, or the whole tree going away) the time stops.
+  void detach(Object who) {
+    _copies.remove(who);
+    setHeld(who, held: false);
+    if (_copies.isEmpty) {
+      _timer?.cancel();
+      _timer = null;
+    }
+  }
+
+  /// Records whether the copy [who] is hovered or holds focus. The full time
+  /// starts again once no copy does.
+  void setHeld(Object who, {required bool held}) {
+    final wasHeld = _held;
+    if (held) {
+      _holders.add(who);
+    } else {
+      _holders.remove(who);
+    }
+    if (_held == wasHeld) return;
+    if (_held) {
+      _timer?.cancel();
+      _timer = null;
+    } else {
+      _restart();
+    }
+  }
+
+  void close() {
+    _closed = true;
+    _timer?.cancel();
+    _timer = null;
+  }
+
+  void _restart() {
+    _timer?.cancel();
+    _timer = null;
+    final timeout = this.timeout;
+    if (timeout == null || _closed || _copies.isEmpty || _held) return;
+    _timer = Timer(timeout, _expire);
+  }
+
+  void _expire() {
+    _timer = null;
+    if (_closed || _held || !messenger.mounted) return;
+    // A copy is built, and only the snackbar at the head of the queue is;
+    // not closed means it is still that snackbar.
+    messenger.hideCurrentSnackBar(reason: SnackBarClosedReason.timeout);
+  }
+}
+
+/// The prompt's message, reporting to its [_UndoPromptHold] whether the
+/// pointer is over this copy or focus is inside it.
+///
+/// Lives in the content because a [SnackBar] takes no wrapper: the content is
+/// the only widget of ours inside it. It therefore watches the whole snackbar
+/// (the Undo button included) from outside the widget tree: hover through a
+/// global pointer route tested against the snackbar's bounds, and focus
+/// through [FocusManager]. A copy on a route that is not showing
+/// ([TickerMode] off) never holds the prompt.
+class _UndoPromptContent extends StatefulWidget {
+  const _UndoPromptContent({required this.message, required this.hold});
+
+  final String message;
+  final _UndoPromptHold hold;
+
+  @override
+  State<_UndoPromptContent> createState() => _UndoPromptContentState();
+}
+
+class _UndoPromptContentState extends State<_UndoPromptContent> {
+  bool _hovered = false;
+  bool _focused = false;
+  bool _visible = true;
+  bool _listening = false;
+
+  /// The [SnackBar]'s element, found once mounted: its render box is what a
+  /// pointer is tested against, and focus inside it holds the prompt.
+  Element? _snackBar;
+
+  @override
+  void initState() {
+    super.initState();
+    _attach();
+  }
+
+  @override
+  void didUpdateWidget(_UndoPromptContent oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // A later prompt with the same key reuses this state: report to its hold
+    // from now on, and stop holding the old one.
+    if (!identical(oldWidget.hold, widget.hold)) {
+      oldWidget.hold.detach(this);
+      _snackBar = null;
+      _attach();
+    }
+  }
+
+  void _attach() {
+    final timed = widget.hold.timeout != null;
+    if (timed && !_listening) {
+      GestureBinding.instance.pointerRouter.addGlobalRoute(_onPointer);
+      FocusManager.instance.addListener(_onFocusChanged);
+      _listening = true;
+    } else if (!timed && _listening) {
+      _stopListening();
+    }
+    widget.hold.attach(this);
+    _report();
+  }
+
+  void _stopListening() {
+    GestureBinding.instance.pointerRouter.removeGlobalRoute(_onPointer);
+    FocusManager.instance.removeListener(_onFocusChanged);
+    _listening = false;
+  }
+
+  @override
+  void dispose() {
+    if (_listening) _stopListening();
+    widget.hold.detach(this);
+    super.dispose();
+  }
+
+  void _report() =>
+      widget.hold.setHeld(this, held: _visible && (_hovered || _focused));
+
+  Element? _findSnackBar() {
+    if (_snackBar != null || !mounted) return _snackBar;
+    context.visitAncestorElements((element) {
+      if (element.widget is SnackBar) {
+        _snackBar = element;
+        return false;
+      }
+      return true;
+    });
+    return _snackBar;
+  }
+
+  void _onPointer(PointerEvent event) {
+    if (!mounted) return;
+    if (event is PointerRemovedEvent) {
+      _hovered = false;
+      _report();
+      return;
+    }
+    // A hovering pointer (a mouse, or a stylus above the screen), or a mouse
+    // dragging with a button down. A touch never hovers, so it never holds.
+    final hovering =
+        event is PointerHoverEvent ||
+        (event is PointerMoveEvent && event.kind == PointerDeviceKind.mouse);
+    if (!hovering) return;
+    final box = _findSnackBar()?.renderObject;
+    if (box is! RenderBox || !box.attached || !box.hasSize) return;
+    final local = box.globalToLocal(event.position);
+    _hovered = (Offset.zero & box.size).contains(local);
+    _report();
+  }
+
+  void _onFocusChanged() {
+    if (!mounted) return;
+    final snackBar = _findSnackBar();
+    final focused = FocusManager.instance.primaryFocus?.context;
+    var inside = false;
+    if (snackBar != null && focused != null) {
+      if (identical(focused, snackBar)) {
+        inside = true;
+      } else {
+        focused.visitAncestorElements((element) {
+          if (identical(element, snackBar)) {
+            inside = true;
+            return false;
+          }
+          return true;
+        });
+      }
+    }
+    _focused = inside;
+    _report();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Off on a route that is not showing: that copy is never what the user
+    // points at or tabs to.
+    final visible = TickerMode.valuesOf(context).enabled;
+    if (visible != _visible) {
+      _visible = visible;
+      // After this build: reporting may restart the hold's timer.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _report();
+      });
+    }
+    return Text(widget.message);
+  }
 }
 
 Future<void> _runUndo(

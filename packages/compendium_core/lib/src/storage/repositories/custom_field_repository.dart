@@ -610,14 +610,25 @@ class CustomFieldDefRepository {
     });
   }
 
+  /// Revives the tombstoned definition [id].
+  ///
+  /// With [onlyIfDeleted], throws [StateError] instead when the row is missing
+  /// or already live, checked in the same transaction as the write. An Undo
+  /// of a delete passes it: creating a field with the deleted one's key adopts
+  /// the tombstoned row, and reviving that live row would re-stamp the new
+  /// field and bring back nothing.
   Future<void> restore(
     String id, {
     required DateTime at,
     bool clearPending = true,
+    bool onlyIfDeleted = false,
   }) => _db.transaction(() async {
     final row = await (_db.select(
       _db.customFieldDefs,
     )..where((t) => t.id.equals(id))).getSingleOrNull();
+    if (onlyIfDeleted && (row == null || row.deletedAt == null)) {
+      throw StateError('custom field definition $id is not deleted');
+    }
     await stampExistenceTransition(
       _db,
       table: _db.customFieldDefs,

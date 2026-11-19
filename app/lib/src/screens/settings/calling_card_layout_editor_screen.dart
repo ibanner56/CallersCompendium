@@ -24,6 +24,8 @@ import '../../theme/app_motion.dart';
 import '../../theme/app_shapes.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/app_bar_text_action.dart';
+import '../../theme/destructive_button_style.dart';
+import '../../utils/undo_snack_bar.dart';
 import 'calling_card_labels.dart';
 
 /// Turns a one-page PDF into a PNG of its first page at [dpi]. Defaults to
@@ -226,6 +228,7 @@ class _CallingCardLayoutEditorScreenState
             child: Text(l10n.commonCancel),
           ),
           FilledButton(
+            style: destructiveFilledButtonStyle(Theme.of(context).colorScheme),
             key: const ValueKey('calling-card-reset-confirm'),
             onPressed: () => Navigator.of(context).pop(true),
             child: Text(l10n.callingCardEditorReset),
@@ -242,19 +245,18 @@ class _CallingCardLayoutEditorScreenState
     final previous = _controller.text;
     if (previous == source) return;
     _replaceText(source);
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(l10n.callingCardEditorReplaced),
-          action: SnackBarAction(
-            label: l10n.commonUndo,
-            onPressed: () {
-              if (mounted) _replaceText(previous);
-            },
-          ),
-        ),
-      );
+    // Through the shared helper, so it times out (a bare SnackBar with an
+    // action persists) and follows the Undo prompt setting.
+    showUndoSnackBar(
+      ScaffoldMessenger.of(context),
+      message: l10n.callingCardEditorReplaced,
+      undoLabel: l10n.commonUndo,
+      undoFailedMessage: l10n.commonUndoFailed,
+      accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
+      onUndo: () {
+        if (mounted) _replaceText(previous);
+      },
+    );
   }
 
   /// Inserts [snippet] where the cursor is; see [insertCallingCardSnippet].

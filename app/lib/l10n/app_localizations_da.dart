@@ -2095,14 +2095,6 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsDialectDuplicateToCustomize => 'Kopier for at tilpasse';
 
   @override
-  String get settingsDialectDeleteTitle => 'Slet dialekt?';
-
-  @override
-  String settingsDialectDeleteConfirmBody(String name) {
-    return '„$name“ fjernes permanent.';
-  }
-
-  @override
   String settingsDialectEditConflictSnack(String name) {
     return '\"$name\" blev omdøbt eller slettet, mens du redigerede den, så dine ændringer blev ikke gemt.';
   }
@@ -2481,14 +2473,6 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get settingsAppearanceCustomThemesEmpty =>
       'Kopier det aktuelle tema og juster en vilkårlig farve. Brugerdefinerede temaer synkroniseres til dine andre enheder, når synkronisering er slået til.';
-
-  @override
-  String get settingsAppearanceDeleteThemeTitle => 'Slet tema?';
-
-  @override
-  String settingsAppearanceDeleteThemeBody(String name) {
-    return '„$name“ fjernes permanent.';
-  }
 
   @override
   String settingsAppearanceCustomThemeSemantic(String name) {
@@ -3187,17 +3171,6 @@ class AppLocalizationsDa extends AppLocalizations {
       'Slet parameteriseret kolonne';
 
   @override
-  String get settingsMatrixColumnsParameterizedDeleteTitle =>
-      'Slet parameteriseret kolonne?';
-
-  @override
-  String get settingsMatrixColumnsParameterizedDeleteBody =>
-      'Dette fjerner kolonnen og dens matchregler fra matrixen. Det kan ikke fortrydes.';
-
-  @override
-  String get settingsMatrixColumnsParameterizedDeleteConfirm => 'Slet kolonne';
-
-  @override
   String get settingsMatrixColumnsCompoundAdd => 'Tilføj sammensat kolonne';
 
   @override
@@ -3236,17 +3209,6 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsMatrixColumnsCompoundDelete => 'Slet sammensat kolonne';
-
-  @override
-  String get settingsMatrixColumnsCompoundDeleteTitle =>
-      'Slet sammensat kolonne?';
-
-  @override
-  String get settingsMatrixColumnsCompoundDeleteBody =>
-      'Dette fjerner kolonnen og dens matchende sekvens fra matrixen. Det kan ikke fortrydes.';
-
-  @override
-  String get settingsMatrixColumnsCompoundDeleteConfirm => 'Slet kolonne';
 
   @override
   String get settingsGeneralPerformanceHeader => 'Performance';
@@ -3441,7 +3403,28 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsGeneralConfirmBeforeDeleteSubtitle =>
-      'Bed om bekræftelse inden sletning af en dans eller et program. Sletninger kan stadig fortrydes; dette tilføjer blot en eksplicit prompt først.';
+      'Spørg, før du sletter noget, der kan fortrydes. Sletninger, der ikke kan fortrydes, spørger altid først.';
+
+  @override
+  String get settingsGeneralUndoPromptTitle => 'Fortryd-besked';
+
+  @override
+  String get settingsGeneralUndoPromptSubtitle =>
+      'Hvor længe Fortryd bliver på skærmen, efter du har slettet eller ændret noget. Den bliver også, mens du peger på den eller går til den med tastaturet.';
+
+  @override
+  String settingsGeneralUndoPromptSeconds(int seconds) {
+    String _temp0 = intl.Intl.pluralLogic(
+      seconds,
+      locale: localeName,
+      other: '$seconds sekunder',
+      one: '1 sekund',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsGeneralUndoPromptUntilClosed => 'Indtil jeg lukker den';
 
   @override
   String get settingsGeneralDeletedItemsHeader => 'For nylig slettet';
@@ -4084,6 +4067,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String commonDeletedSnack(String title) {
     return '„$title“ slettet.';
   }
+
+  @override
+  String get commonCantBeUndone => 'Det kan ikke fortrydes.';
 
   @override
   String get importGapMessage =>
@@ -8204,6 +8190,9 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String get importReviewEditOverwriteConfirm => 'Erstat';
+
+  @override
   String get importReviewEditReimportTitle =>
       'Reimportér på den eksisterende dans nu?';
 
@@ -8421,13 +8410,6 @@ class AppLocalizationsDa extends AppLocalizations {
     );
     return '$_temp0';
   }
-
-  @override
-  String get settingsWalkthroughSnippetDeleteTitle => 'Slet uddrag?';
-
-  @override
-  String get settingsWalkthroughSnippetDeleteBody =>
-      'Dette fjerner den gemte standard for denne figur. Danse beholder al gennemgangstekst, du allerede har skrevet.';
 
   @override
   String get settingsWalkthroughSnippetEditTitle => 'Rediger uddrag';
@@ -9747,14 +9729,6 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
-  String get shorthandMappingsDeleteTitle => 'Slet kortform?';
-
-  @override
-  String shorthandMappingsDeleteBody(String token) {
-    return '„$token“ fjernes permanent.';
-  }
-
-  @override
   String get shorthandMappingsActionsTooltip => 'Kortformhandlinger';
 
   @override
@@ -10146,14 +10120,6 @@ class AppLocalizationsDa extends AppLocalizations {
       'Noget gik galt under scanning af din samling. Intet blev ændret. Du kan prøve igen.';
 
   @override
-  String get customFieldsDeleteTitle => 'Slet brugerdefineret felt';
-
-  @override
-  String customFieldsDeleteBody(String label) {
-    return 'Slet „$label“? Dette kan ikke fortrydes.';
-  }
-
-  @override
   String customFieldsDeleteInUse(String label, int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -10417,7 +10383,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String recentlyDeletedDeleteBody(String title) {
-    return '„$title“ slettes øjeblikkeligt og kan ikke gendannes.';
+    return '„$title“ slettes nu.';
   }
 
   @override
@@ -10550,19 +10516,6 @@ class AppLocalizationsDa extends AppLocalizations {
       one: '1 program knyttet.',
     );
     return '$_temp0';
-  }
-
-  @override
-  String get venueManagerDeleteTitle => 'Slet spillested?';
-
-  @override
-  String venueManagerDeleteBody(String name) {
-    return 'Slet „$name“ permanent? Dette kan ikke fortrydes.';
-  }
-
-  @override
-  String venueManagerDeletedSnack(String name) {
-    return 'Slettede „$name“';
   }
 
   @override

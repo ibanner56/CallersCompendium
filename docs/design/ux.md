@@ -272,6 +272,29 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   (N3-4): the add-to-program sheet asks "Add it again?" before adding a dance
   the program already holds, though the add is undoable. Cancel keeps the sheet
   open. Other flows do not cite the exception.
+- **One rule for delete**, in `utils/confirm_delete.dart`: Undo wherever the
+  data can be restored, one shared permanent-delete confirmation for
+  everything else, swipe-to-delete left as it is, and a setting for how long
+  the Undo prompt stays, which also stays while hovered or focused:
+  - A delete whose data can be restored deletes at once and offers Undo:
+    dances, programs, tags, authors, sources, venues and custom fields
+    (database rows), and shorthands, dialects, custom themes, walkthrough
+    snippets and matrix columns (settings values; Undo writes the removed
+    entry back). It asks first only through `confirmDeleteIfEnabled`, when
+    *Confirm before delete* is on.
+  - A delete nothing can bring back confirms every time through
+    `confirmPermanentDelete`, which adds "This can't be undone." and is not
+    switched off by *Confirm before delete*.
+  - Swipe-to-delete never asks: the swipe reveals a Delete button that takes a
+    second tap, and that tap is the confirmation.
+  - Every confirmation that removes, resets, overwrites or discards uses
+    `destructiveFilledButtonStyle` and names its action ("Delete", "Reset",
+    "Replace", "Disconnect"), never "Continue" or "OK". "Delete" destroys;
+    "Remove" takes something out of a list without destroying it.
+  - The Undo prompt (`utils/undo_snack_bar.dart`) stays for the user's *Undo
+    prompt* setting (10 s unless changed; `undo_prompt_seconds`), stays while it
+    is hovered or keyboard focus is inside it, and never times out with a
+    screen reader running or when the user chose "Until I close it".
 - Empty states teach: first-run Collection offers "download the community
   collection" (snapshot) and "import your data".
 - All lists virtualize; search-as-you-type debounced; target <50 ms query

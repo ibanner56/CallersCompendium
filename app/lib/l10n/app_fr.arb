@@ -1936,14 +1936,6 @@
   "@settingsDialectDuplicateToCustomize": {
     "x-sourceSha256": "38e6ec3ccb117e6f2219f9b5c797f817517cad4a8a49a62a7dc610800b7e3abd"
   },
-  "settingsDialectDeleteTitle": "Supprimer le dialecte ?",
-  "@settingsDialectDeleteTitle": {
-    "x-sourceSha256": "670220a9739cfe2072e0bece788c469adf6909434230eb4a194ce25b9338b023"
-  },
-  "settingsDialectDeleteConfirmBody": "« {name} » sera définitivement supprimé.",
-  "@settingsDialectDeleteConfirmBody": {
-    "x-sourceSha256": "1d5d8e93bb74d70ab97fe737fb2069d9ebeed30d083e70526f4e3207b13941a2"
-  },
   "settingsDialectEditConflictSnack": "\"{name}\" a été renommé ou supprimé pendant votre modification ; vos changements n'ont pas été enregistrés.",
   "@settingsDialectEditConflictSnack": {
     "x-sourceSha256": "9e3281ba02ea73d6457c7fde6f74101343054453e9bcd3dbc84e5967101cb3a0"
@@ -2407,14 +2399,6 @@
   "settingsAppearanceCustomThemesEmpty": "Copiez le thème actuel et ajustez n’importe quelle couleur. Les thèmes personnalisés se synchronisent avec vos autres appareils lorsque la synchronisation est activée.",
   "@settingsAppearanceCustomThemesEmpty": {
     "x-sourceSha256": "95b8a0f6f3b5190ec400652935ba9981213e44fc2eacb56637799159e84c7d3f"
-  },
-  "settingsAppearanceDeleteThemeTitle": "Supprimer le thème ?",
-  "@settingsAppearanceDeleteThemeTitle": {
-    "x-sourceSha256": "25231c611da05d6c4d224219a2be27440a7eeda9d838586da123871a0ae8b8d7"
-  },
-  "settingsAppearanceDeleteThemeBody": "« {name} » sera définitivement supprimé.",
-  "@settingsAppearanceDeleteThemeBody": {
-    "x-sourceSha256": "1d5d8e93bb74d70ab97fe737fb2069d9ebeed30d083e70526f4e3207b13941a2"
   },
   "settingsAppearanceCustomThemeSemantic": "Thème personnalisé {name}",
   "@settingsAppearanceCustomThemeSemantic": {
@@ -3156,18 +3140,6 @@
   "@settingsMatrixColumnsParameterizedDelete": {
     "x-sourceSha256": "7994bc0925b189b9c13c938e0033b4e54116dfc13f0b1c2a3a3fe5200ac61c11"
   },
-  "settingsMatrixColumnsParameterizedDeleteTitle": "Supprimer la colonne paramétrée ?",
-  "@settingsMatrixColumnsParameterizedDeleteTitle": {
-    "x-sourceSha256": "2b4e4e65aa54f6d0964fe893dc508a355149a0555a674e0cc83c813527a1a8fb"
-  },
-  "settingsMatrixColumnsParameterizedDeleteBody": "La colonne et ses règles de correspondance seront supprimées de la matrice. Cette action est irréversible.",
-  "@settingsMatrixColumnsParameterizedDeleteBody": {
-    "x-sourceSha256": "a8306396270aaffdc91b27aaaa13bcf8f059dba3cc0c00f72ca9baa6f8bac573"
-  },
-  "settingsMatrixColumnsParameterizedDeleteConfirm": "Supprimer la colonne",
-  "@settingsMatrixColumnsParameterizedDeleteConfirm": {
-    "x-sourceSha256": "837dbb2c66b1a90f46e7de1ea5b51e2da583a675dd6a3d4131dc2a7d44b0eaef"
-  },
   "settingsMatrixColumnsCompoundAdd": "Ajouter une colonne composée",
   "@settingsMatrixColumnsCompoundAdd": {
     "x-sourceSha256": "4d622803476d89e16f3fd2ff9833f4af49c048b9e9db21d1a7152ac5acb0f2bf"
@@ -3219,18 +3191,6 @@
   "settingsMatrixColumnsCompoundDelete": "Supprimer la colonne composée",
   "@settingsMatrixColumnsCompoundDelete": {
     "x-sourceSha256": "5b58577782347f9594b07fb21cbdc6e9e8bb760cfb40940c20b31c86df9cfb11"
-  },
-  "settingsMatrixColumnsCompoundDeleteTitle": "Supprimer la colonne composée ?",
-  "@settingsMatrixColumnsCompoundDeleteTitle": {
-    "x-sourceSha256": "98831941b3740465659d3cc8318d4bdd24f9288e858ec211f9cf69cccf7def38"
-  },
-  "settingsMatrixColumnsCompoundDeleteBody": "La colonne et sa séquence correspondante seront supprimées de la matrice. Cette action est irréversible.",
-  "@settingsMatrixColumnsCompoundDeleteBody": {
-    "x-sourceSha256": "b1e004080248e7e1e2d07c1add004fd0dc616326cf6479d4557902be999c16d1"
-  },
-  "settingsMatrixColumnsCompoundDeleteConfirm": "Supprimer la colonne",
-  "@settingsMatrixColumnsCompoundDeleteConfirm": {
-    "x-sourceSha256": "837dbb2c66b1a90f46e7de1ea5b51e2da583a675dd6a3d4131dc2a7d44b0eaef"
   },
   "settingsGeneralPerformanceHeader": "Performance",
   "@settingsGeneralPerformanceHeader": {
@@ -3424,9 +3384,25 @@
   "@settingsGeneralConfirmBeforeDeleteTitle": {
     "x-sourceSha256": "e50478c6b6675dce9d50140c6e80675ac0ea226e32ec85afc5f9de7dfe2c8b1f"
   },
-  "settingsGeneralConfirmBeforeDeleteSubtitle": "Demander une confirmation avant de supprimer une danse ou un programme. Les suppressions peuvent toujours être annulées ; cela ajoute simplement une confirmation explicite.",
+  "settingsGeneralConfirmBeforeDeleteSubtitle": "Demander avant de supprimer tout ce qui peut être annulé. Les suppressions irréversibles demandent toujours confirmation.",
   "@settingsGeneralConfirmBeforeDeleteSubtitle": {
-    "x-sourceSha256": "419e365a3cf53bc03a9f35dc1356ceef19d6904929d93ec0de5321c44bde3b6b"
+    "x-sourceSha256": "4eb85e1611e5dad6ee02310dffdc2920b14bc3a7ef89408aefd1d5129a8e219f"
+  },
+  "settingsGeneralUndoPromptTitle": "Message Annuler",
+  "@settingsGeneralUndoPromptTitle": {
+    "x-sourceSha256": "7f397daeec86ec261af3848f27c9d22fc72ea50ce0fd8e0569b97f7b18f8279b"
+  },
+  "settingsGeneralUndoPromptSubtitle": "Durée d’affichage du bouton Annuler après une suppression ou une modification. Il reste aussi affiché tant que vous le survolez ou que vous y accédez au clavier.",
+  "@settingsGeneralUndoPromptSubtitle": {
+    "x-sourceSha256": "a7413035c721cf3d6997e91ef4a1752303c1a97eed468990f59020ff3b97686b"
+  },
+  "settingsGeneralUndoPromptSeconds": "{seconds, plural, =1{1 seconde} other{{seconds} secondes}}",
+  "@settingsGeneralUndoPromptSeconds": {
+    "x-sourceSha256": "d8a703be939152a8a89055024319ae900c7817591652a4c19725dc4cd28b77a6"
+  },
+  "settingsGeneralUndoPromptUntilClosed": "Jusqu’à ce que je le ferme",
+  "@settingsGeneralUndoPromptUntilClosed": {
+    "x-sourceSha256": "3376640f07a8541c7288aac8d12fded80dd6c059a28849adebc5cb43bc48c8ef"
   },
   "settingsGeneralDeletedItemsHeader": "Récemment supprimées",
   "@settingsGeneralDeletedItemsHeader": {
@@ -4159,6 +4135,10 @@
   "commonDeletedSnack": "« {title} » supprimé.",
   "@commonDeletedSnack": {
     "x-sourceSha256": "5f38a45b4a00f67a9d235d7065a8b3d2ecda59f0802d76dccfd504692fc36adb"
+  },
+  "commonCantBeUndone": "Cette action est irréversible.",
+  "@commonCantBeUndone": {
+    "x-sourceSha256": "17ad35c384c68419f9fee9cc08687c47e418a995a1f9fd03ae2b2e71136c6f31"
   },
   "importGapMessage": "Impossible de reconnaître cet appel — conservé tel quel comme figure non reconnue.",
   "@importGapMessage": {
@@ -7982,6 +7962,10 @@
   "@importReviewEditOverwriteBody": {
     "x-sourceSha256": "87c2b58d9ba05743231066492919a0091c15c3aabceb593e3d6a6f78624b81b4"
   },
+  "importReviewEditOverwriteConfirm": "Remplacer",
+  "@importReviewEditOverwriteConfirm": {
+    "x-sourceSha256": "95e154398a4bc0091aa4d6b607472ac5a89e41fbc84a3a49f823314d6de9eebc"
+  },
   "importReviewEditReimportTitle": "Ré-importer sur la danse existante maintenant ?",
   "@importReviewEditReimportTitle": {
     "x-sourceSha256": "0ef9a017ae65f8bd0f7ca657bfb1ea8e3bae8ca0a57b4a9cfe4c4e142e01467d"
@@ -8209,14 +8193,6 @@
   "settingsWalkthroughSnippetsCount": "{count, plural, =1{1 extrait} other{{count} extraits}}",
   "@settingsWalkthroughSnippetsCount": {
     "x-sourceSha256": "69ad021cf25f5c7b69ff8a939a4181e955ddf77b53fc3c7ceb4d17e4ca12d9ab"
-  },
-  "settingsWalkthroughSnippetDeleteTitle": "Supprimer l'extrait ?",
-  "@settingsWalkthroughSnippetDeleteTitle": {
-    "x-sourceSha256": "a67de31046b0930bc0d1b5bd0cd5b98486e3a344dd9a86398c8e5aa70d9e56eb"
-  },
-  "settingsWalkthroughSnippetDeleteBody": "Cela supprime la valeur par défaut enregistrée pour cette figure. Les danses conservent le texte de déroulé que vous avez déjà écrit.",
-  "@settingsWalkthroughSnippetDeleteBody": {
-    "x-sourceSha256": "e6e2bf4fd7f431e6f777bd2b70f68a9b5dbf63d55a891af49515eca79799a234"
   },
   "settingsWalkthroughSnippetEditTitle": "Modifier l'extrait",
   "@settingsWalkthroughSnippetEditTitle": {
@@ -9438,14 +9414,6 @@
   "@shorthandMappingsLimitReached": {
     "x-sourceSha256": "3f8a40d5253e3d42f05fd74e05353a6ffb21fb6de2fd6f6e22da50300ff01c23"
   },
-  "shorthandMappingsDeleteTitle": "Supprimer l’abréviation ?",
-  "@shorthandMappingsDeleteTitle": {
-    "x-sourceSha256": "a8a818eba0a742b81c447939890409c3772364a3796479a44fe26309d848b01b"
-  },
-  "shorthandMappingsDeleteBody": "« {token} » sera définitivement supprimé.",
-  "@shorthandMappingsDeleteBody": {
-    "x-sourceSha256": "fa03940830f67880e7d42db7656abd65366f1b73949bb6ff5e7e0e877c58a79d"
-  },
   "shorthandMappingsActionsTooltip": "Actions de l’abréviation",
   "@shorthandMappingsActionsTooltip": {
     "x-sourceSha256": "8794003dafec4a03b433f702ad1645c759dba638a9aa61e3da40ab8e65dab5e8"
@@ -9754,14 +9722,6 @@
   "@reparseErrorBody": {
     "x-sourceSha256": "58f0ccd25734c5c644ebc925bc1e88cf98be542eb894f5e7c529377380b94acd"
   },
-  "customFieldsDeleteTitle": "Supprimer le champ personnalisé",
-  "@customFieldsDeleteTitle": {
-    "x-sourceSha256": "daf3f4f83f61c995c5026363e1ac97ecff288404e66c85724d8f6740eb3c2b2a"
-  },
-  "customFieldsDeleteBody": "Supprimer « {label} » ? Cette action est irréversible.",
-  "@customFieldsDeleteBody": {
-    "x-sourceSha256": "8d391116314a182474453cdaa2cddb85d34c674df8e042b6602660ad1c18d8f5"
-  },
   "customFieldsDeleteInUse": "Impossible de supprimer « {label} » : encore utilisé par {count, plural, =1{1 danse} other{{count} danses}}. Supprimez d’abord la valeur de toutes les danses.",
   "@customFieldsDeleteInUse": {
     "x-sourceSha256": "3216847c71408f8c115cc0f639621a7a700926cf3c3d29fe2bcce0948156a556"
@@ -10058,9 +10018,9 @@
   "@recentlyDeletedDeleteTitle": {
     "x-sourceSha256": "c1b15a3712482b377f34d95ca8c2fc0d47ca1b9e64fd614367c2ee8c06ca5419"
   },
-  "recentlyDeletedDeleteBody": "« {title} » sera supprimé immédiatement et ne pourra pas être récupéré.",
+  "recentlyDeletedDeleteBody": "« {title} » va être supprimé maintenant.",
   "@recentlyDeletedDeleteBody": {
-    "x-sourceSha256": "28b125de466af8a2e8a3b47dbd79e1d6e625c2f4ea34f0f2b8a1d96fd6d191a7"
+    "x-sourceSha256": "60f16c333e309afe0e749d16b239738039756b07999073957303adf7452fd575"
   },
   "recentlyDeletedDeleteConfirm": "Supprimer définitivement",
   "@recentlyDeletedDeleteConfirm": {
@@ -10181,18 +10141,6 @@
   "venueLinkOfferDone": "{count, plural, =1{1 programme lié.} other{{count} programmes liés.}}",
   "@venueLinkOfferDone": {
     "x-sourceSha256": "431a1aa3f4e20271f7a7aece28cd1fb67ebe75cda7f2b539844ec62712c7a0bb"
-  },
-  "venueManagerDeleteTitle": "Supprimer le lieu ?",
-  "@venueManagerDeleteTitle": {
-    "x-sourceSha256": "a9aed6966427e7a9a7a69cb29965442d52da1a8627dfaf18e03624e6f4283efa"
-  },
-  "venueManagerDeleteBody": "Supprimer définitivement « {name} » ? Cette action est irréversible.",
-  "@venueManagerDeleteBody": {
-    "x-sourceSha256": "833e71d14c9c6ff7b7e3a1472580b40266265e9d4ce80eecaebb6802a20687f4"
-  },
-  "venueManagerDeletedSnack": "« {name} » supprimé",
-  "@venueManagerDeletedSnack": {
-    "x-sourceSha256": "c01d33e1bbf843edb8f635f4bc33095283004bceeac7fd456d43b330d8a904d4"
   },
   "venueManagerDeleteBlocked": "Impossible de supprimer « {name} » tant qu’il est encore lié à un programme. Changez ou supprimez d’abord le lieu sur ces programmes.",
   "@venueManagerDeleteBlocked": {

@@ -7,6 +7,7 @@ import '../data/sync_writer_lifecycle_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
+import '../theme/destructive_button_style.dart';
 import 'settings/sync_notice_labels.dart' show syncRecordKindLabel;
 
 /// Displays persisted sync decisions and exposes merge / keep-both actions for
@@ -104,6 +105,9 @@ class _SyncReviewScreenState extends State<SyncReviewScreen> {
             child: Text(l10n.commonCancel),
           ),
           FilledButton(
+            style: destructiveFilledButtonStyle(
+              Theme.of(dialogContext).colorScheme,
+            ),
             key: const ValueKey('sync-review-merge-confirm'),
             onPressed: () => Navigator.of(dialogContext).pop(true),
             child: Text(l10n.syncReviewMergeAction),

@@ -6,7 +6,8 @@ import '../../data/dialect_library_scope.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
-import '../../theme/destructive_button_style.dart';
+import '../../utils/confirm_delete.dart';
+import '../../utils/undo_snack_bar.dart';
 import '../../theme/keyboard_dismiss.dart';
 import '../../widgets/dirty_dialog_guard.dart';
 import '../../widgets/section_header.dart';
@@ -136,32 +137,36 @@ class _DialectLibrarySection extends StatelessWidget {
     await controller.rename(dialect.name, name);
   }
 
+  /// Deletes the custom [dialect] at once and offers Undo, asking first only
+  /// when "Confirm before delete" is on (see `confirm_delete.dart`).
   Future<void> _confirmDelete(BuildContext context, Dialect dialect) async {
+    if (!await confirmDeleteIfEnabled(context, itemLabel: dialect.name)) {
+      return;
+    }
+    if (!context.mounted) return;
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.maybeOf(context);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.settingsDialectDeleteTitle),
-        content: Text(l10n.settingsDialectDeleteConfirmBody(dialect.name)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(l10n.commonCancel),
-          ),
-          FilledButton(
-            style: destructiveFilledButtonStyle(Theme.of(ctx).colorScheme),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(l10n.commonDelete),
-          ),
-        ],
+    final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
+    // Read after the confirmation: the library may have changed while it was
+    // open, and Undo puts back what this delete actually removed.
+    final removed = controller.customByName(dialect.name);
+    if (removed == null) return;
+    final index = controller.customDialects.indexOf(removed);
+    final wasActive = controller.activeName == removed.name;
+    await controller.delete(removed.name);
+    if (messenger == null) return;
+    showUndoSnackBar(
+      messenger,
+      actionKey: const ValueKey('dialect-delete-undo'),
+      message: l10n.commonDeletedSnack(removed.name),
+      undoLabel: l10n.commonUndo,
+      undoFailedMessage: l10n.commonUndoFailed,
+      accessibleNavigation: accessibleNavigation,
+      onUndo: () => controller.restoreDeleted(
+        removed,
+        index: index,
+        wasActive: wasActive,
       ),
-      animationStyle: AppMotion.styleFor(context),
-    );
-    if (confirmed != true) return;
-    await controller.delete(dialect.name);
-    messenger?.showSnackBar(
-      SnackBar(content: Text(l10n.commonDeletedSnack(dialect.name))),
     );
   }
 
