@@ -16,6 +16,7 @@ import '../../editor/pending_move_text_controller.dart';
 import '../../search/facet_labels.dart';
 import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
+import '../../theme/touch_density.dart';
 import '../../widgets/app_bar_text_action.dart';
 import '../../widgets/confirm_discard_changes.dart';
 import '../../widgets/figure_list_editor.dart';
@@ -1265,7 +1266,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
                               decoration: InputDecoration(
                                 labelText: l10n.compoundEditorParamKind,
                                 border: const OutlineInputBorder(),
-                                isDense: true,
+                                isDense: denseControls(context),
                               ),
                               items: [
                                 for (final kind in compoundParamKinds)
@@ -1740,7 +1741,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
                       moveId: draft.move,
                     ),
                     border: const OutlineInputBorder(),
-                    isDense: true,
+                    isDense: denseControls(context),
                   ),
                   items: [
                     DropdownMenuItem<_Binding?>(

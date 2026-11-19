@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../theme/app_motion.dart';
+import '../theme/app_spacing.dart';
 import 'dirty_dialog_guard.dart';
 
 /// Which batch operation the dialog is picking tags for.
@@ -131,7 +132,7 @@ class _BatchTagDialogState extends State<_BatchTagDialog> {
             children: [
               if (_tags.isEmpty)
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
                   child: Text(
                     isAdd
                         ? l10n.collectionBatchTagEmptyAdd

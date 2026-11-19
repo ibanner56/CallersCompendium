@@ -9,6 +9,9 @@ class AppShapes {
   static const double radiusLarge = 16;
   static const double radiusDialog = 28;
 
+  /// Fully rounded ends, for round placeholders and pills.
+  static const double radiusFull = 999;
+
   static const BorderRadius borderRadiusSmall = BorderRadius.all(
     Radius.circular(radiusSmall),
   );

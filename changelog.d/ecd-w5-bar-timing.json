@@ -1,0 +1,11 @@
+{
+  "id": "ecd-w5-bar-timing",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "English country dances are timed in bars: the dance editor takes and shows each figure's length in bars, including half bars where the tune allows them (not in triple time), and the dance's page and Perform show bars too.",
+      "An English sequence can take its bars as a whole, as in \"A, B and C in bars 1–4\": fill in Bars for all, and leave a figure's own bars empty. The editor warns when the figures' bars don't fit.",
+      "The dance editor warns when a dance holds figures of another type than its own, such as English figures in a dance changed to contra."
+    ]
+  }
+}

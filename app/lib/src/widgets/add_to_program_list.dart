@@ -5,6 +5,7 @@ import '../../l10n/app_localizations.dart';
 import '../data/date_format_scope.dart';
 import '../data/regional_formats.dart';
 import '../data/venue_label.dart';
+import '../theme/app_spacing.dart';
 import 'program_status_chip.dart';
 
 /// The program count above which [AddToProgramList] shows its search field
@@ -192,7 +193,7 @@ class _AddToProgramListState extends State<AddToProgramList> {
     final items = <WidgetBuilder>[
       if (noMatches)
         (context) => Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           child: Text(
             l10n.programsAddToProgramNoMatches,
             key: const ValueKey('add-to-program-no-matches'),
@@ -218,7 +219,12 @@ class _AddToProgramListState extends State<AddToProgramList> {
       children: [
         if (showSearch)
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md,
+              AppSpacing.xxs,
+              AppSpacing.md,
+              AppSpacing.xs,
+            ),
             child: TextField(
               key: const ValueKey('add-to-program-search'),
               controller: _searchController,

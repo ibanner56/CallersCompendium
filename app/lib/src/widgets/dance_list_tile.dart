@@ -10,6 +10,7 @@ import '../data/require_performed_for_history_scope.dart';
 import '../data/formation_colors_scope.dart';
 import '../models/dance_list_entry.dart';
 import '../search/facet_labels.dart';
+import '../theme/app_spacing.dart';
 import '../theme/selected_row.dart';
 import '../theme/set_list_accents.dart';
 import 'program_status_chip.dart';
@@ -148,7 +149,6 @@ class DanceListTile extends StatelessWidget {
     final tile = ListTile(
       selected: selected,
       shape: selectedRowShape(context, selected: selected),
-      visualDensity: VisualDensity.compact,
       onLongPress: onLongPress,
       leading: selectionMode
           ? Checkbox(
@@ -177,7 +177,7 @@ class DanceListTile extends StatelessWidget {
         ),
       ),
       subtitle: Padding(
-        padding: const EdgeInsets.only(top: 4),
+        padding: const EdgeInsets.only(top: AppSpacing.xxs),
         child: Wrap(
           spacing: 8,
           runSpacing: 4,
@@ -324,7 +324,10 @@ class DanceListTile extends StatelessWidget {
       isThreeLine: false,
       trailing: selectionMode ? null : _buildTrailing(l10n),
       onTap: onTap,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.xs,
+      ),
     );
     // A right-click on the row opens the ⋮ menu ([_actionsMenu]).
     return RightClickMenu(menuKey: _actionsMenuKey, child: tile);

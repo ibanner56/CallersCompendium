@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../theme/touch_density.dart';
 import '../search/facet_labels.dart';
 import 'figure_param_editors.dart';
 
@@ -77,7 +78,7 @@ class UserFigureArgumentEditor extends StatelessWidget {
           decoration: InputDecoration(
             labelText: fieldLabel,
             border: const OutlineInputBorder(),
-            isDense: true,
+            isDense: denseControls(context),
           ),
           items: [
             if (allowNone)
@@ -110,7 +111,7 @@ class UserFigureArgumentEditor extends StatelessWidget {
           decoration: InputDecoration(
             labelText: fieldLabel,
             border: const OutlineInputBorder(),
-            isDense: true,
+            isDense: denseControls(context),
           ),
           items: [
             DropdownMenuItem<Object?>(

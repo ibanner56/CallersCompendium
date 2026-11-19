@@ -2,7 +2,9 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../theme/touch_density.dart';
 import '../search/facet_labels.dart';
+import 'bar_timing.dart';
 
 // `humanizeToken` moved to `search/facet_labels.dart` (issue #741) so the dance
 // editor and the Advanced-search facet share one labelling primitive. Re-exported
@@ -186,6 +188,17 @@ class FigureParamEditor extends StatelessWidget {
           onChanged: onChanged,
         );
       case ParamKind.beats:
+        // An English dance is timed in bars (ADR-006 §5.5).
+        if (BarTimingScope.maybeOf(context) case final bars?) {
+          return BarsField(
+            fieldKey: _key,
+            label: l10n.danceEditorBarsLabel,
+            beats: value is int ? value! as int : null,
+            beatsPerBar: bars.beatsPerBar,
+            allowsUntimed: bars.allowsUntimed,
+            onChanged: onChanged,
+          );
+        }
         return _IntField(
           fieldKey: _key,
           label: figureParamKeyLabel(l10n, paramKey, moveId: moveId),
@@ -334,7 +347,7 @@ class FigureParamEditor extends StatelessWidget {
         key: ValueKey(_key),
         initialValue: current,
         isExpanded: true,
-        isDense: true,
+        isDense: denseControls(context),
         // Shown only when there is no selection: the unstated state, or a
         // value left as it is that must be replaced. Supplying a hint also
         // keeps `InputDecorator.isEmpty` false, so the floating label behaves
@@ -358,7 +371,7 @@ class FigureParamEditor extends StatelessWidget {
             : null,
         decoration: InputDecoration(
           labelText: figureParamKeyLabel(l10n, paramKey, moveId: moveId),
-          isDense: true,
+          isDense: denseControls(context),
         ),
         items: [
           for (final choice in selectable)
@@ -397,7 +410,6 @@ class FigureParamEditor extends StatelessWidget {
             key: ValueKey('$_key-clear'),
             tooltip: l10n.danceEditorParamClearTooltip,
             icon: const Icon(Icons.backspace_outlined),
-            visualDensity: VisualDensity.compact,
             onPressed: () => onChanged(ParamVocab.unspecified),
           ),
       ],
@@ -480,7 +492,6 @@ class _RotationStepper extends StatelessWidget {
               key: ValueKey('$fieldKey-dec'),
               tooltip: l10n.danceEditorLessTooltip,
               icon: const Icon(Icons.remove),
-              visualDensity: VisualDensity.compact,
               // Disabled while unset: there is nothing to decrement, and
               // stepping DOWN into a value would read as "the app picked one".
               onPressed: (current != null && current > min)
@@ -509,7 +520,6 @@ class _RotationStepper extends StatelessWidget {
               key: ValueKey('$fieldKey-inc'),
               tooltip: l10n.danceEditorMoreTooltip,
               icon: const Icon(Icons.add),
-              visualDensity: VisualDensity.compact,
               // From the unset state the first nudge ADOPTS a value — an
               // explicit user action, never an implicit default.
               onPressed: current == null
@@ -528,7 +538,6 @@ class _RotationStepper extends StatelessWidget {
                 key: ValueKey('$fieldKey-clear'),
                 tooltip: l10n.danceEditorParamClearTooltip,
                 icon: const Icon(Icons.backspace_outlined),
-                visualDensity: VisualDensity.compact,
                 onPressed: () => onChanged(ParamVocab.unspecified),
               ),
           ],

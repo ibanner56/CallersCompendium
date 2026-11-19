@@ -3640,6 +3640,18 @@
   "@settingsGeneralReparseCustomFiguresAction": {
     "x-sourceSha256": "de83abe7f98be6f87d01a5e0ba9d06a5ebada86926d134c77a03a0a2dc433cf9"
   },
+  "settingsGeneralEcdMigrationTitle": "Konvertér engelske danse",
+  "@settingsGeneralEcdMigrationTitle": {
+    "x-sourceSha256": "d9775b54e95a37e98b9294d1d74a61f4f6323b05b6981526d9a9ff3970a6de1b"
+  },
+  "settingsGeneralEcdMigrationSubtitle": "Engelske country dances, der blev gemt, før appen kendte engelske figurer, bruger stadig contra-bevægelser. Konvertér de bevægelser, der betyder det samme i engelsk dans, læs ukendte figurer igen, og giv hver dans dens engelske formation. Du vælger dansene og bekræfter, før noget ændres.",
+  "@settingsGeneralEcdMigrationSubtitle": {
+    "x-sourceSha256": "dece8f801d5b40c99ab8f8f8af2f13b8a277d070785b61f212600abea783899b"
+  },
+  "settingsGeneralEcdMigrationAction": "Konvertér…",
+  "@settingsGeneralEcdMigrationAction": {
+    "x-sourceSha256": "de8857f730a950aba93c66095558bf630553c17212351e5655c50df1d21b3293"
+  },
   "settingsGeneralBackupRestoreHeader": "Sikkerhedskopiering og gendannelse",
   "@settingsGeneralBackupRestoreHeader": {
     "x-sourceSha256": "0076967a94f3290b2122017687a320ec7412aa0176f3fdfece9b0a0553e513b2"
@@ -5047,6 +5059,50 @@
   "danceFigureBeats": "{beats, plural, =1{1 slag} other{{beats} slag}}",
   "@danceFigureBeats": {
     "x-sourceSha256": "b1c2cd5ecb9cd06da41bcdc00cc188ef57533504a89a622f5a0146c65ac22144"
+  },
+  "danceFigureBars": "{halfBars, plural, =1{{bars} takt} =2{{bars} takt} other{{bars} takter}}",
+  "@danceFigureBars": {
+    "x-sourceSha256": "032e08ee5ee7e58a2100ce26ef840a137682a824c2dcbe8f36fefbae76971c86"
+  },
+  "danceEditorBarsLabel": "Takter",
+  "@danceEditorBarsLabel": {
+    "x-sourceSha256": "f2c3526915d35ece0e07e451c134a880a4d39a09ffacde637d69831115fb92bd"
+  },
+  "danceEditorStepUntimed": "Ingen egen varighed",
+  "@danceEditorStepUntimed": {
+    "x-sourceSha256": "1362a25d689a8f29594b4451226fdca286ca6f4c9686f906f6e8297e41d554c1"
+  },
+  "danceEditorBarsRangeError": "Angiv hele eller halve takter, op til {max}",
+  "@danceEditorBarsRangeError": {
+    "x-sourceSha256": "c1d6b8e804fee78f756507d4d4d8b7bc40c25df7ac2a78e4f5f4dfdf3f2209de"
+  },
+  "danceEditorHalfBarRefused": "Kun hele takter med {beatsPerBar} slag pr. takt",
+  "@danceEditorHalfBarRefused": {
+    "x-sourceSha256": "93140ef37e7658ae19604224df5f4f69822740dcf1121a0648c365663385774b"
+  },
+  "danceEditorSequenceSpanLabel": "Takter i alt",
+  "@danceEditorSequenceSpanLabel": {
+    "x-sourceSha256": "8fe969410459de862aea4879d9ebbdd6588698d681056570bff0f861cd4776ff"
+  },
+  "danceEditorSequenceSpanEmptyHelp": "Lad feltet være tomt for at lægge trinnenes takter sammen, eller angiv takterne for hele sekvensen, som i “A, B og C i takt 1–4”.",
+  "@danceEditorSequenceSpanEmptyHelp": {
+    "x-sourceSha256": "d5a200e6405d4fc80bd01e9255209ba4ff0e262aae458721d5366870e7e7bd80"
+  },
+  "danceEditorSequenceSpanHelp": "Trinnene deler disse takter, og hvert trin kan lade sine egne takter være tomme.",
+  "@danceEditorSequenceSpanHelp": {
+    "x-sourceSha256": "ae520fdb2996e5323bd3d4615a67922c7a8805eaf4662fe00aafd607fcbc36ac"
+  },
+  "danceEditorSequenceSpanMismatch": "Trinnene varer {steps}, men sekvensen varer {span}.",
+  "@danceEditorSequenceSpanMismatch": {
+    "x-sourceSha256": "08125fe84162f64c2fd482d5d4fd915d6c3054c36e4332e6e3f63bd2af67a357"
+  },
+  "danceEditorSequenceSpanNoRoom": "Trinnene med egne takter varer {steps} af sekvensens {span}, så der intet er tilbage til resten.",
+  "@danceEditorSequenceSpanNoRoom": {
+    "x-sourceSha256": "197cb3c426f6d770e42563bec39b40266f6eb1dbb4b22ea913e9c467d50088ce"
+  },
+  "danceEditorSequenceOverPhraseTimed": "Denne sekvens varer {length}, længere end én frase ({limit}).",
+  "@danceEditorSequenceOverPhraseTimed": {
+    "x-sourceSha256": "e0c6028e36e38a6357c326de3d2c4b9898039706cdf8bfd6fe49d185fc52762b"
   },
   "danceFigureProgressionSemantic": "progression",
   "@danceFigureProgressionSemantic": {
@@ -8570,6 +8626,18 @@
   "@validationSequenceExceedsPhrase": {
     "x-sourceSha256": "5b58ba736707956d7a8b673a407e805314dbb8f6ba5091fc18c1fbf777a85366"
   },
+  "validationSequenceSpanMismatch": "Trinnene i sekvensen i figur {position} varer {actual} slag; sekvensen varer {expected}.",
+  "@validationSequenceSpanMismatch": {
+    "x-sourceSha256": "427e750a1e703341b792f9be009cf9daebbe04105d73c0b8adacd90815d84d34"
+  },
+  "validationSequenceSpanNoRoom": "De tidsangivne trin i sekvensen i figur {position} varer {actual} slag, så der intet er tilbage af dens {expected} til resten.",
+  "@validationSequenceSpanNoRoom": {
+    "x-sourceSha256": "97810e6b9ede26094cde824e19231d33c0149ab076d3f9157c2025a6a594fae9"
+  },
+  "validationOtherFormFigures": "Dette er en {danceForm}-dans, men {count, plural, =1{1 figur er} other{{count} figurer er}} fra {figureForm}. De beholdes som de er, men figurvælgeren tilbyder kun {pickerForm}-figurer.",
+  "@validationOtherFormFigures": {
+    "x-sourceSha256": "c9ecc275ac684f779261f8efede22076a2dd84f87b5d8b0f4ec812630fbc8e77"
+  },
   "validationIncompleteFigure": "Figur {position} er ikke færdig, så Gem udelader den.",
   "@validationIncompleteFigure": {
     "x-sourceSha256": "3c52fdb408c5114d40e661e2abc28520d0663fd0e7ff50a1096a901c31915a3a"
@@ -9013,6 +9081,10 @@
   "commonMoveItemDown": "Flyt {name} ned",
   "@commonMoveItemDown": {
     "x-sourceSha256": "1e94688825c76d7fa4426844a1adbeca4bbcb22c33c1e053d51714f3f518526e"
+  },
+  "commonMovedItemPosition": "{name} flyttet til position {position} af {count}",
+  "@commonMovedItemPosition": {
+    "x-sourceSha256": "ebf9180932c3b44b43c8fa1109d208cdd186b739a667ff7e72f1ca19387ca72d"
   },
   "danceEditorFigureCutState": "Klippet",
   "@danceEditorFigureCutState": {
@@ -9893,6 +9965,66 @@
   "reparseErrorBody": "Noget gik galt under scanning af din samling. Intet blev ændret. Du kan prøve igen.",
   "@reparseErrorBody": {
     "x-sourceSha256": "58f0ccd25734c5c644ebc925bc1e88cf98be542eb894f5e7c529377380b94acd"
+  },
+  "ecdMigrationScreenTitle": "Konvertér engelske danse",
+  "@ecdMigrationScreenTitle": {
+    "x-sourceSha256": "d9775b54e95a37e98b9294d1d74a61f4f6323b05b6981526d9a9ff3970a6de1b"
+  },
+  "ecdMigrationIntro": "{danceCount, plural, =1{1 engelsk dans bruger} other{{danceCount} engelske danse bruger}} stadig contra-bevægelser, ukendte figurer eller en contra-formation. Vælg de danse, der skal konverteres, og bekræft derefter. En bevægelse uden en klar engelsk betydning forbliver, som den er.",
+  "@ecdMigrationIntro": {
+    "x-sourceSha256": "6f23acc161ddf9f456a5ec4b1019189fe79399382860a9d48e41118c5ea70325"
+  },
+  "ecdMigrationPreviewMoves": "{count, plural, =1{1 bevægelse at konvertere} other{{count} bevægelser at konvertere}}",
+  "@ecdMigrationPreviewMoves": {
+    "x-sourceSha256": "0f8ff9a408e38cc9f1500e27e949c83c3c8f6963cf8e6b78cb79fb06706a5e29"
+  },
+  "ecdMigrationPreviewLines": "{count, plural, =1{1 ukendt figur læses nu} other{{count} ukendte figurer læses nu}}",
+  "@ecdMigrationPreviewLines": {
+    "x-sourceSha256": "fbe73fbaf73be4a53f71d06e5a43b9a94f8b0ced16824bc4465ca1cc5c54b94f"
+  },
+  "ecdMigrationPreviewShape": "Engelsk formation",
+  "@ecdMigrationPreviewShape": {
+    "x-sourceSha256": "bb61ce45b99ce5325dd4fd39541815b8e3ff4ca0a5dac0ca5d333d789622684e"
+  },
+  "ecdMigrationConvertButton": "Konvertér {danceCount, plural, =1{1 dans} other{{danceCount} danse}}",
+  "@ecdMigrationConvertButton": {
+    "x-sourceSha256": "47cb97b506b6a165b9f9684beb34b846f018bdc09b14a13d1f8581ddf47ae377"
+  },
+  "ecdMigrationConfirmTitle": "Konvertér disse engelske danse?",
+  "@ecdMigrationConfirmTitle": {
+    "x-sourceSha256": "d521ef97fc49216d751ebb1e92a36235526ba4266712d8adf5c4ece626205271"
+  },
+  "ecdMigrationConfirmBody": "Dette ændrer figurerne og formationen for {danceCount, plural, =1{1 dans} other{{danceCount} danse}}. Tags, bedømmelser, noter og alt andet bevares. Det kan ikke fortrydes, så du vil måske tage en sikkerhedskopi først.",
+  "@ecdMigrationConfirmBody": {
+    "x-sourceSha256": "9ddc48f2bad456b7159fee8e61bed0d76513bd74b92d3c91f13bc509e3165a4f"
+  },
+  "ecdMigrationConfirmAction": "Konvertér",
+  "@ecdMigrationConfirmAction": {
+    "x-sourceSha256": "5cd425f518c2e59a42b8b70008e62212d41060cc25916cfc47ad64383f9be745"
+  },
+  "ecdMigrationDoneSnack": "Konverterede {danceCount, plural, =1{1 dans} other{{danceCount} danse}}.",
+  "@ecdMigrationDoneSnack": {
+    "x-sourceSha256": "c93d396cef0ea9615f2b7ad0395c6fa5a3c94392f39eeedb4b268f76ecb431a3"
+  },
+  "ecdMigrationNothingSnack": "Intet at konvertere.",
+  "@ecdMigrationNothingSnack": {
+    "x-sourceSha256": "927c132a0a923e4b2a5d79a46f3510b2b3a357d280cd9ffbc6ec628ff83b6057"
+  },
+  "ecdMigrationFailed": "Kunne ikke konvertere dansene. Intet blev ændret. Prøv venligst igen.",
+  "@ecdMigrationFailed": {
+    "x-sourceSha256": "2b57f3969cad7e30b3b0ee1f143d1baa513fb5d2df1877119cb56c6a39adc556"
+  },
+  "ecdMigrationEmptyTitle": "Intet at konvertere",
+  "@ecdMigrationEmptyTitle": {
+    "x-sourceSha256": "b7c23f259a172035b76ed38b0e714919ae88cad43edf86eb78f5924518dbfd92"
+  },
+  "ecdMigrationEmptyBody": "Ingen af dine engelske country dances har noget, der kan konverteres. Et trin uden en klar engelsk betydning forbliver som det er.",
+  "@ecdMigrationEmptyBody": {
+    "x-sourceSha256": "b99c1dcb3eed2321fe2e92547b49b61af21d454dea9df1c96927105a3c2b91f4"
+  },
+  "ecdMigrationErrorTitle": "Kunne ikke kontrollere dine engelske danse",
+  "@ecdMigrationErrorTitle": {
+    "x-sourceSha256": "a5463d18d95a7b1f629edcf1c73792d077681156c7326da88199e723fc4a4ee5"
   },
   "customFieldsDeleteInUse": "Kan ikke slette „{label}“: bruges stadig af {count, plural, =1{1 dans} other{{count} danse}}. Fjern værdien fra alle danse først.",
   "@customFieldsDeleteInUse": {

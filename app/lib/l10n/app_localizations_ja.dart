@@ -3454,6 +3454,16 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsGeneralReparseCustomFiguresAction => '再確認…';
 
   @override
+  String get settingsGeneralEcdMigrationTitle => 'イングリッシュダンスを変換';
+
+  @override
+  String get settingsGeneralEcdMigrationSubtitle =>
+      'アプリがイングリッシュのフィギュアに対応する前に保存されたイングリッシュ・カントリーダンスは、まだコントラのムーブを使っています。イングリッシュで同じ意味を持つムーブを変換し、認識できないフィギュアを読み直し、各ダンスにイングリッシュのフォーメーションを設定します。ダンスを選び、何かが変わる前に確認します。';
+
+  @override
+  String get settingsGeneralEcdMigrationAction => '変換…';
+
+  @override
   String get settingsGeneralBackupRestoreHeader => 'バックアップと復元';
 
   @override
@@ -4773,6 +4783,58 @@ class AppLocalizationsJa extends AppLocalizations {
       other: '$beats拍',
     );
     return '$_temp0';
+  }
+
+  @override
+  String danceFigureBars(String bars, int halfBars) {
+    String _temp0 = intl.Intl.pluralLogic(
+      halfBars,
+      locale: localeName,
+      other: '$bars小節',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get danceEditorBarsLabel => '小節';
+
+  @override
+  String get danceEditorStepUntimed => '独自の長さなし';
+
+  @override
+  String danceEditorBarsRangeError(int max) {
+    return '$maxまでの整数または半小節で入力してください';
+  }
+
+  @override
+  String danceEditorHalfBarRefused(int beatsPerBar) {
+    return '1小節$beatsPerBar拍では小節単位で入力してください';
+  }
+
+  @override
+  String get danceEditorSequenceSpanLabel => '全体の小節';
+
+  @override
+  String get danceEditorSequenceSpanEmptyHelp =>
+      '空欄にするとステップの小節を合計します。「A、B、Cを1〜4小節で」のように、シーケンス全体の小節を入力することもできます。';
+
+  @override
+  String get danceEditorSequenceSpanHelp =>
+      'ステップはこの小節を共有し、各ステップは自分の小節を空欄にできます。';
+
+  @override
+  String danceEditorSequenceSpanMismatch(String steps, String span) {
+    return 'ステップは$stepsですが、シーケンスは$spanです。';
+  }
+
+  @override
+  String danceEditorSequenceSpanNoRoom(String steps, String span) {
+    return '小節を持つステップがシーケンスの$spanのうち$stepsを使い、残りのステップの分がありません。';
+  }
+
+  @override
+  String danceEditorSequenceOverPhraseTimed(String length, String limit) {
+    return 'このシーケンスは$lengthで、1フレーズ（$limit）より長くなっています。';
   }
 
   @override
@@ -8357,6 +8419,35 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String validationSequenceSpanMismatch(
+    int position,
+    int actual,
+    int expected,
+  ) {
+    return 'フィギュア$positionのシーケンスのステップは$actual拍ですが、シーケンスは$expected拍です。';
+  }
+
+  @override
+  String validationSequenceSpanNoRoom(int position, int actual, int expected) {
+    return 'フィギュア$positionのシーケンスで長さのあるステップが$actual拍を使い、$expected拍のうち残りのステップの分がありません。';
+  }
+
+  @override
+  String validationOtherFormFigures(
+    int count,
+    String danceForm,
+    String figureForm,
+    String pickerForm,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count個のフィギュア',
+    );
+    return 'これは$danceFormのダンスですが、$_temp0が$figureFormのものです。そのまま残りますが、フィギュアの選択肢には$pickerFormのフィギュアだけが表示されます。';
+  }
+
+  @override
   String validationIncompleteFigure(int position) {
     return 'フィギュア$positionは未完成のため、保存しても含まれません。';
   }
@@ -8846,6 +8937,11 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String commonMoveItemDown(String name) {
     return '$nameを下に移動';
+  }
+
+  @override
+  String commonMovedItemPosition(String name, int position, int count) {
+    return '$nameを$count件中$position番目に移動しました';
   }
 
   @override
@@ -9850,6 +9946,94 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get reparseErrorBody =>
       'コレクションのスキャン中に問題が発生しました。何も変更されていません。もう一度お試しください。';
+
+  @override
+  String get ecdMigrationScreenTitle => 'イングリッシュダンスを変換';
+
+  @override
+  String ecdMigrationIntro(int danceCount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      danceCount,
+      locale: localeName,
+      other: '$danceCount件のイングリッシュダンス',
+    );
+    return '$_temp0が、まだコントラのムーブ、認識できないフィギュア、またはコントラのフォーメーションを使っています。変換するダンスを選んでから確認してください。イングリッシュでの意味がはっきりしないムーブはそのまま残ります。';
+  }
+
+  @override
+  String ecdMigrationPreviewMoves(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '変換するムーブ: $count件',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String ecdMigrationPreviewLines(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '読み取れるようになった認識できないフィギュア: $count件',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ecdMigrationPreviewShape => 'イングリッシュのフォーメーション';
+
+  @override
+  String ecdMigrationConvertButton(int danceCount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      danceCount,
+      locale: localeName,
+      other: '$danceCount件のダンスを変換',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ecdMigrationConfirmTitle => 'これらのイングリッシュダンスを変換しますか？';
+
+  @override
+  String ecdMigrationConfirmBody(int danceCount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      danceCount,
+      locale: localeName,
+      other: '$danceCount件のダンス',
+    );
+    return '$_temp0のフィギュアとフォーメーションが変わります。タグ、評価、メモなどはすべてそのまま残ります。元に戻せないため、先にバックアップをとることをおすすめします。';
+  }
+
+  @override
+  String get ecdMigrationConfirmAction => '変換';
+
+  @override
+  String ecdMigrationDoneSnack(int danceCount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      danceCount,
+      locale: localeName,
+      other: '$danceCount件のダンスを変換しました。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ecdMigrationNothingSnack => '変換するものはありません。';
+
+  @override
+  String get ecdMigrationFailed => 'ダンスを変換できませんでした。何も変更されていません。もう一度お試しください。';
+
+  @override
+  String get ecdMigrationEmptyTitle => '変換するものはありません';
+
+  @override
+  String get ecdMigrationEmptyBody =>
+      '変換できるものがあるイングリッシュ・カントリーダンスはありません。イングリッシュでの意味がはっきりしない動きはそのまま残ります。';
+
+  @override
+  String get ecdMigrationErrorTitle => 'イングリッシュダンスを確認できませんでした';
 
   @override
   String customFieldsDeleteInUse(String label, int count) {

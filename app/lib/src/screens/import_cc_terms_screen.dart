@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../glossary/cc_term_import.dart';
 import '../theme/app_motion.dart';
+import '../theme/app_spacing.dart';
 import '../widgets/dirty_dialog_guard.dart';
 
 /// The opt-in step, after a Caller's Companion file is imported, that offers
@@ -133,7 +134,12 @@ class _ImportCcTermsScreenState extends State<ImportCcTermsScreen> {
       body: ListView(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md,
+              AppSpacing.md,
+              AppSpacing.md,
+              AppSpacing.xs,
+            ),
             child: Text(
               l10n.importCcTermsIntro,
               style: theme.textTheme.bodyMedium,
@@ -145,7 +151,7 @@ class _ImportCcTermsScreenState extends State<ImportCcTermsScreen> {
       ),
       bottomNavigationBar: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppSpacing.md),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -226,7 +232,10 @@ class _ImportCcTermsScreenState extends State<ImportCcTermsScreen> {
           ),
         ),
         Padding(
-          padding: const EdgeInsetsDirectional.only(start: 56, bottom: 8),
+          padding: const EdgeInsetsDirectional.only(
+            start: AppSpacing.xxl + AppSpacing.xs,
+            bottom: AppSpacing.xs,
+          ),
           child: TextButton.icon(
             key: ValueKey('cc-term-import-edit-$index'),
             onPressed: () => _edit(index),

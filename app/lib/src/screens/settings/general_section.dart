@@ -44,6 +44,7 @@ import '../../widgets/settings_action_row.dart';
 import '../../widgets/settings_dropdown_row.dart';
 import '../import_review_screen.dart';
 import '../published_collection_navigation.dart';
+import '../ecd_migration_screen.dart';
 import '../reparse_custom_figures_screen.dart';
 import '../reference_manager_screen.dart';
 import '../tag_manager_screen.dart';
@@ -587,6 +588,14 @@ class _GeneralSectionState extends State<GeneralSection> {
     );
   }
 
+  /// Opens the opt-in conversion of English dances stored with contra moves
+  /// (ADR-006 §12.1 F5), which previews and asks before it writes.
+  Future<void> _onEcdMigration() async {
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const EcdMigrationScreen()));
+  }
+
   Future<void> _onPublishedCollections() =>
       pushPublishedCollectionCatalog(context);
 
@@ -666,6 +675,7 @@ class _GeneralSectionState extends State<GeneralSection> {
       onImportDances: _onImportDances,
       onPublishedCollections: _onPublishedCollections,
       onReparseCustomFigures: _onReparseCustomFigures,
+      onEcdMigration: _onEcdMigration,
     );
   }
 }
@@ -701,6 +711,7 @@ class _GeneralView extends StatelessWidget {
     required this.onImportDances,
     required this.onPublishedCollections,
     required this.onReparseCustomFigures,
+    required this.onEcdMigration,
   });
 
   final bool sortIgnoreArticles;
@@ -741,6 +752,7 @@ class _GeneralView extends StatelessWidget {
 
   /// Opens the #417 re-check-custom-figures flow.
   final Future<void> Function() onReparseCustomFigures;
+  final Future<void> Function() onEcdMigration;
 
   @override
   Widget build(BuildContext context) {
@@ -909,6 +921,16 @@ class _GeneralView extends StatelessWidget {
             onPressed: onReparseCustomFigures,
             icon: const Icon(Icons.auto_fix_high_outlined),
             label: Text(l10n.settingsGeneralReparseCustomFiguresAction),
+          ),
+        ),
+        SettingsActionRow(
+          title: Text(l10n.settingsGeneralEcdMigrationTitle),
+          subtitle: Text(l10n.settingsGeneralEcdMigrationSubtitle),
+          button: OutlinedButton.icon(
+            key: const ValueKey('ecd-migration-button'),
+            onPressed: onEcdMigration,
+            icon: const Icon(Icons.auto_fix_high_outlined),
+            label: Text(l10n.settingsGeneralEcdMigrationAction),
           ),
         ),
         SectionHeader(title: l10n.settingsGeneralBackupRestoreHeader),

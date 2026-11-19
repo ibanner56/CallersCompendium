@@ -536,11 +536,13 @@ void main() {
       // decided (map it exactly, or refuse it) rather than defaulting to refused.
       final leftOut = knownIds.difference(tableIds.toSet()).toList()..sort();
       expect(leftOut, const [
+        'cast',
         'circular_hey',
         'courtesy_turn',
         'custom',
         'form_short_waves',
         'forward_and_back',
+        'hand_cast',
         'hey_for_three',
         'meltdown_swing',
         'orbit',

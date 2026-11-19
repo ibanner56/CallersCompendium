@@ -4542,6 +4542,18 @@
   "@settingsGeneralReparseCustomFiguresAction": {
     "description": "Button label that opens the re-check custom figures flow; the ellipsis indicates more review follows."
   },
+  "settingsGeneralEcdMigrationTitle": "Convert English dances",
+  "@settingsGeneralEcdMigrationTitle": {
+    "description": "Settings row title for the opt-in migration of English country dances stored with contra moves (ADR-006 F5)."
+  },
+  "settingsGeneralEcdMigrationSubtitle": "English country dances stored before the app knew English figures still use contra moves. Convert the moves that mean the same in English dancing, re-read unrecognized figures, and give each dance its English formation. You choose the dances and confirm before anything changes.",
+  "@settingsGeneralEcdMigrationSubtitle": {
+    "description": "Settings row subtitle explaining the English-dance conversion."
+  },
+  "settingsGeneralEcdMigrationAction": "Convert…",
+  "@settingsGeneralEcdMigrationAction": {
+    "description": "Button that opens the English-dance conversion screen."
+  },
   "settingsGeneralBackupRestoreHeader": "Backup & restore",
   "@settingsGeneralBackupRestoreHeader": {
     "description": "General settings section header for backup and restore actions."
@@ -6375,6 +6387,92 @@
       "beats": {
         "type": "int",
         "example": "8"
+      }
+    }
+  },
+  "danceFigureBars": "{halfBars, plural, =1{{bars} bar} =2{{bars} bar} other{{bars} bars}}",
+  "@danceFigureBars": {
+    "description": "A figure's length in bars, for an English country dance: {bars} is the count as written, such as 4 or 1½; {halfBars} is the same count in half bars, which picks the plural (1 is half a bar, 2 is one bar).",
+    "placeholders": {
+      "bars": {
+        "type": "String"
+      },
+      "halfBars": {
+        "type": "int"
+      }
+    }
+  },
+  "danceEditorBarsLabel": "Bars",
+  "@danceEditorBarsLabel": {
+    "description": "Label of a figure's length field in the dance editor for an English country dance, which is timed in bars rather than beats."
+  },
+  "danceEditorStepUntimed": "No timing of its own",
+  "@danceEditorStepUntimed": {
+    "description": "Shown for a step of a sequence that has no bars of its own: the sequence as a whole states its bars, as in 'A, B and C in bars 1–4'."
+  },
+  "danceEditorBarsRangeError": "Enter whole or half bars, up to {max}",
+  "@danceEditorBarsRangeError": {
+    "description": "Error under a bars field in the dance editor when the text is not a number of whole or half bars within range.",
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "danceEditorHalfBarRefused": "Whole bars only, with {beatsPerBar} beats to the bar",
+  "@danceEditorHalfBarRefused": {
+    "description": "Error under a bars field when half a bar is entered in a tune whose bar has an odd number of beats, such as triple time.",
+    "placeholders": {
+      "beatsPerBar": {
+        "type": "int"
+      }
+    }
+  },
+  "danceEditorSequenceSpanLabel": "Bars for all",
+  "@danceEditorSequenceSpanLabel": {
+    "description": "Label of the field giving the bars a whole sequence takes in an English country dance, as in 'A, B and C in bars 1–4'."
+  },
+  "danceEditorSequenceSpanEmptyHelp": "Leave empty to add up the steps' bars, or give the bars the whole sequence takes, as in \"A, B and C in bars 1–4\".",
+  "@danceEditorSequenceSpanEmptyHelp": {
+    "description": "Help under the empty 'Bars for all' field of a sequence in an English country dance."
+  },
+  "danceEditorSequenceSpanHelp": "The steps share these bars, and each may leave its own bars empty.",
+  "@danceEditorSequenceSpanHelp": {
+    "description": "Help under the filled 'Bars for all' field of a sequence in an English country dance."
+  },
+  "danceEditorSequenceSpanMismatch": "The steps take {steps}, but the sequence takes {span}.",
+  "@danceEditorSequenceSpanMismatch": {
+    "description": "Warning in a sequence of an English country dance whose every step has its own bars and they don't add up to the sequence's. {steps} and {span} are lengths such as '4 bars'.",
+    "placeholders": {
+      "steps": {
+        "type": "String"
+      },
+      "span": {
+        "type": "String"
+      }
+    }
+  },
+  "danceEditorSequenceSpanNoRoom": "The steps with bars of their own take {steps} of the sequence's {span}, leaving none for the rest.",
+  "@danceEditorSequenceSpanNoRoom": {
+    "description": "Warning in a sequence of an English country dance whose timed steps already fill its bars, leaving none for its untimed steps. {steps} and {span} are lengths such as '4 bars'.",
+    "placeholders": {
+      "steps": {
+        "type": "String"
+      },
+      "span": {
+        "type": "String"
+      }
+    }
+  },
+  "danceEditorSequenceOverPhraseTimed": "This sequence is {length}, longer than one phrase ({limit}).",
+  "@danceEditorSequenceOverPhraseTimed": {
+    "description": "Warning in a sequence of an English country dance that runs longer than one phrase. {length} and {limit} are lengths such as '10 bars'.",
+    "placeholders": {
+      "length": {
+        "type": "String"
+      },
+      "limit": {
+        "type": "String"
       }
     }
   },
@@ -11334,6 +11432,54 @@
       }
     }
   },
+  "validationSequenceSpanMismatch": "The steps of the sequence in figure {position} take {actual} beats; the sequence takes {expected}.",
+  "@validationSequenceSpanMismatch": {
+    "description": "Editor warning for an English country dance's sequence whose steps each have a count that doesn't add up to the sequence's own. {position} is the figure holding it.",
+    "placeholders": {
+      "position": {
+        "type": "int"
+      },
+      "actual": {
+        "type": "int"
+      },
+      "expected": {
+        "type": "int"
+      }
+    }
+  },
+  "validationSequenceSpanNoRoom": "The timed steps of the sequence in figure {position} take {actual} beats, leaving none of its {expected} for the rest.",
+  "@validationSequenceSpanNoRoom": {
+    "description": "Editor warning for an English country dance's sequence whose timed steps fill its count, leaving none for its untimed steps. {position} is the figure holding it.",
+    "placeholders": {
+      "position": {
+        "type": "int"
+      },
+      "actual": {
+        "type": "int"
+      },
+      "expected": {
+        "type": "int"
+      }
+    }
+  },
+  "validationOtherFormFigures": "This dance is {danceForm}, but {count, plural, =1{1 figure is} other{{count} figures are}} from {figureForm}. They are kept as they are, but the figure picker offers only {pickerForm} figures.",
+  "@validationOtherFormFigures": {
+    "description": "Editor warning when a dance holds figures of another dance type than its own, for example after its type was changed. {danceForm} and {figureForm} are dance type names such as 'Contra' or 'English (ECD)'. {pickerForm} is the type whose figures the picker offers: the dance's own, or Contra's for a type that has no figure list of its own yet (Square).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "danceForm": {
+        "type": "String"
+      },
+      "figureForm": {
+        "type": "String"
+      },
+      "pickerForm": {
+        "type": "String"
+      }
+    }
+  },
   "validationIncompleteFigure": "Figure {position} is not complete, so Save leaves it out.",
   "@validationIncompleteFigure": {
     "description": "Dance-editor warning (AUTH-2): the figure row at {position} (1-based, counting the rows of the figure list) is not complete, such as a group (meanwhile, modifier or sequence) with fewer than two of its figures filled in, a modifier group with no Core, or a row with no move that holds a walkthrough step, so saving the dance leaves it out. 'Save' is the editor's Save button (commonSave).",
@@ -12063,6 +12209,24 @@
       "name": {
         "type": "String",
         "example": "Intermediate"
+      }
+    }
+  },
+  "commonMovedItemPosition": "{name} moved to position {position} of {count}",
+  "@commonMovedItemPosition": {
+    "description": "Screen-reader announcement after the move-up or move-down button of a reorderable settings list has moved an item, saying where it now is; positions count from 1.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Intermediate"
+      },
+      "position": {
+        "type": "int",
+        "example": "2"
+      },
+      "count": {
+        "type": "int",
+        "example": "5"
       }
     }
   },
@@ -13423,6 +13587,96 @@
   "reparseErrorBody": "Something went wrong while scanning your collection. Nothing was changed. You can try again.",
   "@reparseErrorBody": {
     "description": "Body of the error state when scanning for upgradable figures fails."
+  },
+  "ecdMigrationScreenTitle": "Convert English dances",
+  "@ecdMigrationScreenTitle": {
+    "description": "App-bar title of the English-dance conversion screen."
+  },
+  "ecdMigrationIntro": "{danceCount, plural, =1{1 English dance still uses} other{{danceCount} English dances still use}} contra moves, unrecognized figures or a contra formation. Choose the dances to convert, then confirm. A move with no clear English meaning stays as it is.",
+  "@ecdMigrationIntro": {
+    "description": "Intro paragraph on the English-dance conversion screen.",
+    "placeholders": {
+      "danceCount": {
+        "type": "int"
+      }
+    }
+  },
+  "ecdMigrationPreviewMoves": "{count, plural, =1{1 move to convert} other{{count} moves to convert}}",
+  "@ecdMigrationPreviewMoves": {
+    "description": "Per-dance line: how many contra moves would become English figures.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "ecdMigrationPreviewLines": "{count, plural, =1{1 unrecognized figure now read} other{{count} unrecognized figures now read}}",
+  "@ecdMigrationPreviewLines": {
+    "description": "Per-dance line: how many unrecognized figures the English parser would now read.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "ecdMigrationPreviewShape": "English formation",
+  "@ecdMigrationPreviewShape": {
+    "description": "Per-dance line: the dance's formation would take its English shape (for example duple proper becomes duple minor)."
+  },
+  "ecdMigrationConvertButton": "Convert {danceCount, plural, =1{1 dance} other{{danceCount} dances}}",
+  "@ecdMigrationConvertButton": {
+    "description": "Primary button that converts the chosen English dances.",
+    "placeholders": {
+      "danceCount": {
+        "type": "int"
+      }
+    }
+  },
+  "ecdMigrationConfirmTitle": "Convert these English dances?",
+  "@ecdMigrationConfirmTitle": {
+    "description": "Title of the confirm dialog before converting English dances."
+  },
+  "ecdMigrationConfirmBody": "This changes the figures and formation of {danceCount, plural, =1{1 dance} other{{danceCount} dances}}. Tags, ratings, notes and everything else are kept. This can't be undone, so you may want to back up first.",
+  "@ecdMigrationConfirmBody": {
+    "description": "Body of the confirm dialog before converting English dances.",
+    "placeholders": {
+      "danceCount": {
+        "type": "int"
+      }
+    }
+  },
+  "ecdMigrationConfirmAction": "Convert",
+  "@ecdMigrationConfirmAction": {
+    "description": "Confirm-dialog action that converts the English dances."
+  },
+  "ecdMigrationDoneSnack": "Converted {danceCount, plural, =1{1 dance} other{{danceCount} dances}}.",
+  "@ecdMigrationDoneSnack": {
+    "description": "Snackbar confirming how many English dances were converted.",
+    "placeholders": {
+      "danceCount": {
+        "type": "int"
+      }
+    }
+  },
+  "ecdMigrationNothingSnack": "Nothing to convert.",
+  "@ecdMigrationNothingSnack": {
+    "description": "Snackbar shown when a conversion run changed nothing."
+  },
+  "ecdMigrationFailed": "Could not convert the dances. Nothing was changed. Please try again.",
+  "@ecdMigrationFailed": {
+    "description": "Snackbar shown when the English-dance conversion fails."
+  },
+  "ecdMigrationEmptyTitle": "Nothing to convert",
+  "@ecdMigrationEmptyTitle": {
+    "description": "Empty-state title when no English dance needs converting."
+  },
+  "ecdMigrationEmptyBody": "None of your English country dances has anything this can convert. A move with no clear English meaning stays as it is.",
+  "@ecdMigrationEmptyBody": {
+    "description": "Empty-state body when no English dance has anything the conversion can change (some may still hold contra moves it leaves alone)."
+  },
+  "ecdMigrationErrorTitle": "Could not check your English dances",
+  "@ecdMigrationErrorTitle": {
+    "description": "Error-state title when scanning English dances fails."
   },
   "customFieldsDeleteInUse": "Can't delete \"{label}\": still used by {count, plural, =1{1 dance} other{{count} dances}}. Remove the value from all dances first.",
   "@customFieldsDeleteInUse": {

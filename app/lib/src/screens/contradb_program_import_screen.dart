@@ -16,6 +16,7 @@ import '../data/program_title_date.dart';
 import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
+import '../theme/app_spacing.dart';
 import '../theme/app_theme_extension.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/app_bar_text_action.dart';
@@ -676,7 +677,7 @@ class _ContraDbProgramImportScreenState
         ),
         body: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppSpacing.md),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -779,7 +780,7 @@ class _ContraDbProgramImportScreenState
     final l10n = AppLocalizations.of(context);
     final progress = _commitProgress;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Row(
         children: [
           SizedBox(
@@ -1002,13 +1003,13 @@ class _ContraDbProgramImportScreenState
         if (markerBadge != null)
           Padding(
             key: const ValueKey('contradb-program-preview-marker'),
-            padding: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.only(bottom: AppSpacing.xs),
             child: Align(alignment: Alignment.centerLeft, child: markerBadge),
           ),
         _buildEventDateRow(),
         const SizedBox(height: 8),
         Padding(
-          padding: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.only(bottom: AppSpacing.xs),
           child: Text(
             l10n.importContraDbActivityCount(
               activities.length,
@@ -1088,7 +1089,7 @@ class _ContraDbProgramImportScreenState
         ),
         if (_dateAutoDetected && _eventDate != null)
           Padding(
-            padding: const EdgeInsets.only(top: 4),
+            padding: const EdgeInsets.only(top: AppSpacing.xxs),
             child: Row(
               key: const ValueKey('contradb-program-date-detected-hint'),
               children: [

@@ -5,6 +5,7 @@ import '../../l10n/app_localizations.dart';
 import '../data/date_format_scope.dart';
 import '../data/regional_formats.dart';
 import '../data/venue_label.dart';
+import '../theme/app_spacing.dart';
 import '../theme/selected_row.dart';
 import 'program_status_chip.dart';
 import 'right_click_menu.dart';
@@ -92,7 +93,7 @@ class ProgramListTile extends StatelessWidget {
         ),
       ),
       subtitle: Padding(
-        padding: const EdgeInsets.only(top: 4),
+        padding: const EdgeInsets.only(top: AppSpacing.xxs),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -112,7 +113,10 @@ class ProgramListTile extends StatelessWidget {
       isThreeLine: true,
       trailing: _buildTrailing(l10n),
       onTap: onTap,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.xs,
+      ),
     );
     // A right-click on the row opens the ⋮ menu ([_actionsMenu]).
     return RightClickMenu(menuKey: _actionsMenuKey, child: tile);

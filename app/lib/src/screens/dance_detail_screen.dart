@@ -4,6 +4,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../widgets/bar_timing.dart';
 import '../data/user_figures_scope.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/calling_card_settings_scope.dart';
@@ -1335,11 +1336,14 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           ],
         ),
         switch (dance.figuresSource) {
-          DecodedFigures(:final figures) => FigureTable(
-            figures: figures,
-            phraseStructure: dance.phraseStructure,
-            renderer: UserFiguresScope.rendererOf(context),
-            dialect: dialect,
+          DecodedFigures(:final figures) => BarTimingScope.forDance(
+            dance,
+            child: FigureTable(
+              figures: figures,
+              phraseStructure: dance.phraseStructure,
+              renderer: UserFiguresScope.rendererOf(context),
+              dialect: dialect,
+            ),
           ),
           // An empty table would say the dance has no figures, which is false
           // and is the claim this whole change exists to stop making.
@@ -1514,7 +1518,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           ))
             Padding(
               // intentional: 2px optical inset, below the 4px AppSpacing grid
-              padding: const EdgeInsets.symmetric(vertical: 2),
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxxs),
               child: Text(
                 '${field.label}: ${canonicalDiscouragedTerms ? _proseRenderer.renderFreeTextWithCanonicalDiscouragedTerms(field.text, dialect) : field.text}',
               ),
@@ -1648,7 +1652,7 @@ class _StatusBanner extends StatelessWidget {
             child: Text(
               label,
               style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
@@ -1764,7 +1768,7 @@ class _LinkRow extends StatelessWidget {
             child: ExcludeSemantics(
               child: Padding(
                 // intentional: 2px optical inset, below the 4px AppSpacing grid
-                padding: const EdgeInsets.symmetric(vertical: 2),
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxxs),
                 child: Row(
                   children: [
                     Icon(icon, size: 16),
@@ -1782,7 +1786,7 @@ class _LinkRow extends StatelessWidget {
 
     Widget content = Padding(
       // intentional: 2px optical inset, below the 4px AppSpacing grid
-      padding: const EdgeInsets.symmetric(vertical: 2),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxxs),
       child: Row(
         children: [
           Icon(icon, size: 16),
@@ -1876,7 +1880,7 @@ class _SourceCitationRow extends StatelessWidget {
         children: [
           const Padding(
             // intentional: 2px optical inset, below the 4px AppSpacing grid
-            padding: EdgeInsets.only(top: 2),
+            padding: EdgeInsets.only(top: AppSpacing.xxxs),
             child: Icon(Icons.menu_book_outlined, size: 16),
           ),
           const SizedBox(width: AppSpacing.xs),

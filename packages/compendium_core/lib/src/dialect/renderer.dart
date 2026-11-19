@@ -1,6 +1,7 @@
 import 'package:collection/collection.dart';
 
 import '../model/figure.dart';
+import '../taxonomy/cast_vocabulary.dart';
 import '../taxonomy/dance_vocabulary.dart'
     show displayDirectionPhrases, displayFacingPhrases;
 import '../taxonomy/gate_facing.dart';
@@ -2826,8 +2827,31 @@ class FigureRenderer {
   /// `long_lines` takes none although `forward_and_back`, its target since
   /// taxonomy v39, has one: it keeps the line it had as a move, "long lines"
   /// from its template with the direction added by [renderSummary].
-  static _DisplayBaseRenderer? _displayBaseFor(Figure figure, MoveDef def) =>
-      figure.move == 'long_lines' ? null : _displayBaseRenderers[def.id];
+  ///
+  /// `hand_cast` (taxonomy v40), an alias of `gate` listed as a move, takes
+  /// `gate`'s renderer under its own id and name, so it reads "hand cast" with
+  /// a gate's wording around it ("neighbor hand cast ½ to face up"), and a
+  /// dialect's name for it, never one for `gate`, applies.
+  static _DisplayBaseRenderer? _displayBaseFor(Figure figure, MoveDef def) {
+    if (figure.move == 'long_lines') return null;
+    final base = _displayBaseRenderers[def.id];
+    if (figure.move != 'hand_cast' || base == null) return base;
+    final aliasId = figure.move;
+    return (r, def, params, dialect, verbose, decimals) => base(
+      r,
+      MoveDef(
+        id: aliasId,
+        displayName:
+            r.taxonomy.aliases[aliasId]?.displayName ?? def.displayName,
+        params: def.params,
+        renderTemplate: def.renderTemplate,
+      ),
+      params,
+      dialect,
+      verbose,
+      decimals,
+    );
+  }
 
   /// DISPLAY-ONLY base-line renderers that adopt ContraDB `libfigure`
   /// (`app/javascript/libfigure/figure.js` @13f38a5) `words()` sentence
@@ -3103,6 +3127,47 @@ class FigureRenderer {
         'direction': direction,
         'facing': facing,
       }, '{who} {move} {whom} {direction}{facing}');
+    },
+    // Contra's cast (taxonomy v40, issue #770). The maintainer's wording, given
+    // as a rough template rather than a rule:
+    //   {who} cast {back | back {direction} | {direction}} {places} places
+    //   [around {whom}] [to {destination}]
+    // An unstated direction reads "cast back"; a shoulder (`left`/`right`)
+    // reads "cast back left"/"cast back right", even when it is the dancers'
+    // role's usual one (the maintainer's ruling: unlike a chain's hand, it is
+    // never left unsaid); `up`/`down` read bare. The
+    // canonical render keeps expanding the flat template, so search and dedupe
+    // see the stored token ("cast right") rather than this wording.
+    'cast': (r, def, params, dialect, verbose, decimals) {
+      final swho = r._subjectToken(
+        params['who'],
+        dialect,
+        omitUnspecified: true,
+      );
+      final move = r._renderMoveName(def.id, def.displayName, params, dialect);
+      final directionRaw = params['direction'];
+      final direction = switch (directionRaw) {
+        'up' || 'down' => directionRaw as String,
+        'left' || 'right' => 'back $directionRaw',
+        // An unexpected value is surfaced after "back" rather than dropped.
+        _ when _isUnspecified(directionRaw) || directionRaw == null => 'back',
+        _ => 'back ${_displayScalar(directionRaw)}',
+      };
+      final placesRaw = params['places'];
+      final places = placesRaw is int ? _formatPlaces(placesRaw) : '';
+      final whomRaw = params['whom'];
+      final around = (!_isUnspecified(whomRaw) && whomRaw != null)
+          ? 'around ${r._displaySubject(whomRaw, dialect)}'
+          : '';
+      final destination = castDestinationPhrase(params['destination']);
+      return _displayTemplate({
+        'who': swho,
+        'move': move,
+        'direction': direction,
+        'places': places,
+        'around': around,
+        'destination': destination,
+      }, '{who} {move} {direction} {places} {around} {destination}');
     },
     // The side belongs to the verb: "slide left along set", not the canonical
     // "slide along set left". The taxonomy's name is spelled out around the

@@ -45,9 +45,9 @@ void main() {
   // -------------------------------------------------------------------------
 
   group('Part 1 — balance.hand param', () {
-    test('contraTaxonomyVersion is 39', () {
-      expect(contraTaxonomyVersion, 39);
-      expect(tax.version, 39);
+    test('contraTaxonomyVersion is 40', () {
+      expect(contraTaxonomyVersion, 40);
+      expect(tax.version, 40);
     });
 
     test('balance exposes a hand param defaulting to unspecified', () {
@@ -416,8 +416,9 @@ void main() {
   // -------------------------------------------------------------------------
 
   group('alias enumeration', () {
-    test('exactly six aliases in the contra taxonomy', () {
-      expect(tax.aliases.length, 6);
+    test('exactly seven aliases in the contra taxonomy', () {
+      // v40 (#770) added `hand_cast`, an alias of `gate` with no inverse pair.
+      expect(tax.aliases.length, 7);
     });
 
     test('exactly three inverse pairs: two handedness, one formation', () {
@@ -434,6 +435,11 @@ void main() {
 
     test('meltdown_swing has no inverse pair', () {
       expect(tax.aliases['meltdown_swing']?.inversePairId, isNull);
+    });
+
+    test('hand_cast has no inverse pair and pins nothing', () {
+      expect(tax.aliases['hand_cast']?.inversePairId, isNull);
+      expect(tax.aliases['hand_cast']?.pinnedParams, isEmpty);
     });
   });
 }

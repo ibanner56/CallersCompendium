@@ -14,8 +14,8 @@ void main() {
   Figure poussette(Map<String, Object?> params) =>
       testFigure(move: 'poussette', params: params);
 
-  test('contraTaxonomyVersion is 39', () {
-    expect(contraTaxonomyVersion, 39);
+  test('contraTaxonomyVersion is 40', () {
+    expect(contraTaxonomyVersion, 40);
   });
 
   group('the amount param', () {

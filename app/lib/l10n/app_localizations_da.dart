@@ -3635,6 +3635,16 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsGeneralReparseCustomFiguresAction => 'Genkontrollér…';
 
   @override
+  String get settingsGeneralEcdMigrationTitle => 'Konvertér engelske danse';
+
+  @override
+  String get settingsGeneralEcdMigrationSubtitle =>
+      'Engelske country dances, der blev gemt, før appen kendte engelske figurer, bruger stadig contra-bevægelser. Konvertér de bevægelser, der betyder det samme i engelsk dans, læs ukendte figurer igen, og giv hver dans dens engelske formation. Du vælger dansene og bekræfter, før noget ændres.';
+
+  @override
+  String get settingsGeneralEcdMigrationAction => 'Konvertér…';
+
+  @override
   String get settingsGeneralBackupRestoreHeader =>
       'Sikkerhedskopiering og gendannelse';
 
@@ -5002,6 +5012,60 @@ class AppLocalizationsDa extends AppLocalizations {
       one: '1 slag',
     );
     return '$_temp0';
+  }
+
+  @override
+  String danceFigureBars(String bars, int halfBars) {
+    String _temp0 = intl.Intl.pluralLogic(
+      halfBars,
+      locale: localeName,
+      other: '$bars takter',
+      two: '$bars takt',
+      one: '$bars takt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get danceEditorBarsLabel => 'Takter';
+
+  @override
+  String get danceEditorStepUntimed => 'Ingen egen varighed';
+
+  @override
+  String danceEditorBarsRangeError(int max) {
+    return 'Angiv hele eller halve takter, op til $max';
+  }
+
+  @override
+  String danceEditorHalfBarRefused(int beatsPerBar) {
+    return 'Kun hele takter med $beatsPerBar slag pr. takt';
+  }
+
+  @override
+  String get danceEditorSequenceSpanLabel => 'Takter i alt';
+
+  @override
+  String get danceEditorSequenceSpanEmptyHelp =>
+      'Lad feltet være tomt for at lægge trinnenes takter sammen, eller angiv takterne for hele sekvensen, som i “A, B og C i takt 1–4”.';
+
+  @override
+  String get danceEditorSequenceSpanHelp =>
+      'Trinnene deler disse takter, og hvert trin kan lade sine egne takter være tomme.';
+
+  @override
+  String danceEditorSequenceSpanMismatch(String steps, String span) {
+    return 'Trinnene varer $steps, men sekvensen varer $span.';
+  }
+
+  @override
+  String danceEditorSequenceSpanNoRoom(String steps, String span) {
+    return 'Trinnene med egne takter varer $steps af sekvensens $span, så der intet er tilbage til resten.';
+  }
+
+  @override
+  String danceEditorSequenceOverPhraseTimed(String length, String limit) {
+    return 'Denne sekvens varer $length, længere end én frase ($limit).';
   }
 
   @override
@@ -8710,6 +8774,36 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String validationSequenceSpanMismatch(
+    int position,
+    int actual,
+    int expected,
+  ) {
+    return 'Trinnene i sekvensen i figur $position varer $actual slag; sekvensen varer $expected.';
+  }
+
+  @override
+  String validationSequenceSpanNoRoom(int position, int actual, int expected) {
+    return 'De tidsangivne trin i sekvensen i figur $position varer $actual slag, så der intet er tilbage af dens $expected til resten.';
+  }
+
+  @override
+  String validationOtherFormFigures(
+    int count,
+    String danceForm,
+    String figureForm,
+    String pickerForm,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count figurer er',
+      one: '1 figur er',
+    );
+    return 'Dette er en $danceForm-dans, men $_temp0 fra $figureForm. De beholdes som de er, men figurvælgeren tilbyder kun $pickerForm-figurer.';
+  }
+
+  @override
   String validationIncompleteFigure(int position) {
     return 'Figur $position er ikke færdig, så Gem udelader den.';
   }
@@ -9218,6 +9312,11 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String commonMoveItemDown(String name) {
     return 'Flyt $name ned';
+  }
+
+  @override
+  String commonMovedItemPosition(String name, int position, int count) {
+    return '$name flyttet til position $position af $count';
   }
 
   @override
@@ -10259,6 +10358,102 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get reparseErrorBody =>
       'Noget gik galt under scanning af din samling. Intet blev ændret. Du kan prøve igen.';
+
+  @override
+  String get ecdMigrationScreenTitle => 'Konvertér engelske danse';
+
+  @override
+  String ecdMigrationIntro(int danceCount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      danceCount,
+      locale: localeName,
+      other: '$danceCount engelske danse bruger',
+      one: '1 engelsk dans bruger',
+    );
+    return '$_temp0 stadig contra-bevægelser, ukendte figurer eller en contra-formation. Vælg de danse, der skal konverteres, og bekræft derefter. En bevægelse uden en klar engelsk betydning forbliver, som den er.';
+  }
+
+  @override
+  String ecdMigrationPreviewMoves(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count bevægelser at konvertere',
+      one: '1 bevægelse at konvertere',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String ecdMigrationPreviewLines(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ukendte figurer læses nu',
+      one: '1 ukendt figur læses nu',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ecdMigrationPreviewShape => 'Engelsk formation';
+
+  @override
+  String ecdMigrationConvertButton(int danceCount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      danceCount,
+      locale: localeName,
+      other: '$danceCount danse',
+      one: '1 dans',
+    );
+    return 'Konvertér $_temp0';
+  }
+
+  @override
+  String get ecdMigrationConfirmTitle => 'Konvertér disse engelske danse?';
+
+  @override
+  String ecdMigrationConfirmBody(int danceCount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      danceCount,
+      locale: localeName,
+      other: '$danceCount danse',
+      one: '1 dans',
+    );
+    return 'Dette ændrer figurerne og formationen for $_temp0. Tags, bedømmelser, noter og alt andet bevares. Det kan ikke fortrydes, så du vil måske tage en sikkerhedskopi først.';
+  }
+
+  @override
+  String get ecdMigrationConfirmAction => 'Konvertér';
+
+  @override
+  String ecdMigrationDoneSnack(int danceCount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      danceCount,
+      locale: localeName,
+      other: '$danceCount danse',
+      one: '1 dans',
+    );
+    return 'Konverterede $_temp0.';
+  }
+
+  @override
+  String get ecdMigrationNothingSnack => 'Intet at konvertere.';
+
+  @override
+  String get ecdMigrationFailed =>
+      'Kunne ikke konvertere dansene. Intet blev ændret. Prøv venligst igen.';
+
+  @override
+  String get ecdMigrationEmptyTitle => 'Intet at konvertere';
+
+  @override
+  String get ecdMigrationEmptyBody =>
+      'Ingen af dine engelske country dances har noget, der kan konverteres. Et trin uden en klar engelsk betydning forbliver som det er.';
+
+  @override
+  String get ecdMigrationErrorTitle =>
+      'Kunne ikke kontrollere dine engelske danse';
 
   @override
   String customFieldsDeleteInUse(String label, int count) {
