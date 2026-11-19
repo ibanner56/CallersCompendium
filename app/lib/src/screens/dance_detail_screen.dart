@@ -50,6 +50,8 @@ import 'dance_editor_screen.dart';
 import 'perform_dance_screen.dart';
 import 'program_summary_screen.dart';
 import '../widgets/provenance_labels.dart';
+import '../theme/app_breakpoints.dart';
+import '../widgets/adaptive_fab.dart';
 
 /// Dance detail / card (`docs/design/ux.md` §2): header (title, authors,
 /// formation, hook, tags, status banner, provenance line), a figure table
@@ -182,14 +184,6 @@ class DanceDetailScreen extends StatefulWidget {
   /// Overrides the OS print/save dialog for the compact overflow's PDF export.
   /// Defaults to [Printing.layoutPdf]; tests use it to force a failure.
   final PdfLayouter? pdfLayouter;
-
-  /// App-bar action layout breakpoint (logical pixels). Below this width the
-  /// screen collapses its secondary actions (dialect switch, Export, Duplicate,
-  /// Delete) into a single overflow menu so the bar never overflows on a phone;
-  /// at or above it Perform, Share and Add to program stay on the bar and only
-  /// the dialect choice, Duplicate, Re-import and Delete are in the menu.
-  /// 600 mirrors Material 3's compact window-size-class cutoff.
-  static const double compactActionsBreakpoint = 600;
 
   @override
   State<DanceDetailScreen> createState() => _DanceDetailScreenState();
@@ -644,11 +638,11 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   // The dance-detail bar carries more affordances than a bar can hold (dialect
   // switch, Perform, Share, Duplicate, Add-to-program, Re-import, Delete, plus
   // the Edit FAB). At every width Duplicate, Re-import and Delete (last) and
-  // the dialect choice live in an overflow menu. Below
-  // [DanceDetailScreen.compactActionsBreakpoint] the Share actions fold into it
-  // too and Perform is an icon; at or above it Perform is a labelled button and
-  // Share stays on the bar. Every action keeps its key, tooltip/label and
-  // behaviour in both layouts.
+  // the dialect choice live in an overflow menu. Below [AppBreakpoints.compact]
+  // (Material 3's compact window-size-class cutoff) the Share actions fold
+  // into it too and Perform is an icon; at or above it Perform is a labelled
+  // button and Share stays on the bar. Every action keeps its key,
+  // tooltip/label and behaviour in both layouts.
 
   Widget _performButton(DanceDetailData detail) {
     final l10n = AppLocalizations.of(context);
@@ -1000,8 +994,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       title: detail?.dance.title,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final compact =
-              constraints.maxWidth < DanceDetailScreen.compactActionsBreakpoint;
+          final compact = constraints.maxWidth < AppBreakpoints.compact;
           return Scaffold(
             appBar: AppBar(
               title: Text(l10n.danceScreenTitle),
@@ -1044,21 +1037,23 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
             floatingActionButton: detail == null || _isReadOnly
                 ? null
                 : _isPreview
-                ? FloatingActionButton.extended(
+                ? adaptiveExtendedFab(
+                    context,
                     key: const ValueKey('import-dance'),
                     heroTag: 'import-dance',
                     onPressed: widget.onImport == null
                         ? null
                         : () => widget.onImport!(),
                     icon: const Icon(Icons.library_add_outlined),
-                    label: Text(l10n.importAction),
+                    label: l10n.importAction,
                   )
-                : FloatingActionButton.extended(
+                : adaptiveExtendedFab(
+                    context,
                     key: const ValueKey('edit-dance'),
                     heroTag: 'edit-dance',
                     onPressed: _openEditor,
                     icon: const Icon(Icons.edit_outlined),
-                    label: Text(l10n.danceEditFab),
+                    label: l10n.danceEditFab,
                   ),
           );
         },

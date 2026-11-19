@@ -1205,7 +1205,7 @@ void main() {
   });
 
   group('rotation across the split-pane breakpoint (issue #895)', () {
-    /// Rotating a tablet crosses [ProgramsShell.splitBreakpoint] (900px): the
+    /// Rotating a tablet crosses [AppBreakpoints.split] (900px): the
     /// narrow branch builds a bare [ProgramsListScreen]
     /// (`programs_shell.dart:70`) while the wide branch builds one nested in
     /// `Row > SizedBox > ScaffoldMessenger` (`:82-89`) — structurally

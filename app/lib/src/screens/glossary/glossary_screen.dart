@@ -22,6 +22,7 @@ import '../../widgets/dirty_dialog_guard.dart';
 import '../../widgets/sync_now_action.dart';
 import 'compound_editor_screen.dart';
 import 'custom_figure_detail.dart';
+import '../../theme/app_breakpoints.dart';
 
 /// The Glossary destination (issue #695): the shipped, read-only reference of
 /// the app's bundled figures, shown in the user's dialect, and — while the
@@ -33,8 +34,8 @@ import 'custom_figure_detail.dart';
 /// notes on shipped figures, are read from the database. Shown in the app
 /// shell only while the Experimental "Show glossary" setting is on.
 ///
-/// - **Narrow (< [splitBreakpoint]):** a searchable list; selecting a figure
-///   pushes its detail page.
+/// - **Narrow (below [AppBreakpoints.split] of window width):** a searchable
+///   list; selecting a figure pushes its detail page.
 /// - **Wide:** list and detail side by side.
 ///
 /// The global command palette searches dances and programs, not figures, so
@@ -46,9 +47,6 @@ class GlossaryScreen extends StatefulWidget {
   /// The figures to list; defaults to the shipped glossary. A test seam.
   @visibleForTesting
   final List<FigureGlossaryEntry>? entries;
-
-  /// Width (logical pixels) at which list and detail sit side by side.
-  static const double splitBreakpoint = 900;
 
   @override
   State<GlossaryScreen> createState() => _GlossaryScreenState();
@@ -384,7 +382,7 @@ class _GlossaryScreenState extends State<GlossaryScreen> {
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final wide = constraints.maxWidth >= GlossaryScreen.splitBreakpoint;
+          final wide = AppBreakpoints.showsSplit(context, constraints.maxWidth);
           _wide = wide;
           final list = _GlossaryList(
             search: _search,
