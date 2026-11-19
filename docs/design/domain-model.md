@@ -166,8 +166,8 @@ decide what counts and override all four.
   structure (`(8) Neighbor flutterwheel:` over its indented parts), titled
   with the block's name; see [imports.md](imports.md) §1. ADR-006 §5.4
   originally proposed no sequence container; it was added for contra on the
-  maintainer's request in the PR that introduced it. ADR-006's November 2026
-  revision adopts it for ECD, and proposes an ECD-only variant whose steps
+  maintainer's request in the PR that introduced it. ADR-006, accepted in
+  November 2026, adopts it for ECD, with an ECD-only variant whose steps
   may carry no timing of their own (ADR-006 §5.5). Nothing here implements
   that yet.
 - Containers accept 2–6 children (2–4 for a `sequence`) and may nest a
