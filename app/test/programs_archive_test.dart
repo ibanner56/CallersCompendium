@@ -504,6 +504,40 @@ void main() {
       expect(popped, ['archived']);
     });
 
+    testWidgets('while Save is writing, Archive, Delete and Duplicate are '
+        'disabled, so the builder cannot leave twice', (tester) async {
+      final delayed = openTestRepositoriesWithDelayedPrograms();
+      final repos = delayed.repos;
+      await repos.programs.create(_program('p1', 'Alpha'));
+      final popped = await pumpBuilder(
+        tester,
+        repos,
+        size: const Size(1200, 900),
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'Alpha renamed',
+      );
+      await tester.pump();
+
+      delayed.programs.holdNextWrite();
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await delayed.programs.writeStarted;
+      await tester.pump();
+      IconButton button(String key) =>
+          tester.widget<IconButton>(find.byKey(ValueKey(key)));
+      expect(button('archive-program').onPressed, isNull);
+      expect(button('delete-program').onPressed, isNull);
+      expect(button('duplicate-program').onPressed, isNull);
+
+      delayed.programs.releaseWrite();
+      await tester.pumpAndSettle();
+      final stored = (await repos.programs.getById('p1'))!;
+      expect(stored.title, 'Alpha renamed');
+      expect(stored.isArchived, isFalse);
+      expect(popped, hasLength(1));
+    });
+
     testWidgets('an archive that lands while a save is in flight survives the '
         'save', (tester) async {
       final delayed = openTestRepositoriesWithDelayedPrograms();

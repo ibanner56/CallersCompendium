@@ -262,6 +262,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// Re-entrancy guard for [_archive] and [_unarchive], as [_deleting] is for
   /// [_delete].
   bool _archiving = false;
+
+  /// Whether an action that can take the builder off screen (Save, Archive or
+  /// Unarchive, Delete) is running. Each of those, and Duplicate, which
+  /// replaces this route, refuses to start meanwhile: two of them would pop or
+  /// replace twice, and the second would take the route underneath.
+  bool get _leaving => _saving || _archiving || _deleting;
   bool _dirty = false;
   final Set<Object> _pickerImportOwners = {};
   bool _autoCommitEnabled = false;
@@ -2920,7 +2926,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   }
 
   Future<void> _duplicate() async {
-    if (_pickerImporting) return;
+    if (_pickerImporting || _leaving) return;
     final source = _existing;
     if (source == null) return;
     final l10n = AppLocalizations.of(context);
@@ -2958,7 +2964,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   Future<void> _delete() async {
     // Both guards: a Delete started while an Archive is still saving would pop
     // twice, the second pop taking the route underneath (or a dialog).
-    if (_pickerImporting || _deleting || _archiving) return;
+    if (_pickerImporting || _leaving) return;
     final source = _existing;
     if (source == null) return;
     // The title on screen, which a delete saves first (LIFE-14); a blank one
@@ -3057,7 +3063,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// (`'archived'` for a pushed route, [ProgramEditorScreen.onDeleted] when
   /// embedded). No confirmation: archiving loses nothing, and it has an Undo.
   Future<void> _archive() async {
-    if (_pickerImporting || _deleting || _archiving) return;
+    if (_pickerImporting || _leaving) return;
     final source = _existing;
     if (source == null) return;
     final title = switch (_titleController.text.trim()) {
@@ -3134,7 +3140,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// action and this copy's archived state change. A later save reads the
   /// stored archived state ([_persistDraft]), so it cannot undo this.
   Future<void> _unarchive() async {
-    if (_pickerImporting || _deleting || _archiving) return;
+    if (_pickerImporting || _leaving) return;
     final source = _existing;
     if (source == null) return;
     setState(() => _archiving = true);
@@ -3303,7 +3309,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 key: const ValueKey('duplicate-program'),
                 tooltip: l10n.commonDuplicate,
                 icon: const Icon(Icons.copy_all_outlined),
-                onPressed: _pickerImporting ? null : _duplicate,
+                onPressed: _pickerImporting || _leaving ? null : _duplicate,
               ),
               IconButton(
                 key: const ValueKey('archive-program'),
@@ -3315,7 +3321,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                       ? Icons.unarchive_outlined
                       : Icons.archive_outlined,
                 ),
-                onPressed: _pickerImporting || _deleting || _archiving
+                onPressed: _pickerImporting || _leaving
                     ? null
                     : (_existing!.isArchived ? _unarchive : _archive),
               ),
@@ -3323,9 +3329,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 key: const ValueKey('delete-program'),
                 tooltip: l10n.commonDelete,
                 icon: const Icon(Icons.delete_outline),
-                onPressed: _pickerImporting || _deleting || _archiving
-                    ? null
-                    : _delete,
+                onPressed: _pickerImporting || _leaving ? null : _delete,
               ),
             ],
             // Save goes last in the top bar, as in every full-screen editor
@@ -3410,7 +3414,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           ),
         PopupMenuItem<void>(
           key: const ValueKey('duplicate-program'),
-          enabled: !_pickerImporting,
+          enabled: !_pickerImporting && !_leaving,
           onTap: _duplicate,
           child: ListTile(
             leading: const Icon(Icons.copy_all_outlined),
@@ -3420,7 +3424,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         ),
         PopupMenuItem<void>(
           key: const ValueKey('archive-program'),
-          enabled: !_pickerImporting && !_deleting && !_archiving,
+          enabled: !_pickerImporting && !_leaving,
           onTap: archived ? _unarchive : _archive,
           child: ListTile(
             leading: Icon(
@@ -3434,7 +3438,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         ),
         PopupMenuItem<void>(
           key: const ValueKey('delete-program'),
-          enabled: !_pickerImporting && !_deleting && !_archiving,
+          enabled: !_pickerImporting && !_leaving,
           onTap: _delete,
           child: ListTile(
             leading: const Icon(Icons.delete_outline),
