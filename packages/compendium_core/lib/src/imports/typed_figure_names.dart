@@ -148,7 +148,8 @@ String _typedKey(String text) =>
 
 /// The dancers a line may start with, each mapped to the canonical set it
 /// names, longest phrase first. The single words are a subset of
-/// [contradbDancerVocab], whose tokens they reuse: the role words (`gents`,
+/// [contradbDancerVocab], whose tokens they reuse, plus `threes` and `fours`
+/// (taxonomy v40), which ContraDB does not name: the role words (`gents`,
 /// `ravens`, …) are left out because they are discouraged terms whose meaning
 /// the active dialect may claim, which free text resolves by
 /// [canonicalizeGlossaryText] (see [figureFromTypedDancerName]). The rest are

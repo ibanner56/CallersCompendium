@@ -1003,53 +1003,69 @@ in a figure line — complete for the cast family, but not a sample of the corpu
 as a whole.
 
 Method: each record through the real `CallersBoxAdapter`, every figure encoded,
-once on `origin/main` at `4d27438f` and once with the v40 change, then compared
-figure by figure with containers recursed. "Cast lines" are leaf figures; a
-custom one counts when its text matches `\bcast`.
+once on `main` before v40 (`be3ff04c`) and once with all of v40 (the `cast`
+move, the `hand_cast` alias, and the `threes`/`fours` groups and role-number
+dancers), then compared figure by figure with containers recursed. "Cast
+lines" are leaf figures; a custom one counts when its text matches `\bcast`.
+The dances were fetched twice on 2026-11-19 (the second fetch measured the
+dancer additions), and the first fetch's counts reproduce exactly on the
+second.
 
-| | before | after |
-| --- | ---: | ---: |
-| figure lines mentioning a cast | 2,066 | 2,066 |
-| `custom` cast leaves | 2,060 | 469 |
-| `cast` figures | 0 | 1,455 |
-| `hand_cast` figures | 0 | 140 |
+| | before v40 | the cast move alone | all of v40 |
+| --- | ---: | ---: | ---: |
+| figure lines mentioning a cast | 2,066 | 2,066 | 2,066 |
+| `custom` cast leaves | 2,060 | 469 | 443 |
+| `cast` figures | 0 | 1,455 | 1,481 |
+| `hand_cast` figures | 0 | 140 | 140 |
 
-1,271 of the 1,563 dances change. In every one, the only figures removed are
-`custom` cast lines, and the total beats of the dance are unchanged. Besides
-`cast` and `hand_cast`, the only figures added are the other clauses of lines
-that now split or decompose: 2 `down_the_hall` and 8 `up_the_hall` (`Partner
-lead down; cast up to place`, `Ones lead up (past twos); cast down (past
-twos)`), 1 `roll_away` (`P1 partner roll away (…); women cast back`), and 4
-`pass_by` from the compound parent `Butterfly double figure eight 1/2:` in
-dances 7867 and 7868, which now decomposes into a sequence titled with that
-name.
+With all of v40, 1,293 of the 1,563 dances change. In every one, the only
+figures removed are `custom` lines (1,673 of them), and the total beats of the
+dance are unchanged. Besides `cast` and `hand_cast`, the figures added are of
+two kinds:
+
+- **The other clauses of cast lines that now split or decompose**, e.g.
+  `Partner lead down; cast up to place`, `P1 partner roll away (…); women cast
+  back`, and the compound parent `Butterfly double figure eight 1/2:` in dances
+  7867 and 7868, which now decomposes into a sequence titled with that name.
+- **Lines that name the threes or a role-number dancer.** 80 lines in 53
+  dances that were `custom` only because of those dancers, e.g. `Threes
+  swing`, `role1 one turn alone`, `Threes lead up (past twos)`, `role2 one
+  orbit counterclockwise 1/2`. These name `threes` 39 times and a single
+  dancer 41 times; `fours` does not appear in this population.
+
+Together these are 26 `up_the_hall`, 10 `down_the_hall`, 7 `swing`, 7
+`turn_alone`, 6 `figure_8`, 6 `pass_by`, 2 `orbit`, and one each of
+`contra_corners`, `pull_by`, `balance`, `long_lines`, `do_si_do` and
+`roll_away`.
 
 The wording after the word `cast`, over all 2,066 lines: `down` 750, `off` 666,
 `up` 240, nothing 152 (137 of them a bare `Hand cast`), `back` 101,
 `clockwise` 58, `counterclockwise` 52, `right` 13, `around` 12, `left` 10.
-Beats on the 1,455 casts: 4 on 1,006, 8 on 178, 2 on 128, 3 on 75, 6 on 46,
-no other count above 3. Directions: `down` 1,218, `up` 145, `right` 63, `left`
+Beats on the 1,481 casts: 4 on 1,018, 8 on 191, 2 on 128, 3 on 75, 6 on 46,
+no other count above 3. Directions: `down` 1,234, `up` 155, `right` 63, `left`
 26, unstated 3. 68 of the shoulders are the adapter's assumption for a role's
 cast back that states none (21 `Women cast back to P2`, 17 `Women cast back ||
 Men go forward`, 8 `Women cast back`, 7 `Men cast back`, and 15 more across 13
 other wordings).
 
-What stays `custom` (469), by shape:
+What stays `custom` (443), by shape:
 
 | shape | lines | example |
 | --- | ---: | --- |
 | `;` lines whose other clauses do not structure | 207 | `Ones lead down through twos; separate; cast up to place` |
 | "others follow" / "inverting lines" riders | 95 | `Ones cast down to bottom, inverting lines. Others follow` |
-| dancers no move reads | 49 | `role1 one cast down (past M2;M3)`, `Threes cast up`, `Ends cast back to P2` |
 | inside a double figure eight | 26 | `Double figure eight (ones cross up, twos cast down)` |
 | other single-clause wordings | 26 | `Ones hand cast`, `Star cast off: role2s trade by right` |
 | `around the major set` | 25 | `Women cast counterclockwise around the major set (past N2) (men assist)` |
+| dancers no move reads | 23 | `Ends cast back to P2`, `Inside ends cast to outside ends`, `role1 two cast up (past M3), role1 three move down` |
 | an endpoint outside the destination list | 22 | `Twos cast up to ends of line of four` |
 | `behind <dancer>` | 13 | `Men allemande left 1/2 \|\| Women cast clockwise behind partner` |
 | a `(past …)` that is not a list of dancers | 6 | `Twos cast up (past ones and threes)`, `role2s cast up (past S; to partner)` |
 
-The "dancers no move reads" rows are not a cast gap: `Threes swing` and `Woman
-one swing` are `custom` too.
+The "dancers no move reads" rows are not a cast gap: they name ends, a pair of
+named dancers, or a dancer and a second action, which no move reads either.
+(Before the v40 dancer additions this row was 49, and also held `Threes` and
+`role1 one` lines; those now read.)
 
 Re-check and free-text entry read through the fan-out across every front end,
 not the Caller's Box front end alone. Over the same lines, the fan-out and the

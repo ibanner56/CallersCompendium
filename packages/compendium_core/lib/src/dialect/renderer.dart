@@ -2804,8 +2804,8 @@ class FigureRenderer {
   /// plural verb agrees with, which stays plural ("neighbors take right
   /// hands"; [_displaySubject]'s `plural`). Role tokens
   /// (`role1s`/`role2s`) and the group tokens `everyone`/`ones`/`twos`/
-  /// `centers`/`firstCorners`/`secondCorners`/`sameRoles` are intentionally
-  /// absent — they are never singularized.
+  /// `threes`/`fours`/`centers`/`firstCorners`/`secondCorners`/`sameRoles` are
+  /// intentionally absent — they are never singularized.
   static const Map<String, String> _singularDancerSets = {
     'partners': 'partner',
     'neighbors': 'neighbor',
@@ -4158,11 +4158,16 @@ class FigureRenderer {
   /// treats as a "pair" for hey center/ends placement, mirroring
   /// [_invertPair]'s invert domain. Used by the `hey` base line to decide which
   /// pass dances "in center" vs "on ends".
+  ///
+  /// Plus `threes` and `fours` (taxonomy v40), which ContraDB does not have:
+  /// like the ones, the two dancers of a couple pass each other in the center.
   static const Set<String> _pairTokens = {
     'role1s',
     'role2s',
     'ones',
     'twos',
+    'threes',
+    'fours',
     'firstCorners',
     'secondCorners',
   };

@@ -2235,7 +2235,8 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
   of Caller's Box lines the taxonomy could not hold. Of the 2,066 lines
   mentioning a cast in the 1,563 public dances whose figures mention one
   (fetched 2026-11-19; `docs/research/callersbox.md`), 2,060 were `custom`;
-  469 still are.
+  443 still are with all of v40 (469 with the cast move alone, before the
+  `threes`/`fours` and role-number dancers below).
   - **`cast`** (`who`, `direction`, `places`, `whom`, `destination`, `beats`
     4). Every param but `beats` defaults to `unspecified`, because the source
     writes casts with every part optional. The maintainer's rulings
@@ -2295,8 +2296,9 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
     clauses do not parse (207 lines, mostly `lead through …; separate; cast
     …`, which keeps the maintainer's "lead through; separate; cast back to
     place" group custom), "others follow"/"inverting lines" riders (95),
-    casts by dancers no move reads (`Threes`, `role1 one`, `Ends`, which
-    keeps "Ends cast back to P2" custom; 49), inside a double figure eight
+    casts by dancers no move reads (`Ends`, `Inside ends`, two named
+    dancers at once, which keeps "Ends cast back to P2" custom; 23), inside a
+    double figure eight
     (26), `around the major set` (25), endpoints outside the destination
     list ("to ends of line of four"; 22), `behind <dancer>` (13), and the 6
     `(past …)` lists above.
@@ -2308,9 +2310,11 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
     (the maintainer's ruling, 2026-11-19). They are the tokens ECD's selectors
     already use. Like their single dancers (`threesRole1` …, v39) they are
     offered in every dance, not only one whose formation has a third couple,
-    and they have no opposite (`pairInverse` names none). They are not hey
-    meet targets: that list is ContraDB's pairs, and neither group pairs off.
-    The Caller's Box's `Threes`/`Fours` read as them.
+    and they have no opposite (`pairInverse` names none). Like the ones they
+    pass in the center of a hey they start, and a hey can run until they meet
+    (both the author's calls, as v24's and v38's meet targets were); a hey's
+    ricochet by the pair on the ends reads "others ricochet". The Caller's
+    Box's `Threes`/`Fours` read as them, including before a wave balance.
   - **A role and a couple number name that couple's dancer**: The Caller's
     Box's "Woman one" and "Man three", which reach the reader as `role2 one`
     and `role1 three`, are `onesRole2` and `threesRole1`, shown as "first
@@ -2321,7 +2325,8 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
     editor there corrects the out-of-domain value to the param's default (the
     dance editor's dropdown writes back any value it cannot offer), and the
     edit syncs. Every dancer token added before (v38's corners, v39's single
-    dancers) has the same exposure; this change does not add a guard.
+    dancers) has the same exposure. The maintainer accepted this for the beta
+    (2026-11-19), so no guard is added.
   - Migration: none, and no rebuild: a new move and alias, nothing renamed or
     removed, so no stored figure changes and every canonical text stays as it
     was. **Older devices (v39)** show a synced `cast` as the bare word "cast"

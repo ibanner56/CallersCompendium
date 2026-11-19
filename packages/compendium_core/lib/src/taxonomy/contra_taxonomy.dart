@@ -75,11 +75,18 @@ const _circularHeyWho2Choices = [
 // they do not exist in ContraDB. Without them a mixer's partial hey cannot name
 // the partner it runs until you meet (e.g. a hey that runs until P2). The param
 // defaults to `unspecified`, so existing data is unaffected.
+//
+// Extended at v40 with `threes` and `fours`, which ContraDB does not have
+// either: a hey in a three- or four-couple set can run until the threes meet,
+// as it can until the ones meet. The tokens are the maintainer's; offering
+// them here is the author's call, as v24's and v38's were.
 const _heyMeetTargetChoices = [
   'role1s',
   'role2s',
   'ones',
   'twos',
+  'threes',
+  'fours',
   'partners',
   'neighbors',
   'sameRoles',
@@ -857,8 +864,8 @@ final Taxonomy contraTaxonomy = Taxonomy(
       // "to …") is the renderer's.
       renderTemplate: '{who} {move} {direction} {places} {whom} {destination}',
       searchKeywords: ['cast off', 'cast down', 'cast up', 'cast back'],
-      // The beats of the 1,455 casts read from the 1,563 public Caller's Box
-      // dances that mention one (2026-11-19): 4 on 1,006, 8 on 178, 2 on 128,
+      // The beats of the 1,481 casts read from the 1,563 public Caller's Box
+      // dances that mention one (2026-11-19): 4 on 1,018, 8 on 191, 2 on 128,
       // 3 on 75, 6 on 46, and no other count above 3.
       goodBeats: [2, 3, 4, 6, 8],
     ),

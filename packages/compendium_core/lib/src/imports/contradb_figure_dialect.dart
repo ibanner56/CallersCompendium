@@ -1601,7 +1601,9 @@ bool _eatHeyRicochetClause(
   String? length,
   List<int> slots,
 ) {
-  final who = _subject(s);
+  // `others`: the display's name for the pair a `threes`/`fours` hey has no
+  // couple word for (see [_heyRicochetSlot]).
+  final who = s.eat('others') ? 'others' : _subject(s);
   if (who == null || !s.eat('ricochet')) return false;
 
   var meetingOffset = 0;
@@ -1630,7 +1632,7 @@ bool _eatHeyRicochetClause(
 
 bool _looksLikeHeyRicochetClause(_Scan s) {
   final save = s.pos;
-  if (_subject(s) == null) {
+  if (!s.eat('others') && _subject(s) == null) {
     s.reset(save);
     return false;
   }
@@ -1653,6 +1655,10 @@ int? _heyRicochetSlot(
     'twos' => 'ones',
     'firstCorners' => 'secondCorners',
     'secondCorners' => 'firstCorners',
+    // Taxonomy v40: the third and fourth couples pass in the center like the
+    // ones, but no couple word names the pair on the ends, so the display
+    // calls them `others` ("threes start a half hey … others ricochet").
+    'threes' || 'fours' => 'others',
     _ => null,
   };
   if (inverted == null) return null;

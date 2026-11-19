@@ -790,7 +790,9 @@ bool _isSameRolePair(List<String> w, int i) =>
 /// partner and shadow series ([seriesDancer]), `same roles`, `centers`, and
 /// `first`/`second` (and, from v39, `third`/`fourth`) before a role word.
 /// Those are the implementing author's call, so that a figure reads back from
-/// its own displayed text.
+/// its own displayed text. Since v40 it also reads The Caller's Box's role
+/// word before a couple number (`role2 one`, from "Woman one"), which the
+/// display never writes: the maintainer's ruling ([_singleDancers]).
 String? _takeNamedDancerAt(List<String> w, int i) {
   final word = w[i];
   final next = i + 1 < w.length ? w[i + 1] : null;
@@ -865,7 +867,8 @@ const Map<String, String> _numberedCorners = {
 };
 
 /// One dancer of one couple, as the display names them once a role word is
-/// canonical (`first lark` → `first role1`).
+/// canonical (`first lark` → `first role1`), and since v40 as The Caller's Box
+/// names them after its scrub (`Woman one` → `role2 one`).
 const Map<(String, String?), String> _singleDancers = {
   ('first', 'role1'): 'onesRole1',
   ('first', 'role2'): 'onesRole2',

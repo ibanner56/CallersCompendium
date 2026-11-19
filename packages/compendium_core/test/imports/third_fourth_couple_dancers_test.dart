@@ -208,15 +208,49 @@ void main() {
       );
     });
 
-    test('a couple number after a group is not a dancer', () {
-      // "one" counts places here, not a couple.
-      expect(tcb('Women cast down one place').params, {
-        'who': 'role2s',
-        'direction': 'down',
-        'places': 1,
-        'beats': 4,
-      });
-      expect(tcb('Role2 one and role1 two turn around').isCustom, isTrue);
+    test('a number after a group or after the move counts places', () {
+      // Only a singular role followed by a couple number names a dancer. These
+      // lines read the same before and after that reading was added.
+      for (final (line, who) in [
+        ('Women cast down one place', 'role2s'),
+        ('Ones cast down one place', 'ones'),
+        ('Threes cast down one place', 'threes'),
+      ]) {
+        expect(tcb(line).params, {
+          'who': who,
+          'direction': 'down',
+          'places': 1,
+          'beats': 4,
+        }, reason: line);
+      }
+    });
+
+    test('a hey led by threes or fours reads back, ricochets included', () {
+      for (final who in ['threes', 'fours']) {
+        for (final params in [
+          {'pass1': who, 'rico1': true},
+          {'pass1': who, 'rico2': true},
+          {'meetTarget': who, 'length': 'lessThanHalf'},
+        ]) {
+          final figure = testFigure(move: 'hey', params: params);
+          final text = renderer.renderSummary(figure, Dialect.presets[1]);
+          // Like the ones, they pass in the center.
+          if (params.containsKey('pass1')) {
+            expect(text, contains('rights in center'), reason: text);
+          }
+          final read = parseFreeTextFigureEntry(
+            text,
+            dialect: Dialect.presets[1],
+          );
+          expect(read, hasLength(1), reason: text);
+          expect(
+            renderer.renderSummary(read.single, Dialect.presets[1]),
+            text,
+            reason: text,
+          );
+          expect(read.single.note, isNull, reason: text);
+        }
+      }
     });
 
     test('their display lines read back, in every dialect', () {
