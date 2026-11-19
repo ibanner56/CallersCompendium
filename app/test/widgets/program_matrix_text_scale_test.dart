@@ -26,6 +26,7 @@ void main() {
     WidgetTester tester, {
     required double textScale,
     required String title,
+    TextScaler? scaler,
   }) async {
     tester.platformDispatcher.textScaleFactorTestValue = textScale;
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
@@ -35,6 +36,12 @@ void main() {
       MaterialApp(
         localizationsDelegates: testLocalizationsDelegates,
         supportedLocales: testSupportedLocales,
+        builder: (context, child) => scaler == null
+            ? child!
+            : MediaQuery(
+                data: MediaQuery.of(context).copyWith(textScaler: scaler),
+                child: child!,
+              ),
         home: Scaffold(
           body: ProgramMatrixTable(
             matrix: buildProgramMatrix([
@@ -68,7 +75,8 @@ void main() {
       await pump(tester, textScale: scale, title: 'Butterfly');
       expect(
         heightOfBoxAround(tester, find.text('Butterfly')).height,
-        ProgramMatrixTable.rowHeight * scale,
+        2 * ProgramMatrixTable.rowLineHeight * scale +
+            ProgramMatrixTable.rowVerticalPadding,
       );
       // 48dp for the hide button, three scaled lines, and padding.
       expect(
@@ -136,4 +144,41 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(AlertDialog), findsNothing);
   });
+
+  testWidgets('a nonlinear text scaler still leaves room for two title lines', (
+    tester,
+  ) async {
+    // Android 14+ scales a small font more than a large one. Scaling the 48dp
+    // box as if it were a font would give 67dp here, less than two scaled
+    // 20dp lines (80dp) and the padding.
+    const scaler = _NonlinearScaler();
+    await pump(tester, textScale: 1.0, title: 'Butterfly', scaler: scaler);
+    final height = heightOfBoxAround(tester, find.text('Butterfly')).height;
+    expect(height, greaterThanOrEqualTo(2 * scaler.scale(20) + 8));
+    expect(height, greaterThan(scaler.scale(48)));
+  });
+}
+
+/// 2× for small sizes, 1.4× once the size is large, like Android 14's curve.
+class _NonlinearScaler extends TextScaler {
+  const _NonlinearScaler();
+
+  @override
+  double scale(double fontSize) => fontSize * (fontSize >= 40 ? 1.4 : 2.0);
+
+  @override
+  // ignore: deprecated_member_use
+  double get textScaleFactor => 2.0;
+
+  @override
+  TextScaler clamp({
+    double minScaleFactor = 0,
+    double maxScaleFactor = double.infinity,
+  }) => this;
+
+  @override
+  bool operator ==(Object other) => other is _NonlinearScaler;
+
+  @override
+  int get hashCode => 7;
 }

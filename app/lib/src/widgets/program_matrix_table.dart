@@ -98,11 +98,19 @@ class ProgramMatrixTable extends StatefulWidget {
   static const double columnWidth = 64;
   static const double rowHeaderWidth = 168;
 
-  /// A body row's height at 1× text (two lines of body text and padding).
-  /// Rows and the column-header strip grow with the text scale — see
-  /// [rowHeightFor] and [columnHeaderHeightFor] — so a dance title or move
-  /// name that fits at 1× is not clipped at 200% (WCAG 1.4.4, 1.4.10).
-  static const double rowHeight = 48;
+  /// One line of the `bodyMedium` dance title at 1× text.
+  static const double rowLineHeight = 20;
+
+  /// A body row holds two title lines and this much padding. Rows and the
+  /// column-header strip grow with the text scale — see [rowHeightFor] and
+  /// [columnHeaderHeightFor] — so a dance title or move name that fits at 1×
+  /// is not clipped at 200% (WCAG 1.4.4, 1.4.10). The row is sized from the
+  /// scaled *line*, not by scaling the whole 48dp box, because a nonlinear
+  /// system scaler (Android 14+) scales a small font more than a large number.
+  static const double rowVerticalPadding = AppSpacing.xs;
+
+  /// A body row's height at 1× text.
+  static const double rowHeight = 2 * rowLineHeight + rowVerticalPadding;
 
   /// One line of the `labelSmall` move header at 1× text.
   static const double headerLineHeight = 16;
@@ -113,7 +121,8 @@ class ProgramMatrixTable extends StatefulWidget {
 
   /// The row height under the ambient text scale.
   static double rowHeightFor(BuildContext context) =>
-      MediaQuery.textScalerOf(context).scale(rowHeight);
+      2 * MediaQuery.textScalerOf(context).scale(rowLineHeight) +
+      rowVerticalPadding;
 
   /// The column-header strip's height under the ambient text scale: the full
   /// 48dp hide-column button on top (it does not scale: it is a touch target),
