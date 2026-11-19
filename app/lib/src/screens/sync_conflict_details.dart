@@ -1191,5 +1191,7 @@ class SyncConflictComparison extends StatelessWidget {
     child: Text(text, style: Theme.of(context).textTheme.bodySmall),
   );
 
-  static final FigureRenderer _renderer = FigureRenderer(contraTaxonomy);
+  static final FigureRenderer _renderer = FigureRenderer(
+    shippedTaxonomies.anyForm,
+  );
 }

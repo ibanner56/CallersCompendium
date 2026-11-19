@@ -268,7 +268,9 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   /// For prose and formation labels only; a dance's figures go to
   /// `UserFiguresScope.rendererOf`, which shows uses of the user's own
   /// figures live (#1023).
-  static final FigureRenderer _proseRenderer = FigureRenderer(contraTaxonomy);
+  static final FigureRenderer _proseRenderer = FigureRenderer(
+    shippedTaxonomies.anyForm,
+  );
   ScaffoldFeatureController<SnackBar, SnackBarClosedReason>? _bulkUndoSnackBar;
 
   /// Collapses a burst of refresh requests into a single [_load].
@@ -1476,7 +1478,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     if (!CanonicalDiscouragedTermsScope.of(context)) return text;
     final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
     return FigureRenderer(
-      contraTaxonomy,
+      shippedTaxonomies.anyForm,
     ).renderFreeTextWithCanonicalDiscouragedTerms(text, dialect);
   }
 

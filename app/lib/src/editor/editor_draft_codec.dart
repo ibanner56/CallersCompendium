@@ -607,7 +607,7 @@ FigureDraftSnapshot _parseFigureDraftSnapshot(
 
   final normalized = rawMove == null
       ? null
-      : contraTaxonomy.normalizeFigureV35(
+      : shippedTaxonomies.anyForm.normalizeFigureV35(
           Figure(move: rawMove, params: parsedParams),
         );
   return FigureDraftSnapshot(

@@ -352,7 +352,10 @@ URLs. (Every settings key is classified in
 
 - Dance title non-empty; figures list may be empty (stub/metadata-only import).
 - Figure `move` must exist in the taxonomy for `dance.form` (or be `custom`);
-  `params` must validate against the move's parameter schema.
+  `params` must validate against the move's parameter schema. That taxonomy
+  is `TaxonomyRegistry.forForm(dance.form)`: the form's own taxonomy over
+  contra's, since a move ID with no form prefix is a contra move in a dance
+  of any form (ADR-006 §5.1). Until a form ships its own, it is contra's.
 - Beats ≥ 0; per-phrase overflow is a **warning**, not an error (real dances
   bend phrasing; choreography validation is a later milestone).
 - ProgramSlot requires at least one of `danceId` or `text` to be non-null;

@@ -87,7 +87,7 @@ class FigureParamEditor extends StatelessWidget {
   /// Whether [moveId] is a shipped move with a fraction amount (#2120).
   bool get _moveHasFractionAmount =>
       moveId != null &&
-      (contraTaxonomy
+      (shippedTaxonomies.anyForm
               .resolve(moveId!)
               ?.params
               .containsKey(fractionAmountParam) ??

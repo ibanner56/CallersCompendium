@@ -79,8 +79,6 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   final _formScroll = ScrollController();
   final _moreDetailsController = ExpansibleController();
 
-  static final Taxonomy _taxonomy = contraTaxonomy;
-
   /// Per-move insert-time parameter overrides (ROADMAP DD.3), loaded once in
   /// [_load] from the saved Defaults. Empty until loaded (and on any read
   /// failure), so the editor falls back to pure taxonomy defaults rather than
@@ -1117,7 +1115,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       formKey: _formKey,
       scrollController: _formScroll,
       moreDetailsController: _moreDetailsController,
-      taxonomy: _taxonomy,
+      taxonomy: _controller.taxonomy,
       moveParamDefaults: _moveParamDefaults,
       freeTextEntry: _freeTextEntry,
       shorthandMappings: ShorthandMappingsScope.maybeOf(context)?.store,

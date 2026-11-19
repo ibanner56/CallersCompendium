@@ -164,7 +164,7 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
             !CanonicalDiscouragedTermsScope.of(context)
         ? rawText
         : FigureRenderer(
-            contraTaxonomy,
+            shippedTaxonomies.anyForm,
           ).renderFreeTextWithCanonicalDiscouragedTerms(
             rawText,
             widget.dialect,

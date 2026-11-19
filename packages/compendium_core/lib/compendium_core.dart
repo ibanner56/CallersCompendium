@@ -228,6 +228,7 @@ export 'src/taxonomy/param_change_rules.dart';
 export 'src/taxonomy/param_opposites.dart';
 export 'src/taxonomy/param_types.dart';
 export 'src/taxonomy/taxonomy.dart';
+export 'src/taxonomy/taxonomy_registry.dart';
 export 'src/taxonomy/user_figure_definition.dart';
 export 'src/taxonomy/user_figure_seed.dart';
 export 'src/taxonomy/user_figure_switch.dart';

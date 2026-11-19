@@ -268,7 +268,9 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   /// For prose and formation labels only; the dance's figures go to
   /// `UserFiguresScope.rendererOf`, which shows uses of the user's own
   /// figures live (#1023).
-  static final FigureRenderer _proseRenderer = FigureRenderer(contraTaxonomy);
+  static final FigureRenderer _proseRenderer = FigureRenderer(
+    shippedTaxonomies.anyForm,
+  );
 
   @override
   void didChangeDependencies() {
@@ -1605,7 +1607,7 @@ class _LinkRow extends StatelessWidget {
       context,
     );
     final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
-    final renderer = FigureRenderer(contraTaxonomy);
+    final renderer = FigureRenderer(shippedTaxonomies.anyForm);
     final String display;
     if (label != null && label.isNotEmpty) {
       display = canonicalizeDiscouragedTerms
