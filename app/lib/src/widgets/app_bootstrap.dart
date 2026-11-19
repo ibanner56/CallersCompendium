@@ -17,6 +17,7 @@ import '../data/migration_guard.dart'
 import '../diagnostics/error_log.dart';
 import '../update/retirement_banner.dart' show kReleasesPageUrl;
 import '../utils/launch_external_url.dart';
+import 'brand_mark.dart';
 
 /// Gates the app on a startup [future] — the schema migration / derived-index
 /// back-fill run by `CompendiumRepositories.ensureMigrated()`. Shows a loading
@@ -207,12 +208,12 @@ class AppBootstrap extends StatelessWidget {
   Widget _buildLoading(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final progress = rebuildProgress;
-    if (progress == null) return _indeterminateLoading(l10n);
+    if (progress == null) return _indeterminateLoading(context, l10n);
     return ValueListenableBuilder<DerivedRebuildProgress?>(
       valueListenable: progress,
       builder: (context, value, _) {
         if (value == null || value.total == 0) {
-          return _indeterminateLoading(l10n);
+          return _indeterminateLoading(context, l10n);
         }
         final percent = (value.fraction * 100).round();
         return Scaffold(
@@ -220,6 +221,8 @@ class AppBootstrap extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                _loadingMark(context),
+                const SizedBox(height: 24),
                 SizedBox(
                   width: 48,
                   height: 48,
@@ -239,13 +242,28 @@ class AppBootstrap extends StatelessWidget {
     );
   }
 
-  Widget _indeterminateLoading(AppLocalizations l10n) => Scaffold(
-    body: Center(
-      child: CircularProgressIndicator(
-        semanticsLabel: l10n.appBootstrapPreparing,
-      ),
-    ),
+  /// The quiet brand mark above the startup spinner (same muted treatment as
+  /// the empty states).
+  Widget _loadingMark(BuildContext context) => BrandMark(
+    size: 64,
+    color: Theme.of(context).colorScheme.onSurfaceVariant,
   );
+
+  Widget _indeterminateLoading(BuildContext context, AppLocalizations l10n) =>
+      Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _loadingMark(context),
+              const SizedBox(height: 24),
+              CircularProgressIndicator(
+                semanticsLabel: l10n.appBootstrapPreparing,
+              ),
+            ],
+          ),
+        ),
+      );
 
   /// Picks a terminal-screen icon that reflects the *actual* snapshot-failure
   /// cause (issue #442 review): a storage glyph for a full disk, a
@@ -390,7 +408,10 @@ class _BootstrapErrorScreen extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.error_outline, size: 48),
+                BrandMark(
+                  size: 48,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
                 const SizedBox(height: 8),
                 Text(l10n.appBootstrapError, textAlign: TextAlign.center),
                 const SizedBox(height: 8),
