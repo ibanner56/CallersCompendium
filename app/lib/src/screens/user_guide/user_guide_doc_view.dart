@@ -6,7 +6,6 @@ import '../../../l10n/app_localizations.dart';
 import '../../data/reduce_motion_scope.dart';
 import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
-import '../../widgets/readable_width.dart';
 import 'user_guide_docs.dart';
 import '../../theme/app_shapes.dart';
 
@@ -146,7 +145,7 @@ class _UserGuideDocViewState extends State<UserGuideDocView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final headings = _AnchoredHeadingBuilder(keyForSlug: _keyForSlug);
-    return ReadableScrollView(
+    return SingleChildScrollView(
       key: ValueKey('user-guide-scroll-${widget.docId}'),
       controller: _controller,
       padding: const EdgeInsets.all(AppSpacing.md),
