@@ -245,5 +245,19 @@ void _ecdSignatures() {
         ),
       );
     });
+
+    test('a camelCase selector in a list reads back in its own spelling', () {
+      final figure = testFigure(
+        move: 'ecd_set',
+        params: {
+          'who': ['firstCorners', 'twos'],
+        },
+      );
+      final sig = figureSnippetSignature(figure, ecd)!;
+      expect(
+        describeFigureSignature(sig, ecd, renderer, Dialect.canonical),
+        renderer.render(figure, Dialect.canonical),
+      );
+    });
   });
 }

@@ -247,7 +247,12 @@ Object? _coerceSignatureValue(ParamSpec spec, String token) {
       if (token == 'false') return false;
       return null;
     case ParamKind.dancerList:
-      final list = token.split('+');
+      // The key lowercases each token; read it back in its own spelling.
+      final choices = spec.choices ?? ParamVocab.dancerSets;
+      final list = [
+        for (final t in token.split('+'))
+          choices.firstWhere((c) => c.toLowerCase() == t, orElse: () => t),
+      ];
       return spec.validate(list) ? list : null;
     default:
       return token;
