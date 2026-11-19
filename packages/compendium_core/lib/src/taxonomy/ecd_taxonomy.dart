@@ -143,9 +143,9 @@ const _destination = ParamSpec(
   defaultValue: _u,
   choices: ecdDestinations,
 );
-// A cast also ends at the top or the bottom of the set, as the contra `cast`
-// planned under #770 will ("cast down to bottom"): the maintainer's decision
-// of 2026-11-19.
+// A cast also ends at the top or the bottom of the set, as contra's `cast`
+// does ("cast down to bottom"): the maintainer's decision of 2026-11-19.
+// `cast_test.dart` pins that the two lists agree.
 const _castDestination = ParamSpec(
   ParamKind.choice,
   defaultValue: _u,
@@ -966,7 +966,7 @@ final Taxonomy ecdTaxonomy = Taxonomy(
     MoveDef(
       id: '${_p}cast',
       displayName: 'cast',
-      // One parameter shape with the contra `cast` planned under #770, so a
+      // One parameter shape with contra's `cast` (v40, #770), so a
       // contra-imported
       // English dance re-reads one to one (F5): the maintainer's decision of
       // 2026-11-19 (§7.5, §9.4).
@@ -1040,7 +1040,7 @@ final Taxonomy ecdTaxonomy = Taxonomy(
       inversePairId: '${_p}box_the_gnat',
     ),
     // A hand cast is a gate, pinning nothing (the maintainer's decision of
-    // 2026-11-19, §9.4), as contra's planned `hand_cast` (#770) is. Listed
+    // 2026-11-19, §9.4), as contra's `hand_cast` is. Listed
     // as a move of its
     // own, so search can name it and a dialect's name for gate never renames
     // it.

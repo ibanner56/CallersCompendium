@@ -2264,11 +2264,10 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
       role-implied hand, which goes unsaid.
     - `destination` holds ECD's destination tokens plus `top` and `bottom`.
       The maintainer decided this shape and ECD's `ecd_cast` be one, so
-      ADR-006 F5 maps one to the other. **It is not one yet:** `ecd_cast`
-      still has `where` (off/up/down/around) and a `direction` that is a
-      side, and the ECD taxonomy's session owns that change.
-      `cast_test.dart` records `ecd_cast`'s current params, so the change
-      shows up there, and pins that contra's destinations hold every ECD one.
+      ADR-006 F5 maps one to the other. ECD's taxonomy v1 took it before
+      release (ADR-006 §9.4); `cast_test.dart` pins that the two agree on
+      param names and on `direction` and `destination` choices, and that
+      contra's destinations hold every ECD one.
   - **`hand_cast`**, an alias of `gate` pinning nothing: the maintainer's
     ruling, on The Caller's Box glossary calling each "very similar" to the
     other. It is listed as a move (`listedAsMove`), for the reasons
@@ -2329,8 +2328,8 @@ marker for the English Country Dance taxonomy, logged here.
     joined by `+`. No contra key changes, so the signature version stays 2,
     and `migrateFigureSnippetSignature` leaves `ecd_` keys as they are.
     **Amended before release (2026-11-19): cast.** By the maintainer's
-    decision, `ecd_cast` takes the parameter shape of the contra `cast`
-    planned under #770 (ADR-006 §9.4): `where` (off/up/down/around) is gone; `direction` is
+    decision, `ecd_cast` takes the parameter shape of contra's `cast` (v40,
+    #770; ADR-006 §9.4): `where` (off/up/down/around) is gone; `direction` is
     `left`/`right`/`up`/`down`/`unspecified`, where `left` and `right` are
     the shoulder turned over, not a side of the set; `places` is new
     (`unspecified` by default, "cast off" is `down` with 1); `whom` holds
