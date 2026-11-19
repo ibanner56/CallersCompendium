@@ -2,6 +2,7 @@ import 'package:meta/meta.dart';
 
 import '../model/enums.dart';
 import 'contra_taxonomy.dart';
+import 'ecd_taxonomy.dart';
 import 'taxonomy.dart';
 
 /// The prefix every stored move ID of a dance form's own taxonomy carries
@@ -163,7 +164,9 @@ final class TaxonomyRegistry {
 }
 
 /// The taxonomies this build ships: contra's, which owns every unprefixed
-/// move ID, and each other form's own taxonomy once one exists.
+/// move ID, and English Country Dance's ([ecdTaxonomy], ADR-006). Squares
+/// have none yet, so a square dance uses contra's.
 final TaxonomyRegistry shippedTaxonomies = TaxonomyRegistry(
   base: contraTaxonomy,
+  forms: [ecdTaxonomy],
 );

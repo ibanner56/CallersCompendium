@@ -872,6 +872,7 @@ class CompendiumRepositories {
     taxonomyV37CanonicalRebuildDoneKey: null,
     taxonomyV38CanonicalRebuildDoneKey: null,
     taxonomyV39CanonicalRebuildDoneKey: null,
+    ecdTaxonomyCanonicalRebuildDoneKey: null,
     chainHandBackfillDoneKey: null,
     callersBoxRollAwayRoleRepairDoneKey: null,
     shareableTextNormalisationScopeKey: _normalisationScope,
@@ -999,6 +1000,10 @@ class CompendiumRepositories {
         onProgress: onDerivedRebuildProgress,
       );
       rebuiltThisCall = await _emitTaxonomyV39CanonicalTextIfNeeded(
+        alreadyRebuilt: rebuiltThisCall,
+        onProgress: onDerivedRebuildProgress,
+      );
+      rebuiltThisCall = await _emitEcdTaxonomyCanonicalTextIfNeeded(
         alreadyRebuilt: rebuiltThisCall,
         onProgress: onDerivedRebuildProgress,
       );
@@ -2541,6 +2546,30 @@ class CompendiumRepositories {
       await runDerivedRebuild(onProgress: onProgress);
     }
     await _writeSweepMarker(taxonomyV39CanonicalRebuildDoneKey, '"done"');
+    return true;
+  }
+
+  /// One-time canonical/FTS rebuild owed when the ECD taxonomy first ships
+  /// ([ecdTaxonomyCanonicalRebuildDoneKey]): a stored `ecd_` figure indexed
+  /// while its ID was unknown renders as a movement now. Shaped like
+  /// [_emitTaxonomyV39CanonicalTextIfNeeded]: no row changes, so one derived
+  /// rebuild (shared with any earlier sweep of this call), then the marker.
+  Future<bool> _emitEcdTaxonomyCanonicalTextIfNeeded({
+    bool alreadyRebuilt = false,
+    DerivedRebuildProgressCallback? onProgress,
+  }) async {
+    final done = await db
+        .customSelect(
+          'SELECT 1 FROM settings WHERE key = ? AND deleted_at IS NULL',
+          variables: [Variable.withString(ecdTaxonomyCanonicalRebuildDoneKey)],
+        )
+        .get();
+    if (done.isNotEmpty) return alreadyRebuilt;
+
+    if (!alreadyRebuilt) {
+      await runDerivedRebuild(onProgress: onProgress);
+    }
+    await _writeSweepMarker(ecdTaxonomyCanonicalRebuildDoneKey, '"done"');
     return true;
   }
 

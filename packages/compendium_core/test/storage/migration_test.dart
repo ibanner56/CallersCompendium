@@ -201,6 +201,7 @@ void main() {
           taxonomyV37CanonicalRebuildDoneKey,
           taxonomyV38CanonicalRebuildDoneKey,
           taxonomyV39CanonicalRebuildDoneKey,
+          ecdTaxonomyCanonicalRebuildDoneKey,
           chainHandBackfillDoneKey,
         ]) {
           await repos.settings.set(key, 'done');
@@ -850,6 +851,67 @@ void main() {
       await repos.ensureMigrated();
       expect(repos.rebuildAttempts, rebuilds, reason: 'runs once');
     });
+  });
+
+  group('ECD taxonomy canonical rebuild (ADR-006)', () {
+    test(
+      'an ecd_ figure indexed while unknown re-derives as a movement',
+      () async {
+        final db = CompendiumDatabase(NativeDatabase.memory());
+        final repos = _CountingRepositories(db, shippedTaxonomies.anyForm);
+        addTearDown(db.close);
+
+        await repos.dances.create(
+          Dance(
+            id: 'ecd-known',
+            title: 'An English dance',
+            form: DanceForm.ecd,
+            figures: [
+              Figure(
+                move: 'ecd_cast',
+                params: {
+                  'who': ['ones'],
+                  'where': 'down',
+                  'beats': 8,
+                },
+              ),
+            ],
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          ),
+        );
+        await _markPre1192SweepsComplete(repos);
+        await repos.settings.remove(ecdTaxonomyCanonicalRebuildDoneKey);
+        // What a build without the ECD taxonomy derived: the bare move ID.
+        await db.customUpdate(
+          'UPDATE dance_figures SET canonical_text = ? WHERE dance_id = ?',
+          variables: [
+            Variable<String>('ecd_cast'),
+            Variable<String>('ecd-known'),
+          ],
+        );
+
+        await repos.ensureMigrated();
+
+        final indexed = await db
+            .customSelect(
+              'SELECT canonical_text FROM dance_figures WHERE dance_id = ?',
+              variables: [Variable<String>('ecd-known')],
+            )
+            .get();
+        expect(indexed.map((row) => row.read<String>('canonical_text')), [
+          'ones cast down',
+        ]);
+        expect(
+          repos.oneTimeRepairMarkers,
+          contains(ecdTaxonomyCanonicalRebuildDoneKey),
+        );
+
+        final rebuilds = repos.rebuildAttempts;
+        await repos.ensureMigrated();
+        expect(repos.rebuildAttempts, rebuilds, reason: 'runs once');
+      },
+    );
   });
 
   group('taxonomy v35 figure normalization', () {
@@ -1760,6 +1822,7 @@ Future<void> _markPre1192SweepsComplete(CompendiumRepositories repos) async {
     taxonomyV37CanonicalRebuildDoneKey,
     taxonomyV38CanonicalRebuildDoneKey,
     taxonomyV39CanonicalRebuildDoneKey,
+    ecdTaxonomyCanonicalRebuildDoneKey,
     chainHandBackfillDoneKey,
   ]) {
     await repos.settings.set(key, 'done');

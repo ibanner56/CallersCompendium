@@ -109,6 +109,26 @@ class FigureParamEditor extends StatelessWidget {
           context,
           offerableDancerSets(rawDomain, mixer: mixer, currentValue: value),
         );
+      case ParamKind.dancerList:
+        return _DancerListChips(
+          fieldKey: _key,
+          label: figureParamKeyLabel(l10n, paramKey, moveId: moveId),
+          domain: [
+            for (final token in figureParamSelectableChoices(
+              spec.choices ?? ParamVocab.dancerSets,
+            ))
+              // A mixer's partner series only in a mixer, or when the list
+              // already holds it.
+              if (mixer ||
+                  !ParamVocab.mixerPartnerSeries.contains(token) ||
+                  (value is List && (value! as List).contains(token)))
+                token,
+          ],
+          value: value,
+          labelOf: (token) =>
+              figureParamChoiceLabel(l10n, spec, dialect, token),
+          onChanged: onChanged,
+        );
       case ParamKind.handedness:
       case ParamKind.shoulder:
         return _dropdown(context, spec.choices ?? ParamVocab.sides);
@@ -679,6 +699,81 @@ class _TextParamFieldState extends State<_TextParamField> {
         decoration: InputDecoration(labelText: widget.label, isDense: true),
         onChanged: widget.onChanged,
       ),
+    );
+  }
+}
+
+/// The editor of a [ParamKind.dancerList] (ECD's `who`, ADR-006 §5.2): one
+/// chip per selector, any number picked, in the order picked. `everyone`
+/// stands alone, so picking it clears the others and picking another clears
+/// it; clearing the last chip leaves the list as "not stated"
+/// (`["unspecified"]`).
+class _DancerListChips extends StatelessWidget {
+  const _DancerListChips({
+    required this.fieldKey,
+    required this.label,
+    required this.domain,
+    required this.value,
+    required this.labelOf,
+    required this.onChanged,
+  });
+
+  final String fieldKey;
+  final String label;
+  final List<String> domain;
+  final Object? value;
+  final String Function(String token) labelOf;
+  final ValueChanged<Object?> onChanged;
+
+  List<String> get _picked => [
+    if (value case final List<Object?> list)
+      for (final token in list)
+        if (token is String && token != ParamVocab.unspecified) token,
+  ];
+
+  void _toggle(String token, bool selected) {
+    final picked = _picked;
+    final List<String> next;
+    if (!selected) {
+      next = [
+        for (final t in picked)
+          if (t != token) t,
+      ];
+    } else if (ParamVocab.soloDancerTokens.contains(token)) {
+      next = [token];
+    } else {
+      next = [
+        for (final t in picked)
+          if (!ParamVocab.soloDancerTokens.contains(t)) t,
+        token,
+      ];
+    }
+    onChanged(next.isEmpty ? const [ParamVocab.unspecified] : next);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final picked = _picked;
+    return Column(
+      key: ValueKey(fieldKey),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(label, style: Theme.of(context).textTheme.labelMedium),
+        Wrap(
+          spacing: 4,
+          runSpacing: 4,
+          children: [
+            for (final token in domain)
+              FilterChip(
+                key: ValueKey('$fieldKey-$token'),
+                label: Text(labelOf(token)),
+                selected: picked.contains(token),
+                onSelected: (selected) => _toggle(token, selected),
+              ),
+          ],
+        ),
+      ],
     );
   }
 }

@@ -82,7 +82,8 @@ List<String>? _wordValues(ParamSpec spec) => switch (spec.kind) {
   ParamKind.number ||
   ParamKind.beats ||
   ParamKind.text ||
-  ParamKind.flag => null,
+  ParamKind.flag ||
+  ParamKind.dancerList => null,
 };
 
 /// Whether every value a parameter of kind [from] can hold is a value of

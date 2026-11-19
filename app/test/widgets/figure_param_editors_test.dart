@@ -63,6 +63,64 @@ void main() {
     expect(find.text('partners'), findsOneWidget);
   });
 
+  group('dancer list (ECD who, ADR-006 §5.2)', () {
+    final spec = ecdTaxonomy.moves['ecd_circle']!.params['who']!;
+
+    testWidgets('adds a selector after those already picked', (tester) async {
+      final read = await _pumpEditor(
+        tester,
+        paramKey: 'who',
+        spec: spec,
+        value: const ['twos'],
+      );
+      await tester.ensureVisible(find.byKey(const ValueKey('p-who-threes')));
+      await tester.tap(find.byKey(const ValueKey('p-who-threes')));
+      expect(read(), ['twos', 'threes']);
+    });
+
+    testWidgets('everyone stands alone', (tester) async {
+      final read = await _pumpEditor(
+        tester,
+        paramKey: 'who',
+        spec: spec,
+        value: const ['twos', 'threes'],
+      );
+      await tester.ensureVisible(find.byKey(const ValueKey('p-who-everyone')));
+      await tester.tap(find.byKey(const ValueKey('p-who-everyone')));
+      expect(read(), ['everyone']);
+    });
+
+    testWidgets('picking another selector clears everyone', (tester) async {
+      final read = await _pumpEditor(
+        tester,
+        paramKey: 'who',
+        spec: spec,
+        value: const ['everyone'],
+      );
+      await tester.ensureVisible(find.byKey(const ValueKey('p-who-ones')));
+      await tester.tap(find.byKey(const ValueKey('p-who-ones')));
+      expect(read(), ['ones']);
+    });
+
+    testWidgets('clearing the last selector leaves it unstated', (
+      tester,
+    ) async {
+      final read = await _pumpEditor(
+        tester,
+        paramKey: 'who',
+        spec: spec,
+        value: const ['ones'],
+      );
+      await tester.ensureVisible(find.byKey(const ValueKey('p-who-ones')));
+      await tester.tap(find.byKey(const ValueKey('p-who-ones')));
+      expect(read(), [ParamVocab.unspecified]);
+      expect(
+        find.byKey(const ValueKey('p-who-${ParamVocab.unspecified}')),
+        findsNothing,
+      );
+    });
+  });
+
   testWidgets('text field syncs when the parent reseeds the value', (
     tester,
   ) async {

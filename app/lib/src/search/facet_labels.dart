@@ -213,6 +213,8 @@ List<String>? figureParamChoices(ParamSpec spec) {
     case ParamKind.beats:
     case ParamKind.text:
     case ParamKind.flag:
+    // A list of dancers (ECD's `who`): searching by one is ADR-006's W7.
+    case ParamKind.dancerList:
       return null;
   }
 }
@@ -309,8 +311,21 @@ String figureParamChoiceLabel(
     return l10n.figureParamFractionOther;
   }
   final isDancerKind =
-      spec.kind == ParamKind.dancerSet || spec.kind == ParamKind.dancerPair;
+      spec.kind == ParamKind.dancerSet ||
+      spec.kind == ParamKind.dancerPair ||
+      spec.kind == ParamKind.dancerList;
   return isDancerKind
-      ? FigureRenderer.displayToken(choice, spec, dialect)
+      ? FigureRenderer.displayToken(
+          choice,
+          // A list's token is labelled as a dancer set's (ECD's `who`).
+          spec.kind == ParamKind.dancerList
+              ? ParamSpec(
+                  ParamKind.dancerSet,
+                  defaultValue: null,
+                  choices: spec.choices,
+                )
+              : spec,
+          dialect,
+        )
       : humanizeToken(choice);
 }

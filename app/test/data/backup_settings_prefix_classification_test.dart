@@ -93,6 +93,7 @@ void main() {
       taxonomyV37CanonicalRebuildDoneKey,
       taxonomyV38CanonicalRebuildDoneKey,
       taxonomyV39CanonicalRebuildDoneKey,
+      ecdTaxonomyCanonicalRebuildDoneKey,
       callersBoxRollAwayRoleRepairDoneKey,
       normalisationDerivedIndexRepairDoneKey,
       customFieldIndexRepairDoneKey,
