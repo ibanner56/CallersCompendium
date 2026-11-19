@@ -1,6 +1,8 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart';
 
+import '../diagnostics/error_log.dart';
+
 /// Persistence key for the JSON list of user-created custom [Dialect]s of
 /// contra. Each other dance form has a key of its own
 /// ([customDialectsKeyFor]).
@@ -525,14 +527,24 @@ class DialectLibraries extends ChangeNotifier {
   Future<void> load() async {
     Object? firstError;
     StackTrace? firstStack;
+    // The first failure is rethrown below, for the caller to log; any later
+    // one is logged here, so none goes unseen.
+    void failed(Object error, StackTrace stack) {
+      if (firstError == null) {
+        firstError = error;
+        firstStack = stack;
+      } else {
+        logCaughtError(error, stack, source: 'dialect_libraries.load');
+      }
+    }
+
     final loaded = <DialectLibraryController>[];
     for (final library in _byForm.values) {
       try {
         await library.load();
         loaded.add(library);
       } catch (error, stack) {
-        firstError ??= error;
-        firstStack ??= stack;
+        failed(error, stack); // diagnostics: silent — rethrown or logged.
       }
     }
     // Once every form has loaded, so a new name avoids all of their names.
@@ -541,12 +553,11 @@ class DialectLibraries extends ChangeNotifier {
         await library._renameGenderedNames();
         library.notifyListeners();
       } catch (error, stack) {
-        firstError ??= error;
-        firstStack ??= stack;
+        failed(error, stack); // diagnostics: silent — rethrown or logged.
       }
     }
-    if (firstError != null) {
-      Error.throwWithStackTrace(firstError, firstStack!);
+    if (firstError case final error?) {
+      Error.throwWithStackTrace(error, firstStack!);
     }
   }
 
