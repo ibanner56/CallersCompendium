@@ -1868,15 +1868,17 @@ has to be judged in its own context.
   `[<dancer>] cast [off [n] | up | down | back [<shoulder>] | <shoulder>]
   [<n> place(s)] [around <dancer>] [to <destination> | to <dancer>]`, where a
   shoulder is `right`/`clockwise` or `left`/`counterclockwise`, `off` is down
-  one place unless a count follows, a role's `back` with no shoulder takes the
-  role's own (role2s right, role1s left), and `to <dancer>` (`to P2`) becomes
-  a note. It also reads the display's own wording ("cast back right 2 places
-  around twos to partner's place"). Because the role rule is in the shared
-  reader, a fresh import, a re-check of an older one, a Caller's Companion
-  import and free-text entry all read a cast back alike. The front end's
-  `_tcbCast` adds TCB's `(past twos; threes)`: when every item is a dancer,
-  the count fills `places` and the list is kept as a note; otherwise the line
-  stays `custom`. A bare `Hand cast` is the `hand_cast` alias of `gate`. Over
+  one place unless a count follows, and `to <dancer>` (`to P2`) becomes a
+  note. It also reads the display's own wording ("cast back right 2 places
+  around twos to partner's place"). The front end's `_tcbCast` adds TCB's
+  `(cw)`/`(ccw)` annotation on a cast (its shoulder) and `(past twos;
+  threes)`: when every item is a dancer, the count fills `places` and the list
+  is kept as a note; otherwise the line stays `custom`. **Only the adapter**
+  then assumes a shoulder for a role's cast that states none (role2s right,
+  role1s left; `CallersBoxAdapter._assumeCastShoulders`, the maintainer's
+  ruling). A re-check of stored lines, a Caller's Companion import and
+  free-text entry leave it unstated, so on those lines a re-check of an older
+  import differs from a fresh one. A bare `Hand cast` is the `hand_cast` alias of `gate`. Over
   the 1,563 public dances whose figures mention a cast, the `custom` cast
   lines fell from 2,060 to 469. See the v40 entry in
   [figure-taxonomy.md](figure-taxonomy.md#taxonomy-version-history) for what

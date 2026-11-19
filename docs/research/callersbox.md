@@ -1028,8 +1028,11 @@ The wording after the word `cast`, over all 2,066 lines: `down` 750, `off` 666,
 `up` 240, nothing 152 (137 of them a bare `Hand cast`), `back` 101,
 `clockwise` 58, `counterclockwise` 52, `right` 13, `around` 12, `left` 10.
 Beats on the 1,455 casts: 4 on 1,006, 8 on 178, 2 on 128, 3 on 75, 6 on 46,
-no other count above 3. Directions: `down` 1,218, `up` 145, `right` 62, `left`
-27, unstated 3.
+no other count above 3. Directions: `down` 1,218, `up` 145, `right` 63, `left`
+26, unstated 3. 68 of the shoulders are the adapter's assumption for a role's
+cast back that states none (21 `Women cast back to P2`, 17 `Women cast back ||
+Men go forward`, 8 `Women cast back`, 7 `Men cast back`, and 15 more across 13
+other wordings).
 
 What stays `custom` (469), by shape:
 
@@ -1049,10 +1052,13 @@ The "dancers no move reads" rows are not a cast gap: `Threes swing` and `Woman
 one swing` are `custom` too.
 
 Re-check and free-text entry read through the fan-out across every front end,
-not the Caller's Box front end alone. Over the same lines, the fan-out and a
-fresh Caller's Box import agree on every cast; the only lines on which they
-differ are 3 promenade lines (`Ones promenade counterclockwise down to bottom
-(ones cast left). Others follow`), which differ the same way on `main`.
+not the Caller's Box front end alone. Over the same lines, the fan-out and the
+Caller's Box front end agree on every cast; the only lines on which they differ
+are 3 promenade lines (`Ones promenade counterclockwise down to bottom (ones
+cast left). Others follow`), which differ the same way on `main`. The adapter
+alone then assumes the 68 shoulders above, by the maintainer's ruling, so a
+re-check of an older import leaves those 68 unstated where a fresh import
+states them.
 
 The glossary entries this rests on (`Glossary.htm`, read 2026-11-19): **Cast**
 ("a rather fuzzy term … to individually go somewhere, on the outside of the

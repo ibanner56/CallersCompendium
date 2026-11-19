@@ -2250,18 +2250,17 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
       the glossary's "ones peel down the outside into second place" is a cast
       down one place. Whether the cast is assisted is not a param; the
       glossary says it "depends on your community".
-    - A role's cast back is over the right shoulder for role2s and the left
-      for role1s ("as we do for chains"). As with a chain's role-implied
-      hand, every reader writes it (`figure_parser.dart`, `_cast`), the
-      editor writes it when a role is picked (`seedCastShoulder`, wired where
-      `seedChainHand` is), and the display leaves it unsaid: "role2s cast
-      back" is over the right shoulder, and only "role2s cast back left"
-      names one. That last part is this change's reading of the rulings
-      together (the maintainer's wording template, given as a rough guide,
-      shows the shoulder; the chain precedent hides the role's own). Applying
-      the rule in every reader, not only the Caller's Box front end, is what
-      makes a re-check of an older import, a Caller's Companion import and
-      free-text entry agree with a fresh import.
+    - A role's cast with no shoulder stated is over the right shoulder for
+      role2s and the left for role1s ("as we do for chains"), and the
+      maintainer limited that assumption to The Caller's Box adapter
+      (`CallersBoxAdapter`, `_assumeCastShoulders`, which recurses into
+      `||` sides). Typed text, a re-check of stored lines and other sources
+      leave an unstated shoulder unstated, so a re-check of an older import
+      differs from a fresh one on those lines (68 in the 1,563 dances, all
+      "Women/Men cast back …"). The editor assumes nothing either.
+    - The display always shows a shoulder, even the role's usual one
+      ("role2s cast back right"): the maintainer's ruling, unlike a chain's
+      role-implied hand, which goes unsaid.
     - `destination` holds ECD's destination tokens plus `top` and `bottom`.
       The maintainer decided this shape and ECD's `ecd_cast` be one, so
       ADR-006 F5 maps one to the other. **It is not one yet:** `ecd_cast`
@@ -2280,8 +2279,10 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
     which of a gate's dancer slots "ones" fills. It keeps the gate's 8-beat
     default; imports carry the line's own beats (4 on 113 of 140).
   - The Caller's Box front end (`callersbox_figure_dialect.dart`,
-    `_tcbCast`) reads `(past twos; threes)`: the count fills `places` and
-    the text is kept as a note. Only a list of dancers counts (`twos`, `N2`,
+    `_tcbCast`) reads a cast's `(cw)`/`(ccw)` annotation as its shoulder (1
+    line, `Men cast back (cw) || Women go forward`, which the assumption above
+    would otherwise have read as the left), and `(past twos; threes)`: the
+    count fills `places` and the text is kept as a note. Only a list of dancers counts (`twos`, `N2`,
     `W1`, `N2 twos`, `shadow S1`); `(past ones and threes)`, `(past twos,
     threes)`, `(past S; to partner)`, `(past top couple)`, a second `(past …)`
     in the clause, or a count the line contradicts keep the line custom.

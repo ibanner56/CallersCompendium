@@ -97,20 +97,20 @@ final Map<String, String> _castDestinationByWords = {
   },
 };
 
-/// The shoulder a "cast back" turns over when the line names a role and no
-/// shoulder: role2s (women) cast back over the right shoulder, role1s (men)
-/// over the left. The maintainer's ruling (2026-11-19), likened to the
-/// role-implied hand of a chain (`chainHandForWho`): in The Caller's Box these
-/// lines follow a counterclockwise promenade, where the outside dancer turns
-/// out to the right and the inside dancer to the left.
+/// The shoulder a cast is assumed to turn over when The Caller's Box names a
+/// role and no shoulder: role2s (women) cast back over the right shoulder,
+/// role1s (men) over the left. The maintainer's rulings (2026-11-19): likened
+/// to a chain's role-implied hand (`chainHandForWho`), and assumed only by the
+/// Caller's Box adapter (`CallersBoxAdapter`), never by typed text, a re-check
+/// of stored lines or another source. In The Caller's Box these lines follow a
+/// counterclockwise promenade, where the outside dancer turns out to the right
+/// and the inside dancer to the left.
 ///
 /// Written explicitly, never as a taxonomy default, for the same reason as a
 /// chain's hand: a role-conditional default would go stale the moment `who` is
-/// edited. Every reader writes it for a role's "cast back" with no shoulder
-/// (`figure_parser.dart`, `_cast`), the editor writes it when a role is picked
-/// (`seedCastShoulder`). Unlike a chain's hand, the display always shows it
-/// ("role2s cast back right"), by the maintainer's ruling.
-/// Null for any other `who`, so the shoulder stays unstated.
+/// edited. The display always shows it ("role2s cast back right"), by the
+/// maintainer's ruling. Null for any other `who`, so the shoulder stays
+/// unstated.
 String? castBackShoulderForWho(Object? who) => switch (who) {
   'role2s' => 'right',
   'role1s' => 'left',

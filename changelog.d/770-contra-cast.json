@@ -3,13 +3,14 @@
   "user_visible": true,
   "app": {
     "added": [
-      "Contra dances have a cast figure: up or down the set, or back over the left or right shoulder, with how many places, around whom and where it ends. A cast back by one role takes that role's usual shoulder, as a chain takes its usual hand. Dances you import from The Caller's Box now read most of their casts as this figure instead of leaving them as text, with a cast off read as a cast down one place, and \"Re-check unrecognized figures\" can now recognize most casts in dances you imported earlier.",
+      "Contra dances have a cast figure: up or down the set, or back over the left or right shoulder, with how many places, around whom and where it ends. Dances you import from The Caller's Box now read most of their casts as this figure instead of leaving them as text, with a cast off read as a cast down one place, and \"Re-check unrecognized figures\" can now recognize most casts in dances you imported earlier.",
+      "When a dance from The Caller's Box says only that one role casts back, the import takes that role's usual shoulder, as it takes a chain's usual hand. Casts you type in, or re-check, keep an unstated shoulder unstated.",
       "A hand cast is now a figure of its own, a kind of gate. A bare \"Hand cast\" imported from The Caller's Box reads as one."
     ]
   },
   "core": {
     "added": [
-      "Add the contra `cast` move and the `hand_cast` alias of `gate` (contra taxonomy v40), with readers for The Caller's Box's cast wording, its `(past …)` counts and its cast-back convention."
+      "Add the contra `cast` move and the `hand_cast` alias of `gate` (contra taxonomy v40), with readers for The Caller's Box's cast wording, its `(past …)` counts and `(cw)`/`(ccw)` annotations, and the adapter's cast-back convention."
     ]
   }
 }
