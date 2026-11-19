@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_breakpoints.dart';
 import '../theme/app_motion.dart';
-import 'program_matrix_table.dart' show ProgramMatrixTable;
 
 /// Builds a single option row (e.g. a [ListTile]) for [option]. [onSelected]
 /// is pre-bound to that option — the tile just calls it on tap — so callers
@@ -75,8 +75,8 @@ class ResponsiveAutocomplete<T extends Object> extends StatefulWidget {
       maxHeight: 240,
       maxWidth: 320,
     ),
-    this.compactWidthBreakpoint = ProgramMatrixTable.compactBreakpoint,
-    this.compactHeightBreakpoint = _defaultCompactHeightBreakpoint,
+    this.compactWidthBreakpoint = AppBreakpoints.compact,
+    this.compactHeightBreakpoint = AppBreakpoints.shortHeight,
   }) : assert(
          textEditingController == null || initialValue == null,
          'Provide either initialValue or textEditingController, not both '
@@ -84,7 +84,7 @@ class ResponsiveAutocomplete<T extends Object> extends StatefulWidget {
        );
 
   /// Width (logical pixels) below which the narrow/sheet layout is used,
-  /// mirroring [ProgramMatrixTable.compactBreakpoint] (Material 3's compact
+  /// mirroring [AppBreakpoints.compact] (Material 3's compact
   /// window-size-class cutoff) so phones get the sheet and tablets/desktop
   /// keep the fast inline overlay.
   final double compactWidthBreakpoint;
@@ -101,8 +101,6 @@ class ResponsiveAutocomplete<T extends Object> extends StatefulWidget {
   /// heights (iPad mini landscape is ~768dp), so tablets aren't
   /// misclassified as compact.
   final double compactHeightBreakpoint;
-
-  static const double _defaultCompactHeightBreakpoint = 480;
 
   /// Given the current field text, returns the matching options (already
   /// filtered/sorted/capped by the caller — this widget does no filtering of

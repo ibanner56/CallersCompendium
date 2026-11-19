@@ -11,6 +11,7 @@ import '../theme/set_list_accents.dart';
 import 'dirty_dialog_guard.dart';
 import 'empty_state.dart';
 import 'preview_hold_listener.dart';
+import '../theme/app_breakpoints.dart';
 
 /// Editable, reorderable list of a program's slots for the builder
 /// (`docs/design/ux.md` §4).
@@ -18,7 +19,7 @@ import 'preview_hold_listener.dart';
 /// Reordering offers a drag handle **plus** a non-drag alternative (move
 /// up/down), for WCAG 2.5.7. The scissors button removes the slot (issue
 /// #1270); there is no cut/paste reordering here, unlike
-/// `figure_list_editor.dart`. On a narrow row (see [compactActionsBreakpoint])
+/// `figure_list_editor.dart`. On a narrow row (see [AppBreakpoints.compact])
 /// only the drag handle and the "…" menu stay on the row; move up/down, View
 /// details and cut move into that menu, up and down first.
 /// `isAlt` slots render **indented** under their primary with an alt icon +
@@ -140,17 +141,11 @@ class ProgramSlotListEditor extends StatefulWidget {
   /// Opens a persistent details preview for keyboard and AT users.
   final void Function(String danceId)? onViewDanceDetails;
 
-  /// Window width (logical pixels) below which each row keeps only its drag
-  /// handle and "…" menu, folding View details, move up/down and cut into the
-  /// menu. 600 mirrors Material 3's compact window-size-class cutoff (matching
-  /// `DanceDetailScreen.compactActionsBreakpoint`): at 360dp the full row left
-  /// the title 8dp and overflowed an alternate row by 24dp.
-  static const double compactActionsBreakpoint = 600;
-
   /// List width below which rows use the compact layout even on a wide window.
   /// The builder's two-pane layout halves the window, so up to about 1100dp
-  /// the program pane is too narrow for the full row (at 820dp an alternate
-  /// row's title got no width at all, and the row overflowed).
+  /// the program pane is too narrow for the full row (in a program pane about
+  /// 380dp wide, an alternate row's title got no width at all, and the row
+  /// overflowed).
   static const double minFullRowWidth = 520;
 
   @override
@@ -266,9 +261,11 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
     // break: the same numbers as the set list, its text and its PDF, so the
     // builder's "5" is the band's "5." (GIG-10).
     final danceNumbers = Program.danceNumbersForSlots(slots);
+    // Below the compact width each row keeps only its drag handle and "…"
+    // menu, folding View details, move up/down and cut into the menu: at 360dp
+    // the full row left the title 8dp and overflowed an alternate row by 24dp.
     final narrowWindow =
-        MediaQuery.sizeOf(context).width <
-        ProgramSlotListEditor.compactActionsBreakpoint;
+        MediaQuery.sizeOf(context).width < AppBreakpoints.compact;
     return LayoutBuilder(
       builder: (context, constraints) => ReorderableListView(
         shrinkWrap: true,
@@ -476,7 +473,7 @@ class _SlotTile extends StatelessWidget {
 
   /// Keep only the drag handle and the "…" menu on the row; View details,
   /// move up/down and cut become menu items (see
-  /// [ProgramSlotListEditor.compactActionsBreakpoint]).
+  /// [AppBreakpoints.compact]).
   final bool compact;
   final int index;
   final ProgramSlot slot;

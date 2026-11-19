@@ -5261,16 +5261,6 @@
   "@collectionNewDance": {
     "description": "Label of the floating action button that creates a new dance."
   },
-  "collectionSearchTooltip": "{platform, select, apple{Search (⌘K)} other{Search (Ctrl+K)}}",
-  "@collectionSearchTooltip": {
-    "description": "Tooltip for the app-bar search button, noting its keyboard shortcut.",
-    "placeholders": {
-      "platform": {
-        "type": "String",
-        "description": "'apple' on macOS and iOS, where shortcuts use the Command key; 'other' everywhere else."
-      }
-    }
-  },
   "collectionSelectDancesTooltip": "Select dances",
   "@collectionSelectDancesTooltip": {
     "description": "Tooltip for the app-bar button that enters multi-select (batch) mode."
@@ -7294,6 +7284,14 @@
   "programsTitle": "Programs",
   "@programsTitle": {
     "description": "Title of the Programs list screen and its navigation destination."
+  },
+  "programsSearchTooltip": "Search programs",
+  "@programsSearchTooltip": {
+    "description": "Tooltip of the narrow-layout Programs list's app-bar search button, which searches programs only (not dances); also the screen-reader label of that search's dismiss barrier."
+  },
+  "programsSearchHint": "Search programs…",
+  "@programsSearchHint": {
+    "description": "Placeholder hint in the search field opened from the narrow-layout Programs list, which lists programs only."
   },
   "programsSortTitle": "Title",
   "@programsSortTitle": {

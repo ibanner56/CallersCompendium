@@ -7,15 +7,17 @@ import 'perform_program_screen.dart' show PerformResumeStore;
 import 'program_editor_screen.dart';
 import 'program_summary_screen.dart';
 import 'programs_list_screen.dart';
+import '../theme/app_breakpoints.dart';
 
 /// Responsive Programs shell (`docs/design/ux.md` §4), mirroring
 /// [CollectionShell].
 ///
-/// **Breakpoint: 900 logical pixels wide.**
-/// - **Narrow (< 900 px):** [ProgramsListScreen] with push-navigation to the
+/// **Breakpoint: [AppBreakpoints.split] (900 px) of window width**, the same
+/// for every destination, so the rail beside this shell does not move it.
+/// - **Narrow (below 900 px):** [ProgramsListScreen] with push-navigation to the
 ///   read-focused [ProgramSummaryScreen] (a Perform-first summary), which in
 ///   turn opens the full-screen [ProgramEditorScreen] builder route on Edit.
-/// - **Wide (≥ 900 px):** master-detail [Row] — a fixed 400 px list pane and a
+/// - **Wide (from 900 px):** master-detail [Row] — a fixed 400 px list pane and a
 ///   lightweight **summary** pane for the selected program. Building/editing
 ///   opens the **full-screen** builder route (not embedded) so the builder's
 ///   slots | picker two-pane gets the full content width.
@@ -27,7 +29,6 @@ class ProgramsShell extends StatefulWidget {
   /// again.
   final bool isActive;
 
-  static const double splitBreakpoint = 900;
   static const double listPaneWidth = 400;
 
   @override
@@ -93,7 +94,7 @@ class _ProgramsShellState extends State<ProgramsShell> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth >= ProgramsShell.splitBreakpoint) {
+        if (AppBreakpoints.showsSplit(context, constraints.maxWidth)) {
           return _buildSplitPane();
         }
         // Narrow: single-pane list. Tapping a program pushes the read-focused

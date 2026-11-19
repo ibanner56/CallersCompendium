@@ -13,6 +13,7 @@ import '../../glossary/custom_figures.dart';
 import '../../theme/app_spacing.dart';
 import 'compound_editor_screen.dart';
 import 'custom_figure_detail.dart';
+import '../../widgets/adaptive_fab.dart';
 
 final FigureRenderer _renderer = FigureRenderer(contraTaxonomy);
 
@@ -104,12 +105,13 @@ class _CustomFiguresScreenState extends State<CustomFiguresScreen> {
       // so it waits until there is a figure.
       floatingActionButton: _repos == null || shown.isEmpty
           ? null
-          : FloatingActionButton.extended(
+          : adaptiveExtendedFab(
+              context,
               key: const ValueKey('custom-figures-add'),
               heroTag: 'custom-figures-add',
               onPressed: () => _add(context),
               icon: const Icon(Icons.add),
-              label: Text(l10n.customFiguresNewFigure),
+              label: l10n.customFiguresNewFigure,
             ),
       body: shown.isEmpty
           ? EmptyState(

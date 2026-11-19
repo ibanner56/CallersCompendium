@@ -5,6 +5,7 @@ import '../../l10n/app_localizations.dart';
 import '../search/facet_labels.dart' show formationIcon, formationLabel;
 import '../theme/app_shapes.dart';
 import 'empty_state.dart';
+import '../theme/app_breakpoints.dart';
 
 /// Read-only **programming matrix** (moves × dances) for the Program builder's
 /// Matrix tab (`docs/design/ux.md` §4).
@@ -103,18 +104,6 @@ class ProgramMatrixTable extends StatefulWidget {
   /// [rowHeaderWidth] since it never carries the ALT/half badges.
   static const double formationColumnWidth = 112;
 
-  /// Width (logical pixels) below which the wide scrolling grid is replaced by
-  /// the [_CompactMatrix] fallback. 600 mirrors Material 3's compact
-  /// window-size-class cutoff (matching `DanceDetailScreen.compactActionsBreakpoint`),
-  /// so phones get the condensed view while tablets/desktop keep the full grid.
-  ///
-  /// At a 360dp phone width the grid reserves [rowHeaderWidth] (168) for the
-  /// pinned dance column, leaving room for only ~3 [columnWidth] move columns —
-  /// too few to read the core insight (which moves repeat across the set)
-  /// without horizontally scrolling the whole grid. The compact view surfaces
-  /// that insight directly, grouped by move.
-  static const double compactBreakpoint = 600;
-
   @override
   State<ProgramMatrixTable> createState() => _ProgramMatrixTableState();
 }
@@ -188,8 +177,11 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final compact =
-            constraints.maxWidth < ProgramMatrixTable.compactBreakpoint;
+        // At a 360dp phone width the grid reserves [rowHeaderWidth] (168) for
+        // the pinned dance column, leaving room for only ~3 move columns: too
+        // few to read which moves repeat across the set without scrolling the
+        // whole grid. The compact view shows that directly, grouped by move.
+        final compact = constraints.maxWidth < AppBreakpoints.compact;
         // The compact view drops columns no dance actually uses (e.g. the
         // always-emitted swing baseline), so its announced move count is the
         // number of columns actually shown — keeping the semantics label
@@ -253,7 +245,7 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
 
   /// The full four-quadrant scrolling grid (corner / pinned column headers /
   /// pinned row headers / two-axis scrolling body) used at tablet and desktop
-  /// widths. Below [ProgramMatrixTable.compactBreakpoint] it is replaced by
+  /// widths. Below [AppBreakpoints.compact] it is replaced by
   /// [_CompactMatrix].
   Widget _wideTable(List<String> labels, List<int> visibleRows) {
     final matrix = widget.matrix;

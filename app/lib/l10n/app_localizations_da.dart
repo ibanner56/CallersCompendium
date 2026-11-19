@@ -4162,15 +4162,6 @@ class AppLocalizationsDa extends AppLocalizations {
   String get collectionNewDance => 'Ny dans';
 
   @override
-  String collectionSearchTooltip(String platform) {
-    String _temp0 = intl.Intl.selectLogic(platform, {
-      'apple': 'Søg (⌘K)',
-      'other': 'Søg (Ctrl+K)',
-    });
-    return '$_temp0';
-  }
-
-  @override
   String get collectionSelectDancesTooltip => 'Vælg danse';
 
   @override
@@ -5655,6 +5646,12 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get programsTitle => 'Programmer';
+
+  @override
+  String get programsSearchTooltip => 'Søg programmer';
+
+  @override
+  String get programsSearchHint => 'Søg programmer…';
 
   @override
   String get programsSortTitle => 'Titel';

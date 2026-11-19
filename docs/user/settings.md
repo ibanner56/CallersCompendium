@@ -19,15 +19,16 @@ section.*
 ## Finding Settings
 
 **Settings** is a top-level destination, marked with a gear icon and labeled
-**Settings**. On a narrow screen (like a phone) it's a tab in the bottom
-navigation; on a wide screen (a tablet or desktop) it's in the side navigation
+**Settings**. On a phone held upright it's a tab in the bottom navigation; on most
+phones turned on their side, a tablet or a desktop it's in the side navigation
 rail. On a computer you can also press **Ctrl-,** (**Cmd-,** on a Mac), or
 choose **Settings…** in the **Caller's Compendium** menu on a Mac (see
 [Using the keyboard](./accessibility.md#using-the-keyboard)).
 
-Inside, a list of sections sits beside the controls for the section you've
-chosen. On a narrow screen you pick a section and it opens as its own page, then
-you step back to switch sections. There are ten sections, always in this order:
+Inside, on a wide screen (a desktop, or a tablet in landscape), a list of
+sections sits beside the controls for the section you've chosen, starting with
+**General**. On a narrower screen (a phone, or a tablet in portrait) you pick a
+section and it opens as its own page, then you step back to switch sections. There are ten sections, always in this order:
 
 1. **General**
 2. **Program**

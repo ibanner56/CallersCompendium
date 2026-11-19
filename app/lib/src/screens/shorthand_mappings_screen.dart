@@ -18,6 +18,7 @@ import 'compound_shorthand_editor_screen.dart';
 import '../data/shorthand_mappings_controller.dart';
 import '../data/shorthand_mappings_scope.dart';
 import 'shorthand_mapping_editor_screen.dart';
+import '../widgets/adaptive_fab.dart';
 
 /// Manager for the user's shorthand → figure(s) mappings (issue #420), reached
 /// from the "Free-text entry" area of Settings. Mirrors the dialect library
@@ -41,12 +42,13 @@ class ShorthandMappingsScreen extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final newShorthand = mappings.isEmpty
         ? null
-        : FloatingActionButton.extended(
+        : adaptiveExtendedFab(
+            context,
             key: const ValueKey('new-shorthand'),
             heroTag: 'new-shorthand',
             onPressed: () => _createNew(context, controller),
             icon: const Icon(Icons.add),
-            label: Text(l10n.shorthandMappingsNew),
+            label: l10n.shorthandMappingsNew,
           );
     return Scaffold(
       appBar: AppBar(title: Text(l10n.shorthandMappingsTitle)),

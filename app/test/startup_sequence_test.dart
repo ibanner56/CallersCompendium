@@ -2556,7 +2556,13 @@ void main() {
         await _restoreFromPaste(tester, backupJson);
 
         expect(await appData.repositories.settings.get(c.key), isNull);
-        expect(c.read(tester.element(find.byType(AppShell))), c.defaultValue);
+        // Settings may be showing General as a page over the shell (its
+        // one-pane layout, which a long label in the stored language can
+        // force), so the shell is looked up offstage too.
+        expect(
+          c.read(tester.element(find.byType(AppShell, skipOffstage: false))),
+          c.defaultValue,
+        );
       });
     }
   });
@@ -2697,7 +2703,13 @@ void main() {
         await _restoreFromPaste(tester, backupJson);
 
         expect(await appData.repositories.settings.get(c.key), isNull);
-        expect(c.read(tester.element(find.byType(AppShell))), c.defaultValue);
+        // Settings may be showing General as a page over the shell (its
+        // one-pane layout, which a long label in the stored language can
+        // force), so the shell is looked up offstage too.
+        expect(
+          c.read(tester.element(find.byType(AppShell, skipOffstage: false))),
+          c.defaultValue,
+        );
       });
     }
   });

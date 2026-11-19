@@ -603,7 +603,8 @@ shell** (`screens/settings_screen.dart`):
 - A `_SettingsSection` enum (currently **Appearance**, **Dialect**) is the single
   source of truth for the sidebar; adding a page is one enum value plus its
   content in `_content`.
-- **Wide (≥ 720 px):** a left sidebar list + a content pane side by side
+- **Wide (≥ 900 px of window width, the app-wide split width in
+  `theme/app_breakpoints.dart`):** a left sidebar list + a content pane side by side
   (`_SettingsSidebar`), selection shown by the highlighted tile **and** a filled
   icon (never color alone). **Narrow:** the sidebar is a list whose rows push the
   section as its own page with a back-navigable app bar.
@@ -692,7 +693,8 @@ Program X                           Program X   [◐ Draft]  [Export ▾]   ← 
 
 ## 6. Shell / navigation polish — `app_shell.dart`
 
-Within the `ux.md` IA (no re-scoping): style the `NavigationRail` (wide, ≥900px)
+Within the `ux.md` IA (no re-scoping): style the `NavigationRail` (wide, ≥720px since the
+breakpoints were unified in `theme/app_breakpoints.dart`)
 and `NavigationBar` (narrow) with a pill selected-indicator and themed
 icon/label treatment, and add a persistent global-search affordance wired to
 **Ctrl/Cmd-K**. Settings stays reachable from each screen's app bar as today.
