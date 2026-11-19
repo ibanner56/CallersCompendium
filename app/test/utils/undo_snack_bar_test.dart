@@ -199,7 +199,7 @@ void main() {
     testWidgets('takes its duration from the Undo prompt setting', (
       tester,
     ) async {
-      final seconds = ValueNotifier<int>(20);
+      final seconds = ValueNotifier<int>(15);
       addTearDown(seconds.dispose);
       await tester.pumpWidget(
         _harness(
@@ -211,13 +211,13 @@ void main() {
       );
       await _showAndAwaitEntrance(tester);
 
-      // Past the 10-second default, inside the chosen 20.
-      await tester.pump(const Duration(seconds: 15));
+      // Past the 10-second default, inside the chosen 15.
+      await tester.pump(const Duration(seconds: 12));
       // Settled, so a prompt that had started to leave would be gone.
       await tester.pumpAndSettle();
       expect(find.text('Undo'), findsOneWidget);
 
-      await tester.pump(const Duration(seconds: 6));
+      await tester.pump(const Duration(seconds: 4));
       await tester.pumpAndSettle();
       expect(find.text('Undo'), findsNothing);
     });

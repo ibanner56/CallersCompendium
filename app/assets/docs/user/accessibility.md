@@ -243,7 +243,7 @@ A few smaller settings and behaviors round out the experience:
   your own Glossary entries or figures) always asks first and says "This can't
   be undone."
 - **Undo prompt** (**Settings › General**) sets how long the **Undo** message
-  stays on screen: 6, 10 (the default), 20 or 30 seconds, or **Until I close
+  stays on screen: 2, 5, 10 (the default) or 15 seconds, or **Until I close
   it**. Whatever you choose, the message also stays while you point at it with
   a mouse or move to its **Undo** button with the keyboard, and its full time
   starts again when you move away. With a screen reader running, it stays until

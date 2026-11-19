@@ -13,7 +13,7 @@ const int kUndoPromptDefaultSeconds = 10;
 
 /// The timed choices offered in Settings, in seconds, shortest first. The
 /// settings list adds [kUndoPromptUntilDismissed] after them.
-const List<int> kUndoPromptSecondOptions = <int>[6, 10, 20, 30];
+const List<int> kUndoPromptSecondOptions = <int>[2, 5, 10, 15];
 
 /// Maps a stored value to one of the offered choices: a choice or
 /// [kUndoPromptUntilDismissed] as stored, anything else (absent, wrong type,

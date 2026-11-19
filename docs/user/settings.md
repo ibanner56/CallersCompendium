@@ -126,7 +126,7 @@ The **General** section gathers everyday behavior into small groups.
   dance already permanently deleted is not counted. A delete that can't be
   undone always asks first, whether this is on or off.
 - **Undo prompt** — how long the **Undo** message stays on screen after you
-  delete or change something: **6**, **10**, **20** or **30 seconds**, or
+  delete or change something: **2**, **5**, **10** or **15 seconds**, or
   **Until I close it** (default **10 seconds**). It also stays while you point
   at it or move to it with the keyboard, and its time starts again when you
   move away. With a screen reader running it always stays until you act on it
