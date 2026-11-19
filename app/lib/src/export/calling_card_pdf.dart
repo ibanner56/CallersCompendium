@@ -128,7 +128,8 @@ Future<Uint8List> buildCallingCardsPdf(
       entry: entry,
       content: content,
       renderer: fig,
-      dialect: dialect,
+      // Lark and robin for a dance that requires them (`dialectForDance`).
+      dialect: content.dialect,
       labels: labels,
       programTitle: programTitle,
       canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,

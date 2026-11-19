@@ -136,7 +136,12 @@ class DanceListTile extends StatelessWidget {
     final canonicalDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
       context,
     );
-    final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
+    // Lark and robin when the dance's choreographer asked for them.
+    final dialect = dialectForDance(
+      ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
+      title: dance.title,
+      authorNames: entry.authorNames,
+    );
     final renderer = FigureRenderer(shippedTaxonomies.anyForm);
     final tile = ListTile(
       selected: selected,
@@ -204,7 +209,7 @@ class DanceListTile extends StatelessWidget {
                     l10n,
                     dance.formation,
                     FigureRenderer(shippedTaxonomies.anyForm),
-                    ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
+                    dialect,
                     canonicalizeDiscouragedTerms:
                         CanonicalDiscouragedTermsScope.of(context),
                   ),

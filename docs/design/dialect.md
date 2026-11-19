@@ -125,6 +125,40 @@ built figure.
   dialect has no id, so a deleted name that a new dialect has since taken cannot
   be told apart from the original. Inside Perform the quick-switch is then session-local.
 
+  **Choreographer exception: larks and robins only.** Rachel ("Rae") Fifer has
+  asked the dance community at large that her dances only ever be called with
+  the role terms "larks" and "robins". This is the one place the reader's
+  dialect does not win. `dialectForDance` (`dialect/author_role_terms.dart`)
+  takes the reader's dialect and a dance's title and author names, and when
+  `requiresLarksRobins` returns a copy with `lark`/`robin` role terms. It also
+  drops the reader's single-dancer substitutions (`onesRole1` …, which usually
+  spell a role) and stops flagging lark and robin as discouraged. Move
+  substitutions and wordings stay the reader's. A dance requires it when any
+  author's name has Rachel or Rae as its first word and Fifer as its last.
+  "Renewed Joy" and "If I Was Dead and It Wouldn't Go To Waste" also require it
+  when no author is named (none, or only Unknown/Traditional), so a dance
+  imported without its author is still caught. The request that added this
+  rule named those two dances and said she would probably prefer the rule to
+  cover all her dances, so it does. The rest was decided while implementing it,
+  not by the request: the title fallback, keeping the reader's move wording
+  (rather than switching the whole dialect to the Larks/Robins preset, which
+  would discard choices that have nothing to do with roles), and dropping
+  single-dancer substitutions (which would otherwise leak a role word such as
+  "first gent").
+
+  Every surface that shows one dance resolves its dialect through
+  `dialectForDance`: the dance page (which notes the override when it sets the
+  reader's role terms aside, `overridesRoleTerms`), the editor (which converts
+  its drafts as the title or authors start or stop requiring it), Perform
+  (single dance and each program slot), the Collection list tile, the program
+  summary row, the import review preview, and every export built on
+  `DanceCardContent`, which carries the dialect it rendered in
+  (`DanceCardContent.dialect`) for its consumers' figure rendering. Program-level
+  text keeps the reader's dialect: slot notes, and the program matrix's column
+  labels, which span several dances. The sync-conflict comparison renders each
+  field without the dance's authors, so it also keeps the reader's dialect.
+  Storage is unaffected: the dance stays canonical.
+
 ## Conditional wording
 
 A wording template, a dialect's move wording (`moveWordings`,

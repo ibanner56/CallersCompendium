@@ -799,6 +799,14 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     return l10n.performUntitledSlot;
   }
 
+  /// [dialect], with lark and robin for the roles when [dance]'s
+  /// choreographer asked for them (`dialectForDance`).
+  Dialect _danceDialect(Dance dance, Dialect dialect) => dialectForDance(
+    dialect,
+    title: dance.title,
+    authorNames: _authorNamesFor(dance),
+  );
+
   List<String> _authorNamesFor(Dance dance) => [
     for (final id in dance.authorIds)
       if (widget.authorNameOverrides[id] ?? widget.data.choreographerNames[id]
@@ -1514,7 +1522,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                           child: PerformWalkthroughOverlay(
                             walkthrough: activeDance!.walkthrough,
                             renderer: widget.renderer,
-                            dialect: dialect,
+                            dialect: _danceDialect(activeDance, dialect),
                             onClose: _toggleWalkthrough,
                             scrollController: _walkthroughScroll,
                           ),
@@ -1859,6 +1867,8 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     if (slot.danceId != null) {
       var dance = _danceForSlot(slot);
       if (dance != null) {
+        // From the dance's own title, before a deleted mark is added to it.
+        final danceDialect = _danceDialect(dance, dialect);
         // A soft-deleted dance keeps its figures but says so in its title.
         if (dance.isDeleted) {
           dance = dance.copyWith(
@@ -1873,7 +1883,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
           dance: dance,
           callerNote: _showProgramSlotCallerNotes == true ? slot.text : null,
           renderer: widget.renderer,
-          dialect: dialect,
+          dialect: danceDialect,
           textScale: _textScale,
           autoSize: _autoSize,
           authorNames: _authorNamesFor(dance),

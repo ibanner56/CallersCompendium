@@ -367,7 +367,11 @@ List<pw.Widget> programAppendixWidgets(
       buildFigureWidgets(
         dance,
         renderer,
-        dialect,
+        // A built card carries the dance's own dialect (`dialectForDance`);
+        // without one only the title can say the dance requires larks and
+        // robins.
+        content?.dialect ??
+            dialectForDance(dialect, title: dance.title, authorNames: const []),
         danceLabels,
         canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
       ),

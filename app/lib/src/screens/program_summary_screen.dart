@@ -1474,6 +1474,22 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     return rows;
   }
 
+  /// The active dialect, with lark and robin for the roles when [dance]'s
+  /// choreographer asked for them (`dialectForDance`), credited as the
+  /// exports credit it.
+  Dialect _danceDialect(Dance dance) => dialectForDance(
+    ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
+    title: dance.title,
+    authorNames:
+        _authorNamesOverride[dance.id] ??
+        [
+          for (final id in dance.authorIds)
+            if (_collectionData?.choreographersById[id]?.name
+                case final String name)
+              name,
+        ],
+  );
+
   String _displayProse(String text) {
     if (!CanonicalDiscouragedTermsScope.of(context)) return text;
     final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
@@ -1592,7 +1608,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
             l10n,
             dance.formation,
             _proseRenderer,
-            ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
+            _danceDialect(dance),
             canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
               context,
             ),
@@ -1635,7 +1651,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
             l10n,
             dance.formation,
             _proseRenderer,
-            ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
+            _danceDialect(dance),
             canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
               context,
             ),

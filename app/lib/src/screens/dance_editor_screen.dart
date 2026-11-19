@@ -98,6 +98,13 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   /// the figure/move field.
   Dialect _activeDialect = Dialect.larksRobins;
 
+  /// The dialect the editor shows and reads this dance in: [_activeDialect],
+  /// with lark and robin for the roles while the dance's title and authors
+  /// say its choreographer asked for them (`dialectForDance`). Kept current
+  /// by [_syncEditorDialect] as the dialect, title or authors change, and
+  /// handed to the controller, which converts the figure drafts' role words.
+  Dialect _editorDialect = Dialect.larksRobins;
+
   bool _dependenciesInitialized = false;
   void Function()? _unregisterShutdownFlush;
   Object? _loadError;
@@ -171,6 +178,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       // state and leak controllers.
       _dependenciesInitialized = true;
       _activeDialect = newDialect;
+      _editorDialect = newDialect;
       _repos = RepositoriesScope.of(context);
       _createController();
       _load();
@@ -178,8 +186,26 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     } else if (!identical(newDialect, _activeDialect) &&
         newDialect != _activeDialect) {
       _activeDialect = newDialect;
-      _controller.updateDialect(newDialect);
+      _syncEditorDialect();
     }
+  }
+
+  /// Moves the controller to the dialect this dance should be shown in, when
+  /// that changed: the active dialect changed, or the title or authors now
+  /// say (or no longer say) the dance requires larks and robins.
+  void _syncEditorDialect() {
+    if (!_dependenciesInitialized) return;
+    final next = dialectForDance(
+      _activeDialect,
+      title: _controller.titleController.text,
+      authorNames: [
+        for (final id in _controller.authorIds)
+          if (_choreographerNames[id] case final String name) name,
+      ],
+    );
+    if (next == _editorDialect) return;
+    _editorDialect = next;
+    _controller.updateDialect(next);
   }
 
   void _createController() {
@@ -190,6 +216,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       initialTitle: widget.initialTitle,
     );
     _controller.addListener(_onControllerChanged);
+    _controller.titleController.addListener(_syncEditorDialect);
     final shutdownController = EditorDraftShutdownScope.maybeOf(context);
     if (shutdownController != null) {
       _unregisterShutdownFlush = shutdownController.register(
@@ -235,6 +262,9 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   /// callback that outlived the route) is a no-op.
   void _onControllerChanged() {
     if (mounted) {
+      // The authors may have changed; a conversion this starts notifies
+      // again, and the second pass finds nothing left to change.
+      _syncEditorDialect();
       setState(_rebuildTagOptions);
     }
   }
@@ -324,6 +354,8 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
             _danceNamesById = data.danceNamesById;
             _sourcesById = data.sourcesById;
           });
+          // An author renamed elsewhere can change what the dance requires.
+          _syncEditorDialect();
         }
         completeInitialReadyOnce();
       },
@@ -349,6 +381,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     if (_dependenciesInitialized) {
       _unregisterShutdownFlush?.call();
       _controller.removeListener(_onControllerChanged);
+      _controller.titleController.removeListener(_syncEditorDialect);
       _controller.dispose();
       _moreDetailsController.dispose();
     }
@@ -852,6 +885,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       ];
       _choreographerNames = {..._choreographerNames, stored.id: stored.name};
     });
+    _syncEditorDialect();
   }
 
   /// Follows [merge] in the draft: every merged author becomes the survivor.
@@ -1101,7 +1135,9 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     // Registers a dependency so the whole editor rebuilds (and prose fields
     // restyle) when the active dialect changes; also passed down to the lingo
     // hints so they reflect the current dialect's discouraged terms.
-    final dialect = ActiveDialectScope.of(context);
+    ActiveDialectScope.of(context);
+    // The dance's own dialect: lark and robin when its choreographer asked.
+    final dialect = _editorDialect;
     // The outer shortcut Focus(autofocus: true) owns focus from the spinner
     // frame, so the title's own autofocus is dropped; request it once here.
     if (widget.isNew && !_titleFocusRequested) {

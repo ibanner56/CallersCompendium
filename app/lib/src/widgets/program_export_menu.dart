@@ -282,13 +282,16 @@ class ProgramExportMenu extends StatelessWidget {
     } else {
       levelLabel = dance.mixedLevel ? l10n.exportLevelMixedOnly : null;
     }
+    final authorNames = _authorNamesFor(dance.id);
     return (
-      authorNames: _authorNamesFor(dance.id),
+      authorNames: authorNames,
       formationLabel: formationDisplayLabel(
         l10n,
         dance.formation,
         renderer,
-        dialect,
+        // The card's figures and notes take the same dialect, in
+        // `DanceCardContent.build`.
+        dialectForDance(dialect, title: dance.title, authorNames: authorNames),
         canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
           context,
         ),

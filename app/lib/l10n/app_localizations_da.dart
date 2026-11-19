@@ -5055,6 +5055,10 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceCanonicalToggleLabel => 'Kanonisk';
 
   @override
+  String get danceRoleTermsOverrideNote =>
+      'Vist med larks og robins: forfatteren har bedt om, at denne dans kun nogensinde kaldes med de rollebetegnelser, så din dialekts rollebetegnelser bruges ikke her.';
+
+  @override
   String danceProvenanceVia(String source) {
     return 'via $source';
   }

@@ -437,6 +437,13 @@ both recognize, then flip back to your own.
   switch your active dialect first. A share file you send to another Caller's
   Compendium user carries the dance itself, so it opens in *their* dialect. See
   [Share, print & export](./sharing.md#which-words-a-dance-export-uses).
+- **Some dances always use larks and robins.** Rachel ("Rae") Fifer has asked
+  the dance community that her dances only ever be called with the role terms
+  **larks** and **robins**, so the app honours that: her dances show, perform,
+  print and share with larks and robins whatever your dialect calls the roles.
+  The rest of your dialect (your move names and wordings) still applies. When
+  this sets your role terms aside, the dance's page says so under the
+  author's name.
 - **Screen readers.** The app reads dances aloud in your dialect too — your own
   words are the clearest ones for you — so the spoken view and the visible view
   stay in step. See the [accessibility guide](./accessibility.md) for more.

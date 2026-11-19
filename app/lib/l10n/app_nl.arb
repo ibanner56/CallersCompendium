@@ -5092,6 +5092,10 @@
   "@danceCanonicalToggleLabel": {
     "x-sourceSha256": "782621d03699b3741c7977a212b58f042e8bf0120a560e33307698c566e24e89"
   },
+  "danceRoleTermsOverrideNote": "Weergegeven met larks en robins: de auteur heeft gevraagd deze dans alleen ooit met die roltermen te callen, dus de roltermen van je dialect worden hier niet gebruikt.",
+  "@danceRoleTermsOverrideNote": {
+    "x-sourceSha256": "17d9d6af6c1bb038aca866cee669d6c0fbfe0a07693f3e78c7f4e05742e43f19"
+  },
   "danceProvenanceVia": "via {source}",
   "@danceProvenanceVia": {
     "x-sourceSha256": "12a4656bfd2a6fa246194d6119799d2c3299236d0662d525181e8c2e7b9638a6"
