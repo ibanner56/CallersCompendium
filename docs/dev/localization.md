@@ -590,11 +590,12 @@ human translations.
 
 ## Known limitation: system date pickers
 
-Flutter's `showDatePicker` derives its **first day of week from the active
-locale** and offers no per-call override, so the platform calendar picker — the
-app's current date-entry surface — always follows the locale, regardless of the
-app's first-day-of-week preference. Overriding `showDatePicker`'s first day of
-week is intentionally avoided rather than hacked around.
+The app's date picker (`showAppDatePicker`, which opens Flutter's
+`DatePickerDialog`) takes its **first day of week from the active locale**, so
+it always follows the locale, regardless of the app's first-day-of-week
+preference. The app builds that dialog itself, so it could wrap it in a
+`MaterialLocalizations` override that changes the first day of week; it does
+not do so today.
 
 The first-day-of-week preference (ROADMAP G.8) does have a live consumer: the
 Programs list's "this week" header strip (`WeekdayHeaderStrip`) column-orders

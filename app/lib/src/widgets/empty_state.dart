@@ -25,7 +25,8 @@ class EmptyState extends StatelessWidget {
   /// Buttons shown under the copy, wrapped when the pane is narrow.
   final List<Widget> actions;
 
-  /// The muted, 64px [Icon] every empty state leads with.
+  /// The muted, 64px [Icon] most empty states lead with (the Programs list
+  /// leads with a [BrandMark] instead).
   static Widget glyph(BuildContext context, IconData data) => Icon(
     data,
     size: 64,
@@ -45,7 +46,8 @@ class EmptyState extends StatelessWidget {
             const SizedBox(height: AppSpacing.md),
             Text(
               title,
-              style: theme.textTheme.titleMedium,
+              // The display face, as for screen titles.
+              style: theme.textTheme.headlineSmall,
               textAlign: TextAlign.center,
             ),
             if (body != null) ...[

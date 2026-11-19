@@ -38,6 +38,7 @@ import '../search/collection_query.dart';
 import '../search/collection_query_labels.dart';
 import '../search/collection_selection.dart';
 import '../search/dance_detail_data.dart';
+import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
 import '../theme/destructive_button_style.dart';
 import '../theme/keyboard_dismiss.dart';
@@ -1274,6 +1275,7 @@ class _DanceListScreenState extends State<DanceListScreen>
             ),
           ),
         ),
+        animationStyle: AppMotion.styleFor(context),
       ),
     );
     final fetch = _previewFetchFor(result);
@@ -2143,6 +2145,7 @@ class _DanceListScreenState extends State<DanceListScreen>
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (confirmed != true || !mounted) return;
 

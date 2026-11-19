@@ -4,10 +4,10 @@ import 'package:flutter/material.dart';
 import '../../data/dialect_library_controller.dart';
 import '../../data/dialect_library_scope.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/destructive_button_style.dart';
 import '../../theme/keyboard_dismiss.dart';
-import '../../widgets/readable_width.dart';
 import '../../widgets/section_header.dart';
 import '../dialect_editor_screen.dart';
 import 'dance_details_section.dart';
@@ -20,7 +20,7 @@ class DialectSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ReadableListView(
+    return ListView(
       keyboardDismissBehavior: textEntryKeyboardDismiss(),
       children: [
         _DialectLibrarySection(controller: DialectLibraryScope.of(context)),
@@ -101,6 +101,7 @@ class _DialectLibrarySection extends StatelessWidget {
             ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (source == null) return;
     await controller.duplicate(
@@ -154,6 +155,7 @@ class _DialectLibrarySection extends StatelessWidget {
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (confirmed != true) return;
     await controller.delete(dialect.name);
@@ -177,6 +179,7 @@ class _DialectLibrarySection extends StatelessWidget {
         confirmLabel: confirmLabel,
         initial: initial,
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (name == null || name.isEmpty) return null;
     return name;

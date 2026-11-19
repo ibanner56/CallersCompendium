@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_motion.dart';
 import 'program_matrix_table.dart' show ProgramMatrixTable;
 
 /// Builds a single option row (e.g. a [ListTile]) for [option]. [onSelected]
@@ -318,6 +319,7 @@ class _ResponsiveAutocompleteState<T extends Object>
           ),
         );
       },
+      sheetAnimationStyle: AppMotion.styleFor(context),
     );
     if (!mounted) return;
     setState(() => _sheetOpen = false);
@@ -400,6 +402,12 @@ class _ResponsiveAutocompleteState<T extends Object>
             alignment: AlignmentDirectional.topStart,
             child: Material(
               elevation: 4,
+              // On the menu tier and shaped like the app's popup menus, so
+              // High contrast outlines the option list as it does every other
+              // menu.
+              color: Theme.of(context).colorScheme.surfaceContainer,
+              shape: Theme.of(context).popupMenuTheme.shape,
+              clipBehavior: Clip.antiAlias,
               child: ConstrainedBox(
                 constraints: widget.overlayConstraints,
                 child: ListView(

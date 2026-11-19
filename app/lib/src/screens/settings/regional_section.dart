@@ -9,7 +9,6 @@ import '../../data/regional_formats.dart';
 import '../../data/persisted_preference.dart';
 import '../../data/repositories_scope.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../widgets/readable_width.dart';
 import '../../widgets/section_header.dart';
 import '../../widgets/settings_dropdown_row.dart';
 
@@ -213,7 +212,7 @@ class _RegionalView extends StatelessWidget {
     // System default + every locale the app ships a translation for. Dropping a
     // new app_<locale>.arb into lib/l10n/ adds it here with no code change.
     final localeOptions = <Locale?>[null, ...AppLocalizations.supportedLocales];
-    return ReadableListView(
+    return ListView(
       children: [
         SectionHeader(title: l10n.settingsRegionalLanguageHeader),
         SettingsDropdownRow(

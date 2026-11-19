@@ -8,6 +8,7 @@ import '../data/import_io.dart';
 import '../data/online_search.dart';
 import '../diagnostics/error_log.dart';
 import '../search/dance_detail_data.dart';
+import '../theme/app_motion.dart';
 import 'dance_detail_screen.dart';
 
 enum _ReimportSource { callersBox, contraDb, link, json }
@@ -53,6 +54,7 @@ Future<DanceDetailData?> selectReimportDance(
         ],
       ),
     ),
+    animationStyle: AppMotion.styleFor(context),
   );
   if (source == null || !context.mounted) return null;
   if (source == _ReimportSource.json) {
@@ -72,6 +74,7 @@ Future<DanceDetailData?> selectReimportDance(
       builder: (context) => _ReimportLinkDialog(
         initialSource: _onlineSourceOf(target.provenance?.source),
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (link == null || !context.mounted) return null;
     // The shape an OS-shared link uses (`main.dart`): the service rebuilds its
@@ -105,6 +108,7 @@ Future<DanceDetailData?> selectReimportDance(
             ),
           ],
         ),
+        animationStyle: AppMotion.styleFor(context),
       );
       return null;
     }
@@ -140,6 +144,7 @@ Future<DanceDetailData?> selectReimportDance(
           ),
         ),
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (chosen == null || !context.mounted) return null;
     selected = chosen;

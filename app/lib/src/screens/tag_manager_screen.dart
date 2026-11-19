@@ -8,6 +8,7 @@ import '../data/collection_filter_scope.dart';
 import '../data/repositories_scope.dart';
 import '../data/tag_edits.dart';
 import '../diagnostics/error_log.dart';
+import '../theme/app_motion.dart';
 import '../widgets/color_edit_dialog.dart';
 import '../widgets/load_error_view.dart';
 import '../widgets/tag_chip.dart';
@@ -309,6 +310,7 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
     final picked = await showDialog<Color>(
       context: context,
       builder: (_) => ColorEditDialog(title: tag.name, initial: seed),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (picked == null || !mounted) return;
     // Stored fully opaque, matching what the picker produces and what

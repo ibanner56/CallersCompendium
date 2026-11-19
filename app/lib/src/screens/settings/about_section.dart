@@ -5,7 +5,6 @@ import '../../../l10n/app_localizations.dart';
 import '../../theme/app_spacing.dart';
 import '../../utils/launch_external_url.dart';
 import '../../widgets/brand_mark.dart';
-import '../../widgets/readable_width.dart';
 import '../../widgets/section_header.dart';
 import '../user_guide/user_guide_screen.dart';
 
@@ -42,7 +41,7 @@ class _AboutView extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    return ReadableListView(
+    return ListView(
       children: [
         const _AboutBrandHeader(),
         SectionHeader(title: l10n.settingsAboutHelpHeader),

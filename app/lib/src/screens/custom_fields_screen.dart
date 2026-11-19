@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
+import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
 import '../theme/destructive_button_style.dart';
 import '../widgets/confirm_discard_changes.dart';
@@ -142,6 +143,7 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
         inUse: inUse,
         usedChoiceValues: usedChoiceValues,
       ),
+      sheetAnimationStyle: AppMotion.styleFor(context),
     );
     if (result != null) {
       final isNew = existing == null;
@@ -233,6 +235,7 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
   }
 
@@ -257,6 +260,7 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (confirmed != true || !mounted) return;
 

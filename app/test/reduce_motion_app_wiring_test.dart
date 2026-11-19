@@ -53,6 +53,22 @@ void main() {
 
     expect(disableAnimationsBelowApp(tester), isTrue);
     expect(app.themeAnimationStyle, AnimationStyle.noAnimation);
+    // Every theme slot drops page transitions and the
+    // expansion-tile animation.
+    for (final theme in [
+      app.theme!,
+      app.darkTheme!,
+      app.highContrastTheme!,
+      app.highContrastDarkTheme!,
+    ]) {
+      for (final builder in theme.pageTransitionsTheme.builders.values) {
+        expect(builder.transitionDuration, Duration.zero);
+      }
+      expect(
+        theme.expansionTileTheme.expansionAnimationStyle,
+        AnimationStyle.noAnimation,
+      );
+    }
   });
 
   testWidgets('"off" beats an OS that asks for reduced motion', (tester) async {
@@ -68,6 +84,14 @@ void main() {
 
     expect(disableAnimationsBelowApp(tester), isTrue);
     expect(app.themeAnimationStyle, isNull);
+    // The OS setting already shortens route controllers; the themes keep
+    // Material's transitions.
+    expect(
+      app.theme!.pageTransitionsTheme.builders.values.every(
+        (b) => b.transitionDuration > Duration.zero,
+      ),
+      isTrue,
+    );
   });
 }
 
