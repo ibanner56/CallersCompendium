@@ -572,8 +572,10 @@ in it:
   beats it had.
   A contra move with no English twin is read again from its words, as if you
   had typed them into the English dance, and converts when they read in full
-  as English figures. Then what it shows, such as the hand or shoulder, is
-  what it states from then on.
+  as English figures that keep every detail the move holds. Then what it
+  shows, such as the hand or shoulder, is what it states from then on. A move
+  whose words would lose or change a detail, such as a promenade's direction
+  entered in the contra editor, stays as it is.
 - **unrecognized figures now read**: lines the app kept as text because it
   could not read them, which the English reading now understands, as
   [Re-check unrecognized figures](./authoring.md#fix-figures-an-import-could-not-read)

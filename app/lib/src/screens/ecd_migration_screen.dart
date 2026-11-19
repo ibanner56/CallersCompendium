@@ -23,8 +23,9 @@ typedef EcdMigrationApplier =
 /// Country Dances stored with contra moves (ADR-006 §12.1 F5).
 ///
 /// It lists each English dance the migration would change and what it would
-/// change: contra moves that become their English twin, unrecognized lines
-/// the English parser now reads, and the formation's English shape. The
+/// change: contra moves that become English figures (their one-to-one twin,
+/// or their displayed words read again), unrecognized lines the English
+/// parser now reads, and the formation's English shape. The
 /// person picks the dances (one, some or all; all are picked at first) and
 /// confirms before anything is written. A move with no clear English meaning
 /// is left as it is.

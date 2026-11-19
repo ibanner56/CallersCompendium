@@ -4511,7 +4511,8 @@ class EcdMigrationPreview {
   final String danceId;
   final String title;
 
-  /// Contra moves that would become their ECD twin.
+  /// Contra moves that would become ECD figures: a one-to-one twin, or a
+  /// reading of the move's displayed words.
   final int movesConverted;
 
   /// Unrecognized lines the ECD parser would now read.
