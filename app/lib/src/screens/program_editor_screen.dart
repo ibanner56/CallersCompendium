@@ -605,6 +605,31 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// (ADR-006 §12.2, S5); each dance reads in its own form's ([_dialects]).
   Dialect get _dialect => _dialects.forForm(DanceForm.contra);
 
+  /// The dialect the dance [danceId] is shown in: its own form's, with lark
+  /// and robin when its choreographer asked for them. `null` when the dance
+  /// isn't loaded.
+  Dialect? _dialectForSlotDance(String danceId) =>
+      switch (_danceById(danceId)) {
+        final dance? => dialectForDance(
+          _dialects.forDance(dance),
+          title: dance.title,
+          authorNames: _slotDanceAuthorNames(dance),
+        ),
+        null => null,
+      };
+
+  /// The dialect a matrix column is named in: its figure's form's. A column
+  /// of a figure of the user's own, or one that isn't a figure, reads in
+  /// [_dialect].
+  Dialect _dialectForMatrixColumn(MatrixColumn column) => switch (column.kind) {
+    MatrixColumnKind.known ||
+    MatrixColumnKind.split ||
+    MatrixColumnKind.unknown => _dialects.forForm(
+      shippedTaxonomies.formOfMoveId(column.moveId),
+    ),
+    _ => _dialect,
+  };
+
   /// The Programs "flag exact beat overlap only" matrix-collision setting
   /// (issue #962), read unconditionally in [didChangeDependencies] every
   /// build so a live toggle updates the Matrix tab immediately — mirroring
@@ -3756,11 +3781,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             showPhrases: _showMatrixPhrases,
             hiddenColumns: _hiddenMatrixColumns,
             onHideColumn: (id) => setState(() => _hiddenMatrixColumns.add(id)),
-            formationLabelBuilder: (formation) => formationDisplayLabel(
+            dialectForColumn: _dialectForMatrixColumn,
+            formationLabelBuilder: (row) => formationDisplayLabel(
               l10n,
-              formation,
+              row.formation,
               FigureRenderer(shippedTaxonomies.anyForm),
-              _dialect,
+              _dialectForSlotDance(row.danceId) ?? _dialect,
               canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
                 context,
               ),
@@ -3790,6 +3816,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       context,
     );
     final dialect = _dialect;
+    final dialectForColumnId = {
+      for (final column in matrix.columns)
+        column.moveId: _dialectForMatrixColumn(column),
+    };
+    final dialectForRow = {
+      for (final row in matrix.rows)
+        row.danceId: _dialectForSlotDance(row.danceId) ?? dialect,
+    };
     final config = _matrixColumnConfig;
     final eventDate = _eventDate;
     final title = _titleController.text.trim();
@@ -3822,11 +3856,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           formatDate: (d) =>
               formatEventDate(d, dateSetting, localizations, l10n),
           labels: programMatrixExportLabels(l10n),
-          formatFormation: (formation) => formationDisplayLabel(
+          dialectForColumn: (column) =>
+              dialectForColumnId[column.moveId] ?? dialect,
+          formatFormation: (row) => formationDisplayLabel(
             l10n,
-            formation,
+            row.formation,
             FigureRenderer(shippedTaxonomies.anyForm),
-            dialect,
+            dialectForRow[row.danceId] ?? dialect,
             canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
           ),
           config: config,
@@ -3927,16 +3963,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             onRestoreDeletedDance: _restoreDeletedSlotDance,
             formationFor: _formationForDance,
             mixerFor: _mixerForDance,
+            formFor: (id) => _danceById(id)?.form,
             dialect: _dialect,
-            dialectFor: (id) => switch (_danceById(id)) {
-              // Lark and robin when the dance's choreographer asked for them.
-              final dance? => dialectForDance(
-                _dialects.forDance(dance),
-                title: dance.title,
-                authorNames: _slotDanceAuthorNames(dance),
-              ),
-              null => null,
-            },
+            dialectFor: _dialectForSlotDance,
             canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
               context,
             ),

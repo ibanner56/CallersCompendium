@@ -51,8 +51,12 @@ const String _presentMark = '✓';
 /// - [markerFont] supplies the fallback font for the ★/▸/✓ marker glyphs the
 ///   bundled Roboto lacks (#633); when omitted it is loaded via
 ///   [loadProgramMatrixMarkerFont].
+/// - [dialectForColumn] picks the dialect a column's label is shown in, so a
+///   program that mixes dance forms names each form's figures in that form's
+///   dialect (ADR-006 §12.2, S3); with none given, every label uses [dialect].
 /// - [formatFormation] renders each row's [MatrixRow.formation] as plain text
-///   (#663), matching the on-screen matrix's pinned formation column. It
+///   (#663), matching the on-screen matrix's pinned formation column. It is
+///   given the whole row, so a caller can use the dance's own dialect. It
 ///   defaults to an English fallback so pure-Dart callers/tests don't need to
 ///   wire up localization; the app passes the same localized
 ///   `formationLabel(l10n, formation)` helper the on-screen widget and
@@ -71,12 +75,14 @@ Future<Uint8List> buildProgramMatrixPdf(
   ProgramMatrixExportLabels labels = const ProgramMatrixExportLabels(),
   pw.ThemeData? theme,
   pw.Font? markerFont,
-  String Function(Formation formation)? formatFormation,
+  String Function(MatrixRow row)? formatFormation,
+  Dialect Function(MatrixColumn column)? dialectForColumn,
   MatrixColumnConfig config = MatrixColumnConfig.empty,
   PdfPageFormat pageFormat = PdfPageFormat.a4,
 }) async {
   final fmtDate = formatDate ?? isoDate;
-  final fmtFormation = formatFormation ?? _englishFormationLabel;
+  final fmtFormation =
+      formatFormation ?? (row) => _englishFormationLabel(row.formation);
   final resolvedTheme = theme ?? await loadProgramPdfTheme();
   final title = programTitle.trim().isEmpty
       ? labels.defaultTitle
@@ -120,6 +126,7 @@ Future<Uint8List> buildProgramMatrixPdf(
             labels,
             resolvedMarkerFont,
             fmtFormation,
+            dialectForColumn,
             config,
           ),
         ],
@@ -143,12 +150,18 @@ pw.Widget _matrixTable(
   Dialect dialect,
   ProgramMatrixExportLabels labels,
   pw.Font markerFont,
-  String Function(Formation formation) fmtFormation,
+  String Function(MatrixRow row) fmtFormation,
+  Dialect Function(MatrixColumn column)? dialectForColumn,
   MatrixColumnConfig config,
 ) {
   final columnLabels = [
     for (final c in matrix.columns)
-      matrixColumnLabel(c, taxonomy, dialect, config: config),
+      matrixColumnLabel(
+        c,
+        taxonomy,
+        dialectForColumn?.call(c) ?? dialect,
+        config: config,
+      ),
   ];
 
   final headerStyle = pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold);
@@ -196,10 +209,7 @@ pw.Widget _matrixTable(
           ),
           pw.Padding(
             padding: const pw.EdgeInsets.all(4),
-            child: pw.Text(
-              fmtFormation(matrix.rows[r].formation),
-              style: formationStyle,
-            ),
+            child: pw.Text(fmtFormation(matrix.rows[r]), style: formationStyle),
           ),
           for (var c = 0; c < matrix.columns.length; c++)
             markCell(
