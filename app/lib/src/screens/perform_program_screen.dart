@@ -1884,6 +1884,9 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
           callerNote: _showProgramSlotCallerNotes == true ? slot.text : null,
           renderer: widget.renderer,
           dialect: danceDialect,
+          // The slot's note is the program's, not the dance's: it keeps the
+          // reader's dialect, as the summary and exports do.
+          callerNoteDialect: dialect,
           textScale: _textScale,
           autoSize: _autoSize,
           authorNames: _authorNamesFor(dance),

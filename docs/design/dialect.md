@@ -154,8 +154,10 @@ built figure.
   summary row, the import review preview, and every export built on
   `DanceCardContent`, which carries the dialect it rendered in
   (`DanceCardContent.dialect`) for its consumers' figure rendering. Program-level
-  text keeps the reader's dialect: slot notes, and the program matrix's column
-  labels, which span several dances. The sync-conflict comparison renders each
+  text keeps the reader's dialect: slot notes (Perform renders a slot's caller
+  note in the reader's dialect beside the dance's own, `PerformCard.
+  callerNoteDialect`), and the program matrix's column labels, which span
+  several dances. The sync-conflict comparison renders each
   field without the dance's authors, so it also keeps the reader's dialect.
   Storage is unaffected: the dance stays canonical.
 

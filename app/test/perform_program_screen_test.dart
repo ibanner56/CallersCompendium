@@ -291,6 +291,35 @@ void main() {
     );
   });
 
+  testWidgets('a larks/robins-only dance keeps the active dialect in its '
+      'slot caller note', (tester) async {
+    // No author recorded: the title alone says the dance requires larks and
+    // robins (`requiresLarksRobins`).
+    final data = await _dataWith([_dance(id: 'd1', title: 'Renewed Joy')]);
+    await _pumpProgram(
+      tester,
+      program: _program([
+        _slot(
+          id: 's1',
+          position: 0,
+          danceId: 'd1',
+          text: 'Gypsy with the gents',
+        ),
+      ]),
+      data: data,
+      activeDialect: Dialect.leadsFollows,
+    );
+
+    // The dance's figures take larks and robins; the slot's note is the
+    // program's, so it stays in the reader's Leads/Follows.
+    expect(find.textContaining('robins'), findsWidgets);
+    expect(find.textContaining('follows'), findsNothing);
+    expect(
+      find.text('Caller note: Shoulder round with the leads'),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('program Perform hides per-slot caller notes when disabled', (
     tester,
   ) async {
