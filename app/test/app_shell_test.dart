@@ -331,6 +331,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(DanceDetailScreen), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('dance-actions-overflow')));
+    await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('reimport-dance')), findsOneWidget);
   });
 

@@ -761,8 +761,8 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   /// screen-reader-activatable: the dialect choices are [CheckedPopupMenuItem]s
   /// (mirroring [DialectQuickSwitch]), the five export items (share text, share dance
   /// file, copy, share JSON, PDF) are flattened in from [DanceExportMenu] and run through the same
-  /// [DanceExportActions], and Duplicate / Delete call the same handlers as
-  /// the wide layout. Nothing is a nested popup, so activating any row performs
+  /// [DanceExportActions], and Duplicate / Delete call the same handlers
+  /// whichever layout opens them. Nothing is a nested popup, so activating any row performs
   /// its action rather than dismissing the menu.
   Widget _overflowMenu(
     BuildContext context,

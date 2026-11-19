@@ -2200,6 +2200,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   }
 
   Future<void> _addFreeTextSlot() async {
+    // The dialog route would hand focus back to a focused Title field on close.
+    FocusManager.instance.primaryFocus?.unfocus();
     final text = await showDialog<String>(
       context: context,
       builder: (_) => const _FreeTextSlotDialog(),
@@ -3865,6 +3867,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// Unlike [_openPickerSheet] this pops on the **first** tap: replacing a
   /// slot's dance is a single choice, not an open-ended add session.
   Future<String?> _pickReplacementDance() async {
+    // The sheet route would hand focus back to a focused field on close.
+    FocusManager.instance.primaryFocus?.unfocus();
     final data = _data;
     if (data == null) return null;
     final l10n = AppLocalizations.of(context);

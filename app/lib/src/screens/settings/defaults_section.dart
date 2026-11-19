@@ -1471,7 +1471,22 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
     }
   }
 
+  /// Whether a reorder is still being written. Move buttons make quick
+  /// repeated taps easy; a second reorder while one is in flight would compute
+  /// its indices from a list the reload is about to replace, so it is ignored.
+  bool _reordering = false;
+
   Future<void> _reorder(int oldIndex, int newIndex) async {
+    if (_reordering) return;
+    _reordering = true;
+    try {
+      await _reorderNow(oldIndex, newIndex);
+    } finally {
+      _reordering = false;
+    }
+  }
+
+  Future<void> _reorderNow(int oldIndex, int newIndex) async {
     final updated = List<DifficultyLevel>.of(_levels);
     final level = updated.removeAt(oldIndex);
     updated.insert(newIndex, level);

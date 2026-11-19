@@ -331,10 +331,10 @@ dialect, is kept as that role.
 ## Switch dialect on the fly
 
 You don't have to visit Settings every time. On the dance card and in
-[Perform mode](./glossary.md#perform-mode) there is a **Switch dialect** control
-— a group-of-people icon — that changes your active dialect instantly. On a
-narrow screen the dance card lists your dialects in its **More actions** menu
-instead.
+[Perform mode](./glossary.md#perform-mode) there is a way to change your active
+dialect instantly. In Perform mode it is the **Switch dialect** control (a
+group-of-people icon); on the dance card your dialects are listed at the top of
+its **More actions** (**⋮**) menu.
 
 Choose it, pick a dialect from the list, and every dance of that type switches
 to those words at once. The list offers the dialects of the dance's own type, and

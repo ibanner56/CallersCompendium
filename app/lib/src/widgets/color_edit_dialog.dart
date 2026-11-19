@@ -65,6 +65,7 @@ class _ColorEditDialogState extends State<ColorEditDialog> {
       '#${((_r << 16) | (_g << 8) | _b).toRadixString(16).padLeft(6, '0').toUpperCase()}';
 
   void _syncHexField() {
+    _hexInvalid = false;
     _hexController.value = TextEditingValue(
       text: _hex,
       selection: TextSelection.collapsed(offset: _hex.length),

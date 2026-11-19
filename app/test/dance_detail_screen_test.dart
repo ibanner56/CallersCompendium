@@ -521,7 +521,7 @@ void main() {
         final repos = openTestRepositories();
         await repos.dances.create(_dance(id: 'd1', title: 'Wide Dance'));
 
-        await _pumpDetail(tester, repos, 'd1');
+        await _pumpDetail(tester, repos, 'd1', onReimport: (_) async {});
 
         // Perform is a labelled button, not an icon-only action.
         final perform = find.byKey(const ValueKey('perform-dance'));
@@ -549,8 +549,12 @@ void main() {
         final delete = tester.getTopLeft(
           find.byKey(const ValueKey('delete-dance')),
         );
-        // Delete is the last entry, below Duplicate.
+        final reimport = tester.getTopLeft(
+          find.byKey(const ValueKey('reimport-dance')),
+        );
+        // Delete is the last entry, below Re-import and Duplicate.
         expect(delete.dy, greaterThan(duplicate.dy));
+        expect(delete.dy, greaterThan(reimport.dy));
         // Share items are not duplicated into the menu on a wide bar.
         expect(
           find.byKey(const ValueKey('overflow-share-dance')),
