@@ -10,7 +10,7 @@ import 'package:flutter/widgets.dart';
 import '../../data/editor_draft_shutdown_scope.dart';
 import '../../data/display_defaults.dart';
 import '../../data/validation_issue_labels.dart'
-    show incompleteFigureValidationCode;
+    show incompleteFigureValidationCode, otherFormFiguresValidationCode;
 import '../../diagnostics/error_log.dart';
 import '../../editor/draft_save_health.dart';
 import '../../editor/editor_draft_codec.dart';
@@ -669,6 +669,21 @@ class DanceEditorController extends ChangeNotifier {
     _showInDialect(_targetDialect);
   }
 
+  /// Fits the sequences in [drafts] to this dance's form. Only an English
+  /// dance's sequence may state a span of its own, with steps that carry no
+  /// timing (ADR-006 §5.5); in any other form a sequence counts its steps,
+  /// so a span is dropped and an untimed step takes its move's default
+  /// count, as a step picked there would. Undo brings the span back.
+  void _fitSequenceTimingToForm(List<FigureDraft> drafts) {
+    if (_form == DanceForm.ecd) return;
+    for (final draft in drafts) {
+      final children = draft.containerChildren;
+      if (children == null) continue;
+      if (draft.isSequenceGroup) draft.setSequenceSpan(null);
+      _fitSequenceTimingToForm(children);
+    }
+  }
+
   /// Shows the dance in its form's dialect, after [_form] changed.
   void _followForm() => _showInDialect(_targetDialect);
 
@@ -856,6 +871,7 @@ class DanceEditorController extends ChangeNotifier {
       switch (dance.figuresSource) {
         case DecodedFigures(:final figures):
           figureDrafts.addAll(figures.map(FigureDraft.fromFigure));
+          _fitSequenceTimingToForm(figureDrafts);
         // Nothing can be seeded from a transcription that cannot be decoded.
         // Remembering it here is what stops the save below from writing the
         // empty draft list over the stored bytes — see [_preserveStoredFigures].
@@ -1156,7 +1172,11 @@ class DanceEditorController extends ChangeNotifier {
     try {
       _phraseStructure = PhraseStructure.parse(phraseController.text);
       final issues = <ValidationIssue>[];
-      deriveSections(_figures, _phraseStructure, issues: issues);
+      final figures = _figures;
+      deriveSections(figures, _phraseStructure, issues: issues);
+      for (final (index, figure) in figures.indexed) {
+        _flagSequenceSpans(figure, index + 1, issues);
+      }
       final rowOfFigure = [
         for (final (row, draft) in figureDrafts.indexed)
           for (final _ in draft.toFigures(resolveCompound: resolveCompound))
@@ -1181,7 +1201,75 @@ class DanceEditorController extends ChangeNotifier {
             data: {'position': index + 1},
           ),
       ..._phraseWarnings,
+      ?_otherFormFiguresWarning(),
     ];
+  }
+
+  /// Adds an English sequence's span issue ([ecdSequenceSpanIssue]) for
+  /// [figure], the dance's figure at [position], and any sequence inside it.
+  void _flagSequenceSpans(
+    Figure figure,
+    int position,
+    List<ValidationIssue> issues,
+  ) {
+    if (ecdSequenceSpanIssue(figure, _form) case final issue?) {
+      issues.add(
+        ValidationIssue(
+          severity: issue.severity,
+          code: issue.code,
+          message: issue.message,
+          data: {...issue.data, 'position': position},
+        ),
+      );
+    }
+    if (!figure.isContainer) return;
+    for (final child in figure.subFigures) {
+      _flagSequenceSpans(child, position, issues);
+    }
+  }
+
+  /// A warning when the dance holds figures of another form than its own,
+  /// such as English figures in a dance changed to contra: they are kept and
+  /// shown as they are, but this form's picker does not offer them, and the
+  /// other form's checks do not apply. Null when every figure is the form's
+  /// own (a form with no figures of its own uses contra's), or a custom or
+  /// structural one, which every form shares.
+  ValidationIssue? _otherFormFiguresWarning() {
+    final ownForm = shippedTaxonomies.ownTaxonomy(_form) == null
+        ? shippedTaxonomies.base.form
+        : _form;
+    final counts = <DanceForm, int>{};
+    void visit(Figure figure) {
+      if (figure.isContainer) {
+        figure.subFigures.forEach(visit);
+        return;
+      }
+      final move = figure.move;
+      if (move == customMove ||
+          shippedTaxonomies.anyForm.resolve(move) == null) {
+        return;
+      }
+      final form = shippedTaxonomies.formOfMoveId(move);
+      if (form != ownForm) counts[form] = (counts[form] ?? 0) + 1;
+    }
+
+    _figures.forEach(visit);
+    if (counts.isEmpty) return null;
+    final (form, count) = counts.entries
+        .map((e) => (e.key, e.value))
+        .reduce((a, b) => b.$2 > a.$2 ? b : a);
+    return ValidationIssue(
+      severity: ValidationSeverity.warning,
+      code: otherFormFiguresValidationCode,
+      message:
+          '$count figures are ${form.name} figures in a ${_form.name} dance', // i18n-ignore: internal diagnostic, never shown
+      data: {
+        'count': count,
+        'figureForm': form.name,
+        'danceForm': _form.name,
+        'pickerForm': ownForm.name,
+      },
+    );
   }
 
   /// The phrase warnings from the last phrase structure that parsed.
@@ -1373,6 +1461,7 @@ class DanceEditorController extends ChangeNotifier {
     figureDrafts
       ..clear()
       ..addAll(_draftsInActiveDialect(s));
+    _fitSequenceTimingToForm(figureDrafts);
     // A restored or undone placeholder carries the count it had then; the
     // compound may have changed since (#709).
     _refreshPlaceholderBeats();
@@ -1702,6 +1791,8 @@ class DanceEditorController extends ChangeNotifier {
   void setForm(DanceForm value) {
     _form = value;
     _followForm();
+    _fitSequenceTimingToForm(figureDrafts);
+    recomputeWarnings();
     pushUndoNow();
     scheduleAutosave();
     _notify();
@@ -2402,6 +2493,8 @@ class DanceEditorController extends ChangeNotifier {
       draft.containerChildren ?? const <FigureDraft>[],
     );
     if (children.length < 2) return;
+    // A step that leaves a span takes its default count (ADR-006 §5.5).
+    draft.timeUntimedSteps();
     figureDrafts
       ..removeAt(index)
       ..insertAll(index, children);
@@ -2423,6 +2516,8 @@ class DanceEditorController extends ChangeNotifier {
   ) {
     final index = figureDrafts.indexOf(groupDraft);
     if (index == -1) return;
+    // A step that leaves a span takes its default count (ADR-006 §5.5).
+    remainingSide.timeIfUntimed();
     figureDrafts[index] = remainingSide;
     recomputeWarnings();
     pushUndoNow();

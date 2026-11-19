@@ -4981,6 +4981,60 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String danceFigureBars(String bars, int halfBars) {
+    String _temp0 = intl.Intl.pluralLogic(
+      halfBars,
+      locale: localeName,
+      other: '$bars bars',
+      two: '$bars bar',
+      one: '$bars bar',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get danceEditorBarsLabel => 'Bars';
+
+  @override
+  String get danceEditorStepUntimed => 'No timing of its own';
+
+  @override
+  String danceEditorBarsRangeError(int max) {
+    return 'Enter whole or half bars, up to $max';
+  }
+
+  @override
+  String danceEditorHalfBarRefused(int beatsPerBar) {
+    return 'Whole bars only, with $beatsPerBar beats to the bar';
+  }
+
+  @override
+  String get danceEditorSequenceSpanLabel => 'Bars for all';
+
+  @override
+  String get danceEditorSequenceSpanEmptyHelp =>
+      'Leave empty to add up the steps\' bars, or give the bars the whole sequence takes, as in \"A, B and C in bars 1–4\".';
+
+  @override
+  String get danceEditorSequenceSpanHelp =>
+      'The steps share these bars, and each may leave its own bars empty.';
+
+  @override
+  String danceEditorSequenceSpanMismatch(String steps, String span) {
+    return 'The steps take $steps, but the sequence takes $span.';
+  }
+
+  @override
+  String danceEditorSequenceSpanNoRoom(String steps, String span) {
+    return 'The steps with bars of their own take $steps of the sequence\'s $span, leaving none for the rest.';
+  }
+
+  @override
+  String danceEditorSequenceOverPhraseTimed(String length, String limit) {
+    return 'This sequence is $length, longer than one phrase ($limit).';
+  }
+
+  @override
   String get danceFigureProgressionSemantic => 'progression';
 
   @override
@@ -8682,6 +8736,36 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String validationSequenceExceedsPhrase(int position, int actual, int limit) {
     return 'A sequence in figure $position is $actual beats, longer than one phrase ($limit beats).';
+  }
+
+  @override
+  String validationSequenceSpanMismatch(
+    int position,
+    int actual,
+    int expected,
+  ) {
+    return 'The steps of the sequence in figure $position take $actual beats; the sequence takes $expected.';
+  }
+
+  @override
+  String validationSequenceSpanNoRoom(int position, int actual, int expected) {
+    return 'The timed steps of the sequence in figure $position take $actual beats, leaving none of its $expected for the rest.';
+  }
+
+  @override
+  String validationOtherFormFigures(
+    int count,
+    String danceForm,
+    String figureForm,
+    String pickerForm,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count figures are',
+      one: '1 figure is',
+    );
+    return 'This dance is $danceForm, but $_temp0 from $figureForm. They are kept as they are, but the figure picker offers only $pickerForm figures.';
   }
 
   @override

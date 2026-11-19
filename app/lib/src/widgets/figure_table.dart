@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import 'bar_timing.dart';
 import '../data/verbose_figure_rendering_scope.dart';
 import '../data/capitalize_figures_scope.dart';
 import '../data/decimal_turns_scope.dart';
@@ -186,7 +187,8 @@ class _FigureRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    final beatsLabel = l10n.danceFigureBeats(beats);
+    // In bars for an English dance (ADR-006 §5.5).
+    final beatsLabel = timingLabel(context, beats);
     final semanticsLabel = [
       verboseText,
       if (isImportGap) l10n.importGapMessage,

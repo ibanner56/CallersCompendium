@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../search/facet_labels.dart';
 
 /// Localized presentation of core [ValidationIssue]s (and the phrase-structure
 /// [FormatException]) rendered in the editors.
@@ -24,7 +25,9 @@ const Set<String> mappedValidationCodes = {
   'phrase_overflow',
   'phrase_underflow',
   'sequence_exceeds_phrase',
+  'sequence_span_mismatch',
   incompleteFigureValidationCode,
+  otherFormFiguresValidationCode,
   'orphaned_alt',
   'empty_substitution',
   'dialect_collision',
@@ -35,6 +38,11 @@ const Set<String> mappedValidationCodes = {
 /// because it is not complete (AUTH-2), with its 1-based `position`. Only the
 /// dance editor raises it, from its drafts: no saved dance can hold such a row.
 const String incompleteFigureValidationCode = 'incomplete_figure';
+
+/// The [ValidationIssue.code] of a dance that holds `count` figures of
+/// another form (`figureForm`) than its own (`danceForm`), as
+/// [DanceForm.name]s. Only the dance editor raises it.
+const String otherFormFiguresValidationCode = 'other_form_figures';
 
 /// Localized message for a [ValidationIssue] surfaced in an editor.
 ///
@@ -84,6 +92,31 @@ String? _localizedValidation(
       return (position is int && actual is int && limit is int)
           ? l10n.validationSequenceExceedsPhrase(position, actual, limit)
           : null;
+    case 'sequence_span_mismatch':
+      final position = data['position'];
+      final actual = data['actual'];
+      final expected = data['expected'];
+      if (position is! int || actual is! int || expected is! int) return null;
+      return data['allTimed'] == false
+          ? l10n.validationSequenceSpanNoRoom(position, actual, expected)
+          : l10n.validationSequenceSpanMismatch(position, actual, expected);
+    case otherFormFiguresValidationCode:
+      final count = data['count'];
+      final figureForm = _formNamed(data['figureForm']);
+      final danceForm = _formNamed(data['danceForm']);
+      final pickerForm = _formNamed(data['pickerForm']) ?? danceForm;
+      if (count is! int ||
+          figureForm == null ||
+          danceForm == null ||
+          pickerForm == null) {
+        return null;
+      }
+      return l10n.validationOtherFormFigures(
+        count,
+        danceFormLabel(l10n, danceForm),
+        danceFormLabel(l10n, figureForm),
+        danceFormLabel(l10n, pickerForm),
+      );
     case 'orphaned_alt':
       final position = data['position'];
       if (position is! int) return null;
@@ -124,3 +157,10 @@ String phraseStructureErrorMessage(
 ) => kDebugMode
     ? '${l10n.validationPhraseInvalid} [${error.message}]'
     : l10n.validationPhraseInvalid;
+
+DanceForm? _formNamed(Object? name) {
+  for (final form in DanceForm.values) {
+    if (form.name == name) return form;
+  }
+  return null;
+}

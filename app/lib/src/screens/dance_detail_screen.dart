@@ -4,6 +4,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../widgets/bar_timing.dart';
 import '../data/user_figures_scope.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/calling_card_settings_scope.dart';
@@ -1335,11 +1336,14 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           ],
         ),
         switch (dance.figuresSource) {
-          DecodedFigures(:final figures) => FigureTable(
-            figures: figures,
-            phraseStructure: dance.phraseStructure,
-            renderer: UserFiguresScope.rendererOf(context),
-            dialect: dialect,
+          DecodedFigures(:final figures) => BarTimingScope.forDance(
+            dance,
+            child: FigureTable(
+              figures: figures,
+              phraseStructure: dance.phraseStructure,
+              renderer: UserFiguresScope.rendererOf(context),
+              dialect: dialect,
+            ),
           ),
           // An empty table would say the dance has no figures, which is false
           // and is the claim this whole change exists to stop making.

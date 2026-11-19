@@ -6390,6 +6390,92 @@
       }
     }
   },
+  "danceFigureBars": "{halfBars, plural, =1{{bars} bar} =2{{bars} bar} other{{bars} bars}}",
+  "@danceFigureBars": {
+    "description": "A figure's length in bars, for an English country dance: {bars} is the count as written, such as 4 or 1½; {halfBars} is the same count in half bars, which picks the plural (1 is half a bar, 2 is one bar).",
+    "placeholders": {
+      "bars": {
+        "type": "String"
+      },
+      "halfBars": {
+        "type": "int"
+      }
+    }
+  },
+  "danceEditorBarsLabel": "Bars",
+  "@danceEditorBarsLabel": {
+    "description": "Label of a figure's length field in the dance editor for an English country dance, which is timed in bars rather than beats."
+  },
+  "danceEditorStepUntimed": "No timing of its own",
+  "@danceEditorStepUntimed": {
+    "description": "Shown for a step of a sequence that has no bars of its own: the sequence as a whole states its bars, as in 'A, B and C in bars 1–4'."
+  },
+  "danceEditorBarsRangeError": "Enter whole or half bars, up to {max}",
+  "@danceEditorBarsRangeError": {
+    "description": "Error under a bars field in the dance editor when the text is not a number of whole or half bars within range.",
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "danceEditorHalfBarRefused": "Whole bars only, with {beatsPerBar} beats to the bar",
+  "@danceEditorHalfBarRefused": {
+    "description": "Error under a bars field when half a bar is entered in a tune whose bar has an odd number of beats, such as triple time.",
+    "placeholders": {
+      "beatsPerBar": {
+        "type": "int"
+      }
+    }
+  },
+  "danceEditorSequenceSpanLabel": "Bars for all",
+  "@danceEditorSequenceSpanLabel": {
+    "description": "Label of the field giving the bars a whole sequence takes in an English country dance, as in 'A, B and C in bars 1–4'."
+  },
+  "danceEditorSequenceSpanEmptyHelp": "Leave empty to add up the steps' bars, or give the bars the whole sequence takes, as in \"A, B and C in bars 1–4\".",
+  "@danceEditorSequenceSpanEmptyHelp": {
+    "description": "Help under the empty 'Bars for all' field of a sequence in an English country dance."
+  },
+  "danceEditorSequenceSpanHelp": "The steps share these bars, and each may leave its own bars empty.",
+  "@danceEditorSequenceSpanHelp": {
+    "description": "Help under the filled 'Bars for all' field of a sequence in an English country dance."
+  },
+  "danceEditorSequenceSpanMismatch": "The steps take {steps}, but the sequence takes {span}.",
+  "@danceEditorSequenceSpanMismatch": {
+    "description": "Warning in a sequence of an English country dance whose every step has its own bars and they don't add up to the sequence's. {steps} and {span} are lengths such as '4 bars'.",
+    "placeholders": {
+      "steps": {
+        "type": "String"
+      },
+      "span": {
+        "type": "String"
+      }
+    }
+  },
+  "danceEditorSequenceSpanNoRoom": "The steps with bars of their own take {steps} of the sequence's {span}, leaving none for the rest.",
+  "@danceEditorSequenceSpanNoRoom": {
+    "description": "Warning in a sequence of an English country dance whose timed steps already fill its bars, leaving none for its untimed steps. {steps} and {span} are lengths such as '4 bars'.",
+    "placeholders": {
+      "steps": {
+        "type": "String"
+      },
+      "span": {
+        "type": "String"
+      }
+    }
+  },
+  "danceEditorSequenceOverPhraseTimed": "This sequence is {length}, longer than one phrase ({limit}).",
+  "@danceEditorSequenceOverPhraseTimed": {
+    "description": "Warning in a sequence of an English country dance that runs longer than one phrase. {length} and {limit} are lengths such as '10 bars'.",
+    "placeholders": {
+      "length": {
+        "type": "String"
+      },
+      "limit": {
+        "type": "String"
+      }
+    }
+  },
   "danceFigureProgressionSemantic": "progression",
   "@danceFigureProgressionSemantic": {
     "description": "Word inserted into a figure row's accessible label when the figure carries the progression."
@@ -11343,6 +11429,54 @@
       "limit": {
         "type": "int",
         "example": "16"
+      }
+    }
+  },
+  "validationSequenceSpanMismatch": "The steps of the sequence in figure {position} take {actual} beats; the sequence takes {expected}.",
+  "@validationSequenceSpanMismatch": {
+    "description": "Editor warning for an English country dance's sequence whose steps each have a count that doesn't add up to the sequence's own. {position} is the figure holding it.",
+    "placeholders": {
+      "position": {
+        "type": "int"
+      },
+      "actual": {
+        "type": "int"
+      },
+      "expected": {
+        "type": "int"
+      }
+    }
+  },
+  "validationSequenceSpanNoRoom": "The timed steps of the sequence in figure {position} take {actual} beats, leaving none of its {expected} for the rest.",
+  "@validationSequenceSpanNoRoom": {
+    "description": "Editor warning for an English country dance's sequence whose timed steps fill its count, leaving none for its untimed steps. {position} is the figure holding it.",
+    "placeholders": {
+      "position": {
+        "type": "int"
+      },
+      "actual": {
+        "type": "int"
+      },
+      "expected": {
+        "type": "int"
+      }
+    }
+  },
+  "validationOtherFormFigures": "This dance is {danceForm}, but {count, plural, =1{1 figure is} other{{count} figures are}} from {figureForm}. They are kept as they are, but the figure picker offers only {pickerForm} figures.",
+  "@validationOtherFormFigures": {
+    "description": "Editor warning when a dance holds figures of another dance type than its own, for example after its type was changed. {danceForm} and {figureForm} are dance type names such as 'Contra' or 'English (ECD)'. {pickerForm} is the type whose figures the picker offers: the dance's own, or Contra's for a type that has no figure list of its own yet (Square).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "danceForm": {
+        "type": "String"
+      },
+      "figureForm": {
+        "type": "String"
+      },
+      "pickerForm": {
+        "type": "String"
       }
     }
   },

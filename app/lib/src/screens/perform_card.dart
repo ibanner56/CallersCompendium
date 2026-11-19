@@ -11,6 +11,7 @@ import '../data/perform_text_scale.dart'
     show kPerformMaxAutoScale, performMinAutoScale;
 import '../data/reduce_motion_scope.dart';
 import '../../l10n/app_localizations.dart';
+import '../widgets/bar_timing.dart';
 import '../search/facet_labels.dart';
 import '../theme/app_shapes.dart';
 import '../theme/app_theme_extension.dart';
@@ -222,15 +223,18 @@ class PerformCard extends StatelessWidget {
                 chromeScale: chrome,
               ),
               SizedBox(height: AppSpacing.lg * chrome),
-              _Figures(
-                figures: switch (dance.figuresSource) {
-                  DecodedFigures(:final figures) => figures,
-                  UnreadableFigures() => const <Figure>[],
-                },
-                phraseStructure: dance.phraseStructure,
-                renderer: renderer,
-                dialect: dialect,
-                chromeScale: chrome,
+              BarTimingScope.forDance(
+                dance,
+                child: _Figures(
+                  figures: switch (dance.figuresSource) {
+                    DecodedFigures(:final figures) => figures,
+                    UnreadableFigures() => const <Figure>[],
+                  },
+                  phraseStructure: dance.phraseStructure,
+                  renderer: renderer,
+                  dialect: dialect,
+                  chromeScale: chrome,
+                ),
               ),
               if (dance.callingNotes.isNotEmpty) ...[
                 SizedBox(height: AppSpacing.lg * chrome),
@@ -1260,7 +1264,8 @@ class _FigureRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    final beatsLabel = l10n.danceFigureBeats(beats);
+    // In bars for an English dance (ADR-006 §5.5).
+    final beatsLabel = timingLabel(context, beats);
     // Emphasis is a purely visual cue: announce the underlying words with the
     // markup delimiters stripped so a screen reader never voices stray `*`/`_`.
     // For a custom line, use the already delimiter-stripped + dialect-

@@ -5060,6 +5060,50 @@
   "@danceFigureBeats": {
     "x-sourceSha256": "b1c2cd5ecb9cd06da41bcdc00cc188ef57533504a89a622f5a0146c65ac22144"
   },
+  "danceFigureBars": "{halfBars, plural, =1{{bars} mesure} =2{{bars} mesure} other{{bars} mesures}}",
+  "@danceFigureBars": {
+    "x-sourceSha256": "032e08ee5ee7e58a2100ce26ef840a137682a824c2dcbe8f36fefbae76971c86"
+  },
+  "danceEditorBarsLabel": "Mesures",
+  "@danceEditorBarsLabel": {
+    "x-sourceSha256": "f2c3526915d35ece0e07e451c134a880a4d39a09ffacde637d69831115fb92bd"
+  },
+  "danceEditorStepUntimed": "Sans durée propre",
+  "@danceEditorStepUntimed": {
+    "x-sourceSha256": "1362a25d689a8f29594b4451226fdca286ca6f4c9686f906f6e8297e41d554c1"
+  },
+  "danceEditorBarsRangeError": "Saisissez des mesures entières ou des demi-mesures, jusqu’à {max}",
+  "@danceEditorBarsRangeError": {
+    "x-sourceSha256": "c1d6b8e804fee78f756507d4d4d8b7bc40c25df7ac2a78e4f5f4dfdf3f2209de"
+  },
+  "danceEditorHalfBarRefused": "Mesures entières seulement, avec {beatsPerBar} temps par mesure",
+  "@danceEditorHalfBarRefused": {
+    "x-sourceSha256": "93140ef37e7658ae19604224df5f4f69822740dcf1121a0648c365663385774b"
+  },
+  "danceEditorSequenceSpanLabel": "Mesures pour l’ensemble",
+  "@danceEditorSequenceSpanLabel": {
+    "x-sourceSha256": "8fe969410459de862aea4879d9ebbdd6588698d681056570bff0f861cd4776ff"
+  },
+  "danceEditorSequenceSpanEmptyHelp": "Laissez vide pour additionner les mesures des étapes, ou indiquez les mesures de toute la séquence, comme « A, B et C aux mesures 1–4 ».",
+  "@danceEditorSequenceSpanEmptyHelp": {
+    "x-sourceSha256": "d5a200e6405d4fc80bd01e9255209ba4ff0e262aae458721d5366870e7e7bd80"
+  },
+  "danceEditorSequenceSpanHelp": "Les étapes se partagent ces mesures, et chacune peut laisser ses propres mesures vides.",
+  "@danceEditorSequenceSpanHelp": {
+    "x-sourceSha256": "ae520fdb2996e5323bd3d4615a67922c7a8805eaf4662fe00aafd607fcbc36ac"
+  },
+  "danceEditorSequenceSpanMismatch": "Les étapes durent {steps}, mais la séquence dure {span}.",
+  "@danceEditorSequenceSpanMismatch": {
+    "x-sourceSha256": "08125fe84162f64c2fd482d5d4fd915d6c3054c36e4332e6e3f63bd2af67a357"
+  },
+  "danceEditorSequenceSpanNoRoom": "Les étapes ayant leurs propres mesures durent {steps} sur les {span} de la séquence, sans rien laisser aux autres.",
+  "@danceEditorSequenceSpanNoRoom": {
+    "x-sourceSha256": "197cb3c426f6d770e42563bec39b40266f6eb1dbb4b22ea913e9c467d50088ce"
+  },
+  "danceEditorSequenceOverPhraseTimed": "Cette séquence dure {length}, plus qu’une phrase ({limit}).",
+  "@danceEditorSequenceOverPhraseTimed": {
+    "x-sourceSha256": "e0c6028e36e38a6357c326de3d2c4b9898039706cdf8bfd6fe49d185fc52762b"
+  },
   "danceFigureProgressionSemantic": "progression",
   "@danceFigureProgressionSemantic": {
     "x-sourceSha256": "0fa9dcf7d979be46947d2c7e82c397b1657e67b8fc794fd741897eb913db8b79"
@@ -8581,6 +8625,18 @@
   "validationSequenceExceedsPhrase": "Une séquence de la figure {position} dure {actual} temps, plus qu’une phrase ({limit} temps).",
   "@validationSequenceExceedsPhrase": {
     "x-sourceSha256": "5b58ba736707956d7a8b673a407e805314dbb8f6ba5091fc18c1fbf777a85366"
+  },
+  "validationSequenceSpanMismatch": "Les étapes de la séquence de la figure {position} durent {actual} temps ; la séquence en dure {expected}.",
+  "@validationSequenceSpanMismatch": {
+    "x-sourceSha256": "427e750a1e703341b792f9be009cf9daebbe04105d73c0b8adacd90815d84d34"
+  },
+  "validationSequenceSpanNoRoom": "Les étapes minutées de la séquence de la figure {position} durent {actual} temps, sans rien laisser de ses {expected} aux autres.",
+  "@validationSequenceSpanNoRoom": {
+    "x-sourceSha256": "97810e6b9ede26094cde824e19231d33c0149ab076d3f9157c2025a6a594fae9"
+  },
+  "validationOtherFormFigures": "Cette danse est de type {danceForm}, mais {count, plural, =1{1 figure vient} other{{count} figures viennent}} de {figureForm}. Elles restent telles quelles, mais le sélecteur de figures ne propose que des figures {pickerForm}.",
+  "@validationOtherFormFigures": {
+    "x-sourceSha256": "c9ecc275ac684f779261f8efede22076a2dd84f87b5d8b0f4ec812630fbc8e77"
   },
   "validationIncompleteFigure": "La figure {position} n’est pas complète : Enregistrer la laisse de côté.",
   "@validationIncompleteFigure": {
