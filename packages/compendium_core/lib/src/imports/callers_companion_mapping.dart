@@ -16,6 +16,8 @@ import 'author_tokenizer.dart';
 import 'beat_implied_balance.dart';
 import 'callers_companion_comma_split.dart';
 import 'callers_companion_user_fields.dart';
+import 'ecd_figure_parser.dart';
+import 'ecd_formation.dart';
 import 'figure_front_end_fan_out.dart';
 import 'figure_parser.dart';
 import 'figure_text_scrub.dart';
@@ -310,16 +312,39 @@ class CcFigureLineCache {
   final int maxEntries;
   final Map<String, List<Figure>> _figuresByLine = <String, List<Figure>>{};
 
-  /// How many distinct lines are remembered.
-  int get length => _figuresByLine.length;
+  /// An English dance's lines, kept apart: the same text reads differently
+  /// in an English dance (ADR-006 W6), and differently again in a ring of
+  /// another size (a `half way` circle turns 2 places of 4, 3 of 6), so each
+  /// is keyed by the ring size its dance gives too.
+  final Map<(String, int?), List<Figure>> _ecdFiguresByLine =
+      <(String, int?), List<Figure>>{};
+
+  /// How many distinct lines are remembered, of either kind.
+  int get length => _figuresByLine.length + _ecdFiguresByLine.length;
 
   /// The figures [line] parsed to, or null if it has not been remembered.
-  List<Figure>? operator [](String line) => _figuresByLine[line];
+  /// [ecd] selects an English dance's lines, read in a ring of [ringDancers].
+  List<Figure>? lookup(String line, {bool ecd = false, int? ringDancers}) =>
+      ecd ? _ecdFiguresByLine[(line, ringDancers)] : _figuresByLine[line];
 
-  /// Remembers [figures] for [line] unless the cache is full.
-  void remember(String line, List<Figure> figures) {
-    if (_figuresByLine.length >= maxEntries) return;
-    _figuresByLine[line] = List<Figure>.unmodifiable(figures);
+  /// The figures [line] of a contra or square dance parsed to, or null.
+  List<Figure>? operator [](String line) => lookup(line);
+
+  /// Remembers [figures] for [line] unless the cache is full. [ecd] marks an
+  /// English dance's line, read in a ring of [ringDancers].
+  void remember(
+    String line,
+    List<Figure> figures, {
+    bool ecd = false,
+    int? ringDancers,
+  }) {
+    if (length >= maxEntries) return;
+    final kept = List<Figure>.unmodifiable(figures);
+    if (ecd) {
+      _ecdFiguresByLine[(line, ringDancers)] = kept;
+    } else {
+      _figuresByLine[line] = kept;
+    }
   }
 }
 
@@ -327,7 +352,8 @@ class CcFigureLineCache {
 /// raised while doing so. **Never throws on content** — a missing title, an
 /// unmapped level/formation, or an unparseable date all surface as
 /// [ImportIssue]s, and every body line becomes a structured or [customMove]
-/// figure via [parseFigureLinesFanOut] (the parse-never-fails invariant). This
+/// figure via [parseFigureLinesFanOut], or [parseEcdFigureLine] for a dance
+/// whose Type is English (the parse-never-fails invariant). This
 /// is the single unit both the text adapter and the `.USR` reader call.
 ///
 /// The draft's identity is disposable: [newId] (default [uuidV4]) and
@@ -396,8 +422,11 @@ CcDanceMapping mapCallersCompanionDance(
   // Type → DanceForm, best-effort; unknown types are preserved as a note.
   final (form, typeNote) = _mapForm(record.type, issues, typeIsFormation: usr);
 
-  // Formation → FormationShape, preserving unmapped text as detail.
-  final formation = usr
+  // Formation → FormationShape, preserving unmapped text as detail. An
+  // English dance takes the ECD shape its contra shape names (ADR-006 W6).
+  final formation = form == DanceForm.ecd
+      ? _mapEcdFormation(record, usr, issues)
+      : usr
       ? _mapFormationColumns(record, issues)
       : _mapFormation(record.formation, issues);
   // A CC mixer is a Type ("Circle Mixer", "Scatter Mixer") or a square's
@@ -483,7 +512,9 @@ CcDanceMapping mapCallersCompanionDance(
       ),
   ];
 
-  // Body → figures (design §2). Each `(beats) text` line has its leading beats
+  // Body → figures (design §2). An English dance's lines go to the ECD
+  // grammar instead ([_ecdLineFigures]); the rest of this comment is contra's
+  // and square's path. Each `(beats) text` line has its leading beats
   // prefix peeled off ([splitCcBeatPrefix], which accepts a lone `(16)` or a
   // compound `(4,12)`) and is then routed through the shared free-text FAN-OUT
   // ([parseFigureLinesFanOut]): the line is attempted against each source
@@ -505,12 +536,27 @@ CcDanceMapping mapCallersCompanionDance(
     for (final rawLine in section.lines) {
       final line = rawLine.trim();
       if (line.isEmpty) continue;
-      final cached = lineCache?[line];
+      // An English line is read by the ECD grammar, never as a contra move
+      // (ADR-006 §5.1), so its cache entry is kept apart from contra's.
+      final ecd = form == DanceForm.ecd;
+      final ring = ecd ? ecdRingDancers(formation.shape) : null;
+      final cached = lineCache?.lookup(line, ecd: ecd, ringDancers: ring);
       if (cached != null) {
         figures.addAll(cached);
         continue;
       }
       final prefix = splitCcBeatPrefix(line);
+      if (ecd) {
+        final read = _ecdLineFigures(
+          prefix.text,
+          prefix.beats,
+          prefix.parts,
+          ringDancers: ring,
+        );
+        lineCache?.remember(line, read, ecd: true, ringDancers: ring);
+        figures.addAll(read);
+        continue;
+      }
       final first = parseFigureLinesFanOut(prefix.text, beats: prefix.beats);
       final produced =
           _retryHyphenatedHand(prefix.text, prefix.beats, first) ?? first;
@@ -879,6 +925,41 @@ bool callersCompanionDifficultyLabelMatches(
   };
 }
 
+/// The figures of one body line of an English dance, read by the ECD grammar
+/// ([parseEcdFigureLine]). A compound prefix (`(4,4)`) whose parts match the
+/// steps of the sequence the line reads keeps each part on its step, as
+/// [_allocateCompoundBeats] does for contra's split figures; otherwise the
+/// total is the figure's span. None of contra's other retries apply: they
+/// read contra's grammar.
+List<Figure> _ecdLineFigures(
+  String text,
+  int beats,
+  List<int> parts, {
+  int? ringDancers,
+}) {
+  final figure = parseEcdFigureLine(
+    text,
+    beats: beats,
+    ringDancers: ringDancers,
+  );
+  if (figure == null) return const [];
+  if (parts.length >= 2 &&
+      figure.isSequence &&
+      figure.subFigures.length == parts.length &&
+      parts.every((part) => part >= 0 && part <= 64)) {
+    final steps = [
+      for (var i = 0; i < parts.length; i++)
+        _withBeats(figure.subFigures[i], parts[i]),
+    ];
+    return [
+      figure.copyWith(
+        params: {...figure.params, 'figures': List<Figure>.unmodifiable(steps)},
+      ),
+    ];
+  }
+  return [figure];
+}
+
 (DanceForm, String?) _mapForm(
   String? raw,
   List<ImportIssue> issues, {
@@ -1003,6 +1084,38 @@ Formation _mapFormationColumns(CcDanceRecord r, List<ImportIssue> issues) {
       return _withDetail(_mapFormation(r.contraForm, issues), detail);
   }
   return Formation(shape, detail: detail);
+}
+
+/// An English dance's formation: the contra shape the source gives, as the
+/// ECD shape it names ([ecdFormationFromContra]).
+///
+/// Improper only when the source says so: contra reads a formation that
+/// states no start as improper, but an ECD dance's improper flag defaults to
+/// proper (ADR-006 §9.2 point 2), so an unstated start is left proper. A text
+/// export's "Duple Minor", which names no contra shape, is ECD's duple minor.
+Formation _mapEcdFormation(
+  CcDanceRecord record,
+  bool usr,
+  List<ImportIssue> issues,
+) {
+  final text = (_sanitizeLine(record.formation) ?? '').toLowerCase();
+  if (!usr && text == 'duple minor') {
+    return const Formation(FormationShape.dupleMinor);
+  }
+  final source = usr
+      ? _mapFormationColumns(record, issues)
+      : _mapFormation(record.formation, issues);
+  final statesImproper = usr
+      ? (record.contraForm?.trim().toLowerCase() ?? '') == 'improper' ||
+            (_sanitizeLine(record.formationOther) ?? '').toLowerCase().contains(
+              'improper',
+            )
+      : text.contains('improper');
+  final mapped = ecdFormationFromContra(source);
+  if (source.shape == FormationShape.dupleImproper && !statesImproper) {
+    return mapped.copyWith(improper: false);
+  }
+  return mapped;
 }
 
 Formation _mapFormation(String? raw, List<ImportIssue> issues) {
