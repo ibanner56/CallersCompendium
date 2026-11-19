@@ -129,8 +129,9 @@ class CustomThemesController extends ChangeNotifier {
 
   /// Puts [theme] back at [index] (clamped): Undo of [delete]. When
   /// [wasActive] and no custom theme has been made active since, it is made
-  /// active again. (A built-in theme chosen in between leaves no custom theme
-  /// active either, so Undo then makes the restored one active.) Throws [ArgumentError] when a theme with its id exists.
+  /// active again. A built-in theme chosen in between leaves no custom theme
+  /// active either, so the caller decides [wasActive] knowing that (the
+  /// Appearance section passes `false` once the built-in selection changed). Throws [ArgumentError] when a theme with its id exists.
   Future<void> restoreDeleted(
     CustomTheme theme, {
     required int index,

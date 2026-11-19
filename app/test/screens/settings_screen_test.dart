@@ -1346,6 +1346,53 @@ void main() {
       expect(find.byKey(ValueKey('custom-${created.id}')), findsOneWidget);
     });
 
+    testWidgets('Undo keeps a built-in theme chosen after the delete', (
+      tester,
+    ) async {
+      final ctx = await _pumpSettings(tester);
+      final created = await ctx.customThemes.duplicate(
+        name: 'Doomed Theme',
+        brightness: Brightness.dark,
+        roles: CustomTheme.rolesFromScheme(const ColorScheme.dark()),
+      );
+      await ctx.customThemes.setActive(created.id);
+      await tester.pumpAndSettle();
+
+      await chooseDelete(tester, created.id);
+      expect(ctx.customThemes.activeId, isNull);
+      // A built-in theme chosen while the Undo prompt is up (what the
+      // gallery does: selection, then no custom theme active).
+      ctx.themeNotifier.value = AppThemeSelection.highContrast;
+      await ctx.customThemes.setActive(null);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('custom-theme-delete-undo')));
+      await tester.pumpAndSettle();
+
+      expect(ctx.customThemes.byId(created.id), isNotNull);
+      expect(ctx.customThemes.activeId, isNull);
+      expect(ctx.themeNotifier.value, AppThemeSelection.highContrast);
+    });
+
+    testWidgets('Undo makes a deleted active theme active again', (
+      tester,
+    ) async {
+      final ctx = await _pumpSettings(tester);
+      final created = await ctx.customThemes.duplicate(
+        name: 'Doomed Theme',
+        brightness: Brightness.dark,
+        roles: CustomTheme.rolesFromScheme(const ColorScheme.dark()),
+      );
+      await ctx.customThemes.setActive(created.id);
+      await tester.pumpAndSettle();
+
+      await chooseDelete(tester, created.id);
+      await tester.tap(find.byKey(const ValueKey('custom-theme-delete-undo')));
+      await tester.pumpAndSettle();
+
+      expect(ctx.customThemes.activeId, created.id);
+    });
+
     testWidgets('with Confirm before delete on, Cancel keeps the theme', (
       tester,
     ) async {

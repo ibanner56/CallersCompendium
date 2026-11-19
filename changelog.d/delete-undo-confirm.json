@@ -12,5 +12,10 @@
       "A delete that can't be undone, such as permanently deleting from Recently deleted or deleting one of your own Glossary entries, always asks first and says \"This can't be undone.\"",
       "Confirmations that remove, reset, replace or discard something now use the red delete-style button, and the one that replaces an existing dance from Import and edit says Replace instead of Continue."
     ]
+  },
+  "core": {
+    "added": [
+      "Classify the `undo_prompt_seconds` setting (how long the Undo prompt stays on screen) as a shareable app-user preference."
+    ]
   }
 }

@@ -263,8 +263,19 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
         undoLabel: l10n.commonUndo,
         undoFailedMessage: l10n.commonUndoFailed,
         accessibleNavigation: accessibleNavigation,
-        onUndo: () =>
-            repos.customFieldDefs.restore(def.id, at: DateTime.now().toUtc()),
+        onUndo: () async {
+          // A new field given the same key since takes over this row (the
+          // key is unique, and creating adopts the tombstone), so a live row
+          // here is that new field: refuse rather than report an Undo that
+          // brought nothing back.
+          if (await repos.customFieldDefs.getById(def.id) != null) {
+            throw StateError('custom field ${def.id} is live again');
+          }
+          await repos.customFieldDefs.restore(
+            def.id,
+            at: DateTime.now().toUtc(),
+          );
+        },
       );
     } on CustomFieldInUseException catch (e, st) {
       logCaughtError(e, st, source: 'custom_fields_screen._delete');

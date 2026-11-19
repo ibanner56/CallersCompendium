@@ -307,6 +307,45 @@ void main() {
       );
     });
 
+    testWidgets('Undo refuses once a new field has taken the deleted key', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.customFieldDefs.upsert(
+        CustomFieldDef(
+          id: 'f1',
+          key: 'notes',
+          label: 'Notes',
+          type: CustomFieldType.text,
+        ),
+      );
+      await _pumpScreen(tester, repos);
+      await tester.tap(find.byKey(const ValueKey('delete-field-f1')));
+      await tester.pumpAndSettle();
+
+      // A new field with the same key, made while the prompt is up.
+      // ignore: unused_result
+      await repos.customFieldDefs.upsert(
+        CustomFieldDef(
+          id: 'f2',
+          key: 'notes',
+          label: 'Remarks',
+          type: CustomFieldType.number,
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('custom-field-delete-undo')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('undo-failed-snackbar')),
+        findsOneWidget,
+      );
+      final defs = await repos.customFieldDefs.listAll();
+      expect([for (final d in defs) d.label], ['Remarks']);
+    });
+
     testWidgets('with Confirm before delete on, Cancel keeps the field', (
       tester,
     ) async {

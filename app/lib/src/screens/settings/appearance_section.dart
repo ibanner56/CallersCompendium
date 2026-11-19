@@ -475,6 +475,11 @@ class _CustomThemesSection extends StatelessWidget {
     if (removed == null) return;
     final index = controller.themes.indexOf(removed);
     final wasActive = controller.activeId == removed.id;
+    // Choosing a built-in theme also leaves no custom theme active, so the
+    // controller alone cannot tell it from no choice: Undo makes the theme
+    // active again only while the built-in selection is what it was here.
+    final selection = AppThemeScope.notifierOf(context);
+    final selectionAtDelete = selection.value;
     await controller.delete(removed.id);
     if (messenger == null) return;
     showUndoSnackBar(
@@ -487,7 +492,7 @@ class _CustomThemesSection extends StatelessWidget {
       onUndo: () => controller.restoreDeleted(
         removed,
         index: index,
-        wasActive: wasActive,
+        wasActive: wasActive && selection.value == selectionAtDelete,
       ),
     );
   }
