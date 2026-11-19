@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 
+import '../theme/app_spacing.dart';
+
 /// Renders a computed [FigureDiffResult] (issue #686) as an inline
 /// added/removed figure-line diff, grouped by phrase label where one is
 /// available.
@@ -35,7 +37,10 @@ class FigureDiffView extends StatelessWidget {
         for (final group in grouped) ...[
           if (group.phraseLabel.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.only(top: 4, bottom: 2),
+              padding: const EdgeInsets.only(
+                top: AppSpacing.xxs,
+                bottom: AppSpacing.xxxs,
+              ),
               child: Text(
                 group.phraseLabel,
                 style: theme.textTheme.labelMedium?.copyWith(
@@ -47,7 +52,7 @@ class FigureDiffView extends StatelessWidget {
         ],
         if (result.truncated)
           Padding(
-            padding: const EdgeInsets.only(top: 4),
+            padding: const EdgeInsets.only(top: AppSpacing.xxs),
             child: Text(
               l10n.importReviewVariationMoreDifferences(result.omittedCount),
               key: const ValueKey('figure-diff-truncated'),
@@ -76,7 +81,10 @@ class FigureDiffView extends StatelessWidget {
     return Semantics(
       label: '$label: ${entry.displayText}',
       child: Padding(
-        padding: const EdgeInsets.only(left: 4, bottom: 2),
+        padding: const EdgeInsets.only(
+          left: AppSpacing.xxs,
+          bottom: AppSpacing.xxxs,
+        ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

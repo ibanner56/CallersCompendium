@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../theme/app_shapes.dart';
 import '../../utils/confirm_delete.dart';
 import '../../utils/undo_snack_bar.dart';
 import 'settings_keys.dart';
@@ -335,11 +336,11 @@ class _ThemePreviewCard extends StatelessWidget {
           color: Colors.transparent,
           child: InkWell(
             onTap: onTap,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(AppShapes.radiusLarge),
             child: Ink(
               decoration: BoxDecoration(
                 color: appTheme.colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(AppShapes.radiusLarge),
                 border: Border.all(
                   color: borderColor,
                   width: selected ? 2.5 : 1,
@@ -393,7 +394,7 @@ class _ThemePreviewCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: scheme.surface,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(AppShapes.radiusMedium),
         border: Border.all(color: scheme.outlineVariant),
       ),
       padding: const EdgeInsets.all(AppSpacing.sm),
@@ -430,7 +431,9 @@ class _ThemePreviewCard extends StatelessWidget {
                     height: 22,
                     decoration: BoxDecoration(
                       color: scheme.surface,
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: BorderRadius.circular(
+                        AppShapes.radiusSmall,
+                      ),
                       border: Border.all(color: scheme.primary, width: 2),
                     ),
                   ),
@@ -450,7 +453,7 @@ class _ThemePreviewCard extends StatelessWidget {
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(5),
+        borderRadius: BorderRadius.circular(AppShapes.radiusSmall),
       ),
       child: Text(
         'A', // i18n-ignore: single-glyph font specimen, not translatable
@@ -672,11 +675,11 @@ class _CustomThemeCard extends StatelessWidget {
           color: Colors.transparent,
           child: InkWell(
             onTap: onTap,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(AppShapes.radiusLarge),
             child: Ink(
               decoration: BoxDecoration(
                 color: appTheme.colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(AppShapes.radiusLarge),
                 border: Border.all(
                   color: borderColor,
                   width: selected ? 2.5 : 1,
@@ -750,7 +753,7 @@ class _CustomThemeCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: scheme.surface,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(AppShapes.radiusMedium),
         border: Border.all(color: scheme.outlineVariant),
       ),
       padding: const EdgeInsets.all(AppSpacing.sm),
@@ -790,7 +793,7 @@ class _CustomThemeCard extends StatelessWidget {
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(5),
+        borderRadius: BorderRadius.circular(AppShapes.radiusSmall),
       ),
       child: Text(
         'A', // i18n-ignore: single-glyph font specimen, not translatable

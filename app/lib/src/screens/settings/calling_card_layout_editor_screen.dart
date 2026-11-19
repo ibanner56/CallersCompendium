@@ -479,7 +479,10 @@ class _CallingCardLayoutEditorScreenState
               children: [for (final c in codes) _code(c, block: block)],
             ),
             Padding(
-              padding: const EdgeInsets.only(left: AppSpacing.xs, top: 2),
+              padding: const EdgeInsets.only(
+                left: AppSpacing.xs,
+                top: AppSpacing.xxxs,
+              ),
               child: Text(text),
             ),
           ],

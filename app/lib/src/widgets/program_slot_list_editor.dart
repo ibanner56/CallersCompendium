@@ -7,6 +7,7 @@ import '../data/formation_colors_scope.dart';
 import '../data/set_list_color_coding_scope.dart';
 import '../search/facet_labels.dart';
 import '../theme/app_motion.dart';
+import '../theme/app_spacing.dart';
 import '../theme/set_list_accents.dart';
 import 'dirty_dialog_guard.dart';
 import 'empty_state.dart';
@@ -579,7 +580,11 @@ class _SlotTile extends StatelessWidget {
 
     return Padding(
       // Indent alternates under their primary.
-      padding: EdgeInsets.only(left: indented ? 32 : 0, top: 4, bottom: 4),
+      padding: EdgeInsets.only(
+        left: indented ? AppSpacing.xl : 0,
+        top: AppSpacing.xxs,
+        bottom: AppSpacing.xxs,
+      ),
       child: Card(
         margin: EdgeInsets.zero,
         child: Container(
@@ -591,10 +596,10 @@ class _SlotTile extends StatelessWidget {
               : null,
           child: Padding(
             padding: EdgeInsets.only(
-              left: accent != null ? 12 : 8,
-              right: 8,
-              top: 8,
-              bottom: 8,
+              left: accent != null ? AppSpacing.sm : AppSpacing.xs,
+              right: AppSpacing.xs,
+              top: AppSpacing.xs,
+              bottom: AppSpacing.xs,
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
@@ -604,7 +609,7 @@ class _SlotTile extends StatelessWidget {
                 // "ALT" marker instead of a number (never color alone) to
                 // avoid implying a separate running-order position.
                 Padding(
-                  padding: const EdgeInsets.only(right: 4),
+                  padding: const EdgeInsets.only(right: AppSpacing.xxs),
                   child: SizedBox(
                     width: 24,
                     child: Text(
@@ -633,7 +638,7 @@ class _SlotTile extends StatelessWidget {
                   child: Semantics(
                     label: l10n.programsDragToReorder(title),
                     child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 4),
+                      padding: EdgeInsets.symmetric(horizontal: AppSpacing.xxs),
                       child: Icon(Icons.drag_handle),
                     ),
                   ),

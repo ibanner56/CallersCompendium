@@ -16,6 +16,7 @@ import '../data/migration_guard.dart'
         snapshotBeforeMigrate;
 import '../diagnostics/error_log.dart';
 import '../update/retirement_banner.dart' show kReleasesPageUrl;
+import '../theme/app_spacing.dart';
 import '../utils/launch_external_url.dart';
 import 'brand_mark.dart';
 
@@ -334,7 +335,7 @@ class _BelowFloorRecoveryScreenState extends State<_BelowFloorRecoveryScreen> {
     return Scaffold(
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -402,7 +403,7 @@ class _BootstrapErrorScreen extends StatelessWidget {
     return Scaffold(
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 420),
             child: Column(
@@ -480,7 +481,7 @@ class _TerminalScreen extends StatelessWidget {
     return Scaffold(
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 420),
             child: Column(

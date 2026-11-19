@@ -203,7 +203,12 @@ class _VenueManagerScreenState extends State<VenueManagerScreen> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md,
+              AppSpacing.sm,
+              AppSpacing.md,
+              AppSpacing.xs,
+            ),
             child: TextField(
               key: const ValueKey('venue-manager-search'),
               controller: _searchController,

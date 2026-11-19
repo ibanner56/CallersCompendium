@@ -423,7 +423,9 @@ class AppShellState extends State<AppShell> {
                   leadingAtTop: false,
                   trailingAtBottom: true,
                   leading: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: AppSpacing.xs,
+                    ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -541,7 +543,10 @@ class _RailSearchButton extends StatelessWidget {
           onTap: onPressed,
           borderRadius: AppShapes.borderRadiusLarge,
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+            padding: const EdgeInsets.symmetric(
+              vertical: AppSpacing.xs,
+              horizontal: AppSpacing.xs,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -608,7 +613,10 @@ class _RailHelpButton extends StatelessWidget {
           onTap: onPressed,
           borderRadius: AppShapes.borderRadiusLarge,
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+            padding: const EdgeInsets.symmetric(
+              vertical: AppSpacing.xs,
+              horizontal: AppSpacing.xs,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -647,7 +655,10 @@ class _ShortcutHint extends StatelessWidget {
     final scheme = theme.colorScheme;
     return Container(
       key: const ValueKey('global-search-shortcut-hint'),
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.xs,
+        vertical: AppSpacing.xxxs,
+      ),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHighest,
         borderRadius: AppShapes.borderRadiusSmall,

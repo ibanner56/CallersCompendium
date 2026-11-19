@@ -61,7 +61,12 @@ class ShorthandMappingsScreen extends StatelessWidget {
         ),
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md,
+              AppSpacing.md,
+              AppSpacing.md,
+              AppSpacing.xs,
+            ),
             child: Text(
               l10n.shorthandMappingsIntro,
               style: Theme.of(context).textTheme.bodySmall,
@@ -440,7 +445,12 @@ class _CompoundShorthandsSectionState
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 24, 16, 4),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.lg,
+            AppSpacing.md,
+            AppSpacing.xxs,
+          ),
           child: Semantics(
             header: true,
             child: Text(
@@ -450,14 +460,19 @@ class _CompoundShorthandsSectionState
           ),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            0,
+            AppSpacing.md,
+            AppSpacing.xs,
+          ),
           child: Text(
             l10n.shorthandsCompoundIntro,
             style: theme.textTheme.bodySmall,
           ),
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
           child: OutlinedButton.icon(
             key: const ValueKey('new-compound-shorthand'),
             onPressed: () => _open(context),

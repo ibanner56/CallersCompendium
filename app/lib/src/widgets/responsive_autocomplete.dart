@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_motion.dart';
+import '../theme/app_spacing.dart';
 import 'program_matrix_table.dart' show ProgramMatrixTable;
 
 /// Builds a single option row (e.g. a [ListTile]) for [option]. [onSelected]
@@ -577,7 +578,12 @@ class _AutocompleteSheetContentState<T extends Object>
     final content = Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.xs,
+            AppSpacing.md,
+            AppSpacing.xs,
+          ),
           child: _SheetField(
             controller: _controller,
             focusNode: _focusNode,

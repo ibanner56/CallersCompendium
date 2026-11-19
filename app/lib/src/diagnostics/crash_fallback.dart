@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 
 import '../../l10n/app_localizations.dart';
 
+import '../theme/app_spacing.dart';
+
 /// The friendly, recoverable widget shown in place of a subtree that failed to
 /// build, replacing Flutter's raw red error box (issue #458).
 ///
@@ -70,7 +72,7 @@ class _CrashFallbackState extends State<CrashFallback> {
         color: const Color(0xFFF7F2EC),
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(AppSpacing.lg),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
               child: Column(

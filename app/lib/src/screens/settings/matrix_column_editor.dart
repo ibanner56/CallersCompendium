@@ -559,7 +559,7 @@ class _ColumnRow extends StatelessWidget {
         child: Semantics(
           label: l10n.settingsMatrixColumnsDragToReorder(label),
           child: const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 4),
+            padding: EdgeInsets.symmetric(horizontal: AppSpacing.xxs),
             child: Icon(Icons.drag_handle),
           ),
         ),

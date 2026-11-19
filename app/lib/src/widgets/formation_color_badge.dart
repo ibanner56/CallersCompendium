@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_spacing.dart';
 import '../theme/set_list_accents.dart';
 import '../theme/app_shapes.dart';
 
@@ -17,7 +18,10 @@ class FormationColorBadge extends StatelessWidget {
     super.key,
     required this.color,
     required this.child,
-    this.padding = const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+    this.padding = const EdgeInsets.symmetric(
+      horizontal: AppSpacing.xs,
+      vertical: AppSpacing.xxxs,
+    ),
   });
 
   final Color color;

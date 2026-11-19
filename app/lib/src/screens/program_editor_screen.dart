@@ -3684,7 +3684,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.xs,
+            AppSpacing.xs,
+            AppSpacing.xs,
+            0,
+          ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
@@ -4226,7 +4231,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           if (_venueId != null)
             Padding(
               key: const ValueKey('program-venue-linked-hint'),
-              padding: const EdgeInsets.only(top: 8),
+              padding: const EdgeInsets.only(top: AppSpacing.xs),
               child: Row(
                 children: [
                   Icon(Icons.link, size: 16, color: theme.colorScheme.primary),
@@ -4253,7 +4258,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         if (legacyText.isNotEmpty && _venueId == null)
           Padding(
             key: const ValueKey('program-venue-legacy-text'),
-            padding: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.only(bottom: AppSpacing.xs),
             child: Row(
               children: [
                 Icon(
@@ -4690,7 +4695,7 @@ class _ProgramWarningsCard extends StatelessWidget {
         children: [
           for (final w in warnings)
             Padding(
-              padding: const EdgeInsets.only(top: 2),
+              padding: const EdgeInsets.only(top: AppSpacing.xxxs),
               child: Semantics(
                 liveRegion: true,
                 child: Text(validationIssueMessage(l10n, w)),

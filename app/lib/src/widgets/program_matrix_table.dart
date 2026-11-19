@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../search/facet_labels.dart' show formationIcon, formationLabel;
 import '../theme/app_shapes.dart';
+import '../theme/app_spacing.dart';
 import 'empty_state.dart';
 
 /// Read-only **programming matrix** (moves × dances) for the Program builder's
@@ -228,7 +229,7 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
             ),
             if (widget.omittedFreeTextCount > 0)
               Padding(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(AppSpacing.sm),
                 child: Text(
                   l10n.programsMatrixOmittedCaption(
                     widget.omittedFreeTextCount,
@@ -524,7 +525,10 @@ class _FormationColumnHeader extends StatelessWidget {
         height: ProgramMatrixTable.columnHeaderHeight,
         alignment: Alignment.bottomCenter,
         color: theme.colorScheme.surfaceContainerHighest,
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.xs,
+          vertical: AppSpacing.xs,
+        ),
         child: Text(
           l10n.programsMatrixFormationColumnHeader,
           textAlign: TextAlign.center,
@@ -555,7 +559,10 @@ class _ColumnHeader extends StatelessWidget {
         height: ProgramMatrixTable.columnHeaderHeight,
         alignment: Alignment.bottomCenter,
         color: theme.colorScheme.surfaceContainerHighest,
-        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 6),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.xxxs,
+          vertical: AppSpacing.xs,
+        ),
         child: Text(
           label,
           textAlign: TextAlign.center,
@@ -649,7 +656,7 @@ class _RowHeader extends StatelessWidget {
       child: Container(
         width: ProgramMatrixTable.rowHeaderWidth,
         height: ProgramMatrixTable.rowHeight,
-        padding: const EdgeInsets.symmetric(horizontal: 8),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
         alignment: Alignment.centerLeft,
         color: theme.colorScheme.surfaceContainerHighest,
         child: Row(
@@ -710,7 +717,7 @@ class _FormationCell extends StatelessWidget {
       child: Container(
         width: ProgramMatrixTable.formationColumnWidth,
         height: ProgramMatrixTable.rowHeight,
-        padding: const EdgeInsets.symmetric(horizontal: 6),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
         alignment: Alignment.centerLeft,
         color: theme.colorScheme.surfaceContainerHighest,
         child: Row(
@@ -747,7 +754,10 @@ class _SectionBadge extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     return ExcludeSemantics(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.xxs,
+          vertical: AppSpacing.xxxs,
+        ),
         decoration: BoxDecoration(
           color: theme.colorScheme.tertiaryContainer,
           borderRadius: AppShapes.borderRadiusSmall,
@@ -980,7 +990,7 @@ class _CompactMatrix extends StatelessWidget {
       // plainly rather than implying a move list that isn't there.
       children.add(
         Padding(
-          padding: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.only(bottom: AppSpacing.xs),
           child: Text(
             l10n.programsMatrixNoComparableMoves,
             style: theme.textTheme.bodyMedium?.copyWith(
@@ -996,7 +1006,10 @@ class _CompactMatrix extends StatelessWidget {
         );
         children.add(
           Padding(
-            padding: const EdgeInsets.only(top: 2, bottom: 4),
+            padding: const EdgeInsets.only(
+              top: AppSpacing.xxxs,
+              bottom: AppSpacing.xxs,
+            ),
             child: Text(
               l10n.programsMatrixRepeatedMovesSubtitle,
               style: theme.textTheme.bodySmall?.copyWith(
@@ -1019,7 +1032,7 @@ class _CompactMatrix extends StatelessWidget {
       } else {
         children.add(
           Padding(
-            padding: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.only(bottom: AppSpacing.xs),
             child: Text(
               l10n.programsMatrixNoRepeatsNote,
               style: theme.textTheme.bodyMedium?.copyWith(
@@ -1047,7 +1060,12 @@ class _CompactMatrix extends StatelessWidget {
     }
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.sm,
+        AppSpacing.xs,
+        AppSpacing.sm,
+        AppSpacing.sm,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: children,
@@ -1143,7 +1161,10 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.only(top: 12, bottom: 2),
+      padding: const EdgeInsets.only(
+        top: AppSpacing.sm,
+        bottom: AppSpacing.xxxs,
+      ),
       child: Semantics(
         header: true,
         child: Text(
@@ -1184,7 +1205,7 @@ class _MoveCard extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final n = summary.dances.length;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1331,7 +1352,10 @@ class _DanceChip extends StatelessWidget {
       ),
       excludeSemantics: true,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.xs,
+          vertical: AppSpacing.xxs,
+        ),
         decoration: BoxDecoration(
           color: collision
               ? theme.colorScheme.errorContainer.withValues(alpha: 0.4)
@@ -1411,7 +1435,10 @@ class _Legend extends StatelessWidget {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.xs,
+      ),
       child: Wrap(
         spacing: 16,
         runSpacing: 4,

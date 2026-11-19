@@ -598,7 +598,12 @@ class _CustomFieldFormState extends State<_CustomFieldForm> {
       builder: (context, child) =>
           DiscardChangesGuard(dirty: _dirty, child: child!),
       child: Padding(
-        padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + insets.bottom),
+        padding: EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          AppSpacing.lg,
+          AppSpacing.lg,
+          AppSpacing.lg + insets.bottom,
+        ),
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(
@@ -793,7 +798,7 @@ class _ChoicesEditorState extends State<_ChoicesEditor> {
         ),
         if (widget.error != null)
           Padding(
-            padding: const EdgeInsets.only(top: 4),
+            padding: const EdgeInsets.only(top: AppSpacing.xxs),
             child: Text(
               widget.error!,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -817,7 +822,9 @@ class _ChoicesEditorState extends State<_ChoicesEditor> {
               return ListTile(
                 key: ValueKey('choice-$choice'),
                 dense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.xxs,
+                ),
                 leading: ReorderableDragStartListener(
                   index: index,
                   child: const Icon(Icons.drag_handle),

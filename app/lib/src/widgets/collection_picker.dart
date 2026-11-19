@@ -964,7 +964,12 @@ class _CollectionPickerState extends State<CollectionPicker> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.sm,
+                AppSpacing.md,
+                0,
+              ),
               child: SearchFieldWithScope(
                 searchField: searchField,
                 scopeField: SearchScopeField(
@@ -1065,7 +1070,12 @@ class _CollectionPickerState extends State<CollectionPicker> {
         panelBar,
         if (_onlineEnabled)
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md,
+              0,
+              AppSpacing.md,
+              AppSpacing.xs,
+            ),
             child: SegmentedButton<OnlineSource>(
               key: const ValueKey('picker-online-source-selector'),
               expandedInsets: EdgeInsets.zero,
@@ -1169,8 +1179,13 @@ class _CollectionPickerState extends State<CollectionPicker> {
     // buttons' own 48 px height spaces the row.
     return Padding(
       padding: _onlineEnabled
-          ? const EdgeInsets.fromLTRB(16, 8, 16, 8)
-          : const EdgeInsets.fromLTRB(16, 0, 8, 0),
+          ? const EdgeInsets.fromLTRB(
+              AppSpacing.md,
+              AppSpacing.xs,
+              AppSpacing.md,
+              AppSpacing.xs,
+            )
+          : const EdgeInsets.fromLTRB(AppSpacing.md, 0, AppSpacing.xs, 0),
       child: Row(
         children: [
           Expanded(
@@ -1226,7 +1241,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
     if (_searchError != null) {
       return SliverToBoxAdapter(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           child: Center(child: Text(l10n.collectionSearchError)),
         ),
       );
@@ -1234,7 +1249,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
     if (_results.isEmpty) {
       return SliverToBoxAdapter(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           child: Center(child: Text(l10n.collectionNoResults)),
         ),
       );
@@ -1353,7 +1368,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
     if (_onlineError != null) {
       return SliverToBoxAdapter(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           child: Center(
             child: Text(_onlineError!, textAlign: TextAlign.center),
           ),
@@ -1363,7 +1378,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
     if (_onlineSearching && _onlineResults.isEmpty) {
       return const SliverToBoxAdapter(
         child: Padding(
-          padding: EdgeInsets.all(24),
+          padding: EdgeInsets.all(AppSpacing.lg),
           child: Center(child: CircularProgressIndicator()),
         ),
       );
@@ -1374,7 +1389,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
           : l10n.onlineSearchHintTitle(_onlineSource.label);
       return SliverToBoxAdapter(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           child: Center(child: Text(hint, textAlign: TextAlign.center)),
         ),
       );
@@ -1382,7 +1397,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
     if (_onlineResults.isEmpty) {
       return SliverToBoxAdapter(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           child: Center(
             child: Text(
               _onlineImportError ?? l10n.onlineNoResults(_onlineSource.label),
@@ -1399,7 +1414,12 @@ class _CollectionPickerState extends State<CollectionPicker> {
       itemBuilder: (context, index) {
         if (_onlineImportError != null && index == 0) {
           return Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md,
+              AppSpacing.sm,
+              AppSpacing.md,
+              AppSpacing.xxs,
+            ),
             child: Text(_onlineImportError!, textAlign: TextAlign.center),
           );
         }

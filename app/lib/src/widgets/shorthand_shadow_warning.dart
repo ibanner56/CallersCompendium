@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
 
+import '../theme/app_spacing.dart';
+
 /// A note under a shorthand-token field, shown while the token typed so far
 /// already reads as a figure (issue #1827): shorthands are matched before the
 /// parser, so saving it would make typing that word insert the shorthand's
@@ -47,7 +49,12 @@ class ShorthandShadowWarning extends StatelessWidget {
         }
         return Padding(
           key: warningKey,
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            0,
+            AppSpacing.md,
+            AppSpacing.xs,
+          ),
           child: Semantics(
             liveRegion: true,
             child: Row(

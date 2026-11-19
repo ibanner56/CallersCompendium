@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/validation_issue_labels.dart';
+import '../theme/app_spacing.dart';
 import 'notice_card.dart';
 
 /// The non-blocking warnings of a dance, such as figures whose beats do not
@@ -27,7 +28,7 @@ class WarningsCard extends StatelessWidget {
           for (final warning in warnings)
             Padding(
               // intentional: 2px optical inset, below the 4px AppSpacing grid
-              padding: const EdgeInsets.symmetric(vertical: 2),
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxxs),
               child: Text('• ${validationIssueMessage(l10n, warning)}'),
             ),
         ],
