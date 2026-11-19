@@ -4879,6 +4879,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceCanonicalToggleLabel => '正式用語';
 
   @override
+  String get danceRoleTermsOverrideNote =>
+      'larks と robins で表示しています。作者がこのダンスを常にこの役割名でコールするよう求めているため、ここではあなたのダイアレクトの役割名は使われません。';
+
+  @override
   String danceProvenanceVia(String source) {
     return '$source経由';
   }

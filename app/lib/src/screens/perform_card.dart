@@ -148,6 +148,7 @@ class PerformCard extends StatelessWidget {
     required this.dialect,
     required this.textScale,
     this.callerNote,
+    this.callerNoteDialect,
     this.autoSize = false,
     this.authorNames = const [],
     this.difficultyLevel,
@@ -163,6 +164,12 @@ class PerformCard extends StatelessWidget {
   /// Optional caller note belonging to a program slot. Single-dance Perform
   /// leaves this null, so dance calling notes remain a separate field.
   final String? callerNote;
+
+  /// The dialect [callerNote] is rendered in, when it differs from [dialect]:
+  /// the note belongs to the program slot, not the dance, so it keeps the
+  /// reader's dialect when the dance's own requires larks and robins
+  /// (`dialectForDance`). Null renders it in [dialect].
+  final Dialect? callerNoteDialect;
 
   /// When `true`, ignore [textScale] and auto-scale so the full card fits the
   /// viewport (ROADMAP G.1), but never below the OS body text size: a card too
@@ -205,6 +212,7 @@ class PerformCard extends StatelessWidget {
               _Header(
                 dance: dance,
                 callerNote: callerNote,
+                callerNoteDialect: callerNoteDialect ?? dialect,
                 authorNames: authorNames,
                 renderer: renderer,
                 dialect: dialect,
@@ -261,6 +269,7 @@ class PerformCard extends StatelessWidget {
         resetToken: Object.hash(
           dance.id,
           callerNote,
+          callerNoteDialect,
           dialect,
           canonicalDiscouragedTerms,
         ),
@@ -895,6 +904,7 @@ class _Header extends StatelessWidget {
   const _Header({
     required this.dance,
     this.callerNote,
+    required this.callerNoteDialect,
     required this.authorNames,
     this.difficultyLevel,
     required this.renderer,
@@ -905,6 +915,7 @@ class _Header extends StatelessWidget {
 
   final Dance dance;
   final String? callerNote;
+  final Dialect callerNoteDialect;
   final List<String> authorNames;
   final FigureRenderer renderer;
   final Dialect dialect;
@@ -926,7 +937,7 @@ class _Header extends StatelessWidget {
       children: [
         if (callerNote != null && callerNote!.trim().isNotEmpty) ...[
           Text(
-            '${l10n.performSlotCallerNote}: ${canonicalizeDiscouragedTerms ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(callerNote!.trim(), dialect) : callerNote!.trim()}',
+            '${l10n.performSlotCallerNote}: ${canonicalizeDiscouragedTerms ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(callerNote!.trim(), callerNoteDialect) : callerNote!.trim()}',
             key: const ValueKey('perform-slot-caller-note'),
             style: theme.textTheme.headlineSmall?.merge(
               AppTypography.performBody,

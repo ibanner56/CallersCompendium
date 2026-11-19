@@ -110,9 +110,10 @@ String danceToPlainText(
     fields: fields,
     sourceLines: sourceLines,
   );
+  final cardDialect = content.dialect;
   String renderText(String text) => canonicalizeDiscouragedTerms
-      ? fig.renderFreeTextWithCanonicalDiscouragedTerms(text, dialect)
-      : fig.renderFreeText(text, dialect);
+      ? fig.renderFreeTextWithCanonicalDiscouragedTerms(text, cardDialect)
+      : fig.renderFreeText(text, cardDialect);
   final lines = <String>[];
 
   lines.add(content.title);
@@ -133,8 +134,11 @@ String danceToPlainText(
     final sectioned = deriveSections(content.figures, dance.phraseStructure);
     for (final sf in sectioned) {
       final text = canonicalizeDiscouragedTerms
-          ? fig.renderSummaryWithCanonicalDiscouragedTerms(sf.figure, dialect)
-          : fig.renderSummary(sf.figure, dialect);
+          ? fig.renderSummaryWithCanonicalDiscouragedTerms(
+              sf.figure,
+              cardDialect,
+            )
+          : fig.renderSummary(sf.figure, cardDialect);
       final beatsLabel = labels.beats(sf.figure.beats);
       final marker = sf.figure.progression ? ' ¶' : '';
       lines.add('${sf.label}  $text ($beatsLabel)$marker');

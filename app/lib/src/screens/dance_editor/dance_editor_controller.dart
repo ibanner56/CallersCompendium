@@ -625,11 +625,54 @@ class DanceEditorController extends ChangeNotifier {
   /// converted when applied.
   void updateDialects(DialectsByForm dialects) {
     _dialects = dialects;
-    _showInDialect(dialects.forForm(_form));
+    _showInDialect(_targetDialect);
   }
 
   /// Shows the dance in its form's dialect, after [_form] changed.
-  void _followForm() => _showInDialect(_dialects.forForm(_form));
+  void _followForm() => _showInDialect(_targetDialect);
+
+  /// Author names by id, so the editor can tell when the dance's
+  /// choreographer asked for larks and robins ([dialectForDance]). The screen
+  /// keeps it current through [setAuthorNames].
+  Map<String, String> _authorNames = const {};
+
+  /// The dialect [form]'s dance titled [title] by the authors [authors] is
+  /// shown in: the form's dialect, with lark and robin for the roles when
+  /// the dance's choreographer asked for them ([dialectForDance]).
+  Dialect _dialectFor(
+    DanceForm form, {
+    required String title,
+    required Iterable<String> authors,
+  }) => dialectForDance(
+    _dialects.forForm(form),
+    title: title,
+    authorNames: [
+      for (final id in authors)
+        if (_authorNames[id] case final String name) name,
+    ],
+  );
+
+  /// The dialect the dance as now edited is shown in ([_dialectFor]).
+  Dialect get _targetDialect =>
+      _dialectFor(_form, title: titleController.text, authors: authorIds);
+
+  /// Replaces the author names [_dialectFor] reads, and shows the dance in
+  /// the dialect they call for ([refreshDialect]).
+  void setAuthorNames(Map<String, String> names) {
+    _authorNames = names;
+    refreshDialect();
+  }
+
+  /// Shows the dance in the dialect its title and authors now call for: the
+  /// form's own, or lark and robin when its choreographer asked for them
+  /// ([dialectForDance]). Converts the figure drafts' role words, as a
+  /// dialect change does, and notifies when the dialect changed.
+  void refreshDialect() {
+    final next = _targetDialect;
+    if (next == _activeDialect) return;
+    _showInDialect(next);
+    _notify();
+  }
 
   void _showInDialect(Dialect newDialect) {
     if (identical(newDialect, _activeDialect)) return;
@@ -1168,8 +1211,12 @@ class DanceEditorController extends ChangeNotifier {
     // dialect. Its figure text is converted into that dialect below
     // ([_draftsInActiveDialect]), so the drafts on screen, about to be
     // replaced, are not converted first.
-    final formDialect = _dialects.forForm(s.form);
-    if (!identical(formDialect, _activeDialect)) {
+    final formDialect = _dialectFor(
+      s.form,
+      title: s.title,
+      authors: s.authorIds,
+    );
+    if (formDialect != _activeDialect) {
       _activeDialect = formDialect;
       for (final c in _proseLingoControllers) {
         c.updateDialect(formDialect);

@@ -457,7 +457,12 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
 
   Widget _buildContent(BuildContext context, {required bool wide}) {
     final l10n = AppLocalizations.of(context);
-    final dialect = ActiveDialectScope.of(context).forDance(widget.dance);
+    // Lark and robin when the dance's choreographer asked for them.
+    final dialect = dialectForDance(
+      ActiveDialectScope.of(context).forDance(widget.dance),
+      title: widget.dance.title,
+      authorNames: widget.authorNames,
+    );
     final canDecrease =
         _textScale - kPerformScaleStep >= kPerformMinScale - 1e-9;
 

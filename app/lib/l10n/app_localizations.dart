@@ -7862,6 +7862,12 @@ abstract class AppLocalizations {
   /// **'Canonical'**
   String get danceCanonicalToggleLabel;
 
+  /// Note on a dance's detail page when the dance is shown with the role terms 'larks' and 'robins' instead of the role terms of the user's dialect, because its author asked that it only be called with those terms. 'larks' and 'robins' are the role terms the dance is shown with, which stay in English in the dance, so keep them as written.
+  ///
+  /// In en, this message translates to:
+  /// **'Shown with larks and robins: the author has asked that this dance only ever be called with those role terms, so your dialect\'s role terms are not used here.'**
+  String get danceRoleTermsOverrideNote;
+
   /// Provenance line prefix naming where the dance came from.
   ///
   /// In en, this message translates to:

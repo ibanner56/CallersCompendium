@@ -13,6 +13,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
 import 'package:compendium_app/l10n/app_localizations.dart';
+import 'package:compendium_app/l10n/app_localizations_en.dart';
 import 'package:compendium_app/src/data/user_figures_scope.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/dance_reimport.dart';
@@ -425,6 +426,65 @@ void main() {
     // reader's own terms; the raw tokens never leak to the UI.
     expect(find.text('larks and robins balance the ring'), findsOneWidget);
     expect(find.text('role1s and role2s balance the ring'), findsNothing);
+  });
+
+  group("Rachel Fifer's dances keep larks and robins", () {
+    const note = ValueKey('role-terms-override-note');
+
+    Future<void> pump(
+      WidgetTester tester, {
+      required String author,
+      required Dialect dialect,
+    }) async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.choreographers.upsert(Choreographer(id: 'c1', name: author));
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Renewed Joy',
+          authorIds: ['c1'],
+          hook: 'role1s and role2s balance the ring',
+          figures: [
+            Figure(move: 'allemande', params: const {'who': 'role1s'}),
+          ],
+        ),
+      );
+      await _pumpDetail(tester, repos, 'd1', activeDialect: dialect);
+    }
+
+    testWidgets('under another dialect, with a note saying why', (
+      tester,
+    ) async {
+      await pump(tester, author: 'Rae Fifer', dialect: Dialect.leadsFollows);
+
+      expect(find.text('larks and robins balance the ring'), findsOneWidget);
+      expect(find.textContaining('leads'), findsNothing);
+      expect(find.textContaining('follows'), findsNothing);
+      expect(find.byKey(note), findsOneWidget);
+      expect(
+        find.text(AppLocalizationsEn().danceRoleTermsOverrideNote),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('no note when the dialect already says larks and robins', (
+      tester,
+    ) async {
+      await pump(tester, author: 'Rachel Fifer', dialect: Dialect.larksRobins);
+
+      expect(find.text('larks and robins balance the ring'), findsOneWidget);
+      expect(find.byKey(note), findsNothing);
+    });
+
+    testWidgets("another choreographer's dance follows the dialect", (
+      tester,
+    ) async {
+      await pump(tester, author: 'Gene Hubert', dialect: Dialect.leadsFollows);
+
+      expect(find.text('leads and follows balance the ring'), findsOneWidget);
+      expect(find.byKey(note), findsNothing);
+    });
   });
 
   testWidgets('exposes a reachable export/share control on the app bar', (
