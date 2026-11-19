@@ -70,6 +70,7 @@ class FigureListEditor extends StatefulWidget {
     this.onDuplicate,
     this.dialect,
     this.mixer = false,
+    this.formationShape,
     this.moveParamDefaults,
     this.freeTextEntry = false,
     this.onAddFreeText,
@@ -110,6 +111,11 @@ class FigureListEditor extends StatefulWidget {
   final List<FigureDraft> drafts;
   final Taxonomy taxonomy;
   final PhraseStructure phraseStructure;
+
+  /// The dance's formation shape, which free-text entry reads a ring's size
+  /// from (an English "circle half way" is two places in a duple minor,
+  /// three in a triple minor; ADR-006 §7.3). Null where there is no dance.
+  final FormationShape? formationShape;
 
   /// Dialect used for lingo-line styling (discouraged + role terms).
   /// Defaults to [Dialect.larksRobins] when `null` (has the standard
@@ -785,6 +791,7 @@ class _FigureListEditorState extends State<FigureListEditor>
       taxonomy: widget.taxonomy,
       shorthands: widget.shorthandMappings,
       dialect: _dialect,
+      formationShape: widget.formationShape,
     );
     if (figures.isEmpty) return 0;
     final acceptedCount = onAddFreeText(figures);
@@ -855,6 +862,7 @@ class _FigureListEditorState extends State<FigureListEditor>
       taxonomy: widget.taxonomy,
       shorthands: widget.shorthandMappings,
       dialect: _dialect,
+      formationShape: widget.formationShape,
     );
     if (figures.isEmpty) return false;
     final acceptedCount = onReplace(draft, figures);
