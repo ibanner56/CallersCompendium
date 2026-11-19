@@ -425,7 +425,13 @@ final RecentlyDeletedConfig<Program> programRecentlyDeletedConfig =
                 .toList(),
           ),
       restore: (repos, program) async {
-        await repos.programs.restore(program.id, at: DateTime.now().toUtc());
+        // Restored unarchived, so it shows in the Programs list (the
+        // maintainer's decision on #2218).
+        await repos.programs.restore(
+          program.id,
+          at: DateTime.now().toUtc(),
+          unarchive: true,
+        );
         return await repos.programs.getById(program.id) != null;
       },
       permanentlyDelete: (repos, program) => repos.programs.permanentlyDelete(

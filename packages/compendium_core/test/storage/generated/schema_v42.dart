@@ -889,6 +889,14 @@ class Programs extends Table with TableInfo {
     requiredDuringInsert: false,
     $customConstraints: 'NULL',
   );
+  late final GeneratedColumn<int> archivedAt = GeneratedColumn<int>(
+    'archived_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -909,6 +917,7 @@ class Programs extends Table with TableInfo {
     updatedAt,
     deletedAt,
     existenceAt,
+    archivedAt,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;

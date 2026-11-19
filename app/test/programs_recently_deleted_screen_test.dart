@@ -62,6 +62,25 @@ void main() {
     expect(await repos.programs.listAll(), hasLength(1));
   });
 
+  testWidgets('restoring an archived program brings it back unarchived, so '
+      'the Programs list shows it', (tester) async {
+    final repos = openTestRepositories();
+    await repos.programs.create(_program(id: 'p1', title: 'Was Archived'));
+    await repos.programs.archive('p1', at: _now);
+    await repos.programs.softDelete(
+      'p1',
+      at: _now.add(const Duration(hours: 1)),
+    );
+    await _pump(tester, repos);
+
+    await tester.tap(find.byKey(const ValueKey('restore-p1')));
+    await tester.pumpAndSettle();
+
+    final restored = await repos.programs.getById('p1');
+    expect(restored, isNotNull);
+    expect(restored!.isArchived, isFalse);
+  });
+
   testWidgets('permanent delete removes after confirmation', (tester) async {
     final repos = openTestRepositories();
     await repos.programs.create(_program(id: 'p1', title: 'Purge Me'));

@@ -302,9 +302,11 @@ program stays open, so you can step out to check something and choose **Perform
 this program** again to pick up where you left off. That holds when a tablet is
 rotated while you perform, too, even though the Programs screen switches
 between its one- and two-pane layouts: if it shows the list when you leave,
-open the program again. Closing the program — choosing another one, or going
-back from it to the list — or performing a single dance starts the next session
-fresh. For that reason the
+open the program again. Closing the program — choosing another one, going
+back from it to the list, or archiving it (a two-pane screen also closes an
+archived program the list stops showing, including when you leave Programs
+with **Show archived** on) — or performing a single dance starts the next
+session fresh. For that reason the
 exit check on a single dance says so instead of promising a resume: *Performing
 a single dance doesn't keep your place, so the next time starts fresh.*
 
@@ -318,8 +320,9 @@ clock while the program stays open, and nothing for a single dance.
 
 You do not have to be on stage to hand someone a dance. From a dance's detail
 view you can export or print a single dance card as a PDF or as shareable text,
-and the export follows your active dialect. See
-[Share, print & export](./sharing.md#share-a-dance).
+and the export follows your active dialect (except the role terms of a dance
+whose author asked for larks and robins). See
+[Share, print & export](./sharing.md#which-words-a-dance-export-uses).
 
 ## Where to go next
 

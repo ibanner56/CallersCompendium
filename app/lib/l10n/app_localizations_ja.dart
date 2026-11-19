@@ -4882,6 +4882,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceCanonicalToggleLabel => '正式用語';
 
   @override
+  String get danceRoleTermsOverrideNote =>
+      'larks と robins で表示しています。作者がこのダンスを常にこの役割名でコールするよう求めているため、ここではあなたのダイアレクトの役割名は使われません。';
+
+  @override
   String danceProvenanceVia(String source) {
     return '$source経由';
   }
@@ -5136,6 +5140,37 @@ class AppLocalizationsJa extends AppLocalizations {
   String programsDeletedSnack(String title) {
     return '「$title」を削除しました。';
   }
+
+  @override
+  String get programsArchive => 'アーカイブ';
+
+  @override
+  String get programsUnarchive => 'アーカイブを解除';
+
+  @override
+  String programsArchivedSnack(String title) {
+    return '「$title」をアーカイブしました。';
+  }
+
+  @override
+  String programsUnarchivedSnack(String title) {
+    return '「$title」のアーカイブを解除しました。';
+  }
+
+  @override
+  String get programsArchivedLabel => 'アーカイブ済み';
+
+  @override
+  String get programsShowArchived => 'アーカイブ済みを表示';
+
+  @override
+  String get programsHideArchived => 'アーカイブ済みを非表示';
+
+  @override
+  String get programsAllArchivedTitle => '表示するプログラムがありません';
+
+  @override
+  String get programsAllArchivedBody => 'すべてのプログラムがアーカイブされています。';
 
   @override
   String get programsDiscardTitle => '変更を破棄しますか？';

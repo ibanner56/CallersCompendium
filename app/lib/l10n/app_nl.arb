@@ -5164,6 +5164,10 @@
   "@danceCanonicalToggleLabel": {
     "x-sourceSha256": "782621d03699b3741c7977a212b58f042e8bf0120a560e33307698c566e24e89"
   },
+  "danceRoleTermsOverrideNote": "Weergegeven met larks en robins: de auteur heeft gevraagd deze dans alleen ooit met die roltermen te callen, dus de roltermen van je dialect worden hier niet gebruikt.",
+  "@danceRoleTermsOverrideNote": {
+    "x-sourceSha256": "17d9d6af6c1bb038aca866cee669d6c0fbfe0a07693f3e78c7f4e05742e43f19"
+  },
   "danceProvenanceVia": "via {source}",
   "@danceProvenanceVia": {
     "x-sourceSha256": "12a4656bfd2a6fa246194d6119799d2c3299236d0662d525181e8c2e7b9638a6"
@@ -5391,6 +5395,42 @@
   "programsDeletedSnack": "“{title}” verwijderd.",
   "@programsDeletedSnack": {
     "x-sourceSha256": "5f38a45b4a00f67a9d235d7065a8b3d2ecda59f0802d76dccfd504692fc36adb"
+  },
+  "programsArchive": "Archiveren",
+  "@programsArchive": {
+    "x-sourceSha256": "66f4804ee23ddc092d1bae43cb88186aa541187fff7c1cc8a4aa17e59a9f4123"
+  },
+  "programsUnarchive": "Uit archief halen",
+  "@programsUnarchive": {
+    "x-sourceSha256": "f565318d124534cfe0a7630d518f548cd339e464f48d50eda453abd3728ac2a7"
+  },
+  "programsArchivedSnack": "“{title}” gearchiveerd.",
+  "@programsArchivedSnack": {
+    "x-sourceSha256": "10d1026a09a93b4b257dcf87e484cff1a190846f070953b3331f70186e8be952"
+  },
+  "programsUnarchivedSnack": "“{title}” uit het archief gehaald.",
+  "@programsUnarchivedSnack": {
+    "x-sourceSha256": "a0f18460a0a741fff4fa8e9cde16deaf1d264cbb8fc4727e8abe63beaea5f3bf"
+  },
+  "programsArchivedLabel": "Gearchiveerd",
+  "@programsArchivedLabel": {
+    "x-sourceSha256": "bdb86505f8062d15f152cef71dd4ca89609d5bf8e98771dcd2c9f70d247403da"
+  },
+  "programsShowArchived": "Gearchiveerde tonen",
+  "@programsShowArchived": {
+    "x-sourceSha256": "e9de9f2f7a8547e2be68a608f71e3245cb176fcb03dfdff55060e0f25f387975"
+  },
+  "programsHideArchived": "Gearchiveerde verbergen",
+  "@programsHideArchived": {
+    "x-sourceSha256": "dd1c79324e411c473dc6e8ad9506ce890e8acdfcc5d8bd17ff030d1c85d0d727"
+  },
+  "programsAllArchivedTitle": "Geen programma's om te tonen",
+  "@programsAllArchivedTitle": {
+    "x-sourceSha256": "d9e9534fad259921b9f41b1b2f58e2cef9f7a593bf73e95f5e87c518d82f3432"
+  },
+  "programsAllArchivedBody": "Al je programma's zijn gearchiveerd.",
+  "@programsAllArchivedBody": {
+    "x-sourceSha256": "0953af5dd67c8604868ac7a95548a9e36f1c67d7fb84d2fe8acc55842a6bf821"
   },
   "programsDiscardTitle": "Wijzigingen verwerpen?",
   "@programsDiscardTitle": {

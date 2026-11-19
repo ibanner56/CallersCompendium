@@ -501,7 +501,8 @@ From the detail view you can:
   and **Cancel** leaves the sheet open so you can pick another program.
 - **Export** it — share it as text or as a share file, copy it, or print it as a
   PDF. The export follows your active dialect, so what you hand someone matches
-  how they speak — see [Share, print & export](./sharing.md#share-a-dance).
+  how they speak (except the role terms of a dance whose author asked for
+  larks and robins) — see [Share, print & export](./sharing.md#which-words-a-dance-export-uses).
 - **Perform this dance** — open it in [Perform mode](./glossary.md#perform-mode),
   the large-print calling view, to call it on its own.
 - **Delete dance** — see [Keep your collection tidy](#keep-your-collection-tidy).

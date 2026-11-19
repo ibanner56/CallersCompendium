@@ -9,14 +9,16 @@ import 'package:compendium_app/src/theme/wcag.dart';
 import 'package:compendium_app/src/widgets/program_status_chip.dart';
 import '../support/l10n_harness.dart';
 
-/// The status tokens shared by [StatusChip] (both program and dance status),
-/// keyed by a human-readable role for failure messages.
-Map<String, Color> _statusTokens(AppThemeExtension ext) => {
+/// The tokens [StatusChip] is drawn with (program and dance status, and the
+/// neutral "Archived" chip), keyed by a human-readable role for failure
+/// messages.
+Map<String, Color> _statusTokens(AppThemeExtension ext, ColorScheme scheme) => {
   'statusDraft': ext.statusDraft,
   'statusFinalized': ext.statusFinalized,
   'statusPerformed': ext.statusPerformed,
   'statusDeprecated': ext.statusDeprecated,
   'statusBroken': ext.statusBroken,
+  'archived (outline)': scheme.outline,
 };
 
 void main() {
@@ -32,7 +34,7 @@ void main() {
         // StatusChip draws its label in onSurface over a statusTintAlpha
         // color fill that composites over the surface behind the chip.
         final textColor = scheme.onSurface;
-        _statusTokens(ext).forEach((role, token) {
+        _statusTokens(ext, scheme).forEach((role, token) {
           final fill = Color.alphaBlend(
             token.withValues(alpha: AppThemeExtension.statusTintAlpha),
             scheme.surface,

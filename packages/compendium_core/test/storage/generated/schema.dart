@@ -4,7 +4,6 @@
 //
 import 'package:drift/drift.dart';
 import 'package:drift/internal/migrations.dart';
-
 import 'schema_v39.dart' as v39;
 import 'schema_v40.dart' as v40;
 import 'schema_v41.dart' as v41;

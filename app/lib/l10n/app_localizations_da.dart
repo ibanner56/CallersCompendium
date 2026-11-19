@@ -5112,6 +5112,10 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceCanonicalToggleLabel => 'Kanonisk';
 
   @override
+  String get danceRoleTermsOverrideNote =>
+      'Vist med larks og robins: forfatteren har bedt om, at denne dans kun nogensinde kaldes med de rollebetegnelser, så din dialekts rollebetegnelser bruges ikke her.';
+
+  @override
   String danceProvenanceVia(String source) {
     return 'via $source';
   }
@@ -5375,6 +5379,37 @@ class AppLocalizationsDa extends AppLocalizations {
   String programsDeletedSnack(String title) {
     return '„$title“ slettet.';
   }
+
+  @override
+  String get programsArchive => 'Arkivér';
+
+  @override
+  String get programsUnarchive => 'Fjern fra arkiv';
+
+  @override
+  String programsArchivedSnack(String title) {
+    return '„$title“ arkiveret.';
+  }
+
+  @override
+  String programsUnarchivedSnack(String title) {
+    return '„$title“ fjernet fra arkivet.';
+  }
+
+  @override
+  String get programsArchivedLabel => 'Arkiveret';
+
+  @override
+  String get programsShowArchived => 'Vis arkiverede';
+
+  @override
+  String get programsHideArchived => 'Skjul arkiverede';
+
+  @override
+  String get programsAllArchivedTitle => 'Ingen programmer at vise';
+
+  @override
+  String get programsAllArchivedBody => 'Alle dine programmer er arkiveret.';
 
   @override
   String get programsDiscardTitle => 'Kassér ændringer?';

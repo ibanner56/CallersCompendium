@@ -632,6 +632,21 @@ final Map<String, DataClassification> fieldClassifications = {
     note: 'Soft-delete tombstone; see dances.deleted_at.',
   ),
   'programs.existence_at': _existenceStamp,
+  'programs.archived_at': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.shareable,
+    note:
+        'When the caller archived the program (schema v42); NULL means not '
+        'archived. A lifecycle stamp like programs.deleted_at, classified the '
+        'same way: it says when the program left the list, not anything about '
+        'a person. Egress: own devices and backups yes, share files no (the '
+        'maintainer chose "sync and backups keep it, share files drop it" '
+        'when archiving was added, 2026-11-18, recorded in #2218; '
+        'sanitizeProgramForShare), so a '
+        'recipient always gets an unarchived program. Kept shareable because '
+        'deviceLocal would stop sync.',
+  ),
 
   // --------------------------------------------------------- program_slots --
   'program_slots.id': _key,

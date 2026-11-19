@@ -1365,7 +1365,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         newStructure: draftDance.phraseStructure,
         taxonomy: shippedTaxonomies.anyForm,
         renderer: renderer,
-        dialect: dialects.forDance(draftDance),
+        // Lark and robin when the incoming dance's choreographer asked.
+        dialect: dialectForDance(
+          dialects.forDance(draftDance),
+          title: draftDance.title,
+          authorNames: batch.records[i].draft.authorNames,
+        ),
         decimals: decimals,
         canonicalDiscouragedTerms: canonicalDiscouragedTerms,
       );
@@ -3973,9 +3978,13 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     if (authors.isNotEmpty) {
       details.add(l10n.importReviewMetadataAuthor(authors));
     }
-    final dialect =
-        (ActiveDialectScope.maybeOf(context) ?? DialectsByForm.defaults)
-            .forDance(draft.dance);
+    final dialect = dialectForDance(
+      (ActiveDialectScope.maybeOf(context) ?? DialectsByForm.defaults).forDance(
+        draft.dance,
+      ),
+      title: draft.dance.title,
+      authorNames: draft.authorNames,
+    );
     details.add(
       l10n.importReviewMetadataFormation(
         formationDisplayLabel(

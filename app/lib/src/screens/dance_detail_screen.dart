@@ -669,9 +669,22 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     );
   }
 
+  /// The dialect [detail]'s dance is shown and exported in: [active], with
+  /// lark and robin for the roles when the dance's choreographer asked for
+  /// them (`dialectForDance`). [active] itself when nothing is set aside.
+  Dialect _danceDialect(DanceDetailData detail, Dialect active) =>
+      dialectForDance(
+        active,
+        title: detail.dance.title,
+        authorNames: detail.authorNames,
+      );
+
   DanceExportMenu _exportMenu(BuildContext context, DanceDetailData detail) {
     final l10n = AppLocalizations.of(context);
-    final dialect = ActiveDialectScope.of(context).forDance(detail.dance);
+    final dialect = _danceDialect(
+      detail,
+      ActiveDialectScope.of(context).forDance(detail.dance),
+    );
     final canonicalDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
       context,
     );
@@ -778,7 +791,10 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     final activeDialectName = controller == null
         ? null
         : (controller.activeName ?? controller.active.name);
-    final dialect = ActiveDialectScope.of(context).forDance(detail.dance);
+    final dialect = _danceDialect(
+      detail,
+      ActiveDialectScope.of(context).forDance(detail.dance),
+    );
     // Everything the export actions need is resolved here, before the menu
     // route pops: the `onTap`s below run after it has, and the actions run
     // across awaits.
@@ -1122,15 +1138,19 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     final theme = Theme.of(context);
     final dance = detail.dance;
     final activeDialect = ActiveDialectScope.of(context).forDance(dance);
+    // The dialect this dance is shown in: the reader's, unless the dance's
+    // choreographer asked that it only be called with larks and robins.
+    final danceDialect = _danceDialect(detail, activeDialect);
+    final roleTermsOverridden = !identical(danceDialect, activeDialect);
     final canonicalDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
       context,
     );
-    // When the active dialect is already canonical, _canonicalView is a no-op
+    // When the dance's dialect is already canonical, _canonicalView is a no-op
     // (both sides of the toggle are identical).  In that case hide the toggle.
-    final isCanonicalDialect = activeDialect == Dialect.canonical;
+    final isCanonicalDialect = danceDialect == Dialect.canonical;
     final dialect = _canonicalFigureTextEnabled && _canonicalView
         ? Dialect.canonical
-        : activeDialect;
+        : danceDialect;
     final visibleLinks = dance.links
         .where(
           (link) =>
@@ -1169,6 +1189,10 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                       style: theme.textTheme.bodyLarge,
                     ),
                   ),
+                ],
+                if (roleTermsOverridden) ...[
+                  const SizedBox(height: AppSpacing.xs),
+                  const _RoleTermsOverrideNote(),
                 ],
                 const SizedBox(height: AppSpacing.sm),
                 Row(
@@ -1536,6 +1560,39 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       builder: (_) => ProgramSummaryScreen(programId: programId),
     ),
   );
+}
+
+/// Says the dance is shown with larks and robins rather than the role terms
+/// of the reader's dialect, because its choreographer asked for them
+/// (`dialectForDance`). Shown only when the reader's dialect calls the roles
+/// something else.
+class _RoleTermsOverrideNote extends StatelessWidget {
+  const _RoleTermsOverrideNote();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = theme.colorScheme.onSurfaceVariant;
+    // About the page, not the dance: it stays out of a copy of the dance.
+    return SelectionContainer.disabled(
+      child: Row(
+        key: const ValueKey('role-terms-override-note'),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ExcludeSemantics(
+            child: Icon(Icons.info_outline, size: 18, color: color),
+          ),
+          const SizedBox(width: AppSpacing.xs),
+          Expanded(
+            child: Text(
+              AppLocalizations.of(context).danceRoleTermsOverrideNote,
+              style: theme.textTheme.bodySmall?.copyWith(color: color),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _DialectToggle extends StatelessWidget {

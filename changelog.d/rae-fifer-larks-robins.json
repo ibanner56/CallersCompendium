@@ -1,0 +1,14 @@
+{
+  "id": "rae-fifer-larks-robins",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "Dances by Rachel (\"Rae\") Fifer are now always shown, performed, printed and shared with the role terms larks and robins, as she has asked the dance community, whatever role terms your dialect uses. The rest of your dialect still applies, and the dance's page says when your role terms are set aside."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add `dialectForDance`, `requiresLarksRobins` and `overridesRoleTerms`, which keep the role terms larks and robins for dances by Rachel (\"Rae\") Fifer, and `DanceCardContent.dialect`, the dialect a card was rendered in."
+    ]
+  }
+}

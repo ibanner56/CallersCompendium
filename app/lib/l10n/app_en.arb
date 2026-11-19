@@ -6424,7 +6424,7 @@
   },
   "programsMoreActions": "More actions",
   "@programsMoreActions": {
-    "description": "Tooltip for the overflow (⋮) menu holding Mark all performed, Duplicate and Delete on the program builder's and summary's narrow toolbars."
+    "description": "Tooltip for the overflow (⋮) menu holding Mark all performed, Duplicate, Archive and Delete on the program builder's and summary's narrow toolbars."
   },
   "danceSectionFigures": "Figures",
   "@danceSectionFigures": {
@@ -6515,6 +6515,10 @@
   "danceCanonicalToggleLabel": "Canonical",
   "@danceCanonicalToggleLabel": {
     "description": "Visible label beside the canonical-terms toggle."
+  },
+  "danceRoleTermsOverrideNote": "Shown with larks and robins: the author has asked that this dance only ever be called with those role terms, so your dialect's role terms are not used here.",
+  "@danceRoleTermsOverrideNote": {
+    "description": "Note on a dance's detail page when the dance is shown with the role terms 'larks' and 'robins' instead of the role terms of the user's dialect, because its author asked that it only be called with those terms. 'larks' and 'robins' are the role terms the dance is shown with, which stay in English in the dance, so keep them as written."
   },
   "danceProvenanceVia": "via {source}",
   "@danceProvenanceVia": {
@@ -6919,6 +6923,54 @@
         "example": "Friday Night Contra"
       }
     }
+  },
+  "programsArchive": "Archive",
+  "@programsArchive": {
+    "description": "Action that archives a program: hides it from the Programs list without deleting it. Shown in a program row's ⋮ menu, and as a toolbar button tooltip (or ⋮ menu item on narrow screens) on the program summary and the program builder."
+  },
+  "programsUnarchive": "Unarchive",
+  "@programsUnarchive": {
+    "description": "Action that reverses Archive on an archived program, so it shows in the Programs list again. Shown in the same places as programsArchive."
+  },
+  "programsArchivedSnack": "\"{title}\" archived.",
+  "@programsArchivedSnack": {
+    "description": "Snackbar confirming a program was archived, quoting its title. Paired with an Undo action.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Friday Night Contra"
+      }
+    }
+  },
+  "programsUnarchivedSnack": "\"{title}\" unarchived.",
+  "@programsUnarchivedSnack": {
+    "description": "Snackbar confirming an archived program was unarchived and is back in the Programs list, quoting its title.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Friday Night Contra"
+      }
+    }
+  },
+  "programsArchivedLabel": "Archived",
+  "@programsArchivedLabel": {
+    "description": "Label marking a program as archived: the chip on its row in the Programs list and on its summary, and the field name when Sync compares two versions of a program."
+  },
+  "programsShowArchived": "Show archived",
+  "@programsShowArchived": {
+    "description": "Programs list ⋮ menu item (and empty-state button) that also lists archived programs, alongside the others."
+  },
+  "programsHideArchived": "Hide archived",
+  "@programsHideArchived": {
+    "description": "Programs list ⋮ menu item, shown while archived programs are listed, that hides them again."
+  },
+  "programsAllArchivedTitle": "No programs to show",
+  "@programsAllArchivedTitle": {
+    "description": "Title of the empty state when every program is archived: on the Programs list while archived programs are hidden, and in the add-to-program sheet, which never offers archived programs."
+  },
+  "programsAllArchivedBody": "All your programs are archived.",
+  "@programsAllArchivedBody": {
+    "description": "Body of the empty state when every program is archived. On the Programs list (while archived programs are hidden) it is followed by Show archived and New program buttons; in the add-to-program sheet it sits below the pinned New program row."
   },
   "programsDiscardTitle": "Discard changes?",
   "@programsDiscardTitle": {

@@ -432,15 +432,35 @@ class ProgramRepository {
   ///
   /// The result is the exact token [replaceIfUnchanged] compares against: no
   /// other write can land between this write and its read-back.
-  Future<Program> updateAndReadBack(Program program) =>
-      _db.transaction(() async {
-        await _upsert(program);
-        final stored = await getById(program.id);
-        if (stored == null) {
-          throw StateError('program "${program.id}" vanished inside its write');
-        }
-        return stored;
-      });
+  ///
+  /// With [keepStoredArchivedAt], the stored `archived_at` is kept rather
+  /// than [program]'s, read inside the same transaction as the write. For a
+  /// caller that never edits the archived state (the program builder): an
+  /// [archive] or [unarchive] that lands while its copy is in flight then
+  /// survives the save, which a read made before the transaction could not
+  /// promise.
+  Future<Program> updateAndReadBack(
+    Program program, {
+    bool keepStoredArchivedAt = false,
+  }) => _db.transaction(() async {
+    if (keepStoredArchivedAt) {
+      final storedArchivedAt =
+          await (_db.selectOnly(_db.programs)
+                ..addColumns([_db.programs.archivedAt])
+                ..where(_db.programs.id.equals(program.id)))
+              .map((row) => row.read(_db.programs.archivedAt))
+              .getSingleOrNull();
+      program = storedArchivedAt == null
+          ? program.copyWith(clearArchivedAt: true)
+          : program.copyWith(archivedAt: asUtc(storedArchivedAt));
+    }
+    await _upsert(program);
+    final stored = await getById(program.id);
+    if (stored == null) {
+      throw StateError('program "${program.id}" vanished inside its write');
+    }
+    return stored;
+  });
 
   /// Atomically replaces the program [expected] describes with [replacement],
   /// but only if the stored program still equals [expected] (a value returned
@@ -668,6 +688,54 @@ class ProgramRepository {
     });
   }
 
+  /// Archives the live program [id]: stamps `archived_at` with [at] and gives
+  /// it an `updated_at` after its current one (at or after [at]), so the
+  /// change travels in Device Sync as an ordinary newer program record.
+  /// `existence_at` is untouched: archiving is a content edit, not an
+  /// existence transition. Returns whether it wrote: `false` when the program
+  /// is missing, in Recently deleted, or already archived (its first
+  /// `archived_at` is kept).
+  ///
+  /// Only this column and `updated_at` are written, so an archive cannot
+  /// overwrite an edit that landed after the caller read the program.
+  Future<bool> archive(String id, {required DateTime at}) =>
+      _setArchivedAt(id, archivedAt: at, at: at);
+
+  /// Reverses [archive] for the live program [id], with the same stamping.
+  /// Returns `false` when the program is missing, in Recently deleted, or not
+  /// archived.
+  Future<bool> unarchive(String id, {required DateTime at}) =>
+      _setArchivedAt(id, archivedAt: null, at: at);
+
+  Future<bool> _setArchivedAt(
+    String id, {
+    required DateTime? archivedAt,
+    required DateTime at,
+  }) {
+    assertUtc(at, 'at');
+    return _db.transaction(() async {
+      final row =
+          await (_db.select(_db.programs)
+                ..where((t) => t.id.equals(id) & t.deletedAt.isNull()))
+              .getSingleOrNull();
+      if (row == null) return false;
+      if ((row.archivedAt != null) == (archivedAt != null)) return false;
+      final current = asUtc(row.updatedAt);
+      await (_db.update(_db.programs)..where((t) => t.id.equals(id))).write(
+        ProgramsCompanion(
+          archivedAt: Value(archivedAt),
+          updatedAt: Value(
+            nextStoredTimestamp(
+              now: at.isAfter(current) ? at : current.add(storedTimestampTick),
+              current: [current],
+            ),
+          ),
+        ),
+      );
+      return true;
+    });
+  }
+
   // --- Linking typed venues to a venue record (GIG-7 = (b)) ---------------
 
   /// The live programs that carry [name] as typed venue text and no linked
@@ -776,6 +844,7 @@ class ProgramRepository {
     assertUtc(program.createdAt, 'program.createdAt');
     assertUtc(program.updatedAt, 'program.updatedAt');
     assertUtcOrNull(program.deletedAt, 'program.deletedAt');
+    assertUtcOrNull(program.archivedAt, 'program.archivedAt');
     assertUtcOrNull(program.eventDate, 'program.eventDate');
     for (final slot in program.slots) {
       assertUtcOrNull(slot.performedAt, 'slot.performedAt');
@@ -905,6 +974,7 @@ class ProgramRepository {
               createdAt: program.createdAt,
               updatedAt: program.updatedAt,
               deletedAt: Value(program.deletedAt),
+              archivedAt: Value(program.archivedAt),
             ),
           );
       await seedExistenceIfMissing(
@@ -1950,11 +2020,21 @@ class ProgramRepository {
   /// the venue back: the archive merge, which overwrites the program straight
   /// after reviving it, and the Caller's Companion re-import, whose undo would
   /// not re-tombstone a revived venue.
+  ///
+  /// With [unarchive], an archived program that was in Recently deleted also
+  /// comes back unarchived, in the same transaction, with
+  /// [ProgramRepository.unarchive]'s stamping (so the change syncs). A program
+  /// that is live already (a stale Recently deleted row, after a sync revived
+  /// it) keeps its archived state.
+  /// Recently deleted passes it, by the maintainer's decision on #2218: a
+  /// program restored there should be one the Programs list shows. An Undo
+  /// right after a delete does not: it puts back exactly what was deleted.
   Future<void> restore(
     String id, {
     required DateTime at,
     bool clearPending = true,
     bool reviveReferences = true,
+    bool unarchive = false,
   }) => _db.transaction(() async {
     if (reviveReferences) {
       final row = await (_db.select(
@@ -1978,7 +2058,13 @@ class ProgramRepository {
         ).restore(venueId, at: at, clearPending: false);
       }
     }
+    // Read before the stamp clears it: only a program that was actually in
+    // Recently deleted is unarchived by its restore.
+    final wasDeleted = unarchive && (await isDeletedById(id) ?? false);
     await _stampExistence(id, at: at, deleted: false);
+    // `_setArchivedAt` acts only on a live program, which the stamp above has
+    // just made this one.
+    if (wasDeleted) await _setArchivedAt(id, archivedAt: null, at: at);
     if (clearPending) {
       await clearPendingSyncDeletionForRestore(
         _db,
@@ -2251,6 +2337,7 @@ class ProgramRepository {
       row.dialectName == null &&
       row.payMinorUnits == null &&
       row.payCurrency == null &&
+      row.archivedAt == null &&
       await (_db.selectOnly(_db.programSlots)
                 ..addColumns([_db.programSlots.id])
                 ..where(_db.programSlots.programId.equals(row.id))
@@ -2301,6 +2388,7 @@ class ProgramRepository {
         dialectName: Value(normalizeShareableTextOrNull(null)),
         payMinorUnits: const Value(null),
         payCurrency: const Value(null),
+        archivedAt: const Value(null),
         updatedAt: Value(
           nextStoredTimestamp(
             now: now.isAfter(current) ? now : current.add(storedTimestampTick),
@@ -2335,6 +2423,7 @@ class ProgramRepository {
     createdAt: asUtc(row.createdAt),
     updatedAt: asUtc(row.updatedAt),
     deletedAt: asUtcOrNull(row.deletedAt),
+    archivedAt: asUtcOrNull(row.archivedAt),
     provenance: provenance,
   );
 

@@ -346,6 +346,7 @@ void main() {
           dialectName: 'Gender-free',
           payMinorUnits: 15000,
           payCurrency: 'USD',
+          archivedAt: created,
           slots: [ProgramSlot(id: 'slot-$id', position: 0, danceId: 'd-$id')],
           provenance: Provenance(
             source: ProvenanceSource.callersCompanion,
@@ -396,6 +397,7 @@ void main() {
         expect(row.dialectName, isNull);
         expect(row.payMinorUnits, isNull);
         expect(row.payCurrency, isNull);
+        expect(row.archivedAt, isNull);
         expect(row.updatedAt.toUtc(), now);
         expect(row.existenceAt!.isAfter(before.existenceAt!), isTrue);
         expect(await count('program_slots', 'program_id', 'p1'), 0);

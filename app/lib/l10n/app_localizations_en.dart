@@ -5077,6 +5077,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get danceCanonicalToggleLabel => 'Canonical';
 
   @override
+  String get danceRoleTermsOverrideNote =>
+      'Shown with larks and robins: the author has asked that this dance only ever be called with those role terms, so your dialect\'s role terms are not used here.';
+
+  @override
   String danceProvenanceVia(String source) {
     return 'via $source';
   }
@@ -5339,6 +5343,37 @@ class AppLocalizationsEn extends AppLocalizations {
   String programsDeletedSnack(String title) {
     return '\"$title\" deleted.';
   }
+
+  @override
+  String get programsArchive => 'Archive';
+
+  @override
+  String get programsUnarchive => 'Unarchive';
+
+  @override
+  String programsArchivedSnack(String title) {
+    return '\"$title\" archived.';
+  }
+
+  @override
+  String programsUnarchivedSnack(String title) {
+    return '\"$title\" unarchived.';
+  }
+
+  @override
+  String get programsArchivedLabel => 'Archived';
+
+  @override
+  String get programsShowArchived => 'Show archived';
+
+  @override
+  String get programsHideArchived => 'Hide archived';
+
+  @override
+  String get programsAllArchivedTitle => 'No programs to show';
+
+  @override
+  String get programsAllArchivedBody => 'All your programs are archived.';
 
   @override
   String get programsDiscardTitle => 'Discard changes?';

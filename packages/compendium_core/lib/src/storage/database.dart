@@ -787,7 +787,13 @@ class CompendiumDatabase extends _$CompendiumDatabase {
   /// `''`, `''`, `NULL`), so every existing row reads as proper with no meter,
   /// key or interpretation, which is what it held before; the new table starts
   /// empty. No data is rewritten and no derived index reads them, so no
-  /// rebuild is needed. The live-schema checks only keep the step idempotent.
+  /// rebuild is needed.
+  ///
+  /// Also `programs.archived_at` (program archiving, #2218), nullable, so
+  /// every existing program stays unarchived. It joined v42 while v42 was
+  /// unreleased (CONTRIBUTING.md, "Adding to an unreleased version").
+  ///
+  /// The live-schema checks only keep the step idempotent.
   Future<void> _ensureV42Schema(Migrator m) async {
     final columns = await customSelect(
       "SELECT name FROM pragma_table_info('${dances.actualTableName}')",
@@ -807,6 +813,14 @@ class CompendiumDatabase extends _$CompendiumDatabase {
     ).get();
     if (interpreters.isEmpty) await m.createTable(danceInterpreters);
     await customStatement(danceInterpretersChoreographerIdIndexSql);
+    final programColumns = await customSelect(
+      "SELECT name FROM pragma_table_info('${programs.actualTableName}')",
+    ).get();
+    if (!{
+      for (final row in programColumns) row.read<String>('name'),
+    }.contains(programs.archivedAt.name)) {
+      await m.addColumn(programs, programs.archivedAt);
+    }
   }
 
   @override

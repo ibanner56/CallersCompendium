@@ -13,6 +13,7 @@ import 'package:compendium_app/src/data/settings_keys.dart';
 import 'package:compendium_app/src/editor/editor_draft_codec.dart';
 import 'package:compendium_app/src/editor/editor_snapshot.dart';
 import 'package:compendium_app/src/screens/dance_editor_screen.dart';
+import 'package:compendium_app/src/screens/dance_editor/dance_editor_form.dart';
 import 'package:compendium_app/src/screens/dance_editor/name_picker.dart';
 import 'package:compendium_app/src/screens/dance_list_screen.dart';
 import 'package:compendium_app/src/theme/app_theme.dart';
@@ -65,6 +66,7 @@ Future<void> _pumpEditor(
   String? danceId,
   ThemeData? theme,
   Size surfaceSize = const Size(1200, 3200),
+  Dialect? activeDialect,
 }) async {
   // Tall surface so the full editor form (which grew with the walkthrough
   // field, #370) lays out without the trailing controls falling beyond a
@@ -72,7 +74,7 @@ Future<void> _pumpEditor(
   // under-scroll the last element in widget tests.
   await tester.binding.setSurfaceSize(surfaceSize);
   addTearDown(() => tester.binding.setSurfaceSize(null));
-  final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
+  final notifier = ValueNotifier<Dialect>(activeDialect ?? Dialect.larksRobins);
   addTearDown(notifier.dispose);
   await tester.pumpWidget(
     MaterialApp(
@@ -222,6 +224,99 @@ void main() {
     expect(saved!.title, 'Renamed');
     // createdAt preserved from the original.
     expect(saved.createdAt, _now);
+  });
+
+  group("Rachel Fifer's dances keep larks and robins in the editor", () {
+    final notedFigure = Figure(
+      move: 'allemande',
+      params: const {'beats': 8},
+      note: 'role1s go first',
+    );
+
+    String noteOf(WidgetTester tester) => tester
+        .widget<DanceEditorForm>(find.byType(DanceEditorForm))
+        .controller
+        .figureDrafts
+        .first
+        .note;
+
+    Future<void> addRae(WidgetTester tester) async {
+      await tester.enterText(find.byKey(const ValueKey('author-input')), 'Rae');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('author-option-c1')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('adding and removing her as an author converts the drafts, and '
+        'Save stores canonical role words', (tester) async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.choreographers.upsert(
+        Choreographer(id: 'c1', name: 'Rae Fifer'),
+      );
+      // ignore: unused_result
+      await repos.choreographers.upsert(
+        Choreographer(id: 'c2', name: 'Gene Hubert'),
+      );
+      await repos.dances.create(
+        _dance(id: 'd1', authorIds: ['c2'], figures: [notedFigure]),
+      );
+      await _pumpEditor(
+        tester,
+        repos,
+        danceId: 'd1',
+        activeDialect: Dialect.leadsFollows,
+      );
+      expect(noteOf(tester), 'leads go first');
+
+      await addRae(tester);
+      expect(noteOf(tester), 'larks go first');
+
+      tester
+          .widget<InputChip>(find.byKey(const ValueKey('author-chip-c1')))
+          .onDeleted!();
+      await tester.pumpAndSettle();
+      expect(noteOf(tester), 'leads go first');
+
+      await addRae(tester);
+      expect(noteOf(tester), 'larks go first');
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      final saved = await repos.dances.getById('d1');
+      expect(saved!.authorIds, ['c2', 'c1']);
+      expect(
+        (saved.figuresSource as DecodedFigures).figures.first.note,
+        'role1s go first',
+      );
+    });
+
+    testWidgets('a title that names one of her dances converts the drafts '
+        'when no author is named', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', figures: [notedFigure]));
+      await _pumpEditor(
+        tester,
+        repos,
+        danceId: 'd1',
+        activeDialect: Dialect.leadsFollows,
+      );
+      expect(noteOf(tester), 'leads go first');
+
+      await tester.enterText(
+        find.byKey(const ValueKey('title-field')),
+        'Renewed Joy',
+      );
+      await tester.pumpAndSettle();
+      expect(noteOf(tester), 'larks go first');
+
+      await tester.enterText(
+        find.byKey(const ValueKey('title-field')),
+        'Renewed',
+      );
+      await tester.pumpAndSettle();
+      expect(noteOf(tester), 'leads go first');
+    });
   });
 
   group('renaming an author onto a taken name (T3)', () {

@@ -268,6 +268,7 @@ Set<String>? syncUserVisibleFields(SyncRecordKind kind) => switch (kind) {
     'dialectName',
     'payMinorUnits',
     'payCurrency',
+    'archivedAt',
   },
   SyncRecordKind.choreographer => const {'name', 'website', 'notes'},
   SyncRecordKind.tag => const {'name', 'color'},
