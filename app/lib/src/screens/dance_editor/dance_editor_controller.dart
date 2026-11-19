@@ -43,18 +43,20 @@ class DanceEditorController extends ChangeNotifier {
   DanceEditorController({
     required CompendiumRepositories repositories,
     required this.danceId,
-    required Dialect dialect,
+    required DialectsByForm dialects,
     this.initialTitle,
     this._debounce = const Duration(milliseconds: 500),
   }) : _repos = repositories,
-       _activeDialect = dialect,
-       titleController = LingoTextEditingController(dialect: dialect),
-       hookController = LingoTextEditingController(dialect: dialect),
-       notesController = LingoTextEditingController(dialect: dialect),
-       walkthroughController = LingoTextEditingController(dialect: dialect),
-       phraseController = LingoTextEditingController(dialect: dialect),
-       formationDetailController = LingoTextEditingController(dialect: dialect),
-       tuneController = LingoTextEditingController(dialect: dialect),
+       _dialects = dialects,
+       // A new dance starts as contra until [load] reads its form.
+       _activeDialect = dialects.forForm(DanceForm.contra),
+       titleController = _lingo(dialects),
+       hookController = _lingo(dialects),
+       notesController = _lingo(dialects),
+       walkthroughController = _lingo(dialects),
+       phraseController = _lingo(dialects),
+       formationDetailController = _lingo(dialects),
+       tuneController = _lingo(dialects),
        _draftKey = danceId == null
            ? danceEditorDraftKey('$kNewDanceDraftIdPrefix${uuidV4()}')
            : danceEditorDraftKey(danceId) {
@@ -63,13 +65,26 @@ class DanceEditorController extends ChangeNotifier {
     _openDraftKeys.add(_draftKey);
   }
 
+  static LingoTextEditingController _lingo(DialectsByForm dialects) =>
+      LingoTextEditingController(dialect: dialects.forForm(DanceForm.contra));
+
   final CompendiumRepositories _repos;
 
   /// How long an edit must sit idle before the undo snapshot is pushed and the
   /// autosave draft is written. Tests inject a short one.
   final Duration _debounce;
   final String? danceId;
+
+  /// The dialect of every dance form. The editor shows the dance in its own
+  /// form's ([_activeDialect]), and follows the form when it changes
+  /// (ADR-006 §9.1, point 1).
+  DialectsByForm _dialects;
+
+  /// The dialect of the dance's form, which the text on screen is in.
   Dialect _activeDialect;
+
+  /// The dialect of the dance's form, which the text on screen is in.
+  Dialect get dialect => _activeDialect;
 
   /// A title to seed a **new** dance's title field with (issue #881's
   /// "create a dance from this" program-slot action). Ignored when
@@ -608,7 +623,16 @@ class DanceEditorController extends ChangeNotifier {
   /// on screen, and what Save canonicalizes, stay in the dialect Save reads
   /// them in (AUTH-17). Undo entries record their own dialect and are
   /// converted when applied.
-  void updateDialect(Dialect newDialect) {
+  void updateDialects(DialectsByForm dialects) {
+    _dialects = dialects;
+    _showInDialect(dialects.forForm(_form));
+  }
+
+  /// Shows the dance in its form's dialect, after [_form] changed.
+  void _followForm() => _showInDialect(_dialects.forForm(_form));
+
+  void _showInDialect(Dialect newDialect) {
+    if (identical(newDialect, _activeDialect)) return;
     final previous = _activeDialect;
     _activeDialect = newDialect;
     for (final c in _proseLingoControllers) {
@@ -704,6 +728,7 @@ class DanceEditorController extends ChangeNotifier {
       phraseController.text = dance.phraseStructure.raw;
       formationDetailController.text = dance.formation.detail ?? '';
       _form = dance.form;
+      _followForm();
       _formationShape = dance.formation.shape;
       _progression = dance.progression;
       _status = dance.status;
@@ -764,12 +789,14 @@ class DanceEditorController extends ChangeNotifier {
         titleController.text = seedTitle;
       }
       try {
-        _form = danceFormFromStored(
-          await _repos.settings.get(kDefaultDanceFormKey),
+        _form = resolveNewDanceForm(
+          defaultFormStored: await _repos.settings.get(kDefaultDanceFormKey),
+          lastUsedStored: await _repos.settings.get(kLastUsedDanceFormKey),
         );
       } catch (_) {
         // diagnostics: silent — DanceForm default read failed; falls back to hardcoded contra.
       }
+      _followForm();
       try {
         _formationShape = formationShapeFromStored(
           await _repos.settings.get(kDefaultDanceFormationShapeKey),
@@ -1137,6 +1164,17 @@ class DanceEditorController extends ChangeNotifier {
   /// Must be called inside an [_applyingSnapshot] guard so [pushUndoNow]
   /// is suppressed during the apply.
   void applySnapshot(EditorSnapshot s) {
+    // The snapshot's dance may be of another form: show it in that form's
+    // dialect. Its figure text is converted into that dialect below
+    // ([_draftsInActiveDialect]), so the drafts on screen, about to be
+    // replaced, are not converted first.
+    final formDialect = _dialects.forForm(s.form);
+    if (!identical(formDialect, _activeDialect)) {
+      _activeDialect = formDialect;
+      for (final c in _proseLingoControllers) {
+        c.updateDialect(formDialect);
+      }
+    }
     // Resync text controllers (guarded: don't clobber identical text).
     if (titleController.text != s.title) titleController.text = s.title;
     if (hookController.text != s.hook) hookController.text = s.hook;
@@ -1530,6 +1568,7 @@ class DanceEditorController extends ChangeNotifier {
 
   void setForm(DanceForm value) {
     _form = value;
+    _followForm();
     pushUndoNow();
     scheduleAutosave();
     _notify();

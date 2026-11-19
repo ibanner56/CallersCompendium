@@ -29,7 +29,7 @@ class ShorthandShadowWarning extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dialect = ActiveDialectScope.of(context);
+    final dialect = ActiveDialectScope.contraOf(context);
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     return ValueListenableBuilder<TextEditingValue>(

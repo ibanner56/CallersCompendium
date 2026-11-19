@@ -8,6 +8,7 @@ import '../imports/user_figure_shorthands.dart'
     show maxUserFigureShorthands, userFigureShorthandsSettingKey;
 import '../snippet/snippet_library.dart'
     show WalkthroughSnippetLibrary, kMaxSnippetLibraryEntries;
+import '../dialect/gendered_terms.dart' show shownDialectName;
 import 'canonical_json.dart';
 import 'sync_reconciliation.dart' show rewriteSyncInboundReferences;
 import 'sync_record_kind.dart';
@@ -66,14 +67,14 @@ class SyncCollectionDiff {
 /// the value.
 List<SyncCollectionEntry>? syncCollectionEntries(String key, Object? value) {
   switch (key) {
-    case 'custom_dialects':
+    case 'custom_dialects' || 'custom_dialects_ecd' || 'custom_dialects_square':
       if (value is! List) return null;
       return [
         for (final entry in value)
           if (entry is Map && entry['name'] is String)
             SyncCollectionEntry(
               key: entry['name'] as String,
-              label: entry['name'] as String,
+              label: shownDialectName(entry['name'] as String),
               value: entry,
             ),
       ];
@@ -501,7 +502,9 @@ const int syncMaxCustomDialects = 128;
 /// when the library next loads, losing entries without a word, so it is
 /// refused instead.
 int? syncCollectionLimit(String key) => switch (key) {
-  'custom_dialects' => syncMaxCustomDialects,
+  'custom_dialects' ||
+  'custom_dialects_ecd' ||
+  'custom_dialects_square' => syncMaxCustomDialects,
   'shorthand_mappings' => maxShorthandMappings,
   compoundShorthandsSettingKey => maxCompoundShorthands,
   userFigureShorthandsSettingKey => maxUserFigureShorthands,

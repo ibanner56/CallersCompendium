@@ -340,7 +340,10 @@ Future<void> _pump(
           notifier: confirm,
           child: dialectLibrary == null
               ? child!
-              : DialectLibraryScope(controller: dialectLibrary, child: child!),
+              : DialectLibraryScope(
+                  libraries: DialectLibraries.withContra(dialectLibrary),
+                  child: child!,
+                ),
         ),
       ),
       home: ProgramEditorScreen(

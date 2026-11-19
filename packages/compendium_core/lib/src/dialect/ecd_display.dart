@@ -174,3 +174,37 @@ String? ecdStarReturn(Object? hand) =>
 String _words(String token) => token
     .replaceAllMapped(RegExp('(?<=[a-z])(?=[A-Z])'), (_) => ' ')
     .toLowerCase();
+
+final RegExp _flagGroup = RegExp(r'\[([^\[\]]*)\{\?(\w+)\}([^\[\]]*)\]');
+
+/// [template], an ECD display template, as a wording a caller can edit and
+/// save: each group kept by a switch, `[{?flag}words]`, becomes the wording
+/// condition `[if flag then words]` that says the same. A wording drops a
+/// `[ ... ]` group whose slots are empty, so a group of one slot, as every
+/// other ECD group is, stays as it is.
+String ecdTemplateAsWording(String template) => template
+    .replaceAllMapped(
+      _flagGroup,
+      (m) => '[if ${m[2]} then ${('${m[1]}${m[3]}').trim()}]',
+    )
+    // The wording form of [ecdTemplateFor]'s choices: a run of changes
+    // with no count, a hey with no `who`, and a forward and back with no
+    // direction.
+    .replaceFirst(' changes of ', ' [if changes then changes of] ')
+    .replaceFirstMapped(
+      RegExp(r'\[([,:]) \{who\}\] \[pass \{whom\}\]'),
+      (m) =>
+          '[${m[1]} {who}] [if who then [pass {whom}] '
+          'else [${m[1]} pass {whom}]]',
+    )
+    .replaceFirst(
+      '{where} a {distance} [if goBack then and back]',
+      '[if where then {where} else forward and back,] a {distance} '
+          '[if where and goBack then and back]',
+    );
+
+/// [line], an ECD movement's line read through a dialect's wording, with no
+/// space left before a comma or colon, as [expandEcdTemplate] leaves the
+/// default line: "swing, back to place" where an empty group stood between.
+String ecdWordingLine(String line) =>
+    line.replaceAllMapped(RegExp(r' +([,:])'), (m) => m[1]!);

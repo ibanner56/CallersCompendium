@@ -343,7 +343,7 @@ class _CompoundShorthandEditorScreenState
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    final dialect = ActiveDialectScope.of(context);
+    final dialect = ActiveDialectScope.contraOf(context);
     final compounds = _compounds;
     final figures = _figures;
     final picked = _compoundId == null ? null : compounds?[_compoundId];

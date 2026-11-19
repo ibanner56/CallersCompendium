@@ -604,4 +604,39 @@ void main() {
       expect(sortDirectionFromName('sideways'), isNull);
     });
   });
+
+  group('resolveNewDanceForm', () {
+    test('a set form wins over the last used form', () {
+      expect(
+        resolveNewDanceForm(defaultFormStored: 'square', lastUsedStored: 'ecd'),
+        DanceForm.square,
+      );
+    });
+
+    test('last used follows the last new dance, contra before any', () {
+      expect(
+        resolveNewDanceForm(
+          defaultFormStored: kDefaultDanceFormLastUsed,
+          lastUsedStored: 'ecd',
+        ),
+        DanceForm.ecd,
+      );
+      expect(
+        resolveNewDanceForm(
+          defaultFormStored: kDefaultDanceFormLastUsed,
+          lastUsedStored: null,
+        ),
+        DanceForm.contra,
+      );
+    });
+
+    test('an unset or unknown setting is contra, not last used', () {
+      for (final stored in [null, 'waltz', 3]) {
+        expect(
+          resolveNewDanceForm(defaultFormStored: stored, lastUsedStored: 'ecd'),
+          DanceForm.contra,
+        );
+      }
+    });
+  });
 }

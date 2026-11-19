@@ -463,12 +463,15 @@ class _DanceListScreenState extends State<DanceListScreen>
     super.didChangeDependencies();
     // Read the active dialect from the scope (registers rebuild dependency so
     // didChangeDependencies fires again when the dialect changes).
-    final newDialect = ActiveDialectScope.of(context);
+    // The collection mixes forms; a query is read in contra's dialect (the
+    // enrichment below adds every form's words), until search by form
+    // arrives (ADR-006 plan, W7).
+    final newDialect = ActiveDialectScope.of(context).forForm(DanceForm.contra);
     final dialectChanged = _started && newDialect != _dialect;
     _dialect = newDialect;
 
     // Build the always-on enrichment from the union of every saved dialect
-    // (presets + custom). Registers a rebuild dependency on the library so a
+    // (presets + custom) of every dance form. Registers a rebuild dependency on the library so a
     // dialect add/edit/delete re-runs the search live.
     final library = DialectLibraryScope.maybeOf(context);
     final newDialects = library?.all ?? const <Dialect>[];

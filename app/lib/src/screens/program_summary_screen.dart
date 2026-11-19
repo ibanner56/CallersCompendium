@@ -1476,7 +1476,10 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
 
   String _displayProse(String text) {
     if (!CanonicalDiscouragedTermsScope.of(context)) return text;
-    final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
+    // Program prose (slot and program notes) has no dance form: contra's.
+    final dialect =
+        (ActiveDialectScope.maybeOf(context) ?? DialectsByForm.defaults)
+            .forForm(DanceForm.contra);
     return FigureRenderer(
       shippedTaxonomies.anyForm,
     ).renderFreeTextWithCanonicalDiscouragedTerms(text, dialect);
@@ -1592,7 +1595,8 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
             l10n,
             dance.formation,
             _proseRenderer,
-            ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
+            (ActiveDialectScope.maybeOf(context) ?? DialectsByForm.defaults)
+                .forDance(dance),
             canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
               context,
             ),
@@ -1635,7 +1639,8 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
             l10n,
             dance.formation,
             _proseRenderer,
-            ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
+            (ActiveDialectScope.maybeOf(context) ?? DialectsByForm.defaults)
+                .forDance(dance),
             canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
               context,
             ),

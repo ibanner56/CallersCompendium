@@ -1884,6 +1884,10 @@
   "@settingsDialectHeader": {
     "x-sourceSha256": "f4792f7b616d4e24f07af28d2deea083621ce6a8e78fb83716e64c65078bc8d6"
   },
+  "settingsDialectFormHelper": "ダンスのタイプごとに独自のダイアレクトがあります。タイプを選ぶと、そのダイアレクトを表示・設定できます。",
+  "@settingsDialectFormHelper": {
+    "x-sourceSha256": "3a17283d31ad2e485ab73c03de6827bedf5104f4480f39819d560d985a0db663"
+  },
   "settingsDialectDanceDetailsHeader": "ダンスの詳細と略称",
   "@settingsDialectDanceDetailsHeader": {
     "x-sourceSha256": "e57fecfc79262b31fc400248ab3c80ea51fc859e4314166c868c38db46d472e0"
@@ -2675,6 +2679,10 @@
   "settingsDefaultsFormSubtitle": "新しいダンスのデフォルトのダンスタイプです。ダンスごとに変更できます。",
   "@settingsDefaultsFormSubtitle": {
     "x-sourceSha256": "19397876123939e7698c88d2e13ec41cc9cb1d5ce9f7b1d0a7dda2b5e38ba298"
+  },
+  "settingsDefaultsFormLastUsed": "前回使用したタイプ",
+  "@settingsDefaultsFormLastUsed": {
+    "x-sourceSha256": "830ec7f812f9d862250b61add10f9a078de67a3282dd9e94f60d64cec58eefec"
   },
   "settingsDefaultsFormationTitle": "フォーメーション",
   "@settingsDefaultsFormationTitle": {
@@ -8493,6 +8501,10 @@
   "validationDialectCollision": "「{source}」と「{existing}」はどちらも「{substitution}」に対応するため、反転するとあいまいになります。",
   "@validationDialectCollision": {
     "x-sourceSha256": "dee51ecec06a3f41cec908aa62b70496bc898557a127384eaed31fec2ae72dd1"
+  },
+  "validationGenderedRoleTerm": "「{word}」は性別を表す役割語で、アプリでは表示しません。性別に依らない語を使ってください。",
+  "@validationGenderedRoleTerm": {
+    "x-sourceSha256": "c7ffdeeeab5f91ad261dc69b0d4a0f97b03e085db30fbda8ddeeb12ed445e47a"
   },
   "validationGeneric": "この項目には検証上の問題があります。",
   "@validationGeneric": {

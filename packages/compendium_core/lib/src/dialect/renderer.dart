@@ -660,6 +660,19 @@ class FigureRenderer {
           forCanonical: false,
           includeSilencedDefaults: true,
         );
+        // An ECD slot reads in a wording as it does in the default line
+        // ("back to place", a set's unsaid right).
+        if (isEcdMove(def.id)) {
+          for (final name in [...wordingSlots.keys]) {
+            final words = ecdSlotWords(
+              def.id,
+              name,
+              params,
+              forCanonical: false,
+            );
+            if (words != null) wordingSlots[name] = words;
+          }
+        }
         // `{!name}` slots: recompute with every hiding rule lifted and expose
         // the result under the `!name` key. Slots owned by a display base
         // renderer have no forced form and read as their plain slot.
@@ -682,7 +695,18 @@ class FigureRenderer {
             forceAll: true,
           );
           for (final name in forcedNames) {
-            final value = forcedSlots[name];
+            var value = forcedSlots[name];
+            // A forced ECD slot reads in ECD's words too, unless those words
+            // hide it (a set to the right), which forcing lifts.
+            if (value != null && isEcdMove(def.id)) {
+              final words = ecdSlotWords(
+                def.id,
+                name,
+                params,
+                forCanonical: false,
+              );
+              if (words != null && words.isNotEmpty) value = words;
+            }
             if (value != null) wordingSlots['!$name'] = value;
           }
         }
@@ -730,6 +754,8 @@ class FigureRenderer {
             ? (line.trimLeft().startsWith('single file ')
                   ? line
                   : 'single file $line')
+            : isEcdMove(def.id)
+            ? ecdWordingLine(line)
             : line;
         return figure.assumedSubject
             ? _spliceAssumedSubjectMarker(displayLine)
@@ -1857,7 +1883,11 @@ class FigureRenderer {
     if (seed != null) return seed;
     final base = _displayBaseRenderers[canonicalMoveId];
     if (base == null) {
-      return _displayRenderTemplates[canonicalMoveId] ?? def.renderTemplate;
+      final template =
+          _displayRenderTemplates[canonicalMoveId] ?? def.renderTemplate;
+      return isEcdMove(canonicalMoveId)
+          ? ecdTemplateAsWording(template)
+          : template;
     }
     final figure = Figure(move: canonicalMoveId);
     final params = taxonomy.effectiveParams(figure);

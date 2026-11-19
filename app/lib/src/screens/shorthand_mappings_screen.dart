@@ -34,7 +34,7 @@ class ShorthandMappingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = ShorthandMappingsScope.of(context);
-    final dialect = ActiveDialectScope.of(context);
+    final dialect = ActiveDialectScope.contraOf(context);
     final renderer = FigureRenderer(contraTaxonomy);
     final mappings = controller.mappings;
     final l10n = AppLocalizations.of(context);
@@ -434,7 +434,7 @@ class _CompoundShorthandsSectionState
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    final dialect = ActiveDialectScope.of(context);
+    final dialect = ActiveDialectScope.contraOf(context);
     final shorthands = widget.controller.compoundShorthands;
     final userFigureShorthands = widget.controller.userFigureShorthands;
     final figureTokens = {

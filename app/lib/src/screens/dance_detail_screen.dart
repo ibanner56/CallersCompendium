@@ -669,7 +669,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
 
   DanceExportMenu _exportMenu(BuildContext context, DanceDetailData detail) {
     final l10n = AppLocalizations.of(context);
-    final dialect = ActiveDialectScope.of(context);
+    final dialect = ActiveDialectScope.of(context).forDance(detail.dance);
     final canonicalDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
       context,
     );
@@ -702,7 +702,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const DialectQuickSwitch(),
+        DialectQuickSwitch(form: detail.dance.form),
         _performButton(detail),
         _exportMenu(context, detail),
         IconButton(
@@ -762,11 +762,15 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   /// its action rather than dismissing the menu.
   Widget _overflowMenu(BuildContext context, DanceDetailData detail) {
     final l10n = AppLocalizations.of(context);
-    final controller = DialectLibraryScope.maybeOf(context);
+    // The dance's own form's dialects: switching here changes that form's
+    // active dialect only (ADR-006 §9.1, point 1).
+    final controller = DialectLibraryScope.maybeOf(
+      context,
+    )?.forForm(detail.dance.form);
     final activeDialectName = controller == null
         ? null
         : (controller.activeName ?? controller.active.name);
-    final dialect = ActiveDialectScope.of(context);
+    final dialect = ActiveDialectScope.of(context).forDance(detail.dance);
     // Everything the export actions need is resolved here, before the menu
     // route pops: the `onTap`s below run after it has, and the actions run
     // across awaits.
@@ -1067,7 +1071,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final dance = detail.dance;
-    final activeDialect = ActiveDialectScope.of(context);
+    final activeDialect = ActiveDialectScope.of(context).forDance(dance);
     final canonicalDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
       context,
     );
@@ -1392,6 +1396,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           ),
           for (final link in visibleLinks)
             _LinkRow(
+              form: dance.form,
               key: ValueKey('link-row-${link.id}'),
               link: link,
               relatedDanceTitle: link.kind == LinkKind.relatedDance
@@ -1585,10 +1590,14 @@ class _ProvenanceLine extends StatelessWidget {
 class _LinkRow extends StatelessWidget {
   const _LinkRow({
     super.key,
+    required this.form,
     required this.link,
     this.relatedDanceTitle,
     this.onTap,
   });
+
+  /// The form of the dance the link belongs to, whose dialect it reads in.
+  final DanceForm form;
 
   final DanceLink link;
 
@@ -1606,7 +1615,9 @@ class _LinkRow extends StatelessWidget {
     final canonicalizeDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
       context,
     );
-    final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
+    final dialect =
+        (ActiveDialectScope.maybeOf(context) ?? DialectsByForm.defaults)
+            .forForm(form);
     final renderer = FigureRenderer(shippedTaxonomies.anyForm);
     final String display;
     if (label != null && label.isNotEmpty) {

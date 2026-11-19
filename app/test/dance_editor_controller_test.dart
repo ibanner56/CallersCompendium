@@ -45,7 +45,7 @@ void main() {
     final controller = DanceEditorController(
       repositories: repos,
       danceId: null,
-      dialect: Dialect.larksRobins,
+      dialects: DialectsByForm.all(Dialect.larksRobins),
       debounce: testDebounce,
     );
     await controller.load(dance: null, fieldDefs: const []);
@@ -89,7 +89,7 @@ void main() {
       final controller = DanceEditorController(
         repositories: repos,
         danceId: 'd1',
-        dialect: Dialect.larksRobins,
+        dialects: DialectsByForm.all(Dialect.larksRobins),
       );
       await controller.load(dance: loaded, fieldDefs: const []);
       return controller;
@@ -288,7 +288,7 @@ void main() {
     final controller = DanceEditorController(
       repositories: repos,
       danceId: null,
-      dialect: Dialect.larksRobins,
+      dialects: DialectsByForm.all(Dialect.larksRobins),
       debounce: const Duration(milliseconds: 10),
     );
     await controller.load(dance: null, fieldDefs: const []);
@@ -310,7 +310,7 @@ void main() {
       final controller = DanceEditorController(
         repositories: repos,
         danceId: null,
-        dialect: Dialect.larksRobins,
+        dialects: DialectsByForm.all(Dialect.larksRobins),
         initialTitle: 'Petronella',
       );
       addTearDown(controller.dispose);
@@ -324,7 +324,7 @@ void main() {
       final controller = DanceEditorController(
         repositories: repos,
         danceId: null,
-        dialect: Dialect.larksRobins,
+        dialects: DialectsByForm.all(Dialect.larksRobins),
         initialTitle: '',
       );
       addTearDown(controller.dispose);
@@ -340,7 +340,7 @@ void main() {
       final controller = DanceEditorController(
         repositories: repos,
         danceId: 'd1',
-        dialect: Dialect.larksRobins,
+        dialects: DialectsByForm.all(Dialect.larksRobins),
         initialTitle: 'Should Not Apply',
       );
       addTearDown(controller.dispose);
@@ -361,7 +361,7 @@ void main() {
         final abandoned = DanceEditorController(
           repositories: repos,
           danceId: null,
-          dialect: Dialect.larksRobins,
+          dialects: DialectsByForm.all(Dialect.larksRobins),
         );
         await abandoned.load(dance: null, fieldDefs: const []);
         abandoned.titleController.text = 'Old Draft Title';
@@ -375,7 +375,7 @@ void main() {
         final controller = DanceEditorController(
           repositories: repos,
           danceId: null,
-          dialect: Dialect.larksRobins,
+          dialects: DialectsByForm.all(Dialect.larksRobins),
           initialTitle: 'New Seed Title',
         );
         addTearDown(controller.dispose);
@@ -549,7 +549,7 @@ void main() {
     final restored = DanceEditorController(
       repositories: repos,
       danceId: null,
-      dialect: Dialect.larksRobins,
+      dialects: DialectsByForm.all(Dialect.larksRobins),
     );
     addTearDown(restored.dispose);
     await restored.load(dance: null, fieldDefs: const []);
@@ -629,7 +629,7 @@ void main() {
     final controller = DanceEditorController(
       repositories: repos,
       danceId: 'd1',
-      dialect: Dialect.larksRobins,
+      dialects: DialectsByForm.all(Dialect.larksRobins),
     );
     addTearDown(controller.dispose);
 
@@ -664,7 +664,7 @@ void main() {
       final controller = DanceEditorController(
         repositories: repos,
         danceId: 'd1',
-        dialect: Dialect.larksRobins,
+        dialects: DialectsByForm.all(Dialect.larksRobins),
       );
       addTearDown(controller.dispose);
       await controller.load(
@@ -698,7 +698,7 @@ void main() {
     final controller = DanceEditorController(
       repositories: repos,
       danceId: null,
-      dialect: Dialect.larksRobins,
+      dialects: DialectsByForm.all(Dialect.larksRobins),
     );
     addTearDown(controller.dispose);
     await controller.load(dance: null, fieldDefs: [def]);
@@ -716,7 +716,7 @@ void main() {
     final controller = DanceEditorController(
       repositories: repos,
       danceId: null,
-      dialect: Dialect.larksRobins,
+      dialects: DialectsByForm.all(Dialect.larksRobins),
     );
     addTearDown(controller.dispose);
     await controller.load(dance: null, fieldDefs: const []);
@@ -750,7 +750,7 @@ void main() {
     final controller = DanceEditorController(
       repositories: repos,
       danceId: null,
-      dialect: Dialect.larksRobins,
+      dialects: DialectsByForm.all(Dialect.larksRobins),
     );
     addTearDown(controller.dispose);
     await controller.load(dance: null, fieldDefs: const []);
@@ -798,7 +798,7 @@ void main() {
     final controller = DanceEditorController(
       repositories: repos,
       danceId: 'd1',
-      dialect: Dialect.larksRobins,
+      dialects: DialectsByForm.all(Dialect.larksRobins),
     );
     addTearDown(controller.dispose);
 
@@ -835,7 +835,7 @@ void main() {
     final controller = DanceEditorController(
       repositories: repos,
       danceId: 'd1',
-      dialect: Dialect.larksRobins,
+      dialects: DialectsByForm.all(Dialect.larksRobins),
     );
     addTearDown(controller.dispose);
 
@@ -869,7 +869,7 @@ void main() {
     final controller = DanceEditorController(
       repositories: repos,
       danceId: 'd1',
-      dialect: Dialect.larksRobins,
+      dialects: DialectsByForm.all(Dialect.larksRobins),
     );
     addTearDown(controller.dispose);
 
@@ -933,7 +933,7 @@ void main() {
     final controller = DanceEditorController(
       repositories: repos,
       danceId: null,
-      dialect: Dialect.leadsFollows,
+      dialects: DialectsByForm.all(Dialect.leadsFollows),
     );
     addTearDown(controller.dispose);
     await controller.load(dance: null, fieldDefs: const []);
@@ -958,7 +958,7 @@ void main() {
       final controller = DanceEditorController(
         repositories: openTestRepositories(),
         danceId: null,
-        dialect: dialect,
+        dialects: DialectsByForm.all(dialect),
         debounce: testDebounce,
       );
       await controller.load(dance: null, fieldDefs: const []);
@@ -1008,7 +1008,7 @@ void main() {
       final again = DanceEditorController(
         repositories: openTestRepositories(),
         danceId: 'd1',
-        dialect: Dialect.larksRobins,
+        dialects: DialectsByForm.all(Dialect.larksRobins),
       );
       addTearDown(again.dispose);
       await again.load(
@@ -1039,7 +1039,7 @@ void main() {
     final controller = DanceEditorController(
       repositories: openTestRepositories(),
       danceId: 'd1',
-      dialect: custom,
+      dialects: DialectsByForm.all(custom),
     );
     addTearDown(controller.dispose);
     await controller.load(dance: stored, fieldDefs: const []);
@@ -1050,7 +1050,7 @@ void main() {
     final again = DanceEditorController(
       repositories: openTestRepositories(),
       danceId: 'd1',
-      dialect: Dialect.leadsFollows,
+      dialects: DialectsByForm.all(Dialect.leadsFollows),
     );
     addTearDown(again.dispose);
     await again.load(
@@ -1066,7 +1066,7 @@ void main() {
     final controller = DanceEditorController(
       repositories: repos,
       danceId: 'd1',
-      dialect: Dialect.larksRobins,
+      dialects: DialectsByForm.all(Dialect.larksRobins),
     );
     addTearDown(controller.dispose);
 
@@ -1092,7 +1092,7 @@ void main() {
       final controller = DanceEditorController(
         repositories: repos,
         danceId: 'd1',
-        dialect: Dialect.larksRobins,
+        dialects: DialectsByForm.all(Dialect.larksRobins),
       );
       addTearDown(controller.dispose);
 
@@ -1117,7 +1117,7 @@ void main() {
       final controller = DanceEditorController(
         repositories: repos,
         danceId: 'd1',
-        dialect: Dialect.larksRobins,
+        dialects: DialectsByForm.all(Dialect.larksRobins),
       );
       addTearDown(controller.dispose);
 
@@ -1153,7 +1153,7 @@ void main() {
       final controller = DanceEditorController(
         repositories: repos,
         danceId: 'd1',
-        dialect: Dialect.larksRobins,
+        dialects: DialectsByForm.all(Dialect.larksRobins),
       );
       addTearDown(controller.dispose);
 
@@ -1240,7 +1240,7 @@ void main() {
           final controller = DanceEditorController(
             repositories: openTestRepositories(),
             danceId: 'd1',
-            dialect: dialect,
+            dialects: DialectsByForm.all(dialect),
           );
           addTearDown(controller.dispose);
           await controller.load(dance: customDance(), fieldDefs: const []);
@@ -1318,7 +1318,7 @@ void main() {
           final again = DanceEditorController(
             repositories: openTestRepositories(),
             danceId: 'd1',
-            dialect: Dialect.larksRobins,
+            dialects: DialectsByForm.all(Dialect.larksRobins),
           );
           addTearDown(again.dispose);
           await again.load(
@@ -1341,7 +1341,7 @@ void main() {
             final controller = DanceEditorController(
               repositories: openTestRepositories(),
               danceId: null,
-              dialect: dialect,
+              dialects: DialectsByForm.all(dialect),
               debounce: testDebounce,
             );
             await controller.load(dance: null, fieldDefs: const []);
@@ -1360,7 +1360,7 @@ void main() {
             final again = DanceEditorController(
               repositories: openTestRepositories(),
               danceId: 'd1',
-              dialect: dialect,
+              dialects: DialectsByForm.all(dialect),
             );
             addTearDown(again.dispose);
             await again.load(
@@ -1435,7 +1435,7 @@ void main() {
     final controller = DanceEditorController(
       repositories: repos,
       danceId: 'd1',
-      dialect: Dialect.larksRobins,
+      dialects: DialectsByForm.all(Dialect.larksRobins),
     );
     addTearDown(controller.dispose);
 
@@ -1525,7 +1525,7 @@ void main() {
         final controller = DanceEditorController(
           repositories: repos,
           danceId: 'd1',
-          dialect: Dialect.larksRobins,
+          dialects: DialectsByForm.all(Dialect.larksRobins),
         );
         addTearDown(controller.dispose);
         await controller.load(
@@ -1577,7 +1577,7 @@ void main() {
         final controller = DanceEditorController(
           repositories: repos,
           danceId: 'd1',
-          dialect: Dialect.larksRobins,
+          dialects: DialectsByForm.all(Dialect.larksRobins),
         );
         addTearDown(controller.dispose);
         await controller.load(
@@ -1617,7 +1617,7 @@ void main() {
         final controller = DanceEditorController(
           repositories: repos,
           danceId: 'd1',
-          dialect: Dialect.larksRobins,
+          dialects: DialectsByForm.all(Dialect.larksRobins),
         );
         addTearDown(controller.dispose);
         await controller.load(
@@ -1657,7 +1657,7 @@ void main() {
       final controller = DanceEditorController(
         repositories: repos,
         danceId: 'd1',
-        dialect: Dialect.larksRobins,
+        dialects: DialectsByForm.all(Dialect.larksRobins),
       );
       addTearDown(controller.dispose);
       await controller.load(
@@ -1696,7 +1696,7 @@ void main() {
         final controller = DanceEditorController(
           repositories: repos,
           danceId: 'd1',
-          dialect: Dialect.larksRobins,
+          dialects: DialectsByForm.all(Dialect.larksRobins),
         );
         addTearDown(controller.dispose);
         await controller.load(
@@ -1739,7 +1739,7 @@ void main() {
       final controller = DanceEditorController(
         repositories: repos,
         danceId: 'd1',
-        dialect: Dialect.larksRobins,
+        dialects: DialectsByForm.all(Dialect.larksRobins),
       );
       addTearDown(controller.dispose);
       await controller.load(
@@ -1787,7 +1787,7 @@ void main() {
       final controller = DanceEditorController(
         repositories: repos,
         danceId: 'd1',
-        dialect: Dialect.larksRobins,
+        dialects: DialectsByForm.all(Dialect.larksRobins),
       );
       await controller.load(
         dance: Dance(
@@ -1990,7 +1990,7 @@ void main() {
       final controller = DanceEditorController(
         repositories: repos,
         danceId: 'd1',
-        dialect: Dialect.larksRobins,
+        dialects: DialectsByForm.all(Dialect.larksRobins),
       );
       await controller.load(
         dance: Dance(
@@ -2278,7 +2278,7 @@ void main() {
       final controller = DanceEditorController(
         repositories: repos,
         danceId: null,
-        dialect: Dialect.larksRobins,
+        dialects: DialectsByForm.all(Dialect.larksRobins),
       );
       await controller.load(dance: null, fieldDefs: [def]);
       return controller;
@@ -2380,7 +2380,7 @@ void main() {
       final controller = DanceEditorController(
         repositories: repos,
         danceId: null,
-        dialect: Dialect.larksRobins,
+        dialects: DialectsByForm.all(Dialect.larksRobins),
         debounce: testDebounce,
       );
       addTearDown(controller.dispose);
@@ -2455,7 +2455,7 @@ void main() {
       final controller = DanceEditorController(
         repositories: openTestRepositories(),
         danceId: 'd1',
-        dialect: Dialect.larksRobins,
+        dialects: DialectsByForm.all(Dialect.larksRobins),
         debounce: testDebounce,
       );
       addTearDown(controller.dispose);
@@ -2504,7 +2504,7 @@ void main() {
       final controller = DanceEditorController(
         repositories: repos,
         danceId: 'd1',
-        dialect: Dialect.larksRobins,
+        dialects: DialectsByForm.all(Dialect.larksRobins),
         debounce: testDebounce,
       );
       await controller.load(dance: noteDance(), fieldDefs: const []);
@@ -2526,7 +2526,7 @@ void main() {
       final same = DanceEditorController(
         repositories: repos,
         danceId: 'd1',
-        dialect: Dialect.larksRobins,
+        dialects: DialectsByForm.all(Dialect.larksRobins),
       );
       addTearDown(same.dispose);
       await same.load(dance: noteDance(), fieldDefs: const []);
@@ -2538,7 +2538,7 @@ void main() {
       final changed = DanceEditorController(
         repositories: repos,
         danceId: 'd1',
-        dialect: Dialect.larksRobins,
+        dialects: DialectsByForm.all(Dialect.larksRobins),
       );
       addTearDown(changed.dispose);
       await changed.load(
@@ -2562,7 +2562,7 @@ void main() {
       final controller = DanceEditorController(
         repositories: repos,
         danceId: 'd1',
-        dialect: Dialect.larksRobins,
+        dialects: DialectsByForm.all(Dialect.larksRobins),
       );
       addTearDown(controller.dispose);
       await controller.load(
@@ -2735,7 +2735,7 @@ void main() {
           final first = DanceEditorController(
             repositories: repos,
             danceId: 'd1',
-            dialect: ravens,
+            dialects: DialectsByForm.all(ravens),
             debounce: testDebounce,
           );
           await first.load(dance: noteDance(), fieldDefs: const []);
@@ -2750,7 +2750,7 @@ void main() {
           final second = DanceEditorController(
             repositories: repos,
             danceId: 'd1',
-            dialect: Dialect.larksRobins,
+            dialects: DialectsByForm.all(Dialect.larksRobins),
           );
           addTearDown(second.dispose);
           await second.load(dance: noteDance(), fieldDefs: const []);
@@ -2783,7 +2783,7 @@ void main() {
           final first = DanceEditorController(
             repositories: repos,
             danceId: 'd1',
-            dialect: ravens,
+            dialects: DialectsByForm.all(ravens),
             debounce: testDebounce,
           );
           await first.load(dance: titleDance(), fieldDefs: const []);
@@ -2800,7 +2800,7 @@ void main() {
           final second = DanceEditorController(
             repositories: repos,
             danceId: 'd1',
-            dialect: Dialect.larksRobins,
+            dialects: DialectsByForm.all(Dialect.larksRobins),
           );
           addTearDown(second.dispose);
           await second.load(dance: titleDance(), fieldDefs: const []);
@@ -2824,7 +2824,7 @@ void main() {
           final first = DanceEditorController(
             repositories: repos,
             danceId: 'd1',
-            dialect: Dialect.larksRobins,
+            dialects: DialectsByForm.all(Dialect.larksRobins),
             debounce: testDebounce,
           );
           await first.load(dance: noteDance(), fieldDefs: const []);
@@ -2838,7 +2838,7 @@ void main() {
           final second = DanceEditorController(
             repositories: repos,
             danceId: 'd1',
-            dialect: Dialect.larksRobins,
+            dialects: DialectsByForm.all(Dialect.larksRobins),
           );
           addTearDown(second.dispose);
           await second.load(dance: noteDance(), fieldDefs: const []);
@@ -2853,13 +2853,13 @@ void main() {
           final controller = DanceEditorController(
             repositories: openTestRepositories(),
             danceId: 'd1',
-            dialect: ravens,
+            dialects: DialectsByForm.all(ravens),
             debounce: testDebounce,
           );
           addTearDown(controller.dispose);
           await controller.load(dance: noteDance(), fieldDefs: const []);
 
-          controller.updateDialect(Dialect.leadsFollows);
+          controller.updateDialects(DialectsByForm.all(Dialect.leadsFollows));
 
           expect(controller.figureDrafts.first.note, 'leads go first');
           expect(controller.figureDrafts.last.params['text'], 'follows wait');
@@ -2875,7 +2875,7 @@ void main() {
         final controller = DanceEditorController(
           repositories: openTestRepositories(),
           danceId: 'd1',
-          dialect: ravens,
+          dialects: DialectsByForm.all(ravens),
           debounce: testDebounce,
         );
         addTearDown(controller.dispose);
@@ -2899,7 +2899,7 @@ void main() {
           'ravens flutterwheel',
         );
 
-        controller.updateDialect(Dialect.larksRobins);
+        controller.updateDialects(DialectsByForm.all(Dialect.larksRobins));
 
         expect(
           controller.figureDrafts.single.containerTitle,
@@ -2917,7 +2917,7 @@ void main() {
           final controller = DanceEditorController(
             repositories: openTestRepositories(),
             danceId: 'd1',
-            dialect: ravens,
+            dialects: DialectsByForm.all(ravens),
             debounce: testDebounce,
           );
           addTearDown(controller.dispose);
@@ -2939,7 +2939,7 @@ void main() {
             fieldDefs: const [],
           );
 
-          controller.updateDialect(Dialect.leadsFollows);
+          controller.updateDialects(DialectsByForm.all(Dialect.leadsFollows));
 
           final [top, meanwhile] = controller.figureDrafts;
           final nested = meanwhile.meanwhileSides!.first;
@@ -2962,7 +2962,7 @@ void main() {
           final controller = DanceEditorController(
             repositories: openTestRepositories(),
             danceId: 'd1',
-            dialect: ravens,
+            dialects: DialectsByForm.all(ravens),
             debounce: testDebounce,
           );
           addTearDown(controller.dispose);
@@ -2971,7 +2971,7 @@ void main() {
           controller.onTextEdited();
           await settleDebounce();
 
-          controller.updateDialect(Dialect.larksRobins);
+          controller.updateDialects(DialectsByForm.all(Dialect.larksRobins));
           controller.undo();
 
           expect(controller.figureDrafts.first.note, 'larks go first');
@@ -3110,7 +3110,7 @@ void main() {
       final controller = DanceEditorController(
         repositories: repos,
         danceId: 'd1',
-        dialect: Dialect.larksRobins,
+        dialects: DialectsByForm.all(Dialect.larksRobins),
       );
       await controller.load(
         dance: await repos.dances.getById('d1'),

@@ -457,7 +457,7 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
 
   Widget _buildContent(BuildContext context, {required bool wide}) {
     final l10n = AppLocalizations.of(context);
-    final dialect = ActiveDialectScope.of(context);
+    final dialect = ActiveDialectScope.of(context).forDance(widget.dance);
     final canDecrease =
         _textScale - kPerformScaleStep >= kPerformMinScale - 1e-9;
 
@@ -482,7 +482,7 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
               // The stage-mode toggle and per-gig dialect quick-switch stay inline.
               actions: buildPerformAppBarActions(
                 wide: wide,
-                leadingPrimary: const DialectQuickSwitch(),
+                leadingPrimary: DialectQuickSwitch(form: widget.dance.form),
                 secondaryInline: [
                   if (_hasWalkthrough)
                     IconButton(

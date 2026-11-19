@@ -2040,6 +2040,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsDialectHeader => 'Dialects';
 
   @override
+  String get settingsDialectFormHelper =>
+      'Each dance type has its own dialects. Choose a type to see and set up its dialects.';
+
+  @override
   String get settingsDialectDanceDetailsHeader => 'Dance details & shorthands';
 
   @override
@@ -2706,6 +2710,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsDefaultsFormSubtitle =>
       'The dance type a new dance starts as. You can still change it per dance.';
+
+  @override
+  String get settingsDefaultsFormLastUsed => 'Last used';
 
   @override
   String get settingsDefaultsFormationTitle => 'Formation';
@@ -8627,6 +8634,11 @@ class AppLocalizationsEn extends AppLocalizations {
     String substitution,
   ) {
     return '\"$source\" and \"$existing\" both map to \"$substitution\" — reversal would be ambiguous.';
+  }
+
+  @override
+  String validationGenderedRoleTerm(String word) {
+    return '\"$word\" is a gendered role word, which the app never shows. Use a role-neutral word instead.';
   }
 
   @override

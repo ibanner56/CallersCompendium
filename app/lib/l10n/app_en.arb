@@ -2544,6 +2544,10 @@
   "@settingsDialectHeader": {
     "description": "Dialect settings section header for the dialect library."
   },
+  "settingsDialectFormHelper": "Each dance type has its own dialects. Choose a type to see and set up its dialects.",
+  "@settingsDialectFormHelper": {
+    "description": "Helper text above the dance-type selector in Settings › Dialect. The selector's segments are the dance-type names (Contra, English, Square); the list below it shows only the chosen type's dialects."
+  },
   "settingsDialectDanceDetailsHeader": "Dance details & shorthands",
   "@settingsDialectDanceDetailsHeader": {
     "description": "Settings subsection header for canonical dance-detail text and figure-entry preferences."
@@ -3375,6 +3379,10 @@
   "settingsDefaultsFormSubtitle": "The dance type a new dance starts as. You can still change it per dance.",
   "@settingsDefaultsFormSubtitle": {
     "description": "Explanation for the default dance-type picker."
+  },
+  "settingsDefaultsFormLastUsed": "Last used",
+  "@settingsDefaultsFormLastUsed": {
+    "description": "Option in the default dance-type picker: a new dance starts as the type of the last dance the user created."
   },
   "settingsDefaultsFormationTitle": "Formation",
   "@settingsDefaultsFormationTitle": {
@@ -11272,7 +11280,7 @@
     "placeholders": {
       "term": {
         "type": "String",
-        "example": "gents"
+        "example": "larks"
       }
     }
   },
@@ -11282,7 +11290,7 @@
     "placeholders": {
       "source": {
         "type": "String",
-        "example": "gents"
+        "example": "larks"
       },
       "existing": {
         "type": "String",
@@ -11291,6 +11299,16 @@
       "substitution": {
         "type": "String",
         "example": "larks"
+      }
+    }
+  },
+  "validationGenderedRoleTerm": "\"{word}\" is a gendered role word, which the app never shows. Use a role-neutral word instead.",
+  "@validationGenderedRoleTerm": {
+    "description": "Dialect-editor and dialect-name validation error: the entry uses a gendered role word (such as the words for men or women), which the app never shows. {word} is the offending word as the user typed it, rendered as plain text.",
+    "placeholders": {
+      "word": {
+        "type": "String",
+        "example": "ladies"
       }
     }
   },
@@ -11304,7 +11322,7 @@
     "placeholders": {
       "term": {
         "type": "String",
-        "example": "gents"
+        "example": "larks"
       }
     }
   },
@@ -11314,7 +11332,7 @@
     "placeholders": {
       "term": {
         "type": "String",
-        "example": "gents"
+        "example": "larks"
       }
     }
   },

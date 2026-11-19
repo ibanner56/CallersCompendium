@@ -97,11 +97,14 @@ const String kNormalisationDerivedIndexRepairDoneKey =
 /// Settings keys that are NOT carried in a backup's `app.settings` map.
 ///
 /// Four reasons a key is excluded:
-/// - **structurally represented** — the dialect library and custom themes travel
-///   in their own typed sections of the [BackupDocument], so their raw settings
-///   blobs would be redundant (and could disagree with the typed sections):
-///   [kCustomDialectsKey], [kActiveDialectRefKey], [kActiveDialectKey],
-///   [kCustomThemesKey], [kActiveCustomThemeKey].
+/// - **structurally represented** — contra's dialect library and custom themes
+///   travel in their own typed sections of the [BackupDocument], so their raw
+///   settings blobs would be redundant (and could disagree with the typed
+///   sections): [kCustomDialectsKey], [kActiveDialectRefKey],
+///   [kActiveDialectKey], [kCustomThemesKey], [kActiveCustomThemeKey]. The
+///   other dance forms' dialect libraries ([customDialectsKeyFor]) are not
+///   listed: they travel in `app.settings` like any preference, checked by
+///   the restore schema, and their library reads them entry by entry.
 /// - **installation state / backup metadata** — geometry and backup bookkeeping
 ///   that
 ///   must not travel between machines or be rewritten by restoring an old file:

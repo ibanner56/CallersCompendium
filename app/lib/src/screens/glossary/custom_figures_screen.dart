@@ -81,14 +81,14 @@ class _CustomFiguresScreenState extends State<CustomFiguresScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final dialect = ActiveDialectScope.of(context);
+    final dialect = ActiveDialectScope.contraOf(context);
     // Each is checked for a rename against every entry, terms included.
     final all = resolveCustomGlossary(
       _entries,
       taxonomy: contraTaxonomy,
       dialects: [
         dialect,
-        ...?DialectLibraryScope.maybeOf(context)?.customDialects,
+        ...?DialectLibraryScope.maybeOf(context)?.allCustomDialects,
       ],
       shorthandTokens: ShorthandMappingsScope.tokensOf(context),
     );

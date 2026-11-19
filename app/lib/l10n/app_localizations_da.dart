@@ -2052,6 +2052,10 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsDialectHeader => 'Dialekter';
 
   @override
+  String get settingsDialectFormHelper =>
+      'Hver dansetype har sine egne dialekter. Vælg en type for at se og indrette dens dialekter.';
+
+  @override
   String get settingsDialectDanceDetailsHeader =>
       'Dansedetaljer og forkortelser';
 
@@ -2726,6 +2730,9 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get settingsDefaultsFormSubtitle =>
       'Den danstype en ny dans starter som. Du kan stadig ændre det per dans.';
+
+  @override
+  String get settingsDefaultsFormLastUsed => 'Senest brugt';
 
   @override
   String get settingsDefaultsFormationTitle => 'Formation';
@@ -8661,6 +8668,11 @@ class AppLocalizationsDa extends AppLocalizations {
     String substitution,
   ) {
     return '“$source” og “$existing” peger begge på “$substitution” — en omvendelse ville være tvetydig.';
+  }
+
+  @override
+  String validationGenderedRoleTerm(String word) {
+    return '„$word“ er et kønnet rolleord, som appen aldrig viser. Brug et kønsneutralt ord i stedet.';
   }
 
   @override

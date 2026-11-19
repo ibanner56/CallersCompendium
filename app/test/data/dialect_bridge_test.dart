@@ -17,7 +17,7 @@ class _DialectConsumer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(
-      ActiveDialectScope.of(context).name,
+      ActiveDialectScope.of(context).forForm(DanceForm.contra).name,
       textDirection: TextDirection.ltr,
     );
   }
@@ -48,7 +48,7 @@ void main() {
 
       await tester.pumpWidget(
         DialectLibraryScope(
-          controller: controller,
+          libraries: DialectLibraries.withContra(controller),
           child: ActiveDialectScope(
             notifier: notifier,
             child: const _DialectConsumer(),

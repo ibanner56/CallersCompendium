@@ -56,6 +56,11 @@ final Map<String, DataClassification> settingsClassifications = {
   // a glossary entry, a soft reference (sync-spec §6.15) that is inert on a
   // device without the figure.
   'custom_dialects': _preference,
+  // Each dance form's own dialects (ADR-006 §9.1, point 1); contra keeps
+  // `custom_dialects`. Classified as it is: the user's own wording, which
+  // travels to their devices like the contra library.
+  'custom_dialects_ecd': _preference,
+  'custom_dialects_square': _preference,
   'custom_themes': _preference,
   'shorthand_mappings': _preference,
   'compound_shorthands': DataClassification(
@@ -110,6 +115,8 @@ final Map<String, DataClassification> settingsClassifications = {
   // -- Dialect and rendering ------------------------------------------------
   'active_dialect': _preference,
   'active_dialect_ref': _preference,
+  'active_dialect_ref_ecd': _preference,
+  'active_dialect_ref_square': _preference,
   'verbose_figure_rendering': _preference,
   'decimal_turns': _preference,
   'capitalize_figures': _preference,
@@ -164,6 +171,11 @@ final Map<String, DataClassification> settingsClassifications = {
   'last_used_program_sort_direction': _preference,
   'default_dance_detail_rendering': _preference,
   'default_dance_form': _preference,
+  // The form of the last dance the user created, which a new dance starts as
+  // while `default_dance_form` is "last used" (ADR-006 §12.2, S2). Synced
+  // with that setting, which the maintainer chose to sync (§9.1, point 10),
+  // like the `last_used_*_sort` keys above.
+  'last_used_dance_form': _preference,
   'default_dance_formation_shape': _preference,
   'default_dance_phrase_structure': _preference,
   'default_dance_progression': _preference,

@@ -48,8 +48,9 @@ progression happens is marked with an icon labeled *Progression*. Break and
 note slots in a program get a card of their own, with the text in the same
 large type.
 
-Your [dialect](./dialects.md) is applied — or the program's own dialect, if you
-gave it one (see [Programs](./programs.md)) — so the card speaks in your words.
+Your [dialect](./dialects.md) for the dance's type is applied — or the
+program's own dialect, if you gave it one (see [Programs](./programs.md)) — so
+the card speaks in your words.
 To see the shared wording, choose **Canonical** under **Switch dialect** below
 (that section says how long the change lasts). Figure
 detail you recorded shows here too: when a swing ends facing somewhere other
@@ -65,8 +66,9 @@ so the toolbar can't crowd a narrow screen. Wherever a control lives it does the
 same thing, and every toggle says which state it is in rather than relying on
 how it looks.
 
-**Switch dialect.** Changes your active dialect for the whole app — handy when
-tonight's hall uses different role names. The change stays after you leave
+**Switch dialect.** Changes your active dialect for the type of the dance on
+screen (contra, English, or square), across the whole app — handy when tonight's
+hall uses different role names. The change stays after you leave
 Perform: later screens, PDFs and shared text use that dialect too, and it syncs to
 your other devices. **Canonical** is one of the choices, for when a dancer or
 another caller asks what a figure is in the shared wording; switch back the same

@@ -590,7 +590,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// fallback can show its name. `null` when no venue is linked.
   Venue? _linkedVenue;
 
-  Dialect _dialect = Dialect.larksRobins;
+  /// The dialect of each dance form, from [ActiveDialectScope].
+  DialectsByForm _dialects = DialectsByForm.defaults;
+
+  /// The dialect of the program's own text and of what spans dances (the
+  /// picker's query, the matrix's columns): contra's. A program has no form
+  /// (ADR-006 §12.2, S5); each dance reads in its own form's ([_dialects]).
+  Dialect get _dialect => _dialects.forForm(DanceForm.contra);
 
   /// The Programs "flag exact beat overlap only" matrix-collision setting
   /// (issue #962), read unconditionally in [didChangeDependencies] every
@@ -645,7 +651,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     // (e.g. narrow embedded tests) with a sensible default.
     final scope = context
         .dependOnInheritedWidgetOfExactType<ActiveDialectScope>();
-    if (scope?.notifier != null) _dialect = scope!.notifier!.value;
+    if (scope != null) _dialects = ActiveDialectScope.of(context);
 
     // Read unconditionally so a live toggle of the setting updates the Matrix
     // tab immediately (the #948 lesson — see the field doc comment).
@@ -3699,6 +3705,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             formationFor: _formationForDance,
             mixerFor: _mixerForDance,
             dialect: _dialect,
+            dialectFor: (id) => switch (_danceById(id)) {
+              final dance? => _dialects.forDance(dance),
+              null => null,
+            },
             canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
               context,
             ),
@@ -4341,8 +4351,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     );
   }
 
-  /// The picker for [_dialectName]: "use app dialect" plus every dialect in
-  /// the library, nothing typed freehand. A stored name that no longer matches
+  /// The picker for [_dialectName]: "use app dialect" plus every dialect name
+  /// in any form's library ([programDialectNames]), nothing typed freehand. A stored name that no longer matches
   /// a dialect (renamed, deleted, or not synced here yet) stays visible as
   /// "unavailable" instead of silently reading as "use app dialect", which is
   /// what Perform does with it (issue #1554).
@@ -4351,7 +4361,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final stored = _dialectName;
     final resolved = library == null
         ? null
-        : resolveProgramDialect(stored, library);
+        : resolveProgramDialectInAnyForm(stored, library);
     final unavailable = stored != null && resolved == null;
     final value = unavailable ? stored : resolved?.name;
     return KeyedSubtree(
@@ -4374,17 +4384,22 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             value: null,
             child: Text(l10n.programsDialectUseApp),
           ),
-          for (final dialect in library?.all ?? const <Dialect>[])
+          for (final name
+              in library == null
+                  ? const <String>[]
+                  : programDialectNames(library))
             DropdownMenuItem<String?>(
-              key: ValueKey('program-dialect-option:${dialect.name}'),
-              value: dialect.name,
-              child: Text(dialect.name),
+              key: ValueKey('program-dialect-option:$name'),
+              value: name,
+              child: Text(name),
             ),
           if (unavailable)
             DropdownMenuItem<String?>(
               key: const ValueKey('program-dialect-unavailable'),
               value: stored,
-              child: Text(l10n.programsDialectUnavailable(stored)),
+              child: Text(
+                l10n.programsDialectUnavailable(shownDialectName(stored)),
+              ),
             ),
         ],
         onChanged: (name) {

@@ -96,7 +96,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   /// kept in sync with [ActiveDialectScope] in [didChangeDependencies], so the
   /// prose fields restyle live when the caller switches dialects — mirroring
   /// the figure/move field.
-  Dialect _activeDialect = Dialect.larksRobins;
+  DialectsByForm _activeDialects = DialectsByForm.defaults;
 
   bool _dependenciesInitialized = false;
   void Function()? _unregisterShutdownFlush;
@@ -164,21 +164,21 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     // equality, so only walk the controllers when the dialect actually changed
     // (identity fast-path first) to avoid needless O(n) comparisons and
     // listener churn.
-    final newDialect = ActiveDialectScope.of(context);
+    final newDialects = ActiveDialectScope.of(context);
     if (!_dependenciesInitialized) {
       // Kick off exactly once per widget instance: `_load()` appends into the
       // controller's mutable collections, so a second run would duplicate
       // state and leak controllers.
       _dependenciesInitialized = true;
-      _activeDialect = newDialect;
+      _activeDialects = newDialects;
       _repos = RepositoriesScope.of(context);
       _createController();
       _load();
       _subscribeReferenceData();
-    } else if (!identical(newDialect, _activeDialect) &&
-        newDialect != _activeDialect) {
-      _activeDialect = newDialect;
-      _controller.updateDialect(newDialect);
+    } else if (!identical(newDialects, _activeDialects) &&
+        newDialects != _activeDialects) {
+      _activeDialects = newDialects;
+      _controller.updateDialects(newDialects);
     }
   }
 
@@ -186,7 +186,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     _controller = DanceEditorController(
       repositories: _repos,
       danceId: widget.danceId,
-      dialect: _activeDialect,
+      dialects: _activeDialects,
       initialTitle: widget.initialTitle,
     );
     _controller.addListener(_onControllerChanged);
@@ -517,11 +517,28 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     // The dance is committed. Nothing below may report the save as failed or
     // leave the editor open: for a new dance a second Save would mint a fresh
     // id (`buildDance`) and insert a duplicate.
+    if (_controller.original == null) await _rememberNewDanceForm(dance.form);
     await _clearDraftAfterCommit();
     _controller.clearStagedTags();
     _controller.markSaved();
     if (mounted) {
       Navigator.of(context).pop(dance.id);
+    }
+  }
+
+  /// Records [form] as the form of the last new dance, which a new dance
+  /// starts as while the default form is "last used" (ADR-006 §12.2, S2).
+  /// Best-effort: the dance is already saved, so a failure is only logged,
+  /// and the next new dance starts as the form recorded before.
+  Future<void> _rememberNewDanceForm(DanceForm form) async {
+    try {
+      await _repos.settings.set(kLastUsedDanceFormKey, form.name);
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'dance_editor_screen._rememberNewDanceForm',
+      );
     }
   }
 
@@ -1099,9 +1116,11 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       return const Center(child: CircularProgressIndicator());
     }
     // Registers a dependency so the whole editor rebuilds (and prose fields
-    // restyle) when the active dialect changes; also passed down to the lingo
-    // hints so they reflect the current dialect's discouraged terms.
-    final dialect = ActiveDialectScope.of(context);
+    // restyle) when a dialect changes. The controller holds the dialect of the
+    // dance's own form, passed down to the lingo hints so they reflect that
+    // dialect's discouraged terms.
+    ActiveDialectScope.of(context);
+    final dialect = _controller.dialect;
     // The outer shortcut Focus(autofocus: true) owns focus from the spinner
     // frame, so the title's own autofocus is dropped; request it once here.
     if (widget.isNew && !_titleFocusRequested) {

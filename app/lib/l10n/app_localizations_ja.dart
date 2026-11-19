@@ -1955,6 +1955,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsDialectHeader => 'ダイアレクト';
 
   @override
+  String get settingsDialectFormHelper =>
+      'ダンスのタイプごとに独自のダイアレクトがあります。タイプを選ぶと、そのダイアレクトを表示・設定できます。';
+
+  @override
   String get settingsDialectDanceDetailsHeader => 'ダンスの詳細と略称';
 
   @override
@@ -2593,6 +2597,9 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get settingsDefaultsFormSubtitle =>
       '新しいダンスのデフォルトのダンスタイプです。ダンスごとに変更できます。';
+
+  @override
+  String get settingsDefaultsFormLastUsed => '前回使用したタイプ';
 
   @override
   String get settingsDefaultsFormationTitle => 'フォーメーション';
@@ -8311,6 +8318,11 @@ class AppLocalizationsJa extends AppLocalizations {
     String substitution,
   ) {
     return '「$source」と「$existing」はどちらも「$substitution」に対応するため、反転するとあいまいになります。';
+  }
+
+  @override
+  String validationGenderedRoleTerm(String word) {
+    return '「$word」は性別を表す役割語で、アプリでは表示しません。性別に依らない語を使ってください。';
   }
 
   @override

@@ -793,7 +793,8 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
         ? rawText
         : widget.renderer.renderFreeTextWithCanonicalDiscouragedTerms(
             rawText,
-            _effectiveDialect(context, strict: false),
+            // A slot of text alone has no dance, so no form: contra's.
+            _effectiveDialect(context, DanceForm.contra, strict: false),
           );
     if (text != null && text.isNotEmpty) return text;
     return l10n.performUntitledSlot;
@@ -1124,7 +1125,11 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
         data: widget.data,
         danceOverrides: widget.danceOverrides,
         authorNameOverrides: widget.authorNameOverrides,
-        dialect: _effectiveDialect(context),
+        // The picker reads a query in the form of the dance on screen.
+        dialect: _effectiveDialect(
+          context,
+          _danceForSlot(_currentSlot)?.form ?? DanceForm.contra,
+        ),
         enrichment: enrichment,
       ),
       sheetAnimationStyle: AppMotion.styleFor(context),
@@ -1155,31 +1160,41 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     );
   }
 
-  /// The program's own dialect, or `null` when it has none or its name no
-  /// longer resolves. A `null` means Perform follows the application dialect
-  /// and the quick-switch keeps its app-wide behaviour. Listens to the library,
-  /// so renaming or deleting the dialect while Perform is open takes effect
-  /// live.
-  Dialect? _programDialect(BuildContext context) {
+  /// The program's own dialect for a dance of [form], or `null` when it has
+  /// none or its name does not resolve among [form]'s dialects. A program
+  /// names its dialect, and each form has its own dialects, so the name is
+  /// looked up in the library of the form of the dance on screen
+  /// (`resolveProgramDialect`). A `null` means Perform follows that form's
+  /// active dialect and the quick-switch keeps its app-wide behaviour.
+  /// Listens to the library, so renaming or deleting the dialect while
+  /// Perform is open takes effect live.
+  Dialect? _programDialect(BuildContext context, DanceForm form) {
     final library = DialectLibraryScope.maybeOf(context);
     if (library == null) return null;
-    return resolveProgramDialect(_program.dialectName, library);
+    return resolveProgramDialect(_program.dialectName, library.forForm(form));
   }
 
-  /// The dialect Perform renders with: the session pick, else the program's
-  /// dialect, else the application dialect.
+  /// The dialect Perform renders a dance of [form] with: the session pick,
+  /// else the program's dialect, else [form]'s active dialect. The session
+  /// pick and the program's dialect are names, each looked up among [form]'s
+  /// dialects.
   /// [strict] keeps the existing `ActiveDialectScope.of` behaviour (throws
   /// without the scope) for the call sites that had it.
-  Dialect _effectiveDialect(BuildContext context, {bool strict = true}) {
-    final programDialect = _programDialect(context);
+  Dialect _effectiveDialect(
+    BuildContext context,
+    DanceForm form, {
+    bool strict = true,
+  }) {
+    final programDialect = _programDialect(context, form);
     if (programDialect != null) {
-      final library = DialectLibraryScope.maybeOf(context)!;
+      final library = DialectLibraryScope.maybeOf(context)!.forForm(form);
       return resolveProgramDialect(_sessionDialectName, library) ??
           programDialect;
     }
     return strict
-        ? ActiveDialectScope.of(context)
-        : ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
+        ? ActiveDialectScope.of(context).forForm(form)
+        : (ActiveDialectScope.maybeOf(context) ?? DialectsByForm.defaults)
+              .forForm(form);
   }
 
   /// The program title's type: the AppBar's usual `titleLarge` metrics, with no
@@ -1229,8 +1244,6 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
 
   Widget _buildContent(BuildContext context, {required bool wide}) {
     final l10n = AppLocalizations.of(context);
-    final programDialect = _programDialect(context);
-    final dialect = _effectiveDialect(context);
     final canDecrease =
         _textScale - kPerformScaleStep >= kPerformMinScale - 1e-9;
 
@@ -1269,6 +1282,11 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     final slot = members[memberIndex];
     final activeDance = _danceForSlot(slot);
     final hasWalkthrough = activeDance?.walkthrough.trim().isNotEmpty ?? false;
+    // The dance on screen reads in its own form's dialect; a slot of text
+    // alone, with no dance, in contra's.
+    final form = activeDance?.form ?? DanceForm.contra;
+    final programDialect = _programDialect(context, form);
+    final dialect = _effectiveDialect(context, form);
 
     return ColourDanceTheme(
       title: _slotLabel(l10n, slot),
@@ -1294,8 +1312,9 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
               actions: buildPerformAppBarActions(
                 wide: wide,
                 leadingPrimary: programDialect == null
-                    ? const DialectQuickSwitch()
+                    ? DialectQuickSwitch(form: form)
                     : DialectQuickSwitch(
+                        form: form,
                         selectedName: dialect.name,
                         onSelected: (name) =>
                             setState(() => _sessionDialectName = name),

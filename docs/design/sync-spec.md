@@ -3000,9 +3000,9 @@ republishes, which is an ordinary upload and needs no special path.
    from a merged-away copy is written through the apply engine, which rewrites
    its id to the survivor.
 
-   **Whole-collection settings.** Six settings keys hold a whole user-built
+   **Whole-collection settings.** Eight settings keys hold a whole user-built
    collection behind one key: `compound_shorthands`, `custom_dialects`,
-   `custom_themes`, `shorthand_mappings`, `user_figure_shorthands` and
+   `custom_dialects_ecd`, `custom_dialects_square`, `custom_themes`, `shorthand_mappings`, `user_figure_shorthands` and
    `walkthrough_snippets`. For these, a
    `changed`/`changed` conflict MUST be queued for the user's choice whatever
    the two `updatedAt` values, because last-writer-wins would discard one
