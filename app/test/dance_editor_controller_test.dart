@@ -3461,6 +3461,60 @@ void main() {
       },
     );
 
+    group('a typed English sequence', () {
+      List<Figure> typed(String line) => parseFreeTextFigureEntry(
+        line,
+        taxonomy: shippedTaxonomies.forForm(DanceForm.ecd),
+      );
+
+      test('with a count of its own keeps the steps the line gave none '
+          'untimed under it, with no warning', () async {
+        final repos = openTestRepositories();
+        final controller = await openEcd(repos, const []);
+        addTearDown(controller.dispose);
+        final figures = typed(
+          '1st corners set forward and turn single back to place (16)',
+        );
+        // A control: the parser reads a span over untimed steps.
+        expect(figures.single.isSequence, isTrue);
+        expect(figures.single.beats, 16);
+        expect(figures.single.subFigures.any(stepStatesTiming), isFalse);
+
+        controller.insertFreeTextFigures(figures);
+
+        final sequence = controller.figureDrafts.single;
+        expect(sequence.sequenceSpanStated, isTrue);
+        expect(sequence.beats, 16);
+        expect(sequence.sequenceFigures!.every((s) => s.untimed), isTrue);
+        expect(
+          controller.warnings.where((w) => w.code == 'sequence_span_mismatch'),
+          isEmpty,
+        );
+      });
+
+      test('with no count counts its steps at their defaults', () async {
+        final repos = openTestRepositories();
+        final controller = await openEcd(repos, const []);
+        addTearDown(controller.dispose);
+
+        controller.insertFreeTextFigures(
+          typed('1st corners set forward and turn single back to place'),
+        );
+
+        final sequence = controller.figureDrafts.single;
+        expect(sequence.sequenceSpanStated, isFalse);
+        expect(sequence.sequenceFigures!.any((s) => s.untimed), isFalse);
+        expect(
+          sequence.beats,
+          sequence.sequenceFigures!.fold(0, (sum, s) => sum + s.beats),
+        );
+        expect(
+          controller.warnings.where((w) => w.code == 'sequence_span_mismatch'),
+          isEmpty,
+        );
+      });
+    });
+
     test(
       'figures of another form are warned about after the form changes',
       () async {
