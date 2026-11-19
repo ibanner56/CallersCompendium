@@ -203,6 +203,8 @@ void main() {
             ('statusPerformed', ext.statusPerformed),
             ('statusDeprecated', ext.statusDeprecated),
             ('statusBroken', ext.statusBroken),
+            // The "Archived" chip (ProgramArchivedChip) is neutral.
+            ('archived (outline)', scheme.outline),
           ]) {
             // A chip sits on the canvas, or on a card or bottom sheet (Low).
             for (final (tierRole, tier) in [

@@ -13,6 +13,7 @@ import 'package:compendium_app/src/data/settings_keys.dart';
 import 'package:compendium_app/src/editor/editor_draft_codec.dart';
 import 'package:compendium_app/src/editor/editor_snapshot.dart';
 import 'package:compendium_app/src/screens/dance_editor_screen.dart';
+import 'package:compendium_app/src/screens/dance_editor/dance_editor_form.dart';
 import 'package:compendium_app/src/screens/dance_editor/name_picker.dart';
 import 'package:compendium_app/src/screens/dance_list_screen.dart';
 import 'package:compendium_app/src/theme/app_theme.dart';
@@ -65,6 +66,7 @@ Future<void> _pumpEditor(
   String? danceId,
   ThemeData? theme,
   Size surfaceSize = const Size(1200, 3200),
+  Dialect? activeDialect,
 }) async {
   // Tall surface so the full editor form (which grew with the walkthrough
   // field, #370) lays out without the trailing controls falling beyond a
@@ -72,7 +74,7 @@ Future<void> _pumpEditor(
   // under-scroll the last element in widget tests.
   await tester.binding.setSurfaceSize(surfaceSize);
   addTearDown(() => tester.binding.setSurfaceSize(null));
-  final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
+  final notifier = ValueNotifier<Dialect>(activeDialect ?? Dialect.larksRobins);
   addTearDown(notifier.dispose);
   await tester.pumpWidget(
     MaterialApp(
@@ -222,6 +224,99 @@ void main() {
     expect(saved!.title, 'Renamed');
     // createdAt preserved from the original.
     expect(saved.createdAt, _now);
+  });
+
+  group("Rachel Fifer's dances keep larks and robins in the editor", () {
+    final notedFigure = Figure(
+      move: 'allemande',
+      params: const {'beats': 8},
+      note: 'role1s go first',
+    );
+
+    String noteOf(WidgetTester tester) => tester
+        .widget<DanceEditorForm>(find.byType(DanceEditorForm))
+        .controller
+        .figureDrafts
+        .first
+        .note;
+
+    Future<void> addRae(WidgetTester tester) async {
+      await tester.enterText(find.byKey(const ValueKey('author-input')), 'Rae');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('author-option-c1')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('adding and removing her as an author converts the drafts, and '
+        'Save stores canonical role words', (tester) async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.choreographers.upsert(
+        Choreographer(id: 'c1', name: 'Rae Fifer'),
+      );
+      // ignore: unused_result
+      await repos.choreographers.upsert(
+        Choreographer(id: 'c2', name: 'Gene Hubert'),
+      );
+      await repos.dances.create(
+        _dance(id: 'd1', authorIds: ['c2'], figures: [notedFigure]),
+      );
+      await _pumpEditor(
+        tester,
+        repos,
+        danceId: 'd1',
+        activeDialect: Dialect.leadsFollows,
+      );
+      expect(noteOf(tester), 'leads go first');
+
+      await addRae(tester);
+      expect(noteOf(tester), 'larks go first');
+
+      tester
+          .widget<InputChip>(find.byKey(const ValueKey('author-chip-c1')))
+          .onDeleted!();
+      await tester.pumpAndSettle();
+      expect(noteOf(tester), 'leads go first');
+
+      await addRae(tester);
+      expect(noteOf(tester), 'larks go first');
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      final saved = await repos.dances.getById('d1');
+      expect(saved!.authorIds, ['c2', 'c1']);
+      expect(
+        (saved.figuresSource as DecodedFigures).figures.first.note,
+        'role1s go first',
+      );
+    });
+
+    testWidgets('a title that names one of her dances converts the drafts '
+        'when no author is named', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', figures: [notedFigure]));
+      await _pumpEditor(
+        tester,
+        repos,
+        danceId: 'd1',
+        activeDialect: Dialect.leadsFollows,
+      );
+      expect(noteOf(tester), 'leads go first');
+
+      await tester.enterText(
+        find.byKey(const ValueKey('title-field')),
+        'Renewed Joy',
+      );
+      await tester.pumpAndSettle();
+      expect(noteOf(tester), 'larks go first');
+
+      await tester.enterText(
+        find.byKey(const ValueKey('title-field')),
+        'Renewed',
+      );
+      await tester.pumpAndSettle();
+      expect(noteOf(tester), 'leads go first');
+    });
   });
 
   group('renaming an author onto a taken name (T3)', () {
@@ -2313,6 +2408,174 @@ void main() {
         expect(saved.form, DanceForm.ecd);
       },
     );
+  });
+
+  group('ECD dance fields (ADR-006 §12.1 F2, F3; §9.2 point 7)', () {
+    Future<CompendiumRepositories> withEcdDance() async {
+      final repos = openTestRepositories();
+      for (final (id, name) in [
+        ('playford', 'John Playford'),
+        ('pat', 'Pat Shaw'),
+      ]) {
+        final _ = await repos.choreographers.upsert(
+          Choreographer(id: id, name: name),
+        );
+      }
+      await repos.dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Hole in the Wall',
+          form: DanceForm.ecd,
+          authorIds: const ['playford'],
+          interpreterIds: const ['pat'],
+          interpretedOn: PartialDate(1975),
+          composedOn: PartialDate(1695),
+          meter: '3/2',
+          musicalKey: 'D minor',
+          formation: const Formation(FormationShape.dupleMinor, improper: true),
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+      );
+      return repos;
+    }
+
+    testWidgets('an English dance shows its credits, meter, key and the '
+        'improper checkbox up front, and saves edits to them', (tester) async {
+      final repos = await withEcdDance();
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      // Up front: More details is still collapsed.
+      expect(find.byKey(const ValueKey('mixed-level-field')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('interpreter-chip-pat')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('composed-on-year')), findsOneWidget);
+      expect(find.byKey(const ValueKey('interpreted-on-year')), findsOneWidget);
+      final meter = find.byKey(const ValueKey('meter-field'));
+      final key = find.byKey(const ValueKey('musical-key-field'));
+      expect(tester.widget<TextFormField>(meter).controller?.text, '3/2');
+      expect(tester.widget<TextFormField>(key).controller?.text, 'D minor');
+      final improper = find.byKey(const ValueKey('improper-field'));
+      expect(tester.widget<CheckboxListTile>(improper).value, isTrue);
+
+      await tester.enterText(meter, '9/8');
+      await tester.enterText(key, 'G major');
+      await tester.ensureVisible(improper);
+      await tester.tap(improper);
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('interpreted-on-year')),
+        '1976',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      final saved = await repos.dances.getById('d1');
+      expect(saved!.meter, '9/8');
+      expect(saved.musicalKey, 'G major');
+      expect(saved.formation.improper, isFalse);
+      expect(saved.interpretedOn, PartialDate(1976));
+      expect(saved.interpreterIds, ['pat']);
+      expect(saved.authorIds, ['playford']);
+      expect(saved.composedOn, PartialDate(1695));
+    });
+
+    testWidgets('an interpreter is picked from the people list', (
+      tester,
+    ) async {
+      final repos = await withEcdDance();
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      await tester.enterText(
+        find.byKey(const ValueKey('interpreter-input')),
+        'John',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('interpreter-option-playford')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      final saved = await repos.dances.getById('d1');
+      expect(saved!.interpreterIds, ['pat', 'playford']);
+      expect(saved.authorIds, ['playford']);
+    });
+
+    testWidgets('a contra dance keeps them in More details, with no '
+        'improper checkbox', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(id: 'd1', title: 'Original').copyWith(meter: '2/4'),
+      );
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      expect(find.byKey(const ValueKey('improper-field')), findsNothing);
+      expect(find.byKey(const ValueKey('meter-field')), findsNothing);
+      expect(find.byKey(const ValueKey('interpreter-input')), findsNothing);
+
+      await _expandMoreDetails(tester);
+      expect(find.byKey(const ValueKey('improper-field')), findsNothing);
+      final meter = find.byKey(const ValueKey('meter-field'));
+      expect(tester.widget<TextFormField>(meter).controller?.text, '2/4');
+      expect(find.byKey(const ValueKey('interpreter-input')), findsOneWidget);
+      expect(find.byKey(const ValueKey('interpreted-on-year')), findsOneWidget);
+    });
+
+    testWidgets('a date half entered keeps its text when a change of form '
+        'moves the field', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Original'));
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await _expandMoreDetails(tester);
+
+      final year = find.byKey(const ValueKey('composed-on-year'));
+      // Not yet a valid year, so the field holds it as text only.
+      await tester.enterText(year, '0');
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.byKey(const ValueKey('form-field')));
+      await tester.tap(find.byKey(const ValueKey('form-field')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('English (ECD)').last);
+      await tester.pumpAndSettle();
+
+      expect(tester.widget<TextField>(year).controller?.text, '0');
+    });
+
+    testWidgets('switching an English dance to contra saves it proper, and '
+        'switching back restores the checkbox', (tester) async {
+      final repos = await withEcdDance();
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      final form = find.byKey(const ValueKey('form-field'));
+      Future<void> pickForm(String label) async {
+        await tester.tap(form);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(label).last);
+        await tester.pumpAndSettle();
+      }
+
+      final improper = find.byKey(const ValueKey('improper-field'));
+      await pickForm('Contra');
+      expect(improper, findsNothing);
+      await pickForm('English (ECD)');
+      expect(tester.widget<CheckboxListTile>(improper).value, isTrue);
+      await pickForm('Contra');
+
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+      final saved = await repos.dances.getById('d1');
+      expect(saved!.form, DanceForm.contra);
+      expect(saved.formation.improper, isFalse);
+      // Meter, key and credits are kept whatever the form.
+      expect(saved.meter, '3/2');
+      expect(saved.interpreterIds, ['pat']);
+    });
   });
 
   group('sectioned layout —', () {

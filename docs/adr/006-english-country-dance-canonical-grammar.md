@@ -1242,8 +1242,9 @@ recommendation; the answer is quoted.
    like Composed; store both for every form and show them up front for ECD;
    ship them as a second change inside the same unreleased database
    version. Answer: "Go with your recommendation." They are stored as
-   `Dance.interpreterIds` and `Dance.interpretedOn` (storage.md, v42); the
-   editor fields are W5's.
+   `Dance.interpreterIds` and `Dance.interpretedOn` (storage.md, v42). The
+   dance editor shows them, with the Composed date, beside the authors for
+   an English dance, and in More details for other forms.
 
 ### 9.3 Figures from a caller's notes
 

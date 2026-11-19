@@ -45,7 +45,11 @@ Future<void> _pumpEditor(
   CompendiumRepositories repos, {
   String? danceId,
 }) async {
-  await tester.binding.setSurfaceSize(const Size(1200, 2400));
+  // Tall enough that More details, which grew with the meter, key and
+  // interpretation fields, lays out within the lazy ListView's cache extent;
+  // past it `ensureVisible` under-scrolls the last fields (as in
+  // dance_editor_screen_test.dart).
+  await tester.binding.setSurfaceSize(const Size(1200, 3200));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
   addTearDown(notifier.dispose);

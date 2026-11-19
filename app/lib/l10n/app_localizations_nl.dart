@@ -4136,6 +4136,12 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorMusicalKeyLabel => 'Toonsoort';
 
   @override
+  String get danceEditorMeterHint => 'bijv. 3/2';
+
+  @override
+  String get danceEditorMusicalKeyHint => 'bijv. g mineur';
+
+  @override
   String get commonMixedLevel => 'Gemengd niveau';
 
   @override
@@ -5129,6 +5135,10 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceCanonicalToggleLabel => 'Canoniek';
 
   @override
+  String get danceRoleTermsOverrideNote =>
+      'Weergegeven met larks en robins: de auteur heeft gevraagd deze dans alleen ooit met die roltermen te callen, dus de roltermen van je dialect worden hier niet gebruikt.';
+
+  @override
   String danceProvenanceVia(String source) {
     return 'via $source';
   }
@@ -5395,6 +5405,37 @@ class AppLocalizationsNl extends AppLocalizations {
   String programsDeletedSnack(String title) {
     return '“$title” verwijderd.';
   }
+
+  @override
+  String get programsArchive => 'Archiveren';
+
+  @override
+  String get programsUnarchive => 'Uit archief halen';
+
+  @override
+  String programsArchivedSnack(String title) {
+    return '“$title” gearchiveerd.';
+  }
+
+  @override
+  String programsUnarchivedSnack(String title) {
+    return '“$title” uit het archief gehaald.';
+  }
+
+  @override
+  String get programsArchivedLabel => 'Gearchiveerd';
+
+  @override
+  String get programsShowArchived => 'Gearchiveerde tonen';
+
+  @override
+  String get programsHideArchived => 'Gearchiveerde verbergen';
+
+  @override
+  String get programsAllArchivedTitle => 'Geen programma\'s om te tonen';
+
+  @override
+  String get programsAllArchivedBody => 'Al je programma\'s zijn gearchiveerd.';
 
   @override
   String get programsDiscardTitle => 'Wijzigingen verwerpen?';
@@ -8545,6 +8586,13 @@ class AppLocalizationsNl extends AppLocalizations {
       'Dansers wisselen elke keer van partner';
 
   @override
+  String get danceEditorImproperLabel => 'Begint improper';
+
+  @override
+  String get danceEditorImproperSubtitle =>
+      'Laat leeg voor een dans die proper begint.';
+
+  @override
   String get danceEditorComposedLabel => 'Gecomponeerd';
 
   @override
@@ -8556,6 +8604,10 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get danceEditorInterpretedOnLabel => 'Geïnterpreteerd';
+
+  @override
+  String get danceEditorInterpretedOnHelper =>
+      'Wanneer de dans is geïnterpreteerd (jaar, of voeg maand/dag toe)';
 
   @override
   String get danceEditorRevisedLabel => 'Herzien';

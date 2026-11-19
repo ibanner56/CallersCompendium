@@ -3915,6 +3915,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorMusicalKeyLabel => '調';
 
   @override
+  String get danceEditorMeterHint => '例: 3/2';
+
+  @override
+  String get danceEditorMusicalKeyHint => '例: ト短調';
+
+  @override
   String get commonMixedLevel => 'ミックスレベル';
 
   @override
@@ -4870,6 +4876,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceCanonicalToggleLabel => '正式用語';
 
   @override
+  String get danceRoleTermsOverrideNote =>
+      'larks と robins で表示しています。作者がこのダンスを常にこの役割名でコールするよう求めているため、ここではあなたのダイアレクトの役割名は使われません。';
+
+  @override
   String danceProvenanceVia(String source) {
     return '$source経由';
   }
@@ -5124,6 +5134,37 @@ class AppLocalizationsJa extends AppLocalizations {
   String programsDeletedSnack(String title) {
     return '「$title」を削除しました。';
   }
+
+  @override
+  String get programsArchive => 'アーカイブ';
+
+  @override
+  String get programsUnarchive => 'アーカイブを解除';
+
+  @override
+  String programsArchivedSnack(String title) {
+    return '「$title」をアーカイブしました。';
+  }
+
+  @override
+  String programsUnarchivedSnack(String title) {
+    return '「$title」のアーカイブを解除しました。';
+  }
+
+  @override
+  String get programsArchivedLabel => 'アーカイブ済み';
+
+  @override
+  String get programsShowArchived => 'アーカイブ済みを表示';
+
+  @override
+  String get programsHideArchived => 'アーカイブ済みを非表示';
+
+  @override
+  String get programsAllArchivedTitle => '表示するプログラムがありません';
+
+  @override
+  String get programsAllArchivedBody => 'すべてのプログラムがアーカイブされています。';
 
   @override
   String get programsDiscardTitle => '変更を破棄しますか？';
@@ -8137,6 +8178,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorMixerSubtitle => '踊るたびにパートナーが変わります';
 
   @override
+  String get danceEditorImproperLabel => 'インプロパーで始まる';
+
+  @override
+  String get danceEditorImproperSubtitle => 'プロパーで始まるダンスではチェックを外したままにします。';
+
+  @override
   String get danceEditorComposedLabel => '振付年';
 
   @override
@@ -8147,6 +8194,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get danceEditorInterpretedOnLabel => '解釈年';
+
+  @override
+  String get danceEditorInterpretedOnHelper => 'ダンスが解釈された日時（年、または月/日を追加）';
 
   @override
   String get danceEditorRevisedLabel => '改訂年';

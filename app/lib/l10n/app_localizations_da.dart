@@ -4107,6 +4107,12 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceEditorMusicalKeyLabel => 'Toneart';
 
   @override
+  String get danceEditorMeterHint => 'f.eks. 3/2';
+
+  @override
+  String get danceEditorMusicalKeyHint => 'f.eks. g-mol';
+
+  @override
   String get commonMixedLevel => 'Blandet niveau';
 
   @override
@@ -5100,6 +5106,10 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceCanonicalToggleLabel => 'Kanonisk';
 
   @override
+  String get danceRoleTermsOverrideNote =>
+      'Vist med larks og robins: forfatteren har bedt om, at denne dans kun nogensinde kaldes med de rollebetegnelser, så din dialekts rollebetegnelser bruges ikke her.';
+
+  @override
   String danceProvenanceVia(String source) {
     return 'via $source';
   }
@@ -5363,6 +5373,37 @@ class AppLocalizationsDa extends AppLocalizations {
   String programsDeletedSnack(String title) {
     return '„$title“ slettet.';
   }
+
+  @override
+  String get programsArchive => 'Arkivér';
+
+  @override
+  String get programsUnarchive => 'Fjern fra arkiv';
+
+  @override
+  String programsArchivedSnack(String title) {
+    return '„$title“ arkiveret.';
+  }
+
+  @override
+  String programsUnarchivedSnack(String title) {
+    return '„$title“ fjernet fra arkivet.';
+  }
+
+  @override
+  String get programsArchivedLabel => 'Arkiveret';
+
+  @override
+  String get programsShowArchived => 'Vis arkiverede';
+
+  @override
+  String get programsHideArchived => 'Skjul arkiverede';
+
+  @override
+  String get programsAllArchivedTitle => 'Ingen programmer at vise';
+
+  @override
+  String get programsAllArchivedBody => 'Alle dine programmer er arkiveret.';
 
   @override
   String get programsDiscardTitle => 'Kassér ændringer?';
@@ -8486,6 +8527,13 @@ class AppLocalizationsDa extends AppLocalizations {
       'Danserne skifter partner hver gang igennem';
 
   @override
+  String get danceEditorImproperLabel => 'Starter improper';
+
+  @override
+  String get danceEditorImproperSubtitle =>
+      'Lad den være tom for en dans, der starter proper.';
+
+  @override
   String get danceEditorComposedLabel => 'Komponeret';
 
   @override
@@ -8497,6 +8545,10 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get danceEditorInterpretedOnLabel => 'Fortolket';
+
+  @override
+  String get danceEditorInterpretedOnHelper =>
+      'Hvornår dansen blev fortolket (år, eller tilføj måned/dag)';
 
   @override
   String get danceEditorRevisedLabel => 'Revideret';

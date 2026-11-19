@@ -284,10 +284,16 @@ class DelayedProgramRepository extends ProgramRepository {
   }
 
   @override
-  Future<Program> updateAndReadBack(Program program) async {
+  Future<Program> updateAndReadBack(
+    Program program, {
+    bool keepStoredArchivedAt = false,
+  }) async {
     await _beforeWrite();
     if (_shouldFailWrite) throw const InjectedProgramFailure();
-    return super.updateAndReadBack(program);
+    return super.updateAndReadBack(
+      program,
+      keepStoredArchivedAt: keepStoredArchivedAt,
+    );
   }
 
   /// Held by [holdNextWrite] like any other write. The hold sits before the
@@ -435,9 +441,15 @@ class FailingProgramRepository extends ProgramRepository {
   }
 
   @override
-  Future<Program> updateAndReadBack(Program program) async {
+  Future<Program> updateAndReadBack(
+    Program program, {
+    bool keepStoredArchivedAt = false,
+  }) async {
     _checkWrite();
-    return super.updateAndReadBack(program);
+    return super.updateAndReadBack(
+      program,
+      keepStoredArchivedAt: keepStoredArchivedAt,
+    );
   }
 
   @override

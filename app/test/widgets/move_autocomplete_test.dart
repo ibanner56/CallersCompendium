@@ -63,6 +63,48 @@ void main() {
       expect(find.byKey(const ValueKey('move-option-circle')), findsNothing);
     });
 
+    testWidgets('an ECD dance offers only its own form\'s figures', (
+      tester,
+    ) async {
+      // ADR-006 §12.2, S1: contra's swing has no ECD counterpart, so an ECD
+      // dance is not offered it at all, alone or among others.
+      await _pump(
+        tester,
+        taxonomy: shippedTaxonomies.forForm(DanceForm.ecd),
+        includeAliases: true,
+      );
+      await tester.enterText(find.byKey(const ValueKey('move-input')), 'swing');
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('move-option-swing')), findsNothing);
+      for (final id in contraTaxonomy.moves.keys) {
+        expect(
+          find.byKey(ValueKey('move-option-$id')),
+          findsNothing,
+          reason: 'contra\'s $id offered in an ECD dance',
+        );
+      }
+      // Positive control: the same field does offer ECD's own turn.
+      await tester.enterText(find.byKey(const ValueKey('move-input')), 'turn');
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('move-option-ecd_hand_turn')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a contra dance offers only contra\'s figures', (tester) async {
+      await _pump(
+        tester,
+        taxonomy: shippedTaxonomies.forForm(DanceForm.contra),
+      );
+      await tester.enterText(find.byKey(const ValueKey('move-input')), 'turn');
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('move-option-ecd_hand_turn')),
+        findsNothing,
+      );
+    });
+
     testWidgets('a search over every dance offers both, the other form named', (
       tester,
     ) async {

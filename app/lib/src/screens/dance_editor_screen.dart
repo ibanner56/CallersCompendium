@@ -178,6 +178,15 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     }
   }
 
+  /// Lets the controller re-check the dialect the dance is shown in, which
+  /// is lark and robin for the roles while its title and authors say its
+  /// choreographer asked for them (`dialectForDance`): after the title, the
+  /// authors or an author's name changed.
+  void _syncEditorDialect() {
+    if (!_dependenciesInitialized) return;
+    _controller.setAuthorNames(_choreographerNames);
+  }
+
   void _createController() {
     _controller = DanceEditorController(
       repositories: _repos,
@@ -186,6 +195,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       initialTitle: widget.initialTitle,
     );
     _controller.addListener(_onControllerChanged);
+    _controller.titleController.addListener(_syncEditorDialect);
     final shutdownController = EditorDraftShutdownScope.maybeOf(context);
     if (shutdownController != null) {
       _unregisterShutdownFlush = shutdownController.register(
@@ -231,6 +241,9 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   /// callback that outlived the route) is a no-op.
   void _onControllerChanged() {
     if (mounted) {
+      // The authors may have changed; a conversion this starts notifies
+      // again, and the second pass finds nothing left to change.
+      _syncEditorDialect();
       setState(_rebuildTagOptions);
     }
   }
@@ -320,6 +333,8 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
             _danceNamesById = data.danceNamesById;
             _sourcesById = data.sourcesById;
           });
+          // An author renamed elsewhere can change what the dance requires.
+          _syncEditorDialect();
         }
         completeInitialReadyOnce();
       },
@@ -345,6 +360,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     if (_dependenciesInitialized) {
       _unregisterShutdownFlush?.call();
       _controller.removeListener(_onControllerChanged);
+      _controller.titleController.removeListener(_syncEditorDialect);
       _controller.dispose();
       _moreDetailsController.dispose();
     }
@@ -865,6 +881,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       ];
       _choreographerNames = {..._choreographerNames, stored.id: stored.name};
     });
+    _syncEditorDialect();
   }
 
   /// Follows [merge] in the draft: every merged author becomes the survivor.
@@ -1158,6 +1175,10 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
         // the editor may have been disposed meanwhile.
         if (!mounted) return;
         _controller.addAuthor(id);
+      },
+      onAddInterpreter: (id) {
+        if (!mounted) return;
+        _controller.addInterpreter(id);
       },
       onAddTag: (id) {
         if (!mounted) return;

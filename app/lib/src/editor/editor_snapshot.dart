@@ -180,8 +180,11 @@ class EditorSnapshot {
     this.walkthrough = '',
     required this.phrase,
     required this.formationDetail,
+    this.meter = '',
+    this.musicalKey = '',
     required this.form,
     required this.formationShape,
+    this.improper = false,
     required this.progression,
     required this.status,
     this.level,
@@ -190,7 +193,9 @@ class EditorSnapshot {
     this.rating,
     this.composedOn,
     this.revisedOn,
+    this.interpretedOn,
     required this.authorIds,
+    this.interpreterIds = const [],
     required this.tagIds,
     required this.tunes,
     required this.links,
@@ -208,6 +213,7 @@ class EditorSnapshot {
   /// field is immutable.
   EditorSnapshot copyWith({
     List<String>? authorIds,
+    List<String>? interpreterIds,
     List<String>? tagIds,
     List<FigureDraftSnapshot>? figureDrafts,
     Dialect? textDialect,
@@ -220,8 +226,11 @@ class EditorSnapshot {
     walkthrough: walkthrough,
     phrase: phrase,
     formationDetail: formationDetail,
+    meter: meter,
+    musicalKey: musicalKey,
     form: form,
     formationShape: formationShape,
+    improper: improper,
     progression: progression,
     status: status,
     level: level,
@@ -230,9 +239,13 @@ class EditorSnapshot {
     rating: rating,
     composedOn: composedOn,
     revisedOn: revisedOn,
+    interpretedOn: interpretedOn,
     authorIds: authorIds == null
         ? this.authorIds
         : List.unmodifiable(authorIds),
+    interpreterIds: interpreterIds == null
+        ? this.interpreterIds
+        : List.unmodifiable(interpreterIds),
     tagIds: tagIds == null ? this.tagIds : List.unmodifiable(tagIds),
     tunes: tunes,
     links: links,
@@ -257,9 +270,19 @@ class EditorSnapshot {
   final String phrase;
   final String formationDetail;
 
+  /// The tune's written meter and key, as typed ([Dance.meter],
+  /// [Dance.musicalKey]).
+  final String meter;
+  final String musicalKey;
+
   // ---- Enum fields ----
   final DanceForm form;
   final FormationShape formationShape;
+
+  /// Whether the dance starts improper ([Formation.improper]). Kept as set
+  /// whatever the form, so switching to a form without the checkbox and back
+  /// restores it; only a form that records it saves it.
+  final bool improper;
   final Progression progression;
   final DanceStatus status;
 
@@ -282,8 +305,14 @@ class EditorSnapshot {
   /// Author revision date at partial precision; `null` when unspecified.
   final PartialDate? revisedOn;
 
+  /// When the dance was interpreted; `null` when unspecified.
+  final PartialDate? interpretedOn;
+
   // ---- Multi-value lists ----
   final List<String> authorIds;
+
+  /// Ordered ids of the people who interpreted the dance.
+  final List<String> interpreterIds;
   final List<String> tagIds;
   final List<String> tunes;
 

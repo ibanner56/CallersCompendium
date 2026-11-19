@@ -2494,6 +2494,198 @@ void main() {
     });
   });
 
+  group('archive / unarchive', () {
+    final at = DateTime.utc(2026, 5, 1, 12);
+
+    test('archive stamps archived_at and advances updated_at', () async {
+      await repo.create(sampleProgram());
+      expect(await repo.archive('p1', at: at), isTrue);
+      final stored = await repo.getById('p1');
+      expect(stored!.archivedAt, at);
+      expect(stored.isArchived, isTrue);
+      expect(stored.updatedAt, at);
+      expect(stored.title, 'Spring Dance 2026', reason: 'content untouched');
+    });
+
+    test('a stamp at or before updated_at still advances it', () async {
+      await repo.create(sampleProgram(updatedAt: DateTime.utc(2026, 6)));
+      await repo.archive('p1', at: DateTime.utc(2026, 1, 1));
+      final stored = await repo.getById('p1');
+      expect(stored!.updatedAt.isAfter(DateTime.utc(2026, 6)), isTrue);
+    });
+
+    test(
+      'archiving twice keeps the first stamp and reports no write',
+      () async {
+        await repo.create(sampleProgram());
+        await repo.archive('p1', at: at);
+        final first = await repo.getById('p1');
+        expect(
+          await repo.archive('p1', at: at.add(const Duration(days: 1))),
+          isFalse,
+        );
+        expect(await repo.getById('p1'), first);
+      },
+    );
+
+    test('unarchive clears archived_at and advances updated_at', () async {
+      await repo.create(sampleProgram());
+      await repo.archive('p1', at: at);
+      final archived = await repo.getById('p1');
+      final later = at.add(const Duration(hours: 1));
+      expect(await repo.unarchive('p1', at: later), isTrue);
+      final stored = await repo.getById('p1');
+      expect(stored!.archivedAt, isNull);
+      expect(stored.updatedAt.isAfter(archived!.updatedAt), isTrue);
+      expect(await repo.unarchive('p1', at: later), isFalse);
+    });
+
+    test('does not archive a missing or trashed program', () async {
+      expect(await repo.archive('missing', at: at), isFalse);
+      await repo.create(sampleProgram());
+      await repo.softDelete('p1', at: at);
+      expect(await repo.archive('p1', at: at), isFalse);
+      final stored = await repo.getById('p1', includeDeleted: true);
+      expect(stored!.archivedAt, isNull);
+    });
+
+    test('update and listAll round-trip archivedAt', () async {
+      await repo.create(sampleProgram().copyWith(archivedAt: at));
+      expect((await repo.getById('p1'))!.archivedAt, at);
+      expect((await repo.listAll()).single.archivedAt, at);
+      await repo.update(
+        (await repo.getById('p1'))!.copyWith(clearArchivedAt: true),
+      );
+      expect((await repo.getById('p1'))!.archivedAt, isNull);
+    });
+
+    test('an archived program still counts toward calling history', () async {
+      await dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Dance d1',
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      await repo.create(
+        sampleProgram(
+          eventDate: DateTime.utc(2026, 2, 1),
+          slots: [
+            ProgramSlot(
+              id: 's1',
+              position: 0,
+              danceId: 'd1',
+              performedAt: DateTime.utc(2026, 2, 1),
+            ),
+          ],
+        ),
+      );
+      final before = await repo.lastCalledByDance();
+      final countsBefore = await repo.countByDance();
+      await repo.archive('p1', at: at);
+      expect(await repo.lastCalledByDance(), before);
+      expect(before, isNotEmpty);
+      expect(await repo.countByDance(), countsBefore);
+      expect(await repo.callingHistoryForDance('d1'), hasLength(1));
+    });
+
+    test('updateAndReadBack(keepStoredArchivedAt) keeps an archive or '
+        'unarchive that landed after the caller read the program', () async {
+      await repo.create(sampleProgram());
+      final staleUnarchived = (await repo.getById('p1'))!;
+      // Archived after the caller's read, before its write.
+      await repo.archive('p1', at: at);
+      final archivedAt = (await repo.getById('p1'))!.archivedAt;
+      final saved = await repo.updateAndReadBack(
+        staleUnarchived.copyWith(
+          title: 'Edited',
+          updatedAt: at.add(const Duration(hours: 1)),
+        ),
+        keepStoredArchivedAt: true,
+      );
+      expect(saved.title, 'Edited');
+      expect(saved.archivedAt, archivedAt);
+
+      // And the other way round: unarchived after a read of the archived copy.
+      final staleArchived = saved;
+      await repo.unarchive('p1', at: at.add(const Duration(hours: 2)));
+      final resaved = await repo.updateAndReadBack(
+        staleArchived.copyWith(
+          title: 'Edited again',
+          updatedAt: at.add(const Duration(hours: 3)),
+        ),
+        keepStoredArchivedAt: true,
+      );
+      expect(resaved.title, 'Edited again');
+      expect(resaved.archivedAt, isNull);
+    });
+
+    test(
+      'updateAndReadBack without the flag writes the caller\'s value',
+      () async {
+        await repo.create(sampleProgram());
+        await repo.archive('p1', at: at);
+        final saved = await repo.updateAndReadBack(
+          (await repo.getById('p1'))!.copyWith(
+            clearArchivedAt: true,
+            updatedAt: at.add(const Duration(hours: 1)),
+          ),
+        );
+        expect(saved.archivedAt, isNull);
+      },
+    );
+
+    test('restore keeps an archived program archived unless asked to '
+        'unarchive it', () async {
+      await repo.create(sampleProgram(id: 'p1'));
+      await repo.create(sampleProgram(id: 'p2'));
+      for (final id in ['p1', 'p2']) {
+        await repo.archive(id, at: at);
+        await repo.softDelete(id, at: at.add(const Duration(hours: 1)));
+      }
+      final restoreAt = at.add(const Duration(hours: 2));
+
+      // An Undo right after a delete puts back exactly what was deleted.
+      await repo.restore('p1', at: restoreAt);
+      final kept = (await repo.getById('p1'))!;
+      expect(kept.isArchived, isTrue);
+
+      // Recently deleted restores it unarchived, stamped so the change syncs.
+      await repo.restore('p2', at: restoreAt, unarchive: true);
+      final restored = (await repo.getById('p2'))!;
+      expect(restored.isDeleted, isFalse);
+      expect(restored.isArchived, isFalse);
+      expect(restored.updatedAt.isAfter(kept.updatedAt), isTrue);
+    });
+
+    test('restore(unarchive) leaves a live archived program archived: a '
+        'stale Recently deleted row must not unarchive it', () async {
+      await repo.create(sampleProgram());
+      await repo.archive('p1', at: at);
+      await repo.restore(
+        'p1',
+        at: at.add(const Duration(hours: 1)),
+        unarchive: true,
+      );
+      expect((await repo.getById('p1'))!.isArchived, isTrue);
+    });
+
+    test('duplicating an archived program gives an unarchived copy', () async {
+      await repo.create(sampleProgram());
+      await repo.archive('p1', at: at);
+      var n = 0;
+      final copy = await repo.duplicate(
+        id: 'p1',
+        newId: 'p2',
+        newSlotId: () => 'slot-${n++}',
+        now: at,
+      );
+      expect(copy.archivedAt, isNull);
+      expect((await repo.getById('p2'))!.archivedAt, isNull);
+    });
+  });
+
   group('renameDialect', () {
     final stamp = DateTime.utc(2026, 6, 1);
 

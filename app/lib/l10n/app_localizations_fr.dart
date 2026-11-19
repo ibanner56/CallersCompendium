@@ -4166,6 +4166,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get danceEditorMusicalKeyLabel => 'Tonalité';
 
   @override
+  String get danceEditorMeterHint => 'ex. 3/2';
+
+  @override
+  String get danceEditorMusicalKeyHint => 'ex. sol mineur';
+
+  @override
   String get commonMixedLevel => 'Niveau mixte';
 
   @override
@@ -5166,6 +5172,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get danceCanonicalToggleLabel => 'Canonique';
 
   @override
+  String get danceRoleTermsOverrideNote =>
+      'Affichée avec larks et robins : l’auteur de cette danse a demandé qu’elle ne soit jamais annoncée qu’avec ces termes de rôle ; les termes de rôle de votre dialecte ne sont donc pas utilisés ici.';
+
+  @override
   String danceProvenanceVia(String source) {
     return 'via $source';
   }
@@ -5433,6 +5443,37 @@ class AppLocalizationsFr extends AppLocalizations {
   String programsDeletedSnack(String title) {
     return '« $title » supprimé.';
   }
+
+  @override
+  String get programsArchive => 'Archiver';
+
+  @override
+  String get programsUnarchive => 'Désarchiver';
+
+  @override
+  String programsArchivedSnack(String title) {
+    return '« $title » archivé.';
+  }
+
+  @override
+  String programsUnarchivedSnack(String title) {
+    return '« $title » désarchivé.';
+  }
+
+  @override
+  String get programsArchivedLabel => 'Archivé';
+
+  @override
+  String get programsShowArchived => 'Afficher les archivés';
+
+  @override
+  String get programsHideArchived => 'Masquer les archivés';
+
+  @override
+  String get programsAllArchivedTitle => 'Aucun programme à afficher';
+
+  @override
+  String get programsAllArchivedBody => 'Tous vos programmes sont archivés.';
 
   @override
   String get programsDiscardTitle => 'Abandonner les modifications ?';
@@ -8602,6 +8643,13 @@ class AppLocalizationsFr extends AppLocalizations {
       'Les danseurs changent de partenaire à chaque passage';
 
   @override
+  String get danceEditorImproperLabel => 'Commence improper';
+
+  @override
+  String get danceEditorImproperSubtitle =>
+      'Laissez décoché pour une danse qui commence proper.';
+
+  @override
   String get danceEditorComposedLabel => 'Composée';
 
   @override
@@ -8613,6 +8661,10 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get danceEditorInterpretedOnLabel => 'Interprétée';
+
+  @override
+  String get danceEditorInterpretedOnHelper =>
+      'Quand la danse a été interprétée (année, ou ajoutez mois/jour)';
 
   @override
   String get danceEditorRevisedLabel => 'Révisée';

@@ -199,6 +199,18 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   changed), or the last-used sort and direction if that mode is selected.
   Survives crossing the
   list/detail split-pane breakpoint, same as Collection above.
+- Archived programs are hidden from the list. The ⋮ menu's **Show archived**
+  (just above Recently deleted) lists them too, marked with an "Archived"
+  chip, and then reads **Hide archived**. The choice is session-only: it
+  survives opening programs and the builder and crossing the breakpoint, and
+  resets when another top-level destination is chosen or the app restarts.
+  A row's ⋮ menu offers Archive (Unarchive on an archived row) after
+  Duplicate; the summary and the builder offer it after Duplicate too, and
+  archiving there leaves the program as Delete does. On the wide layout, the
+  open program also closes when it stops being listed (archived from its row
+  or elsewhere, hidden by Hide archived, or by the Show archived reset when
+  Programs is left), including a selection handed over by a rotation. Restoring a program from Recently deleted
+  unarchives it; a delete's Undo does not.
 - Builder: two-pane — program (ordered slots) | collection picker with the
   same filter panel as Collection, including caller-scoped Called / Not called
   history filtering, and Collection's Search in, sort (session-only, opening in
@@ -374,8 +386,9 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   - **The record's name.** On a record screen with a top bar, the bar keeps its
     generic title and carries the record's actions; the full name keeps its own
     line in the body. The full-screen program summary does this ("Program";
-    Export, Mark all performed, Duplicate and Delete in the bar, Perform as a
-    full-width body button; below 600 dp the last three fold into the existing
+    Export, Mark all performed, Duplicate, Archive and Delete in the bar,
+    Perform as a full-width body button; below 600 dp the last four fold into
+    the existing
     "⋮" menu). Dance detail already shows the name in a body card. The wide
     Programs split pane has no top bar and keeps its actions on the name's row
     in the body; whether it should change is a separate maintainer call.

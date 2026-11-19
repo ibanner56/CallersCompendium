@@ -853,6 +853,28 @@ steps that can still fire are v40 onward.
   creates the table only if absent; it starts empty. Search by interpreter is
   still to come (ADR-006 W7).
 
+  Also in v42, before it shipped: program archiving (#2218). Adds the
+  nullable `programs.archived_at` column
+  (`Program.archivedAt`); NULL, which every existing row gets, means not
+  archived. Archiving hides a program from the Programs list (unless "Show
+  archived" is on) and from the Add to program sheet; calling history, Last
+  called and the venue counts still count it, and search still finds it. It is
+  an ordinary content edit: `ProgramRepository.archive` and `unarchive` advance
+  `updated_at` and leave `existence_at` alone. Device Sync and backups carry
+  it; program share files drop it (`sanitizeProgramForShare`). The archive
+  key is written only when set, so an unarchived program keeps its sync wire
+  hash, and a backup holding an archived program is written under backup
+  envelope v3 (`backupSchemaVersionArchivedPrograms`), so 0.5.2 to 0.10.0
+  refuse to replace-restore it instead of restoring its archived programs
+  unarchived (builds before 0.5.2 do not check, and a merge restore on an older
+  build stays best-effort and drops the field, as for pay); archiving raises
+  no core archive version. A Caller's Companion re-import keeps a
+  program's archived state, as it keeps its venue link. A restore from
+  Recently deleted clears it (`restore(unarchive: true)`, which stamps like
+  `unarchive`); a delete's Undo does not. Added by the same `from < 42`
+  step with `Migrator.addColumn`, guarded on `pragma_table_info`. No data
+  rewritten, no derived rebuild.
+
 ## The delete model
 
 Every syncable kind — dances, programs, choreographers, tags, published

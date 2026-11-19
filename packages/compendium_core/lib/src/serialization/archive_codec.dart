@@ -952,6 +952,7 @@ Program _programFromJson(Map<String, Object?> m) => Program(
   createdAt: _dt(m, 'createdAt'),
   updatedAt: _dt(m, 'updatedAt'),
   deletedAt: _dtOrNull(m, 'deletedAt'),
+  archivedAt: _dtOrNull(m, 'archivedAt'),
 );
 
 List<ProgramSlot> _programSlotsFromJson(Object? raw) {

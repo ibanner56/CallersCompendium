@@ -6400,6 +6400,18 @@ abstract class AppLocalizations {
   /// **'Key'**
   String get danceEditorMusicalKeyLabel;
 
+  /// Hint in the dance editor's meter field: an example of a written meter.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. 3/2'**
+  String get danceEditorMeterHint;
+
+  /// Hint in the dance editor's key field: an example of a musical key.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. G minor'**
+  String get danceEditorMusicalKeyHint;
+
   /// Label indicating a dance suits mixed experience levels; used as a filter chip/section and a dance indicator chip.
   ///
   /// In en, this message translates to:
@@ -7730,7 +7742,7 @@ abstract class AppLocalizations {
   /// **'More actions'**
   String get danceMoreActions;
 
-  /// Tooltip for the overflow (⋮) menu holding Mark all performed, Duplicate and Delete on the program builder's and summary's narrow toolbars.
+  /// Tooltip for the overflow (⋮) menu holding Mark all performed, Duplicate, Archive and Delete on the program builder's and summary's narrow toolbars.
   ///
   /// In en, this message translates to:
   /// **'More actions'**
@@ -7855,6 +7867,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Canonical'**
   String get danceCanonicalToggleLabel;
+
+  /// Note on a dance's detail page when the dance is shown with the role terms 'larks' and 'robins' instead of the role terms of the user's dialect, because its author asked that it only be called with those terms. 'larks' and 'robins' are the role terms the dance is shown with, which stay in English in the dance, so keep them as written.
+  ///
+  /// In en, this message translates to:
+  /// **'Shown with larks and robins: the author has asked that this dance only ever be called with those role terms, so your dialect\'s role terms are not used here.'**
+  String get danceRoleTermsOverrideNote;
 
   /// Provenance line prefix naming where the dance came from.
   ///
@@ -8205,6 +8223,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'\"{title}\" deleted.'**
   String programsDeletedSnack(String title);
+
+  /// Action that archives a program: hides it from the Programs list without deleting it. Shown in a program row's ⋮ menu, and as a toolbar button tooltip (or ⋮ menu item on narrow screens) on the program summary and the program builder.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive'**
+  String get programsArchive;
+
+  /// Action that reverses Archive on an archived program, so it shows in the Programs list again. Shown in the same places as programsArchive.
+  ///
+  /// In en, this message translates to:
+  /// **'Unarchive'**
+  String get programsUnarchive;
+
+  /// Snackbar confirming a program was archived, quoting its title. Paired with an Undo action.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{title}\" archived.'**
+  String programsArchivedSnack(String title);
+
+  /// Snackbar confirming an archived program was unarchived and is back in the Programs list, quoting its title.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{title}\" unarchived.'**
+  String programsUnarchivedSnack(String title);
+
+  /// Label marking a program as archived: the chip on its row in the Programs list and on its summary, and the field name when Sync compares two versions of a program.
+  ///
+  /// In en, this message translates to:
+  /// **'Archived'**
+  String get programsArchivedLabel;
+
+  /// Programs list ⋮ menu item (and empty-state button) that also lists archived programs, alongside the others.
+  ///
+  /// In en, this message translates to:
+  /// **'Show archived'**
+  String get programsShowArchived;
+
+  /// Programs list ⋮ menu item, shown while archived programs are listed, that hides them again.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide archived'**
+  String get programsHideArchived;
+
+  /// Title of the empty state when every program is archived: on the Programs list while archived programs are hidden, and in the add-to-program sheet, which never offers archived programs.
+  ///
+  /// In en, this message translates to:
+  /// **'No programs to show'**
+  String get programsAllArchivedTitle;
+
+  /// Body of the empty state when every program is archived. On the Programs list (while archived programs are hidden) it is followed by Show archived and New program buttons; in the add-to-program sheet it sits below the pinned New program row.
+  ///
+  /// In en, this message translates to:
+  /// **'All your programs are archived.'**
+  String get programsAllArchivedBody;
 
   /// Title of the confirm dialog shown when leaving the program editor with unsaved changes.
   ///
@@ -12598,6 +12670,18 @@ abstract class AppLocalizations {
   /// **'Dancers change partners each time through'**
   String get danceEditorMixerSubtitle;
 
+  /// Checkbox in the dance editor, offered for English country dances only: the dance starts improper (the first couple crossed over). Unchecked means it starts proper, the default.
+  ///
+  /// In en, this message translates to:
+  /// **'Starts improper'**
+  String get danceEditorImproperLabel;
+
+  /// Subtitle of the 'Starts improper' checkbox in the dance editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave unchecked for a dance that starts proper.'**
+  String get danceEditorImproperSubtitle;
+
   /// Label for the partial date when the dance was composed.
   ///
   /// In en, this message translates to:
@@ -12621,6 +12705,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Interpreted in'**
   String get danceEditorInterpretedOnLabel;
+
+  /// Helper text for the interpreted-date field, like the composed-date field's helper.
+  ///
+  /// In en, this message translates to:
+  /// **'When the dance was interpreted (year, or add month/day)'**
+  String get danceEditorInterpretedOnHelper;
 
   /// Label for the partial date when the dance was last revised.
   ///

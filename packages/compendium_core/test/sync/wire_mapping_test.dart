@@ -860,6 +860,7 @@ const _valuePairs = <String, List<Object?>>{
   'programs.created_at': _earlier,
   'programs.updated_at': _earlier,
   'programs.deleted_at': _earlier,
+  'programs.archived_at': _earlier,
   'program_slots.position': [0, 1],
   'program_slots.is_alt': [false, true],
   'program_slots.is_purged_dance': [false, true],
@@ -1155,6 +1156,7 @@ class _Fixture {
     createdAt: _date('programs.created_at'),
     updatedAt: _date('programs.updated_at'),
     deletedAt: _date('programs.deleted_at'),
+    archivedAt: _date('programs.archived_at'),
   );
 
   StoredUserGlossaryEntry glossaryEntry() => StoredUserGlossaryEntry(

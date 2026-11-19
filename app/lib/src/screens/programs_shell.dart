@@ -22,7 +22,12 @@ import '../theme/app_breakpoints.dart';
 ///   opens the **full-screen** builder route (not embedded) so the builder's
 ///   slots | picker two-pane gets the full content width.
 class ProgramsShell extends StatefulWidget {
-  const ProgramsShell({super.key});
+  const ProgramsShell({super.key, this.isActive = true});
+
+  /// Whether Programs is the app shell's current destination, handed to
+  /// [ProgramsListScreen.isActive]: leaving Programs hides archived programs
+  /// again.
+  final bool isActive;
 
   static const double listPaneWidth = 400;
 
@@ -51,7 +56,9 @@ class _ProgramsShellState extends State<ProgramsShell> {
   /// pane that launches Perform is rebuilt on every breakpoint crossing while
   /// Perform stays open on top, so the place is kept here, keyed by program
   /// id, and dropped when the program is closed: another program selected,
-  /// the program deleted, or the narrow summary left.
+  /// the program deleted or archived, the program hidden from the list (see
+  /// [ProgramsListScreen.onSelectedProgramHidden]), or the narrow summary
+  /// left.
   final _performResume = PerformResumeStore();
 
   /// Selects [id] (or nothing), closing the program selected before.
@@ -75,7 +82,8 @@ class _ProgramsShellState extends State<ProgramsShell> {
     // No refresh request: both panes are stream-driven (issue #768), so the
     // builder's own write is what reloads them. Only the selection changes
     // here, and that is this shell's state rather than either pane's data.
-    if (result == 'deleted') {
+    // Archive leaves the builder the way Delete does, and closes the program.
+    if (result == 'deleted' || result == 'archived') {
       _select(null);
     } else if (result != null) {
       _select(result);
@@ -100,6 +108,7 @@ class _ProgramsShellState extends State<ProgramsShell> {
         return ProgramsListScreen(
           key: _listKey,
           performResumeStore: _performResume,
+          isActive: widget.isActive,
         );
       },
     );
@@ -119,6 +128,8 @@ class _ProgramsShellState extends State<ProgramsShell> {
               onCreateProgram: () => _openBuilder(context),
               selectedProgramId: _selectedProgramId,
               performResumeStore: _performResume,
+              isActive: widget.isActive,
+              onSelectedProgramHidden: () => _select(null),
             ),
           ),
         ),

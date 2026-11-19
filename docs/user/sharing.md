@@ -72,6 +72,11 @@ dialect first — see [Dialect](./dialects.md#switch-dialect-on-the-fly). If
 are also shown in current wording — see
 [Discouraged terms](./dialects.md#discouraged-terms).
 
+One exception: a dance whose author has asked that it only be called with
+**larks** and **robins** exports with those role terms whatever your dialect,
+and switching dialect does not change them. The rest of your dialect still
+applies — see [Good to know](./dialects.md#good-to-know).
+
 The field labels around the content — *Formation*, *Level*, *Figures*, *Calling
 notes*, and so on — follow the app's language setting, not your dialect.
 
@@ -206,9 +211,10 @@ evening to another caller. It builds a single self-contained file — a
 - the program's linked [venue](./glossary.md#venue), if it has one.
 
 The file leaves out what is private to you: the program's **Pay**, its
-**Perform dialect**, and the star **rating** on each dance. Those stay on your
-own devices and in your [backup](./backup-portability.md), and still move with
-Device Sync. Pay is never part of the shared set-list text or PDF either.
+**Perform dialect**, whether you [archived](./programs.md#create-and-manage-programs)
+it, and the star **rating** on each dance. Those stay on your own devices and in
+your [backup](./backup-portability.md), and still move with Device Sync. A
+program you archived arrives unarchived, so it shows in the other caller's list. Pay is never part of the shared set-list text or PDF either.
 
 On Linux the system has no file share sheet, so this action is labeled **Save
 program file…** and saves the file through the system dialog instead.
@@ -357,9 +363,9 @@ leave, and one thing asks you first.
   [Write & edit dances](./authoring.md#author-and-source-details-are-shared). The
   author's name, website, and notes do travel.
 
-- **Your pay, Perform dialect and star ratings.** A program file leaves out the
-  program's **Pay** and its **Perform dialect**, and every share file leaves
-  out your star rating of a dance. They stay on your devices, still move with
+- **Your pay, Perform dialect, archived state and star ratings.** A program
+  file leaves out the program's **Pay**, its **Perform dialect** and whether you
+  archived it, and every share file leaves out your star rating of a dance. They stay on your devices, still move with
   Device Sync, and are kept in a [backup](./backup-portability.md).
 
 - **Your notes on your own figures.** A shared file carries each of

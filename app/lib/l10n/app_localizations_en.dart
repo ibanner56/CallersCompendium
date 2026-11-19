@@ -4076,6 +4076,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get danceEditorMusicalKeyLabel => 'Key';
 
   @override
+  String get danceEditorMeterHint => 'e.g. 3/2';
+
+  @override
+  String get danceEditorMusicalKeyHint => 'e.g. G minor';
+
+  @override
   String get commonMixedLevel => 'Mixed level';
 
   @override
@@ -5065,6 +5071,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get danceCanonicalToggleLabel => 'Canonical';
 
   @override
+  String get danceRoleTermsOverrideNote =>
+      'Shown with larks and robins: the author has asked that this dance only ever be called with those role terms, so your dialect\'s role terms are not used here.';
+
+  @override
   String danceProvenanceVia(String source) {
     return 'via $source';
   }
@@ -5327,6 +5337,37 @@ class AppLocalizationsEn extends AppLocalizations {
   String programsDeletedSnack(String title) {
     return '\"$title\" deleted.';
   }
+
+  @override
+  String get programsArchive => 'Archive';
+
+  @override
+  String get programsUnarchive => 'Unarchive';
+
+  @override
+  String programsArchivedSnack(String title) {
+    return '\"$title\" archived.';
+  }
+
+  @override
+  String programsUnarchivedSnack(String title) {
+    return '\"$title\" unarchived.';
+  }
+
+  @override
+  String get programsArchivedLabel => 'Archived';
+
+  @override
+  String get programsShowArchived => 'Show archived';
+
+  @override
+  String get programsHideArchived => 'Hide archived';
+
+  @override
+  String get programsAllArchivedTitle => 'No programs to show';
+
+  @override
+  String get programsAllArchivedBody => 'All your programs are archived.';
 
   @override
   String get programsDiscardTitle => 'Discard changes?';
@@ -8451,6 +8492,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Dancers change partners each time through';
 
   @override
+  String get danceEditorImproperLabel => 'Starts improper';
+
+  @override
+  String get danceEditorImproperSubtitle =>
+      'Leave unchecked for a dance that starts proper.';
+
+  @override
   String get danceEditorComposedLabel => 'Composed';
 
   @override
@@ -8462,6 +8510,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get danceEditorInterpretedOnLabel => 'Interpreted in';
+
+  @override
+  String get danceEditorInterpretedOnHelper =>
+      'When the dance was interpreted (year, or add month/day)';
 
   @override
   String get danceEditorRevisedLabel => 'Revised';

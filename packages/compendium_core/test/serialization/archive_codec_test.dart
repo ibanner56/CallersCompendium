@@ -1186,6 +1186,52 @@ void main() {
     });
   });
 
+  group('program archivedAt (schema v42)', () {
+    final bare = Program(
+      id: 'p',
+      title: 'T',
+      createdAt: DateTime.utc(2026),
+      updatedAt: DateTime.utc(2026),
+    );
+
+    test('the key is omitted when not archived, in every mode, so an '
+        'unarchived program keeps its wire hash', () {
+      for (final mode in [false, true]) {
+        final json = archiveProgramToJson(bare, includeOptionalFields: mode);
+        expect(json, isNot(contains('archivedAt')));
+      }
+    });
+
+    test('round-trips through an archive', () {
+      final archivedAt = DateTime.utc(2026, 4, 5, 6, 7, 8);
+      final json = archiveProgramToJson(
+        bare.copyWith(archivedAt: archivedAt),
+        includeOptionalFields: true,
+      );
+      expect(json['archivedAt'], '2026-04-05T06:07:08.000Z');
+      final decoded = decodeArchive(
+        jsonEncode({
+          'schemaVersion': archiveSchemaVersion,
+          'exportedAt': '2026-04-05T00:00:00.000Z',
+          'programs': [json],
+        }),
+      );
+      expect(decoded.hasErrors, isFalse);
+      expect(decoded.archive.programs.single.archivedAt, archivedAt);
+    });
+
+    test('an archive without the key decodes as not archived', () {
+      final decoded = decodeArchive(
+        jsonEncode({
+          'schemaVersion': archiveSchemaVersion,
+          'exportedAt': '2026-04-05T00:00:00.000Z',
+          'programs': [archiveProgramToJson(bare)],
+        }),
+      );
+      expect(decoded.archive.programs.single.archivedAt, isNull);
+    });
+  });
+
   group('venue serialization', () {
     // A program that references an embedded venue, plus a standalone venue.
     CompendiumArchive archiveWithVenues() {

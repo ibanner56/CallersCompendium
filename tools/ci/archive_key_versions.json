@@ -116,6 +116,7 @@
     "dialectName": "backupSchemaVersionProgramPay",
     "payMinorUnits": "backupSchemaVersionProgramPay",
     "payCurrency": "backupSchemaVersionProgramPay",
+    "archivedAt": "backupSchemaVersionArchivedPrograms",
     "slots": "baseline",
     "provenance": "baseline",
     "createdAt": "baseline",
