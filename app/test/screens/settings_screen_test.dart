@@ -1184,6 +1184,21 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
+    testWidgets('a 360 pt phone also gets two columns', (tester) async {
+      await _pumpSettings(tester, surfaceSize: const Size(360, 9000));
+      await tester.tap(find.byKey(const ValueKey('settings-nav-appearance')));
+      await tester.pumpAndSettle();
+
+      final light = tester.getRect(
+        find.byKey(ValueKey('theme-${AppThemeSelection.light.name}')),
+      );
+      final dark = tester.getRect(
+        find.byKey(ValueKey('theme-${AppThemeSelection.dark.name}')),
+      );
+      expect(light.top, dark.top);
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('large text on a phone: cards go full width, no overflow', (
       tester,
     ) async {

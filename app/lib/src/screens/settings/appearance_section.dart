@@ -261,11 +261,16 @@ class _ThemeGallery extends StatelessWidget {
 /// (3 x 26 + 2 x 8 + 22 = 116 points, plus a gap before the demo).
 const double _focusDemoMinWidth = 124;
 
+/// Narrowest card that still holds the swatch's three chips (94 points) inside
+/// the card's padding. 150 keeps two columns on a 360-point phone, where each
+/// column is 158.
+const double _minTwoColumnCardWidth = 150;
+
 /// Width of one theme card in a gallery row [available] points wide.
 ///
 /// Wide panes keep the fixed 220-point cards in a wrapping row. Narrower panes
 /// (a phone) use two equal columns, or a single full-width column when two
-/// would be too tight for the card's own contents: below 160 points a card, or
+/// would be too tight for the card's own contents: below [_minTwoColumnCardWidth] a card, or
 /// at larger text sizes, where the label and "Selected" badge need the room.
 double themeCardWidth(
   double available,
@@ -276,7 +281,8 @@ double themeCardWidth(
   const gap = 12.0;
   if (available >= 2 * fixed + gap) return fixed;
   final half = ((available - gap) / 2).floorToDouble();
-  if (allowTwoColumns && textScale <= 1.3 && half >= 160) return half;
+  if (allowTwoColumns && textScale <= 1.3 && half >= _minTwoColumnCardWidth)
+    return half;
   return available;
 }
 

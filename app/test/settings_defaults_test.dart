@@ -66,6 +66,26 @@ class _TransactionCounter extends drift.QueryInterceptor {
   }
 }
 
+/// Holds the first write to the difficulty-level table open until released, so
+/// a test can tap again while a reorder is still being written.
+class _GateLevelWrites extends drift.QueryInterceptor {
+  Completer<void>? gate;
+
+  @override
+  Future<int> runUpdate(
+    drift.QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) async {
+    final held = gate;
+    if (held != null && statement.contains('difficulty_level')) {
+      gate = null;
+      await held.future;
+    }
+    return super.runUpdate(executor, statement, args);
+  }
+}
+
 /// A [SettingsRepository] whose reads can be held open per key. The value is
 /// captured *before* the gate, so a released read resolves with what storage
 /// held when the read began — exactly the late read a user edit must beat.
@@ -786,6 +806,46 @@ void main() {
       (await repos.difficultyLevels.listAll()).map((l) => l.id).toList(),
       before,
     );
+  });
+
+  testWidgets('a second move while a reorder is being written is ignored', (
+    tester,
+  ) async {
+    final gated = _GateLevelWrites();
+    final repos = CompendiumRepositories(
+      openWidgetTestDatabase(
+        executor: NativeDatabase.memory().interceptWith(gated),
+      ),
+      contraTaxonomy,
+    );
+    await _pumpDefaults(tester, repos);
+    await _openDifficultySection(tester);
+    final before = (await repos.difficultyLevels.listAll())
+        .map((l) => l.id)
+        .toList();
+
+    final release = Completer<void>();
+    gated.gate = release;
+    await tester.tap(
+      find.byKey(ValueKey('difficulty-level-${before[0]}-move-down')),
+    );
+    await tester.pump();
+    // The first write is still held open; the list already shows the move, so
+    // the former second level is now first. Moving it down would undo the
+    // first move if it were accepted.
+    await tester.tap(
+      find.byKey(ValueKey('difficulty-level-${before[1]}-move-down')),
+    );
+    await tester.pump();
+
+    release.complete();
+    await tester.pumpAndSettle();
+
+    expect((await repos.difficultyLevels.listAll()).map((l) => l.id).toList(), [
+      before[1],
+      before[0],
+      ...before.skip(2),
+    ]);
   });
 
   testWidgets('deleting an unused difficulty level offers Undo, which brings '
