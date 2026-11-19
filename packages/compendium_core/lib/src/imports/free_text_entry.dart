@@ -388,6 +388,14 @@ Figure _withUnreadCount(Figure figure, String token) => figure.copyWith(
 /// they fill that derived count in when they insert the figures
 /// (`FigureDraft.fromFreeTextFigure`).
 ///
+/// When [taxonomy] is an English Country Dance's
+/// (`shippedTaxonomies.forForm(DanceForm.ecd)`), the line is read by the ECD
+/// grammar ([recognizeEcdLine], ADR-006 W6) in place of the contra
+/// front-ends, the typed-name lookup and the beat-implied balances, so it never
+/// becomes a contra move; shorthands, counts and `;` clauses work as above.
+/// [formationShape] is the dance's shape, from which a circle's or star's
+/// fraction is read as a number of places ([ecdRingDancers]).
+///
 /// Returns an empty list when the line is empty after trimming/scrubbing
 /// (nothing to insert) or when it exceeds [maxFreeTextEntryLength] (treated as
 /// malformed/hostile input). Matched lines yield structured taxonomy figures;

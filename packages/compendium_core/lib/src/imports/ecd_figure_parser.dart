@@ -1,11 +1,3 @@
-import '../model/figure.dart';
-import '../model/formation.dart';
-import '../taxonomy/ecd_taxonomy.dart';
-import '../validation/validation.dart';
-import 'figure_parser.dart' show combineFigureNotes;
-import 'figure_text_scrub.dart';
-import 'structured_draft.dart';
-
 /// The English Country Dance line parser (ADR-006, workstream W6): reads one
 /// typed or imported figure line of an ECD dance into figures of the ECD
 /// taxonomy ([ecdTaxonomy]), and never into contra moves.
@@ -47,6 +39,15 @@ import 'structured_draft.dart';
 /// Role words arrive canonical: [scrubFigureText] turns gendered terms into
 /// `role1`/`role2`, and free-text entry retries a line with the dialect's own
 /// role words read the same way.
+library;
+
+import '../model/figure.dart';
+import '../model/formation.dart';
+import '../taxonomy/ecd_taxonomy.dart';
+import '../validation/validation.dart';
+import 'figure_parser.dart' show combineFigureNotes;
+import 'figure_text_scrub.dart';
+import 'structured_draft.dart';
 
 /// How many dancers a ring holds in a dance of [shape], or null when the
 /// shape does not settle it. ADR-006 §7.3 derives a circle's or star's

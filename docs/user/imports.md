@@ -419,7 +419,10 @@ The import now reads that choreography, so a migrated dance arrives with real
 A1/A2/B1/B2 figures you can search and edit. A line that names several figures
 separated by commas, such as "Slide Left, Circle Left 3/4", comes across as
 those figures, sharing the line's beats. Anything the app cannot represent
-faithfully is kept word-for-word as text rather than guessed at.
+faithfully is kept word-for-word as text rather than guessed at. A dance
+whose Type is English comes across as an English country dance: its lines
+are read as English figures, and a "Duple Proper" or "Duple Improper"
+formation becomes a duple minor, proper or improper.
 
 The app also reads Caller's Companion's abbreviations and wording. "Circle L",
 "pass R shoulder" and "alle R 1.5" keep their direction, shoulder and hand;

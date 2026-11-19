@@ -340,7 +340,8 @@ class CcFigureLineCache {
 /// raised while doing so. **Never throws on content** — a missing title, an
 /// unmapped level/formation, or an unparseable date all surface as
 /// [ImportIssue]s, and every body line becomes a structured or [customMove]
-/// figure via [parseFigureLinesFanOut] (the parse-never-fails invariant). This
+/// figure via [parseFigureLinesFanOut], or [parseEcdFigureLine] for a dance
+/// whose Type is English (the parse-never-fails invariant). This
 /// is the single unit both the text adapter and the `.USR` reader call.
 ///
 /// The draft's identity is disposable: [newId] (default [uuidV4]) and
@@ -500,7 +501,9 @@ CcDanceMapping mapCallersCompanionDance(
       ),
   ];
 
-  // Body → figures (design §2). Each `(beats) text` line has its leading beats
+  // Body → figures (design §2). An English dance's lines go to the ECD
+  // grammar instead ([_ecdLineFigures]); the rest of this comment is contra's
+  // and square's path. Each `(beats) text` line has its leading beats
   // prefix peeled off ([splitCcBeatPrefix], which accepts a lone `(16)` or a
   // compound `(4,12)`) and is then routed through the shared free-text FAN-OUT
   // ([parseFigureLinesFanOut]): the line is attempted against each source

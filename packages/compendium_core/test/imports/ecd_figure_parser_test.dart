@@ -220,7 +220,10 @@ void main() {
       'ecd_balance',
       'ecd_swing',
     ]);
-    expect(balanceAndSwing.subFigures.map((f) => f.params), [{}, {}]);
+    expect(balanceAndSwing.subFigures.map((f) => f.params), [
+      <String, Object?>{},
+      <String, Object?>{},
+    ]);
     // Contra fills in the chain's right hand; ECD leaves it unstated.
     expect(_one('Robins chain').params.containsKey('hand'), isFalse);
     // An unstated subject is not stored, so it reads as unspecified.
