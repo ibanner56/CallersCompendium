@@ -23,7 +23,7 @@ class WalkthroughSnippetsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = WalkthroughSnippetLibraryScope.of(context);
-    final dialect = ActiveDialectScope.of(context);
+    final dialect = ActiveDialectScope.contraOf(context);
     final renderer = FigureRenderer(shippedTaxonomies.anyForm);
     final l10n = AppLocalizations.of(context);
 

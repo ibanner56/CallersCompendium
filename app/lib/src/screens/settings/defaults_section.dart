@@ -615,7 +615,7 @@ class _DefaultsSectionState extends State<DefaultsSection> {
             Expanded(
               child: CollectionPicker(
                 data: data,
-                dialect: ActiveDialectScope.of(context),
+                dialect: ActiveDialectScope.contraOf(context),
                 enrichment: SearchEnrichment.empty,
                 scrollController: scrollController,
                 onAddDance: (danceId) {
@@ -2350,7 +2350,7 @@ class _DefaultsView extends StatelessWidget {
                 drafts: danceFigureTemplateDrafts,
                 taxonomy: contraTaxonomy,
                 phraseStructure: PhraseStructure.standard,
-                dialect: ActiveDialectScope.of(context),
+                dialect: ActiveDialectScope.contraOf(context),
                 freeTextEntry: freeTextEntry,
                 shorthandMappings: ShorthandMappingsScope.maybeOf(
                   context,
@@ -2396,7 +2396,7 @@ class _DefaultsView extends StatelessWidget {
                 drafts: meanwhileSideDrafts,
                 taxonomy: contraTaxonomy,
                 phraseStructure: PhraseStructure.standard,
-                dialect: ActiveDialectScope.of(context),
+                dialect: ActiveDialectScope.contraOf(context),
                 freeTextEntry: freeTextEntry,
                 shorthandMappings: ShorthandMappingsScope.maybeOf(
                   context,
@@ -2445,7 +2445,7 @@ class _DefaultsView extends StatelessWidget {
                 drafts: modifierDrafts,
                 taxonomy: contraTaxonomy,
                 phraseStructure: PhraseStructure.standard,
-                dialect: ActiveDialectScope.of(context),
+                dialect: ActiveDialectScope.contraOf(context),
                 freeTextEntry: freeTextEntry,
                 shorthandMappings: ShorthandMappingsScope.maybeOf(
                   context,
@@ -2748,7 +2748,7 @@ class _MoveDefaultsEditor extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final dialect = ActiveDialectScope.of(context);
+    final dialect = ActiveDialectScope.contraOf(context);
     final renderer = FigureRenderer(contraTaxonomy);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2924,7 +2924,7 @@ class _UserFigureDefaultsLinks extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final dialect = ActiveDialectScope.of(context);
+    final dialect = ActiveDialectScope.contraOf(context);
     final renderer = UserFiguresScope.rendererOf(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

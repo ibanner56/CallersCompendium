@@ -37,3 +37,38 @@ Dialect? resolveProgramDialect(String? name, DialectLibraryController library) {
   }
   return null;
 }
+
+/// The dialect names a program can choose, each once: the shipped presets,
+/// then every dance form's custom dialects, in form order.
+///
+/// Each dance form has its own dialects (ADR-006 §9.1, point 1), and a program
+/// has no form (ADR-006 §12.2, S5), so a program names a dialect and Perform
+/// looks the name up in the library of each dance's own form
+/// ([resolveProgramDialect] on `libraries.forForm(dance.form)`). The presets
+/// are named alike in every form, so a program that picks one gets it for
+/// every dance; a custom dialect's name applies to the forms that have a
+/// dialect of that name, and the other forms keep their active dialect.
+List<String> programDialectNames(DialectLibraries libraries) {
+  final names = <String>{};
+  for (final form in DanceForm.values) {
+    for (final dialect in libraries.forForm(form).all) {
+      names.add(dialect.name);
+    }
+  }
+  return List.unmodifiable(names);
+}
+
+/// The dialect [name] resolves to in the first dance form whose library has
+/// it ([resolveProgramDialect]), or `null` when none does: what the program
+/// editor shows as the program's dialect, or as unavailable.
+Dialect? resolveProgramDialectInAnyForm(
+  String? name,
+  DialectLibraries libraries,
+) {
+  if (name == null) return null;
+  for (final form in DanceForm.values) {
+    final resolved = resolveProgramDialect(name, libraries.forForm(form));
+    if (resolved != null) return resolved;
+  }
+  return null;
+}

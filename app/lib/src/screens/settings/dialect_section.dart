@@ -11,21 +11,73 @@ import '../../utils/undo_snack_bar.dart';
 import '../../theme/keyboard_dismiss.dart';
 import '../../widgets/dirty_dialog_guard.dart';
 import '../../widgets/section_header.dart';
+import '../../search/facet_labels.dart';
 import '../dialect_editor_screen.dart';
 import 'dance_details_section.dart';
 import '../../theme/app_shapes.dart';
 
-/// The Dialect settings section: reads the live dialect library controller
-/// from [DialectLibraryScope] and renders the library manager.
-class DialectSection extends StatelessWidget {
+/// The Dialect settings section: a dance-form selector over the library
+/// manager of the chosen form's dialects, read live from
+/// [DialectLibraryScope]. Each dance form has its own dialects (ADR-006 §9.1,
+/// point 1).
+///
+/// The selector starts on contra, the form every dance was before other forms
+/// were offered (the implementer's call; the alternative, opening on the
+/// new-dance form setting as the glossary does, would make a contra-only
+/// caller who once chose English land on English dialects here).
+class DialectSection extends StatefulWidget {
   const DialectSection({super.key});
 
   @override
+  State<DialectSection> createState() => _DialectSectionState();
+}
+
+class _DialectSectionState extends State<DialectSection> {
+  DanceForm _form = DanceForm.contra;
+
+  @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return ListView(
       keyboardDismissBehavior: textEntryKeyboardDismiss(),
       children: [
-        _DialectLibrarySection(controller: DialectLibraryScope.of(context)),
+        SectionHeader(title: l10n.settingsDialectHeader),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            0,
+            AppSpacing.md,
+            AppSpacing.sm,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(l10n.settingsDialectFormHelper),
+              const SizedBox(height: AppSpacing.sm),
+              SegmentedButton<DanceForm>(
+                key: const ValueKey('dialect-form'),
+                showSelectedIcon: false,
+                segments: [
+                  for (final form in DanceForm.values)
+                    ButtonSegment(
+                      value: form,
+                      label: Text(
+                        danceFormLabel(l10n, form),
+                        key: ValueKey('dialect-form-${form.name}'),
+                      ),
+                    ),
+                ],
+                selected: {_form},
+                onSelectionChanged: (selected) =>
+                    setState(() => _form = selected.single),
+              ),
+            ],
+          ),
+        ),
+        _DialectLibrarySection(
+          key: ValueKey('dialect-library-${_form.name}'),
+          controller: DialectLibraryScope.of(context).forForm(_form),
+        ),
         const SizedBox(height: AppSpacing.lg),
         const DanceDetailsAndShorthandsSection(),
       ],
@@ -44,13 +96,16 @@ class DialectSection extends StatelessWidget {
 /// Mirrors `_CustomThemesSection`'s list + dialog CRUD idiom. Live preview,
 /// collision validation, and dance-card/perform quick-switch are a later PR.
 class _DialectLibrarySection extends StatelessWidget {
-  const _DialectLibrarySection({required this.controller});
+  const _DialectLibrarySection({super.key, required this.controller});
 
   final DialectLibraryController controller;
 
   Future<void> _editCustom(BuildContext context, Dialect dialect) async {
     final edited = await Navigator.of(context).push<Dialect>(
-      MaterialPageRoute(builder: (_) => DialectEditorScreen(initial: dialect)),
+      MaterialPageRoute(
+        builder: (_) =>
+            DialectEditorScreen(initial: dialect, form: controller.form),
+      ),
     );
     if (edited == null) return;
     // By name, not an upsert: the dialect may have been renamed or deleted
@@ -81,7 +136,10 @@ class _DialectLibrarySection extends StatelessWidget {
     // canceled "New dialect" leaves nothing behind.
     final edited = await Navigator.of(context).push<Dialect>(
       MaterialPageRoute(
-        builder: (_) => DialectEditorScreen(initial: Dialect(name: name)),
+        builder: (_) => DialectEditorScreen(
+          initial: Dialect(name: name),
+          form: controller.form,
+        ),
       ),
     );
     if (edited == null) return;
@@ -200,7 +258,6 @@ class _DialectLibrarySection extends StatelessWidget {
     final activeName = controller.active.name;
     return Column(
       children: [
-        SectionHeader(title: l10n.settingsDialectHeader),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
           child: Wrap(
@@ -386,7 +443,14 @@ class _DialectNameDialogState extends State<_DialectNameDialog> {
     super.dispose();
   }
 
-  void _submit() => Navigator.of(context).pop(_controller.text.trim());
+  /// The gendered role word the typed name holds, which the app never shows
+  /// (ADR-006 §9.1, point 7), or `null`.
+  String? get _genderedWord => genderedRoleWordIn(_controller.text);
+
+  void _submit() {
+    if (_genderedWord != null) return;
+    Navigator.of(context).pop(_controller.text.trim());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -396,22 +460,35 @@ class _DialectNameDialogState extends State<_DialectNameDialog> {
       isDirty: () => _controller.text != widget.initial,
       child: AlertDialog(
         title: Text(widget.title),
-        content: TextField(
-          key: const ValueKey('dialect-name-field'),
-          controller: _controller,
-          autofocus: true,
-          decoration: InputDecoration(labelText: l10n.settingsDialectNameLabel),
-          onSubmitted: (_) => _submit(),
+        content: ListenableBuilder(
+          listenable: _controller,
+          builder: (context, _) => TextField(
+            key: const ValueKey('dialect-name-field'),
+            controller: _controller,
+            autofocus: true,
+            decoration: InputDecoration(
+              labelText: l10n.settingsDialectNameLabel,
+              errorText: switch (_genderedWord) {
+                final word? => l10n.validationGenderedRoleTerm(word),
+                null => null,
+              },
+              errorMaxLines: 3,
+            ),
+            onSubmitted: (_) => _submit(),
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: Text(l10n.commonCancel),
           ),
-          FilledButton(
-            key: const ValueKey('dialect-name-confirm'),
-            onPressed: _submit,
-            child: Text(widget.confirmLabel),
+          ListenableBuilder(
+            listenable: _controller,
+            builder: (context, _) => FilledButton(
+              key: const ValueKey('dialect-name-confirm'),
+              onPressed: _genderedWord == null ? _submit : null,
+              child: Text(widget.confirmLabel),
+            ),
           ),
         ],
       ),

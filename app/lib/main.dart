@@ -553,8 +553,8 @@ class _CompendiumAppState extends State<CompendiumApp>
   /// forwards to the repository.
   final ValueNotifier<DerivedRebuildProgress?> _derivedRebuildProgress =
       ValueNotifier<DerivedRebuildProgress?>(null);
-  final ValueNotifier<Dialect> _dialectNotifier = ValueNotifier(
-    Dialect.larksRobins,
+  final ValueNotifier<DialectsByForm> _dialectNotifier = ValueNotifier(
+    DialectsByForm.defaults,
   );
   final _themeNotifier = PreferenceNotifier<AppThemeSelection>(
     key: kAppThemeKey,
@@ -818,7 +818,7 @@ class _CompendiumAppState extends State<CompendiumApp>
       CollectionFilterController();
   late CustomThemesController _customThemes;
   late FormationColorsController _formationColors;
-  late DialectLibraryController _dialectLibrary;
+  late DialectLibraries _dialectLibrary;
 
   /// Owns the user's shorthand → figure(s) mappings (issue #420), consulted by
   /// the free-text entry path. Loaded during bootstrap; exposed via
@@ -1082,10 +1082,10 @@ class _CompendiumAppState extends State<CompendiumApp>
     _formationColors = FormationColorsController(
       _appData.repositories.settings,
     );
-    // The dialect library owns dialect state; the active dialect flows out
-    // through [_dialectNotifier] (read by every existing ActiveDialectScope
-    // consumer) via [_syncActiveDialect], so the rest of the app is unchanged.
-    _dialectLibrary = DialectLibraryController(
+    // The dialect libraries (one per dance form) own dialect state; each
+    // form's active dialect flows out through [_dialectNotifier] (read by every
+    // ActiveDialectScope consumer) via [_syncActiveDialect].
+    _dialectLibrary = DialectLibraries(
       _appData.repositories.settings,
       programs: _appData.repositories.programs,
     );
@@ -1408,7 +1408,7 @@ class _CompendiumAppState extends State<CompendiumApp>
   ];
 
   void _resetAppPreferenceNotifiers() {
-    _dialectNotifier.value = Dialect.larksRobins;
+    _dialectNotifier.value = DialectsByForm.defaults;
     for (final p in _preferences) {
       p.reset();
     }
@@ -1451,7 +1451,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     }
   }
 
-  /// Mirrors the library's resolved active dialect into [_dialectNotifier] so
+  /// Mirrors each form's resolved active dialect into [_dialectNotifier] so
   /// every `ActiveDialectScope` consumer sees changes live.
   void _syncActiveDialect() {
     _dialectNotifier.value = _dialectLibrary.active;
@@ -2854,7 +2854,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     (child) => AppThemeScope(notifier: _themeNotifier, child: child),
     (child) => CustomThemesScope(controller: _customThemes, child: child),
     (child) => FormationColorsScope(controller: _formationColors, child: child),
-    (child) => DialectLibraryScope(controller: _dialectLibrary, child: child),
+    (child) => DialectLibraryScope(libraries: _dialectLibrary, child: child),
     (child) =>
         ShorthandMappingsScope(controller: _shorthandMappings, child: child),
     (child) => UserFiguresScope(controller: _userFigures, child: child),
@@ -2862,7 +2862,8 @@ class _CompendiumAppState extends State<CompendiumApp>
       controller: _walkthroughSnippets,
       child: child,
     ),
-    (child) => ActiveDialectScope(notifier: _dialectNotifier, child: child),
+    (child) =>
+        ActiveDialectScope.byForm(dialects: _dialectNotifier, child: child),
     (child) => RequirePerformedForHistoryScope(
       notifier: _requirePerformedForHistoryNotifier,
       child: child,

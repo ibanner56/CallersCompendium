@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/user_figures_scope.dart';
 import '../data/active_dialect_scope.dart';
+import '../data/dialect_library_controller.dart';
 import '../data/figure_summary.dart';
 import '../data/app_theme_labels_l10n.dart';
 import '../data/custom_theme.dart';
@@ -92,12 +93,21 @@ typedef _FigureLine = ({
   Figure figure,
 });
 
+/// Contra's active dialect, or the app default with no scope. What a
+/// conflict that is not about one dance reads in: the glossary, shorthands,
+/// snippets and settings are still contra's (ADR-006 implementation plan, W5
+/// and W6).
+Dialect _contraDialect(BuildContext context) =>
+    (ActiveDialectScope.maybeOf(context) ?? DialectsByForm.defaults).forForm(
+      DanceForm.contra,
+    );
+
 /// [text] stored in canonical role words, as the active dialect reads it: how
 /// the user's own figures and notes (#709) are shown everywhere else.
 String syncConflictFreeText(BuildContext context, String text) =>
     SyncConflictComparison._renderer.renderFreeText(
       text,
-      ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
+      _contraDialect(context),
     );
 
 /// The built-in figure [figureId] names — a figure note's record id (#709) —
@@ -110,7 +120,7 @@ String? syncConflictFigureName(BuildContext context, String figureId) {
     AppLocalizations.of(context),
     figureId,
     shippedFigureGlossaryEntries,
-    ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
+    _contraDialect(context),
   );
 }
 
@@ -405,7 +415,7 @@ class SyncConflictComparison extends StatelessWidget {
     SyncCollectionEntry other,
   ) {
     final parts = switch (group.recordId) {
-      'custom_dialects' => _dialectParts(
+      final key when formOfCustomDialectsKey(key) != null => _dialectParts(
         l10n,
         local.value,
         other.value,
@@ -454,10 +464,7 @@ class SyncConflictComparison extends StatelessWidget {
       context,
     )[key.substring(userFigureRefPrefix.length)];
     if (view == null) return l10n.dialectEditorUserFigureGone;
-    return _renderer.renderFreeText(
-      view.name,
-      ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
-    );
+    return _renderer.renderFreeText(view.name, _contraDialect(context));
   }
 
   /// The stored wording [stored] for the move or figure [key], as the dialect
@@ -648,7 +655,7 @@ class SyncConflictComparison extends StatelessWidget {
     AppLocalizations l10n,
     SyncCollectionEntry entry,
   ) {
-    final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
+    final dialect = _contraDialect(context);
     final value = entry.value;
     switch (group.recordId) {
       case 'walkthrough_snippets':
@@ -698,7 +705,15 @@ class SyncConflictComparison extends StatelessWidget {
     String label,
     Map<String, Object?>? other,
   ) {
-    final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
+    // A dance's figures read in its own form's dialect (ADR-006 §9.1,
+    // point 1); a body that names no form it knows reads in contra's.
+    final form = DanceForm.values.firstWhere(
+      (f) => f.name == (_local?['form'] ?? other?['form']),
+      orElse: () => DanceForm.contra,
+    );
+    final dialect =
+        (ActiveDialectScope.maybeOf(context) ?? DialectsByForm.defaults)
+            .forForm(form);
     final renderer = UserFiguresScope.rendererOf(context);
     final mine = _sectionedLines(_local, dialect, renderer);
     final theirs = _sectionedLines(other, dialect, renderer);
@@ -748,7 +763,7 @@ class SyncConflictComparison extends StatelessWidget {
     String label,
     Map<String, Object?>? other,
   ) {
-    final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
+    final dialect = _contraDialect(context);
     String describe(Map<String, Object?>? body) {
       if (body == null) return l10n.syncConflictValueNotSet;
       final kind = body['kind'];
@@ -1106,8 +1121,7 @@ class SyncConflictComparison extends StatelessWidget {
       // the plain rendering below; the merge already admitted it.
     }
     if (value is String) {
-      final dialect =
-          ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
+      final dialect = _contraDialect(context);
       return _renderer.renderFreeText(value, dialect);
     }
     return syncSettingValueText(l10n, value);

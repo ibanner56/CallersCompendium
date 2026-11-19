@@ -190,7 +190,7 @@ class _GlossaryScreenState extends State<GlossaryScreen> {
       taxonomy: contraTaxonomy,
       dialects: [
         dialect,
-        ...?DialectLibraryScope.maybeOf(context)?.customDialects,
+        ...?DialectLibraryScope.maybeOf(context)?.allCustomDialects,
       ],
       shorthandTokens: ShorthandMappingsScope.tokensOf(context),
     );
@@ -250,7 +250,7 @@ class _GlossaryScreenState extends State<GlossaryScreen> {
     FigureGlossaryEntry entry,
   ) async {
     final l10n = AppLocalizations.of(context);
-    final dialect = ActiveDialectScope.of(context);
+    final dialect = ActiveDialectScope.contraOf(context);
     final seed = userFigureSeedFromMove(
       contraTaxonomy,
       entry.id,
@@ -358,7 +358,7 @@ class _GlossaryScreenState extends State<GlossaryScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final dialect = ActiveDialectScope.of(context);
+    final dialect = ActiveDialectScope.contraOf(context);
     final custom = _custom(context, dialect);
     final shown = _shown(l10n, dialect, custom);
     // A term needs only the Glossary, which this screen is; a figure of your
@@ -538,7 +538,7 @@ class GlossaryFigureDetail extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final dialect = ActiveDialectScope.of(context);
+    final dialect = ActiveDialectScope.contraOf(context);
     final capitalize = CapitalizeFiguresScope.of(context);
     final decimals = DecimalTurnsScope.of(context);
     final verbose = VerboseFigureRenderingScope.of(context);
@@ -769,7 +769,7 @@ class _FigureNotesSectionState extends State<FigureNotesSection> {
     if (_repos == null) return const SizedBox.shrink();
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final dialect = ActiveDialectScope.of(context);
+    final dialect = ActiveDialectScope.contraOf(context);
     final notes = _notes;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

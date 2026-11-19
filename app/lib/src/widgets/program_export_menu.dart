@@ -203,6 +203,11 @@ class ProgramExportMenu extends StatelessWidget {
     ];
   }
 
+  /// The dialect of each dance form, or the app defaults when no scope is
+  /// mounted (only in tests).
+  static DialectsByForm _dialects(BuildContext context) =>
+      ActiveDialectScope.maybeOf(context) ?? DialectsByForm.defaults;
+
   /// The shareable set-list text, under the Program › Sharing toggles. Only the
   /// text actions (share, copy) go through here; the `.ccshare`/JSON bundle and
   /// the PDF carry the program whole.
@@ -218,7 +223,8 @@ class ProgramExportMenu extends StatelessWidget {
       formatDate: (d) => _formatDate(context, d),
       labels: programExportLabels(AppLocalizations.of(context)),
       renderer: FigureRenderer(shippedTaxonomies.anyForm),
-      dialect: ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
+      // The set list's own text (slot notes) has no dance form: contra's.
+      dialect: _dialects(context).forForm(DanceForm.contra),
       canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(context),
       authorNamesFor:
           DanceShareFieldsScope.of(context).contains(DanceShareField.authors)
@@ -307,14 +313,15 @@ class ProgramExportMenu extends StatelessWidget {
   /// card per dance (primary then alternates, deduped), each preceded by a
   /// separator line and (for alternates) the "Alternate" label.
   ///
-  /// Uses [ActiveDialectScope] for dialect-aware rendering, falling back to
-  /// [Dialect.larksRobins] when no scope is mounted (the fallback is reachable
-  /// only in tests; in the running app the scope is always provided — ruling 9).
+  /// Uses [ActiveDialectScope] for dialect-aware rendering, each dance in its
+  /// own form's dialect, falling back to [DialectsByForm.defaults] when no
+  /// scope is mounted (the fallback is reachable only in tests; in the running
+  /// app the scope is always provided — ruling 9).
   String _plainTextWithFigures(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final setList = _plainText(context);
     final danceLabels = danceExportLabels(l10n);
-    final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
+    final dialects = _dialects(context);
     final renderer = UserFiguresScope.rendererOf(context);
     final buf = StringBuffer(setList);
     final alternate = l10n.exportIncludeFiguresAlternate;
@@ -326,6 +333,7 @@ class ProgramExportMenu extends StatelessWidget {
       // Mark alternates on the separator line so the title from
       // danceToPlainText appears exactly once (ruling 8: mark, not duplicate).
       buf.writeln(entry.isAlternate ? '--- $alternate' : '---');
+      final dialect = dialects.forDance(dance);
       final cardLabels = _cardLabelsFor(
         context,
         dance,
@@ -537,7 +545,7 @@ class ProgramExportMenu extends StatelessWidget {
     if (!context.mounted) return;
 
     final List<({Dance dance, bool isAlternate})>? appendDances;
-    final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
+    final dialects = _dialects(context);
     final renderer = UserFiguresScope.rendererOf(context);
     if (includeFigures) {
       appendDances = _orderedExportDances();
@@ -563,7 +571,7 @@ class ProgramExportMenu extends StatelessWidget {
           entry.dance.id: _cardLabelsFor(
             context,
             entry.dance,
-            dialect: dialect,
+            dialect: dialects.forDance(entry.dance),
             renderer: renderer,
           ),
     };
@@ -584,7 +592,7 @@ class ProgramExportMenu extends StatelessWidget {
         labels: labels,
         appendDances: appendDances,
         danceLabels: includeFigures ? danceExportLabels(l10n) : null,
-        dialect: dialect,
+        dialects: dialects,
         renderer: renderer,
         canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
         authorNamesFor: resolvedAuthorNamesFor,
@@ -607,7 +615,7 @@ class ProgramExportMenu extends StatelessWidget {
     ScaffoldMessengerState messenger,
   ) {
     final l10n = AppLocalizations.of(context);
-    final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
+    final dialects = _dialects(context);
     final renderer = UserFiguresScope.rendererOf(context);
     final places = callingCardPlaces(
       program,
@@ -621,7 +629,7 @@ class ProgramExportMenu extends StatelessWidget {
           labels: _cardLabelsFor(
             context,
             entry.dance,
-            dialect: dialect,
+            dialect: dialects.forDance(entry.dance),
             renderer: renderer,
           ),
         ),
@@ -636,7 +644,7 @@ class ProgramExportMenu extends StatelessWidget {
       ),
       entries: entries,
       settings: CallingCardSettingsScope.of(context),
-      dialect: dialect,
+      dialects: dialects,
       renderer: renderer,
       fields: DanceShareFieldsScope.of(context),
       canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(context),

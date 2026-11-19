@@ -2061,6 +2061,10 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsDialectHeader => 'Dialecten';
 
   @override
+  String get settingsDialectFormHelper =>
+      'Elk danstype heeft zijn eigen dialecten. Kies een type om de dialecten ervan te bekijken en in te stellen.';
+
+  @override
   String get settingsDialectDanceDetailsHeader => 'Dansdetails en afkortingen';
 
   @override
@@ -2742,6 +2746,9 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get settingsDefaultsFormSubtitle =>
       'Het danstype waarmee een nieuwe dans begint. Je kunt dit per dans aanpassen.';
+
+  @override
+  String get settingsDefaultsFormLastUsed => 'Laatst gebruikt';
 
   @override
   String get settingsDefaultsFormationTitle => 'Formatie';
@@ -8679,6 +8686,11 @@ class AppLocalizationsNl extends AppLocalizations {
     String substitution,
   ) {
     return '“$source” en “$existing” verwijzen beide naar “$substitution” — omkeren zou dubbelzinnig zijn.';
+  }
+
+  @override
+  String validationGenderedRoleTerm(String word) {
+    return '‘$word’ is een gendergebonden rolwoord dat de app nooit toont. Gebruik in plaats daarvan een rolneutraal woord.';
   }
 
   @override

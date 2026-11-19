@@ -160,7 +160,7 @@ class _CallingCardLayoutEditorScreenState
     final settings = _notifier!.value;
     final layout = _layout;
     final rasterize = widget.rasterizer ?? rasterizeCallingCard;
-    final dialect = ActiveDialectScope.of(context);
+    final dialect = ActiveDialectScope.contraOf(context);
     final renderer = UserFiguresScope.rendererOf(context);
     final fields = DanceShareFieldsScope.of(context);
     final canonical = CanonicalDiscouragedTermsScope.of(context);
@@ -193,7 +193,7 @@ class _CallingCardLayoutEditorScreenState
         [entry],
         layout: layout,
         size: settings.size,
-        dialect: dialect,
+        dialects: DialectsByForm.all(dialect),
         fields: fields,
         renderer: renderer,
         labels: labels,

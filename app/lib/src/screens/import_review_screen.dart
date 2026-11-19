@@ -1334,7 +1334,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       (r) => r.verdict.hasConfidentMatch,
     );
     if (!hasConfidentMatch) return const {};
-    final dialect = ActiveDialectScope.of(context);
+    final dialects = ActiveDialectScope.of(context);
     final renderer = UserFiguresScope.rendererOf(context);
     final decimals = DecimalTurnsScope.of(context);
     final canonicalDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
@@ -1365,7 +1365,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         newStructure: draftDance.phraseStructure,
         taxonomy: shippedTaxonomies.anyForm,
         renderer: renderer,
-        dialect: dialect,
+        dialect: dialects.forDance(draftDance),
         decimals: decimals,
         canonicalDiscouragedTerms: canonicalDiscouragedTerms,
       );
@@ -2026,7 +2026,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     // defined — re-import idempotency needs no user action).
     if (partition.seedable.isEmpty) return;
 
-    final dialect = ActiveDialectScope.of(context);
+    // Shorthands are read with contra's vocabulary (ADR-006 plan, W6).
+    final dialect = ActiveDialectScope.contraOf(context);
     // Captured before the awaits: Done on the result dialog has already popped
     // this screen's route, so it can unmount while the seed step is open. The
     // controller and messenger are app-scoped and outlive it (#1819).
@@ -2098,10 +2099,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     final navigator = Navigator.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
-    final dialect = ActiveDialectScope.of(context);
+    // Terms are glossary entries, still contra's (ADR-006 plan, W5).
+    final dialect = ActiveDialectScope.contraOf(context);
     final dialects = [
       dialect,
-      ...?DialectLibraryScope.maybeOf(context)?.customDialects,
+      ...?DialectLibraryScope.maybeOf(context)?.allCustomDialects,
     ];
     final shorthands = ShorthandMappingsScope.maybeOf(context);
     final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
@@ -2359,8 +2361,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     }
     if (!mounted) return null;
     final dialects = [
-      ?ActiveDialectScope.maybeOf(context),
-      ...?DialectLibraryScope.maybeOf(context)?.customDialects,
+      ?ActiveDialectScope.maybeOf(context)?.forForm(DanceForm.contra),
+      ...?DialectLibraryScope.maybeOf(context)?.allCustomDialects,
     ];
     final tokens = ShorthandMappingsScope.tokensOf(context);
     final nameTaken = {
@@ -3971,7 +3973,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     if (authors.isNotEmpty) {
       details.add(l10n.importReviewMetadataAuthor(authors));
     }
-    final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
+    final dialect =
+        (ActiveDialectScope.maybeOf(context) ?? DialectsByForm.defaults)
+            .forDance(draft.dance);
     details.add(
       l10n.importReviewMetadataFormation(
         formationDisplayLabel(

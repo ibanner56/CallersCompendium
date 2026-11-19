@@ -86,7 +86,7 @@ class _UserFigureSwitchScreenState extends State<UserFigureSwitchScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final dialect = ActiveDialectScope.of(context);
+    final dialect = ActiveDialectScope.contraOf(context);
     final targetName = _renderer.displayMoveName(widget.target, dialect);
     final targetParams =
         contraTaxonomy.resolve(widget.target)?.params ?? const {};

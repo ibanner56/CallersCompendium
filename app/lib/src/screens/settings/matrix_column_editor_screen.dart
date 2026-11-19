@@ -52,7 +52,7 @@ class MatrixColumnEditorScreen extends StatelessWidget {
       body: SafeArea(
         child: MatrixColumnEditor(
           config: ProgramMatrixColumnConfigScope.of(context),
-          dialect: ActiveDialectScope.of(context),
+          dialect: ActiveDialectScope.contraOf(context),
           onConfigChanged: (config) => _persist(appContext, config),
           currentConfig: () =>
               ProgramMatrixColumnConfigScope.maybeNotifierOf(

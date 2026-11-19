@@ -13,6 +13,8 @@ export 'src/diagnostics/crash_redactor.dart';
 export 'src/dialect/canonicalize.dart';
 export 'src/dialect/role_canonicalizer.dart';
 export 'src/dialect/dialect.dart';
+export 'src/dialect/dialects_by_form.dart';
+export 'src/dialect/gendered_terms.dart';
 export 'src/dialect/renderer.dart';
 export 'src/dialect/substitution.dart' show Substitutor;
 export 'src/dialect/wording_conditions.dart';

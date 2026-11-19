@@ -1,20 +1,60 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart';
 
-/// Persistence key for the JSON list of user-created custom [Dialect]s.
+/// Persistence key for the JSON list of user-created custom [Dialect]s of
+/// contra. Each other dance form has a key of its own
+/// ([customDialectsKeyFor]).
 const String kCustomDialectsKey = 'custom_dialects';
 
 /// Legacy persistence key holding the full JSON blob of the active dialect.
 /// Kept in sync for readers that still resolve the active dialect from it.
 const String kActiveDialectKey = 'active_dialect';
 
-/// Persistence key for the name of the active dialect (a shipped preset name or
-/// a custom dialect name). Absent means the app default is active.
+/// Persistence key for the name of contra's active dialect (a shipped preset
+/// name or a custom dialect name). Absent means the app default is active.
+/// Each other dance form has a key of its own ([activeDialectRefKeyFor]).
 const String kActiveDialectRefKey = 'active_dialect_ref';
 
-/// Owns the user's locally-saved custom dialects and which named dialect
-/// (preset or custom) is currently active (`docs/design/ux.md` §6 — the
-/// dialect manager).
+/// The settings key holding [form]'s custom dialects.
+///
+/// Each dance form has its own dialects (ADR-006 §9.1, point 1). Contra keeps
+/// the key it has always had, so an older build on another device, which
+/// knows only that one, still reads contra's dialects correctly and keeps the
+/// other forms' keys whole without reading them (ADR-004). Every key is
+/// listed in [dialectSettingKeys].
+String customDialectsKeyFor(DanceForm form) => form == DanceForm.contra
+    ? kCustomDialectsKey
+    : '${kCustomDialectsKey}_${form.name}';
+
+/// The settings key holding the name of [form]'s active dialect. Contra keeps
+/// [kActiveDialectRefKey]; see [customDialectsKeyFor].
+String activeDialectRefKeyFor(DanceForm form) => form == DanceForm.contra
+    ? kActiveDialectRefKey
+    : '${kActiveDialectRefKey}_${form.name}';
+
+/// The dance form whose custom dialects [key] holds, or `null` when it is not
+/// one of the [customDialectsKeyFor] keys.
+DanceForm? formOfCustomDialectsKey(String key) {
+  for (final form in DanceForm.values) {
+    if (customDialectsKeyFor(form) == key) return form;
+  }
+  return null;
+}
+
+/// Every settings key a dialect library writes, for every dance form, the
+/// legacy [kActiveDialectKey] included.
+final Set<String> dialectSettingKeys = {
+  kActiveDialectKey,
+  for (final form in DanceForm.values) ...{
+    customDialectsKeyFor(form),
+    activeDialectRefKeyFor(form),
+  },
+};
+
+/// Owns one dance form's custom dialects and which named dialect (preset or
+/// custom) is active for that form (`docs/design/ux.md` §6 — the dialect
+/// manager). Each form has its own library ([form]); [DialectLibraries] holds
+/// them all.
 ///
 /// Custom dialects are identified by their unique [Dialect.name]; the active
 /// dialect is stored as that name and resolved against custom dialects first,
@@ -27,10 +67,21 @@ class DialectLibraryController extends ChangeNotifier {
   DialectLibraryController(
     this._settings, {
     this._programs,
+    this.form = DanceForm.contra,
     DateTime Function()? clock,
   }) : _clock = clock ?? (() => DateTime.now().toUtc());
 
   final SettingsRepository _settings;
+
+  /// The dance form whose dialects this library holds.
+  final DanceForm form;
+
+  String get _customKey => customDialectsKeyFor(form);
+  String get _activeKey => activeDialectRefKeyFor(form);
+
+  /// Only contra had a dialect before the library, and only contra keeps the
+  /// legacy full-blob key [kActiveDialectKey] current.
+  bool get _keepsLegacyBlob => form == DanceForm.contra;
 
   /// Where a rename is carried to the programs that name the dialect. `null`
   /// leaves programs untouched (a controller built without a program store).
@@ -81,10 +132,12 @@ class DialectLibraryController extends ChangeNotifier {
   /// name untouched. Only the first-run write-back can fail after the commit,
   /// and it leaves the in-memory library complete and consistent.
   Future<void> load() async {
-    final hasLibrary = await _settings.contains(kCustomDialectsKey);
-    final raw = await _settings.get(kCustomDialectsKey);
-    final activeRaw = await _settings.get(kActiveDialectRefKey);
-    final legacy = hasLibrary ? null : await _settings.get(kActiveDialectKey);
+    final hasLibrary = await _settings.contains(_customKey);
+    final raw = await _settings.get(_customKey);
+    final activeRaw = await _settings.get(_activeKey);
+    final legacy = hasLibrary || !_keepsLegacyBlob
+        ? null
+        : await _settings.get(kActiveDialectKey);
 
     final loaded = <Dialect>[];
     if (raw is List) {
@@ -116,7 +169,23 @@ class DialectLibraryController extends ChangeNotifier {
       if (migrated != null) await _persistActive();
       await _persistDialects();
     }
+    await _renameGenderedNames();
     notifyListeners();
+  }
+
+  /// Renames every custom dialect whose name holds a gendered role word, which
+  /// the app never shows (ADR-006 §9.1, point 7), to [Dialect.customName]
+  /// (made unique). It goes through [rename], so the programs that name it
+  /// follow. A dialect named before such names were refused, or synced from a
+  /// device that still allows them, is renamed when the library loads.
+  Future<void> _renameGenderedNames() async {
+    final gendered = [
+      for (final d in _customDialects)
+        if (genderedRoleWordIn(d.name) != null) d.name,
+    ];
+    for (final name in gendered) {
+      await rename(name, Dialect.customName, notify: false);
+    }
   }
 
   /// Decodes a pre-library install's active dialect, stored as a full JSON blob
@@ -191,7 +260,11 @@ class DialectLibraryController extends ChangeNotifier {
   /// between leaves programs on the old name, which already reads as
   /// "unavailable" (`resolveProgramDialect`), rather than on a name that was
   /// never saved.
-  Future<String?> rename(String oldName, String newName) async {
+  Future<String?> rename(
+    String oldName,
+    String newName, {
+    bool notify = true,
+  }) async {
     final index = _customByNameIndex(oldName);
     if (index < 0) return null;
     final unique = oldName == newName ? newName : _uniqueName(newName);
@@ -208,7 +281,7 @@ class DialectLibraryController extends ChangeNotifier {
         updatedAt: _clock(),
       );
     }
-    notifyListeners();
+    if (notify) notifyListeners();
     return unique;
   }
 
@@ -292,15 +365,17 @@ class DialectLibraryController extends ChangeNotifier {
       _customDialects.indexWhere((d) => d.name == name);
 
   Future<void> _persistDialects() => _settings.set(
-    kCustomDialectsKey,
+    _customKey,
     _customDialects.map((d) => d.toJson()).toList(),
   );
 
   Future<void> _persistActive() async {
-    await _settings.set(kActiveDialectRefKey, _activeName);
+    await _settings.set(_activeKey, _activeName);
     // Keep the legacy full-blob key in sync so any reader that still resolves
-    // the active dialect from [kActiveDialectKey] stays correct.
-    await _settings.set(kActiveDialectKey, active.toJson());
+    // contra's active dialect from [kActiveDialectKey] stays correct.
+    if (_keepsLegacyBlob) {
+      await _settings.set(kActiveDialectKey, active.toJson());
+    }
   }
 
   /// Ensures a name doesn't collide with an existing preset or custom dialect,
@@ -316,5 +391,89 @@ class DialectLibraryController extends ChangeNotifier {
       n++;
     }
     return '$base $n';
+  }
+}
+
+/// One [DialectLibraryController] for each dance form (ADR-006 §9.1, point 1),
+/// and the dialect each form is shown in.
+///
+/// Notifies whenever any form's library does.
+class DialectLibraries extends ChangeNotifier {
+  DialectLibraries(
+    SettingsRepository settings, {
+    ProgramRepository? programs,
+    DateTime Function()? clock,
+  }) : _byForm = {
+         for (final form in DanceForm.values)
+           form: DialectLibraryController(
+             settings,
+             programs: programs,
+             form: form,
+             clock: clock,
+           ),
+       } {
+    for (final library in _byForm.values) {
+      library.addListener(notifyListeners);
+    }
+  }
+
+  final Map<DanceForm, DialectLibraryController> _byForm;
+
+  /// [form]'s library.
+  DialectLibraryController forForm(DanceForm form) => _byForm[form]!;
+
+  /// Contra's library.
+  DialectLibraryController get contra => forForm(DanceForm.contra);
+
+  /// Every form's dialects, presets and custom, each once: what search
+  /// enriches from, so a dance is found by any form's words.
+  List<Dialect> get all =>
+      List.unmodifiable({for (final library in _byForm.values) ...library.all});
+
+  /// Every form's custom dialects, in form order.
+  List<Dialect> get allCustomDialects => List.unmodifiable([
+    for (final library in _byForm.values) ...library.customDialects,
+  ]);
+
+  /// The active dialect of every form.
+  DialectsByForm get active => DialectsByForm({
+    for (final entry in _byForm.entries) entry.key: entry.value.active,
+  });
+
+  /// Loads every form's library. Each loads on its own, so one that fails
+  /// leaves the others loaded; the first failure is rethrown once all have
+  /// been tried.
+  Future<void> load() async {
+    Object? firstError;
+    StackTrace? firstStack;
+    for (final library in _byForm.values) {
+      try {
+        await library.load();
+      } catch (error, stack) {
+        firstError ??= error;
+        firstStack ??= stack;
+      }
+    }
+    if (firstError != null) {
+      Error.throwWithStackTrace(firstError, firstStack!);
+    }
+  }
+
+  /// Drops the user's figure [id] from every form's dialects
+  /// ([DialectLibraryController.forgetUserFigure]).
+  Future<void> forgetUserFigure(String id) async {
+    for (final library in _byForm.values) {
+      await library.forgetUserFigure(id);
+    }
+  }
+
+  @override
+  void dispose() {
+    for (final library in _byForm.values) {
+      library
+        ..removeListener(notifyListeners)
+        ..dispose();
+    }
+    super.dispose();
   }
 }

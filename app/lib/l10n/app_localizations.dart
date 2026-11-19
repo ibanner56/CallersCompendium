@@ -2940,6 +2940,12 @@ abstract class AppLocalizations {
   /// **'Dialects'**
   String get settingsDialectHeader;
 
+  /// Helper text above the dance-type selector in Settings › Dialect. The selector's segments are the dance-type names (Contra, English, Square); the list below it shows only the chosen type's dialects.
+  ///
+  /// In en, this message translates to:
+  /// **'Each dance type has its own dialects. Choose a type to see and set up its dialects.'**
+  String get settingsDialectFormHelper;
+
   /// Settings subsection header for canonical dance-detail text and figure-entry preferences.
   ///
   /// In en, this message translates to:
@@ -4127,6 +4133,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The dance type a new dance starts as. You can still change it per dance.'**
   String get settingsDefaultsFormSubtitle;
+
+  /// Option in the default dance-type picker: a new dance starts as the type of the last dance the user created.
+  ///
+  /// In en, this message translates to:
+  /// **'Last used'**
+  String get settingsDefaultsFormLastUsed;
 
   /// Title of the default dance-formation picker.
   ///
@@ -12823,6 +12835,12 @@ abstract class AppLocalizations {
     String existing,
     String substitution,
   );
+
+  /// Dialect-editor and dialect-name validation error: the entry uses a gendered role word (such as the words for men or women), which the app never shows. {word} is the offending word as the user typed it, rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{word}\" is a gendered role word, which the app never shows. Use a role-neutral word instead.'**
+  String validationGenderedRoleTerm(String word);
 
   /// Generic fallback shown when a validation finding has no specific localized message. Deliberately non-leaking; specific detail (if any) appears only in debug builds.
   ///

@@ -2065,6 +2065,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsDialectHeader => 'Dialekte';
 
   @override
+  String get settingsDialectFormHelper =>
+      'Jeder Tanztyp hat seine eigenen Dialekte. Wähle einen Typ, um seine Dialekte zu sehen und einzurichten.';
+
+  @override
   String get settingsDialectDanceDetailsHeader => 'Tanzdetails und Kurzformen';
 
   @override
@@ -2752,6 +2756,9 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get settingsDefaultsFormSubtitle =>
       'Der Tanztyp, mit dem ein neuer Tanz beginnt. Pro Tanz noch änderbar.';
+
+  @override
+  String get settingsDefaultsFormLastUsed => 'Zuletzt verwendet';
 
   @override
   String get settingsDefaultsFormationTitle => 'Formation';
@@ -8721,6 +8728,11 @@ class AppLocalizationsDe extends AppLocalizations {
     String substitution,
   ) {
     return '„$source“ und „$existing“ werden beide auf „$substitution“ abgebildet – die Umkehrung wäre mehrdeutig.';
+  }
+
+  @override
+  String validationGenderedRoleTerm(String word) {
+    return '„$word“ ist ein geschlechtsbezogenes Rollenwort, das die App nie anzeigt. Verwende stattdessen ein rollenneutrales Wort.';
   }
 
   @override
