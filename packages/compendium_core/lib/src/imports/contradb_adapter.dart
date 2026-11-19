@@ -9,6 +9,7 @@ import '../util/text_sanitizer.dart';
 import 'author_tokenizer.dart';
 import 'contradb_dancer_vocab.dart';
 import 'figure_text_scrub.dart';
+import 'formation_set_names.dart';
 import 'import_error.dart';
 import 'raw_record.dart';
 import 'source_adapter.dart';
@@ -65,7 +66,9 @@ import 'structured_draft.dart';
 /// [Dance.callingNotes]. ContraDB `hook` → [Dance.hook]; `notes` →
 /// [Dance.callingNotes]; normalized `preamble` → [Formation.detail].
 /// `start_type` free text is classified to a [FormationShape] best-effort;
-/// recognized text is shape-only, while an unclassifiable string yields a
+/// recognized text is shape-only (except that a set shape such as a triplet
+/// keeps its Proper / Improper / Indecent start word as detail, ahead of any
+/// preamble), while an unclassifiable string yields a
 /// warning and [FormationShape.other]. If both an unclassifiable `start_type`
 /// and a preamble are present, both normalized values are retained in detail.
 ///
@@ -531,10 +534,17 @@ class ContraDbAdapter implements SourceAdapter {
     final lower = text.toLowerCase();
 
     FormationShape? shape;
+    // Set shapes first: "Proper Triplet (231)" is a triplet, not a duple proper.
+    final set = classifyFormationSetName(lower);
     if (lower.contains('becket')) {
       shape = (lower.contains('ccw') || lower.contains('counter'))
           ? FormationShape.becketCcw
           : FormationShape.becketCw;
+    } else if (set != null) {
+      return Formation(
+        set.shape,
+        detail: joinFormationDetail(set.qualifier, detail),
+      );
     } else if (lower.contains('improper')) {
       shape = FormationShape.dupleImproper;
     } else if (lower.contains('indecent')) {
@@ -549,8 +559,6 @@ class ContraDbAdapter implements SourceAdapter {
       shape = FormationShape.scatterMixer;
     } else if (lower.contains('circle')) {
       shape = FormationShape.circleMixer;
-    } else if (lower.contains('quadruplet')) {
-      shape = FormationShape.quadruplet;
     } else if (lower.contains('longways')) {
       shape = FormationShape.longways;
     }
