@@ -82,13 +82,14 @@ whole surface that changed; say in the body that it is a golden, and at which
 surface size.
 
 ### Versioned formats: bank changes in the unreleased vNext
-Three version numbers mark formats other installs depend on:
+Four version numbers mark formats other installs depend on:
 
 | Version | Declared in | Process |
 | --- | --- | --- |
 | `kCompendiumSchemaVersion` | `packages/compendium_core/lib/src/storage/database.dart` | [Database schema migrations](#database-schema-migrations) |
 | `contraTaxonomyVersion` | `packages/compendium_core/lib/src/taxonomy/contra_taxonomy.dart` | [Taxonomy version history](docs/design/figure-taxonomy.md#taxonomy-version-history) |
 | `syncWireVersion` | `packages/compendium_core/lib/src/sync/sync_codec.dart` | [sync-spec §7.2](docs/design/sync-spec.md#72-allow-list-validation), "An unreleased `v`" |
+| `ecdTaxonomyVersion` | `packages/compendium_core/lib/src/taxonomy/ecd_taxonomy.dart` | [ECD taxonomy versions](docs/design/figure-taxonomy.md#ecd-taxonomy-versions) |
 
 A version is only worth a number once something outside `main` carries it.
 If the latest release tag carries an older value than `main`, that value is
@@ -98,7 +99,7 @@ direction of 2026-10-13, recorded in the description of
 [#1752](https://github.com/ibanner56/CallersCompendium/pull/1752), which the
 authoring session wrote; there is no tracker comment). Bump only when the tag's
 value matches `main`'s.
-Check all three at once with:
+Check all four at once with:
 
 ```sh
 git fetch --tags origin
@@ -112,6 +113,8 @@ for ref in "$tag" origin/main; do
     | grep -o 'contraTaxonomyVersion = [0-9]*'
   git show "$ref":packages/compendium_core/lib/src/sync/sync_codec.dart \
     | grep -o 'syncWireVersion = [0-9]*'
+  git show "$ref":packages/compendium_core/lib/src/taxonomy/ecd_taxonomy.dart \
+    | grep -o 'ecdTaxonomyVersion = [0-9]*'
 done
 ```
 
@@ -122,11 +125,15 @@ shipped: amend it all the same, and redeploy the server before any client
 emits the amended form, as for any manifest change. Ask the maintainer what is
 deployed if you can't tell.
 
-When you amend vNext rather than bump, the CI version gates
-(`check_schema_migration.py`, `check_version_history.py`) do not notice,
-because the constant does not move. Amending vNext's ledger entry and tests is
-on you. Anything run from source at vNext before your change (a dev database,
-a dev sync store) does not see it again. Recreate it rather than bumping.
+A second bump is gated: `check_version_bump_policy.py` fails a PR that raises
+one of these four constants while `main` already carries a value above the
+latest release tag's, and names the constant. It compares tags only, never
+what is deployed. When you amend vNext rather than bump, none of the CI version
+gates (`check_schema_migration.py`, `check_version_history.py`,
+`check_version_bump_policy.py`) notices, because the constant does not move.
+Amending vNext's ledger entry and tests is on you. Anything run from source at
+vNext before your change (a dev database, a dev sync store) does not see it
+again. Recreate it rather than bumping.
 
 ### Database schema migrations
 The local database schema is versioned by `schemaVersion` in
@@ -177,7 +184,8 @@ When head is vNext, a change joins it rather than following it:
   release shipped to vNext.
 
 CI checks less here than for a bump. The constant does not move, so neither
-`check_schema_migration.py` nor `check_version_history.py` notices the change.
+`check_schema_migration.py`, `check_version_history.py` nor
+`check_version_bump_policy.py` notices the change.
 The migration test and the ledger entry are on you.
 
 Only someone running a build from `main` can have a database already stamped
