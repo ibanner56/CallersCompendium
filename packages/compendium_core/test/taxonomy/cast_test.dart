@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_core/testing.dart';
 import 'package:test/test.dart';
@@ -11,9 +13,10 @@ import 'package:test/test.dart';
 /// - an unstated direction shows as "cast back", a shoulder as "cast back
 ///   left/right", up/down bare;
 /// - "cast off" is `down` with `places` 1 unless the line states a number;
-/// - women cast back over the right shoulder and men over the left, written
-///   by every reader and by the editor as a chain's role-implied hand is, and
-///   left unsaid in the display as a chain's hand is;
+/// - The Caller's Box import assumes women cast back over the right shoulder
+///   and men over the left when no shoulder is stated; nothing else assumes
+///   it (typed text, a re-check, other sources); the display always shows the
+///   shoulder;
 /// - `(past …)` counts into `places` and is kept as a note; `[with N1]` is a
 ///   note, as on other moves;
 /// - "Hand cast" is an alias of `gate`, listed as a move like `long_lines`.
@@ -21,6 +24,25 @@ import 'package:test/test.dart';
 /// Corpus figures in comments come from the 1,563 public Caller's Box dances
 /// whose figures mention "cast", fetched 2026-11-19 (`docs/research/
 /// callersbox.md`).
+/// The figures [CallersBoxAdapter] imports from one phrase of [lines].
+Future<List<Figure>> imported(List<String> lines) async {
+  final adapter = CallersBoxAdapter();
+  final payload = jsonEncode({
+    'ID': '770',
+    'Name': 'Cast test',
+    'Permission': 'full',
+    'phrases': [
+      {'name': 'A1', 'figures': lines},
+    ],
+  });
+  final discovered = await adapter.discover(ImportRequest(payload: payload));
+  final draft = adapter.parse(await adapter.fetch(discovered.single));
+  return switch (draft.dance.figuresSource) {
+    DecodedFigures(:final figures) => figures,
+    UnreadableFigures() => const [],
+  };
+}
+
 MoveDef? contraOrEcd(String id) =>
     contraTaxonomy.resolve(id) ?? ecdTaxonomy.resolve(id);
 
@@ -129,9 +151,17 @@ void main() {
       expect(show({'direction': 'down'}), 'cast down');
     });
 
-    test("a role's own shoulder goes unsaid, as a chain's hand does", () {
-      expect(show({'who': 'role2s', 'direction': 'right'}), 'role2s cast back');
-      expect(show({'who': 'role1s', 'direction': 'left'}), 'role1s cast back');
+    test("a role's own shoulder is still shown", () {
+      // The maintainer's ruling: unlike a chain's role-implied hand, a cast's
+      // shoulder is shown even when it is the role's usual one.
+      expect(
+        show({'who': 'role2s', 'direction': 'right'}),
+        'role2s cast back right',
+      );
+      expect(
+        show({'who': 'role1s', 'direction': 'left'}),
+        'role1s cast back left',
+      );
       expect(
         show({'who': 'role2s', 'direction': 'left'}),
         'role2s cast back left',
@@ -227,13 +257,51 @@ void main() {
       expect(castParams('Women cast left')['direction'], 'left');
     });
 
-    test('women cast back over the right shoulder, men over the left', () {
-      expect(castParams('Women cast back')['direction'], 'right');
-      expect(castParams('Men cast back')['direction'], 'left');
+    test('the import assumes women cast back over the right shoulder, '
+        'men over the left', () async {
+      final figures = await imported([
+        '(2) Women cast back',
+        '(2) Men cast back',
+        '(2) Women cast back to P2',
+        '(2) Women cast back || Men go forward',
+        '(2) Women cast down',
+        '(2) Women cast counterclockwise',
+      ]);
+      expect(
+        [for (final f in figures.take(3)) f.params['direction']],
+        ['right', 'left', 'right'],
+      );
       // The mixer form: the next partner is a note, not a place.
-      final toP2 = tcb('Women cast back to P2');
-      expect(toP2.params['direction'], 'right');
-      expect(toP2.note, 'to P2');
+      expect(figures[2].note, 'to P2');
+      // A `||` side is covered too.
+      expect(figures[3].subFigures.first.params['direction'], 'right');
+      // A stated direction is never replaced.
+      expect(figures[4].params['direction'], 'down');
+      expect(figures[5].params['direction'], 'left');
+    });
+
+    test('outside the import, an unstated shoulder stays unstated', () {
+      // The maintainer limited the assumption to the Caller's Box adapter:
+      // the front end alone, a re-check of stored lines (the fan-out across
+      // every front end) and typed text all leave it out.
+      expect(castParams('Women cast back'), {'who': 'role2s'});
+      expect(
+        parseFigureLinesFanOut('Women cast back', beats: 4).single.params,
+        isNot(contains('direction')),
+      );
+      final reparsed = reparseImportGapFigures([
+        testFigure(
+          move: customMove,
+          params: {'text': 'Women cast back', 'beats': 2},
+          customOrigin: CustomOrigin.importGap,
+        ),
+      ]);
+      expect(reparsed.figures.single.move, 'cast');
+      expect(reparsed.figures.single.params, isNot(contains('direction')));
+      expect(
+        parseFreeTextFigureEntry('robins cast back').single.params,
+        isNot(contains('direction')),
+      );
     });
 
     test('a cast back naming no dancers states no shoulder', () {
@@ -259,7 +327,7 @@ void main() {
       expect(ends.subFigures.first.isCustom, isTrue);
     });
 
-    test('a re-check reads a cast back as a fresh import does', () {
+    test("a re-check reads a cast as the front end does", () {
       // The re-check of an older import, Caller's Companion import and
       // free-text entry read through the fan-out across every front end.
       for (final line in [
@@ -268,28 +336,12 @@ void main() {
         'Ones cast back',
         'Ones cast down (past twos; threes)',
       ]) {
-        final fresh = encodeFigures([tcb(line)]);
         expect(
           encodeFigures(parseFigureLinesFanOut(line, beats: 4)),
-          fresh,
+          encodeFigures([tcb(line)]),
           reason: line,
         );
       }
-      final reparsed = reparseImportGapFigures([
-        Figure(
-          move: customMove,
-          params: {'text': 'Women cast back', 'beats': 2},
-          customOrigin: CustomOrigin.importGap,
-        ),
-      ]);
-      expect(reparsed.figures.single.params['direction'], 'right');
-    });
-
-    test('typed text reads a role cast back with its shoulder', () {
-      expect(
-        parseFreeTextFigureEntry('robins cast back').single.params,
-        containsPair('direction', 'right'),
-      );
     });
 
     test('(past …) counts into places and is kept as a note', () {
@@ -372,37 +424,6 @@ void main() {
         expect(read, hasLength(1), reason: text);
         expect(read.single.params['destination'], destination, reason: text);
       }
-    });
-  });
-
-  group('the editor', () {
-    test("a role's who seeds a cast back's shoulder, as a chain's hand", () {
-      final params = <String, Object?>{'who': 'role2s'};
-      seedCastShoulder('cast', params);
-      expect(params['direction'], 'right');
-      // A who edit rewrites the shoulder set for the old role.
-      applyParamChange(
-        contraTaxonomy,
-        move: 'cast',
-        params: params,
-        key: 'who',
-        value: 'role1s',
-        beatsTouched: false,
-        aggressiveBeats: false,
-      );
-      expect(params['direction'], 'left');
-    });
-
-    test('a cast up or down, or by other dancers, is left alone', () {
-      final down = <String, Object?>{'who': 'role2s', 'direction': 'down'};
-      seedCastShoulder('cast', down);
-      expect(down['direction'], 'down');
-      final ones = <String, Object?>{'who': 'ones'};
-      seedCastShoulder('cast', ones);
-      expect(ones, isNot(contains('direction')));
-      final chain = <String, Object?>{'who': 'role2s'};
-      seedCastShoulder('chain', chain);
-      expect(chain, isNot(contains('direction')));
     });
   });
 }

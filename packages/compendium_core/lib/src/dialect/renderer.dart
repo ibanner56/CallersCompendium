@@ -3133,8 +3133,9 @@ class FigureRenderer {
     //   {who} cast {back | back {direction} | {direction}} {places} places
     //   [around {whom}] [to {destination}]
     // An unstated direction reads "cast back"; a shoulder (`left`/`right`)
-    // reads "cast back left"/"cast back right", unless it is the dancers'
-    // role's own (below); `up`/`down` read bare. The
+    // reads "cast back left"/"cast back right", even when it is the dancers'
+    // role's usual one (the maintainer's ruling: unlike a chain's hand, it is
+    // never left unsaid); `up`/`down` read bare. The
     // canonical render keeps expanding the flat template, so search and dedupe
     // see the stored token ("cast right") rather than this wording.
     'cast': (r, def, params, dialect, verbose, decimals) {
@@ -3147,11 +3148,6 @@ class FigureRenderer {
       final directionRaw = params['direction'];
       final direction = switch (directionRaw) {
         'up' || 'down' => directionRaw as String,
-        // A role's own shoulder goes unsaid, as a chain's role-implied hand
-        // does ("role2s chain"): "role2s cast back" is over the right shoulder
-        // (the maintainer's ruling; `castBackShoulderForWho`). The other
-        // shoulder is shown: "role2s cast back left".
-        _ when directionRaw == castBackShoulderForWho(params['who']) => 'back',
         'left' || 'right' => 'back $directionRaw',
         // An unexpected value is surfaced after "back" rather than dropped.
         _ when _isUnspecified(directionRaw) || directionRaw == null => 'back',

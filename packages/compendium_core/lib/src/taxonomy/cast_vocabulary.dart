@@ -108,8 +108,8 @@ final Map<String, String> _castDestinationByWords = {
 /// chain's hand: a role-conditional default would go stale the moment `who` is
 /// edited. Every reader writes it for a role's "cast back" with no shoulder
 /// (`figure_parser.dart`, `_cast`), the editor writes it when a role is picked
-/// (`seedCastShoulder`), and the display leaves it unsaid, so "role2s cast
-/// back" means the right shoulder, as "role2s chain" means a right-hand chain.
+/// (`seedCastShoulder`). Unlike a chain's hand, the display always shows it
+/// ("role2s cast back right"), by the maintainer's ruling.
 /// Null for any other `who`, so the shoulder stays unstated.
 String? castBackShoulderForWho(Object? who) => switch (who) {
   'role2s' => 'right',
