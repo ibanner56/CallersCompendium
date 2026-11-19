@@ -358,6 +358,12 @@ final Map<String, String> _destinationPhrases = {
   'end improper': 'allImproper',
   'all proper': 'allProper',
   'ending proper': 'allProper',
+  // The ends of the set, which only a cast takes (ADR-006 §9.4); any other
+  // movement refuses them, so its line stays custom.
+  'to the top': 'top',
+  'to top': 'top',
+  'to the bottom': 'bottom',
+  'to bottom': 'bottom',
   'to end proper': 'allProper',
   'end proper': 'allProper',
   for (final MapEntry(key: word, value: n) in _ordinals.entries)
@@ -1290,16 +1296,28 @@ final Map<String, _MoveRule> _rules = {
       'destination': _dest(b),
     }),
   ),
-  'cast': _MoveRule(
-    'ecd_cast',
-    (b, c) => _params({
+  // A cast's `direction` is up, down, or the shoulder turned over (ADR-006
+  // §9.4): a bare `left`/`right`, never `to the left`, which is a way to
+  // travel. "Cast off" is down one place unless a count is stated.
+  'cast': _MoveRule('ecd_cast', (b, c) {
+    final where = _where(b, const ['off', 'up', 'down']);
+    final shoulder = _sideAs(b, 'direction', toTheAllowed: false);
+    final count = b.take<int>('placeCount');
+    final direction = where == null
+        ? shoulder
+        : shoulder != null
+        ? _fail
+        : where == 'off'
+        ? 'down'
+        : where;
+    return _params({
       'who': _whoOf(b, objectIsWho: false),
-      'where': _where(b, const ['off', 'up', 'down', 'around']),
-      'direction': _sideAs(b, 'direction'),
+      'direction': direction,
+      'places': count ?? (where == 'off' ? 1 : null),
       'whom': _whom(b, const {'around'}),
       'destination': _dest(b),
-    }),
-  ),
+    });
+  }),
   'galop': _MoveRule(
     'ecd_galop',
     (b, c) => _params({

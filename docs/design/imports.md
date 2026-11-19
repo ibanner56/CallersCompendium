@@ -2250,10 +2250,16 @@ dance.
   `cross` (hand or shoulder?) stay custom. So does a word the movement has no
   place for: dancers named both before and after a turn (`1s turn 2s`), a
   preposition other than the one the movement shows its partner dancers with
-  (`cast around 2s` reads, `cast to bottom` does not), `to the right` as a
-  hand (it is a way to travel: `circle to the left` reads), a bare `improper`
+  (`cast around 2s` reads, `cast to 2s` does not), `to the right` as a
+  hand or a cast's shoulder (it is a way to travel: `circle to the left`
+  reads), a cast's shoulder beside `up` or `down`, a bare `improper`
   (`ending improper` reads), and a subject before a poussette, whose `who` is
   the dancers who push (`half poussette, 2s push` reads; "all" adds nothing).
+- **Cast** reads contra `cast`'s shape (ADR-006 §9.4): `up`, `down` or a
+  bare `left`/`right` (the shoulder turned over) is its `direction`, `N
+  places` its `places`, and `to the bottom`/`to top` its `destination`, which
+  no other movement takes. `cast off` is down one place unless a count is
+  stated (`cast off two places`).
 - **Rings.** A circle's or star's fraction ("half way") is a number of places
   from the size of the ring (§7.3): a size the line states (`circle six left
   half way`), the couples the subject names, or the dance's formation
