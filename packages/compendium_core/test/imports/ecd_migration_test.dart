@@ -216,6 +216,42 @@ void main() {
       );
     });
 
+    test('from its own words, never its wording override', () {
+      // The override names another move; the promenade stays a promenade.
+      final read = ecdReadingOfContraWording(
+        Figure(
+          move: 'promenade',
+          params: const {'who': 'partners'},
+          wordingOverride: 'gents chain',
+        ),
+      )!;
+      expect(read.move, 'ecd_promenade');
+      expect(read.wordingOverride, 'gents chain');
+    });
+
+    test('not when its words hide a value it states', () {
+      // The list shows "neighbor balance & pull by right"; the balance must
+      // not be lost.
+      expect(
+        ecdReadingOfContraWording(
+          _f('pull_by', {
+            'who': 'neighbors',
+            'balance': true,
+            'hand': 'right',
+            'beats': 4,
+          }),
+        ),
+        isNull,
+      );
+      // "partner promenade" does not show who it ends with.
+      expect(
+        ecdReadingOfContraWording(
+          _f('promenade', {'who': 'partners', 'destination': 'neighbors'}),
+        ),
+        isNull,
+      );
+    });
+
     test('not when its subject was assumed (R2)', () {
       expect(
         ecdReadingOfContraWording(

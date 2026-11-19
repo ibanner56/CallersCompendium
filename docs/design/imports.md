@@ -2276,16 +2276,20 @@ migration that turns them into ECD figures. Nothing runs it on its own.
      does not show;
   2. any other contra move is read again from its words
      (`ecdReadingOfContraWording`, Hudson's decision: twins first, then try
-     the ECD grammar on what else can parse). The words are the contra
-     display in the canonical dialect, which leaves out the defaults contra
-     silences, so what is read is what the person saw; a value the display
-     shows but the figure did not store can become a stated one, which is
-     the accepted cost of this step. It accepts only a reading made wholly of
-     ECD moves that validates, keeps the figure's note, mark and overrides,
-     and keeps its contra count as below. It skips a figure whose subject was
-     assumed, and the moves whose words mean something else in ECD: those
-     left out of the twin table for their `who`, and a petronella, whose
-     contra display hides whether it includes the balance;
+     the ECD grammar on what else can parse). The words are the move's own
+     summary as the figure list shows it, in the canonical dialect, balance
+     and other modifiers included and never the person's wording override
+     (which can name another move). Contra silences its defaults there, so a
+     default the words do show can become a stated value: the accepted cost
+     of this step. A figure that states a value its words hide (a
+     promenade's destination) is not read, nor one that fails contra
+     validation or whose subject was assumed, nor the moves whose words mean
+     something else in ECD: those left out of the twin table for their
+     `who`, and a petronella, whose contra words hide whether it includes the
+     balance. A reading is kept only when it is wholly ECD moves and
+     validates in the ECD registry; a reading that is a container replaces
+     only a top-level figure, so containers never nest. The figure keeps its
+     note, mark and overrides, and its contra count as below;
   3. import-gap custom lines are re-read with the ECD grammar
      (`reparseImportGapFigures` with ECD's taxonomy); user-entered customs are
      left alone, as in Re-check;

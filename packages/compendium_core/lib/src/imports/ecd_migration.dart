@@ -100,13 +100,17 @@ EcdMigration migrateEcdDance({
   );
 }
 
-({Figure figure, int count})? _convert(Figure figure, int? ringDancers) {
+({Figure figure, int count})? _convert(
+  Figure figure,
+  int? ringDancers, {
+  bool inContainer = false,
+}) {
   if (figure.isContainer) {
     final children = figure.subFigures;
     List<Figure>? next;
     var count = 0;
     for (var i = 0; i < children.length; i++) {
-      final result = _convert(children[i], ringDancers);
+      final result = _convert(children[i], ringDancers, inContainer: true);
       if (result == null) continue;
       next ??= List<Figure>.of(children);
       next[i] = result.figure;
@@ -120,9 +124,14 @@ EcdMigration migrateEcdDance({
       count: count,
     );
   }
-  final twin =
-      ecdTwinOfContraMove(figure) ??
-      ecdReadingOfContraWording(figure, ringDancers: ringDancers);
+  var twin = ecdTwinOfContraMove(figure);
+  if (twin == null) {
+    final read = ecdReadingOfContraWording(figure, ringDancers: ringDancers);
+    // A container stays a step of no other container (the nesting rule
+    // Re-check keeps), so a reading that is one replaces only a top-level
+    // figure.
+    if (read != null && !(inContainer && read.isContainer)) twin = read;
+  }
   return twin == null ? null : (figure: twin, count: 1);
 }
 
@@ -161,11 +170,24 @@ Figure? ecdReadingOfContraWording(Figure figure, {int? ringDancers}) {
   }
   if (contraTaxonomy.resolve(figure.move) == null) return null;
   if (_unlikeInEcd.contains(figure.move)) return null;
-  final String words;
-  try {
-    words = _contraWords.render(figure, Dialect.canonical);
-  } catch (_) {
+  if (contraTaxonomy
+      .validateFigure(figure)
+      .any((issue) => issue.severity == ValidationSeverity.error)) {
     return null;
+  }
+  final String? words = _shownWords(figure);
+  if (words == null) return null;
+  // A value the figure states that its words do not show (a promenade's
+  // destination) would be lost: such a figure is not read this way.
+  final def = contraTaxonomy.resolve(figure.move)!;
+  for (final entry in figure.params.entries) {
+    if (entry.key == 'beats' || entry.value == null) continue;
+    if (entry.value == def.params[entry.key]?.defaultValue) continue;
+    final without = Figure(
+      move: figure.move,
+      params: {...figure.params}..remove(entry.key),
+    );
+    if (_shownWords(without) == words) return null;
   }
   final stored = figure.params['beats'];
   final read = recognizeEcdLine(
@@ -185,14 +207,31 @@ Figure? ecdReadingOfContraWording(Figure figure, {int? ringDancers}) {
   );
   if (stored == null) {
     final danced = contraTaxonomy.effectiveParams(figure)['beats'];
-    if (danced != null && ecdTaxonomy.effectiveParams(out)['beats'] != danced) {
+    final ecd = shippedTaxonomies.forForm(DanceForm.ecd);
+    if (danced != null && ecd.effectiveParams(out)['beats'] != danced) {
       out = out.copyWith(params: {...out.params, 'beats': danced});
     }
   }
-  final invalid = ecdTaxonomy
+  // The ECD form's registry, which adds the containers to ECD's moves.
+  final invalid = shippedTaxonomies
+      .forForm(DanceForm.ecd)
       .validateFigure(out)
       .any((issue) => issue.severity == ValidationSeverity.error);
   return invalid ? null : out;
+}
+
+/// [figure]'s own words as the figure list shows them, summary modifiers
+/// such as a balance included, never the person's wording override (which
+/// can name another move); null when it cannot be rendered.
+String? _shownWords(Figure figure) {
+  try {
+    return _contraWords.renderSummary(
+      figure.copyWith(wordingOverride: null),
+      Dialect.canonical,
+    );
+  } catch (_) {
+    return null;
+  }
 }
 
 bool _allEcd(Figure figure) => figure.isContainer
