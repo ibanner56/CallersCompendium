@@ -17,7 +17,6 @@ import '../../data/repositories_scope.dart';
 import '../../data/set_list_color_coding_scope.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/color_schemes.dart';
-import '../../widgets/readable_width.dart';
 import '../../widgets/section_header.dart';
 import '../formation_colors_screen.dart';
 import '../tag_manager_screen.dart';
@@ -112,7 +111,7 @@ class _AppearanceView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return ReadableListView(
+    return ListView(
       children: [
         SectionHeader(title: l10n.settingsAppearanceThemeHeader),
         Padding(

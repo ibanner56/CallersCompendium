@@ -12,7 +12,6 @@ import '../../update/update_controller.dart';
 import '../../update/update_failure_labels.dart';
 import '../../update/update_scope.dart';
 import '../../utils/launch_external_url.dart';
-import '../../widgets/readable_width.dart';
 import '../../widgets/section_header.dart';
 
 /// The Updates settings section (ADR-002 §4/§5, "Stage 1.5"): a manual "Check
@@ -44,7 +43,7 @@ class UpdatesSection extends StatelessWidget {
     final checking = status == UpdateCheckStatus.checking;
     final retirement = controller.retirementNotice;
 
-    return ReadableListView(
+    return ListView(
       children: [
         SectionHeader(title: l10n.settingsUpdatesHeader),
         // Shown even after the banner's "Later": Settings is where the user

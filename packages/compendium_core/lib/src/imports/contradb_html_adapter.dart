@@ -10,6 +10,7 @@ import 'author_tokenizer.dart';
 import 'contradb_figure_dialect.dart';
 import 'figure_parser.dart';
 import 'figure_text_scrub.dart';
+import 'formation_set_names.dart';
 import 'import_error.dart';
 import 'raw_record.dart';
 import 'source_adapter.dart';
@@ -60,7 +61,9 @@ import 'structured_draft.dart';
 /// ## Metadata
 /// - `h1.dance-show-title` → title (missing → a `ContraDB dance <id>` stub).
 /// - `p.dance-show-formation` → [FormationShape] best-effort; recognized text
-///   is shape-only unless a preamble supplies [Formation.detail], while unknown
+///   is shape-only unless a preamble supplies [Formation.detail] or the name is
+///   a set shape (triplet, quadruplet, triple minor), whose Proper / Improper /
+///   Indecent start word is kept as detail ahead of any preamble, while unknown
 ///   text is kept as normalized detail on [FormationShape.other] with a warning.
 /// - `div.dance-show-preamble` → normalized [Formation.detail], before unknown
 ///   formation text when both are present.
@@ -397,16 +400,21 @@ class ContraDbHtmlAdapter implements SourceAdapter {
 
     final lower = detailText.toLowerCase();
     FormationShape? shape;
+    // Set shapes first: "Proper Triplet (231)" is a triplet, not a duple proper.
+    final set = classifyFormationSetName(lower);
     if (lower.contains('becket')) {
       shape = (lower.contains('ccw') || lower.contains('counter'))
           ? FormationShape.becketCcw
           : FormationShape.becketCw;
+    } else if (set != null) {
+      return Formation(
+        set.shape,
+        detail: joinFormationDetail(set.qualifier, preamble),
+      );
     } else if (lower.contains('improper')) {
       shape = FormationShape.dupleImproper;
     } else if (lower.contains('indecent')) {
       shape = FormationShape.dupleIndecent;
-    } else if (lower.contains('triplet')) {
-      shape = FormationShape.triplet;
     } else if (lower.contains('triple')) {
       shape = FormationShape.tripleMinor;
     } else if (lower.contains('proper')) {
@@ -425,8 +433,6 @@ class ContraDbHtmlAdapter implements SourceAdapter {
       shape = FormationShape.grid;
     } else if (lower.contains('circle')) {
       shape = FormationShape.circleMixer;
-    } else if (lower.contains('quadruplet')) {
-      shape = FormationShape.quadruplet;
     } else if (lower.contains('longways')) {
       shape = FormationShape.longways;
     }

@@ -35,7 +35,6 @@ import '../../widgets/figure_param_editors.dart';
 import '../../widgets/move_autocomplete.dart';
 import '../../widgets/collection_picker.dart';
 import '../../widgets/dirty_dialog_guard.dart';
-import '../../widgets/readable_width.dart';
 import '../../widgets/section_header.dart';
 import '../../widgets/settings_dropdown_row.dart';
 import '../glossary/compound_editor_screen.dart';
@@ -1792,7 +1791,7 @@ class _DefaultsView extends StatelessWidget {
     final sectionTitleStyle = theme.textTheme.labelLarge?.copyWith(
       color: theme.colorScheme.primary,
     );
-    return ReadableListView(
+    return ListView(
       keyboardDismissBehavior: textEntryKeyboardDismiss(),
       children: [
         SectionHeader(title: l10n.settingsDefaultsDisplayHeader),
