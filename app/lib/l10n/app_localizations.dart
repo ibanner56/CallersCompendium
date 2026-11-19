@@ -5578,6 +5578,24 @@ abstract class AppLocalizations {
   /// **'Re-check…'**
   String get settingsGeneralReparseCustomFiguresAction;
 
+  /// Settings row title for the opt-in migration of English country dances stored with contra moves (ADR-006 F5).
+  ///
+  /// In en, this message translates to:
+  /// **'Convert English dances'**
+  String get settingsGeneralEcdMigrationTitle;
+
+  /// Settings row subtitle explaining the English-dance conversion.
+  ///
+  /// In en, this message translates to:
+  /// **'English country dances stored before the app knew English figures still use contra moves. Convert the moves that mean the same in English dancing, re-read unrecognized figures, and give each dance its English formation. You choose the dances and confirm before anything changes.'**
+  String get settingsGeneralEcdMigrationSubtitle;
+
+  /// Button that opens the English-dance conversion screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Convert…'**
+  String get settingsGeneralEcdMigrationAction;
+
   /// General settings section header for backup and restore actions.
   ///
   /// In en, this message translates to:
@@ -15107,6 +15125,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Something went wrong while scanning your collection. Nothing was changed. You can try again.'**
   String get reparseErrorBody;
+
+  /// App-bar title of the English-dance conversion screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Convert English dances'**
+  String get ecdMigrationScreenTitle;
+
+  /// Intro paragraph on the English-dance conversion screen.
+  ///
+  /// In en, this message translates to:
+  /// **'{danceCount, plural, =1{1 English dance still uses} other{{danceCount} English dances still use}} contra moves, unrecognized figures or a contra formation. Choose the dances to convert, then confirm. A move with no clear English meaning stays as it is.'**
+  String ecdMigrationIntro(int danceCount);
+
+  /// Per-dance line: how many contra moves would become English figures.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 move to convert} other{{count} moves to convert}}'**
+  String ecdMigrationPreviewMoves(int count);
+
+  /// Per-dance line: how many unrecognized figures the English parser would now read.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 unrecognized figure now read} other{{count} unrecognized figures now read}}'**
+  String ecdMigrationPreviewLines(int count);
+
+  /// Per-dance line: the dance's formation would take its English shape (for example duple proper becomes duple minor).
+  ///
+  /// In en, this message translates to:
+  /// **'English formation'**
+  String get ecdMigrationPreviewShape;
+
+  /// Primary button that converts the chosen English dances.
+  ///
+  /// In en, this message translates to:
+  /// **'Convert {danceCount, plural, =1{1 dance} other{{danceCount} dances}}'**
+  String ecdMigrationConvertButton(int danceCount);
+
+  /// Title of the confirm dialog before converting English dances.
+  ///
+  /// In en, this message translates to:
+  /// **'Convert these English dances?'**
+  String get ecdMigrationConfirmTitle;
+
+  /// Body of the confirm dialog before converting English dances.
+  ///
+  /// In en, this message translates to:
+  /// **'This changes the figures and formation of {danceCount, plural, =1{1 dance} other{{danceCount} dances}}. Tags, ratings, notes and everything else are kept. This can\'t be undone, so you may want to back up first.'**
+  String ecdMigrationConfirmBody(int danceCount);
+
+  /// Confirm-dialog action that converts the English dances.
+  ///
+  /// In en, this message translates to:
+  /// **'Convert'**
+  String get ecdMigrationConfirmAction;
+
+  /// Snackbar confirming how many English dances were converted.
+  ///
+  /// In en, this message translates to:
+  /// **'Converted {danceCount, plural, =1{1 dance} other{{danceCount} dances}}.'**
+  String ecdMigrationDoneSnack(int danceCount);
+
+  /// Snackbar shown when a conversion run changed nothing.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to convert.'**
+  String get ecdMigrationNothingSnack;
+
+  /// Snackbar shown when the English-dance conversion fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not convert the dances. Nothing was changed. Please try again.'**
+  String get ecdMigrationFailed;
+
+  /// Empty-state title when no English dance needs converting.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to convert'**
+  String get ecdMigrationEmptyTitle;
+
+  /// Empty-state body when no English dance has anything the conversion can change (some may still hold contra moves it leaves alone).
+  ///
+  /// In en, this message translates to:
+  /// **'None of your English country dances has anything this can convert. A move with no clear English meaning stays as it is.'**
+  String get ecdMigrationEmptyBody;
+
+  /// Error-state title when scanning English dances fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not check your English dances'**
+  String get ecdMigrationErrorTitle;
 
   /// Snackbar when deleting a custom field still set on dances (count known). The raw exception is logged (debugPrint), never shown, so storage internals can't leak to the UI (CWE-209). {label} is plain text.
   ///

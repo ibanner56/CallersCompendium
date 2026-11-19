@@ -49,6 +49,7 @@ export 'src/imports/contradb_search.dart';
 export 'src/imports/figure_diff.dart';
 export 'src/imports/ecd_figure_parser.dart';
 export 'src/imports/ecd_formation.dart';
+export 'src/imports/ecd_migration.dart';
 export 'src/imports/figure_parser.dart';
 export 'src/imports/figure_front_end_fan_out.dart';
 export 'src/imports/figure_text_scrub.dart';

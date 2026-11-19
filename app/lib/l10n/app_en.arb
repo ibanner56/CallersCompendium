@@ -4542,6 +4542,18 @@
   "@settingsGeneralReparseCustomFiguresAction": {
     "description": "Button label that opens the re-check custom figures flow; the ellipsis indicates more review follows."
   },
+  "settingsGeneralEcdMigrationTitle": "Convert English dances",
+  "@settingsGeneralEcdMigrationTitle": {
+    "description": "Settings row title for the opt-in migration of English country dances stored with contra moves (ADR-006 F5)."
+  },
+  "settingsGeneralEcdMigrationSubtitle": "English country dances stored before the app knew English figures still use contra moves. Convert the moves that mean the same in English dancing, re-read unrecognized figures, and give each dance its English formation. You choose the dances and confirm before anything changes.",
+  "@settingsGeneralEcdMigrationSubtitle": {
+    "description": "Settings row subtitle explaining the English-dance conversion."
+  },
+  "settingsGeneralEcdMigrationAction": "Convert…",
+  "@settingsGeneralEcdMigrationAction": {
+    "description": "Button that opens the English-dance conversion screen."
+  },
   "settingsGeneralBackupRestoreHeader": "Backup & restore",
   "@settingsGeneralBackupRestoreHeader": {
     "description": "General settings section header for backup and restore actions."
@@ -13575,6 +13587,96 @@
   "reparseErrorBody": "Something went wrong while scanning your collection. Nothing was changed. You can try again.",
   "@reparseErrorBody": {
     "description": "Body of the error state when scanning for upgradable figures fails."
+  },
+  "ecdMigrationScreenTitle": "Convert English dances",
+  "@ecdMigrationScreenTitle": {
+    "description": "App-bar title of the English-dance conversion screen."
+  },
+  "ecdMigrationIntro": "{danceCount, plural, =1{1 English dance still uses} other{{danceCount} English dances still use}} contra moves, unrecognized figures or a contra formation. Choose the dances to convert, then confirm. A move with no clear English meaning stays as it is.",
+  "@ecdMigrationIntro": {
+    "description": "Intro paragraph on the English-dance conversion screen.",
+    "placeholders": {
+      "danceCount": {
+        "type": "int"
+      }
+    }
+  },
+  "ecdMigrationPreviewMoves": "{count, plural, =1{1 move to convert} other{{count} moves to convert}}",
+  "@ecdMigrationPreviewMoves": {
+    "description": "Per-dance line: how many contra moves would become English figures.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "ecdMigrationPreviewLines": "{count, plural, =1{1 unrecognized figure now read} other{{count} unrecognized figures now read}}",
+  "@ecdMigrationPreviewLines": {
+    "description": "Per-dance line: how many unrecognized figures the English parser would now read.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "ecdMigrationPreviewShape": "English formation",
+  "@ecdMigrationPreviewShape": {
+    "description": "Per-dance line: the dance's formation would take its English shape (for example duple proper becomes duple minor)."
+  },
+  "ecdMigrationConvertButton": "Convert {danceCount, plural, =1{1 dance} other{{danceCount} dances}}",
+  "@ecdMigrationConvertButton": {
+    "description": "Primary button that converts the chosen English dances.",
+    "placeholders": {
+      "danceCount": {
+        "type": "int"
+      }
+    }
+  },
+  "ecdMigrationConfirmTitle": "Convert these English dances?",
+  "@ecdMigrationConfirmTitle": {
+    "description": "Title of the confirm dialog before converting English dances."
+  },
+  "ecdMigrationConfirmBody": "This changes the figures and formation of {danceCount, plural, =1{1 dance} other{{danceCount} dances}}. Tags, ratings, notes and everything else are kept. This can't be undone, so you may want to back up first.",
+  "@ecdMigrationConfirmBody": {
+    "description": "Body of the confirm dialog before converting English dances.",
+    "placeholders": {
+      "danceCount": {
+        "type": "int"
+      }
+    }
+  },
+  "ecdMigrationConfirmAction": "Convert",
+  "@ecdMigrationConfirmAction": {
+    "description": "Confirm-dialog action that converts the English dances."
+  },
+  "ecdMigrationDoneSnack": "Converted {danceCount, plural, =1{1 dance} other{{danceCount} dances}}.",
+  "@ecdMigrationDoneSnack": {
+    "description": "Snackbar confirming how many English dances were converted.",
+    "placeholders": {
+      "danceCount": {
+        "type": "int"
+      }
+    }
+  },
+  "ecdMigrationNothingSnack": "Nothing to convert.",
+  "@ecdMigrationNothingSnack": {
+    "description": "Snackbar shown when a conversion run changed nothing."
+  },
+  "ecdMigrationFailed": "Could not convert the dances. Nothing was changed. Please try again.",
+  "@ecdMigrationFailed": {
+    "description": "Snackbar shown when the English-dance conversion fails."
+  },
+  "ecdMigrationEmptyTitle": "Nothing to convert",
+  "@ecdMigrationEmptyTitle": {
+    "description": "Empty-state title when no English dance needs converting."
+  },
+  "ecdMigrationEmptyBody": "None of your English country dances has anything this can convert. A move with no clear English meaning stays as it is.",
+  "@ecdMigrationEmptyBody": {
+    "description": "Empty-state body when no English dance has anything the conversion can change (some may still hold contra moves it leaves alone)."
+  },
+  "ecdMigrationErrorTitle": "Could not check your English dances",
+  "@ecdMigrationErrorTitle": {
+    "description": "Error-state title when scanning English dances fails."
   },
   "customFieldsDeleteInUse": "Can't delete \"{label}\": still used by {count, plural, =1{1 dance} other{{count} dances}}. Remove the value from all dances first.",
   "@customFieldsDeleteInUse": {
