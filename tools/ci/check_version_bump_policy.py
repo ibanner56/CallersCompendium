@@ -33,7 +33,8 @@ Usage:
     check_version_bump_policy.py <base_ref> [head_ref] [--tag <ref>]
 
 ``head_ref`` defaults to ``HEAD``. ``--tag`` defaults to the newest ``v*`` tag by
-creation date, the same selection ``CONTRIBUTING.md``'s hand check uses. Exit
+creation date, the same selection ``CONTRIBUTING.md``'s hand check uses (tags
+created in the same second tie, and git then orders them by name). Exit
 codes: 0 = policy held, 1 = a bump broke it, 2 = a usage or git error or an
 unreadable input, which must never be mistaken for "nothing to check".
 """
@@ -98,7 +99,8 @@ def judge(
         if value is None:
             return UNANSWERABLE, (
                 f"{name}: could not read it at the {what} ({ref}); refusing to "
-                "call that a pass."
+                "call that a pass. If the constant or its file was added after "
+                "the release, no tag can answer until the next release."
             )
     assert tag is not None and base is not None and head is not None  # for type checkers
     if base < tag:

@@ -128,8 +128,9 @@ latest release tag's, and names the constant. It compares tags only, never
 what is deployed. When you amend vNext rather than bump, none of the CI version
 gates (`check_schema_migration.py`, `check_version_history.py`,
 `check_version_bump_policy.py`) notices, because the constant does not move.
-Amending vNext's ledger entry and tests is on you. Anything run from source at vNext before your change (a dev database,
-a dev sync store) does not see it again. Recreate it rather than bumping.
+Amending vNext's ledger entry and tests is on you. Anything run from source at
+vNext before your change (a dev database, a dev sync store) does not see it
+again. Recreate it rather than bumping.
 
 ### Database schema migrations
 The local database schema is versioned by `schemaVersion` in
@@ -180,7 +181,8 @@ When head is vNext, a change joins it rather than following it:
   release shipped to vNext.
 
 CI checks less here than for a bump. The constant does not move, so neither
-`check_schema_migration.py` nor `check_version_history.py` notices the change.
+`check_schema_migration.py`, `check_version_history.py` nor
+`check_version_bump_policy.py` notices the change.
 The migration test and the ledger entry are on you.
 
 Only someone running a build from `main` can have a database already stamped

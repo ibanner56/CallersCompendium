@@ -160,6 +160,21 @@ def main() -> int:
     check("the legitimate bump is reported ok", "OK: kCompendiumSchemaVersion 5 -> 6" in res.stdout, res.stdout)
     check("the second bump is the failure", "::error::contraTaxonomyVersion 40 -> 41" in res.stdout, res.stdout)
 
+    # A definite violation outranks an unreadable constant elsewhere.
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = Repo(Path(tmp))
+        repo.set_versions(5, 39, 1)
+        repo.commit("release")
+        repo.tag("v1.0.0")
+        repo.set_versions(5, 40, 1)
+        repo.commit("base")
+        repo.set_versions(5, 41, 1)
+        (repo.root / WIRE.source).write_text("// renamed\n", encoding="utf-8")
+        repo.commit("head")
+        print("a failure and an unreadable constant together:")
+        res = repo.run("HEAD~1", "HEAD")
+        check("exits 1, the actionable one", res.returncode == 1, f"exit={res.returncode} {res.stdout}")
+
     # ---- the gate must PASS ------------------------------------------------
 
     res = scenario("nothing moved", (5, 39, 1), (5, 39, 1), (5, 39, 1))
@@ -216,21 +231,23 @@ def main() -> int:
         repo = Repo(Path(tmp))
         repo.set_versions(5, 39, 1)
         repo.commit("old release")
-        repo.tag("v1.0.0")
+        repo.tag("v2.0.0")
         repo.set_versions(6, 39, 1)
         repo.commit("newer release")
-        repo.tag("v1.1.0-beta")
+        repo.tag("v1.9.0-beta")
         repo.commit("base")
         repo.set_versions(7, 39, 1)
         repo.commit("head")
         print("newest tag wins, whatever its name sorts to:")
-        # Schema: tag v1.1.0-beta has 6, v1.0.0 has 5. Base 6 -> head 7 is the first
+        # The newer tag sorts LOWEST by name (v1.9.0 < v2.0.0), so a switch from date
+        # order to name order picks v2.0.0 and flips the result below.
+        # Schema: tag v1.9.0-beta has 6, v2.0.0 has 5. Base 6 -> head 7 is the first
         # bump after the newer tag (pass) but a second bump after the older one (fail),
         # so the exit code says which tag was chosen.
         res = repo.run("HEAD~1", "HEAD")
-        check("selects the newest tag and passes", res.returncode == 0 and "v1.1.0-beta" in res.stdout, f"exit={res.returncode} {res.stdout}")
-        res = repo.run("HEAD~1", "HEAD", "--tag", "v1.0.0")
-        check("--tag overrides the selection", res.returncode == 1 and "v1.0.0" in res.stdout, f"exit={res.returncode} {res.stdout}")
+        check("selects the newest tag and passes", res.returncode == 0 and "v1.9.0-beta" in res.stdout, f"exit={res.returncode} {res.stdout}")
+        res = repo.run("HEAD~1", "HEAD", "--tag", "v2.0.0")
+        check("--tag overrides the selection", res.returncode == 1 and "v2.0.0" in res.stdout, f"exit={res.returncode} {res.stdout}")
 
     if FAILURES:
         print(f"\n{len(FAILURES)} FAILED:")
