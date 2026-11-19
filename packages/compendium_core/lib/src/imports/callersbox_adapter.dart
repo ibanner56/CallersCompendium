@@ -1220,8 +1220,11 @@ class CallersBoxAdapter implements SourceAdapter {
         : figure.isCustom
         ? _figureWords(figure)
         : const <String>[];
-    return words.contains('cast') &&
-        words.contains('back') &&
+    // Since taxonomy v40 (#770) the "Women cast back" side reads as a
+    // structured `cast`, so it no longer leaves its words behind.
+    final castSide =
+        figure.isMeanwhile && figure.subFigures.any((f) => f.move == 'cast');
+    return (castSide || (words.contains('cast') && words.contains('back'))) &&
         words.contains('go') &&
         words.contains('forward');
   }

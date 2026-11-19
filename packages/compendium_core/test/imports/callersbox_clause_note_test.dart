@@ -339,18 +339,25 @@ void main() {
       }
     });
 
-    test('the `cast … to place` family is NOT swept in by `return to place`', () {
-      // Deliberate: `cast` is the largest genuinely-undefined figure left, and
-      // note-ifying these lines would make them look handled and cause a future
-      // census of `cast` to under-count itself. `return to place` is matched as
-      // an EXACT phrase, which is what excludes them.
-      for (final line in [
-        'Partner swing; cast down to place',
-        'Partner swing; cast up to place',
-        'Partner swing; cast back to place',
+    test('a `cast … to place` clause is a cast, never a `return to place` '
+        'note', () {
+      // `return to place` is matched as an EXACT phrase, so these clauses are
+      // never swept into a note on the swing. Until taxonomy v40 (#770) that
+      // kept the whole line custom; now each clause is a `cast` of its own.
+      for (final (line, direction) in [
+        ('Partner swing; cast down to place', 'down'),
+        ('Partner swing; cast up to place', 'up'),
+        ('Partner swing; cast back to place', null),
       ]) {
-        _staysWholeCustom(line);
-        expect(_one(line).params['text'], contains('cast'));
+        final figures = parseFigureLines(
+          line,
+          beats: 8,
+          frontEnd: tcbFigureFrontEnd,
+        );
+        expect(figures.map((f) => f.move), ['swing', 'cast'], reason: line);
+        expect(figures.first.note, isNull, reason: line);
+        expect(figures.last.params['direction'], direction, reason: line);
+        expect(figures.last.params['destination'], 'place', reason: line);
       }
     });
 

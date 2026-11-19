@@ -218,6 +218,9 @@ void main() {
         'slice.slice',
         'rory_o_more.slide',
         'circle.direction',
+        // v40 (#770): left/right are shoulders and up/down directions along
+        // the set, in one free-form slot like circle's, so it takes none.
+        'cast.direction',
       });
       expect(ParamOpposites.coverage(ParamKind.choice), OppositeCoverage.none);
     },

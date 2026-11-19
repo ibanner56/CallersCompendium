@@ -1,4 +1,5 @@
 import '../model/figure.dart';
+import '../taxonomy/cast_vocabulary.dart';
 import '../taxonomy/contra_taxonomy.dart';
 import '../taxonomy/move_def.dart';
 import '../taxonomy/param_types.dart';
@@ -87,6 +88,11 @@ final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
     _balancePairHandAnnotation,
     _gateAnnotation,
     _courtesyTurnAnnotation,
+    // Taxonomy v40 (#770): TCB's `(past …)` count and its "cast back"
+    // convention. It fires only on a cast line carrying one of them, and reads
+    // the rest of the line through every other entry here, so its position is
+    // not correctness-critical.
+    _tcbCast,
     _walkForwardAnnotation,
     _chainAnnotation,
     _starPromenadeAnnotation,
@@ -1046,6 +1052,104 @@ String _tcbRecognitionNormalize(String lowercased) {
 
 final RegExp _promenadeMajorSetTail = RegExp(
   r'\baround\s+the\s+major\s+set\b',
+  caseSensitive: false,
+);
+
+// --- Cast: the `(past …)` count and "cast back" (taxonomy v40, #770) ---------
+
+/// The two pieces of The Caller's Box's cast notation that the source-neutral
+/// `_cast` recognizer cannot read, applied on top of whatever the rest of this
+/// front end makes of the line:
+///
+/// - **`(past twos; threes)`** lists the couples a cast goes past, which the
+///   glossary's "Cast down" entry gives as the distance. Its count fills
+///   `places`, and its text is kept as a note (the maintainer's call,
+///   2026-11-19). A count that disagrees with one the line states ("cast off
+///   2 (past twos)") keeps the line custom rather than choosing.
+/// - **"cast back"** with no shoulder: a role cast back over the shoulder
+///   [castBackShoulderForWho] gives (women right, men left — the maintainer's
+///   ruling, likened to a chain's role-implied hand). A cast back by any other
+///   named dancers ("Ends cast back to P2") stays custom, as the maintainer
+///   asked; one naming no dancers ("Cast back") stays a plain cast back.
+///
+/// The `(past …)` run is removed and the remainder read through every other
+/// pre-recognizer of [tcbFigureFrontEnd], then the shared recognizers, so a
+/// `[with N2]` beside it is noted exactly as on any other cast. The remainder
+/// no longer carries the run, and this entry is skipped, so it cannot recurse.
+///
+/// Returns null (the normal path) for any line without either piece, and for
+/// any line whose remainder is not a cast.
+FigureMatch? _tcbCast(String scrubbed) {
+  if (!_castWordRe.hasMatch(scrubbed)) return null;
+  final past = _castPastRe.firstMatch(scrubbed);
+  final back = _castBackRe.hasMatch(scrubbed);
+  if (past == null && !back) return null;
+
+  final text = past == null
+      ? scrubbed
+      : '${scrubbed.substring(0, past.start)} ${scrubbed.substring(past.end)}'
+            .replaceAll(RegExp(r'\s+'), ' ')
+            .trim();
+  FigureMatch? inner;
+  for (final pre in tcbFigureFrontEnd.preRecognizers) {
+    if (identical(pre, _tcbCast)) continue;
+    inner = pre(text);
+    if (inner != null) break;
+  }
+  inner ??= recognizeSharedFigureLine(
+    text,
+    recognitionNormalize: _tcbRecognitionNormalize,
+  );
+  if (inner == null) return null;
+  if (inner.forceCustom) return inner;
+  if (inner.moveId != 'cast') return null;
+
+  final params = <String, Object?>{...inner.params};
+  var note = inner.note;
+  if (back && _castUnstated(params['direction'])) {
+    final who = params['who'];
+    if (!_castUnstated(who)) {
+      final shoulder = castBackShoulderForWho(who);
+      if (shoulder == null) return const FigureMatch.customFallback();
+      params['direction'] = shoulder;
+    }
+  }
+  if (past != null) {
+    final body = past.group(1)!.trim();
+    final count = body
+        .split(';')
+        .where((item) => item.trim().isNotEmpty)
+        .length;
+    final stated = params['places'];
+    if (count < 1 || count > 10 || (stated is int && stated != count)) {
+      return const FigureMatch.customFallback();
+    }
+    params['places'] = count;
+    note = combineFigureNotes(note, 'past $body');
+  }
+  return FigureMatch(
+    'cast',
+    params: params,
+    note: note,
+    assumedSubject: inner.assumedSubject,
+  );
+}
+
+bool _castUnstated(Object? value) =>
+    value == null || value == ParamVocab.unspecified;
+
+/// The word `cast`, but not `hand cast` (the `hand_cast` alias of gate).
+final RegExp _castWordRe = RegExp(
+  r'(?<!\bhand\s)\bcast\b',
+  caseSensitive: false,
+);
+
+final RegExp _castBackRe = RegExp(r'\bcast\s+back\b', caseSensitive: false);
+
+/// `(past …)`. Bounded like [_annotationRe], so a pathological parenthetical
+/// simply does not match.
+final RegExp _castPastRe = RegExp(
+  r'\(\s*past\s+([^()]{1,120})\)',
   caseSensitive: false,
 );
 

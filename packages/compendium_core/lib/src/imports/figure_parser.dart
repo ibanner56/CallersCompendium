@@ -1,4 +1,5 @@
 import '../model/figure.dart';
+import '../taxonomy/cast_vocabulary.dart';
 import '../taxonomy/contra_taxonomy.dart';
 import '../taxonomy/dance_vocabulary.dart';
 import '../taxonomy/param_types.dart';
@@ -1332,6 +1333,12 @@ final List<_Recognizer> _recognizers = [
   _slice,
   _turnAlone,
   _turnAsCouples,
+  // Taxonomy v40 (#770): `hand cast` (an alias of `gate`) and `cast`. Each
+  // anchors on the word `cast`, which no other recognizer consumes; `_cast`
+  // steps aside for `hand cast`, so their relative order is not
+  // correctness-critical either.
+  _handCast,
+  _cast,
   _contraCorners,
   _giveAndTake,
   _poussette,
@@ -1736,6 +1743,168 @@ _Match? _gate(List<String> w) {
     who2 == null,
   );
 }
+
+// The Caller's Box's bare `Hand cast` (taxonomy v40, #770): the `hand_cast`
+// alias of `gate`, which the maintainer ruled a hand cast is. Only the bare
+// phrase structures. A named dancer ("Ones hand cast") is left over and the
+// line stays custom, because a gate's dancer slots each mean something specific
+// (the side that backs up, the side that walks forward, the pairing) and the
+// source does not say which one it names.
+_Match? _handCast(List<String> w) {
+  if (!_consumePhrase(w, ['hand', 'cast'])) return null;
+  _dropFiller(w);
+  if (w.isNotEmpty) return null;
+  return const _Match('hand_cast');
+}
+
+// Contra's `cast` (taxonomy v40, #770). Grammar, in this order:
+//
+//   <dancer>? "cast" <direction>? <places>? ("around" <dancer>)?
+//       ("to" <destination> | "to" <dancer> | "ending" <proper|improper>)?
+//
+// where <direction> is one of
+//   * `off`: down, with `places` 1 unless a number follows ("cast off 2"):
+//     the maintainer's ruling that a cast off is a cast down one place;
+//   * `up` / `down`;
+//   * `back`, optionally followed by a shoulder;
+//   * a shoulder alone: `right`/`clockwise` or `left`/`counterclockwise` (the
+//     maintainer's mapping of the rotation words onto shoulders).
+//
+// This reads both The Caller's Box's wording and the app's own display wording
+// ("ones cast back right 2 places around neighbor to partner's place"), so a
+// displayed cast types back in as itself. A bare "cast" and "cast back" both
+// leave `direction` unstated, which the display shows as "cast back".
+//
+// "To <dancer>" (The Caller's Box's mixer "Women cast back to P2") has no slot:
+// the cast's `destination` is a place, not a person. It is kept as a note
+// rather than dropped.
+//
+// What this reader does NOT do, deliberately: give a "cast back" a shoulder
+// from its dancers' role. That is The Caller's Box's convention, so it lives in
+// that front end (`callersbox_figure_dialect.dart`); applied here, the display
+// line "robins cast back" would read back as a different figure.
+//
+// Conservative, per the whole-line contract: anything left over (a second
+// direction, "behind partner", "around the major set", "to the ends of a line
+// of four") declines the line to custom.
+_Match? _cast(List<String> w) {
+  final at = w.indexOf('cast');
+  if (at == -1) return null;
+  if (at > 0 && w[at - 1] == 'hand') return null;
+  final subject = w.sublist(0, at);
+  final rest = w.sublist(at + 1);
+  _dropFiller(rest);
+  String? who;
+  if (subject.isNotEmpty) {
+    who = _takeDancer(subject);
+    _dropFiller(subject);
+    if (who == null || subject.isNotEmpty) return null;
+  }
+
+  var i = 0;
+  String? peek([int ahead = 0]) =>
+      i + ahead < rest.length ? rest[i + ahead] : null;
+
+  String? direction;
+  var castOff = false;
+  switch (peek()) {
+    case 'off':
+      direction = 'down';
+      castOff = true;
+      i++;
+    case 'up' || 'down':
+      direction = peek();
+      i++;
+    case 'back':
+      i++;
+      direction = _castShoulder(peek());
+      if (direction != null) i++;
+    default:
+      direction = _castShoulder(peek());
+      if (direction != null) i++;
+  }
+
+  int? places;
+  final count = _castPlaceCount(peek());
+  if (count != null && (peek(1) == 'place' || peek(1) == 'places')) {
+    places = count;
+    i += 2;
+  } else if (castOff && count != null && int.tryParse(peek()!) != null) {
+    // "cast off 2": TCB's bare count after `off`.
+    places = count;
+    i++;
+  }
+  if (castOff) places ??= 1;
+
+  String? whom;
+  if (peek() == 'around') {
+    final end = _castClauseEnd(rest, i + 1);
+    whom = resolveDancerSetPhrase(rest.sublist(i + 1, end).join(' '));
+    if (whom == null) return null;
+    i = end;
+  }
+
+  String? destination;
+  String? note;
+  if (peek() == 'to' || peek() == 'ending') {
+    final words = rest.sublist(peek() == 'to' ? i + 1 : i);
+    destination = castDestinationFromWords(words);
+    if (destination == null) {
+      if (peek() != 'to' || words.length != 1) return null;
+      final dancer = dancerWords[words.single];
+      if (dancer == null) return null;
+      note = 'to ${_castNoteDancer(words.single)}';
+    }
+    i = rest.length;
+  }
+  if (i != rest.length) return null;
+
+  return _Match('cast', {
+    'who': ?who,
+    'direction': ?direction,
+    'places': ?places,
+    'whom': ?whom,
+    'destination': ?destination,
+  }, note);
+}
+
+/// The shoulder a cast's direction word names, or null.
+String? _castShoulder(String? word) => switch (word) {
+  'right' || 'clockwise' => 'right',
+  'left' || 'counterclockwise' => 'left',
+  _ => null,
+};
+
+/// A cast's count of places, as a digit or a small number word, or null.
+int? _castPlaceCount(String? word) {
+  if (word == null) return null;
+  final n = int.tryParse(word) ?? _castNumberWords[word];
+  return (n != null && n >= 1 && n <= 10) ? n : null;
+}
+
+const Map<String, int> _castNumberWords = {
+  'one': 1,
+  'two': 2,
+  'three': 3,
+  'four': 4,
+  'five': 5,
+  'six': 6,
+};
+
+/// The index in [w], at or after [from], where an `around <dancer>` phrase
+/// ends: the next `to`/`ending`, or the end of the line.
+int _castClauseEnd(List<String> w, int from) {
+  for (var j = from; j < w.length; j++) {
+    if (w[j] == 'to' || w[j] == 'ending') return j;
+  }
+  return w.length;
+}
+
+/// A dancer word as a cast's `to <dancer>` note writes it: The Caller's Box's
+/// numbered codes upper-cased as the source writes them (`P2`, `N3`), anything
+/// else as read.
+String _castNoteDancer(String word) =>
+    RegExp(r'^[pns]\d$').hasMatch(word) ? word.toUpperCase() : word;
 
 // `star through`: mirrors california_twirl — who only, no `balance` param,
 // and it does NOT take part in the balance cross-line merge (v12 dropped it

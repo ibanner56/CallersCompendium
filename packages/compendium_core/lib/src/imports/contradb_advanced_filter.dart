@@ -286,9 +286,12 @@ Object _combine<T>(
 ///   the other, so each is a strict subset of it.
 /// - Collection moves with no ContraDB figure (`two_hand_turn`,
 ///   `courtesy_turn`, `star_through`, `turn_as_couples`, `orbit`,
-///   `circular_hey`, `hey_for_three`, `starburst`, `trade_the_wave`), and
-///   `forward_and_back`, whose formations ContraDB does not model (its
+///   `circular_hey`, `hey_for_three`, `starburst`, `trade_the_wave`, `cast`),
+///   and `forward_and_back`, whose formations ContraDB does not model (its
 ///   `long_lines` alias maps to ContraDB's long lines).
+/// - **`hand_cast`**: an alias of `gate` (taxonomy v40), but ContraDB's `gate`
+///   is every gate, not only those The Caller's Box calls a hand cast, so
+///   asking for it would answer a wider question.
 ///
 /// `allemande` maps to `allemande` **or** `allemande orbit`: the importer
 /// turns a real `allemande orbit` line into `meanwhile[allemande, orbit]`
