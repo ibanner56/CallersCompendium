@@ -3093,6 +3093,38 @@ void main() {
       expect(controller.authorIds, ['loser', 'other']);
     });
 
+    test('an existing dance\'s interpreters follow the merge on save, and '
+        'its Undo', () async {
+      final repos = openTestRepositories();
+      for (final id in ['loser', 'survivor', 'other']) {
+        final _ = await repos.choreographers.upsert(
+          Choreographer(id: id, name: id),
+        );
+      }
+      await repos.dances.create(
+        sampleDance(
+          id: 'd1',
+          title: 'Interpreted',
+        ).copyWith(interpreterIds: const ['other', 'loser']),
+      );
+      final controller = DanceEditorController(
+        repositories: repos,
+        danceId: 'd1',
+        dialect: Dialect.larksRobins,
+      );
+      await controller.load(
+        dance: await repos.dances.getById('d1'),
+        fieldDefs: const [],
+      );
+      addTearDown(controller.dispose);
+
+      final replacement = controller.replaceAuthors({'loser'}, 'survivor');
+      expect(controller.buildDance().interpreterIds, ['other', 'survivor']);
+
+      controller.restoreAuthors(replacement);
+      expect(controller.buildDance().interpreterIds, ['other', 'loser']);
+    });
+
     test(
       'leaves the draft in the order the merge leaves the stored dance',
       () async {

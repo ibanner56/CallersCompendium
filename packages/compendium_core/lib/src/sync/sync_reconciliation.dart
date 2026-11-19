@@ -88,6 +88,7 @@ Map<String, Object?> rewriteSyncInboundReferences(
   }
 
   rewriteList('authorIds', SyncRecordKind.choreographer);
+  rewriteList('interpreterIds', SyncRecordKind.choreographer);
   rewriteList('tagIds', SyncRecordKind.tag);
   if (copy['difficultyLevelId'] case final String id) {
     copy['difficultyLevelId'] = resolve(SyncRecordKind.difficultyLevel, id);

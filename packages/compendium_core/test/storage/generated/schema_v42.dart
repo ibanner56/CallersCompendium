@@ -274,6 +274,14 @@ class Dances extends Table with TableInfo {
     requiredDuringInsert: false,
     $customConstraints: 'NULL',
   );
+  late final GeneratedColumn<String> interpretedOn = GeneratedColumn<String>(
+    'interpreted_on',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
   late final GeneratedColumn<String> revisedOn = GeneratedColumn<String>(
     'revised_on',
     aliasedName,
@@ -337,6 +345,7 @@ class Dances extends Table with TableInfo {
     rating,
     tunesJson,
     composedOn,
+    interpretedOn,
     revisedOn,
     createdAt,
     updatedAt,
@@ -539,6 +548,68 @@ class DanceAuthors extends Table with TableInfo {
   @override
   DanceAuthors createAlias(String alias) {
     return DanceAuthors(attachedDatabase, alias);
+  }
+
+  @override
+  List<String> get customConstraints => const [
+    'PRIMARY KEY(dance_id, choreographer_id)',
+    'UNIQUE(dance_id, position)',
+  ];
+  @override
+  bool get dontWriteConstraints => true;
+}
+
+class DanceInterpreters extends Table with TableInfo {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  DanceInterpreters(this.attachedDatabase, [this._alias]);
+  late final GeneratedColumn<String> danceId = GeneratedColumn<String>(
+    'dance_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL REFERENCES dances(id)ON DELETE CASCADE',
+  );
+  late final GeneratedColumn<String> choreographerId = GeneratedColumn<String>(
+    'choreographer_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints:
+        'NOT NULL REFERENCES choreographers(id)ON DELETE CASCADE',
+  );
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+    'position',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL',
+  );
+  @override
+  List<GeneratedColumn> get $columns => [danceId, choreographerId, position];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'dance_interpreters';
+  @override
+  Set<GeneratedColumn> get $primaryKey => {danceId, choreographerId};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {danceId, position},
+  ];
+  @override
+  Never map(Map<String, dynamic> data, {String? tablePrefix}) {
+    throw UnsupportedError('TableInfo.map in schema verification code');
+  }
+
+  @override
+  DanceInterpreters createAlias(String alias) {
+    return DanceInterpreters(attachedDatabase, alias);
   }
 
   @override
@@ -3329,6 +3400,7 @@ class DatabaseAtV42 extends GeneratedDatabase {
   late final Dances dances = Dances(this);
   late final Choreographers choreographers = Choreographers(this);
   late final DanceAuthors danceAuthors = DanceAuthors(this);
+  late final DanceInterpreters danceInterpreters = DanceInterpreters(this);
   late final DanceFigures danceFigures = DanceFigures(this);
   late final Programs programs = Programs(this);
   late final ProgramSlots programSlots = ProgramSlots(this);
@@ -3401,6 +3473,10 @@ class DatabaseAtV42 extends GeneratedDatabase {
     'custom_field_values_field_id',
     'CREATE INDEX custom_field_values_field_id ON custom_field_values (field_id)',
   );
+  late final Index danceInterpretersChoreographerId = Index(
+    'dance_interpreters_choreographer_id',
+    'CREATE INDEX dance_interpreters_choreographer_id ON dance_interpreters (choreographer_id)',
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3410,6 +3486,7 @@ class DatabaseAtV42 extends GeneratedDatabase {
     dances,
     choreographers,
     danceAuthors,
+    danceInterpreters,
     danceFigures,
     programs,
     programSlots,
@@ -3449,6 +3526,7 @@ class DatabaseAtV42 extends GeneratedDatabase {
     danceTagsTagId,
     danceSourcesSourceId,
     customFieldValuesFieldId,
+    danceInterpretersChoreographerId,
   ];
   @override
   int get schemaVersion => 42;

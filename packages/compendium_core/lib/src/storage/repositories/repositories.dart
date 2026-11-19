@@ -467,8 +467,9 @@ class CompendiumRepositories {
   ///   last-called stamps, exactly [ProgramRepository.programDerivedCounts]'s
   ///   read set, which is folded into the same snapshot.
   ///
-  /// The **join** tables (`dance_authors`, `dance_tags`, `dance_sources`,
-  /// `custom_field_values`) are deliberately absent, and the reason is worth
+  /// The **join** tables (`dance_authors`, `dance_interpreters`,
+  /// `dance_tags`, `dance_sources`, `custom_field_values`) are deliberately
+  /// absent, and the reason is worth
   /// stating precisely, because the obvious version of it is false.
   ///
   /// The claim has now been falsified twice, so it is stated here on the
@@ -483,12 +484,12 @@ class CompendiumRepositories {
   ///    (`existence.dart`) deletes join rows and writes only the **adopted**
   ///    table, never `dances`.
   ///
-  /// Enumerating every writer of the four join tables gives the invariant:
+  /// Enumerating every writer of the join tables gives the invariant:
   ///
   /// | writer | join-table write | also writes, same transaction |
   /// |---|---|---|
-  /// | `DanceRepository` upsert | `into(danceAuthors/Tags/Sources/customFieldValues)` | `dances` |
-  /// | `ArchiveRestorer._clearAll` | `delete(...)` on all four | `dances` |
+  /// | `DanceRepository` upsert | `into(danceAuthors/Interpreters/Tags/Sources/customFieldValues)` | `dances` |
+  /// | `ArchiveRestorer._clearAll` | `delete(...)` on all five | `dances` |
   /// | `adoptTombstonedNaturalKey` | `DELETE FROM <joinTable>` | `tags` / `choreographers` / `custom_field_defs` |
   ///
   /// **Every path that writes a join table also writes, in the same
@@ -536,7 +537,7 @@ class CompendiumRepositories {
   ///
   /// ```sh
   /// # names the table directly
-  /// git grep -nE '(into|delete)\(_?db\.(danceAuthors|danceTags|danceSources|customFieldValues)\)'
+  /// git grep -nE '(into|delete)\(_?db\.(danceAuthors|danceInterpreters|danceTags|danceSources|customFieldValues)\)'
   /// # takes it as a parameter
   /// git grep -n 'joinTable'
   /// ```
@@ -717,15 +718,16 @@ class CompendiumRepositories {
   ///
   /// ## The child tables are omitted, and the invariant is the reason
   ///
-  /// Hydrating one dance also reads `dance_authors`, `dance_tags`,
-  /// `dance_links`, `dance_sources`, `custom_field_values` and `provenance`.
+  /// Hydrating one dance also reads `dance_authors`, `dance_interpreters`,
+  /// `dance_tags`, `dance_links`, `dance_sources`, `custom_field_values` and
+  /// `provenance`.
   /// None is named here, on the same rule [watchCollectionSources] states and
   /// for a set re-derived rather than inherited: **every path that writes one of
   /// them also writes, in the same transaction, at least one table above.**
   /// drift dispatches a transaction's updates as one set on commit, so naming
   /// them would add emits without adding coverage.
   ///
-  /// Four of the six are the ones that method already enumerates. The other two
+  /// Five of the seven are the ones that method already enumerates. The other two
   /// were checked from scratch, because a conclusion about a different set is
   /// not evidence about these:
   ///

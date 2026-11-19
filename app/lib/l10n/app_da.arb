@@ -8274,6 +8274,14 @@
   "@danceEditorComposedHelper": {
     "x-sourceSha256": "82d4988c39428b943b94b1ae4d50e3cb362e7a44bc722a61bf5198fd8a3411dc"
   },
+  "danceEditorInterpretedByLabel": "Fortolket af",
+  "@danceEditorInterpretedByLabel": {
+    "x-sourceSha256": "7a3eef2a0a39813c78bae859524207a201116b461ca4bb4157637f384b1af050"
+  },
+  "danceEditorInterpretedOnLabel": "Fortolket",
+  "@danceEditorInterpretedOnLabel": {
+    "x-sourceSha256": "83512bf0aa63b8443c4367033657fdd3212ff4116b4d28bf73b6ad6d93d5f706"
+  },
   "danceEditorRevisedLabel": "Revideret",
   "@danceEditorRevisedLabel": {
     "x-sourceSha256": "a95671b6583aa676ba510fea23eb8ceb17f2741084896d2a615dab259dbbeee4"

@@ -377,6 +377,7 @@ Set<SyncRecordAddress> syncRecordReferences(
   switch (candidate.blob.kind) {
     case SyncRecordKind.dance:
       addList(SyncRecordKind.choreographer, body['authorIds']);
+      addList(SyncRecordKind.choreographer, body['interpreterIds']);
       addList(SyncRecordKind.tag, body['tagIds']);
       add(SyncRecordKind.difficultyLevel, body['difficultyLevelId']);
       final customFields = body['customFields'];

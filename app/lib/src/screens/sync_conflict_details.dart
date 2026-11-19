@@ -164,6 +164,8 @@ Map<String, String> _fieldLabels(AppLocalizations l10n, SyncRecordKind kind) =>
         'links': l10n.danceEditorLinksLabel,
         'sourceCitations': l10n.danceEditorPublishedSourcesLabel,
         'composedOn': l10n.danceEditorComposedLabel,
+        'interpreterIds': l10n.danceEditorInterpretedByLabel,
+        'interpretedOn': l10n.danceEditorInterpretedOnLabel,
         'revisedOn': l10n.danceEditorRevisedLabel,
         'provenance': l10n.syncConflictFieldProvenance,
       },
@@ -1041,6 +1043,7 @@ class SyncConflictComparison extends StatelessWidget {
     try {
       switch (key) {
         case 'authorIds':
+        case 'interpreterIds':
           return names(lookups.choreographers);
         case 'tagIds':
           return names(lookups.tags);

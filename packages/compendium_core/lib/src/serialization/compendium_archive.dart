@@ -134,13 +134,14 @@ const int archiveSchemaVersionUnreadableTunes = 6;
 const int archiveSchemaVersionDeletedTags = 7;
 
 /// The envelope version introduced for the fields English country dance added
-/// to a dance (ADR-006 §12, F2 and F3): `meter`, `musicalKey`,
-/// `formation.improper`, and the formation shapes from
-/// [FormationShape.dupleMinor] on.
+/// to a dance (ADR-006 §12, F2 and F3, and §9.2's interpreter credits):
+/// `meter`, `musicalKey`, `formation.improper`, `interpreterIds`,
+/// `interpretedOn`, and the formation shapes from [FormationShape.dupleMinor]
+/// on.
 ///
-/// A pre-v8 reader ignores the three keys, so without the bump it would
-/// restore the dance without its meter and key, and as proper, and report
-/// success. A new shape it cannot read at all, and it skips that dance with a
+/// A pre-v8 reader ignores the five keys, so without the bump it would
+/// restore the dance without its meter, key or interpreters, and as proper,
+/// and report success. A new shape it cannot read at all, and it skips that dance with a
 /// warning; the stamp also makes a backup holding one refuse to restore there
 /// rather than restore without it. Stamped only when a dance carries one of
 /// them, so a library with none still writes its earlier version
@@ -153,6 +154,8 @@ bool _hasEcdDanceFields(Dance dance) =>
     dance.meter.isNotEmpty ||
     dance.musicalKey.isNotEmpty ||
     dance.formation.improper ||
+    dance.interpreterIds.isNotEmpty ||
+    dance.interpretedOn != null ||
     // Every shape before ECD's is one contra offers; any other is newer.
     !contraFormationShapes.contains(dance.formation.shape);
 

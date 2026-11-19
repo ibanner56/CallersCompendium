@@ -13,7 +13,8 @@ import 'existence.dart';
 /// tags, authors or sources (`docs/design/tags-and-people.md`). Moved here
 /// from `CompendiumSyncStorage` unchanged.
 ///
-/// Join rows are re-pointed, live and tombstoned dances alike. Where a dance
+/// Join rows are re-pointed, live and tombstoned dances alike (for a
+/// choreographer, both its author and its interpreter credits). Where a dance
 /// already cites the survivor, the loser's row is dropped, not merged: an
 /// author's position and a citation's page and number are the survivor's.
 /// Every affected dance — and, for a dance merge, every program whose slots
@@ -59,6 +60,37 @@ Future<Set<String>> rewriteLocalReferences(
               ))
               .write(
                 DanceAuthorsCompanion(choreographerId: Value(survivingId)),
+              );
+        }
+      }
+      // Interpreter credits (`dance_interpreters`) move by the same rule.
+      final interpreted = await (db.select(
+        db.danceInterpreters,
+      )..where((row) => row.choreographerId.equals(losingId))).get();
+      affectedDances.addAll(interpreted.map((row) => row.danceId));
+      for (final row in interpreted) {
+        final existing =
+            await (db.select(db.danceInterpreters)..where(
+                  (table) =>
+                      table.danceId.equals(row.danceId) &
+                      table.choreographerId.equals(survivingId),
+                ))
+                .getSingleOrNull();
+        if (existing != null) {
+          await (db.delete(db.danceInterpreters)..where(
+                (table) =>
+                    table.danceId.equals(row.danceId) &
+                    table.choreographerId.equals(losingId),
+              ))
+              .go();
+        } else {
+          await (db.update(db.danceInterpreters)..where(
+                (table) =>
+                    table.danceId.equals(row.danceId) &
+                    table.choreographerId.equals(losingId),
+              ))
+              .write(
+                DanceInterpretersCompanion(choreographerId: Value(survivingId)),
               );
         }
       }

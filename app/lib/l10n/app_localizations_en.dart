@@ -8443,6 +8443,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'When the dance was composed (year, or add month/day)';
 
   @override
+  String get danceEditorInterpretedByLabel => 'Interpreted by';
+
+  @override
+  String get danceEditorInterpretedOnLabel => 'Interpreted in';
+
+  @override
   String get danceEditorRevisedLabel => 'Revised';
 
   @override

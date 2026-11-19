@@ -28,7 +28,8 @@ import 'share_sanitization.dart';
 /// program itself (its `slots` carry their own `text`), so nothing extra is
 /// needed for them here.
 ///
-/// [choreographerFor] resolves an author id (from a bundled dance's `authorIds`)
+/// [choreographerFor] resolves an author id (from a bundled dance's `authorIds`
+/// or `interpreterIds`)
 /// to its full [Choreographer], so author attribution survives the round-trip:
 /// the receive-side importer reads incoming author *names* from the bundle's own
 /// `CompendiumArchive.choreographers` (a receiver cannot resolve the sender's
@@ -153,7 +154,8 @@ String buildProgramShareBundle(
   final choreographers = <Choreographer>[];
   final seenAuthors = <String>{};
   for (final dance in dances) {
-    for (final authorId in dance.authorIds) {
+    // Interpreters come from the same people list and travel the same way.
+    for (final authorId in [...dance.authorIds, ...dance.interpreterIds]) {
       if (!seenAuthors.add(authorId)) continue;
       final choreographer = choreographerFor(authorId);
       if (choreographer == null) continue;

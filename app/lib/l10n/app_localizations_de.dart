@@ -8577,6 +8577,12 @@ class AppLocalizationsDe extends AppLocalizations {
       'Wann der Tanz komponiert wurde (Jahr oder Monat/Tag hinzufügen)';
 
   @override
+  String get danceEditorInterpretedByLabel => 'Interpretiert von';
+
+  @override
+  String get danceEditorInterpretedOnLabel => 'Interpretiert';
+
+  @override
   String get danceEditorRevisedLabel => 'Überarbeitet';
 
   @override

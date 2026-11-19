@@ -350,7 +350,7 @@ Map<String, Object?> _mergeDanceBodies(
   // merged here may differ in them; the latest copy's wins. Each is omitted
   // from a body when it holds its default, so a missing key is the default,
   // not "keep the survivor's".
-  for (final key in const ['meter', 'musicalKey']) {
+  for (final key in const ['meter', 'musicalKey', 'interpretedOn']) {
     if (latest.blob.body.containsKey(key)) {
       body[key] = latest.blob.body[key];
     } else {
@@ -370,6 +370,14 @@ Map<String, Object?> _mergeDanceBodies(
   }
 
   body['authorIds'] = _unionStrings(candidates, 'authorIds');
+  // Interpreters union as authors do, and like the keys above the list is
+  // left out when empty.
+  final interpreterIds = _unionStrings(candidates, 'interpreterIds');
+  if (interpreterIds.isEmpty) {
+    body.remove('interpreterIds');
+  } else {
+    body['interpreterIds'] = interpreterIds;
+  }
   body['tagIds'] = _unionStrings(candidates, 'tagIds');
   body['customFields'] = _unionObjects(
     candidates,

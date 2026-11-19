@@ -1488,7 +1488,8 @@ void main() {
     );
   });
 
-  group('v41 -> v42 upgrade (ECD meter, key and improper, ADR-006)', () {
+  group('v41 -> v42 upgrade (ECD meter, key, improper and interpreters, '
+      'ADR-006)', () {
     Future<Set<String>> danceColumns(DatabaseConnectionUser db) async => {
       for (final row
           in await db
@@ -1497,10 +1498,26 @@ void main() {
         row.read<String>('name'),
     };
 
-    const added = {'formation_improper', 'meter', 'musical_key'};
+    const added = {
+      'formation_improper',
+      'meter',
+      'musical_key',
+      'interpreted_on',
+    };
 
-    test('adds the three columns, and an existing dance reads as proper '
-        'with no meter or key', () async {
+    Future<Set<String>> schemaNames(DatabaseConnectionUser db) async => {
+      for (final row
+          in await db
+              .customSelect(
+                "SELECT name FROM sqlite_master "
+                "WHERE name LIKE 'dance_interpreters%'",
+              )
+              .get())
+        row.read<String>('name'),
+    };
+
+    test('adds the four columns and the interpreters table, and an existing '
+        'dance reads as proper with no meter, key or interpreters', () async {
       final raw = sqlite3.sqlite3.openInMemory();
       final historical = GeneratedHelper().databaseForVersion(
         NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
@@ -1512,6 +1529,7 @@ void main() {
         isEmpty,
         reason: 'a v41 database has none of them',
       );
+      expect(await schemaNames(historical), isEmpty);
       await historical.customStatement(
         "INSERT INTO dances (id, title, form, formation_shape, "
         "formation_detail, progression, status, created_at, updated_at) "
@@ -1530,6 +1548,13 @@ void main() {
       await db.customSelect('SELECT 1').get();
 
       expect(await danceColumns(db), containsAll(added));
+      expect(
+        await schemaNames(db),
+        containsAll([
+          'dance_interpreters',
+          'dance_interpreters_choreographer_id',
+        ]),
+      );
       final dance = await CompendiumRepositories(
         db,
         contraTaxonomy,
@@ -1544,33 +1569,43 @@ void main() {
       expect(dance.formation.improper, isFalse);
       expect(dance.meter, '');
       expect(dance.musicalKey, '');
+      expect(dance.interpreterIds, isEmpty);
+      expect(dance.interpretedOn, isNull);
       final version = await db.customSelect('PRAGMA user_version').getSingle();
       expect(version.read<int>('user_version'), 42);
     });
 
-    test('is idempotent over a column that already exists', () async {
-      final raw = sqlite3.sqlite3.openInMemory();
-      final historical = GeneratedHelper().databaseForVersion(
-        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
-        41,
-      );
-      await historical.customSelect('SELECT 1').get();
-      await historical.close();
-      raw.execute(
-        "ALTER TABLE dances ADD COLUMN meter TEXT NOT NULL DEFAULT ''",
-      );
+    test(
+      'is idempotent over a column and a table that already exist',
+      () async {
+        final raw = sqlite3.sqlite3.openInMemory();
+        final historical = GeneratedHelper().databaseForVersion(
+          NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+          41,
+        );
+        await historical.customSelect('SELECT 1').get();
+        await historical.close();
+        raw.execute(
+          "ALTER TABLE dances ADD COLUMN meter TEXT NOT NULL DEFAULT ''",
+        );
+        raw.execute(
+          'CREATE TABLE dance_interpreters (dance_id TEXT NOT NULL, '
+          'choreographer_id TEXT NOT NULL, position INTEGER NOT NULL, '
+          'PRIMARY KEY (dance_id, choreographer_id))',
+        );
 
-      final db = CompendiumDatabase(
-        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
-      );
-      addTearDown(() async {
-        await db.close();
-        raw.close();
-      });
-      await db.customSelect('SELECT 1').get();
+        final db = CompendiumDatabase(
+          NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+        );
+        addTearDown(() async {
+          await db.close();
+          raw.close();
+        });
+        await db.customSelect('SELECT 1').get();
 
-      expect(await danceColumns(db), containsAll(added));
-    });
+        expect(await danceColumns(db), containsAll(added));
+      },
+    );
   });
 
   group('v40 -> v41 upgrade (cited-id lookup indexes, #1935)', () {

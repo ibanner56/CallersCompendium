@@ -12568,6 +12568,18 @@ abstract class AppLocalizations {
   /// **'When the dance was composed (year, or add month/day)'**
   String get danceEditorComposedHelper;
 
+  /// Field label for the people who interpreted the dance: reconstructed it from its original publication, as English country dances often are. Drawn from the same people list as the authors.
+  ///
+  /// In en, this message translates to:
+  /// **'Interpreted by'**
+  String get danceEditorInterpretedByLabel;
+
+  /// Label for the partial date (a year, or a fuller date) when the dance was interpreted, like the Composed date.
+  ///
+  /// In en, this message translates to:
+  /// **'Interpreted in'**
+  String get danceEditorInterpretedOnLabel;
+
   /// Label for the partial date when the dance was last revised.
   ///
   /// In en, this message translates to:

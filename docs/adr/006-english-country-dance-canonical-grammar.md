@@ -1235,8 +1235,15 @@ recommendation; the answer is quoted.
    Shaw version". Answer: "Many ECD dances have a primary author and
    publication year AND a secondary author who interpreted the dance from
    the original publication in a later year. We'll want to make it easy to
-   enter all four values for ECD." The stored fields for the interpreter
-   and the year of the interpretation are still to be agreed.
+   enter all four values for ECD." The follow-up put this proposal: keep
+   the author list and the Composed date for the original author and
+   publication year; add "Interpreted by", an ordered list from the same
+   people list as authors, and "Interpreted in", a year or a fuller date
+   like Composed; store both for every form and show them up front for ECD;
+   ship them as a second change inside the same unreleased database
+   version. Answer: "Go with your recommendation." They are stored as
+   `Dance.interpreterIds` and `Dance.interpretedOn` (storage.md, v42); the
+   editor fields are W5's.
 
 ### 9.3 Figures from a caller's notes
 

@@ -1676,9 +1676,25 @@ class DanceEditorController extends ChangeNotifier {
       history[mapped] = snapshot;
       return mapped;
     });
+    // The editor has no interpreter field yet (ADR-006 W5): a save carries
+    // the loaded dance's interpreters, so they follow the merge too, or the
+    // save would write the merged-away id back over the survivor.
+    final original = _original;
+    final interpretersBefore = original?.interpreterIds;
+    if (original != null) {
+      _original = original.copyWith(
+        interpreterIds: replaced(original.interpreterIds),
+      );
+    }
     final before = List<String>.of(authorIds);
     final next = replaced(authorIds);
-    final replacement = AuthorReplacement._(before, next, history);
+    final replacement = AuthorReplacement._(
+      before,
+      next,
+      history,
+      interpretersBefore,
+      _original?.interpreterIds,
+    );
     if (listEquals(next, authorIds)) return replacement;
     authorIds
       ..clear()
@@ -1697,6 +1713,14 @@ class DanceEditorController extends ChangeNotifier {
   /// newer, and stays.
   void restoreAuthors(AuthorReplacement replacement) {
     _undoStack.mapAll((snapshot) => replacement._history[snapshot] ?? snapshot);
+    final original = _original;
+    if (original != null &&
+        replacement._interpretersBefore != null &&
+        listEquals(original.interpreterIds, replacement._interpretersAfter)) {
+      _original = original.copyWith(
+        interpreterIds: replacement._interpretersBefore,
+      );
+    }
     if (!listEquals(authorIds, replacement._after) ||
         listEquals(authorIds, replacement._before)) {
       return;
@@ -2320,10 +2344,21 @@ class DanceEditorController extends ChangeNotifier {
 /// What [DanceEditorController.replaceAuthors] changed, for
 /// [DanceEditorController.restoreAuthors]. Opaque.
 final class AuthorReplacement {
-  AuthorReplacement._(this._before, this._after, this._history);
+  AuthorReplacement._(
+    this._before,
+    this._after,
+    this._history,
+    this._interpretersBefore,
+    this._interpretersAfter,
+  );
 
   final List<String> _before;
   final List<String> _after;
+
+  /// The loaded dance's interpreters before and after the merge, for an
+  /// existing dance; `null` for a new one.
+  final List<String>? _interpretersBefore;
+  final List<String>? _interpretersAfter;
 
   /// Each rewritten undo step, by identity, to the step it replaced.
   final Map<EditorSnapshot, EditorSnapshot> _history;

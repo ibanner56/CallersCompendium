@@ -1626,7 +1626,9 @@ final class CompendiumSyncStorage
 
     switch (kind) {
       case SyncRecordKind.choreographer:
-        return liveDanceCites('dance_authors', 'choreographer_id');
+        // An interpreter credit holds a person as an author credit does.
+        return await liveDanceCites('dance_authors', 'choreographer_id') ||
+            await liveDanceCites('dance_interpreters', 'choreographer_id');
       case SyncRecordKind.tag:
         return liveDanceCites('dance_tags', 'tag_id');
       case SyncRecordKind.publishedSource:
@@ -6219,7 +6221,9 @@ final class CompendiumSyncStorage
       }
     }
 
-    final authorIds = dance.authorIds.toSet();
+    // Authors and interpreters come from the same people list, so one check
+    // covers both.
+    final authorIds = {...dance.authorIds, ...dance.interpreterIds};
     final authorLookupIds = _referenceIdsToLookUp(
       ids: authorIds,
       kind: SyncRecordKind.choreographer,
@@ -6509,6 +6513,11 @@ final class CompendiumSyncStorage
     if (duplicateAuthorId != null) {
       return 'Dance "${dance.id}" contains duplicate choreographer id '
           '"$duplicateAuthorId".';
+    }
+    final duplicateInterpreterId = _firstDuplicate(dance.interpreterIds);
+    if (duplicateInterpreterId != null) {
+      return 'Dance "${dance.id}" contains duplicate interpreter id '
+          '"$duplicateInterpreterId".';
     }
     final duplicateTagId = _firstDuplicate(dance.tagIds);
     if (duplicateTagId != null) {

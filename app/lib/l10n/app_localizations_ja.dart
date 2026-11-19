@@ -8128,6 +8128,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorComposedHelper => 'ダンスが作られた日時（年、または月/日を追加）';
 
   @override
+  String get danceEditorInterpretedByLabel => '解釈者';
+
+  @override
+  String get danceEditorInterpretedOnLabel => '解釈年';
+
+  @override
   String get danceEditorRevisedLabel => '改訂年';
 
   @override

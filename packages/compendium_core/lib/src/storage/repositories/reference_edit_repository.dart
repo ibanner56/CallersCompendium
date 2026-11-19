@@ -121,8 +121,10 @@ final class _UndoState {
   /// The join rows that named a loser or a deleted tag.
   final List<Object> joinsBefore;
 
-  /// For a merge: the dances that already cited the survivor, whose loser
-  /// join was dropped rather than moved.
+  /// For a merge: the join slots ([ReferenceEditRepository._joinSlot]: join
+  /// table and dance) that already cited the survivor, whose loser join was
+  /// dropped rather than moved. Per table, because a person can be a dance's
+  /// author without being its interpreter.
   final Set<String> survivorDancesBefore;
 
   /// For a source merge: the survivor's own citations whose page or number
@@ -192,17 +194,47 @@ class ReferenceEditRepository {
   }
 
   /// How many live dances cite [id]. Dances in Recently deleted do not count:
-  /// they never protect an entry (trash-policy (b)).
-  Future<int> liveDanceCount(ReferenceKind kind, String id) {
-    final (join, key, dance) = _joinColumns(kind);
-    return liveDanceCitationCount(
-      _db,
-      joinTable: join,
-      keyColumn: key,
-      danceIdColumn: dance,
-      id: id,
-    );
+  /// they never protect an entry (trash-policy (b)). A person credited as
+  /// author and as interpreter on the same dance counts once.
+  Future<int> liveDanceCount(ReferenceKind kind, String id) async {
+    final joins = _joinColumns(kind);
+    if (joins.length == 1) {
+      final (join, key, dance) = joins.single;
+      return liveDanceCitationCount(
+        _db,
+        joinTable: join,
+        keyColumn: key,
+        danceIdColumn: dance,
+        id: id,
+      );
+    }
+    final row = await _db
+        .customSelect(
+          'SELECT COUNT(DISTINCT d) AS n FROM (${_citationUnion(joins)}) '
+          'WHERE id = ? AND d IN '
+          '(SELECT id FROM dances WHERE deleted_at IS NULL)',
+          variables: [Variable<String>(id)],
+          readsFrom: {for (final (join, _, _) in joins) join, _db.dances},
+        )
+        .getSingle();
+    return row.read<int>('n');
   }
+
+  /// `SELECT <entry> AS id, <dance> AS d` over every join table in [joins].
+  static String _citationUnion(
+    List<
+      (
+        TableInfo<Table, dynamic>,
+        GeneratedColumn<String>,
+        GeneratedColumn<String>,
+      )
+    >
+    joins,
+  ) => [
+    for (final (join, key, dance) in joins)
+      'SELECT ${key.name} AS id, ${dance.name} AS d '
+          'FROM ${join.actualTableName}',
+  ].join(' UNION ALL ');
 
   /// [liveDanceCount] for every entry of [kind] at once, as a live stream: the
   /// counts now, then again after every write to the join table or to
@@ -210,18 +242,18 @@ class ReferenceEditRepository {
   /// live dance cites is absent from the map rather than mapped to zero.
   ///
   /// One grouped query, so a manager listing hundreds of entries does not run
-  /// one count per row. Each join table's primary key is `(dance, entry)`, so
-  /// `COUNT(*)` counts dances, as [liveDanceCount] does.
+  /// one count per row. `COUNT(DISTINCT d)` counts dances, as [liveDanceCount]
+  /// does, so a person who is both author and interpreter of a dance counts
+  /// it once.
   Stream<Map<String, int>> watchLiveDanceCounts(ReferenceKind kind) {
-    final (join, key, dance) = _joinColumns(kind);
+    final joins = _joinColumns(kind);
     return _db
         .customSelect(
-          'SELECT ${key.name} AS id, COUNT(*) AS n '
-          'FROM ${join.actualTableName} '
-          'WHERE ${dance.name} IN '
-          '(SELECT id FROM dances WHERE deleted_at IS NULL) '
-          'GROUP BY ${key.name}',
-          readsFrom: {join, _db.dances},
+          'SELECT id, COUNT(DISTINCT d) AS n '
+          'FROM (${_citationUnion(joins)}) '
+          'WHERE d IN (SELECT id FROM dances WHERE deleted_at IS NULL) '
+          'GROUP BY id',
+          readsFrom: {for (final (join, _, _) in joins) join, _db.dances},
         )
         .watch()
         .map(
@@ -392,7 +424,10 @@ class ReferenceEditRepository {
       final coexisting = await _liveNameHolders(kind, rowsBefore.values, all);
 
       final joinsBefore = await _readJoins(kind, losers.toSet());
-      final survivorDancesBefore = await _citingDances(kind, {survivorId});
+      final survivorDancesBefore = {
+        for (final join in await _readJoins(kind, {survivorId}))
+          _joinSlot(join),
+      };
       final aliasesBefore = await _aliases(kind);
       final retainedBefore = await _retained(kind, all);
       final pendingBefore = await _pending(kind, all);
@@ -574,7 +609,7 @@ class ReferenceEditRepository {
           join,
           movedTo:
               survivorId != null &&
-                  !state.survivorDancesBefore.contains(danceId)
+                  !state.survivorDancesBefore.contains(_joinSlot(join))
               ? survivorId
               : null,
         );
@@ -846,23 +881,35 @@ class ReferenceEditRepository {
     ReferenceKind.source => _db.publishedSources,
   };
 
-  (TableInfo<Table, dynamic>, GeneratedColumn<String>, GeneratedColumn<String>)
+  /// The join tables through which a dance cites an entry of [kind]: one
+  /// each for tags and sources, two for people (author and interpreter
+  /// credits).
+  List<
+    (
+      TableInfo<Table, dynamic>,
+      GeneratedColumn<String>,
+      GeneratedColumn<String>,
+    )
+  >
   _joinColumns(ReferenceKind kind) => switch (kind) {
-    ReferenceKind.tag => (
-      _db.danceTags,
-      _db.danceTags.tagId,
-      _db.danceTags.danceId,
-    ),
-    ReferenceKind.author => (
-      _db.danceAuthors,
-      _db.danceAuthors.choreographerId,
-      _db.danceAuthors.danceId,
-    ),
-    ReferenceKind.source => (
-      _db.danceSources,
-      _db.danceSources.sourceId,
-      _db.danceSources.danceId,
-    ),
+    ReferenceKind.tag => [
+      (_db.danceTags, _db.danceTags.tagId, _db.danceTags.danceId),
+    ],
+    ReferenceKind.author => [
+      (
+        _db.danceAuthors,
+        _db.danceAuthors.choreographerId,
+        _db.danceAuthors.danceId,
+      ),
+      (
+        _db.danceInterpreters,
+        _db.danceInterpreters.choreographerId,
+        _db.danceInterpreters.danceId,
+      ),
+    ],
+    ReferenceKind.source => [
+      (_db.danceSources, _db.danceSources.sourceId, _db.danceSources.danceId),
+    ],
   };
 
   Future<Object?> _readRow(ReferenceKind kind, String id) => switch (kind) {
@@ -1079,14 +1126,24 @@ class ReferenceEditRepository {
                   (t) => OrderingTerm(expression: t.danceId),
                 ]))
               .get(),
-        ReferenceKind.author =>
-          await (_db.select(_db.danceAuthors)
+        ReferenceKind.author => [
+          ...await (_db.select(_db.danceAuthors)
                 ..where((t) => t.choreographerId.isIn(ids))
                 ..orderBy([
                   (t) => OrderingTerm(expression: t.choreographerId),
                   (t) => OrderingTerm(expression: t.danceId),
                 ]))
               .get(),
+          // Interpreter credits, in the same order, after every author credit:
+          // the two tables are restored independently of each other.
+          ...await (_db.select(_db.danceInterpreters)
+                ..where((t) => t.choreographerId.isIn(ids))
+                ..orderBy([
+                  (t) => OrderingTerm(expression: t.choreographerId),
+                  (t) => OrderingTerm(expression: t.danceId),
+                ]))
+              .get(),
+        ],
         ReferenceKind.source =>
           await (_db.select(_db.danceSources)
                 ..where((t) => t.sourceId.isIn(ids))
@@ -1097,9 +1154,14 @@ class ReferenceEditRepository {
               .get(),
       };
 
+  /// [join]'s table and dance, which identify it among one entry's joins.
+  static String _joinSlot(Object join) =>
+      '${join.runtimeType}:${_joinDanceId(join)}';
+
   static String _joinDanceId(Object join) => switch (join) {
     DanceTagRow() => join.danceId,
     DanceAuthorRow() => join.danceId,
+    DanceInterpreterRow() => join.danceId,
     DanceSourceRow() => join.danceId,
     _ => throw ArgumentError.value(join, 'join'),
   };
@@ -1141,6 +1203,33 @@ class ReferenceEditRepository {
         if (rows.any((r) => r.choreographerId == join.choreographerId)) return;
         await _db
             .into(_db.danceAuthors)
+            .insert(
+              rows.any((r) => r.position == join.position)
+                  ? join.copyWith(
+                      position: _nextPosition(rows.map((r) => r.position)),
+                    )
+                  : join,
+            );
+      case DanceInterpreterRow():
+        final moved = movedTo == null
+            ? 0
+            : await (_db.update(_db.danceInterpreters)..where(
+                    (t) =>
+                        t.danceId.equals(join.danceId) &
+                        t.choreographerId.equals(movedTo),
+                  ))
+                  .write(
+                    DanceInterpretersCompanion(
+                      choreographerId: Value(join.choreographerId),
+                    ),
+                  );
+        if (moved > 0) return;
+        final rows = await (_db.select(
+          _db.danceInterpreters,
+        )..where((t) => t.danceId.equals(join.danceId))).get();
+        if (rows.any((r) => r.choreographerId == join.choreographerId)) return;
+        await _db
+            .into(_db.danceInterpreters)
             .insert(
               rows.any((r) => r.position == join.position)
                   ? join.copyWith(
