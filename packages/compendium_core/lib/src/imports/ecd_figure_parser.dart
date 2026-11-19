@@ -2123,6 +2123,9 @@ Figure? _assemble(List<_Step> steps, int beats) {
     if (figure == null) return null;
     figures.add(figure);
   }
+  // A count outside the beats range is left to the range check, as contra's
+  // parser leaves it: the line is not read, so it stays custom.
+  if (!_beatsInRange(beats)) return null;
   if (figures.length == 1) {
     final only = figures.single;
     if (beats <= 0) return only;
@@ -2130,10 +2133,14 @@ Figure? _assemble(List<_Step> steps, int beats) {
     return only.copyWith(params: {...only.params, 'beats': beats});
   }
   final span = beats > 0 ? beats : figures.map(_beatsOf).fold(0, _sum);
+  if (!_beatsInRange(span)) return null;
   return Figure.sequence(figures: figures, beats: span);
 }
 
 int _sum(int a, int b) => a + b;
+
+/// The counts a figure's `beats` may hold ([ParamKind.beats]: 0 to 64).
+bool _beatsInRange(int beats) => beats >= 0 && beats <= 64;
 
 /// One step as a figure, validated against the ECD taxonomy alone.
 Figure? _figureOf(_Step step) {

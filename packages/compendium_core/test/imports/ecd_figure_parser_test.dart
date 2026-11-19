@@ -578,6 +578,31 @@ void main() {
   });
 
   group('states only what the line says (review guards)', () {
+    test('a count over the beats range leaves the line custom, as typed', () {
+      for (final line in [
+        'circle left 65 beats',
+        'circle left (100)',
+        'set and turn single (100)',
+      ]) {
+        final f = _one(line);
+        expect(f.isCustom, isTrue, reason: line);
+        expect(f.params['text'], line, reason: line);
+      }
+      expect(parseEcdFigureLine('circle left', beats: 100)!.isCustom, isTrue);
+      final imported = mapCallersCompanionDance(
+        CcDanceRecord(
+          name: 'D',
+          type: 'English',
+          body: [
+            CcBodySection(lines: ['(100) Circle left']),
+          ],
+        ),
+      ).dance;
+      expect(figuresOf(imported).single.isCustom, isTrue);
+      // Control: 64 is the last count read.
+      expect(_one('circle left (64)').params['beats'], 64);
+    });
+
     test('a step naming dancers before and after a movement is not read', () {
       for (final line in [
         '1s turn 2s by the right',

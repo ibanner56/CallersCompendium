@@ -957,7 +957,11 @@ List<Figure> _parseEcdSplit(
       (leadingCount ? readEach(whole!, 0) : null) ??
       (countsHands ? null : readEach(split.text, split.beats));
   if (figures != null) return figures;
-  final text = scrubFigureText(split.text);
+  // A count over the beats range is not read off the line, as for contra:
+  // the custom keeps the whole line as typed (`circle left (100)`).
+  final text = scrubFigureText(
+    split.beats > 64 && whole != null ? whole : split.text,
+  );
   if (text.isEmpty) return const [];
   return [
     customFigure(text, beats: split.beats, origin: CustomOrigin.importGap),

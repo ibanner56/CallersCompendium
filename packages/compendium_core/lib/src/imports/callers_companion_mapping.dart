@@ -945,7 +945,8 @@ List<Figure> _ecdLineFigures(
   if (figure == null) return const [];
   if (parts.length >= 2 &&
       figure.isSequence &&
-      figure.subFigures.length == parts.length) {
+      figure.subFigures.length == parts.length &&
+      parts.every((part) => part >= 0 && part <= 64)) {
     final steps = [
       for (var i = 0; i < parts.length; i++)
         _withBeats(figure.subFigures[i], parts[i]),
