@@ -1002,7 +1002,7 @@ final Map<String, _MoveRule> _rules = {
       'destination': _dest(b),
     });
     if (params == null) return null;
-    return {...params, if (places.note != null) _noteKey: places.note};
+    return {...params, if (places.note != null) _noteSlot: places.note};
   }),
   'star': _MoveRule('ecd_star', (b, c) {
     final who = _whoOf(b, objectIsWho: false);
@@ -1017,7 +1017,7 @@ final Map<String, _MoveRule> _rules = {
       'destination': _dest(b),
     });
     if (params == null) return null;
-    return {...params, if (places.note != null) _noteKey: places.note};
+    return {...params, if (places.note != null) _noteSlot: places.note};
   }),
   'form_short_wave': _MoveRule(
     'ecd_form_short_wave',
@@ -1351,7 +1351,7 @@ Map<String, Object?>? _turnParams(
 }
 
 /// The key a builder uses to hand a note back with its params.
-const String _noteKey = '\u0000note';
+const String _noteSlot = '\u0000note';
 
 // ---------------------------------------------------------------------------
 // Reading.
@@ -1561,8 +1561,8 @@ class _Reader {
       pos = start;
       return null;
     }
-    final note = raw[_noteKey] as String?;
-    final params = {...raw}..remove(_noteKey);
+    final note = raw[_noteSlot] as String?;
+    final params = {...raw}..remove(_noteSlot);
     if (bend) {
       return _Step(modifierMove, {
         'figures': [
