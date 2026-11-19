@@ -1,5 +1,7 @@
+import '../model/enums.dart' show DanceForm;
 import '../model/figure.dart' show customMoveId;
 import '../taxonomy/taxonomy.dart';
+import '../taxonomy/taxonomy_registry.dart' show danceFormMovePrefixes;
 import 'dialect.dart';
 import 'discouraged_terms.dart';
 import 'renderer.dart';
@@ -181,22 +183,39 @@ String canonicalizeGlossaryText(String text, Dialect dialect) {
 /// display names for full-text search. Unlike role canonicalization, this is
 /// intentionally query-only: persisted figure text is produced by the renderer
 /// and remains canonical without storing duplicate legacy spellings.
+///
+/// When [taxonomy] lays several dance forms together, the moves of its own
+/// form win a name or keyword that another form also uses (ADR-006): a search
+/// over every form reads "hey" as contra does, and an ECD dance's search reads
+/// it as ECD does.
 String canonicalizeMoveSearchText(String text, Taxonomy taxonomy) {
+  bool ownForm(String id) => _formOfId(id) == taxonomy.form;
   final replacements = <String, String>{};
-  for (final move in taxonomy.moves.values) {
-    if (move.id == customMoveId) continue;
-    replacements[move.displayName] = move.displayName;
-    for (final keyword in move.searchKeywords) {
-      replacements[keyword] = move.displayName;
+  for (final own in const [false, true]) {
+    for (final move in taxonomy.moves.values) {
+      if (move.id == customMoveId || ownForm(move.id) != own) continue;
+      replacements[move.displayName] = move.displayName;
+      for (final keyword in move.searchKeywords) {
+        replacements[keyword] = move.displayName;
+      }
     }
-  }
-  for (final alias in taxonomy.aliases.values) {
-    replacements[alias.displayName] = alias.displayName;
-    for (final keyword in alias.searchKeywords) {
-      replacements[keyword] = alias.displayName;
+    for (final alias in taxonomy.aliases.values) {
+      if (ownForm(alias.id) != own) continue;
+      replacements[alias.displayName] = alias.displayName;
+      for (final keyword in alias.searchKeywords) {
+        replacements[keyword] = alias.displayName;
+      }
     }
   }
   return Substitutor(replacements, caseInsensitive: true).apply(text);
+}
+
+DanceForm _formOfId(String id) {
+  for (final MapEntry(key: form, value: prefix)
+      in danceFormMovePrefixes.entries) {
+    if (id.startsWith(prefix)) return form;
+  }
+  return DanceForm.contra;
 }
 
 /// Whether [token] is one of the canonical role tokens.

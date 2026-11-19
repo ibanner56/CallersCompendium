@@ -3,6 +3,7 @@ import 'package:test/test.dart';
 import 'package:compendium_core/testing.dart';
 
 void main() {
+  _ecdSignatures();
   final tax = contraTaxonomy;
 
   group('figureSnippetSignature', () {
@@ -191,6 +192,57 @@ void main() {
           Dialect.larksRobins,
         ),
         startsWith('ones 1½ figure 8'),
+      );
+    });
+  });
+}
+
+void _ecdSignatures() {
+  group('ECD figures (ADR-006)', () {
+    final ecd = shippedTaxonomies.forForm(DanceForm.ecd);
+    final renderer = FigureRenderer(ecd);
+
+    test('a flag in a template is part of the key', () {
+      final plain = figureSnippetSignature(testFigure(move: 'ecd_circle'), ecd);
+      final singleFile = figureSnippetSignature(
+        testFigure(move: 'ecd_circle', params: {'singleFile': true}),
+        ecd,
+      );
+      expect(singleFile, isNot(plain));
+    });
+
+    test('a list of dancers keys, migrates and reads back whole', () {
+      final figure = testFigure(
+        move: 'ecd_set',
+        params: {
+          'who': ['twos', 'ones'],
+        },
+      );
+      final sig = figureSnippetSignature(figure, ecd)!;
+      expect(
+        sig,
+        figureSnippetSignature(
+          testFigure(
+            move: 'ecd_set',
+            params: {
+              'who': ['ones', 'twos'],
+            },
+          ),
+          ecd,
+        ),
+      );
+      expect(migrateFigureSnippetSignature(sig), sig);
+      expect(
+        describeFigureSignature(sig, ecd, renderer, Dialect.canonical),
+        renderer.render(
+          testFigure(
+            move: 'ecd_set',
+            params: {
+              'who': ['ones', 'twos'],
+            },
+          ),
+          Dialect.canonical,
+        ),
       );
     });
   });

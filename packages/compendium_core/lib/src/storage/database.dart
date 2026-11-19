@@ -313,6 +313,14 @@ const String taxonomyV38CanonicalRebuildDoneKey =
 const String taxonomyV39CanonicalRebuildDoneKey =
     '__taxonomy_v39_canonical_rebuild_done__';
 
+/// Settings key for the one-time canonical/FTS rebuild owed when the English
+/// Country Dance taxonomy first ships (ADR-006). A dance already holding
+/// `ecd_` move IDs, from a newer peer or an archive, was indexed while those
+/// IDs were unknown, as the bare ID; with the taxonomy they render as
+/// movements. Nothing rebuilds from a taxonomy version, so this marker does.
+const String ecdTaxonomyCanonicalRebuildDoneKey =
+    '__ecd_taxonomy_canonical_rebuild_done__';
+
 /// Settings key for the one-time canonical/FTS rebuild owed by the modifier
 /// container structural tokens. Existing figures gain searchable canonical
 /// container text without changing their source JSON.

@@ -1,3 +1,5 @@
+import 'package:collection/collection.dart';
+
 import '../model/figure.dart';
 import '../taxonomy/dance_vocabulary.dart'
     show displayDirectionPhrases, displayFacingPhrases;
@@ -11,6 +13,7 @@ import '../taxonomy/user_figure_use.dart';
 import '../util/inline_emphasis.dart';
 import '../util/text_sanitizer.dart';
 import 'dialect.dart';
+import 'ecd_display.dart';
 import 'discouraged_terms.dart';
 import 'substitution.dart';
 import 'wording_conditions.dart';
@@ -309,7 +312,7 @@ class FigureRenderer {
       return titled(
         _sequenceLine(
           children,
-          [
+          _withEcdStarReturn(children, [
             for (final child in children)
               _renderSummary(
                 child,
@@ -318,7 +321,7 @@ class FigureRenderer {
                 decimals: decimals,
                 canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
               ),
-          ],
+          ]),
           dialect,
           canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
         ),
@@ -576,7 +579,7 @@ class FigureRenderer {
           ? rendered.join(' $sequenceMove ')
           : _sequenceLine(
               children,
-              rendered,
+              _withEcdStarReturn(children, rendered),
               dialect,
               canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
             );
@@ -881,11 +884,31 @@ class FigureRenderer {
     final template = forCanonical
         ? def.renderTemplate
         : _displayRenderTemplates[def.id] ?? def.renderTemplate;
-    final rendered = template.replaceAllMapped(
-      _placeholder,
-      (match) => slots[match[1]!] ?? '',
-    );
-    final line = _collapseSpaces(rendered);
+    final String line;
+    if (isEcdMove(def.id)) {
+      // ECD's own wording and optional groups (ADR-006 §6.3).
+      for (final name in [...slots.keys]) {
+        final words = ecdSlotWords(
+          def.id,
+          name,
+          params,
+          forCanonical: forCanonical,
+        );
+        if (words != null) slots[name] = words;
+      }
+      line = expandEcdTemplate(
+        ecdTemplateFor(def.id, template, params),
+        slots,
+        params,
+      );
+    } else {
+      line = _collapseSpaces(
+        template.replaceAllMapped(
+          _placeholder,
+          (match) => slots[match[1]!] ?? '',
+        ),
+      );
+    }
     // DISPLAY-ONLY: flag a subject the import parser DEFAULTED (the source
     // omitted it) with a non-authoritative "(assumed)" marker, so fabricated
     // choreography never reads as source-stated fact (#460). The marker is
@@ -894,6 +917,35 @@ class FigureRenderer {
     return (!forCanonical && figure.assumedSubject)
         ? _spliceAssumedSubjectMarker(line)
         : _stripSubjectMark(line);
+  }
+
+  /// [lines], a sequence's display lines for [children], with an ECD star
+  /// that ends the sequence back in place by a stated hand, after a star of
+  /// the same dancers, worded as its return: "right hands across and back by
+  /// the left" (ADR-006 §7.3).
+  /// Display only, and only for a step with no wording override of its own:
+  /// the canonical text keeps the star whole.
+  List<String> _withEcdStarReturn(List<Figure> children, List<String> lines) {
+    // Only a star that follows a star of the same dancers and states no
+    // extent of its own, so the words leave nothing it states unsaid.
+    if (children.length < 2) return lines;
+    final last = children.last;
+    final before = children[children.length - 2];
+    final places = last.params['places'];
+    if (last.move != '${ecdMovePrefix}star' ||
+        before.move != '${ecdMovePrefix}star' ||
+        last.wordingOverride != null ||
+        last.params['destination'] != 'place' ||
+        (places != null && places != ParamVocab.unspecified) ||
+        !const DeepCollectionEquality().equals(
+          last.params['who'] ?? const [ParamVocab.unspecified],
+          before.params['who'] ?? const [ParamVocab.unspecified],
+        )) {
+      return lines;
+    }
+    final words = ecdStarReturn(last.params['hand']);
+    if (words == null) return lines;
+    return [...lines.take(lines.length - 1), words];
   }
 
   /// [parts] as an English list, with a serial comma from three on: `A`,
@@ -965,6 +1017,24 @@ class FigureRenderer {
     bool plain(Figure f) => !f.isCustom && !f.isContainer && !f.assumedSubject;
     if (!plain(previous) || !plain(step)) return const {};
     final who = step.params['who'];
+    // An ECD `who` is a list (ADR-006 §5.2): the same list, said once.
+    if (who is List && isEcdMove(step.move) && isEcdMove(previous.move)) {
+      final before = previous.params['who'];
+      if (before is! List ||
+          !const ListEquality<Object?>().equals(who, before)) {
+        return const {};
+      }
+      final subject = _renderValue(
+        'who',
+        who,
+        const ParamSpec(ParamKind.dancerList, defaultValue: null),
+        dialect,
+        false,
+        false,
+        false,
+      );
+      return subject.isEmpty ? const {} : {'$subject '};
+    }
     if (who is! String || who != previous.params['who']) return const {};
     return {
       for (final plural in [false, true])
@@ -1571,6 +1641,10 @@ class FigureRenderer {
           ParamKind.beats ||
           ParamKind.text:
       case ParamKind.flag:
+        return const [];
+      // A list of dancers (ECD's `who`) has no single word a condition could
+      // test; per-form wording conditions are ADR-006's W4.
+      case ParamKind.dancerList:
         return const [];
       case ParamKind.dancerSet || ParamKind.dancerPair:
         domain = spec.choices ?? ParamVocab.dancerSets;
@@ -2222,6 +2296,30 @@ class FigureRenderer {
     }
     if (value is String && roleTokens.contains(value)) {
       return _roleTerm(value, dialect);
+    }
+    // A list of dancers (ECD's `who`, ADR-006 §5.2): each token as a dancer
+    // set, joined as an English list; `unspecified` says nothing.
+    if (spec?.kind == ParamKind.dancerList) {
+      if (value is! List) return _humanize(value.toString());
+      final tokenSpec = ParamSpec(
+        ParamKind.dancerSet,
+        defaultValue: null,
+        choices: spec!.choices,
+      );
+      return _andList([
+        for (final token in value)
+          if (_renderValue(
+                name,
+                token,
+                tokenSpec,
+                dialect,
+                verbose,
+                decimals,
+                forCanonical,
+              )
+              case final String words when words.isNotEmpty)
+            words,
+      ]);
     }
     if (!forCanonical && !userFigure && spec?.kind == ParamKind.direction) {
       return _displayDirection(value);

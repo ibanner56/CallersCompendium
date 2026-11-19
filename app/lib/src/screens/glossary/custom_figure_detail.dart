@@ -28,7 +28,8 @@ final FigureRenderer _renderer = FigureRenderer(contraTaxonomy);
 /// The name a parameter kind is offered and shown under in a custom figure.
 String compoundParamKindLabel(AppLocalizations l10n, ParamKind kind) =>
     switch (kind) {
-      ParamKind.dancerSet => l10n.compoundParamKindDancers,
+      ParamKind.dancerSet ||
+      ParamKind.dancerList => l10n.compoundParamKindDancers,
       ParamKind.dancerPair => l10n.compoundParamKindDancerPair,
       ParamKind.handedness => l10n.compoundParamKindHand,
       ParamKind.shoulder => l10n.compoundParamKindShoulder,
