@@ -483,8 +483,10 @@ the two figures become a [meanwhile](./glossary.md#meanwhile) group, labeled
 with how many sides it has and sharing one set of beats. Until you type a count
 for the group, its beats follow its sides: the longest side's, since the sides
 are danced at the same time. A modifier group follows its **Core**, and a
-sequence always adds up its figures (see
-[Sequence figures](#sequence-figures)). This holds however the group was made:
+sequence adds up its figures (see
+[Sequence figures](#sequence-figures)), unless an English sequence states its
+own **Bars for all** (see
+[English dances are timed in bars](#english-dances-are-timed-in-bars)). This holds however the group was made:
 grouped, added from the **Add** menu, typed with `||` or `while`, or in a
 shorthand.
 
@@ -540,10 +542,13 @@ Choose **Group with next as sequence**, **Add sequence** from the **Add** menu,
 or type *sequence* in a figure's **Move** box to make it the first figure of a
 new sequence. Each figure in the group is labeled **Figure 1**, **Figure 2**,
 and so on, and keeps its own **Beats**: the group's beats are their total, shown
-at the top. A sequence must fit in one phrase of the dance (16 beats in the
+at the top (an English sequence can instead state its own **Bars for all**; see
+[English dances are timed in bars](#english-dances-are-timed-in-bars)). A
+sequence must fit in one phrase of the dance (16 beats in the
 usual structure), so **Group with next as sequence** is only offered when the
 two figures fit, and **Add next figure** goes away once the figures fill a
-phrase or there are four of them. Changing a figure already in the sequence,
+phrase or there are four of them (with **Bars for all**, only figures with bars
+of their own count toward the phrase). Changing a figure already in the sequence,
 its move or its beats, is not stopped, and neither is a change to the phrase
 structure: if the sequence ends up longer than a phrase, the group and the
 dance's warnings say so, and you can still save it.
