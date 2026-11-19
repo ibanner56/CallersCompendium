@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../search/facet_labels.dart' show formationIcon, formationLabel;
+import '../theme/app_motion.dart';
 import '../theme/app_shapes.dart';
 import '../theme/app_spacing.dart';
 import 'empty_state.dart';
@@ -95,9 +96,34 @@ class ProgramMatrixTable extends StatefulWidget {
   final ValueChanged<String>? onHideColumn;
 
   static const double columnWidth = 64;
-  static const double rowHeight = 48;
   static const double rowHeaderWidth = 168;
-  static const double columnHeaderHeight = 72;
+
+  /// A body row's height at 1× text (two lines of body text and padding).
+  /// Rows and the column-header strip grow with the text scale — see
+  /// [rowHeightFor] and [columnHeaderHeightFor] — so a dance title or move
+  /// name that fits at 1× is not clipped at 200% (WCAG 1.4.4, 1.4.10).
+  static const double rowHeight = 48;
+
+  /// One line of the `labelSmall` move header at 1× text.
+  static const double headerLineHeight = 16;
+
+  /// The most lines a move header shows before it ellipsizes (and offers its
+  /// full text on long-press).
+  static const int headerMaxLines = 3;
+
+  /// The row height under the ambient text scale.
+  static double rowHeightFor(BuildContext context) =>
+      MediaQuery.textScalerOf(context).scale(rowHeight);
+
+  /// The column-header strip's height under the ambient text scale: the full
+  /// 48dp hide-column button on top (it does not scale: it is a touch target),
+  /// then [headerMaxLines] lines of the scaled label beneath it, so the button
+  /// never overlaps the label.
+  static double columnHeaderHeightFor(BuildContext context) =>
+      kMinInteractiveDimension +
+      MediaQuery.textScalerOf(context).scale(headerLineHeight) *
+          headerMaxLines +
+      AppSpacing.xs * 2;
 
   /// Width of the pinned **formation** column (#663) — wide enough for
   /// labels like "Becket (CCW)" without wrapping badly, but narrower than
@@ -499,7 +525,7 @@ class _Corner extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     width: ProgramMatrixTable.rowHeaderWidth,
-    height: ProgramMatrixTable.columnHeaderHeight,
+    height: ProgramMatrixTable.columnHeaderHeightFor(context),
     color: Theme.of(context).colorScheme.surfaceContainerHighest,
   );
 }
@@ -522,18 +548,17 @@ class _FormationColumnHeader extends StatelessWidget {
       excludeSemantics: true,
       child: Container(
         width: ProgramMatrixTable.formationColumnWidth,
-        height: ProgramMatrixTable.columnHeaderHeight,
+        height: ProgramMatrixTable.columnHeaderHeightFor(context),
         alignment: Alignment.bottomCenter,
         color: theme.colorScheme.surfaceContainerHighest,
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.xs,
           vertical: AppSpacing.xs,
         ),
-        child: Text(
-          l10n.programsMatrixFormationColumnHeader,
+        child: _FullTextOnLongPress(
+          text: l10n.programsMatrixFormationColumnHeader,
           textAlign: TextAlign.center,
           maxLines: 2,
-          overflow: TextOverflow.ellipsis,
           style: theme.textTheme.labelSmall,
         ),
       ),
@@ -542,9 +567,12 @@ class _FormationColumnHeader extends StatelessWidget {
 }
 
 class _ColumnHeader extends StatelessWidget {
-  const _ColumnHeader({required this.label});
+  const _ColumnHeader({required this.label, this.topInset = 0});
 
   final String label;
+
+  /// Space kept clear at the top for a control drawn over the header.
+  final double topInset;
 
   @override
   Widget build(BuildContext context) {
@@ -556,18 +584,19 @@ class _ColumnHeader extends StatelessWidget {
       excludeSemantics: true,
       child: Container(
         width: ProgramMatrixTable.columnWidth,
-        height: ProgramMatrixTable.columnHeaderHeight,
+        height: ProgramMatrixTable.columnHeaderHeightFor(context),
         alignment: Alignment.bottomCenter,
         color: theme.colorScheme.surfaceContainerHighest,
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.xxxs,
-          vertical: AppSpacing.xs,
+        padding: EdgeInsets.only(
+          left: AppSpacing.xxxs,
+          right: AppSpacing.xxxs,
+          top: topInset,
+          bottom: AppSpacing.xs,
         ),
-        child: Text(
-          label,
+        child: _FullTextOnLongPress(
+          text: label,
           textAlign: TextAlign.center,
-          maxLines: 3,
-          overflow: TextOverflow.ellipsis,
+          maxLines: ProgramMatrixTable.headerMaxLines,
           style: theme.textTheme.labelSmall,
         ),
       ),
@@ -593,8 +622,9 @@ class _HideableColumnHeader extends StatelessWidget {
     required this.onHide,
   });
 
-  /// The full Material touch target. The 64dp column header has the room: the
-  /// glyph sits in its top-right corner above the label.
+  /// The full Material touch target. The glyph sits in the header's top-right
+  /// corner and the label starts beneath it, so a three-line label is never
+  /// covered by the button, at any text size.
   static const double _glyphSize = kMinInteractiveDimension;
 
   final String label;
@@ -607,7 +637,7 @@ class _HideableColumnHeader extends StatelessWidget {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        _ColumnHeader(label: label),
+        _ColumnHeader(label: label, topInset: _glyphSize),
         Positioned(
           top: 0,
           right: 0,
@@ -626,6 +656,71 @@ class _HideableColumnHeader extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Header or row text that ellipsizes, with the full text a long-press away.
+///
+/// The matrix has a deliberate no-tooltip policy for its headers (a hover
+/// tooltip over a pinned, scrolling strip fights the scroll), so this is the
+/// way to read a clipped dance title or move name. It only claims the gesture
+/// when the text really is cut off. Screen readers already get the full text
+/// from the header's own semantics label.
+class _FullTextOnLongPress extends StatelessWidget {
+  const _FullTextOnLongPress({
+    required this.text,
+    required this.maxLines,
+    required this.style,
+    this.textAlign,
+  });
+
+  final String text;
+  final int maxLines;
+  final TextStyle? style;
+  final TextAlign? textAlign;
+
+  @override
+  Widget build(BuildContext context) {
+    final scaler = MediaQuery.textScalerOf(context);
+    final direction = Directionality.of(context);
+    final shown = Text(
+      text,
+      textAlign: textAlign,
+      maxLines: maxLines,
+      overflow: TextOverflow.ellipsis,
+      style: style,
+    );
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final painter = TextPainter(
+          text: TextSpan(text: text, style: style),
+          textAlign: textAlign ?? TextAlign.start,
+          textDirection: direction,
+          textScaler: scaler,
+          maxLines: maxLines,
+        )..layout(maxWidth: constraints.maxWidth);
+        final truncated = painter.didExceedMaxLines;
+        painter.dispose();
+        if (!truncated) return shown;
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onLongPress: () => showDialog<void>(
+            context: context,
+            animationStyle: AppMotion.styleFor(context),
+            builder: (dialogContext) => AlertDialog(
+              content: SelectableText(text),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: Text(AppLocalizations.of(dialogContext).commonClose),
+                ),
+              ],
+            ),
+          ),
+          child: shown,
+        );
+      },
     );
   }
 }
@@ -655,7 +750,7 @@ class _RowHeader extends StatelessWidget {
       excludeSemantics: true,
       child: Container(
         width: ProgramMatrixTable.rowHeaderWidth,
-        height: ProgramMatrixTable.rowHeight,
+        height: ProgramMatrixTable.rowHeightFor(context),
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
         alignment: Alignment.centerLeft,
         color: theme.colorScheme.surfaceContainerHighest,
@@ -676,10 +771,9 @@ class _RowHeader extends StatelessWidget {
               const SizedBox(width: 6),
             ],
             Expanded(
-              child: Text(
-                title,
+              child: _FullTextOnLongPress(
+                text: title,
                 maxLines: 2,
-                overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.bodyMedium,
               ),
             ),
@@ -716,7 +810,7 @@ class _FormationCell extends StatelessWidget {
       excludeSemantics: true,
       child: Container(
         width: ProgramMatrixTable.formationColumnWidth,
-        height: ProgramMatrixTable.rowHeight,
+        height: ProgramMatrixTable.rowHeightFor(context),
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
         alignment: Alignment.centerLeft,
         color: theme.colorScheme.surfaceContainerHighest,
@@ -726,10 +820,9 @@ class _FormationCell extends StatelessWidget {
             Icon(formationIcon, size: 15, color: theme.colorScheme.onSurface),
             const SizedBox(width: 4),
             Expanded(
-              child: Text(
-                label,
+              child: _FullTextOnLongPress(
+                text: label,
                 maxLines: 2,
-                overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.bodySmall,
               ),
             ),
@@ -861,7 +954,7 @@ class _Cell extends StatelessWidget {
       excludeSemantics: true,
       child: Container(
         width: ProgramMatrixTable.columnWidth,
-        height: ProgramMatrixTable.rowHeight,
+        height: ProgramMatrixTable.rowHeightFor(context),
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: collision
