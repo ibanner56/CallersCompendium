@@ -163,10 +163,11 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   repeating group of fields (tunes, links, sources, related dances, custom
   fields) keeps a heading above it, because a floating label belongs to one
   field, not a group.
-- **Reading width**: dance detail, this form, the Settings panes and the user
-  guide's text stop growing at 760 px and stay centred, with the scrollbar at
-  the window edge (`widgets/readable_width.dart`; maintainer decision D-8,
-  2026-10-29). The program screens are not yet capped.
+- **Width**: content is left-aligned and fills the window; it is not capped or
+  centred. A 760 px centred column was tried in v0.9.0-beta and reverted
+  because it left too much of a wide window empty. Keeping a figure's beats
+  near its words on wide windows is tracked in
+  [#2231](https://github.com/ibanner56/CallersCompendium/issues/2231).
 - Autosave drafts; explicit save commits; undo history.
 
 ### 4. Programs list & builder

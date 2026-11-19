@@ -7,7 +7,6 @@ import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/keyboard_dismiss.dart';
 import '../../utils/undo_snack_bar.dart';
-import '../../widgets/readable_width.dart';
 import '../../theme/destructive_button_style.dart';
 
 /// One entry of a [LibraryManagerList]: a tag, an author or a source.
@@ -202,7 +201,7 @@ class _LibraryManagerListState extends State<LibraryManagerList> {
     final l10n = AppLocalizations.of(context);
     final prefix = widget.keyPrefix;
     if (widget.entries.isEmpty) {
-      return ReadableListView(
+      return ListView(
         padding: const EdgeInsets.all(AppSpacing.md),
         children: [
           Text(
@@ -214,132 +213,121 @@ class _LibraryManagerListState extends State<LibraryManagerList> {
       );
     }
     final visible = _visible;
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final padding = readableContentPadding(constraints.maxWidth);
-        return Column(
-          children: [
-            Padding(
-              padding: readableContentPadding(
-                constraints.maxWidth,
-                const EdgeInsets.fromLTRB(
-                  AppSpacing.md,
-                  AppSpacing.sm,
-                  AppSpacing.md,
-                  0,
-                ),
-              ),
-              child: TextField(
-                key: ValueKey('$prefix-search'),
-                controller: _search,
-                onChanged: (_) => setState(() {}),
-                decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.search),
-                  hintText: widget.searchHint,
-                  border: const OutlineInputBorder(),
-                  isDense: true,
-                  suffixIcon: _search.text.isEmpty
-                      ? null
-                      : IconButton(
-                          tooltip: l10n.libraryManagerClearSearch,
-                          icon: const Icon(Icons.clear),
-                          onPressed: () => setState(_search.clear),
-                        ),
-                ),
-              ),
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.sm,
+            AppSpacing.md,
+            0,
+          ),
+          child: TextField(
+            key: ValueKey('$prefix-search'),
+            controller: _search,
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(
+              prefixIcon: const Icon(Icons.search),
+              hintText: widget.searchHint,
+              border: const OutlineInputBorder(),
+              isDense: true,
+              suffixIcon: _search.text.isEmpty
+                  ? null
+                  : IconButton(
+                      tooltip: l10n.libraryManagerClearSearch,
+                      icon: const Icon(Icons.clear),
+                      onPressed: () => setState(_search.clear),
+                    ),
             ),
-            Padding(
-              padding: readableContentPadding(
-                constraints.maxWidth,
-                const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.md,
-                  vertical: AppSpacing.xs,
-                ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.xs,
+          ),
+          child: Row(
+            children: [
+              FilterChip(
+                key: ValueKey('$prefix-not-used'),
+                label: Text(l10n.libraryManagerNotUsed),
+                selected: _notUsedOnly,
+                onSelected: (selected) =>
+                    setState(() => _notUsedOnly = selected),
               ),
-              child: Row(
-                children: [
-                  FilterChip(
-                    key: ValueKey('$prefix-not-used'),
-                    label: Text(l10n.libraryManagerNotUsed),
-                    selected: _notUsedOnly,
-                    onSelected: (selected) =>
-                        setState(() => _notUsedOnly = selected),
-                  ),
-                  // Expanded + end-aligned (not Spacer + Flexible, which would
-                  // split the free width): the sort label may shrink and wrap
-                  // at large text instead of overflowing the row.
-                  Expanded(
-                    child: Align(
-                      alignment: AlignmentDirectional.centerEnd,
-                      child: PopupMenuButton<LibraryManagerSort>(
-                        key: ValueKey('$prefix-sort'),
-                        tooltip: l10n.libraryManagerSortTooltip,
-                        initialValue: _sort,
-                        onSelected: (sort) => setState(() => _sort = sort),
-                        itemBuilder: (_) => [
-                          CheckedPopupMenuItem(
-                            key: ValueKey('$prefix-sort-name'),
-                            value: LibraryManagerSort.name,
-                            checked: _sort == LibraryManagerSort.name,
-                            child: Text(l10n.libraryManagerSortByName),
-                          ),
-                          CheckedPopupMenuItem(
-                            key: ValueKey('$prefix-sort-count'),
-                            value: LibraryManagerSort.danceCount,
-                            checked: _sort == LibraryManagerSort.danceCount,
-                            child: Text(l10n.libraryManagerSortByDanceCount),
+              // Expanded + end-aligned (not Spacer + Flexible, which would
+              // split the free width): the sort label may shrink and wrap
+              // at large text instead of overflowing the row.
+              Expanded(
+                child: Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: PopupMenuButton<LibraryManagerSort>(
+                    key: ValueKey('$prefix-sort'),
+                    tooltip: l10n.libraryManagerSortTooltip,
+                    initialValue: _sort,
+                    onSelected: (sort) => setState(() => _sort = sort),
+                    itemBuilder: (_) => [
+                      CheckedPopupMenuItem(
+                        key: ValueKey('$prefix-sort-name'),
+                        value: LibraryManagerSort.name,
+                        checked: _sort == LibraryManagerSort.name,
+                        child: Text(l10n.libraryManagerSortByName),
+                      ),
+                      CheckedPopupMenuItem(
+                        key: ValueKey('$prefix-sort-count'),
+                        value: LibraryManagerSort.danceCount,
+                        checked: _sort == LibraryManagerSort.danceCount,
+                        child: Text(l10n.libraryManagerSortByDanceCount),
+                      ),
+                    ],
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.xs),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.sort),
+                          const SizedBox(width: AppSpacing.xxs),
+                          Flexible(
+                            child: Text(
+                              switch (_sort) {
+                                LibraryManagerSort.name =>
+                                  l10n.libraryManagerSortByName,
+                                LibraryManagerSort.danceCount =>
+                                  l10n.libraryManagerSortByDanceCount,
+                              },
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                         ],
-                        child: Padding(
-                          padding: const EdgeInsets.all(AppSpacing.xs),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.sort),
-                              const SizedBox(width: AppSpacing.xxs),
-                              Flexible(
-                                child: Text(
-                                  switch (_sort) {
-                                    LibraryManagerSort.name =>
-                                      l10n.libraryManagerSortByName,
-                                    LibraryManagerSort.danceCount =>
-                                      l10n.libraryManagerSortByDanceCount,
-                                  },
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
                       ),
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
-            Expanded(
-              child: visible.isEmpty
-                  ? ListView(
-                      padding: padding.add(const EdgeInsets.all(AppSpacing.md)),
-                      children: [
-                        Text(
-                          l10n.libraryManagerNoMatches,
-                          key: ValueKey('$prefix-no-matches'),
-                        ),
-                      ],
-                    )
-                  : ListView.builder(
-                      keyboardDismissBehavior: textEntryKeyboardDismiss(),
-                      padding: padding.copyWith(bottom: AppSpacing.lg),
-                      itemCount: visible.length,
-                      itemBuilder: (context, index) =>
-                          _row(context, visible[index]),
+            ],
+          ),
+        ),
+        Expanded(
+          child: visible.isEmpty
+              ? ListView(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  children: [
+                    Text(
+                      l10n.libraryManagerNoMatches,
+                      key: ValueKey('$prefix-no-matches'),
                     ),
-            ),
-          ],
-        );
-      },
+                  ],
+                )
+              : ListView.builder(
+                  keyboardDismissBehavior: textEntryKeyboardDismiss(),
+                  padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+                  itemCount: visible.length,
+                  itemBuilder: (context, index) =>
+                      _row(context, visible[index]),
+                ),
+        ),
+      ],
     );
   }
 

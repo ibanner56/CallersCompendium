@@ -9,7 +9,6 @@ import '../../theme/app_spacing.dart';
 import '../../utils/confirm_delete.dart';
 import '../../utils/undo_snack_bar.dart';
 import '../../theme/keyboard_dismiss.dart';
-import '../../widgets/readable_width.dart';
 import '../../widgets/section_header.dart';
 import '../dialect_editor_screen.dart';
 import 'dance_details_section.dart';
@@ -22,7 +21,7 @@ class DialectSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ReadableListView(
+    return ListView(
       keyboardDismissBehavior: textEntryKeyboardDismiss(),
       children: [
         _DialectLibrarySection(controller: DialectLibraryScope.of(context)),

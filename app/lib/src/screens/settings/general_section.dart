@@ -38,7 +38,6 @@ import '../../diagnostics/error_log.dart';
 import '../../published_collections/published_collection_service.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/keyboard_dismiss.dart';
-import '../../widgets/readable_width.dart';
 import '../../widgets/section_header.dart';
 import '../../widgets/settings_action_row.dart';
 import '../../widgets/settings_dropdown_row.dart';
@@ -745,7 +744,7 @@ class _GeneralView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return ReadableListView(
+    return ListView(
       keyboardDismissBehavior: textEntryKeyboardDismiss(),
       children: [
         SectionHeader(title: l10n.settingsGeneralLibraryHeader),
