@@ -131,7 +131,9 @@ List<pw.Widget> danceCardWidgets(
       ...buildFigureWidgets(
         dance,
         renderer,
-        dialect,
+        // The card's own dialect: lark and robin for a dance that requires
+        // them (`dialectForDance`), whatever [dialect] calls the roles.
+        content.dialect,
         labels,
         canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
       ),

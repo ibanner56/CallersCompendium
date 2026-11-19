@@ -5138,6 +5138,10 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceCanonicalToggleLabel => 'Canoniek';
 
   @override
+  String get danceRoleTermsOverrideNote =>
+      'Weergegeven met larks en robins: de auteur heeft gevraagd deze dans alleen ooit met die roltermen te callen, dus de roltermen van je dialect worden hier niet gebruikt.';
+
+  @override
   String danceProvenanceVia(String source) {
     return 'via $source';
   }

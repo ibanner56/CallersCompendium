@@ -318,8 +318,9 @@ clock while the program stays open, and nothing for a single dance.
 
 You do not have to be on stage to hand someone a dance. From a dance's detail
 view you can export or print a single dance card as a PDF or as shareable text,
-and the export follows your active dialect. See
-[Share, print & export](./sharing.md#share-a-dance).
+and the export follows your active dialect (except the role terms of a dance
+whose author asked for larks and robins). See
+[Share, print & export](./sharing.md#which-words-a-dance-export-uses).
 
 ## Where to go next
 

@@ -72,6 +72,11 @@ dialect first — see [Dialect](./dialects.md#switch-dialect-on-the-fly). If
 are also shown in current wording — see
 [Discouraged terms](./dialects.md#discouraged-terms).
 
+One exception: a dance whose author has asked that it only be called with
+**larks** and **robins** exports with those role terms whatever your dialect,
+and switching dialect does not change them. The rest of your dialect still
+applies — see [Good to know](./dialects.md#good-to-know).
+
 The field labels around the content — *Formation*, *Level*, *Figures*, *Calling
 notes*, and so on — follow the app's language setting, not your dialect.
 

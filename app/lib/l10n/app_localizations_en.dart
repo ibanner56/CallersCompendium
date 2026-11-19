@@ -5074,6 +5074,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get danceCanonicalToggleLabel => 'Canonical';
 
   @override
+  String get danceRoleTermsOverrideNote =>
+      'Shown with larks and robins: the author has asked that this dance only ever be called with those role terms, so your dialect\'s role terms are not used here.';
+
+  @override
   String danceProvenanceVia(String source) {
     return 'via $source';
   }
