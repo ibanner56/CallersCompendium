@@ -35,6 +35,7 @@ import 'package:drift/drift.dart' as drift;
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:drift/native.dart' show NativeDatabase;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/intl.dart' show DateFormat;
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
@@ -1382,6 +1383,82 @@ void main() {
       await _pumpGeneral(tester, repos);
       await openDialog(tester);
       expect(find.byKey(const ValueKey('restore-sync-note')), findsNothing);
+    });
+  });
+
+  group('restore dialog guards typed input', () {
+    Future<void> openRestore(
+      WidgetTester tester, {
+      BackupPicker? picker,
+    }) async {
+      await _pumpGeneral(tester, openTestRepositories(), picker: picker);
+      await tester.tap(find.byKey(const ValueKey('backup-restore-button')));
+      await tester.pumpAndSettle();
+    }
+
+    const dialog = ValueKey('restore-backup-dialog');
+
+    testWidgets('pasted text survives tap outside, Esc and Back', (
+      tester,
+    ) async {
+      await openRestore(tester);
+      await tester.enterText(
+        find.byKey(const ValueKey('restore-paste-field')),
+        '{"pasted": true}',
+      );
+      await tester.pump();
+
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(dialog), findsOneWidget);
+      expect(find.text('{"pasted": true}'), findsOneWidget);
+    });
+
+    testWidgets('a chosen file survives a tap outside', (tester) async {
+      await openRestore(tester, picker: () async => '{}');
+      await tester.tap(find.byKey(const ValueKey('restore-choose-file')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('restore-file-summary')),
+        findsOneWidget,
+      );
+
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
+      expect(find.byKey(dialog), findsOneWidget);
+
+      // Clearing the file makes it clean again.
+      await tester.tap(find.byKey(const ValueKey('restore-file-clear')));
+      await tester.pumpAndSettle();
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
+      expect(find.byKey(dialog), findsNothing);
+    });
+
+    testWidgets('an empty dialog still closes on a tap outside', (
+      tester,
+    ) async {
+      await openRestore(tester);
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
+      expect(find.byKey(dialog), findsNothing);
+    });
+
+    testWidgets('Cancel still closes a dialog holding text', (tester) async {
+      await openRestore(tester);
+      await tester.enterText(
+        find.byKey(const ValueKey('restore-paste-field')),
+        'abc',
+      );
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('restore-cancel')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(dialog), findsNothing);
     });
   });
 }

@@ -4,6 +4,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/repositories_scope.dart';
@@ -583,5 +584,48 @@ void main() {
 
     expect(find.text('Sync decisions could not be loaded.'), findsOneWidget);
     expect(find.byKey(const ValueKey('sync-review-retry')), findsOneWidget);
+  });
+
+  group('keep-both name dialog guards typed input', () {
+    const keepBoth = ValueKey(
+      'sync-review-keep-both-choreographer:local-author:peer-author',
+    );
+    const confirm = ValueKey('sync-review-keep-both-confirm');
+
+    Future<void> open(WidgetTester tester) async {
+      final repos = openTestRepositories();
+      await _seedActionable(repos);
+      await _pumpScreen(tester, repos);
+      await tester.tap(find.byKey(keepBoth));
+      await tester.pumpAndSettle();
+      expect(find.byKey(confirm), findsOneWidget);
+    }
+
+    testWidgets('a typed name survives tap outside, Esc and Back', (
+      tester,
+    ) async {
+      await open(tester);
+      await tester.enterText(find.byType(TextFormField), 'Half typed');
+      await tester.pump();
+
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(confirm), findsOneWidget);
+      expect(find.text('Half typed'), findsOneWidget);
+    });
+
+    testWidgets('an empty dialog still closes on a tap outside', (
+      tester,
+    ) async {
+      await open(tester);
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
+      expect(find.byKey(confirm), findsNothing);
+    });
   });
 }

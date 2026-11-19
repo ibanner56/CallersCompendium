@@ -23,7 +23,8 @@ enum DiscardChangesChoice {
 /// Used by the dance, program, compound-figure and dialect editors, which pass
 /// the wording they had before this helper existed, and (through
 /// [DiscardChangesGuard], with the generic `common*` strings) by the shorthand,
-/// compound-shorthand and theme editors and the venue and custom-field sheets.
+/// compound-shorthand and theme editors, the venue and custom-field sheets, and
+/// the sync pairing screen.
 ///
 /// Passing [saveLabel] adds a third action that saves and leaves, as the
 /// dialect editor offers. The caller does the saving: this only reports the

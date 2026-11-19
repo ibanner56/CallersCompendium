@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../theme/app_shapes.dart';
+import 'dirty_dialog_guard.dart';
 
 /// A lightweight, dependency-free color editor: a live swatch, a hex field, and
 /// R/G/B sliders. Returns the chosen [Color] (fully opaque) via
@@ -46,6 +47,17 @@ class _ColorEditDialogState extends State<ColorEditDialog> {
     super.dispose();
   }
 
+  /// Whether the colour or the hex field differs from what the dialog opened
+  /// with. The hex field counts on its own: text typed but not yet submitted
+  /// differs from the colour's own hex.
+  bool _isDirty() {
+    final argb = widget.initial.toARGB32();
+    final initialRgb = argb & 0xFFFFFF;
+    final currentRgb = (_r << 16) | (_g << 8) | _b;
+    return currentRgb != initialRgb ||
+        _hexController.text.toUpperCase() != _hex;
+  }
+
   Color get _color => Color.fromARGB(0xFF, _r, _g, _b);
 
   String get _hex =>
@@ -79,63 +91,67 @@ class _ColorEditDialogState extends State<ColorEditDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return AlertDialog(
-      title: Text(widget.title),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              height: 56,
-              decoration: BoxDecoration(
-                color: _color,
-                borderRadius: AppShapes.borderRadiusMedium,
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.outlineVariant,
+    return DirtyDialogGuard(
+      listenable: _hexController,
+      isDirty: _isDirty,
+      child: AlertDialog(
+        title: Text(widget.title),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                height: 56,
+                decoration: BoxDecoration(
+                  color: _color,
+                  borderRadius: AppShapes.borderRadiusMedium,
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _hexController,
-              decoration: InputDecoration(
-                labelText: l10n.colorEditHexLabel,
-                prefixText: '',
-                border: const OutlineInputBorder(),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _hexController,
+                decoration: InputDecoration(
+                  labelText: l10n.colorEditHexLabel,
+                  prefixText: '',
+                  border: const OutlineInputBorder(),
+                ),
+                inputFormatters: [
+                  LengthLimitingTextInputFormatter(7),
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9a-fA-F#]')),
+                ],
+                onSubmitted: _onHexSubmitted,
               ),
-              inputFormatters: [
-                LengthLimitingTextInputFormatter(7),
-                FilteringTextInputFormatter.allow(RegExp(r'[0-9a-fA-F#]')),
-              ],
-              onSubmitted: _onHexSubmitted,
-            ),
-            const SizedBox(height: 8),
-            _channel('R', l10n.colorEditChannelRed, _r, (v) {
-              setState(() => _r = v);
-              _syncHexField();
-            }),
-            _channel('G', l10n.colorEditChannelGreen, _g, (v) {
-              setState(() => _g = v);
-              _syncHexField();
-            }),
-            _channel('B', l10n.colorEditChannelBlue, _b, (v) {
-              setState(() => _b = v);
-              _syncHexField();
-            }),
-          ],
+              const SizedBox(height: 8),
+              _channel('R', l10n.colorEditChannelRed, _r, (v) {
+                setState(() => _r = v);
+                _syncHexField();
+              }),
+              _channel('G', l10n.colorEditChannelGreen, _g, (v) {
+                setState(() => _g = v);
+                _syncHexField();
+              }),
+              _channel('B', l10n.colorEditChannelBlue, _b, (v) {
+                setState(() => _b = v);
+                _syncHexField();
+              }),
+            ],
+          ),
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(_color),
+            child: Text(l10n.commonApply),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.commonCancel),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(_color),
-          child: Text(l10n.commonApply),
-        ),
-      ],
     );
   }
 

@@ -131,7 +131,10 @@ setting up a new device or recovering after a problem.
    or paste the backup text into **Or paste backup JSON**. A chosen file is
    shown as a short summary (its date, how many dances and programs it
    holds, and its size) rather than as text in the box; the box is for
-   pasted text only. Choose **Clear** to forget the file.
+   pasted text only. Choose **Clear** to forget the file. Once the box
+   holds text or a file is chosen, a tap outside the dialog, **Esc** or
+   **Back** will not close it, so a stray tap can't lose what you pasted;
+   choose **Cancel** to close it on purpose.
 5. Confirm with **Replace all data**. A progress bar counts the restore
    from start to finish; it can't be dismissed, so wait for it to close.
 
