@@ -13520,9 +13520,9 @@
   "@ecdMigrationEmptyTitle": {
     "description": "Empty-state title when no English dance needs converting."
   },
-  "ecdMigrationEmptyBody": "Your English country dances already use English figures and formations.",
+  "ecdMigrationEmptyBody": "None of your English country dances has anything this can convert. A move with no clear English meaning stays as it is.",
   "@ecdMigrationEmptyBody": {
-    "description": "Empty-state body when no English dance needs converting."
+    "description": "Empty-state body when no English dance has anything the conversion can change (some may still hold contra moves it leaves alone)."
   },
   "ecdMigrationErrorTitle": "Could not check your English dances",
   "@ecdMigrationErrorTitle": {

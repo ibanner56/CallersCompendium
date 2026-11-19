@@ -12,6 +12,7 @@ import '../model/enums.dart';
 import '../model/figure.dart';
 import '../storage/figure_reparse.dart';
 import '../model/formation.dart';
+import '../taxonomy/contra_taxonomy.dart';
 import '../taxonomy/ecd_taxonomy.dart';
 import '../taxonomy/taxonomy_registry.dart';
 import '../validation/validation.dart';
@@ -60,8 +61,11 @@ class EcdMigration {
 ///
 /// Only a value the contra figure *stores* is carried, never a contra
 /// default, so the migrated figure states nothing the dance did not (R2). The
-/// exceptions are values the contra move's own name states: a forward and
-/// back goes back, and its distance is a double (§9.1 point 3).
+/// exceptions are values the contra move's own name states (a see saw is a
+/// left-shoulder back to back; a forward and back goes back, and its distance
+/// is a double, §9.1 point 3) and a figure's count: one with no stored beats
+/// keeps the contra move's usual count when the twin's differs, so the dance
+/// keeps its length.
 EcdMigration migrateEcdDance({
   required List<Figure> figures,
   required Formation formation,
@@ -130,9 +134,12 @@ class _Twin {
 const _who = {'who'};
 
 /// The contra moves with an ECD twin of the same meaning, and which of their
-/// params carry across (ADR-006 §12.1 F5). A move not listed here (a contra
-/// hey, a poussette, whose `who` means a different group in each form, a
-/// petronella, which in contra includes a balance) is left as it is.
+/// params carry across (ADR-006 §12.1 F5). A move not listed here is left as
+/// it is: a contra hey, poussette, mad robin, circular hey or form long waves,
+/// whose `who` names a different group in each form (the pair that pushes,
+/// steps in front, passes first or faces in, against ECD's subject), a
+/// petronella, which in contra includes a balance, and form short waves,
+/// whose center and sides dancers the ECD short wave does not show.
 const Map<String, _Twin> _twins = {
   'circle': _Twin('ecd_circle', {'direction', 'places', 'singleFile', 'beats'}),
   'star': _Twin('ecd_star', {'hand', 'places', 'beats'}),
@@ -157,13 +164,6 @@ const Map<String, _Twin> _twins = {
   }),
   'swing': _Twin('ecd_swing', {..._who, 'endFacing', 'beats'}),
   'chain': _Twin('ecd_chain', {..._who, 'hand', 'where', 'beats'}),
-  'circular_hey': _Twin('ecd_circular_hey', {
-    ..._who,
-    'changes',
-    'shoulder',
-    'where',
-    'beats',
-  }),
   'dolphin_hey': _Twin('ecd_dolphin_hey', {
     ..._who,
     'whom',
@@ -203,13 +203,6 @@ const Map<String, _Twin> _twins = {
   'pass_through': _Twin('ecd_pass_through', {'where', 'shoulder', 'beats'}),
   'right_left_through': _Twin('ecd_right_left_through', {'where', 'beats'}),
   'roll_away': _Twin('ecd_rollaway', {..._who, 'whom', 'halfSashay', 'beats'}),
-  'mad_robin': _Twin('ecd_mad_robin', {
-    ..._who,
-    'whom',
-    'travel',
-    'direction',
-    'beats',
-  }),
   'orbit': _Twin('ecd_orbit', {..._who, 'direction', 'travel', 'beats'}),
   'gate': _Twin('ecd_gate', {
     ..._who,
@@ -222,22 +215,7 @@ const Map<String, _Twin> _twins = {
   }),
   'pull_by': _Twin('ecd_pull_by', {..._who, 'hand', 'where', 'beats'}),
   'contra_corners': _Twin('ecd_contra_corners', {..._who, 'beats'}),
-  'turn_alone': _Twin('ecd_turn_alone', {..._who, 'beats'}),
-  'form_long_waves': _Twin('ecd_form_long_wave', {
-    ..._who,
-    'whom',
-    'whomHand',
-    'balance',
-    'beats',
-  }),
-  'form_short_waves': _Twin('ecd_form_short_wave', {
-    'axis',
-    'balance',
-    'center',
-    'centerHand',
-    'sides',
-    'beats',
-  }),
+  'turn_alone': _Twin('ecd_turn_alone', {..._who, 'custom', 'beats'}),
 };
 
 /// Contra values that state nothing: a star with no grip named, a swing
@@ -267,8 +245,11 @@ Figure? ecdTwinOfContraMove(Figure figure) {
       // A value that changes nothing in contra (a `false` flag, the
       // `unspecified` sentinel, long lines' own formation) is not a
       // statement the twin must hold.
-      if (value == false || value == 'unspecified') continue;
+      if (value == false || value == 'unspecified' || value == '') continue;
       if (_noOpValues[key] == value) continue;
+      // A value the move's own name states (a see saw's left shoulder) is
+      // the twin's to state too.
+      if (twin.stated[key] == value) continue;
       if (key == 'formation' && value == 'longLines') continue;
       return null;
     }
@@ -278,6 +259,16 @@ Figure? ecdTwinOfContraMove(Figure figure) {
   if (params['formation'] == 'longLines') params.remove('formation');
   for (final entry in (twin.fill ?? const <String, Object>{}).entries) {
     params.putIfAbsent(entry.key, () => entry.value);
+  }
+  // A figure with no stored count danced the contra move's usual beats; keep
+  // that length where the twin's usual count differs.
+  if (!params.containsKey('beats')) {
+    final contraBeats = contraTaxonomy.resolve(figure.move)?.params['beats'];
+    final ecdBeats = ecdTaxonomy.resolve(twin.id)?.params['beats'];
+    final usual = contraBeats?.defaultValue;
+    if (usual != null && usual != ecdBeats?.defaultValue) {
+      params['beats'] = usual;
+    }
   }
   params.addAll(twin.stated);
   final candidate = Figure(

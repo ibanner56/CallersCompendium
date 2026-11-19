@@ -10323,7 +10323,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get ecdMigrationEmptyBody =>
-      'Your English country dances already use English figures and formations.';
+      'None of your English country dances has anything this can convert. A move with no clear English meaning stays as it is.';
 
   @override
   String get ecdMigrationErrorTitle => 'Could not check your English dances';

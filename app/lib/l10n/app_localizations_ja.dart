@@ -9947,7 +9947,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get ecdMigrationEmptyBody =>
-      'イングリッシュ・カントリーダンスはすでにイングリッシュのフィギュアとフォーメーションを使っています。';
+      '変換できるものがあるイングリッシュ・カントリーダンスはありません。イングリッシュでの意味がはっきりしない動きはそのまま残ります。';
 
   @override
   String get ecdMigrationErrorTitle => 'イングリッシュダンスを確認できませんでした';

@@ -10431,7 +10431,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get ecdMigrationEmptyBody =>
-      'Je Engelse country dances gebruiken al Engelse figuren en formaties.';
+      'Geen van je Engelse country dances bevat iets dat kan worden omgezet. Een beweging zonder duidelijke Engelse betekenis blijft zoals hij is.';
 
   @override
   String get ecdMigrationErrorTitle =>

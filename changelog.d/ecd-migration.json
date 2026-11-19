@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "added": [
-      "Settings → General → Import → Convert English dances turns the contra moves of English country dances stored before the app knew English figures into English figures, re-reads their unrecognized lines as English figures, and gives them an English formation. You see what would change in each dance, pick the dances, and confirm first. A move with no clear English meaning stays as it is."
+      "Settings → General → Import → Convert English dances turns the contra moves of English country dances stored before the app knew English figures into English figures, re-reads their unrecognized lines as English figures, and gives them an English formation. You see what would change in each dance, pick the dances, and confirm first. A move with no clear English meaning, such as a hey, a poussette or a mad robin, stays as it is, and each figure keeps its number of beats."
     ]
   },
   "core": {

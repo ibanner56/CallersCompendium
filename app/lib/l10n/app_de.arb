@@ -9954,9 +9954,9 @@
   "@ecdMigrationEmptyTitle": {
     "x-sourceSha256": "b7c23f259a172035b76ed38b0e714919ae88cad43edf86eb78f5924518dbfd92"
   },
-  "ecdMigrationEmptyBody": "Ihre englischen Country Dances verwenden bereits englische Figuren und Formationen.",
+  "ecdMigrationEmptyBody": "Keiner Ihrer englischen Country Dances enthält etwas, das sich umwandeln lässt. Eine Figur ohne klare englische Bedeutung bleibt, wie sie ist.",
   "@ecdMigrationEmptyBody": {
-    "x-sourceSha256": "4cdc8cb2ad6d4ec5beb27c77fedcca1cdfa8beef4be210c8c0584848c2badfda"
+    "x-sourceSha256": "b99c1dcb3eed2321fe2e92547b49b61af21d454dea9df1c96927105a3c2b91f4"
   },
   "ecdMigrationErrorTitle": "Ihre englischen Tänze konnten nicht geprüft werden",
   "@ecdMigrationErrorTitle": {

@@ -15103,10 +15103,10 @@ abstract class AppLocalizations {
   /// **'Nothing to convert'**
   String get ecdMigrationEmptyTitle;
 
-  /// Empty-state body when no English dance needs converting.
+  /// Empty-state body when no English dance has anything the conversion can change (some may still hold contra moves it leaves alone).
   ///
   /// In en, this message translates to:
-  /// **'Your English country dances already use English figures and formations.'**
+  /// **'None of your English country dances has anything this can convert. A move with no clear English meaning stays as it is.'**
   String get ecdMigrationEmptyBody;
 
   /// Error-state title when scanning English dances fails.

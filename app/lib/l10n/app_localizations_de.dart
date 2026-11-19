@@ -10477,7 +10477,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get ecdMigrationEmptyBody =>
-      'Ihre englischen Country Dances verwenden bereits englische Figuren und Formationen.';
+      'Keiner Ihrer englischen Country Dances enthält etwas, das sich umwandeln lässt. Eine Figur ohne klare englische Bedeutung bleibt, wie sie ist.';
 
   @override
   String get ecdMigrationErrorTitle =>

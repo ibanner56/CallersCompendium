@@ -10363,7 +10363,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get ecdMigrationEmptyBody =>
-      'Dine engelske country dances bruger allerede engelske figurer og formationer.';
+      'Ingen af dine engelske country dances har noget, der kan konverteres. Et trin uden en klar engelsk betydning forbliver som det er.';
 
   @override
   String get ecdMigrationErrorTitle =>

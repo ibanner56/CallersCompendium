@@ -568,7 +568,8 @@ in it:
   such as a circle, a star, an allemande (a hand turn) or a do si do (a back to
   back). Only what the dance already says is carried across: nothing it left
   unstated is filled in, except that a forward and back goes back, and goes a
-  double unless the dance says otherwise.
+  double unless the dance says otherwise. Each figure keeps the number of
+  beats it had.
 - **unrecognized figures now read**: lines the app kept as text because it
   could not read them, which the English reading now understands, as
   [Re-check unrecognized figures](./authoring.md#fix-figures-an-import-could-not-read)
@@ -579,7 +580,7 @@ in it:
 
 Every dance starts ticked. Untick the ones you want to leave alone, choose
 **Convert**, and confirm. A move with no clear English meaning, such as a
-contra hey, a poussette or a petronella, stays as it is. Tags, ratings, notes
+contra hey, a poussette, a mad robin or a petronella, stays as it is. Tags, ratings, notes
 and everything else on the dance are kept. A conversion can't be undone, so
 you may want to [export a backup](./backup-portability.md) first.
 

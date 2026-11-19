@@ -10499,7 +10499,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get ecdMigrationEmptyBody =>
-      'Vos danses anglaises utilisent déjà des figures et des formations anglaises.';
+      'Aucune de vos danses anglaises ne contient quoi que ce soit à convertir. Un mouvement sans sens anglais clair reste tel quel.';
 
   @override
   String get ecdMigrationErrorTitle =>

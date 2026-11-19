@@ -9954,9 +9954,9 @@
   "@ecdMigrationEmptyTitle": {
     "x-sourceSha256": "b7c23f259a172035b76ed38b0e714919ae88cad43edf86eb78f5924518dbfd92"
   },
-  "ecdMigrationEmptyBody": "Je Engelse country dances gebruiken al Engelse figuren en formaties.",
+  "ecdMigrationEmptyBody": "Geen van je Engelse country dances bevat iets dat kan worden omgezet. Een beweging zonder duidelijke Engelse betekenis blijft zoals hij is.",
   "@ecdMigrationEmptyBody": {
-    "x-sourceSha256": "4cdc8cb2ad6d4ec5beb27c77fedcca1cdfa8beef4be210c8c0584848c2badfda"
+    "x-sourceSha256": "b99c1dcb3eed2321fe2e92547b49b61af21d454dea9df1c96927105a3c2b91f4"
   },
   "ecdMigrationErrorTitle": "Je Engelse dansen konden niet worden gecontroleerd",
   "@ecdMigrationErrorTitle": {

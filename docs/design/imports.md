@@ -2266,9 +2266,14 @@ migration that turns them into ECD figures. Nothing runs it on its own.
      (`ecdTwinOfContraMove`), inside containers too. The twin table lists, per
      move, the params that carry across unchanged. A move storing any other
      param with a real value (a star's wrist grip, a swing's balance prefix, a
-     forward and back in squares) stays contra, as does a move with no twin: a
-     contra hey or a poussette, whose `who` names a different group in each
-     form, and a petronella, which in contra includes the balance;
+     forward and back in squares) stays contra; an empty text or a value the
+     move's own name states (a see saw's left shoulder) is not in the way. A
+     move with no twin stays contra too: a contra hey, poussette, mad robin,
+     circular hey or form long waves, whose `who` names a different group in
+     each form (the pair that pushes, steps in front, passes first or faces
+     in, against ECD's subject); a petronella, which in contra includes the
+     balance; and form short waves, whose center and sides the ECD short wave
+     does not show;
   2. import-gap custom lines are re-read with the ECD grammar
      (`reparseImportGapFigures` with ECD's taxonomy); user-entered customs are
      left alone, as in Re-check;
@@ -2278,8 +2283,12 @@ migration that turns them into ECD figures. Nothing runs it on its own.
   importer assumed (`assumedSubject`) is dropped. The exceptions are values the
   move's own name states: a see saw is a left-shoulder back to back, and a
   forward and back (or long lines) goes back and, with no distance stored, is a
-  double (§9.1 point 3). Every twin is validated against `ecdTaxonomy`; one
-  that fails stays contra.
+  double (§9.1 point 3). A figure with no stored count gets the contra move's
+  usual count when the twin's differs (a pass through is 2 beats in contra
+  and 4 in ECD), so the dance keeps its length. Every twin is validated
+  against `ecdTaxonomy`; one that fails stays contra. A test converts each
+  twin-table move as the contra editor stores it, so an entry that can never
+  convert fails.
 - Storage cannot import this layer, so `DanceRepository.previewEcdMigration`
   and `migrateEcdDances` take it as an `EcdDanceMigrator`
   (`migrateEcdDanceForStorage`), as Re-check takes its `FigureReparser`. The

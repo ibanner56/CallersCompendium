@@ -1,11 +1,12 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:test/test.dart';
 
 /// ADR-006 §12.1 F5: the opt-in migration of an English dance stored with
 /// contra moves.
 
 Figure _f(String move, [Map<String, Object?> params = const {}]) =>
-    Figure(move: move, params: params);
+    testFigure(move: move, params: params);
 
 Figure? _twin(String move, [Map<String, Object?> params = const {}]) =>
     ecdTwinOfContraMove(_f(move, params));
@@ -108,6 +109,13 @@ void main() {
       expect(_twin('poussette'), isNull);
       expect(_twin('petronella'), isNull);
       expect(_twin('california_twirl'), isNull);
+      // `who` names the pair in front, passing first or facing in, which is
+      // not ECD's subject.
+      expect(_twin('mad_robin', {'who': 'role2s'}), isNull);
+      expect(_twin('circular_hey', {'who': 'neighbors'}), isNull);
+      expect(_twin('form_long_waves', {'who': 'role1s'}), isNull);
+      // Short-wave parts the ECD short wave does not show.
+      expect(_twin('form_short_waves', {'axis': 'across'}), isNull);
       // A wrist-grip star: the ECD star has no grip.
       expect(_twin('star', {'hand': 'right', 'grip': 'wristGrip'}), isNull);
       // A balance-and-swing: the ECD swing has no balance before it.
@@ -121,6 +129,44 @@ void main() {
       expect(ecdTwinOfContraMove(customFigure('circle left')), isNull);
     },
   );
+
+  test('a value the move name states is not in the way', () {
+    // The editor stores a see saw's left shoulder and a turn alone's empty
+    // text; neither stops the conversion.
+    expect(
+      _twin('see_saw', {'who': 'partners', 'shoulder': 'left'}),
+      _f('ecd_back_to_back', {
+        'who': ['partners'],
+        'shoulder': 'left',
+      }),
+    );
+    expect(
+      _twin('contra_corners', {'who': 'ones', 'custom': ''}),
+      _f('ecd_contra_corners', {
+        'who': ['ones'],
+      }),
+    );
+    expect(
+      _twin('turn_alone', {'custom': 'to the right', 'beats': 4}),
+      _f('ecd_turn_alone', {'custom': 'to the right', 'beats': 4}),
+    );
+  });
+
+  test('a figure with no count keeps its contra length', () {
+    // A pass through is 2 beats in contra and 4 in ECD.
+    expect(
+      contraTaxonomy.resolve('pass_through')!.params['beats']!.defaultValue,
+      isNot(
+        ecdTaxonomy.resolve('ecd_pass_through')!.params['beats']!.defaultValue,
+      ),
+    );
+    expect(
+      _twin('pass_through')!.params['beats'],
+      contraTaxonomy.resolve('pass_through')!.params['beats']!.defaultValue,
+    );
+    // A stated count is kept as stated.
+    expect(_twin('pass_through', {'beats': 4})!.params['beats'], 4);
+  });
 
   test('note, progression and overrides are kept', () {
     final f = Figure(
@@ -196,20 +242,23 @@ void main() {
       expect(identical(out.figures, figures), isTrue);
     });
 
-    test('every converted figure is valid in the ECD taxonomy', () {
-      final c = shippedTaxonomies.forForm(DanceForm.contra);
+    test('every twin converts the figure the contra editor seeds', () {
+      // A guard that every twin-table entry can convert something: each move
+      // as picked in the contra editor (its entry params, as stored) must
+      // become a valid ECD figure. ecdTwinOfContraMove returns null for an
+      // invalid twin, so a non-null twin is a valid one.
+      final c = contraTaxonomy;
       for (final id in ecdMigratableContraMoves) {
-        final move = c.resolve(id)!;
-        // Each move with every param at its contra default, stated.
-        final params = {
-          for (final e in move.params.entries)
-            if (e.value.defaultValue != null) e.key: e.value.defaultValue,
-        };
-        final twin = ecdTwinOfContraMove(Figure(move: id, params: params));
-        if (twin == null) continue;
+        final seeded = c.entryParams(id);
+        final move = c.resolvedMoveId(testFigure(move: id, params: seeded));
+        final params = c.withoutListedAliasPins(move, seeded);
+        final twin = ecdTwinOfContraMove(
+          testFigure(move: move, params: params),
+        );
+        expect(twin, isNotNull, reason: '$id stored as $move $params');
         expect(
           ecdTaxonomy
-              .validateFigure(twin)
+              .validateFigure(twin!)
               .where((i) => i.severity == ValidationSeverity.error),
           isEmpty,
           reason: id,
