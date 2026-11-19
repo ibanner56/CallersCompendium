@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """Version-history gate: a version bump must append its entry to the design doc.
 
-``contraTaxonomyVersion`` and ``kCompendiumSchemaVersion`` each carry an
-append-only per-version log. Those logs used to live as doc comments on the
-declarations themselves, where they had grown to 40.7 KiB and 19.4 KiB -- read
-in full by every session that opened either file, to reach a one-line constant.
-They now live in ``docs/design/figure-taxonomy.md`` and
-``docs/design/storage.md``, which is where the code already pointed for both
-subjects.
+Four constants each carry an append-only per-version log in a design doc:
+``contraTaxonomyVersion`` and ``ecdTaxonomyVersion`` in
+``docs/design/figure-taxonomy.md``, ``kCompendiumSchemaVersion`` in
+``docs/design/storage.md``, and ``syncWireVersion`` in
+``docs/design/sync-spec.md``. The taxonomy and schema logs used to live as doc
+comments on the declarations themselves, where they had grown to 40.7 KiB and
+19.4 KiB -- read in full by every session that opened either file, to reach a
+one-line constant -- which is why they moved to the docs.
 
 Relocating a log creates exactly one new failure mode: a future bump appends its
 entry nowhere, and the history silently stops recording. A rule an agent must
@@ -54,9 +55,22 @@ class Ledger:
     heading: str
 
 
+WIRE_SOURCE = "packages/compendium_core/lib/src/sync/sync_codec.dart"
+WIRE_DOC = "docs/design/sync-spec.md"
+WIRE_HEADING = "## Wire version history"
+
+ECD_SOURCE = "packages/compendium_core/lib/src/taxonomy/ecd_taxonomy.dart"
+# The ECD log is a ``###`` inside the contra log's ``##`` section, and a section
+# includes its sub-headings. Keying ECD on ``## Taxonomy version history`` would
+# let any contra bullet satisfy an ECD bump (a contra ``- v2`` for an ECD v2), so
+# it is keyed on its own heading instead.
+ECD_HEADING = "### ECD taxonomy versions"
+
 LEDGERS = (
     Ledger("contraTaxonomyVersion", TAXONOMY_SOURCE, TAXONOMY_DOC, TAXONOMY_HEADING),
     Ledger("kCompendiumSchemaVersion", SCHEMA_SOURCE, SCHEMA_DOC, SCHEMA_HEADING),
+    Ledger("syncWireVersion", WIRE_SOURCE, WIRE_DOC, WIRE_HEADING),
+    Ledger("ecdTaxonomyVersion", ECD_SOURCE, TAXONOMY_DOC, ECD_HEADING),
 )
 
 

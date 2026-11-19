@@ -6918,3 +6918,18 @@ The following are recorded as known and are not specified here:
   worked through, and because the DNS-01 path exists today. The maintainer
   reviewed this trade and accepted it on those terms, keeping pinning available
   as the way to remove the cost later; it is deferred rather than rejected.
+
+## Wire version history
+
+`syncWireVersion` (`sync_codec.dart`) is the envelope version `v` that every
+record blob and manifest carries (§4.3, §4.5). Every bump appends its entry
+here, in the same PR; `tools/ci/check_version_history.py` fails a PR that moves
+the constant without the matching entry. A wire change that no release carries
+yet joins the current version and amends its entry instead (§7.2, "An
+unreleased `v`"); the gate cannot see that case, because the constant does not
+move.
+
+- v1: the envelope this document specifies. A client or server that reads a
+  record blob or manifest written at a higher `v` treats it as written by a
+  newer build rather than as corrupt. Carried by every release since
+  v0.3.1-beta.

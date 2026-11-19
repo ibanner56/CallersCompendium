@@ -32,6 +32,9 @@ TAXONOMY_SOURCE = "packages/compendium_core/lib/src/taxonomy/contra_taxonomy.dar
 TAXONOMY_DOC = "docs/design/figure-taxonomy.md"
 SCHEMA_SOURCE = "packages/compendium_core/lib/src/storage/database.dart"
 SCHEMA_DOC = "docs/design/storage.md"
+WIRE_SOURCE = "packages/compendium_core/lib/src/sync/sync_codec.dart"
+WIRE_DOC = "docs/design/sync-spec.md"
+ECD_SOURCE = "packages/compendium_core/lib/src/taxonomy/ecd_taxonomy.dart"
 
 FAILURES: list[str] = []
 
@@ -52,9 +55,27 @@ def schema_source(version: int) -> str:
     return f"const int kCompendiumSchemaVersion = {version};\n"
 
 
-def taxonomy_doc(*entries: str) -> str:
+def wire_source(version: int) -> str:
+    return f"const int syncWireVersion = {version};\n"
+
+
+def ecd_source(version: int) -> str:
+    return f"const int ecdTaxonomyVersion = {version};\n"
+
+
+def taxonomy_doc(*entries: str, ecd: tuple[str, ...] = ("v1: registry.",)) -> str:
+    """The real figure-taxonomy.md shape: the ECD log is a ``###`` inside contra's ``##``."""
     body = "\n".join(f"- {e}" for e in entries)
-    return f"# Figure taxonomy\n\n## Taxonomy version history\n\n{body}\n\n## Next\n"
+    ecd_body = "\n".join(f"- {e}" for e in ecd)
+    return (
+        f"# Figure taxonomy\n\n## Taxonomy version history\n\n{body}\n\n"
+        f"### ECD taxonomy versions\n\n{ecd_body}\n\n## Next\n"
+    )
+
+
+def wire_doc(*entries: str) -> str:
+    body = "\n".join(f"- {e}" for e in entries)
+    return f"# Sync\n\n## 10. Deferred\n\n## Wire version history\n\n{body}\n"
 
 
 def schema_doc(retired: list[str], supported: list[str]) -> str:
@@ -103,7 +124,7 @@ class Repo:
 
 
 def seed(repo: Repo) -> None:
-    """A base commit at taxonomy v28 / schema v25, both properly logged."""
+    """A base at contra v28, schema v25, wire v1 and ECD v1, all properly logged."""
     repo.write(TAXONOMY_SOURCE, taxonomy_source(28))
     repo.write(SCHEMA_SOURCE, schema_source(25))
     repo.write(TAXONOMY_DOC, taxonomy_doc("v27 (#749): grip params.", "v28 (#976): chain hand."))
@@ -111,6 +132,9 @@ def seed(repo: Repo) -> None:
         SCHEMA_DOC,
         schema_doc(["v1 (2026-07-10): initial schema."], ["v25 (#898): device sync."]),
     )
+    repo.write(WIRE_SOURCE, wire_source(1))
+    repo.write(WIRE_DOC, wire_doc("v1: the envelope."))
+    repo.write(ECD_SOURCE, ecd_source(1))
     repo.commit("base")
 
 
@@ -176,6 +200,49 @@ def main() -> int:
         check("says the section is missing", "no '## Taxonomy version history'" in res.stdout
               or "has no" in res.stdout, res.stdout)
 
+    @case("wire version bump with no doc entry")
+    def _(repo: Repo) -> None:
+        repo.write(WIRE_SOURCE, wire_source(2))
+        repo.commit("bump")
+        res = repo.run("HEAD~1")
+        check("exits 1", res.returncode == 1, f"exit={res.returncode}")
+        check("names the new value", "'- v2' entry" in res.stdout, res.stdout)
+        check("names the sync spec", WIRE_DOC in res.stdout, res.stdout)
+
+    @case("wire version bump with the history section missing")
+    def _(repo: Repo) -> None:
+        repo.write(WIRE_SOURCE, wire_source(2))
+        repo.write(WIRE_DOC, "# Sync\n\n## 10. Deferred\n")
+        repo.commit("bump, no section")
+        res = repo.run("HEAD~1")
+        # Not a pass, and the same verdict the gate gives any ledger whose section is gone.
+        check("exits 1, never 0", res.returncode == 1, f"exit={res.returncode}")
+        check("names the missing section", "'## Wire version history'" in res.stdout, res.stdout)
+
+    @case("ECD bump logged only as a contra entry")
+    def _(repo: Repo) -> None:
+        # The collision the heading choice exists for: contra's section includes the
+        # ECD sub-heading, so a gate keyed on '## Taxonomy version history' would take
+        # contra's `- v2` for ECD's. Contra does not move here; only ECD does.
+        repo.write(ECD_SOURCE, ecd_source(2))
+        repo.write(
+            TAXONOMY_DOC,
+            taxonomy_doc("v27 (#749): grip params.", "v28 (#976): chain hand.", "v2: not ECD's."),
+        )
+        repo.commit("bump ECD, log under contra")
+        res = repo.run("HEAD~1")
+        check("exits 1", res.returncode == 1, f"exit={res.returncode}")
+        check("names ECD's v2", "ecdTaxonomyVersion changed (1 -> 2)" in res.stdout, res.stdout)
+        check("contra is not blamed", "contraTaxonomyVersion changed" not in res.stdout, res.stdout)
+
+    @case("ECD bump with no entry at all")
+    def _(repo: Repo) -> None:
+        repo.write(ECD_SOURCE, ecd_source(2))
+        repo.commit("bump")
+        res = repo.run("HEAD~1")
+        check("exits 1", res.returncode == 1, f"exit={res.returncode}")
+        check("names the ECD heading", "'### ECD taxonomy versions'" in res.stdout, res.stdout)
+
     @case("unresolvable base ref")
     def _(repo: Repo) -> None:
         res = repo.run("no-such-ref", "HEAD")
@@ -231,6 +298,34 @@ def main() -> int:
         repo.commit("bump and log")
         res = repo.run("HEAD~1")
         check("exits 0", res.returncode == 0, res.stdout + res.stderr)
+
+    @case("wire version bump with its entry appended")
+    def _(repo: Repo) -> None:
+        repo.write(WIRE_SOURCE, wire_source(2))
+        repo.write(WIRE_DOC, wire_doc("v1: the envelope.", "v2: adds a field."))
+        repo.commit("bump and log")
+        res = repo.run("HEAD~1")
+        check("exits 0", res.returncode == 0, res.stdout + res.stderr)
+
+    @case("ECD bump with its entry under the ECD heading")
+    def _(repo: Repo) -> None:
+        repo.write(ECD_SOURCE, ecd_source(2))
+        repo.write(
+            TAXONOMY_DOC,
+            taxonomy_doc("v27 (#749): grip params.", "v28 (#976): chain hand.", ecd=("v1: registry.", "v2: adds a move.")),
+        )
+        repo.commit("bump and log")
+        res = repo.run("HEAD~1")
+        check("exits 0", res.returncode == 0, res.stdout + res.stderr)
+
+    @case("amending vNext without moving a constant")
+    def _(repo: Repo) -> None:
+        # The documented blind spot, asserted so nobody assumes coverage: the entry
+        # is reworded, the constant does not move, and the gate cannot tell.
+        repo.write(WIRE_DOC, wire_doc("v1: the envelope, reworded."))
+        repo.commit("amend")
+        res = repo.run("HEAD~1")
+        check("exits 0 (invisible by design)", res.returncode == 0, res.stdout + res.stderr)
 
     @case("head omitted defaults to HEAD")
     def _(repo: Repo) -> None:

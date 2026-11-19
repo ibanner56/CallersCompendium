@@ -397,7 +397,8 @@ jobs:
       # declarations, 40.7 KiB and 19.4 KiB of history that every reader of
       # those files paid for to reach a one-line constant; moving them to
       # docs/design/ is only safe if a later bump cannot quietly append its
-      # entry nowhere. See tools/ci/check_version_history.py.
+      # entry nowhere. The sync wire version and the ECD taxonomy version are
+      # logged and gated the same way. See tools/ci/check_version_history.py.
       - name: Guard version bumps append their design-doc history entry
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
