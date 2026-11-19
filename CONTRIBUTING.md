@@ -58,8 +58,8 @@ and must satisfy the [accessibility baseline](docs/research/accessibility-baseli
 A PR from an external contributor that changes anything a user can see includes
 screenshots of the change in its body. Without them the PR is not ready for
 review — a reviewer who cannot see the change cannot tell a fix from a
-regression. A PR opened from the maintainer's own account (@ibanner56),
-including by an agent session working for them, does not need them.
+regression. A PR opened by the maintainer (@ibanner56), or by an agent
+session working for them under any account, does not need them.
 
 - **What counts:** every surface whose appearance or wording changes — screens,
   dialogs, navigation, empty and error states, platform chrome. Not just

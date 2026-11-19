@@ -59,10 +59,10 @@ and failure modes: [docs/dev/agents/merging.md](docs/dev/agents/merging.md).
 An external contributor's PR that changes anything a user can see carries
 before/after screenshots (or a recording, for motion) in its body before review
 — see [CONTRIBUTING.md](CONTRIBUTING.md#screenshots-for-ui-changes). A PR opened
-from the maintainer's own account (@ibanner56), including by an agent session
-working for them, is exempt. No device? A
-golden from `fvm flutter test --update-goldens` is acceptable if it covers the
-whole surface that changed; say so.
+by the maintainer (@ibanner56), or by an agent session working for them under
+any account, is exempt. No device? A golden from
+`fvm flutter test --update-goldens` is acceptable if it covers the whole
+surface that changed; say so.
 
 ## Documentation is part of the change
 

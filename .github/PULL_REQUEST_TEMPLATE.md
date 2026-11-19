@@ -14,7 +14,7 @@
 ## Screenshots (UI changes)
 
 <!-- Required from external contributors when the PR changes anything a user can
-     see; PRs opened from the maintainer's account (@ibanner56), including by their agent sessions, are exempt. Before and after at
+     see; PRs opened by the maintainer (@ibanner56), or by an agent session working for them under any account, are exempt. Before and after at
      the same size, or a short recording for motion, attached here — a link to a
      file on the branch stops resolving when the branch is deleted. Evidence
      rules: CONTRIBUTING.md#screenshots-for-ui-changes -->
