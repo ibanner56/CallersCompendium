@@ -260,21 +260,67 @@ void main() {
     test('not when its reading drops a value the contra editor stored', () {
       // The contra editor seeds every param, defaults included: a promenade
       // entered by hand stores where it goes and which way. "partner
-      // promenade" reads in ECD without either, so it stays contra; so does a
-      // short wave, whose centre, hand and sides the ECD move would not hold.
-      for (final move in ['promenade', 'form_short_waves']) {
-        final seeded = _f(move, {
-          ...contraTaxonomy.entryParams(move),
-          if (move == 'promenade') 'beats': 8,
-        });
-        expect(ecdReadingOfContraWording(seeded), isNull, reason: move);
-        final out = migrateEcdDance(
-          figures: [seeded],
-          formation: const Formation(FormationShape.dupleMinor),
-        );
-        expect(out.figures.single.move, move, reason: move);
-        expect(out.movesConverted, 0, reason: move);
-      }
+      // promenade" reads in ECD without either, and a promenade has no twin
+      // to say they mean the same there, so it stays contra.
+      final promenade = _f('promenade', {
+        ...contraTaxonomy.entryParams('promenade'),
+        'beats': 8,
+      });
+      expect(ecdReadingOfContraWording(promenade), isNull);
+      final out = migrateEcdDance(
+        figures: [promenade],
+        formation: const Formation(FormationShape.dupleMinor),
+      );
+      expect(out.figures.single.move, 'promenade');
+      expect(out.movesConverted, 0);
+      // A short wave is never re-read. Its contra words spell out its center
+      // and sides, which the ECD grammar does not read today; this guards a
+      // grammar that later does.
+      expect(
+        ecdReadingOfContraWording(
+          _f(
+            'form_short_waves',
+            contraTaxonomy.entryParams('form_short_waves'),
+          ),
+        ),
+        isNull,
+      );
+    });
+
+    test('carries a hidden value its twin carries onto the twin step', () {
+      // A balance and swing entered by hand stores the swing's `endFacing:
+      // in`, which its words hide; the swing's twin carries it.
+      final swing = _f('swing', {
+        ...contraTaxonomy.entryParams('swing'),
+        'prefix': 'balance',
+        'beats': 16,
+      });
+      final read = ecdReadingOfContraWording(swing)!;
+      expect(read.subFigures.map((f) => f.move), ['ecd_balance', 'ecd_swing']);
+      expect(read.subFigures.last.params['endFacing'], 'in');
+      expect(read.subFigures.first.params.containsKey('endFacing'), isFalse);
+    });
+
+    test('a value the reading holds under another key is not dropped', () {
+      // Side couples forward and back: the ECD move's `formation` has no
+      // side couples, and the reading says who instead.
+      final read = ecdReadingOfContraWording(
+        _f('forward_and_back', {
+          'formation': 'sideCouples',
+          'goBack': true,
+          'beats': 8,
+        }),
+      )!;
+      expect(read.move, 'ecd_forward_and_back');
+      expect(read.params['who'], ['sideCouples']);
+      // A figure 8's `where: none` states no direction, so there is nothing
+      // to keep.
+      expect(
+        ecdReadingOfContraWording(
+          _f('figure_8', {'who': 'ones', 'where': 'none'}),
+        )?.move,
+        'ecd_figure_eight',
+      );
     });
 
     test('as a sequence at the top level only', () {

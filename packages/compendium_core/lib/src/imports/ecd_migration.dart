@@ -137,9 +137,9 @@ EcdMigration migrateEcdDance({
 
 final FigureRenderer _contraWords = FigureRenderer(contraTaxonomy);
 
-/// Contra moves whose words mean something else in ECD, so they are never
-/// re-read from their wording: the ones [_twins] leaves out for that reason
-/// (a short wave's centre and sides among them), and a petronella, whose
+/// Contra moves never re-read from their wording: the ones [_twins] leaves
+/// out because their `who` names another group in ECD, form short waves,
+/// whose center and sides the reading would lose, and a petronella, whose
 /// contra display hides whether it includes the balance.
 const Set<String> _unlikeInEcd = {
   'hey',
@@ -161,14 +161,14 @@ const Set<String> _unlikeInEcd = {
 /// the defaults contra silences, so what is read is what the person saw. A
 /// value the display shows that the figure did not store can become a stated
 /// one here; that is the price of this step, accepted with it. The reverse is
-/// refused: a reading that leaves unstated a value the figure stores (its
-/// contra default included, since the contra editor seeds every param) where
-/// the ECD move has a place for it, or a non-default value the words hide. A
-/// figure whose subject the importer assumed ([Figure.assumedSubject]) is not
-/// read this way, since its words state that subject (R2). Its note,
-/// progression mark, walkthrough and wording overrides are kept, and with no
-/// stored count it keeps the count it danced in contra. [ringDancers] counts a
-/// ring fraction in places, as for typed entry.
+/// refused: a non-default value the words hide, or a stored value (its contra
+/// default included, since the contra editor seeds every param) that the
+/// reading would drop ([_keepStoredValues]). A figure whose subject the
+/// importer assumed ([Figure.assumedSubject]) is not read this way, since its
+/// words state that subject (R2). Its note, progression mark, walkthrough and
+/// wording overrides are kept, and with no stored count it keeps the count it
+/// danced in contra. [ringDancers] counts a ring fraction in places, as for
+/// typed entry.
 Figure? ecdReadingOfContraWording(Figure figure, {int? ringDancers}) {
   if (figure.isContainer || figure.isCustom || figure.assumedSubject) {
     return null;
@@ -201,19 +201,12 @@ Figure? ecdReadingOfContraWording(Figure figure, {int? ringDancers}) {
     ringDancers: ringDancers,
   );
   if (read == null || !_allEcd(read)) return null;
-  // Every value the figure stores, its contra default included (the contra
-  // editor seeds them all), must be stated by the reading wherever the ECD
-  // move has a place for it; a reading that leaves one unstated drops it.
-  for (final entry in figure.params.entries) {
-    final value = entry.value;
-    if (entry.key == 'beats' || !_states(value)) continue;
-    if (_noOpValues[entry.key] == value) continue;
-    if (_dropsParam(read, entry.key)) return null;
-  }
+  final kept = _keepStoredValues(figure, read);
+  if (kept == null) return null;
   // A note the reading made (an uncounted ring fraction) and the figure's
   // own note: keep both only when one is absent.
   if (read.note != null && figure.note != null) return null;
-  var out = read.copyWith(
+  var out = kept.copyWith(
     note: read.note ?? figure.note,
     progression: figure.progression,
     walkthroughOverride: figure.walkthroughOverride,
@@ -257,14 +250,64 @@ bool _states(Object? value) => switch (value) {
   _ => true,
 };
 
-/// Whether [reading] has a place for [key] (a leaf's ECD move has the param)
-/// and states no value there; a container drops it when no leaf with a place
-/// for it states one.
-bool _dropsParam(Figure reading, String key) {
-  final leaves = _leaves(reading).where(
-    (leaf) => ecdTaxonomy.resolve(leaf.move)?.params.containsKey(key) ?? false,
+/// [reading], [figure]'s ECD reading, holding every value [figure] stores,
+/// its contra default included (the contra editor seeds them all), or null
+/// when it would drop one.
+///
+/// A value is held when no leaf's ECD move has a place for its key, when a
+/// leaf states that key, or when a leaf states the value under another key (a
+/// forward and back's `formation: sideCouples` reads as `who: [sideCouples]`).
+/// Otherwise, when the twin table carries the key across with the same
+/// meaning and exactly one leaf is the move's twin, the value is set on that
+/// leaf (a hand-entered swing's `endFacing: in`, which its words hide); else
+/// the reading is refused.
+Figure? _keepStoredValues(Figure figure, Figure reading) {
+  final twin = _twins[figure.move];
+  var out = reading;
+  for (final entry in figure.params.entries) {
+    final key = entry.key;
+    final value = entry.value;
+    if (key == 'beats' || !_states(value)) continue;
+    if (_noOpValues[key] == value) continue;
+    final placed = _leaves(out)
+        .where(
+          (leaf) =>
+              ecdTaxonomy.resolve(leaf.move)?.params.containsKey(key) ?? false,
+        )
+        .toList();
+    if (placed.isEmpty) continue;
+    if (placed.any((leaf) => _states(leaf.params[key]))) continue;
+    if (_leaves(out).any((leaf) => _holdsValue(leaf, value))) continue;
+    final twinLeaves = placed.where((leaf) => leaf.move == twin?.id).toList();
+    if (twin == null || !twin.carried.contains(key) || twinLeaves.length != 1) {
+      return null;
+    }
+    out = _replaceLeaf(
+      out,
+      twinLeaves.single,
+      twinLeaves.single.copyWith(
+        params: {...twinLeaves.single.params, key: value},
+      ),
+    );
+  }
+  return out;
+}
+
+/// Whether [leaf] states [value] under any key, alone or in a list.
+bool _holdsValue(Figure leaf, Object? value) => leaf.params.values.any(
+  (held) => held == value || (held is List && held.contains(value)),
+);
+
+/// [figure] with [from], one of its leaves, replaced by [to].
+Figure _replaceLeaf(Figure figure, Figure from, Figure to) {
+  if (identical(figure, from)) return to;
+  if (!figure.isContainer) return figure;
+  final subs = [
+    for (final sub in figure.subFigures) _replaceLeaf(sub, from, to),
+  ];
+  return figure.copyWith(
+    params: {...figure.params, 'figures': List<Figure>.unmodifiable(subs)},
   );
-  return leaves.isNotEmpty && !leaves.any((leaf) => _states(leaf.params[key]));
 }
 
 Iterable<Figure> _leaves(Figure figure) sync* {
@@ -392,7 +435,12 @@ const Map<String, _Twin> _twins = {
 
 /// Contra values that state nothing: a star with no grip named, a swing
 /// with no balance or meltdown before it.
-const Map<String, Object> _noOpValues = {'grip': 'none', 'prefix': 'none'};
+const Map<String, Object> _noOpValues = {
+  'grip': 'none',
+  'prefix': 'none',
+  // A figure 8's `none` says no direction (contra_taxonomy.dart).
+  'where': 'none',
+};
 
 /// The contra move ids [ecdTwinOfContraMove] converts.
 Set<String> get ecdMigratableContraMoves => _twins.keys.toSet();
