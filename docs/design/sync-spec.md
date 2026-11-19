@@ -707,7 +707,10 @@ Canonical JSON means:
 - no insignificant whitespace;
 - envelope fields always present, `null` where empty;
 - body fields: explicit `null` for an empty `shareable` field, omission **only**
-  for a field that is not `shareable`;
+  for a field that is not `shareable`, with one exception: a dance's `meter`,
+  `musicalKey` and `formation.improper` (schema v42) are omitted when they hold
+  their default (`''`, `''`, `false`), and a receiver reads a missing one as
+  that default (§6.7);
 - **timestamps emitted at exactly one-tick precision** (§2), UTC, with the
   sub-tick component always zero;
 - **all strings in Unicode NFC**, normalised on write as described below.
@@ -3959,6 +3962,21 @@ does.
 **Sender/receiver contract.** The sender emits explicit `null` for an empty
 `shareable` field and omits only non-`shareable` fields. The receiver MUST
 independently consult the registry to decide which absences mean *preserve*.
+
+The exception is the dance fields added after Device Sync shipped, listed in
+`omittedDanceDefaults` and `omittedFormationDefaults`
+(`archive_entity_codec.dart`): `meter`, `musicalKey` and `formation.improper`
+(ADR-006 §12, F2 and F3). The sender omits each when it holds its default, so a
+dance that never had one keeps the body, and the content hash, it had before
+the field existed: no device republishes every dance on updating, and a device
+on an older build has nothing to keep for it. A receiver that knows the field
+reads its absence as the default, not as *preserve*, and fills it in before
+applying the body (`syncInboundKnownBody`), so a value cleared on one device is
+cleared on the others. A receiver that does not know the field keeps the key
+when present and drops it when absent, which gives the same result. Decided by
+Claude while implementing ADR-006 W3; the rejected alternative, always sending
+the three keys as this section otherwise requires, changes every dance's body
+at once and leaves every dance with kept parts on an older device.
 
 **A field the receiver does not sync is kept, not dropped and not applied.**
 Any part of an inbound body that the receiver does not classify `shareable` for

@@ -198,6 +198,37 @@ class PhraseStructure {
     throw StateError('could not find phrase boundary for beat $beat');
   }
 
+  /// The component that plays at [beat] (0-based), wrapping at the end of the
+  /// structure as [labelAtBeat] does.
+  PhraseComponent componentAtBeat(int beat) {
+    if (beat < 0) throw ArgumentError.value(beat, 'beat', 'must be >= 0');
+    var offset = beat % totalBeats;
+    for (final component in components) {
+      if (offset < component.totalBeats) return component;
+      offset -= component.totalBeats;
+    }
+    throw StateError('could not find component for beat $beat');
+  }
+
+  /// Beats in [halfBars] half bars of the component that plays at [atBeat],
+  /// or `null` when that is not a whole number of beats.
+  ///
+  /// This is the half-bar rule (ADR-006 Q16): timing entered in bars may use
+  /// half a bar only where half a bar is a whole number of beats, so an odd
+  /// count of half bars is refused in triple time. Beats are stored as whole
+  /// numbers, so finer timing goes in a note instead. Whole bars are always
+  /// accepted. Only the meter at [atBeat] is read: a span that starts in one
+  /// part of the tune and runs into a part in another meter is judged by the
+  /// part it starts in.
+  int? beatsForHalfBars(int halfBars, {int atBeat = 0}) {
+    if (halfBars < 0) {
+      throw ArgumentError.value(halfBars, 'halfBars', 'must be >= 0');
+    }
+    final beatsPerBar = componentAtBeat(atBeat).beatsPerBar;
+    final doubled = halfBars * beatsPerBar;
+    return doubled.isEven ? doubled ~/ 2 : null;
+  }
+
   int _phraseIndexAtBeat(int beat) {
     var offset = beat % totalBeats;
     var phraseIndex = 0;
@@ -250,6 +281,10 @@ class PhraseComponent {
 
   /// Beats across this complete component.
   int get totalBeats => phraseCount * beatsPerPhrase;
+
+  /// Whether half a bar of this component is a whole number of beats, so
+  /// timing may be given in half bars (ADR-006 Q16). False in triple time.
+  bool get allowsHalfBars => beatsPerBar.isEven;
 
   @override
   bool operator ==(Object other) =>

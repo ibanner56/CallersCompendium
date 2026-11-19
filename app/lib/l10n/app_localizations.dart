@@ -6310,6 +6310,72 @@ abstract class AppLocalizations {
   /// **'{shape} — {detail}'**
   String commonFormationWithDetail(String shape, String detail);
 
+  /// Formation shape value (English country dance): a longways set danced in minor sets of two couples.
+  ///
+  /// In en, this message translates to:
+  /// **'Duple minor'**
+  String get commonFormationDupleMinor;
+
+  /// Formation shape value (English country dance): a longways set of exactly three couples.
+  ///
+  /// In en, this message translates to:
+  /// **'Three-couple longways'**
+  String get commonFormationThreeCoupleLongways;
+
+  /// Formation shape value (English country dance): a longways set of exactly four couples.
+  ///
+  /// In en, this message translates to:
+  /// **'Four-couple longways'**
+  String get commonFormationFourCoupleLongways;
+
+  /// Formation shape value (English country dance): a longways set of exactly five couples.
+  ///
+  /// In en, this message translates to:
+  /// **'Five-couple longways'**
+  String get commonFormationFiveCoupleLongways;
+
+  /// Formation shape value (English country dance): a longways set of exactly six couples.
+  ///
+  /// In en, this message translates to:
+  /// **'Six-couple longways'**
+  String get commonFormationSixCoupleLongways;
+
+  /// Formation shape value (English country dance): dancers in a circle.
+  ///
+  /// In en, this message translates to:
+  /// **'Circle'**
+  String get commonFormationCircle;
+
+  /// Formation shape value (English country dance): a square set of four couples.
+  ///
+  /// In en, this message translates to:
+  /// **'Square'**
+  String get commonFormationSquare;
+
+  /// Formation shape value (English country dance): a set of exactly two couples.
+  ///
+  /// In en, this message translates to:
+  /// **'Two-couple set'**
+  String get commonFormationTwoCoupleSet;
+
+  /// An English country dance formation that starts improper (first couple crossed over). {shape} is a localized formation shape name, such as 'Duple minor'.
+  ///
+  /// In en, this message translates to:
+  /// **'{shape}, improper'**
+  String commonFormationImproperFlag(String shape);
+
+  /// Label for a dance's written meter (time signature) as free text, for example 3/2 or 6/8.
+  ///
+  /// In en, this message translates to:
+  /// **'Meter'**
+  String get danceEditorMeterLabel;
+
+  /// Label for the musical key of a dance's tune as free text, for example G minor.
+  ///
+  /// In en, this message translates to:
+  /// **'Key'**
+  String get danceEditorMusicalKeyLabel;
+
   /// Label indicating a dance suits mixed experience levels; used as a filter chip/section and a dance indicator chip.
   ///
   /// In en, this message translates to:

@@ -2302,8 +2302,20 @@ class _DefaultsView extends StatelessWidget {
                 onChanged: (value) {
                   if (value != null) onDefaultDanceFormationShapeChanged(value);
                 },
+                // Contra's shapes, as before ECD's were added. Defaults for
+                // each dance form come with the new-dance form setting
+                // (ADR-006 §12, S2).
                 items: [
-                  for (final shape in FormationShape.values)
+                  for (final shape in [
+                    // A stored default outside the list (from a newer
+                    // version, say) is still shown, so the field has its
+                    // value among its items.
+                    if (!contraFormationShapes.contains(
+                      defaultDanceFormationShape,
+                    ))
+                      defaultDanceFormationShape,
+                    ...contraFormationShapes,
+                  ])
                     DropdownMenuItem(
                       value: shape,
                       child: Text(formationShapeLabel(l10n, shape)),

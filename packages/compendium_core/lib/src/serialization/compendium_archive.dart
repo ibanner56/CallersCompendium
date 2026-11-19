@@ -5,6 +5,7 @@ import '../model/choreographer.dart';
 import '../model/custom_field.dart';
 import '../model/dance.dart';
 import '../model/difficulty_level.dart';
+import '../model/formation.dart';
 import '../model/program.dart';
 import '../model/published_source.dart';
 import '../model/tag.dart';
@@ -51,6 +52,9 @@ const DeepCollectionEquality _deepEq = DeepCollectionEquality();
 ///   full backup restores a deleted tag and its association. Written by backup
 ///   mode only, and only when a tombstoned tag exists. See
 ///   [archiveSchemaVersionDeletedTags].
+/// * **v8** — adds a dance's `meter` and `musicalKey`, `formation.improper`,
+///   and the ECD formation shapes (ADR-006 §12, F2 and F3). Stamped only when
+///   a dance carries one of them. See [archiveSchemaVersionEcdDanceFields].
 ///
 /// **Not versioned:** a shared archive's `userFigures` section, the
 /// definitions of the user's own new figures its dances use (#1023, see
@@ -63,7 +67,7 @@ const DeepCollectionEquality _deepEq = DeepCollectionEquality();
 /// line it carries. That build also stopped the share intake refusing a newer
 /// archive, so a later build can bump for this section and have readers from
 /// then on warn, as the earlier bumps intended.
-const int archiveSchemaVersion = archiveSchemaVersionDeletedTags;
+const int archiveSchemaVersion = archiveSchemaVersionEcdDanceFields;
 
 /// The original, pre-venue archive envelope version.
 const int archiveSchemaVersionBase = 1;
@@ -129,6 +133,29 @@ const int archiveSchemaVersionUnreadableTunes = 6;
 /// never deleted a tag still writes its earlier version byte-identically.
 const int archiveSchemaVersionDeletedTags = 7;
 
+/// The envelope version introduced for the fields English country dance added
+/// to a dance (ADR-006 §12, F2 and F3): `meter`, `musicalKey`,
+/// `formation.improper`, and the formation shapes from
+/// [FormationShape.dupleMinor] on.
+///
+/// A pre-v8 reader ignores the three keys, so without the bump it would
+/// restore the dance without its meter and key, and as proper, and report
+/// success. A new shape it cannot read at all, and it skips that dance with a
+/// warning; the stamp also makes a backup holding one refuse to restore there
+/// rather than restore without it. Stamped only when a dance carries one of
+/// them, so a library with none still writes its earlier version
+/// byte-identically.
+const int archiveSchemaVersionEcdDanceFields = 8;
+
+/// Whether [dance] carries anything only a v8 reader understands
+/// ([archiveSchemaVersionEcdDanceFields]).
+bool _hasEcdDanceFields(Dance dance) =>
+    dance.meter.isNotEmpty ||
+    dance.musicalKey.isNotEmpty ||
+    dance.formation.improper ||
+    // Every shape before ECD's is one contra offers; any other is newer.
+    !contraFormationShapes.contains(dance.formation.shape);
+
 /// The minimum envelope version required to represent [archive] without silent
 /// data loss on an older reader: [archiveSchemaVersionProgramSlotMarkers] when
 /// it carries a purge-caption marker, [archiveSchemaVersionDifficultyLevels]
@@ -154,11 +181,14 @@ int requiredSchemaVersion(
   final hasPurgeMarker = archive.programs.any(
     (p) => p.slots.any((s) => s.isPurgedDance != null),
   );
-  // Checked highest-version first, so the first match wins: a tombstoned tag
-  // requires v7, an undecodable tune
+  // Checked highest-version first, so the first match wins: an ECD dance field
+  // requires v8, a tombstoned tag requires v7, an undecodable tune
   // list requires v6, and only if there is none does an undecodable
   // transcription pull the archive to v5. Keep new cases in descending version
   // order or a lower version will shadow a higher one.
+  if (archive.dances.any(_hasEcdDanceFields)) {
+    return archiveSchemaVersionEcdDanceFields;
+  }
   if (includeDeletedTags && archive.deletedTags.isNotEmpty) {
     return archiveSchemaVersionDeletedTags;
   }

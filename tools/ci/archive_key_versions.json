@@ -49,6 +49,8 @@
     "hook": "baseline",
     "callingNotes": "baseline",
     "walkthrough": "baseline",
+    "meter": "archiveSchemaVersionEcdDanceFields",
+    "musicalKey": "archiveSchemaVersionEcdDanceFields",
     "status": "baseline",
     "difficultyLevelId": "archiveSchemaVersionDifficultyLevels",
     "mixedLevel": "baseline",
@@ -69,7 +71,8 @@
   },
   "archiveFormationToJson": {
     "shape": "baseline",
-    "detail": "baseline"
+    "detail": "baseline",
+    "improper": "archiveSchemaVersionEcdDanceFields"
   },
   "archiveCustomFieldValueToJson": {
     "fieldId": "baseline",

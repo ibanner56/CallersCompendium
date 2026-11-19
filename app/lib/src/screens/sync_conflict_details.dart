@@ -151,6 +151,8 @@ Map<String, String> _fieldLabels(AppLocalizations l10n, SyncRecordKind kind) =>
         'hook': l10n.danceEditorHookLabel,
         'callingNotes': l10n.danceEditorCallingNotesLabel,
         'walkthrough': l10n.danceEditorWalkthroughLabel,
+        'meter': l10n.danceEditorMeterLabel,
+        'musicalKey': l10n.danceEditorMusicalKeyLabel,
         'difficultyLevelId': l10n.danceEditorLevelLabel,
         'mixedLevel': l10n.commonMixedLevel,
         'mixer': l10n.commonMixer,
@@ -1070,6 +1072,7 @@ class SyncConflictComparison extends StatelessWidget {
             Formation(
               FormationShape.values.byName(map['shape'] as String),
               detail: map['detail'] as String?,
+              improper: map['improper'] == true,
             ),
           );
         case 'customFields':
