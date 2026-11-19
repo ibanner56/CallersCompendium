@@ -9,6 +9,7 @@ import '../search/facet_labels.dart';
 import '../theme/app_motion.dart';
 import '../theme/set_list_accents.dart';
 import 'dirty_dialog_guard.dart';
+import 'empty_state.dart';
 import 'preview_hold_listener.dart';
 
 /// Editable, reorderable list of a program's slots for the builder
@@ -252,12 +253,12 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
     final l10n = AppLocalizations.of(context);
     final slots = widget.slots;
     if (slots.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 32),
-        child: Center(
-          key: const ValueKey('slots-empty'),
-          child: Text(l10n.programsSlotEditorEmpty),
-        ),
+      return EmptyState(
+        key: const ValueKey('slots-empty'),
+        inline: true,
+        icon: EmptyState.glyph(context, Icons.queue_music_outlined),
+        title: l10n.programsSlotEditorEmptyTitle,
+        body: l10n.programsSlotEditorEmptyBody,
       );
     }
 

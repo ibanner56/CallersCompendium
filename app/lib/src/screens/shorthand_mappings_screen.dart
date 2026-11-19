@@ -13,6 +13,7 @@ import '../theme/app_spacing.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/compound_argument_editor.dart';
+import '../widgets/empty_state.dart';
 import 'compound_shorthand_editor_screen.dart';
 import '../data/shorthand_mappings_controller.dart';
 import '../data/shorthand_mappings_scope.dart';
@@ -66,28 +67,23 @@ class ShorthandMappingsScreen extends StatelessWidget {
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ),
-          if (mappings.isEmpty) ...[
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: OutlinedButton.icon(
+          if (mappings.isEmpty)
+            EmptyState(
+              key: const ValueKey('shorthand-empty'),
+              inline: true,
+              icon: EmptyState.glyph(context, Icons.short_text),
+              title: l10n.shorthandMappingsEmptyTitle,
+              body: l10n.shorthandMappingsEmptyBody,
+              actions: [
+                FilledButton.icon(
                   key: const ValueKey('new-shorthand'),
                   onPressed: () => _createNew(context, controller),
                   icon: const Icon(Icons.add),
                   label: Text(l10n.shorthandMappingsNew),
                 ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              child: Text(
-                l10n.shorthandMappingsEmpty,
-                key: const ValueKey('shorthand-empty'),
-              ),
-            ),
-          ] else
+              ],
+            )
+          else
             for (var i = 0; i < mappings.length; i++)
               _ShorthandRow(
                 key: ValueKey('shorthand-tile-${mappings[i].normalizedToken}'),
@@ -470,12 +466,11 @@ class _CompoundShorthandsSectionState
           ),
         ),
         if (shorthands.isEmpty && userFigureShorthands.isEmpty)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-            child: Text(
-              l10n.shorthandsCompoundEmpty,
-              key: const ValueKey('compound-shorthand-empty'),
-            ),
+          EmptyState(
+            key: const ValueKey('compound-shorthand-empty'),
+            inline: true,
+            icon: EmptyState.glyph(context, Icons.short_text),
+            title: l10n.shorthandsCompoundEmpty,
           ),
         for (var i = 0; i < shorthands.length; i++)
           _row(context, l10n, dialect, shorthands[i], i, figureTokens),

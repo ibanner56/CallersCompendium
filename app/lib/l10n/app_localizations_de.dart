@@ -1508,8 +1508,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get settingsSyncDevicesEmpty =>
-      'Mit diesem Speicher sind keine anderen Geräte verbunden.';
+  String get settingsSyncDevicesEmptyTitle => 'Noch keine anderen Geräte';
+
+  @override
+  String get settingsSyncDevicesEmptyBody =>
+      'Andere mit diesem Speicher verbundene Geräte erscheinen hier.';
 
   @override
   String get settingsSyncDevicesFailed =>
@@ -2848,8 +2851,11 @@ class AppLocalizationsDe extends AppLocalizations {
       'Geben Sie einem Tag eine eigene Farbe, damit es auf Tanzkarten und in den Tanzdetails hervorsticht. Der Name des Tags wird immer mit angezeigt, sodass Tags auch ohne Farbe lesbar bleiben.';
 
   @override
-  String get settingsTagColoursEmpty =>
-      'Sie haben noch keine Tags erstellt. Fügen Sie einem Tanz ein Tag hinzu, dann erscheint es hier.';
+  String get settingsTagColoursEmptyTitle => 'Noch keine Tags';
+
+  @override
+  String get settingsTagColoursEmptyBody =>
+      'Fügen Sie einem Tanz ein Tag hinzu, dann erscheint es hier.';
 
   @override
   String get settingsTagColoursSaveError =>
@@ -2914,8 +2920,11 @@ class AppLocalizationsDe extends AppLocalizations {
   String get authorManagerNameLabel => 'Name des Autors';
 
   @override
-  String get authorManagerEmpty =>
-      'Noch keine Autoren. Autoren, die Sie bei einem Tanz angeben, erscheinen hier.';
+  String get authorManagerEmptyTitle => 'Noch keine Autoren';
+
+  @override
+  String get authorManagerEmptyBody =>
+      'Autoren, die Sie bei einem Tanz angeben, erscheinen hier.';
 
   @override
   String get authorManagerLoadError =>
@@ -2936,8 +2945,11 @@ class AppLocalizationsDe extends AppLocalizations {
   String get sourceManagerTitleLabel => 'Titel der Quelle';
 
   @override
-  String get sourceManagerEmpty =>
-      'Noch keine Quellen. Bücher und Websites, die Sie bei einem Tanz angeben, erscheinen hier.';
+  String get sourceManagerEmptyTitle => 'Noch keine Quellen';
+
+  @override
+  String get sourceManagerEmptyBody =>
+      'Bücher und Websites, die Sie bei einem Tanz zitieren, erscheinen hier.';
 
   @override
   String get sourceManagerLoadError =>
@@ -5774,8 +5786,11 @@ class AppLocalizationsDe extends AppLocalizations {
   String get programsSlotNoteFallback => 'Notiz';
 
   @override
-  String get programsSlotEditorEmpty =>
-      'Noch keine Slots. Fügen Sie einen Tanz oder eine Notiz hinzu, um loszulegen.';
+  String get programsSlotEditorEmptyTitle => 'Noch keine Slots';
+
+  @override
+  String get programsSlotEditorEmptyBody =>
+      'Fügen Sie einen Tanz oder eine Notiz hinzu, um loszulegen.';
 
   @override
   String get programsSlotMovedUp => 'Slot nach oben verschoben.';
@@ -8538,8 +8553,12 @@ class AppLocalizationsDe extends AppLocalizations {
       'Diese Schrittbeschreibungen pro Figur füllen Abläufe vor, wenn du einen Tanz bearbeitest. Eine hier zu bearbeiten aktualisiert den überall verwendeten Standard.';
 
   @override
-  String get settingsWalkthroughSnippetsEmpty =>
-      'Noch keine gespeicherten Ausschnitte. Füge Ablaufschritt-Beschreibungen hinzu, während du die Figuren eines Tanzes bearbeitest.';
+  String get settingsWalkthroughSnippetsEmptyTitle =>
+      'Noch keine gespeicherten Ausschnitte';
+
+  @override
+  String get settingsWalkthroughSnippetsEmptyBody =>
+      'Fügen Sie Beschreibungen für Ablaufschritte hinzu, während Sie die Figuren eines Tanzes bearbeiten.';
 
   @override
   String settingsWalkthroughSnippetsCount(int count) {
@@ -9884,7 +9903,11 @@ class AppLocalizationsDe extends AppLocalizations {
   String get shorthandMappingsNew => 'Neue Abkürzung';
 
   @override
-  String get shorthandMappingsEmpty => 'Noch keine Abkürzungen.';
+  String get shorthandMappingsEmptyTitle => 'Noch keine Abkürzungen';
+
+  @override
+  String get shorthandMappingsEmptyBody =>
+      'Wählen Sie „Neue Abkürzung“, um eine hinzuzufügen.';
 
   @override
   String shorthandMappingsLimitReached(int max) {
@@ -10323,8 +10346,11 @@ class AppLocalizationsDe extends AppLocalizations {
       'Benutzerdefinierte Felder konnten nicht geladen werden.';
 
   @override
-  String get customFieldsEmpty =>
-      'Noch keine benutzerdefinierten Felder.\nTippen Sie auf +, um eines zu definieren.';
+  String get customFieldsEmptyTitle => 'Noch keine benutzerdefinierten Felder';
+
+  @override
+  String get customFieldsEmptyBody =>
+      'Wählen Sie „Neues Feld“, um eines hinzuzufügen.';
 
   @override
   String get customFieldsFlagInList => 'In Liste';

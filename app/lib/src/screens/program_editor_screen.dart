@@ -3271,14 +3271,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           : l10n.programsLoadError;
       // Only a failed read can be retried: a program that is gone, or an undo
       // that could not be recovered, would fail the same way again.
-      return _loadError is _ProgramLoadError
-          ? Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Text(message, textAlign: TextAlign.center),
-              ),
-            )
-          : LoadErrorView(message: message, onRetry: _retryLoad);
+      return LoadErrorView(
+        icon: LoadErrorView.errorGlyph(context),
+        message: message,
+        onRetry: _loadError is _ProgramLoadError ? null : _retryLoad,
+        onBack: _loadError is _ProgramLoadError
+            ? () => Navigator.of(context).maybePop()
+            : null,
+      );
     }
 
     return LayoutBuilder(
@@ -3393,14 +3393,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           : l10n.programsLoadError;
       // Only a failed read can be retried: a program that is gone, or an undo
       // that could not be recovered, would fail the same way again.
-      return _loadError is _ProgramLoadError
-          ? Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Text(message, textAlign: TextAlign.center),
-              ),
-            )
-          : LoadErrorView(message: message, onRetry: _retryLoad);
+      return LoadErrorView(
+        icon: LoadErrorView.errorGlyph(context),
+        message: message,
+        onRetry: _loadError is _ProgramLoadError ? null : _retryLoad,
+        onBack: _loadError is _ProgramLoadError
+            ? () => Navigator.of(context).maybePop()
+            : null,
+      );
     }
 
     final data = _data;

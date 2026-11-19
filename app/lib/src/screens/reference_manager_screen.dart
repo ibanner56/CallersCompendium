@@ -365,6 +365,7 @@ class _ReferenceManagerScreenState extends State<ReferenceManagerScreen> {
       ),
       body: _loadError != null
           ? LoadErrorView(
+              icon: LoadErrorView.errorGlyph(context),
               message: _authors
                   ? l10n.authorManagerLoadError
                   : l10n.sourceManagerLoadError,
@@ -376,9 +377,15 @@ class _ReferenceManagerScreenState extends State<ReferenceManagerScreen> {
               keyPrefix: _keyPrefix,
               entries: _entries,
               searchHint: _searchHint(l10n),
-              emptyMessage: _authors
-                  ? l10n.authorManagerEmpty
-                  : l10n.sourceManagerEmpty,
+              emptyIcon: _authors
+                  ? Icons.person_outline
+                  : Icons.menu_book_outlined,
+              emptyTitle: _authors
+                  ? l10n.authorManagerEmptyTitle
+                  : l10n.sourceManagerEmptyTitle,
+              emptyBody: _authors
+                  ? l10n.authorManagerEmptyBody
+                  : l10n.sourceManagerEmptyBody,
               actionsFor: _actionsFor,
             ),
     );

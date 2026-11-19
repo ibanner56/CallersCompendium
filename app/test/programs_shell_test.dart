@@ -12,6 +12,8 @@ import 'package:compendium_app/src/screens/perform_program_screen.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/screens/program_summary_screen.dart';
 import 'package:compendium_app/src/search/program_sort.dart' show ProgramSort;
+import 'package:compendium_app/src/widgets/brand_mark.dart';
+import 'package:compendium_app/src/widgets/empty_state.dart';
 import 'package:compendium_app/src/screens/programs_shell.dart';
 
 import 'support/test_repositories.dart';
@@ -117,6 +119,19 @@ Future<void> _pumpNarrow(
 }
 
 void main() {
+  testWidgets('the empty-detail pane carries the brand mark', (tester) async {
+    final repos = openTestRepositories();
+    await _pumpWide(tester, repos);
+    final pane = find.ancestor(
+      of: find.text(AppLocalizationsEn().programsSelectTitle),
+      matching: find.byType(EmptyState),
+    );
+    expect(
+      find.descendant(of: pane, matching: find.byType(BrandMark)),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('empty-detail pane body text uses onSurfaceVariant (AA)', (
     tester,
   ) async {

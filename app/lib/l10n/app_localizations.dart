@@ -2030,11 +2030,17 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{1 change from this device is waiting for it.} other{{count} changes from this device are waiting for it.}}'**
   String settingsSyncDeviceWaiting(int count);
 
-  /// Empty state when this is the only device with a manifest in the Device Sync store.
+  /// Heading of the empty state on the sync devices screen when no other device is connected to the store.
   ///
   /// In en, this message translates to:
-  /// **'No other devices are connected to this store.'**
-  String get settingsSyncDevicesEmpty;
+  /// **'No other devices yet'**
+  String get settingsSyncDevicesEmptyTitle;
+
+  /// Body of the empty state on the sync devices screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Other devices connected to this store will appear here.'**
+  String get settingsSyncDevicesEmptyBody;
 
   /// Error state when the Device Sync store listing could not be fetched.
   ///
@@ -4290,11 +4296,17 @@ abstract class AppLocalizations {
   /// **'Give a tag its own color to make it stand out on dance cards and dance detail. The tag\'s name is always shown too, so tags stay readable without color.'**
   String get settingsAppearanceTagColoursSubtitle;
 
-  /// Shown on the tag-color screen when the collection has no tags.
+  /// Heading of the empty state on the tag manager.
   ///
   /// In en, this message translates to:
-  /// **'You haven\'t created any tags yet. Add a tag to a dance and it will appear here.'**
-  String get settingsTagColoursEmpty;
+  /// **'No tags yet'**
+  String get settingsTagColoursEmptyTitle;
+
+  /// Body of the empty state on the tag manager; says where tags come from.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a tag to a dance and it will appear here.'**
+  String get settingsTagColoursEmptyBody;
 
   /// Snack-bar message shown when saving or clearing a tag color fails.
   ///
@@ -4386,11 +4398,17 @@ abstract class AppLocalizations {
   /// **'Author name'**
   String get authorManagerNameLabel;
 
-  /// Shown in the Authors manager when there are no authors.
+  /// Heading of the empty state on the author manager.
   ///
   /// In en, this message translates to:
-  /// **'No authors yet. Authors you credit on a dance appear here.'**
-  String get authorManagerEmpty;
+  /// **'No authors yet'**
+  String get authorManagerEmptyTitle;
+
+  /// Body of the empty state on the author manager.
+  ///
+  /// In en, this message translates to:
+  /// **'Authors you credit on a dance appear here.'**
+  String get authorManagerEmptyBody;
 
   /// Shown in the Authors manager when the author list fails to load.
   ///
@@ -4422,11 +4440,17 @@ abstract class AppLocalizations {
   /// **'Source title'**
   String get sourceManagerTitleLabel;
 
-  /// Shown in the Sources manager when there are no sources.
+  /// Heading of the empty state on the source manager.
   ///
   /// In en, this message translates to:
-  /// **'No sources yet. Books and websites you cite on a dance appear here.'**
-  String get sourceManagerEmpty;
+  /// **'No sources yet'**
+  String get sourceManagerEmptyTitle;
+
+  /// Body of the empty state on the source manager.
+  ///
+  /// In en, this message translates to:
+  /// **'Books and websites you cite on a dance appear here.'**
+  String get sourceManagerEmptyBody;
 
   /// Shown in the Sources manager when the source list fails to load.
   ///
@@ -8752,11 +8776,17 @@ abstract class AppLocalizations {
   /// **'Note'**
   String get programsSlotNoteFallback;
 
-  /// Empty state shown in the program slot list editor when a program has no slots.
+  /// Heading of the empty state in the program slot list editor when a program has no slots.
   ///
   /// In en, this message translates to:
-  /// **'No slots yet. Add a dance or a note to get started.'**
-  String get programsSlotEditorEmpty;
+  /// **'No slots yet'**
+  String get programsSlotEditorEmptyTitle;
+
+  /// Body of the empty state in the program slot list editor; says how to add the first slot.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a dance or a note to get started.'**
+  String get programsSlotEditorEmptyBody;
 
   /// Accessibility announcement after a slot is moved up one position.
   ///
@@ -12514,11 +12544,17 @@ abstract class AppLocalizations {
   /// **'These per-figure step descriptions pre-fill walkthroughs when you edit a dance. Editing one here updates the default used everywhere.'**
   String get settingsWalkthroughSnippetsDescription;
 
-  /// Empty-state text on the walkthrough-snippet library editor when the library is empty (#411).
+  /// Heading of the empty state on the walkthrough-snippet library editor.
   ///
   /// In en, this message translates to:
-  /// **'No saved snippets yet. Add walkthrough step descriptions while editing a dance\'s figures.'**
-  String get settingsWalkthroughSnippetsEmpty;
+  /// **'No saved snippets yet'**
+  String get settingsWalkthroughSnippetsEmptyTitle;
+
+  /// Body of the empty state on the walkthrough-snippet library editor; says where snippets come from.
+  ///
+  /// In en, this message translates to:
+  /// **'Add walkthrough step descriptions while editing a dance\'s figures.'**
+  String get settingsWalkthroughSnippetsEmptyBody;
 
   /// Count of saved walkthrough snippets (#411).
   ///
@@ -14377,11 +14413,17 @@ abstract class AppLocalizations {
   /// **'New shorthand'**
   String get shorthandMappingsNew;
 
-  /// Empty state when the user has no figure-shorthand mappings.
+  /// Heading of the empty state on the shorthand list.
   ///
   /// In en, this message translates to:
-  /// **'No shorthands yet.'**
-  String get shorthandMappingsEmpty;
+  /// **'No shorthands yet'**
+  String get shorthandMappingsEmptyTitle;
+
+  /// Body of the empty state on the shorthand list; names the New shorthand button.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose New shorthand to add one.'**
+  String get shorthandMappingsEmptyBody;
 
   /// Snackbar shown when the user tries to add a figure shorthand but already has the maximum number the app keeps; {max} is that maximum.
   ///
@@ -14893,11 +14935,17 @@ abstract class AppLocalizations {
   /// **'Could not load custom fields.'**
   String get customFieldsLoadError;
 
-  /// Empty state when no custom fields are defined.
+  /// Heading of the empty state on the custom fields list.
   ///
   /// In en, this message translates to:
-  /// **'No custom fields yet.\nTap + to define one.'**
-  String get customFieldsEmpty;
+  /// **'No custom fields yet'**
+  String get customFieldsEmptyTitle;
+
+  /// Body of the empty state on the custom fields list; names the New field button.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose New field to add one.'**
+  String get customFieldsEmptyBody;
 
   /// Subtitle chip indicating a custom field is shown in the dance list.
   ///

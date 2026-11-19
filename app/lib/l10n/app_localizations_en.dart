@@ -1489,8 +1489,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get settingsSyncDevicesEmpty =>
-      'No other devices are connected to this store.';
+  String get settingsSyncDevicesEmptyTitle => 'No other devices yet';
+
+  @override
+  String get settingsSyncDevicesEmptyBody =>
+      'Other devices connected to this store will appear here.';
 
   @override
   String get settingsSyncDevicesFailed =>
@@ -2802,8 +2805,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'Give a tag its own color to make it stand out on dance cards and dance detail. The tag\'s name is always shown too, so tags stay readable without color.';
 
   @override
-  String get settingsTagColoursEmpty =>
-      'You haven\'t created any tags yet. Add a tag to a dance and it will appear here.';
+  String get settingsTagColoursEmptyTitle => 'No tags yet';
+
+  @override
+  String get settingsTagColoursEmptyBody =>
+      'Add a tag to a dance and it will appear here.';
 
   @override
   String get settingsTagColoursSaveError =>
@@ -2867,8 +2873,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authorManagerNameLabel => 'Author name';
 
   @override
-  String get authorManagerEmpty =>
-      'No authors yet. Authors you credit on a dance appear here.';
+  String get authorManagerEmptyTitle => 'No authors yet';
+
+  @override
+  String get authorManagerEmptyBody =>
+      'Authors you credit on a dance appear here.';
 
   @override
   String get authorManagerLoadError => 'Couldn\'t load your authors.';
@@ -2888,8 +2897,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sourceManagerTitleLabel => 'Source title';
 
   @override
-  String get sourceManagerEmpty =>
-      'No sources yet. Books and websites you cite on a dance appear here.';
+  String get sourceManagerEmptyTitle => 'No sources yet';
+
+  @override
+  String get sourceManagerEmptyBody =>
+      'Books and websites you cite on a dance appear here.';
 
   @override
   String get sourceManagerLoadError => 'Couldn\'t load your sources.';
@@ -5679,8 +5691,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get programsSlotNoteFallback => 'Note';
 
   @override
-  String get programsSlotEditorEmpty =>
-      'No slots yet. Add a dance or a note to get started.';
+  String get programsSlotEditorEmptyTitle => 'No slots yet';
+
+  @override
+  String get programsSlotEditorEmptyBody =>
+      'Add a dance or a note to get started.';
 
   @override
   String get programsSlotMovedUp => 'Slot moved up.';
@@ -8405,8 +8420,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'These per-figure step descriptions pre-fill walkthroughs when you edit a dance. Editing one here updates the default used everywhere.';
 
   @override
-  String get settingsWalkthroughSnippetsEmpty =>
-      'No saved snippets yet. Add walkthrough step descriptions while editing a dance\'s figures.';
+  String get settingsWalkthroughSnippetsEmptyTitle => 'No saved snippets yet';
+
+  @override
+  String get settingsWalkthroughSnippetsEmptyBody =>
+      'Add walkthrough step descriptions while editing a dance\'s figures.';
 
   @override
   String settingsWalkthroughSnippetsCount(int count) {
@@ -9737,7 +9755,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shorthandMappingsNew => 'New shorthand';
 
   @override
-  String get shorthandMappingsEmpty => 'No shorthands yet.';
+  String get shorthandMappingsEmptyTitle => 'No shorthands yet';
+
+  @override
+  String get shorthandMappingsEmptyBody => 'Choose New shorthand to add one.';
 
   @override
   String shorthandMappingsLimitReached(int max) {
@@ -10170,7 +10191,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get customFieldsLoadError => 'Could not load custom fields.';
 
   @override
-  String get customFieldsEmpty => 'No custom fields yet.\nTap + to define one.';
+  String get customFieldsEmptyTitle => 'No custom fields yet';
+
+  @override
+  String get customFieldsEmptyBody => 'Choose New field to add one.';
 
   @override
   String get customFieldsFlagInList => 'In list';

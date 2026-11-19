@@ -1500,8 +1500,11 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
-  String get settingsSyncDevicesEmpty =>
-      'Der er ingen andre enheder forbundet til dette lager.';
+  String get settingsSyncDevicesEmptyTitle => 'Ingen andre enheder endnu';
+
+  @override
+  String get settingsSyncDevicesEmptyBody =>
+      'Andre enheder, der er forbundet til dette lager, vises her.';
 
   @override
   String get settingsSyncDevicesFailed =>
@@ -2822,8 +2825,11 @@ class AppLocalizationsDa extends AppLocalizations {
       'Giv et tag sin egen farve, så det skiller sig ud på danskort og i dansdetaljer. Taggets navn vises altid også, så tags forbliver læsbare uden farve.';
 
   @override
-  String get settingsTagColoursEmpty =>
-      'Du har ikke oprettet nogen tags endnu. Tilføj et tag til en dans, så vises det her.';
+  String get settingsTagColoursEmptyTitle => 'Ingen tags endnu';
+
+  @override
+  String get settingsTagColoursEmptyBody =>
+      'Tilføj et tag til en dans, så vises det her.';
 
   @override
   String get settingsTagColoursSaveError =>
@@ -2887,8 +2893,11 @@ class AppLocalizationsDa extends AppLocalizations {
   String get authorManagerNameLabel => 'Forfatternavn';
 
   @override
-  String get authorManagerEmpty =>
-      'Ingen forfattere endnu. Forfattere, du krediterer på en dans, vises her.';
+  String get authorManagerEmptyTitle => 'Ingen forfattere endnu';
+
+  @override
+  String get authorManagerEmptyBody =>
+      'Forfattere, du angiver på en dans, vises her.';
 
   @override
   String get authorManagerLoadError => 'Dine forfattere kunne ikke indlæses.';
@@ -2908,8 +2917,11 @@ class AppLocalizationsDa extends AppLocalizations {
   String get sourceManagerTitleLabel => 'Kildens titel';
 
   @override
-  String get sourceManagerEmpty =>
-      'Ingen kilder endnu. Bøger og websteder, du citerer på en dans, vises her.';
+  String get sourceManagerEmptyTitle => 'Ingen kilder endnu';
+
+  @override
+  String get sourceManagerEmptyBody =>
+      'Bøger og websteder, du citerer på en dans, vises her.';
 
   @override
   String get sourceManagerLoadError => 'Dine kilder kunne ikke indlæses.';
@@ -5715,8 +5727,11 @@ class AppLocalizationsDa extends AppLocalizations {
   String get programsSlotNoteFallback => 'Note';
 
   @override
-  String get programsSlotEditorEmpty =>
-      'Ingen slots endnu. Tilføj en dans eller en note for at komme i gang.';
+  String get programsSlotEditorEmptyTitle => 'Ingen slots endnu';
+
+  @override
+  String get programsSlotEditorEmptyBody =>
+      'Tilføj en dans eller en note for at komme i gang.';
 
   @override
   String get programsSlotMovedUp => 'Slot flyttet op.';
@@ -8439,8 +8454,12 @@ class AppLocalizationsDa extends AppLocalizations {
       'Disse trinbeskrivelser pr. figur forudfylder gennemgange, når du redigerer en dans. At redigere en her opdaterer den standard, der bruges overalt.';
 
   @override
-  String get settingsWalkthroughSnippetsEmpty =>
-      'Ingen gemte uddrag endnu. Tilføj gennemgangstrinbeskrivelser, mens du redigerer en dans\' figurer.';
+  String get settingsWalkthroughSnippetsEmptyTitle =>
+      'Ingen gemte uddrag endnu';
+
+  @override
+  String get settingsWalkthroughSnippetsEmptyBody =>
+      'Tilføj beskrivelser af gennemgangstrin, mens du redigerer en dans\' figurer.';
 
   @override
   String settingsWalkthroughSnippetsCount(int count) {
@@ -9774,7 +9793,11 @@ class AppLocalizationsDa extends AppLocalizations {
   String get shorthandMappingsNew => 'Ny kortform';
 
   @override
-  String get shorthandMappingsEmpty => 'Ingen kortformer endnu.';
+  String get shorthandMappingsEmptyTitle => 'Ingen kortformer endnu';
+
+  @override
+  String get shorthandMappingsEmptyBody =>
+      'Vælg Ny kortform for at tilføje en.';
 
   @override
   String shorthandMappingsLimitReached(int max) {
@@ -10209,8 +10232,10 @@ class AppLocalizationsDa extends AppLocalizations {
       'Kunne ikke indlæse brugerdefinerede felter.';
 
   @override
-  String get customFieldsEmpty =>
-      'Ingen brugerdefinerede felter endnu.\nTryk + for at definere ét.';
+  String get customFieldsEmptyTitle => 'Ingen brugerdefinerede felter endnu';
+
+  @override
+  String get customFieldsEmptyBody => 'Vælg Nyt felt for at tilføje et.';
 
   @override
   String get customFieldsFlagInList => 'I liste';

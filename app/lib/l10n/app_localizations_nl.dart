@@ -1509,8 +1509,11 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String get settingsSyncDevicesEmpty =>
-      'Er zijn geen andere apparaten met deze opslag verbonden.';
+  String get settingsSyncDevicesEmptyTitle => 'Nog geen andere apparaten';
+
+  @override
+  String get settingsSyncDevicesEmptyBody =>
+      'Andere apparaten die met deze opslag zijn verbonden, verschijnen hier.';
 
   @override
   String get settingsSyncDevicesFailed =>
@@ -2838,8 +2841,11 @@ class AppLocalizationsNl extends AppLocalizations {
       'Geef een tag een eigen kleur zodat die opvalt op danskaarten en in de dansdetails. De naam van de tag wordt altijd ook getoond, dus tags blijven leesbaar zonder kleur.';
 
   @override
-  String get settingsTagColoursEmpty =>
-      'Je hebt nog geen tags aangemaakt. Voeg een tag toe aan een dans en die verschijnt hier.';
+  String get settingsTagColoursEmptyTitle => 'Nog geen tags';
+
+  @override
+  String get settingsTagColoursEmptyBody =>
+      'Voeg een tag toe aan een dans en die verschijnt hier.';
 
   @override
   String get settingsTagColoursSaveError =>
@@ -2903,8 +2909,11 @@ class AppLocalizationsNl extends AppLocalizations {
   String get authorManagerNameLabel => 'Naam van de auteur';
 
   @override
-  String get authorManagerEmpty =>
-      'Nog geen auteurs. Auteurs die je bij een dans vermeldt, verschijnen hier.';
+  String get authorManagerEmptyTitle => 'Nog geen auteurs';
+
+  @override
+  String get authorManagerEmptyBody =>
+      'Auteurs die u bij een dans vermeldt, verschijnen hier.';
 
   @override
   String get authorManagerLoadError => 'Kon je auteurs niet laden.';
@@ -2924,8 +2933,11 @@ class AppLocalizationsNl extends AppLocalizations {
   String get sourceManagerTitleLabel => 'Titel van de bron';
 
   @override
-  String get sourceManagerEmpty =>
-      'Nog geen bronnen. Boeken en websites die je bij een dans vermeldt, verschijnen hier.';
+  String get sourceManagerEmptyTitle => 'Nog geen bronnen';
+
+  @override
+  String get sourceManagerEmptyBody =>
+      'Boeken en websites die u bij een dans citeert, verschijnen hier.';
 
   @override
   String get sourceManagerLoadError => 'Kon je bronnen niet laden.';
@@ -5750,8 +5762,11 @@ class AppLocalizationsNl extends AppLocalizations {
   String get programsSlotNoteFallback => 'Notitie';
 
   @override
-  String get programsSlotEditorEmpty =>
-      'Nog geen slots. Voeg een dans of een notitie toe om te beginnen.';
+  String get programsSlotEditorEmptyTitle => 'Nog geen slots';
+
+  @override
+  String get programsSlotEditorEmptyBody =>
+      'Voeg een dans of een notitie toe om te beginnen.';
 
   @override
   String get programsSlotMovedUp => 'Slot omhoog verplaatst.';
@@ -8498,8 +8513,12 @@ class AppLocalizationsNl extends AppLocalizations {
       'Deze stapbeschrijvingen per figuur vullen doorlopen vooraf in wanneer je een dans bewerkt. Een hier bewerken werkt de overal gebruikte standaard bij.';
 
   @override
-  String get settingsWalkthroughSnippetsEmpty =>
-      'Nog geen opgeslagen fragmenten. Voeg doorloopstapbeschrijvingen toe terwijl je de figuren van een dans bewerkt.';
+  String get settingsWalkthroughSnippetsEmptyTitle =>
+      'Nog geen opgeslagen fragmenten';
+
+  @override
+  String get settingsWalkthroughSnippetsEmptyBody =>
+      'Voeg beschrijvingen van doorloopstappen toe terwijl u de figuren van een dans bewerkt.';
 
   @override
   String settingsWalkthroughSnippetsCount(int count) {
@@ -9839,7 +9858,11 @@ class AppLocalizationsNl extends AppLocalizations {
   String get shorthandMappingsNew => 'Nieuwe afkorting';
 
   @override
-  String get shorthandMappingsEmpty => 'Nog geen afkortingen.';
+  String get shorthandMappingsEmptyTitle => 'Nog geen afkortingen';
+
+  @override
+  String get shorthandMappingsEmptyBody =>
+      'Kies Nieuwe afkorting om er een toe te voegen.';
 
   @override
   String shorthandMappingsLimitReached(int max) {
@@ -10276,8 +10299,11 @@ class AppLocalizationsNl extends AppLocalizations {
       'Aangepaste velden konden niet worden geladen.';
 
   @override
-  String get customFieldsEmpty =>
-      'Nog geen aangepaste velden.\nTik op + om er één te definiëren.';
+  String get customFieldsEmptyTitle => 'Nog geen aangepaste velden';
+
+  @override
+  String get customFieldsEmptyBody =>
+      'Kies Nieuw veld om er een toe te voegen.';
 
   @override
   String get customFieldsFlagInList => 'In lijst';

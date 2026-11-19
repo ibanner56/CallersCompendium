@@ -1421,7 +1421,10 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get settingsSyncDevicesEmpty => 'このストアに接続されている他のデバイスはありません。';
+  String get settingsSyncDevicesEmptyTitle => '他のデバイスはまだありません';
+
+  @override
+  String get settingsSyncDevicesEmptyBody => 'このストアに接続された他のデバイスはここに表示されます。';
 
   @override
   String get settingsSyncDevicesFailed =>
@@ -2687,7 +2690,10 @@ class AppLocalizationsJa extends AppLocalizations {
       'タグに独自の色を設定すると、ダンスカードやダンスの詳細で目立つようになります。タグ名は常に表示されるため、色がなくてもタグは読み取れます。';
 
   @override
-  String get settingsTagColoursEmpty => 'まだタグを作成していません。ダンスにタグを追加すると、ここに表示されます。';
+  String get settingsTagColoursEmptyTitle => 'タグはまだありません';
+
+  @override
+  String get settingsTagColoursEmptyBody => 'ダンスにタグを追加すると、ここに表示されます。';
 
   @override
   String get settingsTagColoursSaveError => 'その色を保存できませんでした。もう一度お試しください。';
@@ -2749,7 +2755,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get authorManagerNameLabel => '作者名';
 
   @override
-  String get authorManagerEmpty => 'まだ作者がいません。ダンスにクレジットした作者がここに表示されます。';
+  String get authorManagerEmptyTitle => '作者はまだいません';
+
+  @override
+  String get authorManagerEmptyBody => 'ダンスにクレジットした作者はここに表示されます。';
 
   @override
   String get authorManagerLoadError => '作者を読み込めませんでした。';
@@ -2769,7 +2778,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get sourceManagerTitleLabel => 'ソースのタイトル';
 
   @override
-  String get sourceManagerEmpty => 'まだソースがありません。ダンスで引用した本やウェブサイトがここに表示されます。';
+  String get sourceManagerEmptyTitle => 'ソースはまだありません';
+
+  @override
+  String get sourceManagerEmptyBody => 'ダンスで引用した書籍やウェブサイトはここに表示されます。';
 
   @override
   String get sourceManagerLoadError => 'ソースを読み込めませんでした。';
@@ -5469,7 +5481,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programsSlotNoteFallback => 'ノート';
 
   @override
-  String get programsSlotEditorEmpty => 'スロットがまだありません。ダンスまたはノートを追加して始めましょう。';
+  String get programsSlotEditorEmptyTitle => 'スロットがまだありません';
+
+  @override
+  String get programsSlotEditorEmptyBody => 'ダンスまたはノートを追加して始めましょう。';
 
   @override
   String get programsSlotMovedUp => 'スロットを上に移動しました。';
@@ -8093,8 +8108,11 @@ class AppLocalizationsJa extends AppLocalizations {
       'これらのフィギュアごとのステップ説明は、ダンスを編集するときにウォークスルーを事前入力します。ここで編集すると、すべてで使われる既定値が更新されます。';
 
   @override
-  String get settingsWalkthroughSnippetsEmpty =>
-      '保存されたスニペットはまだありません。ダンスのフィギュアを編集しながらウォークスルーのステップ説明を追加してください。';
+  String get settingsWalkthroughSnippetsEmptyTitle => '保存されたスニペットはまだありません';
+
+  @override
+  String get settingsWalkthroughSnippetsEmptyBody =>
+      'ダンスのフィギュアを編集するときに、ウォークスルーの手順の説明を追加してください。';
 
   @override
   String settingsWalkthroughSnippetsCount(int count) {
@@ -9394,7 +9412,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get shorthandMappingsNew => '新しいショートハンド';
 
   @override
-  String get shorthandMappingsEmpty => 'ショートハンドがまだありません。';
+  String get shorthandMappingsEmptyTitle => 'ショートハンドはまだありません';
+
+  @override
+  String get shorthandMappingsEmptyBody => '「新しいショートハンド」を選ぶと追加できます。';
 
   @override
   String shorthandMappingsLimitReached(int max) {
@@ -9802,7 +9823,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get customFieldsLoadError => 'カスタムフィールドを読み込めませんでした。';
 
   @override
-  String get customFieldsEmpty => 'カスタムフィールドがまだありません。\n+ボタンをタップして定義してください。';
+  String get customFieldsEmptyTitle => 'カスタムフィールドはまだありません';
+
+  @override
+  String get customFieldsEmptyBody => '「新しいフィールド」を選ぶと追加できます。';
 
   @override
   String get customFieldsFlagInList => 'リストに表示';

@@ -12,6 +12,8 @@ import '../theme/app_spacing.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/confirm_discard_changes.dart';
+import '../widgets/empty_state.dart';
+import '../widgets/load_error_view.dart';
 import 'settings/settings_keys.dart';
 
 /// Localized label for a [CustomFieldType]. Mirrors the app-side enum-label
@@ -340,37 +342,26 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
       return const Center(child: CircularProgressIndicator());
     }
     if (_loadError != null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline, size: 48),
-            const SizedBox(height: 8),
-            Text(l10n.customFieldsLoadError),
-            const SizedBox(height: 8),
-            FilledButton(onPressed: _retry, child: Text(l10n.commonRetry)),
-          ],
-        ),
+      return LoadErrorView(
+        icon: LoadErrorView.errorGlyph(context),
+        message: l10n.customFieldsLoadError,
+        onRetry: _retry,
       );
     }
     if (_defs.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(l10n.customFieldsEmpty, textAlign: TextAlign.center),
-              const SizedBox(height: 16),
-              FilledButton.icon(
-                key: const ValueKey('custom-fields-empty-add'),
-                onPressed: () => _openForm(),
-                icon: const Icon(Icons.add),
-                label: Text(l10n.customFieldsNewField),
-              ),
-            ],
+      return EmptyState(
+        key: const ValueKey('custom-fields-empty'),
+        icon: EmptyState.glyph(context, Icons.tune_outlined),
+        title: l10n.customFieldsEmptyTitle,
+        body: l10n.customFieldsEmptyBody,
+        actions: [
+          FilledButton.icon(
+            key: const ValueKey('custom-fields-empty-add'),
+            onPressed: () => _openForm(),
+            icon: const Icon(Icons.add),
+            label: Text(l10n.customFieldsNewField),
           ),
-        ),
+        ],
       );
     }
     return ListView.separated(

@@ -5,8 +5,8 @@ import '../../l10n/app_localizations.dart';
 import '../data/repositories_scope.dart';
 import '../data/soft_delete_retention.dart';
 import '../widgets/empty_state.dart';
+import '../widgets/load_error_view.dart';
 import '../diagnostics/error_log.dart';
-import '../theme/app_spacing.dart';
 import '../utils/confirm_delete.dart';
 
 /// Per-entity configuration for [RecentlyDeletedScreen].
@@ -265,25 +265,11 @@ class _RecentlyDeletedScreenState<T> extends State<RecentlyDeletedScreen<T>> {
           // Without this a failed load would read as an empty trash, telling
           // the user their deleted items are gone when they may not be.
           if (snapshot.hasError) {
-            return Center(
+            return LoadErrorView(
               key: const ValueKey('load-error'),
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      l10n.recentlyDeletedLoadError,
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    TextButton(
-                      onPressed: _reload,
-                      child: Text(l10n.commonRetry),
-                    ),
-                  ],
-                ),
-              ),
+              icon: LoadErrorView.errorGlyph(context),
+              message: l10n.recentlyDeletedLoadError,
+              onRetry: _reload,
             );
           }
           final deleted = snapshot.data ?? <T>[];

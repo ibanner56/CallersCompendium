@@ -2952,17 +2952,10 @@ class _DanceListScreenState extends State<DanceListScreen>
   Widget _buildBody() {
     final l10n = AppLocalizations.of(context);
     if (_loadError != null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline, size: 48),
-            const SizedBox(height: AppSpacing.xs),
-            Text(l10n.collectionLoadError),
-            const SizedBox(height: AppSpacing.xs),
-            FilledButton(onPressed: _retryLoad, child: Text(l10n.commonRetry)),
-          ],
-        ),
+      return LoadErrorView(
+        icon: LoadErrorView.errorGlyph(context),
+        message: l10n.collectionLoadError,
+        onRetry: _retryLoad,
       );
     }
 
@@ -3503,6 +3496,7 @@ class _DanceListScreenState extends State<DanceListScreen>
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.lg),
           child: LoadErrorView(
+            icon: LoadErrorView.errorGlyph(context),
             message: l10n.collectionSearchError,
             onRetry: _runSearch,
           ),
