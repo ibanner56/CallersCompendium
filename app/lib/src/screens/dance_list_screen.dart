@@ -44,7 +44,6 @@ import '../theme/destructive_button_style.dart';
 import '../theme/keyboard_dismiss.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/row_focus.dart';
-import '../utils/shortcut_platform.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/add_to_program_sheet.dart';
 import '../widgets/advanced_query_builder.dart';
@@ -74,11 +73,11 @@ import '../sync/sync_scope.dart';
 import '../widgets/sync_now_action.dart';
 import '../screens/custom_fields_screen.dart';
 import '../screens/recently_deleted_screen.dart';
-import 'app_shell_search_scope.dart';
 import 'dance_detail_screen.dart';
 import 'dance_editor_screen.dart';
 import 'dance_reimport_flow.dart';
 import 'published_collection_navigation.dart';
+import '../widgets/adaptive_fab.dart';
 
 /// Collection screen: browse and search the dance library
 /// (`docs/design/ux.md` §1). A unified full-text search bar, a one-tap facet
@@ -358,10 +357,11 @@ class _DanceListScreenState extends State<DanceListScreen>
   ///
   /// The subscription is opened exactly once per [State] — issue #768, so that
   /// a rebuild neither drops nor duplicates it. Issue #895 then gave
-  /// [CollectionShell] a [GlobalKey] so this State *survives* being reparented
-  /// across the 900 px breakpoint (`collection_shell.dart`), which is what
-  /// preserves the sort, search text, filters and scroll position through a
-  /// rotation.
+  /// this list a [GlobalKey] inside [CollectionShell] so this State *survives* being reparented
+  /// across the 900 px split breakpoint (`collection_shell.dart`), and the
+  /// app shell's body key moves the whole page across the 720 px rail
+  /// breakpoint (`app_shell.dart`); together they preserve the sort, search
+  /// text, filters and scroll position through a rotation.
   ///
   /// Together those mean: **a rotation must not re-open the subscription.** It
   /// does not today, because a reparented Element is moved rather than
@@ -2328,12 +2328,13 @@ class _DanceListScreenState extends State<DanceListScreen>
       floatingActionButton:
           _data == null || _selectionMode || _showsStartActions(_data!)
           ? null
-          : FloatingActionButton.extended(
+          : adaptiveExtendedFab(
+              context,
               key: const ValueKey('new-dance'),
               heroTag: 'new-dance',
               onPressed: _openNewDance,
               icon: const Icon(Icons.add),
-              label: Text(l10n.collectionNewDance),
+              label: l10n.collectionNewDance,
             ),
     );
   }
@@ -2356,14 +2357,13 @@ class _DanceListScreenState extends State<DanceListScreen>
 
   /// How many optional glyphs ([_CollectionBarGlyph]) fit beside the title.
   ///
-  /// Search and Sync are not counted as optional (they stay visible, as they
-  /// are the only way to reach those actions), but they do spend slots, as does
-  /// the ⋮ menu, which is always present.
+  /// Sync is not counted as optional (it stays visible, as Settings is the
+  /// only other way to reach it), but it does spend a slot, as does the ⋮
+  /// menu, which is always present.
   Set<_CollectionBarGlyph> _glyphsThatFit(
     BuildContext context,
     AppLocalizations l10n,
     double barWidth, {
-    required bool hasSearch,
     required bool hasSync,
     required bool hasTags,
     required bool hasDances,
@@ -2380,7 +2380,6 @@ class _DanceListScreenState extends State<DanceListScreen>
     // NavigationToolbar's 16 dp middle spacing on each side of the title.
     var slots =
         ((barWidth - 32 - titleWidth) / _actionSlotWidth).floor() - 1; // ⋮
-    if (hasSearch) slots--;
     if (hasSync) slots--;
 
     // Highest priority first: what stays on the bar as slots run out. The
@@ -2400,7 +2399,6 @@ class _DanceListScreenState extends State<DanceListScreen>
 
   Widget _buildAppBar(BuildContext context, double barWidth) {
     final l10n = AppLocalizations.of(context);
-    final openSearch = AppShellSearchScope.of(context)?.openSearch;
     final sync = SyncScope.maybeOf(context);
     final hasTags = _data?.tags.isNotEmpty ?? false;
     final hasDances = _data?.dancesById.isNotEmpty ?? false;
@@ -2408,7 +2406,6 @@ class _DanceListScreenState extends State<DanceListScreen>
       context,
       l10n,
       barWidth,
-      hasSearch: openSearch != null,
       hasSync: sync != null && sync.enabled && sync.paired,
       hasTags: hasTags,
       hasDances: hasDances,
@@ -2416,16 +2413,10 @@ class _DanceListScreenState extends State<DanceListScreen>
     return AppBar(
       title: Text(l10n.collectionScreenTitle),
       actions: [
-        // Search lives in the app bar on narrow layouts (the bottom-right FAB
-        // slot is reserved for the "New dance" FAB). On wide layouts the nav
-        // rail owns search, so no scope is present and this action is omitted.
-        if (openSearch != null)
-          IconButton(
-            key: const ValueKey('collection-search'),
-            tooltip: l10n.collectionSearchTooltip(shortcutPlatform(context)),
-            icon: const Icon(Icons.search),
-            onPressed: openSearch,
-          ),
+        // No global-search action here on any width: the Collection's own
+        // search field is its search, and on a phone a second magnifying
+        // glass that searched something else only confused the two. On wide
+        // layouts the rail's Search reaches dances and programs together.
         // Second entry to Settings ▸ Sync now; renders nothing unless Device
         // Sync is on and paired.
         const SyncNowAction(),

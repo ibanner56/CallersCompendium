@@ -36,6 +36,7 @@ import 'package:compendium_app/src/widgets/program_slot_list_editor.dart';
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
 import 'support/pdf_probe.dart';
+import 'package:compendium_app/src/theme/app_breakpoints.dart';
 
 final _now = DateTime.utc(2026, 1, 1);
 
@@ -1303,6 +1304,27 @@ void main() {
     final expectedPaneWidth = (surface.width - dividerWidth) / 2;
     expect(pickerWidth, closeTo(expectedPaneWidth, 2));
   });
+
+  for (final (width, twoPane) in [
+    (AppBreakpoints.split - 1, false),
+    (AppBreakpoints.split, true),
+  ]) {
+    testWidgets('the inline picker follows the split width: '
+        '${width.toInt()} px two-pane $twoPane', (tester) async {
+      final repos = openTestRepositories();
+      await repos.programs.create(_program(id: 'p1', title: 'Night'));
+      await _pumpBuilder(
+        tester,
+        repos,
+        programId: 'p1',
+        size: Size(width, 1400),
+      );
+      expect(
+        find.byKey(const ValueKey('inline-picker')),
+        twoPane ? findsOneWidget : findsNothing,
+      );
+    });
+  }
 
   testWidgets(
     'holding a saved picker result temporarily previews it in editor pane',
@@ -4557,7 +4579,7 @@ void main() {
       expect(find.byKey(const ValueKey('perform-program')), findsNothing);
       expect(find.byTooltip('Perform this program'), findsNothing);
       final overflow = find.byKey(const ValueKey('program-actions-overflow'));
-      if (size.width < ProgramEditorScreen.compactActionsBreakpoint) {
+      if (size.width < AppBreakpoints.compact) {
         expect(overflow, findsOneWidget);
         await tester.tap(overflow);
         await tester.pumpAndSettle();

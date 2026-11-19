@@ -27,6 +27,7 @@ import '../../widgets/app_bar_text_action.dart';
 import '../../theme/destructive_button_style.dart';
 import '../../utils/undo_snack_bar.dart';
 import 'calling_card_labels.dart';
+import '../../theme/app_breakpoints.dart';
 
 /// Turns a one-page PDF into a PNG of its first page at [dpi]. Defaults to
 /// [rasterizeCallingCard]; tests replace it, since the platform rasterizer is
@@ -297,7 +298,8 @@ class _CallingCardLayoutEditorScreenState
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          if (constraints.maxWidth < 840) {
+          // A pushed full-screen route, so its own width is the window's.
+          if (constraints.maxWidth < AppBreakpoints.split) {
             return ListView(
               padding: const EdgeInsets.all(AppSpacing.md),
               children: [...editor, ...aside],

@@ -57,12 +57,20 @@ const String performRouteName = 'perform';
 /// ([searchShortcuts]) and the shell's rail button
 /// (`docs/design/ux-modernization.md` §6). The palette itself only *selects*;
 /// the caller performs navigation so it can also switch the active section.
-Future<CommandResult?> showCommandPalette(BuildContext context) {
+///
+/// With [programsOnly] it lists programs and never dances: the narrow Programs
+/// list's app-bar search, whose screen holds only programs.
+Future<CommandResult?> showCommandPalette(
+  BuildContext context, {
+  bool programsOnly = false,
+}) {
   final l10n = AppLocalizations.of(context);
   return showDialog<CommandResult>(
     context: context,
-    barrierLabel: l10n.commandPaletteBarrierLabel,
-    builder: (_) => const CommandPalette(),
+    barrierLabel: programsOnly
+        ? l10n.programsSearchTooltip
+        : l10n.commandPaletteBarrierLabel,
+    builder: (_) => CommandPalette(programsOnly: programsOnly),
     animationStyle: AppMotion.styleFor(context),
   );
 }
@@ -71,7 +79,11 @@ Future<CommandResult?> showCommandPalette(BuildContext context) {
 /// title; ↑/↓ move the highlight, Enter jumps to the highlighted result, Esc
 /// closes. Every row pairs an icon with text (never color alone).
 class CommandPalette extends StatefulWidget {
-  const CommandPalette({super.key});
+  const CommandPalette({super.key, this.programsOnly = false});
+
+  /// Lists programs only, for the narrow Programs list's search. Dances are
+  /// then not even read.
+  final bool programsOnly;
 
   /// Max results shown per group so the list stays scannable.
   static const int perGroupLimit = 8;
@@ -115,9 +127,11 @@ class _CommandPaletteState extends State<CommandPalette> {
     final repos = RepositoriesScope.of(context);
     // The two queries are independent; start both before awaiting so the
     // database work overlaps and the palette opens sooner.
-    final dancesFuture = repos.dances.listIdsTitlesAndForms();
+    final dancesFuture = widget.programsOnly
+        ? null
+        : repos.dances.listIdsTitlesAndForms();
     final programsFuture = repos.programs.listIdsAndTitles();
-    final dances = await dancesFuture;
+    final dances = await dancesFuture ?? const [];
     final programs = await programsFuture;
     if (!mounted) return;
     final l10n = AppLocalizations.of(context);
@@ -310,7 +324,9 @@ class _CommandPaletteState extends State<CommandPalette> {
                 textInputAction: TextInputAction.go,
                 decoration: InputDecoration(
                   prefixIcon: const Icon(Icons.search),
-                  hintText: l10n.commandPaletteSearchHint,
+                  hintText: widget.programsOnly
+                      ? l10n.programsSearchHint
+                      : l10n.commandPaletteSearchHint,
                 ),
               ),
             ),

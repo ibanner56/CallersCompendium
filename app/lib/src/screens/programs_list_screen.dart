@@ -14,7 +14,6 @@ import '../search/program_sort_labels.dart';
 import '../theme/app_spacing.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/row_focus.dart';
-import '../utils/shortcut_platform.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/brand_mark.dart';
 import '../widgets/empty_state.dart';
@@ -30,6 +29,7 @@ import 'program_editor_screen.dart';
 import 'perform_program_screen.dart' show PerformResumeStore;
 import 'program_summary_screen.dart';
 import 'recently_deleted_screen.dart';
+import '../widgets/adaptive_fab.dart';
 
 /// The program-import sources offered by the Programs list "Import" menu.
 enum _ProgramImportSource { plaintext, contraDb }
@@ -118,9 +118,11 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   ///
   /// The subscription is opened exactly once per [State] — issue #768, so that
   /// a rebuild neither drops nor duplicates it. Issue #895 then gave
-  /// [ProgramsShell] a [GlobalKey] so this State *survives* being reparented
-  /// across the 900 px breakpoint (`programs_shell.dart:44`), which is what
-  /// preserves the sort and scroll position through a rotation.
+  /// this list a [GlobalKey] inside [ProgramsShell] so this State *survives* being reparented
+  /// across the 900 px split breakpoint (`programs_shell.dart`), and the app
+  /// shell's body key moves the whole page across the 720 px rail breakpoint
+  /// (`app_shell.dart`); together they preserve the sort and scroll position
+  /// through a rotation.
   ///
   /// Together those mean: **a rotation must not re-open the subscription.** It
   /// does not today, because a reparented Element is moved rather than
@@ -661,27 +663,27 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final openSearch = AppShellSearchScope.of(context)?.openSearch;
+    final searchPrograms = AppShellSearchScope.of(context)?.searchPrograms;
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.programsTitle),
         actions: [
-          // Phone-only: search lives in the app bar (the bottom-right FAB slot
+          // Phone-only: a search of programs alone (the bottom-right FAB slot
           // is reserved for the "New program" FAB). On wide layouts the nav
           // rail owns search, so no scope is present and this action is omitted.
-          if (openSearch != null)
+          if (searchPrograms != null)
             IconButton(
               key: const ValueKey('programs-search'),
-              tooltip: l10n.collectionSearchTooltip(shortcutPlatform(context)),
+              tooltip: l10n.programsSearchTooltip,
               icon: const Icon(Icons.search),
-              onPressed: openSearch,
+              onPressed: searchPrograms,
             ),
           // Second entry to Settings ▸ Sync now; renders nothing unless Device
           // Sync is on and paired.
           const SyncNowAction(),
           if (_programs != null) ...[
             // Overflow ⋮ goes last, as on every other app bar.
-            if (openSearch == null)
+            if (searchPrograms == null)
               PopupMenuButton<_ProgramImportSource>(
                 key: const ValueKey('programs-import'),
                 tooltip: l10n.importProgramTooltip,
@@ -757,7 +759,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
                 },
               ),
             ],
-            if (openSearch != null)
+            if (searchPrograms != null)
               _buildCompactMoreActions(l10n)
             else
               PopupMenuButton<_ProgramsCompactAction>(
@@ -786,12 +788,13 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
       // program button, so it waits until there is a program.
       floatingActionButton: _programs?.isNotEmpty != true
           ? null
-          : FloatingActionButton.extended(
+          : adaptiveExtendedFab(
+              context,
               key: const ValueKey('new-program'),
               heroTag: 'new-program',
               onPressed: _openNewProgram,
               icon: const Icon(Icons.add),
-              label: Text(l10n.programsNewProgram),
+              label: l10n.programsNewProgram,
             ),
     );
   }

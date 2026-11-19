@@ -24,16 +24,18 @@ import 'dance_reimport_flow.dart';
 import 'custom_fields_screen.dart';
 import 'import_review_screen.dart';
 import 'recently_deleted_screen.dart';
+import '../theme/app_breakpoints.dart';
 
 /// Responsive collection shell (`docs/design/ux.md` — list/detail split pane
 /// for desktop/tablet; `docs/ROADMAP.md` deferred follow-up
 /// `defer-editor-splitpane`).
 ///
-/// **Breakpoint: 900 logical pixels wide.**
-/// - **Narrow (< 900 px):** renders [DanceListScreen] directly, preserving the
-///   existing push-navigation to [DanceDetailScreen]. No behaviour change on
-///   phones or narrow tablet portrait.
-/// - **Wide (≥ 900 px):** renders a master-detail [Row]:
+/// **Breakpoint: [AppBreakpoints.split] (900 px) of window width**, the same
+/// for every destination, so the rail beside this shell does not move it.
+/// - **Narrow (below 900 px):** renders [DanceListScreen] directly, with
+///   push-navigation to [DanceDetailScreen]. From [AppBreakpoints.rail]
+///   (720 px) the app shell's rail sits beside it.
+/// - **Wide (from 900 px):** renders a master-detail [Row]:
 ///   - *List pane* (fixed 400 px): [DanceListScreen] with [onSelectDance] wired
 ///     to update the detail pane, and the currently selected row highlighted.
 ///   - *Detail pane* (flexible remaining space): the selected
@@ -96,9 +98,6 @@ class CollectionShell extends StatefulWidget {
   /// preview. Injected in tests with a seam-backed instance; defaults to a
   /// network-backed [ContraDbOnline].
   final ContraDbOnline? contraDbOnline;
-
-  /// Breakpoint (logical pixels) at which the split-pane layout activates.
-  static const double splitBreakpoint = 900;
 
   /// Fixed width (logical pixels) of the list pane in split mode.
   static const double listPaneWidth = 400;
@@ -638,7 +637,7 @@ class _CollectionShellState extends State<CollectionShell> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        _wide = constraints.maxWidth >= CollectionShell.splitBreakpoint;
+        _wide = AppBreakpoints.showsSplit(context, constraints.maxWidth);
         if (_wide) {
           return _buildSplitPane();
         }

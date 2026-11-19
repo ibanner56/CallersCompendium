@@ -11,16 +11,13 @@ import '../theme/app_spacing.dart';
 import '../utils/undo_snack_bar.dart';
 import 'settings/sync_notice_labels.dart' show syncRecordKindLabel;
 import 'sync_conflict_details.dart';
+import '../theme/app_breakpoints.dart';
 
 /// How many records await a conflict choice.
 Future<int> syncConflictCount(CompendiumRepositories repositories) =>
     SyncReviewQueueResolver(
       CompendiumSyncStorage(repositories),
     ).conflictCount();
-
-/// The width at which the choice opens as a centred dialog rather than a
-/// bottom sheet: below it, a phone-sized screen gets the sheet it expects.
-const double kSyncConflictDialogBreakpoint = 600;
 
 /// Opens the conflict choice: every record changed on more than one device
 /// whose versions only the user can choose between (sync-spec §6.3, §6.6).
@@ -75,7 +72,9 @@ Future<void> _presentSyncConflictChoice(
   BuildContext context,
   Widget Function(BuildContext) body,
 ) {
-  if (MediaQuery.sizeOf(context).width >= kSyncConflictDialogBreakpoint) {
+  // Below the compact width a phone-sized screen gets the bottom sheet it
+  // expects; from it up, a centred dialog.
+  if (MediaQuery.sizeOf(context).width >= AppBreakpoints.compact) {
     return showDialog<void>(
       context: context,
       builder: (context) => Dialog(
@@ -722,7 +721,7 @@ class _ConflictGroupTile extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.md),
       child: SyncConflictComparison(group: group, lookups: lookups),
     );
-    if (MediaQuery.sizeOf(context).width >= kSyncConflictDialogBreakpoint) {
+    if (MediaQuery.sizeOf(context).width >= AppBreakpoints.compact) {
       return showDialog<void>(
         context: context,
         builder: (dialogContext) => AlertDialog(

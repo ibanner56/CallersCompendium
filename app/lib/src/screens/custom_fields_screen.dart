@@ -16,6 +16,7 @@ import '../widgets/confirm_discard_changes.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/load_error_view.dart';
 import 'settings/settings_keys.dart';
+import '../widgets/adaptive_fab.dart';
 
 /// Localized label for a [CustomFieldType]. Mirrors the app-side enum-label
 /// helper pattern (see `search/facet_labels.dart`): the enum lives in the
@@ -327,12 +328,13 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
       // New field button, so it waits until there is a field.
       floatingActionButton: _loading || _loadError != null || _defs.isEmpty
           ? null
-          : FloatingActionButton.extended(
+          : adaptiveExtendedFab(
+              context,
               key: const ValueKey('add-field'),
               heroTag: 'add-field',
               onPressed: () => _openForm(),
               icon: const Icon(Icons.add),
-              label: Text(l10n.customFieldsNewField),
+              label: l10n.customFieldsNewField,
             ),
     );
   }
