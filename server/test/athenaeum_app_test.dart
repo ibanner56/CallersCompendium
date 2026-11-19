@@ -2215,15 +2215,19 @@ void main() {
     expect((await _send('POST', '/v1/store', syncId: syncId)).statusCode, 201);
     final bytes = Uint8List.fromList(List<int>.generate(128, (i) => i));
     final hash = sha256.convert(bytes).toString();
+    // Each upload comes from its own address: one address may hold only
+    // [defaultMaxLargeBodiesInFlightPerIp] uploads at once, and whether eight
+    // from one address overlap depends on how the platform schedules them.
     final responses = await Future.wait(
       List.generate(
         8,
-        (_) => _send(
+        (i) => _send(
           'PUT',
           '/v1/blobs/$hash',
           syncId: syncId,
           body: bytes,
           contentType: 'application/octet-stream',
+          headers: {'x-test-ip': 'uploader-$i'},
         ),
       ),
     );
