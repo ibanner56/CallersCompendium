@@ -92,7 +92,7 @@ Future<Uint8List> buildCallingCardsPdf(
   CallingCardFitReport? report,
   PdfPageFormat? sheet,
 }) async {
-  final fig = renderer ?? FigureRenderer(contraTaxonomy);
+  final fig = renderer ?? FigureRenderer(shippedTaxonomies.anyForm);
   final resolvedTheme = theme ?? _withBoldItalic(await loadProgramPdfTheme());
   report?._clear();
   final doc = pw.Document(

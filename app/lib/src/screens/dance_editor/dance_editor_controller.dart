@@ -79,7 +79,9 @@ class DanceEditorController extends ChangeNotifier {
   /// Renders canonical stored note text back into the active dialect for
   /// editing. Only [FigureRenderer.renderFreeText] (roles-only, case-preserving)
   /// is used, so the taxonomy is irrelevant here — any instance works.
-  static final FigureRenderer _noteRenderer = FigureRenderer(contraTaxonomy);
+  static final FigureRenderer _noteRenderer = FigureRenderer(
+    shippedTaxonomies.anyForm,
+  );
 
   /// Renders a canonical stored figure note into the active dialect so the
   /// editor shows the caller's own terms rather than canonical role tokens.
@@ -248,6 +250,10 @@ class DanceEditorController extends ChangeNotifier {
   PartialDate? _revisedOn;
 
   DanceForm get form => _form;
+
+  /// The taxonomy this dance's figures are entered and checked with: its
+  /// form's (ADR-006 §12.1, F6). It follows a change of form at once.
+  Taxonomy get taxonomy => shippedTaxonomies.forForm(_form);
   FormationShape get formationShape => _formationShape;
   Progression get progression => _progression;
   DanceStatus get status => _status;
@@ -418,7 +424,10 @@ class DanceEditorController extends ChangeNotifier {
       final compound = draft.compound;
       if (compound == null) continue;
       if (expandPlaceholder(compound, resolveCompound) case final expanded?) {
-        compound.beats = CompoundDefinition.beatsOf(expanded, contraTaxonomy);
+        compound.beats = CompoundDefinition.beatsOf(
+          expanded,
+          shippedTaxonomies.anyForm,
+        );
       }
     }
   }
@@ -1870,7 +1879,7 @@ class DanceEditorController extends ChangeNotifier {
       for (final figure in figures)
         FigureDraft.fromFreeTextFigure(
           figure,
-          contraTaxonomy,
+          taxonomy,
           moveParamDefaults: moveParamDefaults,
         ),
     ];
@@ -1897,7 +1906,7 @@ class DanceEditorController extends ChangeNotifier {
       for (final figure in figures)
         FigureDraft.fromFreeTextFigure(
           figure,
-          contraTaxonomy,
+          taxonomy,
           moveParamDefaults: moveParamDefaults,
         ),
     ];
@@ -1944,7 +1953,7 @@ class DanceEditorController extends ChangeNotifier {
       for (final figure in figures)
         FigureDraft.fromFreeTextFigure(
           figure,
-          contraTaxonomy,
+          taxonomy,
           moveParamDefaults: moveParamDefaults,
         ),
     ];
@@ -1977,7 +1986,10 @@ class DanceEditorController extends ChangeNotifier {
     );
     final expanded = expandPlaceholder(compound, resolveCompound);
     if (expanded == null) return null;
-    compound.beats = CompoundDefinition.beatsOf(expanded, contraTaxonomy);
+    compound.beats = CompoundDefinition.beatsOf(
+      expanded,
+      shippedTaxonomies.anyForm,
+    );
     return FigureDraft(compound: compound);
   }
 
@@ -2025,7 +2037,7 @@ class DanceEditorController extends ChangeNotifier {
     // Values the figure no longer accepts would show only the stored line.
     final renders =
         FigureRenderer(
-          contraTaxonomy,
+          shippedTaxonomies.anyForm,
           userFigures: _userFigureCatalog,
         ).renderUserFigureCanonical(
           Figure(move: customMove, params: draft.params),

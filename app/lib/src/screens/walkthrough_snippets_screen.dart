@@ -24,7 +24,7 @@ class WalkthroughSnippetsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = WalkthroughSnippetLibraryScope.of(context);
     final dialect = ActiveDialectScope.of(context);
-    final renderer = FigureRenderer(contraTaxonomy);
+    final renderer = FigureRenderer(shippedTaxonomies.anyForm);
     final l10n = AppLocalizations.of(context);
 
     // Precompute each snippet's display label ONCE (describeFigureSignature
@@ -38,7 +38,7 @@ class WalkthroughSnippetsScreen extends StatelessWidget {
                 text: e.value,
                 label: describeFigureSignature(
                   e.key,
-                  contraTaxonomy,
+                  shippedTaxonomies.anyForm,
                   renderer,
                   dialect,
                 ),

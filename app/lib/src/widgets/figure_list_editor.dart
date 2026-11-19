@@ -4940,7 +4940,9 @@ class _BeatSummary extends StatelessWidget {
   }
 }
 
-final FigureRenderer _userEntryRenderer = FigureRenderer(contraTaxonomy);
+final FigureRenderer _userEntryRenderer = FigureRenderer(
+  shippedTaxonomies.anyForm,
+);
 
 /// The user's [entries] (compounds or new figures, by [kind]) as move-picker
 /// options, named and found by their keywords in [dialect].
