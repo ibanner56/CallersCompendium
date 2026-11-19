@@ -1040,7 +1040,8 @@ final Taxonomy ecdTaxonomy = Taxonomy(
       inversePairId: '${_p}box_the_gnat',
     ),
     // A hand cast is a gate, pinning nothing (the maintainer's decision of
-    // 2026-11-19, §9.4), as contra's `hand_cast` is. Listed as a move of its
+    // 2026-11-19, §9.4), as contra's planned `hand_cast` (#770) is. Listed
+    // as a move of its
     // own, so search can name it and a dialect's name for gate never renames
     // it.
     MoveAlias(

@@ -743,6 +743,15 @@ void main() {
         ),
         'ones hand cast',
       );
+      // Its wording starts from gate's slots, so a wording keeps the dancers.
+      expect(
+        _renderer.moveWordingSlots('ecd_hand_cast'),
+        _renderer.moveWordingSlots('ecd_gate'),
+      );
+      expect(
+        _renderer.moveWordingErrorMissingSlots('ecd_hand_cast', '{move}'),
+        containsAll(['who', 'whom']),
+      );
       expect(
         ecdTaxonomy.moves['ecd_cast']!.searchKeywords,
         contains('cast off'),
