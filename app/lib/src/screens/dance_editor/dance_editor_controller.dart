@@ -1,6 +1,9 @@
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/compendium_core.dart'
+    as core
+    show offeredFormationShapes;
 import 'package:flutter/foundation.dart' show listEquals, mapEquals;
 import 'package:flutter/widgets.dart';
 
@@ -254,6 +257,18 @@ class DanceEditorController extends ChangeNotifier {
   /// The taxonomy this dance's figures are entered and checked with: its
   /// form's (ADR-006 §12.1, F6). It follows a change of form at once.
   Taxonomy get taxonomy => shippedTaxonomies.forForm(_form);
+
+  /// The shapes the formation field offers: the dance form's own
+  /// ([offeredFormationShapes]), plus the dance's current shape when that is
+  /// not one of them, such as an ECD dance imported with a contra shape, so
+  /// the field still shows it and saving keeps it.
+  List<FormationShape> get offeredFormationShapes {
+    final offered = core.offeredFormationShapes(_form);
+    return offered.contains(_formationShape)
+        ? offered
+        : [_formationShape, ...offered];
+  }
+
   FormationShape get formationShape => _formationShape;
   Progression get progression => _progression;
   DanceStatus get status => _status;
@@ -761,6 +776,13 @@ class DanceEditorController extends ChangeNotifier {
         );
       } catch (_) {
         // diagnostics: silent — FormationShape default read failed; falls back to hardcoded dupleImproper.
+      }
+      // The default shape is chosen from contra's list, so a new dance of
+      // another form whose list lacks it starts on that form's first shape
+      // (duple minor for ECD) rather than one the form does not use.
+      final formShapes = core.offeredFormationShapes(_form);
+      if (!formShapes.contains(_formationShape)) {
+        _formationShape = formShapes.first;
       }
       try {
         _progression = progressionFromStored(
@@ -1434,6 +1456,9 @@ class DanceEditorController extends ChangeNotifier {
     final formation = Formation(
       _formationShape,
       detail: formationDetail.isEmpty ? null : formationDetail,
+      // The editor has no proper/improper checkbox yet (ADR-006 W5), so an
+      // existing dance keeps the flag it has rather than losing it on save.
+      improper: _original?.formation.improper ?? false,
     );
     final linkList = [for (final l in links) ?l.toLink()];
     final citationList = [for (final c in sourceCitations) c.toCitation()];

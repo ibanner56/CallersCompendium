@@ -3861,6 +3861,41 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get commonFormationDupleMinor => 'デュープルマイナー';
+
+  @override
+  String get commonFormationThreeCoupleLongways => '3組のロングウェイ';
+
+  @override
+  String get commonFormationFourCoupleLongways => '4組のロングウェイ';
+
+  @override
+  String get commonFormationFiveCoupleLongways => '5組のロングウェイ';
+
+  @override
+  String get commonFormationSixCoupleLongways => '6組のロングウェイ';
+
+  @override
+  String get commonFormationCircle => 'サークル';
+
+  @override
+  String get commonFormationSquare => 'スクエア';
+
+  @override
+  String get commonFormationTwoCoupleSet => '2組のセット';
+
+  @override
+  String commonFormationImproperFlag(String shape) {
+    return '$shape、インプロパー';
+  }
+
+  @override
+  String get danceEditorMeterLabel => '拍子';
+
+  @override
+  String get danceEditorMusicalKeyLabel => '調';
+
+  @override
   String get commonMixedLevel => 'ミックスレベル';
 
   @override

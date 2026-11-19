@@ -105,8 +105,9 @@ A sketch, not the schema: the authoritative column list is `tables.dart`, and
 the FTS and index DDL is `database.dart`.
 
 ```sql
-dances(id PK, title, form, formation_shape, formation_detail, progression,
-       phrase_structure, figures_json, hook, calling_notes, status, level_id NULL,
+dances(id PK, title, form, formation_shape, formation_detail,
+       formation_improper, progression, phrase_structure, figures_json, hook,
+       calling_notes, meter, musical_key, status, level_id NULL,
        tunes_json,
        created_at, updated_at, deleted_at, existence_at)
 difficulty_levels(id PK, label UNIQUE, position,
@@ -820,6 +821,21 @@ steps that can still fire are v40 onward.
   `programs_venue_id`, `dances_level_id`). Run in `onCreate` and in the
   `from < 41` step, guarded by `IF NOT EXISTS`. Pure DDL: no columns or tables
   added, no data rewritten, no derived rebuild.
+
+- v42 (ADR-006 §12, F2 and F3): adds three columns to `dances` for English
+  country dance. `formation_improper` is ECD's proper/improper checkbox
+  (`Formation.improper`), stored apart from the shape because ECD's shapes
+  name only the set; contra's shapes already say proper or improper, so a
+  contra dance keeps it `0`. `meter` and `musical_key` are the tune's written
+  meter and key as free text (`Dance.meter`, `Dance.musicalKey`), `''` when
+  not given; the column is not named `key`, which SQL reserves. Phrase
+  structure still holds the beats per bar that timing uses. Each column has a
+  default (`0`, `''`, `''`), so every existing row reads as proper with no
+  meter or key, as before. The ECD formation shapes are new values of the
+  existing `formation_shape` text, which needs no DDL. Run in the `from < 42`
+  step, each column added only if absent. No data rewritten; no derived
+  index reads the columns, so no rebuild. Search over meter and key is still
+  to come (ADR-006 W7).
 
 ## The delete model
 

@@ -473,6 +473,21 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _formationImproperMeta = const VerificationMeta(
+    'formationImproper',
+  );
+  @override
+  late final GeneratedColumn<bool> formationImproper = GeneratedColumn<bool>(
+    'formation_improper',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("formation_improper" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   late final GeneratedColumnWithTypeConverter<Progression, String> progression =
       GeneratedColumn<String>(
@@ -534,6 +549,28 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
   @override
   late final GeneratedColumn<String> walkthrough = GeneratedColumn<String>(
     'walkthrough',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _meterMeta = const VerificationMeta('meter');
+  @override
+  late final GeneratedColumn<String> meter = GeneratedColumn<String>(
+    'meter',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _musicalKeyMeta = const VerificationMeta(
+    'musicalKey',
+  );
+  @override
+  late final GeneratedColumn<String> musicalKey = GeneratedColumn<String>(
+    'musical_key',
     aliasedName,
     false,
     type: DriftSqlType.string,
@@ -685,12 +722,15 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
     form,
     formationShape,
     formationDetail,
+    formationImproper,
     progression,
     phraseStructure,
     figuresJson,
     hook,
     callingNotes,
     walkthrough,
+    meter,
+    musicalKey,
     status,
     levelId,
     mixedLevel,
@@ -738,6 +778,15 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
         ),
       );
     }
+    if (data.containsKey('formation_improper')) {
+      context.handle(
+        _formationImproperMeta,
+        formationImproper.isAcceptableOrUnknown(
+          data['formation_improper']!,
+          _formationImproperMeta,
+        ),
+      );
+    }
     if (data.containsKey('phrase_structure')) {
       context.handle(
         _phraseStructureMeta,
@@ -778,6 +827,18 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
           data['walkthrough']!,
           _walkthroughMeta,
         ),
+      );
+    }
+    if (data.containsKey('meter')) {
+      context.handle(
+        _meterMeta,
+        meter.isAcceptableOrUnknown(data['meter']!, _meterMeta),
+      );
+    }
+    if (data.containsKey('musical_key')) {
+      context.handle(
+        _musicalKeyMeta,
+        musicalKey.isAcceptableOrUnknown(data['musical_key']!, _musicalKeyMeta),
       );
     }
     if (data.containsKey('level_id')) {
@@ -886,6 +947,10 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
         DriftSqlType.string,
         data['${effectivePrefix}formation_detail'],
       ),
+      formationImproper: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}formation_improper'],
+      )!,
       progression: $DancesTable.$converterprogression.fromSql(
         attachedDatabase.typeMapping.read(
           DriftSqlType.string,
@@ -911,6 +976,14 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
       walkthrough: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}walkthrough'],
+      )!,
+      meter: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}meter'],
+      )!,
+      musicalKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}musical_key'],
       )!,
       status: $DancesTable.$converterstatus.fromSql(
         attachedDatabase.typeMapping.read(
@@ -986,6 +1059,10 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
   final DanceForm form;
   final FormationShape formationShape;
   final String? formationDetail;
+
+  /// ECD's proper/improper checkbox, `Formation.improper` (ADR-006 §12, F2).
+  /// Added in schema v42; existing rows read `false`, proper.
+  final bool formationImproper;
   final Progression progression;
 
   /// Persisted [PhraseStructure.raw] (`''` = the standard 4x16 structure).
@@ -1001,6 +1078,15 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
   /// v15 (issue #370). Dance-scalar content (not figure text), so it does NOT
   /// feed the derived `dance_figures`/`dance_fts` indexes.
   final String walkthrough;
+
+  /// The tune's written meter, `Dance.meter`, as free text; `''` when not
+  /// given. Added in schema v42 (ADR-006 §12, F3).
+  final String meter;
+
+  /// The tune's key, `Dance.musicalKey`, as free text; `''` when not given.
+  /// Added in schema v42 (ADR-006 §12, F3). Not named `key`, which SQL
+  /// reserves.
+  final String musicalKey;
   final DanceStatus status;
 
   /// Selected [DifficultyLevels] row, nullable when unspecified. Added in
@@ -1051,12 +1137,15 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     required this.form,
     required this.formationShape,
     this.formationDetail,
+    required this.formationImproper,
     required this.progression,
     required this.phraseStructure,
     required this.figuresJson,
     required this.hook,
     required this.callingNotes,
     required this.walkthrough,
+    required this.meter,
+    required this.musicalKey,
     required this.status,
     this.levelId,
     required this.mixedLevel,
@@ -1086,6 +1175,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     if (!nullToAbsent || formationDetail != null) {
       map['formation_detail'] = Variable<String>(formationDetail);
     }
+    map['formation_improper'] = Variable<bool>(formationImproper);
     {
       map['progression'] = Variable<String>(
         $DancesTable.$converterprogression.toSql(progression),
@@ -1096,6 +1186,8 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     map['hook'] = Variable<String>(hook);
     map['calling_notes'] = Variable<String>(callingNotes);
     map['walkthrough'] = Variable<String>(walkthrough);
+    map['meter'] = Variable<String>(meter);
+    map['musical_key'] = Variable<String>(musicalKey);
     {
       map['status'] = Variable<String>(
         $DancesTable.$converterstatus.toSql(status),
@@ -1136,12 +1228,15 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       formationDetail: formationDetail == null && nullToAbsent
           ? const Value.absent()
           : Value(formationDetail),
+      formationImproper: Value(formationImproper),
       progression: Value(progression),
       phraseStructure: Value(phraseStructure),
       figuresJson: Value(figuresJson),
       hook: Value(hook),
       callingNotes: Value(callingNotes),
       walkthrough: Value(walkthrough),
+      meter: Value(meter),
+      musicalKey: Value(musicalKey),
       status: Value(status),
       levelId: levelId == null && nullToAbsent
           ? const Value.absent()
@@ -1184,6 +1279,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
         serializer.fromJson<String>(json['formationShape']),
       ),
       formationDetail: serializer.fromJson<String?>(json['formationDetail']),
+      formationImproper: serializer.fromJson<bool>(json['formationImproper']),
       progression: $DancesTable.$converterprogression.fromJson(
         serializer.fromJson<String>(json['progression']),
       ),
@@ -1192,6 +1288,8 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       hook: serializer.fromJson<String>(json['hook']),
       callingNotes: serializer.fromJson<String>(json['callingNotes']),
       walkthrough: serializer.fromJson<String>(json['walkthrough']),
+      meter: serializer.fromJson<String>(json['meter']),
+      musicalKey: serializer.fromJson<String>(json['musicalKey']),
       status: $DancesTable.$converterstatus.fromJson(
         serializer.fromJson<String>(json['status']),
       ),
@@ -1221,6 +1319,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
         $DancesTable.$converterformationShape.toJson(formationShape),
       ),
       'formationDetail': serializer.toJson<String?>(formationDetail),
+      'formationImproper': serializer.toJson<bool>(formationImproper),
       'progression': serializer.toJson<String>(
         $DancesTable.$converterprogression.toJson(progression),
       ),
@@ -1229,6 +1328,8 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       'hook': serializer.toJson<String>(hook),
       'callingNotes': serializer.toJson<String>(callingNotes),
       'walkthrough': serializer.toJson<String>(walkthrough),
+      'meter': serializer.toJson<String>(meter),
+      'musicalKey': serializer.toJson<String>(musicalKey),
       'status': serializer.toJson<String>(
         $DancesTable.$converterstatus.toJson(status),
       ),
@@ -1252,12 +1353,15 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     DanceForm? form,
     FormationShape? formationShape,
     Value<String?> formationDetail = const Value.absent(),
+    bool? formationImproper,
     Progression? progression,
     String? phraseStructure,
     String? figuresJson,
     String? hook,
     String? callingNotes,
     String? walkthrough,
+    String? meter,
+    String? musicalKey,
     DanceStatus? status,
     Value<String?> levelId = const Value.absent(),
     bool? mixedLevel,
@@ -1278,12 +1382,15 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     formationDetail: formationDetail.present
         ? formationDetail.value
         : this.formationDetail,
+    formationImproper: formationImproper ?? this.formationImproper,
     progression: progression ?? this.progression,
     phraseStructure: phraseStructure ?? this.phraseStructure,
     figuresJson: figuresJson ?? this.figuresJson,
     hook: hook ?? this.hook,
     callingNotes: callingNotes ?? this.callingNotes,
     walkthrough: walkthrough ?? this.walkthrough,
+    meter: meter ?? this.meter,
+    musicalKey: musicalKey ?? this.musicalKey,
     status: status ?? this.status,
     levelId: levelId.present ? levelId.value : this.levelId,
     mixedLevel: mixedLevel ?? this.mixedLevel,
@@ -1308,6 +1415,9 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       formationDetail: data.formationDetail.present
           ? data.formationDetail.value
           : this.formationDetail,
+      formationImproper: data.formationImproper.present
+          ? data.formationImproper.value
+          : this.formationImproper,
       progression: data.progression.present
           ? data.progression.value
           : this.progression,
@@ -1324,6 +1434,10 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       walkthrough: data.walkthrough.present
           ? data.walkthrough.value
           : this.walkthrough,
+      meter: data.meter.present ? data.meter.value : this.meter,
+      musicalKey: data.musicalKey.present
+          ? data.musicalKey.value
+          : this.musicalKey,
       status: data.status.present ? data.status.value : this.status,
       levelId: data.levelId.present ? data.levelId.value : this.levelId,
       mixedLevel: data.mixedLevel.present
@@ -1353,12 +1467,15 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
           ..write('form: $form, ')
           ..write('formationShape: $formationShape, ')
           ..write('formationDetail: $formationDetail, ')
+          ..write('formationImproper: $formationImproper, ')
           ..write('progression: $progression, ')
           ..write('phraseStructure: $phraseStructure, ')
           ..write('figuresJson: $figuresJson, ')
           ..write('hook: $hook, ')
           ..write('callingNotes: $callingNotes, ')
           ..write('walkthrough: $walkthrough, ')
+          ..write('meter: $meter, ')
+          ..write('musicalKey: $musicalKey, ')
           ..write('status: $status, ')
           ..write('levelId: $levelId, ')
           ..write('mixedLevel: $mixedLevel, ')
@@ -1382,12 +1499,15 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     form,
     formationShape,
     formationDetail,
+    formationImproper,
     progression,
     phraseStructure,
     figuresJson,
     hook,
     callingNotes,
     walkthrough,
+    meter,
+    musicalKey,
     status,
     levelId,
     mixedLevel,
@@ -1410,12 +1530,15 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
           other.form == this.form &&
           other.formationShape == this.formationShape &&
           other.formationDetail == this.formationDetail &&
+          other.formationImproper == this.formationImproper &&
           other.progression == this.progression &&
           other.phraseStructure == this.phraseStructure &&
           other.figuresJson == this.figuresJson &&
           other.hook == this.hook &&
           other.callingNotes == this.callingNotes &&
           other.walkthrough == this.walkthrough &&
+          other.meter == this.meter &&
+          other.musicalKey == this.musicalKey &&
           other.status == this.status &&
           other.levelId == this.levelId &&
           other.mixedLevel == this.mixedLevel &&
@@ -1436,12 +1559,15 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
   final Value<DanceForm> form;
   final Value<FormationShape> formationShape;
   final Value<String?> formationDetail;
+  final Value<bool> formationImproper;
   final Value<Progression> progression;
   final Value<String> phraseStructure;
   final Value<String> figuresJson;
   final Value<String> hook;
   final Value<String> callingNotes;
   final Value<String> walkthrough;
+  final Value<String> meter;
+  final Value<String> musicalKey;
   final Value<DanceStatus> status;
   final Value<String?> levelId;
   final Value<bool> mixedLevel;
@@ -1461,12 +1587,15 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     this.form = const Value.absent(),
     this.formationShape = const Value.absent(),
     this.formationDetail = const Value.absent(),
+    this.formationImproper = const Value.absent(),
     this.progression = const Value.absent(),
     this.phraseStructure = const Value.absent(),
     this.figuresJson = const Value.absent(),
     this.hook = const Value.absent(),
     this.callingNotes = const Value.absent(),
     this.walkthrough = const Value.absent(),
+    this.meter = const Value.absent(),
+    this.musicalKey = const Value.absent(),
     this.status = const Value.absent(),
     this.levelId = const Value.absent(),
     this.mixedLevel = const Value.absent(),
@@ -1487,12 +1616,15 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     required DanceForm form,
     required FormationShape formationShape,
     this.formationDetail = const Value.absent(),
+    this.formationImproper = const Value.absent(),
     required Progression progression,
     this.phraseStructure = const Value.absent(),
     this.figuresJson = const Value.absent(),
     this.hook = const Value.absent(),
     this.callingNotes = const Value.absent(),
     this.walkthrough = const Value.absent(),
+    this.meter = const Value.absent(),
+    this.musicalKey = const Value.absent(),
     required DanceStatus status,
     this.levelId = const Value.absent(),
     this.mixedLevel = const Value.absent(),
@@ -1520,12 +1652,15 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     Expression<String>? form,
     Expression<String>? formationShape,
     Expression<String>? formationDetail,
+    Expression<bool>? formationImproper,
     Expression<String>? progression,
     Expression<String>? phraseStructure,
     Expression<String>? figuresJson,
     Expression<String>? hook,
     Expression<String>? callingNotes,
     Expression<String>? walkthrough,
+    Expression<String>? meter,
+    Expression<String>? musicalKey,
     Expression<String>? status,
     Expression<String>? levelId,
     Expression<bool>? mixedLevel,
@@ -1546,12 +1681,15 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
       if (form != null) 'form': form,
       if (formationShape != null) 'formation_shape': formationShape,
       if (formationDetail != null) 'formation_detail': formationDetail,
+      if (formationImproper != null) 'formation_improper': formationImproper,
       if (progression != null) 'progression': progression,
       if (phraseStructure != null) 'phrase_structure': phraseStructure,
       if (figuresJson != null) 'figures_json': figuresJson,
       if (hook != null) 'hook': hook,
       if (callingNotes != null) 'calling_notes': callingNotes,
       if (walkthrough != null) 'walkthrough': walkthrough,
+      if (meter != null) 'meter': meter,
+      if (musicalKey != null) 'musical_key': musicalKey,
       if (status != null) 'status': status,
       if (levelId != null) 'level_id': levelId,
       if (mixedLevel != null) 'mixed_level': mixedLevel,
@@ -1574,12 +1712,15 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     Value<DanceForm>? form,
     Value<FormationShape>? formationShape,
     Value<String?>? formationDetail,
+    Value<bool>? formationImproper,
     Value<Progression>? progression,
     Value<String>? phraseStructure,
     Value<String>? figuresJson,
     Value<String>? hook,
     Value<String>? callingNotes,
     Value<String>? walkthrough,
+    Value<String>? meter,
+    Value<String>? musicalKey,
     Value<DanceStatus>? status,
     Value<String?>? levelId,
     Value<bool>? mixedLevel,
@@ -1600,12 +1741,15 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
       form: form ?? this.form,
       formationShape: formationShape ?? this.formationShape,
       formationDetail: formationDetail ?? this.formationDetail,
+      formationImproper: formationImproper ?? this.formationImproper,
       progression: progression ?? this.progression,
       phraseStructure: phraseStructure ?? this.phraseStructure,
       figuresJson: figuresJson ?? this.figuresJson,
       hook: hook ?? this.hook,
       callingNotes: callingNotes ?? this.callingNotes,
       walkthrough: walkthrough ?? this.walkthrough,
+      meter: meter ?? this.meter,
+      musicalKey: musicalKey ?? this.musicalKey,
       status: status ?? this.status,
       levelId: levelId ?? this.levelId,
       mixedLevel: mixedLevel ?? this.mixedLevel,
@@ -1644,6 +1788,9 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     if (formationDetail.present) {
       map['formation_detail'] = Variable<String>(formationDetail.value);
     }
+    if (formationImproper.present) {
+      map['formation_improper'] = Variable<bool>(formationImproper.value);
+    }
     if (progression.present) {
       map['progression'] = Variable<String>(
         $DancesTable.$converterprogression.toSql(progression.value),
@@ -1663,6 +1810,12 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     }
     if (walkthrough.present) {
       map['walkthrough'] = Variable<String>(walkthrough.value);
+    }
+    if (meter.present) {
+      map['meter'] = Variable<String>(meter.value);
+    }
+    if (musicalKey.present) {
+      map['musical_key'] = Variable<String>(musicalKey.value);
     }
     if (status.present) {
       map['status'] = Variable<String>(
@@ -1716,12 +1869,15 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
           ..write('form: $form, ')
           ..write('formationShape: $formationShape, ')
           ..write('formationDetail: $formationDetail, ')
+          ..write('formationImproper: $formationImproper, ')
           ..write('progression: $progression, ')
           ..write('phraseStructure: $phraseStructure, ')
           ..write('figuresJson: $figuresJson, ')
           ..write('hook: $hook, ')
           ..write('callingNotes: $callingNotes, ')
           ..write('walkthrough: $walkthrough, ')
+          ..write('meter: $meter, ')
+          ..write('musicalKey: $musicalKey, ')
           ..write('status: $status, ')
           ..write('levelId: $levelId, ')
           ..write('mixedLevel: $mixedLevel, ')
@@ -16378,12 +16534,15 @@ typedef $$DancesTableCreateCompanionBuilder =
       required DanceForm form,
       required FormationShape formationShape,
       Value<String?> formationDetail,
+      Value<bool> formationImproper,
       required Progression progression,
       Value<String> phraseStructure,
       Value<String> figuresJson,
       Value<String> hook,
       Value<String> callingNotes,
       Value<String> walkthrough,
+      Value<String> meter,
+      Value<String> musicalKey,
       required DanceStatus status,
       Value<String?> levelId,
       Value<bool> mixedLevel,
@@ -16405,12 +16564,15 @@ typedef $$DancesTableUpdateCompanionBuilder =
       Value<DanceForm> form,
       Value<FormationShape> formationShape,
       Value<String?> formationDetail,
+      Value<bool> formationImproper,
       Value<Progression> progression,
       Value<String> phraseStructure,
       Value<String> figuresJson,
       Value<String> hook,
       Value<String> callingNotes,
       Value<String> walkthrough,
+      Value<String> meter,
+      Value<String> musicalKey,
       Value<DanceStatus> status,
       Value<String?> levelId,
       Value<bool> mixedLevel,
@@ -16657,6 +16819,11 @@ class $$DancesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<bool> get formationImproper => $composableBuilder(
+    column: $table.formationImproper,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnWithTypeConverterFilters<Progression, Progression, String>
   get progression => $composableBuilder(
     column: $table.progression,
@@ -16685,6 +16852,16 @@ class $$DancesTableFilterComposer
 
   ColumnFilters<String> get walkthrough => $composableBuilder(
     column: $table.walkthrough,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get meter => $composableBuilder(
+    column: $table.meter,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get musicalKey => $composableBuilder(
+    column: $table.musicalKey,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -17027,6 +17204,11 @@ class $$DancesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get formationImproper => $composableBuilder(
+    column: $table.formationImproper,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get progression => $composableBuilder(
     column: $table.progression,
     builder: (column) => ColumnOrderings(column),
@@ -17054,6 +17236,16 @@ class $$DancesTableOrderingComposer
 
   ColumnOrderings<String> get walkthrough => $composableBuilder(
     column: $table.walkthrough,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get meter => $composableBuilder(
+    column: $table.meter,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get musicalKey => $composableBuilder(
+    column: $table.musicalKey,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -17165,6 +17357,11 @@ class $$DancesTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<bool> get formationImproper => $composableBuilder(
+    column: $table.formationImproper,
+    builder: (column) => column,
+  );
+
   GeneratedColumnWithTypeConverter<Progression, String> get progression =>
       $composableBuilder(
         column: $table.progression,
@@ -17191,6 +17388,14 @@ class $$DancesTableAnnotationComposer
 
   GeneratedColumn<String> get walkthrough => $composableBuilder(
     column: $table.walkthrough,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get meter =>
+      $composableBuilder(column: $table.meter, builder: (column) => column);
+
+  GeneratedColumn<String> get musicalKey => $composableBuilder(
+    column: $table.musicalKey,
     builder: (column) => column,
   );
 
@@ -17527,12 +17732,15 @@ class $$DancesTableTableManager
                 Value<DanceForm> form = const Value.absent(),
                 Value<FormationShape> formationShape = const Value.absent(),
                 Value<String?> formationDetail = const Value.absent(),
+                Value<bool> formationImproper = const Value.absent(),
                 Value<Progression> progression = const Value.absent(),
                 Value<String> phraseStructure = const Value.absent(),
                 Value<String> figuresJson = const Value.absent(),
                 Value<String> hook = const Value.absent(),
                 Value<String> callingNotes = const Value.absent(),
                 Value<String> walkthrough = const Value.absent(),
+                Value<String> meter = const Value.absent(),
+                Value<String> musicalKey = const Value.absent(),
                 Value<DanceStatus> status = const Value.absent(),
                 Value<String?> levelId = const Value.absent(),
                 Value<bool> mixedLevel = const Value.absent(),
@@ -17552,12 +17760,15 @@ class $$DancesTableTableManager
                 form: form,
                 formationShape: formationShape,
                 formationDetail: formationDetail,
+                formationImproper: formationImproper,
                 progression: progression,
                 phraseStructure: phraseStructure,
                 figuresJson: figuresJson,
                 hook: hook,
                 callingNotes: callingNotes,
                 walkthrough: walkthrough,
+                meter: meter,
+                musicalKey: musicalKey,
                 status: status,
                 levelId: levelId,
                 mixedLevel: mixedLevel,
@@ -17579,12 +17790,15 @@ class $$DancesTableTableManager
                 required DanceForm form,
                 required FormationShape formationShape,
                 Value<String?> formationDetail = const Value.absent(),
+                Value<bool> formationImproper = const Value.absent(),
                 required Progression progression,
                 Value<String> phraseStructure = const Value.absent(),
                 Value<String> figuresJson = const Value.absent(),
                 Value<String> hook = const Value.absent(),
                 Value<String> callingNotes = const Value.absent(),
                 Value<String> walkthrough = const Value.absent(),
+                Value<String> meter = const Value.absent(),
+                Value<String> musicalKey = const Value.absent(),
                 required DanceStatus status,
                 Value<String?> levelId = const Value.absent(),
                 Value<bool> mixedLevel = const Value.absent(),
@@ -17604,12 +17818,15 @@ class $$DancesTableTableManager
                 form: form,
                 formationShape: formationShape,
                 formationDetail: formationDetail,
+                formationImproper: formationImproper,
                 progression: progression,
                 phraseStructure: phraseStructure,
                 figuresJson: figuresJson,
                 hook: hook,
                 callingNotes: callingNotes,
                 walkthrough: walkthrough,
+                meter: meter,
+                musicalKey: musicalKey,
                 status: status,
                 levelId: levelId,
                 mixedLevel: mixedLevel,

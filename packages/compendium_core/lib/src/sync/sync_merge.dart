@@ -344,6 +344,28 @@ Map<String, Object?> _mergeDanceBodies(
       body[key] = latest.blob.body[key];
     }
   }
+  // Left out of the choreography fingerprint (`dedupe.dart`), so the copies
+  // merged here may differ in them; the latest copy's wins. Each is omitted
+  // from a body when it holds its default, so a missing key is the default,
+  // not "keep the survivor's".
+  for (final key in const ['meter', 'musicalKey']) {
+    if (latest.blob.body.containsKey(key)) {
+      body[key] = latest.blob.body[key];
+    } else {
+      body.remove(key);
+    }
+  }
+  final latestFormation = latest.blob.body['formation'];
+  final survivorFormation = body['formation'];
+  if (latestFormation is Map && survivorFormation is Map) {
+    final formation = Map<String, Object?>.from(survivorFormation);
+    if (latestFormation['improper'] == true) {
+      formation['improper'] = true;
+    } else {
+      formation.remove('improper');
+    }
+    body['formation'] = formation;
+  }
 
   body['authorIds'] = _unionStrings(candidates, 'authorIds');
   body['tagIds'] = _unionStrings(candidates, 'tagIds');
