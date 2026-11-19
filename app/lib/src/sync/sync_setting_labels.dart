@@ -140,7 +140,16 @@ String? syncSettingLabel(AppLocalizations l10n, String key) => switch (key) {
 /// two versions apart. It names what can be named and counts what cannot:
 /// a whole collection is summarised by the names of its entries when they have
 /// them, never dumped as data.
-String syncSettingValueText(AppLocalizations l10n, Object? value) {
+String syncSettingValueText(
+  AppLocalizations l10n,
+  Object? value, {
+  String? key,
+}) {
+  // An active dialect's name, which an older build may still send gendered
+  // (ADR-006 §9.1, point 7).
+  if (key != null && key.startsWith('active_dialect_ref') && value is String) {
+    value = shownDialectName(value);
+  }
   switch (value) {
     case null:
       return l10n.syncConflictValueNotSet;

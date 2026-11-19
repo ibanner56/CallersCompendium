@@ -345,8 +345,16 @@ class SyncConflictComparison extends StatelessWidget {
           context,
           l10n,
           label: null,
-          local: syncSettingValueText(l10n, _local?['value']),
-          other: syncSettingValueText(l10n, other?['value']),
+          local: syncSettingValueText(
+            l10n,
+            _local?['value'],
+            key: group.recordId,
+          ),
+          other: syncSettingValueText(
+            l10n,
+            other?['value'],
+            key: group.recordId,
+          ),
         ),
       ];
     }

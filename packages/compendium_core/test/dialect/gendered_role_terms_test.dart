@@ -35,6 +35,34 @@ void main() {
     });
   });
 
+  group('man and men', () {
+    test('count in a role term but not in prose', () {
+      expect(genderedRoleWordIn('men'), 'men');
+      expect(genderedRoleWordIn('dann geht man vor', inProse: true), isNull);
+      expect(genderedRoleWordIn('men zwaait', inProse: true), isNull);
+      expect(genderedRoleWordIn('the ladies chain', inProse: true), 'ladies');
+      expect(shownDialectName('Wie man tanzt'), 'Wie man tanzt');
+    });
+
+    test('a German wording survives a read and validates', () {
+      final d = Dialect.fromJson({
+        'name': 'Deutsch',
+        'roles': {
+          'role1': {'singular': 'Man'},
+        },
+        'moves': {'swing': 'man swingt'},
+        'moveWordings': {'swing': '{who} tauschen, dann geht man vor'},
+      });
+      expect(d.roles['role1'], Dialect.larksRobins.roles['role1']);
+      expect(d.moves['swing'], 'man swingt');
+      expect(d.moveWordings['swing'], isNotNull);
+      expect(
+        d.validate().where((i) => i.code == 'gendered_role_term'),
+        isEmpty,
+      );
+    });
+  });
+
   group('shownDialectName', () {
     test('masks a gendered name and keeps any other', () {
       expect(shownDialectName('Gents & Ladies'), Dialect.customName);
@@ -89,7 +117,7 @@ void main() {
       final d = Dialect(
         name: 'X',
         moves: const {'chain': 'ladies chain'},
-        dancers: const {'onesRole1': 'first man'},
+        dancers: const {'onesRole1': 'first woman'},
         moveWordings: const {'swing': '{who} swing the lady'},
         moveWordingBranches: const {
           'promenade': {'ordinary': '{who} {move} with the gents'},
@@ -150,7 +178,7 @@ void main() {
         'v': 2,
         'name': 'Old',
         'moves': {'chain': 'ladies chain', 'do_si_do': 'dosido'},
-        'dancers': {'onesRole1': 'first man', 'neighbors': 'the others'},
+        'dancers': {'onesRole1': 'first woman', 'neighbors': 'the others'},
         'moveWordings': {
           'swing': '{who} swing the lady',
           'allemande': '{who} allemande',

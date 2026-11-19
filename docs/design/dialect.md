@@ -94,7 +94,11 @@ built figure.
 - Shipped presets are **role-neutral only**: **Larks/Robins (default)** and
   Leads/Follows (plus Canonical). No dialect may show a gendered role word
   (`genderedRoleWords`: gent(s), gentleman/men, man/men, lady/ladies,
-  woman/women; Hudson's rule, 2026-11-18). `Dialect.validate` reports
+  woman/women; Hudson's rule, 2026-11-18). "man" and "men" count only as a
+  role term on their own: in a wording, substitution or dialect name they are
+  also the impersonal pronoun of shipped locales (German and Danish "man",
+  Dutch "men"), so they are not refused or dropped there (implementer's call;
+  refusing them everywhere would delete those users' wordings). `Dialect.validate` reports
   `gendered_role_term` for one in a role term, a move or dancer substitution, a
   move wording or a branch entry, and the Settings name dialog refuses a
   dialect name holding one. Data that already holds one (an older build, a
@@ -113,7 +117,7 @@ built figure.
   (including a full custom one) is persisted as JSON.
 
   **One dialect library per dance form** (ADR-006 §9.1, Hudson 2026-11-18;
-  storage chosen by Hudson the same day). Each `DanceForm` has its own custom
+  storage chosen by Hudson on 2026-11-19). Each `DanceForm` has its own custom
   dialects and its own active dialect. Contra keeps the keys it always had
   (`custom_dialects`, `active_dialect_ref`, and the legacy `active_dialect`
   blob); English country dance and square use `custom_dialects_ecd` /

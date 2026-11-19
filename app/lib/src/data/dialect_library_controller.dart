@@ -121,7 +121,8 @@ class DialectLibraryController extends ChangeNotifier {
   /// still answers to the old name.
   bool Function(String name)? _inOtherForm;
 
-  /// Whether [load] leaves renaming gendered names to its [DialectLibraries],
+  /// Whether [load] leaves renaming gendered names, and then notifying, to
+  /// its [DialectLibraries],
   /// which does it once every form has loaded, so a new name can be checked
   /// against every form's.
   bool _renamesInGroup = false;
@@ -206,7 +207,10 @@ class DialectLibraryController extends ChangeNotifier {
       if (migrated != null) await _persistActive();
       await _persistDialects();
     }
-    if (!_renamesInGroup) await _renameGenderedNames();
+    // In a group, [DialectLibraries.load] renames and then notifies, so no
+    // listener sees a gendered name in between.
+    if (_renamesInGroup) return;
+    await _renameGenderedNames();
     notifyListeners();
   }
 
@@ -218,7 +222,7 @@ class DialectLibraryController extends ChangeNotifier {
   Future<void> _renameGenderedNames() async {
     final gendered = [
       for (final d in _customDialects)
-        if (genderedRoleWordIn(d.name) != null) d.name,
+        if (genderedRoleWordIn(d.name, inProse: true) != null) d.name,
     ];
     for (final name in gendered) {
       await rename(
@@ -551,10 +555,10 @@ class DialectLibraries extends ChangeNotifier {
     for (final library in loaded) {
       try {
         await library._renameGenderedNames();
-        library.notifyListeners();
       } catch (error, stack) {
         failed(error, stack); // diagnostics: silent — rethrown or logged.
       }
+      library.notifyListeners();
     }
     if (firstError case final error?) {
       Error.throwWithStackTrace(error, firstStack!);

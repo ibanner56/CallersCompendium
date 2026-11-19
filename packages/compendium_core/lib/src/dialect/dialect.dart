@@ -347,7 +347,8 @@ class Dialect {
     if (movesJson is Map) {
       for (final entry in movesJson.entries) {
         final value = entry.value;
-        if (value is String && genderedRoleWordIn(value) == null) {
+        if (value is String &&
+            genderedRoleWordIn(value, inProse: true) == null) {
           moves[entry.key.toString()] = value;
         }
       }
@@ -357,7 +358,8 @@ class Dialect {
     if (dancersJson is Map) {
       for (final entry in dancersJson.entries) {
         final value = entry.value;
-        if (value is String && genderedRoleWordIn(value) == null) {
+        if (value is String &&
+            genderedRoleWordIn(value, inProse: true) == null) {
           dancers[entry.key.toString()] = value;
         }
       }
@@ -373,7 +375,7 @@ class Dialect {
         if (value is! String) continue;
         final sanitized = sanitizeImportedText(value, allowLineBreaks: false);
         if (sanitized.trim().isEmpty) continue;
-        if (genderedRoleWordIn(sanitized) != null) continue;
+        if (genderedRoleWordIn(sanitized, inProse: true) != null) continue;
         final moveId = entry.key.toString();
         final migrated = migrateLegacyTemplates
             ? _migrateV34WordingTemplate(moveId, sanitized)
@@ -394,7 +396,7 @@ class Dialect {
         );
         final hadCircleWording = moveWordings.containsKey('circle');
         if (sanitized.trim().isNotEmpty &&
-            genderedRoleWordIn(sanitized) == null &&
+            genderedRoleWordIn(sanitized, inProse: true) == null &&
             (hadCircleWording || wordingCount < kMaxMoveWordingEntries)) {
           final migrated = migrateLegacyTemplates
               ? _migrateV34WordingTemplate('circle', sanitized)
@@ -423,7 +425,7 @@ class Dialect {
             allowLineBreaks: false,
           );
           if (sanitized.trim().isEmpty) continue;
-          if (genderedRoleWordIn(sanitized) != null) continue;
+          if (genderedRoleWordIn(sanitized, inProse: true) != null) continue;
           final migrated = migrateLegacyTemplates
               ? _migrateV34WordingTemplate(moveId, sanitized)
               : sanitized;
@@ -505,8 +507,8 @@ class Dialect {
       }
     }
 
-    void checkGendered(String source, String text) {
-      final word = genderedRoleWordIn(text);
+    void checkGendered(String source, String text, {bool inProse = true}) {
+      final word = genderedRoleWordIn(text, inProse: inProse);
       if (word == null) return;
       issues.add(
         ValidationIssue(
@@ -521,8 +523,8 @@ class Dialect {
     }
 
     for (final e in roles.entries) {
-      checkGendered(e.key, e.value.singular);
-      checkGendered('${e.key}s', e.value.plural);
+      checkGendered(e.key, e.value.singular, inProse: false);
+      checkGendered('${e.key}s', e.value.plural, inProse: false);
     }
     for (final e in moves.entries) {
       checkGendered(e.key, e.value);

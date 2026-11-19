@@ -445,7 +445,8 @@ class _DialectNameDialogState extends State<_DialectNameDialog> {
 
   /// The gendered role word the typed name holds, which the app never shows
   /// (ADR-006 §9.1, point 7), or `null`.
-  String? get _genderedWord => genderedRoleWordIn(_controller.text);
+  String? get _genderedWord =>
+      genderedRoleWordIn(_controller.text, inProse: true);
 
   void _submit() {
     if (_genderedWord != null) return;

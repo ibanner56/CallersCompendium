@@ -30,11 +30,23 @@ const Set<String> genderedRoleWords = {
 /// "gents"; an apostrophe does, so "Gent's" holds "gent".
 final RegExp _nonWord = RegExp(r'[^\p{L}\p{M}]+', unicode: true);
 
+/// The gendered role words that are also everyday words in a language the
+/// app ships: "man" is the impersonal pronoun in German and Danish ("one"),
+/// and "men" in Dutch. In a sentence (a move wording, a substitution, a
+/// dialect's name) they are not taken as gendered; as a role term on their
+/// own, they are.
+const Set<String> _alsoPronouns = {'man', 'men'};
+
 /// The first gendered role word that [text] holds as a whole word
 /// (lowercase), or null when it holds none. "Ladies" and "first gent" hold
 /// one; "Robin", "Mandy" and "salmon" do not.
-String? genderedRoleWordIn(String text) {
+///
+/// [inProse] is for text that may be a sentence in any shipped language: it
+/// skips [_alsoPronouns], so a German wording such as "dann geht man vor" is
+/// not refused or dropped.
+String? genderedRoleWordIn(String text, {bool inProse = false}) {
   for (final word in text.toLowerCase().split(_nonWord)) {
+    if (inProse && _alsoPronouns.contains(word)) continue;
     if (genderedRoleWords.contains(word)) return word;
   }
   return null;
@@ -48,4 +60,4 @@ String? genderedRoleWordIn(String text) {
 String shownDialectName(
   String name, {
   String replacement = Dialect.customName,
-}) => genderedRoleWordIn(name) == null ? name : replacement;
+}) => genderedRoleWordIn(name, inProse: true) == null ? name : replacement;

@@ -441,6 +441,28 @@ void main() {
       },
     );
 
+    test('no listener sees a gendered name while the group loads', () async {
+      final repos = openTestRepositories();
+      await repos.ensureMigrated();
+      await repos.settings.set(kCustomDialectsKey, [
+        _custom('Gents Night').toJson(),
+      ]);
+      final libraries = DialectLibraries(
+        repos.settings,
+        programs: repos.programs,
+      );
+      addTearDown(libraries.dispose);
+      final seen = <String>[];
+      libraries.addListener(
+        () => seen.addAll(libraries.allCustomDialects.map((d) => d.name)),
+      );
+
+      await libraries.load();
+
+      expect(seen, isNotEmpty);
+      expect(seen, isNot(contains('Gents Night')));
+    });
+
     test('a gendered name is renamed to a name no form uses', () async {
       final repos = openTestRepositories();
       await repos.ensureMigrated();
