@@ -68,6 +68,7 @@ import '../widgets/program_matrix_table.dart';
 import '../widgets/program_slot_list_editor.dart';
 import '../widgets/program_status_chip.dart';
 import '../utils/slot_dance_title.dart';
+import '../theme/app_breakpoints.dart';
 
 /// Full-screen Program Builder (`docs/design/ux.md` §4).
 ///
@@ -78,9 +79,10 @@ import '../utils/slot_dance_title.dart';
 /// It is pushed as a **focused full-screen route** so its two-pane layout
 /// (slots | picker) gets the full content width. It also still supports the
 /// Phase 4.1 embedded callbacks so existing callers keep working, but its own
-/// [LayoutBuilder] drives the internal responsive behaviour: wide (≥ ~820 px)
-/// shows an inline persistent picker pane; narrow opens the picker in a modal
-/// bottom sheet.
+/// [LayoutBuilder] drives the internal responsive behaviour: from
+/// [AppBreakpoints.split] (900 px, where every other screen puts a list beside
+/// its detail) it shows an inline persistent picker pane; narrower, the picker
+/// opens in a modal bottom sheet.
 ///
 /// Language-neutral sentinel stored in [_ProgramEditorScreenState._loadError]
 /// when the requested program no longer exists or Undo recovery cannot
@@ -158,17 +160,6 @@ class ProgramEditorScreen extends StatefulWidget {
   /// Print/share seam for the Matrix tab's PDF export; defaults to
   /// [Printing.layoutPdf]. Supplied by widget tests.
   final PdfLayouter? pdfLayouter;
-
-  /// Width (of the builder's own constraints) at/above which the picker shows
-  /// as a persistent right pane instead of a modal sheet.
-  static const double twoPaneBreakpoint = 820;
-
-  /// Window width (logical pixels) below which Save shows as its icon and, for
-  /// a saved program, Mark all performed, Duplicate and Delete move into a
-  /// "⋮" menu, leaving Export, ⋮ and Save beside the title. (A new, unsaved
-  /// program has no ⋮: its bar holds Export and Save.) Matches `DanceDetailScreen.compactActionsBreakpoint` (Material 3's
-  /// compact window-size-class cutoff).
-  static const double compactActionsBreakpoint = 600;
 
   bool get isNew => programId == null;
   bool get isEmbedded =>
@@ -3048,14 +3039,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     _lookUpDeletedSlotDances();
     final hasPersistedProgram = _existing != null;
     final isPersistedNewRoute = widget.isNew && hasPersistedProgram;
-    // Below [ProgramEditorScreen.compactActionsBreakpoint] Save shows as its
-    // icon and, for a saved program, Mark all performed, Duplicate and Delete
-    // fold into [_secondaryActionsMenu]. At 360dp the full row left the title
-    // 32dp. The builder is always a full-screen route, so the window width is
-    // the bar's width.
-    final compact =
-        MediaQuery.sizeOf(context).width <
-        ProgramEditorScreen.compactActionsBreakpoint;
+    // Below [AppBreakpoints.compact] Save shows as its icon and, for a saved
+    // program, Mark all performed, Duplicate and Delete fold into
+    // [_secondaryActionsMenu]: a "⋮" menu, leaving Export, ⋮ and Save beside
+    // the title (a new, unsaved program has no ⋮: its bar holds Export and
+    // Save). At 360dp the full row left the title 32dp. The builder is always
+    // a full-screen route, so the window width is the bar's width.
+    final compact = MediaQuery.sizeOf(context).width < AppBreakpoints.compact;
     final foldsActions = hasPersistedProgram && _loadError == null && compact;
     final tabBar = TabBar(
       controller: _tabController,
@@ -3283,8 +3273,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final twoPane =
-            constraints.maxWidth >= ProgramEditorScreen.twoPaneBreakpoint;
+        // The builder is always a full-screen route, so its own width is the
+        // window's.
+        final twoPane = constraints.maxWidth >= AppBreakpoints.split;
         final editor = ExcludeFocus(
           excluding: _pickerImporting,
           child: IgnorePointer(

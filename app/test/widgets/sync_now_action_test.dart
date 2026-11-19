@@ -27,6 +27,7 @@ import 'package:compendium_app/src/theme/app_theme.dart';
 import '../support/l10n_harness.dart';
 import '../support/noop_sync_transport.dart';
 import '../support/test_repositories.dart';
+import 'package:compendium_app/src/theme/app_breakpoints.dart';
 
 final class _Network implements SyncNetworkClassifier {
   SyncNetworkKind kind = SyncNetworkKind.unmetered;
@@ -153,7 +154,7 @@ Future<_Host> _pump(
         }
         if (compact) {
           wrapped = AppShellSearchScope(
-            openSearch: () async {},
+            searchPrograms: () async {},
             child: wrapped,
           );
         }
@@ -560,7 +561,7 @@ void main() {
         expect(tester.takeException(), isNull);
       });
 
-      testWidgets('sits beside search on a narrow layout without overflow', (
+      testWidgets('sits in the narrow app bar without overflow', (
         tester,
       ) async {
         await _pump(tester, build(), compact: true, size: const Size(360, 800));
@@ -581,7 +582,7 @@ void main() {
       await _pump(
         tester,
         const CollectionShell(),
-        size: const Size(CollectionShell.splitBreakpoint, 900),
+        size: const Size(AppBreakpoints.split, 900),
       );
 
       expect(find.byKey(_glyph), findsOneWidget);
@@ -594,7 +595,7 @@ void main() {
       await _pump(
         tester,
         const ProgramsShell(),
-        size: const Size(ProgramsShell.splitBreakpoint, 900),
+        size: const Size(AppBreakpoints.split, 900),
       );
 
       expect(find.byKey(_glyph), findsOneWidget);
@@ -649,7 +650,7 @@ void main() {
       (tester) async {
         await expectTitleIntact(
           tester,
-          size: const Size(CollectionShell.splitBreakpoint, 900),
+          size: const Size(AppBreakpoints.split, 900),
         );
       },
     );
@@ -659,7 +660,7 @@ void main() {
     ) async {
       await expectTitleIntact(
         tester,
-        size: const Size(CollectionShell.splitBreakpoint, 900),
+        size: const Size(AppBreakpoints.split, 900),
         tags: ['category'],
       );
     });

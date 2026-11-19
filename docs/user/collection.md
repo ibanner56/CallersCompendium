@@ -695,11 +695,16 @@ so the selection is clear however you are reading the screen.
 
 ## Jump straight to a dance or program
 
-Anywhere in the app except Perform mode, the **Search** button — in the
-navigation rail on a wide screen, or in the app bar on a narrow one — or the
-keyboard shortcut **Ctrl-K** (**Cmd-K** on macOS) opens a single search box over
-whatever you are doing. Type, and matching **Dances** and **Programs** are listed
-in groups; choose one and you go straight there.
+Anywhere in the app except Perform mode, the **Search** button in the
+navigation rail, or the keyboard shortcut **Ctrl-K** (**Cmd-K** on macOS), opens
+a single search box over whatever you are doing. Type, and matching **Dances**
+and **Programs** are listed in groups; choose one and you go straight there.
+
+On a phone held upright, where the navigation is a bar along the bottom, there is no
+**Search** button for dances and programs together: the Collection's own search
+box is how you find a dance, and the search button at the top of **Programs**
+finds programs only. With a keyboard attached, **Ctrl-K** (**Cmd-K**) still
+searches both.
 
 It searches titles across your collection and your programs, so it is the fastest
 way to reach a dance you can name. Accents are ignored (typing `ecole` finds

@@ -36,6 +36,7 @@ import 'settings_screen.dart'
         kAutoSizePerformKey,
         kConfirmPerformExitDefault,
         kShowProgramSlotCallerNotesKey;
+import '../theme/app_breakpoints.dart';
 
 /// Full-screen, large-print Perform mode for a whole [Program]
 /// (`docs/design/ux.md` §5; ROADMAP 5.2 — program navigation).
@@ -1154,7 +1155,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
           // narrow widths (issue #433). LayoutBuilder reflects the actual
           // laid-out width even where MediaQuery does not (e.g. setSurfaceSize
           // in widget tests).
-          wide: constraints.maxWidth >= kPerformActionsCollapseWidth,
+          wide: constraints.maxWidth >= AppBreakpoints.compact,
         ),
       ),
     );

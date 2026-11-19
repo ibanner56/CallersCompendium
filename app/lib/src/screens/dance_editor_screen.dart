@@ -34,6 +34,7 @@ import 'dance_editor/dance_editor_form.dart';
 import 'dance_editor/name_picker.dart';
 import 'settings/library_manager_list.dart';
 import 'settings/settings_keys.dart';
+import '../theme/app_breakpoints.dart';
 
 /// Dance editor (`docs/design/ux.md` §3). Covers the metadata form — title,
 /// authors (with inline choreographer/tag creation), formation, form/type,
@@ -52,11 +53,6 @@ import 'settings/settings_keys.dart';
 /// orchestration, save/delete, and the app-bar/undo-redo/save chrome.
 class DanceEditorScreen extends StatefulWidget {
   const DanceEditorScreen({super.key, this.danceId, this.initialTitle});
-
-  /// Window width (logical pixels) below which Save shows as its check icon,
-  /// so Undo, Redo, Delete and Save leave the title some room on a phone.
-  /// Matches `ProgramEditorScreen.compactActionsBreakpoint`.
-  static const double compactActionsBreakpoint = 600;
 
   /// The dance being edited, or `null` to create a new dance.
   final String? danceId;
@@ -1088,7 +1084,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
                       icon: Icons.check,
                       maxWidthFraction:
                           MediaQuery.sizeOf(context).width <
-                              DanceEditorScreen.compactActionsBreakpoint
+                              AppBreakpoints.compact
                           ? 0
                           : 0.4,
                       busy: _saving,

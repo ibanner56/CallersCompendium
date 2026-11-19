@@ -49,6 +49,8 @@ import 'dance_editor_screen.dart';
 import 'perform_dance_screen.dart';
 import 'program_summary_screen.dart';
 import '../widgets/provenance_labels.dart';
+import '../theme/app_breakpoints.dart';
+import '../widgets/adaptive_fab.dart';
 
 /// Dance detail / card (`docs/design/ux.md` §2): header (title, authors,
 /// formation, hook, tags, status banner, provenance line), a figure table
@@ -181,14 +183,6 @@ class DanceDetailScreen extends StatefulWidget {
   /// Overrides the OS print/save dialog for the compact overflow's PDF export.
   /// Defaults to [Printing.layoutPdf]; tests use it to force a failure.
   final PdfLayouter? pdfLayouter;
-
-  /// App-bar action layout breakpoint (logical pixels). Below this width the
-  /// screen collapses its secondary actions (dialect switch, Export, Duplicate,
-  /// Delete) into a single overflow menu so the bar never overflows on a phone;
-  /// at or above it the full action row is shown. 600 mirrors Material 3's
-  /// compact window-size-class cutoff, so phones get the decluttered layout
-  /// while tablets/desktop keep the one-tap row.
-  static const double compactActionsBreakpoint = 600;
 
   @override
   State<DanceDetailScreen> createState() => _DanceDetailScreenState();
@@ -642,8 +636,8 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   // --- App-bar actions -------------------------------------------------------
   // The dance-detail bar carries seven affordances (dialect switch, Perform,
   // Export, Duplicate, Add-to-program, Delete, plus the Edit FAB). On a phone
-  // that full row clips, so below [DanceDetailScreen.compactActionsBreakpoint]
-  // we keep the primary one-tap actions (Perform, Add-to-program; Edit stays
+  // that full row clips, so below [AppBreakpoints.compact] (Material 3's
+  // compact window-size-class cutoff) we keep the primary one-tap actions (Perform, Add-to-program; Edit stays
   // the FAB) and fold the secondary actions into a single overflow menu. Every
   // action keeps its key, tooltip/label and behaviour in both layouts.
 
@@ -970,8 +964,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       title: detail?.dance.title,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final compact =
-              constraints.maxWidth < DanceDetailScreen.compactActionsBreakpoint;
+          final compact = constraints.maxWidth < AppBreakpoints.compact;
           return Scaffold(
             appBar: AppBar(
               title: Text(l10n.danceScreenTitle),
@@ -1014,21 +1007,23 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
             floatingActionButton: detail == null || _isReadOnly
                 ? null
                 : _isPreview
-                ? FloatingActionButton.extended(
+                ? adaptiveExtendedFab(
+                    context,
                     key: const ValueKey('import-dance'),
                     heroTag: 'import-dance',
                     onPressed: widget.onImport == null
                         ? null
                         : () => widget.onImport!(),
                     icon: const Icon(Icons.library_add_outlined),
-                    label: Text(l10n.importAction),
+                    label: l10n.importAction,
                   )
-                : FloatingActionButton.extended(
+                : adaptiveExtendedFab(
+                    context,
                     key: const ValueKey('edit-dance'),
                     heroTag: 'edit-dance',
                     onPressed: _openEditor,
                     icon: const Icon(Icons.edit_outlined),
-                    label: Text(l10n.danceEditFab),
+                    label: l10n.danceEditFab,
                   ),
           );
         },

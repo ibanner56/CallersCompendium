@@ -42,6 +42,8 @@ import '../utils/slot_dance_title.dart';
 import 'perform_program_screen.dart';
 import 'recently_deleted_screen.dart';
 import 'program_editor_screen.dart';
+import '../theme/app_breakpoints.dart';
+import '../widgets/adaptive_fab.dart';
 
 /// How many times a row toggle re-reads and retries after losing a race with
 /// another writer before it gives up and says so.
@@ -197,11 +199,6 @@ class ProgramSummaryPane extends StatefulWidget {
   final OnlineSearchService? callersBoxOnline;
   final OnlineSearchService? contraDbOnline;
   final ImportPicker? reimportPicker;
-
-  /// Pane width (logical pixels) below which the actions (in the top bar, or
-  /// the body's title row when there is none) keep Perform and Export and
-  /// move Mark all performed, Duplicate and Delete into a "⋮" menu. Matches `DanceDetailScreen.compactActionsBreakpoint`.
-  static const double compactActionsBreakpoint = 600;
 
   @override
   State<ProgramSummaryPane> createState() => _ProgramSummaryPaneState();
@@ -864,8 +861,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     // disagree about whether the secondary actions are inline or folded.
     return LayoutBuilder(
       builder: (context, constraints) {
-        final compact =
-            constraints.maxWidth < ProgramSummaryPane.compactActionsBreakpoint;
+        final compact = constraints.maxWidth < AppBreakpoints.compact;
         final program = _loading || _error != null ? null : _program;
         return Scaffold(
           // D-11 "(B) Actions to top bar" (UX6-2): with a top bar, it keeps
@@ -882,12 +878,13 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
               : null,
           body: _buildBody(compact: compact),
           floatingActionButton: (_program != null)
-              ? FloatingActionButton.extended(
+              ? adaptiveExtendedFab(
+                  context,
                   key: const ValueKey('open-builder'),
                   heroTag: 'open-builder',
                   onPressed: _openBuilder,
                   icon: const Icon(Icons.edit_outlined),
-                  label: Text(l10n.programsEditProgram),
+                  label: l10n.programsEditProgram,
                 )
               : null,
         );
@@ -897,7 +894,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
 
   /// The record actions, in tab order: Perform (only when it is not the
   /// prominent body button), Export, then Mark all performed, Duplicate and
-  /// Delete. Below [ProgramSummaryPane.compactActionsBreakpoint] the last
+  /// Delete. Below [AppBreakpoints.compact] the last
   /// three fold into [_secondaryActionsMenu]. Shown in the top bar when there
   /// is one, else at the end of the body's title row.
   List<Widget> _buildActions(Program program, {required bool compact}) {

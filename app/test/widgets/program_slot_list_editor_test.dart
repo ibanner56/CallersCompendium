@@ -570,8 +570,9 @@ void main() {
     testWidgets('a narrow program pane on a wide window also compacts', (
       tester,
     ) async {
-      // The builder's two-pane layout halves the window: at 820dp the program
-      // pane is about 380dp, where the full row overflowed an alternate.
+      // The builder's two-pane layout halves the window, so its program pane
+      // can be far narrower than the window: a 378dp pane is where the full
+      // row overflowed an alternate.
       await pumpPhone(tester, size: const Size(820, 800), listWidth: 378);
       expect(tester.takeException(), isNull);
       expect(find.byKey(const ValueKey('slot-1-move-up')), findsNothing);

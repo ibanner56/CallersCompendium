@@ -1,0 +1,15 @@
+{
+  "id": "shell-breakpoints-search",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "The side navigation rail now appears from a window 720 pixels wide instead of 900, so a tablet in portrait (an 11-inch iPad, for one) and most phones turned on their side get the rail instead of a bottom bar. List and detail still sit side by side from 900 pixels. Switching between the bar and the rail keeps your place on every tab, such as the Collection's search, filters and scroll.",
+      "Every screen now changes layout at the same widths. Between 720 and 900 pixels, Settings shows its list of sections and opens each one as its own page, like Collection and Programs, instead of being the only screen with two panes. The program builder and the calling-card layout editor show their second pane from 900 pixels, where they used to start at 820 and 840.",
+      "On a phone held upright, the Collection no longer has a second search button at the top that searched dances and programs together: its own search box is its search. The search button at the top of Programs now finds programs only. With a keyboard attached, Ctrl-K (Cmd-K) still searches both.",
+      "On a wide screen, Settings now opens on General, the first section, instead of Appearance. Its list of sections is now as wide as the longest section name, so names stay on one line, and with very large text Settings opens each section as its own page rather than break a word across lines.",
+      "On a phone in landscape, the labelled floating buttons, such as New dance and Edit, now show just their icon so they don't cover the list's buttons. Touch and hold one to see its name.",
+      "The rail's Search and Guide buttons now look like the other rail destinations, with a pill that fills only while Guide is open, instead of always-coloured circles.",
+      "On an iPad or Android tablet, the rail's Search button shows its ⌘K or Ctrl K hint only once you have typed a letter, or pressed Tab, Control, Command or Alt, on a hardware keyboard, rather than when there is no key to press."
+    ]
+  }
+}

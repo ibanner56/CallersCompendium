@@ -18,10 +18,20 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
 └ Settings               – dialect(s), data sources, custom fields, appearance
 ```
 
-- **Phones/tablets**: bottom navigation (Collection, Programs, Glossary when
-  turned on, Settings, Guide);
+- **Phones held upright** (window below 720 px; most phones on their side are
+  720 px or wider and get the rail, the smallest stay below it): bottom navigation (Collection, Programs,
+  Glossary when turned on, Settings, Guide);
   Perform is a mode, not a tab — entered explicitly, exits back to context.
-- **Desktop**: left nav rail; list/detail split panes, where the row open in
+  There is no combined search of dances and programs on the bottom-bar
+  layout: the Collection's own search field is its search, and the Programs
+  list's app-bar search covers programs only (maintainer, 2026-11-18).
+  Ctrl/Cmd-K still searches both.
+- **Tablets and desktop** (720 px and wider): left nav rail, whose Search and
+  Guide buttons take the destinations' pill (filled only while selected; Search
+  never is). Search's ⌘K / Ctrl K hint shows only when a hardware keyboard is
+  likely present: always on macOS, Windows and Linux, and on iOS and Android
+  from the first letter, Tab, Control, Command or Alt key (keys an on-screen
+  keyboard or Android's volume and Back buttons also send do not count). From 900 px, list/detail split panes, where the row open in
   the detail pane carries a `primary` bar down its left edge (plus a `primary`
   title; `selectedRowShape`, issue #2156 — a bar and not a fill, because the
   gallery palettes leave text no contrast to spare for a fill under it). In
@@ -48,8 +58,20 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   whole, so there is no Edit menu; text editing keys and the selection
   right-click menu still work. The binding table is
   `app/lib/src/widgets/app_shortcuts.dart`.
-- Responsive breakpoints: single pane (phone) / list+detail (tablet landscape,
-  desktop) — same screens, adaptive layout, no separate "mobile app".
+- Responsive breakpoints, one set for every screen (maintainer, 2026-11-18;
+  `app/lib/src/theme/app_breakpoints.dart`), measured on the window: below
+  720 px, bottom bar and one pane; 720–899 px, rail and one pane (an 11-inch
+  iPad in portrait, at 820 pt, is here), Settings included; from 900 px, rail
+  and list beside detail, Settings' section list beside the open section, and
+  the program builder's picker beside its slots. Same screens, adaptive
+  layout, no separate "mobile app". Below 600 px (Material 3's compact width)
+  app bars fold secondary actions into "⋮" and dense widgets take their phone
+  form. Settings opens on General; its section list is as wide as its
+  longest label (180–280 px), and when even one word of a label would not fit
+  at 280 px (very large text) Settings keeps its one-pane layout rather than
+  break the word. A window under 480 px tall (a phone in landscape) is short:
+  there each screen's labelled floating button ("New dance", "Edit") folds to
+  its icon, with the label as its tooltip.
 
 ## Screens
 

@@ -58,7 +58,7 @@ Future<void> _pump(
       builder: (context, child) {
         final scoped = RepositoriesScope(repositories: repos, child: child!);
         return compact
-            ? AppShellSearchScope(openSearch: () async {}, child: scoped)
+            ? AppShellSearchScope(searchPrograms: () async {}, child: scoped)
             : scoped;
       },
       home: const ProgramsListScreen(),

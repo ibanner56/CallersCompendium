@@ -543,7 +543,7 @@ void main() {
       List<int?>? sections,
       Set<String> hiddenColumns = const {},
     }) async {
-      // A 360dp phone: below ProgramMatrixTable.compactBreakpoint (600), so the
+      // A 360dp phone: below AppBreakpoints.compact (600), so the
       // wide scrolling grid is replaced by the condensed by-move view.
       await tester.binding.setSurfaceSize(const Size(360, 720));
       addTearDown(() => tester.binding.setSurfaceSize(null));
