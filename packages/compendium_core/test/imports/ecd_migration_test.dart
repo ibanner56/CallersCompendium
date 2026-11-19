@@ -273,9 +273,10 @@ void main() {
       );
       expect(out.figures.single.move, 'promenade');
       expect(out.movesConverted, 0);
-      // A short wave is never re-read. Its contra words spell out its center
-      // and sides, which the ECD grammar does not read today; this guards a
-      // grammar that later does.
+      // A short wave is never re-read. Not yet exercised: its contra words
+      // spell out its center and sides, which the ECD grammar does not read
+      // today, so this passes without the deny list too. It guards a grammar
+      // that later does.
       expect(
         ecdReadingOfContraWording(
           _f(
@@ -314,13 +315,47 @@ void main() {
       expect(read.move, 'ecd_forward_and_back');
       expect(read.params['who'], ['sideCouples']);
       // A figure 8's `where: none` states no direction, so there is nothing
-      // to keep.
+      // to keep. (One entered by hand also stores the editor's `lead`, which
+      // its words hide and the ECD figure eight has no place for, so it
+      // stays contra.)
       expect(
         ecdReadingOfContraWording(
           _f('figure_8', {'who': 'ones', 'where': 'none'}),
         )?.move,
         'ecd_figure_eight',
       );
+      expect(
+        ecdReadingOfContraWording(
+          _f('figure_8', {...contraTaxonomy.entryParams('figure_8')}),
+        ),
+        isNull,
+      );
+    });
+
+    test('not when its reading states a value it stores as another', () {
+      // "role2s 1¼ figure 8 across" reads in ECD as the 1st role2 doing a
+      // quarter figure eight: the dancers and the amount both change.
+      expect(
+        ecdReadingOfContraWording(
+          _f('figure_8', {
+            'who': 'role2s',
+            'where': 'across',
+            'fraction': 'other',
+            'amount': 1.25,
+            'beats': 8,
+          }),
+        ),
+        isNull,
+      );
+    });
+
+    test('a value carried onto the twin step takes its ECD form', () {
+      // A turn alone's seeded `who: everyone` is carried as ECD's list.
+      final read = ecdReadingOfContraWording(
+        _f('turn_alone', contraTaxonomy.entryParams('turn_alone')),
+      )!;
+      expect(read.move, 'ecd_turn_alone');
+      expect(read.params['who'], ['everyone']);
     });
 
     test('as a sequence at the top level only', () {

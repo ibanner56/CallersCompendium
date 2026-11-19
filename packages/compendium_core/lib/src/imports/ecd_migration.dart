@@ -61,7 +61,8 @@ class EcdMigration {
 ///   stores has the same meaning there ([ecdTwinOfContraMove]);
 /// - any other contra move is read again from its displayed words by the ECD
 ///   grammar ([ecdReadingOfContraWording]), and stays as it is when they do
-///   not read in full, or when its words mean something else in ECD;
+///   not read in full, when its words mean something else in ECD, or when
+///   the reading would drop or change a value it stores;
 /// - an import-gap custom line is re-read by the ECD parser
 ///   ([reparseImportGapFigures] with ECD's taxonomy);
 /// - the shape becomes the ECD shape it names ([ecdFormationFromContra]).
@@ -252,15 +253,18 @@ bool _states(Object? value) => switch (value) {
 
 /// [reading], [figure]'s ECD reading, holding every value [figure] stores,
 /// its contra default included (the contra editor seeds them all), or null
-/// when it would drop one.
+/// when it would drop or change one.
 ///
-/// A value is held when no leaf's ECD move has a place for its key, when a
-/// leaf states that key, or when a leaf states the value under another key (a
-/// forward and back's `formation: sideCouples` reads as `who: [sideCouples]`).
-/// Otherwise, when the twin table carries the key across with the same
-/// meaning and exactly one leaf is the move's twin, the value is set on that
-/// leaf (a hand-entered swing's `endFacing: in`, which its words hide); else
-/// the reading is refused.
+/// A value is held when a step states its param with the same value (a
+/// contra `who` as ECD's one-dancer list), when it is a balance the reading
+/// made a step of its own (a swing's `prefix: balance`, a pull by's
+/// `balance: true`), or when it is a formation the reading states as `who`
+/// (side couples forward and back). A param a step states with another value
+/// changes the figure, so the reading is refused. A param no step has a place
+/// for is dropped, so the reading is refused. Otherwise, when the twin table
+/// carries the param with the same meaning and exactly one step is the move's
+/// twin, the value is set on that step (a hand-entered swing's `endFacing:
+/// in`, which its words hide); else the reading is refused.
 Figure? _keepStoredValues(Figure figure, Figure reading) {
   final twin = _twins[figure.move];
   var out = reading;
@@ -269,15 +273,26 @@ Figure? _keepStoredValues(Figure figure, Figure reading) {
     final value = entry.value;
     if (key == 'beats' || !_states(value)) continue;
     if (_noOpValues[key] == value) continue;
-    final placed = _leaves(out)
+    final leaves = _leaves(out).toList();
+    if (_madeBalanceStep(key, value, leaves)) continue;
+    if (key == 'formation' &&
+        leaves.any((leaf) => _sameValue(value, leaf.params['who']))) {
+      continue;
+    }
+    final placed = leaves
         .where(
           (leaf) =>
               ecdTaxonomy.resolve(leaf.move)?.params.containsKey(key) ?? false,
         )
         .toList();
-    if (placed.isEmpty) continue;
-    if (placed.any((leaf) => _states(leaf.params[key]))) continue;
-    if (_leaves(out).any((leaf) => _holdsValue(leaf, value))) continue;
+    if (placed.isEmpty) return null;
+    final stating = placed.where((leaf) => _states(leaf.params[key]));
+    if (stating.isNotEmpty) {
+      if (stating.every((leaf) => _sameValue(value, leaf.params[key]))) {
+        continue;
+      }
+      return null;
+    }
     final twinLeaves = placed.where((leaf) => leaf.move == twin?.id).toList();
     if (twin == null || !twin.carried.contains(key) || twinLeaves.length != 1) {
       return null;
@@ -286,17 +301,35 @@ Figure? _keepStoredValues(Figure figure, Figure reading) {
       out,
       twinLeaves.single,
       twinLeaves.single.copyWith(
-        params: {...twinLeaves.single.params, key: value},
+        params: {
+          ...twinLeaves.single.params,
+          key: key == 'who' && value is String ? [value] : value,
+        },
       ),
     );
   }
   return out;
 }
 
-/// Whether [leaf] states [value] under any key, alone or in a list.
-bool _holdsValue(Figure leaf, Object? value) => leaf.params.values.any(
-  (held) => held == value || (held is List && held.contains(value)),
-);
+/// Whether [held], an ECD value, says what [stored], a contra value, says: the
+/// same value, or a contra `who` as a one-dancer list.
+bool _sameValue(Object? stored, Object? held) {
+  if (stored == held) return true;
+  if (held is! List) return false;
+  if (stored is List) {
+    return stored.length == held.length &&
+        stored.every((value) => held.contains(value));
+  }
+  return held.length == 1 && held.single == stored;
+}
+
+/// Whether [key] is a balance (a `prefix: balance` or `balance: true`) that
+/// the reading made a step of its own.
+bool _madeBalanceStep(String key, Object? value, List<Figure> leaves) =>
+    ((key == 'prefix' && value == 'balance') ||
+        (key == 'balance' && value == true)) &&
+    leaves.length > 1 &&
+    leaves.any((leaf) => leaf.move == 'ecd_balance');
 
 /// [figure] with [from], one of its leaves, replaced by [to].
 Figure _replaceLeaf(Figure figure, Figure from, Figure to) {

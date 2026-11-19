@@ -2281,25 +2281,28 @@ migration that turns them into ECD figures. Nothing runs it on its own.
      and other modifiers included and never the person's wording override
      (which can name another move). Contra silences its defaults there, so a
      default the words do show can become a stated value: the accepted cost
-     of this step. The reverse is refused: a figure that states a
-     non-default value its words hide (a promenade's destination) is not
-     read. Nor is one whose reading leaves out a value it stores, its contra
-     default included (the contra editor seeds every param), where the ECD
-     move has a place for it. A value counts as kept when a step states that
-     param, or states the value under another one (side couples forward and
-     back reads as `who: [sideCouples]`). Failing that, a param the twin
-     table carries is set on the one step that is the move's twin (a
-     hand-entered balance and swing keeps the swing's `endFacing: in`);
-     otherwise the figure stays contra (a hand-entered promenade, whose
-     `where` and `direction` have no twin to say they mean the same). Also
-     never read: a figure that fails contra validation or whose subject was
-     assumed; the moves left out of the twin table for their `who`; form
-     short waves, whose center and sides would be lost; and a petronella,
-     whose contra words hide whether it includes the balance. A reading is
-     kept only when every leaf is an ECD move that validates against
-     `ecdTaxonomy`. It can be a sequence ("partner balance & swing" is a
-     balance, then a swing, keeping the 16 beats it danced), which replaces
-     only a top-level figure, so containers never nest. The figure keeps its
+     of this step. The reverse is refused: a figure that states a non-default
+     value its words hide (a promenade's destination) is not read. Nor is one
+     whose reading would drop a value it stores, its contra default included
+     (the contra editor seeds every param), or state it as another value. A
+     value is kept when a step states its param with the same value (a contra
+     `who` as ECD's one-dancer list), when it is a balance the reading made a
+     step of its own, or when it is a formation the reading states as `who`
+     (side couples forward and back). A param a step states otherwise (`role2s
+     1¼ figure 8` reads as a quarter figure eight for the 1st role2), or that
+     no step has a place for, keeps the figure contra. A param a step leaves
+     unstated is set on the one step that is the move's twin when the twin
+     table carries it (a hand-entered balance and swing keeps the swing's
+     `endFacing: in`); otherwise the figure stays contra. So a hand-entered
+     promenade (its `where` and `direction`) and figure 8 (its `lead`) stay
+     contra. Also never read: a figure that fails contra validation or whose
+     subject was assumed; the moves left out of the twin table for their `who`;
+     form short waves, whose center and sides would be lost; and a petronella,
+     whose contra words hide whether it includes the balance. A reading is kept
+     only when every leaf is an ECD move that validates against `ecdTaxonomy`.
+     It can be a sequence ("partner balance & swing" is a balance, then a
+     swing, keeping the 16 beats it danced), which replaces only a top-level
+     figure, so containers never nest. The figure keeps its
      note, mark and overrides, and its contra count as below;
   3. import-gap custom lines are re-read with the ECD grammar
      (`reparseImportGapFigures` with ECD's taxonomy); user-entered customs are
