@@ -246,6 +246,55 @@ void main() {
     }
   });
 
+  group('dance form', () {
+    final stamp = DateTime.utc(2026);
+    final contraFigures = DecodedFigures([
+      testFigure(move: customMove, params: {'text': 'contra line'}),
+    ]);
+    final ecdFigures = DecodedFigures([
+      testFigure(move: customMove, params: {'text': 'English line'}),
+    ]);
+    final existing = Dance(
+      id: 'saved',
+      title: 'Saved',
+      figuresSource: contraFigures,
+      formation: const Formation(FormationShape.dupleImproper),
+      createdAt: stamp,
+      updatedAt: stamp,
+    );
+    Dance english(FigureSource figures) => Dance(
+      id: 'remote',
+      title: 'Remote',
+      form: DanceForm.ecd,
+      figuresSource: figures,
+      formation: const Formation(FormationShape.dupleMinor),
+      createdAt: stamp,
+      updatedAt: stamp,
+    );
+
+    test('travels with the figures taken', () {
+      final result = withReimportedChoreography(
+        existing,
+        english(ecdFigures),
+        updatedAt: DateTime.utc(2026, 2),
+      );
+      expect(result.form, DanceForm.ecd);
+      expect(result.figuresSource, ecdFigures);
+      expect(result.formation, const Formation(FormationShape.dupleMinor));
+    });
+
+    test('stays, with its formation, when no figures are taken', () {
+      final result = withReimportedChoreography(
+        existing,
+        english(DecodedFigures(const [])),
+        updatedAt: DateTime.utc(2026, 2),
+      );
+      expect(result.form, DanceForm.contra);
+      expect(result.figuresSource, contraFigures);
+      expect(result.formation, const Formation(FormationShape.dupleImproper));
+    });
+  });
+
   group('title and credit', () {
     final stamp = DateTime.utc(2026);
     final existing = Dance(

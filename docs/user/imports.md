@@ -430,15 +430,22 @@ so before reading a `.USR` file the app asks once: **Are these English country
 dances?** Choose **Yes, English** and every dance in the file but a square comes
 across as an English country dance; choose **No** and each dance comes across by
 its Type, as above. Closing the question reads nothing, and choosing the file
-again asks again.
+again asks again. Re-importing a dance you first brought in with the other
+answer takes the form along with the figures, so a contra dance re-imported
+as English becomes English.
 
 An English dance takes its meter and key from the dance's Music field ("Key:
 G, Meter: 3/2" gives the meter 3/2 and the key G). A line that starts with a
 bar range, such as `1-4 Partners set and turn single`, `(5-8) circle left` or
 `A1 1-8 lead up`, counts that many bars, and the dance's meter says how many
-beats a bar holds: two in 2/2, 2/4 or 6/8, three in 3/2, 3/4 or 9/8, four in
-4/4 or 12/8. So `1-4` is 8 beats in 2/2 and 12 in 3/2. When the Music field
-gives no meter the app counts two beats a bar and says so in the review.
+beats a bar holds: two in 2/2, 2/4, 6/8 or 6/4, three in 3/2, 3/4, 9/8 or
+9/4, four in 4/4, 12/8 or 12/4. So `1-4` is 8 beats in 2/2 and 12 in 3/2.
+When the Music field gives no meter the app counts two beats a bar and says so
+in the review. The bars are the count: a line that also gives a count in beats,
+such as `1-4 (6) circle left`, comes across as written, with the bars' count.
+The dance's phrase structure is not changed to match its meter, so in a 3/2
+dance the A and B labels on the dance's page can fall in the wrong places
+until you set the phrase structure (for example 4*8*3).
 
 The app also reads Caller's Companion's abbreviations and wording. "Circle L",
 "pass R shoulder" and "alle R 1.5" keep their direction, shoulder and hand;

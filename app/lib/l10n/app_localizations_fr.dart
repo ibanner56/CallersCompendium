@@ -8460,7 +8460,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get importUsrEnglishBody =>
-      'Caller\'s Companion classe les danses anglaises comme Contra. Si ce fichier contient des danses anglaises, elles sont lues avec des figures, des formations et des comptes en mesures anglais. Les squares restent des squares.';
+      'Caller\'s Companion classe souvent les danses anglaises comme Contra. Si ce fichier contient des danses anglaises, elles sont lues avec des figures, des formations et des comptes en mesures anglais. Les squares restent des squares.';
 
   @override
   String get importUsrEnglishNo => 'Non, lire leur type';

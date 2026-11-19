@@ -436,19 +436,19 @@ List<Figure> parseFreeTextFigureEntry(
   // An English line that starts with a bar range (`1-4 partners set`) counts
   // in bars of the dance's [meter] (ADR-006 W6; Hudson: "the meter is the
   // rule"): the rest is read, and one figure read in full takes the bars as
-  // its count unless the rest states its own. Anything else keeps the line
-  // whole as typed, with that count.
+  // its count. Anything else, a rest that also states a count in beats
+  // included, keeps the line whole as typed, with that count.
   final bars = _isEcd(taxonomy) ? ecdBarCount(trimmed, meter: meter) : null;
   if (bars != null) {
+    // A count in beats as well would be dropped: the line is kept whole.
+    if (ecdRestStatesBeats(bars.rest)) {
+      return [_typedCustom(trimmed, bars.beats)];
+    }
     final read = _parseLine(bars.rest, taxonomy, dialect, ringDancers: ring);
     if (read.length == 1 && !read.single.isCustom) {
       final figure = read.single;
-      final stated = figure.params['beats'];
       return [
-        if (stated is int && stated > 0)
-          figure
-        else
-          figure.copyWith(params: {...figure.params, 'beats': bars.beats}),
+        figure.copyWith(params: {...figure.params, 'beats': bars.beats}),
       ];
     }
     return [_typedCustom(trimmed, bars.beats)];

@@ -3,8 +3,8 @@ import '../model/figure_source.dart';
 import '../model/provenance.dart';
 import '../storage/repositories/repositories.dart';
 
-/// [existing] with only its choreography — figures, formation and
-/// progression — taken from [incoming].
+/// [existing] with only its choreography — figures, formation, progression
+/// and the form they are written in — taken from [incoming].
 ///
 /// This is the whole of what a re-import changes, from every source: the
 /// detail screen's **Re-import choreography** and the import review's
@@ -26,28 +26,41 @@ import '../storage/repositories/repositories.dart';
 /// keeps the existing one whole, an unreadable one included: a source that
 /// sent no usable figures (The Caller's Box withholds them below its `full`
 /// permission tier) must not erase the dance's transcription.
+///
+/// Figures and formation are expressed in their dance form's taxonomy (a
+/// contra move or an ECD figure, a contra shape or an ECD shape), so the
+/// form travels with them: when [incoming]'s figures are taken, its form is
+/// too, and a dance re-imported as English from a file first imported as
+/// contra becomes English. When they are not taken and the forms differ, the
+/// existing formation is kept as well, so a dance never pairs one form's
+/// shape with the other form's figures. (ADR-006 W6, part 3.)
 Dance withReimportedChoreography(
   Dance existing,
   Dance incoming, {
   required DateTime updatedAt,
   Provenance? provenance,
   bool alsoTitleAndCredit = false,
-}) => existing.copyWith(
-  // `null` keeps the existing value.
-  title: alsoTitleAndCredit ? incoming.title : null,
-  authorIds: alsoTitleAndCredit && incoming.authorIds.isNotEmpty
-      ? incoming.authorIds
-      : null,
-  // `null` keeps the existing `figuresSource`, whatever it holds.
-  figures: switch (incoming.figuresSource) {
+}) {
+  final incomingFigures = switch (incoming.figuresSource) {
     DecodedFigures(:final figures) when figures.isNotEmpty => figures,
     _ => null,
-  },
-  formation: incoming.formation,
-  progression: incoming.progression,
-  provenance: provenance ?? existing.provenance,
-  updatedAt: updatedAt,
-);
+  };
+  final keepsForm = incomingFigures == null && incoming.form != existing.form;
+  return existing.copyWith(
+    // `null` keeps the existing value.
+    title: alsoTitleAndCredit ? incoming.title : null,
+    authorIds: alsoTitleAndCredit && incoming.authorIds.isNotEmpty
+        ? incoming.authorIds
+        : null,
+    // `null` keeps the existing `figuresSource`, whatever it holds.
+    figures: incomingFigures,
+    form: incomingFigures == null ? null : incoming.form,
+    formation: keepsForm ? null : incoming.formation,
+    progression: incoming.progression,
+    provenance: provenance ?? existing.provenance,
+    updatedAt: updatedAt,
+  );
+}
 
 /// The outcome of [replaceDanceChoreography].
 enum DanceReimportResult { replaced, targetMissing, targetChanged }

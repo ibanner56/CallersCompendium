@@ -100,11 +100,13 @@ const int _maxSteps = kMaxSequenceFigures;
 /// [scrub] is the scrub to apply (default [scrubFigureText]).
 ///
 /// A line that starts with a bar range (`1-4 partners set`, `(5-8) …`,
-/// `A1 1-4 …`, [splitEcdBarRange]) is read without it, and when it states no
-/// [beats] takes its count from it: its bars times the beats in a bar of
-/// [meter] ([ecdBeatsPerBar], 2 when [meter] does not say). A line kept as
-/// custom keeps its whole text, range included, and the count. A range whose
-/// count is over the beats range is not taken.
+/// `A1 1-4 …`, [splitEcdBarRange]) is read without it, and takes its count
+/// from it over [beats] and over any count the words give: its bars times the
+/// beats in a bar of [meter] ([ecdBeatsPerBar], 2 when [meter] does not say).
+/// A line whose rest also states a count in beats ([ecdRestStatesBeats]) is
+/// kept as custom, so that count stays in its words. A line kept as custom
+/// keeps its whole text, range included, and the count. A range whose count
+/// is over the beats range is not taken.
 Figure? parseEcdFigureLine(
   String rawText, {
   int beats = 0,
@@ -117,9 +119,10 @@ Figure? parseEcdFigureLine(
   var lineText = rawText;
   final bars = ecdBarCount(rawText, meter: meter);
   if (bars != null) {
-    // A count already stated (a Caller's Companion `(8)`, or the count a
-    // custom line kept) stands; the range is still not part of the figure.
-    if (safeBeats == 0) safeBeats = bars.beats;
+    // The bars are the count (Hudson: "take them and use them"), over a
+    // count the line was given or a custom line kept, so a re-check counts
+    // again by the dance's meter.
+    safeBeats = bars.beats;
     lineText = bars.rest;
   }
   Figure fallback(String text) => customFigure(
@@ -137,6 +140,7 @@ Figure? parseEcdFigureLine(
   }
   if (scrubbed.isEmpty) return null;
   if (scrubbed.length > maxEcdLineLength) return fallback(scrubbed);
+  if (bars != null && ecdRestStatesBeats(bars.rest)) return fallback(scrubbed);
   try {
     final read = recognizeEcdLine(
       identical(lineText, rawText)
@@ -146,7 +150,10 @@ Figure? parseEcdFigureLine(
       ringDancers: ringDancers,
     );
     if (read == null) return fallback(scrubbed);
-    return progression ? read.copyWith(progression: true) : read;
+    final counted = bars == null || read.params['beats'] == bars.beats
+        ? read
+        : read.copyWith(params: {...read.params, 'beats': bars.beats});
+    return progression ? counted.copyWith(progression: true) : counted;
   } catch (_) {
     return fallback(scrubbed);
   }

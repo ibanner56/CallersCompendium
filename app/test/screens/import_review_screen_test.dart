@@ -3255,16 +3255,31 @@ void main() {
       });
 
       testWidgets('trying a file again after a failed plan does not ask '
-          'again; choosing a file again does', (tester) async {
+          'again but keeps the answer; choosing a file again asks', (
+        tester,
+      ) async {
         final repos = openTestRepositories();
         final notUsr = Uint8List.fromList(List<int>.filled(8192, 0x41));
+        // The English answer each plan was given.
+        final answers = <bool>[];
+        Uint8List pick() => Uint8List.fromList(notUsr);
         await _pump(
           tester,
           repos,
           payload: 'unused',
           // Each choice reads the file afresh, as the real picker does.
-          sources: sourcesFor(() async => Uint8List.fromList(notUsr)),
-          bytePicker: () async => Uint8List.fromList(notUsr),
+          sources: [
+            ImportSource(
+              kind: ImportSourceKind.genericJson,
+              adapterFactory: GenericJsonAdapter.new,
+            ),
+            ImportSource(
+              kind: ImportSourceKind.callersCompanionUsr,
+              adapterFactory: () => _AnswerSpyUsrAdapter(answers),
+              bytePicker: () async => pick(),
+            ),
+          ],
+          bytePicker: () async => pick(),
         );
         await selectUsr(tester);
         await tester.tap(find.byKey(const ValueKey('import-choose-usr-file')));
@@ -3292,6 +3307,8 @@ void main() {
         await tester.tap(find.byKey(const ValueKey('import-continue')));
         await tester.pumpAndSettle();
         await answerUsrEnglishQuestion(tester);
+        // The kept file was planned with its Yes; the new one with its No.
+        expect(answers, [true, true, false]);
       });
     });
 
@@ -5852,5 +5869,21 @@ class _GatedJsonAdapter extends GenericJsonAdapter {
   Future<RawRecord> fetch(DiscoveredRecord record) async {
     if (++_fetches == gateAtFetch) await gate.future;
     return super.fetch(record);
+  }
+}
+
+/// A Caller's Companion adapter that records whether each plan was asked to
+/// read the file as English dances.
+class _AnswerSpyUsrAdapter extends CallersCompanionUsrAdapter {
+  _AnswerSpyUsrAdapter(this.answers);
+
+  final List<bool> answers;
+
+  @override
+  Future<List<DiscoveredRecord>> discover(ImportRequest request) {
+    answers.add(
+      request.options[CallersCompanionUsrAdapter.englishDancesOption] == true,
+    );
+    return super.discover(request);
   }
 }

@@ -9,8 +9,8 @@ import '../model/phrase_structure.dart';
 /// How many beats one bar of [meter] holds, and whether [meter] stated it.
 ///
 /// A simple meter counts its top number (`2/2` is 2, `3/2` and `3/4` are 3,
-/// `4/4` is 4); a compound one counts its dotted beats (`6/8` is 2, `9/8` is
-/// 3, `12/8` is 4). A meter this cannot read, or none, counts 2 beats a bar,
+/// `4/4` is 4); a compound one counts its dotted beats (`6/8` and `6/4` are 2,
+/// `9/8` is 3, `12/8` is 4). A meter this cannot read, or none, counts 2 beats a bar,
 /// the most common ECD bar, and says so with `stated: false`.
 ({int beatsPerBar, bool stated}) ecdBeatsPerBar(String? meter) {
   final match = _meter.firstMatch(meter ?? '');
@@ -22,7 +22,8 @@ import '../model/phrase_structure.dart';
   if (!_noteValues.contains(bottom)) {
     return (beatsPerBar: _defaultBeatsPerBar, stated: false);
   }
-  final compound = bottom >= 8 && top > 3 && top % 3 == 0;
+  // 6/8, 9/8 and 12/8, and the 6/4 family a Playford tune is often in.
+  final compound = bottom >= 4 && top > 3 && top % 3 == 0;
   return (beatsPerBar: compound ? top ~/ 3 : top, stated: true);
 }
 
@@ -36,11 +37,16 @@ import '../model/phrase_structure.dart';
 String ecdMeterForBars(String? meter, PhraseStructure structure) {
   if (ecdBeatsPerBar(meter).stated) return meter!;
   final perBar = {for (final c in structure.components) c.beatsPerBar};
-  return perBar.length == 1 ? '${perBar.single}/4' : (meter ?? '');
+  // A bar of more than 12 beats has no meter to name it; the parser counts 2.
+  if (perBar.length != 1 || perBar.single > 12) return meter ?? '';
+  final beats = perBar.single;
+  // Over a half note, 6, 9 and 12 stay simple: `6/4` would count 2 dotted
+  // beats, where the structure says 6.
+  return beats > 3 && beats % 3 == 0 ? '$beats/2' : '$beats/4';
 }
 
 /// The first `top/bottom` in a meter text (`3/2`, `Meter: 6/8`).
-final RegExp _meter = RegExp(r'(?<!\d)(\d{1,2})\s*/\s*(\d{1,2})(?!\d)');
+final RegExp _meter = RegExp(r'(?<![\d/])(\d{1,2})\s*/\s*(\d{1,2})(?![\d/])');
 
 const Set<int> _noteValues = {1, 2, 4, 8, 16};
 
@@ -64,17 +70,20 @@ typedef EcdBarRange = ({int bars, String rest});
 EcdBarRange? splitEcdBarRange(String line) {
   final match = _barRange.firstMatch(line);
   if (match == null) return null;
-  final first = int.parse(match.group(1)!);
-  final last = int.parse(match.group(2)!);
+  final first = int.parse(match.group(1) ?? match.group(3)!);
+  final last = int.parse(match.group(2) ?? match.group(4)!);
   if (first < 1 || last < first || last - first + 1 > _maxBars) return null;
-  final rest = match.group(3)!.trim();
+  final rest = match.group(5)!.trim();
   if (rest.isEmpty) return null;
   return (bars: last - first + 1, rest: rest);
 }
 
 final RegExp _barRange = RegExp(
-  r'^\s*(?:[ABCD][1-4]?(?:\s*&\s*[1-4])?\s+)?'
-  r'\(?\s*(\d{1,3})\s*[-–—]\s*(\d{1,3})\s*\)?'
+  // A section label (`A1`, `a1`, `A1&2`, `A1&A2`, `A1:`), dropped.
+  r'^\s*(?:(?:[ABCD][1-4]?|[abcd][1-4])'
+  r'(?:\s*&\s*[ABCDabcd]?[1-4])?\s*:?\s+)?'
+  // The range, alone or in a matched pair of brackets.
+  r'(?:\(\s*(\d{1,3})\s*[-–—]\s*(\d{1,3})\s*\)|(\d{1,3})\s*[-–—]\s*(\d{1,3}))'
   r'(?:\s*[:.,]\s*|\s+)'
   r'(\S.*)$',
   dotAll: true,
@@ -90,6 +99,17 @@ final RegExp _barRange = RegExp(
   if (beats > _maxBeats) return null;
   return (beats: beats, rest: range.rest);
 }
+
+/// Whether [rest], a line after its bar range, also states a count in beats:
+/// bracketed (`(8)`, `[8]`) or with `beats` (`8 beats`). The bars are the
+/// count, so such a line is kept whole as text, its words unchanged, with the
+/// bars' count (Hudson: "the meter is the rule").
+bool ecdRestStatesBeats(String rest) => _statedBeats.hasMatch(rest);
+
+final RegExp _statedBeats = RegExp(
+  r'[(\[]\s*\d+\s*(?:beats?\s*)?[)\]]|\b\d+\s*beats?\b',
+  caseSensitive: false,
+);
 
 /// The figure beats range's top (`ParamKind.beats`).
 const int _maxBeats = 64;

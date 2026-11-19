@@ -4,17 +4,22 @@
   "app": {
     "added": [
       "Importing a Caller's Companion .USR file asks once whether its dances are English country dances. Yes brings every dance but a square across as an English dance, with its meter and key from the Music field.",
-      "In an English dance, a line that starts with a bar range, such as \"1-4 partners set and turn single\" or \"(5-8) circle left\", counts those bars by the dance's meter: 8 beats in 2/2, 12 in 3/2. This applies to typing figures, to Caller's Companion imports and to Re-check unrecognized figures."
+      "In an English dance, a line that starts with a bar range, such as \"1-4 partners set and turn single\" or \"(5-8) circle left\", counts those bars by the dance's meter: 8 beats in 2/2, 12 in 3/2. The bars are the count; a line that also gives a count in beats is kept as written. This applies to typing figures, to Caller's Companion imports and to Re-check unrecognized figures."
     ],
     "changed": [
-      "An English dance's Bars count by its Meter (two beats a bar in 2/2 or 6/8, three in 3/2 or 3/4), falling back to the phrase structure when no meter is given."
+      "An English dance's Bars count by its Meter (two beats a bar in 2/2, 6/8 or 6/4, three in 3/2, 3/4 or 9/4), falling back to the phrase structure when no meter is given.",
+      "Re-importing a dance takes its dance form along with its figures, so a Caller's Companion dance first imported as contra and re-imported as English becomes English."
     ]
   },
   "core": {
     "added": [
       "`ecdBeatsPerBar`, `splitEcdBarRange` and `ecdBarCount` read a leading bar range as a count by the meter; `parseEcdFigureLine`, `parseFreeTextFigureEntry`, `reparseImportGapFigures` and `FigureReparser` take a `meter`.",
       "`mapCallersCompanionDance(englishDances:)` and `CallersCompanionUsrAdapter.englishDancesOption` read a file's dances as English; `ccMusicMeterAndKey` reads an English dance's meter and key from Music, and `cc_bars_meter_unstated` notes bars counted with no stated meter.",
-      "`ecdMeterForBars` names the meter an English dance's bars count by: its stated meter, else its phrase structure's beats per bar; `FigureReparser` and `reparseImportGapFigures` take a `phraseStructure` for it."
+      "`ecdMeterForBars` names the meter an English dance's bars count by: its stated meter, else its phrase structure's beats per bar; `FigureReparser` and `reparseImportGapFigures` take a `phraseStructure` for it.",
+      "`ecdRestStatesBeats` tells whether a line also states a count in beats after its bar range; `CallersCompanionUsrImporter.plan` takes `englishDances`."
+    ],
+    "changed": [
+      "`withReimportedChoreography` takes the incoming dance form when it takes the incoming figures, and keeps the existing formation when it takes neither and the forms differ."
     ]
   }
 }

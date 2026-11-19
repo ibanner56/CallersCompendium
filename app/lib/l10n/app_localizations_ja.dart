@@ -8007,7 +8007,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get importUsrEnglishBody =>
-      'Caller\'s Companion ではイングリッシュ・カントリーダンスが Contra として登録されています。このファイルにイングリッシュのダンスが入っている場合は、イングリッシュのフィギュア、フォーメーション、小節数で読み込みます。スクエアダンスはスクエアのままです。';
+      'Caller\'s Companion ではイングリッシュ・カントリーダンスが Contra として登録されていることがよくあります。このファイルにイングリッシュのダンスが入っている場合は、イングリッシュのフィギュア、フォーメーション、小節数で読み込みます。スクエアダンスはスクエアのままです。';
 
   @override
   String get importUsrEnglishNo => 'いいえ、種類どおりに読む';

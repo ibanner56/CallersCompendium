@@ -978,12 +978,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       _bundleMemoText = null;
       return _planTitleList(payload);
     }
-    // A Caller's Companion library types its English dances "Contra", so
+    // A Caller's Companion library often types its English dances "Contra", so
     // the person is asked once per file (ADR-006 W6, Hudson 2026-11-19).
     // Closing the question plans nothing.
     var englishDances = false;
     if (_selected.kind == ImportSourceKind.callersCompanionUsr &&
-        widget.sharedBundle == null &&
+        _effectiveSharedBundle == null &&
         bytes != null) {
       final asked = _usrEnglishAnswers[bytes];
       if (asked != null) {

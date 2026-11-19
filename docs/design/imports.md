@@ -286,6 +286,14 @@ use; the detail screen's **Re-import choreography** (`replaceDanceChoreography`,
 moved into core from the app) adds a stale-preview check and writes no
 provenance.
 
+Figures and formation are written in their dance form's taxonomy, so the form
+travels with them: when the incoming figures are taken, so is the incoming
+form, and when they are not and the forms differ, the existing formation stays
+too. Without this, a `.USR` dance imported as contra and re-imported as English
+would hold ECD figures under a contra form. (Implementer's call for ADR-006 W6
+part 3; the alternative, refusing a re-import whose form differs, would leave
+the person no way to correct a wrong answer to the English question.)
+
 This applies to every source that reaches the pipeline: `.ccshare` and other
 Compendium archives, published collections, Caller's Companion `.USR`, ContraDB
 and The Caller's Box. For a published collection it means a newer version's
@@ -2289,15 +2297,20 @@ ECD dance.
   (`1-4`, `(5-8)`, `9 – 12`, after a section label as in `A1 1-8` or
   `A1&2 1-4`, which is dropped) is the line's count: its bars times the beats
   in a bar of the dance's meter (`ecdBeatsPerBar`). A simple meter counts its
-  top number (`3/2` is 3), a compound one its dotted beats (`6/8` is 2, `9/8`
-  is 3); no meter, or one it cannot read, counts 2 and says it was not
-  stated. Where the dance's phrase structure gives one beats per bar, that is
+  top number (`3/2` is 3), a compound one its dotted beats (`6/8` and `6/4`
+  are 2, `9/8` and `9/4` are 3); no meter, or one it cannot read (`3/12`,
+  a date), counts 2 and says it was not stated. Where the dance's phrase structure gives one beats per bar, that is
   the fallback for an unstated meter (`ecdMeterForBars`: `4*8*3` reads as
-  `3/4`), as for the editor's bar timing (`BarTimingScope.beatsPerBarFor`,
+  `3/4`, a `4*8*6` one as `6/2`), as for the editor's bar timing (`BarTimingScope.beatsPerBarFor`,
   which takes the meter first too). A range that runs backwards, spans more than 32 bars, would come to
   more than 64 beats, or has nothing after it is not one, and a lone number is
-  never a bar (`2 changes of rights and lefts`). A count the line also states
-  in beats stands. A line kept as text keeps the range in its words and the
+  never a bar (`2 changes of rights and lefts`). The bars are the count, over
+  a count the line was given (a Caller's Companion `(8)`, a re-checked
+  line's stored count) and over a count the figure takes by default; a line
+  whose rest also states a count in beats (`1-4 (6) …`, `… 6 beats`,
+  `ecdRestStatesBeats`) is kept as text, so that count stays in its words. A
+  section label may be `A1`, `a1`, `A1:` or `A1&A2`; brackets must pair. A
+  line kept as text keeps the range in its words and the
   count. The meter comes from the editor in free-text entry and from the
   stored dance in Re-check (`FigureReparser`'s `meter` and
   `phraseStructure`). Only an English

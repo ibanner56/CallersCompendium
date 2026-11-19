@@ -434,7 +434,7 @@ CcDanceMapping mapCallersCompanionDance(
   // Type → DanceForm, best-effort; unknown types are preserved as a note.
   // A file the person says holds English dances reads every dance that is not
   // a square as English, whatever its Type says (Hudson, 19 November 2026: a
-  // Caller's Companion library types its English dances "Contra").
+  // Caller's Companion library often types its English dances "Contra").
   final (mappedForm, typeNote) = _mapForm(
     record.type,
     issues,
@@ -1034,21 +1034,28 @@ List<Figure> _ecdLineFigures(
   final text = music ?? '';
   final meter = _ccMeter.firstMatch(text);
   final key = _ccKeyWord.firstMatch(text) ?? _ccLeadingKey.firstMatch(text);
+  // Only a meter the bars can be counted by: `track 3/12` is no meter.
+  final meterText = meter == null ? '' : '${meter.group(1)}/${meter.group(2)}';
+  final stated = ecdBeatsPerBar(meterText).stated;
   String clip(String value) => value.length > kMaxMusicLabelLength
       ? value.substring(0, kMaxMusicLabelLength)
       : value;
   return (
-    meter: meter == null ? '' : clip('${meter.group(1)}/${meter.group(2)}'),
+    meter: stated ? clip(meterText) : '',
     key: key == null ? '' : clip(key.group(1)!),
   );
 }
 
 final RegExp _ccMeter = RegExp(r'(?<![\d/])(\d{1,2})\s*/\s*(\d{1,2})(?![\d/])');
+
+/// A key: its note, then `m`, `minor` or `major` when it says (`E minor`).
+const String _ccKey =
+    r'([A-G](?:b|#|♭|♯)?(?:\s*(?:minor|major)\b|m(?![A-Za-z]))?)';
 final RegExp _ccKeyWord = RegExp(
-  r'\bkey\s*:?\s*([A-G](?:b|#|♭|♯)?m?)(?![A-Za-z])',
+  '\\bkey\\s*:?\\s*$_ccKey(?![A-Za-z])',
   caseSensitive: false,
 );
-final RegExp _ccLeadingKey = RegExp(r'^\s*([A-G](?:b|#|♭|♯)?m?)\s+\d');
+final RegExp _ccLeadingKey = RegExp('^\\s*$_ccKey\\s*[,;]?\\s+\\d');
 
 (DanceForm, String?) _mapForm(
   String? raw,

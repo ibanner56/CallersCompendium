@@ -38,7 +38,8 @@ class BarTimingScope extends InheritedWidget {
     if (form != DanceForm.ecd) return null;
     final perBar = {for (final c in structure.components) c.beatsPerBar};
     if (perBar.length != 1) return null;
-    return ecdBeatsPerBar(ecdMeterForBars(meter, structure)).beatsPerBar;
+    final stated = ecdBeatsPerBar(meter);
+    return stated.stated ? stated.beatsPerBar : perBar.single;
   }
 
   /// [child] under the bar timing of [dance], or as it is where the dance

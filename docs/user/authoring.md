@@ -103,8 +103,9 @@ starts with a bar range (`1-4 partners set and turn single`, `(5-8) circle
 left`, `A1 1-8 lead up`) counts those bars by the dance's **Meter**: `1-4` is
 8 beats in 2/2 and 12 in 3/2 or 3/4. With no meter, a bar counts the beats
 of the phrase structure, as the **Bars** field does.
-A count in beats the line states as well (`1-4 (6) circle left`) is the one
-kept.
+The bars are the count. A line that also states a count in beats
+(`1-4 (6) circle left`) is kept as you typed it, with the bars' count, so you
+can see the two disagree and fix whichever is wrong.
 A line under the
 box tells you how many figures it added and invites you to type another (a
 screen reader announces the count too); it goes away when you start typing.
@@ -582,8 +583,8 @@ figure's length is entered and shown in **Bars**: `2`, or `1.5` (or `1½`) for
 a bar and a half. Half a bar is taken only where it is a whole number of beats,
 so not in triple time: in a tune with three beats to the bar, the field asks
 for whole bars instead. The app still works in beats underneath. A bar holds
-the beats of the dance's **Meter**: 2/2, 2/4 and 6/8 have two, 3/2, 3/4 and 9/8
-three, 4/4 and 12/8 four, so in 3/2 two bars are 6 beats. With no meter the
+the beats of the dance's **Meter**: 2/2, 2/4, 6/8 and 6/4 have two, 3/2, 3/4,
+9/8 and 9/4 three, 4/4, 12/8 and 12/4 four, so in 3/2 two bars are 6 beats. With no meter the
 phrase structure says, so `4*8*3` (four 8-bar phrases of three beats) makes 2
 bars 6 beats too. A tune whose parts have different numbers of beats to the bar
 keeps its figures in beats, since one count of bars would mean different

@@ -21,7 +21,14 @@ void main() {
     });
 
     test('a compound meter counts its dotted beats', () {
-      for (final (meter, beats) in [('6/8', 2), ('9/8', 3), ('12/8', 4)]) {
+      for (final (meter, beats) in [
+        ('6/8', 2),
+        ('9/8', 3),
+        ('12/8', 4),
+        ('6/4', 2),
+        ('9/4', 3),
+        ('12/4', 4),
+      ]) {
         expect(ecdBeatsPerBar(meter), (beatsPerBar: beats, stated: true));
       }
     });
@@ -31,7 +38,16 @@ void main() {
     });
 
     test('no meter, or one it cannot read, counts 2 and says so', () {
-      for (final meter in [null, '', 'jig', '3/5', '0/4', '13/8']) {
+      for (final meter in [
+        null,
+        '',
+        'jig',
+        '3/5',
+        '0/4',
+        '13/8',
+        '3/12',
+        '1/2/2003',
+      ]) {
         expect(ecdBeatsPerBar(meter), (
           beatsPerBar: 2,
           stated: false,
@@ -54,6 +70,17 @@ void main() {
       );
     });
 
+    test('a structure of 6, 9 or 12 beats a bar counts them all', () {
+      for (final beats in [6, 9, 12]) {
+        final meter = ecdMeterForBars('', PhraseStructure.parse('4*8*$beats'));
+        expect(ecdBeatsPerBar(meter).beatsPerBar, beats, reason: meter);
+      }
+    });
+
+    test('a bar of more than 12 beats has no meter', () {
+      expect(ecdMeterForBars('', PhraseStructure.parse('4*8*16')), '');
+    });
+
     test('a tune whose parts differ keeps the meter text as it is', () {
       expect(
         ecdMeterForBars('jig', PhraseStructure.parse('2*8*3+2*8*2')),
@@ -71,6 +98,9 @@ void main() {
         ('A1 1-8 Partners lead up', 8, 'Partners lead up'),
         ('A1&2 1-4 Partners siding', 4, 'Partners siding'),
         ('1-2: All set', 2, 'All set'),
+        ('A1: 1-4 Partners set', 4, 'Partners set'),
+        ('a1 1-4 Partners set', 4, 'Partners set'),
+        ('A1&A2 1-8 Partners lead up', 8, 'Partners lead up'),
       ]) {
         expect(splitEcdBarRange(line), (bars: bars, rest: rest), reason: line);
       }
@@ -84,6 +114,8 @@ void main() {
         '1-40 circle left',
         '(1-4)',
         'circle left 1-4',
+        '(1-4 circle left',
+        '1-4) circle left',
       ]) {
         expect(splitEcdBarRange(line), isNull, reason: line);
       }
@@ -103,13 +135,36 @@ void main() {
       expect(figure.params['beats'], 8);
     });
 
-    test('a stated count stands', () {
+    test('the bars are the count over one the line was given', () {
       final figure = parseEcdFigureLine(
         '1-4 circle left',
         beats: 6,
         meter: '2/2',
       )!;
-      expect(figure.params['beats'], 6);
+      expect(figure.move, 'ecd_circle');
+      expect(figure.params['beats'], 8);
+    });
+
+    test('over the count a figure would take by default', () {
+      final figure = parseEcdFigureLine(
+        '1-4 partners set and turn single',
+        meter: '3/2',
+      )!;
+      expect(figure.isCustom, isFalse);
+      expect(figure.params['beats'], 12);
+    });
+
+    test('a line that also states beats is kept whole, with the bars', () {
+      for (final line in [
+        '1-4 (6) circle left',
+        '1-4 circle left 6 beats',
+        '1-4 circle left [6]',
+      ]) {
+        final figure = parseEcdFigureLine(line, meter: '2/2')!;
+        expect(figure.isCustom, isTrue, reason: line);
+        expect(figure.params['text'], line, reason: line);
+        expect(figure.params['beats'], 8, reason: line);
+      }
     });
 
     test('a line kept as text keeps the range and the count', () {
@@ -142,6 +197,27 @@ void main() {
       expect(figures.single.params['beats'], 12);
     });
 
+    test('counts the bars over the count a figure would take', () {
+      final figures = parseFreeTextFigureEntry(
+        '1-4 partners set and turn single',
+        taxonomy: ecd,
+        meter: '3/2',
+      );
+      expect(figures.single.isCustom, isFalse);
+      expect(figures.single.params['beats'], 12);
+    });
+
+    test('keeps a line that also states beats whole, with the bars', () {
+      final figures = parseFreeTextFigureEntry(
+        '1-4 (6) circle left',
+        taxonomy: ecd,
+        meter: '2/2',
+      );
+      expect(figures.single.isCustom, isTrue);
+      expect(figures.single.params['text'], '1-4 (6) circle left');
+      expect(figures.single.params['beats'], 8);
+    });
+
     test('keeps a line it cannot read whole, with the count', () {
       final figures = parseFreeTextFigureEntry(
         '1-4 something only this caller says',
@@ -163,6 +239,19 @@ void main() {
         meter: '2/2',
       );
       expect(figures.any((f) => f.params['beats'] == 8), isFalse);
+      // The meter changes nothing in a contra line: not its words, not its
+      // count.
+      expect(
+        parseFreeTextFigureEntry(
+          '1-4 circle left',
+          taxonomy: contraTaxonomy,
+          meter: '3/2',
+        ),
+        figures,
+      );
+      // Today the contra grammar keeps it as typed, with no count.
+      expect(figures.single.params['text'], '1-4 circle left');
+      expect(figures.single.params['beats'], isNull);
     });
   });
 
@@ -248,6 +337,9 @@ void main() {
         ('Key Dm Meter 6/8', '6/8', 'Dm', 8),
         ('Em 3/4', '3/4', 'Em', 12),
         ('Key: Bb, Meter: 2/2', '2/2', 'Bb', 8),
+        ('Key: G minor, Meter: 3/2', '3/2', 'G minor', 12),
+        ('G major, 6/8', '6/8', 'G major', 8),
+        ('F# 6/4', '6/4', 'F#', 8),
       ]) {
         final dance = mapCallersCompanionDance(
           record(music: music),
@@ -257,6 +349,21 @@ void main() {
         expect(dance.musicalKey, key, reason: music);
         final figure = (dance.figuresSource as DecodedFigures).figures.single;
         expect(figure.params['beats'], beats, reason: music);
+      }
+    });
+
+    test('a number that is not a meter is not stored as one', () {
+      for (final music in ['Track 3/12', 'Learned 1/2/2003']) {
+        final mapping = mapCallersCompanionDance(
+          record(music: music),
+          englishDances: true,
+        );
+        expect(mapping.dance.meter, '', reason: music);
+        expect(
+          mapping.issues.map((i) => i.code),
+          contains('cc_bars_meter_unstated'),
+          reason: music,
+        );
       }
     });
 

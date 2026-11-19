@@ -8408,7 +8408,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importUsrEnglishBody =>
-      'Caller\'s Companion zet Engelse country dances onder Contra. Bevat dit bestand Engelse dansen, dan worden ze gelezen met Engelse figuren, formaties en maattellingen. Squaredansen blijven squares.';
+      'Caller\'s Companion zet Engelse country dances vaak onder Contra. Bevat dit bestand Engelse dansen, dan worden ze gelezen met Engelse figuren, formaties en maattellingen. Squaredansen blijven squares.';
 
   @override
   String get importUsrEnglishNo => 'Nee, lees hun type';
