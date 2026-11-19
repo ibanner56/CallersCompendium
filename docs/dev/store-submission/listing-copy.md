@@ -97,7 +97,7 @@ YOUR DATA STAYS YOURS
 Accessibility is a first-class goal: large type, high contrast, low-vision fonts,
 and screen-reader support throughout.
 
-Free and open source (AGPL-3.0). Source, issues, and the beta program:
+Free and open source (AGPL-3.0-only). Source, issues, and the beta program:
 https://github.com/ibanner56/CallersCompendium
 ```
 
@@ -252,7 +252,7 @@ Caller's Compendium is an offline organizer/reference for contra dance callers.
   callers using the app. This data is used only for app functionality, is not 
   linked to the user's identity, and does not require an account.
 - The app has no analytics, advertising, or tracking telemetry.
-- Free and open source (AGPL-3.0): https://github.com/ibanner56/CallersCompendium
+- Free and open source (AGPL-3.0-only): https://github.com/ibanner56/CallersCompendium
 ```
 
 ## Assets checklist (recap)
