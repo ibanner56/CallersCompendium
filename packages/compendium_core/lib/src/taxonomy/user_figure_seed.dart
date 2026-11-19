@@ -30,7 +30,9 @@ import 'user_figure_definition.dart';
 /// - **Wording**: the move's starting wording ([FigureRenderer.
 ///   moveWordingTemplate], its display wording but for slide along set's
 ///   `{move} {slide}`) when every slot it uses is one of the copy's, else its plain render template when that holds, else
-///   just `{move}`.
+///   just `{move}`. An English country dance movement skips the starting
+///   wording, which writes its switch groups as wording conditions, and
+///   starts from its render template.
 ///
 /// An alias is copied as the move it names, starting from the values it pins
 /// where the move's parameters can hold them (a "pull by neighbors" copy has

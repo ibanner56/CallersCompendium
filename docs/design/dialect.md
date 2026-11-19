@@ -75,7 +75,12 @@ built figure.
   except slide along set: it reads "slide left along set" by default, spelling
   its name around the side, but starts a wording from `{move} {slide}`, so a
   dialect's own name for it still shows. Saved unchanged, that wording reads
-  "slide along set left"; `slide {slide} along set` keeps the default order. Imported
+  "slide along set left"; `slide {slide} along set` keeps the default order. An
+English country dance movement starts from its display template rewritten as
+a wording that saves: each `[{?flag}…]` group becomes `[if flag then …]`, and
+the template's own choices (a run of changes with no count, a hey with no
+`who`, a forward and back with no direction) become conditions too, so the
+wording, saved unchanged, reads as the default line. Imported
   templates are sanitized, capped at 512 UTF-16 code units
   each as stored, conditions included, and limited to 256 entries per dialect.
 - `moveWordingBranches` stores fixed branch-specific templates for
