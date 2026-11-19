@@ -1,3 +1,4 @@
+import '../support/announcements.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:drift/native.dart';
@@ -194,10 +195,15 @@ void main() {
       expect(button('beginner', 'up').onPressed, isNull);
       expect(button('advanced', 'down').onPressed, isNull);
 
+      final announced = recordAnnouncements();
       await tester.tap(find.byKey(const ValueKey('choice-beginner-move-down')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('choice-advanced-move-up')));
       await tester.pumpAndSettle();
+      expect(announced, [
+        'beginner moved to position 2 of 3',
+        'advanced moved to position 2 of 3',
+      ]);
       await tester.tap(find.byKey(const ValueKey('cf-form-save')));
       await tester.pumpAndSettle();
 

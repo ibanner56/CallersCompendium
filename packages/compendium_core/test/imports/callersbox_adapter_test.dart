@@ -1266,6 +1266,22 @@ void main() {
       );
 
       test(
+        'a setup cast that travels down the set is not the meltdown setup',
+        () async {
+          // v40 (#770): the setup is a cast BACK; a cast down is a figure of
+          // its own and stays one.
+          final figures = await figuresFor([
+            '(2) Women cast down || Men go forward',
+            '(6) N2 neighbor right shoulder round',
+            '(8) N2 neighbor swing',
+          ]);
+          expect(figures, hasLength(2));
+          expect(figures.first.isMeanwhile, isTrue);
+          expect(figures.last.params['beats'], 14);
+        },
+      );
+
+      test(
         'a shoulder-round subject mismatch blocks the meltdown fold',
         () async {
           final figures = await figuresFor([

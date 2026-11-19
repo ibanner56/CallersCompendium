@@ -2,28 +2,26 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-/// Corner radii come from `AppShapes` (8 / 12 / 16, dialogs 28), so a card, a
-/// field and a badge round alike across the app (U11).
+/// Corner radii come from `AppShapes` (8 / 12 / 16, dialogs 28, pills), so a
+/// card, a field and a badge round alike across the app.
 ///
-/// A `BorderRadius.circular(<number>)` literal in a screen or widget is a
-/// radius nobody chose. The files below keep theirs on purpose, each for a
-/// shape that is not a control: a miniature of a theme, a skeleton bone or a
-/// pill. A new literal fails this test until it either uses a
-/// token or is justified here.
-const Set<String> _allowed = {
-  // Miniatures of a theme's own cards, chips and focus ring: they mimic what
-  // the theme draws, so they scale with its look, not the app's.
-  'lib/src/screens/settings/appearance_section.dart',
-  // A pill-shaped colour swatch.
-  'lib/src/screens/theme_editor_screen.dart',
-  // A placeholder bone is sized to the content it stands in for; its default
-  // radius is a placeholder's, not a control's.
-  'lib/src/widgets/skeleton.dart',
-};
+/// A `BorderRadius.circular(<number>)` or `Radius.circular(<number>)` literal
+/// in a screen or widget is a radius nobody chose. There is no allow-list:
+/// even the theme picker's miniatures and the skeleton bones use the tokens.
+/// `tools/codemod/spacing_tokens.py` rewrites the mechanical cases.
+final RegExp _literalRadius = RegExp(r'(?:Border)?Radius\.circular\(\s*\d');
+
+/// The lines of [source] that write a literal radius, ignoring comments.
+List<int> literalRadiusLines(String source) {
+  final lines = source.split('\n');
+  return [
+    for (var i = 0; i < lines.length; i++)
+      if (_literalRadius.hasMatch(lines[i].split('//').first)) i + 1,
+  ];
+}
 
 void main() {
   test('screens and widgets round corners with AppShapes tokens', () {
-    final literal = RegExp(r'(?:Border)?Radius\.circular\(\s*\d');
     final offenders = <String>[];
     for (final entity in Directory('lib').listSync(recursive: true)) {
       if (entity is! File || !entity.path.endsWith('.dart')) continue;
@@ -31,27 +29,28 @@ void main() {
       if (path.startsWith('lib/l10n/') || path.startsWith('lib/src/theme/')) {
         continue;
       }
-      if (_allowed.contains(path)) continue;
-      final lines = entity.readAsLinesSync();
-      for (var i = 0; i < lines.length; i++) {
-        if (literal.hasMatch(lines[i])) offenders.add('$path:${i + 1}');
+      for (final line in literalRadiusLines(entity.readAsStringSync())) {
+        offenders.add('$path:$line');
       }
     }
     expect(
       offenders,
       isEmpty,
       reason:
-          'Use AppShapes.borderRadiusSmall / Medium / Large, or add the file '
-          'to the allow-list with the reason.',
+          'Use AppShapes.borderRadiusSmall / Medium / Large, or '
+          'BorderRadius.circular(AppShapes.radiusFull).',
     );
   });
 
-  test('every allow-listed file still has a literal radius', () {
-    final literal = RegExp(r'(?:Border)?Radius\.circular\(\s*\d');
-    final stale = [
-      for (final path in _allowed)
-        if (!File(path).readAsStringSync().contains(literal)) path,
-    ];
-    expect(stale, isEmpty, reason: 'Remove them from the allow-list.');
+  test('the scan sees a literal radius and ignores tokens and comments', () {
+    expect(literalRadiusLines('a: BorderRadius.circular(14),'), [1]);
+    expect(literalRadiusLines('a: const Radius.circular(6),'), [1]);
+    expect(
+      literalRadiusLines(
+        'a: BorderRadius.circular(AppShapes.radiusSmall),\n'
+        '// BorderRadius.circular(14)\n',
+      ),
+      isEmpty,
+    );
   });
 }

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../editor/program_slot_rebase.dart';
 import '../theme/app_motion.dart';
+import '../theme/app_spacing.dart';
 import '../utils/undo_snack_bar.dart';
 import 'add_to_program_list.dart';
 
@@ -105,7 +106,12 @@ Future<void> showAddToProgramSheet(
                         children: [
                           if (keyboard == 0)
                             Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                              padding: const EdgeInsets.fromLTRB(
+                                AppSpacing.md,
+                                0,
+                                AppSpacing.md,
+                                AppSpacing.xs,
+                              ),
                               child: Align(
                                 alignment: Alignment.centerLeft,
                                 child: Text(
@@ -222,7 +228,7 @@ Widget _buildEmptyPrograms(
 }) {
   final theme = Theme.of(context);
   return ListView(
-    padding: const EdgeInsets.all(24),
+    padding: const EdgeInsets.all(AppSpacing.lg),
     children: [
       const SizedBox(height: 16),
       Text(

@@ -1247,7 +1247,10 @@ class SyncConflictComparison extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Padding(
-                    padding: EdgeInsets.only(top: 7, right: AppSpacing.xs),
+                    padding: EdgeInsets.only(
+                      top: AppSpacing.xs,
+                      right: AppSpacing.xs,
+                    ),
                     child: Icon(Icons.circle, size: 6),
                   ),
                   Expanded(child: Text(item)),

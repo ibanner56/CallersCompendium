@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/user_figures_scope.dart';
 import '../editor/user_figure_draft.dart';
+import '../theme/app_spacing.dart';
 import 'figure_param_editors.dart';
 import 'user_figure_argument_editor.dart';
 
@@ -64,7 +65,7 @@ class UserFigureUseEditor extends StatelessWidget {
       children: [
         for (final param in definition.params)
           Padding(
-            padding: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.only(bottom: AppSpacing.xs),
             child: UserFigureArgumentEditor(
               keyPrefix: keyPrefix,
               param: param,

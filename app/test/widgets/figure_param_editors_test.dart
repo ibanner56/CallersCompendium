@@ -1362,4 +1362,55 @@ void main() {
       expect(find.text('everyone'), findsNothing);
     });
   });
+
+  group('controls are full-size touch targets on touch platforms', () {
+    Future<void> pumpAt(WidgetTester tester, VisualDensity density) async {
+      final spec = contraTaxonomy.resolve('hey')!.params['meetTarget']!;
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(visualDensity: density),
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: Scaffold(
+            body: Center(
+              child: FigureParamEditor(
+                keyPrefix: 'p',
+                paramKey: 'meetTarget',
+                spec: spec,
+                // A set value, so the Clear button is offered.
+                value: spec.choices!.first,
+                dialect: Dialect.larksRobins,
+                onChanged: (_) {},
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('standard density (touch): Clear and the dropdown are 48dp', (
+      tester,
+    ) async {
+      await pumpAt(tester, VisualDensity.standard);
+      final clear = tester.getSize(
+        find.byKey(const ValueKey('p-meetTarget-clear')),
+      );
+      expect(clear.shortestSide, greaterThanOrEqualTo(48));
+      expect(
+        tester.getSize(find.byKey(const ValueKey('p-meetTarget'))).height,
+        greaterThanOrEqualTo(48),
+      );
+    });
+
+    testWidgets('compact density (desktop pointer) keeps the dense form', (
+      tester,
+    ) async {
+      await pumpAt(tester, VisualDensity.compact);
+      expect(
+        tester.getSize(find.byKey(const ValueKey('p-meetTarget'))).height,
+        lessThan(48),
+      );
+    });
+  });
 }

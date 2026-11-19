@@ -600,7 +600,12 @@ class _CustomFieldFormState extends State<_CustomFieldForm> {
       builder: (context, child) =>
           DiscardChangesGuard(dirty: _dirty, child: child!),
       child: Padding(
-        padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + insets.bottom),
+        padding: EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          AppSpacing.lg,
+          AppSpacing.lg,
+          AppSpacing.lg + insets.bottom,
+        ),
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(
@@ -795,7 +800,7 @@ class _ChoicesEditorState extends State<_ChoicesEditor> {
         ),
         if (widget.error != null)
           Padding(
-            padding: const EdgeInsets.only(top: 4),
+            padding: const EdgeInsets.only(top: AppSpacing.xxs),
             child: Text(
               widget.error!,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -819,7 +824,9 @@ class _ChoicesEditorState extends State<_ChoicesEditor> {
               return ListTile(
                 key: ValueKey('choice-$choice'),
                 dense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.xxs,
+                ),
                 leading: ReorderableDragStartListener(
                   index: index,
                   child: const Icon(Icons.drag_handle),
@@ -842,10 +849,26 @@ class _ChoicesEditorState extends State<_ChoicesEditor> {
                       name: choice,
                       onMoveUp: index == 0
                           ? null
-                          : () => widget.onReorder(index, index - 1),
+                          : () {
+                              widget.onReorder(index, index - 1);
+                              announceMoved(
+                                context,
+                                name: choice,
+                                position: index,
+                                count: widget.choices.length,
+                              );
+                            },
                       onMoveDown: index == widget.choices.length - 1
                           ? null
-                          : () => widget.onReorder(index, index + 1),
+                          : () {
+                              widget.onReorder(index, index + 1);
+                              announceMoved(
+                                context,
+                                name: choice,
+                                position: index + 2,
+                                count: widget.choices.length,
+                              );
+                            },
                     ),
                     IconButton(
                       key: ValueKey('remove-choice-$choice'),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../search/collection_query.dart';
+import '../theme/app_spacing.dart';
 import 'advanced_query_builder.dart' show MoveTypeAheadField;
 
 /// A Caller's Box-style "search by phrase" panel
@@ -95,7 +96,7 @@ class _PhraseRow extends StatelessWidget {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -166,7 +167,7 @@ class _MoveMultiField extends StatelessWidget {
       children: [
         if (moves.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.only(bottom: 4),
+            padding: const EdgeInsets.only(bottom: AppSpacing.xxs),
             child: Wrap(
               spacing: 6,
               runSpacing: 2,

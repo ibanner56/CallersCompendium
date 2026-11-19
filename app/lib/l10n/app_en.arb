@@ -12078,6 +12078,24 @@
       }
     }
   },
+  "commonMovedItemPosition": "{name} moved to position {position} of {count}",
+  "@commonMovedItemPosition": {
+    "description": "Screen-reader announcement after the move-up or move-down button of a reorderable settings list has moved an item, saying where it now is; positions count from 1.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Intermediate"
+      },
+      "position": {
+        "type": "int",
+        "example": "2"
+      },
+      "count": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
   "danceEditorFigureCutState": "Cut",
   "@danceEditorFigureCutState": {
     "description": "Badge and screen-reader text on a figure row that has been cut and is waiting to be pasted somewhere else; says the row's state, where danceEditorCut is the menu action that puts it there."

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -47,5 +49,25 @@ void main() {
 
   test('screen titles use the display face', () {
     expect(AppTypography.screenTitle.fontFamily, AppTypography.displayFamily);
+  });
+
+  test('no source file asks for a weight that is not bundled', () {
+    // Only 400 and 700 exist, so `w500` and `w600` are drawn as one of them,
+    // not as written. Ask for the weight that is drawn.
+    final unbundled = RegExp(r'FontWeight\.w[1235689]00\b');
+    final offenders = <String>[];
+    for (final entity in Directory('lib').listSync(recursive: true)) {
+      if (entity is! File || !entity.path.endsWith('.dart')) continue;
+      final path = entity.path.replaceAll(r'\', '/');
+      // The display face is the one family that ships more than two weights.
+      if (path == 'lib/src/theme/app_typography.dart') continue;
+      final lines = entity.readAsLinesSync();
+      for (var i = 0; i < lines.length; i++) {
+        if (unbundled.hasMatch(lines[i].split('//').first)) {
+          offenders.add('$path:${i + 1}');
+        }
+      }
+    }
+    expect(offenders, isEmpty, reason: 'Use FontWeight.w400 or w700.');
   });
 }

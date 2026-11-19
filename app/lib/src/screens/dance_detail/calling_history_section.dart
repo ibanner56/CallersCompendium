@@ -308,7 +308,7 @@ class _CallingHistorySectionState extends State<CallingHistorySection> {
               Padding(
                 key: const ValueKey('calling-history-error'),
                 // intentional: 2px optical inset, below the 4px AppSpacing grid
-                padding: const EdgeInsets.symmetric(vertical: 2),
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxxs),
                 child: Text(
                   l10n.danceCallingHistoryError,
                   style: theme.textTheme.bodyMedium?.copyWith(
@@ -320,7 +320,7 @@ class _CallingHistorySectionState extends State<CallingHistorySection> {
               Padding(
                 key: const ValueKey('calling-history-empty'),
                 // intentional: 2px optical inset, below the 4px AppSpacing grid
-                padding: const EdgeInsets.symmetric(vertical: 2),
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxxs),
                 child: Text(
                   l10n.danceCallingHistoryEmpty,
                   style: theme.textTheme.bodyMedium?.copyWith(

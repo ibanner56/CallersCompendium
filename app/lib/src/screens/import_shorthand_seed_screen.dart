@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/figure_summary.dart';
 
+import '../theme/app_spacing.dart';
+
 /// The user's choice for a single seedable shorthand candidate: whether to
 /// include it and, when the button has a distinct alternate call, which
 /// expansion (primary or alt) to seed.
@@ -109,7 +111,12 @@ class _ImportShorthandSeedScreenState extends State<ImportShorthandSeedScreen> {
       body: ListView(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md,
+              AppSpacing.md,
+              AppSpacing.md,
+              AppSpacing.xs,
+            ),
             child: Text(
               l10n.importShorthandSeedIntro,
               style: theme.textTheme.bodyMedium,
@@ -160,7 +167,7 @@ class _ImportShorthandSeedScreenState extends State<ImportShorthandSeedScreen> {
       ),
       bottomNavigationBar: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppSpacing.md),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -190,7 +197,12 @@ class _Note extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.md,
+        AppSpacing.xxs,
+        AppSpacing.md,
+        AppSpacing.xxs,
+      ),
       child: Text(text, style: Theme.of(context).textTheme.bodySmall),
     );
   }
@@ -205,7 +217,12 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.md,
+        AppSpacing.md,
+        AppSpacing.md,
+        AppSpacing.xxs,
+      ),
       child: Text(
         label,
         style: theme.textTheme.labelLarge?.copyWith(
@@ -254,7 +271,12 @@ class _SeedableTile extends StatelessWidget {
         ),
         if (candidate.hasAlt)
           Padding(
-            padding: const EdgeInsets.fromLTRB(72, 0, 16, 8),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.xxl + AppSpacing.lg,
+              0,
+              AppSpacing.md,
+              AppSpacing.xs,
+            ),
             child: SegmentedButton<bool>(
               key: ValueKey('seed-alt-toggle-${candidate.normalizedToken}'),
               segments: [

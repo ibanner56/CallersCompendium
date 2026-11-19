@@ -6,6 +6,7 @@ import '../screens/dance_editor/choice_option.dart';
 import '../screens/dance_editor/custom_field_editor.dart'
     show showAddChoiceOptionDialog;
 import '../theme/app_motion.dart';
+import '../theme/app_spacing.dart';
 import 'dirty_dialog_guard.dart';
 import 'dropdown_selection.dart';
 
@@ -246,7 +247,7 @@ class _BatchCustomFieldDialogState extends State<_BatchCustomFieldDialog> {
           width: 360,
           child: _defs.isEmpty
               ? Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
                   child: Text(l10n.collectionBatchCustomFieldEmpty),
                 )
               : Column(

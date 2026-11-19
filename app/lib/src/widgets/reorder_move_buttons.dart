@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 
 import '../../l10n/app_localizations.dart';
 
@@ -48,4 +49,25 @@ class ReorderMoveButtons extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Tells a screen reader where an item landed after Move up / Move down.
+///
+/// The button keeps its focus but the row it belongs to has moved, so without
+/// this a screen-reader user hears nothing and cannot tell the move worked.
+/// [position] counts from 1. Call it only once the move has actually happened
+/// (not for a move that was ignored or failed), and only when [context] is
+/// still mounted.
+void announceMoved(
+  BuildContext context, {
+  required String name,
+  required int position,
+  required int count,
+}) {
+  if (!context.mounted) return;
+  SemanticsService.sendAnnouncement(
+    View.of(context),
+    AppLocalizations.of(context).commonMovedItemPosition(name, position, count),
+    Directionality.of(context),
+  );
 }

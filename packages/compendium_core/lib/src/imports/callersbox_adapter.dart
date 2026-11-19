@@ -5,6 +5,7 @@ import '../model/enums.dart';
 import '../model/figure.dart';
 import '../model/formation.dart';
 import '../model/phrase_structure.dart';
+import '../taxonomy/cast_vocabulary.dart';
 import '../util/text_sanitizer.dart';
 import 'author_tokenizer.dart';
 import 'beat_implied_balance.dart';
@@ -17,6 +18,7 @@ import 'raw_record.dart';
 import 'source_adapter.dart';
 import 'structured_draft.dart';
 import '../taxonomy/contra_taxonomy.dart' show contraTaxonomy;
+import '../taxonomy/param_types.dart' show ParamVocab;
 
 /// A [SourceAdapter] that imports dances from **The Caller's Box** (TCB)
 /// per-dance JSON, as served by
@@ -232,11 +234,13 @@ class CallersBoxAdapter implements SourceAdapter {
         .toLowerCase();
     final isFull = permission == 'full';
     final figures = isFull
-        ? _parseFigures(
-            dance['phrases'],
-            longestPhraseBeats: PhraseStructure.parseOrStandard(
-              phraseStructure,
-            ).longestPhraseBeats,
+        ? _assumeCastShoulders(
+            _parseFigures(
+              dance['phrases'],
+              longestPhraseBeats: PhraseStructure.parseOrStandard(
+                phraseStructure,
+              ).longestPhraseBeats,
+            ),
           )
         : const <Figure>[];
     if (!isFull) {
@@ -1213,6 +1217,38 @@ class CallersBoxAdapter implements SourceAdapter {
     );
   }
 
+  /// The Caller's Box's cast-back convention (taxonomy v40, #770): a role's
+  /// cast that states no shoulder is over the role's usual one, role2s right
+  /// and role1s left ([castBackShoulderForWho]), as a chain assumes a role's
+  /// hand. The maintainer's ruling limits it to this adapter: other sources,
+  /// typed text and a re-check of stored lines leave an unstated shoulder
+  /// unstated. Recurses into containers, so a `||` side is covered.
+  static List<Figure> _assumeCastShoulders(List<Figure> figures) => [
+    for (final figure in figures) _assumeCastShoulder(figure),
+  ];
+
+  static Figure _assumeCastShoulder(Figure figure) {
+    if (figure.isContainer) {
+      final children = figure.subFigures;
+      final mapped = _assumeCastShoulders(children);
+      var changed = false;
+      for (var i = 0; i < children.length; i++) {
+        if (!identical(children[i], mapped[i])) changed = true;
+      }
+      return changed
+          ? figure.copyWith(params: {...figure.params, 'figures': mapped})
+          : figure;
+    }
+    if (figure.move != 'cast') return figure;
+    final direction = figure.params['direction'];
+    if (direction != null && direction != ParamVocab.unspecified) {
+      return figure;
+    }
+    final shoulder = castBackShoulderForWho(figure.params['who']);
+    if (shoulder == null) return figure;
+    return figure.copyWith(params: {...figure.params, 'direction': shoulder});
+  }
+
   static bool _isMeltdownSetup(Figure figure) {
     if (figure.beats != 2) return false;
     final words = figure.isMeanwhile
@@ -1220,8 +1256,18 @@ class CallersBoxAdapter implements SourceAdapter {
         : figure.isCustom
         ? _figureWords(figure)
         : const <String>[];
-    return words.contains('cast') &&
-        words.contains('back') &&
+    // Since taxonomy v40 (#770) the "Women cast back" side reads as a
+    // structured `cast`, so it no longer leaves its words behind. A cast back
+    // is one that travels neither up nor down the set.
+    final castSide =
+        figure.isMeanwhile &&
+        figure.subFigures.any(
+          (f) =>
+              f.move == 'cast' &&
+              f.params['direction'] != 'up' &&
+              f.params['direction'] != 'down',
+        );
+    return (castSide || (words.contains('cast') && words.contains('back'))) &&
         words.contains('go') &&
         words.contains('forward');
   }

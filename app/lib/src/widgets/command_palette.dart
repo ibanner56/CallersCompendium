@@ -9,6 +9,7 @@ import '../data/repositories_scope.dart';
 import '../data/sort_ignore_articles_scope.dart';
 import '../search/facet_labels.dart';
 import '../theme/app_motion.dart';
+import '../theme/app_spacing.dart';
 import 'skeleton.dart';
 
 /// The kind of entity a [CommandResult] points at, so the shell knows which
@@ -296,7 +297,11 @@ class _CommandPaletteState extends State<CommandPalette> {
     return Dialog(
       key: const ValueKey('command-palette'),
       alignment: Alignment.topCenter,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 80),
+      insetPadding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        // Clears the status bar and keeps the palette in the top third.
+        vertical: AppSpacing.xxl + AppSpacing.xl,
+      ),
       clipBehavior: Clip.antiAlias,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 560, maxHeight: 520),
@@ -304,7 +309,12 @@ class _CommandPaletteState extends State<CommandPalette> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.md,
+                AppSpacing.md,
+                AppSpacing.xs,
+              ),
               child: TextField(
                 key: const ValueKey('command-palette-field'),
                 focusNode: _fieldFocus,
@@ -326,7 +336,12 @@ class _CommandPaletteState extends State<CommandPalette> {
             // outside the scrollable so it cannot scroll away.
             if (!_loading && _results.isNotEmpty)
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.md,
+                  0,
+                  AppSpacing.md,
+                  AppSpacing.xxs,
+                ),
                 child: Align(
                   alignment: AlignmentDirectional.centerEnd,
                   child: Semantics(
@@ -356,14 +371,14 @@ class _CommandPaletteState extends State<CommandPalette> {
   Widget _buildBody(ThemeData theme, AppLocalizations l10n) {
     if (_loading) {
       return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 8),
+        padding: EdgeInsets.symmetric(vertical: AppSpacing.xs),
         child: SkeletonResultRows(),
       );
     }
     if (_results.isEmpty) {
       return Padding(
         key: const ValueKey('command-palette-empty'),
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(AppSpacing.xl),
         child: Center(
           // Live region for the same reason as the result count above: an
           // empty result set is a change in what Enter would do.
@@ -405,7 +420,7 @@ class _CommandPaletteState extends State<CommandPalette> {
     }
     return ListView(
       controller: _scrollController,
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
       children: children,
     );
   }
@@ -424,12 +439,17 @@ class _GroupHeader extends StatelessWidget {
         ? l10n.commandPaletteGroupDances
         : l10n.commandPaletteGroupPrograms;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.md,
+        AppSpacing.sm,
+        AppSpacing.md,
+        AppSpacing.xxs,
+      ),
       child: Text(
         label,
         style: theme.textTheme.labelSmall?.copyWith(
           color: theme.colorScheme.onSurfaceVariant,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w700,
           letterSpacing: 0.6,
         ),
       ),
