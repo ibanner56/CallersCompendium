@@ -11,15 +11,19 @@ import 'package:test/test.dart';
 /// - an unstated direction shows as "cast back", a shoulder as "cast back
 ///   left/right", up/down bare;
 /// - "cast off" is `down` with `places` 1 unless the line states a number;
-/// - in The Caller's Box, women cast back over the right shoulder and men
-///   over the left; any other named dancers casting back stay custom;
+/// - women cast back over the right shoulder and men over the left, written
+///   by every reader and by the editor as a chain's role-implied hand is, and
+///   left unsaid in the display as a chain's hand is;
 /// - `(past …)` counts into `places` and is kept as a note; `[with N1]` is a
 ///   note, as on other moves;
-/// - "Hand cast" is an alias of `gate`.
+/// - "Hand cast" is an alias of `gate`, listed as a move like `long_lines`.
 ///
 /// Corpus figures in comments come from the 1,563 public Caller's Box dances
 /// whose figures mention "cast", fetched 2026-11-19 (`docs/research/
 /// callersbox.md`).
+MoveDef? contraOrEcd(String id) =>
+    contraTaxonomy.resolve(id) ?? ecdTaxonomy.resolve(id);
+
 void main() {
   final renderer = FigureRenderer(contraTaxonomy);
   final canonical = Dialect.canonical;
@@ -78,10 +82,36 @@ void main() {
       expect(castDestinations, containsAll(['top', 'bottom']));
     });
 
+    test('ECD has not yet taken the shared shape', () {
+      // The maintainer decided contra's `cast` and ECD's `ecd_cast` share one
+      // shape; the ECD side is the ECD taxonomy's to change. This records
+      // where it stands, so the change shows up here: when `ecd_cast` takes
+      // the shape, replace this with a test that the two moves' param names,
+      // `direction` choices and `destination` choices agree.
+      final ecd = contraOrEcd('ecd_cast')!;
+      expect(ecd.params.keys.toSet(), {
+        'who',
+        'where',
+        'direction',
+        'whom',
+        'destination',
+        'beats',
+      });
+      expect(contraTaxonomy.resolve('cast')!.params.keys.toSet(), {
+        'who',
+        'direction',
+        'places',
+        'whom',
+        'destination',
+        'beats',
+      });
+    });
+
     test('hand cast is an alias of gate that pins nothing', () {
       final alias = contraTaxonomy.aliases['hand_cast']!;
       expect(alias.targetMove, 'gate');
       expect(alias.pinnedParams, isEmpty);
+      expect(alias.listedAsMove, isTrue);
       expect(contraTaxonomy.resolve('hand_cast')?.id, 'gate');
     });
   });
@@ -97,6 +127,19 @@ void main() {
       expect(show({'direction': 'left'}), 'cast back left');
       expect(show({'direction': 'up'}), 'cast up');
       expect(show({'direction': 'down'}), 'cast down');
+    });
+
+    test("a role's own shoulder goes unsaid, as a chain's hand does", () {
+      expect(show({'who': 'role2s', 'direction': 'right'}), 'role2s cast back');
+      expect(show({'who': 'role1s', 'direction': 'left'}), 'role1s cast back');
+      expect(
+        show({'who': 'role2s', 'direction': 'left'}),
+        'role2s cast back left',
+      );
+      expect(
+        show({'who': 'ones', 'direction': 'right'}),
+        'ones cast back right',
+      );
     });
 
     test('places, whom and destination follow in that order', () {
@@ -135,6 +178,32 @@ void main() {
         'hand cast',
       );
     });
+
+    test("a hand cast keeps a gate's wording around its own name", () {
+      expect(
+        renderer.renderSummary(
+          testFigure(
+            move: 'hand_cast',
+            params: {'pair': 'neighbors', 'travel': 0.5, 'endFacing': 'up'},
+          ),
+          canonical,
+        ),
+        allOf(startsWith('neighbor hand cast'), contains('to face up')),
+      );
+    });
+
+    test("a dialect's name for gate never renames a hand cast", () {
+      final rotate = Dialect(name: 'Rotate', moves: {'gate': 'rotate'});
+      expect(
+        renderer.renderSummary(testFigure(move: 'hand_cast'), rotate),
+        'hand cast',
+      );
+      final named = Dialect(name: 'Named', moves: {'hand_cast': 'pivot'});
+      expect(
+        renderer.renderSummary(testFigure(move: 'hand_cast'), named),
+        'pivot',
+      );
+    });
   });
 
   group("The Caller's Box", () {
@@ -171,10 +240,56 @@ void main() {
       expect(castParams('Cast back'), isEmpty);
     });
 
-    test('a cast back by any other named dancers stays custom', () {
-      // The maintainer asked for this group to stay custom for now.
-      expect(tcb('Ones cast back').isCustom, isTrue);
-      expect(tcb('Partner cast back').isCustom, isTrue);
+    test('a cast back by other named dancers states no shoulder', () {
+      expect(castParams('Ones cast back'), {'who': 'ones'});
+    });
+
+    test('the groups the maintainer kept custom stay custom', () {
+      expect(
+        tcb(
+          'Ones lead down through twos; separate; cast back to place',
+        ).isCustom,
+        isTrue,
+      );
+      final ends = parseFigureLines(
+        'Ends cast back to P2 || Centers walk forward to P2',
+        beats: 2,
+        frontEnd: tcbFigureFrontEnd,
+      ).single;
+      expect(ends.subFigures.first.isCustom, isTrue);
+    });
+
+    test('a re-check reads a cast back as a fresh import does', () {
+      // The re-check of an older import, Caller's Companion import and
+      // free-text entry read through the fan-out across every front end.
+      for (final line in [
+        'Women cast back',
+        'Men cast back to P2',
+        'Ones cast back',
+        'Ones cast down (past twos; threes)',
+      ]) {
+        final fresh = encodeFigures([tcb(line)]);
+        expect(
+          encodeFigures(parseFigureLinesFanOut(line, beats: 4)),
+          fresh,
+          reason: line,
+        );
+      }
+      final reparsed = reparseImportGapFigures([
+        Figure(
+          move: customMove,
+          params: {'text': 'Women cast back', 'beats': 2},
+          customOrigin: CustomOrigin.importGap,
+        ),
+      ]);
+      expect(reparsed.figures.single.params['direction'], 'right');
+    });
+
+    test('typed text reads a role cast back with its shoulder', () {
+      expect(
+        parseFreeTextFigureEntry('robins cast back').single.params,
+        containsPair('direction', 'right'),
+      );
     });
 
     test('(past …) counts into places and is kept as a note', () {
@@ -183,6 +298,25 @@ void main() {
       expect(figure.note, 'past twos; threes');
       expect(tcb('Ones cast up (past N2;N1)').params['places'], 2);
       expect(tcb('Ones cast up (past threes)').params['places'], 1);
+    });
+
+    test('a (past …) list that is not a list of dancers stays custom', () {
+      for (final line in [
+        'Twos cast up (past ones and threes)',
+        'Women cast up (past S; to partner)',
+        'Ones cast down (past twos, threes)',
+        'Ones cast down (past 2 couples)',
+        'Ones cast down (past top couple)',
+        'Ones cast down (past twos) (past threes)',
+      ]) {
+        expect(tcb(line).isCustom, isTrue, reason: line);
+      }
+      expect(
+        tcb('Ones cast down (past N2 twos; N1 threes)').params['places'],
+        2,
+      );
+      expect(tcb('role2s cast down (past W2;W3)').params['places'], 2);
+      expect(tcb('Ones cast down (past shadow S1)').params['places'], 1);
     });
 
     test('a (past …) count that disagrees with the line stays custom', () {
@@ -238,6 +372,37 @@ void main() {
         expect(read, hasLength(1), reason: text);
         expect(read.single.params['destination'], destination, reason: text);
       }
+    });
+  });
+
+  group('the editor', () {
+    test("a role's who seeds a cast back's shoulder, as a chain's hand", () {
+      final params = <String, Object?>{'who': 'role2s'};
+      seedCastShoulder('cast', params);
+      expect(params['direction'], 'right');
+      // A who edit rewrites the shoulder set for the old role.
+      applyParamChange(
+        contraTaxonomy,
+        move: 'cast',
+        params: params,
+        key: 'who',
+        value: 'role1s',
+        beatsTouched: false,
+        aggressiveBeats: false,
+      );
+      expect(params['direction'], 'left');
+    });
+
+    test('a cast up or down, or by other dancers, is left alone', () {
+      final down = <String, Object?>{'who': 'role2s', 'direction': 'down'};
+      seedCastShoulder('cast', down);
+      expect(down['direction'], 'down');
+      final ones = <String, Object?>{'who': 'ones'};
+      seedCastShoulder('cast', ones);
+      expect(ones, isNot(contains('direction')));
+      final chain = <String, Object?>{'who': 'role2s'};
+      seedCastShoulder('chain', chain);
+      expect(chain, isNot(contains('direction')));
     });
   });
 }

@@ -1221,9 +1221,16 @@ class CallersBoxAdapter implements SourceAdapter {
         ? _figureWords(figure)
         : const <String>[];
     // Since taxonomy v40 (#770) the "Women cast back" side reads as a
-    // structured `cast`, so it no longer leaves its words behind.
+    // structured `cast`, so it no longer leaves its words behind. A cast back
+    // is one that travels neither up nor down the set.
     final castSide =
-        figure.isMeanwhile && figure.subFigures.any((f) => f.move == 'cast');
+        figure.isMeanwhile &&
+        figure.subFigures.any(
+          (f) =>
+              f.move == 'cast' &&
+              f.params['direction'] != 'up' &&
+              f.params['direction'] != 'down',
+        );
     return (castSide || (words.contains('cast') && words.contains('back'))) &&
         words.contains('go') &&
         words.contains('forward');

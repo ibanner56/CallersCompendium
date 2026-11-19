@@ -2828,14 +2828,29 @@ class FigureRenderer {
   /// taxonomy v39, has one: it keeps the line it had as a move, "long lines"
   /// from its template with the direction added by [renderSummary].
   ///
-  /// `hand_cast` (taxonomy v40) takes none either: `gate`'s renderer words the
-  /// line around the name "gate", so a hand cast would show as a gate. The
-  /// template path names it by its alias, "hand cast", with any gate param
-  /// the figure states after it.
-  static _DisplayBaseRenderer? _displayBaseFor(Figure figure, MoveDef def) =>
-      figure.move == 'long_lines' || figure.move == 'hand_cast'
-      ? null
-      : _displayBaseRenderers[def.id];
+  /// `hand_cast` (taxonomy v40), an alias of `gate` listed as a move, takes
+  /// `gate`'s renderer under its own id and name, so it reads "hand cast" with
+  /// a gate's wording around it ("neighbor hand cast ½ to face up"), and a
+  /// dialect's name for it, never one for `gate`, applies.
+  static _DisplayBaseRenderer? _displayBaseFor(Figure figure, MoveDef def) {
+    if (figure.move == 'long_lines') return null;
+    final base = _displayBaseRenderers[def.id];
+    if (figure.move != 'hand_cast' || base == null) return base;
+    final aliasId = figure.move;
+    return (r, def, params, dialect, verbose, decimals) => base(
+      r,
+      MoveDef(
+        id: aliasId,
+        displayName: r.taxonomy.aliases[aliasId]?.displayName ?? def.displayName,
+        params: def.params,
+        renderTemplate: def.renderTemplate,
+      ),
+      params,
+      dialect,
+      verbose,
+      decimals,
+    );
+  }
 
   /// DISPLAY-ONLY base-line renderers that adopt ContraDB `libfigure`
   /// (`app/javascript/libfigure/figure.js` @13f38a5) `words()` sentence
@@ -3117,7 +3132,8 @@ class FigureRenderer {
     //   {who} cast {back | back {direction} | {direction}} {places} places
     //   [around {whom}] [to {destination}]
     // An unstated direction reads "cast back"; a shoulder (`left`/`right`)
-    // reads "cast back left"/"cast back right"; `up`/`down` read bare. The
+    // reads "cast back left"/"cast back right", unless it is the dancers'
+    // role's own (below); `up`/`down` read bare. The
     // canonical render keeps expanding the flat template, so search and dedupe
     // see the stored token ("cast right") rather than this wording.
     'cast': (r, def, params, dialect, verbose, decimals) {
@@ -3130,6 +3146,11 @@ class FigureRenderer {
       final directionRaw = params['direction'];
       final direction = switch (directionRaw) {
         'up' || 'down' => directionRaw as String,
+        // A role's own shoulder goes unsaid, as a chain's role-implied hand
+        // does ("role2s chain"): "role2s cast back" is over the right shoulder
+        // (the maintainer's ruling; `castBackShoulderForWho`). The other
+        // shoulder is shown: "role2s cast back left".
+        _ when directionRaw == castBackShoulderForWho(params['who']) => 'back',
         'left' || 'right' => 'back $directionRaw',
         // An unexpected value is surfaced after "back" rather than dropped.
         _ when _isUnspecified(directionRaw) || directionRaw == null => 'back',

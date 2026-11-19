@@ -1,4 +1,5 @@
 import '../model/figure.dart';
+import 'cast_vocabulary.dart';
 import 'param_types.dart';
 import 'taxonomy.dart';
 
@@ -12,6 +13,24 @@ void seedChainHand(String moveId, Map<String, Object?> params) {
   if (who is! String) return;
   final hand = chainHandForWho(who);
   if (hand != null) params['hand'] = hand;
+}
+
+/// Seeds `cast`'s shoulder from its role (`who`), as [seedChainHand] seeds a
+/// chain's hand, so a cast back made in the editor stores the same shoulder as
+/// one read from text (taxonomy v40, #770; the maintainer's ruling that a
+/// role2s' cast back is over the right shoulder and a role1s' over the left,
+/// [castBackShoulderForWho]).
+///
+/// Only a cast back is seeded: a cast `up` or `down` keeps its direction. A
+/// shoulder set for the old role is rewritten, as a chain's hand is. A no-op
+/// for any other move or a `who` that is not a role.
+void seedCastShoulder(String moveId, Map<String, Object?> params) {
+  if (moveId != 'cast') return;
+  final shoulder = castBackShoulderForWho(params['who']);
+  if (shoulder == null) return;
+  final direction = params['direction'];
+  if (direction == 'up' || direction == 'down') return;
+  params['direction'] = shoulder;
 }
 
 /// Applies a change of the non-`beats` param [key] to [value] on a figure of
@@ -43,7 +62,9 @@ void seedChainHand(String moveId, Map<String, Object?> params) {
 /// - **a `balance` flag** shifts `beats` by +4 (on) or -4 (off) from the
 ///   current count, clamped to 0..64, including a manual override, and returns
 ///   before the rules below.
-/// - **chain `who`** (#976) rewrites the role-implied `hand`.
+/// - **chain `who`** (#976) rewrites the role-implied `hand`, and **cast
+///   `who`** (v40, #770) the role-implied shoulder of a cast back
+///   ([seedCastShoulder]).
 /// - **inverse pairs** are rerouted by their pinned value.
 /// - **beats** are reconciled with the move's canonical default (#262): a
 ///   change that shifts the default snaps `beats` to it, and one that leaves
@@ -101,6 +122,7 @@ String applyParamChange(
   }
   if (!setByFractionRule) params[key] = value;
   if (move == 'chain' && key == 'who') seedChainHand('chain', params);
+  if (move == 'cast' && key == 'who') seedCastShoulder('cast', params);
   final resolved = taxonomy.resolvedMoveId(Figure(move: move, params: params));
   final newDefault = canonicalBeatsFor(taxonomy, resolved, params);
   if (newDefault == null) return resolved;

@@ -1998,10 +1998,15 @@ final Taxonomy contraTaxonomy = Taxonomy(
     // pinned: a hand cast states none of a gate's params, so it is stored under
     // its own id (and shown under its own name) with every gate param at the
     // gate's own `unspecified` default.
+    //
+    // Listed as a move for the reasons `long_lines` is: its figures are stored
+    // under its own id, so a search must be able to name it, and a dialect's
+    // name or wording for `gate` must not turn a hand cast into a gate.
     const MoveAlias(
       id: 'hand_cast',
       displayName: 'hand cast',
       targetMove: 'gate',
+      listedAsMove: true,
     ),
     const MoveAlias(
       id: 'meltdown_swing',

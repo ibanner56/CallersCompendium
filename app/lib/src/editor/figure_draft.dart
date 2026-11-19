@@ -162,6 +162,12 @@ class FigureDraft {
         !figure.params.containsKey('hand')) {
       seedChainHand(figure.move, draft.params);
     }
+    // Likewise a cast back's role-implied shoulder (v40, #770).
+    if (defaults.containsKey('who') &&
+        !defaults.containsKey('direction') &&
+        !figure.params.containsKey('direction')) {
+      seedCastShoulder(figure.move, draft.params);
+    }
   }
 
   /// The user's Move defaults for [figure]'s move that the line left unstated,

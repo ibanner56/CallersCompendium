@@ -1779,10 +1779,11 @@ _Match? _handCast(List<String> w) {
 // the cast's `destination` is a place, not a person. It is kept as a note
 // rather than dropped.
 //
-// What this reader does NOT do, deliberately: give a "cast back" a shoulder
-// from its dancers' role. That is The Caller's Box's convention, so it lives in
-// that front end (`callersbox_figure_dialect.dart`); applied here, the display
-// line "robins cast back" would read back as a different figure.
+// A role's "cast back" with no shoulder is over the role's own shoulder
+// (`castBackShoulderForWho`: role2s right, role1s left), the maintainer's
+// ruling, written here as a chain's role-implied hand is written by every
+// reader. The display leaves that shoulder unsaid, so "robins cast back" reads
+// back as itself.
 //
 // Conservative, per the whole-line contract: anything left over (a second
 // direction, "behind partner", "around the major set", "to the ends of a line
@@ -1818,7 +1819,14 @@ _Match? _cast(List<String> w) {
     case 'back':
       i++;
       direction = _castShoulder(peek());
-      if (direction != null) i++;
+      if (direction != null) {
+        i++;
+      } else {
+        // A role's cast back with no shoulder: the role's own, written as a
+        // chain's role-implied hand is (the maintainer's ruling). Any other
+        // dancers' cast back leaves the shoulder unstated.
+        direction = castBackShoulderForWho(who);
+      }
     default:
       direction = _castShoulder(peek());
       if (direction != null) i++;

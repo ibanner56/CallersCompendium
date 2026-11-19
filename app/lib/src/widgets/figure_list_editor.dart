@@ -1815,6 +1815,9 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     if (chainOverrides == null || !chainOverrides.containsKey('hand')) {
       seedChainHand(moveId, widget.draft.params);
     }
+    if (chainOverrides == null || !chainOverrides.containsKey('direction')) {
+      seedCastShoulder(moveId, widget.draft.params);
+    }
     _showMoreOptions = false;
     widget.onChanged();
   }
@@ -3938,6 +3941,9 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
     if (chainOverrides == null || !chainOverrides.containsKey('hand')) {
       seedChainHand(moveId, draft.params);
     }
+    if (chainOverrides == null || !chainOverrides.containsKey('direction')) {
+      seedCastShoulder(moveId, draft.params);
+    }
     widget.onChanged();
   }
 
@@ -4301,6 +4307,10 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
               // survive onto the new one.
               if (draft.move == 'chain' && entry.key == 'who') {
                 seedChainHand('chain', draft.params);
+              }
+              // v40 (#770): likewise a cast back's role-implied shoulder.
+              if (draft.move == 'cast' && entry.key == 'who') {
+                seedCastShoulder('cast', draft.params);
               }
               _rerouteInversePair(draft, widget.taxonomy);
               widget.onChanged();

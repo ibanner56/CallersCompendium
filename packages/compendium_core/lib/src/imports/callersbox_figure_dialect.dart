@@ -1,5 +1,4 @@
 import '../model/figure.dart';
-import '../taxonomy/cast_vocabulary.dart';
 import '../taxonomy/contra_taxonomy.dart';
 import '../taxonomy/move_def.dart';
 import '../taxonomy/param_types.dart';
@@ -88,10 +87,9 @@ final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
     _balancePairHandAnnotation,
     _gateAnnotation,
     _courtesyTurnAnnotation,
-    // Taxonomy v40 (#770): TCB's `(past …)` count and its "cast back"
-    // convention. It fires only on a cast line carrying one of them, and reads
-    // the rest of the line through every other entry here, so its position is
-    // not correctness-critical.
+    // Taxonomy v40 (#770): TCB's `(past …)` count on a cast. It fires only on
+    // a cast line carrying one, and reads the rest of the line through every
+    // other entry here, so its position is not correctness-critical.
     _tcbCast,
     _walkForwardAnnotation,
     _chainAnnotation,
@@ -1056,41 +1054,38 @@ final RegExp _promenadeMajorSetTail = RegExp(
   caseSensitive: false,
 );
 
-// --- Cast: the `(past …)` count and "cast back" (taxonomy v40, #770) ---------
+// --- Cast: the `(past …)` count (taxonomy v40, #770) --------------------------
 
-/// The two pieces of The Caller's Box's cast notation that the source-neutral
-/// `_cast` recognizer cannot read, applied on top of whatever the rest of this
-/// front end makes of the line:
+/// The Caller's Box's `(past twos; threes)` on a cast: the couples the cast goes
+/// past, which the glossary's "Cast down" entry gives as its distance. The count
+/// fills `places` and the text is kept as a note (the maintainer's call,
+/// 2026-11-19), on top of whatever the rest of this front end makes of the line.
 ///
-/// - **`(past twos; threes)`** lists the couples a cast goes past, which the
-///   glossary's "Cast down" entry gives as the distance. Its count fills
-///   `places`, and its text is kept as a note (the maintainer's call,
-///   2026-11-19). A count that disagrees with one the line states ("cast off
-///   2 (past twos)") keeps the line custom rather than choosing.
-/// - **"cast back"** with no shoulder: a role cast back over the shoulder
-///   [castBackShoulderForWho] gives (women right, men left — the maintainer's
-///   ruling, likened to a chain's role-implied hand). A cast back by any other
-///   named dancers ("Ends cast back to P2") stays custom, as the maintainer
-///   asked; one naming no dancers ("Cast back") stays a plain cast back.
+/// Read only when every `;`-separated item is one dancer or group the notation
+/// uses ([_castPastItemRe]: `twos`, `N2`, `W1`, `N2 twos`, `shadow S1`, …), so
+/// the count is the number of items. Anything else keeps the line custom rather
+/// than guessing a count: `(past ones and threes)`, `(past twos, threes)`,
+/// `(past S; to partner)` (an endpoint, not a dancer passed), `(past top
+/// couple)`, a second `(past …)` in the same clause, or a count that disagrees
+/// with one the line states (`cast off 2 (past twos)`).
 ///
-/// The `(past …)` run is removed and the remainder read through every other
+/// The run is removed and the remainder read through every other
 /// pre-recognizer of [tcbFigureFrontEnd], then the shared recognizers, so a
 /// `[with N2]` beside it is noted exactly as on any other cast. The remainder
 /// no longer carries the run, and this entry is skipped, so it cannot recurse.
 ///
-/// Returns null (the normal path) for any line without either piece, and for
-/// any line whose remainder is not a cast.
+/// Returns null (the normal path) for a line with no `(past …)`, and for one
+/// whose remainder is not a cast.
 FigureMatch? _tcbCast(String scrubbed) {
   if (!_castWordRe.hasMatch(scrubbed)) return null;
-  final past = _castPastRe.firstMatch(scrubbed);
-  final back = _castBackRe.hasMatch(scrubbed);
-  if (past == null && !back) return null;
+  final runs = _castPastRe.allMatches(scrubbed).take(2).toList();
+  if (runs.isEmpty) return null;
+  final past = runs.first;
 
-  final text = past == null
-      ? scrubbed
-      : '${scrubbed.substring(0, past.start)} ${scrubbed.substring(past.end)}'
-            .replaceAll(_castWhitespaceRe, ' ')
-            .trim();
+  final text =
+      '${scrubbed.substring(0, past.start)} ${scrubbed.substring(past.end)}'
+          .replaceAll(_castWhitespaceRe, ' ')
+          .trim();
   FigureMatch? inner;
   for (final pre in tcbFigureFrontEnd.preRecognizers) {
     if (identical(pre, _tcbCast)) continue;
@@ -1105,39 +1100,22 @@ FigureMatch? _tcbCast(String scrubbed) {
   if (inner.forceCustom) return inner;
   if (inner.moveId != 'cast') return null;
 
-  final params = <String, Object?>{...inner.params};
-  var note = inner.note;
-  if (back && _castUnstated(params['direction'])) {
-    final who = params['who'];
-    if (!_castUnstated(who)) {
-      final shoulder = castBackShoulderForWho(who);
-      if (shoulder == null) return const FigureMatch.customFallback();
-      params['direction'] = shoulder;
-    }
-  }
-  if (past != null) {
-    final body = past.group(1)!.trim();
-    final count = body
-        .split(';')
-        .where((item) => item.trim().isNotEmpty)
-        .length;
-    final stated = params['places'];
-    if (count < 1 || count > 10 || (stated is int && stated != count)) {
-      return const FigureMatch.customFallback();
-    }
-    params['places'] = count;
-    note = combineFigureNotes(note, 'past $body');
+  final body = past.group(1)!.trim();
+  final items = body.split(';').map((item) => item.trim()).toList();
+  final stated = inner.params['places'];
+  if (runs.length > 1 ||
+      items.length > 10 ||
+      !items.every(_castPastItemRe.hasMatch) ||
+      (stated is int && stated != items.length)) {
+    return const FigureMatch.customFallback();
   }
   return FigureMatch(
     'cast',
-    params: params,
-    note: note,
+    params: {...inner.params, 'places': items.length},
+    note: combineFigureNotes(inner.note, 'past $body'),
     assumedSubject: inner.assumedSubject,
   );
 }
-
-bool _castUnstated(Object? value) =>
-    value == null || value == ParamVocab.unspecified;
 
 /// The word `cast`, but not `hand cast` (the `hand_cast` alias of gate).
 final RegExp _castWordRe = RegExp(
@@ -1145,14 +1123,22 @@ final RegExp _castWordRe = RegExp(
   caseSensitive: false,
 );
 
-final RegExp _castBackRe = RegExp(r'\bcast\s+back\b', caseSensitive: false);
-
 final RegExp _castWhitespaceRe = RegExp(r'\s+');
 
 /// `(past …)`. Bounded like [_annotationRe], so a pathological parenthetical
 /// simply does not match.
 final RegExp _castPastRe = RegExp(
   r'\(\s*past\s+([^()]{1,120})\)',
+  caseSensitive: false,
+);
+
+/// One item of a `(past …)` list: a numbered dancer code (`N2`, `W1`, `M3`,
+/// `S1`, `C1`, `P2`), a group (`ones` … `fives`, `partner`, `shadow`,
+/// `neighbor`), or a code and a group together in either order (`N2 twos`,
+/// `shadow S1`). Every form the 1,563 public dances that mention a cast write,
+/// except the ones [_tcbCast] deliberately leaves custom.
+final RegExp _castPastItemRe = RegExp(
+  r'^(?:(?:[mwnpsc]\d\s+)?(?:ones|twos|threes|fours|fives|partners?|shadows?|neighbors?)(?:\s+[mwnpsc]\d)?|[mwnpsc]\d)$',
   caseSensitive: false,
 );
 
