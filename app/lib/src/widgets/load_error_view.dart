@@ -9,7 +9,9 @@ import '../theme/app_spacing.dart';
 /// happened and [onRetry] is the way forward, so a transient failure doesn't
 /// mean leaving the screen and coming back. A failure that retrying cannot
 /// fix (the thing is gone) passes a null [onRetry] and an [onBack] instead, so
-/// there is always a button to press.
+/// there is a button to press. A caller with nowhere to go back to does not
+/// use this widget for that case: a disabled Retry would imply a retry is
+/// pending, so it shows the message alone.
 class LoadErrorView extends StatelessWidget {
   const LoadErrorView({
     required this.message,

@@ -1064,23 +1064,37 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
 
   /// The body for a dance that is gone. Retrying would find nothing, so the
   /// way forward is out of the pane: Back, when this screen can leave (a close
-  /// callback, or a route above it). The wide Collection pane can do neither,
-  /// since the list beside it is the way to another dance, and there the plain
-  /// message stands rather than a button that would do nothing.
+  /// callback, or it is a route above another). The wide Collection pane can do
+  /// neither, since the list beside it is the way to another dance, and there
+  /// the plain message stands rather than a button that would do nothing.
+  ///
+  /// Reads the route, not `Navigator.canPop`: [ModalRoute.of] rebuilds this
+  /// when the route changes, and a route the pane sits on never stops being
+  /// first when something is pushed over it.
   Widget _buildNotFound(AppLocalizations l10n) {
-    final onBack =
-        widget.onClose ??
-        (Navigator.of(context).canPop()
-            ? () => Navigator.of(context).maybePop()
-            : null);
-    if (onBack == null) {
-      return Center(child: Text(l10n.danceNotFound));
+    final route = ModalRoute.of(context);
+    final canLeave =
+        widget.onClose != null || (route != null && !route.isFirst);
+    if (!canLeave) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              LoadErrorView.errorGlyph(context),
+              const SizedBox(height: AppSpacing.md),
+              Text(l10n.danceNotFound, textAlign: TextAlign.center),
+            ],
+          ),
+        ),
+      );
     }
     return LoadErrorView(
       icon: LoadErrorView.errorGlyph(context),
       message: l10n.danceNotFound,
       onRetry: null,
-      onBack: onBack,
+      onBack: widget.onClose ?? () => Navigator.of(context).maybePop(),
     );
   }
 

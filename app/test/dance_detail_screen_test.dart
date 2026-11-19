@@ -1320,6 +1320,29 @@ void main() {
     expect(find.byKey(const ValueKey('load-error-back')), findsNothing);
   });
 
+  testWidgets('a missing dance with a close callback offers Back', (
+    tester,
+  ) async {
+    var closed = false;
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        builder: (context, child) => RepositoriesScope(
+          repositories: openTestRepositories(),
+          child: ActiveDialectScope(
+            notifier: ValueNotifier(Dialect.larksRobins),
+            child: child!,
+          ),
+        ),
+        home: DanceDetailScreen(danceId: 'nope', onClose: () => closed = true),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('load-error-back')));
+    expect(closed, isTrue);
+  });
+
   testWidgets('a pushed missing dance offers Back, and Back leaves', (
     tester,
   ) async {
