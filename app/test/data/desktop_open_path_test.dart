@@ -114,7 +114,12 @@ void main() {
         final file = shareFile(name);
         expect(
           await rejectionOf(file.path),
-          DesktopOpenRejection.wrongExtension,
+          // On Windows a `:` after the drive names an alternate data stream,
+          // refused before the extension is read ('an alternate data stream'
+          // below).
+          Platform.isWindows && name.contains(':')
+              ? DesktopOpenRejection.malformed
+              : DesktopOpenRejection.wrongExtension,
           reason: name,
         );
       }

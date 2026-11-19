@@ -103,7 +103,9 @@ void main() {
       for (final entity in Directory('lib/src').listSync(recursive: true))
         if (entity is File &&
             entity.path.endsWith('.dart') &&
-            !entity.path.endsWith('widgets/load_error_view.dart') &&
+            !entity.path
+                .replaceAll(r'\', '/')
+                .endsWith('widgets/load_error_view.dart') &&
             handBuilt.hasMatch(entity.readAsStringSync()))
           entity.path,
     ];
