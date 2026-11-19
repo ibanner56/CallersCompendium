@@ -488,11 +488,13 @@ class _CustomThemesSection extends StatelessWidget {
     var chosenSince = false;
     void onChosen() => chosenSince = true;
     selection.addListener(onChosen);
+    var deleted = false;
     try {
       await controller.delete(removed.id);
-    } catch (_) {
-      selection.removeListener(onChosen);
-      rethrow;
+      deleted = true;
+    } finally {
+      // A failed delete offers no Undo, so nothing will remove it later.
+      if (!deleted) selection.removeListener(onChosen);
     }
     if (messenger == null) {
       selection.removeListener(onChosen);

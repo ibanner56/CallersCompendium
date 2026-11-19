@@ -884,6 +884,7 @@ void _liveKeyCollisionOnCreate() {
     );
 
     test('revives a tombstoned definition', () async {
+      // ignore: unused_result
       await repo.upsert(def('f1', 'Notes'));
       await repo.delete('f1', at: t0);
 
@@ -893,9 +894,11 @@ void _liveKeyCollisionOnCreate() {
     });
 
     test('refuses a row a new definition has adopted', () async {
+      // ignore: unused_result
       await repo.upsert(def('f1', 'Notes'));
       await repo.delete('f1', at: t0);
       // Same key: the new definition adopts the tombstoned row.
+      // ignore: unused_result
       await repo.upsert(def('f2', 'Remarks'));
       final live = await repo.listAll();
       expect([for (final d in live) d.label], ['Remarks']);
