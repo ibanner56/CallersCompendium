@@ -3009,8 +3009,9 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
   /// modifier shows one shared Beats field (the container's single count —
   /// never per-child); a sequence instead shows its total, the sum of its
   /// steps' own Beats fields, and a warning once that total is longer than a
-  /// phrase of [_FigureDraftCard.phraseStructure]. An English sequence shows
-  /// its own span field instead ([_buildSequenceSpan]). Then come each ordered child
+  /// phrase of [_FigureDraftCard.phraseStructure]. An English sequence timed
+  /// in bars ([BarTimingScope]) shows its own span field instead
+  /// ([_buildSequenceSpan]). Then come each ordered child
   /// editor, an add-child control (capped at the kind's
   /// [maxContainerChildren], and for a sequence hidden once a phrase is full),
   /// and per-child move/remove controls. Ordinary children use
