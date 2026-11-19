@@ -6929,7 +6929,8 @@ yet joins the current version and amends its entry instead (§7.2, "An
 unreleased `v`"); the gate cannot see that case, because the constant does not
 move.
 
-- v1: the envelope this document specifies. A client or server that reads a
-  record blob or manifest written at a higher `v` treats it as written by a
-  newer build rather than as corrupt. Carried by every release since
-  v0.3.1-beta.
+- v1: the envelope this document specifies. A client refuses a record blob or
+  manifest written at a higher `v` and reports it as written by a newer build
+  (§4.3, §6.9). The server rejects a manifest whose `v` it does not know, and
+  does not reject a blob solely for an unknown `v` (§7.2). Carried by every
+  release since v0.3.1-beta.

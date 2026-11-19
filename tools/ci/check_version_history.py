@@ -24,7 +24,8 @@ Usage:
     check_version_history.py <base_ref> [head_ref]
 
 ``head_ref`` defaults to ``HEAD``. Exit codes: 0 = OK (no bump, or bump with a
-matching entry), 1 = bump without an entry, 2 = usage / git error, including a
+matching entry), 1 = bump without an entry (including a log whose doc or section
+is gone), 2 = usage / git error, including a
 base or head ref that does not resolve to a commit -- which must never be
 mistaken for "nothing to check".
 """
@@ -63,7 +64,9 @@ ECD_SOURCE = "packages/compendium_core/lib/src/taxonomy/ecd_taxonomy.dart"
 # The ECD log is a ``###`` inside the contra log's ``##`` section, and a section
 # includes its sub-headings. Keying ECD on ``## Taxonomy version history`` would
 # let any contra bullet satisfy an ECD bump (a contra ``- v2`` for an ECD v2), so
-# it is keyed on its own heading instead.
+# it is keyed on its own heading instead. The reverse stays possible (an ECD
+# bullet satisfies a contra bump) but only once ECD's numbering reaches contra's
+# next value, and contra is far ahead.
 ECD_HEADING = "### ECD taxonomy versions"
 
 LEDGERS = (

@@ -217,7 +217,8 @@ def main() -> int:
         res = repo.run("HEAD~1")
         # Not a pass, and the same verdict the gate gives any ledger whose section is gone.
         check("exits 1, never 0", res.returncode == 1, f"exit={res.returncode}")
-        check("names the missing section", "'## Wire version history'" in res.stdout, res.stdout)
+        # The section-missing message, not the entry-missing one: both name the heading.
+        check("says the section is missing", "section to record it in" in res.stdout, res.stdout)
 
     @case("ECD bump logged only as a contra entry")
     def _(repo: Repo) -> None:
@@ -234,6 +235,18 @@ def main() -> int:
         check("exits 1", res.returncode == 1, f"exit={res.returncode}")
         check("names ECD's v2", "ecdTaxonomyVersion changed (1 -> 2)" in res.stdout, res.stdout)
         check("contra is not blamed", "contraTaxonomyVersion changed" not in res.stdout, res.stdout)
+
+    @case("ECD bump with the ECD section missing")
+    def _(repo: Repo) -> None:
+        repo.write(ECD_SOURCE, ecd_source(2))
+        repo.write(
+            TAXONOMY_DOC,
+            "# Figure taxonomy\n\n## Taxonomy version history\n\n- v28 (#976): chain hand.\n\n## Next\n",
+        )
+        repo.commit("bump ECD, no ECD section")
+        res = repo.run("HEAD~1")
+        check("exits 1, never 0", res.returncode == 1, f"exit={res.returncode}")
+        check("says the section is missing", "section to record it in" in res.stdout, res.stdout)
 
     @case("ECD bump with no entry at all")
     def _(repo: Repo) -> None:

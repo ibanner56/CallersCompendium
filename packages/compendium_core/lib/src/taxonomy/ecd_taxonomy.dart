@@ -5,8 +5,8 @@ import 'taxonomy.dart';
 
 /// Version of the English Country Dance taxonomy (ADR-006). Like
 /// [contraTaxonomyVersion], a documentary marker that nothing reads at
-/// runtime, logged under "Taxonomy version history" in
-/// `docs/design/figure-taxonomy.md`. Version 1 is the registry ADR-006 §7
+/// runtime, logged under "ECD taxonomy versions" (inside "Taxonomy version
+/// history") in `docs/design/figure-taxonomy.md`. Version 1 is the registry ADR-006 §7
 /// accepted.
 const int ecdTaxonomyVersion = 1;
 
