@@ -199,7 +199,7 @@ void main() {
     testWidgets('takes its duration from the Undo prompt setting', (
       tester,
     ) async {
-      final seconds = ValueNotifier<int>(20);
+      final seconds = ValueNotifier<int>(15);
       addTearDown(seconds.dispose);
       await tester.pumpWidget(
         _harness(
@@ -211,13 +211,44 @@ void main() {
       );
       await _showAndAwaitEntrance(tester);
 
-      // Past the 10-second default, inside the chosen 20.
-      await tester.pump(const Duration(seconds: 15));
+      // Past the 10-second default, inside the chosen 15.
+      await tester.pump(const Duration(seconds: 12));
       // Settled, so a prompt that had started to leave would be gone.
       await tester.pumpAndSettle();
       expect(find.text('Undo'), findsOneWidget);
 
-      await tester.pump(const Duration(seconds: 6));
+      await tester.pump(const Duration(seconds: 4));
+      await tester.pumpAndSettle();
+      expect(find.text('Undo'), findsNothing);
+    });
+
+    testWidgets('the shortest choice counts from when the prompt is fully in', (
+      tester,
+    ) async {
+      final seconds = ValueNotifier<int>(2);
+      addTearDown(seconds.dispose);
+      await tester.pumpWidget(
+        _harness(
+          accessibleNavigation: false,
+          onUndo: () {},
+          duration: null,
+          undoSeconds: seconds,
+        ),
+      );
+      await _showAndAwaitEntrance(tester);
+
+      // 2.1 s after the prompt was shown, and 1.8 s after the frame that saw
+      // its entrance complete (the 250 ms entrance ends inside the 300 ms
+      // pump above): a timer that started when the prompt was first built
+      // would have sent it out by now.
+      await tester.pump(const Duration(milliseconds: 1800));
+      expect(
+        tester.widget<SnackBar>(find.byType(SnackBar)).animation!.status,
+        AnimationStatus.completed,
+        reason: 'still fully in, not on its way out',
+      );
+
+      await tester.pump(const Duration(milliseconds: 300));
       await tester.pumpAndSettle();
       expect(find.text('Undo'), findsNothing);
     });

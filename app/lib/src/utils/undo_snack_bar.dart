@@ -35,7 +35,8 @@ import '../diagnostics/error_log.dart';
 ///
 /// The timing is this helper's own rather than the scaffold's: the snackbar is
 /// shown with `persist: true`, so the scaffold's timer never fires, and the
-/// prompt's content runs a timer it can pause. The scaffold's
+/// prompt's content runs a timer it can pause. As the scaffold's did, it
+/// starts once the prompt has finished coming in. The scaffold's
 /// `_accessibleNavigation` handling only chooses jump-vs-animated *exit*; it
 /// never stopped the auto-dismiss timer by itself, which is why persistence
 /// has always had to be expressed here.
@@ -100,9 +101,9 @@ ScaffoldFeatureController<SnackBar, SnackBarClosedReason> showUndoSnackBar(
 /// copies at once; and a later prompt with the same key reuses the earlier
 /// one's widget state. The timer therefore belongs to the prompt (one
 /// `showUndoSnackBar` call), not to a copy: it runs while at least one copy
-/// is built (only the snackbar at the head of the queue is), and pauses while
-/// any visible copy is hovered or holds focus. Whenever it starts again, it
-/// starts from the full time.
+/// is built (only the snackbar at the head of the queue is) and has finished
+/// coming in, and pauses while any visible copy is hovered or holds focus.
+/// Whenever it starts again, it starts from the full time.
 class _UndoPromptHold {
   _UndoPromptHold(this.messenger, this.timeout);
 
@@ -118,7 +119,8 @@ class _UndoPromptHold {
 
   bool get _held => _holders.isNotEmpty;
 
-  /// The copy [who] has been built: the prompt is showing, so its time runs.
+  /// The copy [who] has been built and has come in: the prompt is showing, so
+  /// its time runs.
   void attach(Object who) {
     if (_copies.add(who) && _copies.length == 1) _restart();
   }
@@ -231,8 +233,37 @@ class _UndoPromptContentState extends State<_UndoPromptContent> {
     } else if (!timed && _listening) {
       _stopListening();
     }
-    widget.hold.attach(this);
+    _attachWhenShown();
     _report();
+  }
+
+  /// The animation of the entrance this copy is waiting out, if any.
+  Animation<double>? _entrance;
+
+  /// Attaches to the hold once the snackbar has finished coming in, as the
+  /// scaffold's own timer did: the time is the time the prompt is fully on
+  /// screen, which matters at the shortest choice (2 s, of which the entrance
+  /// would otherwise take a quarter of a second).
+  void _attachWhenShown() {
+    _stopWaitingForEntrance();
+    final snackBar = _findSnackBar()?.widget;
+    final animation = snackBar is SnackBar ? snackBar.animation : null;
+    if (animation == null || animation.isCompleted) {
+      widget.hold.attach(this);
+      return;
+    }
+    _entrance = animation..addStatusListener(_onEntrance);
+  }
+
+  void _onEntrance(AnimationStatus status) {
+    if (!status.isCompleted) return;
+    _stopWaitingForEntrance();
+    if (mounted) widget.hold.attach(this);
+  }
+
+  void _stopWaitingForEntrance() {
+    _entrance?.removeStatusListener(_onEntrance);
+    _entrance = null;
   }
 
   void _stopListening() {
@@ -244,6 +275,7 @@ class _UndoPromptContentState extends State<_UndoPromptContent> {
   @override
   void dispose() {
     if (_listening) _stopListening();
+    _stopWaitingForEntrance();
     widget.hold.detach(this);
     super.dispose();
   }

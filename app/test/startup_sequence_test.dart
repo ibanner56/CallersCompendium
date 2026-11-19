@@ -2601,9 +2601,9 @@ void main() {
           ),
           (
             key: kUndoPromptSecondsKey,
-            stored: 30,
+            stored: 15,
             read: UndoPromptDurationScope.secondsOf,
-            storedResult: 30,
+            storedResult: 15,
             defaultValue: kUndoPromptDefaultSeconds,
           ),
           (
