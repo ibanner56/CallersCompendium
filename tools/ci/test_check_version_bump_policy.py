@@ -8,7 +8,7 @@ Pure-stdlib, assert-based, run directly::
 Two layers. ``judge`` is a pure function holding the whole policy table, so it
 is exercised exhaustively without git. The rest build a throwaway repository
 with a release tag, a base and a head, and drive the real script, because the
-part most likely to break -- reading three constants from three refs, and
+part most likely to break -- reading the constants from three refs, and
 choosing the newest tag -- only exists in that integration.
 
 The case that matters most is the second bump: ``base`` already ahead of the
@@ -31,7 +31,7 @@ sys.path.insert(0, str(HERE))
 import check_version_bump_policy as gate  # noqa: E402
 
 FAILURES: list[str] = []
-SCHEMA, TAXONOMY, WIRE = gate.CONSTANTS
+SCHEMA, TAXONOMY, WIRE, ECD = gate.CONSTANTS
 
 
 def check(name: str, condition: bool, detail: str = "") -> None:
@@ -66,8 +66,12 @@ class Repo:
             env={**os.environ, **env},
         )
 
-    def set_versions(self, schema: int, taxonomy: int, wire: int) -> None:
-        for constant, value in ((SCHEMA, schema), (TAXONOMY, taxonomy), (WIRE, wire)):
+    def set_versions(self, schema: int, taxonomy: int, wire: int, ecd: int | None = 1) -> None:
+        """``ecd=None`` leaves ecdTaxonomyVersion undeclared, as at a release that predates it."""
+        pairs = [(SCHEMA, schema), (TAXONOMY, taxonomy), (WIRE, wire)]
+        if ecd is not None:
+            pairs.append((ECD, ecd))
+        for constant, value in pairs:
             target = self.root / constant.source
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(declaration(constant, value), encoding="utf-8")
@@ -125,7 +129,9 @@ def judge_table() -> None:
         (5, 5, 4, 1, "head below base, base at tag"),
         (5, 4, 4, 2, "base behind the tag"),
         (5, 4, 6, 2, "base behind the tag even though head is ahead"),
-        (None, 5, 5, 2, "tag unreadable"),
+        (None, 1, 1, 0, "constant absent at the tag, unchanged: all of it is vNext"),
+        (None, 1, 2, 1, "constant absent at the tag, bumped again: stack on vNext"),
+        (None, None, 1, 2, "constant absent at base too"),
         (5, None, 5, 2, "base unreadable"),
         (5, 5, None, 2, "head unreadable"),
     ]
@@ -174,6 +180,25 @@ def main() -> int:
         print("a failure and an unreadable constant together:")
         res = repo.run("HEAD~1", "HEAD")
         check("exits 1, the actionable one", res.returncode == 1, f"exit={res.returncode} {res.stdout}")
+
+    # ecdTaxonomyVersion is absent at v0.10.0-beta, so the release carries nothing of it.
+    def ecd_scenario(base_ecd: int, head_ecd: int):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Repo(Path(tmp))
+            repo.set_versions(5, 39, 1, ecd=None)
+            repo.commit("release")
+            repo.tag("v1.0.0")
+            repo.set_versions(5, 39, 1, ecd=base_ecd)
+            repo.commit("base")
+            repo.set_versions(5, 39, 1, ecd=head_ecd)
+            repo.commit("head")
+            return repo.run("HEAD~1", "HEAD")
+
+    print("ecdTaxonomyVersion introduced after the release:")
+    res = ecd_scenario(1, 1)
+    check("unchanged passes, not exit 2", res.returncode == 0, f"exit={res.returncode} {res.stdout}")
+    res = ecd_scenario(1, 2)
+    check("a bump over the banked v1 fails", res.returncode == 1 and "ecdTaxonomyVersion 1 -> 2" in res.stdout, f"exit={res.returncode} {res.stdout}")
 
     # ---- the gate must PASS ------------------------------------------------
 

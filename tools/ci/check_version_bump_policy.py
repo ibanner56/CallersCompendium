@@ -7,7 +7,7 @@ constant than ``main`` does, ``main``'s value is the unreleased *vNext*: a chang
 amends it rather than bumping again, so every unreleased change ships under one
 number. "Bump only when the tag's value matches ``main``'s."
 
-For each of the three constants in that table, this compares three commits --
+For each of the constants in that table, this compares three commits --
 the latest release tag, the PR's base, and its head:
 
 ====================================  ==========================================
@@ -16,7 +16,8 @@ base == tag, head > base              pass: the first bump after a release
 base > tag,  head > base              FAIL: base is already vNext; amend it
 head < base                           FAIL: a version never goes down
 base < tag                            exit 2: base is behind the release
-any value or the tag unreadable       exit 2: never a pass
+any value unreadable at base or head  exit 2: never a pass
+tag has no such constant              treated as "not shipped": base is vNext
 ====================================  ==========================================
 
 Each constant is judged on its own: bumping one does not excuse another.
@@ -57,12 +58,14 @@ class Constant:
     source: str
 
 
-# The three rows of CONTRIBUTING.md's versioned-formats table. Adding a constant
-# here extends the vNext policy, which is the maintainer's call, not a tooling one.
+# The rows of CONTRIBUTING.md's versioned-formats table. Adding a constant here
+# extends the vNext policy, which is the maintainer's call, not a tooling one
+# (ecdTaxonomyVersion was added on the maintainer's go-ahead, #2254).
 CONSTANTS = (
     Constant("kCompendiumSchemaVersion", f"{CORE_LIB}/storage/database.dart"),
     Constant("contraTaxonomyVersion", f"{CORE_LIB}/taxonomy/contra_taxonomy.dart"),
     Constant("syncWireVersion", f"{CORE_LIB}/sync/sync_codec.dart"),
+    Constant("ecdTaxonomyVersion", f"{CORE_LIB}/taxonomy/ecd_taxonomy.dart"),
 )
 
 OK, FAIL, UNANSWERABLE = 0, 1, 2
@@ -95,6 +98,13 @@ def judge(
 ) -> tuple[int, str]:
     """Apply the policy table to one constant. Pure: no git, no I/O."""
     tag_ref, base_ref, head_ref = labels
+    tag_note: str | None = None
+    if tag is None and base is not None and head is not None:
+        # The release does not declare the constant at all (it was added after the
+        # release was cut), so nothing of it has shipped: whatever base carries is
+        # the unreleased vNext. A rename at head still reads as unreadable below.
+        tag = 0
+        tag_note = f"absent from {tag_ref}, so unreleased"
     for what, ref, value in (("tag", tag_ref, tag), ("base", base_ref, base), ("head", head_ref, head)):
         if value is None:
             return UNANSWERABLE, (
@@ -113,8 +123,9 @@ def judge(
         return FAIL, (
             f"{name}: {base} at base -> {head} at head. A version never goes down."
         )
+    shown = tag_note or f"tag {tag_ref} has {tag}"
     if head == base:
-        return OK, f"{name} unchanged ({head}); tag {tag_ref} has {tag}."
+        return OK, f"{name} unchanged ({head}); {shown}."
     if base == tag:
         return OK, (
             f"{name} {base} -> {head}: first bump after release {tag_ref} "
@@ -122,7 +133,7 @@ def judge(
         )
     return FAIL, (
         f"{name} {base} -> {head}, but base already carries {base} while the "
-        f"latest release {tag_ref} carries {tag}: base is already the "
+        f"latest release {tag_ref} carries {tag if tag_note is None else 'no such constant'}: base is already the "
         f"unreleased vNext. Amend vNext ({base}) instead of bumping again, and "
         "update its ledger entry and tests. See CONTRIBUTING.md, \"Versioned "
         "formats: bank changes in the unreleased vNext\"."
