@@ -1516,8 +1516,12 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get settingsSyncDevicesEmpty =>
-      'Aucun autre appareil n\'est connecté à cet espace.';
+  String get settingsSyncDevicesEmptyTitle =>
+      'Aucun autre appareil pour l’instant';
+
+  @override
+  String get settingsSyncDevicesEmptyBody =>
+      'Les autres appareils connectés à ce stockage apparaîtront ici.';
 
   @override
   String get settingsSyncDevicesFailed =>
@@ -2862,8 +2866,11 @@ class AppLocalizationsFr extends AppLocalizations {
       'Donnez à un tag sa propre couleur pour qu’il ressorte sur les cartes de danse et dans le détail d’une danse. Le nom du tag est toujours affiché, donc les tags restent lisibles sans couleur.';
 
   @override
-  String get settingsTagColoursEmpty =>
-      'Vous n’avez pas encore créé de tags. Ajoutez un tag à une danse et il apparaîtra ici.';
+  String get settingsTagColoursEmptyTitle => 'Aucun tag pour l’instant';
+
+  @override
+  String get settingsTagColoursEmptyBody =>
+      'Ajoutez un tag à une danse et il apparaîtra ici.';
 
   @override
   String get settingsTagColoursSaveError =>
@@ -2927,8 +2934,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get authorManagerNameLabel => 'Nom de l’auteur';
 
   @override
-  String get authorManagerEmpty =>
-      'Aucun auteur pour l’instant. Les auteurs que vous créditez sur une danse apparaissent ici.';
+  String get authorManagerEmptyTitle => 'Aucun auteur pour l’instant';
+
+  @override
+  String get authorManagerEmptyBody =>
+      'Les auteurs que vous créditez sur une danse apparaissent ici.';
 
   @override
   String get authorManagerLoadError => 'Impossible de charger vos auteurs.';
@@ -2948,8 +2958,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get sourceManagerTitleLabel => 'Titre de la source';
 
   @override
-  String get sourceManagerEmpty =>
-      'Aucune source pour l’instant. Les livres et sites que vous citez sur une danse apparaissent ici.';
+  String get sourceManagerEmptyTitle => 'Aucune source pour l’instant';
+
+  @override
+  String get sourceManagerEmptyBody =>
+      'Les livres et sites web que vous citez sur une danse apparaissent ici.';
 
   @override
   String get sourceManagerLoadError => 'Impossible de charger vos sources.';
@@ -8511,8 +8524,12 @@ class AppLocalizationsFr extends AppLocalizations {
       'Ces descriptions d\'étapes par figure préremplissent les déroulés lorsque vous modifiez une danse. En modifier une ici met à jour la valeur par défaut utilisée partout.';
 
   @override
-  String get settingsWalkthroughSnippetsEmpty =>
-      'Aucun extrait enregistré pour l\'instant. Ajoutez des descriptions d\'étapes de déroulé en modifiant les figures d\'une danse.';
+  String get settingsWalkthroughSnippetsEmptyTitle =>
+      'Aucun extrait enregistré pour l’instant';
+
+  @override
+  String get settingsWalkthroughSnippetsEmptyBody =>
+      'Ajoutez des descriptions d’étapes de déroulé pendant que vous modifiez les figures d’une danse.';
 
   @override
   String settingsWalkthroughSnippetsCount(int count) {
@@ -9849,7 +9866,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get shorthandMappingsNew => 'Nouvelle abréviation';
 
   @override
-  String get shorthandMappingsEmpty => 'Aucune abréviation pour l’instant.';
+  String get shorthandMappingsEmptyTitle => 'Aucune abréviation pour l’instant';
+
+  @override
+  String get shorthandMappingsEmptyBody =>
+      'Choisissez Nouvelle abréviation pour en ajouter une.';
 
   @override
   String shorthandMappingsLimitReached(int max) {
@@ -10289,8 +10310,12 @@ class AppLocalizationsFr extends AppLocalizations {
       'Impossible de charger les champs personnalisés.';
 
   @override
-  String get customFieldsEmpty =>
-      'Aucun champ personnalisé pour l’instant.\nAppuyez sur + pour en définir un.';
+  String get customFieldsEmptyTitle =>
+      'Aucun champ personnalisé pour l’instant';
+
+  @override
+  String get customFieldsEmptyBody =>
+      'Choisissez Nouveau champ pour en ajouter un.';
 
   @override
   String get customFieldsFlagInList => 'Dans la liste';

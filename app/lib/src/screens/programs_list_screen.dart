@@ -18,6 +18,7 @@ import '../utils/shortcut_platform.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/brand_mark.dart';
 import '../widgets/empty_state.dart';
+import '../widgets/load_error_view.dart';
 import '../widgets/program_list_tile.dart';
 import '../widgets/skeleton.dart';
 import '../widgets/sync_now_action.dart';
@@ -700,26 +701,16 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   Widget _buildBody() {
     final l10n = AppLocalizations.of(context);
     if (_loadError != null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline, size: 48),
-            const SizedBox(height: 8),
-            Text(l10n.programsListLoadError),
-            const SizedBox(height: 8),
-            FilledButton(
-              onPressed: () {
-                setState(() {
-                  _programs = null;
-                  _loadError = null;
-                });
-                _resubscribe();
-              },
-              child: Text(l10n.commonRetry),
-            ),
-          ],
-        ),
+      return LoadErrorView(
+        icon: LoadErrorView.errorGlyph(context),
+        message: l10n.programsListLoadError,
+        onRetry: () {
+          setState(() {
+            _programs = null;
+            _loadError = null;
+          });
+          _resubscribe();
+        },
       );
     }
 

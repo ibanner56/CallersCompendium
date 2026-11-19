@@ -1093,6 +1093,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   Widget _buildBody() {
     if (_loadError != null) {
       return LoadErrorView(
+        icon: LoadErrorView.errorGlyph(context),
         message: AppLocalizations.of(context).danceEditorLoadError,
         onRetry: _loadInFlight ? null : _retryLoad,
       );

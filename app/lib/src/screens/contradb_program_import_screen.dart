@@ -19,6 +19,8 @@ import '../diagnostics/error_log.dart';
 import '../theme/app_theme_extension.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/app_bar_text_action.dart';
+import '../widgets/empty_state.dart';
+import '../widgets/load_error_view.dart';
 import '../widgets/app_date_picker.dart';
 import '../widgets/confirm_discard_changes.dart';
 
@@ -897,22 +899,11 @@ class _ContraDbProgramImportScreenState
       );
     }
     if (_searchError != null) {
-      return Center(
+      return LoadErrorView(
         key: const ValueKey('contradb-program-search-error'),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline, size: 48),
-            const SizedBox(height: 8),
-            Text(l10n.importContraDbListError, textAlign: TextAlign.center),
-            const SizedBox(height: 8),
-            FilledButton(
-              key: const ValueKey('contradb-program-search-retry'),
-              onPressed: _loadIndex,
-              child: Text(l10n.commonTryAgain),
-            ),
-          ],
-        ),
+        icon: LoadErrorView.errorGlyph(context),
+        message: l10n.importContraDbListError,
+        onRetry: _loadIndex,
       );
     }
     if (_searchController.text.trim().isEmpty) {
@@ -966,21 +957,13 @@ class _ContraDbProgramImportScreenState
     final l10n = AppLocalizations.of(context);
     if (_fetchFailed) {
       final detail = _fetchErrorDetail;
-      return Center(
+      return LoadErrorView(
         key: const ValueKey('contradb-program-fetch-error'),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline, size: 48),
-            const SizedBox(height: 8),
-            Text(
-              detail != null
-                  ? l10n.importContraDbFetchError(detail)
-                  : l10n.importContraDbFetchGenericError,
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
+        icon: LoadErrorView.errorGlyph(context),
+        message: detail != null
+            ? l10n.importContraDbFetchError(detail)
+            : l10n.importContraDbFetchGenericError,
+        onRetry: _fetchProgram,
       );
     }
 
@@ -1000,7 +983,11 @@ class _ContraDbProgramImportScreenState
 
     final activities = program.activities;
     if (activities.isEmpty) {
-      return Center(child: Text(l10n.importContraDbEmptyProgram));
+      return EmptyState(
+        key: const ValueKey('contradb-program-empty'),
+        icon: EmptyState.glyph(context, Icons.event_note_outlined),
+        title: l10n.importContraDbEmptyProgram,
+      );
     }
     final danceCount = activities.where((a) => a.isDance).length;
     final noteCount = activities.length - danceCount;

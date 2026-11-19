@@ -357,6 +357,7 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
       appBar: AppBar(title: Text(l10n.tagManagerTitle)),
       body: _loadError != null
           ? LoadErrorView(
+              icon: LoadErrorView.errorGlyph(context),
               message: l10n.settingsTagColoursLoadError,
               onRetry: _retry,
             )
@@ -366,7 +367,9 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
               keyPrefix: 'tag',
               entries: _entries,
               searchHint: l10n.tagManagerSearchHint,
-              emptyMessage: l10n.settingsTagColoursEmpty,
+              emptyIcon: Icons.sell_outlined,
+              emptyTitle: l10n.settingsTagColoursEmptyTitle,
+              emptyBody: l10n.settingsTagColoursEmptyBody,
               actionsFor: _actionsFor,
               // Preview the exact chip the collection and dance detail draw,
               // so a colour picked here is what the user gets there.

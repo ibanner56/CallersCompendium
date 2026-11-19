@@ -995,10 +995,22 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                 : detail == null
                 ? (_loadFailed
                       ? LoadErrorView(
+                          icon: LoadErrorView.errorGlyph(context),
                           message: l10n.danceLoadError,
                           onRetry: _retryLoad,
                         )
-                      : Center(child: Text(l10n.danceNotFound)))
+                      : LoadErrorView(
+                          icon: LoadErrorView.errorGlyph(context),
+                          message: l10n.danceNotFound,
+                          // Gone, so retrying would find nothing: the way
+                          // forward is out of the pane.
+                          onRetry: null,
+                          onBack:
+                              widget.onClose ??
+                              (Navigator.of(context).canPop()
+                                  ? () => Navigator.of(context).maybePop()
+                                  : null),
+                        ))
                 : SelectableContent(child: _buildBody(detail)),
             // Edit mirrors the program preview's builder affordance: a bottom-right
             // extended FAB rather than an AppBar action, so opening the editor is

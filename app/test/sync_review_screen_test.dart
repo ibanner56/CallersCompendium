@@ -582,6 +582,6 @@ void main() {
     await _pumpScreen(tester, repos);
 
     expect(find.text('Sync decisions could not be loaded.'), findsOneWidget);
-    expect(find.byKey(const ValueKey('sync-review-retry')), findsOneWidget);
+    expect(find.byKey(const ValueKey('load-error-retry')), findsOneWidget);
   });
 }

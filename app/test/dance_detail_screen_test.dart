@@ -92,6 +92,7 @@ Future<ValueNotifier<bool>> _pumpDetail(
   Future<void> Function(DanceDetailData detail)? onReimport,
   Set<DanceShareField>? shareFields,
   UserFiguresController? userFigures,
+  bool pushed = false,
 }) async {
   if (canonicalFigureText != null) {
     await repos.settings.set(kCanonicalFigureTextKey, canonicalFigureText);
@@ -140,17 +141,35 @@ Future<ValueNotifier<bool>> _pumpDetail(
           ),
         ),
       ),
-      home: DanceDetailScreen(
-        danceId: danceId,
-        jsonExportDelivery: jsonExportDelivery,
-        shareInvoker: shareInvoker,
-        pdfLayouter: pdfLayouter,
-        readOnly: readOnly,
-        onReimport: onReimport,
-      ),
+      home: pushed
+          ? Builder(
+              builder: (context) => Scaffold(
+                body: TextButton(
+                  key: const ValueKey('open-detail'),
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => DanceDetailScreen(danceId: danceId),
+                    ),
+                  ),
+                  child: const Text('open'),
+                ),
+              ),
+            )
+          : DanceDetailScreen(
+              danceId: danceId,
+              jsonExportDelivery: jsonExportDelivery,
+              shareInvoker: shareInvoker,
+              pdfLayouter: pdfLayouter,
+              readOnly: readOnly,
+              onReimport: onReimport,
+            ),
     ),
   );
   await tester.pumpAndSettle();
+  if (pushed) {
+    await tester.tap(find.byKey(const ValueKey('open-detail')));
+    await tester.pumpAndSettle();
+  }
   return requirePerformedNotifier;
 }
 
@@ -1295,6 +1314,20 @@ void main() {
     final repos = openTestRepositories();
     await _pumpDetail(tester, repos, 'nope');
     expect(find.text('Dance not found.'), findsOneWidget);
+  });
+
+  testWidgets('a pushed missing dance offers Back, and Back leaves', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpDetail(tester, repos, 'nope', pushed: true);
+    expect(find.text('Dance not found.'), findsOneWidget);
+    // Gone, so nothing to retry; Back is the way forward.
+    expect(find.byKey(const ValueKey('load-error-retry')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('load-error-back')));
+    await tester.pumpAndSettle();
+    expect(find.text('Dance not found.'), findsNothing);
+    expect(find.byKey(const ValueKey('open-detail')), findsOneWidget);
   });
 
   // ── Duplicate ──────────────────────────────────────────────────────────────

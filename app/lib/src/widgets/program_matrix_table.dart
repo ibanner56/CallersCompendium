@@ -6,6 +6,7 @@ import '../data/reduce_motion_scope.dart';
 import '../search/facet_labels.dart' show formationIcon, formationLabel;
 import '../theme/app_motion.dart';
 import '../theme/app_shapes.dart';
+import 'empty_state.dart';
 
 /// Read-only **programming matrix** (moves × dances) for the Program builder's
 /// Matrix tab (`docs/design/ux.md` §4).
@@ -1517,46 +1518,14 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.grid_on_outlined,
-              size: 48,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              l10n.programsMatrixEmptyTitle,
-              style: theme.textTheme.titleMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 6),
-            Text(
-              l10n.programsMatrixEmptyBody,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            if (omittedFreeTextCount > 0) ...[
-              const SizedBox(height: 12),
-              Text(
-                l10n.programsMatrixOmittedCaption(omittedFreeTextCount),
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ],
-        ),
-      ),
+    return EmptyState(
+      icon: EmptyState.glyph(context, Icons.grid_on_outlined),
+      title: l10n.programsMatrixEmptyTitle,
+      body: omittedFreeTextCount > 0
+          ? '${l10n.programsMatrixEmptyBody}\n'
+                '${l10n.programsMatrixOmittedCaption(omittedFreeTextCount)}'
+          : l10n.programsMatrixEmptyBody,
     );
   }
 }

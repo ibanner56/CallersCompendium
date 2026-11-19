@@ -3566,6 +3566,8 @@ void main() {
     await _pumpBuilder(tester, repos, programId: 'gone');
 
     expect(find.byKey(const ValueKey('load-error-retry')), findsNothing);
+    // ...but it is not a dead end: Back leaves the screen.
+    expect(find.byKey(const ValueKey('load-error-back')), findsOneWidget);
   });
 
   testWidgets(

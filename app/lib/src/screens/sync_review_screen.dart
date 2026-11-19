@@ -8,6 +8,8 @@ import '../diagnostics/error_log.dart';
 import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
 import '../theme/destructive_button_style.dart';
+import '../widgets/empty_state.dart';
+import '../widgets/load_error_view.dart';
 import 'settings/sync_notice_labels.dart' show syncRecordKindLabel;
 
 /// Displays persisted sync decisions and exposes merge / keep-both actions for
@@ -314,35 +316,18 @@ class _SyncReviewScreenState extends State<SyncReviewScreen> {
             );
           }
           if (snapshot.hasError) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      l10n.syncReviewLoadFailed,
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    FilledButton(
-                      key: const ValueKey('sync-review-retry'),
-                      onPressed: _reload,
-                      child: Text(l10n.commonRetry),
-                    ),
-                  ],
-                ),
-              ),
+            return LoadErrorView(
+              icon: LoadErrorView.errorGlyph(context),
+              message: l10n.syncReviewLoadFailed,
+              onRetry: _reload,
             );
           }
           final items = snapshot.data ?? const <SyncReviewQueueItem>[];
           if (items.isEmpty) {
-            return Center(
+            return EmptyState(
               key: const ValueKey('sync-review-empty'),
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                child: Text(l10n.syncReviewEmpty, textAlign: TextAlign.center),
-              ),
+              icon: EmptyState.glyph(context, Icons.task_alt_outlined),
+              title: l10n.syncReviewEmpty,
             );
           }
           return ListView(

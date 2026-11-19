@@ -1280,9 +1280,13 @@
   "@settingsSyncDeviceWaiting": {
     "x-sourceSha256": "95b500fa9476a659caa02623419394239d7e50a8ff5311d7d9e7a355db42c042"
   },
-  "settingsSyncDevicesEmpty": "このストアに接続されている他のデバイスはありません。",
-  "@settingsSyncDevicesEmpty": {
-    "x-sourceSha256": "f56e6ab00b608c84434889f700c88b081f2e83a805da979cc33f524f9e2739d2"
+  "settingsSyncDevicesEmptyTitle": "他のデバイスはまだありません",
+  "@settingsSyncDevicesEmptyTitle": {
+    "x-sourceSha256": "32006c475c7e11b413b568a603dbfa2ba47d52af540022e1174dfc99554a5879"
+  },
+  "settingsSyncDevicesEmptyBody": "このストアに接続された他のデバイスはここに表示されます。",
+  "@settingsSyncDevicesEmptyBody": {
+    "x-sourceSha256": "4a236f6399c6d707a0fd7219f770c446e94d445c477612d97e7b67e1268b0ce9"
   },
   "settingsSyncDevicesFailed": "デバイス一覧を読み込めませんでした。接続を確認して、もう一度お試しください。",
   "@settingsSyncDevicesFailed": {
@@ -2776,9 +2780,13 @@
   "@settingsAppearanceTagColoursSubtitle": {
     "x-sourceSha256": "fac4e606137946a7de38fe329f99b3f8135962e61129f97c732a423a8e988cf4"
   },
-  "settingsTagColoursEmpty": "まだタグを作成していません。ダンスにタグを追加すると、ここに表示されます。",
-  "@settingsTagColoursEmpty": {
-    "x-sourceSha256": "c7febc58f1c97ff80948a88429355a4030c37a0f3e9aba3f65b312652d0d2c61"
+  "settingsTagColoursEmptyTitle": "タグはまだありません",
+  "@settingsTagColoursEmptyTitle": {
+    "x-sourceSha256": "b57d852b14d2e38612945e5dcf23300b0aa89204445807e5f383f4998583081c"
+  },
+  "settingsTagColoursEmptyBody": "ダンスにタグを追加すると、ここに表示されます。",
+  "@settingsTagColoursEmptyBody": {
+    "x-sourceSha256": "07ebb2bde2097613e4b8b97adf2fecc82040b392cc84919411f05e231260aaec"
   },
   "settingsTagColoursSaveError": "その色を保存できませんでした。もう一度お試しください。",
   "@settingsTagColoursSaveError": {
@@ -2840,9 +2848,13 @@
   "@authorManagerNameLabel": {
     "x-sourceSha256": "d685a2cb040ed21b08f567b677691f66b65360a21c726a75769adfc5003f5b11"
   },
-  "authorManagerEmpty": "まだ作者がいません。ダンスにクレジットした作者がここに表示されます。",
-  "@authorManagerEmpty": {
-    "x-sourceSha256": "f63be5621924387162fcb2f2337ab644b7e7a7513be0d62d84e67eb1850d91d7"
+  "authorManagerEmptyTitle": "作者はまだいません",
+  "@authorManagerEmptyTitle": {
+    "x-sourceSha256": "75d23d1484ae3f6d6e8ef8aaa5197b3620a19d4355875576269d85f13e06ddcd"
+  },
+  "authorManagerEmptyBody": "ダンスにクレジットした作者はここに表示されます。",
+  "@authorManagerEmptyBody": {
+    "x-sourceSha256": "b34329476d24280955fe67598c1330188254c9fc523dcabc2453d2ac7ce26408"
   },
   "authorManagerLoadError": "作者を読み込めませんでした。",
   "@authorManagerLoadError": {
@@ -2864,9 +2876,13 @@
   "@sourceManagerTitleLabel": {
     "x-sourceSha256": "458fcd13ab87c5b272319876028d19b1f95c5b0ce0d741b4682b56b4b1073f9f"
   },
-  "sourceManagerEmpty": "まだソースがありません。ダンスで引用した本やウェブサイトがここに表示されます。",
-  "@sourceManagerEmpty": {
-    "x-sourceSha256": "9a021b4606fe11125d54e533c8a0aa2558721897d2bf7677301767245b78071f"
+  "sourceManagerEmptyTitle": "ソースはまだありません",
+  "@sourceManagerEmptyTitle": {
+    "x-sourceSha256": "95be0e356dd984c3062bb84ba3cd14473a8b66fd7326c60a635a536bb8461083"
+  },
+  "sourceManagerEmptyBody": "ダンスで引用した書籍やウェブサイトはここに表示されます。",
+  "@sourceManagerEmptyBody": {
+    "x-sourceSha256": "328d237e03df4619b321362a36c2cfecff063eef096fa50d41e791f8203b9943"
   },
   "sourceManagerLoadError": "ソースを読み込めませんでした。",
   "@sourceManagerLoadError": {
@@ -8186,9 +8202,13 @@
   "@settingsWalkthroughSnippetsDescription": {
     "x-sourceSha256": "a1649fa079a4a43041ca0a7ae4925476439d16feeec25c98aa730527b12abc3b"
   },
-  "settingsWalkthroughSnippetsEmpty": "保存されたスニペットはまだありません。ダンスのフィギュアを編集しながらウォークスルーのステップ説明を追加してください。",
-  "@settingsWalkthroughSnippetsEmpty": {
-    "x-sourceSha256": "7048ea1a9940833a750759b0db497d4b18c2bac3f4b1af28b9976e4ee36d6bf5"
+  "settingsWalkthroughSnippetsEmptyTitle": "保存されたスニペットはまだありません",
+  "@settingsWalkthroughSnippetsEmptyTitle": {
+    "x-sourceSha256": "2eaca46bb56a9a6e7160dc7c94814016d56ee4b524dfcc989ae6a3c23176a34b"
+  },
+  "settingsWalkthroughSnippetsEmptyBody": "ダンスのフィギュアを編集するときに、ウォークスルーの手順の説明を追加してください。",
+  "@settingsWalkthroughSnippetsEmptyBody": {
+    "x-sourceSha256": "3c5ac18eb708b647a15b8448fd0d681ea743f557bf1abb49724a0ce43e6685ee"
   },
   "settingsWalkthroughSnippetsCount": "{count, plural, other{{count} 件のスニペット}}",
   "@settingsWalkthroughSnippetsCount": {
@@ -9406,9 +9426,13 @@
   "@shorthandMappingsNew": {
     "x-sourceSha256": "bcb70a5881650d222f46a45b002a5e5d5af4760fe5f046123ce0f9e05100c220"
   },
-  "shorthandMappingsEmpty": "ショートハンドがまだありません。",
-  "@shorthandMappingsEmpty": {
-    "x-sourceSha256": "2033070fb18827ce55f5388e79eded465e61704e0c52fb4554f84f313c53f01f"
+  "shorthandMappingsEmptyTitle": "ショートハンドはまだありません",
+  "@shorthandMappingsEmptyTitle": {
+    "x-sourceSha256": "c298e5dd6190ec4a26aa33f7fa693fee0fc7e01bba0fb8102b9c6869c2c2d304"
+  },
+  "shorthandMappingsEmptyBody": "「新しいショートハンド」を選ぶと追加できます。",
+  "@shorthandMappingsEmptyBody": {
+    "x-sourceSha256": "bb5b8084f4ddeb2a166b5941dcb7ae94af674e0e09030fe50be364b84a5daaa1"
   },
   "shorthandMappingsLimitReached": "ショートハンドの上限（{max}件）に達しました。追加するには、いずれかを削除してください。",
   "@shorthandMappingsLimitReached": {
@@ -9750,9 +9774,13 @@
   "@customFieldsLoadError": {
     "x-sourceSha256": "9392bd4d3cf2aaea10cdc1cd1d4c68cf98ee6e03c52fd75e05d67a348ab138f6"
   },
-  "customFieldsEmpty": "カスタムフィールドがまだありません。\n+ボタンをタップして定義してください。",
-  "@customFieldsEmpty": {
-    "x-sourceSha256": "96b8857829561e6006e3f6561d54998e454c1e1223bbc981f5c6d9d81d814f51"
+  "customFieldsEmptyTitle": "カスタムフィールドはまだありません",
+  "@customFieldsEmptyTitle": {
+    "x-sourceSha256": "eb0a32b078be55d376bfd04a93ef16a0d09af2870d60cc67cc2fb73624ffe142"
+  },
+  "customFieldsEmptyBody": "「新しいフィールド」を選ぶと追加できます。",
+  "@customFieldsEmptyBody": {
+    "x-sourceSha256": "13e90aa1be43a16a07cc2efda674430838dad199d222b6d48f1181f21d655948"
   },
   "customFieldsFlagInList": "リストに表示",
   "@customFieldsFlagInList": {

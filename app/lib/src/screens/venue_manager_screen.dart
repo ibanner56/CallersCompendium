@@ -8,6 +8,7 @@ import '../../l10n/app_localizations.dart';
 import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../widgets/empty_state.dart';
+import '../widgets/load_error_view.dart';
 import '../widgets/link_typed_venues_offer.dart';
 import '../theme/app_spacing.dart';
 import '../utils/confirm_delete.dart';
@@ -238,15 +239,10 @@ class _VenueManagerScreenState extends State<VenueManagerScreen> {
       return const Center(child: CircularProgressIndicator());
     }
     if (_error != null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(l10n.venueLoadError),
-            const SizedBox(height: 8),
-            TextButton(onPressed: _retry, child: Text(l10n.commonRetry)),
-          ],
-        ),
+      return LoadErrorView(
+        icon: LoadErrorView.errorGlyph(context),
+        message: l10n.venueLoadError,
+        onRetry: _retry,
       );
     }
     if (_venues.isEmpty) {
