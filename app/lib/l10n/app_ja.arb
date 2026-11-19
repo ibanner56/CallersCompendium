@@ -4136,6 +4136,50 @@
   "@commonFormationWithDetail": {
     "x-sourceSha256": "bd226738c03b5e1c1c546a7565e9d079875131e876c6c7de0b0c6d67bdc57fa6"
   },
+  "commonFormationDupleMinor": "デュープルマイナー",
+  "@commonFormationDupleMinor": {
+    "x-sourceSha256": "ec819f10cae723dd71ea55af698cfc71d956c1ebdf3366074eeb97395eb29bd7"
+  },
+  "commonFormationThreeCoupleLongways": "3組のロングウェイ",
+  "@commonFormationThreeCoupleLongways": {
+    "x-sourceSha256": "7cf89ccb33a012ebb203315e428f03d695c9fd50c69c134b4ee3bc976a9f4e46"
+  },
+  "commonFormationFourCoupleLongways": "4組のロングウェイ",
+  "@commonFormationFourCoupleLongways": {
+    "x-sourceSha256": "b174a3f077161d4410854293557a85c3f7aca4a0cf3c89506f3cb304e9def87e"
+  },
+  "commonFormationFiveCoupleLongways": "5組のロングウェイ",
+  "@commonFormationFiveCoupleLongways": {
+    "x-sourceSha256": "861fb99a820b955b25722bf403a5cb2c200280930900bb3d976ca2db14027f3a"
+  },
+  "commonFormationSixCoupleLongways": "6組のロングウェイ",
+  "@commonFormationSixCoupleLongways": {
+    "x-sourceSha256": "c3982210cc39cec1bc80c2dcdfe172ed07f2387594c3153029da7822b3f8b427"
+  },
+  "commonFormationCircle": "サークル",
+  "@commonFormationCircle": {
+    "x-sourceSha256": "b93d3bcecff5d7493a58a41ea44f7196a46295f6512ebc06940510676a666384"
+  },
+  "commonFormationSquare": "スクエア",
+  "@commonFormationSquare": {
+    "x-sourceSha256": "c11092bc0861591e9ce5d9a97e83d4fae3c6954a318977865fa85f5b3eeafda8"
+  },
+  "commonFormationTwoCoupleSet": "2組のセット",
+  "@commonFormationTwoCoupleSet": {
+    "x-sourceSha256": "6d447cfe75bf374cb8a1389a9df7a5156f54ebd30d3030bfb9cfa4eefc54a5d3"
+  },
+  "commonFormationImproperFlag": "{shape}、インプロパー",
+  "@commonFormationImproperFlag": {
+    "x-sourceSha256": "8443520175c0e36958b3b0f7bbd2bfe374413c858a8a764014039e233c897bc0"
+  },
+  "danceEditorMeterLabel": "拍子",
+  "@danceEditorMeterLabel": {
+    "x-sourceSha256": "2293b30e539a68427851a623737eb92b4dd7ecdc432f67e62dc2f550dd33a907"
+  },
+  "danceEditorMusicalKeyLabel": "調",
+  "@danceEditorMusicalKeyLabel": {
+    "x-sourceSha256": "99a52df3ff3d499488e2fa28150c4106a2cb5e928891a830a9aa3922b2d32160"
+  },
   "commonMixedLevel": "ミックスレベル",
   "@commonMixedLevel": {
     "x-sourceSha256": "c76f62265cdc2f4c343ae17292b236551fe66a38bb839fec2218e365ca293316"
@@ -8245,6 +8289,14 @@
   "danceEditorComposedHelper": "ダンスが作られた日時（年、または月/日を追加）",
   "@danceEditorComposedHelper": {
     "x-sourceSha256": "82d4988c39428b943b94b1ae4d50e3cb362e7a44bc722a61bf5198fd8a3411dc"
+  },
+  "danceEditorInterpretedByLabel": "解釈者",
+  "@danceEditorInterpretedByLabel": {
+    "x-sourceSha256": "7a3eef2a0a39813c78bae859524207a201116b461ca4bb4157637f384b1af050"
+  },
+  "danceEditorInterpretedOnLabel": "解釈年",
+  "@danceEditorInterpretedOnLabel": {
+    "x-sourceSha256": "83512bf0aa63b8443c4367033657fdd3212ff4116b4d28bf73b6ad6d93d5f706"
   },
   "danceEditorRevisedLabel": "改訂年",
   "@danceEditorRevisedLabel": {

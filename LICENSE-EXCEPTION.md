@@ -1,17 +1,17 @@
 # Caller's Compendium — Additional Permissions
 
 Caller's Compendium is licensed under the **GNU Affero General Public License,
-version 3 (AGPL-3.0)**, the full text of which is in [`LICENSE`](LICENSE). The
+version 3 (AGPL-3.0-only)**, the full text of which is in [`LICENSE`](LICENSE). The
 following is an **additional permission** under **Section 7** of that License.
 
 An additional permission only *removes* conditions from the License — it never
 adds restrictions — and you may, at your option, remove it from any copy you
-convey (AGPL-3.0 §7).
+convey (AGPL-3.0-only §7).
 
 ## App Store / managed-marketplace distribution exception
 
 As a copyright holder of Caller's Compendium, and on behalf of the project's
-copyright holders (all contributions are accepted under AGPL-3.0 together with
+copyright holders (all contributions are accepted under AGPL-3.0-only together with
 this exception — see [`CONTRIBUTING.md`](CONTRIBUTING.md)), the following
 additional permission is granted:
 
@@ -34,7 +34,7 @@ additional permission is granted:
 > - permit anyone to add such restrictions outside of marketplace distribution.
 
 In plain terms: the app may be published on the App Store and Google Play under
-those stores' required terms, while the **source code stays fully AGPL-3.0** and
+those stores' required terms, while the **source code stays fully AGPL-3.0-only** and
 every user keeps their AGPL rights to that source.
 
 ## Why this exists

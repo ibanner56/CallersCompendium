@@ -217,7 +217,7 @@ class ProgramExportMenu extends StatelessWidget {
       venueNameFor: _venueNameFor,
       formatDate: (d) => _formatDate(context, d),
       labels: programExportLabels(AppLocalizations.of(context)),
-      renderer: FigureRenderer(contraTaxonomy),
+      renderer: FigureRenderer(shippedTaxonomies.anyForm),
       dialect: ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
       canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(context),
       authorNamesFor:

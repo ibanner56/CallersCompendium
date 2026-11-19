@@ -148,6 +148,18 @@ const List<String> citedIdLookupIndexSql = [
       'ON custom_field_values(field_id)',
 ];
 
+/// Lookup index over `dance_interpreters.choreographer_id` (schema v42), for
+/// the "who credits this person as interpreter" lookups:
+/// `CompendiumSyncStorage._hasCitation`, the `ChoreographerRepository.delete`
+/// guard, `ReferenceEditRepository`'s live-dance counts and merge joins, and
+/// `rewriteLocalReferences`. Unlike the `dance_authors` index in
+/// [citedIdLookupIndexSql], it does not serve
+/// `DanceRepository.danceIdsDerivingFrom`, which never reads this table: no
+/// derived row holds interpreters.
+const String danceInterpretersChoreographerIdIndexSql =
+    'CREATE INDEX IF NOT EXISTS dance_interpreters_choreographer_id '
+    'ON dance_interpreters(choreographer_id)';
+
 /// Settings key marking that a schema migration touched the derived figure
 /// index and the `dance_figures` rows must be rebuilt from `figures_json`.
 ///
@@ -312,6 +324,14 @@ const String taxonomyV38CanonicalRebuildDoneKey =
 /// such figure without changing its source JSON.
 const String taxonomyV39CanonicalRebuildDoneKey =
     '__taxonomy_v39_canonical_rebuild_done__';
+
+/// Settings key for the one-time canonical/FTS rebuild owed when the English
+/// Country Dance taxonomy first ships (ADR-006). A dance already holding
+/// `ecd_` move IDs, from a newer peer or an archive, was indexed while those
+/// IDs were unknown, as the bare ID; with the taxonomy they render as
+/// movements. Nothing rebuilds from a taxonomy version, so this marker does.
+const String ecdTaxonomyCanonicalRebuildDoneKey =
+    '__ecd_taxonomy_canonical_rebuild_done__';
 
 /// Settings key for the one-time canonical/FTS rebuild owed by the modifier
 /// container structural tokens. Existing figures gain searchable canonical
@@ -557,7 +577,7 @@ Future<void> clearNormalisationSkipAt(
 /// schemaVersion] getter) so the app-layer migration preflight can compare a
 /// file's persisted `user_version` against the running schema *without* opening
 /// the database. Keep this and the migration `onUpgrade` steps in lockstep.
-const int kCompendiumSchemaVersion = 41;
+const int kCompendiumSchemaVersion = 42;
 
 /// The oldest on-disk schema version this build can still upgrade.
 ///
@@ -640,6 +660,7 @@ const int kMinSupportedSchemaVersion = 39;
     DifficultyLevels,
     Choreographers,
     DanceAuthors,
+    DanceInterpreters,
     DanceFigures,
     Programs,
     ProgramSlots,
@@ -759,6 +780,35 @@ class CompendiumDatabase extends _$CompendiumDatabase {
     }
   }
 
+  /// The v42 additions (ADR-006 §12, F2 and F3, and §9.2's interpreter
+  /// credits): four columns on `dances` (ECD's proper/improper flag, the
+  /// tune's meter and key, and `interpreted_on`) and the `dance_interpreters`
+  /// join table with its lookup index. Each column has a default (`false`,
+  /// `''`, `''`, `NULL`), so every existing row reads as proper with no meter,
+  /// key or interpretation, which is what it held before; the new table starts
+  /// empty. No data is rewritten and no derived index reads them, so no
+  /// rebuild is needed. The live-schema checks only keep the step idempotent.
+  Future<void> _ensureV42Schema(Migrator m) async {
+    final columns = await customSelect(
+      "SELECT name FROM pragma_table_info('${dances.actualTableName}')",
+    ).get();
+    final present = {for (final row in columns) row.read<String>('name')};
+    for (final column in <GeneratedColumn<Object>>[
+      dances.formationImproper,
+      dances.meter,
+      dances.musicalKey,
+      dances.interpretedOn,
+    ]) {
+      if (!present.contains(column.name)) await m.addColumn(dances, column);
+    }
+    final interpreters = await customSelect(
+      "SELECT name FROM sqlite_master WHERE type = 'table' "
+      "AND name = '${danceInterpreters.actualTableName}'",
+    ).get();
+    if (interpreters.isEmpty) await m.createTable(danceInterpreters);
+    await customStatement(danceInterpretersChoreographerIdIndexSql);
+  }
+
   @override
   int get schemaVersion => kCompendiumSchemaVersion;
 
@@ -780,6 +830,7 @@ class CompendiumDatabase extends _$CompendiumDatabase {
       }
       await customStatement(programSlotsDanceIdIndexSql);
       await _ensureV41Schema();
+      await customStatement(danceInterpretersChoreographerIdIndexSql);
     },
     onUpgrade: (m, from, to) async {
       // Belt-and-suspenders downgrade guard. drift is forward-only and has no
@@ -867,6 +918,7 @@ class CompendiumDatabase extends _$CompendiumDatabase {
       await transaction(() async {
         if (from < 40) await _ensureV40Schema(m);
         if (from < 41) await _ensureV41Schema();
+        if (from < 42) await _ensureV42Schema(m);
 
         // Last statement in the transaction: see the comment above its
         // opening for why this closes the remaining crash window. `to` is

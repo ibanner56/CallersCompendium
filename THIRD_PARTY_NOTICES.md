@@ -1,6 +1,6 @@
 # Third-party notices
 
-Caller's Compendium is licensed under AGPL-3.0 (see [`LICENSE`](LICENSE) and
+Caller's Compendium is licensed under AGPL-3.0-only (see [`LICENSE`](LICENSE) and
 [`LICENSE-EXCEPTION.md`](LICENSE-EXCEPTION.md)). This file carries the notices
 that other projects' licenses require to travel with code or data we took from
 them, and the attribution we promised where the licence leaves it optional. The
@@ -114,7 +114,7 @@ generate the four-word IDs that identify a device-sync account.
 ## ContraDB
 
 [ContraDB](https://github.com/contradb/contra) by David Morse is licensed under
-AGPL-3.0, the same licence as Caller's Compendium.
+AGPL-3.0, the same licence family as Caller's Compendium (AGPL-3.0-only).
 [`docs/research/contradb.md`](docs/research/contradb.md) records the decision
 to reuse its design with attribution. No ContraDB source code is transcribed,
 but the figure sentence structure and modifier phrasing produced by

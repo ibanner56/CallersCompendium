@@ -98,6 +98,8 @@ class UserFiguresScope extends InheritedNotifier<UserFiguresController> {
 
   /// A renderer that shows a use of one of the user's figures live, for every
   /// place that shows a dance's figures. Registers a rebuild dependency.
-  static FigureRenderer rendererOf(BuildContext context) =>
-      FigureRenderer(contraTaxonomy, userFigures: catalogOf(context));
+  static FigureRenderer rendererOf(BuildContext context) => FigureRenderer(
+    shippedTaxonomies.anyForm,
+    userFigures: catalogOf(context),
+  );
 }

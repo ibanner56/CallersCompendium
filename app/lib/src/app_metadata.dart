@@ -38,7 +38,7 @@ const String kUpdaterVersion = String.fromEnvironment(
 );
 
 /// The project's canonical source repository. Surfaced in the About section to
-/// satisfy the AGPL-3.0 obligation to offer the corresponding source, and used
+/// satisfy the AGPL-3.0-only obligation to offer the corresponding source, and used
 /// as the "View source" link target.
 const String kSourceRepoUrl = 'https://github.com/ibanner56/CallersCompendium';
 

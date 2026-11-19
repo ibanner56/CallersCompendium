@@ -67,6 +67,13 @@ const String kTaxonomyV38CanonicalRebuildDoneKey =
 const String kTaxonomyV39CanonicalRebuildDoneKey =
     '__taxonomy_v39_canonical_rebuild_done__';
 
+/// App-side name for the one-shot ECD taxonomy canonical/FTS rebuild marker's
+/// denylist entry; the storage-owned constant remains the migration source of
+/// truth. See the note above [kTaxonomyV33CanonicalRebuildDoneKey] for why
+/// this duplicate exists.
+const String kEcdTaxonomyCanonicalRebuildDoneKey =
+    '__ecd_taxonomy_canonical_rebuild_done__';
+
 /// App-side name for the storage-owned one-shot repair marker's denylist
 /// entry; the core constant remains the migration source of truth. See the
 /// note above [kTaxonomyV33CanonicalRebuildDoneKey] for why this duplicate
@@ -147,6 +154,7 @@ const Set<String> kBackupSettingsDenylist = {
   kTaxonomyV37CanonicalRebuildDoneKey,
   kTaxonomyV38CanonicalRebuildDoneKey,
   kTaxonomyV39CanonicalRebuildDoneKey,
+  kEcdTaxonomyCanonicalRebuildDoneKey,
   kCallersBoxRollAwayRoleRepairDoneKey,
   kNormalisationDerivedIndexRepairDoneKey,
   derivedRebuildRequiredKey,

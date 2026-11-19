@@ -40,7 +40,11 @@ import 'package:compendium_core/compendium_core.dart'
         settingsClassifications,
         shareableTextNormalisationScopeKey;
 import 'package:compendium_app/src/data/undo_prompt_duration_scope.dart'
-    show kUndoPromptSecondsKey, kUndoPromptUntilDismissed;
+    show
+        kUndoPromptDefaultSeconds,
+        kUndoPromptSecondsKey,
+        kUndoPromptUntilDismissed,
+        undoPromptSecondsFromStored;
 import 'package:compendium_app/src/data/soft_delete_retention.dart'
     show kSoftDeleteRetentionKey;
 import 'package:compendium_app/src/data/walkthrough_snippet_library_controller.dart'
@@ -361,15 +365,32 @@ void main() {
       expect(validateBackupSettingValue(kVenueCallCountKey, '3'), isFalse);
     });
 
+    test(
+      'a stored Undo prompt value outside the choices reads as the default',
+      () {
+        for (final offered in [kUndoPromptUntilDismissed, 2, 5, 10, 15]) {
+          expect(undoPromptSecondsFromStored(offered), offered);
+        }
+        for (final other in <Object?>[6, 20, 30, -1, '5', null]) {
+          expect(
+            undoPromptSecondsFromStored(other),
+            kUndoPromptDefaultSeconds,
+            reason: '$other',
+          );
+        }
+      },
+    );
+
     test('Undo prompt seconds accepts only the offered choices', () {
-      for (final offered in [kUndoPromptUntilDismissed, 6, 10, 20, 30]) {
+      for (final offered in [kUndoPromptUntilDismissed, 2, 5, 10, 15]) {
         expect(
           validateBackupSettingValue(kUndoPromptSecondsKey, offered),
           isTrue,
           reason: '$offered',
         );
       }
-      for (final bad in <Object?>[7, -1, 3600, 10.0, '10', null]) {
+      // 6, 20 and 30 were offered by no released version, and are refused.
+      for (final bad in <Object?>[6, 7, 20, 30, -1, 3600, 10.0, '10', null]) {
         expect(
           validateBackupSettingValue(kUndoPromptSecondsKey, bad),
           isFalse,

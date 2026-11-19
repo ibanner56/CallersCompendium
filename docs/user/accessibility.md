@@ -149,7 +149,8 @@ and Linux and **Cmd** on a Mac:
 - **Ctrl-,** (**Cmd-,**) opens **Settings**.
 - **Esc**, or **Ctrl-W** (**Cmd-W**), goes back. If a menu, a list of
   suggestions, or a dialog you could close by clicking outside it is open, it
-  closes that first. Otherwise it leaves
+  closes that first (a dialog holding text you have typed stays open, so that
+  text is not lost; use its **Cancel**). Otherwise it leaves
   the page you're on, as the back button does, so an editor with unsaved
   changes asks you first. A mouse's **Back** button does the same.
 
@@ -243,7 +244,7 @@ A few smaller settings and behaviors round out the experience:
   your own Glossary entries or figures) always asks first and says "This can't
   be undone."
 - **Undo prompt** (**Settings › General**) sets how long the **Undo** message
-  stays on screen: 6, 10 (the default), 20 or 30 seconds, or **Until I close
+  stays on screen: 2, 5, 10 (the default) or 15 seconds, or **Until I close
   it**. Whatever you choose, the message also stays while you point at it with
   a mouse or move to its **Undo** button with the keyboard, and its full time
   starts again when you move away. With a screen reader running, it stays until

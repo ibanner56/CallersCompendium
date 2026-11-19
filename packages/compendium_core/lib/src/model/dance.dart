@@ -30,6 +30,12 @@ const ListEquality<Object?> _listEq = ListEquality<Object?>();
 /// tolerance, so an oversized field can never fail an otherwise-valid import.
 const int kMaxWalkthroughLength = 20000;
 
+/// Upper bound on the length of [Dance.meter] and [Dance.musicalKey], in
+/// UTF-16 code units. Each is a short label ("3/2", "G minor"), so the bound
+/// is small; it is enforced softly, as [kMaxWalkthroughLength] is: the archive
+/// decoder clamps a longer value rather than rejecting the dance.
+const int kMaxMusicLabelLength = 100;
+
 /// A dance transcription — the central entity of the collection.
 ///
 /// Hard invariants (thrown at construction): non-empty title, parseable
@@ -42,7 +48,7 @@ class Dance {
     required this.title,
     List<String> authorIds = const [],
     this.form = DanceForm.contra,
-    this.formation = const Formation(FormationShape.dupleImproper),
+    Formation formation = const Formation(FormationShape.dupleImproper),
     this.progression = Progression.single,
     String phraseStructure = '',
     List<Figure> figures = const [],
@@ -50,6 +56,8 @@ class Dance {
     this.hook = '',
     this.callingNotes = '',
     this.walkthrough = '',
+    this.meter = '',
+    this.musicalKey = '',
     this.status = DanceStatus.active,
     String? difficultyLevelId,
     DifficultyLevel? level,
@@ -64,12 +72,21 @@ class Dance {
     List<SourceCitation> sourceCitations = const [],
     this.provenance,
     this.composedOn,
+    List<String> interpreterIds = const [],
+    this.interpretedOn,
     this.revisedOn,
     required this.createdAt,
     required this.updatedAt,
     this.deletedAt,
   }) : difficultyLevelId = difficultyLevelId ?? level?.id,
+       // The improper flag means something only in a form that has it
+       // ([formHasImproperFlag]); elsewhere it is cleared, so a contra dance
+       // never stores, sends or shows it, whatever it was built from.
+       formation = formation.improper && !formHasImproperFlag(form)
+           ? formation.copyWith(improper: false)
+           : formation,
        authorIds = List.unmodifiable(authorIds),
+       interpreterIds = List.unmodifiable(interpreterIds),
        // Parse eagerly so an invalid structure fails at construction.
        phraseStructure = PhraseStructure.parse(phraseStructure),
        // [figuresSource] wins when given: it is how the storage layer carries a
@@ -115,6 +132,10 @@ class Dance {
   /// Ordered Choreographer ids ("Traditional"/"Unknown" are real rows).
   final List<String> authorIds;
   final DanceForm form;
+
+  /// The dance's formation. Its [Formation.improper] is always `false` for a
+  /// form without the flag ([formHasImproperFlag]): the constructor clears
+  /// it, so moving a dance from ECD to contra drops the mark.
   final Formation formation;
   final Progression progression;
   final PhraseStructure phraseStructure;
@@ -139,6 +160,15 @@ class Dance {
   /// existing/imported dances stay valid. Plain multi-line text in v1; richer
   /// structure / auto-generation is tracked separately (issue #411).
   final String walkthrough;
+
+  /// The tune's written meter, as free text ("3/2", "6/8"), or `''` when not
+  /// given (ADR-006 §12, F3). Shown and searched, never computed with: the
+  /// beats per bar that timing uses live in [phraseStructure].
+  final String meter;
+
+  /// The tune's key, as free text ("G minor", "D"), or `''` when not given
+  /// (ADR-006 §12, F3).
+  final String musicalKey;
   final DanceStatus status;
 
   /// ID of the selected [DifficultyLevel], or `null` when unspecified.
@@ -206,6 +236,16 @@ class Dance {
   /// unknown.
   final PartialDate? composedOn;
 
+  /// Ordered Choreographer ids of the people who *interpreted* the dance:
+  /// reconstructed it from its original publication, as ECD dances often
+  /// are (ADR-006). Drawn from the same people list as [authorIds]; empty
+  /// when nobody is credited. Stored for every form.
+  final List<String> interpreterIds;
+
+  /// When the dance was interpreted, at whatever precision is known, like
+  /// [composedOn]; `null` when unknown.
+  final PartialDate? interpretedOn;
+
   /// When the dance was last *revised* by its author, at whatever precision is
   /// known. Distinct from the record stamp [updatedAt]; `null` when unknown.
   final PartialDate? revisedOn;
@@ -272,7 +312,8 @@ class Dance {
   /// **wins** over any value passed for the same field, so
   /// `copyWith(difficultyLevelId: 'difficulty-advanced',
   /// clearDifficultyLevel: true)` clears it. The
-  /// same holds for `clearComposedOn` / `clearRevisedOn` / `clearRating` /
+  /// same holds for `clearComposedOn` / `clearInterpretedOn` /
+  /// `clearRevisedOn` / `clearRating` /
   /// `clearProvenance`.
   Dance copyWith({
     String? title,
@@ -285,6 +326,8 @@ class Dance {
     String? hook,
     String? callingNotes,
     String? walkthrough,
+    String? meter,
+    String? musicalKey,
     DanceStatus? status,
     String? difficultyLevelId,
     @Deprecated('Use difficultyLevelId.') DifficultyLevel? level,
@@ -302,6 +345,9 @@ class Dance {
     bool clearProvenance = false,
     PartialDate? composedOn,
     bool clearComposedOn = false,
+    List<String>? interpreterIds,
+    PartialDate? interpretedOn,
+    bool clearInterpretedOn = false,
     PartialDate? revisedOn,
     bool clearRevisedOn = false,
     DateTime? updatedAt,
@@ -325,6 +371,8 @@ class Dance {
     hook: hook ?? this.hook,
     callingNotes: callingNotes ?? this.callingNotes,
     walkthrough: walkthrough ?? this.walkthrough,
+    meter: meter ?? this.meter,
+    musicalKey: musicalKey ?? this.musicalKey,
     status: status ?? this.status,
     difficultyLevelId: clearDifficultyLevel
         ? null
@@ -343,6 +391,10 @@ class Dance {
     sourceCitations: sourceCitations ?? this.sourceCitations,
     provenance: clearProvenance ? null : (provenance ?? this.provenance),
     composedOn: clearComposedOn ? null : (composedOn ?? this.composedOn),
+    interpreterIds: interpreterIds ?? this.interpreterIds,
+    interpretedOn: clearInterpretedOn
+        ? null
+        : (interpretedOn ?? this.interpretedOn),
     revisedOn: clearRevisedOn ? null : (revisedOn ?? this.revisedOn),
     createdAt: createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -389,6 +441,8 @@ class Dance {
       hook: hook,
       callingNotes: callingNotes,
       walkthrough: walkthrough,
+      meter: meter,
+      musicalKey: musicalKey,
       status: status,
       difficultyLevelId: difficultyLevelId,
       mixedLevel: mixedLevel,
@@ -411,6 +465,8 @@ class Dance {
       ],
       sourceCitations: sourceCitations,
       composedOn: composedOn,
+      interpreterIds: interpreterIds,
+      interpretedOn: interpretedOn,
       revisedOn: revisedOn,
       createdAt: now,
       updatedAt: now,
@@ -431,6 +487,8 @@ class Dance {
       other.hook == hook &&
       other.callingNotes == callingNotes &&
       other.walkthrough == walkthrough &&
+      other.meter == meter &&
+      other.musicalKey == musicalKey &&
       other.status == status &&
       other.difficultyLevelId == difficultyLevelId &&
       other.mixedLevel == mixedLevel &&
@@ -442,6 +500,8 @@ class Dance {
       _listEq.equals(other.links, links) &&
       _listEq.equals(other.sourceCitations, sourceCitations) &&
       other.composedOn == composedOn &&
+      _listEq.equals(other.interpreterIds, interpreterIds) &&
+      other.interpretedOn == interpretedOn &&
       other.revisedOn == revisedOn &&
       other.createdAt == createdAt &&
       other.updatedAt == updatedAt &&

@@ -223,8 +223,27 @@ void main() {
       kUndoPromptDefaultSeconds,
     );
 
+    // Exactly kUndoPromptSecondOptions' choices and "until closed", in
+    // order, spelled out so a change to the list is a visible test change.
+    expect(
+      tester
+          .widget<DropdownButton<int>>(dropdown)
+          .items!
+          .map((item) => item.value)
+          .toList(),
+      [2, 5, 10, 15, kUndoPromptUntilDismissed],
+    );
     await tester.tap(dropdown);
     await tester.pumpAndSettle();
+    for (final label in [
+      '2 seconds',
+      '5 seconds',
+      '10 seconds',
+      '15 seconds',
+      'Until I close it',
+    ]) {
+      expect(find.text(label), findsWidgets, reason: label);
+    }
     await tester.tap(find.text('Until I close it').last);
     await tester.pumpAndSettle();
 

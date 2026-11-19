@@ -141,6 +141,8 @@ Map<String, String> _fieldLabels(AppLocalizations l10n, SyncRecordKind kind) =>
         'hook': l10n.danceEditorHookLabel,
         'callingNotes': l10n.danceEditorCallingNotesLabel,
         'walkthrough': l10n.danceEditorWalkthroughLabel,
+        'meter': l10n.danceEditorMeterLabel,
+        'musicalKey': l10n.danceEditorMusicalKeyLabel,
         'difficultyLevelId': l10n.danceEditorLevelLabel,
         'mixedLevel': l10n.commonMixedLevel,
         'mixer': l10n.commonMixer,
@@ -152,6 +154,8 @@ Map<String, String> _fieldLabels(AppLocalizations l10n, SyncRecordKind kind) =>
         'links': l10n.danceEditorLinksLabel,
         'sourceCitations': l10n.danceEditorPublishedSourcesLabel,
         'composedOn': l10n.danceEditorComposedLabel,
+        'interpreterIds': l10n.danceEditorInterpretedByLabel,
+        'interpretedOn': l10n.danceEditorInterpretedOnLabel,
         'revisedOn': l10n.danceEditorRevisedLabel,
         'provenance': l10n.syncConflictFieldProvenance,
       },
@@ -1001,6 +1005,7 @@ class SyncConflictComparison extends StatelessWidget {
     try {
       switch (key) {
         case 'authorIds':
+        case 'interpreterIds':
           return names(lookups.choreographers);
         case 'tagIds':
           return names(lookups.tags);
@@ -1032,6 +1037,7 @@ class SyncConflictComparison extends StatelessWidget {
             Formation(
               FormationShape.values.byName(map['shape'] as String),
               detail: map['detail'] as String?,
+              improper: map['improper'] == true,
             ),
           );
         case 'customFields':
@@ -1191,5 +1197,7 @@ class SyncConflictComparison extends StatelessWidget {
     child: Text(text, style: Theme.of(context).textTheme.bodySmall),
   );
 
-  static final FigureRenderer _renderer = FigureRenderer(contraTaxonomy);
+  static final FigureRenderer _renderer = FigureRenderer(
+    shippedTaxonomies.anyForm,
+  );
 }

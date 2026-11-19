@@ -4124,6 +4124,41 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get commonFormationDupleMinor => 'Duple minor';
+
+  @override
+  String get commonFormationThreeCoupleLongways => 'Three-couple longways';
+
+  @override
+  String get commonFormationFourCoupleLongways => 'Four-couple longways';
+
+  @override
+  String get commonFormationFiveCoupleLongways => 'Five-couple longways';
+
+  @override
+  String get commonFormationSixCoupleLongways => 'Six-couple longways';
+
+  @override
+  String get commonFormationCircle => 'Cercle';
+
+  @override
+  String get commonFormationSquare => 'Carré';
+
+  @override
+  String get commonFormationTwoCoupleSet => 'Two-couple set';
+
+  @override
+  String commonFormationImproperFlag(String shape) {
+    return '$shape, improper';
+  }
+
+  @override
+  String get danceEditorMeterLabel => 'Mesure';
+
+  @override
+  String get danceEditorMusicalKeyLabel => 'Tonalité';
+
+  @override
   String get commonMixedLevel => 'Niveau mixte';
 
   @override
@@ -8568,6 +8603,12 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get danceEditorComposedHelper =>
       'Quand la danse a été composée (année, ou ajoutez mois/jour)';
+
+  @override
+  String get danceEditorInterpretedByLabel => 'Interprétée par';
+
+  @override
+  String get danceEditorInterpretedOnLabel => 'Interprétée';
 
   @override
   String get danceEditorRevisedLabel => 'Révisée';

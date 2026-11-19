@@ -4094,6 +4094,41 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String get commonFormationDupleMinor => 'Duple minor';
+
+  @override
+  String get commonFormationThreeCoupleLongways => 'Three-couple longways';
+
+  @override
+  String get commonFormationFourCoupleLongways => 'Four-couple longways';
+
+  @override
+  String get commonFormationFiveCoupleLongways => 'Five-couple longways';
+
+  @override
+  String get commonFormationSixCoupleLongways => 'Six-couple longways';
+
+  @override
+  String get commonFormationCircle => 'Cirkel';
+
+  @override
+  String get commonFormationSquare => 'Square';
+
+  @override
+  String get commonFormationTwoCoupleSet => 'Two-couple set';
+
+  @override
+  String commonFormationImproperFlag(String shape) {
+    return '$shape, improper';
+  }
+
+  @override
+  String get danceEditorMeterLabel => 'Maatsoort';
+
+  @override
+  String get danceEditorMusicalKeyLabel => 'Toonsoort';
+
+  @override
   String get commonMixedLevel => 'Gemengd niveau';
 
   @override
@@ -8511,6 +8546,12 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get danceEditorComposedHelper =>
       'Wanneer de dans is gecomponeerd (jaar, of voeg maand/dag toe)';
+
+  @override
+  String get danceEditorInterpretedByLabel => 'Geïnterpreteerd door';
+
+  @override
+  String get danceEditorInterpretedOnLabel => 'Geïnterpreteerd';
 
   @override
   String get danceEditorRevisedLabel => 'Herzien';

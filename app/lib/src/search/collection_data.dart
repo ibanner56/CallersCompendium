@@ -507,7 +507,7 @@ class CollectionData {
       hasMixedLevel: hasMixedLevel,
       hasMixer: hasMixer,
       hasRating: hasRating,
-      taxonomy: contraTaxonomy,
+      taxonomy: shippedTaxonomies.anyForm,
       sectionLabels: PhraseStructure.standard.labels,
     );
   }

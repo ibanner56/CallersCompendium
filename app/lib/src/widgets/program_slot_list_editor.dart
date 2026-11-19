@@ -211,7 +211,7 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
       return text;
     }
     return FigureRenderer(
-      contraTaxonomy,
+      shippedTaxonomies.anyForm,
     ).renderFreeTextWithCanonicalDiscouragedTerms(text, widget.dialect!);
   }
 
@@ -224,7 +224,7 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
       return text;
     }
     return FigureRenderer(
-      contraTaxonomy,
+      shippedTaxonomies.anyForm,
     ).renderFreeTextWithCanonicalDiscouragedTerms(text, widget.dialect!);
   }
 
@@ -548,7 +548,7 @@ class _SlotTile extends StatelessWidget {
         formationDisplayLabel(
           l10n,
           formation!,
-          FigureRenderer(contraTaxonomy),
+          FigureRenderer(shippedTaxonomies.anyForm),
           dialect ?? Dialect.larksRobins,
           canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
         ),

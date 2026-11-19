@@ -2,7 +2,7 @@ import '../dialect/dialect.dart';
 import '../dialect/renderer.dart';
 import '../model/dance.dart';
 import '../model/phrase_structure.dart';
-import '../taxonomy/contra_taxonomy.dart';
+import '../taxonomy/taxonomy_registry.dart';
 import 'dance_card_content.dart';
 import 'dance_share_fields.dart';
 import 'export_labels.dart';
@@ -39,7 +39,8 @@ import 'export_labels.dart';
 ///   the Level line is omitted. The Status line is omitted for an active dance.
 ///
 /// [renderer] supplies the dialect rendering engine; when omitted a default
-/// `FigureRenderer(contraTaxonomy)` is used (the same taxonomy the app wires).
+/// `FigureRenderer` over `TaxonomyRegistry.anyForm` is used, as the app
+/// wires it.
 ///
 /// [sourceLines] are the already-resolved published-source citation lines (one
 /// per citation, built by the app from its localized strings); they appear
@@ -95,7 +96,7 @@ String danceToPlainText(
   Set<DanceShareField> fields = DanceShareField.allExceptTunes,
   List<String> sourceLines = const [],
 }) {
-  final fig = renderer ?? FigureRenderer(contraTaxonomy);
+  final fig = renderer ?? FigureRenderer(shippedTaxonomies.anyForm);
   final content = DanceCardContent.build(
     dance,
     dialect: dialect,
