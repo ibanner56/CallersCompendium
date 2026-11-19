@@ -810,8 +810,10 @@ final Taxonomy contraTaxonomy = Taxonomy(
     // it, because The Caller's Box writes casts with every part optional
     // ("Cast back", "Ones cast down", "Men cast clockwise behind partner"),
     // and a default would claim a direction, distance or endpoint the source
-    // did not state. The shape is shared with ECD's `ecd_cast` by the
-    // maintainer's decision of 2026-11-19 (see `cast_vocabulary.dart`).
+    // did not state. The maintainer decided (2026-11-19) that this shape and
+    // ECD's `ecd_cast` be one; this is the shape, and the ECD taxonomy's side
+    // follows it (`cast_vocabulary.dart`, and `cast_test.dart`, which records
+    // where `ecd_cast` stands).
     //
     // "Cast off" is `down` with `places` 1 unless the line states a number:
     // the maintainer could see no difference between The Caller's Box's
@@ -855,9 +857,9 @@ final Taxonomy contraTaxonomy = Taxonomy(
       // "to …") is the renderer's.
       renderTemplate: '{who} {move} {direction} {places} {whom} {destination}',
       searchKeywords: ['cast off', 'cast down', 'cast up', 'cast back'],
-      // The beats of the 1,461 casts read from the 1,563 public Caller's Box
-      // dances that mention one (2026-11-19): 4 on 1,007, 8 on 181, 2 on 128,
-      // 3 on 75, 6 on 48, and no other count above 3.
+      // The beats of the 1,455 casts read from the 1,563 public Caller's Box
+      // dances that mention one (2026-11-19): 4 on 1,006, 8 on 178, 2 on 128,
+      // 3 on 75, 6 on 46, and no other count above 3.
       goodBeats: [2, 3, 4, 6, 8],
     ),
     const MoveDef(

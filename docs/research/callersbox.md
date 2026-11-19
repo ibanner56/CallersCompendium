@@ -1010,11 +1010,11 @@ custom one counts when its text matches `\bcast`.
 | | before | after |
 | --- | ---: | ---: |
 | figure lines mentioning a cast | 2,066 | 2,066 |
-| `custom` cast leaves | 2,060 | 463 |
-| `cast` figures | 0 | 1,461 |
+| `custom` cast leaves | 2,060 | 469 |
+| `cast` figures | 0 | 1,455 |
 | `hand_cast` figures | 0 | 140 |
 
-1,276 of the 1,563 dances change. In every one, the only figures removed are
+1,271 of the 1,563 dances change. In every one, the only figures removed are
 `custom` cast lines, and the total beats of the dance are unchanged. Besides
 `cast` and `hand_cast`, the only figures added are the other clauses of lines
 that now split or decompose: 2 `down_the_hall` and 8 `up_the_hall` (`Partner
@@ -1027,23 +1027,32 @@ name.
 The wording after the word `cast`, over all 2,066 lines: `down` 750, `off` 666,
 `up` 240, nothing 152 (137 of them a bare `Hand cast`), `back` 101,
 `clockwise` 58, `counterclockwise` 52, `right` 13, `around` 12, `left` 10.
-Beats on the 1,461 casts: 4 on 1,007, 8 on 181, 2 on 128, 3 on 75, 6 on 48,
-no other count above 3.
+Beats on the 1,455 casts: 4 on 1,006, 8 on 178, 2 on 128, 3 on 75, 6 on 46,
+no other count above 3. Directions: `down` 1,218, `up` 145, `right` 62, `left`
+27, unstated 3.
 
-What stays `custom` (463), by shape:
+What stays `custom` (469), by shape:
 
 | shape | lines | example |
 | --- | ---: | --- |
 | `;` lines whose other clauses do not structure | 207 | `Ones lead down through twos; separate; cast up to place` |
 | "others follow" / "inverting lines" riders | 95 | `Ones cast down to bottom, inverting lines. Others follow` |
-| a dancer no move reads, and other single-clause oddities | 54 | `role1 one cast down`, `Threes cast up`, `Ones hand cast` |
-| an endpoint outside the destination list | 43 | `Twos cast up to ends of line of four`, `Ends cast back to P2` |
+| dancers no move reads | 49 | `role1 one cast down (past M2;M3)`, `Threes cast up`, `Ends cast back to P2` |
 | inside a double figure eight | 26 | `Double figure eight (ones cross up, twos cast down)` |
+| other single-clause wordings | 26 | `Ones hand cast`, `Star cast off: role2s trade by right` |
 | `around the major set` | 25 | `Women cast counterclockwise around the major set (past N2) (men assist)` |
+| an endpoint outside the destination list | 22 | `Twos cast up to ends of line of four` |
 | `behind <dancer>` | 13 | `Men allemande left 1/2 \|\| Women cast clockwise behind partner` |
+| a `(past …)` that is not a list of dancers | 6 | `Twos cast up (past ones and threes)`, `role2s cast up (past S; to partner)` |
 
-The "dancer no move reads" rows are not a cast gap: `Threes swing` and `Woman
+The "dancers no move reads" rows are not a cast gap: `Threes swing` and `Woman
 one swing` are `custom` too.
+
+Re-check and free-text entry read through the fan-out across every front end,
+not the Caller's Box front end alone. Over the same lines, the fan-out and a
+fresh Caller's Box import agree on every cast; the only lines on which they
+differ are 3 promenade lines (`Ones promenade counterclockwise down to bottom
+(ones cast left). Others follow`), which differ the same way on `main`.
 
 The glossary entries this rests on (`Glossary.htm`, read 2026-11-19): **Cast**
 ("a rather fuzzy term … to individually go somewhere, on the outside of the

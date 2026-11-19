@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "added": [
-      "Contra dances have a cast figure: up or down the set, or back over the left or right shoulder, with how many places, around whom and where it ends. Dances you import from The Caller's Box now read most of their casts as this figure instead of leaving them as text, with a cast off read as a cast down one place.",
+      "Contra dances have a cast figure: up or down the set, or back over the left or right shoulder, with how many places, around whom and where it ends. A cast back by one role takes that role's usual shoulder, as a chain takes its usual hand. Dances you import from The Caller's Box now read most of their casts as this figure instead of leaving them as text, with a cast off read as a cast down one place, and \"Re-check unrecognized figures\" can now recognize most casts in dances you imported earlier.",
       "A hand cast is now a figure of its own, a kind of gate. A bare \"Hand cast\" imported from The Caller's Box reads as one."
     ]
   },

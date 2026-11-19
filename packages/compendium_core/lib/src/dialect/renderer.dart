@@ -2841,7 +2841,8 @@ class FigureRenderer {
       r,
       MoveDef(
         id: aliasId,
-        displayName: r.taxonomy.aliases[aliasId]?.displayName ?? def.displayName,
+        displayName:
+            r.taxonomy.aliases[aliasId]?.displayName ?? def.displayName,
         params: def.params,
         renderTemplate: def.renderTemplate,
       ),

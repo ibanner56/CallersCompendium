@@ -2235,7 +2235,7 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
   of Caller's Box lines the taxonomy could not hold. Of the 2,066 lines
   mentioning a cast in the 1,563 public dances whose figures mention one
   (fetched 2026-11-19; `docs/research/callersbox.md`), 2,060 were `custom`;
-  463 still are.
+  469 still are.
   - **`cast`** (`who`, `direction`, `places`, `whom`, `destination`, `beats`
     4). Every param but `beats` defaults to `unspecified`, because the source
     writes casts with every part optional. The maintainer's rulings
@@ -2250,32 +2250,51 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
       the glossary's "ones peel down the outside into second place" is a cast
       down one place. Whether the cast is assisted is not a param; the
       glossary says it "depends on your community".
-    - The shape is shared with ECD's `ecd_cast` from the start, so ADR-006 F5
-      maps one to the other. `destination` holds ECD's destination tokens plus
-      `top` and `bottom`; `cast_vocabulary.dart` holds the contra side, and a
-      test pins that it contains every ECD destination. The ECD side is the
-      ECD taxonomy's to change.
+    - A role's cast back is over the right shoulder for role2s and the left
+      for role1s ("as we do for chains"). As with a chain's role-implied
+      hand, every reader writes it (`figure_parser.dart`, `_cast`), the
+      editor writes it when a role is picked (`seedCastShoulder`, wired where
+      `seedChainHand` is), and the display leaves it unsaid: "role2s cast
+      back" is over the right shoulder, and only "role2s cast back left"
+      names one. That last part is this change's reading of the rulings
+      together (the maintainer's wording template, given as a rough guide,
+      shows the shoulder; the chain precedent hides the role's own). Applying
+      the rule in every reader, not only the Caller's Box front end, is what
+      makes a re-check of an older import, a Caller's Companion import and
+      free-text entry agree with a fresh import.
+    - `destination` holds ECD's destination tokens plus `top` and `bottom`.
+      The maintainer decided this shape and ECD's `ecd_cast` be one, so
+      ADR-006 F5 maps one to the other. **It is not one yet:** `ecd_cast`
+      still has `where` (off/up/down/around) and a `direction` that is a
+      side, and the ECD taxonomy's session owns that change.
+      `cast_test.dart` records `ecd_cast`'s current params, so the change
+      shows up there, and pins that contra's destinations hold every ECD one.
   - **`hand_cast`**, an alias of `gate` pinning nothing: the maintainer's
     ruling, on The Caller's Box glossary calling each "very similar" to the
-    other. It is stored and shown under its own name, with the gate's params
-    all unstated. Only a bare "Hand cast" reads as one; "Ones hand cast" stays
-    custom, because the source does not say which of a gate's dancer slots
-    "ones" fills.
-  - The Caller's Box readings, in its front end
-    (`callersbox_figure_dialect.dart`, `_tcbCast`): a role's "cast back" is
-    over the right shoulder for role2s and the left for role1s (the
-    maintainer's ruling, likened to a chain's role-implied hand, and written
-    explicitly as a chain's hand is); a cast back by other named dancers
-    stays custom, as the maintainer asked; `(past twos; threes)` counts into
-    `places` and is kept as a note; `[with N1]` is a note, as on other moves.
-    The shared reader leaves the role rule out on purpose: free-text entry of
-    the display line "robins cast back" must read back unchanged.
+    other. It is listed as a move (`listedAsMove`), for the reasons
+    `long_lines` is: it is stored under its own id, so search's "Has figure"
+    must be able to name it, and a dialect's name or wording for `gate` must
+    not rename it. It displays through `gate`'s renderer under its own name
+    ("neighbor hand cast ½ to face up"). Only a bare "Hand cast" reads as
+    one; "Ones hand cast" stays custom, because the source does not say
+    which of a gate's dancer slots "ones" fills. It keeps the gate's 8-beat
+    default; imports carry the line's own beats (4 on 113 of 140).
+  - The Caller's Box front end (`callersbox_figure_dialect.dart`,
+    `_tcbCast`) reads `(past twos; threes)`: the count fills `places` and
+    the text is kept as a note. Only a list of dancers counts (`twos`, `N2`,
+    `W1`, `N2 twos`, `shadow S1`); `(past ones and threes)`, `(past twos,
+    threes)`, `(past S; to partner)`, `(past top couple)`, a second `(past …)`
+    in the clause, or a count the line contradicts keep the line custom.
+    `[with N1]` is a note, as on other moves.
   - **Not modelled, so still custom:** multi-step `;` lines whose other
     clauses do not parse (207 lines, mostly `lead through …; separate; cast
-    …`), "others follow"/"inverting lines" riders (95), `behind <dancer>` and
-    `around the major set`, endpoints outside the destination list ("to ends
-    of line of four"), and casts by dancers the contra vocabulary does not
-    name (`Threes`, `role1 one`), which no move reads.
+    …`, which keeps the maintainer's "lead through; separate; cast back to
+    place" group custom), "others follow"/"inverting lines" riders (95),
+    casts by dancers no move reads (`Threes`, `role1 one`, `Ends`, which
+    keeps "Ends cast back to P2" custom; 49), inside a double figure eight
+    (26), `around the major set` (25), endpoints outside the destination
+    list ("to ends of line of four"; 22), `behind <dancer>` (13), and the 6
+    `(past …)` lists above.
   - `cast.direction` takes no opposite in `ParamOpposites`: like
     `circle.direction` it is a free-form choice slot, and its values are two
     pairs on different axes.

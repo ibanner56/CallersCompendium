@@ -7,7 +7,8 @@ import 'param_types.dart';
 /// The maintainer decided (2026-11-19) that contra's `cast` and ECD's
 /// `ecd_cast` share one parameter shape, so that ADR-006 F5 can re-read a
 /// contra-imported ECD dance one to one. This file is the contra side of that
-/// shape; ECD's side is owned by the ECD taxonomy.
+/// shape. ECD's side is owned by the ECD taxonomy and had not yet taken it when
+/// this was written; `cast_test.dart` records where it stands.
 
 /// Which way a cast turns or travels. `left` and `right` are the SHOULDER the
 /// dancer turns over, not a side of the set: The Caller's Box's "cast
@@ -103,10 +104,13 @@ final Map<String, String> _castDestinationByWords = {
 /// lines follow a counterclockwise promenade, where the outside dancer turns
 /// out to the right and the inside dancer to the left.
 ///
-/// Written explicitly by the readers, never as a taxonomy default, for the same
-/// reason as a chain's hand: a role-conditional default would go stale the
-/// moment `who` is edited. Null for any other `who`, so the shoulder stays
-/// unstated.
+/// Written explicitly, never as a taxonomy default, for the same reason as a
+/// chain's hand: a role-conditional default would go stale the moment `who` is
+/// edited. Every reader writes it for a role's "cast back" with no shoulder
+/// (`figure_parser.dart`, `_cast`), the editor writes it when a role is picked
+/// (`seedCastShoulder`), and the display leaves it unsaid, so "role2s cast
+/// back" means the right shoulder, as "role2s chain" means a right-hand chain.
+/// Null for any other `who`, so the shoulder stays unstated.
 String? castBackShoulderForWho(Object? who) => switch (who) {
   'role2s' => 'right',
   'role1s' => 'left',
