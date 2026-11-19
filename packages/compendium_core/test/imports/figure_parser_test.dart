@@ -1346,9 +1346,6 @@ void main() {
       for (final line in [
         'Partner swing; fall back',
         'Partner swing; bend the line',
-        // The `cast` family is deliberately excluded so a future census of
-        // undefined `cast` figures still counts these lines.
-        'Partner swing; cast down to place',
         // `return to place` is allowlisted as an EXACT phrase, so its
         // neighbouring wordings are not swept in.
         'Partner swing; return to original place',
