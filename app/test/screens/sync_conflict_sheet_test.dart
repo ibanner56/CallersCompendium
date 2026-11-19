@@ -312,6 +312,47 @@ void main() {
     expect(find.textContaining('no-longer-a-figure'), findsNothing);
   });
 
+  testWidgets('a conflict on notes on an English figure names it in the '
+      'English dialect (ADR-006 W5)', (tester) async {
+    final repos = openTestRepositories();
+    tester.view
+      ..physicalSize = const Size(400, 1400)
+      ..devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final dialects = ValueNotifier(
+      DialectsByForm({
+        DanceForm.contra: Dialect.larksRobins,
+        DanceForm.ecd: Dialect(name: 'Mine', moves: const {'ecd_set': 'step'}),
+      }),
+    );
+    addTearDown(dialects.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        builder: (context, child) => ActiveDialectScope.byForm(
+          dialects: dialects,
+          child: RepositoriesScope(repositories: repos, child: child!),
+        ),
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: TextButton(
+                key: const ValueKey('open'),
+                onPressed: () => showSyncConflictSheet(context),
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.runAsync(() => _queueNoteTie(repos, ['ecd_set']));
+    await _open(tester);
+
+    expect(find.text('Your notes on step'), findsOneWidget);
+  });
+
   testWidgets('a long note is clipped in the choice, and shown whole in '
       'the comparison (#709)', (tester) async {
     final repos = await _pump(tester, size: const Size(400, 1400));

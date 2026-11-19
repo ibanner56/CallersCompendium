@@ -94,13 +94,21 @@ typedef _FigureLine = ({
 });
 
 /// Contra's active dialect, or the app default with no scope. What a
-/// conflict that is not about one dance reads in: the glossary, shorthands,
-/// snippets and settings are still contra's (ADR-006 implementation plan, W5
-/// and W6).
+/// conflict that is not about one dance or one built-in figure reads in: the
+/// user's own figures, shorthands and settings are still contra's (ADR-006
+/// implementation plan, W7).
 Dialect _contraDialect(BuildContext context) =>
+    _formDialect(context, DanceForm.contra);
+
+/// [form]'s active dialect, or the app default with no scope.
+Dialect _formDialect(BuildContext context, DanceForm form) =>
     (ActiveDialectScope.maybeOf(context) ?? DialectsByForm.defaults).forForm(
-      DanceForm.contra,
+      form,
     );
+
+/// The form the Glossary lists the built-in figure [figureId] under.
+DanceForm _figureForm(String figureId) =>
+    glossaryFormFor(shippedTaxonomies.formOfMoveId(figureId));
 
 /// [text] stored in canonical role words, as the active dialect reads it: how
 /// the user's own figures and notes (#709) are shown everywhere else.
@@ -110,17 +118,33 @@ String syncConflictFreeText(BuildContext context, String text) =>
       _contraDialect(context),
     );
 
+/// A note on the built-in figure [figureId] (#709), stored in canonical role
+/// words, as the Glossary shows it: in the dialect of the figure's form.
+String syncConflictFigureNoteText(
+  BuildContext context,
+  String figureId,
+  String text,
+) {
+  final form = _figureForm(figureId);
+  return glossaryRenderer(
+    form,
+  ).renderFreeText(text, _formDialect(context, form));
+}
+
 /// The built-in figure [figureId] names — a figure note's record id (#709) —
-/// exactly as the Glossary heads it in the active dialect, a colliding alias
+/// exactly as the Glossary heads it in its form's dialect, a colliding alias
 /// qualified by the values it pins ([glossaryFigureTitle]); or null when the
-/// Glossary no longer lists it (such a note is kept and not shown).
+/// Glossary doesn't list it (such a note is kept and not shown).
 String? syncConflictFigureName(BuildContext context, String figureId) {
-  if (!shippedFigureGlossaryEntries.any((e) => e.id == figureId)) return null;
+  final form = _figureForm(figureId);
+  final entries = shippedFigureGlossaryEntriesFor(form);
+  if (!entries.any((e) => e.id == figureId)) return null;
   return glossaryFigureTitle(
     AppLocalizations.of(context),
     figureId,
-    shippedFigureGlossaryEntries,
-    _contraDialect(context),
+    entries,
+    _formDialect(context, form),
+    form: form,
   );
 }
 

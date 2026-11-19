@@ -1984,8 +1984,9 @@ class _DiscouragedTermsEditor extends StatelessWidget {
 /// to exercise the substitutions this editor controls — a role-term plural
 /// ([allemande] with `role1s`), a dancer term + move substitution ([swing] with
 /// `partners`, [do_si_do] with `neighbors`), and a role term inside free-text
-/// prose — so edits visibly update as the user types. Deterministic and
-/// dialect-only; nothing is persisted.
+/// prose — so edits visibly update as the user types. A dialect of another
+/// form previews that form's figures instead ([form]; English's are
+/// `_ecdSamples`). Deterministic and dialect-only; nothing is persisted.
 class _DialectPreview extends StatelessWidget {
   const _DialectPreview({
     required this.dialect,

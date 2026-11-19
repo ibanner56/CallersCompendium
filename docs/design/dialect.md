@@ -135,12 +135,15 @@ wording, saved unchanged, reads as the default line. Imported
   whole-collection sync settings (conflicts go to review). Contra's library
   travels in the backup's `app.dialects` section and the other forms' as plain
   `app.settings` entries; older builds keep the unknown keys whole (ADR-004).
-  Surfaces that do not yet have a taxonomy per form (glossary, shorthands,
-  walkthrough snippets, the dialect editor's preview samples) stay on contra's
-  dialect until W5/W6. Program-wide text (notes, set lists, matrix columns) is
-  rendered in contra's dialect, while each dance in a program renders in its
-  own form's (implementer's call; the alternative, rendering program text in
-  the form of most of its dances, was rejected as unpredictable).
+  The Glossary shows each form's built-in figures in that form's dialect, as
+  the dialect editor's preview samples and each walkthrough snippet (by its
+  figure's form) are. Surfaces that do not yet have a form of their own (the
+  user's own figures and terms, wherever they are shown, shorthands, and the
+  Settings defaults) stay on contra's dialect until they gain one.
+  Program-wide text (notes, set lists, matrix columns) is rendered in
+  contra's dialect, while each dance in a program renders in its own form's
+  (implementer's call; the alternative, rendering program text in the form of
+  most of its dances, was rejected as unpredictable).
 
   A program may also name its own dialect (`Program.dialectName`, issue #1554),
   which only that program's Perform view uses; the editor, summary and exports

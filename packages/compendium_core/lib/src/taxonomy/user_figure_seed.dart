@@ -198,7 +198,10 @@ UserFigureParam _seedParam(
     case ParamKind.dancerList:
       // An English movement's dancers (several groups in order) are offered
       // as one group of dancers, the kind a figure of the user's can declare,
-      // with no default (ADR-006 W5).
+      // with no default (ADR-006 W5). A figure of the user's offers contra's
+      // dancer groups for it, as for any group of dancers: a declared
+      // parameter stores no list of groups of its own, so English-only groups
+      // such as `ends` or `top` can't be chosen in a copy yet.
       return UserFigureParam(key: key, kind: ParamKind.dancerSet);
     default:
       final candidate = UserFigureParam(

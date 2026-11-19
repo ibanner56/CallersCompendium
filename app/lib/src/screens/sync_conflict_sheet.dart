@@ -802,7 +802,7 @@ class _ConflictGroupTile extends StatelessWidget {
     if (group.kind == SyncRecordKind.figureNote) {
       final notes = body?['notes'];
       return notes is String && notes.isNotEmpty
-          ? syncConflictFreeText(context, notes)
+          ? syncConflictFigureNoteText(context, group.recordId, notes)
           : null;
     }
     final value =

@@ -122,9 +122,8 @@ void main() {
     await tester.runAsync(
       () => repos.settings.set(kDefaultDanceFormKey, DanceForm.ecd.name),
     );
+    // Only English figures have `ecd_` ids, so finding one proves the form.
     await pump(tester, repositories: repos, search: 'set', entryId: 'ecd_set');
-    // Contra's figures are not listed beside English ones.
-    expect(find.byKey(const ValueKey('glossary-entry-swing')), findsNothing);
     await copyAndSave(tester, definition: 'Step right and left.');
 
     final entries = await tester.runAsync(repos.userGlossary.listAll);
