@@ -4240,10 +4240,6 @@
   "@collectionNewDance": {
     "x-sourceSha256": "c1e50f8630ba63be7971930aab740a917fb1fb614e5cfb1ca8e06fe390cb15d2"
   },
-  "collectionSearchTooltip": "{platform, select, apple{Rechercher (⌘K)} other{Rechercher (Ctrl+K)}}",
-  "@collectionSearchTooltip": {
-    "x-sourceSha256": "900e726652ea89b7d8abaf9b217c45c7336101cde2a7182b4b94448318375296"
-  },
   "collectionSelectDancesTooltip": "Sélectionner des danses",
   "@collectionSelectDancesTooltip": {
     "x-sourceSha256": "0d7b3abe89a85300faf1a204e7c794ec3bdbcd8ad4e89d6551974ed4363313ed"
@@ -5721,6 +5717,14 @@
   "programsTitle": "Programmes",
   "@programsTitle": {
     "x-sourceSha256": "b6747064b2a6dd95ce21899cbfa4a60ed8980b4819014b7a4fce0d849a599fb2"
+  },
+  "programsSearchTooltip": "Rechercher des programmes",
+  "@programsSearchTooltip": {
+    "x-sourceSha256": "23e28334e250895890d982583ab65c644fafa5634d066af9952a9ef9bedbad91"
+  },
+  "programsSearchHint": "Rechercher des programmes…",
+  "@programsSearchHint": {
+    "x-sourceSha256": "22f0776e955586107dc0faa3f05b8ae6f047580df4cb7a1418a78690a58dff3d"
   },
   "programsSortTitle": "Titre",
   "@programsSortTitle": {

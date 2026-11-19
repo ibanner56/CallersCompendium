@@ -34,9 +34,11 @@ It is **local-first**, and that shapes everything else:
   [Device Sync](./settings.md#device-sync). It never publishes your work to a
   community site.
 - **It runs everywhere you call.** The same app, adapted to each screen size,
-  runs on Linux, macOS, Windows, Android, and iOS/iPadOS. On a phone you get a
-  single-column layout with a bottom navigation bar; on a tablet or desktop you
-  get side-by-side list and detail panes and a left navigation rail.
+  runs on Linux, macOS, Windows, Android, and iOS/iPadOS. On a phone held
+  upright you get a single-column layout with a bottom navigation bar. On
+  most phones turned on their side, a tablet or a desktop you get a left
+  navigation rail, and, once the window is wide enough (a tablet in
+  landscape, say), list and detail panes side by side.
 
 Because your whole library lives in one place on your device, you can move it to
 a new machine any time with a single backup file — see the
@@ -83,7 +85,8 @@ Two small things worth knowing on day one:
 ## A tour of the app
 
 Four destinations are always one step away in the navigation (a bottom bar on a
-phone, a left rail on a tablet or desktop): **Collection**, **Programs**,
+phone held upright, a left rail on most phones turned on their side, a tablet or
+a desktop): **Collection**, **Programs**,
 **Settings**, and **Guide**. A fifth, **Glossary**, appears between **Programs**
 and **Settings** if you turn it on in **Settings ▸ Experimental** (see
 [Settings](settings.md#glossary-and-custom-figures)).
@@ -94,9 +97,10 @@ program when it is time to call, and step back out when you are done.
 **Guide** is this documentation, bundled into the app so you have it on stage with
 no signal. It is the same set of pages you are reading now.
 
-To jump straight to a dance or program you can name, choose **Search** — in the
-navigation rail on a wide screen, or in the app bar on a narrow one — or press
-**Ctrl-K** (**Cmd-K** on macOS); see
+To jump straight to a dance or program you can name, choose **Search** in the
+navigation rail, or press **Ctrl-K** (**Cmd-K** on macOS). With the bottom bar, use the
+Collection's search box, or the programs-only search at the top of
+**Programs**; see
 [Jump straight to a dance or program](./collection.md#jump-straight-to-a-dance-or-program).
 On a computer you can also use keyboard shortcuts, your mouse's **Back** button,
 and right-click menus on dances and programs; the

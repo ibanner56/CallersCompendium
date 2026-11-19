@@ -6478,12 +6478,6 @@ abstract class AppLocalizations {
   /// **'New dance'**
   String get collectionNewDance;
 
-  /// Tooltip for the app-bar search button, noting its keyboard shortcut.
-  ///
-  /// In en, this message translates to:
-  /// **'{platform, select, apple{Search (⌘K)} other{Search (Ctrl+K)}}'**
-  String collectionSearchTooltip(String platform);
-
   /// Tooltip for the app-bar button that enters multi-select (batch) mode.
   ///
   /// In en, this message translates to:
@@ -8697,6 +8691,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Programs'**
   String get programsTitle;
+
+  /// Tooltip of the narrow-layout Programs list's app-bar search button, which searches programs only (not dances); also the screen-reader label of that search's dismiss barrier.
+  ///
+  /// In en, this message translates to:
+  /// **'Search programs'**
+  String get programsSearchTooltip;
+
+  /// Placeholder hint in the search field opened from the narrow-layout Programs list, which lists programs only.
+  ///
+  /// In en, this message translates to:
+  /// **'Search programs…'**
+  String get programsSearchHint;
 
   /// Programs list sort option: order alphabetically by program title.
   ///

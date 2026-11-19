@@ -20,6 +20,7 @@ import '../update/retirement_banner.dart';
 import '../update/update_banner.dart';
 import '../widgets/brand_mark.dart';
 import '../widgets/command_palette.dart';
+import '../widgets/hardware_keyboard_presence.dart';
 import 'app_shell_search_scope.dart';
 import 'collection_shell.dart';
 import 'glossary/glossary_screen.dart';
@@ -27,6 +28,7 @@ import 'programs_shell.dart';
 import 'settings_screen.dart';
 import 'user_guide/user_guide_screen.dart';
 import '../theme/app_shapes.dart';
+import '../theme/app_breakpoints.dart';
 
 /// Top-level navigation between Collection, Programs, the Glossary, Settings,
 /// and the User Guide (`docs/design/ux.md` information architecture).
@@ -34,8 +36,9 @@ import '../theme/app_shapes.dart';
 /// The Glossary destination (issue #695) appears only while the Experimental
 /// "Show glossary" setting is on ([ShowGlossaryScope]).
 ///
-/// - **Narrow (< 900 px):** bottom [NavigationBar].
-/// - **Wide (≥ 900 px):** left [NavigationRail].
+/// - **Narrow (below [AppBreakpoints.rail], 720 px):** bottom [NavigationBar].
+/// - **Wide (from 720 px):** left [NavigationRail]. Each destination decides
+///   for itself, at [AppBreakpoints.split], whether to show one pane or two.
 ///
 /// All destinations are kept alive in an [IndexedStack] so switching preserves
 /// each screen's state (selection, scroll, in-progress edits). Settings and the
@@ -53,9 +56,6 @@ class AppShell extends StatefulWidget {
   final OnlineSearchService? callersBoxOnline;
   final OnlineSearchService? contraDbOnline;
   final ImportPicker? reimportPicker;
-
-  /// Breakpoint (logical pixels) at which the nav rail replaces the bottom bar.
-  static const double railBreakpoint = 900;
 
   @override
   State<AppShell> createState() => AppShellState();
@@ -84,6 +84,12 @@ class AppShellState extends State<AppShell> {
   /// The seq of the last tag-filter request this shell reacted to, so a repeat
   /// request (even for the same tag) is handled exactly once.
   int _lastFilterSeq = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    HardwareKeyboardPresence.ensureListening();
+  }
 
   @override
   void didChangeDependencies() {
@@ -223,11 +229,15 @@ class AppShellState extends State<AppShell> {
   /// [ProgramSummaryScreen] — rather than an editor. Search is a way to reach
   /// something, not a request to change it, and the builder stays one tap away
   /// behind the summary's "Edit program".
-  Future<void> openSearch() async {
+  ///
+  /// With [programsOnly] the palette lists programs alone: the narrow Programs
+  /// list's app-bar search ([_searchPrograms]).
+  Future<void> openSearch({bool programsOnly = false}) async {
     if (_paletteOpen) return;
     _paletteOpen = true;
     final result = await showCommandPalette(
       context,
+      programsOnly: programsOnly,
     ).whenComplete(() => _paletteOpen = false);
     if (result == null || !mounted) return;
     final (destination, route) = switch (result.kind) {
@@ -256,6 +266,10 @@ class AppShellState extends State<AppShell> {
     await Navigator.of(context).push(route);
   }
 
+  /// The narrow Programs list's app-bar search: programs only. A method, not
+  /// a closure, so [AppShellSearchScope] sees the same callback every build.
+  Future<void> _searchPrograms() => openSearch(programsOnly: true);
+
   /// Runs Ctrl/Cmd-N and the menu bar's New Dance: the new-dance editor opens
   /// over the Collection (PLAT-7, PLAT-8).
   void newDance() => _returnToShellThen(() {
@@ -279,9 +293,10 @@ class AppShellState extends State<AppShell> {
       _returnToShellThen(() => setState(() => _current = _Destination.guide));
 
   /// Runs Ctrl/Cmd-F: focuses the Collection's search box when the Collection
-  /// is showing with nothing over it, and opens global search everywhere else
-  /// (the Programs list, Settings, a pushed page), which is the search those
-  /// places offer.
+  /// is showing with nothing over it, and opens global search (dances and
+  /// programs) everywhere else: the Programs list, Settings, a pushed page.
+  /// On the narrow Programs list that is wider than its app-bar search, which
+  /// lists programs only.
   void focusSearch() {
     final onTop = ModalRoute.of(context)?.isCurrent ?? false;
     if (onTop &&
@@ -341,12 +356,14 @@ class AppShellState extends State<AppShell> {
     setState(() => _current = _Destination.guide);
   }
 
-  /// Keeps the Programs shell's State, with the Perform place it holds for
-  /// each open program (GIG-14), when this shell swaps the rail for the
+  /// Keeps every destination's State when this shell swaps the rail for the
   /// bottom bar: the two layouts put the pages at different tree positions,
-  /// so without it a rotation across [AppShell.railBreakpoint] rebuilds the
-  /// Programs shell from scratch.
-  final _programsShellKey = GlobalKey();
+  /// so without it a rotation across [AppBreakpoints.rail] (most phones turned
+  /// to landscape) rebuilds each page from scratch, losing the
+  /// Collection's search, filters and scroll, the open Settings section, and
+  /// the Perform place the Programs shell holds for each open program
+  /// (GIG-14).
+  final _bodyKey = GlobalKey();
 
   /// One page per [_Destination], in enum order.
   List<Widget> _buildPages() => [
@@ -357,7 +374,6 @@ class AppShellState extends State<AppShell> {
           isActive: _current == _Destination.collection,
         ),
         _Destination.programs => ProgramsShell(
-          key: _programsShellKey,
           isActive: _current == _Destination.programs,
         ),
         // Built only while shown, so a hidden Glossary costs nothing.
@@ -380,7 +396,12 @@ class AppShellState extends State<AppShell> {
     final l10n = AppLocalizations.of(context);
     return LayoutBuilder(
       builder: (context, constraints) {
-        final wide = constraints.maxWidth >= AppShell.railBreakpoint;
+        // The shell fills the window, so its constraints are the window's.
+        final wide = constraints.maxWidth >= AppBreakpoints.rail;
+        // [AppWindowWidth] hands the destinations this width, the window's,
+        // so they split at [AppBreakpoints.split] of window width whatever the
+        // rail beside them takes.
+        //
         // The app-wide update banners sit above the active tab's content so a
         // newer version — or an announced end of support for this one —
         // surfaces on any destination (Collection, Programs, Glossary,
@@ -389,18 +410,22 @@ class AppShellState extends State<AppShell> {
         // renders nothing unless it has something to say, so they add no
         // chrome in the common case.
         final nav = _navDestinations;
-        final body = Column(
-          children: [
-            const InstallLocationBanner(),
-            const RetirementBanner(),
-            const UpdateBanner(),
-            Expanded(
-              child: IndexedStack(
-                index: _current.index,
-                children: _buildPages(),
+        final body = AppWindowWidth(
+          key: _bodyKey,
+          width: constraints.maxWidth,
+          child: Column(
+            children: [
+              const InstallLocationBanner(),
+              const RetirementBanner(),
+              const UpdateBanner(),
+              Expanded(
+                child: IndexedStack(
+                  index: _current.index,
+                  children: _buildPages(),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         );
 
         if (wide) {
@@ -473,13 +498,13 @@ class AppShellState extends State<AppShell> {
           );
         }
 
-        // Narrow: the bottom-right FAB slot belongs to each screen's "New"
-        // FAB.extended, so search moves into the app bar via
-        // [AppShellSearchScope] (nested list screens surface a 1-tap search
-        // action). This avoids the phone double-FAB collision while keeping a
-        // labeled affordance consistent with the wide layout's rail search.
+        // Narrow: there is no rail search. The Collection's own search field
+        // is its search, and the Programs list gets a programs-only search in
+        // its app bar through [AppShellSearchScope]. Nothing on a phone
+        // searches dances and programs together; Ctrl/Cmd-K still does, with
+        // a keyboard.
         return AppShellSearchScope(
-          openSearch: openSearch,
+          searchPrograms: _searchPrograms,
           child: Scaffold(
             body: body,
             bottomNavigationBar: NavigationBar(
@@ -512,12 +537,16 @@ class AppShellState extends State<AppShell> {
   }
 }
 
-/// The desktop nav-rail global-search affordance. Unlike a bare icon button it
-/// carries a visible "Search" label and a platform-appropriate keyboard hint
-/// (⌘K on Apple platforms, Ctrl K elsewhere) so the feature — and its
-/// Ctrl/Cmd-K shortcut — is discoverable rather than hidden behind a glyph
-/// (`docs/design/ux-modernization.md` §6). Keeps the `global-search-button`
-/// key and tooltip so existing wiring and tests are preserved.
+/// The nav-rail global-search affordance. Unlike a bare icon button it carries
+/// a visible "Search" label and, when a hardware keyboard is likely present
+/// ([HardwareKeyboardPresence]), the platform's keyboard hint (⌘K on Apple
+/// platforms, Ctrl K elsewhere), so the feature and its Ctrl/Cmd-K shortcut
+/// are discoverable rather than hidden behind a glyph
+/// (`docs/design/ux-modernization.md` §6). An iPad with no keyboard gets no
+/// hint, since there is no key to press.
+///
+/// Drawn as a [_RailActionButton], the same pill as the rail's destinations.
+/// Search is an action, not a place, so it is never shown selected.
 class _RailSearchButton extends StatelessWidget {
   const _RailSearchButton({required this.onPressed});
 
@@ -526,56 +555,37 @@ class _RailSearchButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
+    final platform = Theme.of(context).platform;
     final isApple =
-        theme.platform == TargetPlatform.macOS ||
-        theme.platform == TargetPlatform.iOS;
-    final hint = isApple ? '\u2318K' : 'Ctrl K';
-    return Tooltip(
-      message: l10n.navSearchTooltip(hint),
-      child: Semantics(
-        button: true,
-        child: InkWell(
-          key: const ValueKey('global-search-button'),
-          onTap: onPressed,
-          borderRadius: AppShapes.borderRadiusLarge,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: scheme.secondaryContainer,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(Icons.search, color: scheme.onSecondaryContainer),
-                ),
-                const SizedBox(height: 4),
-                Text(l10n.navSearch, style: theme.textTheme.labelMedium),
-                const SizedBox(height: 2),
-                _ShortcutHint(hint),
-              ],
-            ),
-          ),
+        platform == TargetPlatform.macOS || platform == TargetPlatform.iOS;
+    final hint = isApple ? '⌘K' : 'Ctrl K';
+    return HardwareKeyboardPresence.builder(
+      builder: (context, keyboard) => _RailActionButton(
+        key: const ValueKey('global-search-button'),
+        onPressed: onPressed,
+        icon: const Icon(Icons.search),
+        label: l10n.navSearch,
+        tooltip: keyboard ? l10n.navSearchTooltip(hint) : l10n.navSearch,
+        // The hint's room is kept while it is hidden, so the rail below
+        // does not jump down when the first key arrives.
+        footer: Visibility(
+          visible: keyboard,
+          maintainSize: true,
+          maintainAnimation: true,
+          maintainState: true,
+          child: _ShortcutHint(hint),
         ),
       ),
     );
   }
 }
 
-/// The desktop nav-rail Help affordance. Mirrors [_RailSearchButton]'s visual
-/// pattern — a circular icon tile with a visible label — so the bottom-of-rail
-/// "User guide" entry reads as a peer of the search affordance rather than a
-/// bare glyph. Selects the offline in-app User Guide destination.
+/// The nav-rail Help affordance: the bottom-of-rail "User guide" entry, which
+/// selects the offline in-app User Guide destination.
 ///
-/// The tile is always filled with the guide's tertiary accent — a persistent
-/// colored affordance that mirrors the always-on search tile above it. The
-/// help/help_outline glyph still swaps to signal when the guide is the active
-/// destination.
+/// Drawn as a [_RailActionButton], the same pill as the rail's destinations,
+/// filled while the guide is the current destination; the help/help_outline
+/// glyph swaps with it, so selection is never shown by colour alone.
 class _RailHelpButton extends StatelessWidget {
   const _RailHelpButton({
     required this.onPressed,
@@ -596,37 +606,129 @@ class _RailHelpButton extends StatelessWidget {
   final bool selected;
 
   @override
+  Widget build(BuildContext context) => _RailActionButton(
+    key: const ValueKey('user-guide-button'),
+    onPressed: onPressed,
+    icon: Icon(selected ? Icons.help : Icons.help_outline),
+    label: label,
+    tooltip: tooltip,
+    selected: selected,
+    selectable: true,
+  );
+}
+
+/// A nav-rail button outside the rail's destination list (Search, Guide),
+/// drawn as a destination is: the icon in a [NavigationRail] indicator pill
+/// (the rail theme's shape and colour) with the label under it. The pill is
+/// filled only while [selected], and hover, focus and press tint the pill, not
+/// the whole tile. Icon and label colours follow Material 3's rail: the
+/// selected icon on the indicator colour's foreground, otherwise
+/// `onSurfaceVariant`, unless the rail theme sets its icon colours.
+///
+/// The pill is the focusable control, so keyboard focus is drawn on it as on a
+/// destination; the whole tile, label included, answers a tap. One merged semantics
+/// node announces the label as a button, selected or not.
+class _RailActionButton extends StatelessWidget {
+  const _RailActionButton({
+    super.key,
+    required this.onPressed,
+    required this.icon,
+    required this.label,
+    required this.tooltip,
+    this.selected = false,
+    this.selectable = false,
+    this.footer,
+  });
+
+  final VoidCallback onPressed;
+  final Widget icon;
+  final String label;
+  final String tooltip;
+  final bool selected;
+
+  /// Whether the button is a place that can be selected (Guide), so screen
+  /// readers announce its selected state. Search is an action and has none.
+  final bool selectable;
+
+  /// Shown under the label (the search shortcut hint), if any.
+  final Widget? footer;
+
+  /// The Material 3 rail indicator's size.
+  static const Size _indicatorSize = Size(56, 32);
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    return Tooltip(
-      message: tooltip,
-      child: Semantics(
-        button: true,
-        child: InkWell(
-          key: const ValueKey('user-guide-button'),
-          onTap: onPressed,
-          borderRadius: AppShapes.borderRadiusLarge,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: scheme.tertiaryContainer,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    selected ? Icons.help : Icons.help_outline,
-                    color: scheme.onTertiaryContainer,
-                  ),
+    final railTheme = NavigationRailTheme.of(context);
+    final indicatorShape = railTheme.indicatorShape ?? const StadiumBorder();
+    final indicatorColor =
+        railTheme.indicatorColor ?? scheme.secondaryContainer;
+    final selectedIcon = railTheme.selectedIconTheme?.color;
+    final unselectedIcon = railTheme.unselectedIconTheme?.color;
+    return MergeSemantics(
+      child: Tooltip(
+        message: tooltip,
+        // A tooltip that only repeats the label would be read twice.
+        excludeFromSemantics: tooltip == label,
+        child: Semantics(
+          button: true,
+          selected: selectable ? selected : null,
+          // The whole tile answers a tap, as a destination does; the pill's
+          // own InkWell wins on the pill and draws the ink and focus there.
+          child: MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTap: onPressed,
+              behavior: HitTestBehavior.opaque,
+              excludeFromSemantics: true,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 6),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Material(
+                      key: const ValueKey('rail-action-indicator'),
+                      color: selected ? indicatorColor : Colors.transparent,
+                      shape: indicatorShape,
+                      clipBehavior: Clip.antiAlias,
+                      child: InkWell(
+                        onTap: onPressed,
+                        customBorder: indicatorShape,
+                        child: SizedBox.fromSize(
+                          size: _indicatorSize,
+                          child: Center(
+                            child: IconTheme.merge(
+                              data: IconThemeData(
+                                size: 24,
+                                color: selected
+                                    ? selectedIcon ??
+                                          scheme.onSecondaryContainer
+                                    : unselectedIcon ?? scheme.onSurfaceVariant,
+                              ),
+                              child: icon,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      label,
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: selected
+                            ? scheme.onSurface
+                            : scheme.onSurfaceVariant,
+                      ),
+                    ),
+                    if (footer case final footer?) ...[
+                      const SizedBox(height: 2),
+                      footer,
+                    ],
+                  ],
                 ),
-                const SizedBox(height: 4),
-                Text(label, style: theme.textTheme.labelMedium),
-              ],
+              ),
             ),
           ),
         ),
