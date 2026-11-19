@@ -128,6 +128,12 @@ class FigureDraft {
   /// ([FigureDraft.fromFigure]). Any other span the line stated ("… back to
   /// place (16)"), so each step the line gave no count is left untimed under
   /// it, as the parser read it (ADR-006 §5.5).
+  ///
+  /// The parser gives a typed count and a derived one the same shape, so a
+  /// typed count equal to the steps' default total is read as no count: with
+  /// a Move default that changes a step's count, the sequence then counts
+  /// its steps rather than keeping the typed total. Telling the two apart
+  /// needs the parser to say whether the line stated its count.
   static void _keepUntimedUnderSpan(
     FigureDraft draft,
     List<Figure> sources,
