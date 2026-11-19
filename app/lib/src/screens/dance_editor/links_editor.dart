@@ -43,6 +43,9 @@ class LinksEditor extends StatelessWidget {
                 SizedBox(
                   width: 120,
                   child: DropdownButtonFormField<LinkKind>(
+                    // Field values read at the same weight as typed text; the dropdown's
+                    // default is the bolder titleMedium.
+                    style: Theme.of(context).textTheme.bodyLarge,
                     key: ValueKey('link-kind-${draft.id}'),
                     initialValue: draft.kind,
                     isDense: true,

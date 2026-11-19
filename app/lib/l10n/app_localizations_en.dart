@@ -313,6 +313,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get colorEditHexInvalid => 'Enter six hex digits, like #804020.';
+
+  @override
   String get colorEditHexLabel => 'Hex';
 
   @override
@@ -9172,6 +9175,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get danceEditorMoveDown => 'Move down';
 
   @override
+  String commonMoveItemUp(String name) {
+    return 'Move $name up';
+  }
+
+  @override
+  String commonMoveItemDown(String name) {
+    return 'Move $name down';
+  }
+
+  @override
+  String get danceEditorFigureCutState => 'Cut';
+
+  @override
   String get danceEditorCut => 'Cut';
 
   @override
@@ -9717,7 +9733,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get collectionPickerSearchLabel => 'Find a dance to add';
+  String get collectionPickerSearchLabel => 'Find a dance';
 
   @override
   String collectionPickerFilters(int count) {

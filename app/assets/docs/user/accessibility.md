@@ -198,8 +198,9 @@ so reading ahead never changes your slot.
 
 **Reordering without dragging.** Program slots and figures also offer **move-up**
 and **move-down** actions, and figures additionally offer cut and paste, so you
-never *need* to drag them. A few settings lists — matrix columns, difficulty
-levels and custom-field choices — have no move buttons, so you drag those.
+never *need* to drag them. The settings lists you can reorder — matrix columns,
+difficulty levels and custom-field choices — have the same **Move up** and
+**Move down** buttons beside each item, as well as drag handles.
 
 **Figure actions menu.** Tab to a figure's **⋮** button and press **Space** or
 **Enter** to open its actions menu. Focus lands on the first action you can use,

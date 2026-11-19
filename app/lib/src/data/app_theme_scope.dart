@@ -198,14 +198,13 @@ enum AppThemeSelection {
   }
 
   /// A curated display order for the Default group. Unlike the gallery
-  /// sections (sorted A→Z), the built-in Default themes read more intuitively
-  /// grouped by canvas darkness — Dark, its dimmed Soft dark sibling, then the
-  /// high-contrast and light options — rather than alphabetically.
+  /// sections (sorted A→Z), the built-in Default themes are ordered Light,
+  /// Dark, its dimmed Soft dark sibling, then High contrast.
   static const List<AppThemeSelection> _defaultGroupOrder = [
+    AppThemeSelection.light,
     AppThemeSelection.dark,
     AppThemeSelection.softDark,
     AppThemeSelection.highContrast,
-    AppThemeSelection.light,
   ];
 
   /// The selections belonging to [group].

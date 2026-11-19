@@ -26,7 +26,8 @@ each day that has a program's event date; to choose which day the week starts
 on, see [Settings › Language & region](./settings.md#formats).
 
 Each program in the list shows its title, event date, venue, dance count, and a
-status label (**Draft**, **Finalized**, or **Performed**). The dance count is
+status label (**Draft**, **Finalized**, or **Performed**); on the program's own
+page the status is a plain line under the title. The dance count is
 the number of dances the evening is planned for, so alternates and breaks are
 not counted; a free-text slot such as a waltz counts, because it stands in for
 a dance. The same count appears in the builder beside **Slots**, in the

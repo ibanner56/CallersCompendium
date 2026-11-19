@@ -292,6 +292,10 @@
   "@confirmDeleteProgramHistoryBody": {
     "x-sourceSha256": "30fad0b16608ed5989e0126025b129fb748e6a345ffb2fa0fff3849c477de3d8"
   },
+  "colorEditHexInvalid": "Saisissez six chiffres hexadécimaux, par exemple #804020.",
+  "@colorEditHexInvalid": {
+    "x-sourceSha256": "10331b97b0923aec668883c1a724961814c5c7c9d9c8bedab9eb865012f38bff"
+  },
   "colorEditHexLabel": "Hex",
   "@colorEditHexLabel": {
     "x-sourceSha256": "69493e6f1a6957cad7e3ece5267a57e8a8ed035b5ea5fd7e360ce9eb2405c30b"
@@ -8998,6 +9002,18 @@
   "@danceEditorMoveDown": {
     "x-sourceSha256": "40bb50da160cdc21d6029a927b68f92b07fd450688e609826cbc70d202db96da"
   },
+  "commonMoveItemUp": "Déplacer {name} vers le haut",
+  "@commonMoveItemUp": {
+    "x-sourceSha256": "d1332175b89d6672fce08fbdddd7eacb769c89694afbb1c7260c08c1182f0f43"
+  },
+  "commonMoveItemDown": "Déplacer {name} vers le bas",
+  "@commonMoveItemDown": {
+    "x-sourceSha256": "1e94688825c76d7fa4426844a1adbeca4bbcb22c33c1e053d51714f3f518526e"
+  },
+  "danceEditorFigureCutState": "Coupé",
+  "@danceEditorFigureCutState": {
+    "x-sourceSha256": "1f45f02561f41db9483cfc00675900237967b8e382b9750d33f677812fe70842"
+  },
   "danceEditorCut": "Couper",
   "@danceEditorCut": {
     "x-sourceSha256": "1f45f02561f41db9483cfc00675900237967b8e382b9750d33f677812fe70842"
@@ -9478,9 +9494,9 @@
   "@commandPaletteResultCountCapped": {
     "x-sourceSha256": "14ea6b93b4b0c29e4d91800e6d55d1758ba8389ad2bb221f8acc2ad15e8c88f2"
   },
-  "collectionPickerSearchLabel": "Trouver une danse à ajouter",
+  "collectionPickerSearchLabel": "Trouver une danse",
   "@collectionPickerSearchLabel": {
-    "x-sourceSha256": "09d2178b66d28a396be9e47c2b10bfa5cf871ccece9b1673be6209b6429ec7b0"
+    "x-sourceSha256": "e563b579c655782eaa592634c60ad40da9b7b2c3b9c5f70cadd21878421b0e88"
   },
   "collectionPickerFilters": "{count, plural, =0{Filtres} other{Filtres ({count} actifs)}}",
   "@collectionPickerFilters": {

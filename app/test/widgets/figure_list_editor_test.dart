@@ -5,6 +5,7 @@ import 'package:compendium_app/src/data/aggressive_beats_update_scope.dart';
 import 'package:compendium_app/src/editor/figure_draft.dart';
 import 'package:compendium_app/src/editor/free_text_composer_controller.dart';
 import 'package:compendium_app/src/search/facet_labels.dart';
+import 'package:compendium_app/src/widgets/dashed_border.dart';
 import 'package:compendium_app/src/widgets/figure_list_editor.dart';
 import 'package:compendium_app/src/widgets/figure_param_editors.dart';
 import 'package:compendium_app/src/widgets/import_gap_badge.dart';
@@ -2920,6 +2921,57 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('cut-banner')), findsNothing);
+  });
+
+  testWidgets('a cut figure is not faded; its state is a Cut badge, a dashed '
+      'outline and its semantics', (tester) async {
+    final handle = tester.ensureSemantics();
+    final drafts = <FigureDraft>[
+      FigureDraft(move: 'swing', params: {'beats': 8}),
+      FigureDraft(move: 'balance', params: {'beats': 4}),
+    ];
+    await _pump(tester, drafts);
+
+    String summaryLabel(int i) => tester
+        .getSemantics(find.byKey(ValueKey('figure-$i-summary')))
+        .getSemanticsData()
+        .label;
+    expect(find.byKey(const ValueKey('figure-0-cut-badge')), findsNothing);
+    expect(summaryLabel(0), isNot(contains('Cut')));
+
+    await _tapMenuItem(tester, 0, 'cut');
+
+    // Full opacity: no Opacity widget above the row dims its text (a fade took
+    // the text below 4.5:1).
+    final row = find.byKey(const ValueKey('figure-0-summary'));
+    for (final opacity in tester.widgetList<Opacity>(
+      find.ancestor(of: row, matching: find.byType(Opacity)),
+    )) {
+      expect(opacity.opacity, 1.0);
+    }
+    // The state is carried by a Cut badge, a dashed outline, and semantics.
+    expect(find.byKey(const ValueKey('figure-0-cut-badge')), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('figure-0-cut-badge')),
+        matching: find.text('Cut'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .widgetList<DashedBorder>(
+            find.ancestor(of: row, matching: find.byType(DashedBorder)),
+          )
+          .single
+          .dashed,
+      isTrue,
+    );
+    expect(summaryLabel(0), contains('Cut'));
+    // The other figure is untouched.
+    expect(find.byKey(const ValueKey('figure-1-cut-badge')), findsNothing);
+    expect(summaryLabel(1), isNot(contains('Cut')));
+    handle.dispose();
   });
 
   testWidgets('cut menu item is disabled on the cut figure itself', (

@@ -7,6 +7,7 @@
 //
 // Parameterized and compound columns are created here; both custom kinds
 // share the ordered list, rename, hide, and cleanup behavior.
+import '../../widgets/reorder_move_buttons.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart' show mapEquals;
 import 'package:flutter/material.dart';
@@ -410,7 +411,7 @@ class MatrixColumnEditor extends StatelessWidget {
             buildDefaultDragHandles: false,
             children: [
               for (var i = 0; i < columns.length; i++)
-                _buildColumnRow(context, columns[i], i),
+                _buildColumnRow(context, columns[i], i, columns.length),
             ],
           ),
         ),
@@ -457,7 +458,12 @@ class MatrixColumnEditor extends StatelessWidget {
     );
   }
 
-  Widget _buildColumnRow(BuildContext context, MatrixColumn column, int index) {
+  Widget _buildColumnRow(
+    BuildContext context,
+    MatrixColumn column,
+    int index,
+    int count,
+  ) {
     final l10n = AppLocalizations.of(context);
     ParameterizedColumn? parameterized;
     for (final candidate in config.parameterized) {
@@ -484,6 +490,8 @@ class MatrixColumnEditor extends StatelessWidget {
       onRename: () => _promptRename(context, column),
       onToggleHidden: () => _toggleHidden(column.moveId),
       columnId: column.moveId,
+      onMoveUp: index == 0 ? null : () => _reorder(index, index - 1),
+      onMoveDown: index == count - 1 ? null : () => _reorder(index, index + 1),
       onEditDetails: parameterizedColumn == null
           ? compoundColumn == null
                 ? null
@@ -518,6 +526,8 @@ class _ColumnRow extends StatelessWidget {
     required this.onRename,
     required this.onToggleHidden,
     required this.columnId,
+    required this.onMoveUp,
+    required this.onMoveDown,
     this.onEditDetails,
     this.onDelete,
     this.detailsTooltip,
@@ -531,6 +541,8 @@ class _ColumnRow extends StatelessWidget {
   final VoidCallback onRename;
   final VoidCallback onToggleHidden;
   final String columnId;
+  final VoidCallback? onMoveUp;
+  final VoidCallback? onMoveDown;
   final VoidCallback? onEditDetails;
   final VoidCallback? onDelete;
   final String? detailsTooltip;
@@ -561,47 +573,63 @@ class _ColumnRow extends StatelessWidget {
               )
             : theme.textTheme.bodyMedium,
       ),
-      subtitle: renamed ? Text(l10n.settingsMatrixColumnsRenamedBadge) : null,
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
+      // The actions sit on their own wrapping line under the label rather than
+      // in a trailing slot: with the move buttons there are up to six
+      // full-size targets, which do not fit beside the label on a phone.
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (onEditDetails != null)
-            IconButton(
-              key: ValueKey('matrix-column-edit-details-$columnId'),
-              icon: const Icon(Icons.tune),
-              tooltip:
-                  detailsTooltip ?? l10n.settingsMatrixColumnsParameterizedEdit,
-              onPressed: onEditDetails,
-            ),
-          IconButton(
-            key: ValueKey('matrix-column-rename-$columnId'),
-            icon: const Icon(Icons.edit_outlined),
-            tooltip: l10n.settingsMatrixColumnsRenameTooltip,
-            onPressed: onRename,
+          if (renamed) Text(l10n.settingsMatrixColumnsRenamedBadge),
+          Wrap(
+            children: [
+              ReorderMoveButtons(
+                keyPrefix: 'matrix-column-$columnId',
+                name: label,
+                onMoveUp: onMoveUp,
+                onMoveDown: onMoveDown,
+              ),
+              if (onEditDetails != null)
+                IconButton(
+                  key: ValueKey('matrix-column-edit-details-$columnId'),
+                  icon: const Icon(Icons.tune),
+                  tooltip:
+                      detailsTooltip ??
+                      l10n.settingsMatrixColumnsParameterizedEdit,
+                  onPressed: onEditDetails,
+                ),
+              IconButton(
+                key: ValueKey('matrix-column-rename-$columnId'),
+                icon: const Icon(Icons.edit_outlined),
+                tooltip: l10n.settingsMatrixColumnsRenameTooltip,
+                onPressed: onRename,
+              ),
+              IconButton(
+                key: ValueKey(
+                  hidden
+                      ? 'matrix-column-restore-$columnId'
+                      : 'matrix-column-remove-$columnId',
+                ),
+                icon: Icon(
+                  hidden
+                      ? Icons.add_circle_outline
+                      : Icons.remove_circle_outline,
+                ),
+                tooltip: hidden
+                    ? l10n.settingsMatrixColumnsRestoreTooltip
+                    : l10n.settingsMatrixColumnsRemoveTooltip,
+                onPressed: onToggleHidden,
+              ),
+              if (onDelete != null)
+                IconButton(
+                  key: ValueKey('matrix-column-delete-$columnId'),
+                  icon: const Icon(Icons.delete_outline),
+                  tooltip:
+                      deleteTooltip ??
+                      l10n.settingsMatrixColumnsParameterizedDelete,
+                  onPressed: onDelete,
+                ),
+            ],
           ),
-          IconButton(
-            key: ValueKey(
-              hidden
-                  ? 'matrix-column-restore-$columnId'
-                  : 'matrix-column-remove-$columnId',
-            ),
-            icon: Icon(
-              hidden ? Icons.add_circle_outline : Icons.remove_circle_outline,
-            ),
-            tooltip: hidden
-                ? l10n.settingsMatrixColumnsRestoreTooltip
-                : l10n.settingsMatrixColumnsRemoveTooltip,
-            onPressed: onToggleHidden,
-          ),
-          if (onDelete != null)
-            IconButton(
-              key: ValueKey('matrix-column-delete-$columnId'),
-              icon: const Icon(Icons.delete_outline),
-              tooltip:
-                  deleteTooltip ??
-                  l10n.settingsMatrixColumnsParameterizedDelete,
-              onPressed: onDelete,
-            ),
         ],
       ),
     );
