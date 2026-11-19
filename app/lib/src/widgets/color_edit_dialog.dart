@@ -30,6 +30,7 @@ class _ColorEditDialogState extends State<ColorEditDialog> {
   late int _g;
   late int _b;
   late final TextEditingController _hexController;
+  bool _hexInvalid = false;
 
   @override
   void initState() {
@@ -70,22 +71,39 @@ class _ColorEditDialogState extends State<ColorEditDialog> {
     );
   }
 
-  void _onHexSubmitted(String value) {
+  /// The RGB value of six hex digits (a leading `#` is allowed), or `null`
+  /// when [value] is not exactly that.
+  static int? _parseHex(String value) {
     final cleaned = value.replaceAll('#', '').trim();
-    if (cleaned.length == 6) {
-      final parsed = int.tryParse(cleaned, radix: 16);
-      if (parsed != null) {
-        setState(() {
-          _r = (parsed >> 16) & 0xFF;
-          _g = (parsed >> 8) & 0xFF;
-          _b = parsed & 0xFF;
-        });
-        _syncHexField();
-        return;
-      }
+    if (cleaned.length != 6) return null;
+    return int.tryParse(cleaned, radix: 16);
+  }
+
+  void _onHexSubmitted(String value) {
+    final parsed = _parseHex(value);
+    if (parsed != null) {
+      setState(() {
+        _r = (parsed >> 16) & 0xFF;
+        _g = (parsed >> 8) & 0xFF;
+        _b = parsed & 0xFF;
+        _hexInvalid = false;
+      });
     }
     // Reject invalid input by restoring the current color's hex.
     _syncHexField();
+  }
+
+  /// Apply takes the colour the field shows, not only what was last submitted
+  /// with Enter: typing a hex value and pressing Apply used to apply the
+  /// previous colour. Text that is not a colour keeps the dialog open and says
+  /// why, rather than silently applying something else.
+  void _apply() {
+    final parsed = _parseHex(_hexController.text);
+    if (parsed == null) {
+      setState(() => _hexInvalid = true);
+      return;
+    }
+    Navigator.of(context).pop(Color(0xFF000000 | parsed));
   }
 
   @override
@@ -118,7 +136,11 @@ class _ColorEditDialogState extends State<ColorEditDialog> {
                   labelText: l10n.colorEditHexLabel,
                   prefixText: '',
                   border: const OutlineInputBorder(),
+                  errorText: _hexInvalid ? l10n.colorEditHexInvalid : null,
                 ),
+                onChanged: (_) {
+                  if (_hexInvalid) setState(() => _hexInvalid = false);
+                },
                 inputFormatters: [
                   LengthLimitingTextInputFormatter(7),
                   FilteringTextInputFormatter.allow(RegExp(r'[0-9a-fA-F#]')),
@@ -146,10 +168,7 @@ class _ColorEditDialogState extends State<ColorEditDialog> {
             onPressed: () => Navigator.of(context).pop(),
             child: Text(l10n.commonCancel),
           ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(_color),
-            child: Text(l10n.commonApply),
-          ),
+          FilledButton(onPressed: _apply, child: Text(l10n.commonApply)),
         ],
       ),
     );

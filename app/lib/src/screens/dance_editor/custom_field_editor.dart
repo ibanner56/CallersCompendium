@@ -109,6 +109,9 @@ class CustomFieldEditor extends StatelessWidget {
         );
       case CustomFieldType.choice:
         final dropdown = DropdownButtonFormField<String?>(
+          // Field values read at the same weight as typed text; the dropdown's
+          // default is the bolder titleMedium.
+          style: Theme.of(context).textTheme.bodyLarge,
           key: ValueKey('custom-${def.id}-choice'),
           initialValue: currentValue as String?,
           // A user-typed option is unbounded: fill the slot, ellipsize the

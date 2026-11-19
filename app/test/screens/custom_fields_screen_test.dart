@@ -171,6 +171,40 @@ void main() {
       expect(saved.first.choices, ['beginner', 'intermediate', 'advanced']);
     });
 
+    testWidgets('choices can be reordered with move buttons, not only by '
+        'dragging', (tester) async {
+      final repos = openTestRepositories();
+      await _pumpScreen(tester, repos);
+      await _openNewForm(tester);
+      await _fillAndSave(
+        tester,
+        label: 'Level',
+        key: 'level',
+        type: CustomFieldType.choice,
+        choices: ['beginner', 'intermediate', 'advanced'],
+      );
+      final field = (await repos.customFieldDefs.listAll()).single;
+      expect(field.choices, ['beginner', 'intermediate', 'advanced']);
+
+      await _openEditForm(tester, 'Level');
+      // The ends cannot move past the ends.
+      IconButton button(String choice, String dir) => tester.widget<IconButton>(
+        find.byKey(ValueKey('choice-$choice-move-$dir')),
+      );
+      expect(button('beginner', 'up').onPressed, isNull);
+      expect(button('advanced', 'down').onPressed, isNull);
+
+      await tester.tap(find.byKey(const ValueKey('choice-beginner-move-down')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('choice-advanced-move-up')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('cf-form-save')));
+      await tester.pumpAndSettle();
+
+      final saved = (await repos.customFieldDefs.listAll()).single;
+      expect(saved.choices, ['intermediate', 'advanced', 'beginner']);
+    });
+
     testWidgets('edits a field label without changing type or key', (
       tester,
     ) async {

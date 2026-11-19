@@ -3747,6 +3747,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final data = _data;
     if (data == null) return;
     final l10n = AppLocalizations.of(context);
+    // Drop focus from the Title field first. The sheet route remembers the
+    // focused node and hands focus back on close, which reopens the keyboard
+    // over the Slots list and the "Added" snackbar; with nothing focused there
+    // is nothing to restore.
+    FocusManager.instance.primaryFocus?.unfocus();
     final importing = ValueNotifier(false);
     final importOwners = <Object>{};
     var importingDisposed = false;
@@ -4208,6 +4213,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         _buildPayField(l10n),
         const SizedBox(height: AppSpacing.md),
         DropdownButtonFormField<ProgramStatus>(
+          // Field values read at the same weight as typed text; the dropdown's
+          // default is the bolder titleMedium.
+          style: Theme.of(context).textTheme.bodyLarge,
           key: const ValueKey('program-status'),
           initialValue: _status,
           // Fill the field so a long translated status cannot overflow at
@@ -4325,6 +4333,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         SizedBox(
           width: 120,
           child: DropdownButtonFormField<String>(
+            // Field values read at the same weight as typed text; the dropdown's
+            // default is the bolder titleMedium.
+            style: Theme.of(context).textTheme.bodyLarge,
             key: ValueKey('program-pay-currency:$current'),
             initialValue: current,
             isExpanded: true,
@@ -4369,6 +4380,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       // changes from outside the picker (draft restore, Undo merge).
       key: ValueKey('program-dialect-field:${value ?? ''}'),
       child: DropdownButtonFormField<String?>(
+        // Field values read at the same weight as typed text; the dropdown's
+        // default is the bolder titleMedium.
+        style: Theme.of(context).textTheme.bodyLarge,
         key: const ValueKey('program-dialect'),
         initialValue: value,
         isExpanded: true,

@@ -751,6 +751,43 @@ void main() {
     );
   });
 
+  testWidgets('difficulty levels can be reordered with move buttons, not only '
+      'by dragging', (tester) async {
+    final repos = openTestRepositories();
+    await _pumpDefaults(tester, repos);
+    await _openDifficultySection(tester);
+    final before = (await repos.difficultyLevels.listAll())
+        .map((l) => l.id)
+        .toList();
+    expect(before.length, greaterThan(2));
+
+    // The first level cannot move up; the last cannot move down.
+    IconButton button(String id, String dir) => tester.widget<IconButton>(
+      find.byKey(ValueKey('difficulty-level-$id-move-$dir')),
+    );
+    expect(button(before.first, 'up').onPressed, isNull);
+    expect(button(before.last, 'down').onPressed, isNull);
+
+    await tester.tap(
+      find.byKey(ValueKey('difficulty-level-${before.first}-move-down')),
+    );
+    await tester.pumpAndSettle();
+
+    final after = (await repos.difficultyLevels.listAll())
+        .map((l) => l.id)
+        .toList();
+    expect(after, [before[1], before[0], ...before.skip(2)]);
+
+    await tester.tap(
+      find.byKey(ValueKey('difficulty-level-${before.first}-move-up')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      (await repos.difficultyLevels.listAll()).map((l) => l.id).toList(),
+      before,
+    );
+  });
+
   testWidgets('deleting an unused difficulty level offers Undo, which brings '
       'it back in place', (tester) async {
     final repos = openTestRepositories();

@@ -5312,6 +5312,41 @@ void main() {
     expect(countsOf(tester, 'sheet-picker'), {'d1': 1});
   });
 
+  testWidgets('adding a dance from the sheet leaves the Title unfocused '
+      'after the sheet closes', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+    await repos.programs.create(_program(id: 'p1', title: 'Night'));
+    await _pumpBuilder(
+      tester,
+      repos,
+      programId: 'p1',
+      size: const Size(600, 2000),
+    );
+
+    // Focus the Title field, as a caller typing a name would have.
+    await tester.tap(find.byKey(const ValueKey('program-title')));
+    await tester.pumpAndSettle();
+    final titleFocus = Focus.of(
+      tester.element(find.byKey(const ValueKey('program-title'))),
+    );
+    expect(titleFocus.hasFocus, isTrue, reason: 'precondition: Title focused');
+
+    await tester.tap(find.byKey(const ValueKey('add-dance-slot')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('picker-add-d1')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('picker-sheet-close')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('picker-sheet-close')), findsNothing);
+    expect(titleFocus.hasFocus, isFalse);
+    expect(
+      FocusManager.instance.primaryFocus?.context?.widget,
+      isNot(isA<EditableText>()),
+    );
+  });
+
   testWidgets('free-text and break slots contribute no dance counts (#796)', (
     tester,
   ) async {

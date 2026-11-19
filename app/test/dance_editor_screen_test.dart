@@ -2253,6 +2253,58 @@ void main() {
       expect((progressionY - ratingY).abs(), lessThan(24));
     });
 
+    testWidgets('dropdown values read at the same weight as typed values', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Original'));
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      final bodyLarge = Theme.of(
+        tester.element(find.byKey(const ValueKey('title-field'))),
+      ).textTheme.bodyLarge!;
+      final dropdowns = tester
+          .widgetList(
+            find.byWidgetPredicate(
+              (w) => w.runtimeType.toString().startsWith('DropdownButton<'),
+            ),
+          )
+          .toList();
+      expect(dropdowns, isNotEmpty);
+      for (final dropdown in dropdowns) {
+        final style = (dropdown as dynamic).style as TextStyle?;
+        expect(style?.fontWeight, bodyLarge.fontWeight);
+        expect(style?.fontSize, bodyLarge.fontSize);
+      }
+    });
+
+    testWidgets('the five rating stars stay on one line at a phone width', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Original'));
+      await _pumpEditor(
+        tester,
+        repos,
+        danceId: 'd1',
+        surfaceSize: const Size(390, 3200),
+      );
+      await tester.tap(find.byKey(const ValueKey('rating-star-3')));
+      await tester.pumpAndSettle();
+
+      final tops = [
+        for (var star = 1; star <= 5; star++)
+          tester.getTopLeft(find.byKey(ValueKey('rating-star-$star'))).dy,
+      ];
+      expect(tops.toSet(), hasLength(1), reason: 'stars wrapped: $tops');
+      // Clear (shown once rated) joins them on the same line.
+      expect(
+        tester.getTopLeft(find.byKey(const ValueKey('rating-clear'))).dy,
+        tops.first,
+      );
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('More details is collapsed by default and expands on tap', (
       tester,
     ) async {

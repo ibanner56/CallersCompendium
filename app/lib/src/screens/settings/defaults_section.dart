@@ -1,4 +1,5 @@
 // Part of the Settings screen, split by section (Stage-7 item 7.2).
+import '../../widgets/reorder_move_buttons.dart';
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
@@ -1542,11 +1543,26 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
                   ),
                 ),
               ),
-              trailing: IconButton(
-                key: ValueKey('difficulty-level-delete-${level.id}'),
-                tooltip: l10n.commonDelete,
-                icon: const Icon(Icons.delete_outline),
-                onPressed: () => _delete(level),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ReorderMoveButtons(
+                    keyPrefix: 'difficulty-level-${level.id}',
+                    name: level.label,
+                    onMoveUp: index == 0
+                        ? null
+                        : () => _reorder(index, index - 1),
+                    onMoveDown: index == _levels.length - 1
+                        ? null
+                        : () => _reorder(index, index + 1),
+                  ),
+                  IconButton(
+                    key: ValueKey('difficulty-level-delete-${level.id}'),
+                    tooltip: l10n.commonDelete,
+                    icon: const Icon(Icons.delete_outline),
+                    onPressed: () => _delete(level),
+                  ),
+                ],
               ),
             );
           },

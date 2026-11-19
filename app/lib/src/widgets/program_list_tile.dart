@@ -66,7 +66,15 @@ class ProgramListTile extends StatelessWidget {
     final tile = ListTile(
       selected: selected,
       shape: selectedRowShape(context, selected: selected),
-      title: Text(program.title),
+      // Same style as a dance row's title. The explicit style carries its own
+      // colour, which would hide ListTile's selected colour, so the selected
+      // title is set to it here.
+      title: Text(
+        program.title,
+        style: theme.textTheme.titleMedium?.copyWith(
+          color: selected ? theme.colorScheme.primary : null,
+        ),
+      ),
       subtitle: Padding(
         padding: const EdgeInsets.only(top: 4),
         child: Column(
