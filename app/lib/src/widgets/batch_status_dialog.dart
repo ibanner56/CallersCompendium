@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../search/facet_labels.dart';
+import '../theme/app_motion.dart';
 
 /// Shows the batch **set status** picker for the Collection multi-select flow
 /// (parallel to [showBatchLevelDialog]). Setting a status is a *replace*, so
@@ -17,6 +18,7 @@ Future<DanceStatus?> showBatchStatusDialog(BuildContext context) {
   return showDialog<DanceStatus>(
     context: context,
     builder: (_) => const _BatchStatusDialog(),
+    animationStyle: AppMotion.styleFor(context),
   );
 }
 

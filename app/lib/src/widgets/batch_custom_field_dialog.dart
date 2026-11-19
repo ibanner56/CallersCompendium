@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../screens/dance_editor/choice_option.dart';
-import 'dropdown_selection.dart';
 import '../screens/dance_editor/custom_field_editor.dart'
     show showAddChoiceOptionDialog;
+import '../theme/app_motion.dart';
+import 'dropdown_selection.dart';
 
 /// The outcome of the batch edit-custom-field dialog: the chosen [def] plus
 /// either a type-respecting [value] to upsert across the selection, or
@@ -49,6 +50,7 @@ Future<BatchCustomFieldChoice?> showBatchCustomFieldDialog(
   return showDialog<BatchCustomFieldChoice>(
     context: context,
     builder: (_) => _BatchCustomFieldDialog(defs: defs, repos: repos),
+    animationStyle: AppMotion.styleFor(context),
   );
 }
 

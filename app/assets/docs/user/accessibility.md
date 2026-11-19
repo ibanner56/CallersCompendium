@@ -61,7 +61,11 @@ Open **Settings › Appearance** to choose how the app looks. You'll find:
 - **Light** — a bright theme for well-lit rooms and daytime prep.
 - **Dark** — an easy-on-the-eyes theme that suits calling on a dark stage.
 - **High contrast** — a dedicated theme tuned for strong legibility, with bold
-  separation between text and background.
+  separation between text and background. Cards, dialogs, popup menus, bottom
+  sheets, suggestion lists, the date and time pickers and buttons (icon buttons
+  included) also get a visible outline, so you can see their edges without
+  relying on shading. The lists that open from drop-down fields are not
+  outlined yet.
 
 There are additional palettes and custom themes to explore as well, but those four
 are the ones most people reach for first — see
@@ -206,8 +210,11 @@ one, and **Esc** closes the menu and returns focus to the **⋮** button.
 first choice: **Enter** picks **Add figure**, and the arrow keys reach **Add
 meanwhile**, **Add modifier** and **Add sequence**.
 
-**Always know where you are.** Interactive controls show a visible focus outline
-as you move through them, so you can always see which control has focus.
+**Always know where you are.** As you move through controls with the keyboard,
+the one with focus gets a solid outline drawn just outside it — in the theme's
+accent color, or a thicker yellow ring in **High contrast** — so you can always
+see which control has focus. Text fields show the same ring as their border. The
+outline appears only while you're using the keyboard, not when you tap or click.
 
 ## Motion, deleting, and other comforts
 
@@ -218,9 +225,11 @@ A few smaller settings and behaviors round out the experience:
   device's system accessibility settings, the app honors that automatically — you
   don't have to find this switch first. Turn the in-app switch on to
   switch off the app's animations and the fade between themes even when your
-  device allows motion. Turning it off stops the app removing its own
-  animations, but cannot restore animations your device's setting has already
-  shortened.
+  device allows motion: screens, dialogs, date pickers and bottom sheets then
+  appear at once instead of sliding or fading in, and expanding sections open
+  without animating. On iPhone and iPad you can still swipe in from the edge of
+  the screen to go back. Turning it off stops the app removing its own animations, but
+  cannot restore animations your device's setting has already shortened.
 - **Confirm before delete** (**Settings › General**) adds a prompt before you
   delete a dance or a program from its **⋮** menu, from its own screen, or from
   Collection's selection mode. It does not cover the swipe shortcut: swiping a

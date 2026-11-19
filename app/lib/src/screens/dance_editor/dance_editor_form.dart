@@ -9,6 +9,7 @@ import '../../data/walkthrough_snippet_library_controller.dart';
 import '../../data/walkthrough_snippet_library_scope.dart';
 import '../../editor/figure_draft.dart';
 import '../../search/facet_labels.dart';
+import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/destructive_button_style.dart';
 import '../../theme/keyboard_dismiss.dart';
@@ -905,6 +906,7 @@ Future<bool?> _promptSnippetDivergence(BuildContext context) {
         ),
       ],
     ),
+    animationStyle: AppMotion.styleFor(context),
   );
 }
 
@@ -957,6 +959,7 @@ Future<void> _fillWalkthroughFromSnippets(
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (replace != true) return;
   }

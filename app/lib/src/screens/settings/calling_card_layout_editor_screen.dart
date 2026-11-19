@@ -20,6 +20,7 @@ import '../../export/calling_card_pdf.dart';
 import '../../export/calling_card_sample.dart';
 import '../../export/export_labels_l10n.dart';
 import '../../search/facet_labels.dart';
+import '../../theme/app_motion.dart';
 import '../../theme/app_shapes.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/app_bar_text_action.dart';
@@ -231,6 +232,7 @@ class _CallingCardLayoutEditorScreenState
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (ok == true && mounted) _replaceText(kDefaultCallingCardLayout);
   }

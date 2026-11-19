@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 
 import '../search/collection_data.dart';
+import '../theme/app_motion.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
 import '../utils/slot_dance_title.dart';
@@ -310,6 +311,7 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
           ),
         );
       },
+      sheetAnimationStyle: AppMotion.styleFor(context),
     );
   }
 

@@ -14,6 +14,7 @@ import '../../data/shorthand_mappings_scope.dart';
 import '../../editor/figure_draft.dart';
 import '../../editor/pending_move_text_controller.dart';
 import '../../search/facet_labels.dart';
+import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/app_bar_text_action.dart';
 import '../../widgets/confirm_discard_changes.dart';
@@ -942,6 +943,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
             ),
           ],
         ),
+        animationStyle: AppMotion.styleFor(context),
       );
       if (saveAnyway != true || !mounted) return false;
     }

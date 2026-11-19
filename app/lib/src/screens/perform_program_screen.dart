@@ -16,6 +16,7 @@ import '../data/repositories_scope.dart';
 import '../editor/program_slot_rebase.dart';
 import '../../l10n/app_localizations.dart';
 import '../search/collection_data.dart';
+import '../theme/app_motion.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/colour_dance_theme.dart';
 import '../widgets/dialect_quick_switch.dart';
@@ -810,6 +811,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
       context: _stageContext,
       showDragHandle: true,
       builder: (_) => const SafeArea(child: TapTempoMetronome()),
+      sheetAnimationStyle: AppMotion.styleFor(context),
     );
   }
 
@@ -851,6 +853,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
           ),
         );
       },
+      sheetAnimationStyle: AppMotion.styleFor(context),
     );
     if (target != null && mounted) {
       setState(() {
@@ -1124,6 +1127,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
         dialect: _effectiveDialect(context),
         enrichment: enrichment,
       ),
+      sheetAnimationStyle: AppMotion.styleFor(context),
     );
     final edited = returned ?? latest;
     if (edited == null || !mounted) return;

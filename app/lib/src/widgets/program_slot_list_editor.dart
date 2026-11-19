@@ -6,6 +6,7 @@ import '../../l10n/app_localizations.dart';
 import '../data/formation_colors_scope.dart';
 import '../data/set_list_color_coding_scope.dart';
 import '../search/facet_labels.dart';
+import '../theme/app_motion.dart';
 import '../theme/set_list_accents.dart';
 import 'preview_hold_listener.dart';
 
@@ -417,6 +418,7 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
         danceTitle: widget.danceTitles,
         onPickReplacementDance: widget.onPickReplacementDance,
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (result != null && mounted) {
       if (slot.isAlt && !result.isAlt) {
