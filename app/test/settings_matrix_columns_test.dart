@@ -284,6 +284,43 @@ void main() {
       expect(order, expected);
     });
 
+    testWidgets('move buttons reorder a column without dragging', (
+      tester,
+    ) async {
+      final read = await _pumpEditor(tester);
+
+      IconButton button(String id, String dir) => tester.widget<IconButton>(
+        find.byKey(ValueKey('matrix-column-$id-move-$dir')),
+      );
+      expect(button(catalogIds.first, 'up').onPressed, isNull);
+      expect(button(catalogIds.last, 'down').onPressed, isNull);
+
+      await tester.tap(
+        find.byKey(ValueKey('matrix-column-${catalogIds.first}-move-down')),
+      );
+      await tester.pumpAndSettle();
+
+      final expected = [...catalogIds];
+      expected.insert(1, expected.removeAt(0));
+      expect(read().order, expected);
+    });
+
+    testWidgets('rows hold every action at a phone width and 2x text', (
+      tester,
+    ) async {
+      tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await _pumpEditor(tester);
+      await tester.binding.setSurfaceSize(const Size(390, 1400));
+
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      final size = tester.getSize(
+        find.byKey(ValueKey('matrix-column-${catalogIds.first}-move-down')),
+      );
+      expect(size.shortestSide, greaterThanOrEqualTo(44));
+    });
+
     testWidgets('restore removed defaults clears hidden, keeps renames, and '
         'appends customs after built-ins by label', (tester) async {
       final initial = MatrixColumnConfig(

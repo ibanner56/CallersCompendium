@@ -2,9 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
-import '../data/reduce_motion_scope.dart';
 import '../search/facet_labels.dart' show formationIcon, formationLabel;
-import '../theme/app_motion.dart';
 import '../theme/app_shapes.dart';
 import 'empty_state.dart';
 import '../theme/app_breakpoints.dart';
@@ -562,97 +560,57 @@ class _ColumnHeader extends StatelessWidget {
   }
 }
 
-/// Wraps a [_ColumnHeader] with a hide affordance (#669): a small eye glyph
-/// that hides the column from the matrix view (the underlying [matrix]
-/// analysis is untouched — see [ProgramMatrixTable.hiddenColumns]).
+/// Wraps a [_ColumnHeader] with a hide affordance (#669): an eye glyph that
+/// hides the column from the matrix view (the underlying [matrix] analysis is
+/// untouched — see [ProgramMatrixTable.hiddenColumns]).
 ///
-/// The glyph is never hover-only: it's always present, focusable, and
-/// hit-testable (`onHide` — when non-null — is wired regardless of hover
-/// state), and its opacity only *animates* between a dim "not focused" resting
-/// state (so touch users, who have no hover, can still see and reach it) and
-/// full opacity on mouse hover or keyboard focus. This mirrors #662's
-/// decision to keep `_ColumnHeader` itself tooltip-free — the button's own
-/// label comes from [AppLocalizations.programsMatrixHideColumnSemantic],
+/// The glyph is always present, focusable and hit-testable (`onHide` — when
+/// non-null — is wired regardless of hover or focus state) and always drawn at
+/// full opacity in `onSurfaceVariant`: a dimmed resting state fell to about 2:1
+/// against the header, below the 3:1 a control's icon needs. This mirrors
+/// #662's decision to keep `_ColumnHeader` itself tooltip-free — the button's
+/// own label comes from [AppLocalizations.programsMatrixHideColumnSemantic],
 /// exposed as its `Semantics`/tooltip text, not a second header tooltip.
-class _HideableColumnHeader extends StatefulWidget {
+class _HideableColumnHeader extends StatelessWidget {
   const _HideableColumnHeader({
     required this.label,
     required this.columnIndex,
     required this.onHide,
   });
 
+  /// The full Material touch target. The 64dp column header has the room: the
+  /// glyph sits in its top-right corner above the label.
+  static const double _glyphSize = kMinInteractiveDimension;
+
   final String label;
   final int columnIndex;
   final VoidCallback? onHide;
 
   @override
-  State<_HideableColumnHeader> createState() => _HideableColumnHeaderState();
-}
-
-class _HideableColumnHeaderState extends State<_HideableColumnHeader> {
-  // 40dp keeps the tappable area close to Material's 48dp touch-target
-  // guidance while still fitting inside the 64dp column header without
-  // crowding out the label text beneath it.
-  static const double _glyphSize = 40;
-
-  /// Resting (non-hovered, non-focused) opacity of the glyph. Non-zero so
-  /// touch users — who never trigger [MouseRegion]'s hover — still have a
-  /// visible, reachable affordance without a separate long-press gesture.
-  static const double _restingOpacity = 0.55;
-
-  bool _hovered = false;
-  bool _focused = false;
-
-  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final revealed = _hovered || _focused;
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          _ColumnHeader(label: widget.label),
-          Positioned(
-            top: 0,
-            right: 0,
-            child: Focus(
-              onFocusChange: (hasFocus) => setState(() => _focused = hasFocus),
-              child: AnimatedOpacity(
-                opacity: revealed ? 1 : _restingOpacity,
-                // Reduce motion: snap between the resting and revealed opacity.
-                duration: ReduceMotionScope.of(context)
-                    ? Duration.zero
-                    : AppMotion.quick,
-                child: SizedBox(
-                  width: _glyphSize,
-                  height: _glyphSize,
-                  child: IconButton(
-                    key: ValueKey(
-                      'program-matrix-hide-column-${widget.columnIndex}',
-                    ),
-                    icon: const Icon(Icons.visibility_off_outlined),
-                    iconSize: 14,
-                    tooltip: l10n.programsMatrixHideColumnSemantic(
-                      widget.label,
-                    ),
-                    padding: EdgeInsets.zero,
-                    visualDensity: VisualDensity.compact,
-                    constraints: BoxConstraints.tightFor(
-                      width: _glyphSize,
-                      height: _glyphSize,
-                    ),
-                    onPressed: widget.onHide == null
-                        ? null
-                        : () => widget.onHide!(),
-                  ),
-                ),
-              ),
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        _ColumnHeader(label: label),
+        Positioned(
+          top: 0,
+          right: 0,
+          child: SizedBox(
+            width: _glyphSize,
+            height: _glyphSize,
+            child: IconButton(
+              key: ValueKey('program-matrix-hide-column-$columnIndex'),
+              icon: const Icon(Icons.visibility_off_outlined),
+              iconSize: 14,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              tooltip: l10n.programsMatrixHideColumnSemantic(label),
+              padding: EdgeInsets.zero,
+              onPressed: onHide == null ? null : () => onHide!(),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

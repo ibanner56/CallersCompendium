@@ -29,6 +29,7 @@ import '../search/collection_data.dart';
 import '../search/dance_detail_data.dart';
 import '../search/facet_labels.dart';
 import '../theme/app_spacing.dart';
+import '../theme/app_theme_extension.dart';
 import '../theme/set_list_accents.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/undo_snack_bar.dart';
@@ -1084,14 +1085,15 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
             ],
           ),
         const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 4,
-          children: [
-            ProgramStatusChip(status: program.status),
-            if (program.isArchived) const ProgramArchivedChip(),
-          ],
-        ),
+        _statusLine(program),
+        if (program.isArchived)
+          const Padding(
+            padding: EdgeInsets.only(top: 4),
+            child: Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: ProgramArchivedChip(),
+            ),
+          ),
         if (widget.prominentPerform) ...[
           const SizedBox(height: 16),
           _buildProminentPerform(program),
@@ -1943,6 +1945,33 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       if (level.id == dance.difficultyLevelId) return level;
     }
     return DifficultyLevel.knownForId(dance.difficultyLevelId);
+  }
+
+  /// The program's status as a plain, start-aligned line under the title: the
+  /// icon and label with no fill, border or elevation, so it reads as a status
+  /// rather than a button. (The list row keeps the chip; there it is one more
+  /// piece of metadata on a tappable row, not a lone control.)
+  Widget _statusLine(Program program) {
+    final theme = Theme.of(context);
+    final presentation = programStatusPresentation(
+      program.status,
+      AppLocalizations.of(context),
+    );
+    final color = programStatusColor(program.status, theme);
+    return Row(
+      key: const ValueKey('program-summary-status'),
+      children: [
+        Icon(
+          presentation.icon,
+          size: 18,
+          color: AppThemeExtension.statusIconColor(color, theme.colorScheme),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(presentation.label, style: theme.textTheme.bodyMedium),
+        ),
+      ],
+    );
   }
 
   Widget _summaryRow(IconData icon, String text) {

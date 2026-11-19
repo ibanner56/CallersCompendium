@@ -634,12 +634,14 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   );
 
   // --- App-bar actions -------------------------------------------------------
-  // The dance-detail bar carries seven affordances (dialect switch, Perform,
-  // Export, Duplicate, Add-to-program, Delete, plus the Edit FAB). On a phone
-  // that full row clips, so below [AppBreakpoints.compact] (Material 3's
-  // compact window-size-class cutoff) we keep the primary one-tap actions (Perform, Add-to-program; Edit stays
-  // the FAB) and fold the secondary actions into a single overflow menu. Every
-  // action keeps its key, tooltip/label and behaviour in both layouts.
+  // The dance-detail bar carries more affordances than a bar can hold (dialect
+  // switch, Perform, Share, Duplicate, Add-to-program, Re-import, Delete, plus
+  // the Edit FAB). At every width Duplicate, Re-import and Delete (last) and
+  // the dialect choice live in an overflow menu. Below [AppBreakpoints.compact]
+  // (Material 3's compact window-size-class cutoff) the Share actions fold
+  // into it too and Perform is an icon; at or above it Perform is a labelled
+  // button and Share stays on the bar. Every action keeps its key,
+  // tooltip/label and behaviour in both layouts.
 
   Widget _performButton(DanceDetailData detail) {
     final l10n = AppLocalizations.of(context);
@@ -703,30 +705,31 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     );
   }
 
-  /// Wide layout: the full one-tap action row.
+  /// Wide layout: Perform (labelled), Share and Add-to-program stay one tap
+  /// away; the dialect choice, Duplicate, Re-import and Delete live in the
+  /// overflow menu, with Delete last, as on the phone layout.
   Widget _fullActions(BuildContext context, DanceDetailData detail) {
-    final l10n = AppLocalizations.of(context);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        DialectQuickSwitch(form: detail.dance.form),
-        _performButton(detail),
+        _performLabelledButton(detail),
         _exportMenu(context, detail),
-        IconButton(
-          key: const ValueKey('duplicate-dance'),
-          tooltip: l10n.danceDuplicateTooltip,
-          icon: const Icon(Icons.copy_all_outlined),
-          onPressed: _duplicate,
-        ),
         _addToProgramButton(detail),
-        _reimportButton(detail),
-        IconButton(
-          key: const ValueKey('delete-dance'),
-          tooltip: l10n.danceDeleteTooltip,
-          icon: const Icon(Icons.delete_outline),
-          onPressed: _deleting ? null : _delete,
-        ),
+        _overflowMenu(context, detail, wide: true),
       ],
+    );
+  }
+
+  Widget _performLabelledButton(DanceDetailData detail) {
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+      child: TextButton.icon(
+        key: const ValueKey('perform-dance'),
+        icon: const Icon(Icons.slideshow),
+        label: Text(l10n.performTitle),
+        onPressed: () => _perform(detail),
+      ),
     );
   }
 
@@ -759,15 +762,20 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     ],
   );
 
-  /// Single "⋮" menu holding the secondary actions on narrow widths. Every
-  /// entry is a first-class [PopupMenuItem] so it stays keyboard- and
+  /// Single "⋮" menu holding the secondary actions. On narrow widths it holds
+  /// the share actions too; with [wide] they stay on the bar and are left out.
+  /// Every entry is a first-class [PopupMenuItem] so it stays keyboard- and
   /// screen-reader-activatable: the dialect choices are [CheckedPopupMenuItem]s
   /// (mirroring [DialectQuickSwitch]), the five export items (share text, share dance
   /// file, copy, share JSON, PDF) are flattened in from [DanceExportMenu] and run through the same
-  /// [DanceExportActions], and Duplicate / Delete call the same handlers as
-  /// the wide layout. Nothing is a nested popup, so activating any row performs
+  /// [DanceExportActions], and Duplicate / Delete call the same handlers
+  /// whichever layout opens them. Nothing is a nested popup, so activating any row performs
   /// its action rather than dismissing the menu.
-  Widget _overflowMenu(BuildContext context, DanceDetailData detail) {
+  Widget _overflowMenu(
+    BuildContext context,
+    DanceDetailData detail, {
+    bool wide = false,
+  }) {
     final l10n = AppLocalizations.of(context);
     // The dance's own form's dialects: switching here changes that form's
     // active dialect only (ADR-006 §9.1, point 1).
@@ -839,85 +847,90 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
             ),
           const PopupMenuDivider(),
         ],
-        PopupMenuItem<void>(
-          key: const ValueKey('overflow-share-dance'),
-          onTap: () => exportActions.shareText(messenger, l10n),
-          child: ListTile(
-            leading: const Icon(Icons.mail_outline),
-            title: Text(l10n.exportShareDanceText),
-            contentPadding: EdgeInsets.zero,
-          ),
-        ),
-        PopupMenuItem<void>(
-          key: const ValueKey('overflow-share-dance-bundle'),
-          onTap: () =>
-              exportActions.shareBundle(messenger, l10n, origin: centerOrigin),
-          child: ListTile(
-            leading: Icon(
-              isBundleShareUnsupported()
-                  ? Icons.save_alt_outlined
-                  : Icons.share_outlined,
-            ),
-            title: Text(
-              isBundleShareUnsupported()
-                  ? l10n.exportSaveDanceBundle
-                  : l10n.exportShareDanceBundle,
-            ),
-            contentPadding: EdgeInsets.zero,
-          ),
-        ),
-        PopupMenuItem<void>(
-          key: const ValueKey('overflow-copy-dance'),
-          onTap: () => exportActions.copyText(messenger, l10n),
-          child: ListTile(
-            leading: const Icon(Icons.copy_outlined),
-            title: Text(l10n.exportCopyDance),
-            contentPadding: EdgeInsets.zero,
-          ),
-        ),
-        PopupMenuItem<void>(
-          key: const ValueKey('overflow-share-dance-json'),
-          onTap: () {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) {
-                // The State's context, not the popup item's: the item's route
-                // has popped by now, and the choice dialog needs a live one.
-                exportActions.exportJson(
-                  this.context,
-                  messenger,
-                  l10n,
-                  origin: centerOrigin,
-                );
-              }
-            });
-          },
-          child: ListTile(
-            leading: const Icon(Icons.data_object_outlined),
-            title: Text(l10n.exportShareDanceJson),
-            contentPadding: EdgeInsets.zero,
-          ),
-        ),
-        PopupMenuItem<void>(
-          key: const ValueKey('overflow-export-pdf'),
-          onTap: () => exportActions.exportPdf(messenger, l10n),
-          child: ListTile(
-            leading: const Icon(Icons.picture_as_pdf_outlined),
-            title: Text(l10n.exportPrintPdf),
-            contentPadding: EdgeInsets.zero,
-          ),
-        ),
-        if (callingCards.enabled)
+        if (!wide) ...[
           PopupMenuItem<void>(
-            key: const ValueKey('overflow-calling-card'),
-            onTap: () =>
-                exportActions.printCallingCard(messenger, l10n, callingCards),
+            key: const ValueKey('overflow-share-dance'),
+            onTap: () => exportActions.shareText(messenger, l10n),
             child: ListTile(
-              leading: const Icon(Icons.style_outlined),
-              title: Text(l10n.exportPrintCallingCard),
+              leading: const Icon(Icons.mail_outline),
+              title: Text(l10n.exportShareDanceText),
               contentPadding: EdgeInsets.zero,
             ),
           ),
-        const PopupMenuDivider(),
+          PopupMenuItem<void>(
+            key: const ValueKey('overflow-share-dance-bundle'),
+            onTap: () => exportActions.shareBundle(
+              messenger,
+              l10n,
+              origin: centerOrigin,
+            ),
+            child: ListTile(
+              leading: Icon(
+                isBundleShareUnsupported()
+                    ? Icons.save_alt_outlined
+                    : Icons.share_outlined,
+              ),
+              title: Text(
+                isBundleShareUnsupported()
+                    ? l10n.exportSaveDanceBundle
+                    : l10n.exportShareDanceBundle,
+              ),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+          PopupMenuItem<void>(
+            key: const ValueKey('overflow-copy-dance'),
+            onTap: () => exportActions.copyText(messenger, l10n),
+            child: ListTile(
+              leading: const Icon(Icons.copy_outlined),
+              title: Text(l10n.exportCopyDance),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+          PopupMenuItem<void>(
+            key: const ValueKey('overflow-share-dance-json'),
+            onTap: () {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  // The State's context, not the popup item's: the item's route
+                  // has popped by now, and the choice dialog needs a live one.
+                  exportActions.exportJson(
+                    this.context,
+                    messenger,
+                    l10n,
+                    origin: centerOrigin,
+                  );
+                }
+              });
+            },
+            child: ListTile(
+              leading: const Icon(Icons.data_object_outlined),
+              title: Text(l10n.exportShareDanceJson),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+          PopupMenuItem<void>(
+            key: const ValueKey('overflow-export-pdf'),
+            onTap: () => exportActions.exportPdf(messenger, l10n),
+            child: ListTile(
+              leading: const Icon(Icons.picture_as_pdf_outlined),
+              title: Text(l10n.exportPrintPdf),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+          if (callingCards.enabled)
+            PopupMenuItem<void>(
+              key: const ValueKey('overflow-calling-card'),
+              onTap: () =>
+                  exportActions.printCallingCard(messenger, l10n, callingCards),
+              child: ListTile(
+                leading: const Icon(Icons.style_outlined),
+                title: Text(l10n.exportPrintCallingCard),
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+        ],
+        if (!wide) const PopupMenuDivider(),
         if (widget.onReimport != null)
           PopupMenuItem<void>(
             key: const ValueKey('reimport-dance'),

@@ -30,6 +30,7 @@ import 'package:compendium_app/src/widgets/collection_search_controls.dart';
 import 'package:compendium_app/src/widgets/dance_list_tile.dart';
 import 'package:compendium_app/src/widgets/skeleton.dart';
 
+import 'support/dance_detail_actions.dart';
 import 'support/fab_clearance.dart';
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
@@ -3385,8 +3386,7 @@ void main() {
       expect(find.byType(DanceDetailScreen), findsOneWidget);
 
       // Delete from the detail screen.
-      await tester.tap(find.byKey(const ValueKey('delete-dance')));
-      await tester.pumpAndSettle();
+      await tapDanceOverflowAction(tester, 'delete-dance');
 
       // Back on the collection; deleted dance is gone, other dance remains.
       expect(find.text('Delete From Detail'), findsNothing);
@@ -3407,8 +3407,7 @@ void main() {
       await tester.tap(find.text('Undo Detail Delete'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const ValueKey('delete-dance')));
-      await tester.pumpAndSettle();
+      await tapDanceOverflowAction(tester, 'delete-dance');
 
       // Dance is gone from the collection (delete took effect).
       expect(find.text('Undo Detail Delete'), findsNothing);

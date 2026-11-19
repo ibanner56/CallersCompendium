@@ -1169,6 +1169,75 @@ void main() {
       }
     });
 
+    testWidgets('phone width: built-in cards sit in two columns', (
+      tester,
+    ) async {
+      await _pumpSettings(tester, surfaceSize: const Size(390, 9000));
+      await tester.tap(find.byKey(const ValueKey('settings-nav-appearance')));
+      await tester.pumpAndSettle();
+
+      Rect rect(AppThemeSelection o) =>
+          tester.getRect(find.byKey(ValueKey('theme-${o.name}')));
+      final light = rect(AppThemeSelection.light);
+      final dark = rect(AppThemeSelection.dark);
+      final soft = rect(AppThemeSelection.softDark);
+      final contrast = rect(AppThemeSelection.highContrast);
+
+      // Light and Dark share a row, Soft dark and High contrast the next.
+      expect(light.top, dark.top);
+      expect(light.left, lessThan(dark.left));
+      expect(soft.top, contrast.top);
+      expect(soft.top, greaterThan(light.top));
+      // Two columns use the row: the pair spans most of the 390 pt screen,
+      // not the ~60% a single 220 pt card leaves.
+      expect(dark.right - light.left, greaterThan(390 * 0.8));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('a 360 pt phone also gets two columns', (tester) async {
+      await _pumpSettings(tester, surfaceSize: const Size(360, 9000));
+      await tester.tap(find.byKey(const ValueKey('settings-nav-appearance')));
+      await tester.pumpAndSettle();
+
+      final light = tester.getRect(
+        find.byKey(ValueKey('theme-${AppThemeSelection.light.name}')),
+      );
+      final dark = tester.getRect(
+        find.byKey(ValueKey('theme-${AppThemeSelection.dark.name}')),
+      );
+      expect(light.top, dark.top);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('large text on a phone: cards go full width, no overflow', (
+      tester,
+    ) async {
+      tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await _pumpSettings(tester, surfaceSize: const Size(390, 20000));
+      await tester.tap(find.byKey(const ValueKey('settings-nav-appearance')));
+      await tester.pumpAndSettle();
+
+      final light = tester.getRect(
+        find.byKey(ValueKey('theme-${AppThemeSelection.light.name}')),
+      );
+      final dark = tester.getRect(
+        find.byKey(ValueKey('theme-${AppThemeSelection.dark.name}')),
+      );
+      expect(dark.top, greaterThan(light.top));
+      expect(light.width, greaterThan(390 * 0.8));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('wide pane keeps the 220 pt cards', (tester) async {
+      await _pumpSettings(tester);
+
+      final light = tester.getRect(
+        find.byKey(ValueKey('theme-${AppThemeSelection.light.name}')),
+      );
+      expect(light.width, 220);
+    });
+
     testWidgets('the active option shows a non-color-only selected state', (
       tester,
     ) async {
@@ -1298,14 +1367,13 @@ void main() {
             reason: '${group.label} gallery section should be alphabetical',
           );
         }
-        // The Default group uses a curated order (Dark, Soft dark, High
-        // contrast, Light) rather than alphabetical, which reads more
-        // intuitively in the Settings pane.
+        // The Default group uses a curated order (Light, Dark, Soft dark, High
+        // contrast) rather than alphabetical.
         expect(
           AppThemeSelection.inGroup(
             AppThemeGroup.defaultHearth,
           ).map((s) => s.label),
-          equals(['Dark', 'Soft dark', 'High contrast', 'Light']),
+          equals(['Light', 'Dark', 'Soft dark', 'High contrast']),
         );
       },
     );

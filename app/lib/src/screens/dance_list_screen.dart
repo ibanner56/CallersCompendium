@@ -357,7 +357,7 @@ class _DanceListScreenState extends State<DanceListScreen>
   ///
   /// The subscription is opened exactly once per [State] — issue #768, so that
   /// a rebuild neither drops nor duplicates it. Issue #895 then gave
-  /// [CollectionShell] a [GlobalKey] so this State *survives* being reparented
+  /// this list a [GlobalKey] inside [CollectionShell] so this State *survives* being reparented
   /// across the 900 px split breakpoint (`collection_shell.dart`), and the
   /// app shell's body key moves the whole page across the 720 px rail
   /// breakpoint (`app_shell.dart`); together they preserve the sort, search

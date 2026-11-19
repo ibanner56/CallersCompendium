@@ -1,0 +1,21 @@
+{
+  "id": "controls-polish",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "On a tablet or computer, a dance's title bar keeps a labelled Perform button, Share and Add to program; the dialect choice, Duplicate, Re-import and Delete move into the ⋮ menu, with Delete last.",
+      "The Progression and Rating fields now stack on a phone so the five rating stars stay on one line.",
+      "A program's status (Draft, Finalized, Performed) now appears as a plain line under its title instead of a button-like chip.",
+      "On a phone the theme gallery shows two columns of theme cards (one column at larger text sizes), and the default themes are listed Light, Dark, Soft dark, High contrast.",
+      "Difficulty levels, custom-field choices and matrix columns now have Move up and Move down buttons beside each item, as well as drag handles.",
+      "A figure you have cut stays at full strength and is marked with a dashed outline and a Cut label instead of fading.",
+      "Small icon buttons on program slots, figure rows and the program matrix, and the bold and underline buttons for notes, are now full-size touch targets on phones and tablets, and the matrix's hide-column eye is no longer faded.",
+      "Dance and program rows share one title style, and dropdown values in the dance and program editors use the same weight as typed text.",
+      "The search box in the Add a dance picker is labelled Find a dance, so the label is no longer cut off on a phone."
+    ],
+    "fixed": [
+      "Adding a dance to a program from the picker no longer sends focus back to the Title field and reopens the keyboard over the slots and the Added message.",
+      "In the colour dialog, Apply now uses the hex code you typed even if you did not press Enter, and says so when the text is not a six-digit colour."
+    ]
+  }
+}

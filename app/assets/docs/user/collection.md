@@ -507,7 +507,10 @@ From the detail view you can:
   the large-print calling view, to call it on its own.
 - **Delete dance** — see [Keep your collection tidy](#keep-your-collection-tidy).
 
-On a narrow screen, the less-used actions are in the **More actions** menu.
+On a tablet or computer, **Perform** (a labelled button), **Share** and **Add to
+program** sit in the title bar; the dialect choice, **Duplicate**, **Re-import**
+and **Delete** are in the **⋮** menu beside them, with **Delete** last. On a
+phone, the same actions are in the **⋮** menu except Perform and Add to program.
 
 ## Add a dance
 
