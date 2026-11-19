@@ -97,7 +97,7 @@ searchKeywords: [allemande, almond]
 
 | Type | Values | Notes |
 |---|---|---|
-| dancerSet | everyone, larks*, robins*, ones, twos, partners, neighbors, sameRoles, shadows, secondShadows, prevNeighbors, nextNeighbors, thirdNeighbors, fourthNeighbors, firstCorners, secondCorners, thirdCorners, opposites, prevPartners, nextPartners, … | *canonical role IDs are `role1`/`role2` — see below. Positional/relational tokens (all except `role1s`/`role2s`) are also **dialect-substitutable** via the dialect `dancers` map. The five mixer partner-series tokens (`prevPartners`/`nextPartners`/`thirdPartners`/`fourthPartners`/`fifthPartners`) are offered in the **figure editor dropdown only when the dance is marked a mixer** — unless the figure already stores one of them, in which case it remains visible and selectable on that figure (see `offerableDancerSets`). The tokens are unrestricted everywhere else (dialect editor, search, etc.). |
+| dancerSet | everyone, larks*, robins*, ones, twos, threes, fours, partners, neighbors, sameRoles, shadows, secondShadows, prevNeighbors, nextNeighbors, thirdNeighbors, fourthNeighbors, firstCorners, secondCorners, thirdCorners, opposites, prevPartners, nextPartners, … | *canonical role IDs are `role1`/`role2` — see below. Positional/relational tokens (all except `role1s`/`role2s`) are also **dialect-substitutable** via the dialect `dancers` map. The five mixer partner-series tokens (`prevPartners`/`nextPartners`/`thirdPartners`/`fourthPartners`/`fifthPartners`) are offered in the **figure editor dropdown only when the dance is marked a mixer** — unless the figure already stores one of them, in which case it remains visible and selectable on that figure (see `offerableDancerSets`). The tokens are unrestricted everywhere else (dialect editor, search, etc.). |
 | dancerPair | subset of dancerSet valid for the move | |
 | handedness / shoulder | right, left | |
 | spinDirection | clockwise, counterclockwise | |
@@ -2303,6 +2303,25 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
   - `cast.direction` takes no opposite in `ParamOpposites`: like
     `circle.direction` it is a free-form choice slot, and its values are two
     pairs on different axes.
+  - **`threes` and `fours`** join the dancer sets, after `twos`: the third and
+    fourth couples as groups, for triplets, triple minors and four-couple sets
+    (the maintainer's ruling, 2026-11-19). They are the tokens ECD's selectors
+    already use. Like their single dancers (`threesRole1` …, v39) they are
+    offered in every dance, not only one whose formation has a third couple,
+    and they have no opposite (`pairInverse` names none). They are not hey
+    meet targets: that list is ContraDB's pairs, and neither group pairs off.
+    The Caller's Box's `Threes`/`Fours` read as them.
+  - **A role and a couple number name that couple's dancer**: The Caller's
+    Box's "Woman one" and "Man three", which reach the reader as `role2 one`
+    and `role1 three`, are `onesRole2` and `threesRole1`, shown as "first
+    robin" and "third lark" (the maintainer's ruling). "One" after a group
+    ("Women cast down one place") still counts places.
+  - **Older devices (v39)** render `threes`/`fours` as the bare word, and
+    keep it while the figure is only viewed or synced. Opening that figure's
+    editor there corrects the out-of-domain value to the param's default (the
+    dance editor's dropdown writes back any value it cannot offer), and the
+    edit syncs. Every dancer token added before (v38's corners, v39's single
+    dancers) has the same exposure; this change does not add a guard.
   - Migration: none, and no rebuild: a new move and alias, nothing renamed or
     removed, so no stored figure changes and every canonical text stays as it
     was. **Older devices (v39)** show a synced `cast` as the bare word "cast"
