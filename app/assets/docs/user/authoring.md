@@ -29,8 +29,9 @@ There are three ways in:
   while the rest of the import waits for you. It is not covered by the import's
   **Undo**.
 
-The editor is a full screen with **Save** in the corner. The **title** is the only
-required field; everything else can stay empty until you know it.
+The editor is a full screen with **Save** at the end of the top bar, after undo
+and redo. The **title** is the only required field; everything else can stay
+empty until you know it.
 
 ## Enter the figures
 

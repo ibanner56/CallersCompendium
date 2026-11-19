@@ -840,7 +840,8 @@ it on in version 0.8.0-beta or before and later turned the Glossary off, it was
 grayed out but kept its setting. It now takes effect, and your figures
 show again everywhere Custom Figures shows them. Turn Custom Figures off here
 to hide them. While it is on, the **Your figures** row under the switch opens them: see your figures,
-choose **+** to add one, or select one to **Edit** or **Delete** it. The row
+choose **Add your own figure** to add one (it floats at the bottom of the
+screen once you have a figure), or select one to **Edit** or **Delete** it. The row
 is grayed out while Custom Figures is off.
 The Glossary lists them too, when it is shown. While it is on:
 

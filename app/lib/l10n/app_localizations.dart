@@ -7635,7 +7635,7 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load this dance.'**
   String get danceLoadError;
 
-  /// Label of the floating action button that opens the dance editor.
+  /// Tooltip and screen-reader label of the top-bar button on a dance's page that opens the dance editor.
   ///
   /// In en, this message translates to:
   /// **'Edit'**

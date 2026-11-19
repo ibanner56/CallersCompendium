@@ -6357,7 +6357,7 @@
   },
   "danceEditFab": "Edit",
   "@danceEditFab": {
-    "description": "Label of the floating action button that opens the dance editor."
+    "description": "Tooltip and screen-reader label of the top-bar button on a dance's page that opens the dance editor."
   },
   "danceDuplicateTooltip": "Duplicate dance",
   "@danceDuplicateTooltip": {
