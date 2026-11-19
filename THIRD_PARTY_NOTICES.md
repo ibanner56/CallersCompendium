@@ -1,6 +1,6 @@
 # Third-party notices
 
-Caller's Compendium is licensed under AGPL-3.0 (see [`LICENSE`](LICENSE) and
+Caller's Compendium is licensed under AGPL-3.0-only (see [`LICENSE`](LICENSE) and
 [`LICENSE-EXCEPTION.md`](LICENSE-EXCEPTION.md)). This file carries the notices
 that other projects' licenses require to travel with code or data we took from
 them, and the attribution we promised where the licence leaves it optional. The

@@ -1,7 +1,7 @@
 # Caller's Compendium
 
 [![Latest release](https://img.shields.io/github/v/release/ibanner56/CallersCompendium?include_prereleases&sort=semver)](https://github.com/ibanner56/CallersCompendium/releases)
-[![License: AGPL-3.0](https://img.shields.io/github/license/ibanner56/CallersCompendium)](LICENSE)
+[![License: AGPL-3.0-only](https://img.shields.io/badge/license-AGPL--3.0--only-blue)](LICENSE)
 ![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20macOS%20%7C%20Windows%20%7C%20Android%20%7C%20iOS-lightgrey)  
 [![CI](https://github.com/ibanner56/CallersCompendium/actions/workflows/ci.yml/badge.svg)](https://github.com/ibanner56/CallersCompendium/actions/workflows/ci.yml)
 [![Made with Flutter](https://img.shields.io/badge/Made%20with-Flutter-02569B?logo=flutter&logoColor=white)](https://flutter.dev)
@@ -160,10 +160,10 @@ This project draws on prior work from:
 
 ## License
 
-[AGPL-3.0](LICENSE), with an [additional permission](LICENSE-EXCEPTION.md) that
+[AGPL-3.0-only](LICENSE), with an [additional permission](LICENSE-EXCEPTION.md) that
 allows Caller's Compendium to be distributed through managed application
 marketplaces (Apple's App Store, Google Play, and comparable stores) under those
-stores' required terms — while the source stays fully AGPL-3.0 and every user
+stores' required terms — while the source stays fully AGPL-3.0-only and every user
 keeps their rights to it.
 
 Code we ported from other projects keeps their licenses; the notices are in

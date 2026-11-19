@@ -23,7 +23,7 @@ class AboutSection extends StatelessWidget {
 }
 
 /// The About section: the app's brand home (mark, wordmark, version, and a
-/// one-line tagline) followed by the AGPL-3.0 notice with the corresponding
+/// one-line tagline) followed by the AGPL-3.0-only notice with the corresponding
 /// source offer (an AGPL conveyance obligation), attribution for the bundled
 /// fonts, the "inspired by" theme note, and the dance-data provenance — plus a
 /// "View licenses" entry into Flutter's `showLicensePage` (which also lists the

@@ -445,7 +445,7 @@ _FOOTER = f"""  <footer class="site-footer">
         <a href="{REPO_URL}" rel="noopener">Source code</a>
         <a href="{REPO_URL}/releases" rel="noopener">Releases</a>
         <a href="../privacy/">Privacy</a>
-        <a href="{REPO_URL}/blob/main/LICENSE" rel="noopener">License (AGPL-3.0)</a>
+        <a href="{REPO_URL}/blob/main/LICENSE" rel="noopener">License (AGPL-3.0-only)</a>
         <a href="mailto:{CONTACT_EMAIL}">Contact</a>
       </nav>
     </div>

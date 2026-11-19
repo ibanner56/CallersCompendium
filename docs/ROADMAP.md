@@ -19,7 +19,7 @@ ordered; each phase gates the next. Status: `[ ]` todo · `[~]` in progress · `
 | Notation | Fully structured figures with a searchable free-text **Custom** figure fallback |
 | CallersBox | Import directly from the primary source in-app (online search + link/record import) |
 | Migration | Seamless out-of-the-box import from Caller's Companion exports |
-| License | AGPL-3.0 |
+| License | AGPL-3.0-only |
 
 Non-goals for v1: user accounts, choreography validation (developed
 separately; planned for a later milestone), authoring/publishing back to online sources.

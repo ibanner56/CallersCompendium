@@ -109,7 +109,7 @@ void main() {
       findsOneWidget,
     );
 
-    // AGPL-3.0 license notice + source offer and link.
+    // AGPL-3.0-only license notice + source offer and link.
     expect(find.textContaining('AGPL-3.0'), findsWidgets);
     expect(find.textContaining('(AGPL-3.0-only)'), findsOneWidget);
     expect(

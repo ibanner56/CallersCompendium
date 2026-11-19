@@ -40,7 +40,7 @@ what works, what to try, and what's rough — honestly.
  platform, version, steps, and — since imports are central — a sanitized sample
  file if the bug is import-related).
 
-7. **License** — AGPL-3.0, with the source link.
+7. **License** — AGPL-3.0-only, with the source link.
 
 ## Tone rules
 - Written for a caller, not a developer. Avoid phase numbers, PR numbers, internal
