@@ -26,6 +26,7 @@ import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/search/dance_detail_data.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/screens/perform_program_screen.dart';
+import 'package:compendium_app/src/widgets/app_bar_text_action.dart';
 import 'package:compendium_app/src/widgets/collection_picker.dart';
 import 'package:compendium_app/src/widgets/online_result_tile.dart';
 import 'package:compendium_app/src/widgets/online_search_toggle.dart';
@@ -2367,7 +2368,7 @@ void main() {
 
       expect(
         tester
-            .widget<FloatingActionButton>(
+            .widget<AppBarTextAction>(
               find.byKey(const ValueKey('save-program')),
             )
             .onPressed,
@@ -2403,7 +2404,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(
         tester
-            .widget<FloatingActionButton>(
+            .widget<AppBarTextAction>(
               find.byKey(const ValueKey('save-program')),
             )
             .onPressed,

@@ -12,6 +12,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/show_performed_toggles_scope.dart';
+import 'package:compendium_app/src/screens/perform_program_screen.dart';
 import 'package:compendium_app/src/screens/programs_shell.dart';
 
 import 'support/l10n_harness.dart';
@@ -178,15 +179,26 @@ void main() {
   });
 
   group('builder at 360dp', () {
-    testWidgets('the app bar keeps Perform and Export, and folds Mark all '
-        'performed, Duplicate and Delete into ⋮', (tester) async {
+    testWidgets('the app bar keeps Export and Save, and folds Perform, Mark '
+        'all performed, Duplicate and Delete into ⋮', (tester) async {
       final repos = await _seed();
       await _openSummaryOnPhone(tester, repos);
       await _openBuilderFromSummary(tester);
 
       expect(tester.takeException(), isNull);
-      expect(_key('perform-program'), findsOneWidget);
       expect(_key('program-export-menu'), findsOneWidget);
+      // Save is on the bar, as its icon: the word leaves the title no room.
+      final save = _key('save-program');
+      expect(
+        find.descendant(of: find.byType(AppBar), matching: save),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: save, matching: find.byIcon(Icons.check)),
+        findsOneWidget,
+      );
+      expect(find.byType(FloatingActionButton), findsNothing);
+      expect(_key('perform-program'), findsNothing);
       expect(_key('mark-all-performed'), findsNothing);
       expect(_key('duplicate-program'), findsNothing);
       expect(_key('delete-program'), findsNothing);
@@ -198,9 +210,21 @@ void main() {
 
       await tester.tap(_key('program-actions-overflow'));
       await tester.pumpAndSettle();
+      expect(_key('perform-program'), findsOneWidget);
       expect(_key('mark-all-performed'), findsOneWidget);
       expect(_key('duplicate-program'), findsOneWidget);
       expect(_key('delete-program'), findsOneWidget);
+    });
+
+    testWidgets('Perform runs from ⋮', (tester) async {
+      final repos = await _seed();
+      await _openSummaryOnPhone(tester, repos);
+      await _openBuilderFromSummary(tester);
+      await tester.tap(_key('program-actions-overflow'));
+      await tester.pumpAndSettle();
+      await tester.tap(_key('perform-program'));
+      await tester.pumpAndSettle();
+      expect(find.byType(PerformProgramScreen), findsOneWidget);
     });
 
     testWidgets('Mark all performed and Duplicate run from ⋮', (tester) async {

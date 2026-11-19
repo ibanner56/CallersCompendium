@@ -105,17 +105,31 @@ void main() {
     expect(find.byType(CompoundEditorScreen), findsOneWidget);
   });
 
-  testWidgets('+ opens the editor on a new figure', (tester) async {
-    await pump(tester);
+  testWidgets('the floating button opens the editor on a new figure', (
+    tester,
+  ) async {
+    await pump(
+      tester,
+      entries: [entry(id: 'a', name: 'zig zag')],
+    );
     await tester.tap(find.byKey(const ValueKey('custom-figures-add')));
     await tester.pumpAndSettle();
     expect(find.byType(CompoundEditorScreen), findsOneWidget);
   });
 
-  testWidgets('+ offers figures only: a term would be hidden with the '
+  testWidgets("the empty state's button opens the editor on a new figure", (
+    tester,
+  ) async {
+    await pump(tester);
+    await tester.tap(find.byKey(const ValueKey('custom-figures-empty-add')));
+    await tester.pumpAndSettle();
+    expect(find.byType(CompoundEditorScreen), findsOneWidget);
+  });
+
+  testWidgets('New offers figures only: a term would be hidden with the '
       'Glossary off', (tester) async {
     await pump(tester);
-    await tester.tap(find.byKey(const ValueKey('custom-figures-add')));
+    await tester.tap(find.byKey(const ValueKey('custom-figures-empty-add')));
     await tester.pumpAndSettle();
     final kinds = find.byKey(const ValueKey('glossary-entry-kind'));
     expect(

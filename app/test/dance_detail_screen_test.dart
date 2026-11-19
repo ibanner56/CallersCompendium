@@ -2757,7 +2757,7 @@ void main() {
         // Rendered affordances unique to the summary — the builder has neither,
         // so these fail if the destination regresses to the editor.
         expect(find.byKey(const ValueKey('open-builder')), findsOneWidget);
-        expect(find.text('Edit program'), findsOneWidget);
+        expect(find.byTooltip('Edit program'), findsOneWidget);
         expect(find.byKey(const ValueKey('summary-perform')), findsOneWidget);
         expect(find.text('Perform this program'), findsOneWidget);
       },

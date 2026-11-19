@@ -34,9 +34,15 @@ Future<void> _pumpScreen(
   await tester.pumpAndSettle();
 }
 
-/// Opens the "New field" form from the screen.
+/// Opens the "New field" form from the screen: the empty message's button
+/// while there are no fields, the floating button once there are.
 Future<void> _openNewForm(WidgetTester tester) async {
-  await tester.tap(find.byKey(const ValueKey('add-field')));
+  final fab = find.byKey(const ValueKey('add-field'));
+  await tester.tap(
+    fab.evaluate().isEmpty
+        ? find.byKey(const ValueKey('custom-fields-empty-add'))
+        : fab,
+  );
   await tester.pumpAndSettle();
 }
 

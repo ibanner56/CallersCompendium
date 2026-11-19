@@ -6209,7 +6209,10 @@ void main() {
         find.byKey(const ValueKey('custom-figures-empty')),
         findsOneWidget,
       );
-      expect(find.byKey(const ValueKey('custom-figures-add')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('custom-figures-empty-add')),
+        findsOneWidget,
+      );
     });
 
     testWidgets('turning Custom Figures off updates the live setting and '

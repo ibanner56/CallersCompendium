@@ -600,8 +600,9 @@ void main() {
       expect(find.text('Select a dance'), findsOneWidget);
       expect(find.byType(DanceDetailScreen), findsNothing);
 
-      // Tap the new-dance FAB — DanceEditorScreen is pushed.
-      await tester.tap(find.byKey(const ValueKey('new-dance')));
+      // The Collection is empty, so New dance is the empty state's button
+      // (the floating one waits for a list) — DanceEditorScreen is pushed.
+      await tester.tap(find.byKey(const ValueKey('collection-empty-new-dance')));
       await tester.pumpAndSettle();
       expect(find.byType(DanceEditorScreen), findsOneWidget);
 

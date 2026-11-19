@@ -164,9 +164,9 @@ class ProgramEditorScreen extends StatefulWidget {
   /// as a persistent right pane instead of a modal sheet.
   static const double twoPaneBreakpoint = 820;
 
-  /// Window width (logical pixels) below which Mark all performed, Duplicate
-  /// and Delete move into a "⋮" menu, leaving Perform and Export on the bar.
-  /// Matches `DanceDetailScreen.compactActionsBreakpoint` (Material 3's
+  /// Window width (logical pixels) below which Perform, Mark all performed,
+  /// Duplicate and Delete move into a "⋮" menu and Save shows as its icon,
+  /// leaving Export, ⋮ and Save on the bar beside the title. Matches `DanceDetailScreen.compactActionsBreakpoint` (Material 3's
   /// compact window-size-class cutoff).
   static const double compactActionsBreakpoint = 600;
 
@@ -3483,13 +3483,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final hasPersistedProgram = _existing != null;
     final isPersistedNewRoute = widget.isNew && hasPersistedProgram;
     // Below [ProgramEditorScreen.compactActionsBreakpoint] the bar keeps
-    // Perform and Export; Mark all performed, Duplicate and Delete fold into
-    // [_secondaryActionsMenu], as on dance detail. At 360dp the full row left
-    // the title 32dp. The builder is always a full-screen route, so the window
-    // width is the bar's width.
+    // Export and Save; Perform, Mark all performed, Duplicate and Delete fold
+    // into [_secondaryActionsMenu], and Save shows as its icon. At 360dp the
+    // full row left the title 32dp. The builder is always a full-screen route,
+    // so the window width is the bar's width.
     final compact =
         MediaQuery.sizeOf(context).width <
         ProgramEditorScreen.compactActionsBreakpoint;
+    final foldsActions = hasPersistedProgram && _loadError == null && compact;
     final tabBar = TabBar(
       controller: _tabController,
       tabs: [
@@ -3535,10 +3536,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           ),
           actions: [
             if (_draftHealth.failed) const DraftNotSavedMarker(),
-            if (_loaded &&
-                _loadError == null &&
-                _data != null &&
-                _slots.isNotEmpty)
+            if (_canPerform && !foldsActions)
               IconButton(
                 key: const ValueKey('perform-program'),
                 tooltip: l10n.programsPerformTooltip,
@@ -3579,7 +3577,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                   ),
                 ),
               ),
-            if (hasPersistedProgram && _loadError == null && compact)
+            if (foldsActions)
               _secondaryActionsMenu()
             else if (hasPersistedProgram && _loadError == null) ...[
               if (_slots.any((s) => s.danceId != null))
@@ -3613,7 +3611,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 key: const ValueKey('save-program'),
                 label: l10n.commonSave,
                 icon: Icons.check,
-                busy: _saving,
+                // A phone's bar has no room for the word beside the title.
+                maxWidthFraction: compact ? 0 : 0.4,
                 onPressed: _saving || _pickerImporting ? null : _save,
               ),
           ],
@@ -3655,8 +3654,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     );
   }
 
-  /// The narrow bar's "⋮" menu: Mark all performed, Duplicate and Delete, under
-  /// the keys, labels and enabled rules of the buttons they replace.
+  /// Whether there is a program to perform: loaded, and with a slot.
+  bool get _canPerform =>
+      _loaded && _loadError == null && _data != null && _slots.isNotEmpty;
+
+  /// The narrow bar's "⋮" menu: Perform, Mark all performed, Duplicate and
+  /// Delete, under the keys, labels and enabled rules of the buttons they
+  /// replace.
   Widget _secondaryActionsMenu() {
     final l10n = AppLocalizations.of(context);
     return PopupMenuButton<void>(
@@ -3665,6 +3669,17 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       icon: const Icon(Icons.more_vert),
       enabled: !_pickerImporting,
       itemBuilder: (context) => [
+        if (_canPerform)
+          PopupMenuItem<void>(
+            key: const ValueKey('perform-program'),
+            enabled: !_pickerImporting,
+            onTap: _performProgram,
+            child: ListTile(
+              leading: const Icon(Icons.slideshow),
+              title: Text(l10n.programsPerformTooltip),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
         if (_slots.any((s) => s.danceId != null))
           PopupMenuItem<void>(
             key: const ValueKey('mark-all-performed'),

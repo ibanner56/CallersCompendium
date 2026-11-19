@@ -645,7 +645,7 @@ void main() {
     },
   );
 
-  testWidgets('the summary pane FAB is labelled "Edit program"', (
+  testWidgets("the summary pane's Edit action is labelled 'Edit program'", (
     tester,
   ) async {
     final repos = openTestRepositories();
@@ -656,7 +656,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('open-builder')), findsOneWidget);
-    expect(find.text('Edit program'), findsOneWidget);
+    expect(find.byTooltip('Edit program'), findsOneWidget);
   });
 
   testWidgets(
@@ -1119,7 +1119,7 @@ void main() {
         expect(find.byKey(const ValueKey('summary-perform')), findsOneWidget);
         expect(find.text('Perform this program'), findsOneWidget);
         expect(find.byKey(const ValueKey('open-builder')), findsOneWidget);
-        expect(find.text('Edit program'), findsOneWidget);
+        expect(find.byTooltip('Edit program'), findsOneWidget);
 
         // Tap 2: Perform — reachable without entering edit mode.
         await tester.tap(find.byKey(const ValueKey('summary-perform')));
