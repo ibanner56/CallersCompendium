@@ -583,6 +583,7 @@ void main() {
         'circle left 65 beats',
         'circle left (100)',
         'set and turn single (100)',
+        '1s cast down as 2s lead up (100)',
       ]) {
         final f = _one(line);
         expect(f.isCustom, isTrue, reason: line);

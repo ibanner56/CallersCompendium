@@ -1434,6 +1434,9 @@ class _Reader {
         : figures
               .map((f) => _beatsOf(f!))
               .fold<int>(0, (a, b) => a > b ? a : b);
+    // As for one side (see [_assemble]): a count outside the beats range is
+    // not read.
+    if (!_beatsInRange(span)) return null;
     return Figure.meanwhile(
       figures: [for (final f in figures) f!],
       beats: span,
