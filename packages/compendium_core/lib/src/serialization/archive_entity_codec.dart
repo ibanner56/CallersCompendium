@@ -167,6 +167,10 @@ Map<String, Object?> archiveDanceToJson(
           ),
   if (includeOptionalFields || d.composedOn != null)
     'composedOn': d.composedOn?.serialize(),
+  // Written only when set, even with [includeOptionalFields], for the reason
+  // given at [omittedDanceDefaults].
+  if (d.interpreterIds.isNotEmpty) 'interpreterIds': d.interpreterIds,
+  if (d.interpretedOn != null) 'interpretedOn': d.interpretedOn!.serialize(),
   if (includeOptionalFields || d.revisedOn != null)
     'revisedOn': d.revisedOn?.serialize(),
   'createdAt': archiveIso(d.createdAt),
@@ -177,11 +181,13 @@ Map<String, Object?> archiveDanceToJson(
 
 /// The dance body keys [archiveDanceToJson] leaves out when they hold their
 /// default, with that default. Each was added after Device Sync shipped
-/// (ADR-006 §12, F2 and F3); omitting a default keeps every other dance's body,
-/// and so its content hash, as it was.
+/// (ADR-006 §12, F2 and F3, and §9.2's interpreter credits); omitting a
+/// default keeps every other dance's body, and so its content hash, as it was.
 const Map<String, Object?> omittedDanceDefaults = {
   'meter': '',
   'musicalKey': '',
+  'interpreterIds': <String>[],
+  'interpretedOn': null,
 };
 
 /// The formation keys [archiveFormationToJson] leaves out when they hold their

@@ -806,6 +806,22 @@ class ImportPipeline {
         final authorIds = plan.draft.authorNames.isEmpty
             ? null
             : [for (final r in authorResolutions) r.choreographerId];
+        // Interpreters resolve the same way, but only for a dance this commit
+        // writes whole: a re-import never changes them (see
+        // [withReimportedChoreography]). They come from names alone, never
+        // from the draft's own `interpreterIds`, which are the sender's.
+        final interpreterIds = action == CommitAction.reimport
+            ? const <String>[]
+            : [
+                for (final r in await _resolveAuthors(
+                  plan.draft.interpreterNames,
+                  nameToId: nameToId,
+                  newId: newId,
+                  createdChoreographerIds: createdChoreographerIds,
+                  revivedChoreographerIds: revivedChoreographerIds,
+                ))
+                  r.choreographerId,
+              ];
 
         final prov = _provenanceFrom(plan.draft, now);
         if (writesNewDance) {
@@ -852,6 +868,7 @@ class ImportPipeline {
             draftDance,
             id: id,
             authorIds: authorIds,
+            interpreterIds: interpreterIds,
             createdAt: now,
             updatedAt: now,
             provenance: prov,
@@ -957,6 +974,7 @@ class ImportPipeline {
             incoming,
             id: id,
             authorIds: authorIds,
+            interpreterIds: interpreterIds,
             createdAt: existing.createdAt,
             updatedAt: now,
             provenance: prov,
@@ -1518,15 +1536,18 @@ class ImportPipeline {
   /// [authorIds] is null the draft's own ids are kept — free-text adapters
   /// resolve names at commit and pass the resolved list, while adapters that
   /// ship canonical ids directly (e.g. the generic archive/JSON adapter) pass
-  /// null to preserve them. [keepFrom] is the dance being linked over: its
-  /// custom-field values for fields [src] does not carry survive, and so does
-  /// its rating when [src] carries none.
+  /// null to preserve them. [interpreterIds] are always the pipeline's
+  /// resolved ids, never [src]'s. [keepFrom] is the dance being linked over:
+  /// its custom-field values for fields [src] does not carry survive, and so
+  /// do its rating, interpreters and interpretation date when [src] carries
+  /// none.
   Dance _rebuildWithIdentity(
     Dance src, {
     required String id,
     required DateTime createdAt,
     required DateTime updatedAt,
     List<String>? authorIds,
+    required List<String> interpreterIds,
     Provenance? provenance,
     Dance? keepFrom,
   }) => Dance(
@@ -1572,6 +1593,13 @@ class ImportPipeline {
     sourceCitations: src.sourceCitations,
     provenance: provenance,
     composedOn: src.composedOn,
+    // A source that names no interpreter (every adapter but the native
+    // archive) must not erase the ones the linked-over dance credits, as for
+    // [rating].
+    interpreterIds: interpreterIds.isNotEmpty
+        ? interpreterIds
+        : keepFrom?.interpreterIds ?? const [],
+    interpretedOn: src.interpretedOn ?? keepFrom?.interpretedOn,
     revisedOn: src.revisedOn,
     createdAt: createdAt,
     updatedAt: updatedAt,

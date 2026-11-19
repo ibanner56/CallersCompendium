@@ -148,6 +148,13 @@ const List<String> citedIdLookupIndexSql = [
       'ON custom_field_values(field_id)',
 ];
 
+/// Lookup index over `dance_interpreters.choreographer_id` (schema v42), for
+/// the same two "who cites this choreographer" queries as
+/// [citedIdLookupIndexSql]'s `dance_authors` index.
+const String danceInterpretersChoreographerIdIndexSql =
+    'CREATE INDEX IF NOT EXISTS dance_interpreters_choreographer_id '
+    'ON dance_interpreters(choreographer_id)';
+
 /// Settings key marking that a schema migration touched the derived figure
 /// index and the `dance_figures` rows must be rebuilt from `figures_json`.
 ///
@@ -648,6 +655,7 @@ const int kMinSupportedSchemaVersion = 39;
     DifficultyLevels,
     Choreographers,
     DanceAuthors,
+    DanceInterpreters,
     DanceFigures,
     Programs,
     ProgramSlots,
@@ -767,12 +775,14 @@ class CompendiumDatabase extends _$CompendiumDatabase {
     }
   }
 
-  /// The v42 additions (ADR-006 §12, F2 and F3): three columns on `dances`,
-  /// ECD's proper/improper flag and the tune's meter and key. Each has a
-  /// default (`false`, `''`, `''`), so every existing row reads as proper with
-  /// no meter or key, which is what it held before; no data is rewritten and
-  /// no derived index reads them, so no rebuild is needed. The live-schema
-  /// check only keeps the step idempotent.
+  /// The v42 additions (ADR-006 §12, F2 and F3, and §9.2's interpreter
+  /// credits): four columns on `dances` (ECD's proper/improper flag, the
+  /// tune's meter and key, and `interpreted_on`) and the `dance_interpreters`
+  /// join table with its lookup index. Each column has a default (`false`,
+  /// `''`, `''`, `NULL`), so every existing row reads as proper with no meter,
+  /// key or interpretation, which is what it held before; the new table starts
+  /// empty. No data is rewritten and no derived index reads them, so no
+  /// rebuild is needed. The live-schema checks only keep the step idempotent.
   Future<void> _ensureV42Schema(Migrator m) async {
     final columns = await customSelect(
       "SELECT name FROM pragma_table_info('${dances.actualTableName}')",
@@ -782,9 +792,16 @@ class CompendiumDatabase extends _$CompendiumDatabase {
       dances.formationImproper,
       dances.meter,
       dances.musicalKey,
+      dances.interpretedOn,
     ]) {
       if (!present.contains(column.name)) await m.addColumn(dances, column);
     }
+    final interpreters = await customSelect(
+      "SELECT name FROM sqlite_master WHERE type = 'table' "
+      "AND name = '${danceInterpreters.actualTableName}'",
+    ).get();
+    if (interpreters.isEmpty) await m.createTable(danceInterpreters);
+    await customStatement(danceInterpretersChoreographerIdIndexSql);
   }
 
   @override
@@ -808,6 +825,7 @@ class CompendiumDatabase extends _$CompendiumDatabase {
       }
       await customStatement(programSlotsDanceIdIndexSql);
       await _ensureV41Schema();
+      await customStatement(danceInterpretersChoreographerIdIndexSql);
     },
     onUpgrade: (m, from, to) async {
       // Belt-and-suspenders downgrade guard. drift is forward-only and has no

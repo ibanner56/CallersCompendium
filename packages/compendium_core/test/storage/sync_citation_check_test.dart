@@ -63,6 +63,29 @@ final _kinds = <_CitedKind>[
     exists: (repositories) async =>
         await repositories.choreographers.getById(_id) != null,
   ),
+  // An interpreter credit (ADR-006 §9.2) holds a person as an author credit
+  // does.
+  _CitedKind(
+    name: 'choreographer as interpreter',
+    kind: SyncRecordKind.choreographer,
+    joinTable: 'dance_interpreters',
+    citedColumn: 'choreographer_id',
+    indexName: 'dance_interpreters_choreographer_id',
+    seed: (repositories) async {
+      // ignore: unused_result
+      await repositories.choreographers.upsert(
+        Choreographer(id: _id, name: 'Cited'),
+        at: DateTime.utc(2025, 1, 2, 12),
+      );
+    },
+    cite: (dance) => dance.copyWith(interpreterIds: const [_id]),
+    body: () => syncBodyForEntity(
+      SyncRecordKind.choreographer,
+      Choreographer(id: _id, name: 'Cited'),
+    ),
+    exists: (repositories) async =>
+        await repositories.choreographers.getById(_id) != null,
+  ),
   _CitedKind(
     name: 'tag',
     kind: SyncRecordKind.tag,
@@ -325,7 +348,7 @@ void main() {
     });
   }
 
-  test('a fresh database has all four cited-id indexes', () async {
+  test('a fresh database has every cited-id index', () async {
     final rows = await db
         .customSelect("SELECT name FROM sqlite_master WHERE type = 'index'")
         .get();

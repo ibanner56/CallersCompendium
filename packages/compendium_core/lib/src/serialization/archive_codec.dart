@@ -720,6 +720,8 @@ Dance _danceFromJson(Map<String, Object?> m) => Dance(
       ? null
       : _provenanceFromJson(_asMap(m['provenance'], 'provenance')),
   composedOn: _partialDateOrNull(m, 'composedOn'),
+  interpreterIds: _stringList(m, 'interpreterIds'),
+  interpretedOn: _partialDateOrNull(m, 'interpretedOn'),
   revisedOn: _partialDateOrNull(m, 'revisedOn'),
   createdAt: _dt(m, 'createdAt'),
   updatedAt: _dt(m, 'updatedAt'),

@@ -23,6 +23,8 @@ const Map<SyncRecordKind, Set<String>> generatedShareableWirePaths = {
     'formation.shape',
     'hook',
     'id',
+    'interpretedOn',
+    'interpreterIds',
     'links',
     'links.id',
     'links.kind',

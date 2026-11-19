@@ -72,6 +72,8 @@ class Dance {
     List<SourceCitation> sourceCitations = const [],
     this.provenance,
     this.composedOn,
+    List<String> interpreterIds = const [],
+    this.interpretedOn,
     this.revisedOn,
     required this.createdAt,
     required this.updatedAt,
@@ -84,6 +86,7 @@ class Dance {
            ? formation.copyWith(improper: false)
            : formation,
        authorIds = List.unmodifiable(authorIds),
+       interpreterIds = List.unmodifiable(interpreterIds),
        // Parse eagerly so an invalid structure fails at construction.
        phraseStructure = PhraseStructure.parse(phraseStructure),
        // [figuresSource] wins when given: it is how the storage layer carries a
@@ -233,6 +236,16 @@ class Dance {
   /// unknown.
   final PartialDate? composedOn;
 
+  /// Ordered Choreographer ids of the people who *interpreted* the dance:
+  /// reconstructed it from its original publication, as ECD dances often
+  /// are (ADR-006). Drawn from the same people list as [authorIds]; empty
+  /// when nobody is credited. Stored for every form.
+  final List<String> interpreterIds;
+
+  /// When the dance was interpreted, at whatever precision is known, like
+  /// [composedOn]; `null` when unknown.
+  final PartialDate? interpretedOn;
+
   /// When the dance was last *revised* by its author, at whatever precision is
   /// known. Distinct from the record stamp [updatedAt]; `null` when unknown.
   final PartialDate? revisedOn;
@@ -299,7 +312,8 @@ class Dance {
   /// **wins** over any value passed for the same field, so
   /// `copyWith(difficultyLevelId: 'difficulty-advanced',
   /// clearDifficultyLevel: true)` clears it. The
-  /// same holds for `clearComposedOn` / `clearRevisedOn` / `clearRating` /
+  /// same holds for `clearComposedOn` / `clearInterpretedOn` /
+  /// `clearRevisedOn` / `clearRating` /
   /// `clearProvenance`.
   Dance copyWith({
     String? title,
@@ -331,6 +345,9 @@ class Dance {
     bool clearProvenance = false,
     PartialDate? composedOn,
     bool clearComposedOn = false,
+    List<String>? interpreterIds,
+    PartialDate? interpretedOn,
+    bool clearInterpretedOn = false,
     PartialDate? revisedOn,
     bool clearRevisedOn = false,
     DateTime? updatedAt,
@@ -374,6 +391,10 @@ class Dance {
     sourceCitations: sourceCitations ?? this.sourceCitations,
     provenance: clearProvenance ? null : (provenance ?? this.provenance),
     composedOn: clearComposedOn ? null : (composedOn ?? this.composedOn),
+    interpreterIds: interpreterIds ?? this.interpreterIds,
+    interpretedOn: clearInterpretedOn
+        ? null
+        : (interpretedOn ?? this.interpretedOn),
     revisedOn: clearRevisedOn ? null : (revisedOn ?? this.revisedOn),
     createdAt: createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -444,6 +465,8 @@ class Dance {
       ],
       sourceCitations: sourceCitations,
       composedOn: composedOn,
+      interpreterIds: interpreterIds,
+      interpretedOn: interpretedOn,
       revisedOn: revisedOn,
       createdAt: now,
       updatedAt: now,
@@ -477,6 +500,8 @@ class Dance {
       _listEq.equals(other.links, links) &&
       _listEq.equals(other.sourceCitations, sourceCitations) &&
       other.composedOn == composedOn &&
+      _listEq.equals(other.interpreterIds, interpreterIds) &&
+      other.interpretedOn == interpretedOn &&
       other.revisedOn == revisedOn &&
       other.createdAt == createdAt &&
       other.updatedAt == updatedAt &&

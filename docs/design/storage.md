@@ -117,6 +117,9 @@ choreographers(id PK, name UNIQUE, website, notes,
 dance_authors(dance_id, choreographer_id, position,
              PK(dance_id, choreographer_id),
              UNIQUE(dance_id, position))       -- no ambiguous ordering
+dance_interpreters(dance_id, choreographer_id, position,
+                   PK(dance_id, choreographer_id),
+                   UNIQUE(dance_id, position)) -- same shape, ADR-006 §9.2
 
 dance_figures(dance_id, idx, move, beats, progression, params_json,
               PK(dance_id, idx))              -- derived
@@ -836,6 +839,19 @@ steps that can still fire are v40 onward.
   step, each column added only if absent. No data rewritten; no derived
   index reads the columns, so no rebuild. Search over meter and key is still
   to come (ADR-006 W7).
+
+  Also in v42, before it shipped (ADR-006 §9.2): the interpreter credits.
+  `dances.interpreted_on` is the partial date the dance was interpreted
+  (`Dance.interpretedOn`), stored like `composed_on`, `NULL` when unknown.
+  `dance_interpreters` is the ordered join to the people who interpreted it
+  (`Dance.interpreterIds`), shaped exactly like `dance_authors` and drawing on
+  the same `choreographers`, with the lookup index
+  `dance_interpreters_choreographer_id`. Everything that treats an author
+  credit as a citation of a person treats an interpreter credit the same way:
+  the delete guards, the live-dance counts, merge and its Undo, natural-key
+  adoption, and the purge's collection of people nobody credits. The step
+  creates the table only if absent; it starts empty. Search by interpreter is
+  still to come (ADR-006 W7).
 
 ## The delete model
 

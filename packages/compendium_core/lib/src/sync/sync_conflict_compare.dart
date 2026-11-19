@@ -233,6 +233,8 @@ Set<String>? syncUserVisibleFields(SyncRecordKind kind) => switch (kind) {
     'links.transitive',
     'sourceCitations',
     'composedOn',
+    'interpreterIds',
+    'interpretedOn',
     'revisedOn',
     // Shown as its page shows it: where it came from, and its licence.
     'provenance',

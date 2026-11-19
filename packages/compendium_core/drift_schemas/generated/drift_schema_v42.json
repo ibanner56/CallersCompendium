@@ -321,6 +321,16 @@
             "dsl_features": []
           },
           {
+            "name": "interpreted_on",
+            "getter_name": "interpretedOn",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": "NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
             "name": "revised_on",
             "getter_name": "revisedOn",
             "moor_type": "string",
@@ -589,6 +599,90 @@
     {
       "id": 4,
       "references": [
+        1,
+        2
+      ],
+      "type": "table",
+      "data": {
+        "name": "dance_interpreters",
+        "was_declared_in_moor": true,
+        "columns": [
+          {
+            "name": "dance_id",
+            "getter_name": "danceId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL REFERENCES dances(id)ON DELETE CASCADE",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "foreign_key": {
+                  "to": {
+                    "table": "dances",
+                    "column": "id"
+                  },
+                  "initially_deferred": false,
+                  "on_update": null,
+                  "on_delete": "cascade"
+                }
+              }
+            ]
+          },
+          {
+            "name": "choreographer_id",
+            "getter_name": "choreographerId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL REFERENCES choreographers(id)ON DELETE CASCADE",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "foreign_key": {
+                  "to": {
+                    "table": "choreographers",
+                    "column": "id"
+                  },
+                  "initially_deferred": false,
+                  "on_update": null,
+                  "on_delete": "cascade"
+                }
+              }
+            ]
+          },
+          {
+            "name": "position",
+            "getter_name": "position",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [
+          "PRIMARY KEY(dance_id, choreographer_id)",
+          "UNIQUE(dance_id, position)"
+        ],
+        "explicit_pk": [
+          "dance_id",
+          "choreographer_id"
+        ],
+        "unique_keys": [
+          [
+            "dance_id",
+            "position"
+          ]
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "references": [
         1
       ],
       "type": "table",
@@ -711,7 +805,7 @@
       }
     },
     {
-      "id": 5,
+      "id": 6,
       "references": [],
       "type": "table",
       "data": {
@@ -910,9 +1004,9 @@
       }
     },
     {
-      "id": 6,
+      "id": 7,
       "references": [
-        5,
+        6,
         1
       ],
       "type": "table",
@@ -1066,7 +1160,7 @@
       }
     },
     {
-      "id": 7,
+      "id": 8,
       "references": [],
       "type": "table",
       "data": {
@@ -1197,10 +1291,10 @@
       }
     },
     {
-      "id": 8,
+      "id": 9,
       "references": [
         1,
-        7
+        8
       ],
       "type": "table",
       "data": {
@@ -1284,7 +1378,7 @@
       }
     },
     {
-      "id": 9,
+      "id": 10,
       "references": [],
       "type": "table",
       "data": {
@@ -1365,10 +1459,10 @@
       }
     },
     {
-      "id": 10,
+      "id": 11,
       "references": [
         1,
-        9
+        10
       ],
       "type": "table",
       "data": {
@@ -1432,7 +1526,7 @@
       }
     },
     {
-      "id": 11,
+      "id": 12,
       "references": [
         1
       ],
@@ -1547,7 +1641,7 @@
       }
     },
     {
-      "id": 12,
+      "id": 13,
       "references": [
         1
       ],
@@ -1650,7 +1744,7 @@
       }
     },
     {
-      "id": 13,
+      "id": 14,
       "references": [],
       "type": "table",
       "data": {
@@ -1759,10 +1853,10 @@
       }
     },
     {
-      "id": 14,
+      "id": 15,
       "references": [
         1,
-        13
+        14
       ],
       "type": "table",
       "data": {
@@ -1863,7 +1957,7 @@
       }
     },
     {
-      "id": 15,
+      "id": 16,
       "references": [],
       "type": "table",
       "data": {
@@ -1932,9 +2026,9 @@
       }
     },
     {
-      "id": 16,
+      "id": 17,
       "references": [
-        5
+        6
       ],
       "type": "table",
       "data": {
@@ -2035,7 +2129,7 @@
       }
     },
     {
-      "id": 17,
+      "id": 18,
       "references": [],
       "type": "table",
       "data": {
@@ -2304,9 +2398,9 @@
       }
     },
     {
-      "id": 18,
+      "id": 19,
       "references": [
-        17
+        18
       ],
       "type": "table",
       "data": {
@@ -2414,7 +2508,7 @@
       }
     },
     {
-      "id": 19,
+      "id": 20,
       "references": [],
       "type": "table",
       "data": {
@@ -2474,7 +2568,7 @@
       }
     },
     {
-      "id": 20,
+      "id": 21,
       "references": [],
       "type": "table",
       "data": {
@@ -2525,7 +2619,7 @@
       }
     },
     {
-      "id": 21,
+      "id": 22,
       "references": [],
       "type": "table",
       "data": {
@@ -2584,7 +2678,7 @@
       }
     },
     {
-      "id": 22,
+      "id": 23,
       "references": [],
       "type": "table",
       "data": {
@@ -2644,7 +2738,7 @@
       }
     },
     {
-      "id": 23,
+      "id": 24,
       "references": [],
       "type": "table",
       "data": {
@@ -2694,7 +2788,7 @@
       }
     },
     {
-      "id": 24,
+      "id": 25,
       "references": [],
       "type": "table",
       "data": {
@@ -2764,7 +2858,7 @@
       }
     },
     {
-      "id": 25,
+      "id": 26,
       "references": [],
       "type": "table",
       "data": {
@@ -2865,7 +2959,7 @@
       }
     },
     {
-      "id": 26,
+      "id": 27,
       "references": [],
       "type": "table",
       "data": {
@@ -2905,7 +2999,7 @@
       }
     },
     {
-      "id": 27,
+      "id": 28,
       "references": [],
       "type": "table",
       "data": {
@@ -2965,7 +3059,7 @@
       }
     },
     {
-      "id": 28,
+      "id": 29,
       "references": [],
       "type": "table",
       "data": {
@@ -3024,7 +3118,7 @@
       }
     },
     {
-      "id": 29,
+      "id": 30,
       "references": [],
       "type": "table",
       "data": {
@@ -3163,7 +3257,7 @@
       }
     },
     {
-      "id": 30,
+      "id": 31,
       "references": [],
       "type": "table",
       "data": {
@@ -3232,7 +3326,7 @@
       }
     },
     {
-      "id": 31,
+      "id": 32,
       "references": [],
       "type": "table",
       "data": {
@@ -3327,7 +3421,7 @@
       }
     },
     {
-      "id": 32,
+      "id": 33,
       "references": [],
       "type": "table",
       "data": {
@@ -3422,13 +3516,13 @@
       }
     },
     {
-      "id": 33,
+      "id": 34,
       "references": [
-        4
+        5
       ],
       "type": "index",
       "data": {
-        "on": 4,
+        "on": 5,
         "name": "dance_figures_move_section",
         "sql": "CREATE INDEX dance_figures_move_section ON dance_figures(move, section);",
         "unique": false,
@@ -3436,13 +3530,13 @@
       }
     },
     {
-      "id": 34,
+      "id": 35,
       "references": [
-        11
+        12
       ],
       "type": "index",
       "data": {
-        "on": 11,
+        "on": 12,
         "name": "dance_links_dance_id",
         "sql": "CREATE INDEX dance_links_dance_id ON dance_links(dance_id);",
         "unique": false,
@@ -3450,13 +3544,13 @@
       }
     },
     {
-      "id": 35,
+      "id": 36,
       "references": [
-        11
+        12
       ],
       "type": "index",
       "data": {
-        "on": 11,
+        "on": 12,
         "name": "dance_links_target_transitive",
         "sql": "CREATE INDEX dance_links_target_transitive ON dance_links(target_dance_id, transitive, kind, dance_id);",
         "unique": false,
@@ -3464,7 +3558,7 @@
       }
     },
     {
-      "id": 36,
+      "id": 37,
       "references": [
         1
       ],
@@ -3478,20 +3572,6 @@
       }
     },
     {
-      "id": 37,
-      "references": [
-        5
-      ],
-      "type": "index",
-      "data": {
-        "on": 5,
-        "name": "programs_venue_id",
-        "sql": "CREATE INDEX programs_venue_id ON programs(venue_id);",
-        "unique": false,
-        "columns": []
-      }
-    },
-    {
       "id": 38,
       "references": [
         6
@@ -3499,6 +3579,20 @@
       "type": "index",
       "data": {
         "on": 6,
+        "name": "programs_venue_id",
+        "sql": "CREATE INDEX programs_venue_id ON programs(venue_id);",
+        "unique": false,
+        "columns": []
+      }
+    },
+    {
+      "id": 39,
+      "references": [
+        7
+      ],
+      "type": "index",
+      "data": {
+        "on": 7,
         "name": "program_slots_dance_id",
         "sql": "CREATE INDEX program_slots_dance_id ON program_slots(dance_id);",
         "unique": false,
@@ -3506,7 +3600,7 @@
       }
     },
     {
-      "id": 39,
+      "id": 40,
       "references": [
         3
       ],
@@ -3520,13 +3614,13 @@
       }
     },
     {
-      "id": 40,
+      "id": 41,
       "references": [
-        10
+        11
       ],
       "type": "index",
       "data": {
-        "on": 10,
+        "on": 11,
         "name": "dance_tags_tag_id",
         "sql": "CREATE INDEX dance_tags_tag_id ON dance_tags(tag_id);",
         "unique": false,
@@ -3534,13 +3628,13 @@
       }
     },
     {
-      "id": 41,
+      "id": 42,
       "references": [
-        14
+        15
       ],
       "type": "index",
       "data": {
-        "on": 14,
+        "on": 15,
         "name": "dance_sources_source_id",
         "sql": "CREATE INDEX dance_sources_source_id ON dance_sources(source_id);",
         "unique": false,
@@ -3548,15 +3642,29 @@
       }
     },
     {
-      "id": 42,
+      "id": 43,
       "references": [
-        8
+        9
       ],
       "type": "index",
       "data": {
-        "on": 8,
+        "on": 9,
         "name": "custom_field_values_field_id",
         "sql": "CREATE INDEX custom_field_values_field_id ON custom_field_values(field_id);",
+        "unique": false,
+        "columns": []
+      }
+    },
+    {
+      "id": 44,
+      "references": [
+        4
+      ],
+      "type": "index",
+      "data": {
+        "on": 4,
+        "name": "dance_interpreters_choreographer_id",
+        "sql": "CREATE INDEX dance_interpreters_choreographer_id ON dance_interpreters(choreographer_id);",
         "unique": false,
         "columns": []
       }
