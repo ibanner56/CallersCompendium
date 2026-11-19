@@ -70,6 +70,8 @@ void main() {
               'formation': 'linesOfThree',
               'goBack': false,
               'distance': 'double',
+              // A forward with no back is 4 beats in contra.
+              'beats': 4,
             },
           ),
           ('balance_the_ring', {}): ('ecd_balance_ring', {}),
@@ -164,6 +166,10 @@ void main() {
       _twin('pass_through')!.params['beats'],
       contraTaxonomy.resolve('pass_through')!.params['beats']!.defaultValue,
     );
+    // A count that follows what the figure states: a forward and back that
+    // does not go back is 4 beats in contra.
+    expect(_twin('long_lines', {'goBack': false})!.params['beats'], 4);
+    expect(_twin('long_lines')!.params.containsKey('beats'), isFalse);
     // A stated count is kept as stated.
     expect(_twin('pass_through', {'beats': 4})!.params['beats'], 4);
   });

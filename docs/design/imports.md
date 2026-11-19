@@ -2283,9 +2283,11 @@ migration that turns them into ECD figures. Nothing runs it on its own.
   importer assumed (`assumedSubject`) is dropped. The exceptions are values the
   move's own name states: a see saw is a left-shoulder back to back, and a
   forward and back (or long lines) goes back and, with no distance stored, is a
-  double (§9.1 point 3). A figure with no stored count gets the contra move's
-  usual count when the twin's differs (a pass through is 2 beats in contra
-  and 4 in ECD), so the dance keeps its length. Every twin is validated
+  double (§9.1 point 3). A figure with no stored count gets the count it
+  danced in contra (its effective beats, which can follow its params) when
+  the twin's would differ: a pass through is 2 beats in contra and 4 in ECD,
+  and a forward with no back is 4 in contra and 8 in ECD. So the dance keeps
+  its length. Every twin is validated
   against `ecdTaxonomy`; one that fails stays contra. A test converts each
   twin-table move as the contra editor stores it, so an entry that can never
   convert fails.

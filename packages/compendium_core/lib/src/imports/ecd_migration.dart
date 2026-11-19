@@ -64,8 +64,8 @@ class EcdMigration {
 /// exceptions are values the contra move's own name states (a see saw is a
 /// left-shoulder back to back; a forward and back goes back, and its distance
 /// is a double, §9.1 point 3) and a figure's count: one with no stored beats
-/// keeps the contra move's usual count when the twin's differs, so the dance
-/// keeps its length.
+/// keeps the count it danced in contra when the twin's would differ, so the
+/// dance keeps its length.
 EcdMigration migrateEcdDance({
   required List<Figure> figures,
   required Formation formation,
@@ -260,18 +260,8 @@ Figure? ecdTwinOfContraMove(Figure figure) {
   for (final entry in (twin.fill ?? const <String, Object>{}).entries) {
     params.putIfAbsent(entry.key, () => entry.value);
   }
-  // A figure with no stored count danced the contra move's usual beats; keep
-  // that length where the twin's usual count differs.
-  if (!params.containsKey('beats')) {
-    final contraBeats = contraTaxonomy.resolve(figure.move)?.params['beats'];
-    final ecdBeats = ecdTaxonomy.resolve(twin.id)?.params['beats'];
-    final usual = contraBeats?.defaultValue;
-    if (usual != null && usual != ecdBeats?.defaultValue) {
-      params['beats'] = usual;
-    }
-  }
   params.addAll(twin.stated);
-  final candidate = Figure(
+  var candidate = Figure(
     move: twin.id,
     params: params,
     note: figure.note,
@@ -279,6 +269,16 @@ Figure? ecdTwinOfContraMove(Figure figure) {
     walkthroughOverride: figure.walkthroughOverride,
     wordingOverride: figure.wordingOverride,
   );
+  // A figure with no stored count danced the contra move's usual count for
+  // what it states (a forward and back that does not go back is 4 beats);
+  // keep that length where the twin's usual count differs.
+  if (!params.containsKey('beats')) {
+    final danced = contraTaxonomy.effectiveParams(figure)['beats'];
+    final usual = ecdTaxonomy.effectiveParams(candidate)['beats'];
+    if (danced != null && danced != usual) {
+      candidate = candidate.copyWith(params: {...params, 'beats': danced});
+    }
+  }
   final invalid = ecdTaxonomy
       .validateFigure(candidate)
       .any((issue) => issue.severity == ValidationSeverity.error);
