@@ -19,6 +19,7 @@ import 'callers_companion_user_fields.dart';
 import 'figure_front_end_fan_out.dart';
 import 'figure_parser.dart';
 import 'figure_text_scrub.dart';
+import 'formation_set_names.dart';
 import 'structured_draft.dart';
 import 'title_article.dart';
 
@@ -1011,6 +1012,14 @@ Formation _mapFormation(String? raw, List<ImportIssue> issues) {
   // Order matters: check the more specific tokens first.
   if (value.contains('becket')) {
     return const Formation(FormationShape.becketCw);
+  }
+  // Set shapes before the start words: "Proper Triplet" is a triplet.
+  final set = classifyFormationSetName(value);
+  if (set != null) {
+    return Formation(
+      set.shape,
+      detail: joinFormationDetail(set.qualifier, null),
+    );
   }
   if (value.contains('indecent')) {
     return const Formation(FormationShape.dupleIndecent);
