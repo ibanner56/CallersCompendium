@@ -235,6 +235,7 @@ class DanceEditorForm extends StatelessWidget {
         taxonomy: taxonomy,
         shorthands: shorthandMappings,
         dialect: dialect,
+        formationShape: controller.formationShape,
       );
       if (figures.isEmpty ||
           (!_isPlainShorthandClause(clause) &&
@@ -534,6 +535,7 @@ class DanceEditorForm extends StatelessWidget {
                   phraseStructure: controller.phraseStructure,
                   dialect: dialect,
                   mixer: controller.mixer,
+                  formationShape: controller.formationShape,
                   moveParamDefaults: moveParamDefaults,
                   onChanged: controller.onFiguresChanged,
                   onAdd: controller.addFigure,

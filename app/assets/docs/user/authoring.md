@@ -94,6 +94,11 @@ with the figure's usual beats, and they follow the figure if you change its
 options. Your [Move defaults](#start-new-dances-the-way-you-work) apply as they
 do when you pick the move, but only to what the line leaves out: with a Move
 default of a full hey, `hey` gives a full hey and `half hey` still a half hey.
+In an English country dance, the line is read as English figures (`1st
+corners set and turn single`, `Partner R shoulder round`, `circle left half
+way`), never as contra moves; anything it can't read exactly is kept as you
+typed it. A circle or star "half way" counts places from the dance's
+formation, two in a duple minor and three in a triple minor.
 A line under the
 box tells you how many figures it added and invites you to type another (a
 screen reader announces the count too); it goes away when you start typing.
