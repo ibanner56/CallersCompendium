@@ -39,6 +39,7 @@ import '../../published_collections/published_collection_service.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/keyboard_dismiss.dart';
 import '../../widgets/section_header.dart';
+import '../../widgets/dirty_dialog_guard.dart';
 import '../../widgets/settings_action_row.dart';
 import '../../widgets/settings_dropdown_row.dart';
 import '../import_review_screen.dart';
@@ -1184,73 +1185,79 @@ class _RestoreBackupDialogState extends State<_RestoreBackupDialog> {
     final l10n = AppLocalizations.of(context);
     final holdsFile = _pickedJson != null;
     final hasContent = holdsFile || _controller.text.trim().isNotEmpty;
-    return AlertDialog(
-      key: const ValueKey('restore-backup-dialog'),
-      title: Text(l10n.backupRestoreTitle),
-      content: SizedBox(
-        width: 420,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(l10n.backupRestoreDialogBody),
-            // A restore is stamped at the backup's creation time, so on a
-            // paired device anything changed since on a synced device wins at
-            // the next sync and comes back (SYNC-1, sync-spec §6.11). Paired
-            // rather than enabled: turning sync back on later syncs the same.
-            if (SyncScope.maybeOf(context)?.paired ?? false) ...[
+    // Dirty as typed (not trimmed): whitespace the user pasted still counts.
+    // A chosen file counts too, so a stray tap does not drop it.
+    return DirtyDialogGuard(
+      listenable: _controller,
+      isDirty: () => _pickedJson != null || _controller.text.isNotEmpty,
+      child: AlertDialog(
+        key: const ValueKey('restore-backup-dialog'),
+        title: Text(l10n.backupRestoreTitle),
+        content: SizedBox(
+          width: 420,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(l10n.backupRestoreDialogBody),
+              // A restore is stamped at the backup's creation time, so on a
+              // paired device anything changed since on a synced device wins at
+              // the next sync and comes back (SYNC-1, sync-spec §6.11). Paired
+              // rather than enabled: turning sync back on later syncs the same.
+              if (SyncScope.maybeOf(context)?.paired ?? false) ...[
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  l10n.backupRestoreDialogSyncNote,
+                  key: const ValueKey('restore-sync-note'),
+                ),
+              ],
+              const SizedBox(height: AppSpacing.md),
+              OutlinedButton.icon(
+                key: const ValueKey('restore-choose-file'),
+                onPressed: _picking ? null : _chooseFile,
+                icon: const Icon(Icons.folder_open_outlined),
+                label: Text(l10n.backupChooseFileAction),
+              ),
               const SizedBox(height: AppSpacing.sm),
-              Text(
-                l10n.backupRestoreDialogSyncNote,
-                key: const ValueKey('restore-sync-note'),
+              if (holdsFile) ...[
+                _fileSummary(l10n),
+                const SizedBox(height: AppSpacing.sm),
+              ],
+              TextField(
+                key: const ValueKey('restore-paste-field'),
+                controller: _controller,
+                enabled: !holdsFile,
+                minLines: 3,
+                maxLines: 6,
+                onChanged: (_) => setState(() {}),
+                decoration: InputDecoration(
+                  border: const OutlineInputBorder(),
+                  labelText: l10n.backupPasteJsonLabel,
+                ),
               ),
             ],
-            const SizedBox(height: AppSpacing.md),
-            OutlinedButton.icon(
-              key: const ValueKey('restore-choose-file'),
-              onPressed: _picking ? null : _chooseFile,
-              icon: const Icon(Icons.folder_open_outlined),
-              label: Text(l10n.backupChooseFileAction),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            if (holdsFile) ...[
-              _fileSummary(l10n),
-              const SizedBox(height: AppSpacing.sm),
-            ],
-            TextField(
-              key: const ValueKey('restore-paste-field'),
-              controller: _controller,
-              enabled: !holdsFile,
-              minLines: 3,
-              maxLines: 6,
-              onChanged: (_) => setState(() {}),
-              decoration: InputDecoration(
-                border: const OutlineInputBorder(),
-                labelText: l10n.backupPasteJsonLabel,
-              ),
-            ),
-          ],
+          ),
         ),
+        actions: [
+          TextButton(
+            key: const ValueKey('restore-cancel'),
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            style: destructiveFilledButtonStyle(Theme.of(context).colorScheme),
+            key: const ValueKey('restore-confirm'),
+            onPressed: hasContent
+                ? () => Navigator.of(context).pop(
+                    holdsFile
+                        ? _RestoreChoice(_pickedJson!, _read)
+                        : _RestoreChoice(_controller.text),
+                  )
+                : null,
+            child: Text(l10n.backupReplaceAllDataAction),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          key: const ValueKey('restore-cancel'),
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.commonCancel),
-        ),
-        FilledButton(
-          style: destructiveFilledButtonStyle(Theme.of(context).colorScheme),
-          key: const ValueKey('restore-confirm'),
-          onPressed: hasContent
-              ? () => Navigator.of(context).pop(
-                  holdsFile
-                      ? _RestoreChoice(_pickedJson!, _read)
-                      : _RestoreChoice(_controller.text),
-                )
-              : null,
-          child: Text(l10n.backupReplaceAllDataAction),
-        ),
-      ],
     );
   }
 }

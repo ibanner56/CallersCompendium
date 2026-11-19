@@ -1306,6 +1306,11 @@ Sync is off and open while it is on.
 
 The screen tells you which you're doing; it never guesses.
 
+If you press **Back** after typing a phrase to connect with, changing the phrase
+you were offered, or changing the server address, the screen asks **Discard
+changes?** first. Pressing **Back** while the screen is connecting leaves
+without asking.
+
 The **Server** field is pre-filled with the Caller's Compendium sync server,
 `https://athenaeum.callerscompendium.com/`; leave it alone unless you run your
 own. If you change it, the screen warns you that whoever runs that server can

@@ -481,7 +481,8 @@ From the detail view you can:
 
 - **Edit** the dance.
 - **Re-import choreography** from The Caller's Box, ContraDB — by searching for
-  the dance's title, or from its link or ID number — or from a single-dance
+  the dance's title, or from its link or ID number (the link box stays open once you have typed in it, so a
+  stray tap outside doesn't lose the link) — or from a single-dance
   Caller's Compendium JSON file. You can also do this when you open a saved
   dance from **Programs**, from search, or from the results of an import.
 - **Duplicate dance** — copy it as a starting point for a variation.
@@ -675,6 +676,13 @@ The changes:
   deleted. Undo brings back a level or custom field you deleted while the
   dances were in Recently deleted, as restoring one dance does. Programs that include
   a deleted dance still show it, as they do when you delete one dance.
+
+The **Add tags**, **Add tunes** and **Edit custom field** dialogs stay open once
+you have typed in them (a new tag's name, a tune, or a field's value), so a stray
+tap outside, **Esc** or **Back** doesn't lose it; use the dialog's **Cancel** to close it on
+purpose. Ticking tags or choosing a field does not hold a dialog open. A
+dialog you have not typed in closes with a tap outside as usual. The **+** button that adds an option to a choice
+field works the same way.
 
 Every batch change is announced to screen readers and can be undone, and the app
 tells you plainly when a change would affect nothing. If a change can't be

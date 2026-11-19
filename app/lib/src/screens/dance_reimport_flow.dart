@@ -9,6 +9,7 @@ import '../data/online_search.dart';
 import '../diagnostics/error_log.dart';
 import '../search/dance_detail_data.dart';
 import '../theme/app_motion.dart';
+import '../widgets/dirty_dialog_guard.dart';
 import 'dance_detail_screen.dart';
 
 enum _ReimportSource { callersBox, contraDb, link, json }
@@ -258,63 +259,67 @@ class _ReimportLinkDialogState extends State<_ReimportLinkDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return AlertDialog(
-      title: Text(l10n.danceReimportLinkOrId),
-      content: SizedBox(
-        width: 500,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            SegmentedButton<OnlineSource>(
-              key: const ValueKey('reimport-link-source'),
-              segments: [
-                for (final online in OnlineSource.values)
-                  ButtonSegment(
-                    value: online,
-                    label: Text(
-                      online.label,
-                      key: ValueKey('reimport-link-source-${online.name}'),
+    return DirtyDialogGuard(
+      listenable: _controller,
+      isDirty: () => _controller.text.isNotEmpty,
+      child: AlertDialog(
+        title: Text(l10n.danceReimportLinkOrId),
+        content: SizedBox(
+          width: 500,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SegmentedButton<OnlineSource>(
+                key: const ValueKey('reimport-link-source'),
+                segments: [
+                  for (final online in OnlineSource.values)
+                    ButtonSegment(
+                      value: online,
+                      label: Text(
+                        online.label,
+                        key: ValueKey('reimport-link-source-${online.name}'),
+                      ),
                     ),
-                  ),
-              ],
-              selected: {_source},
-              onSelectionChanged: (selection) => setState(() {
-                _source = selection.single;
-                _error = null;
-              }),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              key: const ValueKey('reimport-link-field'),
-              controller: _controller,
-              autofocus: true,
-              keyboardType: TextInputType.url,
-              autocorrect: false,
-              onChanged: _onChanged,
-              onSubmitted: (_) => _submit(),
-              decoration: InputDecoration(
-                border: const OutlineInputBorder(),
-                labelText: l10n.importReviewUrlLabel,
-                hintText: l10n.importReviewUrlHint,
-                errorText: _error,
-                errorMaxLines: 4,
+                ],
+                selected: {_source},
+                onSelectionChanged: (selection) => setState(() {
+                  _source = selection.single;
+                  _error = null;
+                }),
               ),
-            ),
-          ],
+              const SizedBox(height: 16),
+              TextField(
+                key: const ValueKey('reimport-link-field'),
+                controller: _controller,
+                autofocus: true,
+                keyboardType: TextInputType.url,
+                autocorrect: false,
+                onChanged: _onChanged,
+                onSubmitted: (_) => _submit(),
+                decoration: InputDecoration(
+                  border: const OutlineInputBorder(),
+                  labelText: l10n.importReviewUrlLabel,
+                  hintText: l10n.importReviewUrlHint,
+                  errorText: _error,
+                  errorMaxLines: 4,
+                ),
+              ),
+            ],
+          ),
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            key: const ValueKey('reimport-link-fetch'),
+            onPressed: _submit,
+            child: Text(l10n.importReviewFetch),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(l10n.commonCancel),
-        ),
-        FilledButton(
-          key: const ValueKey('reimport-link-fetch'),
-          onPressed: _submit,
-          child: Text(l10n.importReviewFetch),
-        ),
-      ],
     );
   }
 }

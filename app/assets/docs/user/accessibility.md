@@ -149,7 +149,8 @@ and Linux and **Cmd** on a Mac:
 - **Ctrl-,** (**Cmd-,**) opens **Settings**.
 - **Esc**, or **Ctrl-W** (**Cmd-W**), goes back. If a menu, a list of
   suggestions, or a dialog you could close by clicking outside it is open, it
-  closes that first. Otherwise it leaves
+  closes that first (a dialog holding text you have typed stays open, so that
+  text is not lost; use its **Cancel**). Otherwise it leaves
   the page you're on, as the back button does, so an editor with unsaved
   changes asks you first. A mouse's **Back** button does the same.
 
