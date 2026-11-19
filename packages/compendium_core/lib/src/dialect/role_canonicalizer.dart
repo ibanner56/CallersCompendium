@@ -95,6 +95,8 @@ const Set<String> subjectBearingMovePhrases = {};
 const Map<String, String> legacyRoleSynonyms = {
   'gent': 'role1',
   'gents': 'role1s',
+  'gentleman': 'role1',
+  'gentlemen': 'role1s',
   'gentlespoon': 'role1',
   'gentlespoons': 'role1s',
   'lark': 'role1',
