@@ -576,4 +576,132 @@ void main() {
       expect(outcome.figures.single.move, 'star');
     });
   });
+
+  group('states only what the line says (review guards)', () {
+    test('a step naming dancers before and after a movement is not read', () {
+      for (final line in [
+        '1s turn 2s by the right',
+        'partners turn neighbors by the right',
+        '1s swing 2s',
+        'partners back to back neighbors',
+      ]) {
+        expect(_one(line).isCustom, isTrue, reason: line);
+      }
+      // Controls: one group of dancers, on either side, still reads.
+      expect(_one('partners turn by the right').move, 'ecd_hand_turn');
+      expect(_one('turn partner by the right').params['who'], ['partners']);
+    });
+
+    test('a preposition the movement does not show is not read as `whom`', () {
+      for (final line in [
+        'cast to bottom',
+        '1s lead with 2s',
+        '1s cast through 2s',
+        '1s mad robin with 2s',
+        'fall back to partner',
+        'hey for three with 2s',
+      ]) {
+        expect(_one(line).isCustom, isTrue, reason: line);
+      }
+      // Controls: each movement's own word.
+      expect(_one('1s cast around 2s').params['whom'], 'twos');
+      expect(_one('1s lead through 2s').params['whom'], 'twos');
+      expect(_one('fall back with partner').params['whom'], 'partners');
+    });
+
+    test('a stated ring size with no fraction to hold it is not read', () {
+      for (final line in ['circle six', 'circle left 8', 'star right 6']) {
+        expect(_one(line).isCustom, isTrue, reason: line);
+      }
+      expect(_one('4 hands across').isCustom, isTrue);
+      // Control: with a fraction, the size gives the places.
+      expect(_one('circle six left half way').params['places'], 3);
+    });
+
+    test('`to the right` is a way to travel, never a hand', () {
+      expect(_one('turn to the right').isCustom, isTrue);
+      expect(_one('star to the left').isCustom, isTrue);
+      expect(_one('circle to the left').params['direction'], 'left');
+    });
+
+    test('a ring movement does not take an earlier step\'s subject', () {
+      final f = _one('1s set and circle left');
+      expect(f.isSequence, isTrue);
+      expect(f.subFigures.first.params['who'], ['ones']);
+      expect(f.subFigures.last.params.containsKey('who'), isFalse);
+      final star = _one(
+        '1s set and right hands across half way',
+        shape: FormationShape.tripleMinor,
+      ).subFigures.last;
+      expect(star.params.containsKey('who'), isFalse);
+      expect(star.params['places'], 3);
+    });
+
+    test('a poussette\'s subject is not stored as the dancers who push', () {
+      expect(_one('1s and 2s half poussette').isCustom, isTrue);
+      expect(_one('all once poussette').params.containsKey('who'), isFalse);
+      expect(_one('half poussette, 2s push').params['who'], ['twos']);
+    });
+
+    test('a bare `improper` is not read as everyone ending improper', () {
+      expect(_one('1s cross, improper').isCustom, isTrue);
+      expect(
+        _one('1s cross, ending improper').params['destination'],
+        'allImproper',
+      );
+    });
+
+    test('gentleman and gentlemen are read as role words, never shown', () {
+      final f = _one('gentlemen cross');
+      expect(f.move, 'ecd_cross');
+      expect(f.params['who'], ['role1s']);
+      final kept = _one('1st gentleman cast a double figure eight');
+      expect(kept.toString().toLowerCase(), isNot(contains('gentlem')));
+    });
+
+    test(
+      'an English dance\'s start is improper only when the source says so',
+      () {
+        CcDanceRecord rec({String? formation, bool usr = false}) =>
+            CcDanceRecord(
+              name: 'D',
+              type: 'English',
+              formation: formation,
+              formationFamily: usr ? 'Duple Minor' : null,
+              contraForm: usr ? '' : null,
+              fromUsrColumns: usr,
+              body: const [],
+            );
+        final empty = mapCallersCompanionDance(rec(formation: '')).dance;
+        expect(empty.formation.improper, isFalse);
+        final usr = mapCallersCompanionDance(rec(usr: true)).dance;
+        expect(usr.formation.shape, FormationShape.dupleMinor);
+        expect(usr.formation.improper, isFalse);
+        final text = mapCallersCompanionDance(rec(formation: 'Duple Minor'));
+        expect(text.dance.formation.shape, FormationShape.dupleMinor);
+        // Control: a stated improper start is kept.
+        final stated = mapCallersCompanionDance(
+          rec(formation: 'Duple Improper'),
+        ).dance;
+        expect(stated.formation.improper, isTrue);
+      },
+    );
+
+    test('the line cache keeps a line apart per ring size', () {
+      final cache = CcFigureLineCache();
+      Dance dance(String formation) => mapCallersCompanionDance(
+        CcDanceRecord(
+          name: 'D',
+          type: 'English',
+          formation: formation,
+          body: [
+            CcBodySection(lines: ['(8) circle left half way']),
+          ],
+        ),
+        lineCache: cache,
+      ).dance;
+      expect(figuresOf(dance('Duple Proper')).single.params['places'], 2);
+      expect(figuresOf(dance('Triple Minor')).single.params['places'], 3);
+    });
+  });
 }

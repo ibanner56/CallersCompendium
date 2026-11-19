@@ -2213,16 +2213,26 @@ dance.
   or `while` makes a `meanwhile`. `, bending the line` makes a `modifier`. A
   subject on the first step is each later step's too ("1st corners set and
   turn single", §8.1), unless a later step names other dancers, which leaves
-  whose the rest are unclear, so none is given. `and back` after a star is a
+  whose the rest are unclear, so none is given. A ring movement (circle,
+  star, chain, rights and lefts, the heys, poussette) never takes it: "1s set
+  and circle left" does not say the 1s circle alone. `and back` after a star is a
   star back to place (§8.1); after a forward and back or a galop it is that
   movement's `goBack`.
 - **Not guessed.** A bare `hey` (no number of dancers), a turn with no hand,
   `up` or `down` without a distance (`robin up`), and a bare side after
-  `cross` (hand or shoulder?) stay custom.
+  `cross` (hand or shoulder?) stay custom. So does a word the movement has no
+  place for: dancers named both before and after a turn (`1s turn 2s`), a
+  preposition other than the one the movement shows its partner dancers with
+  (`cast around 2s` reads, `cast to bottom` does not), `to the right` as a
+  hand (it is a way to travel: `circle to the left` reads), a bare `improper`
+  (`ending improper` reads), and a subject before a poussette, whose `who` is
+  the dancers who push (`half poussette, 2s push` reads; "all" adds nothing).
 - **Rings.** A circle's or star's fraction ("half way") is a number of places
-  from the size of the ring (§7.3): the couples the subject names, a size the
-  line states (`circle six`), or the dance's formation (`ecdRingDancers`: four
-  in a duple minor, six in a triple minor). When none settles it, the
+  from the size of the ring (§7.3): a size the line states (`circle six left
+  half way`), the couples the subject names, or the dance's formation
+  (`ecdRingDancers`: four in a duple minor, six in a triple minor). A stated
+  size with no fraction (`circle six`, `4 hands across`) has nowhere to be
+  held, so that line stays custom. When none settles it, the
   fraction's words are the note and `places` is unstated. Free-text entry gets
   the formation from the editor; the re-check does not see it.
 - **Free-text entry** keeps its count, `;`-clause and shorthand handling, and
@@ -2232,7 +2242,11 @@ dance.
 - **Caller's Companion English dances** also take the ECD shape their contra
   shape names (`ecdFormationFromContra`: duple proper → duple minor, duple
   improper → duple minor, improper; triplet and quadruplet → three- and
-  four-couple longways). A compound prefix (`(4,4)`) whose parts match the
+  four-couple longways). Contra reads a formation that states no start as
+  improper; an English dance is improper only when its source says so, since
+  ECD's flag defaults to proper (ADR-006 §9.2). Its lines are cached apart
+  from contra's and per ring size, since a `half way` circle is two places in
+  one dance and three in another. A compound prefix (`(4,4)`) whose parts match the
   sequence's steps keeps each part on its step.
 
 Measured on 19 November 2026 against one caller's own notes for about 100

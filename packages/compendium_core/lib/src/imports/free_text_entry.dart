@@ -949,9 +949,13 @@ List<Figure> _parseEcdSplit(
       split.beats > 0 &&
       leading.group(2)!.trim() == split.text &&
       int.tryParse(leading.group(1)!) == split.beats;
+  // `4 hands across`: the number counts hands, so the line is never read as
+  // beats and a star.
+  final countsHands =
+      leadingCount && _handsWord.hasMatch(leading.group(2)!.trim());
   final figures =
       (leadingCount ? readEach(whole!, 0) : null) ??
-      readEach(split.text, split.beats);
+      (countsHands ? null : readEach(split.text, split.beats));
   if (figures != null) return figures;
   final text = scrubFigureText(split.text);
   if (text.isEmpty) return const [];
@@ -962,6 +966,9 @@ List<Figure> _parseEcdSplit(
 
 /// A line that starts with a bare number and a space: `2 changes of …`.
 final RegExp _bareLeadingCount = RegExp(r'^(\d+)\s+(.*)$');
+
+/// `hand`/`hands` as a line's first word, after its leading number.
+final RegExp _handsWord = RegExp(r'^hands?\b', caseSensitive: false);
 
 final RegExp _whitespaceRun = RegExp(r'\s+');
 

@@ -19,8 +19,11 @@
 ///   state is not stored, so it reads as the taxonomy's `unspecified` (`who`
 ///   included, §5.2). The one exception is the ADR's own: a forward and back
 ///   with no distance is a double (§9.1). Every word is accounted for:
-///   a word the grammar does not know makes the line custom, and a bracketed
-///   aside (`(on the side)`) is kept as the figure's note.
+///   a word the grammar does not know makes the line custom, and so does one
+///   the movement has no place to hold (dancers named both before and after
+///   a turn, a ring size with no fraction, a preposition the movement does not
+///   show, such as `cast to`), and a bracketed aside (`(on the side)`) is kept
+///   as the figure's note.
 /// - **Validated** against the ECD taxonomy on its own (no contra under it),
 ///   so a candidate with any error-severity issue degrades to custom.
 ///
@@ -33,7 +36,8 @@
 /// movement, and words after it (`by the left`, `once and a half`, `back to
 /// place`, `with neighbor`). A subject stated on the first step and not on a
 /// later one is the later step's too, as the ADR's worked example reads "1st
-/// corners set forward and turn single back to place" (§8.1). `and back` after
+/// corners set forward and turn single back to place" (§8.1), except for a
+/// ring movement (circle, star, chain, heys…), which more dancers dance. `and back` after
 /// a star is a second star back to place (§5.4, §8.1).
 ///
 /// Role words arrive canonical: [scrubFigureText] turns gendered terms into
@@ -249,7 +253,7 @@ const List<String> _coupleTokens = ['ones', 'twos', 'threes', 'fours', 'fives'];
 /// One- and two-word dancer phrases, to the ECD selector each names
 /// (ADR-006 §6.2). Longer phrases are tried first. Couples by number,
 /// singles (`1st role2`) and the neighbour series are read by
-/// [_Reader._dancerAt] rather than listed.
+/// [_Reader.dancerAt] rather than listed.
 final Map<String, String> _dancerPhrases = {
   'all': 'everyone',
   'everyone': 'everyone',
@@ -349,12 +353,10 @@ final Map<String, String> _destinationPhrases = {
   "to neighbour's place": 'neighborsPlace',
   "to diagonal's place": 'diagonalsPlace',
   'all improper': 'allImproper',
-  'improper': 'allImproper',
   'ending improper': 'allImproper',
   'to end improper': 'allImproper',
   'end improper': 'allImproper',
   'all proper': 'allProper',
-  'proper': 'allProper',
   'ending proper': 'allProper',
   'to end proper': 'allProper',
   'end proper': 'allProper',
@@ -674,11 +676,14 @@ final List<_VerbPhrase> _verbPhrases = [
 
 /// The parameter `who` holds for a step, from its subject (or, for a movement
 /// with no `whom`, the dancers it names after the movement).
-List<String>? _whoOf(_Bag bag, {bool objectIsWho = true}) {
+///
+/// A step that names dancers both before and after such a movement (`1s turn
+/// 2s`) has no place to hold both, so it is unreadable ([_fail]).
+Object? _whoOf(_Bag bag, {bool objectIsWho = true}) {
   final subject = bag.take<List<String>>('who');
   if (objectIsWho) {
     final object = bag.take<List<String>>('object');
-    if (subject != null && object != null) return null;
+    if (subject != null && object != null) return _fail;
     return subject ?? object;
   }
   return subject;
@@ -733,8 +738,13 @@ Object? _fraction(_Bag bag) {
 /// The side a bare `right`/`left` names, when the movement reads it as
 /// [param]: the param's value, merged with any explicit statement of the same
 /// param in [explicit].
-Object? _sideAs(_Bag bag, String explicit) {
+///
+/// A side stated as `to the right` names a way to travel, never a hand or a
+/// shoulder, so it is unreadable ([_fail]) unless [toTheAllowed].
+Object? _sideAs(_Bag bag, String explicit, {bool toTheAllowed = true}) {
+  final toThe = bag.take<bool>('sideToThe') == true;
   final side = bag.take<String>('side');
+  if (toThe && !toTheAllowed && side != null) return _fail;
   final stated = bag.take<String>(explicit);
   if (side != null && stated != null) return _fail;
   return side ?? stated;
@@ -745,14 +755,16 @@ Object? _hand(
   bool sideIsHand = true,
   Set<String> allowed = const {'right', 'left'},
 }) {
-  final hand = sideIsHand ? _sideAs(bag, 'hand') : bag.take<String>('hand');
+  final hand = sideIsHand
+      ? _sideAs(bag, 'hand', toTheAllowed: false)
+      : bag.take<String>('hand');
   if (hand == null || hand == _fail) return hand;
   return allowed.contains(hand) ? hand : _fail;
 }
 
 Object? _shoulder(_Bag bag, {bool sideIsShoulder = true}) {
   final value = sideIsShoulder
-      ? _sideAs(bag, 'shoulder')
+      ? _sideAs(bag, 'shoulder', toTheAllowed: false)
       : bag.take<String>('shoulder');
   if (value == null || value == _fail) return value;
   return value == 'right' || value == 'left' ? value : _fail;
@@ -760,10 +772,31 @@ Object? _shoulder(_Bag bag, {bool sideIsShoulder = true}) {
 
 Object? _where(_Bag bag, List<String> allowed) => _oneOf(bag, 'where', allowed);
 
-Object? _whom(_Bag bag) {
+/// The dancers a step names after a preposition, when the movement reads
+/// that preposition as its `whom` ([via]); [_fail] for any other preposition,
+/// since each movement shows `whom` with its own word ("around", "through",
+/// "with") and another would change what the line says.
+Object? _whomVia(_Bag bag, Set<String> via) {
   final whom = bag.take<List<String>>('whom');
+  final word = bag.take<String>('whomVia');
   if (whom == null) return null;
+  if (word == null || !via.contains(word)) return _fail;
+  return whom;
+}
+
+/// [_whomVia] as the movement's single `whom` set.
+Object? _whom(_Bag bag, Set<String> via) {
+  final whom = _whomVia(bag, via);
+  if (whom is! List<String>) return whom;
   return _single(whom) ?? _fail;
+}
+
+/// [object] (dancers named straight after the movement) or [via] (after a
+/// preposition), as one single `whom` set: [_fail] when both are stated.
+Object? _objectOrWhom(List<String>? object, Object? via) {
+  if (via == _fail || (object != null && via != null)) return _fail;
+  final whom = object ?? via as List<String>?;
+  return whom == null ? null : (_single(whom) ?? _fail);
 }
 
 Object? _flag(_Bag bag, String slot) =>
@@ -773,7 +806,7 @@ Object? _dest(_Bag bag) => bag.take<String>('destination');
 
 /// `places` for a ring of [ring] dancers from a stated count of places or a
 /// fraction of the ring (ADR-006 §7.3), or the fraction's words as a note
-/// (`placesNote`) when the ring is not known.
+/// (the figure's note) when the ring is not known.
 ({Object? places, String? note}) _places(_Bag bag, int? ring) {
   final count = bag.take<int>('placeCount');
   final amount = bag.take<double>('amount');
@@ -789,15 +822,19 @@ Object? _dest(_Bag bag) => bag.take<String>('destination');
   return (places: places.toInt(), note: null);
 }
 
-/// The ring a circle or star is danced in: the couples its subject names, a
-/// ring size the line states, or the dance's formation.
-int? _ringOf(List<String>? who, _Bag bag, _Context context) {
+/// The ring a circle or star is danced in: a ring size the line states, the
+/// couples its subject names, or the dance's formation. [stated] is true for
+/// a stated size, which the movement holds only through the places it turns
+/// (ADR-006 §7.3), so a stated size with no fraction to work out is not read.
+({int? ring, bool stated}) _ringOf(Object? who, _Bag bag, _Context context) {
   final stated = bag.take<int>('ringSize');
-  if (stated != null) return stated;
-  if (who != null && who.isNotEmpty && who.every(_coupleTokens.contains)) {
-    return who.length * 2;
+  if (stated != null) return (ring: stated, stated: true);
+  if (who is List<String> &&
+      who.isNotEmpty &&
+      who.every(_coupleTokens.contains)) {
+    return (ring: who.length * 2, stated: false);
   }
-  return context.ringDancers;
+  return (ring: context.ringDancers, stated: false);
 }
 
 final Map<String, _MoveRule> _rules = {
@@ -813,7 +850,7 @@ final Map<String, _MoveRule> _rules = {
     'ecd_set',
     (b, c) => _params({
       'who': _whoOf(b, objectIsWho: false),
-      'whom': _whom(b),
+      'whom': _whom(b, const {'to'}),
       'where': _where(b, const ['forward', 'along', 'across']),
       'direction': _sideAs(b, 'direction'),
     }),
@@ -821,12 +858,9 @@ final Map<String, _MoveRule> _rules = {
   'honor': _MoveRule('ecd_honor', (b, c) {
     final subject = b.take<List<String>>('who');
     final object = b.take<List<String>>('object');
-    final to = b.take<List<String>>('whom');
-    if (object != null && to != null) return null;
-    final whom = object ?? to;
     return _params({
       'who': subject,
-      'whom': whom == null ? null : (_single(whom) ?? _fail),
+      'whom': _objectOrWhom(object, _whomVia(b, const {'to'})),
     });
   }),
   'clap': _MoveRule('ecd_clap', (b, c) => const {}),
@@ -891,13 +925,15 @@ final Map<String, _MoveRule> _rules = {
     }),
   ),
   'gate': _MoveRule('ecd_gate', (b, c) {
-    final object = b.take<List<String>>('object');
-    final whom = b.take<List<String>>('whom');
-    if (object != null && whom != null) return null;
-    final gated = object ?? whom;
+    // Dancers named straight after the movement: no preposition reads as its
+    // `whom`.
+    final gated = _objectOrWhom(
+      b.take<List<String>>('object'),
+      _whomVia(b, const <String>{}),
+    );
     return _params({
       'who': b.take<List<String>>('who'),
-      'whom': gated == null ? null : (_single(gated) ?? _fail),
+      'whom': gated,
       'direction': b.take<String>('spin'),
       'travel': _travel(b),
       'endFacing': b.take<String>('endFacing'),
@@ -908,7 +944,7 @@ final Map<String, _MoveRule> _rules = {
     'ecd_orbit',
     (b, c) => _params({
       'who': _whoOf(b, objectIsWho: false),
-      'whom': _whom(b),
+      'whom': _whom(b, const {'around'}),
       'direction': b.take<String>('spin'),
       'travel': _travel(b),
       'destination': _dest(b),
@@ -918,7 +954,7 @@ final Map<String, _MoveRule> _rules = {
     'ecd_mad_robin',
     (b, c) => _params({
       'who': _whoOf(b, objectIsWho: false),
-      'whom': _whom(b),
+      'whom': _whom(b, const {'around'}),
       'direction': b.take<String>('spin'),
       'travel': _travel(b),
       'destination': _dest(b),
@@ -945,11 +981,13 @@ final Map<String, _MoveRule> _rules = {
   'circle': _MoveRule('ecd_circle', (b, c) {
     final who = _whoOf(b, objectIsWho: false);
     final ring = _ringOf(who, b, c);
+    final places = _places(b, ring.ring);
+    // `circle six` with no fraction: the size has nowhere to go.
+    if (ring.stated && places.places == null) return null;
     final spin = b.take<String>('spin');
     final side = _sideAs(b, 'direction');
     if (spin != null && side != null) return null;
     final singleFile = b.take<bool>('singleFile') == true;
-    final places = _places(b, ring);
     final params = _params({
       'who': who,
       'direction': spin ?? side,
@@ -964,7 +1002,9 @@ final Map<String, _MoveRule> _rules = {
   'star': _MoveRule('ecd_star', (b, c) {
     final who = _whoOf(b, objectIsWho: false);
     final ring = _ringOf(who, b, c);
-    final places = _places(b, ring);
+    final places = _places(b, ring.ring);
+    // `circle six` with no fraction: the size has nowhere to go.
+    if (ring.stated && places.places == null) return null;
     final params = _params({
       'who': who,
       'hand': _hand(b),
@@ -985,7 +1025,7 @@ final Map<String, _MoveRule> _rules = {
     'ecd_form_long_wave',
     (b, c) => _params({
       'who': _whoOf(b, objectIsWho: false),
-      'whom': _whom(b),
+      'whom': _whom(b, const {'with'}),
       'balance': _flag(b, 'balance'),
     }),
   ),
@@ -993,7 +1033,7 @@ final Map<String, _MoveRule> _rules = {
     'ecd_circular_hey',
     (b, c) => _params({
       'who': _whoOf(b, objectIsWho: false),
-      'whom': _whom(b),
+      'whom': _whom(b, const <String>{}),
       'slow': _flag(b, 'slow'),
       'changes': b.take<int>('changes'),
       'where': _where(b, const ['along', 'across', 'diagonally']),
@@ -1005,7 +1045,7 @@ final Map<String, _MoveRule> _rules = {
     'ecd_rights_and_lefts',
     (b, c) => _params({
       'who': _whoOf(b, objectIsWho: false),
-      'whom': _whom(b),
+      'whom': _whom(b, const {'starting with'}),
       'slow': _flag(b, 'slow'),
       'changes': b.take<int>('changes'),
       'where': _where(b, const ['along', 'across', 'diagonally']),
@@ -1027,7 +1067,7 @@ final Map<String, _MoveRule> _rules = {
     'ecd_figure_eight',
     (b, c) => _params({
       'who': _whoOf(b, objectIsWho: false),
-      'whom': _whom(b),
+      'whom': _whom(b, const {'through'}),
       'where': _where(b, const ['up', 'down', 'across']),
       'fraction': _fraction(b),
       'double': _flag(b, 'double'),
@@ -1044,7 +1084,7 @@ final Map<String, _MoveRule> _rules = {
       'ecd_$hey',
       (b, c) => _params({
         'who': _whoOf(b, objectIsWho: false),
-        'whom': _whom(b),
+        'whom': _whom(b, const <String>{}),
         'shoulder': _shoulder(b, sideIsShoulder: false),
         'where': _where(b, const ['along', 'across', 'diagonally']),
         'fraction': _fraction(b),
@@ -1055,7 +1095,7 @@ final Map<String, _MoveRule> _rules = {
     'ecd_tandem_reel',
     (b, c) => _params({
       'who': _whoOf(b, objectIsWho: false),
-      'whom': _whom(b),
+      'whom': _whom(b, const {'with'}),
       'shoulder': _shoulder(b, sideIsShoulder: false),
       'where': _where(b, const ['along', 'across', 'diagonally']),
       'destination': _dest(b),
@@ -1065,7 +1105,7 @@ final Map<String, _MoveRule> _rules = {
     'ecd_mirror_hey',
     (b, c) => _params({
       'who': _whoOf(b, objectIsWho: false),
-      'whom': _whom(b),
+      'whom': _whom(b, const <String>{}),
       'fraction': _fraction(b),
       'destination': _dest(b),
     }),
@@ -1074,7 +1114,7 @@ final Map<String, _MoveRule> _rules = {
     'ecd_grand_chain',
     (b, c) => _params({
       'who': _whoOf(b, objectIsWho: false),
-      'whom': _whom(b),
+      'whom': _whom(b, const {'starting with'}),
       'changes': b.take<int>('changes'),
       'hand': _hand(b, sideIsHand: false),
       'destination': _dest(b),
@@ -1102,7 +1142,7 @@ final Map<String, _MoveRule> _rules = {
     'ecd_fall_back',
     (b, c) => _params({
       'who': _whoOf(b, objectIsWho: false),
-      'whom': _whom(b),
+      'whom': _whom(b, const {'with'}),
       'where': _where(b, const ['across', 'along', 'diagonally', 'up', 'down']),
       'distance': b.take<String>('distance'),
       'destination': _dest(b),
@@ -1163,14 +1203,18 @@ final Map<String, _MoveRule> _rules = {
     });
   }),
   'poussette': _MoveRule('ecd_poussette', (b, c) {
-    // `who` names the dancers who push or draw (§7.5): a subject before the
-    // movement, or the dancers named with "push"/"draw" after it.
+    // `who` names the dancers who push or draw (§7.5), so only the dancers
+    // named with "push"/"draw" after the movement are held there. A subject
+    // before it names who dances, not who pushes: "all" adds nothing, as for
+    // set and link, and any other subject is not read (R2).
     final subject = b.take<List<String>>('who');
-    final pushers = b.take<List<String>>('styleWho');
-    if (subject != null && pushers != null) return null;
+    if (subject != null &&
+        !(subject.length == 1 && subject.single == 'everyone')) {
+      return null;
+    }
     return _params({
-      'who': subject ?? pushers,
-      'whom': _whom(b),
+      'who': b.take<List<String>>('styleWho'),
+      'whom': _whom(b, const {'with'}),
       'fraction': _fraction(b),
       'direction': b.take<String>('spin'),
       'style': _oneOf(b, 'style', const ['push', 'draw']),
@@ -1182,13 +1226,15 @@ final Map<String, _MoveRule> _rules = {
     (b, c) => _params({'who': _whoOf(b, objectIsWho: false)}),
   ),
   'rollaway': _MoveRule('ecd_rollaway', (b, c) {
-    final object = b.take<List<String>>('object');
-    final whom = b.take<List<String>>('whom');
-    if (object != null && whom != null) return null;
-    final rolled = object ?? whom;
+    // Dancers named straight after the movement: no preposition reads as its
+    // `whom`.
+    final rolled = _objectOrWhom(
+      b.take<List<String>>('object'),
+      _whomVia(b, const <String>{}),
+    );
     return _params({
       'who': b.take<List<String>>('who'),
-      'whom': rolled == null ? null : (_single(rolled) ?? _fail),
+      'whom': rolled,
       'where': _where(b, const ['along', 'across', 'up', 'down']),
       'halfSashay': _flag(b, 'halfSashay'),
       'destination': _dest(b),
@@ -1198,7 +1244,7 @@ final Map<String, _MoveRule> _rules = {
     'ecd_change_places',
     (b, c) => _params({
       'who': _whoOf(b, objectIsWho: false),
-      'whom': _whom(b),
+      'whom': _whom(b, const {'with'}),
       'hand': _hand(
         b,
         // `change R`: the side is the hand, as for a turn.
@@ -1209,13 +1255,15 @@ final Map<String, _MoveRule> _rules = {
     }),
   ),
   'pull_by': _MoveRule('ecd_pull_by', (b, c) {
-    final object = b.take<List<String>>('object');
-    final whom = b.take<List<String>>('whom');
-    if (object != null && whom != null) return null;
-    final passed = object ?? whom;
+    // Dancers named straight after the movement: no preposition reads as its
+    // `whom`.
+    final passed = _objectOrWhom(
+      b.take<List<String>>('object'),
+      _whomVia(b, const <String>{}),
+    );
     return _params({
       'who': b.take<List<String>>('who'),
-      'whom': passed == null ? null : (_single(passed) ?? _fail),
+      'whom': passed,
       'hand': _hand(b),
       'where': _where(b, const ['along', 'across', 'diagonally']),
       'destination': _dest(b),
@@ -1233,7 +1281,7 @@ final Map<String, _MoveRule> _rules = {
     (b, c) => _params({
       'who': _whoOf(b, objectIsWho: false),
       'where': _where(b, const ['up', 'down', 'out', 'toTheMiddle', 'back']),
-      'whom': _whom(b),
+      'whom': _whom(b, const {'through'}),
       'destination': _dest(b),
     }),
   ),
@@ -1243,7 +1291,7 @@ final Map<String, _MoveRule> _rules = {
       'who': _whoOf(b, objectIsWho: false),
       'where': _where(b, const ['off', 'up', 'down', 'around']),
       'direction': _sideAs(b, 'direction'),
-      'whom': _whom(b),
+      'whom': _whom(b, const {'around'}),
       'destination': _dest(b),
     }),
   ),
@@ -1261,7 +1309,7 @@ final Map<String, _MoveRule> _rules = {
     (b, c) => _params({
       'who': _whoOf(b, objectIsWho: false),
       'shoulder': _shoulder(b, sideIsShoulder: false),
-      'whom': _whom(b),
+      'whom': _whom(b, const <String>{}),
       'destination': _dest(b),
     }),
   ),
@@ -1275,7 +1323,7 @@ Map<String, Object?>? _turnParams(
   _Context context,
   void Function(String) setMove,
 ) {
-  final hand = _sideAs(bag, 'hand');
+  final hand = _sideAs(bag, 'hand', toTheAllowed: false);
   if (hand == 'two') {
     setMove('ecd_two_hand_turn');
     return _params({
@@ -1435,7 +1483,7 @@ class _Reader {
         return null;
       }
     }
-    final hand = _sideAs(bag, 'hand');
+    final hand = _sideAs(bag, 'hand', toTheAllowed: false);
     final destination = bag.take<String>('destination');
     if (hand == _fail ||
         !bag.allTaken ||
@@ -1809,9 +1857,11 @@ class _Reader {
 
   bool takeSide(_Bag bag) {
     final start = pos;
-    if (at(pos) == 'to' && at(pos + 1) == 'the') pos += 2;
+    final toThe = at(pos) == 'to' && at(pos + 1) == 'the';
+    if (toThe) pos += 2;
     final side = _sideWords[at(pos) ?? ''];
     if (side == null || !bag.put('side', side)) return _undo(start);
+    if (toThe) bag.put('sideToThe', true);
     pos++;
     return true;
   }
@@ -1954,7 +2004,9 @@ class _Reader {
   /// dancers acted with.
   bool takeWhom(_Bag bag) {
     final start = pos;
+    final String via;
     if (wordsAt(pos, const ['starting', 'with'])) {
+      via = 'starting with';
       pos += 2;
     } else if (const {
       'to',
@@ -1964,12 +2016,14 @@ class _Reader {
       'through',
       'past',
     }.contains(at(pos))) {
+      via = at(pos) == 'round' ? 'around' : at(pos)!;
       pos++;
     } else {
       return false;
     }
     final dancers = takeDancers();
     if (dancers == null || !bag.put('whom', dancers)) return _undo(start);
+    bag.put('whomVia', via);
     return true;
   }
 
@@ -1980,6 +2034,7 @@ class _Reader {
     pos++;
     final dancers = takeDancers();
     if (dancers == null || !bag.put('whom', dancers)) return _undo(start);
+    bag.put('whomVia', 'with');
     if (at(pos) == ',') pos++;
     return true;
   }
@@ -2017,7 +2072,31 @@ Object? _whoParam(_Step step) => step.move == modifierMove
 
 bool _takesWho(String move) =>
     move == modifierMove ||
-    (ecdTaxonomy.resolve(move)?.params.containsKey('who') ?? false);
+    (!_ringMoves.contains(move) &&
+        (ecdTaxonomy.resolve(move)?.params.containsKey('who') ?? false));
+
+/// Movements danced by a ring or by more dancers than one step's subject
+/// usually names: "1s set and circle left" does not say the 1s circle alone,
+/// so such a step never takes an earlier step's subject (R2).
+const Set<String> _ringMoves = {
+  'ecd_circle',
+  'ecd_star',
+  'ecd_chain',
+  'ecd_rights_and_lefts',
+  'ecd_grand_chain',
+  'ecd_right_left_through',
+  'ecd_circular_hey',
+  'ecd_dolphin_hey',
+  'ecd_hey_for_three',
+  'ecd_hey_for_four',
+  'ecd_hey_for_six',
+  'ecd_mirror_hey',
+  'ecd_tandem_reel',
+  'ecd_form_long_wave',
+  'ecd_poussette',
+  'ecd_contra_corners',
+  'ecd_chevron',
+};
 
 _Step _withWho(_Step step, Object who) {
   if (step.move == modifierMove) {
@@ -2027,7 +2106,7 @@ _Step _withWho(_Step step, Object who) {
       'figures': [_withWho(core, who), ...children.skip(1)],
     });
   }
-  if (step.params.containsKey('who')) return step;
+  if (step.params.containsKey('who') || !_takesWho(step.move)) return step;
   return _Step(step.move, {'who': who, ...step.params}, note: step.note);
 }
 
