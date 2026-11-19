@@ -224,7 +224,7 @@ final Taxonomy ecdTaxonomy = Taxonomy(
         'who': _who,
         // The side turned to, or `cloverleaf`: each couple turns away
         // from the other, as the four leaves of a cloverleaf (the
-        // maintainer's answer, ADR-006 §9.2).
+        // maintainer's answer, ADR-006 §9.3).
         'shoulder': const ParamSpec(
           ParamKind.shoulder,
           defaultValue: _u,
@@ -453,7 +453,7 @@ final Taxonomy ecdTaxonomy = Taxonomy(
       renderTemplate:
           '[{who},] [{?singleFile}single file] {move} [{direction}] '
           '[{places}] [, {destination}]',
-      // "Chase" is a single-file circle (ADR-006 §9.2).
+      // "Chase" is a single-file circle (ADR-006 §9.3).
       searchKeywords: const ['ring', 'slip', 'circle half', 'chase'],
     ),
     MoveDef(
@@ -854,7 +854,7 @@ final Taxonomy ecdTaxonomy = Taxonomy(
         'whom': _whom,
         'fraction': _fraction,
         'direction': _spin,
-        // Whether `who` pushes or draws (ADR-006 §9.2). Unstated reads as
+        // Whether `who` pushes or draws (ADR-006 §9.3). Unstated reads as
         // push, which is what `who` names (Q8).
         'style': const ParamSpec(
           ParamKind.choice,

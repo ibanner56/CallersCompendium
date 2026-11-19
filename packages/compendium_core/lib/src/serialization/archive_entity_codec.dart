@@ -116,6 +116,16 @@ Map<String, Object?> archiveDanceToJson(
   'hook': d.hook,
   'callingNotes': d.callingNotes,
   'walkthrough': d.walkthrough,
+  // Written only when given, so a dance without them encodes byte-identically
+  // to what builds before these keys wrote: its sync body and content hash do
+  // not change, and an older device keeps nothing for a newer one (sync-spec
+  // §6.7). `includeOptionalFields` does not force them, for the same reason;
+  // every reader takes a missing key as its default, and Device Sync fills
+  // the defaults in before applying a body ([withOmittedDanceDefaults]), so
+  // clearing one still reaches other devices. Stamped by
+  // [archiveSchemaVersionEcdDanceFields].
+  if (d.meter.isNotEmpty) 'meter': d.meter,
+  if (d.musicalKey.isNotEmpty) 'musicalKey': d.musicalKey,
   'status': d.status.name,
   if (includeOptionalFields || d.difficultyLevelId != null)
     'difficultyLevelId': d.difficultyLevelId,
@@ -165,12 +175,46 @@ Map<String, Object?> archiveDanceToJson(
     'deletedAt': d.deletedAt == null ? null : archiveIso(d.deletedAt!),
 };
 
+/// The dance body keys [archiveDanceToJson] leaves out when they hold their
+/// default, with that default. Each was added after Device Sync shipped
+/// (ADR-006 §12, F2 and F3); omitting a default keeps every other dance's body,
+/// and so its content hash, as it was.
+const Map<String, Object?> omittedDanceDefaults = {
+  'meter': '',
+  'musicalKey': '',
+};
+
+/// The formation keys [archiveFormationToJson] leaves out when they hold their
+/// default, with that default; see [omittedDanceDefaults].
+const Map<String, Object?> omittedFormationDefaults = {'improper': false};
+
+/// [body], a dance body, with each omitted default ([omittedDanceDefaults],
+/// [omittedFormationDefaults]) written in where it is missing.
+///
+/// Device Sync applies an inbound body by overlaying it on the stored record,
+/// key by key, so a key the sender left out would keep the stored value. For
+/// these keys a missing key means the default, so it is filled in first and a
+/// value cleared on one device is cleared on the others (sync-spec §6.7). A
+/// body with no `formation` is not a whole dance body and is returned as is.
+Map<String, Object?> withOmittedDanceDefaults(Map<String, Object?> body) {
+  final formation = body['formation'];
+  if (formation is! Map) return body;
+  return {
+    ...omittedDanceDefaults,
+    ...body,
+    'formation': {...omittedFormationDefaults, ...formation},
+  };
+}
+
 Map<String, Object?> archiveFormationToJson(
   Formation f, {
   bool includeOptionalFields = false,
 }) => {
   'shape': f.shape.name,
   if (includeOptionalFields || f.detail != null) 'detail': f.detail,
+  // Written only when set, as `meter` and `musicalKey` are and for the same
+  // reason; a reader takes a missing key as `false`, proper.
+  if (f.improper) 'improper': true,
 };
 
 Map<String, Object?> archiveCustomFieldValueToJson(

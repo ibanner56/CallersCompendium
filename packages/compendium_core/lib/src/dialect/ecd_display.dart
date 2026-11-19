@@ -100,7 +100,7 @@ String? ecdSlotWords(
         'none' => 'without hands',
         _ => '',
       };
-    // The poussette's `who` push unless the figure says they draw (§9.2):
+    // The poussette's `who` push unless the figure says they draw (§9.3):
     // "role2s push". A stated style with no `who` stands after a comma.
     case 'style' when move == 'poussette':
       final whoStated = _statesWho(params['who']);
@@ -110,7 +110,7 @@ String? ecdSlotWords(
         _ => whoStated || params['switchPush'] == true ? 'push' : '',
       };
       return word.isEmpty || whoStated ? word : ', $word';
-    // "Cloverleaf turn single" (§9.2): the variant leads.
+    // "Cloverleaf turn single" (§9.3): the variant leads.
     case 'shoulder' when move == 'turn_single' && value == 'cloverleaf':
       return '';
     case 'move'

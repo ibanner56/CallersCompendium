@@ -31,7 +31,7 @@ abstract final class ParamOpposites {
   /// How far [kind] has opposites.
   ///
   /// A shoulder is total for the values contra stores; ECD's `cloverleaf`
-  /// turn single (ADR-006 §9.2) is a shoulder value with no opposite, so
+  /// turn single (ADR-006 §9.3) is a shoulder value with no opposite, so
   /// [of] gives it none. Callers only ask whether a kind has any.
   static OppositeCoverage coverage(ParamKind kind) => switch (kind) {
     ParamKind.handedness ||

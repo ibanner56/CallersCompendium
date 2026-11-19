@@ -1543,6 +1543,8 @@ class ImportPipeline {
     hook: src.hook,
     callingNotes: src.callingNotes,
     walkthrough: src.walkthrough,
+    meter: src.meter,
+    musicalKey: src.musicalKey,
     status: src.status,
     difficultyLevelId: src.difficultyLevelId,
     mixedLevel: src.mixedLevel,

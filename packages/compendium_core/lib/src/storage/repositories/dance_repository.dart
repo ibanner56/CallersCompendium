@@ -673,6 +673,7 @@ class DanceRepository {
                     ? null
                     : normalizeShareableText(normalisedDance.formation.detail!),
               ),
+              formationImproper: Value(normalisedDance.formation.improper),
               progression: normalisedDance.progression,
               phraseStructure: Value(normalisedDance.phraseStructure.raw),
               // The single place a Dance's transcription becomes stored bytes.
@@ -694,6 +695,10 @@ class DanceRepository {
               ),
               walkthrough: Value(
                 normalizeShareableText(normalisedDance.walkthrough),
+              ),
+              meter: Value(normalizeShareableText(normalisedDance.meter)),
+              musicalKey: Value(
+                normalizeShareableText(normalisedDance.musicalKey),
               ),
               status: normalisedDance.status,
               levelId: Value(dance.difficultyLevelId),
@@ -2914,12 +2919,15 @@ class DanceRepository {
       row.form == DanceForm.contra &&
       row.formationShape == FormationShape.dupleImproper &&
       row.formationDetail == null &&
+      !row.formationImproper &&
       row.progression == Progression.single &&
       row.phraseStructure.isEmpty &&
       row.figuresJson == '[]' &&
       row.hook.isEmpty &&
       row.callingNotes.isEmpty &&
       row.walkthrough.isEmpty &&
+      row.meter.isEmpty &&
+      row.musicalKey.isEmpty &&
       row.status == DanceStatus.active &&
       row.levelId == null &&
       !row.mixedLevel &&
@@ -2997,12 +3005,15 @@ class DanceRepository {
         form: const Value(DanceForm.contra),
         formationShape: const Value(FormationShape.dupleImproper),
         formationDetail: Value(normalizeShareableTextOrNull(null)),
+        formationImproper: const Value(false),
         progression: const Value(Progression.single),
         phraseStructure: const Value(''),
         figuresJson: Value(normalizeShareableJsonText('[]')),
         hook: Value(normalizeShareableText('')),
         callingNotes: Value(normalizeShareableText('')),
         walkthrough: Value(normalizeShareableText('')),
+        meter: Value(normalizeShareableText('')),
+        musicalKey: Value(normalizeShareableText('')),
         status: const Value(DanceStatus.active),
         levelId: const Value(null),
         mixedLevel: const Value(false),
@@ -4030,7 +4041,11 @@ class DanceRepository {
       title: row.title,
       authorIds: authorIds,
       form: row.form,
-      formation: Formation(row.formationShape, detail: row.formationDetail),
+      formation: Formation(
+        row.formationShape,
+        detail: row.formationDetail,
+        improper: row.formationImproper,
+      ),
       progression: row.progression,
       // Tolerant: the editor and importers once accepted unbounded counts, so
       // a stored value may be out of bounds; it must not block loading.
@@ -4039,6 +4054,8 @@ class DanceRepository {
       hook: row.hook,
       callingNotes: row.callingNotes,
       walkthrough: row.walkthrough,
+      meter: row.meter,
+      musicalKey: row.musicalKey,
       status: row.status,
       difficultyLevelId: row.levelId,
       mixedLevel: row.mixedLevel,

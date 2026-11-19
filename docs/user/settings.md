@@ -1276,6 +1276,14 @@ Sync is off and open while it is on.
   **Reduce motion**, **Auto-size Perform cards** or Perform's stage theme. Those
   settings now stay on each device, so the updated device leaves them alone. To
   clear the notice, update the app on the older device.
+
+  A dance in one of the English country dance formations (such as duple minor
+  or a three-couple longways set) reaches a device on an older version as a
+  record that couldn't be used, not as one waiting for an update. That device
+  skips the dance, and any program or related-dance link that names it, until
+  you update it there; nothing is lost on the device that sent it. A dance's
+  meter, key or improper mark doesn't hold it back: an older device keeps
+  those and passes them on unchanged.
 - These settings belong to this device. They are not synced to your other
   devices, and they are not included in a backup, so restoring a backup never
   turns sync on.

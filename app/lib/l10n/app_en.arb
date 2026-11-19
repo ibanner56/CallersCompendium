@@ -5112,6 +5112,55 @@
       }
     }
   },
+  "commonFormationDupleMinor": "Duple minor",
+  "@commonFormationDupleMinor": {
+    "description": "Formation shape value (English country dance): a longways set danced in minor sets of two couples."
+  },
+  "commonFormationThreeCoupleLongways": "Three-couple longways",
+  "@commonFormationThreeCoupleLongways": {
+    "description": "Formation shape value (English country dance): a longways set of exactly three couples."
+  },
+  "commonFormationFourCoupleLongways": "Four-couple longways",
+  "@commonFormationFourCoupleLongways": {
+    "description": "Formation shape value (English country dance): a longways set of exactly four couples."
+  },
+  "commonFormationFiveCoupleLongways": "Five-couple longways",
+  "@commonFormationFiveCoupleLongways": {
+    "description": "Formation shape value (English country dance): a longways set of exactly five couples."
+  },
+  "commonFormationSixCoupleLongways": "Six-couple longways",
+  "@commonFormationSixCoupleLongways": {
+    "description": "Formation shape value (English country dance): a longways set of exactly six couples."
+  },
+  "commonFormationCircle": "Circle",
+  "@commonFormationCircle": {
+    "description": "Formation shape value (English country dance): dancers in a circle."
+  },
+  "commonFormationSquare": "Square",
+  "@commonFormationSquare": {
+    "description": "Formation shape value (English country dance): a square set of four couples."
+  },
+  "commonFormationTwoCoupleSet": "Two-couple set",
+  "@commonFormationTwoCoupleSet": {
+    "description": "Formation shape value (English country dance): a set of exactly two couples."
+  },
+  "commonFormationImproperFlag": "{shape}, improper",
+  "@commonFormationImproperFlag": {
+    "description": "An English country dance formation that starts improper (first couple crossed over). {shape} is a localized formation shape name, such as 'Duple minor'.",
+    "placeholders": {
+      "shape": {
+        "type": "String"
+      }
+    }
+  },
+  "danceEditorMeterLabel": "Meter",
+  "@danceEditorMeterLabel": {
+    "description": "Label for a dance's written meter (time signature) as free text, for example 3/2 or 6/8."
+  },
+  "danceEditorMusicalKeyLabel": "Key",
+  "@danceEditorMusicalKeyLabel": {
+    "description": "Label for the musical key of a dance's tune as free text, for example G minor."
+  },
   "commonMixedLevel": "Mixed level",
   "@commonMixedLevel": {
     "description": "Label indicating a dance suits mixed experience levels; used as a filter chip/section and a dance indicator chip."

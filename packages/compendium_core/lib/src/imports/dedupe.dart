@@ -39,8 +39,24 @@ const _choreographyFields = [
 /// keeps the field contract in one place while callers choose the equality or
 /// hashing strategy appropriate to their boundary.
 List<Object?> choreographyFingerprint(Map<String, Object?> body) => [
-  for (final field in _choreographyFields) body[field],
+  for (final field in _choreographyFields)
+    field == 'formation' ? _formationFingerprint(body[field]) : body[field],
 ];
+
+/// [formation] without `improper`.
+///
+/// Fresh-attach dedupe (sync-spec §6.10) needs every build to compute the same
+/// fingerprint for the same record, and a build older than schema v42 never
+/// sees `formation.improper`: it keeps it aside for a newer version. So it is
+/// left out here, as `meter` and `musicalKey` are left out of
+/// [_choreographyFields], and a merge takes them from the latest copy
+/// (`sync_merge.dart`). Two copies that differ only in them are one dance.
+Object? _formationFingerprint(Object? formation) => formation is Map
+    ? {
+        for (final entry in formation.entries)
+          if (entry.key != 'improper') entry.key: entry.value,
+      }
+    : formation;
 
 /// Returns the same choreography fingerprint for a model used by imports.
 ///

@@ -1,3 +1,5 @@
+import '../serialization/archive_entity_codec.dart'
+    show withOmittedDanceDefaults;
 import '../storage/repositories/sync_local_repository.dart';
 import 'sync_admission.dart';
 import 'sync_codec.dart';
@@ -948,14 +950,22 @@ DateTime _syncNowUtc() => DateTime.now().toUtc();
 /// syncs, and nothing it keeps for a newer version (spec §6.7). Overlaying the
 /// whole body would write a kept private field into this device's own column.
 /// The kept parts travel separately, on the record's `sourceBlob`.
-Map<String, Object?> syncInboundKnownBody(SyncRecordBlob blob) =>
-    Map<String, Object?>.from(
-      partitionInboundRecordBody(
-        blob.kind,
-        blob.body,
-        settingsKey: blob.kind == SyncRecordKind.setting ? blob.id : null,
-      ).known,
-    );
+///
+/// A dance body has its omitted defaults filled in ([withOmittedDanceDefaults]):
+/// the overlay that applies it keeps any stored value the body leaves out, and
+/// for those keys a missing key means the default, not "unchanged".
+Map<String, Object?> syncInboundKnownBody(SyncRecordBlob blob) {
+  final known = Map<String, Object?>.from(
+    partitionInboundRecordBody(
+      blob.kind,
+      blob.body,
+      settingsKey: blob.kind == SyncRecordKind.setting ? blob.id : null,
+    ).known,
+  );
+  return blob.kind == SyncRecordKind.dance
+      ? withOmittedDanceDefaults(known)
+      : known;
+}
 
 /// Rolls the inbound batch back when a named tombstone cannot be written.
 ///

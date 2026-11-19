@@ -565,7 +565,7 @@ Future<void> clearNormalisationSkipAt(
 /// schemaVersion] getter) so the app-layer migration preflight can compare a
 /// file's persisted `user_version` against the running schema *without* opening
 /// the database. Keep this and the migration `onUpgrade` steps in lockstep.
-const int kCompendiumSchemaVersion = 41;
+const int kCompendiumSchemaVersion = 42;
 
 /// The oldest on-disk schema version this build can still upgrade.
 ///
@@ -767,6 +767,26 @@ class CompendiumDatabase extends _$CompendiumDatabase {
     }
   }
 
+  /// The v42 additions (ADR-006 §12, F2 and F3): three columns on `dances`,
+  /// ECD's proper/improper flag and the tune's meter and key. Each has a
+  /// default (`false`, `''`, `''`), so every existing row reads as proper with
+  /// no meter or key, which is what it held before; no data is rewritten and
+  /// no derived index reads them, so no rebuild is needed. The live-schema
+  /// check only keeps the step idempotent.
+  Future<void> _ensureV42Schema(Migrator m) async {
+    final columns = await customSelect(
+      "SELECT name FROM pragma_table_info('${dances.actualTableName}')",
+    ).get();
+    final present = {for (final row in columns) row.read<String>('name')};
+    for (final column in <GeneratedColumn<Object>>[
+      dances.formationImproper,
+      dances.meter,
+      dances.musicalKey,
+    ]) {
+      if (!present.contains(column.name)) await m.addColumn(dances, column);
+    }
+  }
+
   @override
   int get schemaVersion => kCompendiumSchemaVersion;
 
@@ -875,6 +895,7 @@ class CompendiumDatabase extends _$CompendiumDatabase {
       await transaction(() async {
         if (from < 40) await _ensureV40Schema(m);
         if (from < 41) await _ensureV41Schema();
+        if (from < 42) await _ensureV42Schema(m);
 
         // Last statement in the transaction: see the comment above its
         // opening for why this closes the remaining crash window. `to` is

@@ -66,6 +66,11 @@ class Dances extends Table {
   TextColumn get formationShape =>
       text().map(const EnumNameConverter(FormationShape.values))();
   TextColumn get formationDetail => text().nullable()();
+
+  /// ECD's proper/improper checkbox, `Formation.improper` (ADR-006 §12, F2).
+  /// Added in schema v42; existing rows read `false`, proper.
+  BoolColumn get formationImproper =>
+      boolean().withDefault(const Constant(false))();
   TextColumn get progression =>
       text().map(const EnumNameConverter(Progression.values))();
 
@@ -82,6 +87,15 @@ class Dances extends Table {
   /// v15 (issue #370). Dance-scalar content (not figure text), so it does NOT
   /// feed the derived `dance_figures`/`dance_fts` indexes.
   TextColumn get walkthrough => text().withDefault(const Constant(''))();
+
+  /// The tune's written meter, `Dance.meter`, as free text; `''` when not
+  /// given. Added in schema v42 (ADR-006 §12, F3).
+  TextColumn get meter => text().withDefault(const Constant(''))();
+
+  /// The tune's key, `Dance.musicalKey`, as free text; `''` when not given.
+  /// Added in schema v42 (ADR-006 §12, F3). Not named `key`, which SQL
+  /// reserves.
+  TextColumn get musicalKey => text().withDefault(const Constant(''))();
   TextColumn get status =>
       text().map(const EnumNameConverter(DanceStatus.values))();
 

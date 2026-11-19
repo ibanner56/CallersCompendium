@@ -1488,6 +1488,91 @@ void main() {
     );
   });
 
+  group('v41 -> v42 upgrade (ECD meter, key and improper, ADR-006)', () {
+    Future<Set<String>> danceColumns(DatabaseConnectionUser db) async => {
+      for (final row
+          in await db
+              .customSelect("SELECT name FROM pragma_table_info('dances')")
+              .get())
+        row.read<String>('name'),
+    };
+
+    const added = {'formation_improper', 'meter', 'musical_key'};
+
+    test('adds the three columns, and an existing dance reads as proper '
+        'with no meter or key', () async {
+      final raw = sqlite3.sqlite3.openInMemory();
+      final historical = GeneratedHelper().databaseForVersion(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+        41,
+      );
+      await historical.customSelect('SELECT 1').get();
+      expect(
+        (await danceColumns(historical)).intersection(added),
+        isEmpty,
+        reason: 'a v41 database has none of them',
+      );
+      await historical.customStatement(
+        "INSERT INTO dances (id, title, form, formation_shape, "
+        "formation_detail, progression, status, created_at, updated_at) "
+        "VALUES ('d1', 'Keep', 'ecd', 'tripleMinor', 'as many as will', "
+        "'single', 'active', 0, 0)",
+      );
+      await historical.close();
+
+      final db = CompendiumDatabase(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+      );
+      addTearDown(() async {
+        await db.close();
+        raw.close();
+      });
+      await db.customSelect('SELECT 1').get();
+
+      expect(await danceColumns(db), containsAll(added));
+      final dance = await CompendiumRepositories(
+        db,
+        contraTaxonomy,
+      ).dances.getById('d1');
+      expect(dance, isNotNull);
+      expect(dance!.title, 'Keep');
+      expect(dance.form, DanceForm.ecd);
+      expect(
+        dance.formation,
+        const Formation(FormationShape.tripleMinor, detail: 'as many as will'),
+      );
+      expect(dance.formation.improper, isFalse);
+      expect(dance.meter, '');
+      expect(dance.musicalKey, '');
+      final version = await db.customSelect('PRAGMA user_version').getSingle();
+      expect(version.read<int>('user_version'), 42);
+    });
+
+    test('is idempotent over a column that already exists', () async {
+      final raw = sqlite3.sqlite3.openInMemory();
+      final historical = GeneratedHelper().databaseForVersion(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+        41,
+      );
+      await historical.customSelect('SELECT 1').get();
+      await historical.close();
+      raw.execute(
+        "ALTER TABLE dances ADD COLUMN meter TEXT NOT NULL DEFAULT ''",
+      );
+
+      final db = CompendiumDatabase(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+      );
+      addTearDown(() async {
+        await db.close();
+        raw.close();
+      });
+      await db.customSelect('SELECT 1').get();
+
+      expect(await danceColumns(db), containsAll(added));
+    });
+  });
+
   group('v40 -> v41 upgrade (cited-id lookup indexes, #1935)', () {
     const indexes = {
       'dance_authors_choreographer_id',
@@ -1539,7 +1624,7 @@ void main() {
           .getSingle();
       expect(kept.read<String>('name'), 'Keep');
       final version = await db.customSelect('PRAGMA user_version').getSingle();
-      expect(version.read<int>('user_version'), 41);
+      expect(version.read<int>('user_version'), kCompendiumSchemaVersion);
     });
 
     test('is idempotent over an index that already exists', () async {
