@@ -5720,8 +5720,11 @@ class AppLocalizationsNl extends AppLocalizations {
   String get programsSlotNoteFallback => 'Notitie';
 
   @override
-  String get programsSlotEditorEmpty =>
-      'Nog geen slots. Voeg een dans of een notitie toe om te beginnen.';
+  String get programsSlotEditorEmptyTitle => 'Nog geen slots';
+
+  @override
+  String get programsSlotEditorEmptyBody =>
+      'Voeg een dans of een notitie toe om te beginnen.';
 
   @override
   String get programsSlotMovedUp => 'Slot omhoog verplaatst.';

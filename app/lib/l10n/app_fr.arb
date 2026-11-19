@@ -5722,9 +5722,13 @@
   "@programsSlotNoteFallback": {
     "x-sourceSha256": "d8da2c49df39d91df7ecd199b92da7bf264f026242ccc69b08daeadfe587c45b"
   },
-  "programsSlotEditorEmpty": "Aucun créneau pour l’instant. Ajoutez une danse ou une note pour commencer.",
-  "@programsSlotEditorEmpty": {
-    "x-sourceSha256": "1591a8eb737e1ae69093f4aed66693852377cc2692dd1e41d74a84d8520ca821"
+  "programsSlotEditorEmptyTitle": "Aucun créneau pour l’instant",
+  "@programsSlotEditorEmptyTitle": {
+    "x-sourceSha256": "05c8dfd4d97ab5937e7b58dcd79b3fd9824cd8c95b6d8bdbaac0878835012af4"
+  },
+  "programsSlotEditorEmptyBody": "Ajoutez une danse ou une note pour commencer.",
+  "@programsSlotEditorEmptyBody": {
+    "x-sourceSha256": "12ebd0ccad6baf42b8ddf27f8bbf1cb345e7fdb180053039140046b22d801a20"
   },
   "programsSlotMovedUp": "Créneau déplacé vers le haut.",
   "@programsSlotMovedUp": {

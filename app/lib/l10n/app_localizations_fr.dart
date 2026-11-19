@@ -5758,8 +5758,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get programsSlotNoteFallback => 'Note';
 
   @override
-  String get programsSlotEditorEmpty =>
-      'Aucun créneau pour l’instant. Ajoutez une danse ou une note pour commencer.';
+  String get programsSlotEditorEmptyTitle => 'Aucun créneau pour l’instant';
+
+  @override
+  String get programsSlotEditorEmptyBody =>
+      'Ajoutez une danse ou une note pour commencer.';
 
   @override
   String get programsSlotMovedUp => 'Créneau déplacé vers le haut.';

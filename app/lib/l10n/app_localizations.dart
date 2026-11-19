@@ -8698,11 +8698,17 @@ abstract class AppLocalizations {
   /// **'Note'**
   String get programsSlotNoteFallback;
 
-  /// Empty state shown in the program slot list editor when a program has no slots.
+  /// Heading of the empty state in the program slot list editor when a program has no slots.
   ///
   /// In en, this message translates to:
-  /// **'No slots yet. Add a dance or a note to get started.'**
-  String get programsSlotEditorEmpty;
+  /// **'No slots yet'**
+  String get programsSlotEditorEmptyTitle;
+
+  /// Body of the empty state in the program slot list editor; says how to add the first slot.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a dance or a note to get started.'**
+  String get programsSlotEditorEmptyBody;
 
   /// Accessibility announcement after a slot is moved up one position.
   ///

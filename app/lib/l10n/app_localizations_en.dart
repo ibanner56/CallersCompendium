@@ -5649,8 +5649,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get programsSlotNoteFallback => 'Note';
 
   @override
-  String get programsSlotEditorEmpty =>
-      'No slots yet. Add a dance or a note to get started.';
+  String get programsSlotEditorEmptyTitle => 'No slots yet';
+
+  @override
+  String get programsSlotEditorEmptyBody =>
+      'Add a dance or a note to get started.';
 
   @override
   String get programsSlotMovedUp => 'Slot moved up.';

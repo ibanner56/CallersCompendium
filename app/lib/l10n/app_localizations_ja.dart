@@ -5439,7 +5439,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programsSlotNoteFallback => 'ノート';
 
   @override
-  String get programsSlotEditorEmpty => 'スロットがまだありません。ダンスまたはノートを追加して始めましょう。';
+  String get programsSlotEditorEmptyTitle => 'スロットがまだありません';
+
+  @override
+  String get programsSlotEditorEmptyBody => 'ダンスまたはノートを追加して始めましょう。';
 
   @override
   String get programsSlotMovedUp => 'スロットを上に移動しました。';

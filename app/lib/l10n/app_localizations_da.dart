@@ -5685,8 +5685,11 @@ class AppLocalizationsDa extends AppLocalizations {
   String get programsSlotNoteFallback => 'Note';
 
   @override
-  String get programsSlotEditorEmpty =>
-      'Ingen slots endnu. Tilføj en dans eller en note for at komme i gang.';
+  String get programsSlotEditorEmptyTitle => 'Ingen slots endnu';
+
+  @override
+  String get programsSlotEditorEmptyBody =>
+      'Tilføj en dans eller en note for at komme i gang.';
 
   @override
   String get programsSlotMovedUp => 'Slot flyttet op.';
