@@ -693,6 +693,9 @@ Dance _danceFromJson(Map<String, Object?> m) => Dance(
     _strOr(m, 'walkthrough', ''),
     kMaxWalkthroughLength,
   ),
+  // Short untrusted labels: clamped like the walkthrough, never rejected.
+  meter: _clampLength(_strOr(m, 'meter', ''), kMaxMusicLabelLength),
+  musicalKey: _clampLength(_strOr(m, 'musicalKey', ''), kMaxMusicLabelLength),
   status: _enumByNameOr(
     DanceStatus.values,
     m['status'],
@@ -717,6 +720,8 @@ Dance _danceFromJson(Map<String, Object?> m) => Dance(
       ? null
       : _provenanceFromJson(_asMap(m['provenance'], 'provenance')),
   composedOn: _partialDateOrNull(m, 'composedOn'),
+  interpreterIds: _stringList(m, 'interpreterIds'),
+  interpretedOn: _partialDateOrNull(m, 'interpretedOn'),
   revisedOn: _partialDateOrNull(m, 'revisedOn'),
   createdAt: _dt(m, 'createdAt'),
   updatedAt: _dt(m, 'updatedAt'),
@@ -742,6 +747,7 @@ Formation _formationFromJson(Object? raw) {
   return Formation(
     _enumByName(FormationShape.values, _str(m, 'shape'), 'shape'),
     detail: _strOrNull(m, 'detail'),
+    improper: _boolOr(m, 'improper', false),
   );
 }
 

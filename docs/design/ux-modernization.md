@@ -108,6 +108,28 @@ is co-owned with Phase 5 Perform mode.
 | focus ring `#FFD54A` / surface (≥3:1) | focus | 14.22 |
 | outline `#FFF3EC` / surface (≥3:1) | borders | 18.44 |
 
+**Keyboard focus.** Material's focus cue is a translucent fill of
+the focus colour (about 1.2:1 against the unfocused state), too faint to find
+across a room. `FocusRingLayer` draws the theme's `focusRing` at
+`focusRingWidth` (2px primary; 3px yellow `#FFD54A` in HC) as an outline 2px outside the
+keyboard-focused control, above every route, for every control including those
+whose Material themes cannot draw one (list tiles, navigation rail/bar,
+checkboxes, switches, radios). Text fields keep their own focused border
+instead. `palette_contrast_test.dart` holds the ring to 3:1 against every
+surface tier in every scheme.
+
+**Motion.** `AppMotion` names the five animation durations in use
+(120 / 200 / 250 / 500 / 1400 ms). With the in-app Reduce motion switch on, the
+theme swaps in instant page transitions and an instant `ExpansionTile`, and
+every `showDialog` / `showModalBottomSheet` call passes
+`AppMotion.styleFor(context)` (a source-scan test enforces it), since dialogs
+and sheets have no theme hook for their animation. Flutter's `showDatePicker`
+takes no animation style, so the app opens the date picker through
+`showAppDatePicker`, which builds the same `DatePickerDialog` and passes the
+style; the scan also rejects the bare picker helpers. On iOS and macOS the
+instant page transition is the Cupertino one at zero duration, because the
+edge swipe back lives in that transition builder.
+
 ### 1c. Typography
 
 - **Display / headings: Fraunces** — a warm optical-size serif; character
@@ -120,9 +142,14 @@ Proposed M3 `TextTheme` (sizes in logical px):
 
 | Style | Family / weight | display | headline | title | body | label |
 |---|---|---|---|---|---|---|
-| large | — | 57 Fraunces w600 | 32 Fraunces | 22 Atkinson w700 | 16 Atkinson w400 | 14 Atkinson w600 |
+| large | — | 57 Fraunces w600 | 32 Fraunces | 22 Atkinson w700 | 16 Atkinson w400 | 14 Atkinson w700 |
 | medium | — | 45 | 28 | 16 | 14 | 12 |
 | small | — | 36 | 24 | 14 | 12 | 11 |
+
+Atkinson Hyperlegible ships at 400 and 700 only, so its styles use exactly
+those weights (labels 700, Perform body 400). Screen titles in the app bar,
+empty-state titles and dialog titles use Fraunces, with app-bar titles leading
+rather than centred on every platform.
 
 Perform mode uses its own scale (Atkinson Bold, ~28px floor, **no upper bound**,
 user-adjustable size/weight/line-spacing).
@@ -134,14 +161,19 @@ user-adjustable size/weight/line-spacing).
   surfaces use comfortable density; selected adaptively by platform.
 - **Shape:** corner radii 8 / 12 / 16, dialogs 28.
 - **Elevation:** prefer tonal `surfaceContainer` tiers over drop shadows (M3
-  idiom). Every scheme, built-in and gallery, defines the full ladder —
-  Lowest, Low, default, High, Highest, Dim, Bright — so cards and bottom
-  sheets (Low), popup and anchored menus and nav bars (default), dialogs (High)
-  and filled inputs (Highest) each sit on their own tone instead of falling back
-  to `surface`. The HC theme keeps the tiers and adds a visible outline to
-  cards, dialogs, bottom sheets, popup menus and anchored (`MenuAnchor`) menus.
-  Legacy `DropdownButton` menus, autocomplete option lists and the date and
-  time pickers are not yet covered by either.
+  idiom). App bars keep the canvas colour when content scrolls under them (no
+  scrolled-under tint). Every scheme, built-in and gallery, defines the full
+  ladder — Lowest, Low, default, High, Highest, Dim, Bright — so cards and
+  bottom sheets (Low), popup and anchored menus and nav bars (default), dialogs
+  (High) and filled inputs (Highest) each sit on their own tone instead of
+  falling back to `surface`; the wide-layout autocomplete option list sits on
+  the menu tier too, and the date and time pickers on the dialog tier. The HC
+  theme keeps the tiers and adds a visible outline to cards, dialogs, bottom
+  sheets, popup menus, anchored (`MenuAnchor`) menus, autocomplete option
+  lists, the date and time pickers, and icon buttons. Legacy `DropdownButton`
+  menus are not covered: Flutter paints that menu with a fixed decoration and
+  offers no theme or constructor hook for a border, so outlining it means
+  moving those fields to `DropdownMenu`.
 
 ### 1e. Structure — new `app/lib/src/theme/`
 
@@ -192,9 +224,13 @@ icon+text by `program_status_chip.dart`; tokens add theme-driven color):
 included) toward the surface only as far as the chip's `onSurface` label needs
 to clear AA on the token's 10% tint, laid over the canvas or a card or sheet
 (`surfaceContainerLow`). The token stays at least 3:1 against those two as a
-border; the icon, drawn on the tint itself, can fall just under 3:1 (Broken in
-Everforest Light measures 2.9:1), and chips on dialogs and menus are not
-covered.
+border. Easing can leave the token just under 3:1 against its own tint (Broken
+in Everforest Light measures 2.9:1), and in that palette no single colour gives
+both the label 4.5:1 and the icon 3:1 on the tint, so the icon is drawn in
+`AppThemeExtension.statusIconColor`: the token moved toward `onSurface` only as
+far as it needs to clear 3:1 on the tint over both tiers, and the token itself
+wherever it already does. `palette_contrast_test.dart` checks the label, icon
+and border in every scheme. Chips on dialogs and menus are not covered.
 
 **Other semantic tokens:**
 

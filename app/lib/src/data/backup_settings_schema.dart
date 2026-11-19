@@ -23,6 +23,7 @@ import 'display_defaults.dart'
         kDefaultModifierFiguresKey,
         kDefaultMeanwhileSideFiguresKey,
         kDefaultDanceFormKey,
+        kLastUsedDanceFormKey,
         kDefaultDanceFormationShapeKey,
         kDefaultDancePhraseStructureKey,
         kDefaultDanceProgressionKey,
@@ -39,6 +40,12 @@ import 'display_defaults.dart'
         kLastUsedProgramSortKey,
         tryDecodeDefaultImportTagNames,
         tryDecodeStartingProgramTemplate;
+import 'dialect_library_controller.dart'
+    show
+        kActiveDialectRefEcdKey,
+        kActiveDialectRefSquareKey,
+        kCustomDialectsEcdKey,
+        kCustomDialectsSquareKey;
 import 'formation_colors_controller.dart' show kFormationColorOverridesKey;
 import 'locale_scope.dart' show kLocaleKey;
 import 'mark_all_sets_status_scope.dart' show kMarkAllSetsStatusKey;
@@ -62,6 +69,8 @@ import 'shorthand_mappings_controller.dart'
         kUserFigureShorthandsKey;
 import 'soft_delete_retention.dart' show kSoftDeleteRetentionKey;
 import 'verbose_figure_rendering_scope.dart' show kVerboseFigureRenderingKey;
+import 'undo_prompt_duration_scope.dart'
+    show kUndoPromptSecondsKey, undoPromptSecondsFromStored;
 import 'venue_call_count_scope.dart' show kVenueCallCountMax;
 import 'walkthrough_snippet_library_controller.dart'
     show kWalkthroughSnippetsKey;
@@ -99,6 +108,7 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
     kTrackHistoryForAllCallersKey,
     kAutoSizePerformKey,
     kShowIndividualPerformTimerKey,
+    kConfirmPerformExitKey,
     kShowProgramSlotCallerNotesKey,
     kAutoCommitProgramChangesKey,
     kPerformStageModeKey,
@@ -161,6 +171,7 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
     kLastUsedProgramSortDirectionKey,
     kDefaultDanceDetailRenderingKey,
     kDefaultDanceFormKey,
+    kLastUsedDanceFormKey,
     kDefaultDanceFormationShapeKey,
     kDefaultDancePhraseStructureKey,
     kDefaultDanceProgressionKey,
@@ -171,6 +182,11 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
     // off / weekly / monthly; `backupReminderCadenceFromStored` rejects any
     // other token and falls back to off.
     kBackupReminderCadenceKey,
+    // The name of another dance form's active dialect. Contra's travels in
+    // the structured `app.dialects` section instead; the other forms' travel
+    // as ordinary settings, so a backup needed no new section for them.
+    kActiveDialectRefEcdKey,
+    kActiveDialectRefSquareKey,
   ])
     key: _isString,
 
@@ -191,11 +207,18 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
   // negative or non-int value is rejected so it can't silently alter purging.
   kSoftDeleteRetentionKey: _isNonNegativeInt,
   kVenueCallCountKey: _isVenueCallCount,
+  // Seconds the Undo prompt stays, or 0 for "until I close it": only a value
+  // Settings offers, so a restore cannot set a duration the picker cannot show.
+  kUndoPromptSecondsKey: _isUndoPromptSeconds,
 
   // Structured container blobs. Their controllers decode the CONTENTS
   // defensively (skipping bad entries), so here we only enforce the outer
   // container kind that each decoder expects.
   kWalkthroughSnippetsKey: _isMap,
+  // Another dance form's custom dialects, a JSON list the library decodes
+  // entry by entry (DialectLibraryController.load).
+  kCustomDialectsEcdKey: _isList,
+  kCustomDialectsSquareKey: _isList,
   kFormationColorOverridesKey: _isMap,
   // Shorthand mappings persist as a JSON list; the decoder also tolerates a raw
   // JSON string, so accept either and let it validate entries.
@@ -237,6 +260,8 @@ bool _isValidDefaultImportTagNames(Object? v) =>
 bool _isValidStartingProgramTemplate(Object? v) =>
     tryDecodeStartingProgramTemplate(v) != null;
 bool _isNonNegativeInt(Object? v) => v is int && v >= 0;
+bool _isUndoPromptSeconds(Object? v) =>
+    v is int && undoPromptSecondsFromStored(v) == v;
 bool _isVenueCallCount(Object? v) =>
     v is int && v >= 0 && v <= kVenueCallCountMax;
 bool _isValidPerformScale(Object? v) =>

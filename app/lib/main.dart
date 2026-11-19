@@ -30,6 +30,7 @@ import 'src/data/collection_facets_scope.dart';
 import 'src/data/collection_tile_fields_scope.dart';
 import 'src/data/dance_share_fields_scope.dart';
 import 'src/data/confirm_before_delete_scope.dart';
+import 'src/data/undo_prompt_duration_scope.dart';
 import 'src/data/contradb_online.dart';
 import 'src/data/custom_themes_controller.dart';
 import 'src/data/custom_themes_scope.dart';
@@ -118,6 +119,7 @@ import 'src/screens/settings_screen.dart'
         kTrackHistoryForAllCallersKey,
         kVenueCallCountKey,
         kVenueEntityModeKey;
+import 'src/theme/app_motion.dart';
 import 'src/theme/app_theme.dart';
 import 'src/app_metadata.dart';
 import 'src/sync/sync_controller.dart';
@@ -137,6 +139,7 @@ import 'src/widgets/app_menu_bar.dart';
 import 'src/widgets/app_shortcuts.dart';
 import 'src/widgets/command_palette.dart';
 import 'src/widgets/ecd_convert_prompt_dialog.dart';
+import 'src/widgets/focus_ring_layer.dart';
 import 'src/widgets/online_import_dialogs.dart';
 import 'src/widgets/online_import_snack_bar.dart';
 
@@ -550,8 +553,8 @@ class _CompendiumAppState extends State<CompendiumApp>
   /// forwards to the repository.
   final ValueNotifier<DerivedRebuildProgress?> _derivedRebuildProgress =
       ValueNotifier<DerivedRebuildProgress?>(null);
-  final ValueNotifier<Dialect> _dialectNotifier = ValueNotifier(
-    Dialect.larksRobins,
+  final ValueNotifier<DialectsByForm> _dialectNotifier = ValueNotifier(
+    DialectsByForm.defaults,
   );
   final _themeNotifier = PreferenceNotifier<AppThemeSelection>(
     key: kAppThemeKey,
@@ -712,6 +715,12 @@ class _CompendiumAppState extends State<CompendiumApp>
     decode: (Object? v) => v is bool ? v : false,
     encode: (v) => v,
   );
+  final _undoPromptSecondsNotifier = PreferenceNotifier<int>(
+    key: kUndoPromptSecondsKey,
+    defaultValue: kUndoPromptDefaultSeconds,
+    decode: undoPromptSecondsFromStored,
+    encode: (v) => v,
+  );
   final _venueEntityModeNotifier = PreferenceNotifier<bool>(
     key: kVenueEntityModeKey,
     defaultValue: false,
@@ -809,7 +818,7 @@ class _CompendiumAppState extends State<CompendiumApp>
       CollectionFilterController();
   late CustomThemesController _customThemes;
   late FormationColorsController _formationColors;
-  late DialectLibraryController _dialectLibrary;
+  late DialectLibraries _dialectLibrary;
 
   /// Owns the user's shorthand → figure(s) mappings (issue #420), consulted by
   /// the free-text entry path. Loaded during bootstrap; exposed via
@@ -961,7 +970,7 @@ class _CompendiumAppState extends State<CompendiumApp>
   /// close. Failing that, a page leaves through [NavigatorState.maybePop],
   /// which consults its `PopScope` exactly as the system back gesture does, so
   /// an editor with unsaved changes asks first and Perform asks before it
-  /// closes. A dialog that does not close on a tap outside stays: it is
+  /// closes unless its confirmation is turned off. A dialog that does not close on a tap outside stays: it is
   /// waiting for an answer.
   void _goBack() {
     final focused = FocusManager.instance.primaryFocus?.context;
@@ -1073,10 +1082,10 @@ class _CompendiumAppState extends State<CompendiumApp>
     _formationColors = FormationColorsController(
       _appData.repositories.settings,
     );
-    // The dialect library owns dialect state; the active dialect flows out
-    // through [_dialectNotifier] (read by every existing ActiveDialectScope
-    // consumer) via [_syncActiveDialect], so the rest of the app is unchanged.
-    _dialectLibrary = DialectLibraryController(
+    // The dialect libraries (one per dance form) own dialect state; each
+    // form's active dialect flows out through [_dialectNotifier] (read by every
+    // ActiveDialectScope consumer) via [_syncActiveDialect].
+    _dialectLibrary = DialectLibraries(
       _appData.repositories.settings,
       programs: _appData.repositories.programs,
     );
@@ -1376,6 +1385,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     _callingCardSettingsNotifier,
     _aggressiveBeatsUpdateNotifier,
     _confirmBeforeDeleteNotifier,
+    _undoPromptSecondsNotifier,
     _venueEntityModeNotifier,
     _autoCommitProgramChangesNotifier,
     _colourDanceThemeNotifier,
@@ -1398,7 +1408,7 @@ class _CompendiumAppState extends State<CompendiumApp>
   ];
 
   void _resetAppPreferenceNotifiers() {
-    _dialectNotifier.value = Dialect.larksRobins;
+    _dialectNotifier.value = DialectsByForm.defaults;
     for (final p in _preferences) {
       p.reset();
     }
@@ -1441,7 +1451,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     }
   }
 
-  /// Mirrors the library's resolved active dialect into [_dialectNotifier] so
+  /// Mirrors each form's resolved active dialect into [_dialectNotifier] so
   /// every `ActiveDialectScope` consumer sees changes live.
   void _syncActiveDialect() {
     _dialectNotifier.value = _dialectLibrary.active;
@@ -1660,6 +1670,7 @@ class _CompendiumAppState extends State<CompendiumApp>
           key: ValueKey('incoming-dance-preview-loading'),
         ),
       ),
+      animationStyle: AppMotion.styleFor(navContext),
     );
 
     late OnlinePreview preview;
@@ -1827,6 +1838,7 @@ class _CompendiumAppState extends State<CompendiumApp>
           ],
         ),
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     // A dismissed dialog (blocked above, but belt-and-braces) is the safe
     // default: decline, so the guard fails closed.
@@ -2107,8 +2119,9 @@ class _CompendiumAppState extends State<CompendiumApp>
   /// pass carries them and a reload after one has nothing to refresh there.
   Future<void> _loadPreferences({bool includeDeviceState = true}) async {
     // Phase 1: read everything.
-    // Load the persisted dialect library (custom dialects + active-name ref),
-    // migrating any legacy single-dialect blob one time. A failure leaves the
+    // Load every dance form's dialect library (custom dialects + active-name
+    // ref), migrating any legacy single-dialect blob one time and renaming a
+    // dialect whose name is gendered. A failure leaves the
     // Larks/Robins default; it is logged because the load can also write.
     await _guardedControllerLoad(
       'startup.dialect_library_load',
@@ -2172,7 +2185,8 @@ class _CompendiumAppState extends State<CompendiumApp>
   /// everything before it changes state — so a failure leaves the controller
   /// exactly as it was (its defaults at startup, its pre-restore state on a
   /// restore), never a mix. Logged, not silent: some loads also write (the
-  /// dialect library's first-run migration), and a swallowed write failure
+  /// dialect library's first-run migration and gendered-name renames), and a
+  /// swallowed write failure
   /// should still be diagnosable.
   Future<void> _guardedControllerLoad(
     String source,
@@ -2247,6 +2261,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     _callingCardSettingsNotifier.dispose();
     _aggressiveBeatsUpdateNotifier.dispose();
     _confirmBeforeDeleteNotifier.dispose();
+    _undoPromptSecondsNotifier.dispose();
     _venueEntityModeNotifier.dispose();
     _autoCommitProgramChangesNotifier.dispose();
     _colourDanceThemeNotifier.dispose();
@@ -2368,6 +2383,7 @@ class _CompendiumAppState extends State<CompendiumApp>
             ),
           ],
         ),
+        animationStyle: AppMotion.styleFor(context),
       );
       return; // Snapshot failed: do NOT wipe.
     }
@@ -2411,6 +2427,7 @@ class _CompendiumAppState extends State<CompendiumApp>
           ],
         ),
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (confirmed != true) return;
 
@@ -2451,6 +2468,7 @@ class _CompendiumAppState extends State<CompendiumApp>
           ],
         ),
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (confirmed != true) return;
 
@@ -2546,6 +2564,7 @@ class _CompendiumAppState extends State<CompendiumApp>
                 ),
               ],
             ),
+            animationStyle: AppMotion.styleFor(context),
           );
           unawaited(dialog);
         }
@@ -2837,7 +2856,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     (child) => AppThemeScope(notifier: _themeNotifier, child: child),
     (child) => CustomThemesScope(controller: _customThemes, child: child),
     (child) => FormationColorsScope(controller: _formationColors, child: child),
-    (child) => DialectLibraryScope(controller: _dialectLibrary, child: child),
+    (child) => DialectLibraryScope(libraries: _dialectLibrary, child: child),
     (child) =>
         ShorthandMappingsScope(controller: _shorthandMappings, child: child),
     (child) => UserFiguresScope(controller: _userFigures, child: child),
@@ -2845,7 +2864,8 @@ class _CompendiumAppState extends State<CompendiumApp>
       controller: _walkthroughSnippets,
       child: child,
     ),
-    (child) => ActiveDialectScope(notifier: _dialectNotifier, child: child),
+    (child) =>
+        ActiveDialectScope.byForm(dialects: _dialectNotifier, child: child),
     (child) => RequirePerformedForHistoryScope(
       notifier: _requirePerformedForHistoryNotifier,
       child: child,
@@ -2996,157 +3016,178 @@ class _CompendiumAppState extends State<CompendiumApp>
     // custom theme — and both are MaterialApp properties, so the MaterialApp
     // must rebuild when either changes. The locale is likewise a MaterialApp
     // property (drives `locale:`), so it joins the merge too.
-    return ListenableBuilder(
-      listenable: Listenable.merge([
-        _themeNotifier,
-        _customThemes,
-        _localeNotifier,
-        // `themeAnimationStyle` and the `MediaQuery` override below both read it.
-        _reduceMotionNotifier,
-      ]),
-      builder: (context, _) {
-        final selection = _themeNotifier.value;
-        final activeCustom = _customThemes.active;
-        // Wiring cases (`ux-modernization.md` §4 / §4A / §4B):
-        //  • custom active — a locally-saved custom theme wins over the
-        //                    built-in selection; pin its scheme into both slots.
-        //  • system        — follow the OS via themeMode, Hearth light/dark.
-        //  • highContrast  — force the outline-driven HC theme into both slots.
-        //  • pinned        — any other built-in selection pins one concrete
-        //                    scheme into both slots.
-        final ThemeData lightTheme;
-        final ThemeData darkTheme;
-        final ThemeMode themeMode;
-        if (activeCustom != null) {
-          final pinned = AppTheme.fromScheme(activeCustom.toScheme());
-          lightTheme = pinned;
-          darkTheme = pinned;
-          themeMode = activeCustom.themeMode;
-        } else {
-          themeMode = selection.themeMode;
-          if (selection == AppThemeSelection.system) {
-            lightTheme = AppTheme.light;
-            darkTheme = AppTheme.dark;
-          } else if (selection.isHighContrast) {
-            lightTheme = AppTheme.highContrast;
-            darkTheme = AppTheme.highContrast;
-          } else {
-            final pinned = AppTheme.fromScheme(selection.scheme!);
+    // Above MaterialApp, not among the scopes folded into its builder: the
+    // Undo prompt reads it from the ScaffoldMessenger's context, and
+    // MaterialApp builds its ScaffoldMessenger above the builder.
+    return UndoPromptDurationScope(
+      notifier: _undoPromptSecondsNotifier,
+      child: ListenableBuilder(
+        listenable: Listenable.merge([
+          _themeNotifier,
+          _customThemes,
+          _localeNotifier,
+          // `themeAnimationStyle` and the `MediaQuery` override below both read it.
+          _reduceMotionNotifier,
+        ]),
+        builder: (context, _) {
+          final selection = _themeNotifier.value;
+          final activeCustom = _customThemes.active;
+          // Wiring cases (`ux-modernization.md` §4 / §4A / §4B):
+          //  • custom active — a locally-saved custom theme wins over the
+          //                    built-in selection; pin its scheme into both slots.
+          //  • system        — follow the OS via themeMode, Hearth light/dark.
+          //  • highContrast  — force the outline-driven HC theme into both slots.
+          //  • pinned        — any other built-in selection pins one concrete
+          //                    scheme into both slots.
+          final ThemeData lightTheme;
+          final ThemeData darkTheme;
+          final ThemeMode themeMode;
+          if (activeCustom != null) {
+            final pinned = AppTheme.fromScheme(activeCustom.toScheme());
             lightTheme = pinned;
             darkTheme = pinned;
+            themeMode = activeCustom.themeMode;
+          } else {
+            themeMode = selection.themeMode;
+            if (selection == AppThemeSelection.system) {
+              lightTheme = AppTheme.light;
+              darkTheme = AppTheme.dark;
+            } else if (selection.isHighContrast) {
+              lightTheme = AppTheme.highContrast;
+              darkTheme = AppTheme.highContrast;
+            } else {
+              final pinned = AppTheme.fromScheme(selection.scheme!);
+              lightTheme = pinned;
+              darkTheme = pinned;
+            }
           }
-        }
 
-        return MaterialApp(
-          onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
-          locale: _localeNotifier.value,
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          localeListResolutionCallback: (locales, supported) =>
-              resolveSystemLocale(locales, supported),
-          scrollBehavior: const AppScrollBehavior(),
-          navigatorKey: _navigatorKey,
-          navigatorObservers: [_performObserver],
-          scaffoldMessengerKey: _messengerKey,
-          // Replacing these drops Flutter's defaults (arrows, Escape, …), so
-          // spread them back in.
-          // Esc in [appShortcuts] replaces the default's binding; see
-          // [_goBack].
-          shortcuts: {
-            ...WidgetsApp.defaultShortcuts,
-            ...searchShortcuts,
-            ...appShortcuts,
-          },
-          actions: {
-            ...WidgetsApp.defaultActions,
-            OpenSearchIntent: CallbackAction<OpenSearchIntent>(
-              onInvoke: (_) {
-                _openGlobalSearch();
-                return null;
-              },
-            ),
-            // No root action for [SaveIntent]: only an editor saves.
-            NewDanceIntent: _shellCommand<NewDanceIntent>((s) => s.newDance()),
-            ImportDancesIntent: _shellCommand<ImportDancesIntent>(
-              (s) => s.importDances(),
-            ),
-            OpenSettingsIntent: _shellCommand<OpenSettingsIntent>(
-              (s) => s.showSettings(),
-            ),
-            OpenGuideIntent: _shellCommand<OpenGuideIntent>(
-              (s) => s.showGuide(),
-            ),
-            FocusSearchIntent: _shellCommand<FocusSearchIntent>(
-              (s) => s.focusSearch(),
-            ),
-            GoBackIntent: CallbackAction<GoBackIntent>(
-              onInvoke: (_) {
-                _goBack();
-                return null;
-              },
-            ),
-            _DismissProbe: _DismissProbeAction(_dismissProbes),
-          },
-          theme: lightTheme,
-          darkTheme: darkTheme,
-          highContrastTheme: AppTheme.highContrast,
-          highContrastDarkTheme: AppTheme.highContrast,
-          themeMode: themeMode,
-          // The in-app Reduce motion switch, when set, wins over the OS in both
-          // directions. Flutter's own `AnimationController`s read the OS flag
-          // from the platform, not from `MediaQuery`, so what this can reach is
-          // the theme cross-fade (an explicit "on" turns it off here; with the
-          // switch unset the framework already follows the OS) and everything
-          // that reads `MediaQuery.disableAnimations`, such as animated images.
-          themeAnimationStyle: _reduceMotionNotifier.value == true
-              ? AnimationStyle.noAnimation
-              : null,
-          builder: (context, child) {
-            // The data layer opens native file dialogs without a context; give
-            // it the strings for the language now showing.
-            FileDialogLabels.bind(AppLocalizations.of(context));
-            final override = _reduceMotionNotifier.value;
-            final scoped = _appScopeWrappers().reversed.fold<Widget>(
-              child!,
-              (inner, wrap) => wrap(inner),
-            );
-            // Always present, so the tree keeps one shape whatever the switch says.
-            final media = MediaQuery.of(context);
-            final app = MediaQuery(
-              data: override == null
-                  ? media
-                  : media.copyWith(disableAnimations: override),
-              // Inside the override, so the closing overlay sees the in-app
-              // Reduce motion switch and shows a still icon for its spinner.
-              child: AppClosingOverlay(
-                closing: _closingNotifier,
-                child: Listener(
-                  // A mouse's Back button goes back, as Esc does (PLAT-7).
-                  // Desktop only: Android also turns that button into its
-                  // system back, which would go back a second time.
-                  onPointerDown: (event) {
-                    if (_isDesktop &&
-                        event.kind == PointerDeviceKind.mouse &&
-                        event.buttons & kBackMouseButton != 0) {
-                      _goBack();
-                    }
-                  },
-                  child: scoped,
-                ),
+          ThemeData reduceMotion(ThemeData theme) =>
+              _reduceMotionNotifier.value == true
+              ? AppTheme.withoutMotion(theme)
+              : theme;
+
+          return MaterialApp(
+            onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
+            locale: _localeNotifier.value,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            localeListResolutionCallback: (locales, supported) =>
+                resolveSystemLocale(locales, supported),
+            scrollBehavior: const AppScrollBehavior(),
+            navigatorKey: _navigatorKey,
+            navigatorObservers: [_performObserver],
+            scaffoldMessengerKey: _messengerKey,
+            // Replacing these drops Flutter's defaults (arrows, Escape, …), so
+            // spread them back in.
+            // Esc in [appShortcuts] replaces the default's binding; see
+            // [_goBack].
+            shortcuts: {
+              ...WidgetsApp.defaultShortcuts,
+              ...searchShortcuts,
+              ...appShortcuts,
+            },
+            actions: {
+              ...WidgetsApp.defaultActions,
+              OpenSearchIntent: CallbackAction<OpenSearchIntent>(
+                onInvoke: (_) {
+                  _openGlobalSearch();
+                  return null;
+                },
               ),
-            );
-            return widget.installPlatformMenuBar ? AppMenuBar(child: app) : app;
-          },
-          home: AppBootstrap(
-            future: _bootstrap,
-            onRetry: _retry,
-            onBackUpAndReset: _backUpAndReset,
-            onResetOnly: _resetOnly,
-            builder: _buildReadyApp,
-            rebuildProgress: _derivedRebuildProgress,
-          ),
-        );
-      },
+              // No root action for [SaveIntent]: only an editor saves.
+              NewDanceIntent: _shellCommand<NewDanceIntent>(
+                (s) => s.newDance(),
+              ),
+              ImportDancesIntent: _shellCommand<ImportDancesIntent>(
+                (s) => s.importDances(),
+              ),
+              OpenSettingsIntent: _shellCommand<OpenSettingsIntent>(
+                (s) => s.showSettings(),
+              ),
+              OpenGuideIntent: _shellCommand<OpenGuideIntent>(
+                (s) => s.showGuide(),
+              ),
+              FocusSearchIntent: _shellCommand<FocusSearchIntent>(
+                (s) => s.focusSearch(),
+              ),
+              GoBackIntent: CallbackAction<GoBackIntent>(
+                onInvoke: (_) {
+                  _goBack();
+                  return null;
+                },
+              ),
+              _DismissProbe: _DismissProbeAction(_dismissProbes),
+            },
+            // With the in-app Reduce motion switch on, every theme slot drops
+            // page transitions and the expansion-tile animation.
+            // The OS setting needs no help here: route and expansion
+            // controllers already shorten themselves when the platform asks.
+            theme: reduceMotion(lightTheme),
+            darkTheme: reduceMotion(darkTheme),
+            highContrastTheme: reduceMotion(AppTheme.highContrast),
+            highContrastDarkTheme: reduceMotion(AppTheme.highContrast),
+            themeMode: themeMode,
+            // The in-app Reduce motion switch, when set, wins over the OS in both
+            // directions. Flutter's own `AnimationController`s read the OS flag
+            // from the platform, not from `MediaQuery`, so what this can reach is
+            // the theme cross-fade (an explicit "on" turns it off here; with the
+            // switch unset the framework already follows the OS) and everything
+            // that reads `MediaQuery.disableAnimations`, such as animated images.
+            themeAnimationStyle: _reduceMotionNotifier.value == true
+                ? AnimationStyle.noAnimation
+                : null,
+            builder: (context, child) {
+              // The data layer opens native file dialogs without a context; give
+              // it the strings for the language now showing.
+              FileDialogLabels.bind(AppLocalizations.of(context));
+              final override = _reduceMotionNotifier.value;
+              final scoped = _appScopeWrappers().reversed.fold<Widget>(
+                child!,
+                (inner, wrap) => wrap(inner),
+              );
+              // Always present, so the tree keeps one shape whatever the switch says.
+              final media = MediaQuery.of(context);
+              final app = MediaQuery(
+                data: override == null
+                    ? media
+                    : media.copyWith(disableAnimations: override),
+                // Inside the override, so the closing overlay sees the in-app
+                // Reduce motion switch and shows a still icon for its spinner.
+                child: AppClosingOverlay(
+                  closing: _closingNotifier,
+                  child: Listener(
+                    // A mouse's Back button goes back, as Esc does (PLAT-7).
+                    // Desktop only: Android also turns that button into its
+                    // system back, which would go back a second time.
+                    onPointerDown: (event) {
+                      if (_isDesktop &&
+                          event.kind == PointerDeviceKind.mouse &&
+                          event.buttons & kBackMouseButton != 0) {
+                        _goBack();
+                      }
+                    },
+                    // Above every route, so dialogs and sheets get the ring
+                    // too.
+                    child: FocusRingLayer(child: scoped),
+                  ),
+                ),
+              );
+              return widget.installPlatformMenuBar
+                  ? AppMenuBar(child: app)
+                  : app;
+            },
+            home: AppBootstrap(
+              future: _bootstrap,
+              onRetry: _retry,
+              onBackUpAndReset: _backUpAndReset,
+              onResetOnly: _resetOnly,
+              builder: _buildReadyApp,
+              rebuildProgress: _derivedRebuildProgress,
+            ),
+          );
+        },
+      ),
     );
   }
 }

@@ -35,13 +35,30 @@ class MatrixColumnEditorScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    // An Undo of a column delete can run after this screen has closed, so
+    // edits persist through the root navigator's context: the app mounts its
+    // scopes above the navigator, and that context stays mounted for as long
+    // as the app runs. A host that mounts the scopes below the navigator (a
+    // focused widget test) keeps this screen's own context.
+    final rootContext = Navigator.of(context, rootNavigator: true).context;
+    final appContext =
+        ProgramMatrixColumnConfigScope.maybeNotifierOf(rootContext) != null &&
+            rootContext.getInheritedWidgetOfExactType<RepositoriesScope>() !=
+                null
+        ? rootContext
+        : context;
     return Scaffold(
       appBar: AppBar(title: Text(l10n.settingsMatrixColumnsHeader)),
       body: SafeArea(
         child: MatrixColumnEditor(
           config: ProgramMatrixColumnConfigScope.of(context),
-          dialect: ActiveDialectScope.of(context),
-          onConfigChanged: (config) => _persist(context, config),
+          dialect: ActiveDialectScope.contraOf(context),
+          onConfigChanged: (config) => _persist(appContext, config),
+          currentConfig: () =>
+              ProgramMatrixColumnConfigScope.maybeNotifierOf(
+                appContext,
+              )?.value ??
+              MatrixColumnConfig.empty,
           userFigures: UserFiguresScope.shownCatalogOf(context),
         ),
       ),

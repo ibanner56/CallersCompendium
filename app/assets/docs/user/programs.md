@@ -21,7 +21,7 @@ lay of the land first. To fill your library before you build a program, see
 
 Open **Programs** to see the programs you have built. It starts with a short
 prompt and a **New program** button until you make your first one. Once you
-have programs, a strip across the top shows the current week, with a dot on
+have programs, **New program** floats at the bottom of the list, and a strip across the top shows the current week, with a dot on
 each day that has a program's event date; to choose which day the week starts
 on, see [Settings › Language & region](./settings.md#formats).
 
@@ -30,7 +30,7 @@ status label (**Draft**, **Finalized**, or **Performed**). The dance count is
 the number of dances the evening is planned for, so alternates and breaks are
 not counted; a free-text slot such as a waltz counts, because it stands in for
 a dance. The same count appears in the builder beside **Slots**, in the
-summary's **Set list** heading, and on the **Add to program** sheet. Use the sort button to order the list by **Title**, **Recently
+summary's **Set list** heading, and on the **Add to program** sheet. Once there is a program, use the sort button to order the list by **Title**, **Recently
 updated**, or **Event date**, and the arrow beside it to flip the direction. To choose which sort and
 direction the list opens with, see
 [Settings › Defaults](./settings.md#display-defaults).
@@ -145,7 +145,8 @@ If it can't reach the archives (you're offline, or the connection hangs), it
 title as not found; try again once you're online.
 
 The dances it imports are added to your collection straight away, so the
-preview can link them. If you leave the screen without pressing **Import**, they
+preview can link them. If you go back with a title or a list pasted in, the app asks
+before discarding it. If you leave the screen without pressing **Import**, they
 are removed again, and so is anything it was still looking up.
 
 ### Import a program from ContraDB
@@ -160,6 +161,9 @@ flow:
   choose **Fetch program**.
 - **Search by name** — type part of a program's name and pick it from the
   results.
+
+If you go back with a link, a search or a fetched program on screen (including
+a link opened from elsewhere), the app asks before discarding it.
 
 When you search, the app marks programs you've likely already brought in, so
 repeat imports are easy to spot:
@@ -236,7 +240,8 @@ you close them.
 
 ### Save your program
 
-Choose **Save** at the bottom of the **Build** tab to keep your changes. On a
+Choose **Save** at the end of the top bar to keep your changes; it is there
+while you're on the **Build** tab. On a phone it shows as a check mark. On a
 computer, **Ctrl-S** (**Cmd-S** on a Mac) does the same while you're on the
 **Build** tab. A program needs a title before it can be saved. If you leave
 the builder with changes you haven't saved, the app asks **Discard changes?**:
@@ -369,7 +374,9 @@ A program carries the details of its event:
   the PDF, and exported set lists while the builder still shows every slot; and
 - **Perform dialect**, the [dialect](./dialects.md#give-a-program-its-own-dialect)
   [Perform mode](./glossary.md#perform-mode) uses for this program. Leave it on
-  **Use app dialect** to follow your active dialect. It affects Perform only: the
+  **Use app dialect** to follow your active dialect. Each dance uses the dialect
+  of that name from its own type, or that type's active dialect if the type has
+  none by that name. It affects Perform only: the
   editor, the summary, the PDF, and exports keep your active dialect, and a
   program file you share leaves it out.
 
@@ -549,7 +556,8 @@ A compound column adds to the matrix rather than taking anything away: the
 figures in the run still show in their own columns too. It marks presence only,
 and it never raises the alert marker. You can reorder, rename, remove, edit, or
 delete compound columns alongside the others, and they appear the same on
-screen and in the PDF.
+screen and in the PDF. Deleting a compound or parameterized column offers
+**Undo**, which brings back its place, name and hiding too.
 
 ## Print, export, and email a program
 
@@ -627,7 +635,8 @@ editor or on a saved program's summary; it offers a one-tap **Undo**. On a
 phone, or wherever the summary pane is narrow, it is in the **More actions** (⋮)
 menu, with **Duplicate**, **Archive** and **Delete**. On a program's own screen these
 actions (and **Export**) are in the top bar, beside the title "Program"; the
-program's name is on its own line below it. Mark all performed skips alternates,
+program's name is on its own line below it, and **Edit program** floats at the
+bottom of the screen. Mark all performed skips alternates,
 and so does setting a program's status to **Performed**: mark the alternates you
 used yourself.
 

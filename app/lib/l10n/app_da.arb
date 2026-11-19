@@ -1280,9 +1280,13 @@
   "@settingsSyncDeviceWaiting": {
     "x-sourceSha256": "95b500fa9476a659caa02623419394239d7e50a8ff5311d7d9e7a355db42c042"
   },
-  "settingsSyncDevicesEmpty": "Der er ingen andre enheder forbundet til dette lager.",
-  "@settingsSyncDevicesEmpty": {
-    "x-sourceSha256": "f56e6ab00b608c84434889f700c88b081f2e83a805da979cc33f524f9e2739d2"
+  "settingsSyncDevicesEmptyTitle": "Ingen andre enheder endnu",
+  "@settingsSyncDevicesEmptyTitle": {
+    "x-sourceSha256": "32006c475c7e11b413b568a603dbfa2ba47d52af540022e1174dfc99554a5879"
+  },
+  "settingsSyncDevicesEmptyBody": "Andre enheder, der er forbundet til dette lager, vises her.",
+  "@settingsSyncDevicesEmptyBody": {
+    "x-sourceSha256": "4a236f6399c6d707a0fd7219f770c446e94d445c477612d97e7b67e1268b0ce9"
   },
   "settingsSyncDevicesFailed": "Enhedslisten kunne ikke indlæses. Tjek din forbindelse, og prøv igen.",
   "@settingsSyncDevicesFailed": {
@@ -1668,9 +1672,9 @@
   "@settingsAboutLicenseHeader": {
     "x-sourceSha256": "c011d6097bfbc8e936280addcf2e3e7d06ea2223ffd596973191b800a7035c32"
   },
-  "settingsAboutLicenseBody": "Caller's Compendium er fri software, licenseret under GNU Affero General Public License, version 3 (AGPL-3.0). Du er fri til at bruge, studere, dele og ændre det under den licens. Da AGPL kræver det, tilbydes den komplette tilsvarende kildekode til alle, der bruger appen.",
+  "settingsAboutLicenseBody": "Caller's Compendium er fri software, licenseret under GNU Affero General Public License, version 3 (AGPL-3.0-only). Du er fri til at bruge, studere, dele og ændre det under den licens. Da AGPL kræver det, tilbydes den komplette tilsvarende kildekode til alle, der bruger appen.",
   "@settingsAboutLicenseBody": {
-    "x-sourceSha256": "7a39f225c21d8d53d985307708e02af9822329f77ab552941fa88ca412e49d5c"
+    "x-sourceSha256": "9fa6164da3b1321e88eef455f315af0b68837a3956b0fb7372dc8425399f0317"
   },
   "settingsAboutViewSourceTitle": "Se kildekode på GitHub",
   "@settingsAboutViewSourceTitle": {
@@ -1724,17 +1728,21 @@
   "@settingsAboutViewLicensesSubtitle": {
     "x-sourceSha256": "b51ca014dd24ebee0e49542abb6668cea7a4d4172f685b08cd2466c5c535f59a"
   },
-  "settingsAboutLegalese": "© The Caller's Compendium contributors. Licenseret under AGPL-3.0.",
+  "settingsAboutLegalese": "© The Caller's Compendium contributors. Licenseret under AGPL-3.0-only.",
   "@settingsAboutLegalese": {
-    "x-sourceSha256": "2ec5028215de5e8ca6715ed9932a7d7216128ae74290866e3c75cd90f4f82d53"
+    "x-sourceSha256": "e39c48759865f84cd54c945f5d5dbafde5ef2374714556eb8fd8e4255bf2f01b"
+  },
+  "settingsAboutTagline": "Din callers værktøjskasse i håndfladen",
+  "@settingsAboutTagline": {
+    "x-sourceSha256": "ab464ac61f0cd45dd2c18f6dcb875ebe5f59de7fd7fbafccdcf9874dc2c4af54"
   },
   "settingsAboutVersion": "Version {version}, “{codename}”",
   "@settingsAboutVersion": {
     "x-sourceSha256": "d7f0eb30563030d3528997697d6a1e1a7b90be868efb52da1a13b7d1ee7f299a"
   },
-  "settingsAboutVersionLine": "{appName} · Version {version}, “{codename}” · {license}",
+  "settingsAboutVersionLine": "{appName} · “{codename}” · {license}",
   "@settingsAboutVersionLine": {
-    "x-sourceSha256": "07bec657a3205ab861607172d0d2a1c6b0b861e18a596d00dec835e9cd2511fd"
+    "x-sourceSha256": "060fed61c59a6d71fac50dbd4c83e2af6c684fbc164a2f1ae44638bc1a3d6018"
   },
   "settingsUpdatesHeader": "Opdateringer",
   "@settingsUpdatesHeader": {
@@ -1880,6 +1888,10 @@
   "@settingsDialectHeader": {
     "x-sourceSha256": "f4792f7b616d4e24f07af28d2deea083621ce6a8e78fb83716e64c65078bc8d6"
   },
+  "settingsDialectFormHelper": "Hver dansetype har sine egne dialekter. Vælg en type for at se og indrette dens dialekter.",
+  "@settingsDialectFormHelper": {
+    "x-sourceSha256": "3a17283d31ad2e485ab73c03de6827bedf5104f4480f39819d560d985a0db663"
+  },
   "settingsDialectDanceDetailsHeader": "Dansedetaljer og forkortelser",
   "@settingsDialectDanceDetailsHeader": {
     "x-sourceSha256": "e57fecfc79262b31fc400248ab3c80ea51fc859e4314166c868c38db46d472e0"
@@ -1931,14 +1943,6 @@
   "settingsDialectDuplicateToCustomize": "Kopier for at tilpasse",
   "@settingsDialectDuplicateToCustomize": {
     "x-sourceSha256": "38e6ec3ccb117e6f2219f9b5c797f817517cad4a8a49a62a7dc610800b7e3abd"
-  },
-  "settingsDialectDeleteTitle": "Slet dialekt?",
-  "@settingsDialectDeleteTitle": {
-    "x-sourceSha256": "670220a9739cfe2072e0bece788c469adf6909434230eb4a194ce25b9338b023"
-  },
-  "settingsDialectDeleteConfirmBody": "„{name}“ fjernes permanent.",
-  "@settingsDialectDeleteConfirmBody": {
-    "x-sourceSha256": "1d5d8e93bb74d70ab97fe737fb2069d9ebeed30d083e70526f4e3207b13941a2"
   },
   "settingsDialectEditConflictSnack": "\"{name}\" blev omdøbt eller slettet, mens du redigerede den, så dine ændringer blev ikke gemt.",
   "@settingsDialectEditConflictSnack": {
@@ -2404,14 +2408,6 @@
   "@settingsAppearanceCustomThemesEmpty": {
     "x-sourceSha256": "95b8a0f6f3b5190ec400652935ba9981213e44fc2eacb56637799159e84c7d3f"
   },
-  "settingsAppearanceDeleteThemeTitle": "Slet tema?",
-  "@settingsAppearanceDeleteThemeTitle": {
-    "x-sourceSha256": "25231c611da05d6c4d224219a2be27440a7eeda9d838586da123871a0ae8b8d7"
-  },
-  "settingsAppearanceDeleteThemeBody": "„{name}“ fjernes permanent.",
-  "@settingsAppearanceDeleteThemeBody": {
-    "x-sourceSha256": "1d5d8e93bb74d70ab97fe737fb2069d9ebeed30d083e70526f4e3207b13941a2"
-  },
   "settingsAppearanceCustomThemeSemantic": "Brugerdefineret tema {name}",
   "@settingsAppearanceCustomThemeSemantic": {
     "x-sourceSha256": "93b476ef432c71cde30039464f04a6d6b21347e18705a9ba8a8972807a0f8fb1"
@@ -2688,6 +2684,10 @@
   "@settingsDefaultsFormSubtitle": {
     "x-sourceSha256": "19397876123939e7698c88d2e13ec41cc9cb1d5ce9f7b1d0a7dda2b5e38ba298"
   },
+  "settingsDefaultsFormLastUsed": "Senest brugt",
+  "@settingsDefaultsFormLastUsed": {
+    "x-sourceSha256": "830ec7f812f9d862250b61add10f9a078de67a3282dd9e94f60d64cec58eefec"
+  },
   "settingsDefaultsFormationTitle": "Formation",
   "@settingsDefaultsFormationTitle": {
     "x-sourceSha256": "49a63d72be2fc0e6aa6de315ca626d27816fe9d584a01484daa694221f1ef7e1"
@@ -2788,9 +2788,13 @@
   "@settingsAppearanceTagColoursSubtitle": {
     "x-sourceSha256": "fac4e606137946a7de38fe329f99b3f8135962e61129f97c732a423a8e988cf4"
   },
-  "settingsTagColoursEmpty": "Du har ikke oprettet nogen tags endnu. Tilføj et tag til en dans, så vises det her.",
-  "@settingsTagColoursEmpty": {
-    "x-sourceSha256": "c7febc58f1c97ff80948a88429355a4030c37a0f3e9aba3f65b312652d0d2c61"
+  "settingsTagColoursEmptyTitle": "Ingen tags endnu",
+  "@settingsTagColoursEmptyTitle": {
+    "x-sourceSha256": "b57d852b14d2e38612945e5dcf23300b0aa89204445807e5f383f4998583081c"
+  },
+  "settingsTagColoursEmptyBody": "Tilføj et tag til en dans, så vises det her.",
+  "@settingsTagColoursEmptyBody": {
+    "x-sourceSha256": "07ebb2bde2097613e4b8b97adf2fecc82040b392cc84919411f05e231260aaec"
   },
   "settingsTagColoursSaveError": "Farven kunne ikke gemmes. Prøv igen.",
   "@settingsTagColoursSaveError": {
@@ -2852,9 +2856,13 @@
   "@authorManagerNameLabel": {
     "x-sourceSha256": "d685a2cb040ed21b08f567b677691f66b65360a21c726a75769adfc5003f5b11"
   },
-  "authorManagerEmpty": "Ingen forfattere endnu. Forfattere, du krediterer på en dans, vises her.",
-  "@authorManagerEmpty": {
-    "x-sourceSha256": "f63be5621924387162fcb2f2337ab644b7e7a7513be0d62d84e67eb1850d91d7"
+  "authorManagerEmptyTitle": "Ingen forfattere endnu",
+  "@authorManagerEmptyTitle": {
+    "x-sourceSha256": "75d23d1484ae3f6d6e8ef8aaa5197b3620a19d4355875576269d85f13e06ddcd"
+  },
+  "authorManagerEmptyBody": "Forfattere, du angiver på en dans, vises her.",
+  "@authorManagerEmptyBody": {
+    "x-sourceSha256": "b34329476d24280955fe67598c1330188254c9fc523dcabc2453d2ac7ce26408"
   },
   "authorManagerLoadError": "Dine forfattere kunne ikke indlæses.",
   "@authorManagerLoadError": {
@@ -2876,9 +2884,13 @@
   "@sourceManagerTitleLabel": {
     "x-sourceSha256": "458fcd13ab87c5b272319876028d19b1f95c5b0ce0d741b4682b56b4b1073f9f"
   },
-  "sourceManagerEmpty": "Ingen kilder endnu. Bøger og websteder, du citerer på en dans, vises her.",
-  "@sourceManagerEmpty": {
-    "x-sourceSha256": "9a021b4606fe11125d54e533c8a0aa2558721897d2bf7677301767245b78071f"
+  "sourceManagerEmptyTitle": "Ingen kilder endnu",
+  "@sourceManagerEmptyTitle": {
+    "x-sourceSha256": "95be0e356dd984c3062bb84ba3cd14473a8b66fd7326c60a635a536bb8461083"
+  },
+  "sourceManagerEmptyBody": "Bøger og websteder, du citerer på en dans, vises her.",
+  "@sourceManagerEmptyBody": {
+    "x-sourceSha256": "328d237e03df4619b321362a36c2cfecff063eef096fa50d41e791f8203b9943"
   },
   "sourceManagerLoadError": "Dine kilder kunne ikke indlæses.",
   "@sourceManagerLoadError": {
@@ -3152,18 +3164,6 @@
   "@settingsMatrixColumnsParameterizedDelete": {
     "x-sourceSha256": "7994bc0925b189b9c13c938e0033b4e54116dfc13f0b1c2a3a3fe5200ac61c11"
   },
-  "settingsMatrixColumnsParameterizedDeleteTitle": "Slet parameteriseret kolonne?",
-  "@settingsMatrixColumnsParameterizedDeleteTitle": {
-    "x-sourceSha256": "2b4e4e65aa54f6d0964fe893dc508a355149a0555a674e0cc83c813527a1a8fb"
-  },
-  "settingsMatrixColumnsParameterizedDeleteBody": "Dette fjerner kolonnen og dens matchregler fra matrixen. Det kan ikke fortrydes.",
-  "@settingsMatrixColumnsParameterizedDeleteBody": {
-    "x-sourceSha256": "a8306396270aaffdc91b27aaaa13bcf8f059dba3cc0c00f72ca9baa6f8bac573"
-  },
-  "settingsMatrixColumnsParameterizedDeleteConfirm": "Slet kolonne",
-  "@settingsMatrixColumnsParameterizedDeleteConfirm": {
-    "x-sourceSha256": "837dbb2c66b1a90f46e7de1ea5b51e2da583a675dd6a3d4131dc2a7d44b0eaef"
-  },
   "settingsMatrixColumnsCompoundAdd": "Tilføj sammensat kolonne",
   "@settingsMatrixColumnsCompoundAdd": {
     "x-sourceSha256": "4d622803476d89e16f3fd2ff9833f4af49c048b9e9db21d1a7152ac5acb0f2bf"
@@ -3216,18 +3216,6 @@
   "@settingsMatrixColumnsCompoundDelete": {
     "x-sourceSha256": "5b58577782347f9594b07fb21cbdc6e9e8bb760cfb40940c20b31c86df9cfb11"
   },
-  "settingsMatrixColumnsCompoundDeleteTitle": "Slet sammensat kolonne?",
-  "@settingsMatrixColumnsCompoundDeleteTitle": {
-    "x-sourceSha256": "98831941b3740465659d3cc8318d4bdd24f9288e858ec211f9cf69cccf7def38"
-  },
-  "settingsMatrixColumnsCompoundDeleteBody": "Dette fjerner kolonnen og dens matchende sekvens fra matrixen. Det kan ikke fortrydes.",
-  "@settingsMatrixColumnsCompoundDeleteBody": {
-    "x-sourceSha256": "b1e004080248e7e1e2d07c1add004fd0dc616326cf6479d4557902be999c16d1"
-  },
-  "settingsMatrixColumnsCompoundDeleteConfirm": "Slet kolonne",
-  "@settingsMatrixColumnsCompoundDeleteConfirm": {
-    "x-sourceSha256": "837dbb2c66b1a90f46e7de1ea5b51e2da583a675dd6a3d4131dc2a7d44b0eaef"
-  },
   "settingsGeneralPerformanceHeader": "Performance",
   "@settingsGeneralPerformanceHeader": {
     "x-sourceSha256": "442aded87a55aa8c8f7d5ff0c30228150d4b1cb8756e4be138d615ca4708fc26"
@@ -3236,9 +3224,9 @@
   "@settingsGeneralAutoSizePerformTitle": {
     "x-sourceSha256": "c0bfd33d0a019dedc10bf06f44fe22d10462da2a9e4e1412d8167e5c8bfcb664"
   },
-  "settingsGeneralAutoSizePerformSubtitle": "Skalér hvert kort, så den fulde dans eller slot passer på skærmen uden at skulle rulle. Deaktiver for at angive størrelsen selv med A- / A+.",
+  "settingsGeneralAutoSizePerformSubtitle": "Skalér hvert kort, så det passer på skærmen, men aldrig mindre end din sædvanlige tekststørrelse: en længere dans eller slot ruller i stedet. Deaktiver for at angive størrelsen selv med A- / A+.",
   "@settingsGeneralAutoSizePerformSubtitle": {
-    "x-sourceSha256": "5fc58c7fdd31965d66905ccee7c0b386915c511918a7c617de33fdd92c66d0f0"
+    "x-sourceSha256": "374076544dee2c6b2dd1d60aa28c5ffa118b3d3d09d76c614a6649fa0cf89970"
   },
   "settingsShowIndividualPerformTimerTitle": "Vis timer til individuel Perform",
   "@settingsShowIndividualPerformTimerTitle": {
@@ -3247,6 +3235,14 @@
   "settingsShowIndividualPerformTimerSubtitle": "Vis den forløbne tid, mens du udfører en enkelt dans. Timeren starter, når den vises, og kan sættes på pause.",
   "@settingsShowIndividualPerformTimerSubtitle": {
     "x-sourceSha256": "c3f8f61c6df18fe8d4ce2b3aa7fd6b904e66b2f7874e047dee26af2c2ed7f46f"
+  },
+  "settingsConfirmPerformExitTitle": "Bekræft før du forlader Fremfør",
+  "@settingsConfirmPerformExitTitle": {
+    "x-sourceSha256": "51ffa9c62cf3c22d19a567ff271ae0a951733c579d3f370c4e9187bc1ccfd553"
+  },
+  "settingsConfirmPerformExitSubtitle": "Spørg, før lukkeknappen eller Tilbage fører dig ud af Fremfør. Slå det fra for at forlade med ét tryk; program-Fremfør husker din plads uanset hvad.",
+  "@settingsConfirmPerformExitSubtitle": {
+    "x-sourceSha256": "f026552392de593fd9a91c80a6eca88d57fa984ead2bf47f6f57d40afe17e90f"
   },
   "settingsShowProgramSlotCallerNotesTitle": "Vis callernoter i program-Perform",
   "@settingsShowProgramSlotCallerNotesTitle": {
@@ -3412,9 +3408,25 @@
   "@settingsGeneralConfirmBeforeDeleteTitle": {
     "x-sourceSha256": "e50478c6b6675dce9d50140c6e80675ac0ea226e32ec85afc5f9de7dfe2c8b1f"
   },
-  "settingsGeneralConfirmBeforeDeleteSubtitle": "Bed om bekræftelse inden sletning af en dans eller et program. Sletninger kan stadig fortrydes; dette tilføjer blot en eksplicit prompt først.",
+  "settingsGeneralConfirmBeforeDeleteSubtitle": "Spørg, før du sletter noget, der kan fortrydes. Sletninger, der ikke kan fortrydes, spørger altid først.",
   "@settingsGeneralConfirmBeforeDeleteSubtitle": {
-    "x-sourceSha256": "419e365a3cf53bc03a9f35dc1356ceef19d6904929d93ec0de5321c44bde3b6b"
+    "x-sourceSha256": "4eb85e1611e5dad6ee02310dffdc2920b14bc3a7ef89408aefd1d5129a8e219f"
+  },
+  "settingsGeneralUndoPromptTitle": "Fortryd-besked",
+  "@settingsGeneralUndoPromptTitle": {
+    "x-sourceSha256": "7f397daeec86ec261af3848f27c9d22fc72ea50ce0fd8e0569b97f7b18f8279b"
+  },
+  "settingsGeneralUndoPromptSubtitle": "Hvor længe Fortryd bliver på skærmen, efter du har slettet eller ændret noget. Den bliver også, mens du peger på den eller går til den med tastaturet.",
+  "@settingsGeneralUndoPromptSubtitle": {
+    "x-sourceSha256": "a7413035c721cf3d6997e91ef4a1752303c1a97eed468990f59020ff3b97686b"
+  },
+  "settingsGeneralUndoPromptSeconds": "{seconds, plural, =1{1 sekund} other{{seconds} sekunder}}",
+  "@settingsGeneralUndoPromptSeconds": {
+    "x-sourceSha256": "d8a703be939152a8a89055024319ae900c7817591652a4c19725dc4cd28b77a6"
+  },
+  "settingsGeneralUndoPromptUntilClosed": "Indtil jeg lukker den",
+  "@settingsGeneralUndoPromptUntilClosed": {
+    "x-sourceSha256": "3376640f07a8541c7288aac8d12fded80dd6c059a28849adebc5cb43bc48c8ef"
   },
   "settingsGeneralDeletedItemsHeader": "For nylig slettet",
   "@settingsGeneralDeletedItemsHeader": {
@@ -4132,6 +4144,50 @@
   "@commonFormationWithDetail": {
     "x-sourceSha256": "bd226738c03b5e1c1c546a7565e9d079875131e876c6c7de0b0c6d67bdc57fa6"
   },
+  "commonFormationDupleMinor": "Duple minor",
+  "@commonFormationDupleMinor": {
+    "x-sourceSha256": "ec819f10cae723dd71ea55af698cfc71d956c1ebdf3366074eeb97395eb29bd7"
+  },
+  "commonFormationThreeCoupleLongways": "Three-couple longways",
+  "@commonFormationThreeCoupleLongways": {
+    "x-sourceSha256": "7cf89ccb33a012ebb203315e428f03d695c9fd50c69c134b4ee3bc976a9f4e46"
+  },
+  "commonFormationFourCoupleLongways": "Four-couple longways",
+  "@commonFormationFourCoupleLongways": {
+    "x-sourceSha256": "b174a3f077161d4410854293557a85c3f7aca4a0cf3c89506f3cb304e9def87e"
+  },
+  "commonFormationFiveCoupleLongways": "Five-couple longways",
+  "@commonFormationFiveCoupleLongways": {
+    "x-sourceSha256": "861fb99a820b955b25722bf403a5cb2c200280930900bb3d976ca2db14027f3a"
+  },
+  "commonFormationSixCoupleLongways": "Six-couple longways",
+  "@commonFormationSixCoupleLongways": {
+    "x-sourceSha256": "c3982210cc39cec1bc80c2dcdfe172ed07f2387594c3153029da7822b3f8b427"
+  },
+  "commonFormationCircle": "Cirkel",
+  "@commonFormationCircle": {
+    "x-sourceSha256": "b93d3bcecff5d7493a58a41ea44f7196a46295f6512ebc06940510676a666384"
+  },
+  "commonFormationSquare": "Square",
+  "@commonFormationSquare": {
+    "x-sourceSha256": "c11092bc0861591e9ce5d9a97e83d4fae3c6954a318977865fa85f5b3eeafda8"
+  },
+  "commonFormationTwoCoupleSet": "Two-couple set",
+  "@commonFormationTwoCoupleSet": {
+    "x-sourceSha256": "6d447cfe75bf374cb8a1389a9df7a5156f54ebd30d3030bfb9cfa4eefc54a5d3"
+  },
+  "commonFormationImproperFlag": "{shape}, improper",
+  "@commonFormationImproperFlag": {
+    "x-sourceSha256": "8443520175c0e36958b3b0f7bbd2bfe374413c858a8a764014039e233c897bc0"
+  },
+  "danceEditorMeterLabel": "Taktart",
+  "@danceEditorMeterLabel": {
+    "x-sourceSha256": "2293b30e539a68427851a623737eb92b4dd7ecdc432f67e62dc2f550dd33a907"
+  },
+  "danceEditorMusicalKeyLabel": "Toneart",
+  "@danceEditorMusicalKeyLabel": {
+    "x-sourceSha256": "99a52df3ff3d499488e2fa28150c4106a2cb5e928891a830a9aa3922b2d32160"
+  },
   "commonMixedLevel": "Blandet niveau",
   "@commonMixedLevel": {
     "x-sourceSha256": "c76f62265cdc2f4c343ae17292b236551fe66a38bb839fec2218e365ca293316"
@@ -4147,6 +4203,10 @@
   "commonDeletedSnack": "„{title}“ slettet.",
   "@commonDeletedSnack": {
     "x-sourceSha256": "5f38a45b4a00f67a9d235d7065a8b3d2ecda59f0802d76dccfd504692fc36adb"
+  },
+  "commonCantBeUndone": "Det kan ikke fortrydes.",
+  "@commonCantBeUndone": {
+    "x-sourceSha256": "17ad35c384c68419f9fee9cc08687c47e418a995a1f9fd03ae2b2e71136c6f31"
   },
   "importGapMessage": "Kunne ikke genkende dette kald – beholdt præcis som skrevet som en ukendt figur.",
   "@importGapMessage": {
@@ -5268,10 +5328,6 @@
   "@programsNoLongerExists": {
     "x-sourceSha256": "653f7a4535912169dd16e30532e2a248cbf249eb88ff18a03d9fcf154dd98686"
   },
-  "programsFallbackTitle": "Program",
-  "@programsFallbackTitle": {
-    "x-sourceSha256": "90920d93e2c7e6323a947c6edb0e31a9702002e329af32a67fea53f221983cb0"
-  },
   "programsUntitledDanceFallback": "dans",
   "@programsUntitledDanceFallback": {
     "x-sourceSha256": "2c371c2ada73a02e26e14416800e8a49f875d27b8b5ff31f1dbe37bdaa6d7faa"
@@ -5754,9 +5810,13 @@
   "@programsSlotNoteFallback": {
     "x-sourceSha256": "d8da2c49df39d91df7ecd199b92da7bf264f026242ccc69b08daeadfe587c45b"
   },
-  "programsSlotEditorEmpty": "Ingen slots endnu. Tilføj en dans eller en note for at komme i gang.",
-  "@programsSlotEditorEmpty": {
-    "x-sourceSha256": "1591a8eb737e1ae69093f4aed66693852377cc2692dd1e41d74a84d8520ca821"
+  "programsSlotEditorEmptyTitle": "Ingen slots endnu",
+  "@programsSlotEditorEmptyTitle": {
+    "x-sourceSha256": "05c8dfd4d97ab5937e7b58dcd79b3fd9824cd8c95b6d8bdbaac0878835012af4"
+  },
+  "programsSlotEditorEmptyBody": "Tilføj en dans eller en note for at komme i gang.",
+  "@programsSlotEditorEmptyBody": {
+    "x-sourceSha256": "12ebd0ccad6baf42b8ddf27f8bbf1cb345e7fdb180053039140046b22d801a20"
   },
   "programsSlotMovedUp": "Slot flyttet op.",
   "@programsSlotMovedUp": {
@@ -6205,6 +6265,14 @@
   "performSlotPosition": "Slot {current} af {total}",
   "@performSlotPosition": {
     "x-sourceSha256": "28323c1441741396297f14b41af654cd27b5734ce4d41f3096bfe1a572d972eb"
+  },
+  "performProgramClockLabel": "Program",
+  "@performProgramClockLabel": {
+    "x-sourceSha256": "90920d93e2c7e6323a947c6edb0e31a9702002e329af32a67fea53f221983cb0"
+  },
+  "performSlotClockLabel": "Slot",
+  "@performSlotClockLabel": {
+    "x-sourceSha256": "79689782061dec13dc61a80c224f96c6443d61cdd6e50f7c8cace113ba74f761"
   },
   "performShowingSlot": "Viser {label}",
   "@performShowingSlot": {
@@ -8002,6 +8070,10 @@
   "@importReviewEditOverwriteBody": {
     "x-sourceSha256": "87c2b58d9ba05743231066492919a0091c15c3aabceb593e3d6a6f78624b81b4"
   },
+  "importReviewEditOverwriteConfirm": "Erstat",
+  "@importReviewEditOverwriteConfirm": {
+    "x-sourceSha256": "95e154398a4bc0091aa4d6b607472ac5a89e41fbc84a3a49f823314d6de9eebc"
+  },
   "importReviewEditReimportTitle": "Reimportér på den eksisterende dans nu?",
   "@importReviewEditReimportTitle": {
     "x-sourceSha256": "0ef9a017ae65f8bd0f7ca657bfb1ea8e3bae8ca0a57b4a9cfe4c4e142e01467d"
@@ -8222,21 +8294,17 @@
   "@settingsWalkthroughSnippetsDescription": {
     "x-sourceSha256": "a1649fa079a4a43041ca0a7ae4925476439d16feeec25c98aa730527b12abc3b"
   },
-  "settingsWalkthroughSnippetsEmpty": "Ingen gemte uddrag endnu. Tilføj gennemgangstrinbeskrivelser, mens du redigerer en dans' figurer.",
-  "@settingsWalkthroughSnippetsEmpty": {
-    "x-sourceSha256": "7048ea1a9940833a750759b0db497d4b18c2bac3f4b1af28b9976e4ee36d6bf5"
+  "settingsWalkthroughSnippetsEmptyTitle": "Ingen gemte uddrag endnu",
+  "@settingsWalkthroughSnippetsEmptyTitle": {
+    "x-sourceSha256": "2eaca46bb56a9a6e7160dc7c94814016d56ee4b524dfcc989ae6a3c23176a34b"
+  },
+  "settingsWalkthroughSnippetsEmptyBody": "Tilføj beskrivelser af gennemgangstrin, mens du redigerer en dans' figurer.",
+  "@settingsWalkthroughSnippetsEmptyBody": {
+    "x-sourceSha256": "3c5ac18eb708b647a15b8448fd0d681ea743f557bf1abb49724a0ce43e6685ee"
   },
   "settingsWalkthroughSnippetsCount": "{count, plural, =1{1 uddrag} other{{count} uddrag}}",
   "@settingsWalkthroughSnippetsCount": {
     "x-sourceSha256": "69ad021cf25f5c7b69ff8a939a4181e955ddf77b53fc3c7ceb4d17e4ca12d9ab"
-  },
-  "settingsWalkthroughSnippetDeleteTitle": "Slet uddrag?",
-  "@settingsWalkthroughSnippetDeleteTitle": {
-    "x-sourceSha256": "a67de31046b0930bc0d1b5bd0cd5b98486e3a344dd9a86398c8e5aa70d9e56eb"
-  },
-  "settingsWalkthroughSnippetDeleteBody": "Dette fjerner den gemte standard for denne figur. Danse beholder al gennemgangstekst, du allerede har skrevet.",
-  "@settingsWalkthroughSnippetDeleteBody": {
-    "x-sourceSha256": "e6e2bf4fd7f431e6f777bd2b70f68a9b5dbf63d55a891af49515eca79799a234"
   },
   "settingsWalkthroughSnippetEditTitle": "Rediger uddrag",
   "@settingsWalkthroughSnippetEditTitle": {
@@ -8265,6 +8333,14 @@
   "danceEditorComposedHelper": "Hvornår dansen blev komponeret (år, eller tilføj måned/dag)",
   "@danceEditorComposedHelper": {
     "x-sourceSha256": "82d4988c39428b943b94b1ae4d50e3cb362e7a44bc722a61bf5198fd8a3411dc"
+  },
+  "danceEditorInterpretedByLabel": "Fortolket af",
+  "@danceEditorInterpretedByLabel": {
+    "x-sourceSha256": "7a3eef2a0a39813c78bae859524207a201116b461ca4bb4157637f384b1af050"
+  },
+  "danceEditorInterpretedOnLabel": "Fortolket",
+  "@danceEditorInterpretedOnLabel": {
+    "x-sourceSha256": "83512bf0aa63b8443c4367033657fdd3212ff4116b4d28bf73b6ad6d93d5f706"
   },
   "danceEditorRevisedLabel": "Revideret",
   "@danceEditorRevisedLabel": {
@@ -8485,6 +8561,10 @@
   "validationDialectCollision": "“{source}” og “{existing}” peger begge på “{substitution}” — en omvendelse ville være tvetydig.",
   "@validationDialectCollision": {
     "x-sourceSha256": "dee51ecec06a3f41cec908aa62b70496bc898557a127384eaed31fec2ae72dd1"
+  },
+  "validationGenderedRoleTerm": "„{word}“ er et kønnet rolleord, som appen aldrig viser. Brug et kønsneutralt ord i stedet.",
+  "@validationGenderedRoleTerm": {
+    "x-sourceSha256": "c7ffdeeeab5f91ad261dc69b0d4a0f97b03e085db30fbda8ddeeb12ed445e47a"
   },
   "validationGeneric": "Dette element har et valideringsproblem.",
   "@validationGeneric": {
@@ -9450,21 +9530,17 @@
   "@shorthandMappingsNew": {
     "x-sourceSha256": "bcb70a5881650d222f46a45b002a5e5d5af4760fe5f046123ce0f9e05100c220"
   },
-  "shorthandMappingsEmpty": "Ingen kortformer endnu.",
-  "@shorthandMappingsEmpty": {
-    "x-sourceSha256": "2033070fb18827ce55f5388e79eded465e61704e0c52fb4554f84f313c53f01f"
+  "shorthandMappingsEmptyTitle": "Ingen kortformer endnu",
+  "@shorthandMappingsEmptyTitle": {
+    "x-sourceSha256": "c298e5dd6190ec4a26aa33f7fa693fee0fc7e01bba0fb8102b9c6869c2c2d304"
+  },
+  "shorthandMappingsEmptyBody": "Vælg Ny kortform for at tilføje en.",
+  "@shorthandMappingsEmptyBody": {
+    "x-sourceSha256": "bb5b8084f4ddeb2a166b5941dcb7ae94af674e0e09030fe50be364b84a5daaa1"
   },
   "shorthandMappingsLimitReached": "Du har nået grænsen på {max} kortformer. Slet en for at tilføje en ny.",
   "@shorthandMappingsLimitReached": {
     "x-sourceSha256": "3f8a40d5253e3d42f05fd74e05353a6ffb21fb6de2fd6f6e22da50300ff01c23"
-  },
-  "shorthandMappingsDeleteTitle": "Slet kortform?",
-  "@shorthandMappingsDeleteTitle": {
-    "x-sourceSha256": "a8a818eba0a742b81c447939890409c3772364a3796479a44fe26309d848b01b"
-  },
-  "shorthandMappingsDeleteBody": "„{token}“ fjernes permanent.",
-  "@shorthandMappingsDeleteBody": {
-    "x-sourceSha256": "fa03940830f67880e7d42db7656abd65366f1b73949bb6ff5e7e0e877c58a79d"
   },
   "shorthandMappingsActionsTooltip": "Kortformhandlinger",
   "@shorthandMappingsActionsTooltip": {
@@ -9774,14 +9850,6 @@
   "@reparseErrorBody": {
     "x-sourceSha256": "58f0ccd25734c5c644ebc925bc1e88cf98be542eb894f5e7c529377380b94acd"
   },
-  "customFieldsDeleteTitle": "Slet brugerdefineret felt",
-  "@customFieldsDeleteTitle": {
-    "x-sourceSha256": "daf3f4f83f61c995c5026363e1ac97ecff288404e66c85724d8f6740eb3c2b2a"
-  },
-  "customFieldsDeleteBody": "Slet „{label}“? Dette kan ikke fortrydes.",
-  "@customFieldsDeleteBody": {
-    "x-sourceSha256": "8d391116314a182474453cdaa2cddb85d34c674df8e042b6602660ad1c18d8f5"
-  },
   "customFieldsDeleteInUse": "Kan ikke slette „{label}“: bruges stadig af {count, plural, =1{1 dans} other{{count} danse}}. Fjern værdien fra alle danse først.",
   "@customFieldsDeleteInUse": {
     "x-sourceSha256": "3216847c71408f8c115cc0f639621a7a700926cf3c3d29fe2bcce0948156a556"
@@ -9810,9 +9878,13 @@
   "@customFieldsLoadError": {
     "x-sourceSha256": "9392bd4d3cf2aaea10cdc1cd1d4c68cf98ee6e03c52fd75e05d67a348ab138f6"
   },
-  "customFieldsEmpty": "Ingen brugerdefinerede felter endnu.\nTryk + for at definere ét.",
-  "@customFieldsEmpty": {
-    "x-sourceSha256": "96b8857829561e6006e3f6561d54998e454c1e1223bbc981f5c6d9d81d814f51"
+  "customFieldsEmptyTitle": "Ingen brugerdefinerede felter endnu",
+  "@customFieldsEmptyTitle": {
+    "x-sourceSha256": "eb0a32b078be55d376bfd04a93ef16a0d09af2870d60cc67cc2fb73624ffe142"
+  },
+  "customFieldsEmptyBody": "Vælg Nyt felt for at tilføje et.",
+  "@customFieldsEmptyBody": {
+    "x-sourceSha256": "13e90aa1be43a16a07cc2efda674430838dad199d222b6d48f1181f21d655948"
   },
   "customFieldsFlagInList": "I liste",
   "@customFieldsFlagInList": {
@@ -10078,9 +10150,9 @@
   "@recentlyDeletedDeleteTitle": {
     "x-sourceSha256": "c1b15a3712482b377f34d95ca8c2fc0d47ca1b9e64fd614367c2ee8c06ca5419"
   },
-  "recentlyDeletedDeleteBody": "„{title}“ slettes øjeblikkeligt og kan ikke gendannes.",
+  "recentlyDeletedDeleteBody": "„{title}“ slettes nu.",
   "@recentlyDeletedDeleteBody": {
-    "x-sourceSha256": "28b125de466af8a2e8a3b47dbd79e1d6e625c2f4ea34f0f2b8a1d96fd6d191a7"
+    "x-sourceSha256": "60f16c333e309afe0e749d16b239738039756b07999073957303adf7452fd575"
   },
   "recentlyDeletedDeleteConfirm": "Slet permanent",
   "@recentlyDeletedDeleteConfirm": {
@@ -10201,18 +10273,6 @@
   "venueLinkOfferDone": "{count, plural, =1{1 program knyttet.} other{{count} programmer knyttet.}}",
   "@venueLinkOfferDone": {
     "x-sourceSha256": "431a1aa3f4e20271f7a7aece28cd1fb67ebe75cda7f2b539844ec62712c7a0bb"
-  },
-  "venueManagerDeleteTitle": "Slet spillested?",
-  "@venueManagerDeleteTitle": {
-    "x-sourceSha256": "a9aed6966427e7a9a7a69cb29965442d52da1a8627dfaf18e03624e6f4283efa"
-  },
-  "venueManagerDeleteBody": "Slet „{name}“ permanent? Dette kan ikke fortrydes.",
-  "@venueManagerDeleteBody": {
-    "x-sourceSha256": "833e71d14c9c6ff7b7e3a1472580b40266265e9d4ce80eecaebb6802a20687f4"
-  },
-  "venueManagerDeletedSnack": "Slettede „{name}“",
-  "@venueManagerDeletedSnack": {
-    "x-sourceSha256": "c01d33e1bbf843edb8f635f4bc33095283004bceeac7fd456d43b330d8a904d4"
   },
   "venueManagerDeleteBlocked": "Kan ikke slette „{name}“ mens det stadig er knyttet til et program. Skift eller fjern dets spillested på programmet først.",
   "@venueManagerDeleteBlocked": {
@@ -10629,6 +10689,10 @@
   "glossaryAddCustomFigure": "Tilføj din egen figur",
   "@glossaryAddCustomFigure": {
     "x-sourceSha256": "33ad8774d841771938cf8bc5e3d181ad4c97607dc8ced2808127cca8410e91c5"
+  },
+  "customFiguresNewFigure": "Ny figur",
+  "@customFiguresNewFigure": {
+    "x-sourceSha256": "3bd330f1f22470db1387c962d78ceea1c7f302fd57729577ba2ee6cb9e9d3326"
   },
   "glossaryCustomMarker": "Egen",
   "@glossaryCustomMarker": {

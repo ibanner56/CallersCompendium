@@ -66,6 +66,11 @@ class Dances extends Table {
   TextColumn get formationShape =>
       text().map(const EnumNameConverter(FormationShape.values))();
   TextColumn get formationDetail => text().nullable()();
+
+  /// ECD's proper/improper checkbox, `Formation.improper` (ADR-006 §12, F2).
+  /// Added in schema v42; existing rows read `false`, proper.
+  BoolColumn get formationImproper =>
+      boolean().withDefault(const Constant(false))();
   TextColumn get progression =>
       text().map(const EnumNameConverter(Progression.values))();
 
@@ -82,6 +87,15 @@ class Dances extends Table {
   /// v15 (issue #370). Dance-scalar content (not figure text), so it does NOT
   /// feed the derived `dance_figures`/`dance_fts` indexes.
   TextColumn get walkthrough => text().withDefault(const Constant(''))();
+
+  /// The tune's written meter, `Dance.meter`, as free text; `''` when not
+  /// given. Added in schema v42 (ADR-006 §12, F3).
+  TextColumn get meter => text().withDefault(const Constant(''))();
+
+  /// The tune's key, `Dance.musicalKey`, as free text; `''` when not given.
+  /// Added in schema v42 (ADR-006 §12, F3). Not named `key`, which SQL
+  /// reserves.
+  TextColumn get musicalKey => text().withDefault(const Constant(''))();
   TextColumn get status =>
       text().map(const EnumNameConverter(DanceStatus.values))();
 
@@ -115,6 +129,12 @@ class Dances extends Table {
   /// [PartialDate] string (`YYYY` / `YYYY-MM` / `YYYY-MM-DD`); nullable.
   /// Added in schema v5. Distinct from the record stamp [createdAt].
   TextColumn get composedOn => text().nullable()();
+
+  /// Interpretation date at partial precision (`Dance.interpretedOn`), the
+  /// canonical [PartialDate] string like [composedOn]; nullable. Added in
+  /// schema v42 (ADR-006 §9.2): ECD dances are often reconstructed from their
+  /// original publication by a later interpreter.
+  TextColumn get interpretedOn => text().nullable()();
 
   /// Author revision date at partial precision, persisted as the canonical
   /// [PartialDate] string; nullable. Added in schema v5. Distinct from the
@@ -182,6 +202,27 @@ class Choreographers extends Table {
 /// authorship order (never inferred from row order).
 @DataClassName('DanceAuthorRow')
 class DanceAuthors extends Table {
+  TextColumn get danceId =>
+      text().references(Dances, #id, onDelete: KeyAction.cascade)();
+  TextColumn get choreographerId =>
+      text().references(Choreographers, #id, onDelete: KeyAction.cascade)();
+  IntColumn get position => integer()();
+
+  @override
+  Set<Column> get primaryKey => {danceId, choreographerId};
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {danceId, position},
+  ];
+}
+
+/// Ordered dance <-> choreographer join for the people who *interpreted* a
+/// dance (`Dance.interpreterIds`), shaped exactly like [DanceAuthors]: the
+/// same people list, `position` giving the credit order. Added in schema v42
+/// (ADR-006 §9.2).
+@DataClassName('DanceInterpreterRow')
+class DanceInterpreters extends Table {
   TextColumn get danceId =>
       text().references(Dances, #id, onDelete: KeyAction.cascade)();
   TextColumn get choreographerId =>

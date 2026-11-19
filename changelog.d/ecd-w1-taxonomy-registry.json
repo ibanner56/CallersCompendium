@@ -1,0 +1,12 @@
+{
+  "id": "ecd-w1-taxonomy-registry",
+  "user_visible": false,
+  "core": {
+    "added": [
+      "Add TaxonomyRegistry and shippedTaxonomies: forForm(form) gives the taxonomy a dance of that form is edited and parsed with, anyForm resolves a stored move ID of any form, and other forms' IDs carry their form's prefix (ecd_, ADR-006 §5.1)."
+    ],
+    "changed": [
+      "DanceRepository and CompendiumRepositories take an optional taxonomyForForm, with which a dance's import-gap lines are re-parsed by its own form; exports' default renderers use the any-form taxonomy."
+    ]
+  }
+}

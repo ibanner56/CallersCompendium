@@ -8,6 +8,7 @@ import 'package:compendium_app/src/screens/app_shell_search_scope.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/screens/program_summary_screen.dart';
 import 'package:compendium_app/src/screens/programs_list_screen.dart';
+import 'package:compendium_app/src/widgets/app_bar_text_action.dart';
 import 'package:compendium_app/src/widgets/program_list_tile.dart';
 
 import 'support/l10n_harness.dart';
@@ -490,7 +491,7 @@ void main() {
           tester.widget<IconButton>(find.byKey(ValueKey(key)));
       expect(button('delete-program').onPressed, isNull);
       expect(button('archive-program').onPressed, isNull);
-      final save = tester.widget<FloatingActionButton>(
+      final save = tester.widget<AppBarTextAction>(
         find.byKey(const ValueKey('save-program')),
       );
       expect(save.onPressed, isNull);

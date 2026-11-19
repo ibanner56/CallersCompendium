@@ -473,6 +473,21 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _formationImproperMeta = const VerificationMeta(
+    'formationImproper',
+  );
+  @override
+  late final GeneratedColumn<bool> formationImproper = GeneratedColumn<bool>(
+    'formation_improper',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("formation_improper" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   late final GeneratedColumnWithTypeConverter<Progression, String> progression =
       GeneratedColumn<String>(
@@ -534,6 +549,28 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
   @override
   late final GeneratedColumn<String> walkthrough = GeneratedColumn<String>(
     'walkthrough',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _meterMeta = const VerificationMeta('meter');
+  @override
+  late final GeneratedColumn<String> meter = GeneratedColumn<String>(
+    'meter',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _musicalKeyMeta = const VerificationMeta(
+    'musicalKey',
+  );
+  @override
+  late final GeneratedColumn<String> musicalKey = GeneratedColumn<String>(
+    'musical_key',
     aliasedName,
     false,
     type: DriftSqlType.string,
@@ -623,6 +660,17 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _interpretedOnMeta = const VerificationMeta(
+    'interpretedOn',
+  );
+  @override
+  late final GeneratedColumn<String> interpretedOn = GeneratedColumn<String>(
+    'interpreted_on',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _revisedOnMeta = const VerificationMeta(
     'revisedOn',
   );
@@ -685,12 +733,15 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
     form,
     formationShape,
     formationDetail,
+    formationImproper,
     progression,
     phraseStructure,
     figuresJson,
     hook,
     callingNotes,
     walkthrough,
+    meter,
+    musicalKey,
     status,
     levelId,
     mixedLevel,
@@ -698,6 +749,7 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
     rating,
     tunesJson,
     composedOn,
+    interpretedOn,
     revisedOn,
     createdAt,
     updatedAt,
@@ -735,6 +787,15 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
         formationDetail.isAcceptableOrUnknown(
           data['formation_detail']!,
           _formationDetailMeta,
+        ),
+      );
+    }
+    if (data.containsKey('formation_improper')) {
+      context.handle(
+        _formationImproperMeta,
+        formationImproper.isAcceptableOrUnknown(
+          data['formation_improper']!,
+          _formationImproperMeta,
         ),
       );
     }
@@ -780,6 +841,18 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
         ),
       );
     }
+    if (data.containsKey('meter')) {
+      context.handle(
+        _meterMeta,
+        meter.isAcceptableOrUnknown(data['meter']!, _meterMeta),
+      );
+    }
+    if (data.containsKey('musical_key')) {
+      context.handle(
+        _musicalKeyMeta,
+        musicalKey.isAcceptableOrUnknown(data['musical_key']!, _musicalKeyMeta),
+      );
+    }
     if (data.containsKey('level_id')) {
       context.handle(
         _levelIdMeta,
@@ -814,6 +887,15 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
       context.handle(
         _composedOnMeta,
         composedOn.isAcceptableOrUnknown(data['composed_on']!, _composedOnMeta),
+      );
+    }
+    if (data.containsKey('interpreted_on')) {
+      context.handle(
+        _interpretedOnMeta,
+        interpretedOn.isAcceptableOrUnknown(
+          data['interpreted_on']!,
+          _interpretedOnMeta,
+        ),
       );
     }
     if (data.containsKey('revised_on')) {
@@ -886,6 +968,10 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
         DriftSqlType.string,
         data['${effectivePrefix}formation_detail'],
       ),
+      formationImproper: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}formation_improper'],
+      )!,
       progression: $DancesTable.$converterprogression.fromSql(
         attachedDatabase.typeMapping.read(
           DriftSqlType.string,
@@ -911,6 +997,14 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
       walkthrough: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}walkthrough'],
+      )!,
+      meter: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}meter'],
+      )!,
+      musicalKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}musical_key'],
       )!,
       status: $DancesTable.$converterstatus.fromSql(
         attachedDatabase.typeMapping.read(
@@ -941,6 +1035,10 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
       composedOn: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}composed_on'],
+      ),
+      interpretedOn: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}interpreted_on'],
       ),
       revisedOn: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
@@ -986,6 +1084,10 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
   final DanceForm form;
   final FormationShape formationShape;
   final String? formationDetail;
+
+  /// ECD's proper/improper checkbox, `Formation.improper` (ADR-006 §12, F2).
+  /// Added in schema v42; existing rows read `false`, proper.
+  final bool formationImproper;
   final Progression progression;
 
   /// Persisted [PhraseStructure.raw] (`''` = the standard 4x16 structure).
@@ -1001,6 +1103,15 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
   /// v15 (issue #370). Dance-scalar content (not figure text), so it does NOT
   /// feed the derived `dance_figures`/`dance_fts` indexes.
   final String walkthrough;
+
+  /// The tune's written meter, `Dance.meter`, as free text; `''` when not
+  /// given. Added in schema v42 (ADR-006 §12, F3).
+  final String meter;
+
+  /// The tune's key, `Dance.musicalKey`, as free text; `''` when not given.
+  /// Added in schema v42 (ADR-006 §12, F3). Not named `key`, which SQL
+  /// reserves.
+  final String musicalKey;
   final DanceStatus status;
 
   /// Selected [DifficultyLevels] row, nullable when unspecified. Added in
@@ -1033,6 +1144,12 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
   /// Added in schema v5. Distinct from the record stamp [createdAt].
   final String? composedOn;
 
+  /// Interpretation date at partial precision (`Dance.interpretedOn`), the
+  /// canonical [PartialDate] string like [composedOn]; nullable. Added in
+  /// schema v42 (ADR-006 §9.2): ECD dances are often reconstructed from their
+  /// original publication by a later interpreter.
+  final String? interpretedOn;
+
   /// Author revision date at partial precision, persisted as the canonical
   /// [PartialDate] string; nullable. Added in schema v5. Distinct from the
   /// record stamp [updatedAt].
@@ -1051,12 +1168,15 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     required this.form,
     required this.formationShape,
     this.formationDetail,
+    required this.formationImproper,
     required this.progression,
     required this.phraseStructure,
     required this.figuresJson,
     required this.hook,
     required this.callingNotes,
     required this.walkthrough,
+    required this.meter,
+    required this.musicalKey,
     required this.status,
     this.levelId,
     required this.mixedLevel,
@@ -1064,6 +1184,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     this.rating,
     required this.tunesJson,
     this.composedOn,
+    this.interpretedOn,
     this.revisedOn,
     required this.createdAt,
     required this.updatedAt,
@@ -1086,6 +1207,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     if (!nullToAbsent || formationDetail != null) {
       map['formation_detail'] = Variable<String>(formationDetail);
     }
+    map['formation_improper'] = Variable<bool>(formationImproper);
     {
       map['progression'] = Variable<String>(
         $DancesTable.$converterprogression.toSql(progression),
@@ -1096,6 +1218,8 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     map['hook'] = Variable<String>(hook);
     map['calling_notes'] = Variable<String>(callingNotes);
     map['walkthrough'] = Variable<String>(walkthrough);
+    map['meter'] = Variable<String>(meter);
+    map['musical_key'] = Variable<String>(musicalKey);
     {
       map['status'] = Variable<String>(
         $DancesTable.$converterstatus.toSql(status),
@@ -1112,6 +1236,9 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     map['tunes_json'] = Variable<String>(tunesJson);
     if (!nullToAbsent || composedOn != null) {
       map['composed_on'] = Variable<String>(composedOn);
+    }
+    if (!nullToAbsent || interpretedOn != null) {
+      map['interpreted_on'] = Variable<String>(interpretedOn);
     }
     if (!nullToAbsent || revisedOn != null) {
       map['revised_on'] = Variable<String>(revisedOn);
@@ -1136,12 +1263,15 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       formationDetail: formationDetail == null && nullToAbsent
           ? const Value.absent()
           : Value(formationDetail),
+      formationImproper: Value(formationImproper),
       progression: Value(progression),
       phraseStructure: Value(phraseStructure),
       figuresJson: Value(figuresJson),
       hook: Value(hook),
       callingNotes: Value(callingNotes),
       walkthrough: Value(walkthrough),
+      meter: Value(meter),
+      musicalKey: Value(musicalKey),
       status: Value(status),
       levelId: levelId == null && nullToAbsent
           ? const Value.absent()
@@ -1155,6 +1285,9 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       composedOn: composedOn == null && nullToAbsent
           ? const Value.absent()
           : Value(composedOn),
+      interpretedOn: interpretedOn == null && nullToAbsent
+          ? const Value.absent()
+          : Value(interpretedOn),
       revisedOn: revisedOn == null && nullToAbsent
           ? const Value.absent()
           : Value(revisedOn),
@@ -1184,6 +1317,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
         serializer.fromJson<String>(json['formationShape']),
       ),
       formationDetail: serializer.fromJson<String?>(json['formationDetail']),
+      formationImproper: serializer.fromJson<bool>(json['formationImproper']),
       progression: $DancesTable.$converterprogression.fromJson(
         serializer.fromJson<String>(json['progression']),
       ),
@@ -1192,6 +1326,8 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       hook: serializer.fromJson<String>(json['hook']),
       callingNotes: serializer.fromJson<String>(json['callingNotes']),
       walkthrough: serializer.fromJson<String>(json['walkthrough']),
+      meter: serializer.fromJson<String>(json['meter']),
+      musicalKey: serializer.fromJson<String>(json['musicalKey']),
       status: $DancesTable.$converterstatus.fromJson(
         serializer.fromJson<String>(json['status']),
       ),
@@ -1201,6 +1337,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       rating: serializer.fromJson<int?>(json['rating']),
       tunesJson: serializer.fromJson<String>(json['tunesJson']),
       composedOn: serializer.fromJson<String?>(json['composedOn']),
+      interpretedOn: serializer.fromJson<String?>(json['interpretedOn']),
       revisedOn: serializer.fromJson<String?>(json['revisedOn']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -1221,6 +1358,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
         $DancesTable.$converterformationShape.toJson(formationShape),
       ),
       'formationDetail': serializer.toJson<String?>(formationDetail),
+      'formationImproper': serializer.toJson<bool>(formationImproper),
       'progression': serializer.toJson<String>(
         $DancesTable.$converterprogression.toJson(progression),
       ),
@@ -1229,6 +1367,8 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       'hook': serializer.toJson<String>(hook),
       'callingNotes': serializer.toJson<String>(callingNotes),
       'walkthrough': serializer.toJson<String>(walkthrough),
+      'meter': serializer.toJson<String>(meter),
+      'musicalKey': serializer.toJson<String>(musicalKey),
       'status': serializer.toJson<String>(
         $DancesTable.$converterstatus.toJson(status),
       ),
@@ -1238,6 +1378,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       'rating': serializer.toJson<int?>(rating),
       'tunesJson': serializer.toJson<String>(tunesJson),
       'composedOn': serializer.toJson<String?>(composedOn),
+      'interpretedOn': serializer.toJson<String?>(interpretedOn),
       'revisedOn': serializer.toJson<String?>(revisedOn),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -1252,12 +1393,15 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     DanceForm? form,
     FormationShape? formationShape,
     Value<String?> formationDetail = const Value.absent(),
+    bool? formationImproper,
     Progression? progression,
     String? phraseStructure,
     String? figuresJson,
     String? hook,
     String? callingNotes,
     String? walkthrough,
+    String? meter,
+    String? musicalKey,
     DanceStatus? status,
     Value<String?> levelId = const Value.absent(),
     bool? mixedLevel,
@@ -1265,6 +1409,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     Value<int?> rating = const Value.absent(),
     String? tunesJson,
     Value<String?> composedOn = const Value.absent(),
+    Value<String?> interpretedOn = const Value.absent(),
     Value<String?> revisedOn = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -1278,12 +1423,15 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     formationDetail: formationDetail.present
         ? formationDetail.value
         : this.formationDetail,
+    formationImproper: formationImproper ?? this.formationImproper,
     progression: progression ?? this.progression,
     phraseStructure: phraseStructure ?? this.phraseStructure,
     figuresJson: figuresJson ?? this.figuresJson,
     hook: hook ?? this.hook,
     callingNotes: callingNotes ?? this.callingNotes,
     walkthrough: walkthrough ?? this.walkthrough,
+    meter: meter ?? this.meter,
+    musicalKey: musicalKey ?? this.musicalKey,
     status: status ?? this.status,
     levelId: levelId.present ? levelId.value : this.levelId,
     mixedLevel: mixedLevel ?? this.mixedLevel,
@@ -1291,6 +1439,9 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     rating: rating.present ? rating.value : this.rating,
     tunesJson: tunesJson ?? this.tunesJson,
     composedOn: composedOn.present ? composedOn.value : this.composedOn,
+    interpretedOn: interpretedOn.present
+        ? interpretedOn.value
+        : this.interpretedOn,
     revisedOn: revisedOn.present ? revisedOn.value : this.revisedOn,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -1308,6 +1459,9 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       formationDetail: data.formationDetail.present
           ? data.formationDetail.value
           : this.formationDetail,
+      formationImproper: data.formationImproper.present
+          ? data.formationImproper.value
+          : this.formationImproper,
       progression: data.progression.present
           ? data.progression.value
           : this.progression,
@@ -1324,6 +1478,10 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       walkthrough: data.walkthrough.present
           ? data.walkthrough.value
           : this.walkthrough,
+      meter: data.meter.present ? data.meter.value : this.meter,
+      musicalKey: data.musicalKey.present
+          ? data.musicalKey.value
+          : this.musicalKey,
       status: data.status.present ? data.status.value : this.status,
       levelId: data.levelId.present ? data.levelId.value : this.levelId,
       mixedLevel: data.mixedLevel.present
@@ -1335,6 +1493,9 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       composedOn: data.composedOn.present
           ? data.composedOn.value
           : this.composedOn,
+      interpretedOn: data.interpretedOn.present
+          ? data.interpretedOn.value
+          : this.interpretedOn,
       revisedOn: data.revisedOn.present ? data.revisedOn.value : this.revisedOn,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
@@ -1353,12 +1514,15 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
           ..write('form: $form, ')
           ..write('formationShape: $formationShape, ')
           ..write('formationDetail: $formationDetail, ')
+          ..write('formationImproper: $formationImproper, ')
           ..write('progression: $progression, ')
           ..write('phraseStructure: $phraseStructure, ')
           ..write('figuresJson: $figuresJson, ')
           ..write('hook: $hook, ')
           ..write('callingNotes: $callingNotes, ')
           ..write('walkthrough: $walkthrough, ')
+          ..write('meter: $meter, ')
+          ..write('musicalKey: $musicalKey, ')
           ..write('status: $status, ')
           ..write('levelId: $levelId, ')
           ..write('mixedLevel: $mixedLevel, ')
@@ -1366,6 +1530,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
           ..write('rating: $rating, ')
           ..write('tunesJson: $tunesJson, ')
           ..write('composedOn: $composedOn, ')
+          ..write('interpretedOn: $interpretedOn, ')
           ..write('revisedOn: $revisedOn, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -1382,12 +1547,15 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     form,
     formationShape,
     formationDetail,
+    formationImproper,
     progression,
     phraseStructure,
     figuresJson,
     hook,
     callingNotes,
     walkthrough,
+    meter,
+    musicalKey,
     status,
     levelId,
     mixedLevel,
@@ -1395,6 +1563,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     rating,
     tunesJson,
     composedOn,
+    interpretedOn,
     revisedOn,
     createdAt,
     updatedAt,
@@ -1410,12 +1579,15 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
           other.form == this.form &&
           other.formationShape == this.formationShape &&
           other.formationDetail == this.formationDetail &&
+          other.formationImproper == this.formationImproper &&
           other.progression == this.progression &&
           other.phraseStructure == this.phraseStructure &&
           other.figuresJson == this.figuresJson &&
           other.hook == this.hook &&
           other.callingNotes == this.callingNotes &&
           other.walkthrough == this.walkthrough &&
+          other.meter == this.meter &&
+          other.musicalKey == this.musicalKey &&
           other.status == this.status &&
           other.levelId == this.levelId &&
           other.mixedLevel == this.mixedLevel &&
@@ -1423,6 +1595,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
           other.rating == this.rating &&
           other.tunesJson == this.tunesJson &&
           other.composedOn == this.composedOn &&
+          other.interpretedOn == this.interpretedOn &&
           other.revisedOn == this.revisedOn &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
@@ -1436,12 +1609,15 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
   final Value<DanceForm> form;
   final Value<FormationShape> formationShape;
   final Value<String?> formationDetail;
+  final Value<bool> formationImproper;
   final Value<Progression> progression;
   final Value<String> phraseStructure;
   final Value<String> figuresJson;
   final Value<String> hook;
   final Value<String> callingNotes;
   final Value<String> walkthrough;
+  final Value<String> meter;
+  final Value<String> musicalKey;
   final Value<DanceStatus> status;
   final Value<String?> levelId;
   final Value<bool> mixedLevel;
@@ -1449,6 +1625,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
   final Value<int?> rating;
   final Value<String> tunesJson;
   final Value<String?> composedOn;
+  final Value<String?> interpretedOn;
   final Value<String?> revisedOn;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -1461,12 +1638,15 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     this.form = const Value.absent(),
     this.formationShape = const Value.absent(),
     this.formationDetail = const Value.absent(),
+    this.formationImproper = const Value.absent(),
     this.progression = const Value.absent(),
     this.phraseStructure = const Value.absent(),
     this.figuresJson = const Value.absent(),
     this.hook = const Value.absent(),
     this.callingNotes = const Value.absent(),
     this.walkthrough = const Value.absent(),
+    this.meter = const Value.absent(),
+    this.musicalKey = const Value.absent(),
     this.status = const Value.absent(),
     this.levelId = const Value.absent(),
     this.mixedLevel = const Value.absent(),
@@ -1474,6 +1654,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     this.rating = const Value.absent(),
     this.tunesJson = const Value.absent(),
     this.composedOn = const Value.absent(),
+    this.interpretedOn = const Value.absent(),
     this.revisedOn = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -1487,12 +1668,15 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     required DanceForm form,
     required FormationShape formationShape,
     this.formationDetail = const Value.absent(),
+    this.formationImproper = const Value.absent(),
     required Progression progression,
     this.phraseStructure = const Value.absent(),
     this.figuresJson = const Value.absent(),
     this.hook = const Value.absent(),
     this.callingNotes = const Value.absent(),
     this.walkthrough = const Value.absent(),
+    this.meter = const Value.absent(),
+    this.musicalKey = const Value.absent(),
     required DanceStatus status,
     this.levelId = const Value.absent(),
     this.mixedLevel = const Value.absent(),
@@ -1500,6 +1684,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     this.rating = const Value.absent(),
     this.tunesJson = const Value.absent(),
     this.composedOn = const Value.absent(),
+    this.interpretedOn = const Value.absent(),
     this.revisedOn = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
@@ -1520,12 +1705,15 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     Expression<String>? form,
     Expression<String>? formationShape,
     Expression<String>? formationDetail,
+    Expression<bool>? formationImproper,
     Expression<String>? progression,
     Expression<String>? phraseStructure,
     Expression<String>? figuresJson,
     Expression<String>? hook,
     Expression<String>? callingNotes,
     Expression<String>? walkthrough,
+    Expression<String>? meter,
+    Expression<String>? musicalKey,
     Expression<String>? status,
     Expression<String>? levelId,
     Expression<bool>? mixedLevel,
@@ -1533,6 +1721,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     Expression<int>? rating,
     Expression<String>? tunesJson,
     Expression<String>? composedOn,
+    Expression<String>? interpretedOn,
     Expression<String>? revisedOn,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -1546,12 +1735,15 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
       if (form != null) 'form': form,
       if (formationShape != null) 'formation_shape': formationShape,
       if (formationDetail != null) 'formation_detail': formationDetail,
+      if (formationImproper != null) 'formation_improper': formationImproper,
       if (progression != null) 'progression': progression,
       if (phraseStructure != null) 'phrase_structure': phraseStructure,
       if (figuresJson != null) 'figures_json': figuresJson,
       if (hook != null) 'hook': hook,
       if (callingNotes != null) 'calling_notes': callingNotes,
       if (walkthrough != null) 'walkthrough': walkthrough,
+      if (meter != null) 'meter': meter,
+      if (musicalKey != null) 'musical_key': musicalKey,
       if (status != null) 'status': status,
       if (levelId != null) 'level_id': levelId,
       if (mixedLevel != null) 'mixed_level': mixedLevel,
@@ -1559,6 +1751,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
       if (rating != null) 'rating': rating,
       if (tunesJson != null) 'tunes_json': tunesJson,
       if (composedOn != null) 'composed_on': composedOn,
+      if (interpretedOn != null) 'interpreted_on': interpretedOn,
       if (revisedOn != null) 'revised_on': revisedOn,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -1574,12 +1767,15 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     Value<DanceForm>? form,
     Value<FormationShape>? formationShape,
     Value<String?>? formationDetail,
+    Value<bool>? formationImproper,
     Value<Progression>? progression,
     Value<String>? phraseStructure,
     Value<String>? figuresJson,
     Value<String>? hook,
     Value<String>? callingNotes,
     Value<String>? walkthrough,
+    Value<String>? meter,
+    Value<String>? musicalKey,
     Value<DanceStatus>? status,
     Value<String?>? levelId,
     Value<bool>? mixedLevel,
@@ -1587,6 +1783,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     Value<int?>? rating,
     Value<String>? tunesJson,
     Value<String?>? composedOn,
+    Value<String?>? interpretedOn,
     Value<String?>? revisedOn,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
@@ -1600,12 +1797,15 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
       form: form ?? this.form,
       formationShape: formationShape ?? this.formationShape,
       formationDetail: formationDetail ?? this.formationDetail,
+      formationImproper: formationImproper ?? this.formationImproper,
       progression: progression ?? this.progression,
       phraseStructure: phraseStructure ?? this.phraseStructure,
       figuresJson: figuresJson ?? this.figuresJson,
       hook: hook ?? this.hook,
       callingNotes: callingNotes ?? this.callingNotes,
       walkthrough: walkthrough ?? this.walkthrough,
+      meter: meter ?? this.meter,
+      musicalKey: musicalKey ?? this.musicalKey,
       status: status ?? this.status,
       levelId: levelId ?? this.levelId,
       mixedLevel: mixedLevel ?? this.mixedLevel,
@@ -1613,6 +1813,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
       rating: rating ?? this.rating,
       tunesJson: tunesJson ?? this.tunesJson,
       composedOn: composedOn ?? this.composedOn,
+      interpretedOn: interpretedOn ?? this.interpretedOn,
       revisedOn: revisedOn ?? this.revisedOn,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -1644,6 +1845,9 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     if (formationDetail.present) {
       map['formation_detail'] = Variable<String>(formationDetail.value);
     }
+    if (formationImproper.present) {
+      map['formation_improper'] = Variable<bool>(formationImproper.value);
+    }
     if (progression.present) {
       map['progression'] = Variable<String>(
         $DancesTable.$converterprogression.toSql(progression.value),
@@ -1663,6 +1867,12 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     }
     if (walkthrough.present) {
       map['walkthrough'] = Variable<String>(walkthrough.value);
+    }
+    if (meter.present) {
+      map['meter'] = Variable<String>(meter.value);
+    }
+    if (musicalKey.present) {
+      map['musical_key'] = Variable<String>(musicalKey.value);
     }
     if (status.present) {
       map['status'] = Variable<String>(
@@ -1686,6 +1896,9 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     }
     if (composedOn.present) {
       map['composed_on'] = Variable<String>(composedOn.value);
+    }
+    if (interpretedOn.present) {
+      map['interpreted_on'] = Variable<String>(interpretedOn.value);
     }
     if (revisedOn.present) {
       map['revised_on'] = Variable<String>(revisedOn.value);
@@ -1716,12 +1929,15 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
           ..write('form: $form, ')
           ..write('formationShape: $formationShape, ')
           ..write('formationDetail: $formationDetail, ')
+          ..write('formationImproper: $formationImproper, ')
           ..write('progression: $progression, ')
           ..write('phraseStructure: $phraseStructure, ')
           ..write('figuresJson: $figuresJson, ')
           ..write('hook: $hook, ')
           ..write('callingNotes: $callingNotes, ')
           ..write('walkthrough: $walkthrough, ')
+          ..write('meter: $meter, ')
+          ..write('musicalKey: $musicalKey, ')
           ..write('status: $status, ')
           ..write('levelId: $levelId, ')
           ..write('mixedLevel: $mixedLevel, ')
@@ -1729,6 +1945,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
           ..write('rating: $rating, ')
           ..write('tunesJson: $tunesJson, ')
           ..write('composedOn: $composedOn, ')
+          ..write('interpretedOn: $interpretedOn, ')
           ..write('revisedOn: $revisedOn, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -2643,6 +2860,291 @@ class DanceAuthorsCompanion extends UpdateCompanion<DanceAuthorRow> {
   @override
   String toString() {
     return (StringBuffer('DanceAuthorsCompanion(')
+          ..write('danceId: $danceId, ')
+          ..write('choreographerId: $choreographerId, ')
+          ..write('position: $position, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $DanceInterpretersTable extends DanceInterpreters
+    with TableInfo<$DanceInterpretersTable, DanceInterpreterRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $DanceInterpretersTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _danceIdMeta = const VerificationMeta(
+    'danceId',
+  );
+  @override
+  late final GeneratedColumn<String> danceId = GeneratedColumn<String>(
+    'dance_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES dances (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _choreographerIdMeta = const VerificationMeta(
+    'choreographerId',
+  );
+  @override
+  late final GeneratedColumn<String> choreographerId = GeneratedColumn<String>(
+    'choreographer_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES choreographers (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _positionMeta = const VerificationMeta(
+    'position',
+  );
+  @override
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+    'position',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [danceId, choreographerId, position];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'dance_interpreters';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DanceInterpreterRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('dance_id')) {
+      context.handle(
+        _danceIdMeta,
+        danceId.isAcceptableOrUnknown(data['dance_id']!, _danceIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_danceIdMeta);
+    }
+    if (data.containsKey('choreographer_id')) {
+      context.handle(
+        _choreographerIdMeta,
+        choreographerId.isAcceptableOrUnknown(
+          data['choreographer_id']!,
+          _choreographerIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_choreographerIdMeta);
+    }
+    if (data.containsKey('position')) {
+      context.handle(
+        _positionMeta,
+        position.isAcceptableOrUnknown(data['position']!, _positionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_positionMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {danceId, choreographerId};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {danceId, position},
+  ];
+  @override
+  DanceInterpreterRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DanceInterpreterRow(
+      danceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}dance_id'],
+      )!,
+      choreographerId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}choreographer_id'],
+      )!,
+      position: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}position'],
+      )!,
+    );
+  }
+
+  @override
+  $DanceInterpretersTable createAlias(String alias) {
+    return $DanceInterpretersTable(attachedDatabase, alias);
+  }
+}
+
+class DanceInterpreterRow extends DataClass
+    implements Insertable<DanceInterpreterRow> {
+  final String danceId;
+  final String choreographerId;
+  final int position;
+  const DanceInterpreterRow({
+    required this.danceId,
+    required this.choreographerId,
+    required this.position,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['dance_id'] = Variable<String>(danceId);
+    map['choreographer_id'] = Variable<String>(choreographerId);
+    map['position'] = Variable<int>(position);
+    return map;
+  }
+
+  DanceInterpretersCompanion toCompanion(bool nullToAbsent) {
+    return DanceInterpretersCompanion(
+      danceId: Value(danceId),
+      choreographerId: Value(choreographerId),
+      position: Value(position),
+    );
+  }
+
+  factory DanceInterpreterRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DanceInterpreterRow(
+      danceId: serializer.fromJson<String>(json['danceId']),
+      choreographerId: serializer.fromJson<String>(json['choreographerId']),
+      position: serializer.fromJson<int>(json['position']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'danceId': serializer.toJson<String>(danceId),
+      'choreographerId': serializer.toJson<String>(choreographerId),
+      'position': serializer.toJson<int>(position),
+    };
+  }
+
+  DanceInterpreterRow copyWith({
+    String? danceId,
+    String? choreographerId,
+    int? position,
+  }) => DanceInterpreterRow(
+    danceId: danceId ?? this.danceId,
+    choreographerId: choreographerId ?? this.choreographerId,
+    position: position ?? this.position,
+  );
+  DanceInterpreterRow copyWithCompanion(DanceInterpretersCompanion data) {
+    return DanceInterpreterRow(
+      danceId: data.danceId.present ? data.danceId.value : this.danceId,
+      choreographerId: data.choreographerId.present
+          ? data.choreographerId.value
+          : this.choreographerId,
+      position: data.position.present ? data.position.value : this.position,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DanceInterpreterRow(')
+          ..write('danceId: $danceId, ')
+          ..write('choreographerId: $choreographerId, ')
+          ..write('position: $position')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(danceId, choreographerId, position);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DanceInterpreterRow &&
+          other.danceId == this.danceId &&
+          other.choreographerId == this.choreographerId &&
+          other.position == this.position);
+}
+
+class DanceInterpretersCompanion extends UpdateCompanion<DanceInterpreterRow> {
+  final Value<String> danceId;
+  final Value<String> choreographerId;
+  final Value<int> position;
+  final Value<int> rowid;
+  const DanceInterpretersCompanion({
+    this.danceId = const Value.absent(),
+    this.choreographerId = const Value.absent(),
+    this.position = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  DanceInterpretersCompanion.insert({
+    required String danceId,
+    required String choreographerId,
+    required int position,
+    this.rowid = const Value.absent(),
+  }) : danceId = Value(danceId),
+       choreographerId = Value(choreographerId),
+       position = Value(position);
+  static Insertable<DanceInterpreterRow> custom({
+    Expression<String>? danceId,
+    Expression<String>? choreographerId,
+    Expression<int>? position,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (danceId != null) 'dance_id': danceId,
+      if (choreographerId != null) 'choreographer_id': choreographerId,
+      if (position != null) 'position': position,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  DanceInterpretersCompanion copyWith({
+    Value<String>? danceId,
+    Value<String>? choreographerId,
+    Value<int>? position,
+    Value<int>? rowid,
+  }) {
+    return DanceInterpretersCompanion(
+      danceId: danceId ?? this.danceId,
+      choreographerId: choreographerId ?? this.choreographerId,
+      position: position ?? this.position,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (danceId.present) {
+      map['dance_id'] = Variable<String>(danceId.value);
+    }
+    if (choreographerId.present) {
+      map['choreographer_id'] = Variable<String>(choreographerId.value);
+    }
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DanceInterpretersCompanion(')
           ..write('danceId: $danceId, ')
           ..write('choreographerId: $choreographerId, ')
           ..write('position: $position, ')
@@ -15893,6 +16395,8 @@ abstract class _$CompendiumDatabase extends GeneratedDatabase {
   late final $DancesTable dances = $DancesTable(this);
   late final $ChoreographersTable choreographers = $ChoreographersTable(this);
   late final $DanceAuthorsTable danceAuthors = $DanceAuthorsTable(this);
+  late final $DanceInterpretersTable danceInterpreters =
+      $DanceInterpretersTable(this);
   late final $DanceFiguresTable danceFigures = $DanceFiguresTable(this);
   late final $ProgramsTable programs = $ProgramsTable(this);
   late final $ProgramSlotsTable programSlots = $ProgramSlotsTable(this);
@@ -15947,6 +16451,7 @@ abstract class _$CompendiumDatabase extends GeneratedDatabase {
     dances,
     choreographers,
     danceAuthors,
+    danceInterpreters,
     danceFigures,
     programs,
     programSlots,
@@ -15990,6 +16495,20 @@ abstract class _$CompendiumDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('dance_authors', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'dances',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('dance_interpreters', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'choreographers',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('dance_interpreters', kind: UpdateKind.delete)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
@@ -16435,12 +16954,15 @@ typedef $$DancesTableCreateCompanionBuilder =
       required DanceForm form,
       required FormationShape formationShape,
       Value<String?> formationDetail,
+      Value<bool> formationImproper,
       required Progression progression,
       Value<String> phraseStructure,
       Value<String> figuresJson,
       Value<String> hook,
       Value<String> callingNotes,
       Value<String> walkthrough,
+      Value<String> meter,
+      Value<String> musicalKey,
       required DanceStatus status,
       Value<String?> levelId,
       Value<bool> mixedLevel,
@@ -16448,6 +16970,7 @@ typedef $$DancesTableCreateCompanionBuilder =
       Value<int?> rating,
       Value<String> tunesJson,
       Value<String?> composedOn,
+      Value<String?> interpretedOn,
       Value<String?> revisedOn,
       required DateTime createdAt,
       required DateTime updatedAt,
@@ -16462,12 +16985,15 @@ typedef $$DancesTableUpdateCompanionBuilder =
       Value<DanceForm> form,
       Value<FormationShape> formationShape,
       Value<String?> formationDetail,
+      Value<bool> formationImproper,
       Value<Progression> progression,
       Value<String> phraseStructure,
       Value<String> figuresJson,
       Value<String> hook,
       Value<String> callingNotes,
       Value<String> walkthrough,
+      Value<String> meter,
+      Value<String> musicalKey,
       Value<DanceStatus> status,
       Value<String?> levelId,
       Value<bool> mixedLevel,
@@ -16475,6 +17001,7 @@ typedef $$DancesTableUpdateCompanionBuilder =
       Value<int?> rating,
       Value<String> tunesJson,
       Value<String?> composedOn,
+      Value<String?> interpretedOn,
       Value<String?> revisedOn,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
@@ -16519,6 +17046,27 @@ final class $$DancesTableReferences
     ).filter((f) => f.danceId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_danceAuthorsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$DanceInterpretersTable, List<DanceInterpreterRow>>
+  _danceInterpretersRefsTable(_$CompendiumDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.danceInterpreters,
+        aliasName: 'dances__id__dance_interpreters__dance_id',
+      );
+
+  $$DanceInterpretersTableProcessedTableManager get danceInterpretersRefs {
+    final manager = $$DanceInterpretersTableTableManager(
+      $_db,
+      $_db.danceInterpreters,
+    ).filter((f) => f.danceId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _danceInterpretersRefsTable($_db),
+    );
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -16714,6 +17262,11 @@ class $$DancesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<bool> get formationImproper => $composableBuilder(
+    column: $table.formationImproper,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnWithTypeConverterFilters<Progression, Progression, String>
   get progression => $composableBuilder(
     column: $table.progression,
@@ -16745,6 +17298,16 @@ class $$DancesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get meter => $composableBuilder(
+    column: $table.meter,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get musicalKey => $composableBuilder(
+    column: $table.musicalKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnWithTypeConverterFilters<DanceStatus, DanceStatus, String> get status =>
       $composableBuilder(
         column: $table.status,
@@ -16773,6 +17336,11 @@ class $$DancesTableFilterComposer
 
   ColumnFilters<String> get composedOn => $composableBuilder(
     column: $table.composedOn,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get interpretedOn => $composableBuilder(
+    column: $table.interpretedOn,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -16840,6 +17408,31 @@ class $$DancesTableFilterComposer
           }) => $$DanceAuthorsTableFilterComposer(
             $db: $db,
             $table: $db.danceAuthors,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> danceInterpretersRefs(
+    Expression<bool> Function($$DanceInterpretersTableFilterComposer f) f,
+  ) {
+    final $$DanceInterpretersTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.danceInterpreters,
+      getReferencedColumn: (t) => t.danceId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DanceInterpretersTableFilterComposer(
+            $db: $db,
+            $table: $db.danceInterpreters,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -17084,6 +17677,11 @@ class $$DancesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get formationImproper => $composableBuilder(
+    column: $table.formationImproper,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get progression => $composableBuilder(
     column: $table.progression,
     builder: (column) => ColumnOrderings(column),
@@ -17114,6 +17712,16 @@ class $$DancesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get meter => $composableBuilder(
+    column: $table.meter,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get musicalKey => $composableBuilder(
+    column: $table.musicalKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get status => $composableBuilder(
     column: $table.status,
     builder: (column) => ColumnOrderings(column),
@@ -17141,6 +17749,11 @@ class $$DancesTableOrderingComposer
 
   ColumnOrderings<String> get composedOn => $composableBuilder(
     column: $table.composedOn,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get interpretedOn => $composableBuilder(
+    column: $table.interpretedOn,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -17222,6 +17835,11 @@ class $$DancesTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<bool> get formationImproper => $composableBuilder(
+    column: $table.formationImproper,
+    builder: (column) => column,
+  );
+
   GeneratedColumnWithTypeConverter<Progression, String> get progression =>
       $composableBuilder(
         column: $table.progression,
@@ -17251,6 +17869,14 @@ class $$DancesTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get meter =>
+      $composableBuilder(column: $table.meter, builder: (column) => column);
+
+  GeneratedColumn<String> get musicalKey => $composableBuilder(
+    column: $table.musicalKey,
+    builder: (column) => column,
+  );
+
   GeneratedColumnWithTypeConverter<DanceStatus, String> get status =>
       $composableBuilder(column: $table.status, builder: (column) => column);
 
@@ -17270,6 +17896,11 @@ class $$DancesTableAnnotationComposer
 
   GeneratedColumn<String> get composedOn => $composableBuilder(
     column: $table.composedOn,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get interpretedOn => $composableBuilder(
+    column: $table.interpretedOn,
     builder: (column) => column,
   );
 
@@ -17335,6 +17966,32 @@ class $$DancesTableAnnotationComposer
                 $removeJoinBuilderFromRootComposer,
           ),
     );
+    return f(composer);
+  }
+
+  Expression<T> danceInterpretersRefs<T extends Object>(
+    Expression<T> Function($$DanceInterpretersTableAnnotationComposer a) f,
+  ) {
+    final $$DanceInterpretersTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.danceInterpreters,
+          getReferencedColumn: (t) => t.danceId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$DanceInterpretersTableAnnotationComposer(
+                $db: $db,
+                $table: $db.danceInterpreters,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
     return f(composer);
   }
 
@@ -17556,6 +18213,7 @@ class $$DancesTableTableManager
           PrefetchHooks Function({
             bool levelId,
             bool danceAuthorsRefs,
+            bool danceInterpretersRefs,
             bool danceFiguresRefs,
             bool programSlotsRefs,
             bool customFieldValuesRefs,
@@ -17584,12 +18242,15 @@ class $$DancesTableTableManager
                 Value<DanceForm> form = const Value.absent(),
                 Value<FormationShape> formationShape = const Value.absent(),
                 Value<String?> formationDetail = const Value.absent(),
+                Value<bool> formationImproper = const Value.absent(),
                 Value<Progression> progression = const Value.absent(),
                 Value<String> phraseStructure = const Value.absent(),
                 Value<String> figuresJson = const Value.absent(),
                 Value<String> hook = const Value.absent(),
                 Value<String> callingNotes = const Value.absent(),
                 Value<String> walkthrough = const Value.absent(),
+                Value<String> meter = const Value.absent(),
+                Value<String> musicalKey = const Value.absent(),
                 Value<DanceStatus> status = const Value.absent(),
                 Value<String?> levelId = const Value.absent(),
                 Value<bool> mixedLevel = const Value.absent(),
@@ -17597,6 +18258,7 @@ class $$DancesTableTableManager
                 Value<int?> rating = const Value.absent(),
                 Value<String> tunesJson = const Value.absent(),
                 Value<String?> composedOn = const Value.absent(),
+                Value<String?> interpretedOn = const Value.absent(),
                 Value<String?> revisedOn = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -17609,12 +18271,15 @@ class $$DancesTableTableManager
                 form: form,
                 formationShape: formationShape,
                 formationDetail: formationDetail,
+                formationImproper: formationImproper,
                 progression: progression,
                 phraseStructure: phraseStructure,
                 figuresJson: figuresJson,
                 hook: hook,
                 callingNotes: callingNotes,
                 walkthrough: walkthrough,
+                meter: meter,
+                musicalKey: musicalKey,
                 status: status,
                 levelId: levelId,
                 mixedLevel: mixedLevel,
@@ -17622,6 +18287,7 @@ class $$DancesTableTableManager
                 rating: rating,
                 tunesJson: tunesJson,
                 composedOn: composedOn,
+                interpretedOn: interpretedOn,
                 revisedOn: revisedOn,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -17636,12 +18302,15 @@ class $$DancesTableTableManager
                 required DanceForm form,
                 required FormationShape formationShape,
                 Value<String?> formationDetail = const Value.absent(),
+                Value<bool> formationImproper = const Value.absent(),
                 required Progression progression,
                 Value<String> phraseStructure = const Value.absent(),
                 Value<String> figuresJson = const Value.absent(),
                 Value<String> hook = const Value.absent(),
                 Value<String> callingNotes = const Value.absent(),
                 Value<String> walkthrough = const Value.absent(),
+                Value<String> meter = const Value.absent(),
+                Value<String> musicalKey = const Value.absent(),
                 required DanceStatus status,
                 Value<String?> levelId = const Value.absent(),
                 Value<bool> mixedLevel = const Value.absent(),
@@ -17649,6 +18318,7 @@ class $$DancesTableTableManager
                 Value<int?> rating = const Value.absent(),
                 Value<String> tunesJson = const Value.absent(),
                 Value<String?> composedOn = const Value.absent(),
+                Value<String?> interpretedOn = const Value.absent(),
                 Value<String?> revisedOn = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
@@ -17661,12 +18331,15 @@ class $$DancesTableTableManager
                 form: form,
                 formationShape: formationShape,
                 formationDetail: formationDetail,
+                formationImproper: formationImproper,
                 progression: progression,
                 phraseStructure: phraseStructure,
                 figuresJson: figuresJson,
                 hook: hook,
                 callingNotes: callingNotes,
                 walkthrough: walkthrough,
+                meter: meter,
+                musicalKey: musicalKey,
                 status: status,
                 levelId: levelId,
                 mixedLevel: mixedLevel,
@@ -17674,6 +18347,7 @@ class $$DancesTableTableManager
                 rating: rating,
                 tunesJson: tunesJson,
                 composedOn: composedOn,
+                interpretedOn: interpretedOn,
                 revisedOn: revisedOn,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -17693,6 +18367,7 @@ class $$DancesTableTableManager
               ({
                 levelId = false,
                 danceAuthorsRefs = false,
+                danceInterpretersRefs = false,
                 danceFiguresRefs = false,
                 programSlotsRefs = false,
                 customFieldValuesRefs = false,
@@ -17706,6 +18381,7 @@ class $$DancesTableTableManager
                   db: db,
                   explicitlyWatchedTables: [
                     if (danceAuthorsRefs) db.danceAuthors,
+                    if (danceInterpretersRefs) db.danceInterpreters,
                     if (danceFiguresRefs) db.danceFigures,
                     if (programSlotsRefs) db.programSlots,
                     if (customFieldValuesRefs) db.customFieldValues,
@@ -17764,6 +18440,27 @@ class $$DancesTableTableManager
                                 table,
                                 p0,
                               ).danceAuthorsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.danceId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (danceInterpretersRefs)
+                        await $_getPrefetchedData<
+                          DanceRow,
+                          $DancesTable,
+                          DanceInterpreterRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$DancesTableReferences
+                              ._danceInterpretersRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$DancesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).danceInterpretersRefs,
                           referencedItemsForCurrentItem:
                               (item, referencedItems) => referencedItems.where(
                                 (e) => e.danceId == item.id,
@@ -17961,6 +18658,7 @@ typedef $$DancesTableProcessedTableManager =
       PrefetchHooks Function({
         bool levelId,
         bool danceAuthorsRefs,
+        bool danceInterpretersRefs,
         bool danceFiguresRefs,
         bool programSlotsRefs,
         bool customFieldValuesRefs,
@@ -18027,6 +18725,30 @@ final class $$ChoreographersTableReferences
         );
 
     final cache = $_typedResult.readTableOrNull(_danceAuthorsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$DanceInterpretersTable, List<DanceInterpreterRow>>
+  _danceInterpretersRefsTable(_$CompendiumDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.danceInterpreters,
+        aliasName: 'choreographers__id__dance_interpreters__choreographer_id',
+      );
+
+  $$DanceInterpretersTableProcessedTableManager get danceInterpretersRefs {
+    final manager =
+        $$DanceInterpretersTableTableManager(
+          $_db,
+          $_db.danceInterpreters,
+        ).filter(
+          (f) => f.choreographerId.id.sqlEquals($_itemColumn<String>('id')!),
+        );
+
+    final cache = $_typedResult.readTableOrNull(
+      _danceInterpretersRefsTable($_db),
+    );
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -18108,6 +18830,31 @@ class $$ChoreographersTableFilterComposer
           }) => $$DanceAuthorsTableFilterComposer(
             $db: $db,
             $table: $db.danceAuthors,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> danceInterpretersRefs(
+    Expression<bool> Function($$DanceInterpretersTableFilterComposer f) f,
+  ) {
+    final $$DanceInterpretersTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.danceInterpreters,
+      getReferencedColumn: (t) => t.choreographerId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DanceInterpretersTableFilterComposer(
+            $db: $db,
+            $table: $db.danceInterpreters,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -18243,6 +18990,32 @@ class $$ChoreographersTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> danceInterpretersRefs<T extends Object>(
+    Expression<T> Function($$DanceInterpretersTableAnnotationComposer a) f,
+  ) {
+    final $$DanceInterpretersTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.danceInterpreters,
+          getReferencedColumn: (t) => t.choreographerId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$DanceInterpretersTableAnnotationComposer(
+                $db: $db,
+                $table: $db.danceInterpreters,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
 }
 
 class $$ChoreographersTableTableManager
@@ -18258,7 +19031,10 @@ class $$ChoreographersTableTableManager
           $$ChoreographersTableUpdateCompanionBuilder,
           (ChoreographerRow, $$ChoreographersTableReferences),
           ChoreographerRow,
-          PrefetchHooks Function({bool danceAuthorsRefs})
+          PrefetchHooks Function({
+            bool danceAuthorsRefs,
+            bool danceInterpretersRefs,
+          })
         > {
   $$ChoreographersTableTableManager(
     _$CompendiumDatabase db,
@@ -18333,38 +19109,63 @@ class $$ChoreographersTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({danceAuthorsRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [if (danceAuthorsRefs) db.danceAuthors],
-              addJoins: null,
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (danceAuthorsRefs)
-                    await $_getPrefetchedData<
-                      ChoreographerRow,
-                      $ChoreographersTable,
-                      DanceAuthorRow
-                    >(
-                      currentTable: table,
-                      referencedTable: $$ChoreographersTableReferences
-                          ._danceAuthorsRefsTable(db),
-                      managerFromTypedResult: (p0) =>
-                          $$ChoreographersTableReferences(
-                            db,
-                            table,
-                            p0,
-                          ).danceAuthorsRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) =>
-                          referencedItems.where(
-                            (e) => e.choreographerId == item.id,
-                          ),
-                      typedResults: items,
-                    ),
-                ];
+          prefetchHooksCallback:
+              ({danceAuthorsRefs = false, danceInterpretersRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (danceAuthorsRefs) db.danceAuthors,
+                    if (danceInterpretersRefs) db.danceInterpreters,
+                  ],
+                  addJoins: null,
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (danceAuthorsRefs)
+                        await $_getPrefetchedData<
+                          ChoreographerRow,
+                          $ChoreographersTable,
+                          DanceAuthorRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ChoreographersTableReferences
+                              ._danceAuthorsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ChoreographersTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).danceAuthorsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.choreographerId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (danceInterpretersRefs)
+                        await $_getPrefetchedData<
+                          ChoreographerRow,
+                          $ChoreographersTable,
+                          DanceInterpreterRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ChoreographersTableReferences
+                              ._danceInterpretersRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ChoreographersTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).danceInterpretersRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.choreographerId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -18381,7 +19182,10 @@ typedef $$ChoreographersTableProcessedTableManager =
       $$ChoreographersTableUpdateCompanionBuilder,
       (ChoreographerRow, $$ChoreographersTableReferences),
       ChoreographerRow,
-      PrefetchHooks Function({bool danceAuthorsRefs})
+      PrefetchHooks Function({
+        bool danceAuthorsRefs,
+        bool danceInterpretersRefs,
+      })
     >;
 typedef $$DanceAuthorsTableCreateCompanionBuilder =
     DanceAuthorsCompanion Function({
@@ -18755,6 +19559,393 @@ typedef $$DanceAuthorsTableProcessedTableManager =
       $$DanceAuthorsTableUpdateCompanionBuilder,
       (DanceAuthorRow, $$DanceAuthorsTableReferences),
       DanceAuthorRow,
+      PrefetchHooks Function({bool danceId, bool choreographerId})
+    >;
+typedef $$DanceInterpretersTableCreateCompanionBuilder =
+    DanceInterpretersCompanion Function({
+      required String danceId,
+      required String choreographerId,
+      required int position,
+      Value<int> rowid,
+    });
+typedef $$DanceInterpretersTableUpdateCompanionBuilder =
+    DanceInterpretersCompanion Function({
+      Value<String> danceId,
+      Value<String> choreographerId,
+      Value<int> position,
+      Value<int> rowid,
+    });
+
+final class $$DanceInterpretersTableReferences
+    extends
+        BaseReferences<
+          _$CompendiumDatabase,
+          $DanceInterpretersTable,
+          DanceInterpreterRow
+        > {
+  $$DanceInterpretersTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $DancesTable _danceIdTable(_$CompendiumDatabase db) =>
+      db.dances.createAlias('dance_interpreters__dance_id__dances__id');
+
+  $$DancesTableProcessedTableManager get danceId {
+    final $_column = $_itemColumn<String>('dance_id')!;
+
+    final manager = $$DancesTableTableManager(
+      $_db,
+      $_db.dances,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_danceIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $ChoreographersTable _choreographerIdTable(_$CompendiumDatabase db) =>
+      db.choreographers.createAlias(
+        'dance_interpreters__choreographer_id__choreographers__id',
+      );
+
+  $$ChoreographersTableProcessedTableManager get choreographerId {
+    final $_column = $_itemColumn<String>('choreographer_id')!;
+
+    final manager = $$ChoreographersTableTableManager(
+      $_db,
+      $_db.choreographers,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_choreographerIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$DanceInterpretersTableFilterComposer
+    extends Composer<_$CompendiumDatabase, $DanceInterpretersTable> {
+  $$DanceInterpretersTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$DancesTableFilterComposer get danceId {
+    final $$DancesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.danceId,
+      referencedTable: $db.dances,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DancesTableFilterComposer(
+            $db: $db,
+            $table: $db.dances,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$ChoreographersTableFilterComposer get choreographerId {
+    final $$ChoreographersTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.choreographerId,
+      referencedTable: $db.choreographers,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ChoreographersTableFilterComposer(
+            $db: $db,
+            $table: $db.choreographers,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$DanceInterpretersTableOrderingComposer
+    extends Composer<_$CompendiumDatabase, $DanceInterpretersTable> {
+  $$DanceInterpretersTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$DancesTableOrderingComposer get danceId {
+    final $$DancesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.danceId,
+      referencedTable: $db.dances,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DancesTableOrderingComposer(
+            $db: $db,
+            $table: $db.dances,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$ChoreographersTableOrderingComposer get choreographerId {
+    final $$ChoreographersTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.choreographerId,
+      referencedTable: $db.choreographers,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ChoreographersTableOrderingComposer(
+            $db: $db,
+            $table: $db.choreographers,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$DanceInterpretersTableAnnotationComposer
+    extends Composer<_$CompendiumDatabase, $DanceInterpretersTable> {
+  $$DanceInterpretersTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get position =>
+      $composableBuilder(column: $table.position, builder: (column) => column);
+
+  $$DancesTableAnnotationComposer get danceId {
+    final $$DancesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.danceId,
+      referencedTable: $db.dances,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DancesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.dances,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$ChoreographersTableAnnotationComposer get choreographerId {
+    final $$ChoreographersTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.choreographerId,
+      referencedTable: $db.choreographers,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ChoreographersTableAnnotationComposer(
+            $db: $db,
+            $table: $db.choreographers,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$DanceInterpretersTableTableManager
+    extends
+        RootTableManager<
+          _$CompendiumDatabase,
+          $DanceInterpretersTable,
+          DanceInterpreterRow,
+          $$DanceInterpretersTableFilterComposer,
+          $$DanceInterpretersTableOrderingComposer,
+          $$DanceInterpretersTableAnnotationComposer,
+          $$DanceInterpretersTableCreateCompanionBuilder,
+          $$DanceInterpretersTableUpdateCompanionBuilder,
+          (DanceInterpreterRow, $$DanceInterpretersTableReferences),
+          DanceInterpreterRow,
+          PrefetchHooks Function({bool danceId, bool choreographerId})
+        > {
+  $$DanceInterpretersTableTableManager(
+    _$CompendiumDatabase db,
+    $DanceInterpretersTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$DanceInterpretersTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$DanceInterpretersTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$DanceInterpretersTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> danceId = const Value.absent(),
+                Value<String> choreographerId = const Value.absent(),
+                Value<int> position = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DanceInterpretersCompanion(
+                danceId: danceId,
+                choreographerId: choreographerId,
+                position: position,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String danceId,
+                required String choreographerId,
+                required int position,
+                Value<int> rowid = const Value.absent(),
+              }) => DanceInterpretersCompanion.insert(
+                danceId: danceId,
+                choreographerId: choreographerId,
+                position: position,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$DanceInterpretersTable, DanceInterpreterRow>(
+                    table,
+                  ),
+                  $$DanceInterpretersTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({danceId = false, choreographerId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (danceId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.danceId,
+                                referencedTable:
+                                    $$DanceInterpretersTableReferences
+                                        ._danceIdTable(db),
+                                referencedColumn:
+                                    $$DanceInterpretersTableReferences
+                                        ._danceIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+                    if (choreographerId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.choreographerId,
+                                referencedTable:
+                                    $$DanceInterpretersTableReferences
+                                        ._choreographerIdTable(db),
+                                referencedColumn:
+                                    $$DanceInterpretersTableReferences
+                                        ._choreographerIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$DanceInterpretersTableProcessedTableManager =
+    ProcessedTableManager<
+      _$CompendiumDatabase,
+      $DanceInterpretersTable,
+      DanceInterpreterRow,
+      $$DanceInterpretersTableFilterComposer,
+      $$DanceInterpretersTableOrderingComposer,
+      $$DanceInterpretersTableAnnotationComposer,
+      $$DanceInterpretersTableCreateCompanionBuilder,
+      $$DanceInterpretersTableUpdateCompanionBuilder,
+      (DanceInterpreterRow, $$DanceInterpretersTableReferences),
+      DanceInterpreterRow,
       PrefetchHooks Function({bool danceId, bool choreographerId})
     >;
 typedef $$DanceFiguresTableCreateCompanionBuilder =
@@ -27841,6 +29032,8 @@ class $CompendiumDatabaseManager {
       $$ChoreographersTableTableManager(_db, _db.choreographers);
   $$DanceAuthorsTableTableManager get danceAuthors =>
       $$DanceAuthorsTableTableManager(_db, _db.danceAuthors);
+  $$DanceInterpretersTableTableManager get danceInterpreters =>
+      $$DanceInterpretersTableTableManager(_db, _db.danceInterpreters);
   $$DanceFiguresTableTableManager get danceFigures =>
       $$DanceFiguresTableTableManager(_db, _db.danceFigures);
   $$ProgramsTableTableManager get programs =>

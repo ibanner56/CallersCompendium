@@ -85,13 +85,17 @@ void main() {
     }
   });
 
-  Future<void> pumpDanceChip(WidgetTester tester, DanceStatus status) async {
+  Future<void> pumpDanceChip(
+    WidgetTester tester,
+    DanceStatus status, {
+    ThemeData? theme,
+  }) async {
     await tester.pumpWidget(
       MaterialApp(
         localizationsDelegates: testLocalizationsDelegates,
         supportedLocales: testSupportedLocales,
 
-        theme: AppTheme.light,
+        theme: theme ?? AppTheme.light,
         home: Scaffold(
           body: Center(child: DanceStatusChip(status: status)),
         ),
@@ -125,6 +129,40 @@ void main() {
       expected,
       isNot(theme.extension<AppThemeExtension>()!.statusDeprecated),
     );
+  });
+
+  testWidgets('the chip draws its icon in a colour that clears 3:1 on the '
+      'fill, even where the token alone does not', (tester) async {
+    // Everforest Light's Broken token measures about 2.9:1 on its own tint:
+    // easing it far enough for the label leaves the icon short.
+    final scheme = AppThemeSelection.everforestLight.scheme!;
+    await pumpDanceChip(
+      tester,
+      DanceStatus.broken,
+      theme: AppTheme.fromScheme(scheme),
+    );
+    final ext = Theme.of(
+      tester.element(find.byType(DanceStatusChip)),
+    ).extension<AppThemeExtension>()!;
+    final fill = Color.alphaBlend(
+      ext.statusBroken.withValues(alpha: AppThemeExtension.statusTintAlpha),
+      scheme.surface,
+    );
+    expect(
+      Wcag.contrastRatio(ext.statusBroken, fill),
+      lessThan(Wcag.aaNonText),
+      reason: 'precondition: the token alone falls short in this palette',
+    );
+    final icon = tester.widget<Icon>(
+      find.byIcon(Icons.report_problem_outlined),
+    );
+    expect(
+      Wcag.contrastRatio(icon.color!, fill),
+      greaterThanOrEqualTo(Wcag.aaNonText),
+    );
+    // The tint and border keep the token, so the label guarantee holds.
+    final chip = tester.widget<Chip>(find.byType(Chip));
+    expect(chip.side?.color, ext.statusBroken);
   });
 
   testWidgets('StatusChip fills at statusTintAlpha with a full-alpha border', (

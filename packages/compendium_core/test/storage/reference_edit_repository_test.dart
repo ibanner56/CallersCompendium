@@ -38,6 +38,7 @@ void main() {
     String id, {
     List<String> tags = const [],
     List<String> authors = const [],
+    List<String> interpreters = const [],
     List<SourceCitation> sources = const [],
   }) => repos.dances.create(
     Dance(
@@ -45,6 +46,7 @@ void main() {
       title: 'Dance $id',
       tagIds: tags,
       authorIds: authors,
+      interpreterIds: interpreters,
       sourceCitations: sources,
       createdAt: t0,
       updatedAt: t0,
@@ -823,6 +825,126 @@ void main() {
         ),
         [ReferenceMergeConflict(ReferenceDetailField.year, '1998', '2004')],
       );
+    });
+  });
+
+  // ADR-006 §9.2: an interpreter credit cites a person as an author credit
+  // does, so every edit of people treats the two alike.
+  group('interpreter credits', () {
+    Future<void> person(String id, String name) async {
+      final _ = await repos.choreographers.upsert(
+        Choreographer(id: id, name: name),
+        at: t0,
+      );
+    }
+
+    Future<Set<(String, String, int)>> interpreterJoins() async => {
+      for (final row in await db.select(db.danceInterpreters).get())
+        (row.danceId, row.choreographerId, row.position),
+    };
+
+    test('count as uses, once per dance', () async {
+      await person(a, 'Pat Shaw');
+      await person(b, 'Cecil Sharp');
+      await dance('one', authors: [b], interpreters: [a]);
+      await dance('two', authors: [a], interpreters: [a]);
+      await dance('three', interpreters: [a, b]);
+
+      expect(await edits.liveDanceCount(ReferenceKind.author, a), 3);
+      expect(await edits.liveDanceCount(ReferenceKind.author, b), 2);
+      expect(await edits.watchLiveDanceCounts(ReferenceKind.author).first, {
+        a: 3,
+        b: 2,
+      });
+    });
+
+    test('hold a person back from deletion', () async {
+      await person(a, 'Pat Shaw');
+      await dance('live', interpreters: [a]);
+      await expectLater(
+        edits.deleteUnused(ReferenceKind.author, a),
+        throwsStateError,
+      );
+      await expectLater(repos.choreographers.delete(a), throwsStateError);
+      expect(await repos.choreographers.getById(a), isNotNull);
+
+      // Credited both ways on one dance, the person is held by one dance.
+      await person(b, 'Cecil Sharp');
+      await dance('both', authors: [b], interpreters: [b]);
+      await expectLater(
+        repos.choreographers.delete(b),
+        throwsA(
+          isA<StateError>().having(
+            (e) => e.message,
+            'message',
+            contains('still credited on 1 dance(s)'),
+          ),
+        ),
+      );
+    });
+
+    test('move to the survivor of a merge, and Undo moves them back, even '
+        'where the survivor is the same dance\'s author', () async {
+      await person(a, 'Pat Shaw');
+      await person(b, 'P. Shaw');
+      await person(c, 'Cecil Sharp');
+      // `a` is the author of `one` and `b` its interpreter: after the merge
+      // `a` is both, and Undo must give the interpreter credit back to `b`.
+      await dance('one', authors: [a], interpreters: [c, b]);
+      await dance('two', interpreters: [a, b]);
+      final before = await interpreterJoins();
+
+      final undo = await edits.merge(
+        ReferenceKind.author,
+        intoId: a,
+        otherIds: [b],
+      );
+      expect((await repos.dances.getById('one'))!.interpreterIds, [
+        c,
+        a,
+      ], reason: 'the loser\'s credit moved, in place');
+      expect((await repos.dances.getById('two'))!.interpreterIds, [
+        a,
+      ], reason: 'a dance that had both keeps one');
+
+      await edits.undo(undo);
+      expect(await interpreterJoins(), before);
+      expect((await repos.dances.getById('one'))!.authorIds, [a]);
+    });
+
+    test('a purge keeps a person another dance still credits as '
+        'interpreter, and collects one nobody credits', () async {
+      await person(a, 'Pat Shaw');
+      await person(b, 'Cecil Sharp');
+      await person(c, 'Tom Cook');
+      await dance('gone', authors: [a, b], interpreters: [c]);
+      await dance('kept', interpreters: [a]);
+
+      await repos.dances.hardDelete(['gone']);
+
+      expect(await repos.choreographers.getById(a), isNotNull);
+      expect(await repos.choreographers.getById(b), isNull);
+      expect(
+        await repos.choreographers.getById(c),
+        isNull,
+        reason: 'a person only the purged dance credited as interpreter',
+      );
+      expect((await repos.dances.getById('kept'))!.interpreterIds, [a]);
+    });
+
+    test('a new person taking a deleted one\'s name does not inherit their '
+        'interpreter credits', () async {
+      await person(a, 'Pat Shaw');
+      await dance('trashed', interpreters: [a]);
+      await repos.dances.softDelete('trashed', at: t0);
+      await repos.choreographers.delete(a, at: t0);
+
+      final adopted = await repos.choreographers.upsert(
+        Choreographer(id: b, name: 'Pat Shaw'),
+        at: t0.add(const Duration(minutes: 1)),
+      );
+      expect(adopted, a);
+      expect(await interpreterJoins(), isEmpty);
     });
   });
 }

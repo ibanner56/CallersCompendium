@@ -8,7 +8,7 @@ import '../dialect/renderer.dart';
 import '../model/dance.dart';
 import '../model/figure.dart';
 import '../model/figure_source.dart';
-import '../taxonomy/contra_taxonomy.dart';
+import '../taxonomy/taxonomy_registry.dart';
 import 'dance_card_fields.dart';
 import 'dance_share_fields.dart';
 import 'export_labels.dart';
@@ -51,7 +51,7 @@ class DanceCardContent {
     Set<DanceShareField> fields = DanceShareField.allExceptTunes,
     List<String> sourceLines = const [],
   }) {
-    final fig = renderer ?? FigureRenderer(contraTaxonomy);
+    final fig = renderer ?? FigureRenderer(shippedTaxonomies.anyForm);
     String renderText(String text) => canonicalizeDiscouragedTerms
         ? fig.renderFreeTextWithCanonicalDiscouragedTerms(text, dialect)
         : fig.renderFreeText(text, dialect);

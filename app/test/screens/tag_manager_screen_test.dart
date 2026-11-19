@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:compendium_app/src/data/collection_filter_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
+import 'package:compendium_app/src/data/confirm_before_delete_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/tag_manager_screen.dart';
 import 'package:compendium_app/src/theme/app_theme.dart';
@@ -19,15 +20,24 @@ import '../support/test_repositories.dart';
 
 /// The Tags manager (FIND-3, `docs/design/tags-and-people.md` T2), which took
 /// over the tag-colour screen (issue #786) and adds rename, merge and delete.
-Future<void> _pump(WidgetTester tester, CompendiumRepositories repos) async {
+Future<void> _pump(
+  WidgetTester tester,
+  CompendiumRepositories repos, {
+  bool confirmBeforeDelete = false,
+}) async {
+  final confirm = ValueNotifier<bool>(confirmBeforeDelete);
+  addTearDown(confirm.dispose);
   await tester.pumpWidget(
     RepositoriesScope(
       repositories: repos,
-      child: MaterialApp(
-        theme: AppTheme.light,
-        localizationsDelegates: testLocalizationsDelegates,
-        supportedLocales: testSupportedLocales,
-        home: const TagManagerScreen(),
+      child: ConfirmBeforeDeleteScope(
+        notifier: confirm,
+        child: MaterialApp(
+          theme: AppTheme.light,
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: const TagManagerScreen(),
+        ),
       ),
     ),
   );
@@ -383,6 +393,24 @@ void main() {
   });
 
   group('delete', () {
+    testWidgets('with Confirm before delete on, asks first; Cancel keeps it', (
+      tester,
+    ) async {
+      await tag(a, 'Bouncey');
+      await _pump(tester, repos, confirmBeforeDelete: true);
+
+      await act(tester, a, 'delete');
+
+      expect(
+        find.byKey(const ValueKey('confirm-delete-dialog')),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const ValueKey('confirm-delete-cancel')));
+      await tester.pumpAndSettle();
+      expect(await liveTags(), isNotEmpty);
+      expect(find.byKey(const ValueKey('tag-row-$a')), findsOneWidget);
+    });
+
     testWidgets('asks nothing, and reports the live dances it changed', (
       tester,
     ) async {

@@ -16,7 +16,9 @@ import '../utils/confirm_delete.dart';
 import '../utils/row_focus.dart';
 import '../utils/shortcut_platform.dart';
 import '../utils/undo_snack_bar.dart';
+import '../widgets/brand_mark.dart';
 import '../widgets/empty_state.dart';
+import '../widgets/load_error_view.dart';
 import '../widgets/program_list_tile.dart';
 import '../widgets/skeleton.dart';
 import '../widgets/sync_now_action.dart';
@@ -709,49 +711,52 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
                   ),
                 ],
               ),
-            PopupMenuButton<ProgramSort>(
-              key: const ValueKey('programs-sort'),
-              tooltip: l10n.programsSortByTooltip(
-                programSortLabel(l10n, _sort),
+            // Nothing to sort until there is a program.
+            if (_programs!.isNotEmpty) ...[
+              PopupMenuButton<ProgramSort>(
+                key: const ValueKey('programs-sort'),
+                tooltip: l10n.programsSortByTooltip(
+                  programSortLabel(l10n, _sort),
+                ),
+                initialValue: _sort,
+                icon: const Icon(Icons.sort),
+                onSelected: (value) {
+                  setState(() {
+                    _sortUserSet = true;
+                    _sort = value;
+                    _sortDir = value.defaultDirection;
+                  });
+                  _persistLastUsedSort();
+                },
+                itemBuilder: (context) => [
+                  for (final option in ProgramSort.values)
+                    PopupMenuItem(
+                      value: option,
+                      child: Text(programSortLabel(l10n, option)),
+                    ),
+                ],
               ),
-              initialValue: _sort,
-              icon: const Icon(Icons.sort),
-              onSelected: (value) {
-                setState(() {
-                  _sortUserSet = true;
-                  _sort = value;
-                  _sortDir = value.defaultDirection;
-                });
-                _persistLastUsedSort();
-              },
-              itemBuilder: (context) => [
-                for (final option in ProgramSort.values)
-                  PopupMenuItem(
-                    value: option,
-                    child: Text(programSortLabel(l10n, option)),
-                  ),
-              ],
-            ),
-            IconButton(
-              key: const ValueKey('programs-sort-direction'),
-              tooltip: _sortDir == SortDirection.ascending
-                  ? l10n.collectionSortAscendingTooltip
-                  : l10n.collectionSortDescendingTooltip,
-              icon: Icon(
-                _sortDir == SortDirection.ascending
-                    ? Icons.arrow_upward
-                    : Icons.arrow_downward,
+              IconButton(
+                key: const ValueKey('programs-sort-direction'),
+                tooltip: _sortDir == SortDirection.ascending
+                    ? l10n.collectionSortAscendingTooltip
+                    : l10n.collectionSortDescendingTooltip,
+                icon: Icon(
+                  _sortDir == SortDirection.ascending
+                      ? Icons.arrow_upward
+                      : Icons.arrow_downward,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _sortUserSet = true;
+                    _sortDir = _sortDir == SortDirection.ascending
+                        ? SortDirection.descending
+                        : SortDirection.ascending;
+                  });
+                  _persistLastUsedSort();
+                },
               ),
-              onPressed: () {
-                setState(() {
-                  _sortUserSet = true;
-                  _sortDir = _sortDir == SortDirection.ascending
-                      ? SortDirection.descending
-                      : SortDirection.ascending;
-                });
-                _persistLastUsedSort();
-              },
-            ),
+            ],
             if (openSearch != null)
               _buildCompactMoreActions(l10n)
             else
@@ -777,7 +782,9 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
         ],
       ),
       body: _buildBody(),
-      floatingActionButton: _programs == null
+      // The floating New is for a list: the empty state carries its own New
+      // program button, so it waits until there is a program.
+      floatingActionButton: _programs?.isNotEmpty != true
           ? null
           : FloatingActionButton.extended(
               key: const ValueKey('new-program'),
@@ -840,26 +847,16 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   Widget _buildBody() {
     final l10n = AppLocalizations.of(context);
     if (_loadError != null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline, size: 48),
-            const SizedBox(height: 8),
-            Text(l10n.programsListLoadError),
-            const SizedBox(height: 8),
-            FilledButton(
-              onPressed: () {
-                setState(() {
-                  _programs = null;
-                  _loadError = null;
-                });
-                _resubscribe();
-              },
-              child: Text(l10n.commonRetry),
-            ),
-          ],
-        ),
+      return LoadErrorView(
+        icon: LoadErrorView.errorGlyph(context),
+        message: l10n.programsListLoadError,
+        onRetry: () {
+          setState(() {
+            _programs = null;
+            _loadError = null;
+          });
+          _resubscribe();
+        },
       );
     }
 
@@ -871,7 +868,10 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     if (programs.isEmpty) {
       return EmptyState(
         key: const ValueKey('empty-state'),
-        icon: EmptyState.glyph(context, Icons.event_note_outlined),
+        icon: BrandMark(
+          size: 64,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
         title: l10n.programsEmptyTitle,
         body: l10n.programsListEmptyBody,
         actions: [
@@ -933,7 +933,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
         const Divider(height: 1),
         Expanded(
           child: ListView.builder(
-            // Lets the last row scroll clear of the "New program" FAB.
+            // Lets the last row scroll clear of the floating New program.
             padding: const EdgeInsets.only(bottom: AppSpacing.fabClearance),
             itemCount: sorted.length,
             itemBuilder: (context, index) {

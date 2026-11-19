@@ -81,6 +81,7 @@ void main() {
                   popped = await Navigator.of(context).push<Dialect>(
                     MaterialPageRoute(
                       builder: (_) => DialectEditorScreen(
+                        form: DanceForm.contra,
                         initial:
                             initial ??
                             Dialect.larksRobins.copyWith(name: 'Mine'),

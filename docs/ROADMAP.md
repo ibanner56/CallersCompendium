@@ -19,7 +19,7 @@ ordered; each phase gates the next. Status: `[ ]` todo · `[~]` in progress · `
 | Notation | Fully structured figures with a searchable free-text **Custom** figure fallback |
 | CallersBox | Import directly from the primary source in-app (online search + link/record import) |
 | Migration | Seamless out-of-the-box import from Caller's Companion exports |
-| License | AGPL-3.0 |
+| License | AGPL-3.0-only |
 
 Non-goals for v1: user accounts, choreography validation (developed
 separately; planned for a later milestone), authoring/publishing back to online sources.
@@ -91,7 +91,7 @@ implementation notes and deviations against each item — is in
       (#692, #1087). The cross-channel decision is made: the Play app-signing key
       is **intentionally distinct** from the direct-APK key, so moving between
       channels is a backup → uninstall → install → restore, not an in-place update.
-  - **Deferred** (later signing wave — needs paid developer accounts / a decision; see [ADR-002](adr/002-distribution-and-update-channels.md) §6)
+  - **Deferred** (signing is configured for macOS and Windows; what remains here is store/MSIX distribution and the Linux decision; see [ADR-002](adr/002-distribution-and-update-channels.md) §6)
     - Windows Authenticode/Store (MSIX) signing — Azure Trusted Signing is wired for the Windows installer and portable bundle when configured; the Linux half is decided in ADR-003 and tracked in #491. (macOS is now signed + notarized and iOS is distributed via TestFlight — see **Delivered** above.)
     - Store distribution (Google Play, F-Droid, Flathub). **Google Play is in closed testing:** a release-workflow leg builds and stages a **signed Android App Bundle (`.aab`)** for Play (#535) and uploads it to Play when the Play service-account secret is configured (#1762); the closed-testing track exists and Android testers are pointed at it (#1082; [google-play.md](dev/store-submission/google-play.md#5b-closed-testing-the-mandatory-gate--gate-new-long-pole) has the tester count). A store-distribution **license exception** to the AGPL was added so managed marketplaces are permitted (#534), and **App Store & Google Play submission guides** plus listing copy, a privacy policy, and a contact address landed under [docs/dev/store-submission/](dev/store-submission/) (#532, #534). Open testing and a public store listing are still pending. For Linux, the post-beta channel evaluation is decided in [ADR-003](adr/003-linux-native-distribution-channel.md): **Flathub-first** (auto-update + desktop integration + trusted-publisher signing, no self-run infra), with Snap/Launchpad PPA secondary and a self-hosted apt repo only on clear demand.
     - Reconcile the bundle-id mismatch — **done**: all platforms now unify on the Apple form `org.callerscompendium.compendiumApp` (Android `applicationId`/namespace + Linux `APPLICATION_ID` updated to match; Apple was already the target and is the source of truth, since Apple bundle IDs disallow underscores).
@@ -134,7 +134,7 @@ implementation notes and deviations against each item — is in
 
 ## Later milestones
 
-- ECD and Squares support — the ECD figure grammar is proposed in [ADR-006](adr/006-english-country-dance-canonical-grammar.md)
+- ECD and Squares support — the ECD figure grammar is accepted in [ADR-006](adr/006-english-country-dance-canonical-grammar.md) (November 2026); implementation is under way: the dance-form taxonomy slot (W1) and the ECD figure registry (W2) have landed, and the editor, typed entry, dialects, search and print follow (ADR-006 §12)
 - ~~Optional device-to-device sync, beyond Apple-native AirDrop support.~~ —
   **Cut**: [ADR-004](adr/004-device-sync-and-athenaeum.md) rules out local
   network discovery. Device-local data (venue addresses and contacts) moves by

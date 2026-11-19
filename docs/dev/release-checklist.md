@@ -177,8 +177,8 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
  the new version — `pages-site.yml` redeploys on merge to `main`, or run
  `gh workflow run pages-site.yml`.
 
-## 5. Licensing & attribution (Gate — AGPL-3.0)
-- [ ] LICENSE present and unchanged (AGPL-3.0).
+## 5. Licensing & attribution (Gate — AGPL-3.0-only)
+- [ ] LICENSE present and unchanged (AGPL-3.0-only).
 - [ ] Source-offer / repo link is reachable from the app (AGPL network clause).
 - [ ] Third-party/source attributions (ContraDB, The Caller's Box, Caller's
  Companion) are present where required; no bundled data violates its terms.

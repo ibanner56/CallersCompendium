@@ -32,6 +32,7 @@ import '../theme/app_spacing.dart';
 import '../theme/set_list_accents.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/undo_snack_bar.dart';
+import '../widgets/load_error_view.dart';
 import '../widgets/program_export_menu.dart';
 import '../widgets/program_status_chip.dart';
 import 'dance_detail_screen.dart';
@@ -279,7 +280,9 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   /// For prose and formation labels only; a dance's figures go to
   /// `UserFiguresScope.rendererOf`, which shows uses of the user's own
   /// figures live (#1023).
-  static final FigureRenderer _proseRenderer = FigureRenderer(contraTaxonomy);
+  static final FigureRenderer _proseRenderer = FigureRenderer(
+    shippedTaxonomies.anyForm,
+  );
   ScaffoldFeatureController<SnackBar, SnackBarClosedReason>? _bulkUndoSnackBar;
 
   /// Collapses a burst of refresh requests into a single [_load].
@@ -787,9 +790,9 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     widget.onDeleted();
   }
 
-  /// Launches the large-print Perform view for the current saved program,
-  /// mirroring [ProgramEditorScreen]'s perform launch. No-op when there is
-  /// nothing to perform or the reference data has not finished loading.
+  /// Launches the large-print Perform view for the current saved program: the
+  /// app's only way into program Perform. No-op when there is nothing to
+  /// perform or the reference data has not finished loading.
   Future<void> _performProgram() async {
     final program = _program;
     final data = _collectionData;
@@ -1038,11 +1041,15 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     }
     final program = _program;
     if (_error != null || program == null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(l10n.programsSummaryUnavailable),
-        ),
+      // A failed read can succeed on a second try; a program that is gone
+      // cannot, so it offers the way out instead.
+      return LoadErrorView(
+        icon: LoadErrorView.errorGlyph(context),
+        message: _error != null
+            ? l10n.programsLoadError
+            : l10n.programsSummaryUnavailable,
+        onRetry: _error != null ? _load : null,
+        onBack: _error != null ? null : widget.onDeleted,
       );
     }
 
@@ -1199,11 +1206,10 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     );
   }
 
-  /// "Perform this program" action shown in the summary's top action Row,
-  /// mirroring the program builder's `perform-program` AppBar action. Disabled
+  /// "Perform this program" action shown in the summary's top action Row, the
+  /// way into Perform for a saved program (the builder has none). Disabled
   /// (with an explanatory tooltip) when the program has no slots or the
-  /// reference data has not loaded yet, mirroring the editor's `_slots.isEmpty`
-  /// guard — never a dead button. The disabled state is exposed to assistive
+  /// reference data has not loaded yet — never a dead button. The disabled state is exposed to assistive
   /// technology via the button's own disabled semantics, not colour alone.
   Widget _buildPerformAction(Program program) {
     final l10n = AppLocalizations.of(context);
@@ -1587,9 +1593,12 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
 
   String _displayProse(String text) {
     if (!CanonicalDiscouragedTermsScope.of(context)) return text;
-    final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
+    // Program prose (slot and program notes) has no dance form: contra's.
+    final dialect =
+        (ActiveDialectScope.maybeOf(context) ?? DialectsByForm.defaults)
+            .forForm(DanceForm.contra);
     return FigureRenderer(
-      contraTaxonomy,
+      shippedTaxonomies.anyForm,
     ).renderFreeTextWithCanonicalDiscouragedTerms(text, dialect);
   }
 
@@ -1703,7 +1712,8 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
             l10n,
             dance.formation,
             _proseRenderer,
-            ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
+            (ActiveDialectScope.maybeOf(context) ?? DialectsByForm.defaults)
+                .forDance(dance),
             canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
               context,
             ),
@@ -1746,7 +1756,8 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
             l10n,
             dance.formation,
             _proseRenderer,
-            ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
+            (ActiveDialectScope.maybeOf(context) ?? DialectsByForm.defaults)
+                .forDance(dance),
             canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
               context,
             ),

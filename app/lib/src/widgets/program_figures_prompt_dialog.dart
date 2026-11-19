@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../theme/app_motion.dart';
 
 /// A pre-export prompt that asks whether to include full figure cards in a
 /// program text or PDF export (issue #853, asks 2 and 3).
@@ -25,6 +26,7 @@ class ProgramFiguresPromptDialog extends StatefulWidget {
     return showDialog<bool>(
       context: context,
       builder: (_) => const ProgramFiguresPromptDialog(),
+      animationStyle: AppMotion.styleFor(context),
     );
   }
 

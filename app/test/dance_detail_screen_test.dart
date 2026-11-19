@@ -35,11 +35,12 @@ import 'package:compendium_app/src/widgets/dance_export_menu.dart'
     show PdfLayouter, ShareInvoker;
 import 'package:compendium_app/src/widgets/figure_table.dart';
 import 'package:compendium_app/src/widgets/program_status_chip.dart';
-import 'package:compendium_app/src/widgets/readable_width.dart';
 
 import 'support/fake_url_launcher.dart';
 import 'support/pdf_probe.dart';
 import 'support/test_repositories.dart';
+import 'support/fab_clearance.dart';
+import 'support/real_fonts.dart';
 import 'support/l10n_harness.dart';
 import 'figures_support.dart';
 
@@ -91,6 +92,7 @@ Future<ValueNotifier<bool>> _pumpDetail(
   Future<void> Function(DanceDetailData detail)? onReimport,
   Set<DanceShareField>? shareFields,
   UserFiguresController? userFigures,
+  bool pushed = false,
 }) async {
   if (canonicalFigureText != null) {
     await repos.settings.set(kCanonicalFigureTextKey, canonicalFigureText);
@@ -108,7 +110,10 @@ Future<ValueNotifier<bool>> _pumpDetail(
       : UserFiguresScope(controller: userFigures, child: child);
   Widget withLibrary(Widget child) => dialectLibrary == null
       ? child
-      : DialectLibraryScope(controller: dialectLibrary, child: child);
+      : DialectLibraryScope(
+          libraries: DialectLibraries.withContra(dialectLibrary),
+          child: child,
+        );
   // Issue #1434 review finding: without mounting this scope explicitly, every
   // test in this file exercises only DanceShareFieldsScope's *default*
   // value — indistinguishable from the wiring being absent entirely. Callers
@@ -139,17 +144,35 @@ Future<ValueNotifier<bool>> _pumpDetail(
           ),
         ),
       ),
-      home: DanceDetailScreen(
-        danceId: danceId,
-        jsonExportDelivery: jsonExportDelivery,
-        shareInvoker: shareInvoker,
-        pdfLayouter: pdfLayouter,
-        readOnly: readOnly,
-        onReimport: onReimport,
-      ),
+      home: pushed
+          ? Builder(
+              builder: (context) => Scaffold(
+                body: TextButton(
+                  key: const ValueKey('open-detail'),
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => DanceDetailScreen(danceId: danceId),
+                    ),
+                  ),
+                  child: const Text('open'),
+                ),
+              ),
+            )
+          : DanceDetailScreen(
+              danceId: danceId,
+              jsonExportDelivery: jsonExportDelivery,
+              shareInvoker: shareInvoker,
+              pdfLayouter: pdfLayouter,
+              readOnly: readOnly,
+              onReimport: onReimport,
+            ),
     ),
   );
   await tester.pumpAndSettle();
+  if (pushed) {
+    await tester.tap(find.byKey(const ValueKey('open-detail')));
+    await tester.pumpAndSettle();
+  }
   return requirePerformedNotifier;
 }
 
@@ -189,22 +212,6 @@ void main() {
     expect(find.text('Gene Hubert'), findsOneWidget);
     expect(find.text('a lovely hook'), findsOneWidget);
     expect(find.text('smooth'), findsOneWidget);
-  });
-
-  testWidgets('keeps its content to the readable width on a wide window', (
-    tester,
-  ) async {
-    final repos = openTestRepositories();
-    await repos.dances.create(_dance(id: 'd1', title: 'Midwest Folklore'));
-
-    await _pumpDetail(tester, repos, 'd1', surfaceSize: const Size(1600, 1200));
-
-    final card = find.byType(Card).first;
-    expect(
-      tester.getSize(card).width,
-      lessThanOrEqualTo(kReadableContentWidth),
-    );
-    expect(tester.getCenter(card).dx, 800);
   });
 
   testWidgets('a use of a figure of your own shows its figure\'s current '
@@ -1310,6 +1317,47 @@ void main() {
     final repos = openTestRepositories();
     await _pumpDetail(tester, repos, 'nope');
     expect(find.text('Dance not found.'), findsOneWidget);
+    // Nowhere to go back to (the wide Collection pane is like this): the
+    // message stands alone, with no disabled button implying a retry.
+    expect(find.byType(FilledButton), findsNothing);
+    expect(find.byKey(const ValueKey('load-error-back')), findsNothing);
+  });
+
+  testWidgets('a missing dance with a close callback offers Back', (
+    tester,
+  ) async {
+    var closed = false;
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        builder: (context, child) => RepositoriesScope(
+          repositories: openTestRepositories(),
+          child: ActiveDialectScope(
+            notifier: ValueNotifier(Dialect.larksRobins),
+            child: child!,
+          ),
+        ),
+        home: DanceDetailScreen(danceId: 'nope', onClose: () => closed = true),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('load-error-back')));
+    expect(closed, isTrue);
+  });
+
+  testWidgets('a pushed missing dance offers Back, and Back leaves', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpDetail(tester, repos, 'nope', pushed: true);
+    expect(find.text('Dance not found.'), findsOneWidget);
+    // Gone, so nothing to retry; Back is the way forward.
+    expect(find.byKey(const ValueKey('load-error-retry')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('load-error-back')));
+    await tester.pumpAndSettle();
+    expect(find.text('Dance not found.'), findsNothing);
+    expect(find.byKey(const ValueKey('open-detail')), findsOneWidget);
   });
 
   // ── Duplicate ──────────────────────────────────────────────────────────────
@@ -3433,6 +3481,45 @@ void main() {
       expect(find.textContaining("can't be read"), findsNothing);
       expect(find.byType(FigureTable), findsOneWidget);
     });
+  });
+  group('the floating Edit', () {
+    // Not the 320 dp case: there, at 2× text, a row on this page overflows by
+    // a few pixels on `main` too, a large-text bug of its own. This group is
+    // about the floating button's clearance.
+    for (final c in fabClearanceCases.where((c) => c.width >= 390)) {
+      testWidgets('never covers the end of the page (${c.name})', (
+        tester,
+      ) async {
+        // Real glyph widths: under the full-em test font, large text overflows
+        // rows that fit with the bundled fonts.
+        await loadBundledFonts();
+        final repos = openTestRepositories();
+        await repos.dances.create(
+          _dance(
+            id: 'd1',
+            title: 'Long Dance',
+            figures: [for (var i = 0; i < 16; i++) Figure(move: 'swing')],
+          ),
+        );
+        await _pumpDetail(tester, repos, 'd1', surfaceSize: Size(c.width, 844));
+        await atPhoneSize(
+          tester,
+          width: c.width,
+          scale: c.scale,
+          keyboard: c.keyboard,
+        );
+        await tester.pumpAndSettle();
+
+        // The calling history is the page's last section.
+        await expectFabClearsLastRow(
+          tester,
+          list: find.byType(ListView).first,
+          lastRow: find.byWidgetPredicate(
+            (w) => w.runtimeType.toString() == 'CallingHistorySection',
+          ),
+        );
+      });
+    }
   });
 }
 

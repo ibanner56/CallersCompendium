@@ -4,6 +4,7 @@ import 'package:drift/drift.dart'
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/src/widgets/brand_mark.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/app_shell_search_scope.dart';
@@ -15,6 +16,7 @@ import 'package:compendium_app/src/search/program_sort.dart';
 import 'package:compendium_app/src/widgets/program_list_tile.dart';
 import 'package:compendium_app/src/widgets/weekday_header_strip.dart';
 
+import 'support/fab_clearance.dart';
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
 
@@ -103,6 +105,8 @@ void main() {
     testWidgets('the ⋮ overflow is the last app-bar action '
         '(${compact ? 'compact' : 'wide'})', (tester) async {
       final repos = openTestRepositories();
+      // Sorting shows only once there is a program to sort.
+      await repos.programs.create(_program(id: 'p1', title: 'Barn Dance'));
       await _pump(tester, repos, compact: compact);
 
       final more = tester.getCenter(
@@ -183,6 +187,13 @@ void main() {
 
     expect(find.byKey(const ValueKey('empty-state')), findsOneWidget);
     expect(find.text('No programs yet'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('empty-state')),
+        matching: find.byType(BrandMark),
+      ),
+      findsOneWidget,
+    );
     expect(find.byKey(const ValueKey('empty-new-program')), findsOneWidget);
   });
 
@@ -761,4 +772,63 @@ void main() {
       expect(find.text('Keep Me'), findsOneWidget);
     });
   });
+
+  group('with no programs', () {
+    testWidgets('nothing floats and nothing sorts: the empty state carries '
+        'New program', (tester) async {
+      final repos = openTestRepositories();
+      await _pump(tester, repos);
+
+      expect(find.byKey(const ValueKey('empty-new-program')), findsOneWidget);
+      expect(find.byType(FloatingActionButton), findsNothing);
+      expect(find.byKey(const ValueKey('programs-sort')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('programs-sort-direction')),
+        findsNothing,
+      );
+      // Import stays: it is a way to get the first program.
+      expect(find.byKey(const ValueKey('programs-import')), findsOneWidget);
+    });
+
+    testWidgets('the first program brings New, sort and direction back', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.programs.create(_program(id: 'p1', title: 'Barn Dance'));
+      await _pump(tester, repos);
+
+      expect(find.byKey(const ValueKey('new-program')), findsOneWidget);
+      expect(find.byKey(const ValueKey('programs-sort')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('programs-sort-direction')),
+        findsOneWidget,
+      );
+    });
+  });
+
+  for (final c in fabClearanceCases) {
+    testWidgets('the floating New never covers the last program (${c.name})', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      for (var i = 0; i < 30; i++) {
+        final n = '$i'.padLeft(2, '0');
+        await repos.programs.create(_program(id: 'p$n', title: 'Program $n'));
+      }
+      await _pump(tester, repos);
+      await atPhoneSize(
+        tester,
+        width: c.width,
+        scale: c.scale,
+        keyboard: c.keyboard,
+      );
+      await tester.pumpAndSettle();
+
+      await expectFabClearsLastRow(
+        tester,
+        list: find.byType(ListView),
+        lastRow: find.widgetWithText(ProgramListTile, 'Program 29'),
+      );
+    });
+  }
 }

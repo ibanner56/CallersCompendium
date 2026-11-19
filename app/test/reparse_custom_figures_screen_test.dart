@@ -222,9 +222,7 @@ void main() {
     expect(find.byKey(const ValueKey('reparse-customs-error')), findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsNothing);
 
-    await tester.tap(
-      find.byKey(const ValueKey('reparse-customs-retry-button')),
-    );
+    await tester.tap(find.byKey(const ValueKey('load-error-retry')));
     await tester.pumpAndSettle();
 
     // Second attempt succeeds → empty state (no lingering error).

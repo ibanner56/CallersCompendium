@@ -8,12 +8,14 @@ import '../data/active_dialect_scope.dart';
 import '../data/repositories_scope.dart';
 import '../data/perform_text_scale.dart';
 import '../../l10n/app_localizations.dart';
+import '../theme/app_motion.dart';
 import '../widgets/colour_dance_theme.dart';
 import '../widgets/dialect_quick_switch.dart';
 import '../widgets/tap_tempo_metronome.dart';
 import 'perform_a11y_prefs.dart';
 import 'perform_card.dart';
 import 'perform_elapsed_clock.dart';
+import 'perform_exit.dart';
 import 'perform_full_screen.dart';
 import 'perform_wakelock.dart';
 import 'perform_walkthrough_overlay.dart';
@@ -21,6 +23,7 @@ import 'settings_screen.dart'
     show
         kAutoSizePerformDefault,
         kAutoSizePerformKey,
+        kConfirmPerformExitDefault,
         kShowIndividualPerformTimerKey;
 
 /// Full-screen, large-print Perform mode for a single [Dance]
@@ -167,6 +170,11 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
         .catchError((_) {
           // diagnostics: silent — auto-size pref read failed; keeps on-by-default value.
         });
+    loadConfirmPerformExit(context).then((value) {
+      if (mounted && value != _confirmExit) {
+        setState(() => _confirmExit = value);
+      }
+    });
     settings
         .get(kShowIndividualPerformTimerKey)
         .then(_resolveIndividualTimerPreference)
@@ -286,18 +294,21 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
 
   Future<void> _openMetronomeSheet() {
     return showModalBottomSheet<void>(
-      context: context,
+      context: _stageContext,
       showDragHandle: true,
       builder: (_) => const SafeArea(child: TapTempoMetronome()),
+      sheetAnimationStyle: AppMotion.styleFor(context),
     );
   }
 
   /// Guards leaving Perform (issue #612, sibling of #434). A single stray tap
   /// on the close control — or a system back / predictive-back gesture — must
-  /// not drop the caller out mid-dance, so we require a deliberate
+  /// not drop the caller out mid-dance, so by default we require a deliberate
   /// confirmation first. Mirrors [PerformProgramScreen]'s guard exactly,
-  /// reusing the same dialog keys and l10n strings so the two Perform
-  /// surfaces stay consistent.
+  /// sharing [showPerformExitDialog] so the two Perform surfaces stay
+  /// consistent. The caller can turn the confirmation off in Settings
+  /// ([_confirmExit]); the close control and Back then
+  /// leave at once.
   ///
   /// [_exitDialogShowing] prevents re-entrancy: without it, rapid taps on the
   /// close button (or repeated back gestures while the dialog is up) could
@@ -307,36 +318,39 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
   /// permanently blocked even if the dialog throws.
   bool _exitDialogShowing = false;
 
+  /// Whether leaving asks first. Starts at the default (ask) and is replaced
+  /// by the stored setting once it loads, so an exit attempted before the
+  /// read resolves is still guarded.
+  bool _confirmExit = kConfirmPerformExitDefault;
+
+  /// Keys the Scaffold, which sits below [PerformStageTheme]: its context is
+  /// the one dialogs and sheets are opened from, so they render in the stage
+  /// theme rather than the app theme.
+  final GlobalKey _stageKey = GlobalKey(debugLabel: 'perform-dance-stage');
+
+  /// A context inside the stage theme, for [showDialog] and
+  /// [showModalBottomSheet]; falls back to this State's context before the
+  /// first build.
+  BuildContext get _stageContext => _stageKey.currentContext ?? context;
+
   Future<void> _confirmAndExit() async {
+    final navigator = Navigator.of(context);
+    if (!_confirmExit) {
+      // A direct pop (not `maybePop`) so it bypasses the PopScope in
+      // [_guardExit] rather than re-entering this method.
+      navigator.pop();
+      return;
+    }
     if (_exitDialogShowing) return;
     _exitDialogShowing = true;
     try {
-      final l10n = AppLocalizations.of(context);
-      final navigator = Navigator.of(context);
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          key: const ValueKey('perform-exit-dialog'),
-          title: Text(l10n.performExitTitle),
-          content: Text(l10n.performDanceExitBody),
-          actions: [
-            TextButton(
-              key: const ValueKey('perform-exit-cancel'),
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: Text(l10n.performExitCancel),
-            ),
-            FilledButton(
-              key: const ValueKey('perform-exit-confirm'),
-              autofocus: true,
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: Text(l10n.performExitConfirm),
-            ),
-          ],
-        ),
+      final confirmed = await showPerformExitDialog(
+        _stageContext,
+        body: AppLocalizations.of(context).performDanceExitBody,
       );
       // A direct pop (not `maybePop`) so it bypasses the PopScope in
       // [_guardExit] rather than re-triggering the confirmation.
-      if (confirmed == true) navigator.pop();
+      if (confirmed) navigator.pop();
     } finally {
       _exitDialogShowing = false;
     }
@@ -344,10 +358,14 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
 
   /// Wraps the Perform scaffold so an implicit pop (system back /
   /// predictive-back gesture) is intercepted and routed through the same
-  /// [_confirmAndExit] confirmation as the close control (issue #612).
+  /// [_confirmAndExit] confirmation as the close control (issue #612), while
+  /// the confirmation is on.
   Widget _guardExit({required Widget child}) {
     return PopScope(
-      canPop: false,
+      // With the confirmation turned off, Perform pops like any route, so
+      // gesture-driven back (the iOS edge swipe, which a non-poppable route
+      // disables) leaves at once too.
+      canPop: !_confirmExit,
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) return;
         _confirmAndExit();
@@ -439,7 +457,7 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
 
   Widget _buildContent(BuildContext context, {required bool wide}) {
     final l10n = AppLocalizations.of(context);
-    final dialect = ActiveDialectScope.of(context);
+    final dialect = ActiveDialectScope.of(context).forDance(widget.dance);
     final canDecrease =
         _textScale - kPerformScaleStep >= kPerformMinScale - 1e-9;
 
@@ -449,6 +467,7 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
         enabled: _stageMode,
         child: _guardExit(
           child: Scaffold(
+            key: _stageKey,
             appBar: AppBar(
               leading: IconButton(
                 key: const ValueKey('exit-perform'),
@@ -463,7 +482,7 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
               // The stage-mode toggle and per-gig dialect quick-switch stay inline.
               actions: buildPerformAppBarActions(
                 wide: wide,
-                leadingPrimary: const DialectQuickSwitch(),
+                leadingPrimary: DialectQuickSwitch(form: widget.dance.form),
                 secondaryInline: [
                   if (_hasWalkthrough)
                     IconButton(

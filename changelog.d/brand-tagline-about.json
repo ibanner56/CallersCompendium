@@ -1,0 +1,12 @@
+{
+  "id": "brand-tagline-about",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "The About screen has a new tagline, \"Your caller's box, in the palm of your hand\", translated into every supported language, and the Linux launcher uses it too.",
+      "The About screen shows the full version, including a beta suffix, once under the app name. It is no longer repeated in the line at the bottom or on the licenses page.",
+      "The status line under Check for updates now shows the full version, including a beta suffix, like the About screen does.",
+      "The licence is now written \"AGPL-3.0-only\" everywhere in the app, including the licenses page and the Windows and macOS app details."
+    ]
+  }
+}

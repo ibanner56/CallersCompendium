@@ -3,10 +3,13 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../diagnostics/error_log.dart';
+import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/keyboard_dismiss.dart';
 import '../../utils/undo_snack_bar.dart';
-import '../../widgets/readable_width.dart';
+import '../../theme/destructive_button_style.dart';
+import '../../widgets/dirty_dialog_guard.dart';
+import '../../widgets/empty_state.dart';
 
 /// One entry of a [LibraryManagerList]: a tag, an author or a source.
 @immutable
@@ -80,7 +83,9 @@ class LibraryManagerList extends StatefulWidget {
     required this.keyPrefix,
     required this.entries,
     required this.searchHint,
-    required this.emptyMessage,
+    required this.emptyIcon,
+    required this.emptyTitle,
+    required this.emptyBody,
     required this.actionsFor,
     this.titleBuilder,
     super.key,
@@ -92,8 +97,11 @@ class LibraryManagerList extends StatefulWidget {
   /// The search field's hint, naming the kind ("Search tags").
   final String searchHint;
 
-  /// Shown when there are no entries at all, before any filter.
-  final String emptyMessage;
+  /// The empty state shown when there are no entries at all, before any
+  /// filter: a glyph, a heading, and a line saying where entries come from.
+  final IconData emptyIcon;
+  final String emptyTitle;
+  final String emptyBody;
 
   final List<LibraryManagerAction> Function(LibraryManagerEntry entry)
   actionsFor;
@@ -185,6 +193,7 @@ class _LibraryManagerListState extends State<LibraryManagerList> {
           ],
         ),
       ),
+      sheetAnimationStyle: AppMotion.styleFor(context),
     );
     // Run the action once the sheet has gone, so a dialog it opens is not
     // stacked over a closing sheet.
@@ -199,144 +208,129 @@ class _LibraryManagerListState extends State<LibraryManagerList> {
     final l10n = AppLocalizations.of(context);
     final prefix = widget.keyPrefix;
     if (widget.entries.isEmpty) {
-      return ReadableListView(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        children: [
-          Text(
-            widget.emptyMessage,
-            key: ValueKey('$prefix-empty'),
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-        ],
+      return EmptyState(
+        key: ValueKey('$prefix-empty'),
+        icon: EmptyState.glyph(context, widget.emptyIcon),
+        title: widget.emptyTitle,
+        body: widget.emptyBody,
       );
     }
     final visible = _visible;
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final padding = readableContentPadding(constraints.maxWidth);
-        return Column(
-          children: [
-            Padding(
-              padding: readableContentPadding(
-                constraints.maxWidth,
-                const EdgeInsets.fromLTRB(
-                  AppSpacing.md,
-                  AppSpacing.sm,
-                  AppSpacing.md,
-                  0,
-                ),
-              ),
-              child: TextField(
-                key: ValueKey('$prefix-search'),
-                controller: _search,
-                onChanged: (_) => setState(() {}),
-                decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.search),
-                  hintText: widget.searchHint,
-                  border: const OutlineInputBorder(),
-                  isDense: true,
-                  suffixIcon: _search.text.isEmpty
-                      ? null
-                      : IconButton(
-                          tooltip: l10n.libraryManagerClearSearch,
-                          icon: const Icon(Icons.clear),
-                          onPressed: () => setState(_search.clear),
-                        ),
-                ),
-              ),
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.sm,
+            AppSpacing.md,
+            0,
+          ),
+          child: TextField(
+            key: ValueKey('$prefix-search'),
+            controller: _search,
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(
+              prefixIcon: const Icon(Icons.search),
+              hintText: widget.searchHint,
+              border: const OutlineInputBorder(),
+              isDense: true,
+              suffixIcon: _search.text.isEmpty
+                  ? null
+                  : IconButton(
+                      tooltip: l10n.libraryManagerClearSearch,
+                      icon: const Icon(Icons.clear),
+                      onPressed: () => setState(_search.clear),
+                    ),
             ),
-            Padding(
-              padding: readableContentPadding(
-                constraints.maxWidth,
-                const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.md,
-                  vertical: AppSpacing.xs,
-                ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.xs,
+          ),
+          child: Row(
+            children: [
+              FilterChip(
+                key: ValueKey('$prefix-not-used'),
+                label: Text(l10n.libraryManagerNotUsed),
+                selected: _notUsedOnly,
+                onSelected: (selected) =>
+                    setState(() => _notUsedOnly = selected),
               ),
-              child: Row(
-                children: [
-                  FilterChip(
-                    key: ValueKey('$prefix-not-used'),
-                    label: Text(l10n.libraryManagerNotUsed),
-                    selected: _notUsedOnly,
-                    onSelected: (selected) =>
-                        setState(() => _notUsedOnly = selected),
-                  ),
-                  // Expanded + end-aligned (not Spacer + Flexible, which would
-                  // split the free width): the sort label may shrink and wrap
-                  // at large text instead of overflowing the row.
-                  Expanded(
-                    child: Align(
-                      alignment: AlignmentDirectional.centerEnd,
-                      child: PopupMenuButton<LibraryManagerSort>(
-                        key: ValueKey('$prefix-sort'),
-                        tooltip: l10n.libraryManagerSortTooltip,
-                        initialValue: _sort,
-                        onSelected: (sort) => setState(() => _sort = sort),
-                        itemBuilder: (_) => [
-                          CheckedPopupMenuItem(
-                            key: ValueKey('$prefix-sort-name'),
-                            value: LibraryManagerSort.name,
-                            checked: _sort == LibraryManagerSort.name,
-                            child: Text(l10n.libraryManagerSortByName),
-                          ),
-                          CheckedPopupMenuItem(
-                            key: ValueKey('$prefix-sort-count'),
-                            value: LibraryManagerSort.danceCount,
-                            checked: _sort == LibraryManagerSort.danceCount,
-                            child: Text(l10n.libraryManagerSortByDanceCount),
+              // Expanded + end-aligned (not Spacer + Flexible, which would
+              // split the free width): the sort label may shrink and wrap
+              // at large text instead of overflowing the row.
+              Expanded(
+                child: Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: PopupMenuButton<LibraryManagerSort>(
+                    key: ValueKey('$prefix-sort'),
+                    tooltip: l10n.libraryManagerSortTooltip,
+                    initialValue: _sort,
+                    onSelected: (sort) => setState(() => _sort = sort),
+                    itemBuilder: (_) => [
+                      CheckedPopupMenuItem(
+                        key: ValueKey('$prefix-sort-name'),
+                        value: LibraryManagerSort.name,
+                        checked: _sort == LibraryManagerSort.name,
+                        child: Text(l10n.libraryManagerSortByName),
+                      ),
+                      CheckedPopupMenuItem(
+                        key: ValueKey('$prefix-sort-count'),
+                        value: LibraryManagerSort.danceCount,
+                        checked: _sort == LibraryManagerSort.danceCount,
+                        child: Text(l10n.libraryManagerSortByDanceCount),
+                      ),
+                    ],
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.xs),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.sort),
+                          const SizedBox(width: AppSpacing.xxs),
+                          Flexible(
+                            child: Text(
+                              switch (_sort) {
+                                LibraryManagerSort.name =>
+                                  l10n.libraryManagerSortByName,
+                                LibraryManagerSort.danceCount =>
+                                  l10n.libraryManagerSortByDanceCount,
+                              },
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                         ],
-                        child: Padding(
-                          padding: const EdgeInsets.all(AppSpacing.xs),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.sort),
-                              const SizedBox(width: AppSpacing.xxs),
-                              Flexible(
-                                child: Text(
-                                  switch (_sort) {
-                                    LibraryManagerSort.name =>
-                                      l10n.libraryManagerSortByName,
-                                    LibraryManagerSort.danceCount =>
-                                      l10n.libraryManagerSortByDanceCount,
-                                  },
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
                       ),
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
-            Expanded(
-              child: visible.isEmpty
-                  ? ListView(
-                      padding: padding.add(const EdgeInsets.all(AppSpacing.md)),
-                      children: [
-                        Text(
-                          l10n.libraryManagerNoMatches,
-                          key: ValueKey('$prefix-no-matches'),
-                        ),
-                      ],
-                    )
-                  : ListView.builder(
-                      keyboardDismissBehavior: textEntryKeyboardDismiss(),
-                      padding: padding.copyWith(bottom: AppSpacing.lg),
-                      itemCount: visible.length,
-                      itemBuilder: (context, index) =>
-                          _row(context, visible[index]),
+            ],
+          ),
+        ),
+        Expanded(
+          child: visible.isEmpty
+              ? ListView(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  children: [
+                    Text(
+                      l10n.libraryManagerNoMatches,
+                      key: ValueKey('$prefix-no-matches'),
                     ),
-            ),
-          ],
-        );
-      },
+                  ],
+                )
+              : ListView.builder(
+                  keyboardDismissBehavior: textEntryKeyboardDismiss(),
+                  padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+                  itemCount: visible.length,
+                  itemBuilder: (context, index) =>
+                      _row(context, visible[index]),
+                ),
+        ),
+      ],
     );
   }
 
@@ -387,6 +381,7 @@ Future<String?> showLibraryRenameDialog(
       initialText: initialText ?? currentName,
       fieldLabel: fieldLabel,
     ),
+    animationStyle: AppMotion.styleFor(context),
   );
   if (name == null || name.isEmpty || name == currentName) return null;
   return name;
@@ -428,29 +423,35 @@ class _RenameDialogState extends State<_RenameDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return AlertDialog(
-      key: const ValueKey('library-rename-dialog'),
-      title: Text(l10n.libraryManagerRenameTitle(widget.currentName)),
-      content: TextField(
-        key: const ValueKey('library-rename-field'),
-        controller: _controller,
-        autofocus: true,
-        decoration: InputDecoration(labelText: widget.fieldLabel),
-        textInputAction: TextInputAction.done,
-        onSubmitted: (_) => _submit(),
+    return DirtyDialogGuard(
+      listenable: _controller,
+      // Against the name being renamed, not the seed: a dialog reopened with
+      // the name typed last time starts out holding text the user has not saved.
+      isDirty: () => _controller.text != widget.currentName,
+      child: AlertDialog(
+        key: const ValueKey('library-rename-dialog'),
+        title: Text(l10n.libraryManagerRenameTitle(widget.currentName)),
+        content: TextField(
+          key: const ValueKey('library-rename-field'),
+          controller: _controller,
+          autofocus: true,
+          decoration: InputDecoration(labelText: widget.fieldLabel),
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) => _submit(),
+        ),
+        actions: [
+          TextButton(
+            key: const ValueKey('library-rename-cancel'),
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            key: const ValueKey('library-rename-confirm'),
+            onPressed: _submit,
+            child: Text(l10n.libraryManagerRename),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          key: const ValueKey('library-rename-cancel'),
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.commonCancel),
-        ),
-        FilledButton(
-          key: const ValueKey('library-rename-confirm'),
-          onPressed: _submit,
-          child: Text(l10n.libraryManagerRename),
-        ),
-      ],
     );
   }
 }
@@ -476,6 +477,7 @@ Future<LibraryManagerEntry?> showLibraryMergePicker(
         ),
     searchHint: searchHint,
   ),
+  animationStyle: AppMotion.styleFor(context),
 );
 
 class _MergePickerDialog extends StatefulWidget {
@@ -584,6 +586,7 @@ Future<String?> showLibraryMergeOffer(
     matches: matches,
     droppedFor: droppedFor,
   ),
+  animationStyle: AppMotion.styleFor(context),
 );
 
 class _MergeOfferDialog extends StatefulWidget {
@@ -709,12 +712,16 @@ Future<bool> showLibraryMergeConfirm(
           child: Text(l10n.commonCancel),
         ),
         FilledButton(
+          style: destructiveFilledButtonStyle(
+            Theme.of(dialogContext).colorScheme,
+          ),
           key: const ValueKey('library-merge-confirm-merge'),
           onPressed: () => Navigator.of(dialogContext).pop(true),
           child: Text(l10n.libraryManagerMerge),
         ),
       ],
     ),
+    animationStyle: AppMotion.styleFor(context),
   );
   return merge ?? false;
 }

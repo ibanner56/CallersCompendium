@@ -85,7 +85,8 @@ The **General** section gathers everyday behavior into small groups.
   - **Delete** appears only for an entry no dance uses. One still in use can
     only be merged, so no dance loses its author or source.
 
-  Rename, merge and delete happen at once and show an **Undo** in the message at
+  Rename, merge and delete happen at once (a delete asks first only when
+  **Confirm before delete** is on) and show an **Undo** in the message at
   the bottom of the screen; once that message goes, the change stays. A merge's
   dropped details come back with Undo, and are gone after it.
 
@@ -100,10 +101,11 @@ The **General** section gathers everyday behavior into small groups.
 - **Reduce motion** — trims animations and movement. Follows your device's system
   *Reduce Motion* setting by default; turn this switch on to
   switch off the app's animations and the fade between themes even when your
-  device allows motion. Turning it off stops the app removing its own
-  animations, but cannot restore animations your device's setting has already
-  shortened. This setting belongs to this device: it is not synced to your
-  other devices, but a backup includes it.
+  device allows motion — screens, dialogs, date pickers and bottom sheets
+  appear at once, and expanding sections open without animating. Turning it
+  off stops the app removing its own animations, but cannot restore animations
+  your device's setting has already shortened. This setting belongs to this
+  device: it is not synced to your other devices, but a backup includes it.
 - **Always show verbose figure text** — shows the full spoken-style
   [figure](./glossary.md#figure) wording on screen in the dance view, not only to
   screen readers. Turn it off for the terse notation. This affects the dance view;
@@ -112,14 +114,23 @@ The **General** section gathers everyday behavior into small groups.
   instead of fractions (¾). Screen-reader wording is unaffected, and so are
   printed and exported cards: PDFs, shared text and set-list cards always write
   turns as fractions.
-- **Confirm before delete** — adds a prompt before you delete a dance or program
-  from its **⋮** menu, from the dance or program screen, or from Collection's
-  selection mode. The one exception is swiping a row in the Collection or
-  Programs list: that reveals a **Delete** button, and tapping it deletes with
-  no prompt, because the swipe plus the tap is already a deliberate two-step
-  action. Deletes are still undoable either way. When you delete a program, the
-  prompt also says how many dances lose it from their calling history. A dance
-  already permanently deleted is not counted.
+- **Confirm before delete** — adds a prompt before any delete you can undo: a
+  dance or program from its **⋮** menu, from the dance or program screen, or
+  from Collection's selection mode, and a venue, custom field, tag, author,
+  source, shorthand, dialect, custom theme, walkthrough snippet or matrix
+  column. The one exception is swiping a row in the Collection or Programs
+  list: that reveals a **Delete** button, and tapping it deletes with no
+  prompt, because the swipe plus the tap is already a deliberate two-step
+  action. These deletes offer **Undo** either way. When you delete a program,
+  the prompt also says how many dances lose it from their calling history. A
+  dance already permanently deleted is not counted. A delete that can't be
+  undone always asks first, whether this is on or off.
+- **Undo prompt** — how long the **Undo** message stays on screen after you
+  delete or change something: **2**, **5**, **10** or **15 seconds**, or
+  **Until I close it** (default **10 seconds**). It also stays while you point
+  at it or move to it with the keyboard, and its time starts again when you
+  move away. With a screen reader running it always stays until you act on it
+  or close it.
 
 These are the highlights; the [Accessibility guide](./accessibility.md) gives you
 the full picture.
@@ -188,9 +199,9 @@ sharing, Perform mode, and calling history.
   a matching venue.
 - **Manage venues** — browse, edit, and delete your saved venue records. You can
   also add a venue on the fly while editing a program (when reusable venue records
-  are on). A deleted venue doesn't go to Recently deleted, so you can't restore
-  it on its own. To keep you from stranding a program, a venue can't be
-  deleted while any program is still linked to it; change or remove the venue on
+  are on). Deleting a venue offers **Undo**; it doesn't go to Recently deleted,
+  so once the message has gone you can't restore it on its own. To keep you
+  from stranding a program, a venue can't be deleted while any program is still linked to it; change or remove the venue on
   those programs first, then delete it. A program in **Recently deleted**
   doesn't count, so it won't stop you deleting the venue, and restoring that
   program brings the venue back.
@@ -258,7 +269,8 @@ They don't change what is shared when you share the whole program as a
 ### Performance
 
 - **Auto-size Perform cards** (on) — scales each card so it fits the screen in
-  [Perform mode](./glossary.md#perform-mode). Turn it off when you'd rather size
+  [Perform mode](./glossary.md#perform-mode), but never below your usual text
+  size; a card too long for that scrolls. Turn it off when you'd rather size
   the text yourself using the **A−** and **A+** buttons while performing. See
   [Perform mode](./perform.md) for more. Like the stage theme and the text size
   you pick in Perform, this setting belongs to this device: it is not synced to
@@ -269,6 +281,10 @@ They don't change what is shared when you share the whole program as a
 - **Show caller notes in program Perform** (on) — shows each non-empty
   per-slot caller note above the dance title while performing a program. Turn it
   off when you want the program card to show only the dance's own details.
+- **Confirm before leaving Perform** (on) — makes the close button and Back ask
+  *Exit Perform?* before taking you out of Perform, so a stray tap can't drop
+  you out mid-dance. Turn it off to leave in one tap; a program's place and
+  clock are kept either way. See [Leaving Perform](./perform.md#leaving-perform).
 
 ### Calling history
 
@@ -363,6 +379,7 @@ There's a **High contrast** theme for maximum legibility — see the
 - **New custom theme** — opens an editor seeded from your current theme, so you
   start from something familiar. You can tune any color in it.
 - Saved custom themes can be selected, edited, duplicated, or deleted at any time.
+  Deleting one offers **Undo**, which also makes it your theme again if it was.
   They sync to your other devices along with your other settings when sync is on, and deleting a theme deletes it on those devices too.
 
 ### Easter eggs
@@ -415,13 +432,19 @@ There's a **High contrast** theme for maximum legibility — see the
 The **Dialect** section is your library of [dialects](./glossary.md#dialect) — the
 role names and wording the app uses when it describes dances.
 
+- Each type of dance (**Contra**, **English (ECD)**, **Square**) has its own
+  dialects. Choose the type at the top of the section; the list below shows that
+  type's dialects, and each dance reads in the active dialect of its own type.
 - **New dialect** starts a dialect of your own, and **Duplicate from…** copies
   an existing one as a starting point.
 - Preset dialects are read-only, but you can **Duplicate to customize** to make
   your own version.
-- Custom dialects can be edited (**Edit terms**), renamed, or deleted.
-- One dialect is active at a time; select a dialect in the list to make it
-  active.
+- Custom dialects can be edited (**Edit terms**), renamed, or deleted. Deleting
+  one offers **Undo**, which also makes it active again if it was.
+- One dialect is active at a time for each type; select a dialect in the list
+  to make it active for that type.
+- Dialect names and role names can't use gendered words such as "gents" or
+  "ladies".
 
 ### Dance details & shorthands
 
@@ -445,7 +468,8 @@ role names and wording the app uses when it describes dances.
   during free-text entry. This row is grayed out until **Free-text entry** is on. See
   [Figure shorthands](./authoring.md#figure-shorthands).
 - **Walkthrough snippets** — manage your personal, per-figure walkthrough
-  wording. These settings are independent of canonical figure text.
+  wording. These settings are independent of canonical figure text. Deleting a
+  snippet offers **Undo**.
 
 This is the entry point — see [Dialect](./dialects.md) for the full story on
 choosing and customizing wording.
@@ -608,7 +632,8 @@ open this group. You can override any of them per dance, and
   uses it, you can remove any level, including the ones that ship with the app. Removing a level asks nothing first and shows
   **Undo** for a few seconds, which puts the level back in its place.
 - **Type**, **Formation**, and **Progression** — the starting choices for a new
-  dance.
+  dance. **Type** can also be **Last used**, so a new dance starts as the type of
+  the last new dance you saved. Until you save one, it starts as contra.
 - **Default phrase structure** — leave blank for the standard 4×16 A1 A2 B1 B2, or
   set your own.
 - **Starting figures** — the figures a new dance begins with; defaults to eight
@@ -650,7 +675,7 @@ never updates itself automatically, and no update is ever downloaded or installe
 without you choosing to.
 
 - **Check for updates** — check right now, any time. It shows the version you're
-  on and whether a newer one is available. If it can't check, for example because
+  on (including a beta suffix, if yours has one) and whether a newer one is available. If it can't check, for example because
   you're offline, it says so in the same line rather than reporting that nothing
   was found; it never interrupts you with an error dialog. If the update service
   has a release in a form this version can't read, the line says a newer version
@@ -834,11 +859,14 @@ it on in version 0.8.0-beta or before and later turned the Glossary off, it was
 grayed out but kept its setting. It now takes effect, and your figures
 show again everywhere Custom Figures shows them. Turn Custom Figures off here
 to hide them. While it is on, the **Your figures** row under the switch opens them: see your figures,
-choose **+** to add one, or select one to **Edit** or **Delete** it. The row
+choose **Add your own figure** to add one (once you have a figure, it is
+**New figure** at the bottom of the screen), or select one to **Edit** or
+**Delete** it. The row
 is grayed out while Custom Figures is off.
 The Glossary lists them too, when it is shown. While it is on:
 
-- Choose **+**, on that screen or in the Glossary, to add a figure of your own: a name and a
+- Choose **New figure** (**Add your own figure** while you have none) on that
+  screen, or **+** in the Glossary, to add a figure of your own: a name and a
   definition (both required), **More details** (optional), other names it can be found by,
   notes, and the **Dance form** it's for.
 - Under **What it is**, choose a **Combination**, which becomes figures that
@@ -1254,6 +1282,14 @@ Sync is off and open while it is on.
   **Reduce motion**, **Auto-size Perform cards** or Perform's stage theme. Those
   settings now stay on each device, so the updated device leaves them alone. To
   clear the notice, update the app on the older device.
+
+  A dance in one of the English country dance formations (such as duple minor
+  or a three-couple longways set) reaches a device on an older version as a
+  record that couldn't be used, not as one waiting for an update. That device
+  skips the dance, and any program or related-dance link that names it, until
+  you update it there; nothing is lost on the device that sent it. A dance's
+  meter, key or improper mark doesn't hold it back: an older device keeps
+  those and passes them on unchanged.
 - These settings belong to this device. They are not synced to your other
   devices, and they are not included in a backup, so restoring a backup never
   turns sync on.
@@ -1283,6 +1319,11 @@ Sync is off and open while it is on.
   already set up.
 
 The screen tells you which you're doing; it never guesses.
+
+If you press **Back** after typing a phrase to connect with, changing the phrase
+you were offered, or changing the server address, the screen asks **Discard
+changes?** first. Pressing **Back** while the screen is connecting leaves
+without asking.
 
 The **Server** field is pre-filled with the Caller's Compendium sync server,
 `https://athenaeum.callerscompendium.com/`; leave it alone unless you run your
@@ -1615,11 +1656,11 @@ fails, your data is unchanged but the device has already left the store. Your ot
 
 The **About** section tells you what you're running and where it comes from.
 
-- App name, **Version**, and the app's tagline.
+- App name, **Version** (shown once, including a beta suffix when you have a beta build), and the app's tagline, "Your caller's box, in the palm of your hand".
 - A **User guide** link that opens the built-in offline guides — the same pages
   you're reading now. The guide is written in English only; when the app is set
   to another language, each guide page starts with a one-line notice saying so.
-- License info: the app is free software under **AGPL-3.0**, with **View source on
+- License info: the app is free software under **AGPL-3.0-only**, with **View source on
   GitHub**.
 - Bundled-font credits — Fraunces, Atkinson Hyperlegible, and Roboto, under the
   SIL Open Font License.

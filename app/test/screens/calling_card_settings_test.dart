@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:compendium_app/src/data/undo_prompt_duration_scope.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/calling_card_settings_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
@@ -425,6 +426,25 @@ void main() {
       expect(h.notifier.value.layout, isNull, reason: 'back to the default');
       expect(controller(tester).text, kDefaultCallingCardLayout);
       await drawn(tester, 3);
+    });
+
+    testWidgets("an example's Undo prompt times out", (tester) async {
+      await pumpEditor(tester);
+      final example = find.byKey(
+        const ValueKey('calling-card-example-bigPrint'),
+      );
+      await tester.ensureVisible(example);
+      await tester.pump();
+      await tester.tap(example);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 750));
+      expect(find.text('Undo'), findsOneWidget);
+
+      await tester.pump(const Duration(seconds: kUndoPromptDefaultSeconds + 1));
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.text('Undo'), findsNothing);
+      await drawn(tester, 2);
     });
 
     testWidgets('Reset asks first, then restores the default', (tester) async {

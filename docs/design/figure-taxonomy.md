@@ -40,6 +40,33 @@ searchKeywords: [allemande, almond]
 - **Taxonomy is versioned data** (`taxonomyVersion`), shipped with the app,
   loaded per dance-form. Adding moves/params is additive; renames are
   migrations. Stored figures carry `schemaVersion` so old data always parses.
+- **Each form's taxonomy is chosen by `TaxonomyRegistry`**
+  (`shippedTaxonomies`). Contra's owns every move ID with no prefix; another
+  form's IDs all carry its prefix (`ecd_`, ADR-006 §5.1), so a stored ID names
+  the taxonomy that defines it. `forForm(form)` is what a dance of that form
+  is edited and checked with (the form's own taxonomy over contra's, or
+  contra's alone while the form has none); `anyForm` reads a stored figure of
+  any form, for code with no single dance in hand (programs, the repository,
+  sync, search). It resolves IDs; it is not a vocabulary to parse a dance's
+  text with, so the repository re-parses a dance's import-gap lines with
+  `forForm(dance.form)`. Glossary, dialect, shorthand and Settings defaults
+  surfaces, including decoding a stored compound's figures, still use
+  contra's taxonomy directly, until they gain a form of their own.
+- **English Country Dance has its own taxonomy** (`ecdTaxonomy`,
+  `ecd_taxonomy.dart`): the 52 movements of ADR-006 §7, each stored under an
+  `ecd_` ID, and one alias (`ecd_swat_the_flea`). Its `who` is a
+  [`dancerList`](#parameter-types), and every value a source can leave out
+  defaults to `unspecified` (ADR-006 §5.3); the editor's suggestions
+  (`everyone`, a set to the right, a right turn single, forward) are
+  `entryDefault`s; a forward and back's double is its stored default, the
+  one exception ADR-006 makes to storing what the source says. Its
+  templates use ADR-006 §6.3's notation, which `ecd_display.dart` expands:
+  `[...]` is dropped when a value inside it is empty, `{?flag}` keeps its
+  group only while the flag is set, and a stated `destination` is worded as a
+  phrase ("back to place", "to second place"). Contra templates use none of
+  it. An ECD sequence may carry one span for steps with no timing of their
+  own (`ecdSequenceSpanIssue`, ADR-006 §5.5). The containers and `custom`
+  stay shared and unprefixed.
 - **Aliases** are entries that resolve to a canonical move with pinned params
   (seesaw → dosido{shoulder: left}; swat the flea → box the gnat{hand:
   left}; long lines → forward and back{formation: longLines}). A structured
@@ -83,6 +110,7 @@ searchKeywords: [allemande, almond]
 | enum(...) | move-specific lists (grips, enders, prefixes…) | e.g. downTheHallEnder |
 | text | free string | dialect-aware |
 | flag | bool | e.g. withBalance |
+| dancerList | a list of dancerSet tokens | ECD's `who` (ADR-006 §5.2): at least one token, none repeated, in the order entered; `everyone` and `unspecified` only on their own. Renders as an English list ("twos and threes") |
 
 ### Roles
 Canonical role IDs are **`role1` / `role2`** (position semantics: role1 =
@@ -2201,6 +2229,25 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
       synced compound whose template holds an unstated circle or star reports
       an invalid template, and a compound argument of `unspecified` does not
       expand.
+
+### ECD taxonomy versions
+
+`ecdTaxonomyVersion` (`ecd_taxonomy.dart`) is the same kind of documentary
+marker for the English Country Dance taxonomy, logged here.
+
+- v1: ADR-006 §7's registry: 52 movements under `ecd_` IDs, the
+    `ecd_swat_the_flea` alias, `ParamKind.dancerList` for `who`, and the
+    §6.3 template notation. Migration: no stored figure changes. A dance
+    that already held `ecd_` IDs (from a newer peer or an archive) was
+    indexed while they were unknown, so a one-time canonical/FTS rebuild runs,
+    guarded by `ecdTaxonomyCanonicalRebuildDoneKey` and listed in
+    `oneTimeRepairMarkers`. **Older devices.** A build without this taxonomy
+    shows an `ecd_` figure as an unknown move and keeps it as it is
+    (ADR-006 §5.1).
+    **Snippet keys.** `figureSnippetSignature` keys an ECD template's
+    `{?flag}` like a `{param}`, and a `dancerList` as its tokens sorted and
+    joined by `+`. No contra key changes, so the signature version stays 2,
+    and `migrateFigureSnippetSignature` leaves `ecd_` keys as they are.
 
 ## Open questions (to resolve during implementation, with user input)
 

@@ -88,7 +88,7 @@ void main() {
             child: ActiveDialectScope(
               notifier: dialect,
               child: DialectLibraryScope(
-                controller: dialects,
+                libraries: DialectLibraries.withContra(dialects),
                 child: ProgramMatrixColumnConfigScope(
                   notifier: matrix,
                   child: ShowGlossaryScope(

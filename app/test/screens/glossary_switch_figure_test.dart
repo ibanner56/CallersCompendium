@@ -98,7 +98,7 @@ void main() {
           child: ActiveDialectScope(
             notifier: dialect,
             child: DialectLibraryScope(
-              controller: dialects,
+              libraries: DialectLibraries.withContra(dialects),
               child: ShorthandMappingsScope(
                 controller: shorthands,
                 child: ShowGlossaryScope(

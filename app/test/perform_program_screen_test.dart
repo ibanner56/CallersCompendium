@@ -1,7 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart' show SemanticsNode;
+import 'package:flutter/rendering.dart' show RenderParagraph, SemanticsNode;
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -14,7 +14,7 @@ import 'package:compendium_app/src/data/perform_text_scale.dart';
 import 'package:compendium_app/src/screens/perform_card.dart';
 import 'package:compendium_app/src/screens/perform_program_screen.dart';
 import 'package:compendium_app/src/screens/perform_walkthrough_overlay.dart';
-import 'package:compendium_app/src/screens/program_editor_screen.dart';
+import 'package:compendium_app/src/screens/program_summary_screen.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart'
     show
         kAutoSizePerformKey,
@@ -118,7 +118,10 @@ Future<void> _pumpProgram(
   );
   Widget withLibrary(Widget child) => dialectLibrary == null
       ? child
-      : DialectLibraryScope(controller: dialectLibrary, child: child);
+      : DialectLibraryScope(
+          libraries: DialectLibraries.withContra(dialectLibrary),
+          child: child,
+        );
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
@@ -976,13 +979,13 @@ void main() {
     },
   );
 
-  testWidgets('entry from program editor opens the program Perform view', (
+  testWidgets('entry from the program summary opens the program Perform view', (
     tester,
   ) async {
     await tester.binding.setSurfaceSize(const Size(1200, 2000));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final repos = openTestRepositories();
-    await repos.dances.create(_dance(id: 'd1', title: 'Editor Dance'));
+    await repos.dances.create(_dance(id: 'd1', title: 'Summary Dance'));
     await repos.programs.create(
       _program([_slot(id: 's1', position: 0, danceId: 'd1')]),
     );
@@ -997,23 +1000,23 @@ void main() {
           repositories: repos,
           child: ActiveDialectScope(notifier: notifier, child: child!),
         ),
-        home: const ProgramEditorScreen(programId: 'p1'),
+        home: const ProgramSummaryScreen(programId: 'p1'),
       ),
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('perform-program')));
+    await tester.tap(find.byKey(const ValueKey('summary-perform')));
     await tester.pumpAndSettle();
 
     expect(find.byType(PerformProgramScreen), findsOneWidget);
-    expect(find.text('Editor Dance'), findsOneWidget);
+    expect(find.text('Summary Dance'), findsOneWidget);
   });
 
-  testWidgets('exit control returns to the editor', (tester) async {
+  testWidgets('exit control returns to the summary', (tester) async {
     await tester.binding.setSurfaceSize(const Size(1200, 2000));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final repos = openTestRepositories();
-    await repos.dances.create(_dance(id: 'd1', title: 'Editor Dance'));
+    await repos.dances.create(_dance(id: 'd1', title: 'Summary Dance'));
     await repos.programs.create(
       _program([_slot(id: 's1', position: 0, danceId: 'd1')]),
     );
@@ -1028,12 +1031,12 @@ void main() {
           repositories: repos,
           child: ActiveDialectScope(notifier: notifier, child: child!),
         ),
-        home: const ProgramEditorScreen(programId: 'p1'),
+        home: const ProgramSummaryScreen(programId: 'p1'),
       ),
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('perform-program')));
+    await tester.tap(find.byKey(const ValueKey('summary-perform')));
     await tester.pumpAndSettle();
     expect(find.byType(PerformProgramScreen), findsOneWidget);
 
@@ -1046,7 +1049,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(PerformProgramScreen), findsNothing);
-    expect(find.byType(ProgramEditorScreen), findsOneWidget);
+    expect(find.byType(ProgramSummaryScreen), findsOneWidget);
   });
 
   testWidgets('a stray single tap on the exit control does not leave Perform', (
@@ -1055,7 +1058,7 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(1200, 2000));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final repos = openTestRepositories();
-    await repos.dances.create(_dance(id: 'd1', title: 'Editor Dance'));
+    await repos.dances.create(_dance(id: 'd1', title: 'Summary Dance'));
     await repos.dances.create(_dance(id: 'd2', title: 'Second Dance'));
     await repos.programs.create(
       _program([
@@ -1074,12 +1077,12 @@ void main() {
           repositories: repos,
           child: ActiveDialectScope(notifier: notifier, child: child!),
         ),
-        home: const ProgramEditorScreen(programId: 'p1'),
+        home: const ProgramSummaryScreen(programId: 'p1'),
       ),
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('perform-program')));
+    await tester.tap(find.byKey(const ValueKey('summary-perform')));
     await tester.pumpAndSettle();
     expect(find.byType(PerformProgramScreen), findsOneWidget);
 
@@ -1102,7 +1105,7 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(1200, 2000));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final repos = openTestRepositories();
-    await repos.dances.create(_dance(id: 'd1', title: 'Editor Dance'));
+    await repos.dances.create(_dance(id: 'd1', title: 'Summary Dance'));
     await repos.programs.create(
       _program([_slot(id: 's1', position: 0, danceId: 'd1')]),
     );
@@ -1117,12 +1120,12 @@ void main() {
           repositories: repos,
           child: ActiveDialectScope(notifier: notifier, child: child!),
         ),
-        home: const ProgramEditorScreen(programId: 'p1'),
+        home: const ProgramSummaryScreen(programId: 'p1'),
       ),
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('perform-program')));
+    await tester.tap(find.byKey(const ValueKey('summary-perform')));
     await tester.pumpAndSettle();
     expect(find.byType(PerformProgramScreen), findsOneWidget);
 
@@ -1134,12 +1137,12 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('perform-exit-dialog')), findsOneWidget);
 
-    // Confirming pops exactly one screen — back to the editor, not past it
+    // Confirming pops exactly one screen — back to the summary, not past it
     // into some other route a stacked second dialog might reach.
     await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
     await tester.pumpAndSettle();
     expect(find.byType(PerformProgramScreen), findsNothing);
-    expect(find.byType(ProgramEditorScreen), findsOneWidget);
+    expect(find.byType(ProgramSummaryScreen), findsOneWidget);
   });
 
   testWidgets('re-entry resumes at the last slot with the clock preserved', (
@@ -1169,12 +1172,12 @@ void main() {
           repositories: repos,
           child: ActiveDialectScope(notifier: notifier, child: child!),
         ),
-        home: const ProgramEditorScreen(programId: 'p1'),
+        home: const ProgramSummaryScreen(programId: 'p1'),
       ),
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('perform-program')));
+    await tester.tap(find.byKey(const ValueKey('summary-perform')));
     await tester.pumpAndSettle();
     expect(find.byType(PerformProgramScreen), findsOneWidget);
 
@@ -1186,7 +1189,7 @@ void main() {
     final clockBefore = _seconds(_textOf(tester, 'perform-clock'));
     expect(clockBefore, greaterThanOrEqualTo(7));
 
-    // Guarded exit back to the editor.
+    // Guarded exit back to the summary.
     await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
@@ -1194,7 +1197,7 @@ void main() {
     expect(find.byType(PerformProgramScreen), findsNothing);
 
     // Re-enter: back at slot 2 with the clock preserved, not reset to slot 1.
-    await tester.tap(find.byKey(const ValueKey('perform-program')));
+    await tester.tap(find.byKey(const ValueKey('summary-perform')));
     await tester.pumpAndSettle();
     expect(find.byType(PerformProgramScreen), findsOneWidget);
     expect(_textOf(tester, 'perform-position'), 'Slot 2 of 3');
@@ -1229,12 +1232,12 @@ void main() {
             repositories: repos,
             child: ActiveDialectScope(notifier: notifier, child: child!),
           ),
-          home: const ProgramEditorScreen(programId: 'p1'),
+          home: const ProgramSummaryScreen(programId: 'p1'),
         ),
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const ValueKey('perform-program')));
+      await tester.tap(find.byKey(const ValueKey('summary-perform')));
       await tester.pumpAndSettle();
 
       // Move to slot 2 so the resumed group is not the default slot 1, accrue
@@ -1266,7 +1269,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(PerformProgramScreen), findsNothing);
 
-      await tester.tap(find.byKey(const ValueKey('perform-program')));
+      await tester.tap(find.byKey(const ValueKey('summary-perform')));
       await tester.pumpAndSettle();
       expect(find.byType(PerformProgramScreen), findsOneWidget);
 
@@ -1290,32 +1293,6 @@ void main() {
       expect(_textOf(tester, 'perform-clock'), clockBefore);
     },
   );
-
-  testWidgets('the perform-program affordance is hidden for an empty program', (
-    tester,
-  ) async {
-    await tester.binding.setSurfaceSize(const Size(1200, 2000));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    final repos = openTestRepositories();
-    await repos.programs.create(_program(const []));
-    final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
-    addTearDown(notifier.dispose);
-
-    await tester.pumpWidget(
-      MaterialApp(
-        localizationsDelegates: testLocalizationsDelegates,
-        supportedLocales: testSupportedLocales,
-        builder: (context, child) => RepositoriesScope(
-          repositories: repos,
-          child: ActiveDialectScope(notifier: notifier, child: child!),
-        ),
-        home: const ProgramEditorScreen(programId: 'p1'),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const ValueKey('perform-program')), findsNothing);
-  });
 
   testWidgets('opens in the dark-stage high-contrast theme by default', (
     tester,
@@ -2305,6 +2282,103 @@ void main() {
     );
   });
 
+  // The footer used to show two bare "0:04" readouts, and the
+  // program title truncated to "Glen Echo Fr…" on a 390 pt phone.
+  testWidgets('the footer labels which clock is the program and which the '
+      'slot, and the program title wraps instead of truncating', (
+    tester,
+  ) async {
+    final data = await _dataWith([_dance(id: 'd1', title: 'First Dance')]);
+    await _pumpProgram(
+      tester,
+      program: _program([
+        _slot(id: 's1', position: 0, danceId: 'd1'),
+      ], title: 'Glen Echo Friday'),
+      data: data,
+      surfaceSize: const Size(390, 844),
+    );
+
+    expect(tester.takeException(), isNull);
+    expect(_textOf(tester, 'perform-clock-label'), 'Program');
+    expect(_textOf(tester, 'perform-slot-elapsed-label'), 'Slot');
+    // Each label sits just before its own clock.
+    final programLabel = tester.getRect(
+      find.byKey(const ValueKey('perform-clock-label')),
+    );
+    final programClock = tester.getRect(
+      find.byKey(const ValueKey('perform-clock')),
+    );
+    final slotLabel = tester.getRect(
+      find.byKey(const ValueKey('perform-slot-elapsed-label')),
+    );
+    final slotClock = tester.getRect(
+      find.byKey(const ValueKey('perform-slot-elapsed')),
+    );
+    expect(programLabel.right, lessThanOrEqualTo(programClock.left));
+    expect(programClock.right, lessThanOrEqualTo(slotLabel.left));
+    expect(slotLabel.right, lessThanOrEqualTo(slotClock.left));
+
+    final title = tester.renderObject<RenderParagraph>(
+      find.descendant(
+        of: find.byKey(const ValueKey('perform-program-title')),
+        matching: find.byType(RichText),
+      ),
+    );
+    expect(
+      title.didExceedMaxLines,
+      isFalse,
+      reason: 'the whole title is shown, over two lines if need be',
+    );
+    // At this width the title needs both lines: it wrapped, rather than
+    // ellipsizing on one.
+    expect(title.size.height, greaterThan(title.text.style!.fontSize! * 1.5));
+    // The toolbar is tall enough for both lines.
+    final appBar = tester.getRect(find.byType(AppBar));
+    final titleRect = tester.getRect(
+      find.byKey(const ValueKey('perform-program-title')),
+    );
+    expect(appBar.top, lessThanOrEqualTo(titleRect.top));
+    expect(appBar.bottom, greaterThanOrEqualTo(titleRect.bottom));
+  });
+
+  testWidgets('a long timing line on a narrow phone does not shrink the '
+      'slot position above it', (tester) async {
+    final data = await _dataWith([_dance(id: 'd1', title: 'First Dance')]);
+    await _pumpProgram(
+      tester,
+      program: _program([
+        _slot(
+          id: 's1',
+          position: 0,
+          danceId: 'd1',
+          // Planned minutes lengthen the timing line; a zero walkthrough
+          // keeps the dance-start button out, so the position has the whole
+          // centre of the bar to itself.
+          walkthroughMinutes: 0,
+          danceMinutes: 8,
+        ),
+      ]),
+      data: data,
+      surfaceSize: const Size(360, 800),
+    );
+
+    expect(tester.takeException(), isNull);
+    expect(find.byKey(const ValueKey('perform-planned')), findsOneWidget);
+    final position = find.byKey(const ValueKey('perform-position'));
+    // Laid-out height against on-screen height: equal means no FittedBox
+    // scaled the position down to make room for the timing line.
+    expect(
+      tester.getRect(position).height,
+      closeTo(tester.getSize(position).height, 0.01),
+    );
+    // The timing line itself is the one that gives way.
+    final clock = find.byKey(const ValueKey('perform-clock'));
+    expect(
+      tester.getRect(clock).height,
+      lessThan(tester.getSize(clock).height),
+    );
+  });
+
   group('Perform bottom bar and Undo (CS-36)', () {
     Future<List<Program>> pumpPushed(
       WidgetTester tester, {
@@ -2529,13 +2603,18 @@ void main() {
 
           expect(tester.takeException(), isNull);
           final bar = tester.getRect(find.byType(BottomAppBar));
-          // The bar itself grows with the system text size (A11Y-01), up to a
-          // 200 px cap, rather than leaning on the FittedBox below to shrink
-          // the position/timing lines into the fixed 80 px. At these scales
+          // The bar itself grows with the system text size (A11Y-01) rather
+          // than leaning on the FittedBox below to shrink the position/timing
+          // lines into the fixed 80 px — but only up to the chrome cap
+          // (kPerformChromeMaxTextScale), so at 3× it stays
+          // at the 2× height instead of squeezing the card. At these scales
           // the lines are shrunk to fit the bar's *width* either way, so the
           // containment checks below pass with a fixed-height bar; the height
-          // is what pins the fix.
-          expect(bar.height, (80 * scale).clamp(80.0, 200.0));
+          // is what pins both behaviours.
+          final capped = scale < kPerformChromeMaxTextScale
+              ? scale
+              : kPerformChromeMaxTextScale;
+          expect(bar.height, 80 * capped);
           final clock = tester.getRect(
             find.byKey(const ValueKey('perform-clock')),
           );
@@ -2835,11 +2914,11 @@ void main() {
               repositories: repos,
               child: ActiveDialectScope(notifier: notifier, child: child!),
             ),
-            home: const ProgramEditorScreen(programId: 'p1'),
+            home: const ProgramSummaryScreen(programId: 'p1'),
           ),
         );
         await tester.pumpAndSettle();
-        await tester.tap(find.byKey(const ValueKey('perform-program')));
+        await tester.tap(find.byKey(const ValueKey('summary-perform')));
         await tester.pumpAndSettle();
 
         // Swap to the alternate, then mark it.
@@ -2855,7 +2934,7 @@ void main() {
         await tester.pumpAndSettle();
 
         // Re-entry shows the primary: the alternate's mark must not follow.
-        await tester.tap(find.byKey(const ValueKey('perform-program')));
+        await tester.tap(find.byKey(const ValueKey('summary-perform')));
         await tester.pumpAndSettle();
         expect(find.text('Primary Dance'), findsWidgets);
         expect(tester.widget<IconButton>(danceStart).isSelected, isFalse);
@@ -2958,7 +3037,7 @@ void main() {
       });
     }
 
-    testWidgets('re-entry through the editor launcher keeps the mark', (
+    testWidgets('re-entry through the summary launcher keeps the mark', (
       tester,
     ) async {
       await tester.binding.setSurfaceSize(const Size(1200, 2000));
@@ -2986,11 +3065,11 @@ void main() {
             repositories: repos,
             child: ActiveDialectScope(notifier: notifier, child: child!),
           ),
-          home: const ProgramEditorScreen(programId: 'p1'),
+          home: const ProgramSummaryScreen(programId: 'p1'),
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('perform-program')));
+      await tester.tap(find.byKey(const ValueKey('summary-perform')));
       await tester.pumpAndSettle();
 
       await tester.pump(const Duration(seconds: 20));
@@ -3007,7 +3086,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(PerformProgramScreen), findsNothing);
 
-      await tester.tap(find.byKey(const ValueKey('perform-program')));
+      await tester.tap(find.byKey(const ValueKey('summary-perform')));
       await tester.pumpAndSettle();
       expect(tester.widget<IconButton>(danceStart).isSelected, isTrue);
       expect(_textOf(tester, 'perform-walkthrough-actual'), before);
@@ -3063,6 +3142,39 @@ void main() {
       expect(find.text('follows chain'), findsOneWidget);
       expect(find.text('robins chain'), findsNothing);
       expect(controller.activeName, before);
+    });
+
+    testWidgets('each dance looks the program dialect up in its own form', (
+      tester,
+    ) async {
+      final controller = await library();
+      await controller.upsert(
+        Dialect(name: 'Contra words', roles: const {'role2': RoleTerm('wren')}),
+      );
+      final data = await _dataWith([
+        _dance(id: 'd1', title: 'First Dance'),
+        _dance(id: 'd2', title: 'English Dance').copyWith(form: DanceForm.ecd),
+      ]);
+      await _pumpProgram(
+        tester,
+        data: data,
+        program: _program([
+          _slot(id: 's1', position: 0, danceId: 'd1'),
+          _slot(id: 's2', position: 1, danceId: 'd2'),
+        ]).copyWith(dialectName: 'Contra words'),
+        activeDialect: Dialect.leadsFollows,
+        dialectLibrary: controller,
+      );
+
+      expect(find.text('wrens chain'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('perform-next')));
+      await tester.pumpAndSettle();
+      // English country dance has no dialect of that name, so the dance
+      // reads in that form's active dialect.
+      expect(find.text('English Dance'), findsOneWidget);
+      expect(find.text('follows chain'), findsOneWidget);
+      expect(find.text('wrens chain'), findsNothing);
     });
 
     testWidgets('the jump list and the adjust sheet use the program dialect '

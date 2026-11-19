@@ -1489,8 +1489,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get settingsSyncDevicesEmpty =>
-      'No other devices are connected to this store.';
+  String get settingsSyncDevicesEmptyTitle => 'No other devices yet';
+
+  @override
+  String get settingsSyncDevicesEmptyBody =>
+      'Other devices connected to this store will appear here.';
 
   @override
   String get settingsSyncDevicesFailed =>
@@ -1835,7 +1838,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsAboutLicenseBody =>
-      'Caller\'s Compendium is free software, licensed under the GNU Affero General Public License, version 3 (AGPL-3.0). You are free to use, study, share, and modify it under that license. Because the AGPL requires it, the complete corresponding source code is offered to everyone who uses the app.';
+      'Caller\'s Compendium is free software, licensed under the GNU Affero General Public License, version 3 (AGPL-3.0-only). You are free to use, study, share, and modify it under that license. Because the AGPL requires it, the complete corresponding source code is offered to everyone who uses the app.';
 
   @override
   String get settingsAboutViewSourceTitle => 'View source on GitHub';
@@ -1885,7 +1888,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsAboutLegalese =>
-      '© The Caller\'s Compendium contributors. Licensed under AGPL-3.0.';
+      '© The Caller\'s Compendium contributors. Licensed under AGPL-3.0-only.';
+
+  @override
+  String get settingsAboutTagline =>
+      'Your caller\'s box, in the palm of your hand';
 
   @override
   String settingsAboutVersion(String version, String codename) {
@@ -1895,11 +1902,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String settingsAboutVersionLine(
     String appName,
-    String version,
     String codename,
     String license,
   ) {
-    return '$appName · Version $version, \"$codename\" · $license';
+    return '$appName · \"$codename\" · $license';
   }
 
   @override
@@ -2037,6 +2043,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsDialectHeader => 'Dialects';
 
   @override
+  String get settingsDialectFormHelper =>
+      'Each dance type has its own dialects. Choose a type to see and set up its dialects.';
+
+  @override
   String get settingsDialectDanceDetailsHeader => 'Dance details & shorthands';
 
   @override
@@ -2077,14 +2087,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsDialectDuplicateToCustomize => 'Duplicate to customize';
-
-  @override
-  String get settingsDialectDeleteTitle => 'Delete dialect?';
-
-  @override
-  String settingsDialectDeleteConfirmBody(String name) {
-    return '\"$name\" will be permanently removed.';
-  }
 
   @override
   String settingsDialectEditConflictSnack(String name) {
@@ -2462,14 +2464,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Copy the current theme and tune any color. Custom themes sync to your other devices when sync is on.';
 
   @override
-  String get settingsAppearanceDeleteThemeTitle => 'Delete theme?';
-
-  @override
-  String settingsAppearanceDeleteThemeBody(String name) {
-    return '\"$name\" will be permanently removed.';
-  }
-
-  @override
   String settingsAppearanceCustomThemeSemantic(String name) {
     return 'Custom theme $name';
   }
@@ -2721,6 +2715,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'The dance type a new dance starts as. You can still change it per dance.';
 
   @override
+  String get settingsDefaultsFormLastUsed => 'Last used';
+
+  @override
   String get settingsDefaultsFormationTitle => 'Formation';
 
   @override
@@ -2808,8 +2805,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'Give a tag its own color to make it stand out on dance cards and dance detail. The tag\'s name is always shown too, so tags stay readable without color.';
 
   @override
-  String get settingsTagColoursEmpty =>
-      'You haven\'t created any tags yet. Add a tag to a dance and it will appear here.';
+  String get settingsTagColoursEmptyTitle => 'No tags yet';
+
+  @override
+  String get settingsTagColoursEmptyBody =>
+      'Add a tag to a dance and it will appear here.';
 
   @override
   String get settingsTagColoursSaveError =>
@@ -2873,8 +2873,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authorManagerNameLabel => 'Author name';
 
   @override
-  String get authorManagerEmpty =>
-      'No authors yet. Authors you credit on a dance appear here.';
+  String get authorManagerEmptyTitle => 'No authors yet';
+
+  @override
+  String get authorManagerEmptyBody =>
+      'Authors you credit on a dance appear here.';
 
   @override
   String get authorManagerLoadError => 'Couldn\'t load your authors.';
@@ -2894,8 +2897,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sourceManagerTitleLabel => 'Source title';
 
   @override
-  String get sourceManagerEmpty =>
-      'No sources yet. Books and websites you cite on a dance appear here.';
+  String get sourceManagerEmptyTitle => 'No sources yet';
+
+  @override
+  String get sourceManagerEmptyBody =>
+      'Books and websites you cite on a dance appear here.';
 
   @override
   String get sourceManagerLoadError => 'Couldn\'t load your sources.';
@@ -3163,17 +3169,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Delete parameterized column';
 
   @override
-  String get settingsMatrixColumnsParameterizedDeleteTitle =>
-      'Delete parameterized column?';
-
-  @override
-  String get settingsMatrixColumnsParameterizedDeleteBody =>
-      'This removes the column and its matching rules from the matrix. This cannot be undone.';
-
-  @override
-  String get settingsMatrixColumnsParameterizedDeleteConfirm => 'Delete column';
-
-  @override
   String get settingsMatrixColumnsCompoundAdd => 'Add compound column';
 
   @override
@@ -3213,17 +3208,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsMatrixColumnsCompoundDelete => 'Delete compound column';
 
   @override
-  String get settingsMatrixColumnsCompoundDeleteTitle =>
-      'Delete compound column?';
-
-  @override
-  String get settingsMatrixColumnsCompoundDeleteBody =>
-      'This removes the column and its matching sequence from the matrix. This cannot be undone.';
-
-  @override
-  String get settingsMatrixColumnsCompoundDeleteConfirm => 'Delete column';
-
-  @override
   String get settingsGeneralPerformanceHeader => 'Performance';
 
   @override
@@ -3231,7 +3215,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsGeneralAutoSizePerformSubtitle =>
-      'Scale each card so the full dance or slot fits the screen without scrolling. Turn off to set the size yourself with A- / A+.';
+      'Scale each card to fit the screen, but never below your usual text size: a longer dance or slot scrolls instead. Turn off to set the size yourself with A- / A+.';
 
   @override
   String get settingsShowIndividualPerformTimerTitle =>
@@ -3240,6 +3224,14 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsShowIndividualPerformTimerSubtitle =>
       'Show elapsed time while performing a single dance. The timer starts when it appears and can be paused.';
+
+  @override
+  String get settingsConfirmPerformExitTitle =>
+      'Confirm before leaving Perform';
+
+  @override
+  String get settingsConfirmPerformExitSubtitle =>
+      'Ask before the close button or Back takes you out of Perform. Turn this off to leave in one tap; program Perform keeps your place either way.';
 
   @override
   String get settingsShowProgramSlotCallerNotesTitle =>
@@ -3405,7 +3397,28 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsGeneralConfirmBeforeDeleteSubtitle =>
-      'Ask for confirmation before deleting a dance or program. Deletes can still be undone; this just adds an explicit prompt first.';
+      'Ask before deleting anything you can undo. Deletes that can\'t be undone always ask first.';
+
+  @override
+  String get settingsGeneralUndoPromptTitle => 'Undo prompt';
+
+  @override
+  String get settingsGeneralUndoPromptSubtitle =>
+      'How long Undo stays on screen after you delete or change something. It also stays while you point at it or move to it with the keyboard.';
+
+  @override
+  String settingsGeneralUndoPromptSeconds(int seconds) {
+    String _temp0 = intl.Intl.pluralLogic(
+      seconds,
+      locale: localeName,
+      other: '$seconds seconds',
+      one: '1 second',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsGeneralUndoPromptUntilClosed => 'Until I close it';
 
   @override
   String get settingsGeneralDeletedItemsHeader => 'Recently deleted';
@@ -4028,6 +4041,41 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get commonFormationDupleMinor => 'Duple minor';
+
+  @override
+  String get commonFormationThreeCoupleLongways => 'Three-couple longways';
+
+  @override
+  String get commonFormationFourCoupleLongways => 'Four-couple longways';
+
+  @override
+  String get commonFormationFiveCoupleLongways => 'Five-couple longways';
+
+  @override
+  String get commonFormationSixCoupleLongways => 'Six-couple longways';
+
+  @override
+  String get commonFormationCircle => 'Circle';
+
+  @override
+  String get commonFormationSquare => 'Square';
+
+  @override
+  String get commonFormationTwoCoupleSet => 'Two-couple set';
+
+  @override
+  String commonFormationImproperFlag(String shape) {
+    return '$shape, improper';
+  }
+
+  @override
+  String get danceEditorMeterLabel => 'Meter';
+
+  @override
+  String get danceEditorMusicalKeyLabel => 'Key';
+
+  @override
   String get commonMixedLevel => 'Mixed level';
 
   @override
@@ -4042,6 +4090,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String commonDeletedSnack(String title) {
     return '\"$title\" deleted.';
   }
+
+  @override
+  String get commonCantBeUndone => 'This can\'t be undone.';
 
   @override
   String get importGapMessage =>
@@ -5227,9 +5278,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get programsNoLongerExists => 'This program no longer exists.';
 
   @override
-  String get programsFallbackTitle => 'Program';
-
-  @override
   String get programsUntitledDanceFallback => 'dance';
 
   @override
@@ -5674,8 +5722,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get programsSlotNoteFallback => 'Note';
 
   @override
-  String get programsSlotEditorEmpty =>
-      'No slots yet. Add a dance or a note to get started.';
+  String get programsSlotEditorEmptyTitle => 'No slots yet';
+
+  @override
+  String get programsSlotEditorEmptyBody =>
+      'Add a dance or a note to get started.';
 
   @override
   String get programsSlotMovedUp => 'Slot moved up.';
@@ -6186,6 +6237,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String performSlotPosition(int current, int total) {
     return 'Slot $current of $total';
   }
+
+  @override
+  String get performProgramClockLabel => 'Program';
+
+  @override
+  String get performSlotClockLabel => 'Slot';
 
   @override
   String performShowingSlot(String label) {
@@ -8186,6 +8243,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get importReviewEditOverwriteConfirm => 'Replace';
+
+  @override
   String get importReviewEditReimportTitle =>
       'Re-import onto the existing dance now?';
 
@@ -8391,8 +8451,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'These per-figure step descriptions pre-fill walkthroughs when you edit a dance. Editing one here updates the default used everywhere.';
 
   @override
-  String get settingsWalkthroughSnippetsEmpty =>
-      'No saved snippets yet. Add walkthrough step descriptions while editing a dance\'s figures.';
+  String get settingsWalkthroughSnippetsEmptyTitle => 'No saved snippets yet';
+
+  @override
+  String get settingsWalkthroughSnippetsEmptyBody =>
+      'Add walkthrough step descriptions while editing a dance\'s figures.';
 
   @override
   String settingsWalkthroughSnippetsCount(int count) {
@@ -8404,13 +8467,6 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
-
-  @override
-  String get settingsWalkthroughSnippetDeleteTitle => 'Delete snippet?';
-
-  @override
-  String get settingsWalkthroughSnippetDeleteBody =>
-      'This removes the saved default for this figure. Dances keep any walkthrough text you already wrote.';
 
   @override
   String get settingsWalkthroughSnippetEditTitle => 'Edit snippet';
@@ -8434,6 +8490,12 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get danceEditorComposedHelper =>
       'When the dance was composed (year, or add month/day)';
+
+  @override
+  String get danceEditorInterpretedByLabel => 'Interpreted by';
+
+  @override
+  String get danceEditorInterpretedOnLabel => 'Interpreted in';
 
   @override
   String get danceEditorRevisedLabel => 'Revised';
@@ -8621,6 +8683,11 @@ class AppLocalizationsEn extends AppLocalizations {
     String substitution,
   ) {
     return '\"$source\" and \"$existing\" both map to \"$substitution\" — reversal would be ambiguous.';
+  }
+
+  @override
+  String validationGenderedRoleTerm(String word) {
+    return '\"$word\" is a gendered role word, which the app never shows. Use a role-neutral word instead.';
   }
 
   @override
@@ -9719,19 +9786,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shorthandMappingsNew => 'New shorthand';
 
   @override
-  String get shorthandMappingsEmpty => 'No shorthands yet.';
+  String get shorthandMappingsEmptyTitle => 'No shorthands yet';
+
+  @override
+  String get shorthandMappingsEmptyBody => 'Choose New shorthand to add one.';
 
   @override
   String shorthandMappingsLimitReached(int max) {
     return 'You have reached the limit of $max figure shorthands. Delete one to add another.';
-  }
-
-  @override
-  String get shorthandMappingsDeleteTitle => 'Delete shorthand?';
-
-  @override
-  String shorthandMappingsDeleteBody(String token) {
-    return '\"$token\" will be permanently removed.';
   }
 
   @override
@@ -10125,14 +10187,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Something went wrong while scanning your collection. Nothing was changed. You can try again.';
 
   @override
-  String get customFieldsDeleteTitle => 'Delete custom field';
-
-  @override
-  String customFieldsDeleteBody(String label) {
-    return 'Delete \"$label\"? This cannot be undone.';
-  }
-
-  @override
   String customFieldsDeleteInUse(String label, int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -10168,7 +10222,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get customFieldsLoadError => 'Could not load custom fields.';
 
   @override
-  String get customFieldsEmpty => 'No custom fields yet.\nTap + to define one.';
+  String get customFieldsEmptyTitle => 'No custom fields yet';
+
+  @override
+  String get customFieldsEmptyBody => 'Choose New field to add one.';
 
   @override
   String get customFieldsFlagInList => 'In list';
@@ -10395,7 +10452,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String recentlyDeletedDeleteBody(String title) {
-    return '\"$title\" will be deleted immediately and cannot be recovered.';
+    return '\"$title\" will be deleted now.';
   }
 
   @override
@@ -10527,19 +10584,6 @@ class AppLocalizationsEn extends AppLocalizations {
       one: 'Linked 1 program.',
     );
     return '$_temp0';
-  }
-
-  @override
-  String get venueManagerDeleteTitle => 'Delete venue?';
-
-  @override
-  String venueManagerDeleteBody(String name) {
-    return 'Permanently delete \"$name\"? This can\'t be undone.';
-  }
-
-  @override
-  String venueManagerDeletedSnack(String name) {
-    return 'Deleted \"$name\"';
   }
 
   @override
@@ -10919,6 +10963,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get glossaryAddCustomFigure => 'Add your own figure';
+
+  @override
+  String get customFiguresNewFigure => 'New figure';
 
   @override
   String get glossaryCustomMarker => 'Custom';

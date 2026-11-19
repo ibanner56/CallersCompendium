@@ -41,7 +41,6 @@ import '../widgets/figure_table.dart';
 import '../widgets/formation_color_badge.dart';
 import '../widgets/load_error_view.dart';
 import '../widgets/program_status_chip.dart';
-import '../widgets/readable_width.dart';
 import '../widgets/selectable_content.dart';
 import '../widgets/skeleton.dart';
 import '../widgets/tag_chip.dart';
@@ -269,7 +268,9 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   /// For prose and formation labels only; the dance's figures go to
   /// `UserFiguresScope.rendererOf`, which shows uses of the user's own
   /// figures live (#1023).
-  static final FigureRenderer _proseRenderer = FigureRenderer(contraTaxonomy);
+  static final FigureRenderer _proseRenderer = FigureRenderer(
+    shippedTaxonomies.anyForm,
+  );
 
   @override
   void didChangeDependencies() {
@@ -668,7 +669,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
 
   DanceExportMenu _exportMenu(BuildContext context, DanceDetailData detail) {
     final l10n = AppLocalizations.of(context);
-    final dialect = ActiveDialectScope.of(context);
+    final dialect = ActiveDialectScope.of(context).forDance(detail.dance);
     final canonicalDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
       context,
     );
@@ -701,7 +702,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const DialectQuickSwitch(),
+        DialectQuickSwitch(form: detail.dance.form),
         _performButton(detail),
         _exportMenu(context, detail),
         IconButton(
@@ -761,11 +762,15 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   /// its action rather than dismissing the menu.
   Widget _overflowMenu(BuildContext context, DanceDetailData detail) {
     final l10n = AppLocalizations.of(context);
-    final controller = DialectLibraryScope.maybeOf(context);
+    // The dance's own form's dialects: switching here changes that form's
+    // active dialect only (ADR-006 §9.1, point 1).
+    final controller = DialectLibraryScope.maybeOf(
+      context,
+    )?.forForm(detail.dance.form);
     final activeDialectName = controller == null
         ? null
         : (controller.activeName ?? controller.active.name);
-    final dialect = ActiveDialectScope.of(context);
+    final dialect = ActiveDialectScope.of(context).forDance(detail.dance);
     // Everything the export actions need is resolved here, before the menu
     // route pops: the `onTap`s below run after it has, and the actions run
     // across awaits.
@@ -996,10 +1001,11 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                 : detail == null
                 ? (_loadFailed
                       ? LoadErrorView(
+                          icon: LoadErrorView.errorGlyph(context),
                           message: l10n.danceLoadError,
                           onRetry: _retryLoad,
                         )
-                      : Center(child: Text(l10n.danceNotFound)))
+                      : _buildNotFound(l10n))
                 : SelectableContent(child: _buildBody(detail)),
             // Edit mirrors the program preview's builder affordance: a bottom-right
             // extended FAB rather than an AppBar action, so opening the editor is
@@ -1062,11 +1068,47 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     );
   }
 
+  /// The body for a dance that is gone. Retrying would find nothing, so the
+  /// way forward is out of the pane: Back, when this screen can leave (a close
+  /// callback, or it is a route above another). The wide Collection pane can do
+  /// neither, since the list beside it is the way to another dance, and there
+  /// the plain message stands rather than a button that would do nothing.
+  ///
+  /// Reads the route, not `Navigator.canPop`: [ModalRoute.of] rebuilds this
+  /// when the route changes, and a route the pane sits on never stops being
+  /// first when something is pushed over it.
+  Widget _buildNotFound(AppLocalizations l10n) {
+    final route = ModalRoute.of(context);
+    final canLeave =
+        widget.onClose != null || (route != null && !route.isFirst);
+    if (!canLeave) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              LoadErrorView.errorGlyph(context),
+              const SizedBox(height: AppSpacing.md),
+              Text(l10n.danceNotFound, textAlign: TextAlign.center),
+            ],
+          ),
+        ),
+      );
+    }
+    return LoadErrorView(
+      icon: LoadErrorView.errorGlyph(context),
+      message: l10n.danceNotFound,
+      onRetry: null,
+      onBack: widget.onClose ?? () => Navigator.of(context).maybePop(),
+    );
+  }
+
   Widget _buildBody(DanceDetailData detail) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final dance = detail.dance;
-    final activeDialect = ActiveDialectScope.of(context);
+    final activeDialect = ActiveDialectScope.of(context).forDance(dance);
     final canonicalDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
       context,
     );
@@ -1084,7 +1126,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         )
         .toList();
 
-    return ReadableListView(
+    return ListView(
       // The bottom inset lets the last section scroll clear of the Edit FAB.
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.md,
@@ -1391,6 +1433,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           ),
           for (final link in visibleLinks)
             _LinkRow(
+              form: dance.form,
               key: ValueKey('link-row-${link.id}'),
               link: link,
               relatedDanceTitle: link.kind == LinkKind.relatedDance
@@ -1530,7 +1573,11 @@ class _StatusBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: color),
+          Icon(
+            icon,
+            size: 18,
+            color: AppThemeExtension.statusIconColor(color, theme.colorScheme),
+          ),
           const SizedBox(width: AppSpacing.xs),
           Flexible(
             child: Text(
@@ -1580,10 +1627,14 @@ class _ProvenanceLine extends StatelessWidget {
 class _LinkRow extends StatelessWidget {
   const _LinkRow({
     super.key,
+    required this.form,
     required this.link,
     this.relatedDanceTitle,
     this.onTap,
   });
+
+  /// The form of the dance the link belongs to, whose dialect it reads in.
+  final DanceForm form;
 
   final DanceLink link;
 
@@ -1601,8 +1652,10 @@ class _LinkRow extends StatelessWidget {
     final canonicalizeDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
       context,
     );
-    final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
-    final renderer = FigureRenderer(contraTaxonomy);
+    final dialect =
+        (ActiveDialectScope.maybeOf(context) ?? DialectsByForm.defaults)
+            .forForm(form);
+    final renderer = FigureRenderer(shippedTaxonomies.anyForm);
     final String display;
     if (label != null && label.isNotEmpty) {
       display = canonicalizeDiscouragedTerms

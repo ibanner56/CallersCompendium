@@ -455,6 +455,28 @@ void main() {
     expect(saved!.mixer, isTrue);
   });
 
+  testWidgets('Type and Formation carry floating labels, not headings', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpEditor(tester, repos);
+
+    for (final key in const ['form-field', 'formation-field']) {
+      final decorator = find.descendant(
+        of: find.byKey(ValueKey(key)),
+        matching: find.byType(InputDecorator),
+      );
+      expect(
+        tester.widget<InputDecorator>(decorator).decoration.labelText,
+        isNotNull,
+        reason: key,
+      );
+    }
+    // Each label is drawn once (in the field), not also as a heading.
+    expect(find.text('Type'), findsOneWidget);
+    expect(find.text('Formation'), findsOneWidget);
+  });
+
   testWidgets('type: changing an existing contra dance to square persists '
       '(issue #1418)', (tester) async {
     final repos = openTestRepositories();
@@ -1541,6 +1563,15 @@ void main() {
 
   testWidgets('Collection New dance FAB opens the editor', (tester) async {
     final repos = openTestRepositories();
+    // A dance of the user's own: the floating New waits for a list.
+    await repos.dances.create(
+      Dance(
+        id: 'd1',
+        title: 'Petronella',
+        createdAt: DateTime.utc(2026, 1, 1),
+        updatedAt: DateTime.utc(2026, 1, 1),
+      ),
+    );
     await tester.binding.setSurfaceSize(const Size(1200, 2400));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
@@ -2434,6 +2465,52 @@ void main() {
       expect(saved.phraseStructure.raw, '8*8*1');
     });
 
+    testWidgets('"last used" starts a new dance as the last new dance\'s type, '
+        'and only a new dance sets it', (tester) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kDefaultDanceFormKey, kDefaultDanceFormLastUsed);
+      await repos.settings.set(kLastUsedDanceFormKey, DanceForm.ecd.name);
+      await repos.dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Existing',
+          form: DanceForm.square,
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+      );
+
+      // Saving an existing dance leaves the last used type alone.
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+      expect(await repos.settings.get(kLastUsedDanceFormKey), 'ecd');
+
+      await _pumpEditor(tester, repos);
+      expect(_dropdownValue<DanceForm>(tester), DanceForm.ecd);
+    });
+
+    testWidgets('saving a new dance records its type as last used', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kDefaultDanceFormKey, DanceForm.square.name);
+      await repos.settings.set(kLastUsedDanceFormKey, DanceForm.ecd.name);
+      await _pumpEditor(tester, repos);
+      await tester.enterText(
+        find.byKey(const ValueKey('title-field')),
+        'Next Dance',
+      );
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      final saved = (await repos.dances.listAll()).singleWhere(
+        (d) => d.title == 'Next Dance',
+      );
+      expect(saved.form, DanceForm.square);
+      expect(await repos.settings.get(kLastUsedDanceFormKey), 'square');
+    });
+
     testWidgets('a restored draft overrides the seeded defaults', (
       tester,
     ) async {
@@ -3311,30 +3388,35 @@ void main() {
     });
   });
 
-  group('Save FAB + delete (UI consistency pass)', () {
+  group('Save in the top bar + delete (UI consistency pass)', () {
     testWidgets(
-      'Save is a bottom-right FAB that shows a spinner while saving',
+      'Save is the top bar\'s last action, nothing floats over the form, and '
+      'it shows a spinner while saving',
       (tester) async {
         final repos = openTestRepositories();
         await _pumpEditor(tester, repos);
 
-        // The Save affordance is a FloatingActionButton (matching the program
-        // builder), not an AppBar text button.
-        final fab = find.byKey(const ValueKey('save-dance'));
-        expect(fab, findsOneWidget);
-        expect(tester.widget(fab), isA<FloatingActionButton>());
+        // Save is in the top bar, as in every full-screen editor: a floating
+        // Save covered the form's fields.
+        final save = find.byKey(const ValueKey('save-dance'));
+        expect(save, findsOneWidget);
+        expect(
+          find.descendant(of: find.byType(AppBar), matching: save),
+          findsOneWidget,
+        );
+        expect(find.byType(FloatingActionButton), findsNothing);
 
         await tester.enterText(
           find.byKey(const ValueKey('title-field')),
           'Spinner Dance',
         );
-        await tester.tap(fab);
-        // One frame after tapping: `_saving` is true, so the FAB renders a
-        // spinner in place of the save icon (disabled while in flight).
+        await tester.tap(save);
+        // One frame after tapping: `_saving` is true, so Save renders a
+        // spinner in place of its label (disabled while in flight).
         await tester.pump();
         expect(
           find.descendant(
-            of: fab,
+            of: save,
             matching: find.byType(CircularProgressIndicator),
           ),
           findsOneWidget,
@@ -3346,6 +3428,31 @@ void main() {
         expect((await repos.dances.listAll()).single.title, 'Spinner Dance');
       },
     );
+
+    testWidgets('on a phone, Save is the check icon, so the title keeps room '
+        'beside Undo, Redo and Delete', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Editable'));
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      // MediaQuery reads the view's size, not the test surface's.
+      await tester.binding.setSurfaceSize(const Size(360, 800));
+      tester.view.physicalSize =
+          const Size(360, 800) * tester.view.devicePixelRatio;
+      addTearDown(tester.view.resetPhysicalSize);
+      await tester.pumpAndSettle();
+
+      final save = find.byKey(const ValueKey('save-dance'));
+      expect(
+        find.descendant(of: find.byType(AppBar), matching: save),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: save, matching: find.byIcon(Icons.check)),
+        findsOneWidget,
+      );
+      expect(find.byTooltip('Save'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
 
     testWidgets(
       'Delete soft-deletes the dance, pops, and shows an undo snackbar',

@@ -88,7 +88,9 @@ Color danceStatusColor(DanceStatus status, ThemeData theme) {
 
 /// Shared status-chip construction (icon + text) tinted with a semantic
 /// [color] using the §2 treatment: a [AppThemeExtension.statusTintAlpha]
-/// [color] fill, a full-alpha [color] border, and a [color]-tinted icon. The
+/// [color] fill, a full-alpha [color] border, and an icon in [color] moved
+/// only as far as it needs to clear 3:1 on the fill
+/// ([AppThemeExtension.statusIconColor]). The
 /// label text uses the theme's `onSurface`, which clears WCAG AA (≥4.5:1)
 /// against the tinted fill in every bundled theme, including high contrast,
 /// when the chip sits on the canvas or on a card or sheet
@@ -112,7 +114,11 @@ class StatusChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Chip(
-      avatar: Icon(icon, size: 16, color: color),
+      avatar: Icon(
+        icon,
+        size: 16,
+        color: AppThemeExtension.statusIconColor(color, theme.colorScheme),
+      ),
       label: Text(label, style: TextStyle(color: theme.colorScheme.onSurface)),
       backgroundColor: color.withValues(
         alpha: AppThemeExtension.statusTintAlpha,

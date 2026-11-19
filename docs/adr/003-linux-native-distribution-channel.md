@@ -19,8 +19,9 @@ That baseline ships the beta fine, but it leaves four gaps for Linux users that
 the other desktops either don't have or get "for free":
 
 - **No auto-update.** ADR-002 §4 Stage-1 only *reveals/marks* the downloaded
-  `.AppImage`; true in-place self-update is Stage-2 and is **gated on
-  code-signing**, which Linux has no first-party mechanism for. So Linux users
+  `.AppImage`; true in-place self-update is Stage-2 (not yet built; for
+  macOS and Windows signing no longer gates it), and Linux has no first-party
+  code-signing mechanism for it. So Linux users
   update by re-downloading, indefinitely.
 - **No desktop integration.** A raw `.AppImage`/`.tar.gz` gives no menu entry,
   icon, or MIME/file associations unless the user wires them up by hand.

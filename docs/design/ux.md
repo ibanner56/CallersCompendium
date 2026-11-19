@@ -163,10 +163,11 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   repeating group of fields (tunes, links, sources, related dances, custom
   fields) keeps a heading above it, because a floating label belongs to one
   field, not a group.
-- **Reading width**: dance detail, this form, the Settings panes and the user
-  guide's text stop growing at 760 px and stay centred, with the scrollbar at
-  the window edge (`widgets/readable_width.dart`; maintainer decision D-8,
-  2026-10-29). The program screens are not yet capped.
+- **Width**: content is left-aligned and fills the window; it is not capped or
+  centred. A 760 px centred column was tried in v0.9.0-beta and reverted
+  because it left too much of a wide window empty. Keeping a figure's beats
+  near its words on wide windows is tracked in
+  [#2231](https://github.com/ibanner56/CallersCompendium/issues/2231).
 - Autosave drafts; explicit save commits; undo history.
 
 ### 4. Programs list & builder
@@ -248,7 +249,8 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
 - Full screen (PLAT-9): phones and tablets go immersive for the whole view.
   Desktop offers a toolbar toggle plus F11 (Ctrl-Cmd-F on macOS); Esc leaves
   full screen but never Perform. Ctrl/Cmd-W and mouse Back reach Perform's
-  exit confirmation, as system back does, and the app-wide shortcuts
+  exit confirmation, as system back does, while **Confirm before leaving
+  Perform** is on (the default); with it off, all three leave at once. The app-wide shortcuts
   (Ctrl/Cmd-K, -N, -F, -,) do nothing while performing. Exit restores the window's entry state, and no
   window frame is persisted while the window is full screen.
 - Navigation: giant next/prev hit zones at screen edges (44pt+), on-screen
@@ -261,7 +263,7 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   slot to advance to, so those four keys only scroll its card (or its
   walkthrough while that is open), stopping at the ends.
 - Zero destructive actions reachable; exit via deliberate gesture/button with
-  confirm. Optional: per-slot timer/clock display.
+  confirm by default (Settings › Program › Performance). Optional: per-slot timer/clock display.
 - On-the-fly: reorder remaining slots, insert from quick-search, add ad-hoc
   note — all in an "adjust" sheet, never disturbing the reading view.
 
@@ -282,23 +284,83 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   (N3-4): the add-to-program sheet asks "Add it again?" before adding a dance
   the program already holds, though the add is undoable. Cancel keeps the sheet
   open. Other flows do not cite the exception.
+- **One rule for delete**, in `utils/confirm_delete.dart`: Undo wherever the
+  data can be restored, one shared permanent-delete confirmation for
+  everything else, swipe-to-delete left as it is, and a setting for how long
+  the Undo prompt stays, which also stays while hovered or focused:
+  - A delete whose data can be restored deletes at once and offers Undo:
+    dances, programs, tags, authors, sources, venues and custom fields
+    (database rows), and shorthands, dialects, custom themes, walkthrough
+    snippets and matrix columns (settings values; Undo writes the removed
+    entry back). It asks first only through `confirmDeleteIfEnabled`, when
+    *Confirm before delete* is on.
+  - A delete nothing can bring back confirms every time through
+    `confirmPermanentDelete`, which adds "This can't be undone." and is not
+    switched off by *Confirm before delete*.
+  - Swipe-to-delete never asks: the swipe reveals a Delete button that takes a
+    second tap, and that tap is the confirmation.
+  - Every confirmation that removes, resets, overwrites or discards uses
+    `destructiveFilledButtonStyle` and names its action ("Delete", "Reset",
+    "Replace", "Disconnect"), never "Continue" or "OK". "Delete" destroys;
+    "Remove" takes something out of a list without destroying it.
+  - The Undo prompt (`utils/undo_snack_bar.dart`) stays for the user's *Undo
+    prompt* setting (10 s unless changed; `undo_prompt_seconds`), stays while it
+    is hovered or keyboard focus is inside it, and never times out with a
+    screen reader running or when the user chose "Until I close it".
 - Empty states teach: first-run Collection offers "download the community
   collection" (snapshot) and "import your data".
+  - Every screen and pane that can be empty uses `EmptyState` (a glyph, a
+    heading that screen readers can jump to, a body, at most one action), not a
+    bare line of text; a short list inside a section of a larger screen uses
+    its `inline` form. A one-line note remains for a small list inside a
+    dialog or a field group, and for read-only and Perform views, where
+    nothing can be added. Where there is something to create, the body names the
+    button ("Choose New shorthand to add one.") and the action is that button;
+    where entries come from elsewhere, the body says where.
+  - A screen whose whole body failed to load uses `LoadErrorView`: Retry when
+    trying again can succeed, Back when the thing is gone and the screen has
+    somewhere to go back to, so a failure is not a message with no button. A
+    pane with nowhere to leave (the wide Collection's detail pane) shows the
+    plain message, since the list beside it is the way on.
+  - The brand mark is a quiet touch on empty states, as the Programs list and
+    the "select a dance" and "select a program" panes show it; the other empty
+    states lead with a muted glyph.
 - All lists virtualize; search-as-you-type debounced; target <50 ms query
   budget (storage design).
 - Every interactive element: visible focus, name/role/state semantics, 24px+
   targets (44pt in Perform), traversal order = visual order.
 - No color-only meaning anywhere (chips/badges pair icon+text).
 - **Where Save, New and the record's name go** (maintainer decision D-11 of the
-  October 2026 UX audit, UX6-2): Save and New keep today's layout; the
-  record's name takes option (B), "actions to top bar".
-  - **Save.** The two long editors, dance and program, float Save as a
-    bottom-right extended button, so it stays in reach while a long form
-    scrolls. The shorter editors (theme, compound, compound shorthand,
-    shorthand mapping, dialect) keep Save in the top bar. A new editor follows
-    the length of its form; it does not mix the two.
-  - **New.** A top-level list floats a New button. Where a floating button
-    would cover entries (the Glossary), New is a "+" in the top bar.
+  October 2026 UX audit, UX6-2, for the record's name; Save and the floating
+  button revised in November 2026, as marked):
+  - **Save.** Every full-screen editor saves from its top bar (maintainer,
+    2026-11-18): dance, program, theme, compound, compound shorthand,
+    shorthand mapping and dialect. Save is the bar's last action, a labelled
+    button that becomes a check icon when the word does not fit; in the two
+    long editors, dance and program, it is always the icon below 600 dp, so
+    the title keeps room (an implementation choice of November 2026; the
+    alternative, the word, left the dance editor's title about 66 dp at
+    320 dp). The autosaving calling-card layout editor shows no "saved"
+    marker (maintainer, 2026-11-18). A sheet (venue, custom field) keeps its
+    own Cancel and Save row.
+  - **Perform** starts from a program's summary, not from the program
+    builder, which is for editing (maintainer, 2026-11-19).
+  - **The floating button** creates, on a list, or opens a record from its
+    read view: Edit on dance detail and the program summary (maintainer,
+    2026-11-19), and Import on a dance previewed from an online search,
+    which takes the same slot (an implementation choice of November 2026; the
+    alternative was a top-bar action). It never saves. While an empty state
+    or the Collection's first-run card shows its own New button, nothing
+    floats (maintainer, 2026-11-18); sort and direction controls also wait
+    until there is something to sort. Content under a floating button leaves
+    `AppSpacing.fabClearance` below its last row.
+  - **New.** A full-screen manager (Collection, Programs, venues, custom
+    fields, your figures, shorthands) floats New once it has a list; a list
+    inside a settings section (dialects, custom themes, the compound
+    shorthands section) creates with an inline button. The Glossary keeps its
+    "+" in the top bar, as a reference screen whose entries a floating button
+    would cover (left unchanged in November 2026; not revisited by the
+    maintainer).
   - **The record's name.** On a record screen with a top bar, the bar keeps its
     generic title and carries the record's actions; the full name keeps its own
     line in the body. The full-screen program summary does this ("Program";

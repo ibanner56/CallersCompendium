@@ -51,16 +51,25 @@ FormationFamily formationFamilyOf(FormationShape shape) => switch (shape) {
   FormationShape.dupleIndecent ||
   FormationShape.becketCw ||
   FormationShape.becketCcw ||
-  FormationShape.longways => FormationFamily.contraLongways,
+  FormationShape.longways ||
+  FormationShape.dupleMinor => FormationFamily.contraLongways,
   FormationShape.tripleMinor ||
-  FormationShape.triplet => FormationFamily.triple,
+  FormationShape.triplet ||
+  FormationShape.threeCoupleLongways => FormationFamily.triple,
   FormationShape.scatterMixer => FormationFamily.mixer,
   FormationShape.sicilianCircle ||
-  FormationShape.circleMixer => FormationFamily.sicilianCircle,
+  FormationShape.circleMixer ||
+  FormationShape.circle => FormationFamily.sicilianCircle,
   FormationShape.fourFaceFour ||
   FormationShape.threeFaceThree ||
-  FormationShape.grid => FormationFamily.bigSetSquare,
-  FormationShape.quadruplet || FormationShape.other => FormationFamily.other,
+  FormationShape.grid ||
+  FormationShape.square => FormationFamily.bigSetSquare,
+  FormationShape.quadruplet ||
+  FormationShape.fourCoupleLongways ||
+  FormationShape.fiveCoupleLongways ||
+  FormationShape.sixCoupleLongways ||
+  FormationShape.twoCoupleSet ||
+  FormationShape.other => FormationFamily.other,
 };
 
 /// Light-canvas accent palette. Each hue clears WCAG ≥3:1 against every light

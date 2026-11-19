@@ -275,7 +275,8 @@ class DanceExportActions {
       ),
     ],
     settings: settings,
-    dialect: dialect,
+    // [dialect] is already this dance's form's.
+    dialects: DialectsByForm.all(dialect),
     renderer: renderer,
     fields: fields,
     canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,

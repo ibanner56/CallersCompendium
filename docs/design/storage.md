@@ -105,8 +105,9 @@ A sketch, not the schema: the authoritative column list is `tables.dart`, and
 the FTS and index DDL is `database.dart`.
 
 ```sql
-dances(id PK, title, form, formation_shape, formation_detail, progression,
-       phrase_structure, figures_json, hook, calling_notes, status, level_id NULL,
+dances(id PK, title, form, formation_shape, formation_detail,
+       formation_improper, progression, phrase_structure, figures_json, hook,
+       calling_notes, meter, musical_key, status, level_id NULL,
        tunes_json,
        created_at, updated_at, deleted_at, existence_at)
 difficulty_levels(id PK, label UNIQUE, position,
@@ -116,6 +117,9 @@ choreographers(id PK, name UNIQUE, website, notes,
 dance_authors(dance_id, choreographer_id, position,
              PK(dance_id, choreographer_id),
              UNIQUE(dance_id, position))       -- no ambiguous ordering
+dance_interpreters(dance_id, choreographer_id, position,
+                   PK(dance_id, choreographer_id),
+                   UNIQUE(dance_id, position)) -- same shape, ADR-006 §9.2
 
 dance_figures(dance_id, idx, move, beats, progression, params_json,
               PK(dance_id, idx))              -- derived
@@ -821,7 +825,36 @@ steps that can still fire are v40 onward.
   `from < 41` step, guarded by `IF NOT EXISTS`. Pure DDL: no columns or tables
   added, no data rewritten, no derived rebuild.
 
-- v42: program archiving. Adds the nullable `programs.archived_at` column
+- v42 (ADR-006 §12, F2 and F3): adds three columns to `dances` for English
+  country dance. `formation_improper` is ECD's proper/improper checkbox
+  (`Formation.improper`), stored apart from the shape because ECD's shapes
+  name only the set; contra's shapes already say proper or improper, so a
+  contra dance keeps it `0`. `meter` and `musical_key` are the tune's written
+  meter and key as free text (`Dance.meter`, `Dance.musicalKey`), `''` when
+  not given; the column is not named `key`, which SQL reserves. Phrase
+  structure still holds the beats per bar that timing uses. Each column has a
+  default (`0`, `''`, `''`), so every existing row reads as proper with no
+  meter or key, as before. The ECD formation shapes are new values of the
+  existing `formation_shape` text, which needs no DDL. Run in the `from < 42`
+  step, each column added only if absent. No data rewritten; no derived
+  index reads the columns, so no rebuild. Search over meter and key is still
+  to come (ADR-006 W7).
+
+  Also in v42, before it shipped (ADR-006 §9.2): the interpreter credits.
+  `dances.interpreted_on` is the partial date the dance was interpreted
+  (`Dance.interpretedOn`), stored like `composed_on`, `NULL` when unknown.
+  `dance_interpreters` is the ordered join to the people who interpreted it
+  (`Dance.interpreterIds`), shaped exactly like `dance_authors` and drawing on
+  the same `choreographers`, with the lookup index
+  `dance_interpreters_choreographer_id`. Everything that treats an author
+  credit as a citation of a person treats an interpreter credit the same way:
+  the delete guards, the live-dance counts, merge and its Undo, natural-key
+  adoption, and the purge's collection of people nobody credits. The step
+  creates the table only if absent; it starts empty. Search by interpreter is
+  still to come (ADR-006 W7).
+
+  Also in v42, before it shipped: program archiving (#2218). Adds the
+  nullable `programs.archived_at` column
   (`Program.archivedAt`); NULL, which every existing row gets, means not
   archived. Archiving hides a program from the Programs list (unless "Show
   archived" is on) and from the Add to program sheet; calling history, Last
@@ -834,13 +867,13 @@ steps that can still fire are v40 onward.
   envelope v3 (`backupSchemaVersionArchivedPrograms`), so 0.5.2 to 0.10.0
   refuse to replace-restore it instead of restoring its archived programs
   unarchived (builds before 0.5.2 do not check, and a merge restore on an older
-  build stays best-effort and drops the field, as for pay); the core archive
-  version is unchanged. A Caller's Companion re-import keeps a
+  build stays best-effort and drops the field, as for pay); archiving raises
+  no core archive version. A Caller's Companion re-import keeps a
   program's archived state, as it keeps its venue link. A restore from
   Recently deleted clears it (`restore(unarchive: true)`, which stamps like
-  `unarchive`); a delete's Undo does not. Added by the
-  `from < 42` step with `Migrator.addColumn`, guarded on `pragma_table_info`.
-  No data rewritten, no derived rebuild.
+  `unarchive`); a delete's Undo does not. Added by the same `from < 42`
+  step with `Migrator.addColumn`, guarded on `pragma_table_info`. No data
+  rewritten, no derived rebuild.
 
 ## The delete model
 

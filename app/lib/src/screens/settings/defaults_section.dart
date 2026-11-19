@@ -26,6 +26,7 @@ import '../../search/collection_data.dart';
 import '../../search/facet_labels.dart';
 import '../../search/program_sort.dart';
 import '../../search/program_sort_labels.dart';
+import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/keyboard_dismiss.dart';
 import '../../utils/undo_snack_bar.dart';
@@ -34,7 +35,6 @@ import '../../widgets/figure_param_editors.dart';
 import '../../widgets/move_autocomplete.dart';
 import '../../widgets/collection_picker.dart';
 import '../../widgets/dirty_dialog_guard.dart';
-import '../../widgets/readable_width.dart';
 import '../../widgets/section_header.dart';
 import '../../widgets/settings_dropdown_row.dart';
 import '../glossary/compound_editor_screen.dart';
@@ -89,7 +89,14 @@ class _DefaultsSectionState extends State<DefaultsSection> {
   /// loaded; the view shows today's hardcoded default until the read resolves.
   /// Each has its own user-set guard so a late read can't clobber an in-view
   /// change and one control's change can't suppress seeding the others.
-  DanceForm? _defaultDanceForm;
+  ///
+  /// The default form is stored as a form's name or
+  /// [kDefaultDanceFormLastUsed] (ADR-006 §12.2, S2).
+  String? _defaultDanceForm;
+
+  /// The form of the last new dance ([kLastUsedDanceFormKey]): what "last
+  /// used" resolves to, for the figures the default figure lists offer.
+  DanceForm _lastUsedDanceForm = DanceForm.contra;
 
   /// The user's new figures that decode (#1023), by name, watched from the
   /// glossary: offered in the default figure lists, and linked under Move
@@ -299,11 +306,19 @@ class _DefaultsSectionState extends State<DefaultsSection> {
             if (value.isNotEmpty) _defaultProgramBand.text = value;
           },
         ),
-        _loadSetting<DanceForm>(
+        _loadSetting<String>(
           key: kDefaultDanceFormKey,
-          decode: danceFormFromStored,
+          decode: (stored) =>
+              defaultDanceFormSettingFromStored(stored)?.name ??
+              kDefaultDanceFormLastUsed,
           userSet: () => _defaultDanceFormUserSet,
           apply: (value) => setState(() => _defaultDanceForm = value),
+          fallback: DanceForm.contra.name,
+        ),
+        _loadSetting<DanceForm>(
+          key: kLastUsedDanceFormKey,
+          decode: danceFormFromStored,
+          apply: (value) => setState(() => _lastUsedDanceForm = value),
           fallback: DanceForm.contra,
         ),
         _loadSetting<FormationShape>(
@@ -615,7 +630,7 @@ class _DefaultsSectionState extends State<DefaultsSection> {
             Expanded(
               child: CollectionPicker(
                 data: data,
-                dialect: ActiveDialectScope.of(context),
+                dialect: ActiveDialectScope.contraOf(context),
                 enrichment: SearchEnrichment.empty,
                 scrollController: scrollController,
                 onAddDance: (danceId) {
@@ -630,6 +645,7 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           ],
         ),
       ),
+      sheetAnimationStyle: AppMotion.styleFor(context),
     );
   }
 
@@ -648,13 +664,14 @@ class _DefaultsSectionState extends State<DefaultsSection> {
     await persistSetting(repos.settings, kDefaultProgramBandKey, value.trim());
   }
 
-  Future<void> _onDefaultDanceFormChanged(DanceForm value) async {
+  /// [value] is a form's name or [kDefaultDanceFormLastUsed].
+  Future<void> _onDefaultDanceFormChanged(String value) async {
     setState(() {
       _defaultDanceFormUserSet = true;
       _defaultDanceForm = value;
     });
     final repos = RepositoriesScope.of(context);
-    await persistSetting(repos.settings, kDefaultDanceFormKey, value.name);
+    await persistSetting(repos.settings, kDefaultDanceFormKey, value);
   }
 
   Future<void> _onDefaultDanceFormationShapeChanged(
@@ -977,7 +994,10 @@ class _DefaultsSectionState extends State<DefaultsSection> {
     // figures for the default dance form, as the dance editor offers those
     // for a dance's form (maintainer decision 8).
     final figuresShown = customFiguresShown(context);
-    final form = (_defaultDanceForm ?? DanceForm.contra).name;
+    final form = resolveNewDanceForm(
+      defaultFormStored: _defaultDanceForm,
+      lastUsedStored: _lastUsedDanceForm.name,
+    ).name;
     return _DefaultsView(
       userFigureOptions: figuresShown
           ? [
@@ -1040,7 +1060,7 @@ class _DefaultsSectionState extends State<DefaultsSection> {
         setState(() {});
         _persistStartingProgramTemplate();
       },
-      defaultDanceForm: _defaultDanceForm ?? DanceForm.contra,
+      defaultDanceForm: _defaultDanceForm ?? DanceForm.contra.name,
       onDefaultDanceFormChanged: _onDefaultDanceFormChanged,
       defaultDanceFormationShape:
           _defaultDanceFormationShape ?? FormationShape.dupleImproper,
@@ -1359,6 +1379,7 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
     final label = await showDialog<String>(
       context: context,
       builder: (context) => const _AddLevelDialog(),
+      animationStyle: AppMotion.styleFor(context),
     );
     final normalized = label?.trim() ?? '';
     if (!mounted || normalized.isEmpty) return;
@@ -1680,8 +1701,10 @@ class _DefaultsView extends StatelessWidget {
   final ValueChanged<int> onRemoveStartingProgramEntry;
   final void Function(int oldIndex, int newIndex) onReorderStartingProgramEntry;
   final VoidCallback onAddStartingProgramBreak;
-  final DanceForm defaultDanceForm;
-  final ValueChanged<DanceForm> onDefaultDanceFormChanged;
+
+  /// A form's name, or [kDefaultDanceFormLastUsed].
+  final String defaultDanceForm;
+  final ValueChanged<String> onDefaultDanceFormChanged;
   final FormationShape defaultDanceFormationShape;
   final ValueChanged<FormationShape> onDefaultDanceFormationShapeChanged;
   final Progression defaultDanceProgression;
@@ -1789,7 +1812,7 @@ class _DefaultsView extends StatelessWidget {
     final sectionTitleStyle = theme.textTheme.labelLarge?.copyWith(
       color: theme.colorScheme.primary,
     );
-    return ReadableListView(
+    return ListView(
       keyboardDismissBehavior: textEntryKeyboardDismiss(),
       children: [
         SectionHeader(title: l10n.settingsDefaultsDisplayHeader),
@@ -2248,7 +2271,7 @@ class _DefaultsView extends StatelessWidget {
             SettingsDropdownRow(
               title: Text(l10n.settingsDefaultsFormTitle),
               subtitle: Text(l10n.settingsDefaultsFormSubtitle),
-              dropdownBuilder: (expanded) => DropdownButton<DanceForm>(
+              dropdownBuilder: (expanded) => DropdownButton<String>(
                 isExpanded: expanded,
                 key: const ValueKey('defaults-dance-form'),
                 value: defaultDanceForm,
@@ -2258,9 +2281,14 @@ class _DefaultsView extends StatelessWidget {
                 items: [
                   for (final form in DanceForm.values)
                     DropdownMenuItem(
-                      value: form,
+                      value: form.name,
                       child: Text(danceFormLabel(l10n, form)),
                     ),
+                  DropdownMenuItem(
+                    key: const ValueKey('defaults-dance-form-last-used'),
+                    value: kDefaultDanceFormLastUsed,
+                    child: Text(l10n.settingsDefaultsFormLastUsed),
+                  ),
                 ],
               ),
             ),
@@ -2274,8 +2302,20 @@ class _DefaultsView extends StatelessWidget {
                 onChanged: (value) {
                   if (value != null) onDefaultDanceFormationShapeChanged(value);
                 },
+                // Contra's shapes, as before ECD's were added. Defaults for
+                // each dance form come with the new-dance form setting
+                // (ADR-006 §12, S2).
                 items: [
-                  for (final shape in FormationShape.values)
+                  for (final shape in [
+                    // A stored default outside the list (from a newer
+                    // version, say) is still shown, so the field has its
+                    // value among its items.
+                    if (!contraFormationShapes.contains(
+                      defaultDanceFormationShape,
+                    ))
+                      defaultDanceFormationShape,
+                    ...contraFormationShapes,
+                  ])
                     DropdownMenuItem(
                       value: shape,
                       child: Text(formationShapeLabel(l10n, shape)),
@@ -2348,7 +2388,7 @@ class _DefaultsView extends StatelessWidget {
                 drafts: danceFigureTemplateDrafts,
                 taxonomy: contraTaxonomy,
                 phraseStructure: PhraseStructure.standard,
-                dialect: ActiveDialectScope.of(context),
+                dialect: ActiveDialectScope.contraOf(context),
                 freeTextEntry: freeTextEntry,
                 shorthandMappings: ShorthandMappingsScope.maybeOf(
                   context,
@@ -2394,7 +2434,7 @@ class _DefaultsView extends StatelessWidget {
                 drafts: meanwhileSideDrafts,
                 taxonomy: contraTaxonomy,
                 phraseStructure: PhraseStructure.standard,
-                dialect: ActiveDialectScope.of(context),
+                dialect: ActiveDialectScope.contraOf(context),
                 freeTextEntry: freeTextEntry,
                 shorthandMappings: ShorthandMappingsScope.maybeOf(
                   context,
@@ -2443,7 +2483,7 @@ class _DefaultsView extends StatelessWidget {
                 drafts: modifierDrafts,
                 taxonomy: contraTaxonomy,
                 phraseStructure: PhraseStructure.standard,
-                dialect: ActiveDialectScope.of(context),
+                dialect: ActiveDialectScope.contraOf(context),
                 freeTextEntry: freeTextEntry,
                 shorthandMappings: ShorthandMappingsScope.maybeOf(
                   context,
@@ -2746,7 +2786,7 @@ class _MoveDefaultsEditor extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final dialect = ActiveDialectScope.of(context);
+    final dialect = ActiveDialectScope.contraOf(context);
     final renderer = FigureRenderer(contraTaxonomy);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2904,6 +2944,7 @@ class _MoveDefaultsEditor extends StatelessWidget {
           ],
         );
       },
+      animationStyle: AppMotion.styleFor(context),
     );
   }
 }
@@ -2921,7 +2962,7 @@ class _UserFigureDefaultsLinks extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final dialect = ActiveDialectScope.of(context);
+    final dialect = ActiveDialectScope.contraOf(context);
     final renderer = UserFiguresScope.rendererOf(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

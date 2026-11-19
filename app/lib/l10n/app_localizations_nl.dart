@@ -1509,8 +1509,11 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String get settingsSyncDevicesEmpty =>
-      'Er zijn geen andere apparaten met deze opslag verbonden.';
+  String get settingsSyncDevicesEmptyTitle => 'Nog geen andere apparaten';
+
+  @override
+  String get settingsSyncDevicesEmptyBody =>
+      'Andere apparaten die met deze opslag zijn verbonden, verschijnen hier.';
 
   @override
   String get settingsSyncDevicesFailed =>
@@ -1857,7 +1860,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsAboutLicenseBody =>
-      'Caller\'s Compendium is vrije software, uitgebracht onder de GNU Affero General Public License, versie 3 (AGPL-3.0). Je mag het gebruiken, bestuderen, delen en aanpassen onder die licentie. Omdat de AGPL dit vereist, wordt de volledige bijbehorende broncode aangeboden aan iedereen die de app gebruikt.';
+      'Caller\'s Compendium is vrije software, uitgebracht onder de GNU Affero General Public License, versie 3 (AGPL-3.0-only). Je mag het gebruiken, bestuderen, delen en aanpassen onder die licentie. Omdat de AGPL dit vereist, wordt de volledige bijbehorende broncode aangeboden aan iedereen die de app gebruikt.';
 
   @override
   String get settingsAboutViewSourceTitle => 'Broncode bekijken op GitHub';
@@ -1907,7 +1910,10 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsAboutLegalese =>
-      '© De bijdragers van Caller\'s Compendium. Uitgebracht onder AGPL-3.0.';
+      '© De bijdragers van Caller\'s Compendium. Uitgebracht onder AGPL-3.0-only.';
+
+  @override
+  String get settingsAboutTagline => 'De caller-koffer in de palm van je hand';
 
   @override
   String settingsAboutVersion(String version, String codename) {
@@ -1917,11 +1923,10 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String settingsAboutVersionLine(
     String appName,
-    String version,
     String codename,
     String license,
   ) {
-    return '$appName · Versie $version, “$codename” · $license';
+    return '$appName · “$codename” · $license';
   }
 
   @override
@@ -2059,6 +2064,10 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsDialectHeader => 'Dialecten';
 
   @override
+  String get settingsDialectFormHelper =>
+      'Elk danstype heeft zijn eigen dialecten. Kies een type om de dialecten ervan te bekijken en in te stellen.';
+
+  @override
   String get settingsDialectDanceDetailsHeader => 'Dansdetails en afkortingen';
 
   @override
@@ -2100,14 +2109,6 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get settingsDialectDuplicateToCustomize =>
       'Dupliceren om aan te passen';
-
-  @override
-  String get settingsDialectDeleteTitle => 'Dialect verwijderen?';
-
-  @override
-  String settingsDialectDeleteConfirmBody(String name) {
-    return '“$name” wordt permanent verwijderd.';
-  }
 
   @override
   String settingsDialectEditConflictSnack(String name) {
@@ -2495,14 +2496,6 @@ class AppLocalizationsNl extends AppLocalizations {
       'Kopieer het huidige thema en pas elke kleur aan. Aangepaste thema\'s worden gesynchroniseerd met je andere apparaten wanneer synchronisatie aan staat.';
 
   @override
-  String get settingsAppearanceDeleteThemeTitle => 'Thema verwijderen?';
-
-  @override
-  String settingsAppearanceDeleteThemeBody(String name) {
-    return '“$name” wordt permanent verwijderd.';
-  }
-
-  @override
   String settingsAppearanceCustomThemeSemantic(String name) {
     return 'Aangepast thema $name';
   }
@@ -2758,6 +2751,9 @@ class AppLocalizationsNl extends AppLocalizations {
       'Het danstype waarmee een nieuwe dans begint. Je kunt dit per dans aanpassen.';
 
   @override
+  String get settingsDefaultsFormLastUsed => 'Laatst gebruikt';
+
+  @override
   String get settingsDefaultsFormationTitle => 'Formatie';
 
   @override
@@ -2845,8 +2841,11 @@ class AppLocalizationsNl extends AppLocalizations {
       'Geef een tag een eigen kleur zodat die opvalt op danskaarten en in de dansdetails. De naam van de tag wordt altijd ook getoond, dus tags blijven leesbaar zonder kleur.';
 
   @override
-  String get settingsTagColoursEmpty =>
-      'Je hebt nog geen tags aangemaakt. Voeg een tag toe aan een dans en die verschijnt hier.';
+  String get settingsTagColoursEmptyTitle => 'Nog geen tags';
+
+  @override
+  String get settingsTagColoursEmptyBody =>
+      'Voeg een tag toe aan een dans en die verschijnt hier.';
 
   @override
   String get settingsTagColoursSaveError =>
@@ -2910,8 +2909,11 @@ class AppLocalizationsNl extends AppLocalizations {
   String get authorManagerNameLabel => 'Naam van de auteur';
 
   @override
-  String get authorManagerEmpty =>
-      'Nog geen auteurs. Auteurs die je bij een dans vermeldt, verschijnen hier.';
+  String get authorManagerEmptyTitle => 'Nog geen auteurs';
+
+  @override
+  String get authorManagerEmptyBody =>
+      'Auteurs die u bij een dans vermeldt, verschijnen hier.';
 
   @override
   String get authorManagerLoadError => 'Kon je auteurs niet laden.';
@@ -2931,8 +2933,11 @@ class AppLocalizationsNl extends AppLocalizations {
   String get sourceManagerTitleLabel => 'Titel van de bron';
 
   @override
-  String get sourceManagerEmpty =>
-      'Nog geen bronnen. Boeken en websites die je bij een dans vermeldt, verschijnen hier.';
+  String get sourceManagerEmptyTitle => 'Nog geen bronnen';
+
+  @override
+  String get sourceManagerEmptyBody =>
+      'Boeken en websites die u bij een dans citeert, verschijnen hier.';
 
   @override
   String get sourceManagerLoadError => 'Kon je bronnen niet laden.';
@@ -3206,18 +3211,6 @@ class AppLocalizationsNl extends AppLocalizations {
       'Geparametriseerde kolom verwijderen';
 
   @override
-  String get settingsMatrixColumnsParameterizedDeleteTitle =>
-      'Geparametriseerde kolom verwijderen?';
-
-  @override
-  String get settingsMatrixColumnsParameterizedDeleteBody =>
-      'Dit verwijdert de kolom en de bijbehorende matchregels uit de matrix. Dit kan niet ongedaan worden gemaakt.';
-
-  @override
-  String get settingsMatrixColumnsParameterizedDeleteConfirm =>
-      'Kolom verwijderen';
-
-  @override
   String get settingsMatrixColumnsCompoundAdd =>
       'Samengestelde kolom toevoegen';
 
@@ -3263,17 +3256,6 @@ class AppLocalizationsNl extends AppLocalizations {
       'Samengestelde kolom verwijderen';
 
   @override
-  String get settingsMatrixColumnsCompoundDeleteTitle =>
-      'Samengestelde kolom verwijderen?';
-
-  @override
-  String get settingsMatrixColumnsCompoundDeleteBody =>
-      'Hiermee verwijder je de kolom en de bijbehorende reeks uit de matrix. Dit kan niet ongedaan worden gemaakt.';
-
-  @override
-  String get settingsMatrixColumnsCompoundDeleteConfirm => 'Kolom verwijderen';
-
-  @override
   String get settingsGeneralPerformanceHeader => 'Uitvoering';
 
   @override
@@ -3282,7 +3264,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsGeneralAutoSizePerformSubtitle =>
-      'Schaal elke kaart zodat de volledige dans of het slot op het scherm past zonder scrollen. Uitschakelen om de grootte zelf in te stellen met A− / A+.';
+      'Schaal elke kaart zodat die op het scherm past, maar nooit kleiner dan je gebruikelijke tekstgrootte: een langere dans of een langer slot scrolt dan. Uitschakelen om de grootte zelf in te stellen met A− / A+.';
 
   @override
   String get settingsShowIndividualPerformTimerTitle =>
@@ -3291,6 +3273,14 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get settingsShowIndividualPerformTimerSubtitle =>
       'Verstreken tijd tonen tijdens het uitvoeren van een enkele dans. De timer start zodra deze wordt weergegeven en kan worden gepauzeerd.';
+
+  @override
+  String get settingsConfirmPerformExitTitle =>
+      'Bevestigen voor Uitvoeren verlaten';
+
+  @override
+  String get settingsConfirmPerformExitSubtitle =>
+      'Vragen voordat de sluitknop of Terug je uit Uitvoeren haalt. Zet dit uit om met één tik te vertrekken; programma-Uitvoeren onthoudt je plek hoe dan ook.';
 
   @override
   String get settingsShowProgramSlotCallerNotesTitle =>
@@ -3458,7 +3448,28 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsGeneralConfirmBeforeDeleteSubtitle =>
-      'Vraag om bevestiging voor het verwijderen van een dans of programma. Verwijderingen kunnen nog steeds ongedaan worden gemaakt; dit voegt slechts een expliciete bevestigingsstap toe.';
+      'Vraag het voordat je iets verwijdert dat ongedaan kan worden gemaakt. Verwijderingen die niet ongedaan kunnen worden gemaakt, vragen het altijd eerst.';
+
+  @override
+  String get settingsGeneralUndoPromptTitle => 'Melding Ongedaan maken';
+
+  @override
+  String get settingsGeneralUndoPromptSubtitle =>
+      'Hoe lang Ongedaan maken in beeld blijft nadat je iets verwijdert of wijzigt. De melding blijft ook staan zolang je ernaar wijst of er met het toetsenbord naartoe gaat.';
+
+  @override
+  String settingsGeneralUndoPromptSeconds(int seconds) {
+    String _temp0 = intl.Intl.pluralLogic(
+      seconds,
+      locale: localeName,
+      other: '$seconds seconden',
+      one: '1 seconde',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsGeneralUndoPromptUntilClosed => 'Tot ik de melding sluit';
 
   @override
   String get settingsGeneralDeletedItemsHeader => 'Onlangs verwijderd';
@@ -4090,6 +4101,41 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String get commonFormationDupleMinor => 'Duple minor';
+
+  @override
+  String get commonFormationThreeCoupleLongways => 'Three-couple longways';
+
+  @override
+  String get commonFormationFourCoupleLongways => 'Four-couple longways';
+
+  @override
+  String get commonFormationFiveCoupleLongways => 'Five-couple longways';
+
+  @override
+  String get commonFormationSixCoupleLongways => 'Six-couple longways';
+
+  @override
+  String get commonFormationCircle => 'Cirkel';
+
+  @override
+  String get commonFormationSquare => 'Square';
+
+  @override
+  String get commonFormationTwoCoupleSet => 'Two-couple set';
+
+  @override
+  String commonFormationImproperFlag(String shape) {
+    return '$shape, improper';
+  }
+
+  @override
+  String get danceEditorMeterLabel => 'Maatsoort';
+
+  @override
+  String get danceEditorMusicalKeyLabel => 'Toonsoort';
+
+  @override
   String get commonMixedLevel => 'Gemengd niveau';
 
   @override
@@ -4104,6 +4150,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String commonDeletedSnack(String title) {
     return '“$title” verwijderd.';
   }
+
+  @override
+  String get commonCantBeUndone => 'Dit kan niet ongedaan worden gemaakt.';
 
   @override
   String get importGapMessage =>
@@ -5296,9 +5345,6 @@ class AppLocalizationsNl extends AppLocalizations {
   String get programsNoLongerExists => 'Dit programma bestaat niet meer.';
 
   @override
-  String get programsFallbackTitle => 'Programma';
-
-  @override
   String get programsUntitledDanceFallback => 'dans';
 
   @override
@@ -5747,8 +5793,11 @@ class AppLocalizationsNl extends AppLocalizations {
   String get programsSlotNoteFallback => 'Notitie';
 
   @override
-  String get programsSlotEditorEmpty =>
-      'Nog geen slots. Voeg een dans of een notitie toe om te beginnen.';
+  String get programsSlotEditorEmptyTitle => 'Nog geen slots';
+
+  @override
+  String get programsSlotEditorEmptyBody =>
+      'Voeg een dans of een notitie toe om te beginnen.';
 
   @override
   String get programsSlotMovedUp => 'Slot omhoog verplaatst.';
@@ -6262,6 +6311,12 @@ class AppLocalizationsNl extends AppLocalizations {
   String performSlotPosition(int current, int total) {
     return 'Slot $current van $total';
   }
+
+  @override
+  String get performProgramClockLabel => 'Programma';
+
+  @override
+  String get performSlotClockLabel => 'Slot';
 
   @override
   String performShowingSlot(String label) {
@@ -8278,6 +8333,9 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String get importReviewEditOverwriteConfirm => 'Vervangen';
+
+  @override
   String get importReviewEditReimportTitle =>
       'Nu opnieuw importeren in de bestaande dans?';
 
@@ -8486,8 +8544,12 @@ class AppLocalizationsNl extends AppLocalizations {
       'Deze stapbeschrijvingen per figuur vullen doorlopen vooraf in wanneer je een dans bewerkt. Een hier bewerken werkt de overal gebruikte standaard bij.';
 
   @override
-  String get settingsWalkthroughSnippetsEmpty =>
-      'Nog geen opgeslagen fragmenten. Voeg doorloopstapbeschrijvingen toe terwijl je de figuren van een dans bewerkt.';
+  String get settingsWalkthroughSnippetsEmptyTitle =>
+      'Nog geen opgeslagen fragmenten';
+
+  @override
+  String get settingsWalkthroughSnippetsEmptyBody =>
+      'Voeg beschrijvingen van doorloopstappen toe terwijl u de figuren van een dans bewerkt.';
 
   @override
   String settingsWalkthroughSnippetsCount(int count) {
@@ -8499,13 +8561,6 @@ class AppLocalizationsNl extends AppLocalizations {
     );
     return '$_temp0';
   }
-
-  @override
-  String get settingsWalkthroughSnippetDeleteTitle => 'Fragment verwijderen?';
-
-  @override
-  String get settingsWalkthroughSnippetDeleteBody =>
-      'Dit verwijdert de opgeslagen standaard voor deze figuur. Dansen behouden alle doorlooptekst die je al hebt geschreven.';
 
   @override
   String get settingsWalkthroughSnippetEditTitle => 'Fragment bewerken';
@@ -8529,6 +8584,12 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get danceEditorComposedHelper =>
       'Wanneer de dans is gecomponeerd (jaar, of voeg maand/dag toe)';
+
+  @override
+  String get danceEditorInterpretedByLabel => 'Geïnterpreteerd door';
+
+  @override
+  String get danceEditorInterpretedOnLabel => 'Geïnterpreteerd';
 
   @override
   String get danceEditorRevisedLabel => 'Herzien';
@@ -8716,6 +8777,11 @@ class AppLocalizationsNl extends AppLocalizations {
     String substitution,
   ) {
     return '“$source” en “$existing” verwijzen beide naar “$substitution” — omkeren zou dubbelzinnig zijn.';
+  }
+
+  @override
+  String validationGenderedRoleTerm(String word) {
+    return '‘$word’ is een gendergebonden rolwoord dat de app nooit toont. Gebruik in plaats daarvan een rolneutraal woord.';
   }
 
   @override
@@ -9823,19 +9889,15 @@ class AppLocalizationsNl extends AppLocalizations {
   String get shorthandMappingsNew => 'Nieuwe afkorting';
 
   @override
-  String get shorthandMappingsEmpty => 'Nog geen afkortingen.';
+  String get shorthandMappingsEmptyTitle => 'Nog geen afkortingen';
+
+  @override
+  String get shorthandMappingsEmptyBody =>
+      'Kies Nieuwe afkorting om er een toe te voegen.';
 
   @override
   String shorthandMappingsLimitReached(int max) {
     return 'Je hebt de limiet van $max afkortingen bereikt. Verwijder er een om een nieuwe toe te voegen.';
-  }
-
-  @override
-  String get shorthandMappingsDeleteTitle => 'Afkorting verwijderen?';
-
-  @override
-  String shorthandMappingsDeleteBody(String token) {
-    return '“$token” wordt permanent verwijderd.';
   }
 
   @override
@@ -10232,14 +10294,6 @@ class AppLocalizationsNl extends AppLocalizations {
       'Er ging iets mis tijdens het scannen van je collectie. Er is niets gewijzigd. Je kunt het opnieuw proberen.';
 
   @override
-  String get customFieldsDeleteTitle => 'Aangepast veld verwijderen';
-
-  @override
-  String customFieldsDeleteBody(String label) {
-    return '“$label” verwijderen? Dit kan niet ongedaan worden gemaakt.';
-  }
-
-  @override
   String customFieldsDeleteInUse(String label, int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -10276,8 +10330,11 @@ class AppLocalizationsNl extends AppLocalizations {
       'Aangepaste velden konden niet worden geladen.';
 
   @override
-  String get customFieldsEmpty =>
-      'Nog geen aangepaste velden.\nTik op + om er één te definiëren.';
+  String get customFieldsEmptyTitle => 'Nog geen aangepaste velden';
+
+  @override
+  String get customFieldsEmptyBody =>
+      'Kies Nieuw veld om er een toe te voegen.';
 
   @override
   String get customFieldsFlagInList => 'In lijst';
@@ -10506,7 +10563,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String recentlyDeletedDeleteBody(String title) {
-    return '“$title” wordt onmiddellijk verwijderd en kan niet worden hersteld.';
+    return '“$title” wordt nu verwijderd.';
   }
 
   @override
@@ -10639,19 +10696,6 @@ class AppLocalizationsNl extends AppLocalizations {
       one: '1 programma gekoppeld.',
     );
     return '$_temp0';
-  }
-
-  @override
-  String get venueManagerDeleteTitle => 'Locatie verwijderen?';
-
-  @override
-  String venueManagerDeleteBody(String name) {
-    return '“$name” permanent verwijderen? Dit kan niet ongedaan worden gemaakt.';
-  }
-
-  @override
-  String venueManagerDeletedSnack(String name) {
-    return '“$name” verwijderd';
   }
 
   @override
@@ -11035,6 +11079,9 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get glossaryAddCustomFigure => 'Eigen figuur toevoegen';
+
+  @override
+  String get customFiguresNewFigure => 'Nieuwe figuur';
 
   @override
   String get glossaryCustomMarker => 'Eigen';

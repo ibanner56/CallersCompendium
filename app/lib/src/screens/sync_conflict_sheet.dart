@@ -6,6 +6,7 @@ import '../data/repositories_scope.dart';
 import '../data/sync_writer_lifecycle_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../sync/sync_setting_labels.dart';
+import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
 import '../utils/undo_snack_bar.dart';
 import 'settings/sync_notice_labels.dart' show syncRecordKindLabel;
@@ -62,7 +63,6 @@ Future<void> showSyncConflictSheet(
     undoLabel: l10n.syncConflictUndo,
     undoFailedMessage: l10n.commonUndoFailed,
     accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
-    duration: const Duration(seconds: 10),
     onUndo: () {
       if (context.mounted) {
         showSyncConflictSheet(context, reconsider: List.of(saved));
@@ -85,6 +85,7 @@ Future<void> _presentSyncConflictChoice(
           child: body(context),
         ),
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
   }
   return showModalBottomSheet<void>(
@@ -100,6 +101,7 @@ Future<void> _presentSyncConflictChoice(
         child: body(context),
       ),
     ),
+    sheetAnimationStyle: AppMotion.styleFor(context),
   );
 }
 
@@ -736,6 +738,7 @@ class _ConflictGroupTile extends StatelessWidget {
             ),
           ],
         ),
+        animationStyle: AppMotion.styleFor(context),
       );
     }
     return Navigator.of(context).push(
@@ -790,7 +793,7 @@ class _ConflictGroupTile extends StatelessWidget {
   ) {
     if (body == null) return l10n.syncConflictValueNotSet;
     if (group.kind == SyncRecordKind.setting) {
-      return syncSettingValueText(l10n, body['value']);
+      return syncSettingValueText(l10n, body['value'], key: group.recordId);
     }
     return _name(context, body) ?? syncRecordKindLabel(l10n, group.kind);
   }

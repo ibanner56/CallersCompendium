@@ -1,0 +1,9 @@
+{
+  "id": "revert-readable-width",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "On a wide window, a dance's detail page, the dance editor, Settings and the user guide fill the window again, left-aligned, instead of sitting in a centred column with empty margins."
+    ]
+  }
+}

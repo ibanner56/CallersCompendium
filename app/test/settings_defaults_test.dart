@@ -1551,11 +1551,11 @@ void main() {
 
     expect(
       tester
-          .widget<DropdownButton<DanceForm>>(
+          .widget<DropdownButton<String>>(
             find.byKey(const ValueKey('defaults-dance-form')),
           )
           .value,
-      DanceForm.contra,
+      DanceForm.contra.name,
     );
     expect(
       tester
@@ -1652,11 +1652,11 @@ void main() {
 
     expect(
       tester
-          .widget<DropdownButton<DanceForm>>(
+          .widget<DropdownButton<String>>(
             find.byKey(const ValueKey('defaults-dance-form')),
           )
           .value,
-      DanceForm.ecd,
+      DanceForm.ecd.name,
     );
     expect(
       tester
@@ -2965,11 +2965,11 @@ void main() {
             },
             expectEdited: (tester) => expect(
               tester
-                  .widget<DropdownButton<DanceForm>>(
+                  .widget<DropdownButton<String>>(
                     find.byKey(const ValueKey('defaults-dance-form')),
                   )
                   .value,
-              DanceForm.square,
+              DanceForm.square.name,
             ),
           ),
           (
@@ -3242,11 +3242,11 @@ void main() {
       await _scrollTo(tester, const ValueKey('defaults-dance-form'));
       expect(
         tester
-            .widget<DropdownButton<DanceForm>>(
+            .widget<DropdownButton<String>>(
               find.byKey(const ValueKey('defaults-dance-form')),
             )
             .value,
-        DanceForm.contra,
+        DanceForm.contra.name,
       );
       expect(
         tester

@@ -7,11 +7,14 @@
 # again, so each round lands on the new head the way
 # `tools/ci/check_pr_review_gates.py review` expects. A push by a non-human
 # actor (such as Copilot) still starts a run, but the action's actor check
-# fails it: no review is posted, the `claude-review` check goes red on that
-# head, and the CI and review gates fail until someone with write access
-# removes and re-applies the label. Removing the
-# label stops further rounds. Requesting, reading and gating a Claude review:
-# docs/dev/agents/code-review.md.
+# fails it: no review is posted, and the `claude-review` check goes red on that
+# head. Someone with write access can remove and re-apply the label to get a
+# review of that head, but the new round is a new check suite, so the red run
+# stays in the gate's view and the CI gate fails until a human pushes a newer
+# head (whether re-running that red run passes the actor check is untested).
+# A round that fails for any other reason is retried by re-running its job,
+# not by relabelling. Removing the label stops further rounds. Requesting,
+# reading and gating a Claude review: docs/dev/agents/code-review.md.
 #
 # Every round submits exactly one PR review (`POST /pulls/<N>/reviews`) whose
 # `commit_id` is the head it reviewed, so `check_pr_review_gates.py`, which
@@ -290,7 +293,7 @@ jobs:
 
       - name: Run Claude Code Review
         id: claude-review
-        uses: anthropics/claude-code-action@9eb012b6d0900c2b9eede65ee1758cec4d2973e9 # v1.0.270
+        uses: anthropics/claude-code-action@f3b070c88125d33dbae5653df5f143101d4ea9dc # v1.0.276
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |

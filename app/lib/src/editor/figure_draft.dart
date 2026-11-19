@@ -708,7 +708,7 @@ class FigureDraft {
       move: id,
       // Without the value an alias listed as a move pins: a long lines the
       // editor seeded with `formation: longLines` stores none (taxonomy v39).
-      params: contraTaxonomy.withoutListedAliasPins(
+      params: shippedTaxonomies.anyForm.withoutListedAliasPins(
         id,
         _canonicalParams(id, canonicalizeNote),
       ),
@@ -783,7 +783,7 @@ class FigureDraft {
       schemaVersion: schemaVersion,
       move: customMove,
       params: {
-        ...contraTaxonomy.effectiveParams(Figure(move: customMove)),
+        ...shippedTaxonomies.anyForm.effectiveParams(Figure(move: customMove)),
         'text': compound.name,
         if (compound.beats > 0) 'beats': compound.beats,
       },
@@ -815,7 +815,11 @@ List<Figure>? expandPlaceholder(
 ) {
   final definition = resolveCompound(compound.id);
   if (definition == null) return null;
-  final expanded = expandCompound(definition, compound.args, contraTaxonomy);
+  final expanded = expandCompound(
+    definition,
+    compound.args,
+    shippedTaxonomies.anyForm,
+  );
   return expanded == null || expanded.isEmpty ? null : expanded;
 }
 

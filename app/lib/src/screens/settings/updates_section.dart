@@ -1,7 +1,6 @@
 // Part of the Settings screen, split by section (Stage-7 item 7.2).
 import 'package:flutter/material.dart';
 
-import '../../app_metadata.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../theme/app_spacing.dart';
 import '../../update/artifact_handoff.dart';
@@ -12,7 +11,6 @@ import '../../update/update_controller.dart';
 import '../../update/update_failure_labels.dart';
 import '../../update/update_scope.dart';
 import '../../utils/launch_external_url.dart';
-import '../../widgets/readable_width.dart';
 import '../../widgets/section_header.dart';
 
 /// The Updates settings section (ADR-002 §4/§5, "Stage 1.5"): a manual "Check
@@ -44,7 +42,7 @@ class UpdatesSection extends StatelessWidget {
     final checking = status == UpdateCheckStatus.checking;
     final retirement = controller.retirementNotice;
 
-    return ReadableListView(
+    return ListView(
       children: [
         SectionHeader(title: l10n.settingsUpdatesHeader),
         // Shown even after the banner's "Later": Settings is where the user
@@ -276,13 +274,19 @@ class UpdatesSection extends StatelessWidget {
   String _statusText(AppLocalizations l10n, UpdateController controller) {
     switch (controller.status) {
       case UpdateCheckStatus.idle:
-        return l10n.settingsUpdatesStatusIdle(kAppVersion);
+        return l10n.settingsUpdatesStatusIdle(
+          controller.currentVersion.toString(),
+        );
       case UpdateCheckStatus.checking:
         return l10n.settingsUpdatesStatusChecking;
       case UpdateCheckStatus.noUpdate:
-        return l10n.settingsUpdatesStatusNoUpdate(kAppVersion);
+        return l10n.settingsUpdatesStatusNoUpdate(
+          controller.currentVersion.toString(),
+        );
       case UpdateCheckStatus.couldNotCheck:
-        return l10n.settingsUpdatesStatusCouldNotCheck(kAppVersion);
+        return l10n.settingsUpdatesStatusCouldNotCheck(
+          controller.currentVersion.toString(),
+        );
       case UpdateCheckStatus.newerFormat:
         return l10n.settingsUpdatesStatusNewerFormat;
       case UpdateCheckStatus.updateAvailable:

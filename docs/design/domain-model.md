@@ -166,7 +166,10 @@ decide what counts and override all four.
   structure (`(8) Neighbor flutterwheel:` over its indented parts), titled
   with the block's name; see [imports.md](imports.md) §1. ADR-006 §5.4
   originally proposed no sequence container; it was added for contra on the
-  maintainer's request in the PR that introduced it.
+  maintainer's request in the PR that introduced it. ADR-006, accepted in
+  November 2026, adopts it for ECD, with an ECD-only variant whose steps
+  may carry no timing of their own (ADR-006 §5.5). Nothing here implements
+  that yet.
 - Containers accept 2–6 children (2–4 for a `sequence`) and may nest a
   container of **another** kind exactly once — for example `meanwhile →
   sequence`, `sequence → modifier` or `modifier → meanwhile`. Same-kind
@@ -349,7 +352,10 @@ URLs. (Every settings key is classified in
 
 - Dance title non-empty; figures list may be empty (stub/metadata-only import).
 - Figure `move` must exist in the taxonomy for `dance.form` (or be `custom`);
-  `params` must validate against the move's parameter schema.
+  `params` must validate against the move's parameter schema. That taxonomy
+  is `TaxonomyRegistry.forForm(dance.form)`: the form's own taxonomy over
+  contra's, since a move ID with no form prefix is a contra move in a dance
+  of any form (ADR-006 §5.1). Until a form ships its own, it is contra's.
 - Beats ≥ 0; per-phrase overflow is a **warning**, not an error (real dances
   bend phrasing; choreography validation is a later milestone).
 - ProgramSlot requires at least one of `danceId` or `text` to be non-null;

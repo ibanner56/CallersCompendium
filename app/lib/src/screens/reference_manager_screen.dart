@@ -9,6 +9,7 @@ import '../diagnostics/error_log.dart';
 import '../widgets/author_details_flow.dart';
 import '../widgets/load_error_view.dart';
 import '../widgets/published_source_details_dialog.dart';
+import '../utils/confirm_delete.dart';
 import 'settings/library_manager_list.dart';
 
 /// The Authors and Sources managers (LIFE-5, `docs/design/tags-and-people.md`
@@ -22,7 +23,8 @@ import 'settings/library_manager_list.dart';
 /// hold different values, lists the ones it drops before it runs (D-N2-2).
 ///
 /// Rename, merge and delete write at once and offer Undo in a snackbar, the
-/// only Undo there is (D-N2-5), so a delete has no confirm. **Edit details…**
+/// only Undo there is (D-N2-5), so a delete asks first only when "Confirm
+/// before delete" is on (see `confirm_delete.dart`). **Edit details…**
 /// opens the dialog the dance editor uses, and saves as it does, with no Undo.
 ///
 /// The list is live, through the repository's `watchAll` and
@@ -317,6 +319,8 @@ class _ReferenceManagerScreenState extends State<ReferenceManagerScreen> {
   }
 
   Future<void> _delete(LibraryManagerEntry entry) async {
+    if (!await confirmDeleteIfEnabled(context, itemLabel: entry.name)) return;
+    if (!mounted) return;
     final l10n = AppLocalizations.of(context);
     try {
       final edit = await _repos.references.deleteUnused(widget.kind, entry.id);
@@ -361,6 +365,7 @@ class _ReferenceManagerScreenState extends State<ReferenceManagerScreen> {
       ),
       body: _loadError != null
           ? LoadErrorView(
+              icon: LoadErrorView.errorGlyph(context),
               message: _authors
                   ? l10n.authorManagerLoadError
                   : l10n.sourceManagerLoadError,
@@ -372,9 +377,15 @@ class _ReferenceManagerScreenState extends State<ReferenceManagerScreen> {
               keyPrefix: _keyPrefix,
               entries: _entries,
               searchHint: _searchHint(l10n),
-              emptyMessage: _authors
-                  ? l10n.authorManagerEmpty
-                  : l10n.sourceManagerEmpty,
+              emptyIcon: _authors
+                  ? Icons.person_outline
+                  : Icons.menu_book_outlined,
+              emptyTitle: _authors
+                  ? l10n.authorManagerEmptyTitle
+                  : l10n.sourceManagerEmptyTitle,
+              emptyBody: _authors
+                  ? l10n.authorManagerEmptyBody
+                  : l10n.sourceManagerEmptyBody,
               actionsFor: _actionsFor,
             ),
     );

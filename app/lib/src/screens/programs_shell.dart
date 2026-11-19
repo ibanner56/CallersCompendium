@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../widgets/brand_mark.dart';
+import '../widgets/empty_state.dart';
 import 'perform_program_screen.dart' show PerformResumeStore;
 import 'program_editor_screen.dart';
 import 'program_summary_screen.dart';
@@ -158,35 +160,15 @@ class _EmptyEditorPane extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.event_note_outlined,
-              size: 64,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              l10n.programsSelectTitle,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              l10n.programsSelectBody,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                // Body text must clear the 4.5:1 WCAG AA threshold, so it uses
-                // onSurfaceVariant (a text role) rather than outlineVariant (a
-                // hairline/border role that falls below AA against the pane).
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
+      body: EmptyState(
+        // The brand mark, as on the Collection's twin of this pane: the one
+        // quiet touch of the brand on a screen that is otherwise only a hint.
+        icon: BrandMark(
+          size: 64,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
         ),
+        title: l10n.programsSelectTitle,
+        body: l10n.programsSelectBody,
       ),
     );
   }

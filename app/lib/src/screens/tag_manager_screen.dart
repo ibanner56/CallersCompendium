@@ -8,9 +8,11 @@ import '../data/collection_filter_scope.dart';
 import '../data/repositories_scope.dart';
 import '../data/tag_edits.dart';
 import '../diagnostics/error_log.dart';
+import '../theme/app_motion.dart';
 import '../widgets/color_edit_dialog.dart';
 import '../widgets/load_error_view.dart';
 import '../widgets/tag_chip.dart';
+import '../utils/confirm_delete.dart';
 import 'settings/library_manager_list.dart';
 
 /// The Tags manager (FIND-3, `docs/design/tags-and-people.md` T2): rename,
@@ -19,10 +21,11 @@ import 'settings/library_manager_list.dart';
 /// colours-only screen this one replaced (D-N2-3).
 ///
 /// Every change writes at once and offers Undo in a snackbar, the only Undo
-/// there is (D-N2-5). A delete therefore has no confirm (`ux.md`: confirm only
-/// what Undo cannot reverse). Rename, merge and delete go through
-/// `tag_edits.dart`, which rewrites the import-tags setting in the same
-/// transaction. A colour is an ordinary edit of the tag row and has no Undo,
+/// there is (D-N2-5). A delete therefore asks first only when "Confirm before
+/// delete" is on, as every delete Undo can reverse does (`ux.md`: always
+/// confirm only what Undo cannot reverse; see `confirm_delete.dart`). Rename,
+/// merge and delete go through `tag_edits.dart`, which rewrites the
+/// import-tags setting in the same transaction. A colour is an ordinary edit of the tag row and has no Undo,
 /// as on the colours screen before it.
 ///
 /// The list is live: tags through [TagRepository.watchAll], and each tag's
@@ -265,6 +268,8 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
   }
 
   Future<void> _delete(LibraryManagerEntry entry) async {
+    if (!await confirmDeleteIfEnabled(context, itemLabel: entry.name)) return;
+    if (!mounted) return;
     final l10n = AppLocalizations.of(context);
     try {
       final edit = await deleteTag(_repos, entry.id);
@@ -309,6 +314,7 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
     final picked = await showDialog<Color>(
       context: context,
       builder: (_) => ColorEditDialog(title: tag.name, initial: seed),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (picked == null || !mounted) return;
     // Stored fully opaque, matching what the picker produces and what
@@ -351,6 +357,7 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
       appBar: AppBar(title: Text(l10n.tagManagerTitle)),
       body: _loadError != null
           ? LoadErrorView(
+              icon: LoadErrorView.errorGlyph(context),
               message: l10n.settingsTagColoursLoadError,
               onRetry: _retry,
             )
@@ -360,7 +367,9 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
               keyPrefix: 'tag',
               entries: _entries,
               searchHint: l10n.tagManagerSearchHint,
-              emptyMessage: l10n.settingsTagColoursEmpty,
+              emptyIcon: Icons.sell_outlined,
+              emptyTitle: l10n.settingsTagColoursEmptyTitle,
+              emptyBody: l10n.settingsTagColoursEmptyBody,
               actionsFor: _actionsFor,
               // Preview the exact chip the collection and dance detail draw,
               // so a colour picked here is what the user gets there.

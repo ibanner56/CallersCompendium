@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
@@ -15,6 +16,7 @@ import '../data/repositories_scope.dart';
 import '../editor/program_slot_rebase.dart';
 import '../../l10n/app_localizations.dart';
 import '../search/collection_data.dart';
+import '../theme/app_motion.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/colour_dance_theme.dart';
 import '../widgets/dialect_quick_switch.dart';
@@ -24,6 +26,7 @@ import 'perform_a11y_prefs.dart';
 import 'perform_adjust_sheet.dart';
 import 'perform_card.dart';
 import 'perform_elapsed_clock.dart';
+import 'perform_exit.dart';
 import 'perform_full_screen.dart';
 import 'perform_wakelock.dart';
 import 'perform_walkthrough_overlay.dart';
@@ -31,6 +34,7 @@ import 'settings_screen.dart'
     show
         kAutoSizePerformDefault,
         kAutoSizePerformKey,
+        kConfirmPerformExitDefault,
         kShowProgramSlotCallerNotesKey;
 
 /// Full-screen, large-print Perform mode for a whole [Program]
@@ -43,16 +47,17 @@ import 'settings_screen.dart'
 /// Perform view. Navigation is available via on-screen prev/next buttons, giant
 /// edge hit zones, the keyboard (arrows / page keys), and a jump-to-slot
 /// overview. When a group has alternates, a one-tap control swaps which member
-/// is shown. Exit is a deliberate close button back to the editor.
+/// is shown. Exit is a deliberate close button back to the program's summary.
 ///
 /// In-view text size ([PerformSizeControls]) is shared across all slots so the
 /// caller sets it once. Canonical wording is one of the choices in the dialect
 /// quick-switch, so Perform has no separate canonical toggle. This view is
 /// read-only: no destructive actions are reachable.
 ///
-/// Exit is guarded (issue #434): a single stray tap on the close control (or a
-/// system back) can no longer drop the caller out mid-set — it asks for a
-/// deliberate confirmation first. The live position + running clock are handed
+/// Exit is guarded (issue #434): by default a single stray tap on the close
+/// control (or a system back) can no longer drop the caller out mid-set — it
+/// asks for a deliberate confirmation first, unless the caller turned that off
+/// in Settings. The live position + running clock are handed
 /// back through [onExit] on every teardown so the launching screen can resume
 /// Perform exactly where the caller left off.
 
@@ -168,7 +173,7 @@ class PerformProgramScreen extends StatefulWidget {
   final List<DifficultyLevel> difficultyLevels;
 
   /// Freshly imported or created dances that may not yet be present in the
-  /// program editor's debounced collection snapshot.
+  /// opening screen's collection snapshot.
   final Map<String, Dance> danceOverrides;
 
   /// Fresh author names paired with [danceOverrides].
@@ -227,8 +232,8 @@ class PerformProgramScreen extends StatefulWidget {
   /// it did.
   ///
   /// That Undo reverses only the adjustment's own change, so a change from
-  /// elsewhere that the adjustment was written on top of (GIG-6), and the
-  /// builder's other unsaved edits, stay. The prompt can outlive this screen
+  /// elsewhere that the adjustment was written on top of (GIG-6) stays. The
+  /// prompt can outlive this screen
   /// (indefinitely with accessible navigation), and by the time it is tapped
   /// the program may have been edited elsewhere; reversing the change then
   /// could overwrite that edit. The
@@ -531,6 +536,11 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
         .catchError((_) {
           // diagnostics: silent — a11y prefs load/parse failed; keeps defaults.
         });
+    loadConfirmPerformExit(context).then((value) {
+      if (mounted && value != _confirmExit) {
+        setState(() => _confirmExit = value);
+      }
+    });
     settings
         .get(kShowProgramSlotCallerNotesKey)
         .then((v) {
@@ -589,13 +599,32 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   // confirmation dialog is showing.
   bool _exitDialogShowing = false;
 
+  /// Whether leaving asks first. Starts at the default (ask) and is replaced
+  /// by the stored setting once it loads, so an exit attempted before the
+  /// read resolves is still guarded.
+  bool _confirmExit = kConfirmPerformExitDefault;
+
+  /// Keys the Scaffold, which sits below [PerformStageTheme]: its context is
+  /// the one dialogs and sheets are opened from, so the exit dialog and the
+  /// metronome, jump and adjust sheets render in the stage theme rather than
+  /// the app theme.
+  final GlobalKey _stageKey = GlobalKey(debugLabel: 'perform-program-stage');
+
+  /// A context inside the stage theme, for [showDialog] and
+  /// [showModalBottomSheet]; falls back to this State's context before the
+  /// first build.
+  BuildContext get _stageContext => _stageKey.currentContext ?? context;
+
   /// Guards leaving Perform (issue #434). A single stray tap on the close
   /// control — or a system back / predictive-back gesture — must not drop the
-  /// caller out mid-set, so we require a deliberate confirmation first. The
+  /// caller out mid-set, so by default we require a deliberate confirmation
+  /// first ([showPerformExitDialog], shared with [PerformDanceScreen]). The
   /// dialog is fully accessible: keyed, labelled Cancel/Exit buttons with the
   /// confirm autofocused so keyboard users can Enter to confirm. Position and
   /// clock are preserved regardless (via [dispose] → [PerformProgramScreen.onExit]),
-  /// so confirming resumes on re-entry rather than losing the place.
+  /// so confirming resumes on re-entry rather than losing the place — which is
+  /// why the caller may turn the confirmation off in Settings ([_confirmExit],
+  /// making the close control and Back leave at once.
   ///
   /// [_exitDialogShowing] prevents re-entrancy (issue #666, parity with
   /// #612): without it, rapid taps on the close button (or repeated back
@@ -605,35 +634,23 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   /// so a later exit attempt isn't permanently blocked even if the dialog
   /// throws.
   Future<void> _confirmAndExit() async {
+    final navigator = Navigator.of(context);
+    if (!_confirmExit) {
+      // A direct pop (not `maybePop`) so it bypasses the PopScope in
+      // [_guardExit] rather than re-entering this method.
+      navigator.pop();
+      return;
+    }
     if (_exitDialogShowing) return;
     _exitDialogShowing = true;
     try {
-      final l10n = AppLocalizations.of(context);
-      final navigator = Navigator.of(context);
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          key: const ValueKey('perform-exit-dialog'),
-          title: Text(l10n.performExitTitle),
-          content: Text(l10n.performExitBody),
-          actions: [
-            TextButton(
-              key: const ValueKey('perform-exit-cancel'),
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: Text(l10n.performExitCancel),
-            ),
-            FilledButton(
-              key: const ValueKey('perform-exit-confirm'),
-              autofocus: true,
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: Text(l10n.performExitConfirm),
-            ),
-          ],
-        ),
+      final confirmed = await showPerformExitDialog(
+        _stageContext,
+        body: AppLocalizations.of(context).performExitBody,
       );
       // A direct pop (not `maybePop`) so it bypasses the PopScope in
       // [_guardExit] rather than re-triggering the confirmation.
-      if (confirmed == true) navigator.pop();
+      if (confirmed) navigator.pop();
     } finally {
       _exitDialogShowing = false;
     }
@@ -641,12 +658,16 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
 
   /// Wraps a Perform scaffold so an implicit pop (system back / predictive-back
   /// gesture) is intercepted and routed through the same [_confirmAndExit]
-  /// confirmation as the close control (issue #434). Applied to *both* the
+  /// confirmation as the close control (issue #434), while the confirmation is
+  /// on. Applied to *both* the
   /// populated and empty-state builds so a single tap / back never drops the
   /// caller out — the guard's contract holds regardless of slot count.
   Widget _guardExit({required Widget child}) {
     return PopScope(
-      canPop: false,
+      // With the confirmation turned off, Perform pops like any route, so
+      // gesture-driven back (the iOS edge swipe, which a non-poppable route
+      // disables) leaves at once too.
+      canPop: !_confirmExit,
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) return;
         _confirmAndExit();
@@ -772,7 +793,8 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
         ? rawText
         : widget.renderer.renderFreeTextWithCanonicalDiscouragedTerms(
             rawText,
-            _effectiveDialect(context, strict: false),
+            // A slot of text alone has no dance, so no form: contra's.
+            _effectiveDialect(context, DanceForm.contra, strict: false),
           );
     if (text != null && text.isNotEmpty) return text;
     return l10n.performUntitledSlot;
@@ -787,15 +809,16 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
 
   Future<void> _openMetronomeSheet() {
     return showModalBottomSheet<void>(
-      context: context,
+      context: _stageContext,
       showDragHandle: true,
       builder: (_) => const SafeArea(child: TapTempoMetronome()),
+      sheetAnimationStyle: AppMotion.styleFor(context),
     );
   }
 
   Future<void> _openJumpSheet() async {
     final target = await showModalBottomSheet<int>(
-      context: context,
+      context: _stageContext,
       showDragHandle: true,
       builder: (sheetContext) {
         final l10n = AppLocalizations.of(sheetContext);
@@ -831,6 +854,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
           ),
         );
       },
+      sheetAnimationStyle: AppMotion.styleFor(context),
     );
     if (target != null && mounted) {
       setState(() {
@@ -1068,8 +1092,9 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   /// Opens the non-destructive "adjust" sheet (`docs/design/ux.md` §5) over the
   /// reading view. The sheet edits a working copy (reorder remaining slots,
   /// insert a dance from quick-search, add an ad-hoc note, mark the current slot
-  /// performed) and returns the edited program on close; we then apply it live
-  /// with undo. Returning null (no change / dismissed) is a no-op.
+  /// performed) and hands back the edited program however it closes — Done,
+  /// swipe down, barrier tap or Back; we then apply it live with undo. A sheet
+  /// closed with no edits is a no-op.
   Future<void> _openAdjustSheet() async {
     // Build the picker's search enrichment from the full saved-dialect library
     // (presets + custom) so its search resolves saved-dialect vocabulary
@@ -1081,21 +1106,35 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     final enrichment = SearchEnrichment.fromDialects(
       library?.all ?? const <Dialect>[],
     );
-    final edited = await showModalBottomSheet<Program>(
-      context: context,
+    // The sheet reports every edit as it happens (null once the edits cancel
+    // out); [latest] keeps the last report so a sheet dismissed without Done
+    // (swipe down, barrier tap, Back) still commits its edits rather than
+    // discarding them. They
+    // are applied with the same undo as Done, so keeping them is cheap to
+    // reverse, while losing reorders made mid-gig is not.
+    Program? latest;
+    final returned = await showModalBottomSheet<Program>(
+      context: _stageContext,
       isScrollControlled: true,
       showDragHandle: true,
       builder: (_) => PerformAdjustSheet(
+        onEdited: (program) => latest = program,
         program: _program,
         currentGroupIndex: _groupIndex,
         currentSlotId: _currentSlot.id,
         data: widget.data,
         danceOverrides: widget.danceOverrides,
         authorNameOverrides: widget.authorNameOverrides,
-        dialect: _effectiveDialect(context),
+        // The picker reads a query in the form of the dance on screen.
+        dialect: _effectiveDialect(
+          context,
+          _danceForSlot(_currentSlot)?.form ?? DanceForm.contra,
+        ),
         enrichment: enrichment,
       ),
+      sheetAnimationStyle: AppMotion.styleFor(context),
     );
+    final edited = returned ?? latest;
     if (edited == null || !mounted) return;
     final l10n = AppLocalizations.of(context);
     _applyWithUndo(
@@ -1121,37 +1160,90 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     );
   }
 
-  /// The program's own dialect, or `null` when it has none or its name no
-  /// longer resolves. A `null` means Perform follows the application dialect
-  /// and the quick-switch keeps its app-wide behaviour. Listens to the library,
-  /// so renaming or deleting the dialect while Perform is open takes effect
-  /// live.
-  Dialect? _programDialect(BuildContext context) {
+  /// The program's own dialect for a dance of [form], or `null` when it has
+  /// none or its name does not resolve among [form]'s dialects. A program
+  /// names its dialect, and each form has its own dialects, so the name is
+  /// looked up in the library of the form of the dance on screen
+  /// (`resolveProgramDialect`). A `null` means Perform follows that form's
+  /// active dialect and the quick-switch keeps its app-wide behaviour.
+  /// Listens to the library, so renaming or deleting the dialect while
+  /// Perform is open takes effect live.
+  Dialect? _programDialect(BuildContext context, DanceForm form) {
     final library = DialectLibraryScope.maybeOf(context);
     if (library == null) return null;
-    return resolveProgramDialect(_program.dialectName, library);
+    return resolveProgramDialect(_program.dialectName, library.forForm(form));
   }
 
-  /// The dialect Perform renders with: the session pick, else the program's
-  /// dialect, else the application dialect.
+  /// The dialect Perform renders a dance of [form] with: the session pick,
+  /// else the program's dialect, else [form]'s active dialect. The session
+  /// pick and the program's dialect are names, each looked up among [form]'s
+  /// dialects.
   /// [strict] keeps the existing `ActiveDialectScope.of` behaviour (throws
   /// without the scope) for the call sites that had it.
-  Dialect _effectiveDialect(BuildContext context, {bool strict = true}) {
-    final programDialect = _programDialect(context);
+  Dialect _effectiveDialect(
+    BuildContext context,
+    DanceForm form, {
+    bool strict = true,
+  }) {
+    final programDialect = _programDialect(context, form);
     if (programDialect != null) {
-      final library = DialectLibraryScope.maybeOf(context)!;
+      final library = DialectLibraryScope.maybeOf(context)!.forForm(form);
       return resolveProgramDialect(_sessionDialectName, library) ??
           programDialect;
     }
     return strict
-        ? ActiveDialectScope.of(context)
-        : ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
+        ? ActiveDialectScope.of(context).forForm(form)
+        : (ActiveDialectScope.maybeOf(context) ?? DialectsByForm.defaults)
+              .forForm(form);
+  }
+
+  /// The program title's type: the AppBar's usual `titleLarge` metrics, with no
+  /// colour, so the AppBar's own foreground colour (from whichever theme is
+  /// active) applies.
+  TextStyle _programTitleStyle(BuildContext context) {
+    final base = Theme.of(context).textTheme.titleLarge;
+    return TextStyle(
+      fontSize: base?.fontSize ?? 22,
+      height: base?.height ?? 1.27,
+      fontWeight: base?.fontWeight,
+      letterSpacing: base?.letterSpacing,
+    );
+  }
+
+  /// The title's text scaler: the system's, capped like the footer at
+  /// [kPerformChromeMaxTextScale].
+  TextScaler _chromeScaler(BuildContext context) => MediaQuery.textScalerOf(
+    context,
+  ).clamp(maxScaleFactor: kPerformChromeMaxTextScale);
+
+  /// Tall enough for two lines of the program title, and never shorter than
+  /// the standard toolbar. At the default text size two lines fit the standard
+  /// toolbar exactly, so it grows only with a larger text setting.
+  double _toolbarHeight(BuildContext context) {
+    final style = _programTitleStyle(context);
+    final line = _chromeScaler(context).scale(style.fontSize!) * style.height!;
+    return math.max(kToolbarHeight, 2 * line);
+  }
+
+  /// The program title in the AppBar. It wraps onto a second line rather than
+  /// truncating after a dozen characters on a phone (a 390 pt
+  /// screen showed only "Glen Echo Fr…"), and ellipsizes only beyond that.
+  Widget _buildProgramTitle(BuildContext context) {
+    return MediaQuery(
+      data: MediaQuery.of(context).copyWith(textScaler: _chromeScaler(context)),
+      child: Text(
+        widget.program.title,
+        key: const ValueKey('perform-program-title'),
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        softWrap: true,
+        style: _programTitleStyle(context),
+      ),
+    );
   }
 
   Widget _buildContent(BuildContext context, {required bool wide}) {
     final l10n = AppLocalizations.of(context);
-    final programDialect = _programDialect(context);
-    final dialect = _effectiveDialect(context);
     final canDecrease =
         _textScale - kPerformScaleStep >= kPerformMinScale - 1e-9;
 
@@ -1163,6 +1255,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
         enabled: _stageMode,
         child: _guardExit(
           child: Scaffold(
+            key: _stageKey,
             appBar: AppBar(
               leading: IconButton(
                 key: const ValueKey('perform-program-exit'),
@@ -1170,7 +1263,8 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                 icon: const Icon(Icons.close),
                 onPressed: _confirmAndExit,
               ),
-              title: Text(widget.program.title),
+              toolbarHeight: _toolbarHeight(context),
+              title: _buildProgramTitle(context),
             ),
             body: Center(child: Text(l10n.performNoSlots)),
           ),
@@ -1188,6 +1282,11 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     final slot = members[memberIndex];
     final activeDance = _danceForSlot(slot);
     final hasWalkthrough = activeDance?.walkthrough.trim().isNotEmpty ?? false;
+    // The dance on screen reads in its own form's dialect; a slot of text
+    // alone, with no dance, in contra's.
+    final form = activeDance?.form ?? DanceForm.contra;
+    final programDialect = _programDialect(context, form);
+    final dialect = _effectiveDialect(context, form);
 
     return ColourDanceTheme(
       title: _slotLabel(l10n, slot),
@@ -1195,6 +1294,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
         enabled: _stageMode,
         child: _guardExit(
           child: Scaffold(
+            key: _stageKey,
             appBar: AppBar(
               leading: IconButton(
                 key: const ValueKey('perform-program-exit'),
@@ -1202,7 +1302,8 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                 icon: const Icon(Icons.close),
                 onPressed: _confirmAndExit,
               ),
-              title: Text(widget.program.title),
+              toolbarHeight: _toolbarHeight(context),
+              title: _buildProgramTitle(context),
               // Responsive AppBar actions (issue #433): the full set shows
               // inline on tablets/large windows; on narrow phones the secondary
               // controls collapse into a "More actions" overflow so the toolbar
@@ -1211,8 +1312,9 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
               actions: buildPerformAppBarActions(
                 wide: wide,
                 leadingPrimary: programDialect == null
-                    ? const DialectQuickSwitch()
+                    ? DialectQuickSwitch(form: form)
                     : DialectQuickSwitch(
+                        form: form,
                         selectedName: dialect.name,
                         onSelected: (name) =>
                             setState(() => _sessionDialectName = name),
@@ -1441,77 +1543,108 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                 ),
               ),
             ),
-            bottomNavigationBar: BottomAppBar(
-              // Grow with the system text size (A11Y-01): the fixed 80 px bar
-              // cannot hold the position + timing lines at large scales.
-              height: MediaQuery.textScalerOf(
-                context,
-              ).scale(80).clamp(80.0, 200.0),
-              child: Row(
-                children: [
-                  _buildPauseButton(),
-                  IconButton(
-                    key: const ValueKey('perform-prev'),
-                    tooltip: l10n.performPreviousSlot,
-                    icon: const Icon(Icons.chevron_left),
-                    onPressed: _hasPrev ? _goPrev : null,
-                  ),
-                  Expanded(
-                    child: Center(
-                      child: Builder(
-                        // Resolve the text style from a context *below*
-                        // [PerformStageTheme] so the labels pick up the stage
-                        // theme's on-surface color (readable on the dark
-                        // BottomAppBar) when stage mode is on, rather than the
-                        // outer ambient theme.
-                        builder: (context) {
-                          final textTheme = Theme.of(context).textTheme;
-                          // Fallback for scales beyond the clamped bar height.
-                          final readout = FittedBox(
-                            fit: BoxFit.scaleDown,
+            bottomNavigationBar: _buildFooter(slot),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// The program footer: pause, previous, the position and timing readout,
+  /// next. It is chrome, so it follows the system text size only up to
+  /// [kPerformChromeMaxTextScale]: at an accessibility
+  /// size it no longer grows to triple height and squeezes the card the caller
+  /// is reading.
+  Widget _buildFooter(ProgramSlot slot) {
+    final l10n = AppLocalizations.of(context);
+    return MediaQuery.withClampedTextScaling(
+      maxScaleFactor: kPerformChromeMaxTextScale,
+      child: Builder(
+        builder: (context) => BottomAppBar(
+          // Grow with the (capped) system text size (A11Y-01): the fixed
+          // 80 px bar cannot hold the position + timing lines at large
+          // scales.
+          height: math.max(80.0, MediaQuery.textScalerOf(context).scale(80)),
+          child: Row(
+            children: [
+              _buildPauseButton(),
+              IconButton(
+                key: const ValueKey('perform-prev'),
+                tooltip: l10n.performPreviousSlot,
+                icon: const Icon(Icons.chevron_left),
+                onPressed: _hasPrev ? _goPrev : null,
+              ),
+              Expanded(
+                child: Center(
+                  child: Builder(
+                    // Resolve the text style from a context *below*
+                    // [PerformStageTheme] so the labels pick up the stage
+                    // theme's on-surface color (readable on the dark
+                    // BottomAppBar) when stage mode is on, rather than the
+                    // outer ambient theme.
+                    builder: (context) {
+                      final textTheme = Theme.of(context).textTheme;
+                      // Each line scales down to the available width on its
+                      // own, so a long timing line (labels, planned minutes)
+                      // on a narrow phone never shrinks the position above
+                      // it. The outer FittedBox is only the fallback for a
+                      // height beyond the capped bar; the width it would
+                      // otherwise leave unbounded is pinned to the slot's.
+                      final readout = LayoutBuilder(
+                        builder: (context, constraints) => FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxWidth: constraints.maxWidth,
+                            ),
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text(
-                                  l10n.performSlotPosition(
-                                    _groupIndex + 1,
-                                    _groups.length,
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    l10n.performSlotPosition(
+                                      _groupIndex + 1,
+                                      _groups.length,
+                                    ),
+                                    key: const ValueKey('perform-position'),
+                                    style: textTheme.titleMedium,
                                   ),
-                                  key: const ValueKey('perform-position'),
-                                  style: textTheme.titleMedium,
                                 ),
                                 const SizedBox(height: 2),
                                 _buildTimingLine(slot, textTheme),
                               ],
                             ),
-                          );
-                          if (!_hasSeparateWalkthrough(slot)) return readout;
-                          // The dance-start toggle sits *outside* both
-                          // [FittedBox]es (this one and the one inside
-                          // [_buildTimingLine]) so the readout's narrow-phone
-                          // scale-down (issue #433) can never shrink it below
-                          // its 44px tap target (issue #1659).
-                          return Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Flexible(child: readout),
-                              const SizedBox(width: 4),
-                              _buildDanceStartButton(context),
-                            ],
-                          );
-                        },
-                      ),
-                    ),
+                          ),
+                        ),
+                      );
+                      if (!_hasSeparateWalkthrough(slot)) {
+                        return readout;
+                      }
+                      // The dance-start toggle sits *outside* both
+                      // [FittedBox]es (this one and the one inside
+                      // [_buildTimingLine]) so the readout's narrow-phone
+                      // scale-down (issue #433) can never shrink it below
+                      // its 44px tap target (issue #1659).
+                      return Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(child: readout),
+                          const SizedBox(width: 4),
+                          _buildDanceStartButton(context),
+                        ],
+                      );
+                    },
                   ),
-                  IconButton(
-                    key: const ValueKey('perform-next'),
-                    tooltip: l10n.performNextSlot,
-                    icon: const Icon(Icons.chevron_right),
-                    onPressed: _hasNext ? _goNext : null,
-                  ),
-                ],
+                ),
               ),
-            ),
+              IconButton(
+                key: const ValueKey('perform-next'),
+                tooltip: l10n.performNextSlot,
+                icon: const Icon(Icons.chevron_right),
+                onPressed: _hasNext ? _goNext : null,
+              ),
+            ],
           ),
         ),
       ),
@@ -1601,6 +1734,8 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     final danceMinutes = slot.danceMinutes;
     final plannedTotalMinutes = slot.plannedTotalMinutes;
     final style = textTheme.bodyMedium;
+    // The labels read as captions to the times beside them.
+    final labelStyle = textTheme.labelMedium;
 
     return ValueListenableBuilder<int>(
       valueListenable: _elapsed,
@@ -1660,7 +1795,16 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.timer_outlined, size: 16),
+                  // Each clock carries a short visible label: two bare "0:04"
+                  // readouts gave no hint which timed the evening and which
+                  // the dance. The words match the semantic label above
+                  // ("Program time …, slot time …"), and replace the generic
+                  // timer icon, which said only that these are clocks.
+                  Text(
+                    l10n.performProgramClockLabel,
+                    key: const ValueKey('perform-clock-label'),
+                    style: labelStyle,
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     _formatDuration(elapsed),
@@ -1668,6 +1812,12 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                     style: style,
                   ),
                   Text('  ·  ', style: style),
+                  Text(
+                    l10n.performSlotClockLabel,
+                    key: const ValueKey('perform-slot-elapsed-label'),
+                    style: labelStyle,
+                  ),
+                  const SizedBox(width: 4),
                   Text(
                     _formatDuration(slotElapsed),
                     key: const ValueKey('perform-slot-elapsed'),

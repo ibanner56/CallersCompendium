@@ -395,6 +395,31 @@ void main() {
         expect(archive.choreographers.map((c) => c.id).toSet(), {'c1', 'c2'});
       });
 
+      test('includes a person a bundled dance credits only as interpreter', () {
+        final interpreted = {
+          ...authored,
+          'd5': _dance(
+            'd5',
+            'Hole in the Wall',
+          ).copyWith(interpreterIds: const ['c2']),
+        };
+        final archive = decodeArchive(
+          buildProgramShareBundle(
+            _program(slots: [_slot(0, danceId: 'd5')]),
+            blankedDanceSlotText: 'Deleted dance',
+            danceFor: (id) => interpreted[id],
+            choreographerFor: choreographerCatalogFor,
+            tagFor: (_) => null,
+            publishedSourceFor: (_) => null,
+            customFieldFor: (_) => null,
+            venueFor: (_) => null,
+            now: _now,
+          ),
+        ).archive;
+
+        expect(archive.choreographers.map((c) => c.id), ['c2']);
+      });
+
       test('a choreographer shared by several dances appears exactly once', () {
         // d1 -> c1, d2 -> c1 + c2. c1 is referenced twice but must not double.
         final program = _program(

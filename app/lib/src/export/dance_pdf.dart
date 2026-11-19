@@ -27,7 +27,8 @@ import 'program_pdf.dart';
 /// ([authorNames], [formationLabel], [levelLabel], [statusLabel]); [levelLabel]
 /// is `null` when unspecified and the Level line is omitted, and the Status
 /// line is omitted for an active dance (mirroring the text renderer). [renderer]
-/// supplies the dialect engine; when omitted a `FigureRenderer(contraTaxonomy)`
+/// supplies the dialect engine; when omitted a `FigureRenderer` over
+/// `TaxonomyRegistry.anyForm`, as the app wires it,
 /// is used. [theme] supplies the Unicode font; when omitted it is loaded from
 /// the bundled asset.
 ///
@@ -53,7 +54,7 @@ Future<Uint8List> buildDancePdf(
   List<String> sourceLines = const [],
   PdfPageFormat pageFormat = PdfPageFormat.a4,
 }) async {
-  final fig = renderer ?? FigureRenderer(contraTaxonomy);
+  final fig = renderer ?? FigureRenderer(shippedTaxonomies.anyForm);
   final resolvedTheme = theme ?? await loadProgramPdfTheme();
   final doc = pw.Document(title: dance.title, theme: resolvedTheme);
 

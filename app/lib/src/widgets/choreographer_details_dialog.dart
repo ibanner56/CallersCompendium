@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../theme/app_motion.dart';
 
 import 'dirty_dialog_guard.dart';
 
@@ -32,6 +33,7 @@ class ChoreographerDetailsDialog extends StatefulWidget {
   ) => showDialog<Choreographer>(
     context: context,
     builder: (_) => ChoreographerDetailsDialog(choreographer: choreographer),
+    animationStyle: AppMotion.styleFor(context),
   );
 
   @override

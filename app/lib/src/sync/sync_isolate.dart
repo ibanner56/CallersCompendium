@@ -474,7 +474,11 @@ Future<Map<String, Object?>> _runSyncPass({
       syncId: syncId,
       deviceId: deviceId,
       store: syncPassStore(
-        CompendiumRepositories(database, contraTaxonomy),
+        CompendiumRepositories(
+          database,
+          shippedTaxonomies.anyForm,
+          taxonomyForForm: shippedTaxonomies.forForm,
+        ),
         syncId: syncId,
       ),
       transport: SyncHttpCoordinatorTransport(client),

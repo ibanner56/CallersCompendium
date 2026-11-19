@@ -48,7 +48,7 @@ import '../model/figure.dart';
 import '../model/figure_source.dart';
 import '../model/formation.dart';
 import '../model/phrase_structure.dart';
-import '../taxonomy/contra_taxonomy.dart';
+import '../taxonomy/taxonomy_registry.dart';
 import '../taxonomy/taxonomy.dart';
 import '../taxonomy/user_figure_use.dart';
 import 'matrix_column_config.dart';
@@ -836,7 +836,8 @@ MatrixColumn _splitColumn(String baseMoveId, String variant) => MatrixColumn(
 );
 
 /// Builds the [ProgramMatrix] for [dances] (rows, in the given order) using
-/// [taxonomy] (defaults to [contraTaxonomy]) to order and classify columns.
+/// [taxonomy] (defaults to [TaxonomyRegistry.anyForm], since a program can mix
+/// forms) to order and classify columns.
 ///
 /// Column order: taxonomy canonical order (the [Taxonomy.moves] definition
 /// order) for known moves that appear, then any alias-only ids in taxonomy
@@ -914,7 +915,7 @@ ProgramMatrix buildProgramMatrix(
   MatrixColumnConfig config = MatrixColumnConfig.empty,
   UserFigureCatalog userFigures = UserFigureCatalog.empty,
 }) {
-  final tax = taxonomy ?? contraTaxonomy;
+  final tax = taxonomy ?? shippedTaxonomies.anyForm;
   if (sections != null && sections.length != dances.length) {
     throw ArgumentError.value(
       sections.length,

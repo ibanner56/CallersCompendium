@@ -2030,11 +2030,17 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{1 change from this device is waiting for it.} other{{count} changes from this device are waiting for it.}}'**
   String settingsSyncDeviceWaiting(int count);
 
-  /// Empty state when this is the only device with a manifest in the Device Sync store.
+  /// Heading of the empty state on the sync devices screen when no other device is connected to the store.
   ///
   /// In en, this message translates to:
-  /// **'No other devices are connected to this store.'**
-  String get settingsSyncDevicesEmpty;
+  /// **'No other devices yet'**
+  String get settingsSyncDevicesEmptyTitle;
+
+  /// Body of the empty state on the sync devices screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Other devices connected to this store will appear here.'**
+  String get settingsSyncDevicesEmptyBody;
 
   /// Error state when the Device Sync store listing could not be fetched.
   ///
@@ -2612,10 +2618,10 @@ abstract class AppLocalizations {
   /// **'License'**
   String get settingsAboutLicenseHeader;
 
-  /// Explanatory paragraph about the app's AGPL-3.0 license and the corresponding source-code offer. 'Caller's Compendium', 'GNU Affero General Public License', and 'AGPL-3.0' are proper nouns kept verbatim.
+  /// Explanatory paragraph about the app's AGPL-3.0 license and the corresponding source-code offer. 'Caller's Compendium', 'GNU Affero General Public License', and 'AGPL-3.0-only' are proper nouns kept verbatim.
   ///
   /// In en, this message translates to:
-  /// **'Caller\'s Compendium is free software, licensed under the GNU Affero General Public License, version 3 (AGPL-3.0). You are free to use, study, share, and modify it under that license. Because the AGPL requires it, the complete corresponding source code is offered to everyone who uses the app.'**
+  /// **'Caller\'s Compendium is free software, licensed under the GNU Affero General Public License, version 3 (AGPL-3.0-only). You are free to use, study, share, and modify it under that license. Because the AGPL requires it, the complete corresponding source code is offered to everyone who uses the app.'**
   String get settingsAboutLicenseBody;
 
   /// Title of the tile that opens the app's source-code repository.
@@ -2696,11 +2702,17 @@ abstract class AppLocalizations {
   /// **'Full open-source license texts, including the bundled fonts.'**
   String get settingsAboutViewLicensesSubtitle;
 
-  /// Legal notice shown on the license page. 'The Caller's Compendium' and 'AGPL-3.0' are proper nouns kept verbatim.
+  /// Legal notice shown on the license page. 'The Caller's Compendium' and 'AGPL-3.0-only' are proper nouns kept verbatim.
   ///
   /// In en, this message translates to:
-  /// **'© The Caller\'s Compendium contributors. Licensed under AGPL-3.0.'**
+  /// **'© The Caller\'s Compendium contributors. Licensed under AGPL-3.0-only.'**
   String get settingsAboutLegalese;
+
+  /// One-line tagline shown under the version on the About brand header, and used as the Linux launcher comment. 'Caller's box' is a colloquial term among dance callers for the bag or case of cards, notes and gear a caller carries; it is not a product name or trademark, so translate the idiom naturally rather than literally.
+  ///
+  /// In en, this message translates to:
+  /// **'Your caller\'s box, in the palm of your hand'**
+  String get settingsAboutTagline;
 
   /// Version and release-codename line under the app wordmark in the About header. The codename is a proper noun kept verbatim.
   ///
@@ -2708,13 +2720,12 @@ abstract class AppLocalizations {
   /// **'Version {version}, \"{codename}\"'**
   String settingsAboutVersion(String version, String codename);
 
-  /// One-line footer at the bottom of the About section combining the app name, version, release codename, and license identifier. The app name, version, codename, and license are proper nouns / identifiers kept verbatim; only the word 'Version' is translatable.
+  /// One-line footer at the bottom of the About section combining the app name, release codename, and license identifier. The version is deliberately not repeated here: it is shown once, in the About header. The app name, codename, and license are proper nouns / identifiers kept verbatim.
   ///
   /// In en, this message translates to:
-  /// **'{appName} · Version {version}, \"{codename}\" · {license}'**
+  /// **'{appName} · \"{codename}\" · {license}'**
   String settingsAboutVersionLine(
     String appName,
-    String version,
     String codename,
     String license,
   );
@@ -2935,6 +2946,12 @@ abstract class AppLocalizations {
   /// **'Dialects'**
   String get settingsDialectHeader;
 
+  /// Helper text above the dance-type selector in Settings › Dialect. The selector's segments are the dance-type names (Contra, English, Square); the list below it shows only the chosen type's dialects.
+  ///
+  /// In en, this message translates to:
+  /// **'Each dance type has its own dialects. Choose a type to see and set up its dialects.'**
+  String get settingsDialectFormHelper;
+
   /// Settings subsection header for canonical dance-detail text and figure-entry preferences.
   ///
   /// In en, this message translates to:
@@ -3012,18 +3029,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Duplicate to customize'**
   String get settingsDialectDuplicateToCustomize;
-
-  /// Title of the confirm-delete dialog for a custom dialect.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete dialect?'**
-  String get settingsDialectDeleteTitle;
-
-  /// Body of the confirm-delete dialog, quoting the dialect name (untrusted user text, rendered as plain text).
-  ///
-  /// In en, this message translates to:
-  /// **'\"{name}\" will be permanently removed.'**
-  String settingsDialectDeleteConfirmBody(String name);
 
   /// Snackbar shown when saving a dialect's edited terms fails because the dialect was renamed or deleted while its editor was open; quotes the dialect's name as the editor opened it (untrusted user text, rendered as plain text).
   ///
@@ -3721,18 +3726,6 @@ abstract class AppLocalizations {
   /// **'Copy the current theme and tune any color. Custom themes sync to your other devices when sync is on.'**
   String get settingsAppearanceCustomThemesEmpty;
 
-  /// Title of the confirm-delete dialog for a custom theme.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete theme?'**
-  String get settingsAppearanceDeleteThemeTitle;
-
-  /// Body of the confirm-delete dialog for a custom theme.
-  ///
-  /// In en, this message translates to:
-  /// **'\"{name}\" will be permanently removed.'**
-  String settingsAppearanceDeleteThemeBody(String name);
-
   /// Screen-reader label for a saved custom-theme card.
   ///
   /// In en, this message translates to:
@@ -4147,6 +4140,12 @@ abstract class AppLocalizations {
   /// **'The dance type a new dance starts as. You can still change it per dance.'**
   String get settingsDefaultsFormSubtitle;
 
+  /// Option in the default dance-type picker: a new dance starts as the type of the last dance the user created.
+  ///
+  /// In en, this message translates to:
+  /// **'Last used'**
+  String get settingsDefaultsFormLastUsed;
+
   /// Title of the default dance-formation picker.
   ///
   /// In en, this message translates to:
@@ -4297,11 +4296,17 @@ abstract class AppLocalizations {
   /// **'Give a tag its own color to make it stand out on dance cards and dance detail. The tag\'s name is always shown too, so tags stay readable without color.'**
   String get settingsAppearanceTagColoursSubtitle;
 
-  /// Shown on the tag-color screen when the collection has no tags.
+  /// Heading of the empty state on the tag manager.
   ///
   /// In en, this message translates to:
-  /// **'You haven\'t created any tags yet. Add a tag to a dance and it will appear here.'**
-  String get settingsTagColoursEmpty;
+  /// **'No tags yet'**
+  String get settingsTagColoursEmptyTitle;
+
+  /// Body of the empty state on the tag manager; says where tags come from.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a tag to a dance and it will appear here.'**
+  String get settingsTagColoursEmptyBody;
 
   /// Snack-bar message shown when saving or clearing a tag color fails.
   ///
@@ -4393,11 +4398,17 @@ abstract class AppLocalizations {
   /// **'Author name'**
   String get authorManagerNameLabel;
 
-  /// Shown in the Authors manager when there are no authors.
+  /// Heading of the empty state on the author manager.
   ///
   /// In en, this message translates to:
-  /// **'No authors yet. Authors you credit on a dance appear here.'**
-  String get authorManagerEmpty;
+  /// **'No authors yet'**
+  String get authorManagerEmptyTitle;
+
+  /// Body of the empty state on the author manager.
+  ///
+  /// In en, this message translates to:
+  /// **'Authors you credit on a dance appear here.'**
+  String get authorManagerEmptyBody;
 
   /// Shown in the Authors manager when the author list fails to load.
   ///
@@ -4429,11 +4440,17 @@ abstract class AppLocalizations {
   /// **'Source title'**
   String get sourceManagerTitleLabel;
 
-  /// Shown in the Sources manager when there are no sources.
+  /// Heading of the empty state on the source manager.
   ///
   /// In en, this message translates to:
-  /// **'No sources yet. Books and websites you cite on a dance appear here.'**
-  String get sourceManagerEmpty;
+  /// **'No sources yet'**
+  String get sourceManagerEmptyTitle;
+
+  /// Body of the empty state on the source manager.
+  ///
+  /// In en, this message translates to:
+  /// **'Books and websites you cite on a dance appear here.'**
+  String get sourceManagerEmptyBody;
 
   /// Shown in the Sources manager when the source list fails to load.
   ///
@@ -4847,24 +4864,6 @@ abstract class AppLocalizations {
   /// **'Delete parameterized column'**
   String get settingsMatrixColumnsParameterizedDelete;
 
-  /// Title of the delete-parameterized-column confirmation dialog.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete parameterized column?'**
-  String get settingsMatrixColumnsParameterizedDeleteTitle;
-
-  /// Warning shown before deleting a parameterized column.
-  ///
-  /// In en, this message translates to:
-  /// **'This removes the column and its matching rules from the matrix. This cannot be undone.'**
-  String get settingsMatrixColumnsParameterizedDeleteBody;
-
-  /// Confirm button for deleting a parameterized column.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete column'**
-  String get settingsMatrixColumnsParameterizedDeleteConfirm;
-
   /// Button that opens the editor for adding a compound matrix column.
   ///
   /// In en, this message translates to:
@@ -4943,24 +4942,6 @@ abstract class AppLocalizations {
   /// **'Delete compound column'**
   String get settingsMatrixColumnsCompoundDelete;
 
-  /// Title of the delete-compound-column confirmation dialog.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete compound column?'**
-  String get settingsMatrixColumnsCompoundDeleteTitle;
-
-  /// Warning shown before deleting a compound column.
-  ///
-  /// In en, this message translates to:
-  /// **'This removes the column and its matching sequence from the matrix. This cannot be undone.'**
-  String get settingsMatrixColumnsCompoundDeleteBody;
-
-  /// Confirm button for deleting a compound column.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete column'**
-  String get settingsMatrixColumnsCompoundDeleteConfirm;
-
   /// General settings section header for performance-mode display preferences.
   ///
   /// In en, this message translates to:
@@ -4976,7 +4957,7 @@ abstract class AppLocalizations {
   /// Subtitle explaining the auto-size Perform cards toggle. 'A-' and 'A+' refer to text-size controls.
   ///
   /// In en, this message translates to:
-  /// **'Scale each card so the full dance or slot fits the screen without scrolling. Turn off to set the size yourself with A- / A+.'**
+  /// **'Scale each card to fit the screen, but never below your usual text size: a longer dance or slot scrolls instead. Turn off to set the size yourself with A- / A+.'**
   String get settingsGeneralAutoSizePerformSubtitle;
 
   /// Title of the Program settings toggle that shows an elapsed timer while performing a single dance outside a program.
@@ -4990,6 +4971,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Show elapsed time while performing a single dance. The timer starts when it appears and can be paused.'**
   String get settingsShowIndividualPerformTimerSubtitle;
+
+  /// Title of the Program settings toggle that makes the Perform close button and system Back ask before leaving Perform.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm before leaving Perform'**
+  String get settingsConfirmPerformExitTitle;
+
+  /// Subtitle of the Program settings toggle that makes leaving Perform ask for confirmation.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask before the close button or Back takes you out of Perform. Turn this off to leave in one tap; program Perform keeps your place either way.'**
+  String get settingsConfirmPerformExitSubtitle;
 
   /// Title of the default-on Program settings toggle that shows non-empty per-slot caller notes above dance titles in program Perform.
   ///
@@ -5240,8 +5233,32 @@ abstract class AppLocalizations {
   /// Subtitle explaining the confirm-before-delete toggle.
   ///
   /// In en, this message translates to:
-  /// **'Ask for confirmation before deleting a dance or program. Deletes can still be undone; this just adds an explicit prompt first.'**
+  /// **'Ask before deleting anything you can undo. Deletes that can\'t be undone always ask first.'**
   String get settingsGeneralConfirmBeforeDeleteSubtitle;
+
+  /// Title of the setting for how long the Undo prompt (the snackbar offering Undo after a delete or change) stays on screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo prompt'**
+  String get settingsGeneralUndoPromptTitle;
+
+  /// Subtitle of the Undo prompt duration setting.
+  ///
+  /// In en, this message translates to:
+  /// **'How long Undo stays on screen after you delete or change something. It also stays while you point at it or move to it with the keyboard.'**
+  String get settingsGeneralUndoPromptSubtitle;
+
+  /// Undo prompt duration dropdown option: a number of seconds.
+  ///
+  /// In en, this message translates to:
+  /// **'{seconds, plural, =1{1 second} other{{seconds} seconds}}'**
+  String settingsGeneralUndoPromptSeconds(int seconds);
+
+  /// Undo prompt duration dropdown option: the prompt has no time limit and stays until the user closes it or a new prompt replaces it.
+  ///
+  /// In en, this message translates to:
+  /// **'Until I close it'**
+  String get settingsGeneralUndoPromptUntilClosed;
 
   /// General settings section header for deleted-item retention preferences.
   ///
@@ -6317,6 +6334,72 @@ abstract class AppLocalizations {
   /// **'{shape} — {detail}'**
   String commonFormationWithDetail(String shape, String detail);
 
+  /// Formation shape value (English country dance): a longways set danced in minor sets of two couples.
+  ///
+  /// In en, this message translates to:
+  /// **'Duple minor'**
+  String get commonFormationDupleMinor;
+
+  /// Formation shape value (English country dance): a longways set of exactly three couples.
+  ///
+  /// In en, this message translates to:
+  /// **'Three-couple longways'**
+  String get commonFormationThreeCoupleLongways;
+
+  /// Formation shape value (English country dance): a longways set of exactly four couples.
+  ///
+  /// In en, this message translates to:
+  /// **'Four-couple longways'**
+  String get commonFormationFourCoupleLongways;
+
+  /// Formation shape value (English country dance): a longways set of exactly five couples.
+  ///
+  /// In en, this message translates to:
+  /// **'Five-couple longways'**
+  String get commonFormationFiveCoupleLongways;
+
+  /// Formation shape value (English country dance): a longways set of exactly six couples.
+  ///
+  /// In en, this message translates to:
+  /// **'Six-couple longways'**
+  String get commonFormationSixCoupleLongways;
+
+  /// Formation shape value (English country dance): dancers in a circle.
+  ///
+  /// In en, this message translates to:
+  /// **'Circle'**
+  String get commonFormationCircle;
+
+  /// Formation shape value (English country dance): a square set of four couples.
+  ///
+  /// In en, this message translates to:
+  /// **'Square'**
+  String get commonFormationSquare;
+
+  /// Formation shape value (English country dance): a set of exactly two couples.
+  ///
+  /// In en, this message translates to:
+  /// **'Two-couple set'**
+  String get commonFormationTwoCoupleSet;
+
+  /// An English country dance formation that starts improper (first couple crossed over). {shape} is a localized formation shape name, such as 'Duple minor'.
+  ///
+  /// In en, this message translates to:
+  /// **'{shape}, improper'**
+  String commonFormationImproperFlag(String shape);
+
+  /// Label for a dance's written meter (time signature) as free text, for example 3/2 or 6/8.
+  ///
+  /// In en, this message translates to:
+  /// **'Meter'**
+  String get danceEditorMeterLabel;
+
+  /// Label for the musical key of a dance's tune as free text, for example G minor.
+  ///
+  /// In en, this message translates to:
+  /// **'Key'**
+  String get danceEditorMusicalKeyLabel;
+
   /// Label indicating a dance suits mixed experience levels; used as a filter chip/section and a dance indicator chip.
   ///
   /// In en, this message translates to:
@@ -6340,6 +6423,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'\"{title}\" deleted.'**
   String commonDeletedSnack(String title);
+
+  /// Second paragraph of every confirmation for a delete that cannot be undone (there is no Undo and nothing in Recently deleted). The one wording for irreversibility across the app.
+  ///
+  /// In en, this message translates to:
+  /// **'This can\'t be undone.'**
+  String get commonCantBeUndone;
 
   /// Explanation shown for a figure that an import parser could not map to a structured move and kept verbatim. Shared by the import-gap badge tooltip, its explanation dialog body, and the figure-row Semantics label.
   ///
@@ -8033,12 +8122,6 @@ abstract class AppLocalizations {
   /// **'This program no longer exists.'**
   String get programsNoLongerExists;
 
-  /// Fallback title used for an untitled program when opening the Perform view from an unsaved draft.
-  ///
-  /// In en, this message translates to:
-  /// **'Program'**
-  String get programsFallbackTitle;
-
   /// Fallback word used in place of a dance title when the title is unavailable, in add-dance confirmation messages.
   ///
   /// In en, this message translates to:
@@ -8747,11 +8830,17 @@ abstract class AppLocalizations {
   /// **'Note'**
   String get programsSlotNoteFallback;
 
-  /// Empty state shown in the program slot list editor when a program has no slots.
+  /// Heading of the empty state in the program slot list editor when a program has no slots.
   ///
   /// In en, this message translates to:
-  /// **'No slots yet. Add a dance or a note to get started.'**
-  String get programsSlotEditorEmpty;
+  /// **'No slots yet'**
+  String get programsSlotEditorEmptyTitle;
+
+  /// Body of the empty state in the program slot list editor; says how to add the first slot.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a dance or a note to get started.'**
+  String get programsSlotEditorEmptyBody;
 
   /// Accessibility announcement after a slot is moved up one position.
   ///
@@ -9440,6 +9529,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Slot {current} of {total}'**
   String performSlotPosition(int current, int total);
+
+  /// Short visible label in the program Perform footer, shown before the clock that times the whole program (the evening). Keep it to one short word; the footer is narrow.
+  ///
+  /// In en, this message translates to:
+  /// **'Program'**
+  String get performProgramClockLabel;
+
+  /// Short visible label in the program Perform footer, shown before the clock that times the current slot (dance). Keep it to one short word, matching the word used in 'Slot {current} of {total}'.
+  ///
+  /// In en, this message translates to:
+  /// **'Slot'**
+  String get performSlotClockLabel;
 
   /// Screen-reader announcement when swapping to show a different alternate slot.
   ///
@@ -12161,6 +12262,12 @@ abstract class AppLocalizations {
   /// **'Importing to edit replaces \"{title}\" in your collection immediately. The batch Undo will not restore it.'**
   String importReviewEditOverwriteBody(String title);
 
+  /// Confirm button of the dialog that asks before Import and edit writes onto an existing dance in the collection. Names the action: the existing dance's content is replaced.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace'**
+  String get importReviewEditOverwriteConfirm;
+
   /// Title of the confirmation shown when Import and edit is pressed on a row set to Re-import, because the matched dance is updated immediately, outside the batch Undo.
   ///
   /// In en, this message translates to:
@@ -12491,29 +12598,23 @@ abstract class AppLocalizations {
   /// **'These per-figure step descriptions pre-fill walkthroughs when you edit a dance. Editing one here updates the default used everywhere.'**
   String get settingsWalkthroughSnippetsDescription;
 
-  /// Empty-state text on the walkthrough-snippet library editor when the library is empty (#411).
+  /// Heading of the empty state on the walkthrough-snippet library editor.
   ///
   /// In en, this message translates to:
-  /// **'No saved snippets yet. Add walkthrough step descriptions while editing a dance\'s figures.'**
-  String get settingsWalkthroughSnippetsEmpty;
+  /// **'No saved snippets yet'**
+  String get settingsWalkthroughSnippetsEmptyTitle;
+
+  /// Body of the empty state on the walkthrough-snippet library editor; says where snippets come from.
+  ///
+  /// In en, this message translates to:
+  /// **'Add walkthrough step descriptions while editing a dance\'s figures.'**
+  String get settingsWalkthroughSnippetsEmptyBody;
 
   /// Count of saved walkthrough snippets (#411).
   ///
   /// In en, this message translates to:
   /// **'{count, plural, =1{1 snippet} other{{count} snippets}}'**
   String settingsWalkthroughSnippetsCount(int count);
-
-  /// Title of the confirmation before deleting a saved walkthrough snippet (#411).
-  ///
-  /// In en, this message translates to:
-  /// **'Delete snippet?'**
-  String get settingsWalkthroughSnippetDeleteTitle;
-
-  /// Body of the confirmation before deleting a saved walkthrough snippet (#411).
-  ///
-  /// In en, this message translates to:
-  /// **'This removes the saved default for this figure. Dances keep any walkthrough text you already wrote.'**
-  String get settingsWalkthroughSnippetDeleteBody;
 
   /// Title of the dialog for editing a saved walkthrough snippet's text (#411).
   ///
@@ -12556,6 +12657,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'When the dance was composed (year, or add month/day)'**
   String get danceEditorComposedHelper;
+
+  /// Field label for the people who interpreted the dance: reconstructed it from its original publication, as English country dances often are. Drawn from the same people list as the authors.
+  ///
+  /// In en, this message translates to:
+  /// **'Interpreted by'**
+  String get danceEditorInterpretedByLabel;
+
+  /// Label for the partial date (a year, or a fuller date) when the dance was interpreted, like the Composed date.
+  ///
+  /// In en, this message translates to:
+  /// **'Interpreted in'**
+  String get danceEditorInterpretedOnLabel;
 
   /// Label for the partial date when the dance was last revised.
   ///
@@ -12890,6 +13003,12 @@ abstract class AppLocalizations {
     String existing,
     String substitution,
   );
+
+  /// Dialect-editor and dialect-name validation error: the entry uses a gendered role word (such as the words for men or women), which the app never shows. {word} is the offending word as the user typed it, rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{word}\" is a gendered role word, which the app never shows. Use a role-neutral word instead.'**
+  String validationGenderedRoleTerm(String word);
 
   /// Generic fallback shown when a validation finding has no specific localized message. Deliberately non-leaking; specific detail (if any) appears only in debug builds.
   ///
@@ -14348,29 +14467,23 @@ abstract class AppLocalizations {
   /// **'New shorthand'**
   String get shorthandMappingsNew;
 
-  /// Empty state when the user has no figure-shorthand mappings.
+  /// Heading of the empty state on the shorthand list.
   ///
   /// In en, this message translates to:
-  /// **'No shorthands yet.'**
-  String get shorthandMappingsEmpty;
+  /// **'No shorthands yet'**
+  String get shorthandMappingsEmptyTitle;
+
+  /// Body of the empty state on the shorthand list; names the New shorthand button.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose New shorthand to add one.'**
+  String get shorthandMappingsEmptyBody;
 
   /// Snackbar shown when the user tries to add a figure shorthand but already has the maximum number the app keeps; {max} is that maximum.
   ///
   /// In en, this message translates to:
   /// **'You have reached the limit of {max} figure shorthands. Delete one to add another.'**
   String shorthandMappingsLimitReached(int max);
-
-  /// Title of the confirm-delete dialog for a figure-shorthand mapping.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete shorthand?'**
-  String get shorthandMappingsDeleteTitle;
-
-  /// Body of the confirm-delete dialog; {token} is the user's shorthand token, rendered as plain text.
-  ///
-  /// In en, this message translates to:
-  /// **'\"{token}\" will be permanently removed.'**
-  String shorthandMappingsDeleteBody(String token);
 
   /// Tooltip for the per-row overflow menu in the shorthand manager.
   ///
@@ -14834,18 +14947,6 @@ abstract class AppLocalizations {
   /// **'Something went wrong while scanning your collection. Nothing was changed. You can try again.'**
   String get reparseErrorBody;
 
-  /// Title of the confirm-delete dialog for a custom field.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete custom field'**
-  String get customFieldsDeleteTitle;
-
-  /// Body of the confirm-delete dialog; {label} is the field's display label, rendered as plain text.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete \"{label}\"? This cannot be undone.'**
-  String customFieldsDeleteBody(String label);
-
   /// Snackbar when deleting a custom field still set on dances (count known). The raw exception is logged (debugPrint), never shown, so storage internals can't leak to the UI (CWE-209). {label} is plain text.
   ///
   /// In en, this message translates to:
@@ -14888,11 +14989,17 @@ abstract class AppLocalizations {
   /// **'Could not load custom fields.'**
   String get customFieldsLoadError;
 
-  /// Empty state when no custom fields are defined.
+  /// Heading of the empty state on the custom fields list.
   ///
   /// In en, this message translates to:
-  /// **'No custom fields yet.\nTap + to define one.'**
-  String get customFieldsEmpty;
+  /// **'No custom fields yet'**
+  String get customFieldsEmptyTitle;
+
+  /// Body of the empty state on the custom fields list; names the New field button.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose New field to add one.'**
+  String get customFieldsEmptyBody;
 
   /// Subtitle chip indicating a custom field is shown in the dance list.
   ///
@@ -15293,7 +15400,7 @@ abstract class AppLocalizations {
   /// Body of the confirm permanent-delete dialog; {title} is the item title, plain text.
   ///
   /// In en, this message translates to:
-  /// **'\"{title}\" will be deleted immediately and cannot be recovered.'**
+  /// **'\"{title}\" will be deleted now.'**
   String recentlyDeletedDeleteBody(String title);
 
   /// Action/tooltip that permanently deletes a recently-deleted item.
@@ -15475,24 +15582,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{Linked 1 program.} other{Linked {count} programs.}}'**
   String venueLinkOfferDone(int count);
-
-  /// Title of the confirmation dialog for permanently deleting a venue.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete venue?'**
-  String get venueManagerDeleteTitle;
-
-  /// Body of the delete-venue confirmation dialog; {name} is the venue's name (plain text, may be user-entered or imported).
-  ///
-  /// In en, this message translates to:
-  /// **'Permanently delete \"{name}\"? This can\'t be undone.'**
-  String venueManagerDeleteBody(String name);
-
-  /// Snackbar confirming a venue was deleted; {name} is the venue's name (plain text).
-  ///
-  /// In en, this message translates to:
-  /// **'Deleted \"{name}\"'**
-  String venueManagerDeletedSnack(String name);
 
   /// Snackbar shown when a venue can't be deleted because a program still links to it; {name} is the venue's name (plain text).
   ///
@@ -16112,11 +16201,17 @@ abstract class AppLocalizations {
   /// **'No custom figures yet'**
   String get customFiguresEmptyTitle;
 
-  /// Tooltip of the Glossary's add button, which opens the editor for a new custom figure.
+  /// Tooltip of the Glossary's add button, which opens the editor for a new custom figure; also the label of the Custom Figures screen's button while that screen is empty.
   ///
   /// In en, this message translates to:
   /// **'Add your own figure'**
   String get glossaryAddCustomFigure;
+
+  /// Label of the floating button on the Custom Figures screen that opens the editor for a new figure of the user's own. Keep it short: it is one line at the bottom of a phone screen, beside a + icon.
+  ///
+  /// In en, this message translates to:
+  /// **'New figure'**
+  String get customFiguresNewFigure;
 
   /// Chip marking one of the user's own figures in the Glossary.
   ///

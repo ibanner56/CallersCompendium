@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../data/reduce_motion_scope.dart';
+import '../theme/app_motion.dart';
 
 /// Scrolls the nearest [Scrollable] so the widget keyed by [target] is on
 /// screen, once the frame that shows it has been built.
@@ -20,9 +21,7 @@ void scrollToError(BuildContext context, GlobalKey target) {
     if (targetContext == null || !targetContext.mounted) return;
     Scrollable.ensureVisible(
       targetContext,
-      duration: reduceMotion
-          ? Duration.zero
-          : const Duration(milliseconds: 200),
+      duration: reduceMotion ? Duration.zero : AppMotion.short,
       alignment: 0.1,
     );
   });
@@ -42,7 +41,7 @@ void scrollToTopForError(BuildContext context, ScrollController controller) {
       unawaited(
         controller.animateTo(
           top,
-          duration: const Duration(milliseconds: 200),
+          duration: AppMotion.short,
           curve: Curves.easeOut,
         ),
       );
@@ -86,9 +85,7 @@ void scrollToFirstInvalidField(
     if (target == null || !target.mounted) return;
     Scrollable.ensureVisible(
       target,
-      duration: reduceMotion
-          ? Duration.zero
-          : const Duration(milliseconds: 200),
+      duration: reduceMotion ? Duration.zero : AppMotion.short,
       alignment: 0.1,
     );
   });

@@ -146,9 +146,10 @@ Future<pw.Font> loadProgramMatrixMarkerFont() async {
 ///   [buildFigureWidgets] (the same layout as the single-dance PDF but at a
 ///   smaller scale and without forced page breaks — [pw.MultiPage] paginates
 ///   naturally). Alternates in the list are labelled with [labels.alternate].
-///   Requires [dialect] and [renderer] when provided; both default sensibly
-///   ([dialect] falls back to [Dialect.larksRobins], [renderer] to a
-///   fresh [FigureRenderer] using [contraTaxonomy]).
+///   Each card reads in its own dance's form's dialect from [dialects]; the
+///   program's own text reads in contra's. Both [dialects] and [renderer]
+///   default sensibly ([dialects] falls back to [DialectsByForm.defaults],
+///   [renderer] to a fresh [FigureRenderer] using [TaxonomyRegistry.anyForm]).
 /// - [authorNamesFor] resolves a slot's `danceId` to its already-resolved
 ///   author *names* for the numbered set-list line (issue #1434) — same
 ///   contract as `programToPlainText`'s parameter of the same name. `null`
@@ -171,7 +172,7 @@ Future<Uint8List> buildProgramPdf(
   pw.ThemeData? theme,
   List<({Dance dance, bool isAlternate})>? appendDances,
   DanceExportLabels? danceLabels,
-  Dialect? dialect,
+  DialectsByForm? dialects,
   FigureRenderer? renderer,
   bool canonicalizeDiscouragedTerms = false,
   List<String> Function(String danceId)? authorNamesFor,
@@ -182,8 +183,12 @@ Future<Uint8List> buildProgramPdf(
 }) async {
   final resolvedTheme = theme ?? await loadProgramPdfTheme();
   final doc = pw.Document(title: program.title, theme: resolvedTheme);
-  final fig = renderer ?? FigureRenderer(contraTaxonomy);
-  final resolvedDialect = dialect ?? Dialect.larksRobins;
+  final fig = renderer ?? FigureRenderer(shippedTaxonomies.anyForm);
+  final resolvedDialects = dialects ?? DialectsByForm.defaults;
+  // The program's own text (header, slot notes, program notes) belongs to no
+  // one dance form, so it reads in contra's dialect; each appended dance card
+  // reads in its own form's (ADR-006 §12.2, S3).
+  final resolvedDialect = resolvedDialects.forForm(DanceForm.contra);
 
   final venueText = programPdfVenueText(
     program,
@@ -215,7 +220,7 @@ Future<Uint8List> buildProgramPdf(
         content: switch (cardLabelsFor?.call(entry.dance)) {
           final card? => DanceCardContent.build(
             entry.dance,
-            dialect: resolvedDialect,
+            dialect: resolvedDialects.forDance(entry.dance),
             authorNames: card.authorNames,
             formationLabel: card.formationLabel,
             levelLabel: card.levelLabel,
@@ -284,7 +289,7 @@ Future<Uint8List> buildProgramPdf(
           ...programAppendixWidgets(
             appendCards,
             fig,
-            resolvedDialect,
+            resolvedDialects,
             resolvedDanceLabels,
             labels,
             canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
@@ -311,7 +316,7 @@ Future<Uint8List> buildProgramPdf(
 List<pw.Widget> programAppendixWidgets(
   List<ProgramAppendixCard> cards,
   FigureRenderer renderer,
-  Dialect dialect,
+  DialectsByForm dialects,
   DanceExportLabels danceLabels,
   ProgramExportLabels labels, {
   bool canonicalizeDiscouragedTerms = false,
@@ -367,7 +372,7 @@ List<pw.Widget> programAppendixWidgets(
       buildFigureWidgets(
         dance,
         renderer,
-        dialect,
+        dialects.forDance(dance),
         danceLabels,
         canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
       ),
