@@ -1230,7 +1230,7 @@ void main() {
     });
 
     testWidgets('wide pane keeps the 220 pt cards', (tester) async {
-      await _pumpSettings(tester);
+      await _pumpSettings(tester, section: 'appearance');
 
       final light = tester.getRect(
         find.byKey(ValueKey('theme-${AppThemeSelection.light.name}')),
