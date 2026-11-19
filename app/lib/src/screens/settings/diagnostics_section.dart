@@ -10,6 +10,7 @@ import '../../diagnostics/error_log.dart';
 import '../../diagnostics/sensitive_terms.dart';
 import '../../diagnostics/sync_diagnostics.dart';
 import '../../sync/sync_scope.dart';
+import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/destructive_button_style.dart';
 import '../../widgets/readable_width.dart';
@@ -216,6 +217,7 @@ class _DiagnosticsSectionState extends State<DiagnosticsSection> {
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (confirmed != true) return;
     if (!mounted) return;

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../theme/app_motion.dart';
 
 /// Accessible affordance flagging a figure the parser could not map to a
 /// structured move and kept verbatim (a [CustomOrigin.importGap] custom) —
@@ -78,6 +79,7 @@ class ImportGapBadge extends StatelessWidget {
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
   }
 }

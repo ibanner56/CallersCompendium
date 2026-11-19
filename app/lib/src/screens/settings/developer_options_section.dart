@@ -7,6 +7,7 @@ import '../../data/sync_writer_lifecycle_scope.dart';
 import '../../diagnostics/error_log.dart';
 import '../../sync/sync_controller.dart';
 import '../../sync/sync_scope.dart';
+import '../../theme/app_motion.dart';
 import '../../theme/destructive_button_style.dart';
 import '../../widgets/collapsible_section.dart';
 
@@ -31,6 +32,7 @@ class _DeveloperOptionsSectionState extends State<DeveloperOptionsSection> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => const _ResetDatabaseDialog(),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (confirmed != true || !mounted || _resetting) return;
 

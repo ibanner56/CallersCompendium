@@ -4,6 +4,7 @@ import 'package:markdown/markdown.dart' as md;
 
 import '../../../l10n/app_localizations.dart';
 import '../../data/reduce_motion_scope.dart';
+import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/readable_width.dart';
 import 'user_guide_docs.dart';
@@ -135,9 +136,7 @@ class _UserGuideDocViewState extends State<UserGuideDocView> {
       Scrollable.ensureVisible(
         target,
         alignment: 0,
-        duration: reduceMotion
-            ? Duration.zero
-            : const Duration(milliseconds: 250),
+        duration: reduceMotion ? Duration.zero : AppMotion.medium,
         curve: Curves.easeOut,
       );
     });

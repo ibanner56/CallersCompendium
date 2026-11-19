@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../theme/app_motion.dart';
 
 /// Which batch operation the dialog is picking tags for.
 enum BatchTagMode { add, remove }
@@ -39,6 +40,7 @@ Future<BatchTagSelection?> showBatchTagDialog(
   return showDialog<BatchTagSelection>(
     context: context,
     builder: (_) => _BatchTagDialog(mode: mode, initialTags: visible),
+    animationStyle: AppMotion.styleFor(context),
   );
 }
 

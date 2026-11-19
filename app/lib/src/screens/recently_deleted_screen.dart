@@ -6,6 +6,7 @@ import '../data/repositories_scope.dart';
 import '../data/soft_delete_retention.dart';
 import '../widgets/empty_state.dart';
 import '../diagnostics/error_log.dart';
+import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
 import '../theme/destructive_button_style.dart';
 
@@ -228,6 +229,7 @@ class _RecentlyDeletedScreenState<T> extends State<RecentlyDeletedScreen<T>> {
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (confirmed != true || !mounted) return;
     final outcome = await _config.permanentlyDelete(_repos, item);

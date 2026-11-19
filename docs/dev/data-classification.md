@@ -473,7 +473,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; classified here so the catalogue has one source of truth. `settings.value_json` is `deviceLocal` at the column level so a blanket sync cannot happen by accident — these entries decide what actually travels.
 
-**117 settings keys**: 74 shareable, 12 device-local, 29 device-scoped, 1 protocol-identifier, 1 store-address. 4 personal data by category.
+**118 settings keys**: 75 shareable, 12 device-local, 29 device-scoped, 1 protocol-identifier, 1 store-address. 4 personal data by category.
 
 | Key | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |
@@ -515,6 +515,7 @@ Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; 
 | `colour_dance_theme` | `dpv:NonPersonalData` | app user | shareable |  |
 | `compound_shorthands` | `dpv:NonPersonalData` | app user | shareable | The user's shorthands for their own compound figures (#709): tokens they chose, a figure's id and name, and values. Shareable like the figure shorthands; held back until every device can read it (SyncCapabilityPolicy.build). |
 | `confirm_before_delete` | `dpv:NonPersonalData` | app user | shareable |  |
+| `confirm_perform_exit` | `dpv:NonPersonalData` | app user | shareable | Whether leaving Perform asks first. A habit of the caller rather than a property of the screen, like confirm_before_delete, so it travels with their other preferences; unlike auto_size_perform_cards it does not depend on screen size. |
 | `custom_dialects` | `dpv:NonPersonalData` | app user | shareable |  |
 | `custom_fields.sharing.disclosed` | `dpv:NonPersonalData` | — | **device-local** | Non-shareable installation state intentionally retained in a user-controlled local backup, but not sent to project infrastructure. |
 | `custom_themes` | `dpv:NonPersonalData` | app user | shareable |  |

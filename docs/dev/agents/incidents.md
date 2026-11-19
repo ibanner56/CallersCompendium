@@ -364,3 +364,27 @@ absent from the squash is only correct if the branch deleted it on purpose
 intent and not loss).
 
 Rule: [merging.md](merging.md#branch-sync-prs).
+
+## #2222: a relabelled review left `ci` red
+
+The `claude-review` round on head `f58751f7` failed when the maintainer's usage
+limit was reached: the model stopped after 0.4 seconds with `is_error: true`
+and no turns (run 44390128456, check run 135105197338). Following the
+retry advice then in `code-review.md`, the label was removed and added back.
+That round (run 44397299671) approved the head, but
+`check_pr_review_gates.py ci` still failed, naming `claude-review`.
+
+The cause is the check-runs API's default `filter=latest`, which keeps the
+newest run of each check name within one **check suite**. The relabelled round
+was a new workflow run, so a new suite (`120184486373`), and the failed run in
+the old suite (`120164761182`) stayed in the default listing beside the
+passing one. Re-running the failed job made attempt 2 of run 44390128456, in
+the same old suite. It passed, the failed check run dropped out of the default
+listing (it remains under `filter=all`), and the `ci` gate passed with 22
+checks green.
+
+A re-run is a full round, not a status refresh: attempt 2 reviewed the head
+again and returned `APPROVE-WITH-NITS` with a finding the previous round had
+not raised, which took another push to clear.
+
+Rule: [code-review.md](code-review.md#retrying-a-failed-round).
