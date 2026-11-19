@@ -306,7 +306,7 @@ released. They have not been re-derived for this document.
 | **Role-neutral** | Stored dances use `role1`/`role2`. Men/women, larks/robins, gents/ladies, or positional terms are applied only when the dance is displayed. |
 | **Unspecified** | "The source did not say." A real stored value, different from any concrete default. |
 | **Destination** | Where dancers end, when the source or the person entering the dance states it (§6.4). |
-| **Defined** / **Open** | A defined movement has parameters and a draft display. Before acceptance, an open movement had neither and was listed in §7.6. Acceptance defined all of them (§7.6). |
+| **Defined** / **Open** | A defined movement has parameters and a draft display. Before acceptance, an open movement had neither and was listed in §7.6. Acceptance settled all of them: each was defined or split, except `line`, which was found not to be a movement (§7.6). `set_and_link` still has open points (§9.1). |
 
 **How the definition of movement plays out.** Its test is whether dancers
 travel in the same pattern, differing in one variation at a time, not
@@ -441,7 +441,7 @@ Y") does not yet look inside a sequence that is one side of a `meanwhile`
 
 Neither form is a combined movement. Values are not copied from one step to
 the next unless the source states them. "Back by the left" does not imply
-the same grip or number of places as the first star. But "back" itself is
+the same number of places as the first star. But "back" itself is
 stated, so the returning step carries `destination = place` (§8.1).
 
 There are two kinds of exception:
