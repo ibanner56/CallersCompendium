@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../data/reduce_motion_scope.dart';
+import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
 
 /// Content-shaped loading placeholders ("skeletons").
@@ -71,7 +72,7 @@ class Shimmer extends StatefulWidget {
 class _ShimmerState extends State<Shimmer> with SingleTickerProviderStateMixin {
   late final AnimationController _controller = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 1400),
+    duration: AppMotion.shimmer,
   );
 
   @override

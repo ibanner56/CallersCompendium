@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/repositories_scope.dart';
+import '../theme/app_motion.dart';
 
 /// Offers to link older programs that have a venue *typed in* to the venue
 /// records in [venues] that share the typed name (GIG-7, maintainer decision
@@ -69,6 +70,7 @@ Future<void> offerToLinkTypedVenues(
         ),
       ],
     ),
+    animationStyle: AppMotion.styleFor(context),
   );
   if (confirmed != true) return;
 

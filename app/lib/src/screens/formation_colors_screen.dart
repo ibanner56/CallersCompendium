@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/formation_colors_controller.dart';
 import '../search/facet_labels.dart';
+import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
 import '../theme/set_list_accents.dart';
 import '../widgets/color_edit_dialog.dart';
@@ -39,6 +40,7 @@ class FormationColorsScreen extends StatelessWidget {
         title: formationShapeLabel(l10n, shape),
         initial: seed,
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (picked != null) await controller.setColor(shape, picked);
   }

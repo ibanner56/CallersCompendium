@@ -1435,7 +1435,11 @@ class _StatusBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(icon, size: iconSize.clamp(22.0, 72.0), color: color),
+          Icon(
+            icon,
+            size: iconSize.clamp(22.0, 72.0),
+            color: AppThemeExtension.statusIconColor(color, theme.colorScheme),
+          ),
           const SizedBox(width: AppSpacing.sm),
           // Flexible: at large Perform text sizes the label is wider than a
           // phone, and must wrap rather than overflow the row.

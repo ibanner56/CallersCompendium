@@ -26,6 +26,7 @@ import '../../search/collection_data.dart';
 import '../../search/facet_labels.dart';
 import '../../search/program_sort.dart';
 import '../../search/program_sort_labels.dart';
+import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/keyboard_dismiss.dart';
 import '../../utils/undo_snack_bar.dart';
@@ -34,7 +35,6 @@ import '../../widgets/figure_param_editors.dart';
 import '../../widgets/move_autocomplete.dart';
 import '../../widgets/collection_picker.dart';
 import '../../widgets/dirty_dialog_guard.dart';
-import '../../widgets/readable_width.dart';
 import '../../widgets/section_header.dart';
 import '../../widgets/settings_dropdown_row.dart';
 import '../glossary/compound_editor_screen.dart';
@@ -630,6 +630,7 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           ],
         ),
       ),
+      sheetAnimationStyle: AppMotion.styleFor(context),
     );
   }
 
@@ -1359,6 +1360,7 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
     final label = await showDialog<String>(
       context: context,
       builder: (context) => const _AddLevelDialog(),
+      animationStyle: AppMotion.styleFor(context),
     );
     final normalized = label?.trim() ?? '';
     if (!mounted || normalized.isEmpty) return;
@@ -1789,7 +1791,7 @@ class _DefaultsView extends StatelessWidget {
     final sectionTitleStyle = theme.textTheme.labelLarge?.copyWith(
       color: theme.colorScheme.primary,
     );
-    return ReadableListView(
+    return ListView(
       keyboardDismissBehavior: textEntryKeyboardDismiss(),
       children: [
         SectionHeader(title: l10n.settingsDefaultsDisplayHeader),
@@ -2904,6 +2906,7 @@ class _MoveDefaultsEditor extends StatelessWidget {
           ],
         );
       },
+      animationStyle: AppMotion.styleFor(context),
     );
   }
 }

@@ -9,6 +9,7 @@ import '../data/figure_summary.dart';
 import '../data/repositories_scope.dart';
 import '../data/show_custom_figures_scope.dart';
 import '../editor/figure_draft.dart';
+import '../theme/app_motion.dart';
 import '../theme/destructive_button_style.dart';
 import '../widgets/compound_argument_editor.dart';
 import 'compound_shorthand_editor_screen.dart';
@@ -212,6 +213,7 @@ class ShorthandMappingsScreen extends StatelessWidget {
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (confirmed != true) return;
     await controller.removeAt(index);
@@ -397,6 +399,7 @@ class _CompoundShorthandsSectionState
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (confirmed != true) return;
     if (compoundIndex != null) {

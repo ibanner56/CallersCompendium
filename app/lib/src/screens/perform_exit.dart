@@ -4,6 +4,7 @@ import '../../l10n/app_localizations.dart';
 import '../data/repositories_scope.dart';
 import '../data/settings_keys.dart'
     show kConfirmPerformExitDefault, kConfirmPerformExitKey;
+import '../theme/app_motion.dart';
 
 /// Shared pieces of leaving Perform, used by both [PerformDanceScreen] and
 /// [PerformProgramScreen] so the two exits stay identical (issues #434, #612).
@@ -40,6 +41,7 @@ Future<bool> showPerformExitDialog(
         ),
       ],
     ),
+    animationStyle: AppMotion.styleFor(stageContext),
   );
   return confirmed == true;
 }

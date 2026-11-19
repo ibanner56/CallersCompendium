@@ -9,11 +9,11 @@ import '../../data/walkthrough_snippet_library_controller.dart';
 import '../../data/walkthrough_snippet_library_scope.dart';
 import '../../editor/figure_draft.dart';
 import '../../search/facet_labels.dart';
+import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/destructive_button_style.dart';
 import '../../theme/keyboard_dismiss.dart';
 import '../../widgets/figure_list_editor.dart';
-import '../../widgets/readable_width.dart';
 import '../../widgets/section_header.dart';
 import '../../widgets/warnings_card.dart';
 import 'custom_field_editor.dart';
@@ -265,7 +265,7 @@ class DanceEditorForm extends StatelessWidget {
     final snippetLib = WalkthroughSnippetLibraryScope.maybeOf(context);
     return Form(
       key: formKey,
-      child: ReadableListView(
+      child: ListView(
         controller: scrollController,
         keyboardDismissBehavior: textEntryKeyboardDismiss(),
         // Section headers carry their own padding; each section's content is
@@ -905,6 +905,7 @@ Future<bool?> _promptSnippetDivergence(BuildContext context) {
         ),
       ],
     ),
+    animationStyle: AppMotion.styleFor(context),
   );
 }
 
@@ -957,6 +958,7 @@ Future<void> _fillWalkthroughFromSnippets(
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (replace != true) return;
   }

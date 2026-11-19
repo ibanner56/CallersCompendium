@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/reduce_motion_scope.dart';
+import '../theme/app_motion.dart';
 
 /// A self-contained, opt-in **tap-tempo visual metronome** for Perform mode
 /// (issue #366, PM-scoped slice). The caller taps out the beat on a large
@@ -61,7 +62,7 @@ class _TapTempoMetronomeState extends State<TapTempoMetronome>
   /// controller repeats; it is never recreated on tempo change.
   late final AnimationController _pulse = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 500),
+    duration: AppMotion.long,
   );
 
   @override

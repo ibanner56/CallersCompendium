@@ -8,6 +8,7 @@ import '../data/active_dialect_scope.dart';
 import '../data/repositories_scope.dart';
 import '../data/perform_text_scale.dart';
 import '../../l10n/app_localizations.dart';
+import '../theme/app_motion.dart';
 import '../widgets/colour_dance_theme.dart';
 import '../widgets/dialect_quick_switch.dart';
 import '../widgets/tap_tempo_metronome.dart';
@@ -296,6 +297,7 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
       context: _stageContext,
       showDragHandle: true,
       builder: (_) => const SafeArea(child: TapTempoMetronome()),
+      sheetAnimationStyle: AppMotion.styleFor(context),
     );
   }
 

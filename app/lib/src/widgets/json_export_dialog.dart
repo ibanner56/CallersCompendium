@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../export/share_file.dart';
+import '../theme/app_motion.dart';
 
 /// The delivery choices offered for a canonical JSON export.
 enum JsonExportChoice { save, copy, share }
@@ -43,4 +44,5 @@ Future<JsonExportChoice?> showJsonExportChoiceDialog(BuildContext context) =>
           ],
         );
       },
+      animationStyle: AppMotion.styleFor(context),
     );

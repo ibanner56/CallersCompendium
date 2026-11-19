@@ -455,6 +455,28 @@ void main() {
     expect(saved!.mixer, isTrue);
   });
 
+  testWidgets('Type and Formation carry floating labels, not headings', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpEditor(tester, repos);
+
+    for (final key in const ['form-field', 'formation-field']) {
+      final decorator = find.descendant(
+        of: find.byKey(ValueKey(key)),
+        matching: find.byType(InputDecorator),
+      );
+      expect(
+        tester.widget<InputDecorator>(decorator).decoration.labelText,
+        isNotNull,
+        reason: key,
+      );
+    }
+    // Each label is drawn once (in the field), not also as a heading.
+    expect(find.text('Type'), findsOneWidget);
+    expect(find.text('Formation'), findsOneWidget);
+  });
+
   testWidgets('type: changing an existing contra dance to square persists '
       '(issue #1418)', (tester) async {
     final repos = openTestRepositories();
