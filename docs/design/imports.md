@@ -2261,7 +2261,7 @@ moves and a contra shape; they still display through the contra taxonomy
 (§5.1). **Settings → General → Import → Convert English dances** is the opt-in
 migration that turns them into ECD figures. Nothing runs it on its own.
 
-- `ecd_migration.dart` (`migrateEcdDance`) does three things to one dance:
+- `ecd_migration.dart` (`migrateEcdDance`) does four things to one dance:
   1. a contra move with an ECD twin of the same meaning becomes that twin
      (`ecdTwinOfContraMove`), inside containers too. The twin table lists, per
      move, the params that carry across unchanged. A move storing any other
@@ -2274,11 +2274,23 @@ migration that turns them into ECD figures. Nothing runs it on its own.
      in, against ECD's subject); a petronella, which in contra includes the
      balance; and form short waves, whose center and sides the ECD short wave
      does not show;
-  2. import-gap custom lines are re-read with the ECD grammar
+  2. any other contra move is read again from its words
+     (`ecdReadingOfContraWording`, Hudson's decision: twins first, then try
+     the ECD grammar on what else can parse). The words are the contra
+     display in the canonical dialect, which leaves out the defaults contra
+     silences, so what is read is what the person saw; a value the display
+     shows but the figure did not store can become a stated one, which is
+     the accepted cost of this step. It accepts only a reading made wholly of
+     ECD moves that validates, keeps the figure's note, mark and overrides,
+     and keeps its contra count as below. It skips a figure whose subject was
+     assumed, and the moves whose words mean something else in ECD: those
+     left out of the twin table for their `who`, and a petronella, whose
+     contra display hides whether it includes the balance;
+  3. import-gap custom lines are re-read with the ECD grammar
      (`reparseImportGapFigures` with ECD's taxonomy); user-entered customs are
      left alone, as in Re-check;
-  3. the shape becomes `ecdFormationFromContra`'s.
-- Only values the contra figure **stores** are carried, never a contra default,
+  4. the shape becomes `ecdFormationFromContra`'s.
+- In a twin (step 1), only values the contra figure **stores** are carried, never a contra default,
   so the migrated figure states nothing the dance did not (R2). A `who` the
   importer assumed (`assumedSubject`) is dropped. The exceptions are values the
   move's own name states: a see saw is a left-shoulder back to back, and a

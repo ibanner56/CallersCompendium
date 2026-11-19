@@ -174,6 +174,72 @@ void main() {
     expect(_twin('pass_through', {'beats': 4})!.params['beats'], 4);
   });
 
+  group('a contra move with no twin is read from its words', () {
+    test('when its words read as an ECD figure', () {
+      // A contra promenade has no twin; "partner promenade" reads in ECD.
+      expect(_twin('promenade', {'who': 'partners'}), isNull);
+      final read = ecdReadingOfContraWording(
+        _f('promenade', {'who': 'partners', 'beats': 8}),
+      )!;
+      expect(read.move, 'ecd_promenade');
+      expect(read.params['who'], ['partners']);
+      expect(read.params['beats'], 8);
+    });
+
+    test('keeping its note and progression mark', () {
+      final read = ecdReadingOfContraWording(
+        testFigure(
+          move: 'promenade',
+          params: {'who': 'partners'},
+          note: 'slowly',
+          progression: true,
+        ),
+      )!;
+      expect(read.note, 'slowly');
+      expect(read.progression, isTrue);
+    });
+
+    test('not when its words mean something else in ECD', () {
+      // A contra petronella's words hide whether it includes the balance.
+      expect(ecdReadingOfContraWording(_f('petronella')), isNull);
+      expect(ecdReadingOfContraWording(_f('poussette')), isNull);
+      expect(
+        ecdReadingOfContraWording(_f('mad_robin', {'who': 'role2s'})),
+        isNull,
+      );
+    });
+
+    test('not when its words do not read in full', () {
+      expect(
+        ecdReadingOfContraWording(_f('california_twirl', {'who': 'partners'})),
+        isNull,
+      );
+    });
+
+    test('not when its subject was assumed (R2)', () {
+      expect(
+        ecdReadingOfContraWording(
+          testFigure(
+            move: 'promenade',
+            params: {'who': 'partners'},
+            assumedSubject: true,
+          ),
+        ),
+        isNull,
+      );
+    });
+
+    test('migrateEcdDance counts it as a converted move', () {
+      final figures = [
+        _f('promenade', {'who': 'partners', 'beats': 8}),
+      ];
+      const formation = Formation(FormationShape.dupleMinor);
+      final out = migrateEcdDance(figures: figures, formation: formation);
+      expect(out.movesConverted, 1);
+      expect(out.figures.single.move, 'ecd_promenade');
+    });
+  });
+
   test('note, progression and overrides are kept', () {
     final f = Figure(
       move: 'circle',

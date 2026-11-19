@@ -570,6 +570,10 @@ in it:
   unstated is filled in, except that a forward and back goes back, and goes a
   double unless the dance says otherwise. Each figure keeps the number of
   beats it had.
+  A contra move with no English twin is read again from its words, as if you
+  had typed them into the English dance, and converts when they read in full
+  as English figures. Then what it shows, such as the hand or shoulder, is
+  what it states from then on.
 - **unrecognized figures now read**: lines the app kept as text because it
   could not read them, which the English reading now understands, as
   [Re-check unrecognized figures](./authoring.md#fix-figures-an-import-could-not-read)

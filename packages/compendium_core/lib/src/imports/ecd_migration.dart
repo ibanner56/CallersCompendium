@@ -8,6 +8,8 @@
 /// its contra moves, which still display through the contra taxonomy (§5.1).
 library;
 
+import '../dialect/dialect.dart';
+import '../dialect/renderer.dart';
 import '../model/enums.dart';
 import '../model/figure.dart';
 import '../storage/figure_reparse.dart';
@@ -16,7 +18,9 @@ import '../taxonomy/contra_taxonomy.dart';
 import '../taxonomy/ecd_taxonomy.dart';
 import '../taxonomy/taxonomy_registry.dart';
 import '../validation/validation.dart';
+import 'ecd_figure_parser.dart';
 import 'ecd_formation.dart';
+import 'figure_text_scrub.dart';
 import 'reparse_custom_figures.dart';
 
 /// What [migrateEcdDance] would change in one dance.
@@ -35,7 +39,8 @@ class EcdMigration {
   /// The formation after the migration (its ECD shape).
   final Formation formation;
 
-  /// Contra moves that became their ECD counterpart.
+  /// Contra moves that became ECD figures: a one-to-one twin, or a reading
+  /// of the move's displayed words by the ECD grammar.
   final int movesConverted;
 
   /// Unrecognized lines (import-gap customs) the ECD parser now reads.
@@ -53,13 +58,15 @@ class EcdMigration {
 /// ECD taxonomy where the meaning is clear (ADR-006 §12.1 F5):
 ///
 /// - a contra move with an ECD twin becomes that twin when every value it
-///   stores has the same meaning there ([ecdTwinOfContraMove]); a contra move
-///   with no twin, or storing a value its twin cannot hold, stays as it is;
+///   stores has the same meaning there ([ecdTwinOfContraMove]);
+/// - any other contra move is read again from its displayed words by the ECD
+///   grammar ([ecdReadingOfContraWording]), and stays as it is when they do
+///   not read in full, or when its words mean something else in ECD;
 /// - an import-gap custom line is re-read by the ECD parser
 ///   ([reparseImportGapFigures] with ECD's taxonomy);
 /// - the shape becomes the ECD shape it names ([ecdFormationFromContra]).
 ///
-/// Only a value the contra figure *stores* is carried, never a contra
+/// In a twin, only a value the contra figure *stores* is carried, never a contra
 /// default, so the migrated figure states nothing the dance did not (R2). The
 /// exceptions are values the contra move's own name states (a see saw is a
 /// left-shoulder back to back; a forward and back goes back, and its distance
@@ -72,8 +79,10 @@ EcdMigration migrateEcdDance({
 }) {
   var converted = 0;
   List<Figure>? rewritten;
+  final ecdShape = ecdFormationFromContra(formation);
+  final ringDancers = ecdRingDancers(ecdShape.shape);
   for (var i = 0; i < figures.length; i++) {
-    final result = _convert(figures[i]);
+    final result = _convert(figures[i], ringDancers);
     if (result == null) continue;
     rewritten ??= List<Figure>.of(figures);
     rewritten[i] = result.figure;
@@ -85,19 +94,19 @@ EcdMigration migrateEcdDance({
   );
   return EcdMigration(
     figures: reread.figures,
-    formation: ecdFormationFromContra(formation),
+    formation: ecdShape,
     movesConverted: converted,
     linesReread: reread.upgradedCount,
   );
 }
 
-({Figure figure, int count})? _convert(Figure figure) {
+({Figure figure, int count})? _convert(Figure figure, int? ringDancers) {
   if (figure.isContainer) {
     final children = figure.subFigures;
     List<Figure>? next;
     var count = 0;
     for (var i = 0; i < children.length; i++) {
-      final result = _convert(children[i]);
+      final result = _convert(children[i], ringDancers);
       if (result == null) continue;
       next ??= List<Figure>.of(children);
       next[i] = result.figure;
@@ -111,9 +120,84 @@ EcdMigration migrateEcdDance({
       count: count,
     );
   }
-  final twin = ecdTwinOfContraMove(figure);
+  final twin =
+      ecdTwinOfContraMove(figure) ??
+      ecdReadingOfContraWording(figure, ringDancers: ringDancers);
   return twin == null ? null : (figure: twin, count: 1);
 }
+
+final FigureRenderer _contraWords = FigureRenderer(contraTaxonomy);
+
+/// Contra moves whose words mean something else in ECD, so they are never
+/// re-read from their wording: the ones [_twins] leaves out for that reason,
+/// and a petronella, whose contra display hides whether it includes the
+/// balance.
+const Set<String> _unlikeInEcd = {
+  'hey',
+  'poussette',
+  'mad_robin',
+  'circular_hey',
+  'form_long_waves',
+  'petronella',
+};
+
+/// [figure], a contra move with no one-to-one twin, read again from its
+/// displayed words by the ECD grammar (Hudson's decision: twins first, then
+/// "figures that can parse from ECD we should try to parse"). Null when the
+/// words do not read in full as ECD figures.
+///
+/// The words are the contra display (`render` in the canonical dialect, role
+/// tokens kept), which leaves out the defaults contra silences, so what is
+/// read is what the person saw. A value the display shows that the figure
+/// did not store can become a stated one here; that is the price of this
+/// step, accepted with it. A figure whose subject the importer assumed
+/// ([Figure.assumedSubject]) is not read this way, since its words state that
+/// subject (R2). Its note, progression mark, walkthrough and wording overrides
+/// are kept, and with no stored count it keeps the count it danced in contra.
+/// [ringDancers] counts a ring fraction in places, as for typed entry.
+Figure? ecdReadingOfContraWording(Figure figure, {int? ringDancers}) {
+  if (figure.isContainer || figure.isCustom || figure.assumedSubject) {
+    return null;
+  }
+  if (contraTaxonomy.resolve(figure.move) == null) return null;
+  if (_unlikeInEcd.contains(figure.move)) return null;
+  final String words;
+  try {
+    words = _contraWords.render(figure, Dialect.canonical);
+  } catch (_) {
+    return null;
+  }
+  final stored = figure.params['beats'];
+  final read = recognizeEcdLine(
+    scrubFigureText(words),
+    beats: stored is int ? stored : 0,
+    ringDancers: ringDancers,
+  );
+  if (read == null || !_allEcd(read)) return null;
+  // A note the reading made (an uncounted ring fraction) and the figure's
+  // own note: keep both only when one is absent.
+  if (read.note != null && figure.note != null) return null;
+  var out = read.copyWith(
+    note: read.note ?? figure.note,
+    progression: figure.progression,
+    walkthroughOverride: figure.walkthroughOverride,
+    wordingOverride: figure.wordingOverride,
+  );
+  if (stored == null) {
+    final danced = contraTaxonomy.effectiveParams(figure)['beats'];
+    if (danced != null && ecdTaxonomy.effectiveParams(out)['beats'] != danced) {
+      out = out.copyWith(params: {...out.params, 'beats': danced});
+    }
+  }
+  final invalid = ecdTaxonomy
+      .validateFigure(out)
+      .any((issue) => issue.severity == ValidationSeverity.error);
+  return invalid ? null : out;
+}
+
+bool _allEcd(Figure figure) => figure.isContainer
+    ? figure.subFigures.every(_allEcd)
+    : !figure.isCustom && ecdTaxonomy.resolve(figure.move) != null;
 
 /// One contra move's ECD twin: the twin's id, the contra params carried
 /// across unchanged, and values the contra move's name itself states.
