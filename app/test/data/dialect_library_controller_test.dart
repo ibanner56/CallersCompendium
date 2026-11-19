@@ -410,6 +410,62 @@ void main() {
     );
 
     test(
+      'a rename leaves programs alone while another form has the old name',
+      () async {
+        final repos = openTestRepositories();
+        await repos.ensureMigrated();
+        final t0 = DateTime.utc(2026, 1, 1);
+        final libraries = DialectLibraries(
+          repos.settings,
+          programs: repos.programs,
+        );
+        addTearDown(libraries.dispose);
+        await libraries.load();
+        await libraries.contra.upsert(_custom('Foo'));
+        await libraries.forForm(DanceForm.ecd).upsert(_custom('Foo'));
+        await repos.programs.create(
+          Program(
+            id: 'p',
+            title: 'p',
+            createdAt: t0,
+            updatedAt: t0,
+            dialectName: 'Foo',
+          ),
+        );
+
+        await libraries.forForm(DanceForm.ecd).rename('Foo', 'Bar');
+        expect((await repos.programs.getById('p'))!.dialectName, 'Foo');
+
+        await libraries.contra.rename('Foo', 'Baz');
+        expect((await repos.programs.getById('p'))!.dialectName, 'Baz');
+      },
+    );
+
+    test('a gendered name is renamed to a name no form uses', () async {
+      final repos = openTestRepositories();
+      await repos.ensureMigrated();
+      await repos.settings.set(kCustomDialectsKey, [
+        _custom('Gents Night').toJson(),
+      ]);
+      await repos.settings.set(kCustomDialectsEcdKey, [
+        _custom('Custom').toJson(),
+      ]);
+      final libraries = DialectLibraries(
+        repos.settings,
+        programs: repos.programs,
+      );
+      addTearDown(libraries.dispose);
+
+      await libraries.load();
+
+      expect(libraries.contra.customDialects.map((d) => d.name), ['Custom 2']);
+      expect(
+        libraries.forForm(DanceForm.ecd).customDialects.map((d) => d.name),
+        ['Custom'],
+      );
+    });
+
+    test(
       'a gendered role term read from storage shows the default term',
       () async {
         final repos = openTestRepositories();

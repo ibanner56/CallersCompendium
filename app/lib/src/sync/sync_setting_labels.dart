@@ -1,5 +1,5 @@
 import 'package:compendium_core/compendium_core.dart'
-    show syncCapabilityKeyPrefix;
+    show shownDialectName, syncCapabilityKeyPrefix;
 
 import '../../l10n/app_localizations.dart';
 
@@ -175,12 +175,15 @@ String _collectionText(AppLocalizations l10n, List<Object?> items) {
       : l10n.syncConflictValueItems(items.length);
 }
 
-/// The display names of a collection's entries, where entries carry one.
+/// The display names of a collection's entries, where entries carry one. A
+/// dialect's name (an entry with role terms) is masked when it is gendered,
+/// as a device on an older build may still send one (ADR-006 §9.1, point 7).
 List<String> _names(Iterable<Object?> entries) => [
   for (final entry in entries)
     if (entry is Map)
       switch (entry['name'] ?? entry['label'] ?? entry['title']) {
-        final String name when name.isNotEmpty => name,
+        final String name when name.isNotEmpty =>
+          entry['roles'] is Map ? shownDialectName(name) : name,
         _ => null,
       },
 ].whereType<String>().toList();

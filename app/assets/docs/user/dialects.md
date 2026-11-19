@@ -367,7 +367,8 @@ dialect. The built-in dialects have the same names in every type, so choosing
   program's dialect is back the next time you open it.
 - A program remembers the dialect by its **name**. If you rename that dialect,
   every program that uses it, including ones in Recently deleted, follows the
-  new name. If you delete it, the program quietly goes back to using your active
+  new name, unless another type of dance still has a dialect of the old name;
+  then programs keep the old name, for that type. If you delete it, the program quietly goes back to using your active
   dialect in Perform, and the editor shows the old name as **unavailable** so you
   can see what happened. Pick a dialect again to reconnect it.
 - A program's dialect is yours alone. When you share the program as a file, its

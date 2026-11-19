@@ -14,6 +14,8 @@ void main() {
       }
       expect(genderedRoleWordIn("Gent's"), 'gent');
       expect(genderedRoleWordIn('Lady-Bird'), 'lady');
+      expect(genderedRoleWordIn('Gents2'), 'gents');
+      expect(genderedRoleWordIn('Gents_Night'), 'gents');
     });
 
     test('ignores words that only contain one', () {
@@ -30,6 +32,23 @@ void main() {
       ]) {
         expect(genderedRoleWordIn(text), isNull, reason: text);
       }
+    });
+  });
+
+  group('shownDialectName', () {
+    test('masks a gendered name and keeps any other', () {
+      expect(shownDialectName('Gents & Ladies'), Dialect.customName);
+      expect(shownDialectName('Gents & Ladies', replacement: 'X'), 'X');
+      expect(shownDialectName('Jays & Wrens'), 'Jays & Wrens');
+    });
+
+    test('a synced dialect list is labelled without gendered names', () {
+      final entries = syncCollectionEntries('custom_dialects_ecd', [
+        {'name': 'Gents & Ladies'},
+        {'name': 'Mine'},
+      ])!;
+      expect(entries.map((e) => e.label), [Dialect.customName, 'Mine']);
+      expect(entries.map((e) => e.key), ['Gents & Ladies', 'Mine']);
     });
   });
 

@@ -497,25 +497,39 @@ class SyncConflictComparison extends StatelessWidget {
   /// shown by [wording] in its own side's words.
   List<({String label, String local, String other})>? _dialectParts(
     AppLocalizations l10n,
-    Object? local,
-    Object? other, {
+    Object? storedLocal,
+    Object? storedOther, {
     required String Function(String key) keyName,
     required String Function(String key, String stored, Dialect dialect)
     wording,
   }) {
-    if (local is! Map || other is! Map) return null;
-    Dialect words(Map<Object?, Object?> json) {
+    if (storedLocal is! Map || storedOther is! Map) return null;
+    Dialect? read(Map<Object?, Object?> json) {
       try {
         return Dialect.fromJson(json.cast<String, Object?>());
       } on Object {
         // diagnostics: silent — a synced dialect that doesn't read only
         // shows its wordings' conditions as stored; nothing is lost.
-        return Dialect.canonical;
+        return null;
       }
     }
 
-    final localWords = words(local);
-    final otherWords = words(other);
+    final localRead = read(storedLocal);
+    final otherRead = read(storedOther);
+    final localWords = localRead ?? Dialect.canonical;
+    final otherWords = otherRead ?? Dialect.canonical;
+    // What each side shows is the dialect as the app reads it, which drops
+    // or replaces gendered role words a device on an older build may still
+    // hold (ADR-006 §9.1, point 7), with the name masked the same way.
+    Map<Object?, Object?> shown(
+      Map<Object?, Object?> raw,
+      Dialect? dialect,
+    ) => {
+      ...(dialect?.toJson() ?? raw),
+      if (raw['name'] case final String name) 'name': shownDialectName(name),
+    };
+    final local = shown(storedLocal, localRead);
+    final other = shown(storedOther, otherRead);
     final parts = <({String label, String local, String other})>[];
     if (local['name'] != other['name']) {
       parts.add((
@@ -705,18 +719,19 @@ class SyncConflictComparison extends StatelessWidget {
     String label,
     Map<String, Object?>? other,
   ) {
-    // A dance's figures read in its own form's dialect (ADR-006 §9.1,
+    // Each version's figures read in its own form's dialect (ADR-006 §9.1,
     // point 1); a body that names no form it knows reads in contra's.
-    final form = DanceForm.values.firstWhere(
-      (f) => f.name == (_local?['form'] ?? other?['form']),
-      orElse: () => DanceForm.contra,
-    );
-    final dialect =
-        (ActiveDialectScope.maybeOf(context) ?? DialectsByForm.defaults)
-            .forForm(form);
     final renderer = UserFiguresScope.rendererOf(context);
-    final mine = _sectionedLines(_local, dialect, renderer);
-    final theirs = _sectionedLines(other, dialect, renderer);
+    final mine = _sectionedLines(
+      _local,
+      _bodyDialect(context, _local),
+      renderer,
+    );
+    final theirs = _sectionedLines(
+      other,
+      _bodyDialect(context, other),
+      renderer,
+    );
     if (mine == null || theirs == null) {
       return [_note(context, l10n.syncConflictFiguresUnreadable)];
     }
@@ -1120,11 +1135,27 @@ class SyncConflictComparison extends StatelessWidget {
       // diagnostics: silent — a value this view cannot name falls through to
       // the plain rendering below; the merge already admitted it.
     }
+    if (key == 'dialectName' && value is String) {
+      return shownDialectName(value);
+    }
     if (value is String) {
-      final dialect = _contraDialect(context);
-      return _renderer.renderFreeText(value, dialect);
+      return _renderer.renderFreeText(value, _bodyDialect(context, body));
     }
     return syncSettingValueText(l10n, value);
+  }
+
+  /// The dialect [body] reads in: a dance's own form's (ADR-006 §9.1,
+  /// point 1), and contra's for anything else or a form this build doesn't
+  /// know.
+  Dialect _bodyDialect(BuildContext context, Map<String, Object?>? body) {
+    final form = group.kind == SyncRecordKind.dance
+        ? DanceForm.values.firstWhere(
+            (f) => f.name == body?['form'],
+            orElse: () => DanceForm.contra,
+          )
+        : DanceForm.contra;
+    return (ActiveDialectScope.maybeOf(context) ?? DialectsByForm.defaults)
+        .forForm(form);
   }
 
   /// A link in full: what kind it is, its label, where it goes, and whether

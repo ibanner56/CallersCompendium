@@ -103,7 +103,9 @@ built figure.
   and drops gendered substitutions and wordings, and
   `DialectLibraryController.load` renames a custom dialect whose name holds one
   to a fresh `Dialect.customName`, carrying the new name to programs like any
-  rename. Everything a dialect can set is editable in Settings → Dialect:
+  rename. Until then, the sync conflict review shows such a dialect as the
+  app reads it (`Dialect.fromJson`) and masks its name (`shownDialectName`),
+  as does the program editor's "unavailable" dialect item. Everything a dialect can set is editable in Settings → Dialect:
   role terms, per-move substitutions, dancer-term substitutions, and the
   discouraged-terms list. Users may
   keep a custom dialect and switch instantly (e.g. per-gig) — this generalizes
@@ -140,9 +142,13 @@ built figure.
   looks the name up among the dialects of the form of the dance on screen, and a
   form with no dialect of that name uses its own active dialect; the presets
   share names across forms (implementer's call, ADR-006 §12.2 S3 left this open).
-  Renaming a dialect carries the new name to programs whatever its form, so a
-  program that named another form's dialect of the same old name follows the
-  rename too. Delete never writes to programs.
+  Because names are unique only within a form, a rename is carried to
+  programs only while no other form still has a dialect of the old name;
+  otherwise programs keep the old name, which that other form still answers
+  to (implementer's call; recording the form beside the name was rejected as
+  a persisted-format change). A name the app picks itself, such as the
+  rename of a gendered name on load, avoids every form's names. Delete never
+  writes to programs.
   Rename does (amended 2026-10-29, @ibanner56's ruling on PRES-11/LIFE-11):
   `DialectLibraryController.rename` saves the library, then
   `ProgramRepository.renameDialect` gives every program naming the old dialect

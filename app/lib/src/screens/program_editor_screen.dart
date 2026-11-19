@@ -4397,7 +4397,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             DropdownMenuItem<String?>(
               key: const ValueKey('program-dialect-unavailable'),
               value: stored,
-              child: Text(l10n.programsDialectUnavailable(stored)),
+              child: Text(
+                l10n.programsDialectUnavailable(shownDialectName(stored)),
+              ),
             ),
         ],
         onChanged: (name) {

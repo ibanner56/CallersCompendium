@@ -1404,6 +1404,45 @@ void main() {
       expect(find.text('Another device: swing → twirl'), findsOneWidget);
     });
 
+    testWidgets('a dialect from an older build shows no gendered term', (
+      tester,
+    ) async {
+      final repos = await _pump(tester);
+      final mine = {
+        ...Dialect.larksRobins.toJson(),
+        'name': 'Mine',
+        'roles': {
+          'role1': {'singular': 'jay'},
+          'role2': {'singular': 'wren'},
+        },
+      };
+      await tester.runAsync(
+        () => _queueTie(repos, [
+          (
+            'custom_dialects_ecd',
+            [mine],
+            [
+              {
+                ...mine,
+                'roles': {
+                  'role1': {'singular': 'gent'},
+                  'role2': {'singular': 'wren'},
+                },
+              },
+              {...mine, 'name': 'Gents & Ladies'},
+            ],
+          ),
+        ]),
+      );
+      await _open(tester);
+
+      for (final word in ['gent', 'Gents', 'Ladies']) {
+        expect(find.textContaining(word), findsNothing, reason: word);
+      }
+      expect(find.text('Mine: Role terms'), findsOneWidget);
+      expect(find.text('Another device: role1 → lark / larks'), findsOneWidget);
+    });
+
     testWidgets('a theme shows the colours that differ', (tester) async {
       final repos = await _pump(tester);
       Map<String, Object?> theme(int primary) => {

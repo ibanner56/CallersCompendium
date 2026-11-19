@@ -9,5 +9,16 @@
     "changed": [
       "Dialects no longer accept gendered role words such as \"gents\" or \"ladies\" in role names, move wording, or a dialect's name. A dialect saved earlier with one shows the built-in role name instead and is renamed if its name used one."
     ]
+  },
+  "core": {
+    "added": [
+      "`DialectsByForm` holds the dialect each dance form is shown in; `forDance` picks a dance's.",
+      "`genderedRoleWords`, `genderedRoleWordIn` and `shownDialectName` find and mask the gendered role words a dialect may not show.",
+      "Classify `custom_dialects_ecd`, `custom_dialects_square`, `active_dialect_ref_ecd`, `active_dialect_ref_square` and `last_used_dance_form` as shareable preferences; the two custom-dialect keys sync as whole collections."
+    ],
+    "changed": [
+      "`Dialect.validate` reports `gendered_role_term` for a gendered word in a role term, substitution, move wording or branch entry, and `Dialect.fromJson` replaces a gendered role term with the Larks/Robins term and drops gendered substitutions and wordings.",
+      "`syncCollectionEntries` labels a dialect whose name is gendered with `Dialect.customName`."
+    ]
   }
 }
