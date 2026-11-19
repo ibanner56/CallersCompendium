@@ -432,13 +432,39 @@ class DialectLibraries extends ChangeNotifier {
              form: form,
              clock: clock,
            ),
-       } {
+       },
+       _borrowed = const {} {
+    for (final library in _byForm.values) {
+      library.addListener(notifyListeners);
+    }
+  }
+
+  /// [contra]'s library with an empty library of every other form beside
+  /// it, on the same settings and programs, for tests and previews that need
+  /// only contra's. [contra] stays its creator's to dispose.
+  @visibleForTesting
+  DialectLibraries.withContra(DialectLibraryController contra)
+    : _byForm = {
+        for (final form in DanceForm.values)
+          form: form == DanceForm.contra
+              ? contra
+              : DialectLibraryController(
+                  contra._settings,
+                  programs: contra._programs,
+                  form: form,
+                  clock: contra._clock,
+                ),
+      },
+      _borrowed = {DanceForm.contra} {
     for (final library in _byForm.values) {
       library.addListener(notifyListeners);
     }
   }
 
   final Map<DanceForm, DialectLibraryController> _byForm;
+
+  /// The forms whose library someone else disposes ([withContra]).
+  final Set<DanceForm> _borrowed;
 
   /// [form]'s library.
   DialectLibraryController forForm(DanceForm form) => _byForm[form]!;
@@ -490,10 +516,9 @@ class DialectLibraries extends ChangeNotifier {
 
   @override
   void dispose() {
-    for (final library in _byForm.values) {
-      library
-        ..removeListener(notifyListeners)
-        ..dispose();
+    for (final MapEntry(key: form, value: library) in _byForm.entries) {
+      library.removeListener(notifyListeners);
+      if (!_borrowed.contains(form)) library.dispose();
     }
     super.dispose();
   }

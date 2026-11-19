@@ -109,7 +109,10 @@ Future<ValueNotifier<bool>> _pumpDetail(
       : UserFiguresScope(controller: userFigures, child: child);
   Widget withLibrary(Widget child) => dialectLibrary == null
       ? child
-      : DialectLibraryScope(controller: dialectLibrary, child: child);
+      : DialectLibraryScope(
+          libraries: DialectLibraries.withContra(dialectLibrary),
+          child: child,
+        );
   // Issue #1434 review finding: without mounting this scope explicitly, every
   // test in this file exercises only DanceShareFieldsScope's *default*
   // value — indistinguishable from the wiring being absent entirely. Callers

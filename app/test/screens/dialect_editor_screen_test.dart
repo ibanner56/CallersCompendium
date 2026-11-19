@@ -45,7 +45,10 @@ void main() {
       MaterialApp(
         localizationsDelegates: testLocalizationsDelegates,
         supportedLocales: testSupportedLocales,
-        home: DialectEditorScreen(initial: Dialect.canonical),
+        home: DialectEditorScreen(
+          form: DanceForm.contra,
+          initial: Dialect.canonical,
+        ),
       ),
     );
 
@@ -74,7 +77,10 @@ void main() {
       MaterialApp(
         localizationsDelegates: testLocalizationsDelegates,
         supportedLocales: testSupportedLocales,
-        home: DialectEditorScreen(initial: Dialect.canonical),
+        home: DialectEditorScreen(
+          form: DanceForm.contra,
+          initial: Dialect.canonical,
+        ),
       ),
     );
 
@@ -103,7 +109,10 @@ void main() {
       MaterialApp(
         localizationsDelegates: testLocalizationsDelegates,
         supportedLocales: testSupportedLocales,
-        home: DialectEditorScreen(initial: Dialect.canonical),
+        home: DialectEditorScreen(
+          form: DanceForm.contra,
+          initial: Dialect.canonical,
+        ),
       ),
     );
 
@@ -136,6 +145,7 @@ void main() {
           localizationsDelegates: testLocalizationsDelegates,
           supportedLocales: testSupportedLocales,
           home: DialectEditorScreen(
+            form: DanceForm.contra,
             initial: Dialect(
               name: 'Wording',
               moves: const {'swing': 'twirl'},
@@ -226,6 +236,7 @@ void main() {
         localizationsDelegates: testLocalizationsDelegates,
         supportedLocales: testSupportedLocales,
         home: DialectEditorScreen(
+          form: DanceForm.contra,
           initial: Dialect(
             name: 'Wording',
             moveWordings: const {'swing': '{who} {move}'},
@@ -261,6 +272,7 @@ void main() {
         localizationsDelegates: testLocalizationsDelegates,
         supportedLocales: testSupportedLocales,
         home: DialectEditorScreen(
+          form: DanceForm.contra,
           initial: Dialect(name: 'Terms', discouragedTerms: const ['avoid']),
         ),
       ),
@@ -306,8 +318,10 @@ void main() {
             onPressed: () async {
               popped = await Navigator.of(context).push<Dialect>(
                 MaterialPageRoute(
-                  builder: (_) =>
-                      DialectEditorScreen(initial: Dialect.canonical),
+                  builder: (_) => DialectEditorScreen(
+                    form: DanceForm.contra,
+                    initial: Dialect.canonical,
+                  ),
                 ),
               );
             },
@@ -344,8 +358,10 @@ void main() {
             onPressed: () async {
               await Navigator.of(context).push<Dialect>(
                 MaterialPageRoute(
-                  builder: (_) =>
-                      DialectEditorScreen(initial: Dialect.canonical),
+                  builder: (_) => DialectEditorScreen(
+                    form: DanceForm.contra,
+                    initial: Dialect.canonical,
+                  ),
                 ),
               );
               didReturn = true;
@@ -379,6 +395,7 @@ void main() {
         localizationsDelegates: testLocalizationsDelegates,
         supportedLocales: testSupportedLocales,
         home: DialectEditorScreen(
+          form: DanceForm.contra,
           initial: Dialect(
             name: 'Sections',
             moves: const {'swing': 'twirl'},
@@ -470,6 +487,7 @@ void main() {
         localizationsDelegates: testLocalizationsDelegates,
         supportedLocales: testSupportedLocales,
         home: DialectEditorScreen(
+          form: DanceForm.contra,
           initial: Dialect(name: 'Lines', moves: const {'long_lines': 'lines'}),
         ),
       ),
@@ -516,6 +534,7 @@ void main() {
         localizationsDelegates: testLocalizationsDelegates,
         supportedLocales: testSupportedLocales,
         home: DialectEditorScreen(
+          form: DanceForm.contra,
           initial: Dialect(
             name: 'Worded',
             moveWordings: const {'forward_and_back': 'all {formation} {move}'},
@@ -546,6 +565,7 @@ void main() {
         localizationsDelegates: testLocalizationsDelegates,
         supportedLocales: testSupportedLocales,
         home: DialectEditorScreen(
+          form: DanceForm.contra,
           initial: Dialect(name: 'Narrow', moves: const {'swing': 'twirl'}),
         ),
       ),
@@ -571,6 +591,7 @@ void main() {
         localizationsDelegates: testLocalizationsDelegates,
         supportedLocales: testSupportedLocales,
         home: DialectEditorScreen(
+          form: DanceForm.contra,
           initial: Dialect(name: 'Wording', moves: const {'swing': 'twirl'}),
         ),
       ),
@@ -604,7 +625,10 @@ void main() {
       MaterialApp(
         localizationsDelegates: testLocalizationsDelegates,
         supportedLocales: testSupportedLocales,
-        home: DialectEditorScreen(initial: Dialect.canonical),
+        home: DialectEditorScreen(
+          form: DanceForm.contra,
+          initial: Dialect.canonical,
+        ),
       ),
     );
 
@@ -678,6 +702,7 @@ void main() {
         localizationsDelegates: testLocalizationsDelegates,
         supportedLocales: testSupportedLocales,
         home: DialectEditorScreen(
+          form: DanceForm.contra,
           initial: Dialect(
             name: 'Wording',
             moveWordings: const {
@@ -715,6 +740,7 @@ void main() {
         localizationsDelegates: testLocalizationsDelegates,
         supportedLocales: testSupportedLocales,
         home: DialectEditorScreen(
+          form: DanceForm.contra,
           initial: Dialect(
             name: 'Wording',
             moveWordings: const {'swing': '{move}'},
@@ -756,6 +782,7 @@ void main() {
           localizationsDelegates: testLocalizationsDelegates,
           supportedLocales: testSupportedLocales,
           home: DialectEditorScreen(
+            form: DanceForm.contra,
             initial: Dialect(
               name: 'Invalid wording',
               moveWordings: {'swing': template},
@@ -799,6 +826,7 @@ void main() {
                     popped = await Navigator.of(context).push<Dialect>(
                       MaterialPageRoute(
                         builder: (_) => DialectEditorScreen(
+                          form: DanceForm.contra,
                           initial: Dialect(
                             name: 'Conditional',
                             moveWordingBranches: const {
@@ -850,8 +878,10 @@ void main() {
                 onPressed: () async {
                   popped = await Navigator.of(context).push<Dialect>(
                     MaterialPageRoute(
-                      builder: (_) =>
-                          DialectEditorScreen(initial: Dialect.canonical),
+                      builder: (_) => DialectEditorScreen(
+                        form: DanceForm.contra,
+                        initial: Dialect.canonical,
+                      ),
                     ),
                   );
                   didPop = true;
@@ -903,7 +933,7 @@ void main() {
         MaterialApp(
           localizationsDelegates: testLocalizationsDelegates,
           supportedLocales: testSupportedLocales,
-          home: DialectEditorScreen(initial: dialect),
+          home: DialectEditorScreen(form: DanceForm.contra, initial: dialect),
         ),
       );
 
@@ -960,7 +990,7 @@ void main() {
         MaterialApp(
           localizationsDelegates: testLocalizationsDelegates,
           supportedLocales: testSupportedLocales,
-          home: DialectEditorScreen(initial: initial),
+          home: DialectEditorScreen(form: DanceForm.contra, initial: initial),
         ),
       );
       final toggle = find.byKey(const ValueKey('dialect-dancers-toggle'));
@@ -1098,8 +1128,10 @@ void main() {
                 onPressed: () async {
                   popped = await Navigator.of(context).push<Dialect>(
                     MaterialPageRoute(
-                      builder: (_) =>
-                          DialectEditorScreen(initial: Dialect.larksRobins),
+                      builder: (_) => DialectEditorScreen(
+                        form: DanceForm.contra,
+                        initial: Dialect.larksRobins,
+                      ),
                     ),
                   );
                 },

@@ -118,7 +118,10 @@ Future<void> _pumpProgram(
   );
   Widget withLibrary(Widget child) => dialectLibrary == null
       ? child
-      : DialectLibraryScope(controller: dialectLibrary, child: child);
+      : DialectLibraryScope(
+          libraries: DialectLibraries.withContra(dialectLibrary),
+          child: child,
+        );
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,

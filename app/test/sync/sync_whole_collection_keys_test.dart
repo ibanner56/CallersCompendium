@@ -32,7 +32,10 @@ void main() {
     // one would be cut short the next time a backup restores it.
     expect(syncMaxCustomDialects, kMaxCustomDialects);
     for (final form in DanceForm.values) {
-      expect(syncCollectionLimit(customDialectsKeyFor(form)), kMaxCustomDialects);
+      expect(
+        syncCollectionLimit(customDialectsKeyFor(form)),
+        kMaxCustomDialects,
+      );
     }
   });
 }

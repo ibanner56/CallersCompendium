@@ -256,7 +256,7 @@ _pumpSettings(
               child: CustomThemesScope(
                 controller: customThemes,
                 child: DialectLibraryScope(
-                  controller: dialectLibrary,
+                  libraries: DialectLibraries.withContra(dialectLibrary),
                   child: ActiveDialectScope(
                     notifier: notifier,
                     child: RequirePerformedForHistoryScope(
