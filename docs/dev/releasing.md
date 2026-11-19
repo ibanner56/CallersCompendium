@@ -1570,7 +1570,7 @@ in-place update.
 
 ### Sideload install note (for release notes / users)
 
-The Android APK is **self-signed**, *not* "unsigned" like the desktop builds — it
+The Android APK is **self-signed**, *not* "unsigned" like the Linux desktop builds — it
 carries a valid signature, just not one from Google Play. To sideload it a user
 enables **"install unknown apps"** for their browser/file manager, then opens the
 downloaded APK. Verify the download against `SHA256SUMS` as with every artifact.
