@@ -384,7 +384,7 @@ void main() {
         reason: 'it must not drop the caller straight into the edit builder',
       );
       expect(find.byKey(const ValueKey('open-builder')), findsOneWidget);
-      expect(find.byTooltip('Edit program'), findsOneWidget);
+      expect(find.text('Edit program'), findsOneWidget);
       expect(find.byKey(const ValueKey('summary-perform')), findsOneWidget);
       expect(find.text('Perform this program'), findsOneWidget);
       expect(

@@ -136,23 +136,22 @@ void main() {
   });
 
   testWidgets(
-    'wide split pane: the list\'s New program and the summary\'s Edit survive '
-    'a route transition without a duplicate hero-tag crash',
+    'wide split-pane list and summary FABs coexist and survive a route '
+    'transition without a duplicate hero-tag crash',
     (tester) async {
       final repos = openTestRepositories();
       await repos.programs.create(_program(id: 'p1', title: 'Barn Dance'));
 
       await _pumpWide(tester, repos);
 
-      // Select the program so the summary pane (and its Edit action) renders
-      // alongside the list pane's floating "New program".
+      // Select the program so the summary pane (and its "Open builder" FAB)
+      // renders alongside the list pane's "New program" FAB.
       await tester.tap(find.text('Barn Dance'));
       await tester.pumpAndSettle();
 
-      // Edit used to float too, and two floating buttons with the default
-      // Hero tag crashed the next route transition with "multiple heroes that
-      // share the same tag". Edit is now a summary action, and the route
-      // transition must still run clean.
+      // Both default-styled FABs are present in the same subtree. Before the
+      // fix they shared the default Hero tag, which crashed on the next route
+      // transition with "multiple heroes that share the same tag".
       expect(find.byKey(const ValueKey('new-program')), findsOneWidget);
       expect(find.byKey(const ValueKey('open-builder')), findsOneWidget);
 
@@ -646,7 +645,7 @@ void main() {
     },
   );
 
-  testWidgets("the summary pane's Edit action is labelled 'Edit program'", (
+  testWidgets('the summary pane FAB is labelled "Edit program"', (
     tester,
   ) async {
     final repos = openTestRepositories();
@@ -657,21 +656,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('open-builder')), findsOneWidget);
-    expect(find.byTooltip('Edit program'), findsOneWidget);
-    // The split pane has no top bar: Edit joins the actions on the name's
-    // row, and the only floating button is the list's New program.
-    expect(
-      find.descendant(
-        of: find.byType(ProgramSummaryScreen),
-        matching: find.byType(FloatingActionButton),
-      ),
-      findsNothing,
-    );
-    expect(
-      tester.widget(find.byKey(const ValueKey('open-builder'))),
-      isA<IconButton>(),
-    );
-    expect(find.byKey(const ValueKey('new-program')), findsOneWidget);
+    expect(find.text('Edit program'), findsOneWidget);
   });
 
   testWidgets(
@@ -1134,23 +1119,7 @@ void main() {
         expect(find.byKey(const ValueKey('summary-perform')), findsOneWidget);
         expect(find.text('Perform this program'), findsOneWidget);
         expect(find.byKey(const ValueKey('open-builder')), findsOneWidget);
-        expect(find.byTooltip('Edit program'), findsOneWidget);
-        // Edit is a record action in the top bar; the floating slot is for
-        // creating on lists.
-        expect(
-          find.descendant(
-            of: find.byType(AppBar),
-            matching: find.byKey(const ValueKey('open-builder')),
-          ),
-          findsOneWidget,
-        );
-        expect(
-          find.descendant(
-            of: find.byType(ProgramSummaryScreen),
-            matching: find.byType(FloatingActionButton),
-          ),
-          findsNothing,
-        );
+        expect(find.text('Edit program'), findsOneWidget);
 
         // Tap 2: Perform — reachable without entering edit mode.
         await tester.tap(find.byKey(const ValueKey('summary-perform')));

@@ -47,7 +47,7 @@ import 'settings_screen.dart'
 /// Perform view. Navigation is available via on-screen prev/next buttons, giant
 /// edge hit zones, the keyboard (arrows / page keys), and a jump-to-slot
 /// overview. When a group has alternates, a one-tap control swaps which member
-/// is shown. Exit is a deliberate close button back to the editor.
+/// is shown. Exit is a deliberate close button back to the program's summary.
 ///
 /// In-view text size ([PerformSizeControls]) is shared across all slots so the
 /// caller sets it once. Canonical wording is one of the choices in the dialect
@@ -173,7 +173,7 @@ class PerformProgramScreen extends StatefulWidget {
   final List<DifficultyLevel> difficultyLevels;
 
   /// Freshly imported or created dances that may not yet be present in the
-  /// program editor's debounced collection snapshot.
+  /// opening screen's collection snapshot.
   final Map<String, Dance> danceOverrides;
 
   /// Fresh author names paired with [danceOverrides].
@@ -232,8 +232,8 @@ class PerformProgramScreen extends StatefulWidget {
   /// it did.
   ///
   /// That Undo reverses only the adjustment's own change, so a change from
-  /// elsewhere that the adjustment was written on top of (GIG-6), and the
-  /// builder's other unsaved edits, stay. The prompt can outlive this screen
+  /// elsewhere that the adjustment was written on top of (GIG-6) stays. The
+  /// prompt can outlive this screen
   /// (indefinitely with accessible navigation), and by the time it is tapped
   /// the program may have been edited elsewhere; reversing the change then
   /// could overwrite that edit. The

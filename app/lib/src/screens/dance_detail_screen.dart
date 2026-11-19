@@ -32,7 +32,6 @@ import '../utils/confirm_delete.dart';
 import '../utils/launch_external_url.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/add_to_program_sheet.dart';
-import '../widgets/app_bar_text_action.dart';
 import '../widgets/command_palette.dart';
 import '../widgets/dance_export_actions.dart';
 import '../widgets/dance_export_menu.dart';
@@ -89,8 +88,7 @@ class DanceDetailScreen extends StatefulWidget {
   /// search result before it is imported). Renders [data] directly with the
   /// same body as a saved dance, but hides the collection-only actions (dialect
   /// switch, Perform, Export, Duplicate, Add-to-program, Delete) and the calling
-  /// history, and swaps the top bar's Edit for an **Import** action wired to
-  /// [onImport].
+  /// history, and swaps the Edit FAB for an **Import** FAB wired to [onImport].
   const DanceDetailScreen.preview({
     super.key,
     required DanceDetailData data,
@@ -135,7 +133,7 @@ class DanceDetailScreen extends StatefulWidget {
   /// Non-null only in preview mode.
   final DanceDetailData? previewData;
 
-  /// Called when the preview-mode Import action is tapped. Non-null only in
+  /// Called when the preview-mode Import FAB is tapped. Non-null only in
   /// preview mode; the caller performs the direct import (and its snackbar /
   /// collection refresh).
   final Future<void> Function()? onImport;
@@ -640,12 +638,12 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   );
 
   // --- App-bar actions -------------------------------------------------------
-  // The dance-detail bar carries seven affordances (Edit, dialect switch,
-  // Perform, Export, Duplicate, Add-to-program, Delete). On a phone that full
-  // row clips, so below [DanceDetailScreen.compactActionsBreakpoint] we keep
-  // the primary one-tap actions (Edit, Perform, Add-to-program) and fold the
-  // secondary actions into a single overflow menu. Every action keeps its key,
-  // tooltip/label and behaviour in both layouts.
+  // The dance-detail bar carries seven affordances (dialect switch, Perform,
+  // Export, Duplicate, Add-to-program, Delete, plus the Edit FAB). On a phone
+  // that full row clips, so below [DanceDetailScreen.compactActionsBreakpoint]
+  // we keep the primary one-tap actions (Perform, Add-to-program; Edit stays
+  // the FAB) and fold the secondary actions into a single overflow menu. Every
+  // action keeps its key, tooltip/label and behaviour in both layouts.
 
   Widget _performButton(DanceDetailData detail) {
     final l10n = AppLocalizations.of(context);
@@ -702,7 +700,6 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _editButton(),
         const DialectQuickSwitch(),
         _performButton(detail),
         _exportMenu(context, detail),
@@ -747,20 +744,10 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   Widget _compactActions(BuildContext context, DanceDetailData detail) => Row(
     mainAxisSize: MainAxisSize.min,
     children: [
-      _editButton(),
       _performButton(detail),
       _addToProgramButton(detail),
       _overflowMenu(context, detail),
     ],
-  );
-
-  /// Opens the editor. First of the record's actions, so it stays on the bar
-  /// at every width; the floating slot is kept for creating on lists.
-  Widget _editButton() => IconButton(
-    key: const ValueKey('edit-dance'),
-    tooltip: AppLocalizations.of(context).danceEditFab,
-    icon: const Icon(Icons.edit_outlined),
-    onPressed: _openEditor,
   );
 
   /// Single "⋮" menu holding the secondary actions on narrow widths. Every
@@ -970,7 +957,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     // builders over a stream would need four subscriptions — a single-listener
     // stream cannot serve them — and would run the query four times over.
     //
-    // Wrap the whole screen (AppBar + body) so the colour tint covers the
+    // Wrap the whole screen (AppBar + body + FAB) so the colour tint covers the
     // dance's entire view, consistent with the Perform screens. Until the
     // record arrives the title is null and the tint is a no-op.
     return ColourDanceTheme(
@@ -991,19 +978,6 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                       onPressed: widget.onClose,
                     ),
               actions: [
-                // A preview's one action is bringing the dance in. The
-                // floating slot is kept for creating on lists
-                // (`docs/design/ux.md`, "Where Save, New and the record's name
-                // go"), so Import, like Edit below, sits in the top bar.
-                if (_isPreview && detail != null && !_isReadOnly)
-                  AppBarTextAction(
-                    key: const ValueKey('import-dance'),
-                    label: l10n.importAction,
-                    icon: Icons.library_add_outlined,
-                    onPressed: widget.onImport == null
-                        ? null
-                        : () => widget.onImport!(),
-                  ),
                 if (!_isPreview && detail != null)
                   _isReadOnly
                       ? _readOnlyActions(detail)
@@ -1026,6 +1000,29 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                         )
                       : Center(child: Text(l10n.danceNotFound)))
                 : SelectableContent(child: _buildBody(detail)),
+            // Edit mirrors the program preview's builder affordance: a bottom-right
+            // extended FAB rather than an AppBar action, so opening the editor is
+            // consistent across the dance and program views.
+            // In preview mode the same slot becomes an Import button.
+            floatingActionButton: detail == null || _isReadOnly
+                ? null
+                : _isPreview
+                ? FloatingActionButton.extended(
+                    key: const ValueKey('import-dance'),
+                    heroTag: 'import-dance',
+                    onPressed: widget.onImport == null
+                        ? null
+                        : () => widget.onImport!(),
+                    icon: const Icon(Icons.library_add_outlined),
+                    label: Text(l10n.importAction),
+                  )
+                : FloatingActionButton.extended(
+                    key: const ValueKey('edit-dance'),
+                    heroTag: 'edit-dance',
+                    onPressed: _openEditor,
+                    icon: const Icon(Icons.edit_outlined),
+                    label: Text(l10n.danceEditFab),
+                  ),
           );
         },
       ),
@@ -1087,11 +1084,12 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         .toList();
 
     return ListView(
+      // The bottom inset lets the last section scroll clear of the Edit FAB.
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.md,
         AppSpacing.md,
         AppSpacing.md,
-        AppSpacing.lg,
+        AppSpacing.fabClearance,
       ),
       children: [
         Card(

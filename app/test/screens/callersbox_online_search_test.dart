@@ -5,7 +5,6 @@ import 'package:compendium_app/src/data/callersbox_online.dart';
 import 'package:compendium_app/src/data/import_io.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/collection_shell.dart';
-import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/widgets/advanced_query_builder.dart';
 import 'package:compendium_app/src/widgets/facet_panel.dart';
 import 'package:compendium_app/src/widgets/online_result_tile.dart';
@@ -255,8 +254,9 @@ void main() {
     expect(find.textContaining('1 online result'), findsOneWidget);
   });
 
-  testWidgets('tapping a result previews it with Import in the top bar (no '
-      'Edit, nothing floating)', (tester) async {
+  testWidgets('tapping a result previews it with an Import FAB (no Edit)', (
+    tester,
+  ) async {
     final repos = openTestRepositories();
     await _pumpShell(tester, repos, _online());
     await _enableOnline(tester);
@@ -266,21 +266,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('import-dance')), findsOneWidget);
-    // The floating slot is for creating on lists.
-    expect(
-      find.descendant(
-        of: find.byType(AppBar),
-        matching: find.byKey(const ValueKey('import-dance')),
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(
-        of: find.byType(DanceDetailScreen),
-        matching: find.byType(FloatingActionButton),
-      ),
-      findsNothing,
-    );
     expect(find.byKey(const ValueKey('edit-dance')), findsNothing);
     // The preview renders the dance detail body.
     expect(find.text('Money Musk'), findsWidgets);
@@ -401,7 +386,7 @@ void main() {
     await tester.tap(find.byType(OnlineResultTile));
     await tester.pumpAndSettle();
 
-    // The pushed preview route shows Import (and no Edit).
+    // The pushed preview route shows the Import FAB (and no Edit FAB).
     expect(find.byKey(const ValueKey('import-dance')), findsOneWidget);
     expect(find.byKey(const ValueKey('edit-dance')), findsNothing);
 
@@ -413,7 +398,7 @@ void main() {
     expect(saved.map((d) => d.title), contains('Money Musk'));
 
     // After import the user lands on the persisted dance as a normal detail
-    // view (Edit), not the preview (Import).
+    // view (Edit FAB), not the preview (Import FAB).
     expect(find.byKey(const ValueKey('edit-dance')), findsOneWidget);
     expect(find.byKey(const ValueKey('import-dance')), findsNothing);
   });

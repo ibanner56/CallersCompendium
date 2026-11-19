@@ -198,8 +198,8 @@ class ProgramSummaryPane extends StatefulWidget {
   final ImportPicker? reimportPicker;
 
   /// Pane width (logical pixels) below which the actions (in the top bar, or
-  /// the body's title row when there is none) keep Edit, Perform and Export
-  /// and move Mark all performed, Duplicate and Delete into a "⋮" menu. Matches `DanceDetailScreen.compactActionsBreakpoint`.
+  /// the body's title row when there is none) keep Perform and Export and
+  /// move Mark all performed, Duplicate and Delete into a "⋮" menu. Matches `DanceDetailScreen.compactActionsBreakpoint`.
   static const double compactActionsBreakpoint = 600;
 
   @override
@@ -878,26 +878,28 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
                 )
               : null,
           body: _buildBody(compact: compact),
+          floatingActionButton: (_program != null)
+              ? FloatingActionButton.extended(
+                  key: const ValueKey('open-builder'),
+                  heroTag: 'open-builder',
+                  onPressed: _openBuilder,
+                  icon: const Icon(Icons.edit_outlined),
+                  label: Text(l10n.programsEditProgram),
+                )
+              : null,
         );
       },
     );
   }
 
-  /// The record actions, in tab order: Edit, Perform (only when it is not the
+  /// The record actions, in tab order: Perform (only when it is not the
   /// prominent body button), Export, then Mark all performed, Duplicate and
   /// Delete. Below [ProgramSummaryPane.compactActionsBreakpoint] the last
   /// three fold into [_secondaryActionsMenu]. Shown in the top bar when there
-  /// is one, else at the end of the body's title row. Edit is one of them
-  /// rather than a floating button, which is kept for creating on lists.
+  /// is one, else at the end of the body's title row.
   List<Widget> _buildActions(Program program, {required bool compact}) {
     final l10n = AppLocalizations.of(context);
     return [
-      IconButton(
-        key: const ValueKey('open-builder'),
-        tooltip: l10n.programsEditProgram,
-        icon: const Icon(Icons.edit_outlined),
-        onPressed: _openBuilder,
-      ),
       if (!widget.prominentPerform) _buildPerformAction(program),
       ProgramExportMenu(
         program: program,
@@ -969,11 +971,12 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           );
 
     return ListView(
+      // The bottom inset lets the last slot scroll clear of the Edit FAB.
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.lg,
         AppSpacing.lg,
         AppSpacing.lg,
-        AppSpacing.lg,
+        AppSpacing.fabClearance,
       ),
       children: [
         if (widget.showAppBar)
@@ -1084,11 +1087,10 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     );
   }
 
-  /// "Perform this program" action shown in the summary's top action Row,
-  /// mirroring the program builder's `perform-program` AppBar action. Disabled
+  /// "Perform this program" action shown in the summary's top action Row, the
+  /// way into Perform for a saved program (the builder has none). Disabled
   /// (with an explanatory tooltip) when the program has no slots or the
-  /// reference data has not loaded yet, mirroring the editor's `_slots.isEmpty`
-  /// guard — never a dead button. The disabled state is exposed to assistive
+  /// reference data has not loaded yet — never a dead button. The disabled state is exposed to assistive
   /// technology via the button's own disabled semantics, not colour alone.
   Widget _buildPerformAction(Program program) {
     final l10n = AppLocalizations.of(context);
@@ -1435,8 +1437,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   /// primary with an icon + text label (never colour alone), per
   /// `docs/design/ux.md` §4. Dance rows are tappable and open
   /// [DanceDetailScreen], except a dance in Recently deleted; free-text slots
-  /// are plain, non-interactive text. Editing and reordering stay behind the
-  /// Edit action.
+  /// are plain, non-interactive text. Editing/reordering stays behind the builder FAB.
   List<Widget> _buildSetList(Program program) {
     if (program.slots.isEmpty) {
       return [

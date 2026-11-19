@@ -3,10 +3,12 @@
   "user_visible": true,
   "app": {
     "changed": [
-      "The dance and program editors now have Save at the end of the top bar, as every other editor does, instead of a floating button that covered the form. In the program builder on a phone, Save shows as a check mark and Perform moves into the More actions menu.",
-      "On a dance's page and a program's summary, Edit is now a pencil with the page's other actions, and a dance previewed from an online search has Import in the top bar; the floating button at the bottom of the screen is only ever for adding something new to a list.",
+      "The dance and program editors now have Save at the end of the top bar, as every other editor does, instead of a floating button that covered the form. On a phone it shows as a check mark.",
       "An empty Collection, Programs list, venues list or custom fields list, and the Collection's first-run card, show their own New button without a second floating one below it; sort controls appear once there is something to sort.",
       "The Custom Figures and Figure shorthands screens now add a new entry with a floating button at the bottom of the screen, like the other managers, once they have one."
+    ],
+    "removed": [
+      "The program builder's Perform button. Start Perform from the program's summary, where it already was."
     ]
   }
 }

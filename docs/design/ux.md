@@ -285,24 +285,24 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   - **Save.** Every full-screen editor saves from its top bar (maintainer,
     2026-11-18): dance, program, theme, compound, compound shorthand,
     shorthand mapping and dialect. Save is the bar's last action, a labelled
-    button that becomes a check icon when the word does not fit. In the two
-    long editors, dance and program, it is always the icon below 600 dp, and
-    a saved program's builder moves Perform into "⋮" beside Mark all
-    performed, Duplicate and Delete, so the title keeps room (an
-    implementation choice of November 2026, not a maintainer decision; the
-    alternative, keeping Perform on the bar, left the title about 48 dp).
-    The autosaving calling-card layout editor shows no "saved" marker
-    (maintainer, 2026-11-18). A sheet (venue, custom field) keeps its own
-    Cancel and Save row.
-  - **The floating button.** While an empty state or the Collection's
-    first-run card shows its own New button, nothing floats (maintainer,
-    2026-11-18); sort and direction controls also wait until there is
-    something to sort. Otherwise the floating button means "create" on a
-    list and nothing else: a record's Edit (dance detail, program summary)
-    and a preview's Import are top-bar actions (an implementation choice of
-    November 2026, not a maintainer decision; the alternative was an
-    in-content button, which scrolls away on a long dance). A list under
-    a floating button leaves `AppSpacing.fabClearance` below its last row.
+    button that becomes a check icon when the word does not fit; in the two
+    long editors, dance and program, it is always the icon below 600 dp, so
+    the title keeps room (an implementation choice of November 2026; the
+    alternative, the word, left the dance editor's title about 66 dp at
+    320 dp). The autosaving calling-card layout editor shows no "saved"
+    marker (maintainer, 2026-11-18). A sheet (venue, custom field) keeps its
+    own Cancel and Save row.
+  - **Perform** starts from a program's summary, not from the program
+    builder, which is for editing (maintainer, 2026-11-19).
+  - **The floating button** creates, on a list, or opens a record from its
+    read view: Edit on dance detail and the program summary (maintainer,
+    2026-11-19), and Import on a dance previewed from an online search,
+    which takes the same slot (an implementation choice of November 2026; the
+    alternative was a top-bar action). It never saves. While an empty state
+    or the Collection's first-run card shows its own New button, nothing
+    floats (maintainer, 2026-11-18); sort and direction controls also wait
+    until there is something to sort. Content under a floating button leaves
+    `AppSpacing.fabClearance` below its last row.
   - **New.** A full-screen manager (Collection, Programs, venues, custom
     fields, your figures, shorthands) floats New once it has a list; a list
     inside a settings section (dialects, custom themes, the compound

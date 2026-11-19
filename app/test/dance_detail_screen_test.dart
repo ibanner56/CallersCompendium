@@ -39,6 +39,8 @@ import 'package:compendium_app/src/widgets/program_status_chip.dart';
 import 'support/fake_url_launcher.dart';
 import 'support/pdf_probe.dart';
 import 'support/test_repositories.dart';
+import 'support/fab_clearance.dart';
+import 'support/real_fonts.dart';
 import 'support/l10n_harness.dart';
 import 'figures_support.dart';
 
@@ -518,20 +520,13 @@ void main() {
         // (a) No RenderFlex overflow at a 360dp phone width.
         expect(tester.takeException(), isNull);
 
-        // Primary actions stay one-tap on the bar, Edit among them.
+        // Primary actions stay one-tap on the bar (Edit remains the FAB).
         expect(find.byKey(const ValueKey('perform-dance')), findsOneWidget);
         expect(
           find.byKey(const ValueKey('add-dance-to-program')),
           findsOneWidget,
         );
-        expect(
-          find.descendant(
-            of: find.byType(AppBar),
-            matching: find.byKey(const ValueKey('edit-dance')),
-          ),
-          findsOneWidget,
-        );
-        expect(find.byType(FloatingActionButton), findsNothing);
+        expect(find.byKey(const ValueKey('edit-dance')), findsOneWidget);
 
         // Secondary actions are not shown directly on the narrow bar, and the
         // wide-layout Export/dialect popup controls are not used in compact mode.
@@ -1283,23 +1278,11 @@ void main() {
     expect(find.textContaining('CC BY-NC'), findsOneWidget);
   });
 
-  testWidgets('Edit is in the top bar, nothing floats, and Edit opens the '
-      'editor', (tester) async {
+  testWidgets('Edit action opens the editor', (tester) async {
     final repos = openTestRepositories();
     await repos.dances.create(_dance(id: 'd1', title: 'Editable'));
 
     await _pumpDetail(tester, repos, 'd1');
-
-    // The floating slot is for creating on lists; a record's actions are in
-    // its top bar.
-    expect(
-      find.descendant(
-        of: find.byType(AppBar),
-        matching: find.byKey(const ValueKey('edit-dance')),
-      ),
-      findsOneWidget,
-    );
-    expect(find.byType(FloatingActionButton), findsNothing);
 
     await tester.tap(find.byKey(const ValueKey('edit-dance')));
     await tester.pumpAndSettle();
@@ -2759,7 +2742,7 @@ void main() {
         // Rendered affordances unique to the summary — the builder has neither,
         // so these fail if the destination regresses to the editor.
         expect(find.byKey(const ValueKey('open-builder')), findsOneWidget);
-        expect(find.byTooltip('Edit program'), findsOneWidget);
+        expect(find.text('Edit program'), findsOneWidget);
         expect(find.byKey(const ValueKey('summary-perform')), findsOneWidget);
         expect(find.text('Perform this program'), findsOneWidget);
       },
@@ -3435,6 +3418,45 @@ void main() {
       expect(find.textContaining("can't be read"), findsNothing);
       expect(find.byType(FigureTable), findsOneWidget);
     });
+  });
+  group('the floating Edit', () {
+    // Not the 320 dp case: there, at 2× text, a row on this page overflows by
+    // a few pixels on `main` too, a large-text bug of its own. This group is
+    // about the floating button's clearance.
+    for (final c in fabClearanceCases.where((c) => c.width >= 390)) {
+      testWidgets('never covers the end of the page (${c.name})', (
+        tester,
+      ) async {
+        // Real glyph widths: under the full-em test font, large text overflows
+        // rows that fit with the bundled fonts.
+        await loadBundledFonts();
+        final repos = openTestRepositories();
+        await repos.dances.create(
+          _dance(
+            id: 'd1',
+            title: 'Long Dance',
+            figures: [for (var i = 0; i < 16; i++) Figure(move: 'swing')],
+          ),
+        );
+        await _pumpDetail(tester, repos, 'd1', surfaceSize: Size(c.width, 844));
+        await atPhoneSize(
+          tester,
+          width: c.width,
+          scale: c.scale,
+          keyboard: c.keyboard,
+        );
+        await tester.pumpAndSettle();
+
+        // The calling history is the page's last section.
+        await expectFabClearsLastRow(
+          tester,
+          list: find.byType(ListView).first,
+          lastRow: find.byWidgetPredicate(
+            (w) => w.runtimeType.toString() == 'CallingHistorySection',
+          ),
+        );
+      });
+    }
   });
 }
 

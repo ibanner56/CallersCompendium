@@ -479,8 +479,7 @@ becomes a link you can select to jump straight to it.
 
 From the detail view you can:
 
-- **Edit** the dance, with the pencil that comes first among the top bar's
-  actions.
+- **Edit** the dance.
 - **Re-import choreography** from The Caller's Box, ContraDB — by searching for
   the dance's title, or from its link or ID number — or from a single-dance
   Caller's Compendium JSON file. You can also do this when you open a saved
