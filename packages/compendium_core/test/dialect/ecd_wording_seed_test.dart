@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_core/src/dialect/ecd_display.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:test/test.dart';
 
 /// A dialect's wording for an ECD movement starts from the movement's own
@@ -34,7 +35,7 @@ void main() {
       moveWordings: {'ecd_box_the_gnat': stored},
     );
     for (final balance in [true, false]) {
-      final figure = Figure(
+      final figure = testFigure(
         move: 'ecd_box_the_gnat',
         params: {'balance': balance},
       );
