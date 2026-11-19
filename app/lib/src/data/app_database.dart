@@ -158,7 +158,12 @@ CompendiumDatabase openAppDatabase() => CompendiumDatabase(
 /// Bundles the open [CompendiumDatabase] with its [CompendiumRepositories]
 /// facade, so callers dispose of exactly one thing.
 class AppData {
-  AppData(this.db) : repositories = CompendiumRepositories(db, contraTaxonomy);
+  AppData(this.db)
+    : repositories = CompendiumRepositories(
+        db,
+        shippedTaxonomies.anyForm,
+        taxonomyForForm: shippedTaxonomies.forForm,
+      );
 
   final CompendiumDatabase db;
   final CompendiumRepositories repositories;

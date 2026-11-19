@@ -19,7 +19,9 @@ class Taxonomy {
     required this.form,
     required List<MoveDef> moves,
     List<MoveAlias> aliases = const [],
-  }) : moves = Map.unmodifiable({for (final m in moves) m.id: m}),
+    String? label,
+  }) : label = label ?? '${form.name} taxonomy',
+       moves = Map.unmodifiable({for (final m in moves) m.id: m}),
        aliases = Map.unmodifiable({for (final a in aliases) a.id: a}) {
     for (final alias in aliases) {
       final target = this.moves[alias.targetMove];
@@ -94,6 +96,11 @@ class Taxonomy {
 
   final int version;
   final DanceForm form;
+
+  /// What this taxonomy is called in a validation message: `contra taxonomy`
+  /// by default, or a registry's name for a taxonomy that lays several forms'
+  /// moves together (`TaxonomyRegistry`).
+  final String label;
   final Map<String, MoveDef> moves;
   final Map<String, MoveAlias> aliases;
 
@@ -405,7 +412,7 @@ class Taxonomy {
           code: 'unknown_move',
           message:
               'move "${figure.move}" is not in the '
-              '${form.name} taxonomy (v$version)',
+              '$label (v$version)',
         ),
       ];
     }

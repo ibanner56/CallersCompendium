@@ -116,10 +116,25 @@ String _customValueIndexText(Object? value) =>
 /// the sync apply reindexes the dances its batch affected itself afterwards
 /// ([reindexDerived], #1929).
 class DanceRepository {
-  DanceRepository(this._db, this._taxonomy);
+  /// [_taxonomy] resolves, renders and normalizes the stored figures of every
+  /// dance, whatever its form, so the app passes `shippedTaxonomies.anyForm`
+  /// (`TaxonomyRegistry`): a stored move ID's prefix names the form whose
+  /// taxonomy defines it (ADR-006 §5.1). It is also the vocabulary search
+  /// reads move names with, across dances of every form.
+  ///
+  /// [taxonomyForForm] gives the vocabulary a dance's own text is re-parsed
+  /// with (#417), so an import-gap line in a contra dance never becomes
+  /// another form's move; the app passes `shippedTaxonomies.forForm`. Without
+  /// it, every form re-parses with [_taxonomy].
+  DanceRepository(this._db, this._taxonomy, {this._taxonomyForForm});
 
   final CompendiumDatabase _db;
   final Taxonomy _taxonomy;
+  final Taxonomy Function(DanceForm form)? _taxonomyForForm;
+
+  /// The taxonomy a dance of [form]'s text is re-parsed with.
+  Taxonomy _parseTaxonomy(DanceForm form) =>
+      _taxonomyForForm?.call(form) ?? _taxonomy;
 
   /// Returns [dance] with every figure's move id normalised through
   /// [Taxonomy.resolvedMoveId]. Returns the original [dance] unchanged if no
@@ -3437,6 +3452,7 @@ class DanceRepository {
               ..addColumns([
                 _db.dances.id,
                 _db.dances.title,
+                _db.dances.form,
                 _db.dances.figuresJson,
               ])
               ..where(_db.dances.deletedAt.isNull()))
@@ -3457,7 +3473,10 @@ class DanceRepository {
         UnreadableFigures() => null,
       };
       if (figures == null) continue;
-      final outcome = reparse(figures, taxonomy: _taxonomy);
+      final outcome = reparse(
+        figures,
+        taxonomy: _parseTaxonomy(row.readWithConverter(_db.dances.form)!),
+      );
       if (outcome.upgradedCount > 0) {
         previews.add(
           CustomReparsePreview(
@@ -3508,7 +3527,7 @@ class DanceRepository {
           UnreadableFigures() => null,
         };
         if (figures == null) return null;
-        final outcome = reparse(figures, taxonomy: _taxonomy);
+        final outcome = reparse(figures, taxonomy: _parseTaxonomy(dance.form));
         if (outcome.upgradedCount == 0) return null;
         return dance.copyWith(figures: outcome.figures, updatedAt: now);
       },

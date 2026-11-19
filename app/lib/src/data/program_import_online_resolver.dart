@@ -357,7 +357,7 @@ Future<_SourceAttempt> _attemptSource(
       final identical = figuresCanonicallyIdentical(
         oldFigures: oldFigures,
         newFigures: newFigures,
-        taxonomy: contraTaxonomy,
+        taxonomy: shippedTaxonomies.anyForm,
       );
       if (identical) {
         // #685: a true duplicate must never be silently created

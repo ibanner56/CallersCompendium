@@ -148,7 +148,7 @@ Future<pw.Font> loadProgramMatrixMarkerFont() async {
 ///   naturally). Alternates in the list are labelled with [labels.alternate].
 ///   Requires [dialect] and [renderer] when provided; both default sensibly
 ///   ([dialect] falls back to [Dialect.larksRobins], [renderer] to a
-///   fresh [FigureRenderer] using [contraTaxonomy]).
+///   fresh [FigureRenderer] using [TaxonomyRegistry.anyForm]).
 /// - [authorNamesFor] resolves a slot's `danceId` to its already-resolved
 ///   author *names* for the numbered set-list line (issue #1434) — same
 ///   contract as `programToPlainText`'s parameter of the same name. `null`
@@ -182,7 +182,7 @@ Future<Uint8List> buildProgramPdf(
 }) async {
   final resolvedTheme = theme ?? await loadProgramPdfTheme();
   final doc = pw.Document(title: program.title, theme: resolvedTheme);
-  final fig = renderer ?? FigureRenderer(contraTaxonomy);
+  final fig = renderer ?? FigureRenderer(shippedTaxonomies.anyForm);
   final resolvedDialect = dialect ?? Dialect.larksRobins;
 
   final venueText = programPdfVenueText(

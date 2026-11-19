@@ -40,6 +40,18 @@ searchKeywords: [allemande, almond]
 - **Taxonomy is versioned data** (`taxonomyVersion`), shipped with the app,
   loaded per dance-form. Adding moves/params is additive; renames are
   migrations. Stored figures carry `schemaVersion` so old data always parses.
+- **Each form's taxonomy is chosen by `TaxonomyRegistry`**
+  (`shippedTaxonomies`). Contra's owns every move ID with no prefix; another
+  form's IDs all carry its prefix (`ecd_`, ADR-006 §5.1), so a stored ID names
+  the taxonomy that defines it. `forForm(form)` is what a dance of that form
+  is edited and checked with (the form's own taxonomy over contra's, or
+  contra's alone while the form has none); `anyForm` reads a stored figure of
+  any form, for code with no single dance in hand (programs, the repository,
+  sync, search). It resolves IDs; it is not a vocabulary to parse a dance's
+  text with, so the repository re-parses a dance's import-gap lines with
+  `forForm(dance.form)`. Glossary, dialect, shorthand and Settings defaults
+  surfaces, including decoding a stored compound's figures, still use
+  contra's taxonomy directly, until they gain a form of their own.
 - **Aliases** are entries that resolve to a canonical move with pinned params
   (seesaw → dosido{shoulder: left}; swat the flea → box the gnat{hand:
   left}; long lines → forward and back{formation: longLines}). A structured

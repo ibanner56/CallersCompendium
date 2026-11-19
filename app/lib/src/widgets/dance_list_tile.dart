@@ -137,7 +137,7 @@ class DanceListTile extends StatelessWidget {
       context,
     );
     final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
-    final renderer = FigureRenderer(contraTaxonomy);
+    final renderer = FigureRenderer(shippedTaxonomies.anyForm);
     final tile = ListTile(
       selected: selected,
       shape: selectedRowShape(context, selected: selected),
@@ -203,7 +203,7 @@ class DanceListTile extends StatelessWidget {
                   formationDisplayLabel(
                     l10n,
                     dance.formation,
-                    FigureRenderer(contraTaxonomy),
+                    FigureRenderer(shippedTaxonomies.anyForm),
                     ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
                     canonicalizeDiscouragedTerms:
                         CanonicalDiscouragedTermsScope.of(context),

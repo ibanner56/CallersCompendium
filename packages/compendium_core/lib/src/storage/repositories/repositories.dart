@@ -212,7 +212,9 @@ Future<void> _retireMissingNormalisationSkips(
 
 /// Bundles every repository over a single [CompendiumDatabase], so app code
 /// wires up storage once (`CompendiumRepositories(db, taxonomy)`) instead of
-/// constructing each repository individually.
+/// constructing each repository individually. The taxonomy reads the figures
+/// of dances of every form, and `taxonomyForForm` re-parses one dance's text;
+/// see [DanceRepository.new].
 class CompendiumRepositories {
   /// [settings], [dances], [venues] and [choreographers] exist as **test
   /// seams**, and only as that: each defaults to the real repository, so no
@@ -228,13 +230,16 @@ class CompendiumRepositories {
   CompendiumRepositories(
     this.db,
     Taxonomy taxonomy, {
+    Taxonomy Function(DanceForm form)? taxonomyForForm,
     SettingsRepository? settings,
     DanceRepository? dances,
     CollectionImportEventRepository? collectionImports,
     ProgramRepository? programs,
     VenueRepository? venues,
     ChoreographerRepository? choreographers,
-  }) : dances = dances ?? DanceRepository(db, taxonomy),
+  }) : dances =
+           dances ??
+           DanceRepository(db, taxonomy, taxonomyForForm: taxonomyForForm),
        choreographers = choreographers ?? ChoreographerRepository(db),
        tags = TagRepository(db),
        difficultyLevels = DifficultyLevelRepository(db),

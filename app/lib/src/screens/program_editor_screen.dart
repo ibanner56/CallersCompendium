@@ -3983,7 +3983,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             formationLabelBuilder: (formation) => formationDisplayLabel(
               l10n,
               formation,
-              FigureRenderer(contraTaxonomy),
+              FigureRenderer(shippedTaxonomies.anyForm),
               _dialect,
               canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
                 context,
@@ -4049,7 +4049,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           formatFormation: (formation) => formationDisplayLabel(
             l10n,
             formation,
-            FigureRenderer(contraTaxonomy),
+            FigureRenderer(shippedTaxonomies.anyForm),
             dialect,
             canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
           ),
