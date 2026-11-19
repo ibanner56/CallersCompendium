@@ -1,8 +1,8 @@
 /// The desktop OS-handoff seam for the assisted-download flow (ADR-002
 /// "Stage 1.5"): given a **verified** local artifact, hand it to the operating
 /// system so the *user* completes the install. It deliberately never replaces
-/// the running binary in place — that is Stage 2 (Sparkle/WinSparkle), gated on
-/// code-signing.
+/// the running binary in place — that is Stage 2 (Sparkle/WinSparkle), which has not been
+/// built.
 ///
 /// **Launch is gated on verification** (issue #431): the controller only calls
 /// this after the manifest signature *and* the artifact sha256 have passed, and

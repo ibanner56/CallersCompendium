@@ -247,7 +247,9 @@ Settings ▸ Updates additionally offer a **"Download & install"** action that:
    verified `.exe`; the installer terminates and replaces the old installation.
    Linux reveals the containing folder for the user to run the artifact. The app
    **never replaces the running binary in place** — that self-update behavior is
-   Stage 2 and stays gated on code-signing.
+   Stage 2. (Update: signing is no longer what holds Stage 2 back; as of the
+   v0.10.0-beta release macOS and Windows are signed, and Stage 2 has simply not
+   been built.)
 
 The download is always **explicit and user-initiated** (there is no automatic
 background download), the "View release" link remains available as a fallback,
@@ -262,7 +264,9 @@ ecosystem** as the app's existing `window_manager` / `screen_retriever`
 dependencies), which wraps **Sparkle on macOS** and **WinSparkle on Windows**
 and is driven by the **appcast** generated from the manifest data. This stage is
 **gated on code-signing being in place** (Sparkle/WinSparkle require signed
-updates to be trustworthy), so it does not ship until signing exists. Linux
+updates to be trustworthy), so it did not ship until signing existed. (Update:
+signing has been configured and in use since the v0.10.0-beta release, so it no
+longer gates this stage; Stage 2 has simply not been built.) Linux
 continues to use the Stage-1 path (or distro/Flathub updates). **Sparkle system
 profiling stays OFF** — we never set `sendsSystemProfile` — to honor the
 no-telemetry stance.
@@ -497,10 +501,14 @@ Per ADR-001's "pure-Dart core, no Flutter/I-O in business logic" rule:
   can leave the machine." The privacy contract (§5) is what keeps this
   acceptable; it must be honored by the Stage-1 client PR.
 - **Escalation flags to resolve before store submission / Stage 2:**
-  - **Apple Developer Program ($99/yr)** — gates macOS notarization and iOS.
-  - **Windows Trusted Signing configuration** — gates SmartScreen-clean
-    installers and WinSparkle-signed updates; the workflow is wired but remains
-    unsigned when its repository variables are absent.
+  - **Apple Developer Program ($99/yr) — RESOLVED.** Gated macOS notarization
+    and iOS. Apple signing is configured and in use as of the v0.10.0-beta
+    release: its macOS job signed and notarized the macOS artifacts.
+  - **Windows Trusted Signing configuration — RESOLVED.** Gated
+    SmartScreen-clean installers and WinSparkle-signed updates; the workflow was
+    wired but stayed unsigned when its repository variables were absent. The
+    variables are configured and in use as of the v0.10.0-beta release: its
+    Windows job signed the Windows binaries and installer.
   - **Android keystore custody policy — RESOLVED.** Policy: the repository owner is accountable for maintaining encrypted backups of the direct-APK signing key; Google retains the
     distinct Play app-signing key. The channel-specific recovery and rotation
     policy is in the
@@ -518,7 +526,9 @@ Per ADR-001's "pure-Dart core, no Flutter/I-O in business logic" rule:
 
 ## Revisit triggers
 
-- A signing budget (Apple/Windows) is approved → enable Stage 2 auto-update.
+- Stage 2 auto-update is chosen for the next update stage. (Originally "a signing
+  budget (Apple/Windows) is approved"; signing is configured as of the
+  v0.10.0-beta release, so that is no longer the gate.)
 - A store or ecosystem rejects the naming/distribution scheme.
 - The manifest needs a breaking change → bump `manifestSchemaVersion` and
   re-ratify the contract with the producing/consuming PRs.
