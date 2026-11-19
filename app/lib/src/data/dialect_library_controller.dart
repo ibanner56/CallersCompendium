@@ -15,22 +15,43 @@ const String kActiveDialectKey = 'active_dialect';
 /// Each other dance form has a key of its own ([activeDialectRefKeyFor]).
 const String kActiveDialectRefKey = 'active_dialect_ref';
 
+/// Persistence key for English country dance's custom dialects
+/// ([customDialectsKeyFor]).
+const String kCustomDialectsEcdKey = 'custom_dialects_ecd';
+
+/// Persistence key for square dance's custom dialects
+/// ([customDialectsKeyFor]).
+const String kCustomDialectsSquareKey = 'custom_dialects_square';
+
+/// Persistence key for the name of English country dance's active dialect
+/// ([activeDialectRefKeyFor]).
+const String kActiveDialectRefEcdKey = 'active_dialect_ref_ecd';
+
+/// Persistence key for the name of square dance's active dialect
+/// ([activeDialectRefKeyFor]).
+const String kActiveDialectRefSquareKey = 'active_dialect_ref_square';
+
 /// The settings key holding [form]'s custom dialects.
 ///
-/// Each dance form has its own dialects (ADR-006 §9.1, point 1). Contra keeps
-/// the key it has always had, so an older build on another device, which
-/// knows only that one, still reads contra's dialects correctly and keeps the
-/// other forms' keys whole without reading them (ADR-004). Every key is
-/// listed in [dialectSettingKeys].
-String customDialectsKeyFor(DanceForm form) => form == DanceForm.contra
-    ? kCustomDialectsKey
-    : '${kCustomDialectsKey}_${form.name}';
+/// Each dance form has its own dialects (ADR-006 §9.1, point 1), kept under
+/// keys of its own (the maintainer's choice, 2026-11-19). Contra keeps the
+/// key it has always had, so an older build on another device, which knows
+/// only that one, still reads contra's dialects correctly and keeps the other
+/// forms' keys whole without reading them (ADR-004). Every key is listed in
+/// [dialectSettingKeys].
+String customDialectsKeyFor(DanceForm form) => switch (form) {
+  DanceForm.contra => kCustomDialectsKey,
+  DanceForm.ecd => kCustomDialectsEcdKey,
+  DanceForm.square => kCustomDialectsSquareKey,
+};
 
 /// The settings key holding the name of [form]'s active dialect. Contra keeps
 /// [kActiveDialectRefKey]; see [customDialectsKeyFor].
-String activeDialectRefKeyFor(DanceForm form) => form == DanceForm.contra
-    ? kActiveDialectRefKey
-    : '${kActiveDialectRefKey}_${form.name}';
+String activeDialectRefKeyFor(DanceForm form) => switch (form) {
+  DanceForm.contra => kActiveDialectRefKey,
+  DanceForm.ecd => kActiveDialectRefEcdKey,
+  DanceForm.square => kActiveDialectRefSquareKey,
+};
 
 /// The dance form whose custom dialects [key] holds, or `null` when it is not
 /// one of the [customDialectsKeyFor] keys.

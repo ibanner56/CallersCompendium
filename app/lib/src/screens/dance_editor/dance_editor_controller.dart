@@ -774,8 +774,9 @@ class DanceEditorController extends ChangeNotifier {
         titleController.text = seedTitle;
       }
       try {
-        _form = danceFormFromStored(
-          await _repos.settings.get(kDefaultDanceFormKey),
+        _form = resolveNewDanceForm(
+          defaultFormStored: await _repos.settings.get(kDefaultDanceFormKey),
+          lastUsedStored: await _repos.settings.get(kLastUsedDanceFormKey),
         );
       } catch (_) {
         // diagnostics: silent — DanceForm default read failed; falls back to hardcoded contra.

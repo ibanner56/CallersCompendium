@@ -79,6 +79,8 @@ enum SyncMergeAction { none, upload, download, report, review, dropBaseline }
 const Set<String> syncWholeCollectionSettingKeys = {
   'compound_shorthands',
   'custom_dialects',
+  'custom_dialects_ecd',
+  'custom_dialects_square',
   'custom_themes',
   'shorthand_mappings',
   'user_figure_shorthands',

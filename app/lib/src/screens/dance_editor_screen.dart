@@ -517,11 +517,28 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     // The dance is committed. Nothing below may report the save as failed or
     // leave the editor open: for a new dance a second Save would mint a fresh
     // id (`buildDance`) and insert a duplicate.
+    if (_controller.original == null) await _rememberNewDanceForm(dance.form);
     await _clearDraftAfterCommit();
     _controller.clearStagedTags();
     _controller.markSaved();
     if (mounted) {
       Navigator.of(context).pop(dance.id);
+    }
+  }
+
+  /// Records [form] as the form of the last new dance, which a new dance
+  /// starts as while the default form is "last used" (ADR-006 §12.2, S2).
+  /// Best-effort: the dance is already saved, so a failure is only logged,
+  /// and the next new dance starts as the form recorded before.
+  Future<void> _rememberNewDanceForm(DanceForm form) async {
+    try {
+      await _repos.settings.set(kLastUsedDanceFormKey, form.name);
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'dance_editor_screen._rememberNewDanceForm',
+      );
     }
   }
 

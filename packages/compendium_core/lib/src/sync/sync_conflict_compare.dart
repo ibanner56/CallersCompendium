@@ -66,7 +66,7 @@ class SyncCollectionDiff {
 /// the value.
 List<SyncCollectionEntry>? syncCollectionEntries(String key, Object? value) {
   switch (key) {
-    case 'custom_dialects':
+    case 'custom_dialects' || 'custom_dialects_ecd' || 'custom_dialects_square':
       if (value is! List) return null;
       return [
         for (final entry in value)
@@ -497,7 +497,9 @@ const int syncMaxCustomDialects = 128;
 /// when the library next loads, losing entries without a word, so it is
 /// refused instead.
 int? syncCollectionLimit(String key) => switch (key) {
-  'custom_dialects' => syncMaxCustomDialects,
+  'custom_dialects' ||
+  'custom_dialects_ecd' ||
+  'custom_dialects_square' => syncMaxCustomDialects,
   'shorthand_mappings' => maxShorthandMappings,
   compoundShorthandsSettingKey => maxCompoundShorthands,
   userFigureShorthandsSettingKey => maxUserFigureShorthands,

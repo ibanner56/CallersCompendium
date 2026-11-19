@@ -44,8 +44,7 @@ final class DialectsByForm {
       DanceForm.values.every((f) => other.forForm(f) == forForm(f));
 
   @override
-  int get hashCode =>
-      const ListEquality<Dialect>().hash([
-        for (final form in DanceForm.values) forForm(form),
-      ]);
+  int get hashCode => const ListEquality<Dialect>().hash([
+    for (final form in DanceForm.values) forForm(form),
+  ]);
 }

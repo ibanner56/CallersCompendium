@@ -89,7 +89,14 @@ class _DefaultsSectionState extends State<DefaultsSection> {
   /// loaded; the view shows today's hardcoded default until the read resolves.
   /// Each has its own user-set guard so a late read can't clobber an in-view
   /// change and one control's change can't suppress seeding the others.
-  DanceForm? _defaultDanceForm;
+  ///
+  /// The default form is stored as a form's name or
+  /// [kDefaultDanceFormLastUsed] (ADR-006 §12.2, S2).
+  String? _defaultDanceForm;
+
+  /// The form of the last new dance ([kLastUsedDanceFormKey]): what "last
+  /// used" resolves to, for the figures the default figure lists offer.
+  DanceForm _lastUsedDanceForm = DanceForm.contra;
 
   /// The user's new figures that decode (#1023), by name, watched from the
   /// glossary: offered in the default figure lists, and linked under Move
@@ -299,11 +306,19 @@ class _DefaultsSectionState extends State<DefaultsSection> {
             if (value.isNotEmpty) _defaultProgramBand.text = value;
           },
         ),
-        _loadSetting<DanceForm>(
+        _loadSetting<String>(
           key: kDefaultDanceFormKey,
-          decode: danceFormFromStored,
+          decode: (stored) =>
+              defaultDanceFormSettingFromStored(stored)?.name ??
+              kDefaultDanceFormLastUsed,
           userSet: () => _defaultDanceFormUserSet,
           apply: (value) => setState(() => _defaultDanceForm = value),
+          fallback: DanceForm.contra.name,
+        ),
+        _loadSetting<DanceForm>(
+          key: kLastUsedDanceFormKey,
+          decode: danceFormFromStored,
+          apply: (value) => setState(() => _lastUsedDanceForm = value),
           fallback: DanceForm.contra,
         ),
         _loadSetting<FormationShape>(
@@ -649,13 +664,14 @@ class _DefaultsSectionState extends State<DefaultsSection> {
     await persistSetting(repos.settings, kDefaultProgramBandKey, value.trim());
   }
 
-  Future<void> _onDefaultDanceFormChanged(DanceForm value) async {
+  /// [value] is a form's name or [kDefaultDanceFormLastUsed].
+  Future<void> _onDefaultDanceFormChanged(String value) async {
     setState(() {
       _defaultDanceFormUserSet = true;
       _defaultDanceForm = value;
     });
     final repos = RepositoriesScope.of(context);
-    await persistSetting(repos.settings, kDefaultDanceFormKey, value.name);
+    await persistSetting(repos.settings, kDefaultDanceFormKey, value);
   }
 
   Future<void> _onDefaultDanceFormationShapeChanged(
@@ -978,7 +994,10 @@ class _DefaultsSectionState extends State<DefaultsSection> {
     // figures for the default dance form, as the dance editor offers those
     // for a dance's form (maintainer decision 8).
     final figuresShown = customFiguresShown(context);
-    final form = (_defaultDanceForm ?? DanceForm.contra).name;
+    final form = resolveNewDanceForm(
+      defaultFormStored: _defaultDanceForm,
+      lastUsedStored: _lastUsedDanceForm.name,
+    ).name;
     return _DefaultsView(
       userFigureOptions: figuresShown
           ? [
@@ -1041,7 +1060,7 @@ class _DefaultsSectionState extends State<DefaultsSection> {
         setState(() {});
         _persistStartingProgramTemplate();
       },
-      defaultDanceForm: _defaultDanceForm ?? DanceForm.contra,
+      defaultDanceForm: _defaultDanceForm ?? DanceForm.contra.name,
       onDefaultDanceFormChanged: _onDefaultDanceFormChanged,
       defaultDanceFormationShape:
           _defaultDanceFormationShape ?? FormationShape.dupleImproper,
@@ -1682,8 +1701,10 @@ class _DefaultsView extends StatelessWidget {
   final ValueChanged<int> onRemoveStartingProgramEntry;
   final void Function(int oldIndex, int newIndex) onReorderStartingProgramEntry;
   final VoidCallback onAddStartingProgramBreak;
-  final DanceForm defaultDanceForm;
-  final ValueChanged<DanceForm> onDefaultDanceFormChanged;
+
+  /// A form's name, or [kDefaultDanceFormLastUsed].
+  final String defaultDanceForm;
+  final ValueChanged<String> onDefaultDanceFormChanged;
   final FormationShape defaultDanceFormationShape;
   final ValueChanged<FormationShape> onDefaultDanceFormationShapeChanged;
   final Progression defaultDanceProgression;
@@ -2250,7 +2271,7 @@ class _DefaultsView extends StatelessWidget {
             SettingsDropdownRow(
               title: Text(l10n.settingsDefaultsFormTitle),
               subtitle: Text(l10n.settingsDefaultsFormSubtitle),
-              dropdownBuilder: (expanded) => DropdownButton<DanceForm>(
+              dropdownBuilder: (expanded) => DropdownButton<String>(
                 isExpanded: expanded,
                 key: const ValueKey('defaults-dance-form'),
                 value: defaultDanceForm,
@@ -2260,9 +2281,14 @@ class _DefaultsView extends StatelessWidget {
                 items: [
                   for (final form in DanceForm.values)
                     DropdownMenuItem(
-                      value: form,
+                      value: form.name,
                       child: Text(danceFormLabel(l10n, form)),
                     ),
+                  DropdownMenuItem(
+                    key: const ValueKey('defaults-dance-form-last-used'),
+                    value: kDefaultDanceFormLastUsed,
+                    child: Text(l10n.settingsDefaultsFormLastUsed),
+                  ),
                 ],
               ),
             ),

@@ -16,6 +16,24 @@ import '../../l10n/app_localizations.dart';
 String? syncSettingLabel(AppLocalizations l10n, String key) => switch (key) {
   'active_custom_theme' => l10n.syncSettingActiveCustomTheme,
   'active_dialect' || 'active_dialect_ref' => l10n.syncSettingActiveDialect,
+  // Each other dance form's dialects (ADR-006 §9.1, point 1), named with the
+  // form: "Dialect in use: English (ECD)".
+  'active_dialect_ref_ecd' => l10n.syncConflictFieldValue(
+    l10n.syncSettingActiveDialect,
+    l10n.commonDanceFormEcd,
+  ),
+  'active_dialect_ref_square' => l10n.syncConflictFieldValue(
+    l10n.syncSettingActiveDialect,
+    l10n.commonDanceFormSquare,
+  ),
+  'custom_dialects_ecd' => l10n.syncConflictFieldValue(
+    l10n.settingsDialectHeader,
+    l10n.commonDanceFormEcd,
+  ),
+  'custom_dialects_square' => l10n.syncConflictFieldValue(
+    l10n.settingsDialectHeader,
+    l10n.commonDanceFormSquare,
+  ),
   'aggressive_beats_update' => l10n.settingsDefaultsAggressiveBeatsUpdateTitle,
   'app_locale' => l10n.settingsAppLanguageTitle,
   'auto_commit_program_changes' => l10n.settingsProgramAutoCommitTitle,
@@ -41,6 +59,10 @@ String? syncSettingLabel(AppLocalizations l10n, String key) => switch (key) {
   'default_dance_detail_rendering' => l10n.settingsDefaultsCanonicalTitle,
   'default_dance_figures_template' => l10n.settingsDefaultsStartingFiguresTitle,
   'default_dance_form' => l10n.settingsDefaultsFormTitle,
+  'last_used_dance_form' => l10n.syncConflictFieldValue(
+    l10n.settingsDefaultsFormTitle,
+    l10n.settingsDefaultsFormLastUsed,
+  ),
   'default_dance_formation_shape' => l10n.settingsDefaultsFormationTitle,
   'default_dance_phrase_structure' => l10n.settingsDefaultsPhraseLabel,
   'default_dance_progression' => l10n.settingsDefaultsProgressionTitle,
