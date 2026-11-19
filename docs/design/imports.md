@@ -2282,11 +2282,15 @@ migration that turns them into ECD figures. Nothing runs it on its own.
      (which can name another move). Contra silences its defaults there, so a
      default the words do show can become a stated value: the accepted cost
      of this step. A figure that states a value its words hide (a
-     promenade's destination) is not read, nor one that fails contra
-     validation or whose subject was assumed, nor the moves whose words mean
-     something else in ECD: those left out of the twin table for their
-     `who`, and a petronella, whose contra words hide whether it includes the
-     balance. A reading is kept only when every leaf is an ECD move that
+     promenade's destination) is not read, nor one whose reading leaves
+     unstated a value it stores, its contra default included, where the ECD
+     move has a place for it (the contra editor seeds every param, so a
+     promenade entered by hand keeps its `where` and `direction` and stays
+     contra), nor one that fails contra validation or whose subject was
+     assumed, nor the moves whose words mean something else in ECD: those
+     left out of the twin table for their `who` or, for form short waves,
+     their center and sides, and a petronella, whose contra words hide
+     whether it includes the balance. A reading is kept only when every leaf is an ECD move that
      validates against `ecdTaxonomy`. It can be a sequence ("partner balance
      & swing" is a balance, then a swing, keeping the 16 beats it danced),
      which replaces only a top-level figure, so containers never nest. The figure keeps its

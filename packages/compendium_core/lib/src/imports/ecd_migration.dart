@@ -138,15 +138,16 @@ EcdMigration migrateEcdDance({
 final FigureRenderer _contraWords = FigureRenderer(contraTaxonomy);
 
 /// Contra moves whose words mean something else in ECD, so they are never
-/// re-read from their wording: the ones [_twins] leaves out for that reason,
-/// and a petronella, whose contra display hides whether it includes the
-/// balance.
+/// re-read from their wording: the ones [_twins] leaves out for that reason
+/// (a short wave's centre and sides among them), and a petronella, whose
+/// contra display hides whether it includes the balance.
 const Set<String> _unlikeInEcd = {
   'hey',
   'poussette',
   'mad_robin',
   'circular_hey',
   'form_long_waves',
+  'form_short_waves',
   'petronella',
 };
 
@@ -155,15 +156,19 @@ const Set<String> _unlikeInEcd = {
 /// "figures that can parse from ECD we should try to parse"). Null when the
 /// words do not read in full as ECD figures.
 ///
-/// The words are the contra display (`render` in the canonical dialect, role
-/// tokens kept), which leaves out the defaults contra silences, so what is
-/// read is what the person saw. A value the display shows that the figure
-/// did not store can become a stated one here; that is the price of this
-/// step, accepted with it. A figure whose subject the importer assumed
-/// ([Figure.assumedSubject]) is not read this way, since its words state that
-/// subject (R2). Its note, progression mark, walkthrough and wording overrides
-/// are kept, and with no stored count it keeps the count it danced in contra.
-/// [ringDancers] counts a ring fraction in places, as for typed entry.
+/// The words are the contra display (`renderSummary` in the canonical
+/// dialect, role tokens kept, the wording override ignored), which leaves out
+/// the defaults contra silences, so what is read is what the person saw. A
+/// value the display shows that the figure did not store can become a stated
+/// one here; that is the price of this step, accepted with it. The reverse is
+/// refused: a reading that leaves unstated a value the figure stores (its
+/// contra default included, since the contra editor seeds every param) where
+/// the ECD move has a place for it, or a non-default value the words hide. A
+/// figure whose subject the importer assumed ([Figure.assumedSubject]) is not
+/// read this way, since its words state that subject (R2). Its note,
+/// progression mark, walkthrough and wording overrides are kept, and with no
+/// stored count it keeps the count it danced in contra. [ringDancers] counts a
+/// ring fraction in places, as for typed entry.
 Figure? ecdReadingOfContraWording(Figure figure, {int? ringDancers}) {
   if (figure.isContainer || figure.isCustom || figure.assumedSubject) {
     return null;
@@ -196,6 +201,15 @@ Figure? ecdReadingOfContraWording(Figure figure, {int? ringDancers}) {
     ringDancers: ringDancers,
   );
   if (read == null || !_allEcd(read)) return null;
+  // Every value the figure stores, its contra default included (the contra
+  // editor seeds them all), must be stated by the reading wherever the ECD
+  // move has a place for it; a reading that leaves one unstated drops it.
+  for (final entry in figure.params.entries) {
+    final value = entry.value;
+    if (entry.key == 'beats' || !_states(value)) continue;
+    if (_noOpValues[entry.key] == value) continue;
+    if (_dropsParam(read, entry.key)) return null;
+  }
   // A note the reading made (an uncounted ring fraction) and the figure's
   // own note: keep both only when one is absent.
   if (read.note != null && figure.note != null) return null;
@@ -231,6 +245,35 @@ String? _shownWords(Figure figure) {
     );
   } catch (_) {
     return null;
+  }
+}
+
+/// Whether [value] states something: not absent, `false`, `unspecified`,
+/// empty text or an empty list (or one holding only `unspecified`).
+bool _states(Object? value) => switch (value) {
+  null || false || 'unspecified' || '' => false,
+  List(:final isEmpty) when isEmpty => false,
+  List() => value.any(_states),
+  _ => true,
+};
+
+/// Whether [reading] has a place for [key] (a leaf's ECD move has the param)
+/// and states no value there; a container drops it when no leaf with a place
+/// for it states one.
+bool _dropsParam(Figure reading, String key) {
+  final leaves = _leaves(reading).where(
+    (leaf) => ecdTaxonomy.resolve(leaf.move)?.params.containsKey(key) ?? false,
+  );
+  return leaves.isNotEmpty && !leaves.any((leaf) => _states(leaf.params[key]));
+}
+
+Iterable<Figure> _leaves(Figure figure) sync* {
+  if (figure.isContainer) {
+    for (final sub in figure.subFigures) {
+      yield* _leaves(sub);
+    }
+  } else {
+    yield figure;
   }
 }
 

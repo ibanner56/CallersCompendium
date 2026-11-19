@@ -257,6 +257,26 @@ void main() {
       );
     });
 
+    test('not when its reading drops a value the contra editor stored', () {
+      // The contra editor seeds every param, defaults included: a promenade
+      // entered by hand stores where it goes and which way. "partner
+      // promenade" reads in ECD without either, so it stays contra; so does a
+      // short wave, whose centre, hand and sides the ECD move would not hold.
+      for (final move in ['promenade', 'form_short_waves']) {
+        final seeded = _f(move, {
+          ...contraTaxonomy.entryParams(move),
+          if (move == 'promenade') 'beats': 8,
+        });
+        expect(ecdReadingOfContraWording(seeded), isNull, reason: move);
+        final out = migrateEcdDance(
+          figures: [seeded],
+          formation: const Formation(FormationShape.dupleMinor),
+        );
+        expect(out.figures.single.move, move, reason: move);
+        expect(out.movesConverted, 0, reason: move);
+      }
+    });
+
     test('as a sequence at the top level only', () {
       // "partner balance & swing" reads as an ECD balance then swing, and
       // keeps the 16 beats the contra balance and swing danced.
