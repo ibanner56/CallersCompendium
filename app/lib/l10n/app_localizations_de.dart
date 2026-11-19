@@ -5329,9 +5329,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get programsNoLongerExists => 'Dieses Programm existiert nicht mehr.';
 
   @override
-  String get programsFallbackTitle => 'Programm';
-
-  @override
   String get programsUntitledDanceFallback => 'Tanz';
 
   @override

@@ -713,9 +713,9 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     widget.onDeleted();
   }
 
-  /// Launches the large-print Perform view for the current saved program,
-  /// mirroring [ProgramEditorScreen]'s perform launch. No-op when there is
-  /// nothing to perform or the reference data has not finished loading.
+  /// Launches the large-print Perform view for the current saved program: the
+  /// app's only way into program Perform. No-op when there is nothing to
+  /// perform or the reference data has not finished loading.
   Future<void> _performProgram() async {
     final program = _program;
     final data = _collectionData;

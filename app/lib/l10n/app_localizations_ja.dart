@@ -5037,9 +5037,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programsNoLongerExists => 'このプログラムはもう存在しません。';
 
   @override
-  String get programsFallbackTitle => 'プログラム';
-
-  @override
   String get programsUntitledDanceFallback => 'ダンス';
 
   @override

@@ -8050,12 +8050,6 @@ abstract class AppLocalizations {
   /// **'This program no longer exists.'**
   String get programsNoLongerExists;
 
-  /// Fallback title used for an untitled program when opening the Perform view from an unsaved draft.
-  ///
-  /// In en, this message translates to:
-  /// **'Program'**
-  String get programsFallbackTitle;
-
   /// Fallback word used in place of a dance title when the title is unavailable, in add-dance confirmation messages.
   ///
   /// In en, this message translates to:

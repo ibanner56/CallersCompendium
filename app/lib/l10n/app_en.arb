@@ -6779,10 +6779,6 @@
   "@programsNoLongerExists": {
     "description": "Error shown in the program editor when the program was deleted and can no longer be loaded."
   },
-  "programsFallbackTitle": "Program",
-  "@programsFallbackTitle": {
-    "description": "Fallback title used for an untitled program when opening the Perform view from an unsaved draft."
-  },
   "programsUntitledDanceFallback": "dance",
   "@programsUntitledDanceFallback": {
     "description": "Fallback word used in place of a dance title when the title is unavailable, in add-dance confirmation messages."

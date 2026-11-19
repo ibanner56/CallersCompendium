@@ -1183,18 +1183,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
 
   final DraftSaveHealth _draftHealth = DraftSaveHealth();
 
-  Future<void> _saveDraft({
-    ProgramEditorDraft? preparedDraft,
-    bool surfaceErrors = false,
-  }) {
-    if (_shutdownFlushActive && preparedDraft == null) {
-      return Future<void>.value();
-    }
+  Future<void> _saveDraft({bool surfaceErrors = false}) {
+    if (_shutdownFlushActive) return Future<void>.value();
     if (!_loaded || !mounted || _restoringDraft) {
       return Future<void>.value();
     }
     final generation = _draftGeneration;
-    final draft = preparedDraft ?? _captureDraft();
+    final draft = _captureDraft();
     final key = _draftKey;
     // Chain onto the tail (rather than racing a fresh write) so overlapping
     // autosaves never write concurrently, and so the tail always reflects

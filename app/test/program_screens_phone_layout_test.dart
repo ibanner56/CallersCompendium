@@ -12,6 +12,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/show_performed_toggles_scope.dart';
+import 'package:compendium_app/src/screens/perform_program_screen.dart';
 import 'package:compendium_app/src/screens/program_summary_screen.dart';
 import 'package:compendium_app/src/screens/programs_shell.dart';
 
@@ -271,6 +272,24 @@ void main() {
       expect(tester.getSize(_key('slot-s0-title')).width, greaterThan(150));
       expect(tester.getSize(_key('slot-s1-title')).width, greaterThan(70));
     });
+  });
+
+  testWidgets('opening Perform from the summary withdraws Mark all '
+      'performed\'s Undo', (tester) async {
+    final repos = await _seed();
+    await _openSummaryOnPhone(tester, repos);
+    await tester.tap(_key('summary-actions-overflow'));
+    await tester.pumpAndSettle();
+    await tester.tap(_key('mark-all-performed'));
+    await tester.pumpAndSettle();
+    expect(find.byType(SnackBarAction), findsOneWidget);
+
+    // The Undo lives in the app-wide messenger, so without withdrawing it, it
+    // would sit over Perform and could take back marks Perform has built on.
+    await tester.tap(_key('summary-perform'));
+    await tester.pumpAndSettle();
+    expect(find.byType(PerformProgramScreen), findsOneWidget);
+    expect(find.byType(SnackBarAction), findsNothing);
   });
 
   group('the summary\'s floating Edit program', () {

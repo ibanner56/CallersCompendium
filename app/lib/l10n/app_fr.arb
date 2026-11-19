@@ -5280,10 +5280,6 @@
   "@programsNoLongerExists": {
     "x-sourceSha256": "653f7a4535912169dd16e30532e2a248cbf249eb88ff18a03d9fcf154dd98686"
   },
-  "programsFallbackTitle": "Programme",
-  "@programsFallbackTitle": {
-    "x-sourceSha256": "90920d93e2c7e6323a947c6edb0e31a9702002e329af32a67fea53f221983cb0"
-  },
   "programsUntitledDanceFallback": "danse",
   "@programsUntitledDanceFallback": {
     "x-sourceSha256": "2c371c2ada73a02e26e14416800e8a49f875d27b8b5ff31f1dbe37bdaa6d7faa"
