@@ -258,14 +258,14 @@ and A11a's dismiss/`dismissedVersion` behavior is preserved. **Mobile
 The download/verify/handoff logic lives behind injectable, Flutter-free seams
 (per §8 / ADR-001), mirroring the Stage-1 fetch seam.
 
-**Stage 2 (true auto-update, gated on code-signing).** Later, desktop gains real
+**Stage 2 (true auto-update; originally gated on code-signing, now simply not built).** Later, desktop gains real
 in-app update via the **`auto_updater`** package (leanflutter — the **same
 ecosystem** as the app's existing `window_manager` / `screen_retriever`
 dependencies), which wraps **Sparkle on macOS** and **WinSparkle on Windows**
 and is driven by the **appcast** generated from the manifest data. This stage is
 **gated on code-signing being in place** (Sparkle/WinSparkle require signed
 updates to be trustworthy), so it did not ship until signing existed. (Update:
-signing has been configured and in use since the v0.10.0-beta release, so it no
+signing is configured and in use as of the v0.10.0-beta release, so it no
 longer gates this stage; Stage 2 has simply not been built.) Linux
 continues to use the Stage-1 path (or distro/Flathub updates). **Sparkle system
 profiling stays OFF** — we never set `sendsSystemProfile` — to honor the
@@ -522,7 +522,7 @@ Per ADR-001's "pure-Dart core, no Flutter/I-O in business logic" rule:
   shared by producer and consumer, and a free integrity layer everywhere.
 - **Harder / debts accepted:** we take on maintaining the manifest/appcast
   generation, the downgrade guard + backup-before-migrate wiring, and the
-  per-platform signing pipelines when budget allows.
+  per-platform signing pipelines (since built; see the notes under §6).
 
 ## Revisit triggers
 

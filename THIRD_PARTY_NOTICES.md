@@ -114,7 +114,7 @@ generate the four-word IDs that identify a device-sync account.
 ## ContraDB
 
 [ContraDB](https://github.com/contradb/contra) by David Morse is licensed under
-AGPL-3.0, the same licence as Caller's Compendium.
+AGPL-3.0, the same licence family as Caller's Compendium (AGPL-3.0-only).
 [`docs/research/contradb.md`](docs/research/contradb.md) records the decision
 to reuse its design with attribution. No ContraDB source code is transcribed,
 but the figure sentence structure and modifier phrasing produced by
