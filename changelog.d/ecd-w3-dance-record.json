@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "added": [
-      "Dances can now be stored in English country dance formations (duple minor, triple minor, a two-couple set, three- to six-couple longways, circle, Sicilian circle and square) and marked improper, and can record the tune's meter and key. Backups, share files and Device Sync carry them. Entering them in the dance editor comes in a later release. An older version of the app can't restore a backup that holds them, and a device on an older version skips a synced dance in one of the new formations, with any program or related dance that names it, until it is updated."
+      "Dances can now be stored in English country dance formations (duple minor, triple minor, a two-couple set, three- to six-couple longways, circle, Sicilian circle and square) and marked improper, and can record the tune's meter and key. Backups, share files and Device Sync carry them. An older version of the app can't restore a backup that holds them, and a device on an older version skips a synced dance in one of the new formations, with any program or related dance that names it, until it is updated."
     ]
   },
   "core": {

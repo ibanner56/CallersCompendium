@@ -52,6 +52,12 @@ focused. As you type there, the app offers matching [moves](./glossary.md#move);
 press Enter to accept one and it is added with that move's default settings.
 Typing `sw` and pressing Enter, for example, gives you a swing.
 
+The moves offered are those of the dance's **Type**: an English dance offers
+English figures, such as set, turn single, siding and the heys, and a contra
+dance offers contra figures. A square dance has no figures of its own yet, so
+it offers contra's. A figure the dance already holds from another type stays as
+it is; it just isn't offered for a new row.
+
 With **Free-text entry** on, **Add figure** opens **Type a figure** instead: one
 box that takes a whole line and offers no move suggestions. Press Enter and the
 line is added; `sw` typed there on its own is an unrecognized figure, not a swing. See
@@ -584,13 +590,24 @@ nothing in it to lose.
 - **Title** — required.
 - **Authors** — the [author](./glossary.md#author) or authors of the dance.
   Type to find an existing author or create a new one.
+- For an **English (ECD)** dance, the credits for its original and its
+  interpretation come next: **Composed**, **Interpreted by** and
+  **Interpreted in**. Many English dances were published long ago and
+  reconstructed later, as in "Walsh, 1731, Pat Shaw version": put the
+  original's author or publisher in **Authors** and its year in **Composed**, and
+  the person who reconstructed it, and when, in the other two. **Interpreted
+  by** draws on the same list of people as **Authors**. For other types these
+  three fields are in **More details**.
 - **Type** — **Contra**, **English (ECD)**, or **Square**. It sets the icon on
   the dance's row in your collection and what the **Type** filter finds. A new
   dance starts with your default type (see
   [Start new dances the way you work](#start-new-dances-the-way-you-work)); change
   it here for any one dance.
 - **Formation** and **Formation detail** — the shape the dance is danced in, plus
-  anything worth adding in words.
+  anything worth adding in words. An English dance offers English formations,
+  such as duple minor, triple minor and three-couple longways, with a
+  **Starts improper** checkbox; leave it unchecked for a dance that starts
+  proper.
 - **Mixer** — tick this when the dance is a
   [mixer](./glossary.md#mixer): one where you change partners each time through.
   It's kept separate from the formation, because a mixer can be danced in many
@@ -598,6 +615,9 @@ nothing in it to lose.
 - **Phrase structure** — leave it blank for the standard A1 A2 B1 B2, or write
   your own (the field suggests `6*8*2` as an example). The app checks that what you
   write is a valid structure, and uses it for the beat count above.
+- **Meter** and **Key** — the tune's written meter, such as `3/2`, and its key,
+  such as `G minor`, in your own words. They sit here for an English dance and
+  in **More details** for other types.
 
 ### Notes
 
@@ -641,7 +661,9 @@ them. Editing one there updates the default used everywhere.
 | **Level** and **Status** | How hard it is, and where it is in your workflow |
 | **Mixed level** | For dances that span the difficulty scale |
 | **Rating** | Your own star rating, with **Clear rating** to unset it |
-| **Composed** / **Revised** | A year, optionally with a month and day |
+| **Composed** / **Revised** | A year, optionally with a month and day; Composed is up front for an English dance |
+| **Interpreted by** / **Interpreted in** | Who reconstructed the dance from its original, and when; up front for an English dance |
+| **Meter** / **Key** | The tune's written meter and key; up front for an English dance |
 | **Tags** | Your own labels |
 | **Tunes** | Tunes you like with this dance |
 | **Links** | A URL with an optional label, marked **Source**, **Video**, or **Other** |

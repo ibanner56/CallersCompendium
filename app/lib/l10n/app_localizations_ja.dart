@@ -3918,6 +3918,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorMusicalKeyLabel => '調';
 
   @override
+  String get danceEditorMeterHint => '例: 3/2';
+
+  @override
+  String get danceEditorMusicalKeyHint => '例: ト短調';
+
+  @override
   String get commonMixedLevel => 'ミックスレベル';
 
   @override
@@ -8178,6 +8184,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorMixerSubtitle => '踊るたびにパートナーが変わります';
 
   @override
+  String get danceEditorImproperLabel => 'インプロパーで始まる';
+
+  @override
+  String get danceEditorImproperSubtitle => 'プロパーで始まるダンスではチェックを外したままにします。';
+
+  @override
   String get danceEditorComposedLabel => '振付年';
 
   @override
@@ -8188,6 +8200,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get danceEditorInterpretedOnLabel => '解釈年';
+
+  @override
+  String get danceEditorInterpretedOnHelper => 'ダンスが解釈された日時（年、または月/日を追加）';
 
   @override
   String get danceEditorRevisedLabel => '改訂年';

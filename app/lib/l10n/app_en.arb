@@ -5189,6 +5189,14 @@
   "@danceEditorMusicalKeyLabel": {
     "description": "Label for the musical key of a dance's tune as free text, for example G minor."
   },
+  "danceEditorMeterHint": "e.g. 3/2",
+  "@danceEditorMeterHint": {
+    "description": "Hint in the dance editor's meter field: an example of a written meter."
+  },
+  "danceEditorMusicalKeyHint": "e.g. G minor",
+  "@danceEditorMusicalKeyHint": {
+    "description": "Hint in the dance editor's key field: an example of a musical key."
+  },
   "commonMixedLevel": "Mixed level",
   "@commonMixedLevel": {
     "description": "Label indicating a dance suits mixed experience levels; used as a filter chip/section and a dance indicator chip."
@@ -11060,6 +11068,14 @@
   "@danceEditorMixerSubtitle": {
     "description": "Subtitle explaining the mixer checkbox in the dance editor: the dance progresses dancers to a new partner each time through the sequence."
   },
+  "danceEditorImproperLabel": "Starts improper",
+  "@danceEditorImproperLabel": {
+    "description": "Checkbox in the dance editor, offered for English country dances only: the dance starts improper (the first couple crossed over). Unchecked means it starts proper, the default."
+  },
+  "danceEditorImproperSubtitle": "Leave unchecked for a dance that starts proper.",
+  "@danceEditorImproperSubtitle": {
+    "description": "Subtitle of the 'Starts improper' checkbox in the dance editor."
+  },
   "danceEditorComposedLabel": "Composed",
   "@danceEditorComposedLabel": {
     "description": "Label for the partial date when the dance was composed."
@@ -11075,6 +11091,10 @@
   "danceEditorInterpretedOnLabel": "Interpreted in",
   "@danceEditorInterpretedOnLabel": {
     "description": "Label for the partial date (a year, or a fuller date) when the dance was interpreted, like the Composed date."
+  },
+  "danceEditorInterpretedOnHelper": "When the dance was interpreted (year, or add month/day)",
+  "@danceEditorInterpretedOnHelper": {
+    "description": "Helper text for the interpreted-date field, like the composed-date field's helper."
   },
   "danceEditorRevisedLabel": "Revised",
   "@danceEditorRevisedLabel": {

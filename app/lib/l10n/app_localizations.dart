@@ -6406,6 +6406,18 @@ abstract class AppLocalizations {
   /// **'Key'**
   String get danceEditorMusicalKeyLabel;
 
+  /// Hint in the dance editor's meter field: an example of a written meter.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. 3/2'**
+  String get danceEditorMeterHint;
+
+  /// Hint in the dance editor's key field: an example of a musical key.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. G minor'**
+  String get danceEditorMusicalKeyHint;
+
   /// Label indicating a dance suits mixed experience levels; used as a filter chip/section and a dance indicator chip.
   ///
   /// In en, this message translates to:
@@ -12658,6 +12670,18 @@ abstract class AppLocalizations {
   /// **'Dancers change partners each time through'**
   String get danceEditorMixerSubtitle;
 
+  /// Checkbox in the dance editor, offered for English country dances only: the dance starts improper (the first couple crossed over). Unchecked means it starts proper, the default.
+  ///
+  /// In en, this message translates to:
+  /// **'Starts improper'**
+  String get danceEditorImproperLabel;
+
+  /// Subtitle of the 'Starts improper' checkbox in the dance editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave unchecked for a dance that starts proper.'**
+  String get danceEditorImproperSubtitle;
+
   /// Label for the partial date when the dance was composed.
   ///
   /// In en, this message translates to:
@@ -12681,6 +12705,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Interpreted in'**
   String get danceEditorInterpretedOnLabel;
+
+  /// Helper text for the interpreted-date field, like the composed-date field's helper.
+  ///
+  /// In en, this message translates to:
+  /// **'When the dance was interpreted (year, or add month/day)'**
+  String get danceEditorInterpretedOnHelper;
 
   /// Label for the partial date when the dance was last revised.
   ///

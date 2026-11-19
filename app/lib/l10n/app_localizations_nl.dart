@@ -4140,6 +4140,12 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorMusicalKeyLabel => 'Toonsoort';
 
   @override
+  String get danceEditorMeterHint => 'bijv. 3/2';
+
+  @override
+  String get danceEditorMusicalKeyHint => 'bijv. g mineur';
+
+  @override
   String get commonMixedLevel => 'Gemengd niveau';
 
   @override
@@ -8587,6 +8593,13 @@ class AppLocalizationsNl extends AppLocalizations {
       'Dansers wisselen elke keer van partner';
 
   @override
+  String get danceEditorImproperLabel => 'Begint improper';
+
+  @override
+  String get danceEditorImproperSubtitle =>
+      'Laat leeg voor een dans die proper begint.';
+
+  @override
   String get danceEditorComposedLabel => 'Gecomponeerd';
 
   @override
@@ -8598,6 +8611,10 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get danceEditorInterpretedOnLabel => 'Geïnterpreteerd';
+
+  @override
+  String get danceEditorInterpretedOnHelper =>
+      'Wanneer de dans is geïnterpreteerd (jaar, of voeg maand/dag toe)';
 
   @override
   String get danceEditorRevisedLabel => 'Herzien';
