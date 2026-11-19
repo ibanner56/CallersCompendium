@@ -117,7 +117,7 @@ void main() {
       final d = Dialect(
         name: 'X',
         moves: const {'chain': 'ladies chain'},
-        dancers: const {'onesRole1': 'first woman'},
+        dancers: const {'onesRole1': 'first woman', 'twosRole1': 'first man'},
         moveWordings: const {'swing': '{who} swing the lady'},
         moveWordingBranches: const {
           'promenade': {'ordinary': '{who} {move} with the gents'},
@@ -125,7 +125,13 @@ void main() {
       );
       expect(
         gendered(d),
-        unorderedEquals(['chain', 'onesRole1', 'swing', 'promenade.ordinary']),
+        unorderedEquals([
+          'chain',
+          'onesRole1',
+          'twosRole1',
+          'swing',
+          'promenade.ordinary',
+        ]),
       );
     });
 
@@ -178,7 +184,11 @@ void main() {
         'v': 2,
         'name': 'Old',
         'moves': {'chain': 'ladies chain', 'do_si_do': 'dosido'},
-        'dancers': {'onesRole1': 'first woman', 'neighbors': 'the others'},
+        'dancers': {
+          'onesRole1': 'first woman',
+          'twosRole1': 'the men',
+          'neighbors': 'the others',
+        },
         'moveWordings': {
           'swing': '{who} swing the lady',
           'allemande': '{who} allemande',

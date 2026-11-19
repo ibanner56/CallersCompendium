@@ -358,8 +358,9 @@ class Dialect {
     if (dancersJson is Map) {
       for (final entry in dancersJson.entries) {
         final value = entry.value;
-        if (value is String &&
-            genderedRoleWordIn(value, inProse: true) == null) {
+        // A dancer substitution names dancers, a role position, so "man"
+        // and "men" count there as they do in a role term.
+        if (value is String && genderedRoleWordIn(value) == null) {
           dancers[entry.key.toString()] = value;
         }
       }
@@ -530,7 +531,7 @@ class Dialect {
       checkGendered(e.key, e.value);
     }
     for (final e in dancers.entries) {
-      checkGendered(e.key, e.value);
+      checkGendered(e.key, e.value, inProse: false);
     }
     for (final e in moveWordings.entries) {
       checkGendered(e.key, e.value);

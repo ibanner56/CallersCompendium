@@ -32,9 +32,9 @@ final RegExp _nonWord = RegExp(r'[^\p{L}\p{M}]+', unicode: true);
 
 /// The gendered role words that are also everyday words in a language the
 /// app ships: "man" is the impersonal pronoun in German and Danish ("one"),
-/// and "men" in Dutch. In a sentence (a move wording, a substitution, a
-/// dialect's name) they are not taken as gendered; as a role term on their
-/// own, they are.
+/// and "men" in Dutch. In a sentence (a move wording, a move substitution,
+/// a dialect's name) they are not taken as gendered; in a role position (a
+/// role term, a dancer substitution) they are.
 const Set<String> _alsoPronouns = {'man', 'men'};
 
 /// The first gendered role word that [text] holds as a whole word

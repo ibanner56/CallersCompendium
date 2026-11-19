@@ -95,7 +95,8 @@ built figure.
   Leads/Follows (plus Canonical). No dialect may show a gendered role word
   (`genderedRoleWords`: gent(s), gentleman/men, man/men, lady/ladies,
   woman/women; Hudson's rule, 2026-11-18). "man" and "men" count only as a
-  role term on their own: in a wording, substitution or dialect name they are
+  role term or a dancer substitution: in a wording, move substitution or
+  dialect name they are
   also the impersonal pronoun of shipped locales (German and Danish "man",
   Dutch "men"), so they are not refused or dropped there (implementer's call;
   refusing them everywhere would delete those users' wordings). `Dialect.validate` reports
