@@ -318,6 +318,15 @@ class DanceEditorController extends ChangeNotifier {
   /// When the dance was interpreted ([Dance.interpretedOn]).
   PartialDate? get interpretedOn => _interpretedOn;
 
+  /// Keys for the Composed and Interpreted in fields, which move between
+  /// More details and the top of the form when the form changes
+  /// ([showsCreditsUpFront]): a global key carries a half-entered date (a
+  /// month picked before its year) across the move instead of losing it.
+  final GlobalKey composedOnFieldKey = GlobalKey(debugLabel: 'composed-on');
+  final GlobalKey interpretedOnFieldKey = GlobalKey(
+    debugLabel: 'interpreted-on',
+  );
+
   /// Whether the interpretation credits (Interpreted by, Interpreted in) and
   /// the Composed date are shown up front, beside the authors, rather than
   /// in More details: for ECD, where most dances credit both an original and
@@ -974,8 +983,9 @@ class DanceEditorController extends ChangeNotifier {
     _pendingDraft = null;
   }
 
-  /// [draft]'s authors and tags as they stand now, for a draft restored in a
-  /// later session: each id through the merge aliases to the author or tag it
+  /// [draft]'s authors, interpreters and tags as they stand now, for a draft
+  /// restored in a later session: each id through the merge aliases to the
+  /// person or tag it
   /// became, in the order one merge leaves a stored dance
   /// ([mergedReferenceOrder]), and those no longer live dropped; a tag staged
   /// in the draft stays. Several merges made at different times can come back
@@ -1015,10 +1025,19 @@ class DanceEditorController extends ChangeNotifier {
       return out;
     }
 
+    Future<bool> personIsLive(String id) async =>
+        await _repos.choreographers.getById(id) != null;
     final authors = await live(
       draft.authorIds,
       SyncRecordKind.choreographer,
-      (id) async => await _repos.choreographers.getById(id) != null,
+      personIsLive,
+    );
+    // Interpreters come from the same people list, and a merge or delete
+    // rewrites their credits as it does an author's.
+    final interpreters = await live(
+      draft.interpreterIds,
+      SyncRecordKind.choreographer,
+      personIsLive,
     );
     // A staged tag exists only in the draft until Save creates it.
     final staged = {for (final tag in draft.stagedTags) tag.id};
@@ -1029,10 +1048,15 @@ class DanceEditorController extends ChangeNotifier {
           staged.contains(id) || await _repos.tags.getById(id) != null,
     );
     if (listEquals(authors, draft.authorIds) &&
+        listEquals(interpreters, draft.interpreterIds) &&
         listEquals(tags, draft.tagIds)) {
       return draft;
     }
-    return draft.copyWith(authorIds: authors, tagIds: tags);
+    return draft.copyWith(
+      authorIds: authors,
+      interpreterIds: interpreters,
+      tagIds: tags,
+    );
   }
 
   /// Applies a restored draft snapshot and resets the undo stack so the restored

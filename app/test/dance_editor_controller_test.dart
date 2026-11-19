@@ -3297,6 +3297,34 @@ void main() {
       },
     );
 
+    test('a restored draft credits a merged interpreter\'s survivor and drops '
+        'a deleted one', () async {
+      const s = '00000000-0000-4000-8000-00000000000a';
+      const l = '00000000-0000-4000-8000-00000000000b';
+      const x = '00000000-0000-4000-8000-00000000000c';
+      final repos = openTestRepositories();
+      for (final (id, name) in [(s, 'Ann'), (l, 'Bea'), (x, 'Cat')]) {
+        // ignore: unused_result
+        await repos.choreographers.upsert(Choreographer(id: id, name: name));
+      }
+      final controller = await newDanceController(repos);
+      addTearDown(controller.dispose);
+      controller.addInterpreter(l);
+      controller.addInterpreter(x);
+      final draft = controller.captureSnapshot();
+      // ignore: unused_result
+      await repos.references.merge(
+        ReferenceKind.author,
+        intoId: s,
+        otherIds: [l],
+      );
+      // ignore: unused_result
+      await repos.references.deleteUnused(ReferenceKind.author, x);
+
+      final current = await controller.withLiveReferences(draft);
+      expect(current.interpreterIds, [s]);
+    });
+
     test('a draft whose references are all live comes back as it is', () async {
       final repos = openTestRepositories();
       final controller = await newDanceController(repos);

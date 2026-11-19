@@ -108,7 +108,11 @@ bool isNewDanceEditorDraftKey(String key) {
 ///   (ADR-006 §12.1 F2 and F3, §9.2 point 7), each omitted when empty, false
 ///   or unset. A build that ignores them predates the database version that
 ///   stores them (v42), and a database of that version cannot be opened by
-///   it, so no older build ever restores a draft that holds them.
+///   it, so no older build ever restores a draft that holds them. The other
+///   way round, a draft written before them decodes them as empty, and Save
+///   writes that over the stored dance; such a draft predates v42, so the
+///   dance can hold them only if sync has brought them since, which the
+///   restore prompt reports as a change to the dance (AUTH-10).
 ///
 /// An older build does look for a new dance's draft under the shared key
 /// `editor_draft:new` only, so after a downgrade it does not

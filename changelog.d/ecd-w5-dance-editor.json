@@ -6,7 +6,7 @@
       "The dance editor has fields for the tune's meter and key, and for who interpreted a dance and when. For an English country dance they sit up front, beside the authors and the Composed date, with a Starts improper checkbox under the formation; for other types of dance they are in More details."
     ],
     "changed": [
-      "The figure picker offers only the figures of the dance's own type: an English dance no longer offers contra figures such as the swing. A figure a dance already holds from another type is kept as it is."
+      "The figure picker in an English dance offers only English figures: it no longer offers contra figures such as the swing. A figure a dance already holds from another type is kept as it is."
     ]
   }
 }

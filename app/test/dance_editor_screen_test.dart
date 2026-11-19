@@ -2431,6 +2431,26 @@ void main() {
       expect(find.byKey(const ValueKey('interpreted-on-year')), findsOneWidget);
     });
 
+    testWidgets('a date half entered keeps its text when a change of form '
+        'moves the field', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Original'));
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await _expandMoreDetails(tester);
+
+      final year = find.byKey(const ValueKey('composed-on-year'));
+      await tester.enterText(year, '19');
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.byKey(const ValueKey('form-field')));
+      await tester.tap(find.byKey(const ValueKey('form-field')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('English (ECD)').last);
+      await tester.pumpAndSettle();
+
+      expect(tester.widget<TextField>(year).controller?.text, '19');
+    });
+
     testWidgets('switching an English dance to contra saves it proper, and '
         'switching back restores the checkbox', (tester) async {
       final repos = await withEcdDance();

@@ -682,6 +682,7 @@ class DanceEditorForm extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     return [
       PartialDateField(
+        key: controller.composedOnFieldKey,
         fieldKey: 'composed-on',
         label: l10n.danceEditorComposedLabel,
         helperText: l10n.danceEditorComposedHelper,
@@ -703,6 +704,7 @@ class DanceEditorForm extends StatelessWidget {
       ),
       const SizedBox(height: AppSpacing.md),
       PartialDateField(
+        key: controller.interpretedOnFieldKey,
         fieldKey: 'interpreted-on',
         label: l10n.danceEditorInterpretedOnLabel,
         helperText: l10n.danceEditorInterpretedOnHelper,

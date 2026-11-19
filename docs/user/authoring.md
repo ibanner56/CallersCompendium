@@ -54,8 +54,9 @@ Typing `sw` and pressing Enter, for example, gives you a swing.
 
 The moves offered are those of the dance's **Type**: an English dance offers
 English figures, such as set, turn single, siding and the heys, and a contra
-dance offers contra figures. A figure the dance already holds from another type
-stays as it is; it just isn't offered for a new row.
+dance offers contra figures. A square dance has no figures of its own yet, so
+it offers contra's. A figure the dance already holds from another type stays as
+it is; it just isn't offered for a new row.
 
 With **Free-text entry** on, **Add figure** opens **Type a figure** instead: one
 box that takes a whole line and offers no move suggestions. Press Enter and the
@@ -659,7 +660,7 @@ them. Editing one there updates the default used everywhere.
 | **Level** and **Status** | How hard it is, and where it is in your workflow |
 | **Mixed level** | For dances that span the difficulty scale |
 | **Rating** | Your own star rating, with **Clear rating** to unset it |
-| **Composed** / **Revised** | A year, optionally with a month and day |
+| **Composed** / **Revised** | A year, optionally with a month and day; Composed is up front for an English dance |
 | **Interpreted by** / **Interpreted in** | Who reconstructed the dance from its original, and when; up front for an English dance |
 | **Meter** / **Key** | The tune's written meter and key; up front for an English dance |
 | **Tags** | Your own labels |
