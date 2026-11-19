@@ -3462,7 +3462,7 @@
 {"in":"courtesy turn","fanOut":"[{\"schemaVersion\":1,\"move\":\"courtesy_turn\",\"params\":{\"who\":\"partners\"},\"assumedSubject\":true}]"}
 {"in":"face","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"face\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"arky","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"arky\"},\"customOrigin\":\"importGap\"}]"}
-{"in":"gentlemen","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"gentlemen\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"gentlemen","scrub":"role1s","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"role1s\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"neighbor","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"neighbor\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"partner","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"partner\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"back","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"back\"},\"customOrigin\":\"importGap\"}]"}
@@ -5045,7 +5045,7 @@
 {"in":"Database","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Database\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Copy","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Copy\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Validation","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Validation\"},\"customOrigin\":\"importGap\"}]"}
-{"in":"toggle validations for common dance entry errors, e.g. typing 'gentlemen' when you're using 'leads'","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"toggle validations for common dance entry errors, e.g. typing 'gentlemen' when you're using 'leads'\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"toggle validations for common dance entry errors, e.g. typing 'gentlemen' when you're using 'leads'","scrub":"toggle validations for common dance entry errors, e.g. typing 'role1s' when you're using 'leads'","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"toggle validations for common dance entry errors, e.g. typing 'role1s' when you're using 'leads'\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"by: Carol Kopp","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"by: Carol Kopp\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"introduces moves: do si do , swing , circle , long lines , chain","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"introduces moves: do si do , swing , circle , long lines , chain\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"formation: improper","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"formation: improper\"},\"customOrigin\":\"importGap\"}]"}

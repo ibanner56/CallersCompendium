@@ -302,6 +302,9 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get colorEditHexInvalid => '6桁の16進数を入力してください（例：#804020）。';
+
+  @override
   String get colorEditHexLabel => 'HEX';
 
   @override
@@ -8839,6 +8842,19 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorMoveDown => '下に移動';
 
   @override
+  String commonMoveItemUp(String name) {
+    return '$nameを上に移動';
+  }
+
+  @override
+  String commonMoveItemDown(String name) {
+    return '$nameを下に移動';
+  }
+
+  @override
+  String get danceEditorFigureCutState => 'カット済み';
+
+  @override
   String get danceEditorCut => 'カット';
 
   @override
@@ -9372,7 +9388,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get collectionPickerSearchLabel => '追加するダンスを検索';
+  String get collectionPickerSearchLabel => 'ダンスを検索';
 
   @override
   String collectionPickerFilters(int count) {

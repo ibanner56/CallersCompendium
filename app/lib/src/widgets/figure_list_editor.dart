@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'dashed_border.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
@@ -68,6 +69,7 @@ class FigureListEditor extends StatefulWidget {
     this.onDuplicate,
     this.dialect,
     this.mixer = false,
+    this.formationShape,
     this.moveParamDefaults,
     this.freeTextEntry = false,
     this.onAddFreeText,
@@ -108,6 +110,11 @@ class FigureListEditor extends StatefulWidget {
   final List<FigureDraft> drafts;
   final Taxonomy taxonomy;
   final PhraseStructure phraseStructure;
+
+  /// The dance's formation shape, which free-text entry reads a ring's size
+  /// from (an English "circle half way" is two places in a duple minor,
+  /// three in a triple minor; ADR-006 §7.3). Null where there is no dance.
+  final FormationShape? formationShape;
 
   /// Dialect used for lingo-line styling (discouraged + role terms).
   /// Defaults to [Dialect.larksRobins] when `null` (has the standard
@@ -783,6 +790,7 @@ class _FigureListEditorState extends State<FigureListEditor>
       taxonomy: widget.taxonomy,
       shorthands: widget.shorthandMappings,
       dialect: _dialect,
+      formationShape: widget.formationShape,
     );
     if (figures.isEmpty) return 0;
     final acceptedCount = onAddFreeText(figures);
@@ -853,6 +861,7 @@ class _FigureListEditorState extends State<FigureListEditor>
       taxonomy: widget.taxonomy,
       shorthands: widget.shorthandMappings,
       dialect: _dialect,
+      formationShape: widget.formationShape,
     );
     if (figures.isEmpty) return false;
     final acceptedCount = onReplace(draft, figures);
@@ -2057,9 +2066,12 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
 
   @override
   Widget build(BuildContext context) {
-    return Opacity(
-      // Dim the card while it is in the "cut" state.
-      opacity: widget.isCut ? 0.45 : 1.0,
+    return DashedBorder(
+      // The "cut" state is shown by a dashed outline plus the Cut badge on the
+      // row, never by fading: dimming dropped the row's text below the
+      // contrast the rest of the app guarantees.
+      dashed: widget.isCut,
+      color: Theme.of(context).colorScheme.onSurface,
       child: Card(
         margin: const EdgeInsets.symmetric(vertical: 4),
         child: Padding(
@@ -2172,9 +2184,12 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       widget.index + 1,
       widget.totalCount,
     );
-    final composite = incomplete
+    final withIncomplete = incomplete
         ? '$summarySemantic ${l10n.danceEditorIncompleteFigure}'
         : summarySemantic;
+    final composite = widget.isCut
+        ? '$withIncomplete ${l10n.danceEditorFigureCutState}'
+        : withIncomplete;
 
     final summaryContent = Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -2263,6 +2278,22 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                                       color: theme.colorScheme.onSurfaceVariant,
                                       fontStyle: FontStyle.italic,
                                     ),
+                            ),
+                          if (widget.isCut)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Row(
+                                key: _key('cut-badge'),
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.content_cut, size: 14),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    l10n.danceEditorFigureCutState,
+                                    style: theme.textTheme.bodySmall,
+                                  ),
+                                ],
+                              ),
                             ),
                           if (compoundUnavailable)
                             Text(
@@ -3083,7 +3114,6 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                                         Icons.arrow_upward,
                                         size: 18,
                                       ),
-                                      visualDensity: VisualDensity.compact,
                                       onPressed: i == 0
                                           ? null
                                           : () => _reorderSide(i, i - 1),
@@ -3097,7 +3127,6 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                                         Icons.arrow_downward,
                                         size: 18,
                                       ),
-                                      visualDensity: VisualDensity.compact,
                                       onPressed: i == sides.length - 1
                                           ? null
                                           : () => _reorderSide(i, i + 1),
@@ -3112,7 +3141,6 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                                         size: 18,
                                         color: theme.colorScheme.error,
                                       ),
-                                      visualDensity: VisualDensity.compact,
                                       onPressed: () => _removeSide(i),
                                     ),
                                   ],
@@ -4113,14 +4141,12 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
                   key: ValueKey('${widget.keyPrefix}-move-up'),
                   tooltip: l10n.danceEditorMoveUp,
                   icon: const Icon(Icons.arrow_upward, size: 18),
-                  visualDensity: VisualDensity.compact,
                   onPressed: widget.onMoveUp,
                 ),
                 IconButton(
                   key: ValueKey('${widget.keyPrefix}-move-down'),
                   tooltip: l10n.danceEditorMoveDown,
                   icon: const Icon(Icons.arrow_downward, size: 18),
-                  visualDensity: VisualDensity.compact,
                   onPressed: widget.onMoveDown,
                 ),
                 IconButton(
@@ -4136,7 +4162,6 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
                     size: 18,
                     color: theme.colorScheme.error,
                   ),
-                  visualDensity: VisualDensity.compact,
                   onPressed: widget.onRemove,
                 ),
               ],
@@ -4378,8 +4403,6 @@ class _EmphasisToolbar extends StatelessWidget {
           onPressed: () => _apply('*'),
           icon: const Icon(Icons.format_bold, size: 18),
           tooltip: l10n.danceEditorBoldTooltip,
-          visualDensity: VisualDensity.compact,
-          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
           padding: EdgeInsets.zero,
         ),
         IconButton(
@@ -4387,8 +4410,6 @@ class _EmphasisToolbar extends StatelessWidget {
           onPressed: () => _apply('_'),
           icon: const Icon(Icons.format_underlined, size: 18),
           tooltip: l10n.danceEditorUnderlineTooltip,
-          visualDensity: VisualDensity.compact,
-          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
           padding: EdgeInsets.zero,
         ),
       ],

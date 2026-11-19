@@ -225,18 +225,27 @@ class _ThemeGallery extends StatelessWidget {
         ),
       );
       groups.add(
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: [
-            for (final option in options)
-              _ThemePreviewCard(
-                key: ValueKey('theme-${option.name}'),
-                option: option,
-                selected: option == selected,
-                onTap: () => onSelected(option),
-              ),
-          ],
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final width = themeCardWidth(
+              constraints.maxWidth,
+              MediaQuery.textScalerOf(context).scale(1),
+            );
+            return Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                for (final option in options)
+                  _ThemePreviewCard(
+                    key: ValueKey('theme-${option.name}'),
+                    option: option,
+                    width: width,
+                    selected: option == selected,
+                    onTap: () => onSelected(option),
+                  ),
+              ],
+            );
+          },
         ),
       );
     }
@@ -248,6 +257,36 @@ class _ThemeGallery extends StatelessWidget {
   }
 }
 
+/// Narrowest sample width that fits the focus-ring demo beside the three chips
+/// (3 x 26 + 2 x 8 + 22 = 116 points, plus a gap before the demo).
+const double _focusDemoMinWidth = 124;
+
+/// Narrowest card that still holds the swatch's three chips (94 points) inside
+/// the card's padding. 150 keeps two columns on a 360-point phone, where each
+/// column is 158.
+const double _minTwoColumnCardWidth = 150;
+
+/// Width of one theme card in a gallery row [available] points wide.
+///
+/// Wide panes keep the fixed 220-point cards in a wrapping row. Narrower panes
+/// (a phone) use two equal columns, or a single full-width column when two
+/// would be too tight for the card's own contents: below [_minTwoColumnCardWidth] a card, or
+/// at larger text sizes, where the label and "Selected" badge need the room.
+double themeCardWidth(
+  double available,
+  double textScale, {
+  bool allowTwoColumns = true,
+}) {
+  const fixed = 220.0;
+  const gap = 12.0;
+  if (available >= 2 * fixed + gap) return fixed;
+  final half = ((available - gap) / 2).floorToDouble();
+  if (allowTwoColumns && textScale <= 1.3 && half >= _minTwoColumnCardWidth) {
+    return half;
+  }
+  return available;
+}
+
 /// A single selectable palette swatch showing a miniature live sample: a
 /// surface tile, a Fraunces heading + Atkinson body line, three accent chips,
 /// and a focus-ring demo, all drawn in that palette's colors.
@@ -255,11 +294,13 @@ class _ThemePreviewCard extends StatelessWidget {
   const _ThemePreviewCard({
     super.key,
     required this.option,
+    required this.width,
     required this.selected,
     required this.onTap,
   });
 
   final AppThemeSelection option;
+  final double width;
   final bool selected;
   final VoidCallback onTap;
 
@@ -289,7 +330,7 @@ class _ThemePreviewCard extends StatelessWidget {
           '${appThemeLabel(l10n, option)}. '
           '${appThemeDescription(l10n, option)}',
       child: SizedBox(
-        width: 220,
+        width: width,
         child: Material(
           color: Colors.transparent,
           child: InkWell(
@@ -371,25 +412,31 @@ class _ThemePreviewCard extends StatelessWidget {
             style: fonts.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
           ),
           const SizedBox(height: AppSpacing.xs),
-          Row(
-            children: [
-              _chip(context, scheme.primary, scheme.onPrimary),
-              const SizedBox(width: AppSpacing.xs),
-              _chip(context, scheme.secondary, scheme.onSecondary),
-              const SizedBox(width: AppSpacing.xs),
-              _chip(context, scheme.tertiary, scheme.onTertiary),
-              const Spacer(),
-              // Focus-ring demo: a control with the palette's focus outline.
-              Container(
-                width: 22,
-                height: 22,
-                decoration: BoxDecoration(
-                  color: scheme.surface,
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: scheme.primary, width: 2),
-                ),
-              ),
-            ],
+          LayoutBuilder(
+            builder: (context, constraints) => Row(
+              children: [
+                _chip(context, scheme.primary, scheme.onPrimary),
+                const SizedBox(width: AppSpacing.xs),
+                _chip(context, scheme.secondary, scheme.onSecondary),
+                const SizedBox(width: AppSpacing.xs),
+                _chip(context, scheme.tertiary, scheme.onTertiary),
+                // Focus-ring demo: a control with the palette's focus outline.
+                // Dropped when the card is too narrow to hold it beside the
+                // three chips (two phone columns).
+                if (constraints.maxWidth >= _focusDemoMinWidth) ...[
+                  const Spacer(),
+                  Container(
+                    width: 22,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      color: scheme.surface,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: scheme.primary, width: 2),
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
         ],
       ),
@@ -548,24 +595,31 @@ class _CustomThemesSection extends StatelessWidget {
         else
           Padding(
             padding: const EdgeInsets.only(top: AppSpacing.sm),
-            child: Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                for (final theme in themes)
-                  _CustomThemeCard(
-                    key: ValueKey('custom-${theme.id}'),
-                    theme: theme,
-                    selected: controller.activeId == theme.id,
-                    onTap: () async => controller.setActive(theme.id),
-                    onEdit: () async => _edit(context, theme),
-                    onDuplicate: () async => _duplicate(
-                      theme,
-                      l10n.commonDuplicateTitleSuffix(theme.name),
+            child: LayoutBuilder(
+              builder: (context, constraints) => Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  for (final theme in themes)
+                    _CustomThemeCard(
+                      key: ValueKey('custom-${theme.id}'),
+                      width: themeCardWidth(
+                        constraints.maxWidth,
+                        MediaQuery.textScalerOf(context).scale(1),
+                        allowTwoColumns: false,
+                      ),
+                      theme: theme,
+                      selected: controller.activeId == theme.id,
+                      onTap: () async => controller.setActive(theme.id),
+                      onEdit: () async => _edit(context, theme),
+                      onDuplicate: () async => _duplicate(
+                        theme,
+                        l10n.commonDuplicateTitleSuffix(theme.name),
+                      ),
+                      onDelete: () async => _confirmDelete(context, theme),
                     ),
-                    onDelete: () async => _confirmDelete(context, theme),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
       ],
@@ -580,6 +634,7 @@ class _CustomThemesSection extends StatelessWidget {
 class _CustomThemeCard extends StatelessWidget {
   const _CustomThemeCard({
     super.key,
+    required this.width,
     required this.theme,
     required this.selected,
     required this.onTap,
@@ -588,6 +643,7 @@ class _CustomThemeCard extends StatelessWidget {
     required this.onDelete,
   });
 
+  final double width;
   final CustomTheme theme;
   final bool selected;
   final VoidCallback onTap;
@@ -611,7 +667,7 @@ class _CustomThemeCard extends StatelessWidget {
       selected: selected,
       label: l10n.settingsAppearanceCustomThemeSemantic(theme.name),
       child: SizedBox(
-        width: 220,
+        width: width,
         child: Material(
           color: Colors.transparent,
           child: InkWell(

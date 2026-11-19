@@ -41,6 +41,9 @@ class EnumDropdown<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<T>(
+      // Field values read at the same weight as typed text; the dropdown's
+      // default is the bolder titleMedium.
+      style: Theme.of(context).textTheme.bodyLarge,
       key: ValueKey('$fieldKey-field'),
       initialValue: value,
       // Fill the slot instead of sizing to the widest label, so a half-width
@@ -166,6 +169,9 @@ class LevelDropdown extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return DropdownButtonFormField<DifficultyLevel?>(
+      // Field values read at the same weight as typed text; the dropdown's
+      // default is the bolder titleMedium.
+      style: Theme.of(context).textTheme.bodyLarge,
       key: const ValueKey('level-field'),
       initialValue: value,
       // Level names are user-editable: fill the slot, ellipsize the closed
@@ -327,6 +333,9 @@ class _PartialDateFieldState extends State<PartialDateField> {
             Expanded(
               flex: 3,
               child: DropdownButtonFormField<int?>(
+                // Field values read at the same weight as typed text; the dropdown's
+                // default is the bolder titleMedium.
+                style: Theme.of(context).textTheme.bodyLarge,
                 key: ValueKey('${widget.fieldKey}-month'),
                 initialValue: _month,
                 isExpanded: true,
@@ -362,6 +371,9 @@ class _PartialDateFieldState extends State<PartialDateField> {
             Expanded(
               flex: 2,
               child: DropdownButtonFormField<int?>(
+                // Field values read at the same weight as typed text; the dropdown's
+                // default is the bolder titleMedium.
+                style: Theme.of(context).textTheme.bodyLarge,
                 key: ValueKey('${widget.fieldKey}-day'),
                 initialValue: _day,
                 isExpanded: true,

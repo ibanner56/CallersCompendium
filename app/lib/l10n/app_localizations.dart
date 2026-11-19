@@ -548,6 +548,12 @@ abstract class AppLocalizations {
   /// **'\"{itemLabel}\" will be deleted. {count, plural, =1{1 dance will lose this program from its calling history.} other{{count} dances will lose this program from their calling history.}} You can undo this.'**
   String confirmDeleteProgramHistoryBody(String itemLabel, int count);
 
+  /// Error under the colour dialog's Hex field when Apply is pressed while the field holds something that is not a six-digit hex colour.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter six hex digits, like #804020.'**
+  String get colorEditHexInvalid;
+
   /// Field label for the hexadecimal color input in the shared color-picker dialog.
   ///
   /// In en, this message translates to:
@@ -13669,6 +13675,24 @@ abstract class AppLocalizations {
   /// **'Move down'**
   String get danceEditorMoveDown;
 
+  /// Tooltip and screen-reader label for the button that moves one item of a reorderable settings list up a position, the keyboard and switch alternative to dragging.
+  ///
+  /// In en, this message translates to:
+  /// **'Move {name} up'**
+  String commonMoveItemUp(String name);
+
+  /// Tooltip and screen-reader label for the button that moves one item of a reorderable settings list down a position, the keyboard and switch alternative to dragging.
+  ///
+  /// In en, this message translates to:
+  /// **'Move {name} down'**
+  String commonMoveItemDown(String name);
+
+  /// Badge and screen-reader text on a figure row that has been cut and is waiting to be pasted somewhere else; says the row's state, where danceEditorCut is the menu action that puts it there.
+  ///
+  /// In en, this message translates to:
+  /// **'Cut'**
+  String get danceEditorFigureCutState;
+
   /// Menu item label for cutting a figure row before pasting it elsewhere.
   ///
   /// In en, this message translates to:
@@ -14392,7 +14416,7 @@ abstract class AppLocalizations {
   /// Label for the search field in the collection picker (adding a dance to a program).
   ///
   /// In en, this message translates to:
-  /// **'Find a dance to add'**
+  /// **'Find a dance'**
   String get collectionPickerSearchLabel;
 
   /// The dance picker's Filters button: its plain name (count 0), and what screen readers hear while filters are active; the button itself then shows the shorter searchToolActiveCount form ("Filters · 3").

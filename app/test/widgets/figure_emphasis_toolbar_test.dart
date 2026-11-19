@@ -57,6 +57,23 @@ void _select(WidgetTester tester, Key fieldKey, int base, int extent) {
 }
 
 void main() {
+  testWidgets('bold and underline buttons are at least 44 x 44', (
+    tester,
+  ) async {
+    final drafts = <FigureDraft>[FigureDraft(move: 'swing')];
+    await _pump(tester, drafts);
+    await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('figure-0-add-note')));
+    await tester.pumpAndSettle();
+
+    for (final key in ['figure-0-note-bold', 'figure-0-note-underline']) {
+      final size = tester.getSize(find.byKey(ValueKey(key)));
+      expect(size.width, greaterThanOrEqualTo(44), reason: key);
+      expect(size.height, greaterThanOrEqualTo(44), reason: key);
+    }
+  });
+
   testWidgets('bold button wraps the note selection with * delimiters', (
     tester,
   ) async {

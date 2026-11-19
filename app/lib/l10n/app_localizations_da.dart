@@ -316,6 +316,9 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String get colorEditHexInvalid => 'Indtast seks hex-cifre, f.eks. #804020.';
+
+  @override
   String get colorEditHexLabel => 'Hex';
 
   @override
@@ -9211,6 +9214,19 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceEditorMoveDown => 'Flyt ned';
 
   @override
+  String commonMoveItemUp(String name) {
+    return 'Flyt $name op';
+  }
+
+  @override
+  String commonMoveItemDown(String name) {
+    return 'Flyt $name ned';
+  }
+
+  @override
+  String get danceEditorFigureCutState => 'Klippet';
+
+  @override
   String get danceEditorCut => 'Klip';
 
   @override
@@ -9755,7 +9771,7 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
-  String get collectionPickerSearchLabel => 'Find en dans at tilføje';
+  String get collectionPickerSearchLabel => 'Find en dans';
 
   @override
   String collectionPickerFilters(int count) {

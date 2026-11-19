@@ -37,6 +37,7 @@ import 'package:compendium_app/src/widgets/dance_export_menu.dart'
 import 'package:compendium_app/src/widgets/figure_table.dart';
 import 'package:compendium_app/src/widgets/program_status_chip.dart';
 
+import 'support/dance_detail_actions.dart';
 import 'support/fake_url_launcher.dart';
 import 'support/pdf_probe.dart';
 import 'support/test_repositories.dart';
@@ -341,6 +342,7 @@ void main() {
     expect(find.byKey(const ValueKey('delete-dance')), findsNothing);
 
     await tester.tap(find.byKey(const ValueKey('reimport-dance')));
+    await tester.pumpAndSettle();
     expect(reimported, isTrue);
   });
 
@@ -570,6 +572,71 @@ void main() {
       );
     },
   );
+
+  group('wide app bar', () {
+    testWidgets(
+      'keeps Perform (labelled), Share and Add to program visible and moves '
+      'the rest into the overflow menu with Delete last',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.dances.create(_dance(id: 'd1', title: 'Wide Dance'));
+
+        await _pumpDetail(tester, repos, 'd1', onReimport: (_) async {});
+
+        // Perform is a labelled button, not an icon-only action.
+        final perform = find.byKey(const ValueKey('perform-dance'));
+        expect(perform, findsOneWidget);
+        expect(
+          find.descendant(of: perform, matching: find.text('Perform')),
+          findsOneWidget,
+        );
+        expect(find.byKey(const ValueKey('dance-export-menu')), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('add-dance-to-program')),
+          findsOneWidget,
+        );
+
+        // Duplicate, Re-import and Delete are not bar actions.
+        for (final key in ['duplicate-dance', 'delete-dance']) {
+          expect(find.byKey(ValueKey(key)), findsNothing, reason: key);
+        }
+
+        await tester.tap(find.byKey(const ValueKey('dance-actions-overflow')));
+        await tester.pumpAndSettle();
+        final duplicate = tester.getTopLeft(
+          find.byKey(const ValueKey('duplicate-dance')),
+        );
+        final delete = tester.getTopLeft(
+          find.byKey(const ValueKey('delete-dance')),
+        );
+        final reimport = tester.getTopLeft(
+          find.byKey(const ValueKey('reimport-dance')),
+        );
+        // Delete is the last entry, below Re-import and Duplicate.
+        expect(delete.dy, greaterThan(duplicate.dy));
+        expect(delete.dy, greaterThan(reimport.dy));
+        // Share items are not duplicated into the menu on a wide bar.
+        expect(
+          find.byKey(const ValueKey('overflow-share-dance')),
+          findsNothing,
+        );
+      },
+    );
+  });
+
+  testWidgets('wide app bar does not overflow at 2x text on a 600 px pane', (
+    tester,
+  ) async {
+    tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Wide Dance'));
+
+    await _pumpDetail(tester, repos, 'd1', surfaceSize: const Size(600, 900));
+
+    expect(tester.takeException(), isNull);
+    expect(find.byKey(const ValueKey('perform-dance')), findsOneWidget);
+  });
 
   group('narrow app bar', () {
     Future<DialectLibraryController> buildLibrary(
@@ -1431,8 +1498,7 @@ void main() {
 
       await _pumpDetail(tester, repos, 'd1');
 
-      await tester.tap(find.byKey(const ValueKey('duplicate-dance')));
-      await tester.pumpAndSettle();
+      await tapDanceOverflowAction(tester, 'duplicate-dance');
 
       // We are now on the detail screen for the copy.
       expect(find.text('River Run (copy)'), findsOneWidget);
@@ -1471,8 +1537,7 @@ void main() {
     );
 
     await _pumpDetail(tester, repos, 'd1');
-    await tester.tap(find.byKey(const ValueKey('duplicate-dance')));
-    await tester.pumpAndSettle();
+    await tapDanceOverflowAction(tester, 'duplicate-dance');
 
     // The copy's detail screen shows the same hook/figures.
     expect(find.text('A great hook'), findsOneWidget);
@@ -1538,8 +1603,7 @@ void main() {
     );
 
     await _pumpDetail(tester, repos, 'd1');
-    await tester.tap(find.byKey(const ValueKey('duplicate-dance')));
-    await tester.pumpAndSettle();
+    await tapDanceOverflowAction(tester, 'duplicate-dance');
 
     expect(find.text('Linked Dance (copy)'), findsOneWidget);
     final copy = (await repos.dances.listAll()).firstWhere(
@@ -1587,8 +1651,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Doomed Dance'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('delete-dance')));
-    await tester.pumpAndSettle();
+    await tapDanceOverflowAction(tester, 'delete-dance');
 
     // Popped back to the previous screen.
     expect(find.text('open'), findsOneWidget);
@@ -1642,8 +1705,7 @@ void main() {
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('delete-dance')));
-    await tester.pumpAndSettle();
+    await tapDanceOverflowAction(tester, 'delete-dance');
 
     // Tap Undo.
     await tester.tap(find.text('Undo'));
@@ -1700,13 +1762,23 @@ void main() {
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
 
+      final overflow = find.byKey(const ValueKey('dance-actions-overflow'));
       final delete = find.byKey(const ValueKey('delete-dance'));
+      await tester.tap(overflow);
+      await tester.pumpAndSettle();
       await tester.tap(delete);
       await tester.pump();
       expect(dances.softDeleteCalls, 1);
       // Second tap lands while the first soft-delete is still awaiting.
+      await tester.pumpAndSettle();
+      await tester.tap(overflow);
+      await tester.pumpAndSettle();
       await tester.tap(delete, warnIfMissed: false);
       await tester.pump();
+      // The in-flight delete disables the entry, so the menu is still open;
+      // close it so the pop that follows the delete lands on the detail route.
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
 
       dances.release();
       await tester.pumpAndSettle();

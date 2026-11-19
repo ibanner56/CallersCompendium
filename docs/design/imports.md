@@ -2214,6 +2214,71 @@ has to be judged in its own context.
   (`meanwhile`)" above; it fans into a `meanwhile` container one layer above
   this per-move recognizer, #591.)
 
+#### English Country Dance lines (ADR-006 W6)
+
+A line of an ECD dance is read by its own grammar, `ecd_figure_parser.dart`
+(`parseEcdFigureLine`, `recognizeEcdLine`), never by the contra front-ends
+above: an unprefixed move in an ECD dance means one stored before the ECD
+taxonomy existed (ADR-006 §5.1), so new entry must not create one. It is used
+by free-text entry when the dance's taxonomy is ECD's
+(`shippedTaxonomies.forForm(DanceForm.ecd)`), by a Caller's Companion dance
+whose Type is English, and by **Re-check unrecognized figures** for an ECD
+dance.
+
+- **Same contract.** A line not read in full is a custom `importGap` figure
+  with its scrubbed text; nothing throws; every structured leaf is validated
+  against `ecdTaxonomy` alone, with no contra under it.
+- **Store what the words say** (ADR-006 §5.3). An unstated value is not
+  stored, so it reads as `unspecified` (`who` included). The one exception is
+  ADR-006's own: a forward and back with no distance is a double. A
+  bracketed aside (`(on the side)`) is the figure's note.
+- **Steps.** One to four steps joined by `and`, `then` or a comma make one
+  `sequence` (§5.4), its span the line's count (or, with none, the sum of its
+  steps' usual beats); the steps carry no timing of their own (§5.5). One `as`
+  or `while` makes a `meanwhile`. `, bending the line` makes a `modifier`. A
+  subject on the first step is each later step's too ("1st corners set and
+  turn single", §8.1), unless a later step names other dancers, which leaves
+  whose the rest are unclear, so none is given. A ring movement (circle,
+  star, chain, rights and lefts, the heys, poussette) never takes it: "1s set
+  and circle left" does not say the 1s circle alone. `and back` after a star is a
+  star back to place (§8.1); after a forward and back or a galop it is that
+  movement's `goBack`.
+- **Not guessed.** A bare `hey` (no number of dancers), a turn with no hand,
+  `up` or `down` without a distance (`robin up`), and a bare side after
+  `cross` (hand or shoulder?) stay custom. So does a word the movement has no
+  place for: dancers named both before and after a turn (`1s turn 2s`), a
+  preposition other than the one the movement shows its partner dancers with
+  (`cast around 2s` reads, `cast to bottom` does not), `to the right` as a
+  hand (it is a way to travel: `circle to the left` reads), a bare `improper`
+  (`ending improper` reads), and a subject before a poussette, whose `who` is
+  the dancers who push (`half poussette, 2s push` reads; "all" adds nothing).
+- **Rings.** A circle's or star's fraction ("half way") is a number of places
+  from the size of the ring (§7.3): a size the line states (`circle six left
+  half way`), the couples the subject names, or the dance's formation
+  (`ecdRingDancers`: four in a duple minor, six in a triple minor). A stated
+  size with no fraction (`circle six`, `4 hands across`) has nowhere to be
+  held, so that line stays custom. When none settles it, the
+  fraction's words are the note and `places` is unstated. Free-text entry gets
+  the formation from the editor; the re-check does not see it.
+- **Free-text entry** keeps its count, `;`-clause and shorthand handling, and
+  retries a line with the dialect's role words as for contra. A line that
+  starts with a bare number is read whole first (`2 changes of rights and
+  lefts`, `2 hand turn`), then with the number as its count.
+- **Caller's Companion English dances** also take the ECD shape their contra
+  shape names (`ecdFormationFromContra`: duple proper → duple minor, duple
+  improper → duple minor, improper; triplet and quadruplet → three- and
+  four-couple longways). Contra reads a formation that states no start as
+  improper; an English dance is improper only when its source says so, since
+  ECD's flag defaults to proper (ADR-006 §9.2). Its lines are cached apart
+  from contra's and per ring size, since a `half way` circle is two places in
+  one dance and three in another. A compound prefix (`(4,4)`) whose parts match the
+  sequence's steps keeps each part on its step.
+
+Measured on 19 November 2026 against one caller's own notes for about 100
+English dances (split into 1,475 fragments at counts and full stops; most
+fragments are teaching prose), the grammar read 554 fragments; the rest stay
+text. That corpus is not in the repository; the tests use generic lines.
+
 #### Parse cost: what is cached, and what must stay true
 
 Parsing a figure line is the dominant cost of planning a large import (a
@@ -2237,7 +2302,9 @@ uncached parser over a 20,516-dance corpus and ~200k mutated lines):
   (`CcFigureLineCache`): a library repeats its stock calls thousands of times.
   Keyed on the trimmed raw line **including its beats prefix**, bounded (50,000
   lines; past that new lines are just parsed each time), and safe to share
-  between dances because `Figure` is immutable.
+  between dances because `Figure` is immutable. An English dance's lines are
+  kept in a map of their own (`lookup(line, ecd: true)`): the same text reads
+  as an ECD figure there and a contra one elsewhere.
 
 Everything above is static or per-adapter state, so it is **per isolate**. Two
 things keep it honest: a cache must never hold anything but a pure function of
