@@ -79,15 +79,27 @@ your active dialect, and you can add as many of your own as you like.
   see a dance in its neutral form (more on this below).
 
 The built-in dialects are deliberately role-neutral. If your community uses other
-role names — including traditional gendered ones — you are not stuck: you enter
-whatever wording you want yourself, in a custom dialect. The next sections show
-how.
+role-neutral names, you are not stuck: you enter whatever wording you want
+yourself, in a custom dialect. The next sections show how.
+
+## A dialect for each type of dance
+
+Contra, English country dance, and square dance each have their own dialects.
+Each type has its own active dialect and its own custom dialects, and every dance
+reads in the dialect of its own type. So you can call contra in Larks/Robins and
+English country dances in Leads/Follows, and a mixed program shows each dance in
+the right words. The three built-in dialects are offered for every type.
+
+At the top of **Settings › Dialect**, choose **Contra**, **English (ECD)**, or
+**Square** to see and change that type's dialects. Everything else in this guide
+works the same way for each type.
 
 ## Choose your dialect
 
 1. Open **Settings** and choose the **Dialect** section.
-2. In the **Dialects** list, select the one you want to use. The app switches to
-   it right away, everywhere.
+2. Choose the type of dance at the top.
+3. In the **Dialects** list, select the one you want to use. The app switches to
+   it right away, for every dance of that type.
 
 The built-in dialects carry a **Preset** badge and are read-only, so you can't
 change their wording by accident. Your own dialects appear in the same list and
@@ -122,8 +134,13 @@ the effect immediately. Choose **Save** when you are done.
 In the **Role terms** section, set the words for the two roles — for example
 **Larks** and **Robins**, or your community's own terms. You can enter both the
 singular and plural forms; leave the plural blank and the app works it out for
-you. This is also where you would enter traditional or gendered role names if
-that is what your dancers use.
+you.
+
+Role names must not be gendered. The app doesn't accept words such as "gents" or
+"ladies" in role names, move wording, or a dialect's name, and it says which word
+it found so you can change it. If a dialect saved by an earlier version (or
+arriving from another device) used one, the app shows the built-in role name in
+its place, drops that wording, and renames a dialect whose name used one.
 
 ### Reworded moves
 
@@ -319,8 +336,9 @@ You don't have to visit Settings every time. On the dance card and in
 narrow screen the dance card lists your dialects in its **More actions** menu
 instead.
 
-Choose it, pick a dialect from the list, and the whole app switches to those
-words at once. This is built for real evenings: guest-calling for a community that
+Choose it, pick a dialect from the list, and every dance of that type switches
+to those words at once. The list offers the dialects of the dance's own type, and
+the switch changes only that type's active dialect. This is built for real evenings: guest-calling for a community that
 uses different role names, or switching wording between gigs, takes a moment and
 leaves every saved dance exactly as it was.
 
@@ -335,6 +353,11 @@ details and choose a dialect under **Perform dialect**; choose **Use app
 dialect** to clear it again. The list only offers the dialects you have, so there
 is nothing to type.
 
+In Perform mode, each dance uses the dialect of that name from its own type. If a
+type has no dialect of that name, dances of that type use that type's active
+dialect. The built-in dialects have the same names in every type, so choosing
+**Leads/Follows** works for a mixed program.
+
 - The program's dialect applies only in that program's
   [Perform mode](./glossary.md#perform-mode). The program editor, the summary,
   and every export keep reading in your active dialect, and your active dialect
@@ -344,7 +367,8 @@ is nothing to type.
   program's dialect is back the next time you open it.
 - A program remembers the dialect by its **name**. If you rename that dialect,
   every program that uses it, including ones in Recently deleted, follows the
-  new name. If you delete it, the program quietly goes back to using your active
+  new name, unless another type of dance still has a dialect of the old name;
+  then programs keep the old name, for that type. If you delete it, the program quietly goes back to using your active
   dialect in Perform, and the editor shows the old name as **unavailable** so you
   can see what happened. Pick a dialect again to reconnect it.
 - A program's dialect is yours alone. When you share the program as a file, its
@@ -381,8 +405,8 @@ calling view.
 
 These settings decide what you see before you touch anything:
 
-- **Your active dialect** (in **Settings › Dialect**) is the wording every screen
-  uses by default — except [Perform mode](./glossary.md#perform-mode) for a
+- **Your active dialect** for each type of dance (in **Settings › Dialect**) is
+  the wording every screen uses by default for dances of that type — except [Perform mode](./glossary.md#perform-mode) for a
   program that has its own dialect (see
   [Give a program its own dialect](#give-a-program-its-own-dialect)).
 
@@ -431,8 +455,9 @@ both recognize, then flip back to your own.
 ## Good to know
 
 - **Printing and sharing.** Text you copy or share, and a PDF you print, are
-  written in your **active** dialect, so what you hand someone matches how you
-  speak. The on-screen **Canonical** switch changes only what you are looking at
+  written in your **active** dialect for each dance's type, so what you hand
+  someone matches how you speak. Program-wide text, such as program notes and a
+  set list, uses your contra dialect. The on-screen **Canonical** switch changes only what you are looking at
   — it doesn't change what an export contains. To export in different words,
   switch your active dialect first. A share file you send to another Caller's
   Compendium user carries the dance itself, so it opens in *their* dialect. See

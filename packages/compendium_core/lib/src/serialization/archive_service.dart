@@ -270,7 +270,8 @@ class ArchiveRestorer {
   /// If an upsert fails (its id never enters the remap map), any dance that
   /// references the failed entity receives the un-remapped archived id. The
   /// blast radius differs by reference kind:
-  /// - **`authorIds` / `tagIds`** — `dance_authors` and `dance_tags` carry
+  /// - **`authorIds` / `interpreterIds` / `tagIds`** — `dance_authors`,
+  ///   `dance_interpreters` and `dance_tags` carry
   ///   real foreign keys. With `PRAGMA defer_foreign_keys = ON` those checks
   ///   are deferred to commit time, so the dance insert succeeds and `_guard`
   ///   records nothing, but the transaction commit fails and the entire restore
@@ -597,7 +598,8 @@ class ArchiveRestorer {
   /// the tombstoned row under its existing id and returns that id. The archived
   /// id referenced by the dance would then dangle. This method substitutes the
   /// written id wherever the archived id appears, for all three reference kinds:
-  /// [Dance.authorIds], [Dance.tagIds], and [Dance.customFields] field ids.
+  /// [Dance.authorIds] and [Dance.interpreterIds], [Dance.tagIds], and
+  /// [Dance.customFields] field ids.
   ///
   /// A reference whose archived id is absent from the map (because its upsert
   /// failed and was recorded by [_guard]) is left as-is; the subsequent
@@ -612,6 +614,9 @@ class ArchiveRestorer {
     if (choreoRemap.isEmpty && tagRemap.isEmpty && fieldRemap.isEmpty) return d;
     return d.copyWith(
       authorIds: d.authorIds.map((id) => choreoRemap[id] ?? id).toList(),
+      interpreterIds: d.interpreterIds
+          .map((id) => choreoRemap[id] ?? id)
+          .toList(),
       tagIds: d.tagIds.map((id) => tagRemap[id] ?? id).toList(),
       customFields: d.customFields
           .map(
@@ -655,6 +660,7 @@ class ArchiveRestorer {
     }
     await db.delete(db.danceFigures).go();
     await db.delete(db.danceAuthors).go();
+    await db.delete(db.danceInterpreters).go();
     await db.delete(db.danceTags).go();
     await db.delete(db.danceLinks).go();
     await db.delete(db.danceSources).go();

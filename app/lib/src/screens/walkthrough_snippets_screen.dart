@@ -8,6 +8,7 @@ import '../theme/app_motion.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/dirty_dialog_guard.dart';
+import '../widgets/empty_state.dart';
 
 /// Manager for the user's personal walkthrough snippet library (#411), reached
 /// from Settings › Defaults. Lists each saved per-figure snippet (a readable
@@ -23,7 +24,7 @@ class WalkthroughSnippetsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = WalkthroughSnippetLibraryScope.of(context);
-    final dialect = ActiveDialectScope.of(context);
+    final dialect = ActiveDialectScope.contraOf(context);
     final renderer = FigureRenderer(shippedTaxonomies.anyForm);
     final l10n = AppLocalizations.of(context);
 
@@ -61,12 +62,12 @@ class WalkthroughSnippetsScreen extends StatelessWidget {
             ),
           ),
           if (entries.isEmpty)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              child: Text(
-                l10n.settingsWalkthroughSnippetsEmpty,
-                key: const ValueKey('walkthrough-snippets-empty'),
-              ),
+            EmptyState(
+              key: const ValueKey('walkthrough-snippets-empty'),
+              inline: true,
+              icon: EmptyState.glyph(context, Icons.notes_outlined),
+              title: l10n.settingsWalkthroughSnippetsEmptyTitle,
+              body: l10n.settingsWalkthroughSnippetsEmptyBody,
             )
           else
             for (final entry in entries)

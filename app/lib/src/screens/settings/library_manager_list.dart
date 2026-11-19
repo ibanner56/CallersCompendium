@@ -9,6 +9,7 @@ import '../../theme/keyboard_dismiss.dart';
 import '../../utils/undo_snack_bar.dart';
 import '../../theme/destructive_button_style.dart';
 import '../../widgets/dirty_dialog_guard.dart';
+import '../../widgets/empty_state.dart';
 
 /// One entry of a [LibraryManagerList]: a tag, an author or a source.
 @immutable
@@ -82,7 +83,9 @@ class LibraryManagerList extends StatefulWidget {
     required this.keyPrefix,
     required this.entries,
     required this.searchHint,
-    required this.emptyMessage,
+    required this.emptyIcon,
+    required this.emptyTitle,
+    required this.emptyBody,
     required this.actionsFor,
     this.titleBuilder,
     super.key,
@@ -94,8 +97,11 @@ class LibraryManagerList extends StatefulWidget {
   /// The search field's hint, naming the kind ("Search tags").
   final String searchHint;
 
-  /// Shown when there are no entries at all, before any filter.
-  final String emptyMessage;
+  /// The empty state shown when there are no entries at all, before any
+  /// filter: a glyph, a heading, and a line saying where entries come from.
+  final IconData emptyIcon;
+  final String emptyTitle;
+  final String emptyBody;
 
   final List<LibraryManagerAction> Function(LibraryManagerEntry entry)
   actionsFor;
@@ -202,15 +208,11 @@ class _LibraryManagerListState extends State<LibraryManagerList> {
     final l10n = AppLocalizations.of(context);
     final prefix = widget.keyPrefix;
     if (widget.entries.isEmpty) {
-      return ListView(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        children: [
-          Text(
-            widget.emptyMessage,
-            key: ValueKey('$prefix-empty'),
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-        ],
+      return EmptyState(
+        key: ValueKey('$prefix-empty'),
+        icon: EmptyState.glyph(context, widget.emptyIcon),
+        title: widget.emptyTitle,
+        body: widget.emptyBody,
       );
     }
     final visible = _visible;

@@ -157,6 +157,11 @@ backup is refused the same way, with its size and the limit.
 > dialects: a backup can't tell them apart from 0.5.2 to 0.5.4, which would
 > restore it without them. Versions before 0.5.2 don't check, and may restore it
 > without those details. Install the current version before you restore.
+>
+> The same goes for a backup that holds an English country dance formation
+> (such as duple minor), a dance marked improper, a dance's meter or key, or
+> who interpreted a dance and when: versions without them refuse it as coming
+> from a newer version.
 
 ### Restoring while Device Sync is connected
 

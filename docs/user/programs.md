@@ -352,7 +352,9 @@ A program carries the details of its event:
   the PDF, and exported set lists while the builder still shows every slot; and
 - **Perform dialect**, the [dialect](./dialects.md#give-a-program-its-own-dialect)
   [Perform mode](./glossary.md#perform-mode) uses for this program. Leave it on
-  **Use app dialect** to follow your active dialect. It affects Perform only: the
+  **Use app dialect** to follow your active dialect. Each dance uses the dialect
+  of that name from its own type, or that type's active dialect if the type has
+  none by that name. It affects Perform only: the
   editor, the summary, the PDF, and exports keep your active dialect, and a
   program file you share leaves it out.
 

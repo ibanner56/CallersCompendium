@@ -9,6 +9,7 @@ import '../search/facet_labels.dart';
 import '../theme/app_motion.dart';
 import '../theme/set_list_accents.dart';
 import 'dirty_dialog_guard.dart';
+import 'empty_state.dart';
 import 'preview_hold_listener.dart';
 
 /// Editable, reorderable list of a program's slots for the builder
@@ -43,6 +44,7 @@ class ProgramSlotListEditor extends StatefulWidget {
     this.onRestoreDeletedDance,
     this.reservedPerformedAt,
     this.dialect,
+    this.dialectFor,
     this.canonicalizeDiscouragedTerms = false,
     this.onPickReplacementDance,
     this.onPreviewDanceStarted,
@@ -108,9 +110,14 @@ class ProgramSlotListEditor extends StatefulWidget {
   /// text isn't blank — see [_SlotTile.build]'s gating.
   final void Function(int index) onCreateDance;
 
-  /// Dialect used for read-only slot and formation previews. The edit dialog
-  /// remains lossless and never uses this value.
+  /// Dialect used for read-only slot previews, and for a formation preview
+  /// when [dialectFor] gives none. The edit dialog remains lossless and never
+  /// uses this value.
   final Dialect? dialect;
+
+  /// The dialect a slot's dance is shown in (its own form's, ADR-006 §9.1,
+  /// point 1), for the formation preview; `null` falls back to [dialect].
+  final Dialect? Function(String danceId)? dialectFor;
 
   /// Whether read-only slot and formation previews should use canonical
   /// discouraged-term wording.
@@ -246,12 +253,12 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
     final l10n = AppLocalizations.of(context);
     final slots = widget.slots;
     if (slots.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 32),
-        child: Center(
-          key: const ValueKey('slots-empty'),
-          child: Text(l10n.programsSlotEditorEmpty),
-        ),
+      return EmptyState(
+        key: const ValueKey('slots-empty'),
+        inline: true,
+        icon: EmptyState.glyph(context, Icons.queue_music_outlined),
+        title: l10n.programsSlotEditorEmptyTitle,
+        body: l10n.programsSlotEditorEmptyBody,
       );
     }
 
@@ -280,6 +287,10 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
               title: _slotTitle(l10n, slots[i]),
               note: _slotNote(slots[i]),
               dialect: widget.dialect,
+              formationDialect: switch (slots[i].danceId) {
+                final id? => widget.dialectFor?.call(id),
+                null => null,
+              },
               canonicalizeDiscouragedTerms: widget.canonicalizeDiscouragedTerms,
               formation: _slotFormation(slots[i]),
               mixer: _slotMixer(slots[i]),
@@ -442,6 +453,7 @@ class _SlotTile extends StatelessWidget {
     required this.title,
     required this.note,
     required this.dialect,
+    this.formationDialect,
     required this.canonicalizeDiscouragedTerms,
     required this.formation,
     required this.mixer,
@@ -471,6 +483,10 @@ class _SlotTile extends StatelessWidget {
   final String title;
   final String? note;
   final Dialect? dialect;
+
+  /// The slot's dance's own dialect for its formation label, or `null` to
+  /// use [dialect].
+  final Dialect? formationDialect;
   final bool canonicalizeDiscouragedTerms;
 
   /// The resolved dance formation for a dance slot, or null for free-text
@@ -548,7 +564,7 @@ class _SlotTile extends StatelessWidget {
           l10n,
           formation!,
           FigureRenderer(shippedTaxonomies.anyForm),
-          dialect ?? Dialect.larksRobins,
+          formationDialect ?? dialect ?? Dialect.larksRobins,
           canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
         ),
       if (mixer) l10n.commonMixer,

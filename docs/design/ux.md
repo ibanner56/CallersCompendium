@@ -297,6 +297,22 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
     screen reader running or when the user chose "Until I close it".
 - Empty states teach: first-run Collection offers "download the community
   collection" (snapshot) and "import your data".
+  - Every screen and pane that can be empty uses `EmptyState` (a glyph, a
+    heading that screen readers can jump to, a body, at most one action), not a
+    bare line of text; a short list inside a section of a larger screen uses
+    its `inline` form. A one-line note remains for a small list inside a
+    dialog or a field group, and for read-only and Perform views, where
+    nothing can be added. Where there is something to create, the body names the
+    button ("Choose New shorthand to add one.") and the action is that button;
+    where entries come from elsewhere, the body says where.
+  - A screen whose whole body failed to load uses `LoadErrorView`: Retry when
+    trying again can succeed, Back when the thing is gone and the screen has
+    somewhere to go back to, so a failure is not a message with no button. A
+    pane with nowhere to leave (the wide Collection's detail pane) shows the
+    plain message, since the list beside it is the way on.
+  - The brand mark is a quiet touch on empty states, as the Programs list and
+    the "select a dance" and "select a program" panes show it; the other empty
+    states lead with a muted glyph.
 - All lists virtualize; search-as-you-type debounced; target <50 ms query
   budget (storage design).
 - Every interactive element: visible focus, name/role/state semantics, 24px+

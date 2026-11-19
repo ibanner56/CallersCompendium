@@ -33,17 +33,21 @@ Taxonomy _square() => Taxonomy(
 
 void main() {
   group('the shipped registry', () {
-    test('resolves every form through contra while only contra ships', () {
-      for (final form in DanceForm.values) {
-        expect(shippedTaxonomies.forForm(form), same(contraTaxonomy));
-      }
-      expect(shippedTaxonomies.anyForm, same(contraTaxonomy));
+    test('ships contra, and ECD over contra; squares use contra', () {
+      expect(shippedTaxonomies.forForm(DanceForm.contra), same(contraTaxonomy));
+      expect(shippedTaxonomies.forForm(DanceForm.square), same(contraTaxonomy));
       expect(
         shippedTaxonomies.ownTaxonomy(DanceForm.contra),
         same(contraTaxonomy),
       );
-      expect(shippedTaxonomies.ownTaxonomy(DanceForm.ecd), isNull);
+      expect(shippedTaxonomies.ownTaxonomy(DanceForm.ecd), same(ecdTaxonomy));
       expect(shippedTaxonomies.ownTaxonomy(DanceForm.square), isNull);
+      final ecd = shippedTaxonomies.forForm(DanceForm.ecd);
+      expect(ecd.resolve('ecd_set')?.id, 'ecd_set');
+      // An ECD dance keeps the contra moves it was stored with (F5).
+      expect(ecd.resolve('poussette')?.id, 'poussette');
+      expect(shippedTaxonomies.anyForm.resolve('ecd_star')?.id, 'ecd_star');
+      expect(shippedTaxonomies.anyForm.resolve('star')?.id, 'star');
     });
 
     test('contra owns no ID that carries another form\'s prefix', () {

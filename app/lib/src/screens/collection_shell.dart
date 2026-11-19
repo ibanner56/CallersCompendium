@@ -11,8 +11,9 @@ import '../data/online_search.dart';
 import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../search/dance_detail_data.dart';
-import '../theme/app_spacing.dart';
 import '../widgets/brand_mark.dart';
+import '../widgets/empty_state.dart';
+import '../widgets/load_error_view.dart';
 import '../widgets/online_import_dialogs.dart';
 import '../widgets/online_import_snack_bar.dart';
 import '../published_collections/published_collection_service.dart';
@@ -252,6 +253,10 @@ class _CollectionShellState extends State<CollectionShell> {
   OnlinePreview? _onlinePreview;
   bool _onlinePreviewLoading = false;
   String? _onlinePreviewError;
+
+  /// The result whose record is being fetched, kept so a failed fetch can be
+  /// retried from the pane without going back to the list and tapping again.
+  OnlineSearchResultRow? _onlinePreviewRequest;
   int _onlineSeq = 0;
 
   /// Guards the direct-import commit so a rapid double-tap (or re-tap) of the
@@ -334,6 +339,7 @@ class _CollectionShellState extends State<CollectionShell> {
     _onlinePreview = null;
     _onlinePreviewLoading = false;
     _onlinePreviewError = null;
+    _onlinePreviewRequest = null;
     _reimportTargetId = null;
     _reimportTargetUpdatedAt = null;
     _reimportPreview = null;
@@ -487,6 +493,7 @@ class _CollectionShellState extends State<CollectionShell> {
     setState(() {
       _selectedDanceId = null;
       _detailMode = _DetailMode.onlinePreview;
+      _onlinePreviewRequest = result;
       _onlinePreview = null;
       _onlinePreviewError = null;
       _onlinePreviewLoading = true;
@@ -713,15 +720,19 @@ class _CollectionShellState extends State<CollectionShell> {
           }
           if (_onlinePreviewError != null) {
             return Scaffold(
-              body: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.lg),
-                  child: Text(
-                    _onlinePreviewError!,
-                    key: const ValueKey('online-preview-error'),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
+              body: LoadErrorView(
+                key: const ValueKey('online-preview-error'),
+                icon: LoadErrorView.errorGlyph(context),
+                message: _onlinePreviewError!,
+                // Retrying is refused while a direct import is committing, so
+                // the button leaves then rather than pressing to no effect.
+                onRetry: _importCommitInFlight || _onlinePreviewRequest == null
+                    ? null
+                    : () => _onSelectOnlineDance(_onlinePreviewRequest!),
+                onBack: () => setState(() {
+                  _detailMode = _DetailMode.none;
+                  _clearOnlinePreview();
+                }),
               ),
             );
           }
@@ -812,34 +823,13 @@ class _EmptyDetailPane extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            BrandMark(
-              size: 64,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              l10n.collectionSplitEmptyTitle,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              l10n.collectionSplitEmptySubtitle,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                // Body text must clear the 4.5:1 WCAG AA threshold, so it uses
-                // onSurfaceVariant (a text role) rather than outlineVariant (a
-                // hairline/border role that falls below AA against the pane).
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
+      body: EmptyState(
+        icon: BrandMark(
+          size: 64,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
         ),
+        title: l10n.collectionSplitEmptyTitle,
+        body: l10n.collectionSplitEmptySubtitle,
       ),
     );
   }

@@ -62,9 +62,9 @@ const double kCallingCardMinScale = 0.5;
 /// Each card is laid out by [layout]. What a block may show is also gated by
 /// [fields], the Settings › Defaults dance-field picker that every other dance
 /// export honours, so a field turned off there stays off a card even when the
-/// layout names it. Notes, walkthrough and hook are rendered in [dialect]
-/// through the shared [DanceCardContent], and figures through [renderer], as
-/// in the dance PDF.
+/// layout names it. Notes, walkthrough and hook are rendered in the dialect of
+/// each dance's form ([dialects]) through the shared [DanceCardContent], and
+/// figures through [renderer], as in the dance PDF.
 ///
 /// When a card's content is taller than the card, the whole card shrinks
 /// evenly until it fits, down to [kCallingCardMinScale]; past that it is cut
@@ -81,7 +81,7 @@ Future<Uint8List> buildCallingCardsPdf(
   List<CallingCardEntry> entries, {
   required CallingCardLayout layout,
   required CallingCardSize size,
-  required Dialect dialect,
+  required DialectsByForm dialects,
   required Set<DanceShareField> fields,
   FigureRenderer? renderer,
   DanceExportLabels labels = const DanceExportLabels(),
@@ -111,6 +111,8 @@ Future<Uint8List> buildCallingCardsPdf(
 
   final cards = <pw.Widget>[];
   for (final entry in entries) {
+    // Each card in its own dance's form's dialect (ADR-006 §9.1, point 1).
+    final dialect = dialects.forDance(entry.dance);
     final content = DanceCardContent.build(
       entry.dance,
       dialect: dialect,

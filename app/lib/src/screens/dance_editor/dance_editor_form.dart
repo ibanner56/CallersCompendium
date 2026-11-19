@@ -354,7 +354,7 @@ class DanceEditorForm extends StatelessWidget {
                   ),
                   initialValue: controller.formationShape,
                   items: [
-                    for (final shape in FormationShape.values)
+                    for (final shape in controller.offeredFormationShapes)
                       DropdownMenuItem(
                         value: shape,
                         child: Text(formationShapeLabel(l10n, shape)),

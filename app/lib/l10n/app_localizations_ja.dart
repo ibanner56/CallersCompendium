@@ -1421,7 +1421,10 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get settingsSyncDevicesEmpty => 'このストアに接続されている他のデバイスはありません。';
+  String get settingsSyncDevicesEmptyTitle => '他のデバイスはまだありません';
+
+  @override
+  String get settingsSyncDevicesEmptyBody => 'このストアに接続された他のデバイスはここに表示されます。';
 
   @override
   String get settingsSyncDevicesFailed =>
@@ -1953,6 +1956,10 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsDialectHeader => 'ダイアレクト';
+
+  @override
+  String get settingsDialectFormHelper =>
+      'ダンスのタイプごとに独自のダイアレクトがあります。タイプを選ぶと、そのダイアレクトを表示・設定できます。';
 
   @override
   String get settingsDialectDanceDetailsHeader => 'ダンスの詳細と略称';
@@ -2595,6 +2602,9 @@ class AppLocalizationsJa extends AppLocalizations {
       '新しいダンスのデフォルトのダンスタイプです。ダンスごとに変更できます。';
 
   @override
+  String get settingsDefaultsFormLastUsed => '前回使用したタイプ';
+
+  @override
   String get settingsDefaultsFormationTitle => 'フォーメーション';
 
   @override
@@ -2680,7 +2690,10 @@ class AppLocalizationsJa extends AppLocalizations {
       'タグに独自の色を設定すると、ダンスカードやダンスの詳細で目立つようになります。タグ名は常に表示されるため、色がなくてもタグは読み取れます。';
 
   @override
-  String get settingsTagColoursEmpty => 'まだタグを作成していません。ダンスにタグを追加すると、ここに表示されます。';
+  String get settingsTagColoursEmptyTitle => 'タグはまだありません';
+
+  @override
+  String get settingsTagColoursEmptyBody => 'ダンスにタグを追加すると、ここに表示されます。';
 
   @override
   String get settingsTagColoursSaveError => 'その色を保存できませんでした。もう一度お試しください。';
@@ -2742,7 +2755,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get authorManagerNameLabel => '作者名';
 
   @override
-  String get authorManagerEmpty => 'まだ作者がいません。ダンスにクレジットした作者がここに表示されます。';
+  String get authorManagerEmptyTitle => '作者はまだいません';
+
+  @override
+  String get authorManagerEmptyBody => 'ダンスにクレジットした作者はここに表示されます。';
 
   @override
   String get authorManagerLoadError => '作者を読み込めませんでした。';
@@ -2762,7 +2778,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get sourceManagerTitleLabel => 'ソースのタイトル';
 
   @override
-  String get sourceManagerEmpty => 'まだソースがありません。ダンスで引用した本やウェブサイトがここに表示されます。';
+  String get sourceManagerEmptyTitle => 'ソースはまだありません';
+
+  @override
+  String get sourceManagerEmptyBody => 'ダンスで引用した書籍やウェブサイトはここに表示されます。';
 
   @override
   String get sourceManagerLoadError => 'ソースを読み込めませんでした。';
@@ -3859,6 +3878,41 @@ class AppLocalizationsJa extends AppLocalizations {
   String commonFormationWithDetail(String shape, String detail) {
     return '$shape — $detail';
   }
+
+  @override
+  String get commonFormationDupleMinor => 'デュープルマイナー';
+
+  @override
+  String get commonFormationThreeCoupleLongways => '3組のロングウェイ';
+
+  @override
+  String get commonFormationFourCoupleLongways => '4組のロングウェイ';
+
+  @override
+  String get commonFormationFiveCoupleLongways => '5組のロングウェイ';
+
+  @override
+  String get commonFormationSixCoupleLongways => '6組のロングウェイ';
+
+  @override
+  String get commonFormationCircle => 'サークル';
+
+  @override
+  String get commonFormationSquare => 'スクエア';
+
+  @override
+  String get commonFormationTwoCoupleSet => '2組のセット';
+
+  @override
+  String commonFormationImproperFlag(String shape) {
+    return '$shape、インプロパー';
+  }
+
+  @override
+  String get danceEditorMeterLabel => '拍子';
+
+  @override
+  String get danceEditorMusicalKeyLabel => '調';
 
   @override
   String get commonMixedLevel => 'ミックスレベル';
@@ -5431,7 +5485,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programsSlotNoteFallback => 'ノート';
 
   @override
-  String get programsSlotEditorEmpty => 'スロットがまだありません。ダンスまたはノートを追加して始めましょう。';
+  String get programsSlotEditorEmptyTitle => 'スロットがまだありません';
+
+  @override
+  String get programsSlotEditorEmptyBody => 'ダンスまたはノートを追加して始めましょう。';
 
   @override
   String get programsSlotMovedUp => 'スロットを上に移動しました。';
@@ -8055,8 +8112,11 @@ class AppLocalizationsJa extends AppLocalizations {
       'これらのフィギュアごとのステップ説明は、ダンスを編集するときにウォークスルーを事前入力します。ここで編集すると、すべてで使われる既定値が更新されます。';
 
   @override
-  String get settingsWalkthroughSnippetsEmpty =>
-      '保存されたスニペットはまだありません。ダンスのフィギュアを編集しながらウォークスルーのステップ説明を追加してください。';
+  String get settingsWalkthroughSnippetsEmptyTitle => '保存されたスニペットはまだありません';
+
+  @override
+  String get settingsWalkthroughSnippetsEmptyBody =>
+      'ダンスのフィギュアを編集するときに、ウォークスルーの手順の説明を追加してください。';
 
   @override
   String settingsWalkthroughSnippetsCount(int count) {
@@ -8088,6 +8148,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get danceEditorComposedHelper => 'ダンスが作られた日時（年、または月/日を追加）';
+
+  @override
+  String get danceEditorInterpretedByLabel => '解釈者';
+
+  @override
+  String get danceEditorInterpretedOnLabel => '解釈年';
 
   @override
   String get danceEditorRevisedLabel => '改訂年';
@@ -8274,6 +8340,11 @@ class AppLocalizationsJa extends AppLocalizations {
     String substitution,
   ) {
     return '「$source」と「$existing」はどちらも「$substitution」に対応するため、反転するとあいまいになります。';
+  }
+
+  @override
+  String validationGenderedRoleTerm(String word) {
+    return '「$word」は性別を表す役割語で、アプリでは表示しません。性別に依らない語を使ってください。';
   }
 
   @override
@@ -9345,7 +9416,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get shorthandMappingsNew => '新しいショートハンド';
 
   @override
-  String get shorthandMappingsEmpty => 'ショートハンドがまだありません。';
+  String get shorthandMappingsEmptyTitle => 'ショートハンドはまだありません';
+
+  @override
+  String get shorthandMappingsEmptyBody => '「新しいショートハンド」を選ぶと追加できます。';
 
   @override
   String shorthandMappingsLimitReached(int max) {
@@ -9753,7 +9827,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get customFieldsLoadError => 'カスタムフィールドを読み込めませんでした。';
 
   @override
-  String get customFieldsEmpty => 'カスタムフィールドがまだありません。\n+ボタンをタップして定義してください。';
+  String get customFieldsEmptyTitle => 'カスタムフィールドはまだありません';
+
+  @override
+  String get customFieldsEmptyBody => '「新しいフィールド」を選ぶと追加できます。';
 
   @override
   String get customFieldsFlagInList => 'リストに表示';

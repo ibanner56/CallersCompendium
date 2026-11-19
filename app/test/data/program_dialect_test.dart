@@ -72,4 +72,62 @@ void main() {
     expect(viaNfc!.name, 'Café Calls');
     expect(resolveProgramDialect('Café Calls', library), isNotNull);
   });
+
+  group('across dance forms', () {
+    late DialectLibraries libraries;
+
+    setUp(() async {
+      final repos = openTestRepositories();
+      await repos.ensureMigrated();
+      libraries = DialectLibraries(repos.settings);
+      await libraries.load();
+      addTearDown(libraries.dispose);
+      await libraries.contra.upsert(
+        Dialect(name: 'Shared', roles: const {'role1': RoleTerm('Jay')}),
+      );
+      await libraries
+          .forForm(DanceForm.ecd)
+          .upsert(
+            Dialect(name: 'Shared', roles: const {'role1': RoleTerm('Wren')}),
+          );
+      await libraries
+          .forForm(DanceForm.square)
+          .upsert(Dialect(name: 'Square only'));
+    });
+
+    test('lists each name once, presets first', () {
+      expect(programDialectNames(libraries), [
+        ...Dialect.presets.map((d) => d.name),
+        'Shared',
+        'Square only',
+      ]);
+    });
+
+    test('resolves a name from whichever form has it', () {
+      expect(
+        resolveProgramDialectInAnyForm('Square only', libraries)?.name,
+        'Square only',
+      );
+      expect(
+        resolveProgramDialectInAnyForm(
+          'Shared',
+          libraries,
+        )?.roles['role1']?.singular,
+        'Jay',
+      );
+      expect(resolveProgramDialectInAnyForm('Gone', libraries), isNull);
+      expect(resolveProgramDialectInAnyForm(null, libraries), isNull);
+    });
+
+    test('each form resolves its own dialect of a shared name', () {
+      expect(
+        resolveProgramDialect(
+          'Shared',
+          libraries.forForm(DanceForm.ecd),
+        )?.roles['role1']?.singular,
+        'Wren',
+      );
+      expect(resolveProgramDialect('Square only', libraries.contra), isNull);
+    });
+  });
 }

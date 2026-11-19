@@ -463,12 +463,15 @@ class _DanceListScreenState extends State<DanceListScreen>
     super.didChangeDependencies();
     // Read the active dialect from the scope (registers rebuild dependency so
     // didChangeDependencies fires again when the dialect changes).
-    final newDialect = ActiveDialectScope.of(context);
+    // The collection mixes forms; a query is read in contra's dialect (the
+    // enrichment below adds every form's words), until search by form
+    // arrives (ADR-006 plan, W7).
+    final newDialect = ActiveDialectScope.of(context).forForm(DanceForm.contra);
     final dialectChanged = _started && newDialect != _dialect;
     _dialect = newDialect;
 
     // Build the always-on enrichment from the union of every saved dialect
-    // (presets + custom). Registers a rebuild dependency on the library so a
+    // (presets + custom) of every dance form. Registers a rebuild dependency on the library so a
     // dialect add/edit/delete re-runs the search live.
     final library = DialectLibraryScope.maybeOf(context);
     final newDialects = library?.all ?? const <Dialect>[];
@@ -2949,17 +2952,10 @@ class _DanceListScreenState extends State<DanceListScreen>
   Widget _buildBody() {
     final l10n = AppLocalizations.of(context);
     if (_loadError != null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline, size: 48),
-            const SizedBox(height: AppSpacing.xs),
-            Text(l10n.collectionLoadError),
-            const SizedBox(height: AppSpacing.xs),
-            FilledButton(onPressed: _retryLoad, child: Text(l10n.commonRetry)),
-          ],
-        ),
+      return LoadErrorView(
+        icon: LoadErrorView.errorGlyph(context),
+        message: l10n.collectionLoadError,
+        onRetry: _retryLoad,
       );
     }
 
@@ -3500,6 +3496,7 @@ class _DanceListScreenState extends State<DanceListScreen>
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.lg),
           child: LoadErrorView(
+            icon: LoadErrorView.errorGlyph(context),
             message: l10n.collectionSearchError,
             onRetry: _runSearch,
           ),

@@ -28,7 +28,8 @@ final FigureRenderer _renderer = FigureRenderer(contraTaxonomy);
 /// The name a parameter kind is offered and shown under in a custom figure.
 String compoundParamKindLabel(AppLocalizations l10n, ParamKind kind) =>
     switch (kind) {
-      ParamKind.dancerSet => l10n.compoundParamKindDancers,
+      ParamKind.dancerSet ||
+      ParamKind.dancerList => l10n.compoundParamKindDancers,
       ParamKind.dancerPair => l10n.compoundParamKindDancerPair,
       ParamKind.handedness => l10n.compoundParamKindHand,
       ParamKind.shoulder => l10n.compoundParamKindShoulder,
@@ -282,7 +283,7 @@ class _GlossaryCustomFigureDetailState
     final shorthands = ShorthandMappingsScope.maybeOf(context);
     final targetName = _renderer.displayMoveName(
       target,
-      ActiveDialectScope.of(context),
+      ActiveDialectScope.contraOf(context),
     );
     final mapping = await navigator.push<UserFigureSwitch>(
       MaterialPageRoute(
@@ -450,7 +451,7 @@ class _GlossaryCustomFigureDetailState
   Future<void> _forgetSettings(
     NavigatorState navigator,
     CompendiumRepositories repos,
-    DialectLibraryController? dialects,
+    DialectLibraries? dialects,
     Map<String, String> defaults,
   ) async {
     // Each dialect's name and wording for it, and its matrix column's place,
@@ -529,7 +530,7 @@ class _GlossaryCustomFigureDetailState
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final dialect = ActiveDialectScope.of(context);
+    final dialect = ActiveDialectScope.contraOf(context);
     final entries = _entries;
     if (entries == null) return const SizedBox.shrink();
     final items = resolveCustomGlossary(
@@ -537,7 +538,7 @@ class _GlossaryCustomFigureDetailState
       taxonomy: contraTaxonomy,
       dialects: [
         dialect,
-        ...?DialectLibraryScope.maybeOf(context)?.customDialects,
+        ...?DialectLibraryScope.maybeOf(context)?.allCustomDialects,
       ],
       shorthandTokens: ShorthandMappingsScope.tokensOf(context),
     );
@@ -909,7 +910,10 @@ class _CustomFigureTitleState extends State<CustomFigureTitle> {
     return Text(
       name == null
           ? widget.fallback
-          : _renderer.renderFreeText(name, ActiveDialectScope.of(context)),
+          : _renderer.renderFreeText(
+              name,
+              ActiveDialectScope.contraOf(context),
+            ),
       key: const ValueKey('glossary-custom-title'),
     );
   }

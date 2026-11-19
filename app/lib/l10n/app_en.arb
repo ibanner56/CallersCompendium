@@ -1868,9 +1868,13 @@
       }
     }
   },
-  "settingsSyncDevicesEmpty": "No other devices are connected to this store.",
-  "@settingsSyncDevicesEmpty": {
-    "description": "Empty state when this is the only device with a manifest in the Device Sync store."
+  "settingsSyncDevicesEmptyTitle": "No other devices yet",
+  "@settingsSyncDevicesEmptyTitle": {
+    "description": "Heading of the empty state on the sync devices screen when no other device is connected to the store."
+  },
+  "settingsSyncDevicesEmptyBody": "Other devices connected to this store will appear here.",
+  "@settingsSyncDevicesEmptyBody": {
+    "description": "Body of the empty state on the sync devices screen."
   },
   "settingsSyncDevicesFailed": "Couldn't load the device list. Check your connection and try again.",
   "@settingsSyncDevicesFailed": {
@@ -2543,6 +2547,10 @@
   "settingsDialectHeader": "Dialects",
   "@settingsDialectHeader": {
     "description": "Dialect settings section header for the dialect library."
+  },
+  "settingsDialectFormHelper": "Each dance type has its own dialects. Choose a type to see and set up its dialects.",
+  "@settingsDialectFormHelper": {
+    "description": "Helper text above the dance-type selector in Settings › Dialect. The selector's segments are the dance-type names (Contra, English, Square); the list below it shows only the chosen type's dialects."
   },
   "settingsDialectDanceDetailsHeader": "Dance details & shorthands",
   "@settingsDialectDanceDetailsHeader": {
@@ -3376,6 +3384,10 @@
   "@settingsDefaultsFormSubtitle": {
     "description": "Explanation for the default dance-type picker."
   },
+  "settingsDefaultsFormLastUsed": "Last used",
+  "@settingsDefaultsFormLastUsed": {
+    "description": "Option in the default dance-type picker: a new dance starts as the type of the last dance the user created."
+  },
   "settingsDefaultsFormationTitle": "Formation",
   "@settingsDefaultsFormationTitle": {
     "description": "Title of the default dance-formation picker."
@@ -3482,9 +3494,13 @@
   "@settingsAppearanceTagColoursSubtitle": {
     "description": "Explanation for the tag-color customisation entry."
   },
-  "settingsTagColoursEmpty": "You haven't created any tags yet. Add a tag to a dance and it will appear here.",
-  "@settingsTagColoursEmpty": {
-    "description": "Shown on the tag-color screen when the collection has no tags."
+  "settingsTagColoursEmptyTitle": "No tags yet",
+  "@settingsTagColoursEmptyTitle": {
+    "description": "Heading of the empty state on the tag manager."
+  },
+  "settingsTagColoursEmptyBody": "Add a tag to a dance and it will appear here.",
+  "@settingsTagColoursEmptyBody": {
+    "description": "Body of the empty state on the tag manager; says where tags come from."
   },
   "settingsTagColoursSaveError": "Couldn't save that color. Please try again.",
   "@settingsTagColoursSaveError": {
@@ -3586,9 +3602,13 @@
   "@authorManagerNameLabel": {
     "description": "Label of the name field in the Authors manager's rename dialog."
   },
-  "authorManagerEmpty": "No authors yet. Authors you credit on a dance appear here.",
-  "@authorManagerEmpty": {
-    "description": "Shown in the Authors manager when there are no authors."
+  "authorManagerEmptyTitle": "No authors yet",
+  "@authorManagerEmptyTitle": {
+    "description": "Heading of the empty state on the author manager."
+  },
+  "authorManagerEmptyBody": "Authors you credit on a dance appear here.",
+  "@authorManagerEmptyBody": {
+    "description": "Body of the empty state on the author manager."
   },
   "authorManagerLoadError": "Couldn't load your authors.",
   "@authorManagerLoadError": {
@@ -3620,9 +3640,13 @@
   "@sourceManagerTitleLabel": {
     "description": "Label of the title field in the Sources manager's rename dialog."
   },
-  "sourceManagerEmpty": "No sources yet. Books and websites you cite on a dance appear here.",
-  "@sourceManagerEmpty": {
-    "description": "Shown in the Sources manager when there are no sources."
+  "sourceManagerEmptyTitle": "No sources yet",
+  "@sourceManagerEmptyTitle": {
+    "description": "Heading of the empty state on the source manager."
+  },
+  "sourceManagerEmptyBody": "Books and websites you cite on a dance appear here.",
+  "@sourceManagerEmptyBody": {
+    "description": "Body of the empty state on the source manager."
   },
   "sourceManagerLoadError": "Couldn't load your sources.",
   "@sourceManagerLoadError": {
@@ -5111,6 +5135,55 @@
         "type": "String"
       }
     }
+  },
+  "commonFormationDupleMinor": "Duple minor",
+  "@commonFormationDupleMinor": {
+    "description": "Formation shape value (English country dance): a longways set danced in minor sets of two couples."
+  },
+  "commonFormationThreeCoupleLongways": "Three-couple longways",
+  "@commonFormationThreeCoupleLongways": {
+    "description": "Formation shape value (English country dance): a longways set of exactly three couples."
+  },
+  "commonFormationFourCoupleLongways": "Four-couple longways",
+  "@commonFormationFourCoupleLongways": {
+    "description": "Formation shape value (English country dance): a longways set of exactly four couples."
+  },
+  "commonFormationFiveCoupleLongways": "Five-couple longways",
+  "@commonFormationFiveCoupleLongways": {
+    "description": "Formation shape value (English country dance): a longways set of exactly five couples."
+  },
+  "commonFormationSixCoupleLongways": "Six-couple longways",
+  "@commonFormationSixCoupleLongways": {
+    "description": "Formation shape value (English country dance): a longways set of exactly six couples."
+  },
+  "commonFormationCircle": "Circle",
+  "@commonFormationCircle": {
+    "description": "Formation shape value (English country dance): dancers in a circle."
+  },
+  "commonFormationSquare": "Square",
+  "@commonFormationSquare": {
+    "description": "Formation shape value (English country dance): a square set of four couples."
+  },
+  "commonFormationTwoCoupleSet": "Two-couple set",
+  "@commonFormationTwoCoupleSet": {
+    "description": "Formation shape value (English country dance): a set of exactly two couples."
+  },
+  "commonFormationImproperFlag": "{shape}, improper",
+  "@commonFormationImproperFlag": {
+    "description": "An English country dance formation that starts improper (first couple crossed over). {shape} is a localized formation shape name, such as 'Duple minor'.",
+    "placeholders": {
+      "shape": {
+        "type": "String"
+      }
+    }
+  },
+  "danceEditorMeterLabel": "Meter",
+  "@danceEditorMeterLabel": {
+    "description": "Label for a dance's written meter (time signature) as free text, for example 3/2 or 6/8."
+  },
+  "danceEditorMusicalKeyLabel": "Key",
+  "@danceEditorMusicalKeyLabel": {
+    "description": "Label for the musical key of a dance's tune as free text, for example G minor."
   },
   "commonMixedLevel": "Mixed level",
   "@commonMixedLevel": {
@@ -7326,9 +7399,13 @@
   "@programsSlotNoteFallback": {
     "description": "Fallback title for a free-text program slot that has no text yet."
   },
-  "programsSlotEditorEmpty": "No slots yet. Add a dance or a note to get started.",
-  "@programsSlotEditorEmpty": {
-    "description": "Empty state shown in the program slot list editor when a program has no slots."
+  "programsSlotEditorEmptyTitle": "No slots yet",
+  "@programsSlotEditorEmptyTitle": {
+    "description": "Heading of the empty state in the program slot list editor when a program has no slots."
+  },
+  "programsSlotEditorEmptyBody": "Add a dance or a note to get started.",
+  "@programsSlotEditorEmptyBody": {
+    "description": "Body of the empty state in the program slot list editor; says how to add the first slot."
   },
   "programsSlotMovedUp": "Slot moved up.",
   "@programsSlotMovedUp": {
@@ -10894,9 +10971,13 @@
   "@settingsWalkthroughSnippetsDescription": {
     "description": "Explanatory text at the top of the walkthrough-snippet library editor (#411)."
   },
-  "settingsWalkthroughSnippetsEmpty": "No saved snippets yet. Add walkthrough step descriptions while editing a dance's figures.",
-  "@settingsWalkthroughSnippetsEmpty": {
-    "description": "Empty-state text on the walkthrough-snippet library editor when the library is empty (#411)."
+  "settingsWalkthroughSnippetsEmptyTitle": "No saved snippets yet",
+  "@settingsWalkthroughSnippetsEmptyTitle": {
+    "description": "Heading of the empty state on the walkthrough-snippet library editor."
+  },
+  "settingsWalkthroughSnippetsEmptyBody": "Add walkthrough step descriptions while editing a dance's figures.",
+  "@settingsWalkthroughSnippetsEmptyBody": {
+    "description": "Body of the empty state on the walkthrough-snippet library editor; says where snippets come from."
   },
   "settingsWalkthroughSnippetsCount": "{count, plural, =1{1 snippet} other{{count} snippets}}",
   "@settingsWalkthroughSnippetsCount": {
@@ -10934,6 +11015,14 @@
   "danceEditorComposedHelper": "When the dance was composed (year, or add month/day)",
   "@danceEditorComposedHelper": {
     "description": "Helper text for the composed-date field."
+  },
+  "danceEditorInterpretedByLabel": "Interpreted by",
+  "@danceEditorInterpretedByLabel": {
+    "description": "Field label for the people who interpreted the dance: reconstructed it from its original publication, as English country dances often are. Drawn from the same people list as the authors."
+  },
+  "danceEditorInterpretedOnLabel": "Interpreted in",
+  "@danceEditorInterpretedOnLabel": {
+    "description": "Label for the partial date (a year, or a fuller date) when the dance was interpreted, like the Composed date."
   },
   "danceEditorRevisedLabel": "Revised",
   "@danceEditorRevisedLabel": {
@@ -11219,7 +11308,7 @@
     "placeholders": {
       "term": {
         "type": "String",
-        "example": "gents"
+        "example": "larks"
       }
     }
   },
@@ -11229,7 +11318,7 @@
     "placeholders": {
       "source": {
         "type": "String",
-        "example": "gents"
+        "example": "larks"
       },
       "existing": {
         "type": "String",
@@ -11238,6 +11327,16 @@
       "substitution": {
         "type": "String",
         "example": "larks"
+      }
+    }
+  },
+  "validationGenderedRoleTerm": "\"{word}\" is a gendered role word, which the app never shows. Use a role-neutral word instead.",
+  "@validationGenderedRoleTerm": {
+    "description": "Dialect-editor and dialect-name validation error: the entry uses a gendered role word (such as the words for men or women), which the app never shows. {word} is the offending word as the user typed it, rendered as plain text.",
+    "placeholders": {
+      "word": {
+        "type": "String",
+        "example": "ladies"
       }
     }
   },
@@ -11251,7 +11350,7 @@
     "placeholders": {
       "term": {
         "type": "String",
-        "example": "gents"
+        "example": "larks"
       }
     }
   },
@@ -11261,7 +11360,7 @@
     "placeholders": {
       "term": {
         "type": "String",
-        "example": "gents"
+        "example": "larks"
       }
     }
   },
@@ -12794,9 +12893,13 @@
   "@shorthandMappingsNew": {
     "description": "Button that creates a new figure-shorthand mapping."
   },
-  "shorthandMappingsEmpty": "No shorthands yet.",
-  "@shorthandMappingsEmpty": {
-    "description": "Empty state when the user has no figure-shorthand mappings."
+  "shorthandMappingsEmptyTitle": "No shorthands yet",
+  "@shorthandMappingsEmptyTitle": {
+    "description": "Heading of the empty state on the shorthand list."
+  },
+  "shorthandMappingsEmptyBody": "Choose New shorthand to add one.",
+  "@shorthandMappingsEmptyBody": {
+    "description": "Body of the empty state on the shorthand list; names the New shorthand button."
   },
   "shorthandMappingsLimitReached": "You have reached the limit of {max} figure shorthands. Delete one to add another.",
   "@shorthandMappingsLimitReached": {
@@ -13278,9 +13381,13 @@
   "@customFieldsLoadError": {
     "description": "Error shown when the custom-field definitions fail to load."
   },
-  "customFieldsEmpty": "No custom fields yet.\nTap + to define one.",
-  "@customFieldsEmpty": {
-    "description": "Empty state when no custom fields are defined."
+  "customFieldsEmptyTitle": "No custom fields yet",
+  "@customFieldsEmptyTitle": {
+    "description": "Heading of the empty state on the custom fields list."
+  },
+  "customFieldsEmptyBody": "Choose New field to add one.",
+  "@customFieldsEmptyBody": {
+    "description": "Body of the empty state on the custom fields list; names the New field button."
   },
   "customFieldsFlagInList": "In list",
   "@customFieldsFlagInList": {

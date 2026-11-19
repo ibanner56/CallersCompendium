@@ -248,7 +248,7 @@ void main() {
     test('a custom dialect round-trips through toJson/fromJson', () {
       final custom = Dialect(
         name: 'Custom',
-        roles: const {'role1': RoleTerm('Gent'), 'role2': RoleTerm('Lady')},
+        roles: const {'role1': RoleTerm('Jay'), 'role2': RoleTerm('Wren')},
         moves: const {'shoulder_round': '%S shoulder round'},
         moveWordingBranches: const {
           'promenade': {

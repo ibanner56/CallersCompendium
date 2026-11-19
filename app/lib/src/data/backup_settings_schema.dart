@@ -23,6 +23,7 @@ import 'display_defaults.dart'
         kDefaultModifierFiguresKey,
         kDefaultMeanwhileSideFiguresKey,
         kDefaultDanceFormKey,
+        kLastUsedDanceFormKey,
         kDefaultDanceFormationShapeKey,
         kDefaultDancePhraseStructureKey,
         kDefaultDanceProgressionKey,
@@ -39,6 +40,12 @@ import 'display_defaults.dart'
         kLastUsedProgramSortKey,
         tryDecodeDefaultImportTagNames,
         tryDecodeStartingProgramTemplate;
+import 'dialect_library_controller.dart'
+    show
+        kActiveDialectRefEcdKey,
+        kActiveDialectRefSquareKey,
+        kCustomDialectsEcdKey,
+        kCustomDialectsSquareKey;
 import 'formation_colors_controller.dart' show kFormationColorOverridesKey;
 import 'locale_scope.dart' show kLocaleKey;
 import 'mark_all_sets_status_scope.dart' show kMarkAllSetsStatusKey;
@@ -164,6 +171,7 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
     kLastUsedProgramSortDirectionKey,
     kDefaultDanceDetailRenderingKey,
     kDefaultDanceFormKey,
+    kLastUsedDanceFormKey,
     kDefaultDanceFormationShapeKey,
     kDefaultDancePhraseStructureKey,
     kDefaultDanceProgressionKey,
@@ -174,6 +182,11 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
     // off / weekly / monthly; `backupReminderCadenceFromStored` rejects any
     // other token and falls back to off.
     kBackupReminderCadenceKey,
+    // The name of another dance form's active dialect. Contra's travels in
+    // the structured `app.dialects` section instead; the other forms' travel
+    // as ordinary settings, so a backup needed no new section for them.
+    kActiveDialectRefEcdKey,
+    kActiveDialectRefSquareKey,
   ])
     key: _isString,
 
@@ -202,6 +215,10 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
   // defensively (skipping bad entries), so here we only enforce the outer
   // container kind that each decoder expects.
   kWalkthroughSnippetsKey: _isMap,
+  // Another dance form's custom dialects, a JSON list the library decodes
+  // entry by entry (DialectLibraryController.load).
+  kCustomDialectsEcdKey: _isList,
+  kCustomDialectsSquareKey: _isList,
   kFormationColorOverridesKey: _isMap,
   // Shorthand mappings persist as a JSON list; the decoder also tolerates a raw
   // JSON string, so accept either and let it validate entries.

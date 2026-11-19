@@ -432,14 +432,19 @@ There's a **High contrast** theme for maximum legibility — see the
 The **Dialect** section is your library of [dialects](./glossary.md#dialect) — the
 role names and wording the app uses when it describes dances.
 
+- Each type of dance (**Contra**, **English (ECD)**, **Square**) has its own
+  dialects. Choose the type at the top of the section; the list below shows that
+  type's dialects, and each dance reads in the active dialect of its own type.
 - **New dialect** starts a dialect of your own, and **Duplicate from…** copies
   an existing one as a starting point.
 - Preset dialects are read-only, but you can **Duplicate to customize** to make
   your own version.
 - Custom dialects can be edited (**Edit terms**), renamed, or deleted. Deleting
   one offers **Undo**, which also makes it active again if it was.
-- One dialect is active at a time; select a dialect in the list to make it
-  active.
+- One dialect is active at a time for each type; select a dialect in the list
+  to make it active for that type.
+- Dialect names and role names can't use gendered words such as "gents" or
+  "ladies".
 
 ### Dance details & shorthands
 
@@ -627,7 +632,8 @@ open this group. You can override any of them per dance, and
   uses it, you can remove any level, including the ones that ship with the app. Removing a level asks nothing first and shows
   **Undo** for a few seconds, which puts the level back in its place.
 - **Type**, **Formation**, and **Progression** — the starting choices for a new
-  dance.
+  dance. **Type** can also be **Last used**, so a new dance starts as the type of
+  the last new dance you saved. Until you save one, it starts as contra.
 - **Default phrase structure** — leave blank for the standard 4×16 A1 A2 B1 B2, or
   set your own.
 - **Starting figures** — the figures a new dance begins with; defaults to eight
@@ -1276,6 +1282,14 @@ Sync is off and open while it is on.
   **Reduce motion**, **Auto-size Perform cards** or Perform's stage theme. Those
   settings now stay on each device, so the updated device leaves them alone. To
   clear the notice, update the app on the older device.
+
+  A dance in one of the English country dance formations (such as duple minor
+  or a three-couple longways set) reaches a device on an older version as a
+  record that couldn't be used, not as one waiting for an update. That device
+  skips the dance, and any program or related-dance link that names it, until
+  you update it there; nothing is lost on the device that sent it. A dance's
+  meter, key or improper mark doesn't hold it back: an older device keeps
+  those and passes them on unchanged.
 - These settings belong to this device. They are not synced to your other
   devices, and they are not included in a backup, so restoring a backup never
   turns sync on.

@@ -34,10 +34,11 @@
 library;
 
 import 'src/model/figure.dart';
-import 'src/taxonomy/contra_taxonomy.dart';
+import 'src/taxonomy/taxonomy_registry.dart';
 import 'src/validation/validation.dart';
 
-/// Builds a [Figure] and asserts it is valid under `contraTaxonomy`.
+/// Builds a [Figure] and asserts it is valid under the shipped taxonomies
+/// (`shippedTaxonomies.anyForm`): contra's, and ECD's `ecd_` moves.
 ///
 /// The signature mirrors [Figure]'s constructor exactly, so routing an existing
 /// fixture through this is a rename and nothing else — no argument
@@ -72,7 +73,7 @@ Figure testFigure({
     assumedSubject: assumedSubject,
     walkthroughOverride: walkthroughOverride,
   );
-  final issues = contraTaxonomy
+  final issues = shippedTaxonomies.anyForm
       .validateFigure(figure)
       .where((i) => i.severity == ValidationSeverity.error)
       .toList();

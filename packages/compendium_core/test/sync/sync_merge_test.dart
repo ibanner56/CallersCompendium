@@ -1022,6 +1022,77 @@ void main() {
     }
   });
 
+  test('fresh attach merges copies that differ only in meter, key or '
+      'improper, and the latest copy\'s values win', () {
+    final survivor = _danceCandidate(
+      'a-survivor',
+      'Shared',
+      updatedSeconds: 1,
+      extra: const {'meter': '3/2', 'musicalKey': 'G'},
+      formationExtra: const {'improper': true},
+    );
+    final newest = _danceCandidate('m-newest', 'Shared', updatedSeconds: 2);
+
+    final plan = planFreshAttachDedupe([survivor, newest]);
+
+    expect(plan.ambiguities, isEmpty);
+    final body = plan.merges.single.winner.blob.body;
+    expect(plan.merges.single.winner.blob.id, 'a-survivor');
+    expect(body.keys, isNot(contains('meter')));
+    expect(body.keys, isNot(contains('musicalKey')));
+    expect((body['formation']! as Map).keys, isNot(contains('improper')));
+
+    final reversed = planFreshAttachDedupe([
+      _danceCandidate('a-survivor', 'Shared', updatedSeconds: 1),
+      _danceCandidate(
+        'm-newest',
+        'Shared',
+        updatedSeconds: 2,
+        extra: const {'meter': '6/8'},
+        formationExtra: const {'improper': true},
+      ),
+    ]).merges.single.winner.blob.body;
+    expect(reversed['meter'], '6/8');
+    expect((reversed['formation']! as Map)['improper'], isTrue);
+  });
+
+  test('fresh attach unions interpreters as it does authors, leaves the '
+      'list out when nobody is credited, and takes the latest copy\'s '
+      'interpretation date', () {
+    final plain = planFreshAttachDedupe([
+      _danceCandidate('a-survivor', 'Shared', updatedSeconds: 1),
+      _danceCandidate('m-newest', 'Shared', updatedSeconds: 2),
+    ]).merges.single.winner.blob.body;
+    expect(plain.keys, isNot(contains('interpreterIds')));
+    expect(plain.keys, isNot(contains('interpretedOn')));
+
+    final body = planFreshAttachDedupe([
+      _danceCandidate(
+        'a-survivor',
+        'Shared',
+        updatedSeconds: 1,
+        extra: const {
+          'interpreterIds': ['p1'],
+          'interpretedOn': '1985',
+        },
+      ),
+      _danceCandidate(
+        'm-newest',
+        'Shared',
+        updatedSeconds: 2,
+        extra: const {
+          'interpreterIds': ['p2', 'p1'],
+        },
+      ),
+    ]).merges.single.winner.blob.body;
+    expect(body['interpreterIds'], ['p1', 'p2']);
+    expect(
+      body.keys,
+      isNot(contains('interpretedOn')),
+      reason: 'the newest copy has no date, so the merged dance has none',
+    );
+  });
+
   test(
     'fresh attach excludes tombstones and preserves deterministic merge rules',
     () {
@@ -1658,6 +1729,8 @@ SyncMergeCandidate _danceCandidate(
   Object? provenance,
   int updatedSeconds = 0,
   bool deleted = false,
+  Map<String, Object?> extra = const {},
+  Map<String, Object?> formationExtra = const {},
 }) {
   final updatedAt = _baseTime.add(Duration(seconds: updatedSeconds));
   return SyncMergeCandidate(
@@ -1671,7 +1744,7 @@ SyncMergeCandidate _danceCandidate(
         'id': id,
         'title': title,
         'form': 'contra',
-        'formation': {'shape': 'duple_improper'},
+        'formation': {'shape': 'duple_improper', ...formationExtra},
         'progression': 'single',
         'phraseStructure': '',
         'figures': figures,
@@ -1693,6 +1766,7 @@ SyncMergeCandidate _danceCandidate(
         'composedOn': null,
         'revisedOn': null,
         'createdAt': _baseTime.toIso8601String(),
+        ...extra,
       },
     ),
   );

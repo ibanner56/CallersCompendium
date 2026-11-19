@@ -93,6 +93,7 @@ void main() {
     ParamKind.choice: (OppositeCoverage.none, {'left': null, 'right': null}),
     ParamKind.text: (OppositeCoverage.none, {'anything': null}),
     ParamKind.flag: (OppositeCoverage.none, {true: null, false: null}),
+    ParamKind.dancerList: (OppositeCoverage.none, {'ones': null}),
   };
 
   test('every ParamKind is in the pinned table', () {

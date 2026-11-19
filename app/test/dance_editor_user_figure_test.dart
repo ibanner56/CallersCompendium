@@ -61,7 +61,7 @@ void main() {
     final controller = DanceEditorController(
       repositories: repos,
       danceId: dance?.id,
-      dialect: dialect ?? Dialect.larksRobins,
+      dialects: DialectsByForm.all(dialect ?? Dialect.larksRobins),
       debounce: const Duration(milliseconds: 10),
     );
     addTearDown(controller.dispose);

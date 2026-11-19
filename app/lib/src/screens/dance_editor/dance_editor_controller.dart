@@ -1,6 +1,9 @@
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/compendium_core.dart'
+    as core
+    show offeredFormationShapes;
 import 'package:flutter/foundation.dart' show listEquals, mapEquals;
 import 'package:flutter/widgets.dart';
 
@@ -40,18 +43,20 @@ class DanceEditorController extends ChangeNotifier {
   DanceEditorController({
     required CompendiumRepositories repositories,
     required this.danceId,
-    required Dialect dialect,
+    required DialectsByForm dialects,
     this.initialTitle,
     this._debounce = const Duration(milliseconds: 500),
   }) : _repos = repositories,
-       _activeDialect = dialect,
-       titleController = LingoTextEditingController(dialect: dialect),
-       hookController = LingoTextEditingController(dialect: dialect),
-       notesController = LingoTextEditingController(dialect: dialect),
-       walkthroughController = LingoTextEditingController(dialect: dialect),
-       phraseController = LingoTextEditingController(dialect: dialect),
-       formationDetailController = LingoTextEditingController(dialect: dialect),
-       tuneController = LingoTextEditingController(dialect: dialect),
+       _dialects = dialects,
+       // A new dance starts as contra until [load] reads its form.
+       _activeDialect = dialects.forForm(DanceForm.contra),
+       titleController = _lingo(dialects),
+       hookController = _lingo(dialects),
+       notesController = _lingo(dialects),
+       walkthroughController = _lingo(dialects),
+       phraseController = _lingo(dialects),
+       formationDetailController = _lingo(dialects),
+       tuneController = _lingo(dialects),
        _draftKey = danceId == null
            ? danceEditorDraftKey('$kNewDanceDraftIdPrefix${uuidV4()}')
            : danceEditorDraftKey(danceId) {
@@ -60,13 +65,26 @@ class DanceEditorController extends ChangeNotifier {
     _openDraftKeys.add(_draftKey);
   }
 
+  static LingoTextEditingController _lingo(DialectsByForm dialects) =>
+      LingoTextEditingController(dialect: dialects.forForm(DanceForm.contra));
+
   final CompendiumRepositories _repos;
 
   /// How long an edit must sit idle before the undo snapshot is pushed and the
   /// autosave draft is written. Tests inject a short one.
   final Duration _debounce;
   final String? danceId;
+
+  /// The dialect of every dance form. The editor shows the dance in its own
+  /// form's ([_activeDialect]), and follows the form when it changes
+  /// (ADR-006 §9.1, point 1).
+  DialectsByForm _dialects;
+
+  /// The dialect of the dance's form, which the text on screen is in.
   Dialect _activeDialect;
+
+  /// The dialect of the dance's form, which the text on screen is in.
+  Dialect get dialect => _activeDialect;
 
   /// A title to seed a **new** dance's title field with (issue #881's
   /// "create a dance from this" program-slot action). Ignored when
@@ -254,6 +272,18 @@ class DanceEditorController extends ChangeNotifier {
   /// The taxonomy this dance's figures are entered and checked with: its
   /// form's (ADR-006 §12.1, F6). It follows a change of form at once.
   Taxonomy get taxonomy => shippedTaxonomies.forForm(_form);
+
+  /// The shapes the formation field offers: the dance form's own
+  /// ([offeredFormationShapes]), plus the dance's current shape when that is
+  /// not one of them, such as an ECD dance imported with a contra shape, so
+  /// the field still shows it and saving keeps it.
+  List<FormationShape> get offeredFormationShapes {
+    final offered = core.offeredFormationShapes(_form);
+    return offered.contains(_formationShape)
+        ? offered
+        : [_formationShape, ...offered];
+  }
+
   FormationShape get formationShape => _formationShape;
   Progression get progression => _progression;
   DanceStatus get status => _status;
@@ -593,7 +623,59 @@ class DanceEditorController extends ChangeNotifier {
   /// on screen, and what Save canonicalizes, stay in the dialect Save reads
   /// them in (AUTH-17). Undo entries record their own dialect and are
   /// converted when applied.
-  void updateDialect(Dialect newDialect) {
+  void updateDialects(DialectsByForm dialects) {
+    _dialects = dialects;
+    _showInDialect(_targetDialect);
+  }
+
+  /// Shows the dance in its form's dialect, after [_form] changed.
+  void _followForm() => _showInDialect(_targetDialect);
+
+  /// Author names by id, so the editor can tell when the dance's
+  /// choreographer asked for larks and robins ([dialectForDance]). The screen
+  /// keeps it current through [setAuthorNames].
+  Map<String, String> _authorNames = const {};
+
+  /// The dialect [form]'s dance titled [title] by the authors [authors] is
+  /// shown in: the form's dialect, with lark and robin for the roles when
+  /// the dance's choreographer asked for them ([dialectForDance]).
+  Dialect _dialectFor(
+    DanceForm form, {
+    required String title,
+    required Iterable<String> authors,
+  }) => dialectForDance(
+    _dialects.forForm(form),
+    title: title,
+    authorNames: [
+      for (final id in authors)
+        if (_authorNames[id] case final String name) name,
+    ],
+  );
+
+  /// The dialect the dance as now edited is shown in ([_dialectFor]).
+  Dialect get _targetDialect =>
+      _dialectFor(_form, title: titleController.text, authors: authorIds);
+
+  /// Replaces the author names [_dialectFor] reads, and shows the dance in
+  /// the dialect they call for ([refreshDialect]).
+  void setAuthorNames(Map<String, String> names) {
+    _authorNames = names;
+    refreshDialect();
+  }
+
+  /// Shows the dance in the dialect its title and authors now call for: the
+  /// form's own, or lark and robin when its choreographer asked for them
+  /// ([dialectForDance]). Converts the figure drafts' role words, as a
+  /// dialect change does, and notifies when the dialect changed.
+  void refreshDialect() {
+    final next = _targetDialect;
+    if (next == _activeDialect) return;
+    _showInDialect(next);
+    _notify();
+  }
+
+  void _showInDialect(Dialect newDialect) {
+    if (identical(newDialect, _activeDialect)) return;
     final previous = _activeDialect;
     _activeDialect = newDialect;
     for (final c in _proseLingoControllers) {
@@ -689,6 +771,7 @@ class DanceEditorController extends ChangeNotifier {
       phraseController.text = dance.phraseStructure.raw;
       formationDetailController.text = dance.formation.detail ?? '';
       _form = dance.form;
+      _followForm();
       _formationShape = dance.formation.shape;
       _progression = dance.progression;
       _status = dance.status;
@@ -749,18 +832,27 @@ class DanceEditorController extends ChangeNotifier {
         titleController.text = seedTitle;
       }
       try {
-        _form = danceFormFromStored(
-          await _repos.settings.get(kDefaultDanceFormKey),
+        _form = resolveNewDanceForm(
+          defaultFormStored: await _repos.settings.get(kDefaultDanceFormKey),
+          lastUsedStored: await _repos.settings.get(kLastUsedDanceFormKey),
         );
       } catch (_) {
         // diagnostics: silent — DanceForm default read failed; falls back to hardcoded contra.
       }
+      _followForm();
       try {
         _formationShape = formationShapeFromStored(
           await _repos.settings.get(kDefaultDanceFormationShapeKey),
         );
       } catch (_) {
         // diagnostics: silent — FormationShape default read failed; falls back to hardcoded dupleImproper.
+      }
+      // The default shape is chosen from contra's list, so a new dance of
+      // another form whose list lacks it starts on that form's first shape
+      // (duple minor for ECD) rather than one the form does not use.
+      final formShapes = core.offeredFormationShapes(_form);
+      if (!formShapes.contains(_formationShape)) {
+        _formationShape = formShapes.first;
       }
       try {
         _progression = progressionFromStored(
@@ -1115,6 +1207,21 @@ class DanceEditorController extends ChangeNotifier {
   /// Must be called inside an [_applyingSnapshot] guard so [pushUndoNow]
   /// is suppressed during the apply.
   void applySnapshot(EditorSnapshot s) {
+    // The snapshot's dance may be of another form: show it in that form's
+    // dialect. Its figure text is converted into that dialect below
+    // ([_draftsInActiveDialect]), so the drafts on screen, about to be
+    // replaced, are not converted first.
+    final formDialect = _dialectFor(
+      s.form,
+      title: s.title,
+      authors: s.authorIds,
+    );
+    if (formDialect != _activeDialect) {
+      _activeDialect = formDialect;
+      for (final c in _proseLingoControllers) {
+        c.updateDialect(formDialect);
+      }
+    }
     // Resync text controllers (guarded: don't clobber identical text).
     if (titleController.text != s.title) titleController.text = s.title;
     if (hookController.text != s.hook) hookController.text = s.hook;
@@ -1434,6 +1541,9 @@ class DanceEditorController extends ChangeNotifier {
     final formation = Formation(
       _formationShape,
       detail: formationDetail.isEmpty ? null : formationDetail,
+      // The editor has no proper/improper checkbox yet (ADR-006 W5), so an
+      // existing dance keeps the flag it has rather than losing it on save.
+      improper: _original?.formation.improper ?? false,
     );
     final linkList = [for (final l in links) ?l.toLink()];
     final citationList = [for (final c in sourceCitations) c.toCitation()];
@@ -1505,6 +1615,7 @@ class DanceEditorController extends ChangeNotifier {
 
   void setForm(DanceForm value) {
     _form = value;
+    _followForm();
     pushUndoNow();
     scheduleAutosave();
     _notify();
@@ -1612,9 +1723,25 @@ class DanceEditorController extends ChangeNotifier {
       history[mapped] = snapshot;
       return mapped;
     });
+    // The editor has no interpreter field yet (ADR-006 W5): a save carries
+    // the loaded dance's interpreters, so they follow the merge too, or the
+    // save would write the merged-away id back over the survivor.
+    final original = _original;
+    final interpretersBefore = original?.interpreterIds;
+    if (original != null) {
+      _original = original.copyWith(
+        interpreterIds: replaced(original.interpreterIds),
+      );
+    }
     final before = List<String>.of(authorIds);
     final next = replaced(authorIds);
-    final replacement = AuthorReplacement._(before, next, history);
+    final replacement = AuthorReplacement._(
+      before,
+      next,
+      history,
+      interpretersBefore,
+      _original?.interpreterIds,
+    );
     if (listEquals(next, authorIds)) return replacement;
     authorIds
       ..clear()
@@ -1633,6 +1760,14 @@ class DanceEditorController extends ChangeNotifier {
   /// newer, and stays.
   void restoreAuthors(AuthorReplacement replacement) {
     _undoStack.mapAll((snapshot) => replacement._history[snapshot] ?? snapshot);
+    final original = _original;
+    if (original != null &&
+        replacement._interpretersBefore != null &&
+        listEquals(original.interpreterIds, replacement._interpretersAfter)) {
+      _original = original.copyWith(
+        interpreterIds: replacement._interpretersBefore,
+      );
+    }
     if (!listEquals(authorIds, replacement._after) ||
         listEquals(authorIds, replacement._before)) {
       return;
@@ -2256,10 +2391,21 @@ class DanceEditorController extends ChangeNotifier {
 /// What [DanceEditorController.replaceAuthors] changed, for
 /// [DanceEditorController.restoreAuthors]. Opaque.
 final class AuthorReplacement {
-  AuthorReplacement._(this._before, this._after, this._history);
+  AuthorReplacement._(
+    this._before,
+    this._after,
+    this._history,
+    this._interpretersBefore,
+    this._interpretersAfter,
+  );
 
   final List<String> _before;
   final List<String> _after;
+
+  /// The loaded dance's interpreters before and after the merge, for an
+  /// existing dance; `null` for a new one.
+  final List<String>? _interpretersBefore;
+  final List<String>? _interpretersAfter;
 
   /// Each rewritten undo step, by identity, to the step it replaced.
   final Map<EditorSnapshot, EditorSnapshot> _history;

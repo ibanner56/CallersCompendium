@@ -11,6 +11,7 @@ import '../../sync/sync_scope.dart';
 import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/destructive_button_style.dart';
+import '../../widgets/empty_state.dart';
 import 'sync_device_labels.dart';
 import 'sync_failure_labels.dart';
 
@@ -292,12 +293,12 @@ class _SyncDevicesScreenState extends State<SyncDevicesScreen> {
             ),
           ),
         if (result.devices.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-            child: Text(
-              l10n.settingsSyncDevicesEmpty,
-              key: const ValueKey('sync-devices-empty'),
-            ),
+          EmptyState(
+            key: const ValueKey('sync-devices-empty'),
+            inline: true,
+            icon: EmptyState.glyph(context, Icons.devices_outlined),
+            title: l10n.settingsSyncDevicesEmptyTitle,
+            body: l10n.settingsSyncDevicesEmptyBody,
           ),
         for (final deviceId in result.devices)
           _deviceTile(

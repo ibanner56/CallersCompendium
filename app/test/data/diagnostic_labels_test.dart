@@ -20,12 +20,13 @@ ValidationIssue _validationIssue(String code) => ValidationIssue(
     'sequence_exceeds_phrase' => {'position': 2, 'actual': 40, 'limit': 32},
     'orphaned_alt' => {'position': 2, 'text': 'Petronella'},
     incompleteFigureValidationCode => {'position': 3},
-    'empty_substitution' => {'source': 'gents'},
+    'empty_substitution' => {'source': 'jays'},
     'dialect_collision' => {
-      'source': 'gents',
+      'source': 'jays',
       'existing': 'lords',
       'substitution': 'larks',
     },
+    'gendered_role_term' => {'source': 'role1', 'word': 'Gent'},
     _ => const <String, Object?>{},
   },
 );

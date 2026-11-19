@@ -111,6 +111,7 @@ Future<
     _ControllableSyncSettings syncSettings,
     ValueNotifier<Dialect> notifier,
     DialectLibraryController dialectLibrary,
+    DialectLibraries dialectLibraries,
     ValueNotifier<AppThemeSelection> themeNotifier,
     CustomThemesController customThemes,
     ValueNotifier<bool> requirePerformedNotifier,
@@ -177,6 +178,9 @@ _pumpSettings(
   final notifier = ValueNotifier<Dialect>(dialectLibrary.active);
   void syncDialect() => notifier.value = dialectLibrary.active;
   dialectLibrary.addListener(syncDialect);
+  final dialectLibraries = DialectLibraries.withContra(dialectLibrary);
+  await dialectLibraries.forForm(DanceForm.ecd).load();
+  await dialectLibraries.forForm(DanceForm.square).load();
 
   final themeNotifier = ValueNotifier<AppThemeSelection>(
     initialTheme ?? AppThemeSelection.system,
@@ -224,6 +228,7 @@ _pumpSettings(
   addTearDown(notifier.dispose);
   addTearDown(() {
     dialectLibrary.removeListener(syncDialect);
+    dialectLibraries.dispose();
     dialectLibrary.dispose();
   });
   addTearDown(themeNotifier.dispose);
@@ -256,7 +261,7 @@ _pumpSettings(
               child: CustomThemesScope(
                 controller: customThemes,
                 child: DialectLibraryScope(
-                  controller: dialectLibrary,
+                  libraries: dialectLibraries,
                   child: ActiveDialectScope(
                     notifier: notifier,
                     child: RequirePerformedForHistoryScope(
@@ -314,6 +319,7 @@ _pumpSettings(
     syncSettings: syncSettings,
     notifier: notifier,
     dialectLibrary: dialectLibrary,
+    dialectLibraries: dialectLibraries,
     themeNotifier: themeNotifier,
     customThemes: customThemes,
     requirePerformedNotifier: requirePerformedNotifier,
@@ -763,6 +769,57 @@ void main() {
       );
     });
 
+    testWidgets('each dance type has its own active dialect', (tester) async {
+      final ctx = await _pumpSettings(tester);
+      await openDialect(tester);
+
+      final english = find.byKey(const ValueKey('dialect-form-ecd'));
+      await tester.ensureVisible(english);
+      await tester.tap(english);
+      await tester.pumpAndSettle();
+      final tile = find.byKey(
+        ValueKey('dialect-tile-${Dialect.leadsFollows.name}'),
+      );
+      await tester.ensureVisible(tile);
+      await tester.tap(tile);
+      await tester.pumpAndSettle();
+
+      expect(
+        ctx.dialectLibraries.forForm(DanceForm.ecd).activeName,
+        Dialect.leadsFollows.name,
+      );
+      expect(
+        await ctx.repos.settings.get(kActiveDialectRefEcdKey),
+        Dialect.leadsFollows.name,
+      );
+      expect(ctx.dialectLibrary.active, Dialect.larksRobins);
+      expect(await ctx.repos.settings.get(kActiveDialectRefKey), isNull);
+    });
+
+    testWidgets('a dialect name with a gendered word is refused', (
+      tester,
+    ) async {
+      final ctx = await _pumpSettings(tester);
+      await openDialect(tester);
+
+      await tester.tap(find.byKey(const ValueKey('new-dialect')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('dialect-name-field')),
+        'Gents & Ladies',
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(AppLocalizationsEn().validationGenderedRoleTerm('gents')),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const ValueKey('dialect-name-confirm')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('dialect-editor-save')), findsNothing);
+      expect(ctx.dialectLibrary.customDialects, isEmpty);
+    });
+
     testWidgets('a canceled New dialect leaves nothing behind', (tester) async {
       final ctx = await _pumpSettings(tester);
       await openDialect(tester);
@@ -942,16 +999,45 @@ void main() {
 
       await tester.enterText(
         find.byKey(const ValueKey('dialect-role1-singular')),
-        'Gent',
+        'Jay',
       );
       await tester.tap(find.byKey(const ValueKey('dialect-editor-save')));
       await tester.pumpAndSettle();
 
       final saved = ctx.dialectLibrary.customByName('Mine');
       expect(saved, isNotNull);
-      expect(saved!.roles['role1']!.singular, equals('Gent'));
+      expect(saved!.roles['role1']!.singular, equals('Jay'));
       // The name is preserved (edit terms never renames).
       expect(saved.name, equals('Mine'));
+    });
+
+    testWidgets('the editor will not save a gendered role term', (
+      tester,
+    ) async {
+      final ctx = await _pumpSettings(tester);
+      await ctx.dialectLibrary.upsert(Dialect(name: 'Mine'));
+      await openDialect(tester);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('dialect-menu-Mine')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Edit terms'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('dialect-role1-singular')),
+        'Gent',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('dialect-editor-save')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining(
+          AppLocalizationsEn().validationGenderedRoleTerm('gent'),
+        ),
+        findsWidgets,
+      );
+      expect(ctx.dialectLibrary.customByName('Mine')!.roles['role1'], isNull);
     });
 
     Future<void> openEditorWithEdit(WidgetTester tester, String name) async {
@@ -961,7 +1047,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.enterText(
         find.byKey(const ValueKey('dialect-role1-singular')),
-        'Gent',
+        'Jay',
       );
     }
 

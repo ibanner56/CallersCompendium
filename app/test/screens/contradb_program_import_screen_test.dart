@@ -213,6 +213,8 @@ void main() {
       );
       // The clean, generic message is shown…
       expect(find.text('Couldn\'t fetch that program.'), findsOneWidget);
+      // …with a way forward, not a dead end.
+      expect(find.byKey(const ValueKey('load-error-retry')), findsOneWidget);
       // …and none of the raw caught-exception text leaks into the UI.
       expect(find.textContaining('offline'), findsNothing);
       expect(find.textContaining('/Users/secret'), findsNothing);
@@ -432,10 +434,7 @@ void main() {
       find.byKey(const ValueKey('contradb-program-search-error')),
       findsOneWidget,
     );
-    expect(
-      find.byKey(const ValueKey('contradb-program-search-retry')),
-      findsOneWidget,
-    );
+    expect(find.byKey(const ValueKey('load-error-retry')), findsOneWidget);
   });
 
   group('caller precedence (#350/#351)', () {

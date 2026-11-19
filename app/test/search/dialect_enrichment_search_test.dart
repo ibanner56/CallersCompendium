@@ -60,7 +60,10 @@ Future<void> _pumpScreen(
       child: SortIgnoreArticlesScope(notifier: ignoreArticles, child: child),
     );
     if (library != null) {
-      tree = DialectLibraryScope(controller: library, child: tree);
+      tree = DialectLibraryScope(
+        libraries: DialectLibraries.withContra(library),
+        child: tree,
+      );
     }
     return RepositoriesScope(
       repositories: repos,

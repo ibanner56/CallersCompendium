@@ -459,7 +459,7 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
     final l10n = AppLocalizations.of(context);
     // Lark and robin when the dance's choreographer asked for them.
     final dialect = dialectForDance(
-      ActiveDialectScope.of(context),
+      ActiveDialectScope.of(context).forDance(widget.dance),
       title: widget.dance.title,
       authorNames: widget.authorNames,
     );
@@ -487,7 +487,7 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
               // The stage-mode toggle and per-gig dialect quick-switch stay inline.
               actions: buildPerformAppBarActions(
                 wide: wide,
-                leadingPrimary: const DialectQuickSwitch(),
+                leadingPrimary: DialectQuickSwitch(form: widget.dance.form),
                 secondaryInline: [
                   if (_hasWalkthrough)
                     IconButton(

@@ -1508,8 +1508,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get settingsSyncDevicesEmpty =>
-      'Mit diesem Speicher sind keine anderen Geräte verbunden.';
+  String get settingsSyncDevicesEmptyTitle => 'Noch keine anderen Geräte';
+
+  @override
+  String get settingsSyncDevicesEmptyBody =>
+      'Andere mit diesem Speicher verbundene Geräte erscheinen hier.';
 
   @override
   String get settingsSyncDevicesFailed =>
@@ -2063,6 +2066,10 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsDialectHeader => 'Dialekte';
+
+  @override
+  String get settingsDialectFormHelper =>
+      'Jeder Tanztyp hat seine eigenen Dialekte. Wähle einen Typ, um seine Dialekte zu sehen und einzurichten.';
 
   @override
   String get settingsDialectDanceDetailsHeader => 'Tanzdetails und Kurzformen';
@@ -2754,6 +2761,9 @@ class AppLocalizationsDe extends AppLocalizations {
       'Der Tanztyp, mit dem ein neuer Tanz beginnt. Pro Tanz noch änderbar.';
 
   @override
+  String get settingsDefaultsFormLastUsed => 'Zuletzt verwendet';
+
+  @override
   String get settingsDefaultsFormationTitle => 'Formation';
 
   @override
@@ -2841,8 +2851,11 @@ class AppLocalizationsDe extends AppLocalizations {
       'Geben Sie einem Tag eine eigene Farbe, damit es auf Tanzkarten und in den Tanzdetails hervorsticht. Der Name des Tags wird immer mit angezeigt, sodass Tags auch ohne Farbe lesbar bleiben.';
 
   @override
-  String get settingsTagColoursEmpty =>
-      'Sie haben noch keine Tags erstellt. Fügen Sie einem Tanz ein Tag hinzu, dann erscheint es hier.';
+  String get settingsTagColoursEmptyTitle => 'Noch keine Tags';
+
+  @override
+  String get settingsTagColoursEmptyBody =>
+      'Fügen Sie einem Tanz ein Tag hinzu, dann erscheint es hier.';
 
   @override
   String get settingsTagColoursSaveError =>
@@ -2907,8 +2920,11 @@ class AppLocalizationsDe extends AppLocalizations {
   String get authorManagerNameLabel => 'Name des Autors';
 
   @override
-  String get authorManagerEmpty =>
-      'Noch keine Autoren. Autoren, die Sie bei einem Tanz angeben, erscheinen hier.';
+  String get authorManagerEmptyTitle => 'Noch keine Autoren';
+
+  @override
+  String get authorManagerEmptyBody =>
+      'Autoren, die Sie bei einem Tanz angeben, erscheinen hier.';
 
   @override
   String get authorManagerLoadError =>
@@ -2929,8 +2945,11 @@ class AppLocalizationsDe extends AppLocalizations {
   String get sourceManagerTitleLabel => 'Titel der Quelle';
 
   @override
-  String get sourceManagerEmpty =>
-      'Noch keine Quellen. Bücher und Websites, die Sie bei einem Tanz angeben, erscheinen hier.';
+  String get sourceManagerEmptyTitle => 'Noch keine Quellen';
+
+  @override
+  String get sourceManagerEmptyBody =>
+      'Bücher und Websites, die Sie bei einem Tanz zitieren, erscheinen hier.';
 
   @override
   String get sourceManagerLoadError =>
@@ -4096,6 +4115,41 @@ class AppLocalizationsDe extends AppLocalizations {
   String commonFormationWithDetail(String shape, String detail) {
     return '$shape — $detail';
   }
+
+  @override
+  String get commonFormationDupleMinor => 'Duple minor';
+
+  @override
+  String get commonFormationThreeCoupleLongways => 'Three-couple longways';
+
+  @override
+  String get commonFormationFourCoupleLongways => 'Four-couple longways';
+
+  @override
+  String get commonFormationFiveCoupleLongways => 'Five-couple longways';
+
+  @override
+  String get commonFormationSixCoupleLongways => 'Six-couple longways';
+
+  @override
+  String get commonFormationCircle => 'Kreis';
+
+  @override
+  String get commonFormationSquare => 'Square';
+
+  @override
+  String get commonFormationTwoCoupleSet => 'Two-couple set';
+
+  @override
+  String commonFormationImproperFlag(String shape) {
+    return '$shape, improper';
+  }
+
+  @override
+  String get danceEditorMeterLabel => 'Taktart';
+
+  @override
+  String get danceEditorMusicalKeyLabel => 'Tonart';
 
   @override
   String get commonMixedLevel => 'Gemischtes Niveau';
@@ -5736,8 +5790,11 @@ class AppLocalizationsDe extends AppLocalizations {
   String get programsSlotNoteFallback => 'Notiz';
 
   @override
-  String get programsSlotEditorEmpty =>
-      'Noch keine Slots. Fügen Sie einen Tanz oder eine Notiz hinzu, um loszulegen.';
+  String get programsSlotEditorEmptyTitle => 'Noch keine Slots';
+
+  @override
+  String get programsSlotEditorEmptyBody =>
+      'Fügen Sie einen Tanz oder eine Notiz hinzu, um loszulegen.';
 
   @override
   String get programsSlotMovedUp => 'Slot nach oben verschoben.';
@@ -8500,8 +8557,12 @@ class AppLocalizationsDe extends AppLocalizations {
       'Diese Schrittbeschreibungen pro Figur füllen Abläufe vor, wenn du einen Tanz bearbeitest. Eine hier zu bearbeiten aktualisiert den überall verwendeten Standard.';
 
   @override
-  String get settingsWalkthroughSnippetsEmpty =>
-      'Noch keine gespeicherten Ausschnitte. Füge Ablaufschritt-Beschreibungen hinzu, während du die Figuren eines Tanzes bearbeitest.';
+  String get settingsWalkthroughSnippetsEmptyTitle =>
+      'Noch keine gespeicherten Ausschnitte';
+
+  @override
+  String get settingsWalkthroughSnippetsEmptyBody =>
+      'Fügen Sie Beschreibungen für Ablaufschritte hinzu, während Sie die Figuren eines Tanzes bearbeiten.';
 
   @override
   String settingsWalkthroughSnippetsCount(int count) {
@@ -8537,6 +8598,12 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get danceEditorComposedHelper =>
       'Wann der Tanz komponiert wurde (Jahr oder Monat/Tag hinzufügen)';
+
+  @override
+  String get danceEditorInterpretedByLabel => 'Interpretiert von';
+
+  @override
+  String get danceEditorInterpretedOnLabel => 'Interpretiert';
 
   @override
   String get danceEditorRevisedLabel => 'Überarbeitet';
@@ -8725,6 +8792,11 @@ class AppLocalizationsDe extends AppLocalizations {
     String substitution,
   ) {
     return '„$source“ und „$existing“ werden beide auf „$substitution“ abgebildet – die Umkehrung wäre mehrdeutig.';
+  }
+
+  @override
+  String validationGenderedRoleTerm(String word) {
+    return '„$word“ ist ein geschlechtsbezogenes Rollenwort, das die App nie anzeigt. Verwende stattdessen ein rollenneutrales Wort.';
   }
 
   @override
@@ -9835,7 +9907,11 @@ class AppLocalizationsDe extends AppLocalizations {
   String get shorthandMappingsNew => 'Neue Abkürzung';
 
   @override
-  String get shorthandMappingsEmpty => 'Noch keine Abkürzungen.';
+  String get shorthandMappingsEmptyTitle => 'Noch keine Abkürzungen';
+
+  @override
+  String get shorthandMappingsEmptyBody =>
+      'Wählen Sie „Neue Abkürzung“, um eine hinzuzufügen.';
 
   @override
   String shorthandMappingsLimitReached(int max) {
@@ -10274,8 +10350,11 @@ class AppLocalizationsDe extends AppLocalizations {
       'Benutzerdefinierte Felder konnten nicht geladen werden.';
 
   @override
-  String get customFieldsEmpty =>
-      'Noch keine benutzerdefinierten Felder.\nTippen Sie auf +, um eines zu definieren.';
+  String get customFieldsEmptyTitle => 'Noch keine benutzerdefinierten Felder';
+
+  @override
+  String get customFieldsEmptyBody =>
+      'Wählen Sie „Neues Feld“, um eines hinzuzufügen.';
 
   @override
   String get customFieldsFlagInList => 'In Liste';

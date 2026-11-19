@@ -169,7 +169,7 @@ void main() {
         ),
       ],
       fig,
-      dialect ?? Dialect.canonical,
+      DialectsByForm.all(dialect ?? Dialect.canonical),
       labels,
       const ProgramExportLabels(),
     );

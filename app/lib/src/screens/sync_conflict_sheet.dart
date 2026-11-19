@@ -793,7 +793,7 @@ class _ConflictGroupTile extends StatelessWidget {
   ) {
     if (body == null) return l10n.syncConflictValueNotSet;
     if (group.kind == SyncRecordKind.setting) {
-      return syncSettingValueText(l10n, body['value']);
+      return syncSettingValueText(l10n, body['value'], key: group.recordId);
     }
     return _name(context, body) ?? syncRecordKindLabel(l10n, group.kind);
   }

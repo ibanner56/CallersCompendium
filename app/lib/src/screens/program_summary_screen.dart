@@ -32,6 +32,7 @@ import '../theme/app_spacing.dart';
 import '../theme/set_list_accents.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/undo_snack_bar.dart';
+import '../widgets/load_error_view.dart';
 import '../widgets/program_export_menu.dart';
 import '../widgets/program_status_chip.dart';
 import 'dance_detail_screen.dart';
@@ -953,11 +954,15 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     }
     final program = _program;
     if (_error != null || program == null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(l10n.programsSummaryUnavailable),
-        ),
+      // A failed read can succeed on a second try; a program that is gone
+      // cannot, so it offers the way out instead.
+      return LoadErrorView(
+        icon: LoadErrorView.errorGlyph(context),
+        message: _error != null
+            ? l10n.programsLoadError
+            : l10n.programsSummaryUnavailable,
+        onRetry: _error != null ? _load : null,
+        onBack: _error != null ? null : widget.onDeleted,
       );
     }
 
@@ -1474,11 +1479,13 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     return rows;
   }
 
-  /// The active dialect, with lark and robin for the roles when [dance]'s
+  /// [dance]'s form's dialect, with lark and robin for the roles when [dance]'s
   /// choreographer asked for them (`dialectForDance`), credited as the
   /// exports credit it.
   Dialect _danceDialect(Dance dance) => dialectForDance(
-    ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
+    (ActiveDialectScope.maybeOf(context) ?? DialectsByForm.defaults).forDance(
+      dance,
+    ),
     title: dance.title,
     authorNames:
         _authorNamesOverride[dance.id] ??
@@ -1492,7 +1499,10 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
 
   String _displayProse(String text) {
     if (!CanonicalDiscouragedTermsScope.of(context)) return text;
-    final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
+    // Program prose (slot and program notes) has no dance form: contra's.
+    final dialect =
+        (ActiveDialectScope.maybeOf(context) ?? DialectsByForm.defaults)
+            .forForm(DanceForm.contra);
     return FigureRenderer(
       shippedTaxonomies.anyForm,
     ).renderFreeTextWithCanonicalDiscouragedTerms(text, dialect);

@@ -248,7 +248,7 @@ class GenericJsonAdapter implements SourceAdapter, BatchWarningSource {
   }
 
   /// The choreographers this [dance] credits — the ones whose ids appear in its
-  /// `authorIds`, deduped by id, skipping ids that were not present in the
+  /// `authorIds` or `interpreterIds`, deduped by id, skipping ids that were not present in the
   /// discovered archive (best-effort — an unresolved author id is simply
   /// dropped, never fatal). The single-dance payload carries ONLY these, keeping
   /// it minimal and leaking no unrelated authors. ([parse] recovers names in
@@ -257,7 +257,7 @@ class GenericJsonAdapter implements SourceAdapter, BatchWarningSource {
   List<Choreographer> _referencedChoreographers(Dance dance) {
     final referenced = <Choreographer>[];
     final seen = <String>{};
-    for (final id in dance.authorIds) {
+    for (final id in [...dance.authorIds, ...dance.interpreterIds]) {
       if (!seen.add(id)) continue;
       final choreographer = _choreographersById[id];
       if (choreographer != null) referenced.add(choreographer);
@@ -336,13 +336,20 @@ class GenericJsonAdapter implements SourceAdapter, BatchWarningSource {
     final nameById = {
       for (final c in result.archive.choreographers) c.id: c.name,
     };
-    final authorNames = <String>[];
-    final seenAuthorIds = <String>{};
-    for (final id in dance.authorIds) {
-      if (!seenAuthorIds.add(id)) continue;
-      final name = nameById[id]?.trim();
-      if (name != null && name.isNotEmpty) authorNames.add(name);
+    List<String> namesOf(List<String> ids) {
+      final names = <String>[];
+      final seen = <String>{};
+      for (final id in ids) {
+        if (!seen.add(id)) continue;
+        final name = nameById[id]?.trim();
+        if (name != null && name.isNotEmpty) names.add(name);
+      }
+      return names;
     }
+
+    final authorNames = namesOf(dance.authorIds);
+    // Interpreters the same way; the pipeline resolves them as it does authors.
+    final interpreterNames = namesOf(dance.interpreterIds);
     DifficultyLevel? difficultyLevel;
     for (final level in result.archive.difficultyLevels) {
       if (level.id == dance.difficultyLevelId) {
@@ -358,6 +365,7 @@ class GenericJsonAdapter implements SourceAdapter, BatchWarningSource {
       raw: raw,
       issues: issues,
       authorNames: authorNames,
+      interpreterNames: interpreterNames,
       difficultyLevelLabel: difficultyLevel?.label,
       difficultyLevelIdIsCanonical: difficultyLevel != null,
     );

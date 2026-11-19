@@ -138,7 +138,9 @@ class DanceListTile extends StatelessWidget {
     );
     // Lark and robin when the dance's choreographer asked for them.
     final dialect = dialectForDance(
-      ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
+      (ActiveDialectScope.maybeOf(context) ?? DialectsByForm.defaults).forDance(
+        dance,
+      ),
       title: dance.title,
       authorNames: entry.authorNames,
     );

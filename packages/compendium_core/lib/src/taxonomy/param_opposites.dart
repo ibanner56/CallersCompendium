@@ -29,6 +29,10 @@ enum OppositeCoverage {
 /// stated — so a kind keeps its coverage when a slot opts into it.
 abstract final class ParamOpposites {
   /// How far [kind] has opposites.
+  ///
+  /// A shoulder is total for the values contra stores; ECD's `cloverleaf`
+  /// turn single (ADR-006 §9.3) is a shoulder value with no opposite, so
+  /// [of] gives it none. Callers only ask whether a kind has any.
   static OppositeCoverage coverage(ParamKind kind) => switch (kind) {
     ParamKind.handedness ||
     ParamKind.shoulder ||
@@ -45,6 +49,8 @@ abstract final class ParamOpposites {
     ParamKind.beats ||
     ParamKind.text ||
     ParamKind.flag => OppositeCoverage.none,
+    // A list of dancers (ECD's `who`) is not one token with an opposite.
+    ParamKind.dancerList => OppositeCoverage.none,
     // A move-specific choice can spell left/right (circle's direction), but
     // its values are the move's own vocabulary, not a shared one with a
     // meaning: no opposite (a named limitation, #709).
@@ -108,8 +114,9 @@ abstract final class ParamOpposites {
 }
 
 /// Every value [spec] accepts, or null for free text, which accepts any
-/// string. Every other kind's domain is finite: the numeric kinds are
-/// enumerated over [ParamSpec.validate]'s range.
+/// string. Empty for a [ParamKind.dancerList], whose values are lists. Every
+/// other kind's domain is finite: the numeric kinds are enumerated over
+/// [ParamSpec.validate]'s range.
 Set<Object>? paramDomain(ParamSpec spec) {
   final choices = spec.choices;
   return switch (spec.kind) {
@@ -135,5 +142,8 @@ Set<Object>? paramDomain(ParamSpec spec) {
     ParamKind.beats => {for (var i = 0; i <= 64; i++) i},
     ParamKind.flag => {true, false},
     ParamKind.text => null,
+    // A list of dancers (ECD's `who`) holds no single value, so no single
+    // value fills it: a compound cannot bind one.
+    ParamKind.dancerList => <Object>{},
   }?..removeWhere((value) => !spec.validate(value));
 }

@@ -68,6 +68,36 @@ void main() {
     ]);
   });
 
+  test('carries the people a dance credits as interpreters, once each, '
+      'and their sharing-safe records', () {
+    final dance = Dance(
+      id: 'd1',
+      title: 'Hole in the Wall',
+      authorIds: const ['playford'],
+      interpreterIds: const ['pat', 'playford'],
+      createdAt: _now,
+      updatedAt: _now,
+    );
+    final archive = decodeArchive(
+      buildDanceShareBundle(
+        dance,
+        now: _now,
+        choreographerFor: (id) =>
+            Choreographer(id: id, name: id, email: '$id@example.com'),
+        tagFor: (_) => null,
+        publishedSourceFor: (_) => null,
+        customFieldFor: (_) => null,
+      ),
+    ).archive;
+
+    expect(archive.choreographers.map((c) => c.id).toSet(), {
+      'playford',
+      'pat',
+    });
+    expect(archive.choreographers.map((c) => c.email), everyElement(isNull));
+    expect(archive.dances.single.interpreterIds, ['pat', 'playford']);
+  });
+
   test(
     'rejects unresolved references instead of emitting a dangling archive',
     () {

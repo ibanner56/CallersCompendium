@@ -2030,11 +2030,17 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{1 change from this device is waiting for it.} other{{count} changes from this device are waiting for it.}}'**
   String settingsSyncDeviceWaiting(int count);
 
-  /// Empty state when this is the only device with a manifest in the Device Sync store.
+  /// Heading of the empty state on the sync devices screen when no other device is connected to the store.
   ///
   /// In en, this message translates to:
-  /// **'No other devices are connected to this store.'**
-  String get settingsSyncDevicesEmpty;
+  /// **'No other devices yet'**
+  String get settingsSyncDevicesEmptyTitle;
+
+  /// Body of the empty state on the sync devices screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Other devices connected to this store will appear here.'**
+  String get settingsSyncDevicesEmptyBody;
 
   /// Error state when the Device Sync store listing could not be fetched.
   ///
@@ -2939,6 +2945,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Dialects'**
   String get settingsDialectHeader;
+
+  /// Helper text above the dance-type selector in Settings › Dialect. The selector's segments are the dance-type names (Contra, English, Square); the list below it shows only the chosen type's dialects.
+  ///
+  /// In en, this message translates to:
+  /// **'Each dance type has its own dialects. Choose a type to see and set up its dialects.'**
+  String get settingsDialectFormHelper;
 
   /// Settings subsection header for canonical dance-detail text and figure-entry preferences.
   ///
@@ -4128,6 +4140,12 @@ abstract class AppLocalizations {
   /// **'The dance type a new dance starts as. You can still change it per dance.'**
   String get settingsDefaultsFormSubtitle;
 
+  /// Option in the default dance-type picker: a new dance starts as the type of the last dance the user created.
+  ///
+  /// In en, this message translates to:
+  /// **'Last used'**
+  String get settingsDefaultsFormLastUsed;
+
   /// Title of the default dance-formation picker.
   ///
   /// In en, this message translates to:
@@ -4278,11 +4296,17 @@ abstract class AppLocalizations {
   /// **'Give a tag its own color to make it stand out on dance cards and dance detail. The tag\'s name is always shown too, so tags stay readable without color.'**
   String get settingsAppearanceTagColoursSubtitle;
 
-  /// Shown on the tag-color screen when the collection has no tags.
+  /// Heading of the empty state on the tag manager.
   ///
   /// In en, this message translates to:
-  /// **'You haven\'t created any tags yet. Add a tag to a dance and it will appear here.'**
-  String get settingsTagColoursEmpty;
+  /// **'No tags yet'**
+  String get settingsTagColoursEmptyTitle;
+
+  /// Body of the empty state on the tag manager; says where tags come from.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a tag to a dance and it will appear here.'**
+  String get settingsTagColoursEmptyBody;
 
   /// Snack-bar message shown when saving or clearing a tag color fails.
   ///
@@ -4374,11 +4398,17 @@ abstract class AppLocalizations {
   /// **'Author name'**
   String get authorManagerNameLabel;
 
-  /// Shown in the Authors manager when there are no authors.
+  /// Heading of the empty state on the author manager.
   ///
   /// In en, this message translates to:
-  /// **'No authors yet. Authors you credit on a dance appear here.'**
-  String get authorManagerEmpty;
+  /// **'No authors yet'**
+  String get authorManagerEmptyTitle;
+
+  /// Body of the empty state on the author manager.
+  ///
+  /// In en, this message translates to:
+  /// **'Authors you credit on a dance appear here.'**
+  String get authorManagerEmptyBody;
 
   /// Shown in the Authors manager when the author list fails to load.
   ///
@@ -4410,11 +4440,17 @@ abstract class AppLocalizations {
   /// **'Source title'**
   String get sourceManagerTitleLabel;
 
-  /// Shown in the Sources manager when there are no sources.
+  /// Heading of the empty state on the source manager.
   ///
   /// In en, this message translates to:
-  /// **'No sources yet. Books and websites you cite on a dance appear here.'**
-  String get sourceManagerEmpty;
+  /// **'No sources yet'**
+  String get sourceManagerEmptyTitle;
+
+  /// Body of the empty state on the source manager.
+  ///
+  /// In en, this message translates to:
+  /// **'Books and websites you cite on a dance appear here.'**
+  String get sourceManagerEmptyBody;
 
   /// Shown in the Sources manager when the source list fails to load.
   ///
@@ -6297,6 +6333,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{shape} — {detail}'**
   String commonFormationWithDetail(String shape, String detail);
+
+  /// Formation shape value (English country dance): a longways set danced in minor sets of two couples.
+  ///
+  /// In en, this message translates to:
+  /// **'Duple minor'**
+  String get commonFormationDupleMinor;
+
+  /// Formation shape value (English country dance): a longways set of exactly three couples.
+  ///
+  /// In en, this message translates to:
+  /// **'Three-couple longways'**
+  String get commonFormationThreeCoupleLongways;
+
+  /// Formation shape value (English country dance): a longways set of exactly four couples.
+  ///
+  /// In en, this message translates to:
+  /// **'Four-couple longways'**
+  String get commonFormationFourCoupleLongways;
+
+  /// Formation shape value (English country dance): a longways set of exactly five couples.
+  ///
+  /// In en, this message translates to:
+  /// **'Five-couple longways'**
+  String get commonFormationFiveCoupleLongways;
+
+  /// Formation shape value (English country dance): a longways set of exactly six couples.
+  ///
+  /// In en, this message translates to:
+  /// **'Six-couple longways'**
+  String get commonFormationSixCoupleLongways;
+
+  /// Formation shape value (English country dance): dancers in a circle.
+  ///
+  /// In en, this message translates to:
+  /// **'Circle'**
+  String get commonFormationCircle;
+
+  /// Formation shape value (English country dance): a square set of four couples.
+  ///
+  /// In en, this message translates to:
+  /// **'Square'**
+  String get commonFormationSquare;
+
+  /// Formation shape value (English country dance): a set of exactly two couples.
+  ///
+  /// In en, this message translates to:
+  /// **'Two-couple set'**
+  String get commonFormationTwoCoupleSet;
+
+  /// An English country dance formation that starts improper (first couple crossed over). {shape} is a localized formation shape name, such as 'Duple minor'.
+  ///
+  /// In en, this message translates to:
+  /// **'{shape}, improper'**
+  String commonFormationImproperFlag(String shape);
+
+  /// Label for a dance's written meter (time signature) as free text, for example 3/2 or 6/8.
+  ///
+  /// In en, this message translates to:
+  /// **'Meter'**
+  String get danceEditorMeterLabel;
+
+  /// Label for the musical key of a dance's tune as free text, for example G minor.
+  ///
+  /// In en, this message translates to:
+  /// **'Key'**
+  String get danceEditorMusicalKeyLabel;
 
   /// Label indicating a dance suits mixed experience levels; used as a filter chip/section and a dance indicator chip.
   ///
@@ -8680,11 +8782,17 @@ abstract class AppLocalizations {
   /// **'Note'**
   String get programsSlotNoteFallback;
 
-  /// Empty state shown in the program slot list editor when a program has no slots.
+  /// Heading of the empty state in the program slot list editor when a program has no slots.
   ///
   /// In en, this message translates to:
-  /// **'No slots yet. Add a dance or a note to get started.'**
-  String get programsSlotEditorEmpty;
+  /// **'No slots yet'**
+  String get programsSlotEditorEmptyTitle;
+
+  /// Body of the empty state in the program slot list editor; says how to add the first slot.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a dance or a note to get started.'**
+  String get programsSlotEditorEmptyBody;
 
   /// Accessibility announcement after a slot is moved up one position.
   ///
@@ -12442,11 +12550,17 @@ abstract class AppLocalizations {
   /// **'These per-figure step descriptions pre-fill walkthroughs when you edit a dance. Editing one here updates the default used everywhere.'**
   String get settingsWalkthroughSnippetsDescription;
 
-  /// Empty-state text on the walkthrough-snippet library editor when the library is empty (#411).
+  /// Heading of the empty state on the walkthrough-snippet library editor.
   ///
   /// In en, this message translates to:
-  /// **'No saved snippets yet. Add walkthrough step descriptions while editing a dance\'s figures.'**
-  String get settingsWalkthroughSnippetsEmpty;
+  /// **'No saved snippets yet'**
+  String get settingsWalkthroughSnippetsEmptyTitle;
+
+  /// Body of the empty state on the walkthrough-snippet library editor; says where snippets come from.
+  ///
+  /// In en, this message translates to:
+  /// **'Add walkthrough step descriptions while editing a dance\'s figures.'**
+  String get settingsWalkthroughSnippetsEmptyBody;
 
   /// Count of saved walkthrough snippets (#411).
   ///
@@ -12495,6 +12609,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'When the dance was composed (year, or add month/day)'**
   String get danceEditorComposedHelper;
+
+  /// Field label for the people who interpreted the dance: reconstructed it from its original publication, as English country dances often are. Drawn from the same people list as the authors.
+  ///
+  /// In en, this message translates to:
+  /// **'Interpreted by'**
+  String get danceEditorInterpretedByLabel;
+
+  /// Label for the partial date (a year, or a fuller date) when the dance was interpreted, like the Composed date.
+  ///
+  /// In en, this message translates to:
+  /// **'Interpreted in'**
+  String get danceEditorInterpretedOnLabel;
 
   /// Label for the partial date when the dance was last revised.
   ///
@@ -12829,6 +12955,12 @@ abstract class AppLocalizations {
     String existing,
     String substitution,
   );
+
+  /// Dialect-editor and dialect-name validation error: the entry uses a gendered role word (such as the words for men or women), which the app never shows. {word} is the offending word as the user typed it, rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{word}\" is a gendered role word, which the app never shows. Use a role-neutral word instead.'**
+  String validationGenderedRoleTerm(String word);
 
   /// Generic fallback shown when a validation finding has no specific localized message. Deliberately non-leaking; specific detail (if any) appears only in debug builds.
   ///
@@ -14287,11 +14419,17 @@ abstract class AppLocalizations {
   /// **'New shorthand'**
   String get shorthandMappingsNew;
 
-  /// Empty state when the user has no figure-shorthand mappings.
+  /// Heading of the empty state on the shorthand list.
   ///
   /// In en, this message translates to:
-  /// **'No shorthands yet.'**
-  String get shorthandMappingsEmpty;
+  /// **'No shorthands yet'**
+  String get shorthandMappingsEmptyTitle;
+
+  /// Body of the empty state on the shorthand list; names the New shorthand button.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose New shorthand to add one.'**
+  String get shorthandMappingsEmptyBody;
 
   /// Snackbar shown when the user tries to add a figure shorthand but already has the maximum number the app keeps; {max} is that maximum.
   ///
@@ -14803,11 +14941,17 @@ abstract class AppLocalizations {
   /// **'Could not load custom fields.'**
   String get customFieldsLoadError;
 
-  /// Empty state when no custom fields are defined.
+  /// Heading of the empty state on the custom fields list.
   ///
   /// In en, this message translates to:
-  /// **'No custom fields yet.\nTap + to define one.'**
-  String get customFieldsEmpty;
+  /// **'No custom fields yet'**
+  String get customFieldsEmptyTitle;
+
+  /// Body of the empty state on the custom fields list; names the New field button.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose New field to add one.'**
+  String get customFieldsEmptyBody;
 
   /// Subtitle chip indicating a custom field is shown in the dance list.
   ///

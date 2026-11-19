@@ -340,7 +340,10 @@ Future<void> _pump(
           notifier: confirm,
           child: dialectLibrary == null
               ? child!
-              : DialectLibraryScope(controller: dialectLibrary, child: child!),
+              : DialectLibraryScope(
+                  libraries: DialectLibraries.withContra(dialectLibrary),
+                  child: child!,
+                ),
         ),
       ),
       home: ProgramEditorScreen(
@@ -1687,6 +1690,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('slots-empty')), findsOneWidget);
+    // The shared empty state: a heading, and a body saying how to add a slot.
+    expect(find.text('No slots yet'), findsOneWidget);
+    expect(find.text('Add a dance or a note to get started.'), findsOneWidget);
   });
 
   // Removing a primary leaves its alternate first in the list; the editor's
@@ -3566,6 +3572,8 @@ void main() {
     await _pumpBuilder(tester, repos, programId: 'gone');
 
     expect(find.byKey(const ValueKey('load-error-retry')), findsNothing);
+    // ...but it is not a dead end: Back leaves the screen.
+    expect(find.byKey(const ValueKey('load-error-back')), findsOneWidget);
   });
 
   testWidgets(
