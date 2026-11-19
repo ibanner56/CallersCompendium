@@ -657,6 +657,20 @@ void main() {
 
     expect(find.byKey(const ValueKey('open-builder')), findsOneWidget);
     expect(find.byTooltip('Edit program'), findsOneWidget);
+    // The split pane has no top bar: Edit joins the actions on the name's
+    // row, and the only floating button is the list's New program.
+    expect(
+      find.descendant(
+        of: find.byType(ProgramSummaryScreen),
+        matching: find.byType(FloatingActionButton),
+      ),
+      findsNothing,
+    );
+    expect(
+      tester.widget(find.byKey(const ValueKey('open-builder'))),
+      isA<IconButton>(),
+    );
+    expect(find.byKey(const ValueKey('new-program')), findsOneWidget);
   });
 
   testWidgets(
@@ -1120,6 +1134,22 @@ void main() {
         expect(find.text('Perform this program'), findsOneWidget);
         expect(find.byKey(const ValueKey('open-builder')), findsOneWidget);
         expect(find.byTooltip('Edit program'), findsOneWidget);
+        // Edit is a record action in the top bar; the floating slot is for
+        // creating on lists.
+        expect(
+          find.descendant(
+            of: find.byType(AppBar),
+            matching: find.byKey(const ValueKey('open-builder')),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: find.byType(ProgramSummaryScreen),
+            matching: find.byType(FloatingActionButton),
+          ),
+          findsNothing,
+        );
 
         // Tap 2: Perform — reachable without entering edit mode.
         await tester.tap(find.byKey(const ValueKey('summary-perform')));

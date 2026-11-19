@@ -5017,9 +5017,43 @@ void main() {
     // no-`who` swing.
     expect(find.text('partner swing'), findsOneWidget);
     expect(find.text('balance'), findsOneWidget);
-    // The save FAB hides on the read-only Matrix tab.
+    // Save hides on the read-only Matrix tab.
     expect(find.byKey(const ValueKey('save-program')), findsNothing);
   });
+
+  for (final size in [const Size(1200, 2000), const Size(700, 1200)]) {
+    testWidgets('Save is the top bar\'s last action and nothing floats over '
+        'the slots (${size.width.toInt()} wide)', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Newly Called'));
+      await repos.programs.create(
+        _program(
+          id: 'p1',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpBuilder(tester, repos, programId: 'p1', size: size);
+
+      final save = find.byKey(const ValueKey('save-program'));
+      expect(
+        find.descendant(of: find.byType(AppBar), matching: save),
+        findsOneWidget,
+      );
+      // Last: right of every other action on the bar.
+      final actions = find.descendant(
+        of: find.byType(AppBar),
+        matching: find.byType(IconButton),
+      );
+      for (final action in tester.widgetList(actions)) {
+        expect(
+          tester.getCenter(save).dx,
+          greaterThan(tester.getCenter(find.byWidget(action)).dx),
+        );
+      }
+      expect(find.byType(FloatingActionButton), findsNothing);
+      expect(find.text('Save'), findsOneWidget);
+    });
+  }
 
   testWidgets(
     'Matrix alternate toggle is transient across tabs and responsive layouts',

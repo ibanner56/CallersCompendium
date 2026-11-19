@@ -535,13 +535,20 @@ void main() {
         // (a) No RenderFlex overflow at a 360dp phone width.
         expect(tester.takeException(), isNull);
 
-        // Primary actions stay one-tap on the bar (Edit remains the FAB).
+        // Primary actions stay one-tap on the bar, Edit among them.
         expect(find.byKey(const ValueKey('perform-dance')), findsOneWidget);
         expect(
           find.byKey(const ValueKey('add-dance-to-program')),
           findsOneWidget,
         );
-        expect(find.byKey(const ValueKey('edit-dance')), findsOneWidget);
+        expect(
+          find.descendant(
+            of: find.byType(AppBar),
+            matching: find.byKey(const ValueKey('edit-dance')),
+          ),
+          findsOneWidget,
+        );
+        expect(find.byType(FloatingActionButton), findsNothing);
 
         // Secondary actions are not shown directly on the narrow bar, and the
         // wide-layout Export/dialect popup controls are not used in compact mode.
@@ -1293,11 +1300,23 @@ void main() {
     expect(find.textContaining('CC BY-NC'), findsOneWidget);
   });
 
-  testWidgets('Edit action opens the editor', (tester) async {
+  testWidgets('Edit is in the top bar, nothing floats, and Edit opens the '
+      'editor', (tester) async {
     final repos = openTestRepositories();
     await repos.dances.create(_dance(id: 'd1', title: 'Editable'));
 
     await _pumpDetail(tester, repos, 'd1');
+
+    // The floating slot is for creating on lists; a record's actions are in
+    // its top bar.
+    expect(
+      find.descendant(
+        of: find.byType(AppBar),
+        matching: find.byKey(const ValueKey('edit-dance')),
+      ),
+      findsOneWidget,
+    );
+    expect(find.byType(FloatingActionButton), findsNothing);
 
     await tester.tap(find.byKey(const ValueKey('edit-dance')));
     await tester.pumpAndSettle();
