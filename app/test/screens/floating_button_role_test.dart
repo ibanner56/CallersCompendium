@@ -73,6 +73,9 @@ void main() {
     );
   });
 
+  // A coarse net: it asks only that the file use the token, not that the
+  // padding sits on the list under the button. The per-screen
+  // `expectFabClearsLastRow` tests check the geometry.
   test('every screen that floats a button leaves room for it', () {
     expect(
       [

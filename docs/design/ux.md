@@ -284,26 +284,31 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   - **Save.** Every full-screen editor saves from its top bar (maintainer,
     2026-11-18): dance, program, theme, compound, compound shorthand,
     shorthand mapping and dialect. Save is the bar's last action, a labelled
-    button that becomes a check icon when the word does not fit; in the
-    program builder below 600 dp it is always the icon, and Perform joins
-    Mark all performed, Duplicate and Delete in "⋮" so the title keeps room
-    (implementation choice, pending review). The autosaving calling-card
-    layout editor shows no "saved" marker (maintainer, 2026-11-18). A sheet
-    (venue, custom field) keeps its own Cancel and Save row.
+    button that becomes a check icon when the word does not fit. In the two
+    long editors, dance and program, it is always the icon below 600 dp, and
+    a saved program's builder moves Perform into "⋮" beside Mark all
+    performed, Duplicate and Delete, so the title keeps room (an
+    implementation choice of November 2026, not a maintainer decision; the
+    alternative, keeping Perform on the bar, left the title about 48 dp).
+    The autosaving calling-card layout editor shows no "saved" marker
+    (maintainer, 2026-11-18). A sheet (venue, custom field) keeps its own
+    Cancel and Save row.
   - **The floating button.** While an empty state or the Collection's
     first-run card shows its own New button, nothing floats (maintainer,
     2026-11-18); sort and direction controls also wait until there is
     something to sort. Otherwise the floating button means "create" on a
     list and nothing else: a record's Edit (dance detail, program summary)
-    and a preview's Import are top-bar actions (implementation choice,
-    pending review; an in-content button was the alternative). A list under
+    and a preview's Import are top-bar actions (an implementation choice of
+    November 2026, not a maintainer decision; the alternative was an
+    in-content button, which scrolls away on a long dance). A list under
     a floating button leaves `AppSpacing.fabClearance` below its last row.
   - **New.** A full-screen manager (Collection, Programs, venues, custom
     fields, your figures, shorthands) floats New once it has a list; a list
     inside a settings section (dialects, custom themes, the compound
     shorthands section) creates with an inline button. The Glossary keeps its
     "+" in the top bar, as a reference screen whose entries a floating button
-    would cover (unchanged in November 2026, pending review).
+    would cover (left unchanged in November 2026; not revisited by the
+    maintainer).
   - **The record's name.** On a record screen with a top bar, the bar keeps its
     generic title and carries the record's actions; the full name keeps its own
     line in the body. The full-screen program summary does this ("Program";

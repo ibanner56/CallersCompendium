@@ -1022,7 +1022,12 @@ void main() {
           await repos.customFieldDefs.upsert(field(i));
         }
         await _pumpScreen(tester, repos);
-        await atPhoneSize(tester, scale: c.scale, keyboard: c.keyboard);
+        await atPhoneSize(
+          tester,
+          width: c.width,
+          scale: c.scale,
+          keyboard: c.keyboard,
+        );
         await tester.pumpAndSettle();
 
         await expectFabClearsLastRow(

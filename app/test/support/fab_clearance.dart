@@ -38,18 +38,24 @@ Future<void> expectFabClearsLastRow(
   );
 }
 
-/// Runs [body] at phone width with the text scale at [scale] and, when
-/// [keyboard] is true, the on-screen keyboard's inset applied.
+/// Sets a phone-sized screen [width] wide, the text scale to [scale] and, when
+/// [keyboard] is true, a 300 dp on-screen keyboard inset.
 Future<void> atPhoneSize(
   WidgetTester tester, {
+  double width = 390,
   double scale = 1,
   bool keyboard = false,
 }) async {
-  await tester.binding.setSurfaceSize(const Size(390, 844));
-  tester.view.physicalSize =
-      const Size(390, 844) * tester.view.devicePixelRatio;
+  final size = Size(width, 844);
+  await tester.binding.setSurfaceSize(size);
+  tester.view.physicalSize = size * tester.view.devicePixelRatio;
   tester.platformDispatcher.textScaleFactorTestValue = scale;
-  if (keyboard) tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+  if (keyboard) {
+    // View insets are physical pixels.
+    tester.view.viewInsets = FakeViewPadding(
+      bottom: 300 * tester.view.devicePixelRatio,
+    );
+  }
   addTearDown(() {
     tester.view.resetPhysicalSize();
     tester.view.resetViewInsets();
@@ -59,9 +65,22 @@ Future<void> atPhoneSize(
 }
 
 /// The phone conditions [expectFabClearsLastRow] is checked under: the
-/// default text, large text, and large text with the keyboard open.
-const fabClearanceCases = <({String name, double scale, bool keyboard})>[
-  (name: 'default text', scale: 1, keyboard: false),
-  (name: '2x text', scale: 2, keyboard: false),
-  (name: '2x text with the keyboard open', scale: 2, keyboard: true),
-];
+/// default text, large text, large text with the keyboard open, and the same
+/// on a small phone.
+const fabClearanceCases =
+    <({String name, double width, double scale, bool keyboard})>[
+      (name: 'default text', width: 390, scale: 1, keyboard: false),
+      (name: '2x text', width: 390, scale: 2, keyboard: false),
+      (
+        name: '2x text with the keyboard open',
+        width: 390,
+        scale: 2,
+        keyboard: true,
+      ),
+      (
+        name: '320 wide, 2x text, keyboard open',
+        width: 320,
+        scale: 2,
+        keyboard: true,
+      ),
+    ];

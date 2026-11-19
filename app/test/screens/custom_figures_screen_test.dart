@@ -119,7 +119,12 @@ void main() {
             ),
         ],
       );
-      await atPhoneSize(tester, scale: c.scale, keyboard: c.keyboard);
+      await atPhoneSize(
+        tester,
+        width: c.width,
+        scale: c.scale,
+        keyboard: c.keyboard,
+      );
       await tester.pumpAndSettle();
       await expectFabClearsLastRow(
         tester,

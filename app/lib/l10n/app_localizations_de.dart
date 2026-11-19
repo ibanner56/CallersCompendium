@@ -11075,6 +11075,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get glossaryAddCustomFigure => 'Eigene Figur hinzufügen';
 
   @override
+  String get customFiguresNewFigure => 'Neue Figur';
+
+  @override
   String get glossaryCustomMarker => 'Eigene';
 
   @override

@@ -479,7 +479,8 @@ becomes a link you can select to jump straight to it.
 
 From the detail view you can:
 
-- **Edit** the dance, with the pencil at the start of the top bar.
+- **Edit** the dance, with the pencil that comes first among the top bar's
+  actions.
 - **Re-import choreography** from The Caller's Box, ContraDB — by searching for
   the dance's title, or from its link or ID number — or from a single-dance
   Caller's Compendium JSON file. You can also do this when you open a saved
@@ -511,7 +512,8 @@ On a narrow screen, the less-used actions are in the **More actions** menu.
 
 To put in a dance by hand, choose **New dance** (or press **Ctrl-N**, **Cmd-N**
 on macOS). It floats at the bottom of the list; while the Collection is empty,
-or holds only the sample dance, it is a button on the page instead. This opens the editor, where the
+or holds only the sample dance with no search or filter set, it is a button on
+the page instead. This opens the editor, where the
 **title** is the only required field. Figure entry is keyboard-first: start
 typing a move and accept a match from the type-ahead, with a running beat count
 keeping you honest as you go. If a move is unusual and nothing matches, type it

@@ -109,7 +109,7 @@ class _CustomFiguresScreenState extends State<CustomFiguresScreen> {
               heroTag: 'custom-figures-add',
               onPressed: () => _add(context),
               icon: const Icon(Icons.add),
-              label: Text(l10n.glossaryAddCustomFigure),
+              label: Text(l10n.customFiguresNewFigure),
             ),
       body: shown.isEmpty
           ? EmptyState(

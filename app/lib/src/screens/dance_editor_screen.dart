@@ -53,6 +53,11 @@ import 'settings/settings_keys.dart';
 class DanceEditorScreen extends StatefulWidget {
   const DanceEditorScreen({super.key, this.danceId, this.initialTitle});
 
+  /// Window width (logical pixels) below which Save shows as its check icon,
+  /// so Undo, Redo, Delete and Save leave the title some room on a phone.
+  /// Matches `ProgramEditorScreen.compactActionsBreakpoint`.
+  static const double compactActionsBreakpoint = 600;
+
   /// The dance being edited, or `null` to create a new dance.
   final String? danceId;
 
@@ -1060,11 +1065,17 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
                     // Save goes last in the top bar, as in every full-screen
                     // editor (`docs/design/ux.md`, "Where Save, New and the
                     // record's name go"): a floating Save covered the form's
-                    // fields. A spinner stands in for it while a save runs.
+                    // fields. On a phone it is the check icon; a spinner
+                    // stands in for it while a save runs.
                     AppBarTextAction(
                       key: const ValueKey('save-dance'),
                       label: l10n.commonSave,
                       icon: Icons.check,
+                      maxWidthFraction:
+                          MediaQuery.sizeOf(context).width <
+                              DanceEditorScreen.compactActionsBreakpoint
+                          ? 0
+                          : 0.4,
                       busy: _saving,
                       onPressed: _saving ? null : _save,
                     ),

@@ -3361,6 +3361,31 @@ void main() {
       },
     );
 
+    testWidgets('on a phone, Save is the check icon, so the title keeps room '
+        'beside Undo, Redo and Delete', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Editable'));
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      // MediaQuery reads the view's size, not the test surface's.
+      await tester.binding.setSurfaceSize(const Size(360, 800));
+      tester.view.physicalSize =
+          const Size(360, 800) * tester.view.devicePixelRatio;
+      addTearDown(tester.view.resetPhysicalSize);
+      await tester.pumpAndSettle();
+
+      final save = find.byKey(const ValueKey('save-dance'));
+      expect(
+        find.descendant(of: find.byType(AppBar), matching: save),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: save, matching: find.byIcon(Icons.check)),
+        findsOneWidget,
+      );
+      expect(find.byTooltip('Save'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets(
       'Delete soft-deletes the dance, pops, and shows an undo snackbar',
       (tester) async {

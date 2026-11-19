@@ -10610,6 +10610,10 @@
   "@glossaryAddCustomFigure": {
     "x-sourceSha256": "33ad8774d841771938cf8bc5e3d181ad4c97607dc8ced2808127cca8410e91c5"
   },
+  "customFiguresNewFigure": "Nieuwe figuur",
+  "@customFiguresNewFigure": {
+    "x-sourceSha256": "3bd330f1f22470db1387c962d78ceea1c7f302fd57729577ba2ee6cb9e9d3326"
+  },
   "glossaryCustomMarker": "Eigen",
   "@glossaryCustomMarker": {
     "x-sourceSha256": "494ca78f7374e46fb2de9ad9f2dbd4aaae89b50b2ca044177a1566a59e06627e"

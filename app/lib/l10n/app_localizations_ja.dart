@@ -10512,6 +10512,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get glossaryAddCustomFigure => '自分のフィギュアを追加';
 
   @override
+  String get customFiguresNewFigure => '新しいフィギュア';
+
+  @override
   String get glossaryCustomMarker => 'カスタム';
 
   @override

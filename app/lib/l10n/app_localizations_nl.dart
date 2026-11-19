@@ -11020,6 +11020,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get glossaryAddCustomFigure => 'Eigen figuur toevoegen';
 
   @override
+  String get customFiguresNewFigure => 'Nieuwe figuur';
+
+  @override
   String get glossaryCustomMarker => 'Eigen';
 
   @override

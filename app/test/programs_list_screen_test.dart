@@ -808,7 +808,12 @@ void main() {
         await repos.programs.create(_program(id: 'p$n', title: 'Program $n'));
       }
       await _pump(tester, repos);
-      await atPhoneSize(tester, scale: c.scale, keyboard: c.keyboard);
+      await atPhoneSize(
+        tester,
+        width: c.width,
+        scale: c.scale,
+        keyboard: c.keyboard,
+      );
       await tester.pumpAndSettle();
 
       await expectFabClearsLastRow(

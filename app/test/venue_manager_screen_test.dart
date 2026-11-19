@@ -177,7 +177,12 @@ void main() {
           await repos.venues.upsert(Venue(id: 'v$n', name: 'Hall $n'));
         }
         await _pump(tester, repos);
-        await atPhoneSize(tester, scale: c.scale, keyboard: c.keyboard);
+        await atPhoneSize(
+          tester,
+          width: c.width,
+          scale: c.scale,
+          keyboard: c.keyboard,
+        );
         await tester.pumpAndSettle();
 
         await expectFabClearsLastRow(

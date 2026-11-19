@@ -11088,6 +11088,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get glossaryAddCustomFigure => 'Ajouter votre propre figure';
 
   @override
+  String get customFiguresNewFigure => 'Nouvelle figure';
+
+  @override
   String get glossaryCustomMarker => 'Personnalisée';
 
   @override

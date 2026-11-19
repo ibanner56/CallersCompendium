@@ -164,9 +164,11 @@ class ProgramEditorScreen extends StatefulWidget {
   /// as a persistent right pane instead of a modal sheet.
   static const double twoPaneBreakpoint = 820;
 
-  /// Window width (logical pixels) below which Perform, Mark all performed,
-  /// Duplicate and Delete move into a "⋮" menu and Save shows as its icon,
-  /// leaving Export, ⋮ and Save on the bar beside the title. Matches `DanceDetailScreen.compactActionsBreakpoint` (Material 3's
+  /// Window width (logical pixels) below which Save shows as its icon and, for
+  /// a saved program, Perform, Mark all performed, Duplicate and Delete move
+  /// into a "⋮" menu, leaving Export, ⋮ and Save beside the title. (A new,
+  /// unsaved program has no ⋮: its bar holds Perform, Export and Save.)
+  /// Matches `DanceDetailScreen.compactActionsBreakpoint` (Material 3's
   /// compact window-size-class cutoff).
   static const double compactActionsBreakpoint = 600;
 
@@ -3482,9 +3484,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     _lookUpDeletedSlotDances();
     final hasPersistedProgram = _existing != null;
     final isPersistedNewRoute = widget.isNew && hasPersistedProgram;
-    // Below [ProgramEditorScreen.compactActionsBreakpoint] the bar keeps
-    // Export and Save; Perform, Mark all performed, Duplicate and Delete fold
-    // into [_secondaryActionsMenu], and Save shows as its icon. At 360dp the
+    // Below [ProgramEditorScreen.compactActionsBreakpoint] Save shows as its
+    // icon and, for a saved program, Perform, Mark all performed, Duplicate
+    // and Delete fold into [_secondaryActionsMenu]. At 360dp the
     // full row left the title 32dp. The builder is always a full-screen route,
     // so the window width is the bar's width.
     final compact =
