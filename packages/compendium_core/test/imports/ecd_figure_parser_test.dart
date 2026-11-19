@@ -669,6 +669,34 @@ void main() {
         'destination': 'bottom',
       });
       expect(cast('cast to top'), {'destination': 'top'});
+      // A cast off that says where it ends states no count.
+      expect(cast('1s cast off to the bottom'), {
+        'who': ['ones'],
+        'direction': 'down',
+        'destination': 'bottom',
+      });
+      expect(cast('1s cast off to 3rd place'), {
+        'who': ['ones'],
+        'direction': 'down',
+        'destination': 'thirdPlace',
+      });
+      // What a cast displays reads back in: `back` states nothing.
+      expect(cast('ones cast back'), {
+        'who': ['ones'],
+      });
+      expect(cast('ones cast back left'), {
+        'who': ['ones'],
+        'direction': 'left',
+      });
+      expect(cast('ones cast back around twos'), {
+        'who': ['ones'],
+        'whom': 'twos',
+      });
+      // Other movements still read `to top` as dancers.
+      expect(_one('1s set to top').params['whom'], 'top');
+      expect(_one('2s honour to bottom couple').move, 'ecd_honor');
+      // `the top` is no dancer phrase, so only a cast reads it.
+      expect(_one('1s set to the top').isCustom, isTrue);
       expect(cast('1s cast'), {
         'who': ['ones'],
       });
@@ -677,6 +705,9 @@ void main() {
       for (final line in [
         '1s cast to the left',
         '1s cast down right',
+        '1s cast back down',
+        '1s cast around',
+        '1s cast to the bottom to 2nd place',
         '1s lead down to the bottom',
       ]) {
         expect(_one(line).isCustom, isTrue, reason: line);

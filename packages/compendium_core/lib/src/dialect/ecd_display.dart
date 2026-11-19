@@ -14,8 +14,8 @@ import '../taxonomy/param_types.dart';
 /// - `{?flag}` adds no words, and keeps its group only while `flag` is set.
 ///
 /// The ADR's `{a | b}` choices are worded by [ecdSlotWords] instead: a
-/// destination's "to"/"back to", and right and left through's "with" or
-/// "without" hands.
+/// destination's "to"/"back to", right and left through's "with" or
+/// "without" hands, and a cast's "back", "back left", "up" or "down".
 const String ecdMovePrefix = 'ecd_';
 
 final RegExp _group = RegExp(r'\[([^\[\]]*)\]');
@@ -75,6 +75,10 @@ String? ecdSlotWords(
   final value = params[name];
   final move = moveId.substring(ecdMovePrefix.length);
   switch (name) {
+    // A cast already says "back" unless it goes up or down, so its return
+    // to place reads "cast back to place", not "cast back back to place".
+    case 'destination' when move == 'cast' && value == 'place':
+      return 'to place';
     case 'destination':
       return ecdDestinationPhrase(value);
     case 'withHands':

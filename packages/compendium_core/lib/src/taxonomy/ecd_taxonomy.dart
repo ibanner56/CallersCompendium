@@ -66,7 +66,8 @@ const List<String> ecdSelectors = [
 
 /// The stated endpoints an ECD movement can carry in `destination` (ADR-006
 /// §6.4), in camelCase (§6.1), then [ParamVocab.unspecified]. A figure that
-/// states none stores none, which reads the same as the sentinel.
+/// states none stores none, which reads the same as the sentinel. A cast
+/// can also end at the `top` or `bottom` of the set (§9.4).
 const List<String> ecdDestinations = [
   ..._statedDestinations,
   ParamVocab.unspecified,
@@ -142,8 +143,9 @@ const _destination = ParamSpec(
   defaultValue: _u,
   choices: ecdDestinations,
 );
-// A cast also ends at the top or the bottom of the set, as contra's `cast`
-// does ("cast down to bottom"): the maintainer's decision of 2026-11-19.
+// A cast also ends at the top or the bottom of the set, as the contra `cast`
+// planned under #770 will ("cast down to bottom"): the maintainer's decision
+// of 2026-11-19.
 const _castDestination = ParamSpec(
   ParamKind.choice,
   defaultValue: _u,
@@ -966,7 +968,8 @@ final Taxonomy ecdTaxonomy = Taxonomy(
     MoveDef(
       id: '${_p}cast',
       displayName: 'cast',
-      // One parameter shape with contra's `cast` (#770), so a contra-imported
+      // One parameter shape with the contra `cast` planned under #770, so a
+      // contra-imported
       // English dance re-reads one to one (F5): the maintainer's decision of
       // 2026-11-19 (§7.5, §9.4).
       params: {

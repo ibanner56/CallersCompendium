@@ -675,6 +675,24 @@ void main() {
       );
     });
 
+    test('a return to place never reads back twice', () {
+      expect(
+        cast({
+          'who': ['ones'],
+          'destination': 'place',
+        }),
+        'ones cast back to place',
+      );
+      expect(
+        cast({'direction': 'left', 'destination': 'place'}),
+        'cast back left to place',
+      );
+      expect(
+        cast({'direction': 'down', 'destination': 'place'}),
+        'cast down to place',
+      );
+    });
+
     test('canonical text words the direction as the display does', () {
       expect(
         _renderer.renderCanonical(

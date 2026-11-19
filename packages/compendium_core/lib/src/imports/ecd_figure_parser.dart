@@ -22,7 +22,7 @@
 ///   a word the grammar does not know makes the line custom, and so does one
 ///   the movement has no place to hold (dancers named both before and after
 ///   a turn, a ring size with no fraction, a preposition the movement does not
-///   show, such as `cast to`), and a bracketed aside (`(on the side)`) is kept
+///   show, such as `cast to 2s`), and a bracketed aside (`(on the side)`) is kept
 ///   as the figure's note.
 /// - **Validated** against the ECD taxonomy on its own (no contra under it),
 ///   so a candidate with any error-severity issue degrades to custom.
@@ -358,12 +358,11 @@ final Map<String, String> _destinationPhrases = {
   'end improper': 'allImproper',
   'all proper': 'allProper',
   'ending proper': 'allProper',
-  // The ends of the set, which only a cast takes (ADR-006 §9.4); any other
-  // movement refuses them, so its line stays custom.
+  // The ends of the set, which only a cast takes (ADR-006 §9.4). "The top"
+  // is never a dancer phrase, so no other movement's line reads differently;
+  // a bare `to top`/`to bottom` reaches a cast as dancers instead.
   'to the top': 'top',
-  'to top': 'top',
   'to the bottom': 'bottom',
-  'to bottom': 'bottom',
   'to end proper': 'allProper',
   'end proper': 'allProper',
   for (final MapEntry(key: word, value: n) in _ordinals.entries)
@@ -1298,24 +1297,42 @@ final Map<String, _MoveRule> _rules = {
   ),
   // A cast's `direction` is up, down, or the shoulder turned over (ADR-006
   // §9.4): a bare `left`/`right`, never `to the left`, which is a way to
-  // travel. "Cast off" is down one place unless a count is stated.
+  // travel. `back` is how a cast with no `up` or `down` reads ("cast back
+  // left"), so it states nothing. "Cast off" is down one place unless the
+  // line states a count or where the cast ends.
   'cast': _MoveRule('ecd_cast', (b, c) {
-    final where = _where(b, const ['off', 'up', 'down']);
+    final who = _whoOf(b, objectIsWho: false);
+    final where = _where(b, const ['off', 'up', 'down', 'back']);
     final shoulder = _sideAs(b, 'direction', toTheAllowed: false);
     final count = b.take<int>('placeCount');
-    final direction = where == null
+    final direction = where == null || where == 'back'
         ? shoulder
         : shoulder != null
         ? _fail
         : where == 'off'
         ? 'down'
         : where;
+    // A bare `to top`/`to bottom` reaches the step as dancers after `to`;
+    // only a cast reads it as where it ends, so other movements keep reading
+    // `set to top` as setting to the top couple.
+    var end = _dest(b);
+    Object? whom;
+    final named = b.take<List<String>>('whom');
+    final via = b.take<String>('whomVia');
+    if (named != null) {
+      final single = _single(named);
+      if (via == 'to' && (single == 'top' || single == 'bottom')) {
+        end = end == null ? single : _fail;
+      } else {
+        whom = via == 'around' ? single ?? _fail : _fail;
+      }
+    }
     return _params({
-      'who': _whoOf(b, objectIsWho: false),
+      'who': who,
       'direction': direction,
-      'places': count ?? (where == 'off' ? 1 : null),
-      'whom': _whom(b, const {'around'}),
-      'destination': _dest(b),
+      'places': count ?? (where == 'off' && end == null ? 1 : null),
+      'whom': whom,
+      'destination': end,
     });
   }),
   'galop': _MoveRule(
