@@ -3093,6 +3093,29 @@ void main() {
       expect(controller.authorIds, ['loser', 'other']);
     });
 
+    test('credits the survivor among the interpreters too, in the draft and '
+        'its undo history, and the merge\'s Undo puts them back', () async {
+      final repos = openTestRepositories();
+      final controller = await newDanceController(repos);
+      addTearDown(controller.dispose);
+
+      controller.addInterpreter('loser');
+      controller.addInterpreter('other');
+
+      final replacement = controller.replaceAuthors({'loser'}, 'survivor');
+      expect(controller.interpreterIds, ['survivor', 'other']);
+
+      // Undoing past the merge must not bring the merged-away id back.
+      controller.undo();
+      expect(controller.interpreterIds, ['survivor']);
+      controller.redo();
+
+      controller.restoreAuthors(replacement);
+      expect(controller.interpreterIds, ['loser', 'other']);
+      controller.undo();
+      expect(controller.interpreterIds, ['loser']);
+    });
+
     test('an existing dance\'s interpreters follow the merge on save, and '
         'its Undo', () async {
       final repos = openTestRepositories();

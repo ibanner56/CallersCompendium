@@ -1163,6 +1163,10 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
         if (!mounted) return;
         _controller.addAuthor(id);
       },
+      onAddInterpreter: (id) {
+        if (!mounted) return;
+        _controller.addInterpreter(id);
+      },
       onAddTag: (id) {
         if (!mounted) return;
         _controller.addTag(id);

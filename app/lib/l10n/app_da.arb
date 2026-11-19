@@ -4188,6 +4188,14 @@
   "@danceEditorMusicalKeyLabel": {
     "x-sourceSha256": "99a52df3ff3d499488e2fa28150c4106a2cb5e928891a830a9aa3922b2d32160"
   },
+  "danceEditorMeterHint": "f.eks. 3/2",
+  "@danceEditorMeterHint": {
+    "x-sourceSha256": "53662a34cb9af557331fdc752bf105c4a9059577f1a97bfca4188f3ca6bf9c83"
+  },
+  "danceEditorMusicalKeyHint": "f.eks. g-mol",
+  "@danceEditorMusicalKeyHint": {
+    "x-sourceSha256": "f4b6292e746248db6dcdf014a506b1ebbdfa323e4761c71b7eeda3e64eb5166b"
+  },
   "commonMixedLevel": "Blandet niveau",
   "@commonMixedLevel": {
     "x-sourceSha256": "c76f62265cdc2f4c343ae17292b236551fe66a38bb839fec2218e365ca293316"
@@ -8290,6 +8298,14 @@
   "@danceEditorMixerSubtitle": {
     "x-sourceSha256": "7938ac9f04ea2f20e30bd38c78e049679f3020e643e9ee1e6f46c03b756014b8"
   },
+  "danceEditorImproperLabel": "Starter improper",
+  "@danceEditorImproperLabel": {
+    "x-sourceSha256": "e4dd5166a2d36d72d17f292c5f3b00bbb89544e0a94b5c9658d538d2c89e159e"
+  },
+  "danceEditorImproperSubtitle": "Lad den være tom for en dans, der starter proper.",
+  "@danceEditorImproperSubtitle": {
+    "x-sourceSha256": "55e6931dac76da40b06ac10ab8416ab58539aa4e3cdfb25881f38341ec846e37"
+  },
   "danceEditorComposedLabel": "Komponeret",
   "@danceEditorComposedLabel": {
     "x-sourceSha256": "48f8b936056c4a698e3bde4460b37d246596eda04eabdde954820dbd0bc877b2"
@@ -8305,6 +8321,10 @@
   "danceEditorInterpretedOnLabel": "Fortolket",
   "@danceEditorInterpretedOnLabel": {
     "x-sourceSha256": "83512bf0aa63b8443c4367033657fdd3212ff4116b4d28bf73b6ad6d93d5f706"
+  },
+  "danceEditorInterpretedOnHelper": "Hvornår dansen blev fortolket (år, eller tilføj måned/dag)",
+  "@danceEditorInterpretedOnHelper": {
+    "x-sourceSha256": "7c2e7fb3012e2e8f557ae3c9b372cc5a3a8a3b66d0a7e30e852f607d41c8ab2e"
   },
   "danceEditorRevisedLabel": "Revideret",
   "@danceEditorRevisedLabel": {

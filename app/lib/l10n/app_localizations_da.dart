@@ -4107,6 +4107,12 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceEditorMusicalKeyLabel => 'Toneart';
 
   @override
+  String get danceEditorMeterHint => 'f.eks. 3/2';
+
+  @override
+  String get danceEditorMusicalKeyHint => 'f.eks. g-mol';
+
+  @override
   String get commonMixedLevel => 'Blandet niveau';
 
   @override
@@ -8489,6 +8495,13 @@ class AppLocalizationsDa extends AppLocalizations {
       'Danserne skifter partner hver gang igennem';
 
   @override
+  String get danceEditorImproperLabel => 'Starter improper';
+
+  @override
+  String get danceEditorImproperSubtitle =>
+      'Lad den være tom for en dans, der starter proper.';
+
+  @override
   String get danceEditorComposedLabel => 'Komponeret';
 
   @override
@@ -8500,6 +8513,10 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get danceEditorInterpretedOnLabel => 'Fortolket';
+
+  @override
+  String get danceEditorInterpretedOnHelper =>
+      'Hvornår dansen blev fortolket (år, eller tilføj måned/dag)';
 
   @override
   String get danceEditorRevisedLabel => 'Revideret';

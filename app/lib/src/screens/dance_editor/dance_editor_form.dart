@@ -21,6 +21,7 @@ import 'dance_editor_controller.dart';
 import 'editor_fields.dart';
 import 'lingo_discouraged_hint.dart';
 import 'links_editor.dart';
+import '../../widgets/lingo_text_editing_controller.dart';
 import 'name_picker.dart';
 import 'source_citations_editor.dart';
 import '../../theme/app_shapes.dart';
@@ -55,6 +56,7 @@ class DanceEditorForm extends StatelessWidget {
     required this.danceOptions,
     required this.danceNamesById,
     required this.onAddAuthor,
+    required this.onAddInterpreter,
     required this.onAddTag,
     required this.onAttachSource,
     required this.onCreateChoreographer,
@@ -110,6 +112,9 @@ class DanceEditorForm extends StatelessWidget {
 
   // Inline shared-entity flows (need the coordinator's context + `mounted`).
   final ValueChanged<String> onAddAuthor;
+
+  /// Adds a person, picked or just created, to the dance's interpreters.
+  final ValueChanged<String> onAddInterpreter;
   final ValueChanged<String> onAddTag;
   final ValueChanged<String> onAttachSource;
 
@@ -326,6 +331,14 @@ class DanceEditorForm extends StatelessWidget {
                   onEdit: onEditChoreographer,
                   sheetSemanticLabel: l10n.danceEditorAuthorsLabel,
                 ),
+                // An English dance usually credits its original and a later
+                // interpretation, so both are entered here, up front
+                // (ADR-006 §9.2, point 7). Other forms keep them in More
+                // details.
+                if (controller.showsCreditsUpFront) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  ..._creditFields(context),
+                ],
                 const SizedBox(height: AppSpacing.md),
                 DropdownButtonFormField<DanceForm>(
                   key: const ValueKey('form-field'),
@@ -378,6 +391,19 @@ class DanceEditorForm extends StatelessWidget {
                   dialect: dialect,
                   fieldKey: 'formation-detail',
                 ),
+                // ECD records proper or improper apart from its shape
+                // (ADR-006 §12.1, F2); proper is the default.
+                if (controller.offersImproper)
+                  CheckboxListTile(
+                    key: const ValueKey('improper-field'),
+                    value: controller.improper,
+                    onChanged: (v) => controller.setImproper(v ?? false),
+                    title: Text(l10n.danceEditorImproperLabel),
+                    subtitle: Text(l10n.danceEditorImproperSubtitle),
+                    secondary: const Icon(Icons.swap_horiz),
+                    controlAffinity: ListTileControlAffinity.leading,
+                    contentPadding: EdgeInsets.zero,
+                  ),
                 CheckboxListTile(
                   key: const ValueKey('mixer-field'),
                   value: controller.mixer,
@@ -437,6 +463,13 @@ class DanceEditorForm extends StatelessWidget {
                   dialect: dialect,
                   fieldKey: 'phrase',
                 ),
+                // An English dance's tune is usually given with its meter and
+                // key, so they sit beside the phrase structure; other forms
+                // keep them in More details (ADR-006 §12.1, F3).
+                if (controller.showsCreditsUpFront) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  _musicFields(context),
+                ],
               ],
             ),
           ),
@@ -642,6 +675,98 @@ class DanceEditorForm extends StatelessWidget {
     );
   }
 
+  /// The Composed date, then who interpreted the dance and when: in More
+  /// details, or up front for a form whose dances usually credit both
+  /// ([DanceEditorController.showsCreditsUpFront]).
+  List<Widget> _creditFields(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return [
+      PartialDateField(
+        fieldKey: 'composed-on',
+        label: l10n.danceEditorComposedLabel,
+        helperText: l10n.danceEditorComposedHelper,
+        value: controller.composedOn,
+        onChanged: controller.setComposedOn,
+      ),
+      const SizedBox(height: AppSpacing.md),
+      FieldLabel(l10n.danceEditorInterpretedByLabel),
+      NamePicker(
+        fieldKey: 'interpreter',
+        selectedIds: controller.interpreterIds,
+        namesById: choreographerNames,
+        options: authorOptions,
+        onAdd: onAddInterpreter,
+        onRemove: controller.removeInterpreter,
+        onCreate: onCreateChoreographer,
+        onEdit: onEditChoreographer,
+        sheetSemanticLabel: l10n.danceEditorInterpretedByLabel,
+      ),
+      const SizedBox(height: AppSpacing.md),
+      PartialDateField(
+        fieldKey: 'interpreted-on',
+        label: l10n.danceEditorInterpretedOnLabel,
+        helperText: l10n.danceEditorInterpretedOnHelper,
+        value: controller.interpretedOn,
+        onChanged: controller.setInterpretedOn,
+      ),
+    ];
+  }
+
+  /// The tune's written meter and key, side by side.
+  Widget _musicFields(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    Widget field({
+      required String key,
+      required LingoTextEditingController textController,
+      required String label,
+      required String hint,
+    }) => Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        TextFormField(
+          key: ValueKey('$key-field'),
+          controller: textController,
+          maxLength: kMaxMusicLabelLength,
+          decoration: InputDecoration(
+            labelText: label,
+            hintText: hint,
+            // The cap is generous for a short label, so the counter would
+            // only be noise.
+            counterText: '',
+          ),
+          onChanged: (_) => controller.onTextEdited(),
+        ),
+        LingoDiscouragedHint(
+          controller: textController,
+          dialect: dialect,
+          fieldKey: key,
+        ),
+      ],
+    );
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: field(
+            key: 'meter',
+            textController: controller.meterController,
+            label: l10n.danceEditorMeterLabel,
+            hint: l10n.danceEditorMeterHint,
+          ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: field(
+            key: 'musical-key',
+            textController: controller.musicalKeyController,
+            label: l10n.danceEditorMusicalKeyLabel,
+            hint: l10n.danceEditorMusicalKeyHint,
+          ),
+        ),
+      ],
+    );
+  }
+
   /// The collapsible "More details" drawer (Tier 2). Holds the less-frequently
   /// used metadata; collapsed by default so the always-visible Tier 1 fields
   /// stay above the fold. Its form children stay mounted while collapsed so
@@ -704,14 +829,10 @@ class DanceEditorForm extends StatelessWidget {
           contentPadding: EdgeInsets.zero,
         ),
         const SizedBox(height: AppSpacing.md),
-        PartialDateField(
-          fieldKey: 'composed-on',
-          label: l10n.danceEditorComposedLabel,
-          helperText: l10n.danceEditorComposedHelper,
-          value: controller.composedOn,
-          onChanged: controller.setComposedOn,
-        ),
-        const SizedBox(height: AppSpacing.md),
+        if (!controller.showsCreditsUpFront) ...[
+          ..._creditFields(context),
+          const SizedBox(height: AppSpacing.md),
+        ],
         PartialDateField(
           fieldKey: 'revised-on',
           label: l10n.danceEditorRevisedLabel,
@@ -732,6 +853,10 @@ class DanceEditorForm extends StatelessWidget {
           sheetSemanticLabel: l10n.danceEditorTagsLabel,
         ),
         const SizedBox(height: AppSpacing.md),
+        if (!controller.showsCreditsUpFront) ...[
+          _musicFields(context),
+          const SizedBox(height: AppSpacing.md),
+        ],
         FieldLabel(l10n.danceEditorTunesLabel),
         // An empty tune list here would otherwise read as "this dance has no
         // tunes", when the stored text could not be decoded and is being
