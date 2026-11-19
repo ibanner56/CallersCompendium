@@ -558,6 +558,36 @@ meanwhile, or a meanwhile inside a modifier, for example — one level deep. The
 app does not allow a group inside another of the same kind, or nesting any
 deeper.
 
+### English dances are timed in bars
+
+An **English (ECD)** dance is timed in bars, as English callers time it. Each
+figure's length is entered and shown in **Bars**: `2`, or `1.5` (or `1½`) for
+a bar and a half. Half a bar is taken only where it is a whole number of beats,
+so not in triple time: in a tune with three beats to the bar, the field asks
+for whole bars instead. The app still works in beats underneath, through the
+dance's phrase structure, so `4*8*3` (four 8-bar phrases of three beats) makes
+2 bars 6 beats. A tune whose parts have different numbers of beats to the bar
+keeps its figures in beats, since one count of bars would mean different
+lengths in different parts. The dance's page and Perform show bars too.
+
+An English sequence can also take its bars as a whole, as in "A, B and C in
+bars 1–4". Fill in **Bars for all** at the top of the sequence, and leave the
+**Bars** of any figure in it empty to give that figure no timing of its own.
+Leave **Bars for all** empty and the sequence adds up its figures' bars, as a
+contra sequence does; emptying it gives each figure with no bars its move's
+usual length. A figure that leaves the sequence, by ungrouping it or turning
+it into another kind of group, takes its usual length too. If every figure has bars of its own and they don't add
+up to **Bars for all**, or the figures with bars already fill it, the sequence
+and the dance's warnings say so. Changing the dance to another type puts its
+sequences back to adding up their figures, and a figure with no bars takes its
+move's usual length; **Undo** puts them back.
+
+If a dance holds figures of another type than its own, for example English
+figures in a dance you have just changed to contra, **Warnings** says how
+many. They are kept and shown as they are, but the figure picker offers only
+the dance's own type's figures (contra's, for a square dance, which has no
+figure list of its own yet).
+
 ### Keep an eye on the beats
 
 Under the figure list the app shows a running **Total** against what the dance's

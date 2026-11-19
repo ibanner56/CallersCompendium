@@ -7694,6 +7694,72 @@ abstract class AppLocalizations {
   /// **'{beats, plural, =1{1 beat} other{{beats} beats}}'**
   String danceFigureBeats(int beats);
 
+  /// A figure's length in bars, for an English country dance: {bars} is the count as written, such as 4 or 1½; {halfBars} is the same count in half bars, which picks the plural (1 is half a bar, 2 is one bar).
+  ///
+  /// In en, this message translates to:
+  /// **'{halfBars, plural, =1{{bars} bar} =2{{bars} bar} other{{bars} bars}}'**
+  String danceFigureBars(String bars, int halfBars);
+
+  /// Label of a figure's length field in the dance editor for an English country dance, which is timed in bars rather than beats.
+  ///
+  /// In en, this message translates to:
+  /// **'Bars'**
+  String get danceEditorBarsLabel;
+
+  /// Shown for a step of a sequence that has no bars of its own: the sequence as a whole states its bars, as in 'A, B and C in bars 1–4'.
+  ///
+  /// In en, this message translates to:
+  /// **'No timing of its own'**
+  String get danceEditorStepUntimed;
+
+  /// Error under a bars field in the dance editor when the text is not a number of whole or half bars within range.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter whole or half bars, up to {max}'**
+  String danceEditorBarsRangeError(int max);
+
+  /// Error under a bars field when half a bar is entered in a tune whose bar has an odd number of beats, such as triple time.
+  ///
+  /// In en, this message translates to:
+  /// **'Whole bars only, with {beatsPerBar} beats to the bar'**
+  String danceEditorHalfBarRefused(int beatsPerBar);
+
+  /// Label of the field giving the bars a whole sequence takes in an English country dance, as in 'A, B and C in bars 1–4'.
+  ///
+  /// In en, this message translates to:
+  /// **'Bars for all'**
+  String get danceEditorSequenceSpanLabel;
+
+  /// Help under the empty 'Bars for all' field of a sequence in an English country dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave empty to add up the steps\' bars, or give the bars the whole sequence takes, as in \"A, B and C in bars 1–4\".'**
+  String get danceEditorSequenceSpanEmptyHelp;
+
+  /// Help under the filled 'Bars for all' field of a sequence in an English country dance.
+  ///
+  /// In en, this message translates to:
+  /// **'The steps share these bars, and each may leave its own bars empty.'**
+  String get danceEditorSequenceSpanHelp;
+
+  /// Warning in a sequence of an English country dance whose every step has its own bars and they don't add up to the sequence's. {steps} and {span} are lengths such as '4 bars'.
+  ///
+  /// In en, this message translates to:
+  /// **'The steps take {steps}, but the sequence takes {span}.'**
+  String danceEditorSequenceSpanMismatch(String steps, String span);
+
+  /// Warning in a sequence of an English country dance whose timed steps already fill its bars, leaving none for its untimed steps. {steps} and {span} are lengths such as '4 bars'.
+  ///
+  /// In en, this message translates to:
+  /// **'The steps with bars of their own take {steps} of the sequence\'s {span}, leaving none for the rest.'**
+  String danceEditorSequenceSpanNoRoom(String steps, String span);
+
+  /// Warning in a sequence of an English country dance that runs longer than one phrase. {length} and {limit} are lengths such as '10 bars'.
+  ///
+  /// In en, this message translates to:
+  /// **'This sequence is {length}, longer than one phrase ({limit}).'**
+  String danceEditorSequenceOverPhraseTimed(String length, String limit);
+
   /// Word inserted into a figure row's accessible label when the figure carries the progression.
   ///
   /// In en, this message translates to:
@@ -12999,6 +13065,29 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'A sequence in figure {position} is {actual} beats, longer than one phrase ({limit} beats).'**
   String validationSequenceExceedsPhrase(int position, int actual, int limit);
+
+  /// Editor warning for an English country dance's sequence whose steps each have a count that doesn't add up to the sequence's own. {position} is the figure holding it.
+  ///
+  /// In en, this message translates to:
+  /// **'The steps of the sequence in figure {position} take {actual} beats; the sequence takes {expected}.'**
+  String validationSequenceSpanMismatch(int position, int actual, int expected);
+
+  /// Editor warning for an English country dance's sequence whose timed steps fill its count, leaving none for its untimed steps. {position} is the figure holding it.
+  ///
+  /// In en, this message translates to:
+  /// **'The timed steps of the sequence in figure {position} take {actual} beats, leaving none of its {expected} for the rest.'**
+  String validationSequenceSpanNoRoom(int position, int actual, int expected);
+
+  /// Editor warning when a dance holds figures of another dance type than its own, for example after its type was changed. {danceForm} and {figureForm} are dance type names such as 'Contra' or 'English (ECD)'. {pickerForm} is the type whose figures the picker offers: the dance's own, or Contra's for a type that has no figure list of its own yet (Square).
+  ///
+  /// In en, this message translates to:
+  /// **'This dance is {danceForm}, but {count, plural, =1{1 figure is} other{{count} figures are}} from {figureForm}. They are kept as they are, but the figure picker offers only {pickerForm} figures.'**
+  String validationOtherFormFigures(
+    int count,
+    String danceForm,
+    String figureForm,
+    String pickerForm,
+  );
 
   /// Dance-editor warning (AUTH-2): the figure row at {position} (1-based, counting the rows of the figure list) is not complete, such as a group (meanwhile, modifier or sequence) with fewer than two of its figures filled in, a modifier group with no Core, or a row with no move that holds a walkthrough step, so saving the dance leaves it out. 'Save' is the editor's Save button (commonSave).
   ///

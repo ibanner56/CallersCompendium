@@ -20,6 +20,18 @@ ValidationIssue _validationIssue(String code) => ValidationIssue(
     'sequence_exceeds_phrase' => {'position': 2, 'actual': 40, 'limit': 32},
     'orphaned_alt' => {'position': 2, 'text': 'Petronella'},
     incompleteFigureValidationCode => {'position': 3},
+    'sequence_span_mismatch' => {
+      'position': 2,
+      'actual': 8,
+      'expected': 12,
+      'allTimed': true,
+    },
+    otherFormFiguresValidationCode => {
+      'count': 2,
+      'figureForm': 'ecd',
+      'danceForm': 'contra',
+      'pickerForm': 'contra',
+    },
     'empty_substitution' => {'source': 'jays'},
     'dialect_collision' => {
       'source': 'jays',
@@ -62,6 +74,59 @@ void main() {
       // In debug (tests run in debug) the raw diagnostic is appended for devs,
       // but the user-facing generic prefix is always present.
       expect(msg, contains(l10n.validationGeneric));
+    });
+
+    test('figures of another form name both forms (ADR-006 W5)', () {
+      expect(
+        validationIssueMessage(
+          l10n,
+          _validationIssue(otherFormFiguresValidationCode),
+        ),
+        'This dance is Contra, but 2 figures are from English (ECD). They '
+        'are kept as they are, but the figure picker offers only Contra '
+        'figures.',
+      );
+    });
+
+    test('a form without figures of its own names the picker\'s', () {
+      expect(
+        validationIssueMessage(
+          l10n,
+          const ValidationIssue(
+            severity: ValidationSeverity.warning,
+            code: otherFormFiguresValidationCode,
+            message: 'x',
+            data: {
+              'count': 1,
+              'figureForm': 'ecd',
+              'danceForm': 'square',
+              'pickerForm': 'contra',
+            },
+          ),
+        ),
+        'This dance is Square, but 1 figure is from English (ECD). They are '
+        'kept as they are, but the figure picker offers only Contra figures.',
+      );
+    });
+
+    test('a sequence span that has no room for its untimed steps says so', () {
+      expect(
+        validationIssueMessage(
+          l10n,
+          const ValidationIssue(
+            severity: ValidationSeverity.warning,
+            code: 'sequence_span_mismatch',
+            message: 'x',
+            data: {
+              'position': 2,
+              'actual': 12,
+              'expected': 12,
+              'allTimed': false,
+            },
+          ),
+        ),
+        contains('leaving none'),
+      );
     });
 
     test('an incomplete figure names its position (AUTH-2)', () {

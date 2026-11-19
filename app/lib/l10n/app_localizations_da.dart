@@ -5011,6 +5011,60 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String danceFigureBars(String bars, int halfBars) {
+    String _temp0 = intl.Intl.pluralLogic(
+      halfBars,
+      locale: localeName,
+      other: '$bars takter',
+      two: '$bars takt',
+      one: '$bars takt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get danceEditorBarsLabel => 'Takter';
+
+  @override
+  String get danceEditorStepUntimed => 'Ingen egen varighed';
+
+  @override
+  String danceEditorBarsRangeError(int max) {
+    return 'Angiv hele eller halve takter, op til $max';
+  }
+
+  @override
+  String danceEditorHalfBarRefused(int beatsPerBar) {
+    return 'Kun hele takter med $beatsPerBar slag pr. takt';
+  }
+
+  @override
+  String get danceEditorSequenceSpanLabel => 'Takter i alt';
+
+  @override
+  String get danceEditorSequenceSpanEmptyHelp =>
+      'Lad feltet være tomt for at lægge trinnenes takter sammen, eller angiv takterne for hele sekvensen, som i “A, B og C i takt 1–4”.';
+
+  @override
+  String get danceEditorSequenceSpanHelp =>
+      'Trinnene deler disse takter, og hvert trin kan lade sine egne takter være tomme.';
+
+  @override
+  String danceEditorSequenceSpanMismatch(String steps, String span) {
+    return 'Trinnene varer $steps, men sekvensen varer $span.';
+  }
+
+  @override
+  String danceEditorSequenceSpanNoRoom(String steps, String span) {
+    return 'Trinnene med egne takter varer $steps af sekvensens $span, så der intet er tilbage til resten.';
+  }
+
+  @override
+  String danceEditorSequenceOverPhraseTimed(String length, String limit) {
+    return 'Denne sekvens varer $length, længere end én frase ($limit).';
+  }
+
+  @override
   String get danceFigureProgressionSemantic => 'progression';
 
   @override
@@ -8707,6 +8761,36 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String validationSequenceExceedsPhrase(int position, int actual, int limit) {
     return 'En sekvens i figur $position er $actual slag, længere end én frase ($limit slag).';
+  }
+
+  @override
+  String validationSequenceSpanMismatch(
+    int position,
+    int actual,
+    int expected,
+  ) {
+    return 'Trinnene i sekvensen i figur $position varer $actual slag; sekvensen varer $expected.';
+  }
+
+  @override
+  String validationSequenceSpanNoRoom(int position, int actual, int expected) {
+    return 'De tidsangivne trin i sekvensen i figur $position varer $actual slag, så der intet er tilbage af dens $expected til resten.';
+  }
+
+  @override
+  String validationOtherFormFigures(
+    int count,
+    String danceForm,
+    String figureForm,
+    String pickerForm,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count figurer er',
+      one: '1 figur er',
+    );
+    return 'Dette er en $danceForm-dans, men $_temp0 fra $figureForm. De beholdes som de er, men figurvælgeren tilbyder kun $pickerForm-figurer.';
   }
 
   @override

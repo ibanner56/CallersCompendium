@@ -3363,4 +3363,170 @@ void main() {
       expect(controller.authorIds, ['other']);
     });
   });
+
+  group('timing by dance form (ADR-006 §5.5)', () {
+    Future<DanceEditorController> openEcd(
+      CompendiumRepositories repos,
+      List<Figure> figures,
+    ) async {
+      await repos.dances.create(
+        Dance(
+          id: 'd1',
+          title: 'English',
+          form: DanceForm.ecd,
+          figures: figures,
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      final controller = DanceEditorController(
+        repositories: repos,
+        danceId: 'd1',
+        dialects: DialectsByForm.all(Dialect.larksRobins),
+        debounce: testDebounce,
+      );
+      await controller.load(
+        dance: await repos.dances.getById('d1'),
+        fieldDefs: const [],
+      );
+      return controller;
+    }
+
+    final spanned = Figure.sequence(
+      figures: [
+        Figure(move: 'ecd_lead', params: const {'beats': 4}),
+        Figure(move: 'ecd_set', params: const {}),
+      ],
+      beats: 8,
+    );
+
+    test(
+      'an English sequence keeps its span and its untimed step on save',
+      () async {
+        final repos = openTestRepositories();
+        final controller = await openEcd(repos, [spanned]);
+        addTearDown(controller.dispose);
+
+        expect(controller.figureDrafts.single.sequenceSpanStated, isTrue);
+        final saved = figuresOf(controller.buildDance()).single;
+        expect(saved.beats, 8);
+        expect(stepStatesTiming(saved.subFigures[1]), isFalse);
+      },
+    );
+
+    test('changing the dance to contra counts its steps again, and Undo '
+        'brings the span back', () async {
+      final repos = openTestRepositories();
+      final controller = await openEcd(repos, [spanned]);
+      addTearDown(controller.dispose);
+
+      controller.setForm(DanceForm.contra);
+      final sequence = controller.figureDrafts.single;
+      expect(sequence.sequenceSpanStated, isFalse);
+      // The untimed step takes its move's default count (ecd_set: 4).
+      expect(sequence.sequenceFigures![1].params['beats'], 4);
+      expect(sequence.beats, 8);
+
+      controller.undo();
+      expect(controller.form, DanceForm.ecd);
+      expect(controller.figureDrafts.single.sequenceSpanStated, isTrue);
+      expect(
+        controller.figureDrafts.single.sequenceFigures![1].untimed,
+        isTrue,
+      );
+    });
+
+    test(
+      'steps that miss the span are warned about, with their figure',
+      () async {
+        final repos = openTestRepositories();
+        final controller = await openEcd(repos, [
+          Figure(move: 'ecd_honor', params: const {'beats': 4}),
+          Figure.sequence(
+            figures: [
+              Figure(move: 'ecd_lead', params: const {'beats': 4}),
+              Figure(move: 'ecd_set', params: const {'beats': 4}),
+            ],
+            beats: 12,
+          ),
+        ]);
+        addTearDown(controller.dispose);
+
+        final issue = controller.warnings.singleWhere(
+          (w) => w.code == 'sequence_span_mismatch',
+        );
+        expect(issue.data['position'], 2);
+        expect(issue.data['actual'], 8);
+        expect(issue.data['expected'], 12);
+      },
+    );
+
+    test(
+      'figures of another form are warned about after the form changes',
+      () async {
+        final repos = openTestRepositories();
+        final controller = await openEcd(repos, [
+          Figure(move: 'ecd_honor', params: const {'beats': 4}),
+          Figure(move: 'ecd_lead', params: const {'beats': 4}),
+          Figure(move: 'custom', params: const {'text': 'x', 'beats': 4}),
+        ]);
+        addTearDown(controller.dispose);
+        expect(
+          controller.warnings.where((w) => w.code == 'other_form_figures'),
+          isEmpty,
+        );
+
+        controller.setForm(DanceForm.contra);
+        final issue = controller.warnings.singleWhere(
+          (w) => w.code == 'other_form_figures',
+        );
+        expect(issue.data, {
+          'count': 2,
+          'figureForm': 'ecd',
+          'danceForm': 'contra',
+          'pickerForm': 'contra',
+        });
+
+        // A square dance uses contra's figures, so contra ones are its own.
+        final square = await openEcd(openTestRepositories(), [
+          Figure(move: 'swing', params: const {'beats': 8}),
+        ]);
+        addTearDown(square.dispose);
+        square.setForm(DanceForm.square);
+        expect(
+          square.warnings.where((w) => w.code == 'other_form_figures'),
+          isEmpty,
+        );
+
+        // English figures in a square dance: its picker offers contra's.
+        final squareEcd = await openEcd(openTestRepositories(), [
+          Figure(move: 'ecd_lead', params: const {'beats': 4}),
+        ]);
+        addTearDown(squareEcd.dispose);
+        squareEcd.setForm(DanceForm.square);
+        expect(
+          squareEcd.warnings
+              .singleWhere((w) => w.code == 'other_form_figures')
+              .data,
+          {
+            'count': 1,
+            'figureForm': 'ecd',
+            'danceForm': 'square',
+            'pickerForm': 'contra',
+          },
+        );
+      },
+    );
+
+    test('ungrouping a spanned sequence times its untimed steps', () async {
+      final repos = openTestRepositories();
+      final controller = await openEcd(repos, [spanned]);
+      addTearDown(controller.dispose);
+
+      controller.ungroupContainer(controller.figureDrafts.single);
+      expect(controller.figureDrafts, hasLength(2));
+      expect(controller.figureDrafts[1].untimed, isFalse);
+      expect(figuresOf(controller.buildDance())[1].beats, 4);
+    });
+  });
 }

@@ -5077,6 +5077,60 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String danceFigureBars(String bars, int halfBars) {
+    String _temp0 = intl.Intl.pluralLogic(
+      halfBars,
+      locale: localeName,
+      other: '$bars mesures',
+      two: '$bars mesure',
+      one: '$bars mesure',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get danceEditorBarsLabel => 'Mesures';
+
+  @override
+  String get danceEditorStepUntimed => 'Sans durée propre';
+
+  @override
+  String danceEditorBarsRangeError(int max) {
+    return 'Saisissez des mesures entières ou des demi-mesures, jusqu’à $max';
+  }
+
+  @override
+  String danceEditorHalfBarRefused(int beatsPerBar) {
+    return 'Mesures entières seulement, avec $beatsPerBar temps par mesure';
+  }
+
+  @override
+  String get danceEditorSequenceSpanLabel => 'Mesures pour l’ensemble';
+
+  @override
+  String get danceEditorSequenceSpanEmptyHelp =>
+      'Laissez vide pour additionner les mesures des étapes, ou indiquez les mesures de toute la séquence, comme « A, B et C aux mesures 1–4 ».';
+
+  @override
+  String get danceEditorSequenceSpanHelp =>
+      'Les étapes se partagent ces mesures, et chacune peut laisser ses propres mesures vides.';
+
+  @override
+  String danceEditorSequenceSpanMismatch(String steps, String span) {
+    return 'Les étapes durent $steps, mais la séquence dure $span.';
+  }
+
+  @override
+  String danceEditorSequenceSpanNoRoom(String steps, String span) {
+    return 'Les étapes ayant leurs propres mesures durent $steps sur les $span de la séquence, sans rien laisser aux autres.';
+  }
+
+  @override
+  String danceEditorSequenceOverPhraseTimed(String length, String limit) {
+    return 'Cette séquence dure $length, plus qu’une phrase ($limit).';
+  }
+
+  @override
   String get danceFigureProgressionSemantic => 'progression';
 
   @override
@@ -8823,6 +8877,36 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String validationSequenceExceedsPhrase(int position, int actual, int limit) {
     return 'Une séquence de la figure $position dure $actual temps, plus qu’une phrase ($limit temps).';
+  }
+
+  @override
+  String validationSequenceSpanMismatch(
+    int position,
+    int actual,
+    int expected,
+  ) {
+    return 'Les étapes de la séquence de la figure $position durent $actual temps ; la séquence en dure $expected.';
+  }
+
+  @override
+  String validationSequenceSpanNoRoom(int position, int actual, int expected) {
+    return 'Les étapes minutées de la séquence de la figure $position durent $actual temps, sans rien laisser de ses $expected aux autres.';
+  }
+
+  @override
+  String validationOtherFormFigures(
+    int count,
+    String danceForm,
+    String figureForm,
+    String pickerForm,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count figures viennent',
+      one: '1 figure vient',
+    );
+    return 'Cette danse est de type $danceForm, mais $_temp0 de $figureForm. Elles restent telles quelles, mais le sélecteur de figures ne propose que des figures $pickerForm.';
   }
 
   @override

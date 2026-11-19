@@ -50,7 +50,22 @@ class FigureDraft {
   factory FigureDraft.fromFigure(Figure figure) {
     final draft = FigureDraft._fromFigure(figure);
     // AUTH-11: see above.
-    if (draft.isContainerDraft) {
+    if (draft.isSequenceGroup) {
+      // A sequence states a span of its own only where its steps don't add
+      // up to it, or some step has no timing ([sequenceSpanStated]).
+      final steps = figure.subFigures;
+      final total = steps.fold(0, (sum, step) => sum + step.beats);
+      draft.beatsTouched =
+          figure.params['beats'] is int &&
+          (figure.beats != total || !steps.every(stepStatesTiming));
+      // A step left untimed under a span is the caller's choice: nothing
+      // fills in a count for it.
+      if (draft.beatsTouched) {
+        for (final step in draft.sequenceFigures!) {
+          if (step.untimed) step.beatsTouched = true;
+        }
+      }
+    } else if (draft.isContainerDraft) {
       draft.beatsTouched = figure.beats > 0 && figure.beats != draft.sidesBeats;
     }
     return draft;
@@ -291,8 +306,10 @@ class FigureDraft {
 
   /// Non-null when this draft is a sequence container: children danced in
   /// order and shown on one line. Unlike the other two kinds, a sequence's
-  /// count is not edited on the container: [beats] is the sum of its
-  /// children's, and `params['beats']` is not read.
+  /// count is normally not edited on the container: [beats] is the sum of its
+  /// children's, and `params['beats']` is not read. The exception is an
+  /// English dance's sequence that states its own span
+  /// ([sequenceSpanStated]).
   ///
   /// At most one of [meanwhileSides], [modifierFigures] and [sequenceFigures]
   /// is non-null; [setContainer] keeps it so.
@@ -430,23 +447,88 @@ class FigureDraft {
   /// ([syncContainerBeats]); leaving a sequence, whose count nobody typed, it
   /// starts from the total the sequence showed and follows them too.
   /// Callers check [canConvertContainerTo] first.
+  ///
+  /// A sequence's own span ([sequenceSpanStated]) does not carry across: its
+  /// untimed steps take their default counts when it becomes another kind,
+  /// and another kind's typed count is not taken for a span when it becomes
+  /// a sequence, which then counts its steps.
   void convertContainerTo(String kind) {
     final children = containerChildren;
     if (children == null) return;
     if (isSequenceGroup) {
+      timeUntimedSteps();
       params['beats'] = beats;
+      beatsTouched = false;
+    } else if (kind == sequenceMove) {
+      params.remove('beats');
       beatsTouched = false;
     }
     setContainer(kind, children);
     syncContainerBeats();
   }
 
+  /// Whether this sequence states a span of its own, "A, B and C in bars
+  /// 1–4", rather than counting its steps (ADR-006 §5.5): its
+  /// `params['beats']`, once set by hand ([beatsTouched]). Its steps may then
+  /// carry no timing of their own. Only an English dance's editor offers a
+  /// span, and the dance editor clears it from every other form's sequences,
+  /// so a contra sequence always counts its steps.
+  bool get sequenceSpanStated =>
+      isSequenceGroup && beatsTouched && params['beats'] is int;
+
+  /// Sets this sequence's own span to [beats], or with null goes back to
+  /// counting its steps ([sequenceSpanStated]).
+  ///
+  /// Without a span, steps left untimed take their default counts
+  /// ([timeUntimedSteps]), so the total the sequence shows is what it saves.
+  void setSequenceSpan(int? beats) {
+    if (beats == null) {
+      params.remove('beats');
+      beatsTouched = false;
+      timeUntimedSteps();
+    } else {
+      params['beats'] = beats;
+      beatsTouched = true;
+    }
+  }
+
+  /// Gives each of this group's children that states no timing ([untimed])
+  /// its move's default count, as a figure picked outside a span gets: for
+  /// a step that leaves a sequence's span, by ungrouping or conversion, or
+  /// when the span is cleared or the dance's form has none. A child whose
+  /// move has no default count (a custom figure) stays untimed.
+  void timeUntimedSteps() {
+    for (final child in containerChildren ?? const <FigureDraft>[]) {
+      child.timeIfUntimed();
+    }
+  }
+
+  /// Gives this row its move's default count when it states no timing
+  /// ([timeUntimedSteps]).
+  void timeIfUntimed() {
+    final move = this.move;
+    if (!untimed || move == null) return;
+    // The move may be another form's, kept as it is.
+    final spec = shippedTaxonomies.anyForm.resolve(move)?.params['beats'];
+    if (spec?.defaultValue case final int beats) {
+      params['beats'] = beats;
+      beatsTouched = false;
+    }
+  }
+
+  /// Whether this ordinary row states no timing: a step of a sequence with
+  /// a span, entered without bars of its own ([stepStatesTiming]).
+  bool get untimed =>
+      !isContainerDraft && compound == null && params['beats'] is! int;
+
   /// The draft's beat count. A compound placeholder's is the count its
-  /// expansion last had ([CompoundPlaceholder.beats]); a sequence's is the sum
-  /// of its children's ([sequenceFigures]).
+  /// expansion last had ([CompoundPlaceholder.beats]); a sequence's is its
+  /// span when it states one ([sequenceSpanStated]), otherwise the sum of its
+  /// children's ([sequenceFigures]).
   int get beats {
     if (compound case final compound?) return compound.beats;
     if (sequenceFigures case final steps?) {
+      if (sequenceSpanStated) return params['beats']! as int;
       return steps.fold(0, (sum, step) => sum + step.beats);
     }
     return (params['beats'] as int?) ?? 0;
@@ -657,9 +739,10 @@ class FigureDraft {
       final cappedChildren = readyChildren.length > cap
           ? readyChildren.sublist(0, cap)
           : readyChildren;
-      // A sequence's children keep their own counts, which are its total; the
-      // other kinds share one count that each child's use takes.
-      final groupBeats = kind == sequenceMove
+      // A sequence's children keep their own counts, which are its total
+      // unless it states a span of its own; the other kinds share one count
+      // that each child's use takes.
+      final groupBeats = kind == sequenceMove && !sequenceSpanStated
           ? cappedChildren.fold(0, (sum, child) => sum + child.beats)
           : beats;
       final figures = [
