@@ -690,7 +690,9 @@ Two things follow from that:
 
 Your whole library of snippets lives at **Settings** ▸ **Dialect** ▸ **Dance
 details & shorthands** ▸ **Walkthrough snippets**, where you can review and edit
-them. Editing one there updates the default used everywhere.
+them. Each snippet is shown in the dialect of its figure's dance form, so an
+English figure's snippet reads in your English dialect. Editing one there
+updates the default used everywhere.
 
 ### More details
 

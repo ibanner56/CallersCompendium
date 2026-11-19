@@ -4,6 +4,10 @@
   "app": {
     "added": [
       "The Glossary has a choice of Contra or English (ECD) figures, each in its own dialect. It opens on the type a new dance starts as, and your own figures and terms are listed under the type they were made for. Copying an English figure makes it an English figure of your own."
+    ],
+    "changed": [
+      "Editing an English dialect previews English figures, not contra ones.",
+      "Walkthrough snippets in Settings are each shown in the dialect of their figure's dance type."
     ]
   },
   "core": {
