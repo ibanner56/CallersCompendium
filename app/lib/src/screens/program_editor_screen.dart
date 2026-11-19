@@ -2035,6 +2035,19 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     return live.length == dance.authorIds.length ? null : names;
   }
 
+  /// [dance]'s author names in credit order, as the exports credit them
+  /// ([_authorNamesOverrideFor] for a dance with authors in Recently
+  /// deleted).
+  List<String> _slotDanceAuthorNames(Dance dance) =>
+      _authorNamesOverrideFor(dance.id) ??
+      [
+        for (final id in dance.authorIds)
+          if (_createdChoreographers[id]?.name ??
+                  _data?.choreographersById[id]?.name
+              case final String name when name.isNotEmpty)
+            name,
+      ];
+
   /// Looks up, once per collection snapshot, every slot dance that neither
   /// the snapshot nor the created-dance overlay holds, through
   /// [resolveDeletedSlotDances]: the same lookup Perform uses. Called from
@@ -3706,7 +3719,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             mixerFor: _mixerForDance,
             dialect: _dialect,
             dialectFor: (id) => switch (_danceById(id)) {
-              final dance? => _dialects.forDance(dance),
+              // Lark and robin when the dance's choreographer asked for them.
+              final dance? => dialectForDance(
+                _dialects.forDance(dance),
+                title: dance.title,
+                authorNames: _slotDanceAuthorNames(dance),
+              ),
               null => null,
             },
             canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(

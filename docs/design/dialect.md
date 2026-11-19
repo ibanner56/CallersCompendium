@@ -202,10 +202,10 @@ wording, saved unchanged, reads as the default line. Imported
   `dialectForDance`: the dance page (which notes the override when it sets the
   reader's role terms aside, `overridesRoleTerms`), the editor (whose controller
   resolves its form's dialect through it, and converts its drafts as the
-  title or authors start or stop requiring it), Perform
-  (single dance and each program slot), the Collection list tile, the program
-  summary row, the import review preview, and every export built on
-  `DanceCardContent`, which carries the dialect it rendered in
+  title or authors start or stop requiring it), Perform (single dance and
+  each program slot), the Collection list tile, the program summary row, the
+  program editor's slot row, the import review preview, and every export
+  built on `DanceCardContent`, which carries the dialect it rendered in
   (`DanceCardContent.dialect`) for its consumers' figure rendering. Program-level
   text keeps the reader's dialect: slot notes (Perform renders a slot's caller
   note in the reader's dialect beside the dance's own, `PerformCard.
