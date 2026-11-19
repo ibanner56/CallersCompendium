@@ -1105,7 +1105,10 @@ Formation _mapEcdFormation(
       ? _mapFormationColumns(record, issues)
       : _mapFormation(record.formation, issues);
   final statesImproper = usr
-      ? (record.contraForm?.trim().toLowerCase() ?? '') == 'improper'
+      ? (record.contraForm?.trim().toLowerCase() ?? '') == 'improper' ||
+            (_sanitizeLine(record.formationOther) ?? '').toLowerCase().contains(
+              'improper',
+            )
       : text.contains('improper');
   final mapped = ecdFormationFromContra(source);
   if (source.shape == FormationShape.dupleImproper && !statesImproper) {

@@ -622,6 +622,8 @@ void main() {
       expect(_one('turn to the right').isCustom, isTrue);
       expect(_one('star to the left').isCustom, isTrue);
       expect(_one('circle to the left').params['direction'], 'left');
+      // A turn single's side is the side turned to.
+      expect(_one('turn single to the right').params['shoulder'], 'right');
     });
 
     test('a ring movement does not take an earlier step\'s subject', () {
@@ -684,6 +686,16 @@ void main() {
           rec(formation: 'Duple Improper'),
         ).dance;
         expect(stated.formation.improper, isTrue);
+        final other = mapCallersCompanionDance(
+          CcDanceRecord(
+            name: 'D',
+            type: 'English',
+            formationOther: 'Duple Improper',
+            fromUsrColumns: true,
+            body: const [],
+          ),
+        ).dance;
+        expect(other.formation.improper, isTrue);
       },
     );
 

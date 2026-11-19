@@ -762,9 +762,13 @@ Object? _hand(
   return allowed.contains(hand) ? hand : _fail;
 }
 
-Object? _shoulder(_Bag bag, {bool sideIsShoulder = true}) {
+Object? _shoulder(
+  _Bag bag, {
+  bool sideIsShoulder = true,
+  bool toTheAllowed = false,
+}) {
   final value = sideIsShoulder
-      ? _sideAs(bag, 'shoulder', toTheAllowed: false)
+      ? _sideAs(bag, 'shoulder', toTheAllowed: toTheAllowed)
       : bag.take<String>('shoulder');
   if (value == null || value == _fail) return value;
   return value == 'right' || value == 'left' ? value : _fail;
@@ -866,7 +870,8 @@ final Map<String, _MoveRule> _rules = {
   'clap': _MoveRule('ecd_clap', (b, c) => const {}),
   'turn_single': _MoveRule('ecd_turn_single', (b, c) {
     final cloverleaf = b.take<bool>('cloverleaf') == true;
-    final shoulder = _shoulder(b);
+    // A turn single's side is the side turned to: `to the right` names it.
+    final shoulder = _shoulder(b, toTheAllowed: true);
     if (cloverleaf && shoulder != null) return null;
     return _params({
       'who': _whoOf(b, objectIsWho: false),
