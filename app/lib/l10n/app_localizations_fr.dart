@@ -3694,6 +3694,17 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsGeneralReparseCustomFiguresAction => 'Revérifier…';
 
   @override
+  String get settingsGeneralEcdMigrationTitle =>
+      'Convertir les danses anglaises';
+
+  @override
+  String get settingsGeneralEcdMigrationSubtitle =>
+      'Les danses anglaises enregistrées avant que l’app connaisse les figures anglaises utilisent encore des mouvements de contra. Convertissez les mouvements qui ont le même sens en danse anglaise, relisez les figures non reconnues et donnez à chaque danse sa formation anglaise. Vous choisissez les danses et confirmez avant tout changement.';
+
+  @override
+  String get settingsGeneralEcdMigrationAction => 'Convertir…';
+
+  @override
   String get settingsGeneralBackupRestoreHeader => 'Sauvegarde et restauration';
 
   @override
@@ -10397,6 +10408,102 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get reparseErrorBody =>
       'Une erreur s’est produite lors de l’analyse de votre collection. Rien n’a été modifié. Vous pouvez réessayer.';
+
+  @override
+  String get ecdMigrationScreenTitle => 'Convertir les danses anglaises';
+
+  @override
+  String ecdMigrationIntro(int danceCount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      danceCount,
+      locale: localeName,
+      other: '$danceCount danses anglaises utilisent',
+      one: '1 danse anglaise utilise',
+    );
+    return '$_temp0 encore des mouvements de contra, des figures non reconnues ou une formation de contra. Choisissez les danses à convertir, puis confirmez. Un mouvement sans équivalent anglais clair reste tel quel.';
+  }
+
+  @override
+  String ecdMigrationPreviewMoves(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count mouvements à convertir',
+      one: '1 mouvement à convertir',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String ecdMigrationPreviewLines(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count figures non reconnues désormais lues',
+      one: '1 figure non reconnue désormais lue',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ecdMigrationPreviewShape => 'Formation anglaise';
+
+  @override
+  String ecdMigrationConvertButton(int danceCount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      danceCount,
+      locale: localeName,
+      other: '$danceCount danses',
+      one: '1 danse',
+    );
+    return 'Convertir $_temp0';
+  }
+
+  @override
+  String get ecdMigrationConfirmTitle => 'Convertir ces danses anglaises ?';
+
+  @override
+  String ecdMigrationConfirmBody(int danceCount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      danceCount,
+      locale: localeName,
+      other: '$danceCount danses',
+      one: '1 danse',
+    );
+    return 'Cela modifie les figures et la formation de $_temp0. Les étiquettes, notes, évaluations et tout le reste sont conservés. Cette action est irréversible : faites peut-être une sauvegarde d’abord.';
+  }
+
+  @override
+  String get ecdMigrationConfirmAction => 'Convertir';
+
+  @override
+  String ecdMigrationDoneSnack(int danceCount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      danceCount,
+      locale: localeName,
+      other: '$danceCount danses converties.',
+      one: '1 danse convertie.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ecdMigrationNothingSnack => 'Rien à convertir.';
+
+  @override
+  String get ecdMigrationFailed =>
+      'Impossible de convertir les danses. Rien n’a été modifié. Veuillez réessayer.';
+
+  @override
+  String get ecdMigrationEmptyTitle => 'Rien à convertir';
+
+  @override
+  String get ecdMigrationEmptyBody =>
+      'Vos danses anglaises utilisent déjà des figures et des formations anglaises.';
+
+  @override
+  String get ecdMigrationErrorTitle =>
+      'Impossible de vérifier vos danses anglaises';
 
   @override
   String customFieldsDeleteInUse(String label, int count) {

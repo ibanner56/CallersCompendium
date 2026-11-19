@@ -3640,6 +3640,18 @@
   "@settingsGeneralReparseCustomFiguresAction": {
     "x-sourceSha256": "de83abe7f98be6f87d01a5e0ba9d06a5ebada86926d134c77a03a0a2dc433cf9"
   },
+  "settingsGeneralEcdMigrationTitle": "イングリッシュダンスを変換",
+  "@settingsGeneralEcdMigrationTitle": {
+    "x-sourceSha256": "d9775b54e95a37e98b9294d1d74a61f4f6323b05b6981526d9a9ff3970a6de1b"
+  },
+  "settingsGeneralEcdMigrationSubtitle": "アプリがイングリッシュのフィギュアに対応する前に保存されたイングリッシュ・カントリーダンスは、まだコントラのムーブを使っています。イングリッシュで同じ意味を持つムーブを変換し、認識できないフィギュアを読み直し、各ダンスにイングリッシュのフォーメーションを設定します。ダンスを選び、何かが変わる前に確認します。",
+  "@settingsGeneralEcdMigrationSubtitle": {
+    "x-sourceSha256": "dece8f801d5b40c99ab8f8f8af2f13b8a277d070785b61f212600abea783899b"
+  },
+  "settingsGeneralEcdMigrationAction": "変換…",
+  "@settingsGeneralEcdMigrationAction": {
+    "x-sourceSha256": "de8857f730a950aba93c66095558bf630553c17212351e5655c50df1d21b3293"
+  },
   "settingsGeneralBackupRestoreHeader": "バックアップと復元",
   "@settingsGeneralBackupRestoreHeader": {
     "x-sourceSha256": "0076967a94f3290b2122017687a320ec7412aa0176f3fdfece9b0a0553e513b2"
@@ -9889,6 +9901,66 @@
   "reparseErrorBody": "コレクションのスキャン中に問題が発生しました。何も変更されていません。もう一度お試しください。",
   "@reparseErrorBody": {
     "x-sourceSha256": "58f0ccd25734c5c644ebc925bc1e88cf98be542eb894f5e7c529377380b94acd"
+  },
+  "ecdMigrationScreenTitle": "イングリッシュダンスを変換",
+  "@ecdMigrationScreenTitle": {
+    "x-sourceSha256": "d9775b54e95a37e98b9294d1d74a61f4f6323b05b6981526d9a9ff3970a6de1b"
+  },
+  "ecdMigrationIntro": "{danceCount, plural, other{{danceCount}件のイングリッシュダンス}}が、まだコントラのムーブ、認識できないフィギュア、またはコントラのフォーメーションを使っています。変換するダンスを選んでから確認してください。イングリッシュでの意味がはっきりしないムーブはそのまま残ります。",
+  "@ecdMigrationIntro": {
+    "x-sourceSha256": "6f23acc161ddf9f456a5ec4b1019189fe79399382860a9d48e41118c5ea70325"
+  },
+  "ecdMigrationPreviewMoves": "{count, plural, other{変換するムーブ: {count}件}}",
+  "@ecdMigrationPreviewMoves": {
+    "x-sourceSha256": "0f8ff9a408e38cc9f1500e27e949c83c3c8f6963cf8e6b78cb79fb06706a5e29"
+  },
+  "ecdMigrationPreviewLines": "{count, plural, other{読み取れるようになった認識できないフィギュア: {count}件}}",
+  "@ecdMigrationPreviewLines": {
+    "x-sourceSha256": "fbe73fbaf73be4a53f71d06e5a43b9a94f8b0ced16824bc4465ca1cc5c54b94f"
+  },
+  "ecdMigrationPreviewShape": "イングリッシュのフォーメーション",
+  "@ecdMigrationPreviewShape": {
+    "x-sourceSha256": "bb61ce45b99ce5325dd4fd39541815b8e3ff4ca0a5dac0ca5d333d789622684e"
+  },
+  "ecdMigrationConvertButton": "{danceCount, plural, other{{danceCount}件のダンスを変換}}",
+  "@ecdMigrationConvertButton": {
+    "x-sourceSha256": "47cb97b506b6a165b9f9684beb34b846f018bdc09b14a13d1f8581ddf47ae377"
+  },
+  "ecdMigrationConfirmTitle": "これらのイングリッシュダンスを変換しますか？",
+  "@ecdMigrationConfirmTitle": {
+    "x-sourceSha256": "d521ef97fc49216d751ebb1e92a36235526ba4266712d8adf5c4ece626205271"
+  },
+  "ecdMigrationConfirmBody": "{danceCount, plural, other{{danceCount}件のダンス}}のフィギュアとフォーメーションが変わります。タグ、評価、メモなどはすべてそのまま残ります。元に戻せないため、先にバックアップをとることをおすすめします。",
+  "@ecdMigrationConfirmBody": {
+    "x-sourceSha256": "9ddc48f2bad456b7159fee8e61bed0d76513bd74b92d3c91f13bc509e3165a4f"
+  },
+  "ecdMigrationConfirmAction": "変換",
+  "@ecdMigrationConfirmAction": {
+    "x-sourceSha256": "5cd425f518c2e59a42b8b70008e62212d41060cc25916cfc47ad64383f9be745"
+  },
+  "ecdMigrationDoneSnack": "{danceCount, plural, other{{danceCount}件のダンスを変換しました。}}",
+  "@ecdMigrationDoneSnack": {
+    "x-sourceSha256": "c93d396cef0ea9615f2b7ad0395c6fa5a3c94392f39eeedb4b268f76ecb431a3"
+  },
+  "ecdMigrationNothingSnack": "変換するものはありません。",
+  "@ecdMigrationNothingSnack": {
+    "x-sourceSha256": "927c132a0a923e4b2a5d79a46f3510b2b3a357d280cd9ffbc6ec628ff83b6057"
+  },
+  "ecdMigrationFailed": "ダンスを変換できませんでした。何も変更されていません。もう一度お試しください。",
+  "@ecdMigrationFailed": {
+    "x-sourceSha256": "2b57f3969cad7e30b3b0ee1f143d1baa513fb5d2df1877119cb56c6a39adc556"
+  },
+  "ecdMigrationEmptyTitle": "変換するものはありません",
+  "@ecdMigrationEmptyTitle": {
+    "x-sourceSha256": "b7c23f259a172035b76ed38b0e714919ae88cad43edf86eb78f5924518dbfd92"
+  },
+  "ecdMigrationEmptyBody": "イングリッシュ・カントリーダンスはすでにイングリッシュのフィギュアとフォーメーションを使っています。",
+  "@ecdMigrationEmptyBody": {
+    "x-sourceSha256": "4cdc8cb2ad6d4ec5beb27c77fedcca1cdfa8beef4be210c8c0584848c2badfda"
+  },
+  "ecdMigrationErrorTitle": "イングリッシュダンスを確認できませんでした",
+  "@ecdMigrationErrorTitle": {
+    "x-sourceSha256": "a5463d18d95a7b1f629edcf1c73792d077681156c7326da88199e723fc4a4ee5"
   },
   "customFieldsDeleteInUse": "「{label}」を削除できません: まだ{count, plural, other{{count}件のダンス}}で使用されています。すべてのダンスから値を削除してから実行してください。",
   "@customFieldsDeleteInUse": {

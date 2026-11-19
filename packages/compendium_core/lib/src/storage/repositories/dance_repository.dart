@@ -3584,6 +3584,106 @@ class DanceRepository {
     );
   }
 
+  /// The dry run of the opt-in ECD migration (ADR-006 §12.1 F5): each live
+  /// English Country Dance that [migrate] would change, with what it would
+  /// change, sorted by title. A dance whose figures could not be read is left
+  /// out, as [migrateEcdDances] skips it.
+  ///
+  /// [migrate] is the same caller-supplied migration [migrateEcdDances]
+  /// applies, so the dry run cannot disagree with the apply.
+  Future<List<EcdMigrationPreview>> previewEcdMigration({
+    required EcdDanceMigrator migrate,
+  }) async {
+    final rows =
+        await (_db.selectOnly(_db.dances)
+              ..addColumns([
+                _db.dances.id,
+                _db.dances.title,
+                _db.dances.formationShape,
+                _db.dances.formationDetail,
+                _db.dances.formationImproper,
+                _db.dances.figuresJson,
+              ])
+              ..where(
+                _db.dances.deletedAt.isNull() &
+                    _db.dances.form.equalsValue(DanceForm.ecd),
+              ))
+            .get();
+    final previews = <EcdMigrationPreview>[];
+    for (final row in rows) {
+      final figures = switch (_figureSourceFor(
+        row.read(_db.dances.figuresJson)!,
+      )) {
+        DecodedFigures(:final figures) => figures,
+        UnreadableFigures() => null,
+      };
+      if (figures == null) continue;
+      final result = migrate(
+        figures,
+        Formation(
+          row.readWithConverter(_db.dances.formationShape)!,
+          detail: row.read(_db.dances.formationDetail),
+          improper: row.read(_db.dances.formationImproper)!,
+        ),
+      );
+      if (!result.changed) continue;
+      previews.add(
+        EcdMigrationPreview(
+          danceId: row.read(_db.dances.id)!,
+          title: row.read(_db.dances.title)!,
+          movesConverted: result.movesConverted,
+          linesReread: result.linesReread,
+          shapeChanged: result.shapeChanged,
+        ),
+      );
+    }
+    previews.sort(
+      (a, b) =>
+          foldForTitleMatch(a.title).compareTo(foldForTitleMatch(b.title)),
+    );
+    return previews;
+  }
+
+  /// Applies the opt-in ECD migration (ADR-006 §12.1 F5) to the English
+  /// Country Dances in [ids]: each one's figures and formation become what
+  /// [migrate] returns. Every other field is kept, as for
+  /// [reparseImportGapFiguresForMany]. A dance of another form, an unknown
+  /// or deleted id, a dance whose figures could not be read, and a dance
+  /// with nothing to change are skipped, so applying twice changes nothing
+  /// more. Stamps [now] on the dances it changes and returns how many. The
+  /// batch is one transaction.
+  ///
+  /// Like the re-check, it re-expresses content already stored (each move
+  /// keeps its meaning, only its taxonomy changes), so it is not a local user
+  /// edit and never cancels a peer's pending tombstone (sync-spec §6.8).
+  Future<int> migrateEcdDances(
+    Iterable<String> ids, {
+    required EcdDanceMigrator migrate,
+    required DateTime now,
+  }) {
+    assertUtc(now, 'now');
+    return _updateMany(
+      ids,
+      (dance) {
+        if (dance.form != DanceForm.ecd) return null;
+        final figures = switch (dance.figuresSource) {
+          DecodedFigures(:final figures) => figures,
+          UnreadableFigures() => null,
+        };
+        if (figures == null) return null;
+        final result = migrate(figures, dance.formation);
+        if (!result.changed) return null;
+        return dance.copyWith(
+          figures: result.figures,
+          formation: result.formation,
+          updatedAt: now,
+        );
+      },
+      rebuildDerived: true,
+      localUserEdit: false,
+    );
+  }
+
   /// [Dance.duplicate] (fresh identity, no provenance) and persists it in one
   /// write. [newTitle] is applied to the copy before it is written; see
   /// [Dance.duplicate]. This does not touch the *other* dances' reverse
@@ -4395,4 +4495,28 @@ class CustomReparsePreview {
   final String danceId;
   final String title;
   final int upgradeCount;
+}
+
+/// One English Country Dance's dry-run result for the opt-in ECD migration
+/// (ADR-006 §12.1 F5), from [DanceRepository.previewEcdMigration].
+class EcdMigrationPreview {
+  const EcdMigrationPreview({
+    required this.danceId,
+    required this.title,
+    required this.movesConverted,
+    required this.linesReread,
+    required this.shapeChanged,
+  });
+
+  final String danceId;
+  final String title;
+
+  /// Contra moves that would become their ECD twin.
+  final int movesConverted;
+
+  /// Unrecognized lines the ECD parser would now read.
+  final int linesReread;
+
+  /// Whether the formation would take its ECD shape.
+  final bool shapeChanged;
 }

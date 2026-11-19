@@ -2254,6 +2254,41 @@ English dances (split into 1,475 fragments at counts and full stops; most
 fragments are teaching prose), the grammar read 554 fragments; the rest stay
 text. That corpus is not in the repository; the tests use generic lines.
 
+#### Converting English dances stored with contra moves (ADR-006 §12.1 F5)
+
+An ECD dance imported or tagged before the ECD taxonomy existed holds contra
+moves and a contra shape; they still display through the contra taxonomy
+(§5.1). **Settings → General → Import → Convert English dances** is the opt-in
+migration that turns them into ECD figures. Nothing runs it on its own.
+
+- `ecd_migration.dart` (`migrateEcdDance`) does three things to one dance:
+  1. a contra move with an ECD twin of the same meaning becomes that twin
+     (`ecdTwinOfContraMove`), inside containers too. The twin table lists, per
+     move, the params that carry across unchanged. A move storing any other
+     param with a real value (a star's wrist grip, a swing's balance prefix, a
+     forward and back in squares) stays contra, as does a move with no twin: a
+     contra hey or a poussette, whose `who` names a different group in each
+     form, and a petronella, which in contra includes the balance;
+  2. import-gap custom lines are re-read with the ECD grammar
+     (`reparseImportGapFigures` with ECD's taxonomy); user-entered customs are
+     left alone, as in Re-check;
+  3. the shape becomes `ecdFormationFromContra`'s.
+- Only values the contra figure **stores** are carried, never a contra default,
+  so the migrated figure states nothing the dance did not (R2). A `who` the
+  importer assumed (`assumedSubject`) is dropped. The exceptions are values the
+  move's own name states: a see saw is a left-shoulder back to back, and a
+  forward and back (or long lines) goes back and, with no distance stored, is a
+  double (§9.1 point 3). Every twin is validated against `ecdTaxonomy`; one
+  that fails stays contra.
+- Storage cannot import this layer, so `DanceRepository.previewEcdMigration`
+  and `migrateEcdDances` take it as an `EcdDanceMigrator`
+  (`migrateEcdDanceForStorage`), as Re-check takes its `FigureReparser`. The
+  preview lists only ECD dances the migration would change; the apply re-runs
+  the migration per dance inside one transaction, skips a dance no longer ECD
+  or with nothing to change, rebuilds derived rows, and stamps `updatedAt`.
+  Like Re-check, it re-expresses stored content, so it is not a local user
+  edit and never cancels a peer's pending tombstone (sync-spec §6.8).
+
 #### Parse cost: what is cached, and what must stay true
 
 Parsing a figure line is the dominant cost of planning a large import (a

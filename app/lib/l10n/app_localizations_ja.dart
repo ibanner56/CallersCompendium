@@ -3454,6 +3454,16 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsGeneralReparseCustomFiguresAction => '再確認…';
 
   @override
+  String get settingsGeneralEcdMigrationTitle => 'イングリッシュダンスを変換';
+
+  @override
+  String get settingsGeneralEcdMigrationSubtitle =>
+      'アプリがイングリッシュのフィギュアに対応する前に保存されたイングリッシュ・カントリーダンスは、まだコントラのムーブを使っています。イングリッシュで同じ意味を持つムーブを変換し、認識できないフィギュアを読み直し、各ダンスにイングリッシュのフォーメーションを設定します。ダンスを選び、何かが変わる前に確認します。';
+
+  @override
+  String get settingsGeneralEcdMigrationAction => '変換…';
+
+  @override
   String get settingsGeneralBackupRestoreHeader => 'バックアップと復元';
 
   @override
@@ -9853,6 +9863,94 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get reparseErrorBody =>
       'コレクションのスキャン中に問題が発生しました。何も変更されていません。もう一度お試しください。';
+
+  @override
+  String get ecdMigrationScreenTitle => 'イングリッシュダンスを変換';
+
+  @override
+  String ecdMigrationIntro(int danceCount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      danceCount,
+      locale: localeName,
+      other: '$danceCount件のイングリッシュダンス',
+    );
+    return '$_temp0が、まだコントラのムーブ、認識できないフィギュア、またはコントラのフォーメーションを使っています。変換するダンスを選んでから確認してください。イングリッシュでの意味がはっきりしないムーブはそのまま残ります。';
+  }
+
+  @override
+  String ecdMigrationPreviewMoves(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '変換するムーブ: $count件',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String ecdMigrationPreviewLines(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '読み取れるようになった認識できないフィギュア: $count件',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ecdMigrationPreviewShape => 'イングリッシュのフォーメーション';
+
+  @override
+  String ecdMigrationConvertButton(int danceCount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      danceCount,
+      locale: localeName,
+      other: '$danceCount件のダンスを変換',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ecdMigrationConfirmTitle => 'これらのイングリッシュダンスを変換しますか？';
+
+  @override
+  String ecdMigrationConfirmBody(int danceCount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      danceCount,
+      locale: localeName,
+      other: '$danceCount件のダンス',
+    );
+    return '$_temp0のフィギュアとフォーメーションが変わります。タグ、評価、メモなどはすべてそのまま残ります。元に戻せないため、先にバックアップをとることをおすすめします。';
+  }
+
+  @override
+  String get ecdMigrationConfirmAction => '変換';
+
+  @override
+  String ecdMigrationDoneSnack(int danceCount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      danceCount,
+      locale: localeName,
+      other: '$danceCount件のダンスを変換しました。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ecdMigrationNothingSnack => '変換するものはありません。';
+
+  @override
+  String get ecdMigrationFailed => 'ダンスを変換できませんでした。何も変更されていません。もう一度お試しください。';
+
+  @override
+  String get ecdMigrationEmptyTitle => '変換するものはありません';
+
+  @override
+  String get ecdMigrationEmptyBody =>
+      'イングリッシュ・カントリーダンスはすでにイングリッシュのフィギュアとフォーメーションを使っています。';
+
+  @override
+  String get ecdMigrationErrorTitle => 'イングリッシュダンスを確認できませんでした';
 
   @override
   String customFieldsDeleteInUse(String label, int count) {

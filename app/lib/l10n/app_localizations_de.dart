@@ -3675,6 +3675,16 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsGeneralReparseCustomFiguresAction => 'Erneut prüfen…';
 
   @override
+  String get settingsGeneralEcdMigrationTitle => 'Englische Tänze umwandeln';
+
+  @override
+  String get settingsGeneralEcdMigrationSubtitle =>
+      'Englische Country Dances, die gespeichert wurden, bevor die App englische Figuren kannte, verwenden noch Contra-Bewegungen. Wandeln Sie die Bewegungen um, die im englischen Tanz dasselbe bedeuten, lesen Sie nicht erkannte Figuren erneut und geben Sie jedem Tanz seine englische Formation. Sie wählen die Tänze aus und bestätigen, bevor sich etwas ändert.';
+
+  @override
+  String get settingsGeneralEcdMigrationAction => 'Umwandeln…';
+
+  @override
   String get settingsGeneralBackupRestoreHeader =>
       'Sicherung & Wiederherstellung';
 
@@ -10376,6 +10386,102 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get reparseErrorBody =>
       'Beim Scannen Ihrer Sammlung ist etwas schiefgelaufen. Es wurde nichts geändert. Sie können es erneut versuchen.';
+
+  @override
+  String get ecdMigrationScreenTitle => 'Englische Tänze umwandeln';
+
+  @override
+  String ecdMigrationIntro(int danceCount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      danceCount,
+      locale: localeName,
+      other: '$danceCount englische Tänze verwenden',
+      one: '1 englischer Tanz verwendet',
+    );
+    return '$_temp0 noch Contra-Bewegungen, nicht erkannte Figuren oder eine Contra-Formation. Wählen Sie die Tänze zum Umwandeln aus und bestätigen Sie dann. Eine Bewegung ohne klare englische Entsprechung bleibt, wie sie ist.';
+  }
+
+  @override
+  String ecdMigrationPreviewMoves(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Bewegungen umzuwandeln',
+      one: '1 Bewegung umzuwandeln',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String ecdMigrationPreviewLines(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count nicht erkannte Figuren jetzt gelesen',
+      one: '1 nicht erkannte Figur jetzt gelesen',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ecdMigrationPreviewShape => 'Englische Formation';
+
+  @override
+  String ecdMigrationConvertButton(int danceCount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      danceCount,
+      locale: localeName,
+      other: '$danceCount Tänze umwandeln',
+      one: '1 Tanz umwandeln',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ecdMigrationConfirmTitle => 'Diese englischen Tänze umwandeln?';
+
+  @override
+  String ecdMigrationConfirmBody(int danceCount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      danceCount,
+      locale: localeName,
+      other: '$danceCount Tänzen',
+      one: '1 Tanz',
+    );
+    return 'Dies ändert die Figuren und die Formation von $_temp0. Tags, Bewertungen, Notizen und alles andere bleiben erhalten. Dies kann nicht rückgängig gemacht werden, daher sollten Sie vorher eine Sicherung erstellen.';
+  }
+
+  @override
+  String get ecdMigrationConfirmAction => 'Umwandeln';
+
+  @override
+  String ecdMigrationDoneSnack(int danceCount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      danceCount,
+      locale: localeName,
+      other: '$danceCount Tänze umgewandelt.',
+      one: '1 Tanz umgewandelt.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ecdMigrationNothingSnack => 'Nichts umzuwandeln.';
+
+  @override
+  String get ecdMigrationFailed =>
+      'Die Tänze konnten nicht umgewandelt werden. Es wurde nichts geändert. Bitte versuchen Sie es erneut.';
+
+  @override
+  String get ecdMigrationEmptyTitle => 'Nichts umzuwandeln';
+
+  @override
+  String get ecdMigrationEmptyBody =>
+      'Ihre englischen Country Dances verwenden bereits englische Figuren und Formationen.';
+
+  @override
+  String get ecdMigrationErrorTitle =>
+      'Ihre englischen Tänze konnten nicht geprüft werden';
 
   @override
   String customFieldsDeleteInUse(String label, int count) {

@@ -165,6 +165,11 @@ the full picture.
   You preview and confirm before anything changes, and your tags, ratings, and
   notes are preserved. See
   [Write & edit dances](./authoring.md#fix-figures-an-import-could-not-read).
+- **Convert English dances** — turns the contra moves, unrecognized imported
+  lines and contra formation of English country dances stored before the app
+  knew English figures into their English counterparts. You pick the dances and
+  confirm first. See
+  [Imports & migration](./imports.md#convert-english-dances-to-english-figures).
 
 ### Backup & restore
 

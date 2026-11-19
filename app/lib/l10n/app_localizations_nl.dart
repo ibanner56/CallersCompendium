@@ -3663,6 +3663,16 @@ class AppLocalizationsNl extends AppLocalizations {
       'Opnieuw controleren…';
 
   @override
+  String get settingsGeneralEcdMigrationTitle => 'Engelse dansen omzetten';
+
+  @override
+  String get settingsGeneralEcdMigrationSubtitle =>
+      'Engelse country dances die zijn opgeslagen voordat de app Engelse figuren kende, gebruiken nog contra-moves. Zet de moves om die in Engelse dans hetzelfde betekenen, lees niet-herkende figuren opnieuw en geef elke dans zijn Engelse formatie. Je kiest de dansen en bevestigt voordat er iets verandert.';
+
+  @override
+  String get settingsGeneralEcdMigrationAction => 'Omzetten…';
+
+  @override
   String get settingsGeneralBackupRestoreHeader => 'Back-up en herstel';
 
   @override
@@ -10330,6 +10340,102 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get reparseErrorBody =>
       'Er ging iets mis tijdens het scannen van je collectie. Er is niets gewijzigd. Je kunt het opnieuw proberen.';
+
+  @override
+  String get ecdMigrationScreenTitle => 'Engelse dansen omzetten';
+
+  @override
+  String ecdMigrationIntro(int danceCount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      danceCount,
+      locale: localeName,
+      other: '$danceCount Engelse dansen gebruiken',
+      one: '1 Engelse dans gebruikt',
+    );
+    return '$_temp0 nog contra-moves, niet-herkende figuren of een contra-formatie. Kies de dansen om om te zetten en bevestig dan. Een move zonder duidelijke Engelse betekenis blijft zoals hij is.';
+  }
+
+  @override
+  String ecdMigrationPreviewMoves(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count moves om te zetten',
+      one: '1 move om te zetten',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String ecdMigrationPreviewLines(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count niet-herkende figuren nu gelezen',
+      one: '1 niet-herkend figuur nu gelezen',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ecdMigrationPreviewShape => 'Engelse formatie';
+
+  @override
+  String ecdMigrationConvertButton(int danceCount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      danceCount,
+      locale: localeName,
+      other: '$danceCount dansen omzetten',
+      one: '1 dans omzetten',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ecdMigrationConfirmTitle => 'Deze Engelse dansen omzetten?';
+
+  @override
+  String ecdMigrationConfirmBody(int danceCount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      danceCount,
+      locale: localeName,
+      other: '$danceCount dansen',
+      one: '1 dans',
+    );
+    return 'Dit wijzigt de figuren en formatie van $_temp0. Tags, beoordelingen, notities en al het andere blijven behouden. Dit kan niet ongedaan worden gemaakt, dus maak eventueel eerst een back-up.';
+  }
+
+  @override
+  String get ecdMigrationConfirmAction => 'Omzetten';
+
+  @override
+  String ecdMigrationDoneSnack(int danceCount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      danceCount,
+      locale: localeName,
+      other: '$danceCount dansen omgezet.',
+      one: '1 dans omgezet.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ecdMigrationNothingSnack => 'Niets om om te zetten.';
+
+  @override
+  String get ecdMigrationFailed =>
+      'De dansen konden niet worden omgezet. Er is niets gewijzigd. Probeer het opnieuw.';
+
+  @override
+  String get ecdMigrationEmptyTitle => 'Niets om om te zetten';
+
+  @override
+  String get ecdMigrationEmptyBody =>
+      'Je Engelse country dances gebruiken al Engelse figuren en formaties.';
+
+  @override
+  String get ecdMigrationErrorTitle =>
+      'Je Engelse dansen konden niet worden gecontroleerd';
 
   @override
   String customFieldsDeleteInUse(String label, int count) {

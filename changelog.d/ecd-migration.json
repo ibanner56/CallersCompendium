@@ -1,0 +1,15 @@
+{
+  "id": "ecd-migration",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Settings → General → Import → Convert English dances turns the contra moves of English country dances stored before the app knew English figures into English figures, re-reads their unrecognized lines as English figures, and gives them an English formation. You see what would change in each dance, pick the dances, and confirm first. A move with no clear English meaning stays as it is."
+    ]
+  },
+  "core": {
+    "added": [
+      "`migrateEcdDance` and `ecdTwinOfContraMove` convert an English dance's contra moves with a clear ECD meaning to their ECD twins, re-read its import-gap lines with the ECD grammar and map its shape (ADR-006 §12.1 F5); `migrateEcdDanceForStorage` is the adapter for storage.",
+      "`DanceRepository.previewEcdMigration` lists the English dances the migration would change, and `migrateEcdDances` applies it to chosen dances in one transaction."
+    ]
+  }
+}
