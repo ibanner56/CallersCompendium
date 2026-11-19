@@ -463,7 +463,8 @@ between actions, Enter runs one, and Escape closes the menu:
 | **Mark progression** / **Clear progression** | Sets or clears the progression |
 | **Delete** | Removes the figure |
 
-After **Cut**, a banner names the figure that is waiting and **Paste here**
+After **Cut**, the figure keeps its normal colours but gets a dashed outline and a
+**Cut** label, so it is clear which figure is waiting, and a banner names it and **Paste here**
 points appear between the rows — before the first figure, after any figure, and
 at the end of the list — so you can drop it exactly where you want. Every move,
 duplication, and deletion is announced for screen readers, and deletions can be

@@ -185,9 +185,9 @@ class DanceDetailScreen extends StatefulWidget {
   /// App-bar action layout breakpoint (logical pixels). Below this width the
   /// screen collapses its secondary actions (dialect switch, Export, Duplicate,
   /// Delete) into a single overflow menu so the bar never overflows on a phone;
-  /// at or above it the full action row is shown. 600 mirrors Material 3's
-  /// compact window-size-class cutoff, so phones get the decluttered layout
-  /// while tablets/desktop keep the one-tap row.
+  /// at or above it Perform, Share and Add to program stay on the bar and only
+  /// the dialect choice, Duplicate, Re-import and Delete are in the menu.
+  /// 600 mirrors Material 3's compact window-size-class cutoff.
   static const double compactActionsBreakpoint = 600;
 
   @override
@@ -640,12 +640,14 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   );
 
   // --- App-bar actions -------------------------------------------------------
-  // The dance-detail bar carries seven affordances (dialect switch, Perform,
-  // Export, Duplicate, Add-to-program, Delete, plus the Edit FAB). On a phone
-  // that full row clips, so below [DanceDetailScreen.compactActionsBreakpoint]
-  // we keep the primary one-tap actions (Perform, Add-to-program; Edit stays
-  // the FAB) and fold the secondary actions into a single overflow menu. Every
-  // action keeps its key, tooltip/label and behaviour in both layouts.
+  // The dance-detail bar carries more affordances than a bar can hold (dialect
+  // switch, Perform, Share, Duplicate, Add-to-program, Re-import, Delete, plus
+  // the Edit FAB). At every width Duplicate, Re-import and Delete (last) and
+  // the dialect choice live in an overflow menu. Below
+  // [DanceDetailScreen.compactActionsBreakpoint] the Share actions fold into it
+  // too and Perform is an icon; at or above it Perform is a labelled button and
+  // Share stays on the bar. Every action keeps its key, tooltip/label and
+  // behaviour in both layouts.
 
   Widget _performButton(DanceDetailData detail) {
     final l10n = AppLocalizations.of(context);
@@ -753,8 +755,9 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     ],
   );
 
-  /// Single "⋮" menu holding the secondary actions on narrow widths. Every
-  /// entry is a first-class [PopupMenuItem] so it stays keyboard- and
+  /// Single "⋮" menu holding the secondary actions. On narrow widths it holds
+  /// the share actions too; with [wide] they stay on the bar and are left out.
+  /// Every entry is a first-class [PopupMenuItem] so it stays keyboard- and
   /// screen-reader-activatable: the dialect choices are [CheckedPopupMenuItem]s
   /// (mirroring [DialectQuickSwitch]), the five export items (share text, share dance
   /// file, copy, share JSON, PDF) are flattened in from [DanceExportMenu] and run through the same
