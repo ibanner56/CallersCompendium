@@ -538,6 +538,76 @@ void main() {
       expect(popped, hasLength(1));
     });
 
+    testWidgets('Back while Archive is saving neither pops nor asks to '
+        'discard; Archive leaves once', (tester) async {
+      final delayed = openTestRepositoriesWithDelayedPrograms();
+      final repos = delayed.repos;
+      await repos.programs.create(_program('p1', 'Alpha'));
+      final popped = await pumpBuilder(
+        tester,
+        repos,
+        size: const Size(1200, 900),
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'Alpha renamed',
+      );
+      await tester.pump();
+
+      delayed.programs.holdNextWrite();
+      await tester.tap(find.byKey(const ValueKey('archive-program')));
+      await delayed.programs.writeStarted;
+      await tester.pump();
+      await tester.binding.handlePopRoute();
+      await tester.pump();
+      expect(find.text('Discard changes?'), findsNothing);
+      expect(popped, isEmpty);
+
+      delayed.programs.releaseWrite();
+      await tester.pumpAndSettle();
+      expect(popped, ['archived']);
+      expect(find.text('open'), findsOneWidget);
+    });
+
+    testWidgets('while Duplicate is writing, Archive, Delete and Save are '
+        'disabled, so the builder cannot navigate twice', (tester) async {
+      final delayed = openTestRepositoriesWithDelayedPrograms();
+      final repos = delayed.repos;
+      await repos.programs.create(_program('p1', 'Alpha'));
+      final popped = await pumpBuilder(
+        tester,
+        repos,
+        size: const Size(1200, 900),
+      );
+
+      delayed.programs.holdNextWrite();
+      await tester.tap(find.byKey(const ValueKey('duplicate-program')));
+      await delayed.programs.writeStarted;
+      await tester.pump();
+      IconButton button(String key) =>
+          tester.widget<IconButton>(find.byKey(ValueKey(key)));
+      expect(button('archive-program').onPressed, isNull);
+      expect(button('delete-program').onPressed, isNull);
+      expect(button('duplicate-program').onPressed, isNull);
+      expect(
+        tester
+            .widget<AppBarTextAction>(
+              find.byKey(const ValueKey('save-program')),
+            )
+            .onPressed,
+        isNull,
+      );
+
+      delayed.programs.releaseWrite();
+      await tester.pumpAndSettle();
+      expect((await repos.programs.getById('p1'))!.isArchived, isFalse);
+      expect(await repos.programs.listAll(), hasLength(2));
+      // Replaced once by the copy's builder (a replaced route completes its
+      // push with null), never popped as archived or deleted.
+      expect(popped, [null]);
+      expect(find.byType(ProgramEditorScreen), findsOneWidget);
+    });
+
     testWidgets('an archive that lands while a save is in flight survives the '
         'save', (tester) async {
       final delayed = openTestRepositoriesWithDelayedPrograms();

@@ -263,11 +263,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// [_delete].
   bool _archiving = false;
 
+  /// Re-entrancy guard for [_duplicate], which replaces this route.
+  bool _duplicating = false;
+
   /// Whether an action that can take the builder off screen (Save, Archive or
-  /// Unarchive, Delete) is running. Each of those, and Duplicate, which
-  /// replaces this route, refuses to start meanwhile: two of them would pop or
-  /// replace twice, and the second would take the route underneath.
-  bool get _leaving => _saving || _archiving || _deleting;
+  /// Unarchive, Delete, Duplicate) is running. Each of them refuses to start
+  /// meanwhile: two of them would pop or replace twice, and the second would
+  /// take the route underneath.
+  bool get _leaving => _saving || _archiving || _deleting || _duplicating;
   bool _dirty = false;
   final Set<Object> _pickerImportOwners = {};
   bool _autoCommitEnabled = false;
@@ -2858,9 +2861,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   }
 
   Future<void> _save() async {
-    // A save racing an Archive or Delete would write after the program has
-    // left; both save the edits on screen themselves first.
-    if (_pickerImporting || _archiving || _deleting) return;
+    // A save racing another leaving action (or itself) would write after the
+    // program has left; Archive and Delete save the edits on screen themselves
+    // first.
+    if (_pickerImporting || _leaving) return;
     if (_parsedPay().isInvalid) {
       // The pay field lives in the collapsed "More details" drawer, whose
       // fields are not built (so not validated) while it is closed: open it and
@@ -2944,33 +2948,42 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     if (source == null) return;
     final l10n = AppLocalizations.of(context);
     final now = DateTime.now().toUtc();
-    final copy = await _repos.programs.duplicate(
-      id: source.id,
-      newId: uuidV4(),
-      newSlotId: uuidV4,
-      now: now,
-      newTitle: l10n.commonDuplicateTitleSuffix(source.title),
-    );
-    if (!mounted) return;
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.showSnackBar(
-      SnackBar(content: Text(l10n.programsDuplicatedSnack(copy.title))),
-    );
-    // The copy carries the same dance slots, so every derived count moved —
-    // the views of those counts watch the tables themselves (issue #768).
-    if (widget.isEmbedded) {
-      widget.onNavigateTo?.call(copy.id);
-    } else {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute<String>(
-          builder: (_) => ProgramEditorScreen(
-            programId: copy.id,
-            callersBoxOnline: widget.callersBoxOnline,
-            contraDbOnline: widget.contraDbOnline,
-            reimportPicker: widget.reimportPicker,
-          ),
-        ),
+    setState(() => _duplicating = true);
+    var replaced = false;
+    try {
+      final copy = await _repos.programs.duplicate(
+        id: source.id,
+        newId: uuidV4(),
+        newSlotId: uuidV4,
+        now: now,
+        newTitle: l10n.commonDuplicateTitleSuffix(source.title),
       );
+      if (!mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.programsDuplicatedSnack(copy.title))),
+      );
+      // The copy carries the same dance slots, so every derived count moved —
+      // the views of those counts watch the tables themselves (issue #768).
+      if (widget.isEmbedded) {
+        widget.onNavigateTo?.call(copy.id);
+      } else {
+        replaced = true;
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute<String>(
+            builder: (_) => ProgramEditorScreen(
+              programId: copy.id,
+              callersBoxOnline: widget.callersBoxOnline,
+              contraDbOnline: widget.contraDbOnline,
+              reimportPicker: widget.reimportPicker,
+            ),
+          ),
+        );
+      }
+    } finally {
+      // Once replaced, this route is leaving, so the actions stay off; a
+      // failed or embedded duplicate turns them back on.
+      if (!replaced && mounted) setState(() => _duplicating = false);
     }
   }
 
@@ -3243,9 +3256,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       ],
     );
     final editor = PopScope<Object?>(
-      canPop: !_pickerImporting && !_dirty && !isPersistedNewRoute,
+      // Back waits while a leaving action runs: that action pops or replaces
+      // this route itself, and a second pop would take the route underneath.
+      canPop: !_pickerImporting && !_leaving && !_dirty && !isPersistedNewRoute,
       onPopInvokedWithResult: (didPop, result) async {
-        if (didPop || _pickerImporting) return;
+        if (didPop || _pickerImporting || _leaving) return;
         final ok = await _confirmDiscard();
         if (!context.mounted) return;
         if (ok) {
@@ -3356,10 +3371,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 icon: Icons.check,
                 // A phone's bar has no room for the word beside the title.
                 maxWidthFraction: compact ? 0 : 0.4,
-                onPressed:
-                    _saving || _pickerImporting || _archiving || _deleting
-                    ? null
-                    : _save,
+                onPressed: _pickerImporting || _leaving ? null : _save,
               ),
           ],
         ),
@@ -3381,10 +3393,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             if (_loaded &&
                 _loadError == null &&
                 _tabController.index == 0 &&
-                !_saving &&
                 !_pickerImporting &&
-                !_archiving &&
-                !_deleting) {
+                !_leaving) {
               unawaited(_save());
             }
             return null;
