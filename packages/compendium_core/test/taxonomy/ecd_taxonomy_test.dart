@@ -22,7 +22,7 @@ const _adrMovements = {
   'back_to_back', 'siding', 'pass_through', 'promenade', 'poussette', 'arch',
   'rollaway', 'change_places', 'lead', 'cast', 'galop', 'chevron',
   'bend_line',
-  // §9.2, from the check against Imogen's notes
+  // §9.3, from the check against one caller's notes
   'pull_by', 'hey_for_six', 'petronella', 'contra_corners',
 };
 
@@ -455,7 +455,7 @@ void main() {
       );
     });
 
-    test('cloverleaf turn single and draw poussette (§9.2)', () {
+    test('cloverleaf turn single and draw poussette (§9.3)', () {
       expect(
         _show(
           testFigure(
