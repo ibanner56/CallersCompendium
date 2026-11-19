@@ -10,6 +10,7 @@ import '../diagnostics/error_log.dart';
 import '../search/called_venue_choices.dart';
 import '../search/collection_query.dart';
 import '../theme/app_motion.dart';
+import '../theme/app_spacing.dart';
 import 'app_date_picker.dart';
 
 /// The two controls under the Filters panel's Called / Not called chips:
@@ -147,7 +148,7 @@ class _CallingHistoryScopesState extends State<CallingHistoryScopes> {
       children: [
         if (!facets.scopesApply)
           Padding(
-            padding: const EdgeInsets.only(bottom: 4),
+            padding: const EdgeInsets.only(bottom: AppSpacing.xxs),
             child: Text(
               l10n.collectionFacetHistoryInert,
               key: const ValueKey('facet-history-inert-hint'),
@@ -256,7 +257,12 @@ class _VenueSheet extends StatelessWidget {
         shrinkWrap: true,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md,
+              0,
+              AppSpacing.md,
+              AppSpacing.xs,
+            ),
             child: Text(
               l10n.collectionFacetVenueSheetTitle,
               style: Theme.of(context).textTheme.titleMedium,

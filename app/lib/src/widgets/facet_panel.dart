@@ -6,6 +6,7 @@ import '../data/collection_facets_scope.dart';
 import '../search/called_venue_choices.dart';
 import '../search/collection_query.dart';
 import '../search/facet_labels.dart';
+import '../theme/app_spacing.dart';
 import 'calling_history_scopes.dart';
 import 'responsive_autocomplete.dart';
 
@@ -506,7 +507,7 @@ class FacetPanel extends StatelessWidget {
 
     if (sections.isEmpty) {
       return Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.md),
         child: Text(
           suppressed ? l10n.collectionFacetAllHidden : l10n.collectionFacetNone,
         ),
@@ -524,7 +525,7 @@ class FacetPanel extends StatelessWidget {
         if (!facets.isEmpty)
           Padding(
             key: const ValueKey('facet-row-clear'),
-            padding: const EdgeInsets.only(bottom: 4),
+            padding: const EdgeInsets.only(bottom: AppSpacing.xxs),
             child: Align(
               alignment: Alignment.centerLeft,
               child: TextButton.icon(
@@ -541,7 +542,7 @@ class FacetPanel extends StatelessWidget {
         for (final section in sections)
           Padding(
             key: section.key,
-            padding: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.only(bottom: AppSpacing.xs),
             child: section,
           ),
       ],
@@ -681,7 +682,7 @@ class _FacetExpansion extends StatelessWidget {
       initiallyExpanded: true,
       dense: true,
       tilePadding: EdgeInsets.zero,
-      childrenPadding: const EdgeInsets.only(bottom: 8),
+      childrenPadding: const EdgeInsets.only(bottom: AppSpacing.xs),
       expandedCrossAxisAlignment: CrossAxisAlignment.start,
       shape: const Border(),
       collapsedShape: const Border(),
@@ -774,7 +775,7 @@ class _AuthorFacetState extends State<_AuthorFacet> {
         children: [
           if (selectedIds.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.only(bottom: AppSpacing.xs),
               child: Wrap(
                 spacing: 8,
                 runSpacing: 4,
@@ -949,7 +950,7 @@ class _TunesFacetState extends State<_TunesFacet> {
         children: [
           if (selected.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.only(bottom: AppSpacing.xs),
               child: Wrap(
                 spacing: 8,
                 runSpacing: 4,
@@ -1288,7 +1289,7 @@ class _NumberFieldFacetState extends State<_NumberFieldFacet> {
               ),
               if (_op == CustomFieldOp.between) ...[
                 const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8),
+                  padding: EdgeInsets.symmetric(horizontal: AppSpacing.xs),
                   child: Text('–'),
                 ),
                 Expanded(

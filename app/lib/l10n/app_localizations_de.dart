@@ -9409,6 +9409,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String commonMovedItemPosition(String name, int position, int count) {
+    return '$name an Position $position von $count verschoben';
+  }
+
+  @override
   String get danceEditorFigureCutState => 'Ausgeschnitten';
 
   @override

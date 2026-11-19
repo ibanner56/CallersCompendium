@@ -81,6 +81,8 @@ void main() {
       expect(tax.aliases['long_lines']!.inversePairId, 'forward_and_back');
       expect(tax.aliases.values.where((a) => a.listedAsMove).map((a) => a.id), [
         'long_lines',
+        // v40 (#770): an alias of `gate`, pinning nothing.
+        'hand_cast',
       ]);
     });
   });

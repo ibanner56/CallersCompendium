@@ -490,8 +490,28 @@ class MatrixColumnEditor extends StatelessWidget {
       onRename: () => _promptRename(context, column),
       onToggleHidden: () => _toggleHidden(column.moveId),
       columnId: column.moveId,
-      onMoveUp: index == 0 ? null : () => _reorder(index, index - 1),
-      onMoveDown: index == count - 1 ? null : () => _reorder(index, index + 1),
+      onMoveUp: index == 0
+          ? null
+          : () {
+              _reorder(index, index - 1);
+              announceMoved(
+                context,
+                name: _effectiveLabel(column),
+                position: index,
+                count: count,
+              );
+            },
+      onMoveDown: index == count - 1
+          ? null
+          : () {
+              _reorder(index, index + 1);
+              announceMoved(
+                context,
+                name: _effectiveLabel(column),
+                position: index + 2,
+                count: count,
+              );
+            },
       onEditDetails: parameterizedColumn == null
           ? compoundColumn == null
                 ? null
@@ -559,7 +579,7 @@ class _ColumnRow extends StatelessWidget {
         child: Semantics(
           label: l10n.settingsMatrixColumnsDragToReorder(label),
           child: const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 4),
+            padding: EdgeInsets.symmetric(horizontal: AppSpacing.xxs),
             child: Icon(Icons.drag_handle),
           ),
         ),

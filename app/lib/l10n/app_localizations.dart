@@ -13782,6 +13782,12 @@ abstract class AppLocalizations {
   /// **'Move {name} down'**
   String commonMoveItemDown(String name);
 
+  /// Screen-reader announcement after the move-up or move-down button of a reorderable settings list has moved an item, saying where it now is; positions count from 1.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} moved to position {position} of {count}'**
+  String commonMovedItemPosition(String name, int position, int count);
+
   /// Badge and screen-reader text on a figure row that has been cut and is waiting to be pasted somewhere else; says the row's state, where danceEditorCut is the menu action that puts it there.
   ///
   /// In en, this message translates to:

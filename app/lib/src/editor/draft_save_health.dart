@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 
+import '../theme/app_spacing.dart';
+
 /// Tracks whether an editor's autosave draft is currently failing to write
 /// (FAIL-8): a full disk, a locked database, a revoked permission.
 ///
@@ -59,7 +61,7 @@ class DraftNotSavedMarker extends StatelessWidget {
       child: Semantics(
         label: message,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
           child: Icon(
             Icons.cloud_off_outlined,
             key: const ValueKey('draft-not-saved'),

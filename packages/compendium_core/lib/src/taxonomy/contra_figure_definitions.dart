@@ -251,6 +251,25 @@ const Map<String, FigureDefinition> contraFigureDefinitions = {
     description:
         'The pair rotates around the point between them. The figure can name the pair, the direction (including a mirror gate, where two pairs turn opposite ways), how far, and which way they end up facing. It often turns dancers to face up or down the set; 8 beats is typical, though shorter gates are common.',
   ),
+  // TCB "Hand cast" and "Gate", each of which calls the other very similar;
+  // contra_taxonomy.dart alias `hand_cast` -> gate (v40, #770), the
+  // maintainer's ruling of 2026-11-19.
+  'hand_cast': FigureDefinition(
+    definition:
+        'A gate with hands joined, usually the way a line of four turns to face the other way.',
+    description:
+        'From a line of four, the two middle dancers let go of each other. Each pair keeps near hands and pivots, the middle dancers walking forward while the end dancers back up, until the line has turned around, usually finishing facing across. It usually takes 4 beats.',
+  ),
+  // TCB "Cast", "Cast off" and "Cast down"; contra_taxonomy.dart `cast` (v40,
+  // #770). "Cast off" as a cast down one place, the shoulder reading of
+  // left/right and the "cast back" wording are the maintainer's rulings of
+  // 2026-11-19.
+  'cast': FigureDefinition(
+    definition:
+        'A dancer turns out, away from the middle of the set, and travels around the outside to a new place.',
+    description:
+        'The figure can say which way the dancer goes: up or down the set, or back the way they came, turning over the left or right shoulder. It can also say how many places, whom the dancer goes around, and where they finish. A cast off is a cast down one place, the traditional ending of a trip down the middle and back; in some communities the couple being passed helps the casting dancers around, in others they cast alone. It usually takes 4 beats.',
+  ),
   // TCB "Give and take"; Jennings "GIVE-AND-TAKE" (default side);
   // contra_taxonomy.dart `give_and_take` (who = the role the pair ends beside,
   // default role1s; give flag; 8 beats). The 4-8 beat range, depending on

@@ -402,6 +402,9 @@ void main() {
           ),
           matching: find.byKey(ValueKey('tag-filter-chip-$tagId')),
         );
+        // Rows are taller at the platform's own density, so scroll to it.
+        await tester.ensureVisible(chip.first);
+        await tester.pumpAndSettle();
         await tester.tap(chip.first);
         await tester.pumpAndSettle();
       }

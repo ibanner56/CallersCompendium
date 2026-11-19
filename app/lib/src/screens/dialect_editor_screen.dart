@@ -7,6 +7,7 @@ import '../data/user_figures_scope.dart';
 import '../data/validation_issue_labels.dart';
 import '../search/facet_labels.dart' show humanizeToken;
 import '../theme/app_motion.dart';
+import '../theme/app_spacing.dart';
 import '../theme/destructive_button_style.dart';
 import '../widgets/collapsible_section.dart';
 import '../widgets/confirm_discard_changes.dart';
@@ -870,7 +871,12 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
   List<Widget Function()> _editorItemBuilders(AppLocalizations l10n) => [
     if (_issues.isNotEmpty || _invalidMoveWordings.isNotEmpty)
       () => Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.md,
+          AppSpacing.sm,
+          AppSpacing.md,
+          0,
+        ),
         child: Text(
           [
             ..._issues.map(
@@ -996,7 +1002,7 @@ class _RoleTermsEditor extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1042,7 +1048,7 @@ class _RoleTermsEditor extends StatelessWidget {
         SizedBox(
           width: 64,
           child: Padding(
-            padding: const EdgeInsets.only(top: 20),
+            padding: const EdgeInsets.only(top: AppSpacing.lg),
             child: Text(label),
           ),
         ),
@@ -1110,7 +1116,7 @@ class _MoveSubstitutionsEditor extends StatelessWidget {
     ]);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1136,7 +1142,7 @@ class _MoveSubstitutionsEditor extends StatelessWidget {
             ),
           for (final id in overridden)
             Padding(
-              padding: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.only(bottom: AppSpacing.xs),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -1331,7 +1337,7 @@ class _MoveWordingsEditor extends StatelessWidget {
     ]);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1341,14 +1347,14 @@ class _MoveWordingsEditor extends StatelessWidget {
           ),
           if (branchControllers.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.only(top: 8),
+              padding: const EdgeInsets.only(top: AppSpacing.xs),
               child: Text(
                 l10n.dialectEditorMoveWordingsConditionalHelp,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ),
           Padding(
-            padding: const EdgeInsets.only(top: 8),
+            padding: const EdgeInsets.only(top: AppSpacing.xs),
             child: Text(
               l10n.dialectEditorMoveWordingsForceHelp('{!hand}'),
               key: const ValueKey('dialect-wording-force-help'),
@@ -1417,7 +1423,7 @@ class _MoveWordingsEditor extends StatelessWidget {
     );
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1540,7 +1546,7 @@ class _MoveWordingsEditor extends StatelessWidget {
     String slotList(Iterable<String> slots) =>
         [for (final slot in slots) '{$slot}'].join(', ');
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1618,7 +1624,10 @@ class _MoveWordingsEditor extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(top: 16, bottom: 4),
+          padding: const EdgeInsets.only(
+            top: AppSpacing.md,
+            bottom: AppSpacing.xxs,
+          ),
           child: Row(
             children: [
               Expanded(
@@ -1680,7 +1689,7 @@ class _MoveWordingsEditor extends StatelessWidget {
       previewDialect,
     );
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1815,7 +1824,7 @@ class _DancerSubstitutionsEditor extends StatelessWidget {
         );
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1844,7 +1853,7 @@ class _DancerSubstitutionsEditor extends StatelessWidget {
             ),
           for (final token in overridden)
             Padding(
-              padding: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.only(bottom: AppSpacing.xs),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -1902,7 +1911,7 @@ class _DiscouragedTermsEditor extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -2001,7 +2010,7 @@ class _DialectPreview extends StatelessWidget {
       renderer.renderFreeText(_sampleFreeText, dialect),
     ];
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -2009,14 +2018,16 @@ class _DialectPreview extends StatelessWidget {
           const SizedBox(height: 8),
           Card(
             child: Padding(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(AppSpacing.sm),
               child: Column(
                 key: const ValueKey('dialect-preview'),
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   for (final line in lines)
                     Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: AppSpacing.xxxs,
+                      ),
                       child: Text(line, style: theme.textTheme.bodyMedium),
                     ),
                 ],

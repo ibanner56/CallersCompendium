@@ -7,6 +7,7 @@ import '../search/collection_data.dart';
 import '../theme/app_motion.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
+import '../theme/app_spacing.dart';
 import '../utils/slot_dance_title.dart';
 import '../widgets/collection_picker.dart';
 
@@ -283,7 +284,12 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
             child: Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.md,
+                    0,
+                    AppSpacing.md,
+                    AppSpacing.xs,
+                  ),
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
@@ -334,7 +340,12 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
               _buildHeader(theme),
               Flexible(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.md,
+                    0,
+                    AppSpacing.md,
+                    AppSpacing.md,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -357,7 +368,12 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
   Widget _buildHeader(ThemeData theme) {
     final l10n = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 8, 8),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.md,
+        AppSpacing.xxs,
+        AppSpacing.xs,
+        AppSpacing.xs,
+      ),
       child: Row(
         children: [
           // Expanded (not Flexible, which would leave Done next to the title):
@@ -390,7 +406,7 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
   Widget _buildSectionTitle(ThemeData theme, String text) => Semantics(
     header: true,
     child: Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: AppSpacing.xs),
       child: Text(
         text,
         style: theme.textTheme.titleMedium?.copyWith(
@@ -560,7 +576,7 @@ class _ReorderRow extends StatelessWidget {
         ? l10n.performAlternatesCount(alternates)
         : null;
     return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+      contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxs),
       leading: CircleAvatar(child: Text('${absolutePosition + 1}')),
       title: Text(label),
       subtitle: subtitle == null ? null : Text(subtitle),

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 
+import '../theme/app_spacing.dart';
+
 /// The last item of an online results list that has more to load.
 ///
 /// A list builds its items lazily, so this is built only once the end of the
@@ -50,7 +52,7 @@ class _OnlineMoreFooterState extends State<OnlineMoreFooter> {
     if (widget.failed) {
       return Padding(
         key: const ValueKey('online-more-failed'),
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.md),
         child: Column(
           children: [
             Text(widget.failedMessage, textAlign: TextAlign.center),
@@ -65,7 +67,7 @@ class _OnlineMoreFooterState extends State<OnlineMoreFooter> {
     }
     return const Padding(
       key: ValueKey('online-more-loading'),
-      padding: EdgeInsets.all(16),
+      padding: EdgeInsets.all(AppSpacing.md),
       child: Center(child: CircularProgressIndicator()),
     );
   }

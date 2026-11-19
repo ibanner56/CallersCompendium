@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 
+import '../theme/app_spacing.dart';
+
 /// Covers the app with a "Closing…" notice while [closing] is true.
 ///
 /// Closing waits for drafts to be saved and, for a bounded time, for a sync
@@ -54,7 +56,7 @@ class AppClosingOverlay extends StatelessWidget {
                   child: Semantics(
                     liveRegion: true,
                     child: Padding(
-                      padding: const EdgeInsets.all(24),
+                      padding: const EdgeInsets.all(AppSpacing.lg),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [

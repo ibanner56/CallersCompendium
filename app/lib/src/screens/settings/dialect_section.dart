@@ -386,8 +386,7 @@ class _DialectRow extends StatelessWidget {
       key: ValueKey('dialect-preset-badge-${dialect.name}'),
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.xs,
-        // intentional: 2px optical inset, below the 4px AppSpacing grid
-        vertical: 2,
+        vertical: AppSpacing.xxxs,
       ),
       decoration: BoxDecoration(
         color: theme.colorScheme.secondaryContainer,

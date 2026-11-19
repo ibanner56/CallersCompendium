@@ -223,6 +223,7 @@ export 'src/storage/repositories/settings_repository.dart';
 export 'src/storage/repositories/sync_local_repository.dart';
 export 'src/storage/repositories/tag_repository.dart';
 export 'src/storage/repositories/venue_repository.dart';
+export 'src/taxonomy/cast_vocabulary.dart';
 export 'src/taxonomy/compound_definition.dart';
 export 'src/taxonomy/contra_taxonomy.dart';
 export 'src/taxonomy/ecd_sequence_span.dart';

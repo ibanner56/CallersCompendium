@@ -15,6 +15,7 @@ import '../data/program_import_online_resolver.dart';
 import '../data/program_import_rollback.dart';
 import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
+import '../theme/app_spacing.dart';
 import '../utils/undo_snack_bar.dart';
 import 'import_review_screen.dart';
 import '../widgets/app_bar_text_action.dart';
@@ -563,7 +564,7 @@ class _PlaintextProgramImportScreenState
 
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.md),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -619,7 +620,7 @@ class _PlaintextProgramImportScreenState
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
-          padding: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.only(bottom: AppSpacing.xs),
           child: Row(
             children: [
               Expanded(

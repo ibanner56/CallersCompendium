@@ -8,6 +8,7 @@ import '../data/capitalize_figures_scope.dart';
 import '../data/decimal_turns_scope.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
 import '../search/facet_labels.dart';
+import '../theme/app_spacing.dart';
 import 'import_gap_badge.dart';
 import 'selectable_content.dart';
 import 'warnings_card.dart';
@@ -43,7 +44,7 @@ class FigureTable extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     if (figures.isEmpty) {
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
         child: Text(l10n.danceFiguresEmpty, style: theme.textTheme.bodyMedium),
       );
     }
@@ -134,7 +135,10 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.only(top: 12, bottom: 4),
+      padding: const EdgeInsets.only(
+        top: AppSpacing.sm,
+        bottom: AppSpacing.xxs,
+      ),
       child: Semantics(
         header: true,
         child: Text(
@@ -200,7 +204,7 @@ class _FigureRow extends StatelessWidget {
         color: isImportGap
             ? theme.colorScheme.tertiaryContainer.withValues(alpha: 0.35)
             : null,
-        padding: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
