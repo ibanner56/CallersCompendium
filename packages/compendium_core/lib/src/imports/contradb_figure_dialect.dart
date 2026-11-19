@@ -281,6 +281,8 @@ const List<FigureMatch? Function(String)> _recognizers =
       _pullByDancers,
       // Ahead of [_gate]: ContraDB's own wording (`to face up the set`) is not
       // the display's, so it falls through to [_gate] whole.
+      // Taxonomy v40 (#770): the display of a hand cast, read as a gate's.
+      _handCastDisplay,
       _gateDisplay,
       _courtesyTurnFacingDisplay,
       _gate,
@@ -906,6 +908,28 @@ FigureMatch? _formALongWaveInPlace(String text) {
 /// A line with nothing beyond a subject, and a Caller's Box shape that leaves
 /// out the direction or the turn, are left to the readers that already decide
 /// them.
+/// The app's display of a `hand_cast` (taxonomy v40, #770), an alias of
+/// `gate` shown through the gate's wording under its own name ("neighbor hand
+/// cast ½ to face up the hall"): read as the same line with `gate` in its
+/// place would be by [_gateDisplay], and tagged `hand_cast`. Only the display's
+/// grammar, not ContraDB's general [_gate]: that would read "ones hand cast" as
+/// the ones backing up, a slot The Caller's Box's "Ones hand cast" does not
+/// state, so a hand cast naming only its dancers stays custom.
+FigureMatch? _handCastDisplay(String text) {
+  final at = _handCastPhrase.firstMatch(text);
+  if (at == null) return null;
+  final gate = _gateDisplay(text.replaceRange(at.start, at.end, 'gate'));
+  if (gate == null || gate.forceCustom || gate.moveId != 'gate') return null;
+  return FigureMatch(
+    'hand_cast',
+    params: gate.params,
+    note: gate.note,
+    assumedSubject: gate.assumedSubject,
+  );
+}
+
+final RegExp _handCastPhrase = RegExp(r'\bhand\s+cast\b', caseSensitive: false);
+
 FigureMatch? _gateDisplay(String text) {
   final s = _Scan(text);
   final subject = _displaySubject(s);

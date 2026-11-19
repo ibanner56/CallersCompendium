@@ -424,6 +424,40 @@ void main() {
   });
 
   group('display read-back', () {
+    test('a hand cast reads back wherever a gate does', () {
+      // `hand_cast` is an alias, so the #2121 round-trip sweep (moves only)
+      // does not reach it. Every value that sweep would set alone on a gate is
+      // set on a hand cast here, in every dialect preset: the two must read
+      // back from their own display alike.
+      final gate = contraTaxonomy.resolve('gate')!;
+      final cases = <Map<String, Object?>>[
+        {},
+        for (final MapEntry(key: name, value: spec) in gate.params.entries)
+          for (final value in spec.choices ?? const <Object?>[]) {name: value},
+        {'pair': 'neighbors', 'direction': 'clockwise', 'travel': 1.0},
+        {'who': 'ones', 'whom': 'twos'},
+      ];
+      bool readsBack(String move, Map<String, Object?> params, Dialect d) {
+        final figure = testFigure(move: move, params: params);
+        final text = renderer.renderSummary(figure, d);
+        final read = parseFreeTextFigureEntry(text, dialect: d);
+        return read.length == 1 &&
+            read.single.move == move &&
+            renderer.renderSummary(read.single, d) == text;
+      }
+
+      var handCastsRead = 0;
+      for (final d in Dialect.presets) {
+        for (final params in cases) {
+          final asHandCast = readsBack('hand_cast', params, d);
+          expect(asHandCast, readsBack('gate', params, d), reason: '$params');
+          if (asHandCast) handCastsRead++;
+        }
+      }
+      // Not vacuous: hand casts with params do read back.
+      expect(handCastsRead, greaterThan(Dialect.presets.length));
+    });
+
     test('every destination reads back as itself', () {
       for (final destination in castDestinations) {
         final figure = testFigure(

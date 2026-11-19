@@ -2274,9 +2274,13 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
     `long_lines` is: it is stored under its own id, so search's "Has figure"
     must be able to name it, and a dialect's name or wording for `gate` must
     not rename it. It displays through `gate`'s renderer under its own name
-    ("neighbor hand cast ½ to face up"). Only a bare "Hand cast" reads as
-    one; "Ones hand cast" stays custom, because the source does not say
-    which of a gate's dancer slots "ones" fills. It keeps the gate's 8-beat
+    ("neighbor hand cast ½ to face up"). From The Caller's Box only a bare
+    "Hand cast" reads as one; "Ones hand cast" stays custom, because the
+    source does not say which of a gate's dancer slots "ones" fills. Typed
+    or pasted, a hand cast's display line reads back wherever a gate's does
+    (the display's own gate grammar, through `_handCastDisplay` in the
+    ContraDB front end), which `cast_test.dart` checks value by value, since
+    the round-trip sweep covers moves and not aliases. It keeps the gate's 8-beat
     default; imports carry the line's own beats (4 on 113 of 140).
   - The Caller's Box front end (`callersbox_figure_dialect.dart`,
     `_tcbCast`) reads a cast's `(cw)`/`(ccw)` annotation as its shoulder (1

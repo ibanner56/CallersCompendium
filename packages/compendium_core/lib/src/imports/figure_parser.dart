@@ -1746,10 +1746,12 @@ _Match? _gate(List<String> w) {
 
 // The Caller's Box's bare `Hand cast` (taxonomy v40, #770): the `hand_cast`
 // alias of `gate`, which the maintainer ruled a hand cast is. Only the bare
-// phrase structures. A named dancer ("Ones hand cast") is left over and the
-// line stays custom, because a gate's dancer slots each mean something specific
-// (the side that backs up, the side that walks forward, the pairing) and the
-// source does not say which one it names.
+// phrase structures here. A named dancer ("Ones hand cast") is left over and
+// the line stays custom, because a gate's dancer slots each mean something
+// specific (the side that backs up, the side that walks forward, the pairing)
+// and the source does not say which one it names. The app's own display of a
+// hand cast with params is read by `_handCastDisplay` in the ContraDB front
+// end, which the free-text fan-out tries first.
 _Match? _handCast(List<String> w) {
   if (!_consumePhrase(w, ['hand', 'cast'])) return null;
   _dropFiller(w);

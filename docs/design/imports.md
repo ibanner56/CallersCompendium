@@ -1585,7 +1585,7 @@ Which is which, derived from the code rather than from memory:
   pre-recognizers, **and** supplies a veto. Both halves matter, and they pull in
   opposite directions, which is why this front end is the one most likely to be
   described wrongly:
-  - All **48** of its *recognizers* are the falls-through kind. None of them can send
+  - All **62** of its *recognizers* are the falls-through kind. None of them can send
     a line to `custom` on its own; that happens only when the shared core
     declines it too. So "this ContraDB recognizer declines the line to custom"
     is wrong about the mechanism even when it is right about the outcome.
