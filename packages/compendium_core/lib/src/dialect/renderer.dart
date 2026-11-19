@@ -695,7 +695,18 @@ class FigureRenderer {
             forceAll: true,
           );
           for (final name in forcedNames) {
-            final value = forcedSlots[name];
+            var value = forcedSlots[name];
+            // A forced ECD slot reads in ECD's words too, unless those words
+            // hide it (a set to the right), which forcing lifts.
+            if (value != null && isEcdMove(def.id)) {
+              final words = ecdSlotWords(
+                def.id,
+                name,
+                params,
+                forCanonical: false,
+              );
+              if (words != null && words.isNotEmpty) value = words;
+            }
             if (value != null) wordingSlots['!$name'] = value;
           }
         }

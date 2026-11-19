@@ -179,9 +179,9 @@ final RegExp _flagGroup = RegExp(r'\[([^\[\]]*)\{\?(\w+)\}([^\[\]]*)\]');
 
 /// [template], an ECD display template, as a wording a caller can edit and
 /// save: each group kept by a switch, `[{?flag}words]`, becomes the wording
-/// condition `[if flag then words]` that says the same. Wording templates
-/// already drop a `[ ... ]` group whose slots are all empty, so the other
-/// groups stay as they are.
+/// condition `[if flag then words]` that says the same. A wording drops a
+/// `[ ... ]` group whose slots are empty, so a group of one slot, as every
+/// other ECD group is, stays as it is.
 String ecdTemplateAsWording(String template) => template
     .replaceAllMapped(
       _flagGroup,

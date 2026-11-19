@@ -71,6 +71,30 @@ void main() {
     expect(mismatches, isEmpty);
   });
 
+  test('a forced slot reads in ECD words, and still shows a hidden one', () {
+    String line(String id, String wording, Map<String, Object?> params) {
+      final stored = checkWording(
+        wording,
+        renderer.moveWordingVocabulary(id, Dialect.larksRobins),
+      ).stored!;
+      return renderer.render(
+        testFigure(move: id, params: params),
+        Dialect.larksRobins.copyWith(moveWordings: {id: stored}),
+      );
+    }
+
+    expect(
+      line('ecd_turn_single', '{who} {move} [{!destination}]', {
+        'destination': 'place',
+      }),
+      'turn single back to place',
+    );
+    expect(
+      line('ecd_set', '{who} {move} {!direction}', {'direction': 'right'}),
+      'set right',
+    );
+  });
+
   test('a switch group becomes a condition', () {
     expect(
       renderer.moveWordingTemplate('ecd_box_the_gnat'),
