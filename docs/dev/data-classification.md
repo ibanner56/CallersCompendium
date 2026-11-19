@@ -473,7 +473,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; classified here so the catalogue has one source of truth. `settings.value_json` is `deviceLocal` at the column level so a blanket sync cannot happen by accident — these entries decide what actually travels.
 
-**119 settings keys**: 76 shareable, 12 device-local, 29 device-scoped, 1 protocol-identifier, 1 store-address. 4 personal data by category.
+**124 settings keys**: 81 shareable, 12 device-local, 29 device-scoped, 1 protocol-identifier, 1 store-address. 4 personal data by category.
 
 | Key | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |
@@ -501,6 +501,8 @@ Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; 
 | `active_custom_theme` | `dpv:NonPersonalData` | app user | shareable |  |
 | `active_dialect` | `dpv:NonPersonalData` | app user | shareable |  |
 | `active_dialect_ref` | `dpv:NonPersonalData` | app user | shareable |  |
+| `active_dialect_ref_ecd` | `dpv:NonPersonalData` | app user | shareable |  |
+| `active_dialect_ref_square` | `dpv:NonPersonalData` | app user | shareable |  |
 | `aggressive_beats_update` | `dpv:NonPersonalData` | app user | shareable |  |
 | `app_locale` | `dpv:NonPersonalData` | app user | **device-local** | Screen-bound: a phone and the laptop driving a projector can want different interface languages, and a synced change would re-render the other device mid-session. deviceLocal, not deviceScoped: it is withheld for what it means on another screen, not for what it contains, and deviceScoped would also drop it from the user's own backups, which should give it back on restore. Per-device by the maintainer's decision (settings-sync-scope, 2026-10-29). |
 | `auto_commit_program_changes` | `dpv:NonPersonalData` | app user | shareable |  |
@@ -517,6 +519,8 @@ Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; 
 | `confirm_before_delete` | `dpv:NonPersonalData` | app user | shareable |  |
 | `confirm_perform_exit` | `dpv:NonPersonalData` | app user | shareable | Whether leaving Perform asks first. A habit of the caller rather than a property of the screen, like confirm_before_delete, so it travels with their other preferences; unlike auto_size_perform_cards it does not depend on screen size. |
 | `custom_dialects` | `dpv:NonPersonalData` | app user | shareable |  |
+| `custom_dialects_ecd` | `dpv:NonPersonalData` | app user | shareable |  |
+| `custom_dialects_square` | `dpv:NonPersonalData` | app user | shareable |  |
 | `custom_fields.sharing.disclosed` | `dpv:NonPersonalData` | — | **device-local** | Non-shareable installation state intentionally retained in a user-controlled local backup, but not sent to project infrastructure. |
 | `custom_themes` | `dpv:NonPersonalData` | app user | shareable |  |
 | `date_format` | `dpv:NonPersonalData` | app user | shareable |  |
@@ -548,6 +552,7 @@ Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; 
 | `last_backup_at` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
 | `last_used_collection_sort` | `dpv:NonPersonalData` | app user | shareable |  |
 | `last_used_collection_sort_direction` | `dpv:NonPersonalData` | app user | shareable |  |
+| `last_used_dance_form` | `dpv:NonPersonalData` | app user | shareable |  |
 | `last_used_program_sort` | `dpv:NonPersonalData` | app user | shareable |  |
 | `last_used_program_sort_direction` | `dpv:NonPersonalData` | app user | shareable |  |
 | `mark_all_sets_status` | `dpv:NonPersonalData` | app user | shareable | A behaviour preference: whether Mark all performed also sets the program's status (GIG-12). It names no person and holds no content, and it follows the caller rather than the screen, so it travels like the other calling-history rules beside it. |
