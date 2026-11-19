@@ -78,7 +78,9 @@ void main() {
       // table (sync-spec §6.7), and leaves the taxonomy alone too. Schema 40
       // (#709) adds the user glossary tables, taxonomy untouched. Schema 41
       // (#1935) adds lookup indexes on the dance join tables, likewise.
-      expect(kCompendiumSchemaVersion, 41);
+      // Schema 42 adds ECD's meter, key and proper/improper columns to
+      // `dances` (ADR-006), with no taxonomy change either.
+      expect(kCompendiumSchemaVersion, 42);
     });
 
     test('registers with the maintainer-ruled param set', () {

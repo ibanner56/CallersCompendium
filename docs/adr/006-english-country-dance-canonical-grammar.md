@@ -35,8 +35,8 @@ and the sections it changed are:
 - **Each dance form has its own dialect**, with everything a contra dialect
   has today (§12, S1 and S3).
 - **The proper/improper checkbox and the new formation shapes are for ECD
-  only.** Contra's shapes don't change. ECD has no Becket or Sicilian
-  circle (§12, F2).
+  only.** Contra's shapes don't change. ECD has no Becket circle. It had no
+  Sicilian circle either, until a later answer added one (§9.2, point 5).
 - **Gendered role terms are never shown**, not even as a choice (§2, §4,
   §8.3). Where a quoted source uses one, this document gives the default
   dialect's term in square brackets instead (§3).
@@ -271,9 +271,10 @@ has no usable captions, and is excluded from the counts in §7.
 The dances range from a 1698 Playford publication to 2015. They cover duple,
 triple, three-couple, four-couple and circle formations. The table gives each
 formation as its transcription names it. The app's ECD shapes have no Becket
-or Sicilian circle (§12, F2). Which ECD shape *The American Husband* and *The
-Happy Pilgrim* would take is left to whoever transcribes them; testers may
-want to revisit these two dances as evidence. That is this ADR's call.
+circle (§12, F2), but do have a Sicilian circle (§9.2, point 5). Which ECD
+shape *The American Husband* and *The Happy Pilgrim* would take is left to
+whoever transcribes them; testers may want to revisit these two dances as
+evidence. That is this ADR's call.
 
 **Quotations.** Some sources name dancers with gendered role terms, which
 this document never shows (§9.1). Where a quotation would, the default
@@ -1118,7 +1119,8 @@ document still had to make a call to apply an answer, it says so.
    F2 (§12) change contra's shapes too, or only how ECD dances are stored?
    Answer: "ECD only, ECD does not have becket or Sicilian circles."
    Contra's shapes, such as `dupleImproper` and `becketCw`, don't change,
-   and the ECD shapes have no Becket or Sicilian circle. The point also
+   and the ECD shapes have no Becket or Sicilian circle. A later answer
+   added a Sicilian circle to ECD (§9.2, point 5). The point also
    noted that the numbered places the editor offers (§6.4) were not defined
    for circle and square sets. The answer doesn't address that, so this
    document offers none for those sets until testers show a need.
@@ -1181,6 +1183,42 @@ document still had to make a call to apply an answer, it says so.
       couples participte [sic]". `who` names those four dancers, usually as two
       couples.
 
+### 9.2 Points answered during implementation
+
+The maintainer answered these on 19 November 2026, while the dance record
+was being built (workstream W3). Each was put with options and a
+recommendation; the answer is quoted.
+
+1. **How ECD shapes are stored.** (a) As new values of the formation shape
+   the app already stores, with a list per form, `tripleMinor` shared with
+   contra; or (b) a separate ECD shape field beside a shape older versions
+   understand. Answer: "1a". The cost accepted with (a): a device on an
+   older version skips a synced dance with a new shape until it is updated.
+2. **The proper/improper checkbox.** Stored as a yes/no "improper" on the
+   formation, with "Other, with a description" kept in the ECD list.
+   Answer: "agreed, yes/no flag where proper is the default".
+3. **ECD dances already stored with contra shapes.** Not rewritten when the
+   app updates; the opt-in migration of F5 also maps their shapes. Answer:
+   "yeah use the tag-driven migration".
+4. **Meter and key.** Free text, empty when not given (F3). The maintainer
+   added: "Meter and key need to be searchable."
+5. **Sicilian circle in ECD.** One caller's dances include "Sicilian circle
+   (Hands 4 in a circle) or LDM". Options: (a) offer Sicilian circle in the
+   ECD list; (b) keep it out. Answer: "a". This reverses the "no Sicilian
+   circle" part of §9.1, point 2; ECD still has no Becket.
+6. **Sets not called longways.** The same caller writes "2 couple set",
+   "3 couple set" and "4 couple set". Options: (a) add a two-couple set
+   shape, and treat three- and four-couple sets as three- and four-couple
+   longways, with the description for anything unusual; (b) no new shape;
+   (c) separate three- and four-couple set shapes. Answer: "a".
+7. **Original and interpreted credits.** Many ECD dances credit an original
+   source and year and a later interpreter, for example "Walsh, 1731, Pat
+   Shaw version". Answer: "Many ECD dances have a primary author and
+   publication year AND a secondary author who interpreted the dance from
+   the original publication in a later year. We'll want to make it easy to
+   enter all four values for ECD." The stored fields for the interpreter
+   and the year of the interpretation are still to be agreed.
+
 ## 10. Out of scope
 
 - **ECDDB import.** It stays the import target (R5), but is not part of the
@@ -1239,7 +1277,10 @@ an all-English evening.
   longways, six couple longways, circle, and square. Mixer toggle stays."
   The shape drives the numbered places the editor offers (§6.4). The
   checkbox and the new shapes are for ECD only, and contra's shapes don't
-  change. ECD has no Becket or Sicilian circle (§9.1, point 2).
+  change. ECD has no Becket circle (§9.1, point 2). Answers given while the
+  record was built (§9.2) added a Sicilian circle and a two-couple set to
+  the ECD list, stored the shapes as new values of the existing formation
+  shape, and stored the checkbox as a yes/no "improper", proper by default.
 - **F3. Meter and key.** A dance gains optional meter and key text fields,
   shown on the dance and the program sheet, and searchable. Phrase
   structure still records beats per bar (§5.5).
