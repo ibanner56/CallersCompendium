@@ -64,6 +64,7 @@ void announceMoved(
   required int position,
   required int count,
 }) {
+  if (!context.mounted) return;
   SemanticsService.sendAnnouncement(
     View.of(context),
     AppLocalizations.of(context).commonMovedItemPosition(name, position, count),

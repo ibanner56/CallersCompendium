@@ -37,11 +37,11 @@ class TagChip extends StatelessWidget {
   final VoidCallback? onPressed;
   final String? tooltip;
 
-  /// Applies the compact density the Collection list rows use to a plain chip;
-  /// a tappable one ([onPressed]) always keeps the platform's own density and
-  /// full touch target. Dance detail
-  /// lays its chips out at the default density, and the two must keep their
-  /// existing, differing chrome — this feature changes colour, not spacing.
+  /// Applies the compact density the Collection list rows use to a plain chip.
+  /// A tappable one ([onPressed]) ignores it and keeps the platform's own
+  /// density and full touch target. Dance detail lays its chips out at the
+  /// default density, and the two must keep their existing, differing chrome —
+  /// this feature changes colour, not spacing.
   final bool dense;
 
   @override

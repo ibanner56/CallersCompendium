@@ -6,7 +6,7 @@
       "The program matrix now grows its rows and column headers with your system text size, and you can press and hold a clipped dance title or move name to read it in full. The hide-column button now sits above the move name instead of over it, so column headers are taller.",
       "On phones and tablets, dropdowns and the small buttons in the figure parameter editors, the figure-of-your-own and compound-figure editors, and tappable tag chips in the Collection list are now full-size touch targets.",
       "After Move up or Move down in the difficulty levels, custom-field choices and matrix columns lists, a screen reader announces the item's new position.",
-      "Spacing, corner radii and font weights across the app now come from shared values. A few paddings moved by up to 4 px to the nearest step, and text that was set to a medium or semi-bold weight, which the app's font does not include, now uses the regular or bold weight it was already drawn with."
+      "Spacing, corner radii and font weights across the app now come from shared values. A few paddings moved by up to 4 px to the nearest step (Collection and Programs rows are 4 px taller), and the few bits of text that asked for a medium or semi-bold weight the body font does not include now ask for the regular or bold weight it was drawn with."
     ]
   }
 }

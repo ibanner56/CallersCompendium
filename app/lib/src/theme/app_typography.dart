@@ -34,21 +34,21 @@ class AppTypography {
       fontFamily: displayFamily,
       fontFamilyFallback: _fallback,
       fontSize: 57,
-      fontWeight: FontWeight.w700,
+      fontWeight: FontWeight.w600,
       height: 1.12,
     ),
     displayMedium: TextStyle(
       fontFamily: displayFamily,
       fontFamilyFallback: _fallback,
       fontSize: 45,
-      fontWeight: FontWeight.w700,
+      fontWeight: FontWeight.w600,
       height: 1.16,
     ),
     displaySmall: TextStyle(
       fontFamily: displayFamily,
       fontFamilyFallback: _fallback,
       fontSize: 36,
-      fontWeight: FontWeight.w700,
+      fontWeight: FontWeight.w600,
       height: 1.22,
     ),
     headlineLarge: TextStyle(
@@ -188,7 +188,7 @@ class AppTypography {
     fontFamily: displayFamily,
     fontFamilyFallback: _fallback,
     fontSize: 22,
-    fontWeight: FontWeight.w700,
+    fontWeight: FontWeight.w600,
     height: 1.27,
   );
 }

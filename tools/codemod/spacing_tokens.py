@@ -14,13 +14,16 @@ points, not logical pixels, and is left alone):
 * A bare number that is a whole argument of ``EdgeInsets``/``EdgeInsetsDirectional``
   (``EdgeInsets.all(16)``, ``EdgeInsets.only(left: 8)``, ``fromLTRB(a, b, c, d)``)
   becomes an ``AppSpacing`` token. Off-scale values snap *up* to the next step
-  (6 -> 8, 10 -> 12, 20 -> 24), the only direction that cannot shrink a tap
-  target or a gap under large text.
+  (6 -> 8, 10 -> 12, 20 -> 24): a gap that grows cannot crowd a tap target
+  under large text.
 * ``BorderRadius.circular(N)`` / ``Radius.circular(N)`` with a literal ``N``
-  becomes the matching ``AppShapes`` radius (snapping the same way).
+  becomes the matching ``AppShapes`` radius (off-scale values snap to the
+  nearest named radius, ties up: 5/6 -> 8, 10 -> 12, 14 and 20 -> 16).
 
-Values it has no token for (0, 1, 7, 56, 72, 80 ...) are left for a human and
-are what the ratchet ``tools/ci/check_layout_literals.py`` counts.
+Values it has no token for (1, 7, 56, 72, 80 ...) are left alone: write them
+as a sum of tokens (``AppSpacing.xxl + AppSpacing.xs``) by hand. ``0`` is never
+rewritten. ``app/test/theme/spacing_literals_test.dart`` and
+``radius_tokens_test.dart`` fail on any literal left behind.
 """
 from __future__ import annotations
 
