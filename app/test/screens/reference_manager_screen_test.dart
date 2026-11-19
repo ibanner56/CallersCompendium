@@ -1,3 +1,4 @@
+import 'package:compendium_app/src/data/confirm_before_delete_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/reference_manager_screen.dart';
 import 'package:compendium_app/src/theme/app_theme.dart';
@@ -13,16 +14,22 @@ import '../support/test_repositories.dart';
 Future<void> _pump(
   WidgetTester tester,
   CompendiumRepositories repos,
-  Widget screen,
-) async {
+  Widget screen, {
+  bool confirmBeforeDelete = false,
+}) async {
+  final confirm = ValueNotifier<bool>(confirmBeforeDelete);
+  addTearDown(confirm.dispose);
   await tester.pumpWidget(
     RepositoriesScope(
       repositories: repos,
-      child: MaterialApp(
-        theme: AppTheme.light,
-        localizationsDelegates: testLocalizationsDelegates,
-        supportedLocales: testSupportedLocales,
-        home: screen,
+      child: ConfirmBeforeDeleteScope(
+        notifier: confirm,
+        child: MaterialApp(
+          theme: AppTheme.light,
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: screen,
+        ),
       ),
     ),
   );
@@ -104,6 +111,20 @@ void main() {
 
       await openActions(tester, 'author', b);
       expect(key('author-action-delete-$b'), findsOneWidget);
+    });
+
+    testWidgets('with Confirm before delete on, an author delete asks first', (
+      tester,
+    ) async {
+      await author(Choreographer(id: a, name: 'Gene Hurbert'));
+      await _pump(tester, repos, screen, confirmBeforeDelete: true);
+
+      await act(tester, 'author', a, 'delete');
+
+      expect(key('confirm-delete-dialog'), findsOneWidget);
+      await tester.tap(key('confirm-delete-cancel'));
+      await tester.pumpAndSettle();
+      expect(await repos.choreographers.getById(a), isNotNull);
     });
 
     testWidgets('Delete of an unused author offers Undo, and Undo brings it '

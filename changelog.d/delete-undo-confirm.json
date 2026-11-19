@@ -1,0 +1,22 @@
+{
+  "id": "delete-undo-confirm",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "A new Undo prompt setting in Settings › General chooses how long the Undo message stays on screen after you delete or change something: 6, 10, 20 or 30 seconds, or until you close it. It now stays for 10 seconds unless you choose otherwise.",
+      "The Undo message now stays on screen while you point at it with a mouse or move to its Undo button with the keyboard, and starts its time again when you move away."
+    ],
+    "changed": [
+      "Deleting a venue, custom field, shorthand, dialect, custom theme, walkthrough snippet or matrix column now happens at once and offers Undo, like deleting a dance, instead of asking first with no way back.",
+      "Confirm before delete now covers every delete you can undo, including tags, authors and sources, not only dances and programs.",
+      "A delete that can't be undone, such as permanently deleting from Recently deleted or deleting one of your own Glossary entries, always asks first and says \"This can't be undone.\"",
+      "Confirmations that remove, reset, replace or discard something now use the red delete-style button, and the one that replaces an existing dance from Import and edit says Replace instead of Continue."
+    ]
+  },
+  "core": {
+    "added": [
+      "Classify the `undo_prompt_seconds` setting (how long the Undo prompt stays on screen) as a shareable app-user preference.",
+      "`CustomFieldDefRepository.restore` takes `onlyIfDeleted`, which refuses, in the same transaction, to revive a definition that is missing or already live."
+    ]
+  }
+}

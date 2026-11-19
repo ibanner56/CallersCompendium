@@ -536,7 +536,8 @@ Beyond the built-in details, you can track whatever matters to you — a tune
 suggestion, a "taught it at" note, a difficulty of your own. Choose **Manage
 custom fields** from the **More actions** (**⋮**) menu on the **Collection**
 page to create, edit, and delete your
-own fields.
+own fields. Deleting a field offers **Undo**; a field still filled in on a
+dance can't be deleted until you clear it there.
 
 A custom field can be a choice list, a yes/no switch, a text note, or a number.
 Once you define one, it:

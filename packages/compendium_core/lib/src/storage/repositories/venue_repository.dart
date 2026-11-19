@@ -257,8 +257,9 @@ class VenueRepository {
   /// this delete writes a tombstone of its own, and restoring the program
   /// from Recently deleted revives it with [restore]
   /// (`ProgramRepository.restore`; the maintainer's trash-policy decision,
-  /// 2026-10-29, option b). The only other caller of [restore] is an
-  /// exact-provenance archive re-import. Erasure is the case that
+  /// 2026-10-29, option b). The other callers of [restore] are an
+  /// exact-provenance archive re-import and the venue manager's Undo of its
+  /// own delete. Erasure is the case that
   /// cannot be undone, and the retention rule for it lives in [hardDelete],
   /// which counts *every* surviving program row. Import rollback therefore
   /// calls [hardDelete] rather than passing [permanent] here (issue #1357); an
@@ -322,7 +323,8 @@ class VenueRepository {
   }
 
   /// Restores a tombstoned venue without changing its fields. Exact archive
-  /// re-imports use this when the provenance row survives a prior deletion.
+  /// re-imports use this when the provenance row survives a prior deletion,
+  /// and the venue manager's Undo uses it to take back a delete.
   Future<void> restore(String id, {DateTime? at, bool clearPending = true}) =>
       _db.transaction(() async {
         final now = resolveStamp(at);

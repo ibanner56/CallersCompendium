@@ -1009,12 +1009,15 @@ void main() {
         find.byKey(const ValueKey('user-figure-shorthand-delete')),
       );
       await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(const ValueKey('compound-shorthand-delete-confirm')),
-      );
-      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsNothing);
       expect(controller.userFigureShorthands, isEmpty);
       expect(find.textContaining('deleted.'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(const ValueKey('compound-shorthand-delete-undo')),
+      );
+      await tester.pumpAndSettle();
+      expect(controller.userFigureShorthands.map((u) => u.token), ['ZM']);
     });
   });
 

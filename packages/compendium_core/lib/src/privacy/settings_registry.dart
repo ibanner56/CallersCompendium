@@ -169,6 +169,11 @@ final Map<String, DataClassification> settingsClassifications = {
   'default_dance_progression': _preference,
   'sort_ignore_articles': _preference,
   'confirm_before_delete': _preference,
+  // How long the Undo prompt stays on screen (0 = until closed). A reading or
+  // motor-access need of the person, not of the screen, so it travels with
+  // their other preferences like confirm_before_delete; it holds one small
+  // number and nothing personal.
+  'undo_prompt_seconds': _preference,
   'soft_delete_retention_days': _preference,
   'venue_entity_mode': _preference,
   'collection_tile_visible_fields': _preference,

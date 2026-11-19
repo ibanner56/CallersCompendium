@@ -12,6 +12,7 @@ import '../theme/app_motion.dart';
 import '../widgets/color_edit_dialog.dart';
 import '../widgets/load_error_view.dart';
 import '../widgets/tag_chip.dart';
+import '../utils/confirm_delete.dart';
 import 'settings/library_manager_list.dart';
 
 /// The Tags manager (FIND-3, `docs/design/tags-and-people.md` T2): rename,
@@ -20,10 +21,11 @@ import 'settings/library_manager_list.dart';
 /// colours-only screen this one replaced (D-N2-3).
 ///
 /// Every change writes at once and offers Undo in a snackbar, the only Undo
-/// there is (D-N2-5). A delete therefore has no confirm (`ux.md`: confirm only
-/// what Undo cannot reverse). Rename, merge and delete go through
-/// `tag_edits.dart`, which rewrites the import-tags setting in the same
-/// transaction. A colour is an ordinary edit of the tag row and has no Undo,
+/// there is (D-N2-5). A delete therefore asks first only when "Confirm before
+/// delete" is on, as every delete Undo can reverse does (`ux.md`: always
+/// confirm only what Undo cannot reverse; see `confirm_delete.dart`). Rename,
+/// merge and delete go through `tag_edits.dart`, which rewrites the
+/// import-tags setting in the same transaction. A colour is an ordinary edit of the tag row and has no Undo,
 /// as on the colours screen before it.
 ///
 /// The list is live: tags through [TagRepository.watchAll], and each tag's
@@ -266,6 +268,8 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
   }
 
   Future<void> _delete(LibraryManagerEntry entry) async {
+    if (!await confirmDeleteIfEnabled(context, itemLabel: entry.name)) return;
+    if (!mounted) return;
     final l10n = AppLocalizations.of(context);
     try {
       final edit = await deleteTag(_repos, entry.id);

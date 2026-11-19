@@ -49,6 +49,7 @@ import 'package:compendium_app/src/data/aggressive_beats_update_scope.dart';
 import 'package:compendium_app/src/data/canonical_discouraged_terms_scope.dart';
 import 'package:compendium_app/src/data/colour_dance_theme_scope.dart';
 import 'package:compendium_app/src/data/confirm_before_delete_scope.dart';
+import 'package:compendium_app/src/data/undo_prompt_duration_scope.dart';
 import 'package:compendium_app/src/data/capitalize_figures_scope.dart';
 import 'package:compendium_app/src/data/show_custom_figures_scope.dart';
 import 'package:compendium_app/src/data/show_glossary_scope.dart';
@@ -256,6 +257,11 @@ Future<void> _restoreFromPaste(
   await tester.pumpAndSettle();
   await tester.tap(find.byKey(const ValueKey('settings-nav-general')));
   await tester.pumpAndSettle();
+  await tester.scrollUntilVisible(
+    find.byKey(const ValueKey('backup-restore-button')),
+    200,
+    scrollable: find.byType(Scrollable).last,
+  );
   await tester.tap(find.byKey(const ValueKey('backup-restore-button')));
   await tester.pumpAndSettle();
   await tester.enterText(
@@ -2592,6 +2598,13 @@ void main() {
             read: VenueCallCountScope.of,
             storedResult: 7,
             defaultValue: kVenueCallCountDefault,
+          ),
+          (
+            key: kUndoPromptSecondsKey,
+            stored: 30,
+            read: UndoPromptDurationScope.secondsOf,
+            storedResult: 30,
+            defaultValue: kUndoPromptDefaultSeconds,
           ),
           (
             key: kDateFormatKey,

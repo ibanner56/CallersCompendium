@@ -230,13 +230,24 @@ A few smaller settings and behaviors round out the experience:
   without animating. On iPhone and iPad you can still swipe in from the edge of
   the screen to go back. Turning it off stops the app removing its own animations, but
   cannot restore animations your device's setting has already shortened.
-- **Confirm before delete** (**Settings › General**) adds a prompt before you
-  delete a dance or a program from its **⋮** menu, from its own screen, or from
-  Collection's selection mode. It does not cover the swipe shortcut: swiping a
-  row in the Collection or Programs list reveals a **Delete** button, and
-  tapping that button deletes straight away. If you want every delete to ask
-  first, use the **⋮** menu rather than the swipe. And regardless of this
-  setting, deletes are undoable — so a slip is recoverable either way.
+- **Confirm before delete** (**Settings › General**) adds a prompt before any
+  delete you can undo: a dance or a program from its **⋮** menu, from its own
+  screen, or from Collection's selection mode, and a venue, custom field, tag,
+  author, source, shorthand, dialect, custom theme, walkthrough snippet or
+  matrix column. It does not cover the swipe shortcut: swiping a row in the
+  Collection or Programs list reveals a **Delete** button, and tapping that
+  button deletes straight away. If you want every delete to ask first, use the
+  **⋮** menu rather than the swipe. Regardless of this setting, those deletes
+  offer **Undo**, so a slip is recoverable either way. A delete that can't be
+  undone (permanently deleting from **Recently deleted**, or deleting one of
+  your own Glossary entries or figures) always asks first and says "This can't
+  be undone."
+- **Undo prompt** (**Settings › General**) sets how long the **Undo** message
+  stays on screen: 6, 10 (the default), 20 or 30 seconds, or **Until I close
+  it**. Whatever you choose, the message also stays while you point at it with
+  a mouse or move to its **Undo** button with the keyboard, and its full time
+  starts again when you move away. With a screen reader running, it stays until
+  you act on it or close it.
 - **Meaning is never carried by color alone.** Statuses and special slots — like
   an [alt](./glossary.md#alt) — always include an icon and a text label as well as
   color, so nothing depends on being able to distinguish hues. That holds for the

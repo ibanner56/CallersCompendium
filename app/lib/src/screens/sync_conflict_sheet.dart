@@ -63,7 +63,6 @@ Future<void> showSyncConflictSheet(
     undoLabel: l10n.syncConflictUndo,
     undoFailedMessage: l10n.commonUndoFailed,
     accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
-    duration: const Duration(seconds: 10),
     onUndo: () {
       if (context.mounted) {
         showSyncConflictSheet(context, reconsider: List.of(saved));

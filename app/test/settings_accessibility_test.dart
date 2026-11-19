@@ -6,6 +6,7 @@ import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/app_theme_scope.dart';
 import 'package:compendium_app/src/data/capitalize_figures_scope.dart';
 import 'package:compendium_app/src/data/confirm_before_delete_scope.dart';
+import 'package:compendium_app/src/data/undo_prompt_duration_scope.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/custom_themes_scope.dart';
 import 'package:compendium_app/src/data/decimal_turns_scope.dart';
@@ -53,6 +54,12 @@ Future<void> _pumpGeneral(
   final capitalizeFigures = ValueNotifier<bool>(
     await repos.settings.get(kCapitalizeFiguresKey) == true,
   );
+  final undoSeconds = ValueNotifier<int>(
+    undoPromptSecondsFromStored(
+      await repos.settings.get(kUndoPromptSecondsKey),
+    ),
+  );
+  addTearDown(undoSeconds.dispose);
   addTearDown(dialect.dispose);
   addTearDown(theme.dispose);
   addTearDown(customThemes.dispose);
@@ -65,26 +72,29 @@ Future<void> _pumpGeneral(
   await tester.pumpWidget(
     RepositoriesScope(
       repositories: repos,
-      child: MaterialApp(
-        localizationsDelegates: testLocalizationsDelegates,
-        supportedLocales: testSupportedLocales,
-        home: AppThemeScope(
-          notifier: theme,
-          child: CustomThemesScope(
-            controller: customThemes,
-            child: ActiveDialectScope(
-              notifier: dialect,
-              child: ReduceMotionScope(
-                notifier: reduceMotion,
-                child: VerboseFigureRenderingScope(
-                  notifier: verboseFigures,
-                  child: DecimalTurnsScope(
-                    notifier: decimalTurns,
-                    child: CapitalizeFiguresScope(
-                      notifier: capitalizeFigures,
-                      child: ConfirmBeforeDeleteScope(
-                        notifier: confirmDelete,
-                        child: const SettingsScreen(),
+      child: UndoPromptDurationScope(
+        notifier: undoSeconds,
+        child: MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: AppThemeScope(
+            notifier: theme,
+            child: CustomThemesScope(
+              controller: customThemes,
+              child: ActiveDialectScope(
+                notifier: dialect,
+                child: ReduceMotionScope(
+                  notifier: reduceMotion,
+                  child: VerboseFigureRenderingScope(
+                    notifier: verboseFigures,
+                    child: DecimalTurnsScope(
+                      notifier: decimalTurns,
+                      child: CapitalizeFiguresScope(
+                        notifier: capitalizeFigures,
+                        child: ConfirmBeforeDeleteScope(
+                          notifier: confirmDelete,
+                          child: const SettingsScreen(),
+                        ),
                       ),
                     ),
                   ),
@@ -198,5 +208,33 @@ void main() {
       await tester.pumpAndSettle();
       expect(_switchValue(tester, widgetKey), isTrue);
     });
+  });
+
+  testWidgets('the Undo prompt setting shows its default and saves a choice', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpGeneral(tester, repos);
+
+    final dropdown = find.byKey(const ValueKey('general-undo-prompt-seconds'));
+    await tester.ensureVisible(dropdown);
+    expect(
+      tester.widget<DropdownButton<int>>(dropdown).value,
+      kUndoPromptDefaultSeconds,
+    );
+
+    await tester.tap(dropdown);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Until I close it').last);
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.widget<DropdownButton<int>>(dropdown).value,
+      kUndoPromptUntilDismissed,
+    );
+    expect(
+      await repos.settings.get(kUndoPromptSecondsKey),
+      kUndoPromptUntilDismissed,
+    );
   });
 }

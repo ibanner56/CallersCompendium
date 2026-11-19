@@ -1,9 +1,11 @@
 // Part of the Settings screen, split by section (Stage-7 item 7.2).
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
-import '../../theme/app_motion.dart';
-import '../../theme/destructive_button_style.dart';
+import '../../utils/confirm_delete.dart';
+import '../../utils/undo_snack_bar.dart';
 import 'settings_keys.dart';
 import '../../data/app_theme_labels_l10n.dart';
 import '../../data/app_theme_scope.dart';
@@ -462,33 +464,59 @@ class _CustomThemesSection extends StatelessWidget {
     );
   }
 
+  /// Deletes the custom [theme] at once and offers Undo, asking first only
+  /// when "Confirm before delete" is on (see `confirm_delete.dart`).
   Future<void> _confirmDelete(BuildContext context, CustomTheme theme) async {
+    if (!await confirmDeleteIfEnabled(context, itemLabel: theme.name)) return;
+    if (!context.mounted) return;
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.maybeOf(context);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.settingsAppearanceDeleteThemeTitle),
-        content: Text(l10n.settingsAppearanceDeleteThemeBody(theme.name)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(l10n.commonCancel),
-          ),
-          FilledButton(
-            style: destructiveFilledButtonStyle(Theme.of(ctx).colorScheme),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(l10n.commonDelete),
-          ),
-        ],
-      ),
-      animationStyle: AppMotion.styleFor(context),
+    final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
+    // Read after the confirmation, so Undo puts back what was removed.
+    final removed = controller.byId(theme.id);
+    if (removed == null) return;
+    final index = controller.themes.indexOf(removed);
+    final wasActive = controller.activeId == removed.id;
+    // Choosing a built-in theme also leaves no custom theme active, so the
+    // controller alone cannot tell it from no choice: Undo makes the theme
+    // active again only if the built-in selection has not changed since,
+    // even if it has changed back. (Tapping the built-in theme already
+    // selected changes nothing, so it does not count.) The listener goes when
+    // Undo runs or the prompt closes; a prompt cleared from the queue before
+    // it ever showed never closes, and then leaves this listener behind.
+    final selection = AppThemeScope.notifierOf(context);
+    var chosenSince = false;
+    void onChosen() => chosenSince = true;
+    selection.addListener(onChosen);
+    var deleted = false;
+    try {
+      await controller.delete(removed.id);
+      deleted = true;
+    } finally {
+      // A failed delete offers no Undo, so nothing will remove it later.
+      if (!deleted) selection.removeListener(onChosen);
+    }
+    if (messenger == null) {
+      selection.removeListener(onChosen);
+      return;
+    }
+    final prompt = showUndoSnackBar(
+      messenger,
+      actionKey: const ValueKey('custom-theme-delete-undo'),
+      message: l10n.commonDeletedSnack(removed.name),
+      undoLabel: l10n.commonUndo,
+      undoFailedMessage: l10n.commonUndoFailed,
+      accessibleNavigation: accessibleNavigation,
+      onUndo: () {
+        selection.removeListener(onChosen);
+        return controller.restoreDeleted(
+          removed,
+          index: index,
+          wasActive: wasActive && !chosenSince,
+        );
+      },
     );
-    if (confirmed != true) return;
-    await controller.delete(theme.id);
-    messenger?.showSnackBar(
-      SnackBar(content: Text(l10n.commonDeletedSnack(theme.name))),
-    );
+    unawaited(prompt.closed.then((_) => selection.removeListener(onChosen)));
   }
 
   @override

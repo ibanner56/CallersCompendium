@@ -19,7 +19,7 @@ import '../../glossary/user_figure_defaults.dart';
 import '../../search/facet_labels.dart';
 import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
-import '../../theme/destructive_button_style.dart';
+import '../../utils/confirm_delete.dart';
 import 'compound_editor_screen.dart';
 import 'user_figure_switch_screen.dart';
 
@@ -208,42 +208,24 @@ class _GlossaryCustomFigureDetailState
     // Whether the default figure lists use it, to say so.
     final inDefaults = isFigure && (await _frozenDefaults(repos)).isNotEmpty;
     if (!context.mounted) return;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.glossaryCustomDeleteTitle(name)),
-        content: Text(
-          [
-            if (uses == null)
-              l10n.glossaryCustomDeleteBody
-            else ...[
-              l10n.glossaryCustomDeleteUses(uses),
-              if (trashed > 0) l10n.glossaryCustomDeleteTrash(trashed),
-              if (inDefaults) l10n.glossaryCustomDeleteDefaults,
-            ],
-            if (shorthandCount > 0)
-              l10n.glossaryCustomDeleteShorthands(shorthandCount),
-          ].join(' '),
-          key: const ValueKey('glossary-custom-delete-body'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(l10n.commonCancel),
-          ),
-          FilledButton(
-            style: destructiveFilledButtonStyle(
-              Theme.of(dialogContext).colorScheme,
-            ),
-            key: const ValueKey('glossary-custom-delete-confirm'),
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(l10n.commonDelete),
-          ),
+    final confirmed = await confirmPermanentDelete(
+      context,
+      title: l10n.glossaryCustomDeleteTitle(name),
+      body: [
+        if (uses == null)
+          l10n.glossaryCustomDeleteBody
+        else ...[
+          l10n.glossaryCustomDeleteUses(uses),
+          if (trashed > 0) l10n.glossaryCustomDeleteTrash(trashed),
+          if (inDefaults) l10n.glossaryCustomDeleteDefaults,
         ],
-      ),
-      animationStyle: AppMotion.styleFor(context),
+        if (shorthandCount > 0)
+          l10n.glossaryCustomDeleteShorthands(shorthandCount),
+      ].join(' '),
+      bodyKey: const ValueKey('glossary-custom-delete-body'),
+      confirmKey: const ValueKey('glossary-custom-delete-confirm'),
     );
-    if (confirmed != true) return;
+    if (!confirmed) return;
     if (isFigure) {
       // Read again now, not when the dialog opened: the lists, or the figure,
       // may have changed while it was open. Read before the delete, while the

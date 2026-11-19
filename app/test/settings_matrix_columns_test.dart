@@ -13,6 +13,7 @@ import 'package:compendium_app/src/data/show_custom_figures_scope.dart';
 import 'package:compendium_app/src/data/show_glossary_scope.dart';
 import 'package:compendium_app/src/data/user_figures_scope.dart';
 import 'package:compendium_app/src/screens/settings/matrix_column_editor_screen.dart';
+import 'package:compendium_app/src/screens/settings/settings_keys.dart';
 
 import 'support/l10n_harness.dart';
 import 'support/test_repositories.dart';
@@ -428,9 +429,8 @@ void main() {
       expect(saveButton().onPressed, isNotNull);
     });
 
-    testWidgets('deleting a parameterized column removes all references', (
-      tester,
-    ) async {
+    testWidgets('deleting a parameterized column removes all references, '
+        'and Undo restores them', (tester) async {
       const id = 'param:partner-swing';
       final initial = MatrixColumnConfig(
         order: const [id],
@@ -449,18 +449,26 @@ void main() {
         find.byKey(const ValueKey('matrix-column-delete-param:partner-swing')),
       );
       await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(
-          const ValueKey('matrix-column-delete-confirm-param:partner-swing'),
-        ),
-      );
-      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsNothing);
 
       final config = read();
       expect(config.parameterized, isEmpty);
       expect(config.order, isEmpty);
       expect(config.hidden, isEmpty);
       expect(config.renames, isEmpty);
+
+      // Undo puts every piece back.
+      await tester.tap(
+        find.byKey(
+          const ValueKey('matrix-column-delete-undo-param:partner-swing'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final restored = read();
+      expect(restored.parameterized, initial.parameterized);
+      expect(restored.order, initial.order);
+      expect(restored.hidden, initial.hidden);
+      expect(restored.renames, initial.renames);
     });
 
     testWidgets('a tap outside keeps the compound column dialog once a label '
@@ -611,9 +619,8 @@ void main() {
       expect(saveButton().onPressed, isNull);
     });
 
-    testWidgets('deleting a compound column removes all references', (
-      tester,
-    ) async {
+    testWidgets('deleting a compound column removes all references, '
+        'and Undo restores them', (tester) async {
       const id = 'compound:test-sequence';
       final initial = MatrixColumnConfig(
         order: const [id],
@@ -636,18 +643,26 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(
-          const ValueKey('matrix-column-delete-confirm-compound:test-sequence'),
-        ),
-      );
-      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsNothing);
 
       final config = read();
       expect(config.compound, isEmpty);
       expect(config.order, isEmpty);
       expect(config.hidden, isEmpty);
       expect(config.renames, isEmpty);
+
+      // Undo puts every piece back.
+      await tester.tap(
+        find.byKey(
+          const ValueKey('matrix-column-delete-undo-compound:test-sequence'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final restored = read();
+      expect(restored.compound, initial.compound);
+      expect(restored.order, initial.order);
+      expect(restored.hidden, initial.hidden);
+      expect(restored.renames, initial.renames);
     });
 
     testWidgets('repairs stale compound steps when editing', (tester) async {
@@ -1164,5 +1179,86 @@ void main() {
       await tester.pumpAndSettle();
       expect(listed(), ['userFigure:a-id']);
     });
+  });
+
+  testWidgets('Undo of a column delete still saves after the editor closes', (
+    tester,
+  ) async {
+    const id = 'compound:test-sequence';
+    const before = MatrixColumnConfig(
+      order: [id],
+      renames: {id: 'Sequence'},
+      compound: [
+        CompoundColumn(
+          id: id,
+          steps: [
+            StepMatcher(move: 'do_si_do'),
+            StepMatcher(move: 'balance'),
+          ],
+        ),
+      ],
+    );
+    final repos = openTestRepositories();
+    final config = ValueNotifier(before);
+    final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);
+    addTearDown(config.dispose);
+    addTearDown(dialect.dispose);
+    await tester.binding.setSurfaceSize(const Size(1200, 1400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    // The scopes above the navigator, as the app mounts them.
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        builder: (context, child) => RepositoriesScope(
+          repositories: repos,
+          child: ProgramMatrixColumnConfigScope(
+            notifier: config,
+            child: ActiveDialectScope(notifier: dialect, child: child!),
+          ),
+        ),
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: TextButton(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const MatrixColumnEditorScreen(),
+                ),
+              ),
+              child: const Text('open'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    final delete = find.byKey(const ValueKey('matrix-column-delete-$id'));
+    await tester.ensureVisible(delete);
+    await tester.tap(delete);
+    await tester.pumpAndSettle();
+    expect(config.value.compound, isEmpty);
+
+    // Leave the editor; the Undo prompt stays on the app's messenger.
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.byType(MatrixColumnEditorScreen), findsNothing);
+
+    await tester.tap(
+      find.byKey(const ValueKey('matrix-column-delete-undo-$id')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(config.value.compound, before.compound);
+    expect(config.value.renames, before.renames);
+    final stored = await tester.runAsync(
+      () => repos.settings.get(kProgramMatrixColumnsKey),
+    );
+    expect(
+      MatrixColumnConfig.decode(stored! as Map<String, Object?>).compound,
+      before.compound,
+    );
+    expect(tester.takeException(), isNull);
   });
 }
