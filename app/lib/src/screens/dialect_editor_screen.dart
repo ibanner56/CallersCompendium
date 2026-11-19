@@ -975,7 +975,11 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
       ),
     ),
     () => SectionHeader(title: l10n.dialectEditorSectionPreview),
-    () => _DialectPreview(dialect: _working, renderer: _renderer),
+    () => _DialectPreview(
+      dialect: _working,
+      renderer: _renderer,
+      form: widget.form,
+    ),
     () => const SizedBox(height: 24),
   ];
 }
@@ -1983,14 +1987,21 @@ class _DiscouragedTermsEditor extends StatelessWidget {
 /// prose — so edits visibly update as the user types. Deterministic and
 /// dialect-only; nothing is persisted.
 class _DialectPreview extends StatelessWidget {
-  const _DialectPreview({required this.dialect, required this.renderer});
+  const _DialectPreview({
+    required this.dialect,
+    required this.renderer,
+    required this.form,
+  });
 
   final Dialect dialect;
 
   /// Renders with the dialect's form's taxonomy.
   final FigureRenderer renderer;
 
-  static final List<Figure> _sampleFigures = [
+  /// The dance form the dialect is for, whose figures the preview shows.
+  final DanceForm form;
+
+  static final List<Figure> _contraSamples = [
     Figure(
       move: 'allemande',
       params: const {'who': 'role1s', 'hand': 'left', 'travel': 1.5},
@@ -1999,7 +2010,39 @@ class _DialectPreview extends StatelessWidget {
     Figure(move: 'do_si_do', params: const {'who': 'neighbors'}),
   ];
 
-  static const String _sampleFreeText = 'role1s scoop up their role2 and swing';
+  /// An English dialect's preview shows English figures (ADR-006 W5).
+  static final List<Figure> _ecdSamples = [
+    Figure(
+      move: 'ecd_hand_turn',
+      params: const {
+        'who': ['role1s'],
+        'hand': 'right',
+      },
+    ),
+    Figure(
+      move: 'ecd_set',
+      params: const {
+        'who': ['role2s'],
+        'direction': 'right',
+      },
+    ),
+    Figure(
+      move: 'ecd_lead',
+      params: const {
+        'who': ['partners'],
+        'where': 'up',
+      },
+    ),
+  ];
+
+  List<Figure> get _sampleFigures =>
+      form == DanceForm.ecd ? _ecdSamples : _contraSamples;
+
+  static const String _contraFreeText = 'role1s scoop up their role2 and swing';
+  static const String _ecdFreeText = 'role1s cast down behind the role2s';
+
+  String get _sampleFreeText =>
+      form == DanceForm.ecd ? _ecdFreeText : _contraFreeText;
 
   @override
   Widget build(BuildContext context) {

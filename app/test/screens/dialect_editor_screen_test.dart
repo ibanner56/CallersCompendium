@@ -104,6 +104,26 @@ void main() {
     expect(validationError(), findsNothing);
   });
 
+  testWidgets('an English dialect previews English figures (ADR-006 W5)', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: DialectEditorScreen(
+          form: DanceForm.ecd,
+          initial: Dialect.larksRobins,
+        ),
+      ),
+    );
+    await reveal(tester, preview());
+    final text = previewText(tester).toLowerCase();
+    expect(text, contains('lead up'));
+    expect(text, isNot(contains('swing')));
+    expect(text, isNot(contains('do si do')));
+  });
+
   testWidgets('the preview reflects role-term edits live', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
