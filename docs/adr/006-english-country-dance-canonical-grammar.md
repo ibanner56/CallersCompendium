@@ -40,7 +40,9 @@ and the sections it changed are:
 - **Gendered role terms are never shown**, not even as a choice (§2, §4,
   §8.3). Where a quoted source uses one, this document gives the default
   dialect's term in square brackets instead (§3).
-- **`set_and_link` takes no `who`**: everyone dances it at once (§7.1).
+- **`set_and_link` takes no parameters**: no `who`, because everyone
+  dances it at once, and no `tandem` flag, because everyone does the thing
+  all the time (§7.1, §9.1 point 4).
 - **`leftFile` and `rightFile`** are the left-hand and right-hand lines as
   the caller sees them, facing down the hall (§6.2).
 - **"Pothooks"** is an alias of `chevron` (§7.5).
@@ -616,7 +618,6 @@ movements*. They are not deleted from any source.
 | `formation` | The grouping a movement is danced in, where it varies | `linesOfThree`, `linesOfFour` |
 | `step` | Prescribed footwork | `slipping`, `skipping`, `unspecified` |
 | `style` | A named manner of performing a movement (siding only) | `straight`, `swirly`, `unspecified` |
-| `tandem` | The tandem variant (yes/no; set and link) | |
 | `switchPush` | The pushers change partway through (yes/no; poussette) | |
 | `castShoulder` | The shoulder a casting pair turns over (chevron) | `left`, `right`, `unspecified` |
 
@@ -762,7 +763,7 @@ transcriptions (§3). Each count is of captions, not of performances.
 | `set` | `who`, `whom`, `where`, `direction` | `{who} set [{direction}] [{where}] [to {whom}]` | `direction` is left/right, rendered only when not right. `whom` is used when dancers set to someone other than each other ("set to partner"). `where` is the line the dancers face along, or `forward`. Evidence: 13 captions in 7 dances. Only *The Shrewsbury Lasses* states a direction ("set right and honor, set left and honor to [Robin 2]"), and it names a single dancer as `whom`. A set takes no `destination` (§6.4). Setting while falling back ("fall back setting") is a `modifier` whose core is the travelling figure (§5.6). "Set forward" is `where = forward`: in the maintainer's words, "kind of the opposite of "fall back setting", but forward instead of backward" (§9.1). Making it a value of `set` is this ADR's call, and departs from the analogy, which points to a `modifier` like "fall back setting" with a forward movement as its core. The reason: `fall_back` has values of its own to record (`whom`, `distance`), while the step forward in "set forward" has none, so a modifier would add a figure that states nothing. |
 | `honor` | `who`, `whom` | `{who} step and honor {whom}` | "Honour"/"Honor" is a display dialect, not two entries. |
 | `clap` | none | `clap` | |
-| `set_and_link` | `tandem` | `[tandem] set and link` | One named movement, distinct from a bare `set` (§5.4). Everyone sets and everyone links: in the maintainer's words, "it's not a matter of who sets and who links though - everyone does both" (Q9), and "Everyone does it at once" (§9.1). So it takes no `who`. `tandem` is a yes/no flag for "tandem set and link". Keeping that flag, and recording no facing, are this ADR's proposals: the maintainer's answers don't address them. |
+| `set_and_link` | none | `set and link` | One named movement, distinct from a bare `set` (§5.4). Everyone sets and everyone links: in the maintainer's words, "it's not a matter of who sets and who links though - everyone does both" (Q9), and "Everyone does it at once" (§9.1). So it takes no `who`, and no `tandem` flag either: in the maintainer's words, "You don't need an in-tandem flag, everyone does the thing all the time. If that changes, we'll make the update." Recording no facing is this ADR's proposal. |
 
 ### 7.2 Turns
 
@@ -1019,9 +1020,9 @@ extended that to every display choice (§9.1, point 7).
 
 **Q9. Set and link.** "Other", with the note: "Set and link is an everyone
 figure, maybe it cares about which way you're facing? It's not a matter of
-who sets and who links though - everyone does both." This ADR gives
-`set_and_link` a `tandem` flag (§7.1). A later answer removed its `who`
-(§9.1, point 4). Recording no facing is this ADR's proposal.
+who sets and who links though - everyone does both." Later answers removed
+its `who` and the `tandem` flag this ADR had given it (§9.1, point 4).
+Recording no facing is this ADR's proposal.
 
 **Q10. Other open movements.**
 
@@ -1131,8 +1132,10 @@ document still had to make a call to apply an answer, it says so.
    and §5.3.
 4. **Set and link** (Q9). Does it take `who`, a `tandem` flag, or which way
    dancers face? Answer: "Everyone does it at once." It takes no `who`
-   (§7.1). The answer doesn't address `tandem` or facing. This document
-   keeps the flag and records no facing.
+   (§7.1). A follow-up answer removed the `tandem` flag: "You don't need
+   an in-tandem flag, everyone does the thing all the time. If that
+   changes, we'll make the update." The answers don't address facing, and
+   this document records none.
 5. **R2 and Q1.** R2 says that what the source leaves out is stored as
    `unspecified`, while the answer to Q1 stored an unstated `who` as
    `everyone`. Four options were put: reword R2 to name the exception;
