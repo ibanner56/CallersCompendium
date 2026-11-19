@@ -171,6 +171,9 @@ final List<MapEntry<String, String>> _dancerPhrases = [
       word: contradbDancerVocab[word]!,
     'shadow': 'shadows',
     'shadows': 'shadows',
+    // v40: the third and fourth couples, which ContraDB does not name.
+    'threes': 'threes',
+    'fours': 'fours',
     'centers': 'centers',
     'opposites': 'opposites',
     'same roles': 'sameRoles',

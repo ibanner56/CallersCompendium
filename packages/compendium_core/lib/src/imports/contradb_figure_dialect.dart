@@ -2998,6 +2998,10 @@ final List<MapEntry<String, String>> _subjectPhrases =
       MapEntry('role2s', 'role2s'),
       MapEntry('ones', 'ones'),
       MapEntry('twos', 'twos'),
+      // v40: the third and fourth couples. ContraDB renders neither; this is
+      // the app's own display, which free-text entry reads back here.
+      MapEntry('threes', 'threes'),
+      MapEntry('fours', 'fours'),
       MapEntry('everyone', 'everyone'),
       MapEntry('1st shadows', 'shadows'),
       MapEntry('2nd shadows', 'secondShadows'),

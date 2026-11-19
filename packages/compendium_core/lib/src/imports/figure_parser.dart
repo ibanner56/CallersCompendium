@@ -875,6 +875,17 @@ const Map<(String, String?), String> _singleDancers = {
   ('third', 'role2'): 'threesRole2',
   ('fourth', 'role1'): 'foursRole1',
   ('fourth', 'role2'): 'foursRole2',
+  // The Caller's Box names one dancer by role and couple number, "Woman one"
+  // or "Man three", which the import scrub turns into `role2 one` and
+  // `role1 three`: the same dancers (v40, the maintainer's ruling).
+  ('role1', 'one'): 'onesRole1',
+  ('role2', 'one'): 'onesRole2',
+  ('role1', 'two'): 'twosRole1',
+  ('role2', 'two'): 'twosRole2',
+  ('role1', 'three'): 'threesRole1',
+  ('role2', 'three'): 'threesRole2',
+  ('role1', 'four'): 'foursRole1',
+  ('role2', 'four'): 'foursRole2',
 };
 
 /// The words after which "opposite" describes something rather than naming the
