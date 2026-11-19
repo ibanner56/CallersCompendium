@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../theme/app_motion.dart';
 
 /// The rating chosen in the batch-rating dialog: either a concrete star
 /// [rating] (1..5) to set across the selection, or "clear" ([rating] `null`,
@@ -28,6 +29,7 @@ Future<BatchRatingChoice?> showBatchRatingDialog(BuildContext context) {
   return showDialog<BatchRatingChoice>(
     context: context,
     builder: (_) => const _BatchRatingDialog(),
+    animationStyle: AppMotion.styleFor(context),
   );
 }
 

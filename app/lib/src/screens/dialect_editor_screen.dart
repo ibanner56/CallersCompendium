@@ -6,6 +6,7 @@ import '../../l10n/app_localizations.dart';
 import '../data/user_figures_scope.dart';
 import '../data/validation_issue_labels.dart';
 import '../search/facet_labels.dart' show humanizeToken;
+import '../theme/app_motion.dart';
 import '../theme/destructive_button_style.dart';
 import '../widgets/collapsible_section.dart';
 import '../widgets/confirm_discard_changes.dart';
@@ -591,6 +592,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
             ),
           ],
         ),
+        animationStyle: AppMotion.styleFor(context),
       );
       if (!mounted || confirmed != true) return;
     }
@@ -640,6 +642,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (confirmed == true && mounted) _restoreDiscouragedDefaults();
   }
@@ -772,6 +775,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (confirmed == true && mounted) _restoreMoveWordings();
   }

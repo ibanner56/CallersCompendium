@@ -338,6 +338,16 @@ final Map<String, DataClassification> settingsClassifications = {
         '(settings-sync-scope, 2026-10-29).',
   ),
   'show_individual_perform_timer': _preference,
+  'confirm_perform_exit': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.shareable,
+    note:
+        'Whether leaving Perform asks first. A habit of '
+        'the caller rather than a property of the screen, like '
+        'confirm_before_delete, so it travels with their other preferences; '
+        'unlike auto_size_perform_cards it does not depend on screen size.',
+  ),
   'show_program_slot_caller_notes': _preference,
   'auto_commit_program_changes': _preference,
   'perform_canonical_view': DataClassification(

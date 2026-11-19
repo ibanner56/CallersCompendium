@@ -1,3 +1,4 @@
+import 'package:compendium_app/src/theme/app_theme.dart';
 import 'package:compendium_app/src/theme/keyboard_dismiss.dart';
 import 'package:compendium_app/src/widgets/responsive_autocomplete.dart';
 import 'package:flutter/material.dart';
@@ -135,12 +136,14 @@ Future<void> _pump(
   FocusNode? focusNode,
   bool refocusAfterSelect = false,
   ScrollBehavior? scrollBehavior,
+  ThemeData? theme,
 }) async {
   await tester.pumpWidget(
     Directionality(
       textDirection: textDirection,
       child: MaterialApp(
         scrollBehavior: scrollBehavior,
+        theme: theme,
         home: Scaffold(
           body: _TestPicker(
             options: options,
@@ -182,6 +185,40 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('test-option-swing')));
       await tester.pumpAndSettle();
       expect(picked, 'swing');
+    });
+
+    testWidgets('High contrast outlines the option list like its menus', (
+      tester,
+    ) async {
+      for (final (theme, outlined) in [
+        (AppTheme.highContrast, true),
+        (AppTheme.light, false),
+      ]) {
+        await _pump(
+          tester,
+          options: const ['swing', 'balance'],
+          onSelected: (_) {},
+          theme: theme,
+        );
+        await tester.enterText(find.byKey(const ValueKey('test-input')), 'sw');
+        await tester.pumpAndSettle();
+        final material = tester.widget<Material>(
+          find
+              .ancestor(
+                of: find.byKey(const ValueKey('test-option-swing')),
+                matching: find.byType(Material),
+              )
+              .first,
+        );
+        final side = (material.shape as RoundedRectangleBorder?)?.side;
+        if (outlined) {
+          expect(side?.style, BorderStyle.solid);
+          expect(side?.color, theme.colorScheme.outline);
+        } else {
+          expect(side ?? BorderSide.none, BorderSide.none);
+        }
+        await tester.pumpWidget(const SizedBox());
+      }
     });
 
     testWidgets('scrolling the overlay under the app-wide drag-to-dismiss '

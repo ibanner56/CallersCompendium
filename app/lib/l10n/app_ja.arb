@@ -3236,9 +3236,9 @@
   "@settingsGeneralAutoSizePerformTitle": {
     "x-sourceSha256": "c0bfd33d0a019dedc10bf06f44fe22d10462da2a9e4e1412d8167e5c8bfcb664"
   },
-  "settingsGeneralAutoSizePerformSubtitle": "各カードのサイズを調整して、ダンスまたはスロット全体がスクロールなしで画面に収まるようにします。A- / A+で自分でサイズを設定する場合はオフにしてください。",
+  "settingsGeneralAutoSizePerformSubtitle": "各カードを画面に収まるように調整しますが、通常の文字サイズより小さくはしません。長いダンスやスロットはスクロールで表示します。A- / A+で自分でサイズを設定する場合はオフにしてください。",
   "@settingsGeneralAutoSizePerformSubtitle": {
-    "x-sourceSha256": "5fc58c7fdd31965d66905ccee7c0b386915c511918a7c617de33fdd92c66d0f0"
+    "x-sourceSha256": "374076544dee2c6b2dd1d60aa28c5ffa118b3d3d09d76c614a6649fa0cf89970"
   },
   "settingsShowIndividualPerformTimerTitle": "個別のパフォームでタイマーを表示",
   "@settingsShowIndividualPerformTimerTitle": {
@@ -3247,6 +3247,14 @@
   "settingsShowIndividualPerformTimerSubtitle": "1曲だけをパフォームしている間の経過時間を表示します。タイマーが表示されると開始し、一時停止できます。",
   "@settingsShowIndividualPerformTimerSubtitle": {
     "x-sourceSha256": "c3f8f61c6df18fe8d4ce2b3aa7fd6b904e66b2f7874e047dee26af2c2ed7f46f"
+  },
+  "settingsConfirmPerformExitTitle": "パフォームを終了する前に確認する",
+  "@settingsConfirmPerformExitTitle": {
+    "x-sourceSha256": "51ffa9c62cf3c22d19a567ff271ae0a951733c579d3f370c4e9187bc1ccfd553"
+  },
+  "settingsConfirmPerformExitSubtitle": "閉じるボタンや戻る操作でパフォームを終了する前に確認します。オフにすると1回のタップで終了します。プログラムのパフォームでは、どちらの場合も現在の位置が保持されます。",
+  "@settingsConfirmPerformExitSubtitle": {
+    "x-sourceSha256": "f026552392de593fd9a91c80a6eca88d57fa984ead2bf47f6f57d40afe17e90f"
   },
   "settingsShowProgramSlotCallerNotesTitle": "プログラムのパフォームでコーラーのメモを表示",
   "@settingsShowProgramSlotCallerNotesTitle": {
@@ -6169,6 +6177,14 @@
   "performSlotPosition": "スロット {current}/{total}",
   "@performSlotPosition": {
     "x-sourceSha256": "28323c1441741396297f14b41af654cd27b5734ce4d41f3096bfe1a572d972eb"
+  },
+  "performProgramClockLabel": "プログラム",
+  "@performProgramClockLabel": {
+    "x-sourceSha256": "90920d93e2c7e6323a947c6edb0e31a9702002e329af32a67fea53f221983cb0"
+  },
+  "performSlotClockLabel": "スロット",
+  "@performSlotClockLabel": {
+    "x-sourceSha256": "79689782061dec13dc61a80c224f96c6443d61cdd6e50f7c8cace113ba74f761"
   },
   "performShowingSlot": "{label}を表示中",
   "@performShowingSlot": {

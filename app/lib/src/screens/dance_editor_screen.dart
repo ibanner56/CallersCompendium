@@ -18,6 +18,7 @@ import '../diagnostics/error_log.dart';
 import '../editor/draft_save_health.dart';
 import '../editor/editor_snapshot.dart';
 import '../search/dance_editor_reference_data.dart';
+import '../theme/app_motion.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/scroll_to_error.dart';
 import '../utils/shortcut_platform.dart';
@@ -623,6 +624,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
 
     if (!mounted) return;

@@ -59,6 +59,19 @@ class ReduceMotionScope extends InheritedNotifier<ValueNotifier<bool?>> {
     return scope?.notifier?.value ?? osReduceMotion;
   }
 
+  /// [of] without registering a rebuild dependency, for event handlers (such
+  /// as the one opening a dialog) that need the current answer once.
+  static bool read(BuildContext context) {
+    final scope = context.getInheritedWidgetOfExactType<ReduceMotionScope>();
+    final osReduceMotion =
+        context
+            .getInheritedWidgetOfExactType<MediaQuery>()
+            ?.data
+            .disableAnimations ??
+        false;
+    return scope?.notifier?.value ?? osReduceMotion;
+  }
+
   /// The explicit in-app override (`true` or `false`), or `null` when the
   /// setting is unset and the OS preference is being followed. Registers a
   /// rebuild dependency on the scope but, unlike [of], does *not* consult the

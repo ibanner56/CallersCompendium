@@ -22,6 +22,7 @@ import 'import_gap_badge.dart';
 import 'lingo_text_editing_controller.dart';
 import 'move_autocomplete.dart';
 import 'user_figure_use_editor.dart';
+import '../theme/app_motion.dart';
 import '../theme/app_shapes.dart';
 
 /// Move id of the placeholder "stand still" figure that seeds new dances while
@@ -497,9 +498,7 @@ class _FigureListEditorState extends State<FigureListEditor>
       if (ctx != null && ctx.mounted) {
         Scrollable.ensureVisible(
           ctx,
-          duration: reduceMotion
-              ? Duration.zero
-              : const Duration(milliseconds: 200),
+          duration: reduceMotion ? Duration.zero : AppMotion.short,
           alignment: 0.1,
         );
       }

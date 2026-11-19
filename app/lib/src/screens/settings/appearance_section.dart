@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../theme/app_motion.dart';
 import '../../theme/destructive_button_style.dart';
 import 'settings_keys.dart';
 import '../../data/app_theme_labels_l10n.dart';
@@ -482,6 +483,7 @@ class _CustomThemesSection extends StatelessWidget {
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (confirmed != true) return;
     await controller.delete(theme.id);

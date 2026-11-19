@@ -4976,7 +4976,7 @@ abstract class AppLocalizations {
   /// Subtitle explaining the auto-size Perform cards toggle. 'A-' and 'A+' refer to text-size controls.
   ///
   /// In en, this message translates to:
-  /// **'Scale each card so the full dance or slot fits the screen without scrolling. Turn off to set the size yourself with A- / A+.'**
+  /// **'Scale each card to fit the screen, but never below your usual text size: a longer dance or slot scrolls instead. Turn off to set the size yourself with A- / A+.'**
   String get settingsGeneralAutoSizePerformSubtitle;
 
   /// Title of the Program settings toggle that shows an elapsed timer while performing a single dance outside a program.
@@ -4990,6 +4990,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Show elapsed time while performing a single dance. The timer starts when it appears and can be paused.'**
   String get settingsShowIndividualPerformTimerSubtitle;
+
+  /// Title of the Program settings toggle that makes the Perform close button and system Back ask before leaving Perform.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm before leaving Perform'**
+  String get settingsConfirmPerformExitTitle;
+
+  /// Subtitle of the Program settings toggle that makes leaving Perform ask for confirmation.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask before the close button or Back takes you out of Perform. Turn this off to leave in one tap; program Perform keeps your place either way.'**
+  String get settingsConfirmPerformExitSubtitle;
 
   /// Title of the default-on Program settings toggle that shows non-empty per-slot caller notes above dance titles in program Perform.
   ///
@@ -9386,6 +9398,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Slot {current} of {total}'**
   String performSlotPosition(int current, int total);
+
+  /// Short visible label in the program Perform footer, shown before the clock that times the whole program (the evening). Keep it to one short word; the footer is narrow.
+  ///
+  /// In en, this message translates to:
+  /// **'Program'**
+  String get performProgramClockLabel;
+
+  /// Short visible label in the program Perform footer, shown before the clock that times the current slot (dance). Keep it to one short word, matching the word used in 'Slot {current} of {total}'.
+  ///
+  /// In en, this message translates to:
+  /// **'Slot'**
+  String get performSlotClockLabel;
 
   /// Screen-reader announcement when swapping to show a different alternate slot.
   ///

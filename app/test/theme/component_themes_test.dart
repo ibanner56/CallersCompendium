@@ -3,6 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/theme/app_shapes.dart';
 import 'package:compendium_app/src/theme/app_theme.dart';
+import 'package:compendium_app/src/theme/app_typography.dart';
+import 'package:compendium_app/src/widgets/app_date_picker.dart';
 
 /// UX-2 (`ux-modernization.md` §5, §7): the app-level component sub-themes are
 /// present and satisfy the interactive-target and shape acceptance criteria.
@@ -130,13 +132,22 @@ void main() {
           ),
           home: Builder(
             builder: (context) => TextButton(
-              onPressed: () => showDatePicker(
-                context: context,
-                initialDate: DateTime(2026, 10, 23),
-                firstDate: DateTime(2020),
-                lastDate: DateTime(2030),
-                builder: uncapped ? uncappedDialogBuilder : null,
-              ),
+              // The uncapped case goes through the app's own helper, which
+              // is how the app opens the picker; the capped one is the bare
+              // Flutter helper under the app's dialog cap.
+              onPressed: () => uncapped
+                  ? showAppDatePicker(
+                      context: context,
+                      initialDate: DateTime(2026, 10, 23),
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2030),
+                    )
+                  : showDatePicker(
+                      context: context,
+                      initialDate: DateTime(2026, 10, 23),
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2030),
+                    ),
               child: const Text('pick'),
             ),
           ),
@@ -201,5 +212,214 @@ void main() {
         });
       });
     }
+  });
+
+  group('shared component themes', () {
+    for (final (name, theme) in [
+      ('light', AppTheme.light),
+      ('dark', AppTheme.dark),
+      ('highContrast', AppTheme.highContrast),
+    ]) {
+      group(name, () {
+        test(
+          'app bar: leading title, no scrolled-under tint, display face',
+          () {
+            final bar = theme.appBarTheme;
+            expect(bar.centerTitle, isFalse);
+            expect(bar.scrolledUnderElevation, 0);
+            expect(bar.surfaceTintColor, Colors.transparent);
+            expect(bar.backgroundColor, theme.colorScheme.surface);
+            expect(bar.titleTextStyle?.fontFamily, AppTypography.displayFamily);
+          },
+        );
+
+        test('dialog titles are set explicitly in the display face', () {
+          expect(
+            theme.dialogTheme.titleTextStyle?.fontFamily,
+            AppTypography.displayFamily,
+          );
+        });
+
+        test('unthemed components now use AppShapes radii', () {
+          BorderRadiusGeometry? radius(Object? shape) =>
+              (shape as RoundedRectangleBorder?)?.borderRadius;
+          expect(
+            radius(theme.floatingActionButtonTheme.shape),
+            AppShapes.borderRadiusLarge,
+          );
+          expect(
+            radius(theme.popupMenuTheme.shape),
+            AppShapes.borderRadiusSmall,
+          );
+          expect(
+            radius(theme.menuTheme.style?.shape?.resolve({})),
+            AppShapes.borderRadiusSmall,
+          );
+          expect(
+            radius(theme.dropdownMenuTheme.menuStyle?.shape?.resolve({})),
+            AppShapes.borderRadiusSmall,
+          );
+          expect(
+            radius(theme.iconButtonTheme.style?.shape?.resolve({})),
+            AppShapes.borderRadiusSmall,
+          );
+          expect(
+            radius(theme.segmentedButtonTheme.style?.shape?.resolve({})),
+            AppShapes.borderRadiusSmall,
+          );
+          expect(
+            radius(theme.expansionTileTheme.shape),
+            AppShapes.borderRadiusMedium,
+          );
+          expect(
+            radius(theme.expansionTileTheme.collapsedShape),
+            AppShapes.borderRadiusMedium,
+          );
+          expect(
+            (theme.tooltipTheme.decoration as BoxDecoration?)?.borderRadius,
+            AppShapes.borderRadiusSmall,
+          );
+          expect(
+            theme.progressIndicatorTheme.borderRadius,
+            AppShapes.borderRadiusSmall,
+          );
+        });
+
+        test('High contrast, and only High contrast, outlines them', () {
+          final hc = name == 'highContrast';
+          BorderSide sideOf(Object? shape) =>
+              (shape as RoundedRectangleBorder?)?.side ?? BorderSide.none;
+          final sides = <String, BorderSide>{
+            'fab': sideOf(theme.floatingActionButtonTheme.shape),
+            'expansionTile': sideOf(theme.expansionTileTheme.shape),
+            'segmentedButton':
+                theme.segmentedButtonTheme.style?.side?.resolve({}) ??
+                BorderSide.none,
+            'appBar':
+                (theme.appBarTheme.shape as Border?)?.bottom ?? BorderSide.none,
+            'dropdownMenu':
+                theme.dropdownMenuTheme.menuStyle?.side?.resolve({}) ??
+                BorderSide.none,
+            'iconButton':
+                theme.iconButtonTheme.style?.side?.resolve({}) ??
+                BorderSide.none,
+            'datePicker': sideOf(theme.datePickerTheme.shape),
+            'timePicker': sideOf(theme.timePickerTheme.shape),
+            'checkbox (ticked)':
+                WidgetStateProperty.resolveAs<BorderSide?>(
+                  theme.checkboxTheme.side,
+                  {WidgetState.selected},
+                ) ??
+                BorderSide.none,
+          };
+          sides.forEach((role, side) {
+            if (hc) {
+              expect(
+                side.style,
+                BorderStyle.solid,
+                reason: '$role: no outline',
+              );
+              expect(side.color, theme.colorScheme.outline, reason: role);
+            } else {
+              expect(side, BorderSide.none, reason: '$name $role is outlined');
+            }
+          });
+          expect(
+            theme.switchTheme.trackOutlineColor?.resolve({
+              WidgetState.selected,
+            }),
+            hc ? theme.colorScheme.outline : isNull,
+          );
+        });
+
+        test('a disabled control keeps looking disabled', () {
+          // High contrast outlines controls at full strength. A disabled
+          // control must not get that outline, or an inert control looks like
+          // one you can press; it takes onSurface at 38% instead.
+          final scheme = theme.colorScheme;
+          final dimmed = scheme.onSurface.withValues(alpha: 0.38);
+          final outlines = <String, BorderSide? Function(Set<WidgetState>)>{
+            'iconButton': (s) => theme.iconButtonTheme.style?.side?.resolve(s),
+            'segmentedButton': (s) =>
+                theme.segmentedButtonTheme.style?.side?.resolve(s),
+            'switch track': (s) {
+              final c = theme.switchTheme.trackOutlineColor?.resolve(s);
+              return c == null ? null : BorderSide(color: c);
+            },
+            'checkbox': (s) => WidgetStateProperty.resolveAs<BorderSide?>(
+              theme.checkboxTheme.side,
+              s,
+            ),
+          };
+          outlines.forEach((role, resolve) {
+            for (final states in [
+              {WidgetState.disabled},
+              {WidgetState.disabled, WidgetState.selected},
+            ]) {
+              final color = resolve(states)?.color;
+              if (name == 'highContrast') {
+                expect(color, dimmed, reason: '$role $states');
+              } else {
+                expect(color, isNull, reason: '$name $role $states');
+              }
+            }
+            if (name == 'highContrast') {
+              expect(
+                resolve({WidgetState.selected})?.color,
+                scheme.outline,
+                reason: '$role enabled',
+              );
+            }
+          });
+          if (name == 'highContrast') {
+            // An errored checkbox keeps Material's error colour, and a
+            // disabled one is dimmed even when it is also in error.
+            Color? checkbox(Set<WidgetState> states) =>
+                WidgetStateProperty.resolveAs<BorderSide?>(
+                  theme.checkboxTheme.side,
+                  states,
+                )?.color;
+            expect(checkbox({WidgetState.error}), scheme.error);
+            expect(checkbox({WidgetState.disabled, WidgetState.error}), dimmed);
+          }
+        });
+      });
+    }
+
+    testWidgets('a long screen title at 2x text does not overflow the bar', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(360, 640));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: MediaQuery(
+            data: const MediaQueryData(
+              size: Size(360, 640),
+              textScaler: TextScaler.linear(2),
+            ),
+            child: Scaffold(
+              appBar: AppBar(
+                title: const Text('Contra dance collection settings'),
+                actions: [
+                  IconButton(onPressed: () {}, icon: const Icon(Icons.search)),
+                  IconButton(onPressed: () {}, icon: const Icon(Icons.sort)),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+      expect(tester.takeException(), isNull);
+      final title = tester.getRect(
+        find.text('Contra dance collection settings'),
+      );
+      final bar = tester.getRect(find.byType(AppBar));
+      expect(
+        bar.contains(title.topLeft) && bar.contains(title.bottomLeft),
+        isTrue,
+      );
+    });
   });
 }

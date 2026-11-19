@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../export/share_sanitization.dart';
+import '../theme/app_motion.dart';
 
 /// The six contact fields in their canonical display order (contact 1 before
 /// contact 2, name → phone → email within each).
@@ -56,6 +57,7 @@ class VenueContactShareDialog extends StatefulWidget {
     return showDialog<Set<VenueContactField>>(
       context: context,
       builder: (_) => VenueContactShareDialog(fields: fields),
+      animationStyle: AppMotion.styleFor(context),
     );
   }
 

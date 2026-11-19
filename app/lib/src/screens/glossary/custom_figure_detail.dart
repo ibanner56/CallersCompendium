@@ -17,6 +17,7 @@ import '../../diagnostics/error_log.dart';
 import '../../glossary/custom_figures.dart';
 import '../../glossary/user_figure_defaults.dart';
 import '../../search/facet_labels.dart';
+import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/destructive_button_style.dart';
 import 'compound_editor_screen.dart';
@@ -240,6 +241,7 @@ class _GlossaryCustomFigureDetailState
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (confirmed != true) return;
     if (isFigure) {
@@ -355,6 +357,7 @@ class _GlossaryCustomFigureDetailState
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (confirmed != true) return;
     // Read again now, not when the dialog opened, and before the switch,
