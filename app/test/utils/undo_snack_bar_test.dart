@@ -222,6 +222,35 @@ void main() {
       expect(find.text('Undo'), findsNothing);
     });
 
+    testWidgets('the shortest choice counts from when the prompt is fully in', (
+      tester,
+    ) async {
+      final seconds = ValueNotifier<int>(2);
+      addTearDown(seconds.dispose);
+      await tester.pumpWidget(
+        _harness(
+          accessibleNavigation: false,
+          onUndo: () {},
+          duration: null,
+          undoSeconds: seconds,
+        ),
+      );
+      await _showAndAwaitEntrance(tester);
+
+      // 1.8 s after the entrance ended, 2.1 s after it began: a timer that
+      // started with the entrance would have sent it out by now.
+      await tester.pump(const Duration(milliseconds: 1800));
+      expect(
+        tester.widget<SnackBar>(find.byType(SnackBar)).animation!.status,
+        AnimationStatus.completed,
+        reason: 'still fully in, not on its way out',
+      );
+
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+      expect(find.text('Undo'), findsNothing);
+    });
+
     testWidgets(
       '"Until I close it" never times out and offers a close button',
       (tester) async {
