@@ -13,6 +13,7 @@ import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/destructive_button_style.dart';
 import '../../theme/keyboard_dismiss.dart';
+import '../../widgets/bar_timing.dart';
 import '../../widgets/figure_list_editor.dart';
 import '../../widgets/section_header.dart';
 import '../../widgets/warnings_card.dart';
@@ -529,81 +530,87 @@ class DanceEditorForm extends StatelessWidget {
                   ),
                 ],
                 const SizedBox(height: AppSpacing.xs),
-                FigureListEditor(
-                  drafts: controller.figureDrafts,
-                  taxonomy: taxonomy,
-                  phraseStructure: controller.phraseStructure,
-                  dialect: dialect,
-                  mixer: controller.mixer,
-                  formationShape: controller.formationShape,
-                  moveParamDefaults: moveParamDefaults,
-                  onChanged: controller.onFiguresChanged,
-                  onAdd: controller.addFigure,
-                  onAddMeanwhile: controller.addMeanwhile,
-                  onAddModifier: controller.addModifier,
-                  onAddSequence: controller.addSequence,
-                  freeTextEntry: freeTextEntry,
-                  shorthandMappings: shorthandMappings,
-                  canonicalizeDiscouragedTerms:
-                      CanonicalDiscouragedTermsScope.of(context),
-                  onAddFreeText: controller.insertFreeTextFigures,
-                  freeTextComposerController: controller.freeTextComposer,
-                  pendingMoveTextController: controller.pendingMoveText,
-                  onReplaceWithFreeText: controller.replaceWithFreeTextFigures,
-                  onSubmitCompoundShorthand: _shorthandSubmit(context),
-                  onReplaceWithShorthand: _shorthandSubmit(context) == null
-                      ? null
-                      : (draft, line) =>
-                            _shorthandSubmit(context, replacing: draft)!(line),
-                  isOwnShorthandToken: _shorthandSubmit(context) == null
-                      ? null
-                      : _isOwnShorthandToken,
-                  onDelete: controller.deleteFigure,
-                  onDuplicate: controller.duplicateFigure,
-                  onReorder: controller.reorderFigure,
-                  showWordingOverride: true,
-                  onGroupWithNext: controller.groupFigureWithNext,
-                  onGroupWithNextAsModifier:
-                      controller.groupFigureWithNextAsModifier,
-                  onGroupWithNextAsSequence:
-                      controller.groupFigureWithNextAsSequence,
-                  onCollapseMeanwhileGroup: controller.collapseMeanwhileGroup,
-                  onConvertToMeanwhile: controller.convertContainerToMeanwhile,
-                  onConvertToModifier: controller.convertContainerToModifier,
-                  onConvertToSequence: controller.convertContainerToSequence,
-                  onUngroupContainer: controller.ungroupContainer,
-                  // The user's own compounds are offered while Custom Figures
-                  // is on; a placeholder already in the draft still expands
-                  // with it off (#709).
-                  compoundOptions: customFiguresShown(context)
-                      ? controller.compoundEntries
-                      : null,
-                  resolveCompound: controller.resolveCompound,
-                  // And so are their new figures (#1023); a use already in
-                  // the draft still renders and edits with it off.
-                  userFigureOptions: customFiguresShown(context)
-                      ? controller.userFigureEntries
-                      : null,
-                  snippetLibraryDefaultFor: snippetLib == null
-                      ? null
-                      : (draft) {
-                          // A placeholder has no walkthrough step of its own.
-                          if (draft.isCompoundPlaceholder) return null;
-                          final figure = draft.toFigure();
-                          if (figure == null) return null;
-                          return snippetLib.resolve(
-                            figureSnippetSignature(figure, taxonomy),
-                          );
-                        },
-                  onSnippetCommitted: snippetLib == null
-                      ? null
-                      : (draft) => _handleWalkthroughSnippetCommit(
-                          context,
-                          draft,
-                          controller,
-                          taxonomy,
-                          snippetLib,
-                        ),
+                _withBarTiming(
+                  FigureListEditor(
+                    drafts: controller.figureDrafts,
+                    taxonomy: taxonomy,
+                    phraseStructure: controller.phraseStructure,
+                    dialect: dialect,
+                    mixer: controller.mixer,
+                    formationShape: controller.formationShape,
+                    moveParamDefaults: moveParamDefaults,
+                    onChanged: controller.onFiguresChanged,
+                    onAdd: controller.addFigure,
+                    onAddMeanwhile: controller.addMeanwhile,
+                    onAddModifier: controller.addModifier,
+                    onAddSequence: controller.addSequence,
+                    freeTextEntry: freeTextEntry,
+                    shorthandMappings: shorthandMappings,
+                    canonicalizeDiscouragedTerms:
+                        CanonicalDiscouragedTermsScope.of(context),
+                    onAddFreeText: controller.insertFreeTextFigures,
+                    freeTextComposerController: controller.freeTextComposer,
+                    pendingMoveTextController: controller.pendingMoveText,
+                    onReplaceWithFreeText:
+                        controller.replaceWithFreeTextFigures,
+                    onSubmitCompoundShorthand: _shorthandSubmit(context),
+                    onReplaceWithShorthand: _shorthandSubmit(context) == null
+                        ? null
+                        : (draft, line) => _shorthandSubmit(
+                            context,
+                            replacing: draft,
+                          )!(line),
+                    isOwnShorthandToken: _shorthandSubmit(context) == null
+                        ? null
+                        : _isOwnShorthandToken,
+                    onDelete: controller.deleteFigure,
+                    onDuplicate: controller.duplicateFigure,
+                    onReorder: controller.reorderFigure,
+                    showWordingOverride: true,
+                    onGroupWithNext: controller.groupFigureWithNext,
+                    onGroupWithNextAsModifier:
+                        controller.groupFigureWithNextAsModifier,
+                    onGroupWithNextAsSequence:
+                        controller.groupFigureWithNextAsSequence,
+                    onCollapseMeanwhileGroup: controller.collapseMeanwhileGroup,
+                    onConvertToMeanwhile:
+                        controller.convertContainerToMeanwhile,
+                    onConvertToModifier: controller.convertContainerToModifier,
+                    onConvertToSequence: controller.convertContainerToSequence,
+                    onUngroupContainer: controller.ungroupContainer,
+                    // The user's own compounds are offered while Custom Figures
+                    // is on; a placeholder already in the draft still expands
+                    // with it off (#709).
+                    compoundOptions: customFiguresShown(context)
+                        ? controller.compoundEntries
+                        : null,
+                    resolveCompound: controller.resolveCompound,
+                    // And so are their new figures (#1023); a use already in
+                    // the draft still renders and edits with it off.
+                    userFigureOptions: customFiguresShown(context)
+                        ? controller.userFigureEntries
+                        : null,
+                    snippetLibraryDefaultFor: snippetLib == null
+                        ? null
+                        : (draft) {
+                            // A placeholder has no walkthrough step of its own.
+                            if (draft.isCompoundPlaceholder) return null;
+                            final figure = draft.toFigure();
+                            if (figure == null) return null;
+                            return snippetLib.resolve(
+                              figureSnippetSignature(figure, taxonomy),
+                            );
+                          },
+                    onSnippetCommitted: snippetLib == null
+                        ? null
+                        : (draft) => _handleWalkthroughSnippetCommit(
+                            context,
+                            draft,
+                            controller,
+                            taxonomy,
+                            snippetLib,
+                          ),
+                  ),
                 ),
                 if (controller.warnings.isNotEmpty) ...[
                   const SizedBox(height: AppSpacing.md),
@@ -699,6 +706,18 @@ class DanceEditorForm extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// [child] timed in bars where the dance is ([BarTimingScope.beatsPerBarFor]):
+  /// an English dance whose tune has one meter throughout.
+  Widget _withBarTiming(Widget child) {
+    final beatsPerBar = BarTimingScope.beatsPerBarFor(
+      controller.form,
+      controller.phraseStructure,
+    );
+    return beatsPerBar == null
+        ? child
+        : BarTimingScope(beatsPerBar: beatsPerBar, child: child);
   }
 
   /// The Composed date, then who interpreted the dance and when: in More

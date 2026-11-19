@@ -114,6 +114,11 @@ bool isNewDanceEditorDraftKey(String key) {
 ///   dance can hold them only if sync has brought them since, which the
 ///   restore prompt reports as a change to the dance (AUTH-10).
 ///
+/// - `spanStated` (true, or omitted) on a sequence that states its own span
+///   (ADR-006 §5.5). A sequence's `beatsTouched` is read from it alone, since
+///   a build before spans wrote `beatsTouched` on every sequence it loaded.
+///   A build that ignores it counts the sequence's steps, as it always did.
+///
 /// An older build does look for a new dance's draft under the shared key
 /// `editor_draft:new` only, so after a downgrade it does not
 /// offer a draft written under a per-editor key. The draft is
@@ -644,7 +649,11 @@ FigureDraftSnapshot _parseFigureDraftSnapshot(
     // Additive/tolerant (AUTH-5): a draft from before the flag was written
     // reads a stored count as the caller's, except a group's 0, which
     // follows its sides (AUTH-11).
+    // A sequence's flag marks a span of its own (ADR-006 §5.5), which only
+    // `spanStated` records: a build before spans wrote `beatsTouched` on
+    // every sequence it loaded, over a count it never kept up to date.
     beatsTouched: switch (m['beatsTouched']) {
+      _ when containerKind == sequenceMove => m['spanStated'] == true,
       final bool touched => touched,
       _ => _legacyBeatsTouched(
         normalized?.params ?? parsedParams,
@@ -713,6 +722,10 @@ Map<String, Object?> _figureDraftJson(FigureDraftSnapshot draft) {
     'progression': draft.progression,
     'sv': draft.schemaVersion,
     'beatsTouched': draft.beatsTouched,
+    if (draft.sequenceFigures != null &&
+        draft.beatsTouched &&
+        draft.params['beats'] is int)
+      'spanStated': true,
     if (draft.assumedSubject) 'assumedSubject': true,
     if (draft.customOrigin == CustomOrigin.importGap)
       'customOrigin': 'importGap',

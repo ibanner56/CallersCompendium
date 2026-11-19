@@ -5055,6 +5055,60 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String danceFigureBars(String bars, int halfBars) {
+    String _temp0 = intl.Intl.pluralLogic(
+      halfBars,
+      locale: localeName,
+      other: '$bars Takte',
+      two: '$bars Takt',
+      one: '$bars Takt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get danceEditorBarsLabel => 'Takte';
+
+  @override
+  String get danceEditorStepUntimed => 'Ohne eigene Taktangabe';
+
+  @override
+  String danceEditorBarsRangeError(int max) {
+    return 'Ganze oder halbe Takte eingeben, bis $max';
+  }
+
+  @override
+  String danceEditorHalfBarRefused(int beatsPerBar) {
+    return 'Nur ganze Takte bei $beatsPerBar Schlägen pro Takt';
+  }
+
+  @override
+  String get danceEditorSequenceSpanLabel => 'Takte für alle';
+
+  @override
+  String get danceEditorSequenceSpanEmptyHelp =>
+      'Leer lassen, um die Takte der Schritte zu addieren, oder die Takte der ganzen Sequenz angeben, etwa „A, B und C in Takt 1–4“.';
+
+  @override
+  String get danceEditorSequenceSpanHelp =>
+      'Die Schritte teilen sich diese Takte, und jeder darf seine eigenen Takte leer lassen.';
+
+  @override
+  String danceEditorSequenceSpanMismatch(String steps, String span) {
+    return 'Die Schritte dauern $steps, die Sequenz aber $span.';
+  }
+
+  @override
+  String danceEditorSequenceSpanNoRoom(String steps, String span) {
+    return 'Die Schritte mit eigenen Takten dauern $steps der $span der Sequenz, sodass für die übrigen nichts bleibt.';
+  }
+
+  @override
+  String danceEditorSequenceOverPhraseTimed(String length, String limit) {
+    return 'Diese Sequenz dauert $length, länger als eine Phrase ($limit).';
+  }
+
+  @override
   String get danceFigureProgressionSemantic => 'Progression';
 
   @override
@@ -8807,6 +8861,36 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String validationSequenceExceedsPhrase(int position, int actual, int limit) {
     return 'Eine Sequenz in Figur $position hat $actual Beats und ist länger als eine Phrase ($limit Beats).';
+  }
+
+  @override
+  String validationSequenceSpanMismatch(
+    int position,
+    int actual,
+    int expected,
+  ) {
+    return 'Die Schritte der Sequenz in Figur $position dauern $actual Schläge; die Sequenz dauert $expected.';
+  }
+
+  @override
+  String validationSequenceSpanNoRoom(int position, int actual, int expected) {
+    return 'Die Schritte mit Zeitangabe in der Sequenz in Figur $position dauern $actual Schläge, sodass von ihren $expected für die übrigen nichts bleibt.';
+  }
+
+  @override
+  String validationOtherFormFigures(
+    int count,
+    String danceForm,
+    String figureForm,
+    String pickerForm,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Figuren stammen',
+      one: '1 Figur stammt',
+    );
+    return 'Dies ist ein Tanz der Art $danceForm, aber $_temp0 aus $figureForm. Sie bleiben, wie sie sind, aber die Figurenauswahl bietet nur Figuren der Art $pickerForm an.';
   }
 
   @override

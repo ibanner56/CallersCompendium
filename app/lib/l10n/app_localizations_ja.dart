@@ -4776,6 +4776,58 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String danceFigureBars(String bars, int halfBars) {
+    String _temp0 = intl.Intl.pluralLogic(
+      halfBars,
+      locale: localeName,
+      other: '$bars小節',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get danceEditorBarsLabel => '小節';
+
+  @override
+  String get danceEditorStepUntimed => '独自の長さなし';
+
+  @override
+  String danceEditorBarsRangeError(int max) {
+    return '$maxまでの整数または半小節で入力してください';
+  }
+
+  @override
+  String danceEditorHalfBarRefused(int beatsPerBar) {
+    return '1小節$beatsPerBar拍では小節単位で入力してください';
+  }
+
+  @override
+  String get danceEditorSequenceSpanLabel => '全体の小節';
+
+  @override
+  String get danceEditorSequenceSpanEmptyHelp =>
+      '空欄にするとステップの小節を合計します。「A、B、Cを1〜4小節で」のように、シーケンス全体の小節を入力することもできます。';
+
+  @override
+  String get danceEditorSequenceSpanHelp =>
+      'ステップはこの小節を共有し、各ステップは自分の小節を空欄にできます。';
+
+  @override
+  String danceEditorSequenceSpanMismatch(String steps, String span) {
+    return 'ステップは$stepsですが、シーケンスは$spanです。';
+  }
+
+  @override
+  String danceEditorSequenceSpanNoRoom(String steps, String span) {
+    return '小節を持つステップがシーケンスの$spanのうち$stepsを使い、残りのステップの分がありません。';
+  }
+
+  @override
+  String danceEditorSequenceOverPhraseTimed(String length, String limit) {
+    return 'このシーケンスは$lengthで、1フレーズ（$limit）より長くなっています。';
+  }
+
+  @override
   String get danceFigureProgressionSemantic => 'プログレッション';
 
   @override
@@ -8354,6 +8406,35 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String validationSequenceExceedsPhrase(int position, int actual, int limit) {
     return 'フィギュア$positionのシーケンスは$actual拍で、1フレーズ（$limit拍）より長くなっています。';
+  }
+
+  @override
+  String validationSequenceSpanMismatch(
+    int position,
+    int actual,
+    int expected,
+  ) {
+    return 'フィギュア$positionのシーケンスのステップは$actual拍ですが、シーケンスは$expected拍です。';
+  }
+
+  @override
+  String validationSequenceSpanNoRoom(int position, int actual, int expected) {
+    return 'フィギュア$positionのシーケンスで長さのあるステップが$actual拍を使い、$expected拍のうち残りのステップの分がありません。';
+  }
+
+  @override
+  String validationOtherFormFigures(
+    int count,
+    String danceForm,
+    String figureForm,
+    String pickerForm,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count個のフィギュア',
+    );
+    return 'これは$danceFormのダンスですが、$_temp0が$figureFormのものです。そのまま残りますが、フィギュアの選択肢には$pickerFormのフィギュアだけが表示されます。';
   }
 
   @override
