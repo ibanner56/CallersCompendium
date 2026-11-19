@@ -4371,7 +4371,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       leading: Icon(Icons.tune, color: colorScheme.primary),
       title: Text(
         l10n.danceEditorMoreDetailsTitle,
-        style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+        style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
       ),
       initiallyExpanded: false,
       maintainState: true,

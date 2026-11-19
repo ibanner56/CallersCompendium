@@ -291,7 +291,7 @@ class _ContrastBadge extends StatelessWidget {
                 : l10n.themeEditorRatioFail(ratioText),
             style: theme.textTheme.labelSmall?.copyWith(
               color: color,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],
@@ -360,7 +360,7 @@ class _PreviewCard extends StatelessWidget {
             style: TextStyle(
               color: scheme.onSurface,
               fontSize: 20,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(height: 4),

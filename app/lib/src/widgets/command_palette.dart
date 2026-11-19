@@ -433,7 +433,7 @@ class _GroupHeader extends StatelessWidget {
         label,
         style: theme.textTheme.labelSmall?.copyWith(
           color: theme.colorScheme.onSurfaceVariant,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w700,
           letterSpacing: 0.6,
         ),
       ),

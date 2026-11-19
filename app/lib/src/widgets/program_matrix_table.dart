@@ -1171,7 +1171,7 @@ class _SectionHeader extends StatelessWidget {
           label,
           style: theme.textTheme.titleSmall?.copyWith(
             color: theme.colorScheme.primary,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w700,
           ),
         ),
       ),
@@ -1224,7 +1224,7 @@ class _MoveCard extends StatelessWidget {
                   child: Text(
                     summary.label,
                     style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),

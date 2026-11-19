@@ -3655,7 +3655,7 @@ class _DanceListScreenState extends State<DanceListScreen>
             child: Text(
               label,
               style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),

@@ -3662,7 +3662,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
             icon: Icons.info_outline,
             child: Text(
               message,
-              style: const TextStyle(fontWeight: FontWeight.w600),
+              style: const TextStyle(fontWeight: FontWeight.w700),
             ),
           ),
         ),
@@ -3745,7 +3745,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           kind: NoticeKind.warning,
           child: Text(
             message,
-            style: const TextStyle(fontWeight: FontWeight.w600),
+            style: const TextStyle(fontWeight: FontWeight.w700),
           ),
         ),
       ),
@@ -3769,7 +3769,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           kind: NoticeKind.warning,
           child: Text(
             message,
-            style: const TextStyle(fontWeight: FontWeight.w600),
+            style: const TextStyle(fontWeight: FontWeight.w700),
           ),
         ),
       ),
@@ -3802,7 +3802,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                   padding: const EdgeInsets.only(bottom: AppSpacing.xxs),
                   child: Text(
                     messages.length == 1 ? message : '• $message',
-                    style: const TextStyle(fontWeight: FontWeight.w600),
+                    style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                 ),
             ],

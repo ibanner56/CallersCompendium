@@ -4943,7 +4943,7 @@ class _BeatSummary extends StatelessWidget {
             l10n.danceEditorBeatTotal(totalBeats, expectedBeats),
             key: _key('beats-total'),
             style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
             ),
           ),
           if (mismatch)

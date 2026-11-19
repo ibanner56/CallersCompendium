@@ -90,7 +90,7 @@ class _CrashFallbackState extends State<CrashFallback> {
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       fontSize: 20,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w700,
                       color: Color(0xFF3A2E22),
                     ),
                   ),
