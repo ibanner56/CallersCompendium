@@ -1687,6 +1687,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('slots-empty')), findsOneWidget);
+    // The shared empty state: a heading, and a body saying how to add a slot.
+    expect(find.text('No slots yet'), findsOneWidget);
+    expect(find.text('Add a dance or a note to get started.'), findsOneWidget);
   });
 
   // Removing a primary leaves its alternate first in the list; the editor's
