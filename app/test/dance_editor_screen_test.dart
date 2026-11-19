@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
@@ -2491,6 +2492,35 @@ void main() {
       );
       return repos;
     }
+
+    testWidgets('an English dance times its figures in bars of its meter, '
+        'and follows the meter as it is edited', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        Dance(
+          id: 'd2',
+          title: 'Bars Dance',
+          form: DanceForm.ecd,
+          meter: '3/2',
+          formation: const Formation(FormationShape.dupleMinor),
+          figures: [
+            testFigure(move: 'ecd_circle', params: {'beats': 12}),
+          ],
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+      );
+      await _pumpEditor(tester, repos, danceId: 'd2');
+      // The meter is the rule: twelve beats in 3/2 are four bars, though the
+      // phrase structure is the standard one, two beats a bar.
+      expect(find.text('4 bars'), findsOneWidget);
+
+      await tester.enterText(find.byKey(const ValueKey('meter-field')), '2/2');
+      // At once, not only after the autosave debounce rebuilds the form.
+      await tester.pump();
+      expect(find.text('6 bars'), findsOneWidget);
+      await tester.pumpAndSettle();
+    });
 
     testWidgets('an English dance shows its credits, meter, key and the '
         'improper checkbox up front, and saves edits to them', (tester) async {

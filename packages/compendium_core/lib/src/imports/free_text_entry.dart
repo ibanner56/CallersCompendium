@@ -9,6 +9,7 @@ import '../taxonomy/taxonomy.dart';
 import '../validation/validation.dart';
 import 'beat_implied_balance.dart';
 import 'callersbox_figure_dialect.dart' show hasTopLevelSeparator;
+import 'ecd_bars.dart';
 import 'ecd_figure_parser.dart';
 import 'contradb_figure_dialect.dart'
     show
@@ -409,6 +410,7 @@ List<Figure> parseFreeTextFigureEntry(
   ShorthandMappings? shorthands,
   Dialect? dialect,
   FormationShape? formationShape,
+  String? meter,
 }) {
   final ring = ecdRingDancers(formationShape);
   final trimmed = input.trim();
@@ -430,6 +432,26 @@ List<Figure> parseFreeTextFigureEntry(
       ring,
     );
     if (withShorthands != null) return withShorthands;
+  }
+  // An English line that starts with a bar range (`1-4 partners set`) counts
+  // in bars of the dance's [meter] (ADR-006 W6; Hudson: "the meter is the
+  // rule"): the rest is read, and one figure read in full takes the bars as
+  // its count unless the rest states its own. Anything else keeps the line
+  // whole as typed, with that count.
+  final bars = _isEcd(taxonomy) ? ecdBarCount(trimmed, meter: meter) : null;
+  if (bars != null) {
+    final read = _parseLine(bars.rest, taxonomy, dialect, ringDancers: ring);
+    if (read.length == 1 && !read.single.isCustom) {
+      final figure = read.single;
+      final stated = figure.params['beats'];
+      return [
+        if (stated is int && stated > 0)
+          figure
+        else
+          figure.copyWith(params: {...figure.params, 'beats': bars.beats}),
+      ];
+    }
+    return [_typedCustom(trimmed, bars.beats)];
   }
   return _parseLine(trimmed, taxonomy, dialect, ringDancers: ring);
 }

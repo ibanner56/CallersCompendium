@@ -7774,6 +7774,10 @@
   "@importIssueUnmappedProgression": {
     "x-sourceSha256": "bf5c9c7e01441d77b244f2143ddb4265dcef50ce141739fb57d062a139cdba86"
   },
+  "importIssueBarsMeterUnstated": "Cette danse compte en mesures mais n'indique aucune métrique ; chaque mesure a donc été comptée pour 2 temps. Vérifiez ses comptes.",
+  "@importIssueBarsMeterUnstated": {
+    "x-sourceSha256": "c5a034e9d32006995c2a5565b567e500f8eaac762943f9fde54b3e9554d145d9"
+  },
   "importIssueUnmappedType": "Un type de danse n'a pas été reconnu ; importé comme contra et conservé dans les notes.",
   "@importIssueUnmappedType": {
     "x-sourceSha256": "845eca2d00487b37f677dfd37b12132d108d17c2ad7805c7945b02388a64d06e"
@@ -8137,6 +8141,22 @@
   "importReviewEditError": "Impossible d’importer cette danse à modifier.",
   "@importReviewEditError": {
     "x-sourceSha256": "efa938acdf31d4dcd903bb981c6319d8b7a56f59d2922faf6078d2826413c32f"
+  },
+  "importUsrEnglishTitle": "S'agit-il de danses anglaises ?",
+  "@importUsrEnglishTitle": {
+    "x-sourceSha256": "4ccb8d548911fe8a939c5c7baf01eb8662cb28fe120d64ae579dcdeb47928c7e"
+  },
+  "importUsrEnglishBody": "Caller's Companion classe les danses anglaises comme Contra. Si ce fichier contient des danses anglaises, elles sont lues avec des figures, des formations et des comptes en mesures anglais. Les squares restent des squares.",
+  "@importUsrEnglishBody": {
+    "x-sourceSha256": "9d288ab8ac920411fb6ac0c663e23f107a38dec7eaf2af9d28decf4d5e4315ca"
+  },
+  "importUsrEnglishNo": "Non, lire leur type",
+  "@importUsrEnglishNo": {
+    "x-sourceSha256": "c44b8d516e433e14a6b5ebfbce6e750d783c4be7f4583147f57d6bb385d94f8a"
+  },
+  "importUsrEnglishYes": "Oui, danses anglaises",
+  "@importUsrEnglishYes": {
+    "x-sourceSha256": "d21224b725e3d4039cfc4bec567fc5f11540f8333c508851236ca8c6fc2f0ac4"
   },
   "importReviewEditOverwriteTitle": "Remplacer la danse existante maintenant ?",
   "@importReviewEditOverwriteTitle": {

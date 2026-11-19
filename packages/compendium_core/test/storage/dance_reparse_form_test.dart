@@ -26,17 +26,33 @@ void main() {
       registry.anyForm,
       taxonomyForForm: registry.forForm,
     );
-    Dance gapDance(String id, DanceForm form) => sampleDance(
-      id: id,
-      title: id,
-      figures: [customFigure('set', beats: 4, origin: CustomOrigin.importGap)],
-    ).copyWith(form: form);
+    Dance gapDance(String id, DanceForm form) =>
+        sampleDance(
+          id: id,
+          title: id,
+          figures: [
+            customFigure('set', beats: 4, origin: CustomOrigin.importGap),
+          ],
+        ).copyWith(
+          form: form,
+          meter: form == DanceForm.ecd ? '3/4' : '',
+          phraseStructure: form == DanceForm.ecd ? '4*8*3' : '',
+        );
     await repo.create(gapDance('contra-dance', DanceForm.contra));
     await repo.create(gapDance('ecd-dance', DanceForm.ecd));
 
     final seen = <Taxonomy>[];
-    FigureReparseOutcome reparse(List<Figure> figures, {Taxonomy? taxonomy}) {
+    final meters = <String?>[];
+    final phrases = <String?>[];
+    FigureReparseOutcome reparse(
+      List<Figure> figures, {
+      Taxonomy? taxonomy,
+      String? meter,
+      PhraseStructure? phraseStructure,
+    }) {
       seen.add(taxonomy!);
+      meters.add(meter);
+      phrases.add(phraseStructure?.raw);
       return FigureReparseOutcome(figures: figures, upgradedCount: 0);
     }
 
@@ -45,6 +61,12 @@ void main() {
       seen,
       unorderedEquals([contraTaxonomy, registry.forForm(DanceForm.ecd)]),
     );
+    // Each dance's own meter, so an English line counts bars by it.
+    expect(meters, unorderedEquals(['', '3/4']));
+    // And its phrase structure, the bars' fallback when it states no meter.
+    expect(phrases, unorderedEquals(['', '4*8*3']));
+    meters.clear();
+    phrases.clear();
 
     seen.clear();
     await repo.reparseImportGapFiguresForMany(
@@ -56,6 +78,8 @@ void main() {
       seen,
       unorderedEquals([contraTaxonomy, registry.forForm(DanceForm.ecd)]),
     );
+    expect(meters, unorderedEquals(['', '3/4']));
+    expect(phrases, unorderedEquals(['', '4*8*3']));
   });
 
   test('without taxonomyForForm every dance re-parses with the repository\'s '
@@ -72,7 +96,7 @@ void main() {
     );
     final seen = <Taxonomy?>[];
     await repo.previewImportGapReparse(
-      reparse: (figures, {taxonomy}) {
+      reparse: (figures, {taxonomy, meter, phraseStructure}) {
         seen.add(taxonomy);
         return FigureReparseOutcome(figures: figures, upgradedCount: 0);
       },

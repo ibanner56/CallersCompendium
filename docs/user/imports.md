@@ -425,6 +425,21 @@ are read as English figures, and a "Duple Proper" or "Duple Improper"
 formation becomes a duple minor, proper or improper. A formation that doesn't
 say Improper comes across proper.
 
+Many Caller's Companion libraries of English dances type them all "Contra",
+so before reading a `.USR` file the app asks once: **Are these English country
+dances?** Choose **Yes, English** and every dance in the file but a square comes
+across as an English country dance; choose **No** and each dance comes across by
+its Type, as above. Closing the question reads nothing, and choosing the file
+again asks again.
+
+An English dance takes its meter and key from the dance's Music field ("Key:
+G, Meter: 3/2" gives the meter 3/2 and the key G). A line that starts with a
+bar range, such as `1-4 Partners set and turn single`, `(5-8) circle left` or
+`A1 1-8 lead up`, counts that many bars, and the dance's meter says how many
+beats a bar holds: two in 2/2, 2/4 or 6/8, three in 3/2, 3/4 or 9/8, four in
+4/4 or 12/8. So `1-4` is 8 beats in 2/2 and 12 in 3/2. When the Music field
+gives no meter the app counts two beats a bar and says so in the review.
+
 The app also reads Caller's Companion's abbreviations and wording. "Circle L",
 "pass R shoulder" and "alle R 1.5" keep their direction, shoulder and hand;
 "R&L" is a right and left through; "New Neighbor" and "Corner" mean your next

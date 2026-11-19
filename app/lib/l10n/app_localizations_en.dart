@@ -7880,6 +7880,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'A progression wasn\'t recognized; defaulted to single.';
 
   @override
+  String get importIssueBarsMeterUnstated =>
+      'This dance counts in bars but states no meter, so each bar was counted as 2 beats. Check its counts.';
+
+  @override
   String get importIssueUnmappedType =>
       'A dance type wasn\'t recognized; imported as a contra and preserved in the notes.';
 
@@ -8306,6 +8310,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importReviewEditError => 'Couldn\'t import that dance to edit.';
+
+  @override
+  String get importUsrEnglishTitle => 'Are these English country dances?';
+
+  @override
+  String get importUsrEnglishBody =>
+      'Caller\'s Companion lists English country dances as Contra. If this file holds English dances, they\'re read with English figures, formations and bar counts. Square dances stay squares.';
+
+  @override
+  String get importUsrEnglishNo => 'No, read their types';
+
+  @override
+  String get importUsrEnglishYes => 'Yes, English dances';
 
   @override
   String get importReviewEditOverwriteTitle =>

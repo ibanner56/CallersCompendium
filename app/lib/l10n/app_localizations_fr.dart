@@ -8015,6 +8015,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Une progression n\'a pas été reconnue ; simple par défaut.';
 
   @override
+  String get importIssueBarsMeterUnstated =>
+      'Cette danse compte en mesures mais n\'indique aucune métrique ; chaque mesure a donc été comptée pour 2 temps. Vérifiez ses comptes.';
+
+  @override
   String get importIssueUnmappedType =>
       'Un type de danse n\'a pas été reconnu ; importé comme contra et conservé dans les notes.';
 
@@ -8450,6 +8454,19 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get importReviewEditError =>
       'Impossible d’importer cette danse à modifier.';
+
+  @override
+  String get importUsrEnglishTitle => 'S\'agit-il de danses anglaises ?';
+
+  @override
+  String get importUsrEnglishBody =>
+      'Caller\'s Companion classe les danses anglaises comme Contra. Si ce fichier contient des danses anglaises, elles sont lues avec des figures, des formations et des comptes en mesures anglais. Les squares restent des squares.';
+
+  @override
+  String get importUsrEnglishNo => 'Non, lire leur type';
+
+  @override
+  String get importUsrEnglishYes => 'Oui, danses anglaises';
 
   @override
   String get importReviewEditOverwriteTitle =>

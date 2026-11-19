@@ -2,6 +2,7 @@ import 'package:meta/meta.dart';
 
 import '../model/figure.dart';
 import '../model/formation.dart';
+import '../model/phrase_structure.dart';
 import '../taxonomy/taxonomy.dart';
 
 /// The result of re-parsing a figure list: the (possibly rewritten) [figures]
@@ -31,9 +32,16 @@ class FigureReparseOutcome {
 
 /// A re-parse of a figure list, supplied by the caller of the repository's
 /// reparse methods (`reparseImportGapFigures` from the imports layer in the
-/// app). Injected so `storage/` does not import `imports/`.
+/// app). Injected so `storage/` does not import `imports/`. [meter] and
+/// [phraseStructure] are the dance's own, which an English line's bar range
+/// is counted by.
 typedef FigureReparser =
-    FigureReparseOutcome Function(List<Figure> figures, {Taxonomy? taxonomy});
+    FigureReparseOutcome Function(
+      List<Figure> figures, {
+      Taxonomy? taxonomy,
+      String? meter,
+      PhraseStructure? phraseStructure,
+    });
 
 /// What one English Country Dance's opt-in ECD migration (ADR-006 §12.1 F5)
 /// would write: its new [figures] and [formation], and the counts a preview

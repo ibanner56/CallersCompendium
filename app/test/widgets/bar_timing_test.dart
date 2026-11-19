@@ -46,6 +46,42 @@ void main() {
       );
     });
 
+    test('a stated meter is the rule; with none, the phrase structure', () {
+      expect(
+        BarTimingScope.beatsPerBarFor(
+          DanceForm.ecd,
+          PhraseStructure.standard,
+          meter: '3/2',
+        ),
+        3,
+      );
+      expect(
+        BarTimingScope.beatsPerBarFor(
+          DanceForm.ecd,
+          PhraseStructure.parse('4*8*3'),
+          meter: '6/8',
+        ),
+        2,
+      );
+      expect(
+        BarTimingScope.beatsPerBarFor(
+          DanceForm.ecd,
+          PhraseStructure.parse('4*8*3'),
+          meter: 'a jig',
+        ),
+        3,
+      );
+      // A tune whose parts differ stays in beats, whatever the meter says.
+      expect(
+        BarTimingScope.beatsPerBarFor(
+          DanceForm.ecd,
+          PhraseStructure.parse('2*8*3+2*8*2'),
+          meter: '3/4',
+        ),
+        isNull,
+      );
+    });
+
     test('contra, and a tune whose parts differ in meter, keep beats', () {
       expect(
         BarTimingScope.beatsPerBarFor(

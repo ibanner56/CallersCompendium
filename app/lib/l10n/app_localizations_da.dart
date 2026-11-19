@@ -7915,6 +7915,10 @@ class AppLocalizationsDa extends AppLocalizations {
       'En progression blev ikke genkendt; standard til enkelt.';
 
   @override
+  String get importIssueBarsMeterUnstated =>
+      'Dansen tæller i takter, men angiver ingen taktart, så hver takt blev talt som 2 slag. Tjek dens tællinger.';
+
+  @override
   String get importIssueUnmappedType =>
       'En dansetype blev ikke genkendt; importeret som en contra og bevaret i noterne.';
 
@@ -8341,6 +8345,19 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get importReviewEditError =>
       'Kunne ikke importere den dans til redigering.';
+
+  @override
+  String get importUsrEnglishTitle => 'Er det engelske country dances?';
+
+  @override
+  String get importUsrEnglishBody =>
+      'Caller\'s Companion angiver engelske country dances som Contra. Hvis filen indeholder engelske danse, læses de med engelske figurer, formationer og taktantal. Squaredanse forbliver squaredanse.';
+
+  @override
+  String get importUsrEnglishNo => 'Nej, læs deres typer';
+
+  @override
+  String get importUsrEnglishYes => 'Ja, engelske danse';
 
   @override
   String get importReviewEditOverwriteTitle =>

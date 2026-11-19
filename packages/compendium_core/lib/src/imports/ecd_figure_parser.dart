@@ -49,6 +49,7 @@ import '../model/figure.dart';
 import '../model/formation.dart';
 import '../taxonomy/ecd_taxonomy.dart';
 import '../validation/validation.dart';
+import 'ecd_bars.dart';
 import 'figure_parser.dart' show combineFigureNotes;
 import 'figure_text_scrub.dart';
 import 'structured_draft.dart';
@@ -97,14 +98,30 @@ const int _maxSteps = kMaxSequenceFigures;
 /// `places` stay unstated.
 ///
 /// [scrub] is the scrub to apply (default [scrubFigureText]).
+///
+/// A line that starts with a bar range (`1-4 partners set`, `(5-8) …`,
+/// `A1 1-4 …`, [splitEcdBarRange]) is read without it, and when it states no
+/// [beats] takes its count from it: its bars times the beats in a bar of
+/// [meter] ([ecdBeatsPerBar], 2 when [meter] does not say). A line kept as
+/// custom keeps its whole text, range included, and the count. A range whose
+/// count is over the beats range is not taken.
 Figure? parseEcdFigureLine(
   String rawText, {
   int beats = 0,
   bool progression = false,
   int? ringDancers,
   String Function(String)? scrub,
+  String? meter,
 }) {
-  final safeBeats = beats < 0 ? 0 : beats;
+  var safeBeats = beats < 0 ? 0 : beats;
+  var lineText = rawText;
+  final bars = ecdBarCount(rawText, meter: meter);
+  if (bars != null) {
+    // A count already stated (a Caller's Companion `(8)`, or the count a
+    // custom line kept) stands; the range is still not part of the figure.
+    if (safeBeats == 0) safeBeats = bars.beats;
+    lineText = bars.rest;
+  }
   Figure fallback(String text) => customFigure(
     text,
     beats: safeBeats,
@@ -122,7 +139,9 @@ Figure? parseEcdFigureLine(
   if (scrubbed.length > maxEcdLineLength) return fallback(scrubbed);
   try {
     final read = recognizeEcdLine(
-      scrubbed,
+      identical(lineText, rawText)
+          ? scrubbed
+          : (scrub ?? scrubFigureText)(lineText),
       beats: safeBeats,
       ringDancers: ringDancers,
     );

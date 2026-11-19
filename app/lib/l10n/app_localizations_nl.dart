@@ -7963,6 +7963,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Een progressie werd niet herkend; standaard op enkel.';
 
   @override
+  String get importIssueBarsMeterUnstated =>
+      'Deze dans telt in maten maar vermeldt geen maatsoort, dus elke maat is als 2 tellen geteld. Controleer de tellingen.';
+
+  @override
   String get importIssueUnmappedType =>
       'Een danstype werd niet herkend; geïmporteerd als contra en bewaard in de notities.';
 
@@ -8398,6 +8402,19 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get importReviewEditError =>
       'Die dans kon niet worden geïmporteerd om te bewerken.';
+
+  @override
+  String get importUsrEnglishTitle => 'Zijn dit Engelse country dances?';
+
+  @override
+  String get importUsrEnglishBody =>
+      'Caller\'s Companion zet Engelse country dances onder Contra. Bevat dit bestand Engelse dansen, dan worden ze gelezen met Engelse figuren, formaties en maattellingen. Squaredansen blijven squares.';
+
+  @override
+  String get importUsrEnglishNo => 'Nee, lees hun type';
+
+  @override
+  String get importUsrEnglishYes => 'Ja, Engelse dansen';
 
   @override
   String get importReviewEditOverwriteTitle => 'Bestaande dans nu vervangen?';
