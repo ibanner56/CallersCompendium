@@ -1868,7 +1868,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsAboutLicenseBody =>
-      'Caller\'s Compendium est un logiciel libre, publié sous la GNU Affero General Public License, version 3 (AGPL-3.0). Vous êtes libre de l’utiliser, de l’étudier, de le partager et de le modifier selon les termes de cette licence. Comme l’AGPL l’exige, le code source complet correspondant est proposé à toute personne utilisant l’application.';
+      'Caller\'s Compendium est un logiciel libre, publié sous la GNU Affero General Public License, version 3 (AGPL-3.0-only). Vous êtes libre de l’utiliser, de l’étudier, de le partager et de le modifier selon les termes de cette licence. Comme l’AGPL l’exige, le code source complet correspondant est proposé à toute personne utilisant l’application.';
 
   @override
   String get settingsAboutViewSourceTitle => 'Voir le code source sur GitHub';
@@ -1918,7 +1918,10 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsAboutLegalese =>
-      '© Les contributeurs de Caller\'s Compendium. Publié sous AGPL-3.0.';
+      '© Les contributeurs de Caller\'s Compendium. Publié sous AGPL-3.0-only.';
+
+  @override
+  String get settingsAboutTagline => 'La boîte du caller, au creux de la main';
 
   @override
   String settingsAboutVersion(String version, String codename) {
@@ -1928,11 +1931,10 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String settingsAboutVersionLine(
     String appName,
-    String version,
     String codename,
     String license,
   ) {
-    return '$appName · Version $version, “$codename” · $license';
+    return '$appName · “$codename” · $license';
   }
 
   @override

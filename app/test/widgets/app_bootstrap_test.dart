@@ -10,6 +10,7 @@ import 'package:compendium_app/src/data/migration_guard.dart';
 import 'package:compendium_app/src/update/retirement_banner.dart'
     show kReleasesPageUrl;
 import 'package:compendium_app/src/widgets/app_bootstrap.dart';
+import 'package:compendium_app/src/widgets/brand_mark.dart';
 
 import '../support/fake_url_launcher.dart';
 import '../support/l10n_harness.dart';
@@ -38,6 +39,7 @@ void main() {
 
     // Migration still running: loading, content gated.
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.byType(BrandMark), findsOneWidget);
     expect(find.text('Collection ready'), findsNothing);
 
     completer.complete();
@@ -74,6 +76,9 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Collection ready'), findsNothing);
+    // The brand mark replaces the generic Material error glyph.
+    expect(find.byType(BrandMark), findsOneWidget);
+    expect(find.byIcon(Icons.error_outline), findsNothing);
 
     await tester.tap(find.text('Retry'));
     expect(retried, isTrue);
@@ -334,6 +339,9 @@ void main() {
     // Rebuild reports 1 of 4 dances done.
     progress.value = const DerivedRebuildProgress(completed: 1, total: 4);
     await tester.pump();
+
+    // The determinate branch keeps the brand mark too.
+    expect(find.byType(BrandMark), findsOneWidget);
 
     indicator = tester.widget<CircularProgressIndicator>(
       find.byType(CircularProgressIndicator),

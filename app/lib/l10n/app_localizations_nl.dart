@@ -1857,7 +1857,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsAboutLicenseBody =>
-      'Caller\'s Compendium is vrije software, uitgebracht onder de GNU Affero General Public License, versie 3 (AGPL-3.0). Je mag het gebruiken, bestuderen, delen en aanpassen onder die licentie. Omdat de AGPL dit vereist, wordt de volledige bijbehorende broncode aangeboden aan iedereen die de app gebruikt.';
+      'Caller\'s Compendium is vrije software, uitgebracht onder de GNU Affero General Public License, versie 3 (AGPL-3.0-only). Je mag het gebruiken, bestuderen, delen en aanpassen onder die licentie. Omdat de AGPL dit vereist, wordt de volledige bijbehorende broncode aangeboden aan iedereen die de app gebruikt.';
 
   @override
   String get settingsAboutViewSourceTitle => 'Broncode bekijken op GitHub';
@@ -1907,7 +1907,10 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsAboutLegalese =>
-      '© De bijdragers van Caller\'s Compendium. Uitgebracht onder AGPL-3.0.';
+      '© De bijdragers van Caller\'s Compendium. Uitgebracht onder AGPL-3.0-only.';
+
+  @override
+  String get settingsAboutTagline => 'De caller-koffer in de palm van je hand';
 
   @override
   String settingsAboutVersion(String version, String codename) {
@@ -1917,11 +1920,10 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String settingsAboutVersionLine(
     String appName,
-    String version,
     String codename,
     String license,
   ) {
-    return '$appName · Versie $version, “$codename” · $license';
+    return '$appName · “$codename” · $license';
   }
 
   @override

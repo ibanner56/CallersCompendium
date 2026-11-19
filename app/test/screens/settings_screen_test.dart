@@ -815,6 +815,37 @@ void main() {
       expect(find.text('Edit terms'), findsNothing);
     });
 
+    testWidgets('a tap outside keeps a dialect name once it is edited', (
+      tester,
+    ) async {
+      final ctx = await _pumpSettings(tester);
+      await ctx.dialectLibrary.upsert(Dialect(name: 'Old name'));
+      await openDialect(tester);
+      await tester.pumpAndSettle();
+      const field = ValueKey('dialect-name-field');
+
+      await tester.tap(find.byKey(const ValueKey('dialect-menu-Old name')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Rename'));
+      await tester.pumpAndSettle();
+
+      // Untouched, the barrier still closes it.
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
+      expect(find.byKey(field), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey('dialect-menu-Old name')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Rename'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(field), 'New name');
+      await tester.pump();
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
+      expect(find.byKey(field), findsOneWidget);
+      expect(find.text('New name'), findsOneWidget);
+    });
+
     testWidgets('renaming a custom dialect updates the list + active pointer', (
       tester,
     ) async {

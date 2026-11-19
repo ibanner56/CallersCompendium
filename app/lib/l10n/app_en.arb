@@ -2268,9 +2268,9 @@
   "@settingsAboutLicenseHeader": {
     "description": "About section header introducing the app's software license notice."
   },
-  "settingsAboutLicenseBody": "Caller's Compendium is free software, licensed under the GNU Affero General Public License, version 3 (AGPL-3.0). You are free to use, study, share, and modify it under that license. Because the AGPL requires it, the complete corresponding source code is offered to everyone who uses the app.",
+  "settingsAboutLicenseBody": "Caller's Compendium is free software, licensed under the GNU Affero General Public License, version 3 (AGPL-3.0-only). You are free to use, study, share, and modify it under that license. Because the AGPL requires it, the complete corresponding source code is offered to everyone who uses the app.",
   "@settingsAboutLicenseBody": {
-    "description": "Explanatory paragraph about the app's AGPL-3.0 license and the corresponding source-code offer. 'Caller's Compendium', 'GNU Affero General Public License', and 'AGPL-3.0' are proper nouns kept verbatim."
+    "description": "Explanatory paragraph about the app's AGPL-3.0 license and the corresponding source-code offer. 'Caller's Compendium', 'GNU Affero General Public License', and 'AGPL-3.0-only' are proper nouns kept verbatim."
   },
   "settingsAboutViewSourceTitle": "View source on GitHub",
   "@settingsAboutViewSourceTitle": {
@@ -2324,9 +2324,13 @@
   "@settingsAboutViewLicensesSubtitle": {
     "description": "Subtitle for the 'View licenses' tile."
   },
-  "settingsAboutLegalese": "© The Caller's Compendium contributors. Licensed under AGPL-3.0.",
+  "settingsAboutLegalese": "© The Caller's Compendium contributors. Licensed under AGPL-3.0-only.",
   "@settingsAboutLegalese": {
-    "description": "Legal notice shown on the license page. 'The Caller's Compendium' and 'AGPL-3.0' are proper nouns kept verbatim."
+    "description": "Legal notice shown on the license page. 'The Caller's Compendium' and 'AGPL-3.0-only' are proper nouns kept verbatim."
+  },
+  "settingsAboutTagline": "Your caller's box, in the palm of your hand",
+  "@settingsAboutTagline": {
+    "description": "One-line tagline shown under the version on the About brand header, and used as the Linux launcher comment. 'Caller's box' is a colloquial term among dance callers for the bag or case of cards, notes and gear a caller carries; it is not a product name or trademark, so translate the idiom naturally rather than literally."
   },
   "settingsAboutVersion": "Version {version}, \"{codename}\"",
   "@settingsAboutVersion": {
@@ -2342,17 +2346,13 @@
       }
     }
   },
-  "settingsAboutVersionLine": "{appName} · Version {version}, \"{codename}\" · {license}",
+  "settingsAboutVersionLine": "{appName} · \"{codename}\" · {license}",
   "@settingsAboutVersionLine": {
-    "description": "One-line footer at the bottom of the About section combining the app name, version, release codename, and license identifier. The app name, version, codename, and license are proper nouns / identifiers kept verbatim; only the word 'Version' is translatable.",
+    "description": "One-line footer at the bottom of the About section combining the app name, release codename, and license identifier. The version is deliberately not repeated here: it is shown once, in the About header. The app name, codename, and license are proper nouns / identifiers kept verbatim.",
     "placeholders": {
       "appName": {
         "type": "String",
         "example": "Caller's Compendium"
-      },
-      "version": {
-        "type": "String",
-        "example": "1.4.0"
       },
       "codename": {
         "type": "String",
@@ -2360,7 +2360,7 @@
       },
       "license": {
         "type": "String",
-        "example": "AGPL-3.0"
+        "example": "AGPL-3.0-only"
       }
     }
   },

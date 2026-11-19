@@ -80,7 +80,7 @@ on. Because your library lives with you, *you* keep the safety copy; see
 
 ### What does it cost? Is it really open source?
 
-It's free and open source, licensed under **AGPL-3.0**. You'll find the version,
+It's free and open source, licensed under **AGPL-3.0-only**. You'll find the version,
 license, and a link to the source under **Settings › About**.
 
 ### Which devices does it run on?
