@@ -34,12 +34,25 @@ import 'recently_deleted_screen.dart';
 /// The program-import sources offered by the Programs list "Import" menu.
 enum _ProgramImportSource { plaintext, contraDb }
 
-enum _ProgramsCompactAction { importPlaintext, importContraDb, recentlyDeleted }
+enum _ProgramsCompactAction {
+  importPlaintext,
+  importContraDb,
+  toggleArchived,
+  recentlyDeleted,
+}
 
 /// Programs list (`docs/design/ux.md` §4): non-deleted programs with title,
 /// event date, venue, slot count and a status chip (icon+text). Sort by title /
 /// recently-updated / event date; swipe-to-delete with undo; empty state that
 /// teaches. Mirrors [DanceListScreen].
+///
+/// Archived programs are left out unless the ⋮ menu's "Show archived" is on,
+/// and then they are listed alongside the rest with an "Archived" chip. The
+/// choice lives in this [State], so it outlasts opening a program, the
+/// builder, a rotation across the split breakpoint (the shell's [GlobalKey]),
+/// and a trip to Recently deleted; it is cleared when [isActive] goes false,
+/// which the app shell does when another top-level destination is chosen, and
+/// it is never saved, so it starts off on every launch.
 ///
 /// [onSelectProgram] wires split-pane callers ([ProgramsShell]); when null the
 /// list uses push-navigation to the editor. [selectedProgramId] highlights the
@@ -56,9 +69,26 @@ class ProgramsListScreen extends StatefulWidget {
     this.onCreateProgram,
     this.selectedProgramId,
     this.performResumeStore,
+    this.isActive = true,
+    this.onSelectedProgramHidden,
   });
 
   final void Function(String programId)? onSelectProgram;
+
+  /// Called (split-pane mode) when the selected program ([selectedProgramId])
+  /// stops being listed while it still exists, for whatever reason: archived
+  /// from its row (or by a sync or import) while archived programs are hidden,
+  /// hidden by "Hide archived", or hidden when leaving the Programs tab turns
+  /// "Show archived" off. It is also checked when a rotation into the split
+  /// layout hands over a selection. The host closes it, as it does when the
+  /// program leaves through its own Archive or Delete (the maintainer's
+  /// decision on #2218; the tab-leave case is this list's own consequence of
+  /// it).
+  final VoidCallback? onSelectedProgramHidden;
+
+  /// Whether the Programs destination is the one showing. Leaving it (true to
+  /// false) hides archived programs again; see the class comment.
+  final bool isActive;
 
   /// Called (split-pane mode) when the user taps "New program" so the parent
   /// can host the create flow in a pane. When null, a route is pushed.
@@ -109,6 +139,46 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   Object? _loadError;
   ProgramSort _sort = ProgramSort.title;
   SortDirection _sortDir = ProgramSort.title.defaultDirection;
+
+  /// Whether archived programs are listed too ("Show archived"). Session-only;
+  /// see the class comment for when it resets.
+  bool _showArchived = false;
+
+  @override
+  void didUpdateWidget(ProgramsListScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isActive && !widget.isActive && _showArchived) {
+      setState(() => _showArchived = false);
+      _closeHiddenSelection();
+    } else if (oldWidget.selectedProgramId != widget.selectedProgramId ||
+        (oldWidget.onSelectedProgramHidden == null) !=
+            (widget.onSelectedProgramHidden == null)) {
+      // A rotation into the split layout hands this list a selection (and the
+      // callback) the narrow layout kept while the list could not report it:
+      // a program hidden while narrow must close now, not at the next write.
+      _closeHiddenSelection();
+    }
+  }
+
+  void _toggleShowArchived() {
+    setState(() => _showArchived = !_showArchived);
+    _closeHiddenSelection();
+  }
+
+  /// Tells the host when the selected program is in the data but no longer
+  /// listed, after the frame (the host's `setState` must not run mid-build).
+  void _closeHiddenSelection() {
+    final selected = widget.selectedProgramId;
+    final onHidden = widget.onSelectedProgramHidden;
+    if (selected == null || onHidden == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || widget.selectedProgramId != selected) return;
+      final all = _programs ?? const <Program>[];
+      final exists = all.any((p) => p.id == selected);
+      final listed = _visiblePrograms.any((p) => p.id == selected);
+      if (exists && !listed) onHidden();
+    });
+  }
 
   /// The live Programs list (issue #768).
   ///
@@ -330,6 +400,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
       _venuesById = snapshot.venuesById;
       _loadError = null;
     });
+    _closeHiddenSelection();
     final focusIds = _pendingFocusIds;
     if (focusIds.isEmpty) return;
     _pendingFocusIds = const [];
@@ -366,8 +437,15 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
         DateTime(date.year, date.month, date.day),
   };
 
+  /// The programs this list shows: all of them with "Show archived" on, else
+  /// the ones not archived.
+  List<Program> get _visiblePrograms => [
+    for (final program in _programs ?? const <Program>[])
+      if (_showArchived || !program.isArchived) program,
+  ];
+
   List<Program> _sortedPrograms({required bool ignoreLeadingArticles}) {
-    final programs = [...?_programs];
+    final programs = _visiblePrograms;
     final descending = _sortDir == SortDirection.descending;
     int flip(int cmp) => descending ? -cmp : cmp;
     switch (_sort) {
@@ -514,6 +592,53 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     );
   }
 
+  /// Archives [program] from its row's ⋮ menu, with an Undo. Focus moves as for
+  /// a delete when the row leaves the list (archived programs hidden), and
+  /// stays on the row when it does not.
+  Future<void> _archive(Program program, List<String> focusAfter) async {
+    _pendingFocusIds = _showArchived ? [program.id] : focusAfter;
+    final archived = await _repos.programs.archive(
+      program.id,
+      at: DateTime.now().toUtc(),
+    );
+    // Only a write that happened is announced: `false` means the program was
+    // archived or deleted elsewhere meanwhile, and the stream shows that.
+    if (!archived) _pendingFocusIds = const [];
+    if (!archived || !mounted) return;
+    final l10n = AppLocalizations.of(context);
+    showUndoSnackBar(
+      ScaffoldMessenger.of(context),
+      key: const ValueKey('program-archived-snackbar'),
+      message: l10n.programsArchivedSnack(program.title),
+      undoLabel: l10n.commonUndo,
+      undoFailedMessage: l10n.commonUndoFailed,
+      accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
+      onUndo: () async {
+        // A write the stream carries, as for the delete's Undo above.
+        _pendingFocusIds = [program.id];
+        await _repos.programs.unarchive(program.id, at: DateTime.now().toUtc());
+      },
+    );
+  }
+
+  /// Unarchives [program] from its row's ⋮ menu (only offered while archived
+  /// programs are shown). The row stays where it is.
+  Future<void> _unarchive(Program program) async {
+    final unarchived = await _repos.programs.unarchive(
+      program.id,
+      at: DateTime.now().toUtc(),
+    );
+    if (!unarchived || !mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        key: const ValueKey('program-unarchived-snackbar'),
+        content: Text(
+          AppLocalizations.of(context).programsUnarchivedSnack(program.title),
+        ),
+      ),
+    );
+  }
+
   Future<void> _duplicateFromList(Program program) async {
     final l10n = AppLocalizations.of(context);
     final now = DateTime.now().toUtc();
@@ -639,8 +764,13 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
                 key: const ValueKey('programs-more-actions'),
                 tooltip: l10n.danceMoreActions,
                 icon: const Icon(Icons.more_vert),
-                onSelected: (_) => _openRecentlyDeleted(),
+                onSelected: (action) => switch (action) {
+                  _ProgramsCompactAction.toggleArchived =>
+                    _toggleShowArchived(),
+                  _ => _openRecentlyDeleted(),
+                },
                 itemBuilder: (context) => [
+                  _showArchivedMenuItem(l10n),
                   PopupMenuItem(
                     key: const ValueKey('programs-recently-deleted'),
                     value: _ProgramsCompactAction.recentlyDeleted,
@@ -666,6 +796,18 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     );
   }
 
+  /// "Show archived" / "Hide archived", just above "Recently deleted" in the
+  /// ⋮ menu on every layout.
+  PopupMenuItem<_ProgramsCompactAction> _showArchivedMenuItem(
+    AppLocalizations l10n,
+  ) => PopupMenuItem(
+    key: const ValueKey('programs-toggle-archived'),
+    value: _ProgramsCompactAction.toggleArchived,
+    child: Text(
+      _showArchived ? l10n.programsHideArchived : l10n.programsShowArchived,
+    ),
+  );
+
   Widget _buildCompactMoreActions(AppLocalizations l10n) {
     return PopupMenuButton<_ProgramsCompactAction>(
       key: const ValueKey('programs-more-actions'),
@@ -677,6 +819,8 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
             _openPlaintextImport();
           case _ProgramsCompactAction.importContraDb:
             _openContraDbImport();
+          case _ProgramsCompactAction.toggleArchived:
+            _toggleShowArchived();
           case _ProgramsCompactAction.recentlyDeleted:
             _openRecentlyDeleted();
         }
@@ -690,7 +834,9 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
           value: _ProgramsCompactAction.importContraDb,
           child: Text(l10n.importProgramFromContraDb),
         ),
+        _showArchivedMenuItem(l10n),
         PopupMenuItem(
+          key: const ValueKey('programs-recently-deleted'),
           value: _ProgramsCompactAction.recentlyDeleted,
           child: Text(l10n.collectionRecentlyDeletedTooltip),
         ),
@@ -742,11 +888,34 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     final sorted = _sortedPrograms(
       ignoreLeadingArticles: SortIgnoreArticlesScope.of(context),
     );
+    if (sorted.isEmpty) {
+      // Every program is archived, and archived programs are hidden.
+      return EmptyState(
+        key: const ValueKey('all-archived-state'),
+        icon: EmptyState.glyph(context, Icons.archive_outlined),
+        title: l10n.programsAllArchivedTitle,
+        body: l10n.programsAllArchivedBody,
+        actions: [
+          OutlinedButton.icon(
+            key: const ValueKey('empty-show-archived'),
+            onPressed: _toggleShowArchived,
+            icon: const Icon(Icons.visibility_outlined),
+            label: Text(l10n.programsShowArchived),
+          ),
+          FilledButton.icon(
+            key: const ValueKey('empty-new-program'),
+            onPressed: _openNewProgram,
+            icon: const Icon(Icons.add),
+            label: Text(l10n.programsNewProgram),
+          ),
+        ],
+      );
+    }
     return Column(
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-          child: WeekdayHeaderStrip(markedDates: _programEventDates(programs)),
+          child: WeekdayHeaderStrip(markedDates: _programEventDates(sorted)),
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
@@ -827,6 +996,9 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
                     }
                   },
                   onDuplicate: () => _duplicateFromList(program),
+                  onArchive: () =>
+                      _archive(program, _neighbourIds(sorted, index)),
+                  onUnarchive: () => _unarchive(program),
                 ),
               );
             },

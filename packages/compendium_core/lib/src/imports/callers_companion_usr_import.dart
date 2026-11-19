@@ -580,6 +580,7 @@ class CallersCompanionUsrImporter {
             priorVenueId: (priorLinkLive || venueId == null)
                 ? priorVenueId
                 : null,
+            priorArchivedAt: prior.archivedAt,
           );
           if (priorCapturedFor.add(existingId)) {
             priorStates.add(prior);
@@ -1630,11 +1631,16 @@ class CallersCompanionUsrImporter {
   /// re-import of a program nobody has linked yet), [src.venueId] passes
   /// through instead, so a venue-entity-mode resolution computed for *this*
   /// commit (see [commit]'s venue resolution block) isn't discarded.
+  ///
+  /// [priorArchivedAt] carries the matched program's archived state forward for
+  /// the same reason: a `.USR` file cannot express it, so a re-import must not
+  /// bring an archived program back into the Programs list.
   Program _rebuildProgramWithId(
     Program src, {
     required String id,
     required DateTime createdAt,
     required String? priorVenueId,
+    required DateTime? priorArchivedAt,
   }) => Program(
     id: id,
     title: src.title,
@@ -1650,6 +1656,7 @@ class CallersCompanionUsrImporter {
     slots: src.slots,
     createdAt: createdAt,
     updatedAt: src.updatedAt,
+    archivedAt: priorArchivedAt,
     provenance: src.provenance,
   );
 

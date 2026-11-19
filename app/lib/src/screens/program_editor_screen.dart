@@ -143,7 +143,10 @@ class ProgramEditorScreen extends StatefulWidget {
   /// Called after a successful save with the program's id (embedded mode).
   final void Function(String programId)? onSaved;
 
-  /// Called after a successful soft-delete (embedded mode).
+  /// Called when the program leaves the builder from its own actions
+  /// (embedded mode): after a successful soft-delete, or after Archive, which
+  /// leaves the way Delete does (also when the program was already archived
+  /// or deleted elsewhere, so the archive wrote nothing).
   final VoidCallback? onDeleted;
 
   /// Called after duplication with the new copy's id (embedded mode).
@@ -164,8 +167,8 @@ class ProgramEditorScreen extends StatefulWidget {
   static const double twoPaneBreakpoint = 820;
 
   /// Window width (logical pixels) below which Save shows as its icon and, for
-  /// a saved program, Mark all performed, Duplicate and Delete move into a
-  /// "⋮" menu, leaving Export, ⋮ and Save beside the title. (A new, unsaved
+  /// a saved program, Mark all performed, Duplicate, Archive and Delete move
+  /// into a "⋮" menu, leaving Export, ⋮ and Save beside the title. (A new, unsaved
   /// program has no ⋮: its bar holds Export and Save.) Matches `DanceDetailScreen.compactActionsBreakpoint` (Material 3's
   /// compact window-size-class cutoff).
   static const double compactActionsBreakpoint = 600;
@@ -255,6 +258,19 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
 
   /// Re-entrancy guard for [_delete]; see the note there.
   bool _deleting = false;
+
+  /// Re-entrancy guard for [_archive] and [_unarchive], as [_deleting] is for
+  /// [_delete].
+  bool _archiving = false;
+
+  /// Re-entrancy guard for [_duplicate], which replaces this route.
+  bool _duplicating = false;
+
+  /// Whether an action that can take the builder off screen (Save, Archive or
+  /// Unarchive, Delete, Duplicate) is running. Each of them refuses to start
+  /// meanwhile: two of them would pop or replace twice, and the second would
+  /// take the route underneath.
+  bool get _leaving => _saving || _archiving || _deleting || _duplicating;
   bool _dirty = false;
   final Set<Object> _pickerImportOwners = {};
   bool _autoCommitEnabled = false;
@@ -1727,6 +1743,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     createdAt: live.createdAt,
     updatedAt: live.updatedAt,
     deletedAt: live.deletedAt,
+    // The builder never edits this itself (Archive and Unarchive write it
+    // directly), so the stored value always stands.
+    archivedAt: live.archivedAt,
     provenance: live.provenance,
   );
 
@@ -2773,15 +2792,20 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     // this editor loaded only if the person changed it (picked, or cleared),
     // and only then is it written. Otherwise the stored value stands, which
     // keeps a link made while the editor was open.
+    //
+    // The archived state takes the stored value always: nothing in the
+    // builder edits it, and the copy this editor loaded can be stale (archived
+    // or unarchived elsewhere meanwhile, or by this builder's own Unarchive).
+    // The value that counts is read inside the update's own transaction
+    // (`keepStoredArchivedAt` below); `before` only fills in the copy.
+    final before = existing == null
+        ? null
+        : await _repos.programs.getById(existing.id, includeDeleted: true);
     var venueId = draft.venueId;
-    if (existing != null && venueId == _venueIdBaseline) {
-      final stored = await _repos.programs.getById(
-        existing.id,
-        includeDeleted: true,
-      );
-      // A null stored link is a real value (an unlink); only a missing row
-      // leaves the draft's.
-      if (stored != null) venueId = stored.venueId;
+    // A null stored link is a real value (an unlink); only a missing row
+    // leaves the draft's.
+    if (before != null && venueId == _venueIdBaseline) {
+      venueId = before.venueId;
     }
     final persisted = Program(
       id: existing?.id ?? uuidV4(),
@@ -2802,10 +2826,16 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,
       deletedAt: existing?.deletedAt,
+      archivedAt: before != null ? before.archivedAt : existing?.archivedAt,
       provenance: existing?.provenance,
     );
     if (existing != null) {
-      final stored = await _repos.programs.updateAndReadBack(persisted);
+      // The stored archived state is taken inside the write's transaction, so
+      // an Archive or Unarchive that lands after `before` was read survives.
+      final stored = await _repos.programs.updateAndReadBack(
+        persisted,
+        keepStoredArchivedAt: true,
+      );
       _adoptStoredVenueId(sent: draft.venueId, stored: stored.venueId);
       return stored;
     }
@@ -2831,7 +2861,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   }
 
   Future<void> _save() async {
-    if (_pickerImporting) return;
+    // A save racing another leaving action (or itself) would write after the
+    // program has left; Archive and Delete save the edits on screen themselves
+    // first.
+    if (_pickerImporting || _leaving) return;
     if (_parsedPay().isInvalid) {
       // The pay field lives in the collapsed "More details" drawer, whose
       // fields are not built (so not validated) while it is closed: open it and
@@ -2910,43 +2943,54 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   }
 
   Future<void> _duplicate() async {
-    if (_pickerImporting) return;
+    if (_pickerImporting || _leaving) return;
     final source = _existing;
     if (source == null) return;
     final l10n = AppLocalizations.of(context);
     final now = DateTime.now().toUtc();
-    final copy = await _repos.programs.duplicate(
-      id: source.id,
-      newId: uuidV4(),
-      newSlotId: uuidV4,
-      now: now,
-      newTitle: l10n.commonDuplicateTitleSuffix(source.title),
-    );
-    if (!mounted) return;
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.showSnackBar(
-      SnackBar(content: Text(l10n.programsDuplicatedSnack(copy.title))),
-    );
-    // The copy carries the same dance slots, so every derived count moved —
-    // the views of those counts watch the tables themselves (issue #768).
-    if (widget.isEmbedded) {
-      widget.onNavigateTo?.call(copy.id);
-    } else {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute<String>(
-          builder: (_) => ProgramEditorScreen(
-            programId: copy.id,
-            callersBoxOnline: widget.callersBoxOnline,
-            contraDbOnline: widget.contraDbOnline,
-            reimportPicker: widget.reimportPicker,
-          ),
-        ),
+    setState(() => _duplicating = true);
+    var replaced = false;
+    try {
+      final copy = await _repos.programs.duplicate(
+        id: source.id,
+        newId: uuidV4(),
+        newSlotId: uuidV4,
+        now: now,
+        newTitle: l10n.commonDuplicateTitleSuffix(source.title),
       );
+      if (!mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.programsDuplicatedSnack(copy.title))),
+      );
+      // The copy carries the same dance slots, so every derived count moved —
+      // the views of those counts watch the tables themselves (issue #768).
+      if (widget.isEmbedded) {
+        widget.onNavigateTo?.call(copy.id);
+      } else {
+        replaced = true;
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute<String>(
+            builder: (_) => ProgramEditorScreen(
+              programId: copy.id,
+              callersBoxOnline: widget.callersBoxOnline,
+              contraDbOnline: widget.contraDbOnline,
+              reimportPicker: widget.reimportPicker,
+            ),
+          ),
+        );
+      }
+    } finally {
+      // Once replaced, this route is leaving, so the actions stay off; a
+      // failed or embedded duplicate turns them back on.
+      if (!replaced && mounted) setState(() => _duplicating = false);
     }
   }
 
   Future<void> _delete() async {
-    if (_pickerImporting || _deleting) return;
+    // Both guards: a Delete started while an Archive is still saving would pop
+    // twice, the second pop taking the route underneath (or a dialog).
+    if (_pickerImporting || _leaving) return;
     final source = _existing;
     if (source == null) return;
     // The title on screen, which a delete saves first (LIFE-14); a blank one
@@ -3040,6 +3084,132 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     }
   }
 
+  /// Archives the program and leaves the builder the way [_delete] does: it
+  /// saves what is on screen first, and the host closes the program
+  /// (`'archived'` for a pushed route, [ProgramEditorScreen.onDeleted] when
+  /// embedded). No confirmation: archiving loses nothing, and it has an Undo.
+  Future<void> _archive() async {
+    if (_pickerImporting || _leaving) return;
+    final source = _existing;
+    if (source == null) return;
+    final title = switch (_titleController.text.trim()) {
+      '' => source.title,
+      final typed => typed,
+    };
+    setState(() => _archiving = true);
+    var left = false;
+    try {
+      // Finish any started auto-commit first, as [_delete] does, so it cannot
+      // land after the archive with an older copy of the program.
+      _autoCommitTimer?.cancel();
+      _editGeneration++;
+      await _commitQueueTail;
+      if (!mounted) return;
+      final archiving = _dirty ? _draftProgramTitled(title) : null;
+      if (archiving != null) {
+        try {
+          await _persistDraft(archiving);
+        } catch (error, stackTrace) {
+          logCaughtError(
+            error,
+            stackTrace,
+            source: 'program_editor_screen._archive',
+          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(AppLocalizations.of(context).programsSaveError),
+              ),
+            );
+          }
+          return;
+        }
+        if (!mounted) return;
+      }
+      final archived = await _repos.programs.archive(
+        source.id,
+        at: DateTime.now().toUtc(),
+      );
+      if (!mounted) return;
+      await _clearDraft();
+      if (!mounted) return;
+      left = true;
+      // Announced only when it wrote: `false` means it was archived or
+      // deleted elsewhere meanwhile, and the builder leaves either way.
+      if (archived) {
+        final l10n = AppLocalizations.of(context);
+        showUndoSnackBar(
+          ScaffoldMessenger.of(context),
+          message: l10n.programsArchivedSnack(title),
+          undoLabel: l10n.commonUndo,
+          undoFailedMessage: l10n.commonUndoFailed,
+          accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
+          onUndo: () async {
+            await _repos.programs.unarchive(
+              source.id,
+              at: DateTime.now().toUtc(),
+            );
+          },
+        );
+      }
+      if (widget.isEmbedded) {
+        widget.onDeleted?.call();
+      } else {
+        Navigator.of(context).pop('archived');
+      }
+    } finally {
+      if (!left && mounted) setState(() => _archiving = false);
+    }
+  }
+
+  /// Unarchives the program. The builder stays open with its edits; only the
+  /// action and this copy's archived state change. A later save reads the
+  /// stored archived state ([_persistDraft]), so it cannot undo this.
+  Future<void> _unarchive() async {
+    if (_pickerImporting || _leaving) return;
+    final source = _existing;
+    if (source == null) return;
+    setState(() => _archiving = true);
+    try {
+      // A bulk mark's Undo still pending after this write finds the program
+      // changed and goes through `_mergeUndoProgram`, which keeps the stored
+      // archived state rather than this copy's.
+      final unarchived = await _repos.programs.unarchive(
+        source.id,
+        at: DateTime.now().toUtc(),
+      );
+      if (!mounted) return;
+      // Adopt the write's stamp along with the cleared state, so this copy
+      // matches the stored program again (when nothing else changed meanwhile)
+      // and Perform's compare-and-replace does not report a change elsewhere.
+      // Only these two fields: anything else that changed elsewhere stays a
+      // difference, as it should.
+      final stored = await _repos.programs.getById(source.id);
+      if (!mounted) return;
+      final current = _existing;
+      if (current != null && current.id == source.id) {
+        _existing = current.copyWith(
+          clearArchivedAt: stored?.archivedAt == null,
+          archivedAt: stored?.archivedAt,
+          updatedAt: stored?.updatedAt,
+        );
+      }
+      if (unarchived) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(
+                context,
+              ).programsUnarchivedSnack(current?.title ?? source.title),
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _archiving = false);
+    }
+  }
+
   // --- Unsaved-changes guard ------------------------------------------------
 
   Future<bool> _confirmDiscard() async {
@@ -3062,8 +3232,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final hasPersistedProgram = _existing != null;
     final isPersistedNewRoute = widget.isNew && hasPersistedProgram;
     // Below [ProgramEditorScreen.compactActionsBreakpoint] Save shows as its
-    // icon and, for a saved program, Mark all performed, Duplicate and Delete
-    // fold into [_secondaryActionsMenu]. At 360dp the full row left the title
+    // icon and, for a saved program, Mark all performed, Duplicate, Archive
+    // and Delete fold into [_secondaryActionsMenu]. At 360dp the full row left the title
     // 32dp. The builder is always a full-screen route, so the window width is
     // the bar's width.
     final compact =
@@ -3086,9 +3256,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       ],
     );
     final editor = PopScope<Object?>(
-      canPop: !_pickerImporting && !_dirty && !isPersistedNewRoute,
+      // Back waits while a leaving action runs: that action pops or replaces
+      // this route itself, and a second pop would take the route underneath.
+      canPop: !_pickerImporting && !_leaving && !_dirty && !isPersistedNewRoute,
       onPopInvokedWithResult: (didPop, result) async {
-        if (didPop || _pickerImporting) return;
+        if (didPop || _pickerImporting || _leaving) return;
         final ok = await _confirmDiscard();
         if (!context.mounted) return;
         if (ok) {
@@ -3165,13 +3337,27 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 key: const ValueKey('duplicate-program'),
                 tooltip: l10n.commonDuplicate,
                 icon: const Icon(Icons.copy_all_outlined),
-                onPressed: _pickerImporting ? null : _duplicate,
+                onPressed: _pickerImporting || _leaving ? null : _duplicate,
+              ),
+              IconButton(
+                key: const ValueKey('archive-program'),
+                tooltip: _existing!.isArchived
+                    ? l10n.programsUnarchive
+                    : l10n.programsArchive,
+                icon: Icon(
+                  _existing!.isArchived
+                      ? Icons.unarchive_outlined
+                      : Icons.archive_outlined,
+                ),
+                onPressed: _pickerImporting || _leaving
+                    ? null
+                    : (_existing!.isArchived ? _unarchive : _archive),
               ),
               IconButton(
                 key: const ValueKey('delete-program'),
                 tooltip: l10n.commonDelete,
                 icon: const Icon(Icons.delete_outline),
-                onPressed: _pickerImporting || _deleting ? null : _delete,
+                onPressed: _pickerImporting || _leaving ? null : _delete,
               ),
             ],
             // Save goes last in the top bar, as in every full-screen editor
@@ -3185,7 +3371,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 icon: Icons.check,
                 // A phone's bar has no room for the word beside the title.
                 maxWidthFraction: compact ? 0 : 0.4,
-                onPressed: _saving || _pickerImporting ? null : _save,
+                onPressed: _pickerImporting || _leaving ? null : _save,
               ),
           ],
         ),
@@ -3207,8 +3393,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             if (_loaded &&
                 _loadError == null &&
                 _tabController.index == 0 &&
-                !_saving &&
-                !_pickerImporting) {
+                !_pickerImporting &&
+                !_leaving) {
               unawaited(_save());
             }
             return null;
@@ -3226,10 +3412,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     );
   }
 
-  /// The narrow bar's "⋮" menu: Mark all performed, Duplicate and Delete,
-  /// under the keys, labels and enabled rules of the buttons they replace.
+  /// The narrow bar's "⋮" menu: Mark all performed, Duplicate, Archive (or
+  /// Unarchive) and Delete, under the keys, labels and enabled rules of the
+  /// buttons they replace.
   Widget _secondaryActionsMenu() {
     final l10n = AppLocalizations.of(context);
+    final archived = _existing?.isArchived ?? false;
     return PopupMenuButton<void>(
       key: const ValueKey('program-actions-overflow'),
       tooltip: l10n.programsMoreActions,
@@ -3249,7 +3437,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           ),
         PopupMenuItem<void>(
           key: const ValueKey('duplicate-program'),
-          enabled: !_pickerImporting,
+          enabled: !_pickerImporting && !_leaving,
           onTap: _duplicate,
           child: ListTile(
             leading: const Icon(Icons.copy_all_outlined),
@@ -3258,8 +3446,22 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           ),
         ),
         PopupMenuItem<void>(
+          key: const ValueKey('archive-program'),
+          enabled: !_pickerImporting && !_leaving,
+          onTap: archived ? _unarchive : _archive,
+          child: ListTile(
+            leading: Icon(
+              archived ? Icons.unarchive_outlined : Icons.archive_outlined,
+            ),
+            title: Text(
+              archived ? l10n.programsUnarchive : l10n.programsArchive,
+            ),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+        PopupMenuItem<void>(
           key: const ValueKey('delete-program'),
-          enabled: !_pickerImporting && !_deleting,
+          enabled: !_pickerImporting && !_leaving,
           onTap: _delete,
           child: ListTile(
             leading: const Icon(Icons.delete_outline),

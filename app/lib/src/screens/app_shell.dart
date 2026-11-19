@@ -356,7 +356,10 @@ class AppShellState extends State<AppShell> {
           commands: _collectionCommands,
           isActive: _current == _Destination.collection,
         ),
-        _Destination.programs => ProgramsShell(key: _programsShellKey),
+        _Destination.programs => ProgramsShell(
+          key: _programsShellKey,
+          isActive: _current == _Destination.programs,
+        ),
         // Built only while shown, so a hidden Glossary costs nothing.
         _Destination.glossary =>
           _showGlossary ? const GlossaryScreen() : const SizedBox.shrink(),

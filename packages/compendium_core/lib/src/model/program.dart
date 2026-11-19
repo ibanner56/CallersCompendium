@@ -249,6 +249,7 @@ class Program {
     required this.createdAt,
     required this.updatedAt,
     this.deletedAt,
+    this.archivedAt,
     this.provenance,
   }) : slots = List.unmodifiable(
          <ProgramSlot>[...slots]
@@ -343,6 +344,18 @@ class Program {
   final DateTime updatedAt;
   final DateTime? deletedAt;
 
+  /// When the caller archived this program, or `null` when it is not archived
+  /// (the default, and every program before schema v42).
+  ///
+  /// Archiving only hides the program: the Programs list leaves it out unless
+  /// "Show archived" is on, and the Add to program sheet never offers it. It
+  /// still counts toward every dance's calling history, Last called and the
+  /// venue counts, and search still finds it. Unlike [deletedAt] it never
+  /// expires. It travels in Device Sync and the caller's own backups, but not in
+  /// program share files (`sanitizeProgramForShare`), so a recipient always
+  /// gets an unarchived program.
+  final DateTime? archivedAt;
+
   /// Import provenance: where this program came from, keyed on
   /// `(source, externalId)`. For a CC `.USR` import the key makes a re-import
   /// dedupe onto the same program rather than create a duplicate. A program
@@ -353,6 +366,9 @@ class Program {
   final Provenance? provenance;
 
   bool get isDeleted => deletedAt != null;
+
+  /// Whether the program is archived ([archivedAt] is set).
+  bool get isArchived => archivedAt != null;
 
   /// Canonical text of a **break** slot. The one-tap "insert break" affordance
   /// writes exactly this so section derivation ([sectionAtIndex]) keys off it without
@@ -639,6 +655,7 @@ class Program {
     List<ProgramSlot>? slots,
     DateTime? updatedAt,
     DateTime? deletedAt,
+    DateTime? archivedAt,
     Provenance? provenance,
     bool clearEventDate = false,
     bool clearVenue = false,
@@ -648,6 +665,7 @@ class Program {
     bool clearDancerLevel = false,
     bool clearDialectName = false,
     bool clearDeletedAt = false,
+    bool clearArchivedAt = false,
     bool clearPay = false,
     bool clearProvenance = false,
   }) => Program(
@@ -669,6 +687,7 @@ class Program {
     createdAt: createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: clearDeletedAt ? null : (deletedAt ?? this.deletedAt),
+    archivedAt: clearArchivedAt ? null : (archivedAt ?? this.archivedAt),
     provenance: clearProvenance ? null : (provenance ?? this.provenance),
   );
 
@@ -676,7 +695,8 @@ class Program {
   /// performance history and event date cleared. [newSlotId] mints an id per
   /// copied slot.
   /// Provenance is dropped (the copy is the user's own record, not an import),
-  /// mirroring [Dance.duplicate].
+  /// mirroring [Dance.duplicate]. The copy is never archived: it is for a new
+  /// event, so it belongs in the Programs list even when its source does not.
   Program duplicate({
     required String newId,
     required String Function() newSlotId,
@@ -783,7 +803,8 @@ class Program {
       _listEq.equals(other.slots, slots) &&
       other.createdAt == createdAt &&
       other.updatedAt == updatedAt &&
-      other.deletedAt == deletedAt;
+      other.deletedAt == deletedAt &&
+      other.archivedAt == archivedAt;
 
   @override
   int get hashCode => Object.hash(id, title, updatedAt);

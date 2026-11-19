@@ -302,9 +302,11 @@ program stays open, so you can step out to check something and choose **Perform
 this program** again to pick up where you left off. That holds when a tablet is
 rotated while you perform, too, even though the Programs screen switches
 between its one- and two-pane layouts: if it shows the list when you leave,
-open the program again. Closing the program — choosing another one, or going
-back from it to the list — or performing a single dance starts the next session
-fresh. For that reason the
+open the program again. Closing the program — choosing another one, going
+back from it to the list, or archiving it (a two-pane screen also closes an
+archived program the list stops showing, including when you leave Programs
+with **Show archived** on) — or performing a single dance starts the next
+session fresh. For that reason the
 exit check on a single dance says so instead of promising a resume: *Performing
 a single dance doesn't keep your place, so the next time starts fresh.*
 

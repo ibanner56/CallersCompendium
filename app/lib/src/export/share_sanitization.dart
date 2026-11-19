@@ -53,10 +53,17 @@ Dance sanitizeDanceForShare(Dance dance) =>
     dance.rating == null ? dance : dance.copyWith(clearRating: true);
 
 /// Withholds the caller's private business details of a [Program] from a
-/// **share file**: pay (amount and currency) and the Perform dialect name.
+/// **share file**: pay (amount and currency), the Perform dialect name, and
+/// whether the caller archived it (the maintainer's decision when archiving
+/// was added, 2026-11-18, recorded in #2218: sync and backups keep it, share
+/// files drop it), so a
+/// recipient always gets a program that shows in their list.
 /// See [sanitizeDanceForShare] for why this is not an egress class.
-Program sanitizeProgramForShare(Program program) =>
-    program.copyWith(clearPay: true, clearDialectName: true);
+Program sanitizeProgramForShare(Program program) => program.copyWith(
+  clearPay: true,
+  clearDialectName: true,
+  clearArchivedAt: true,
+);
 
 /// The six contact-person PII fields on a [Venue] (the two contacts' name,
 /// phone, and email). These identify a specific person to reach about the

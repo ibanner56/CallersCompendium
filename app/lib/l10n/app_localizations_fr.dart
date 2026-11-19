@@ -5448,6 +5448,37 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get programsArchive => 'Archiver';
+
+  @override
+  String get programsUnarchive => 'Désarchiver';
+
+  @override
+  String programsArchivedSnack(String title) {
+    return '« $title » archivé.';
+  }
+
+  @override
+  String programsUnarchivedSnack(String title) {
+    return '« $title » désarchivé.';
+  }
+
+  @override
+  String get programsArchivedLabel => 'Archivé';
+
+  @override
+  String get programsShowArchived => 'Afficher les archivés';
+
+  @override
+  String get programsHideArchived => 'Masquer les archivés';
+
+  @override
+  String get programsAllArchivedTitle => 'Aucun programme à afficher';
+
+  @override
+  String get programsAllArchivedBody => 'Tous vos programmes sont archivés.';
+
+  @override
   String get programsDiscardTitle => 'Abandonner les modifications ?';
 
   @override

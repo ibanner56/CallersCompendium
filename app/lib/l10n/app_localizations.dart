@@ -7736,7 +7736,7 @@ abstract class AppLocalizations {
   /// **'More actions'**
   String get danceMoreActions;
 
-  /// Tooltip for the overflow (⋮) menu holding Mark all performed, Duplicate and Delete on the program builder's and summary's narrow toolbars.
+  /// Tooltip for the overflow (⋮) menu holding Mark all performed, Duplicate, Archive and Delete on the program builder's and summary's narrow toolbars.
   ///
   /// In en, this message translates to:
   /// **'More actions'**
@@ -8217,6 +8217,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'\"{title}\" deleted.'**
   String programsDeletedSnack(String title);
+
+  /// Action that archives a program: hides it from the Programs list without deleting it. Shown in a program row's ⋮ menu, and as a toolbar button tooltip (or ⋮ menu item on narrow screens) on the program summary and the program builder.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive'**
+  String get programsArchive;
+
+  /// Action that reverses Archive on an archived program, so it shows in the Programs list again. Shown in the same places as programsArchive.
+  ///
+  /// In en, this message translates to:
+  /// **'Unarchive'**
+  String get programsUnarchive;
+
+  /// Snackbar confirming a program was archived, quoting its title. Paired with an Undo action.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{title}\" archived.'**
+  String programsArchivedSnack(String title);
+
+  /// Snackbar confirming an archived program was unarchived and is back in the Programs list, quoting its title.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{title}\" unarchived.'**
+  String programsUnarchivedSnack(String title);
+
+  /// Label marking a program as archived: the chip on its row in the Programs list and on its summary, and the field name when Sync compares two versions of a program.
+  ///
+  /// In en, this message translates to:
+  /// **'Archived'**
+  String get programsArchivedLabel;
+
+  /// Programs list ⋮ menu item (and empty-state button) that also lists archived programs, alongside the others.
+  ///
+  /// In en, this message translates to:
+  /// **'Show archived'**
+  String get programsShowArchived;
+
+  /// Programs list ⋮ menu item, shown while archived programs are listed, that hides them again.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide archived'**
+  String get programsHideArchived;
+
+  /// Title of the empty state when every program is archived: on the Programs list while archived programs are hidden, and in the add-to-program sheet, which never offers archived programs.
+  ///
+  /// In en, this message translates to:
+  /// **'No programs to show'**
+  String get programsAllArchivedTitle;
+
+  /// Body of the empty state when every program is archived. On the Programs list (while archived programs are hidden) it is followed by Show archived and New program buttons; in the add-to-program sheet it sits below the pinned New program row.
+  ///
+  /// In en, this message translates to:
+  /// **'All your programs are archived.'**
+  String get programsAllArchivedBody;
 
   /// Title of the confirm dialog shown when leaving the program editor with unsaved changes.
   ///

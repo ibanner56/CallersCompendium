@@ -5342,6 +5342,37 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get programsArchive => 'Archive';
+
+  @override
+  String get programsUnarchive => 'Unarchive';
+
+  @override
+  String programsArchivedSnack(String title) {
+    return '\"$title\" archived.';
+  }
+
+  @override
+  String programsUnarchivedSnack(String title) {
+    return '\"$title\" unarchived.';
+  }
+
+  @override
+  String get programsArchivedLabel => 'Archived';
+
+  @override
+  String get programsShowArchived => 'Show archived';
+
+  @override
+  String get programsHideArchived => 'Hide archived';
+
+  @override
+  String get programsAllArchivedTitle => 'No programs to show';
+
+  @override
+  String get programsAllArchivedBody => 'All your programs are archived.';
+
+  @override
   String get programsDiscardTitle => 'Discard changes?';
 
   @override

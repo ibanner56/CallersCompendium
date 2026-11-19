@@ -60,8 +60,9 @@ const int _kTogglePerformedAttempts = 3;
 ///
 /// The programs list reloads unconditionally when this route pops, so the
 /// screen only self-manages what it must: **Edit** opens the builder (reloading
-/// in place, or popping if the builder deleted the program), **Delete** pops
-/// back to the list, and **Duplicate** re-targets this screen at the new copy.
+/// in place, or popping if the builder deleted or archived the program),
+/// **Delete** and **Archive** pop back to the list, and **Duplicate** re-targets
+/// this screen at the new copy.
 class ProgramSummaryScreen extends StatefulWidget {
   const ProgramSummaryScreen({
     super.key,
@@ -108,9 +109,9 @@ class _ProgramSummaryScreenState extends State<ProgramSummaryScreen> {
       ),
     );
     if (!mounted) return;
-    if (result == 'deleted') {
-      // The builder deleted the program; leave the summary and return to the
-      // list (which reloads and drops the stale row).
+    if (result == 'deleted' || result == 'archived') {
+      // The builder deleted or archived the program; leave the summary and
+      // return to the list (which reloads and drops the stale row).
       Navigator.of(context).pop();
     }
     // A save under the same id needs no tick: it writes `programs` /
@@ -176,6 +177,10 @@ class ProgramSummaryPane extends StatefulWidget {
 
   final String programId;
   final VoidCallback onOpenBuilder;
+
+  /// Called when the program leaves this view from one of its own actions:
+  /// Delete, or Archive, which leaves the way Delete does. The host closes the
+  /// pane (wide) or pops the route (narrow).
   final VoidCallback onDeleted;
   final void Function(String id) onNavigateTo;
 
@@ -200,7 +205,8 @@ class ProgramSummaryPane extends StatefulWidget {
 
   /// Pane width (logical pixels) below which the actions (in the top bar, or
   /// the body's title row when there is none) keep Perform and Export and
-  /// move Mark all performed, Duplicate and Delete into a "⋮" menu. Matches `DanceDetailScreen.compactActionsBreakpoint`.
+  /// move Mark all performed, Duplicate, Archive and Delete into a "⋮" menu.
+  /// Matches `DanceDetailScreen.compactActionsBreakpoint`.
   static const double compactActionsBreakpoint = 600;
 
   @override
@@ -253,6 +259,11 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   /// layout's `onDeleted` pop that dialog instead of this route. Same pattern
   /// as the editor's `_deleting`.
   bool _deleting = false;
+
+  /// Re-entrancy guard for [_archive] and [_unarchive], as [_deleting] is for
+  /// [_delete]: a second tap before the first write lands must not leave the
+  /// view twice or announce twice.
+  bool _archiving = false;
   Object? _error;
 
   /// In-memory Perform resume state (issue #434), used when the host passes no
@@ -671,9 +682,72 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     widget.onNavigateTo(copy.id);
   }
 
+  /// Archives the program and leaves this view, as Delete does, with an Undo.
+  Future<void> _archive() async {
+    final source = _program;
+    if (source == null || _archiving || _deleting) return;
+    _archiving = true;
+    try {
+      final archived = await _repos.programs.archive(
+        source.id,
+        at: DateTime.now().toUtc(),
+      );
+      if (!mounted) return;
+      if (archived) {
+        final l10n = AppLocalizations.of(context);
+        // Nothing captured for the Undo beyond the repositories: the unarchive
+        // is a write every view of the program watches, as for Delete below.
+        showUndoSnackBar(
+          ScaffoldMessenger.of(context),
+          message: l10n.programsArchivedSnack(source.title),
+          undoLabel: l10n.commonUndo,
+          undoFailedMessage: l10n.commonUndoFailed,
+          accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
+          onUndo: () async {
+            await _repos.programs.unarchive(
+              source.id,
+              at: DateTime.now().toUtc(),
+            );
+          },
+        );
+      }
+      // Leaves even when nothing was written: `false` means the program was
+      // archived or deleted elsewhere meanwhile, and either way it is no
+      // longer one this view should hold open.
+      widget.onDeleted();
+    } finally {
+      _archiving = false;
+    }
+  }
+
+  /// Unarchives the program. The view stays open: nothing leaves it.
+  Future<void> _unarchive() async {
+    final source = _program;
+    if (source == null || _archiving) return;
+    _archiving = true;
+    try {
+      final unarchived = await _repos.programs.unarchive(
+        source.id,
+        at: DateTime.now().toUtc(),
+      );
+      if (!unarchived || !mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context).programsUnarchivedSnack(source.title),
+          ),
+        ),
+      );
+    } finally {
+      _archiving = false;
+    }
+  }
+
   Future<void> _delete() async {
     final source = _program;
-    if (source == null || _deleting) return;
+    // Both guards, as in the builder: an Archive still in flight would leave the
+    // view as well, and two exits pop the route underneath.
+    if (source == null || _deleting || _archiving) return;
     _deleting = true;
     try {
       await _deleteConfirmed(source);
@@ -896,9 +970,10 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   }
 
   /// The record actions, in tab order: Perform (only when it is not the
-  /// prominent body button), Export, then Mark all performed, Duplicate and
-  /// Delete. Below [ProgramSummaryPane.compactActionsBreakpoint] the last
-  /// three fold into [_secondaryActionsMenu]. Shown in the top bar when there
+  /// prominent body button), Export, then Mark all performed, Duplicate,
+  /// Archive (Unarchive for an archived program) and Delete. Below
+  /// [ProgramSummaryPane.compactActionsBreakpoint] the last four fold into
+  /// [_secondaryActionsMenu]. Shown in the top bar when there
   /// is one, else at the end of the body's title row.
   List<Widget> _buildActions(Program program, {required bool compact}) {
     final l10n = AppLocalizations.of(context);
@@ -934,6 +1009,18 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           tooltip: l10n.commonDuplicate,
           icon: const Icon(Icons.copy_all_outlined),
           onPressed: _duplicate,
+        ),
+        IconButton(
+          key: const ValueKey('summary-archive'),
+          tooltip: program.isArchived
+              ? l10n.programsUnarchive
+              : l10n.programsArchive,
+          icon: Icon(
+            program.isArchived
+                ? Icons.unarchive_outlined
+                : Icons.archive_outlined,
+          ),
+          onPressed: program.isArchived ? _unarchive : _archive,
         ),
         IconButton(
           key: const ValueKey('summary-delete'),
@@ -1001,7 +1088,14 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
             ],
           ),
         const SizedBox(height: 8),
-        ProgramStatusChip(status: program.status),
+        Wrap(
+          spacing: 8,
+          runSpacing: 4,
+          children: [
+            ProgramStatusChip(status: program.status),
+            if (program.isArchived) const ProgramArchivedChip(),
+          ],
+        ),
         if (widget.prominentPerform) ...[
           const SizedBox(height: 16),
           _buildProminentPerform(program),
@@ -1053,8 +1147,9 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     );
   }
 
-  /// The narrow layout's "⋮" menu: Mark all performed, Duplicate and
-  /// Delete, under the keys and labels of the buttons they replace.
+  /// The narrow layout's "⋮" menu: Mark all performed, Duplicate, Archive (or
+  /// Unarchive) and Delete, under the keys and labels of the buttons they
+  /// replace.
   Widget _secondaryActionsMenu(Program program) {
     final l10n = AppLocalizations.of(context);
     return PopupMenuButton<void>(
@@ -1078,6 +1173,23 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           child: ListTile(
             leading: const Icon(Icons.copy_all_outlined),
             title: Text(l10n.commonDuplicate),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+        PopupMenuItem<void>(
+          key: const ValueKey('summary-archive'),
+          onTap: program.isArchived ? _unarchive : _archive,
+          child: ListTile(
+            leading: Icon(
+              program.isArchived
+                  ? Icons.unarchive_outlined
+                  : Icons.archive_outlined,
+            ),
+            title: Text(
+              program.isArchived
+                  ? l10n.programsUnarchive
+                  : l10n.programsArchive,
+            ),
             contentPadding: EdgeInsets.zero,
           ),
         ),

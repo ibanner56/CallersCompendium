@@ -79,9 +79,12 @@ void main() {
       expect(requiredBackupVersion(d), backupSchemaVersionGlossary);
     });
 
-    test('v2 is the newest envelope this build reads, so a backup it writes '
-        'for pay is one it, and 0.8.0 and later, restore', () {
-      expect(backupSchemaVersionProgramPay, backupSchemaVersion);
+    test('a backup this build writes for pay is one it, and 0.8.0 and '
+        'later, restore', () {
+      expect(
+        backupSchemaVersionProgramPay,
+        lessThanOrEqualTo(backupSchemaVersion),
+      );
       expect(backupSchemaVersionProgramPay, backupSchemaVersionGlossary);
     });
   });

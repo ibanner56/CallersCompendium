@@ -1,0 +1,22 @@
+{
+  "id": "program-archive",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "You can archive a program you're done with but want to keep: choose Archive from its row's ⋮ menu, or next to Duplicate on its summary or in the builder. It leaves the Programs list without being deleted, still counts in your calling history, and is no longer offered when you add a dance to a program. Choose Show archived in the Programs ⋮ menu to list archived programs too, and Unarchive to bring one back.",
+      "Archiving syncs to your other devices and is kept in backups. A program you share arrives unarchived.",
+      "Restoring a program from Recently deleted brings it back unarchived, so it shows in your Programs list."
+    ],
+    "data_migrations": [
+      "The database moves from schema v41 → 42 to remember which programs you archived. Nothing in your library changes.",
+      "A backup that holds an archived program is written as backup version 3, so versions 0.5.2 to 0.10.0 refuse to replace your library with it, instead of restoring your archived programs unarchived."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add Program.archivedAt (schema v42, programs.archived_at) and ProgramRepository.archive/unarchive, which advance updated_at so the change syncs as an ordinary program edit. Archived programs still count toward calling history.",
+      "Carry archivedAt in the program sync wire mapping and archive codec (written only when set), classify programs.archived_at in the privacy registry, and show it in the sync conflict comparison. A Caller's Companion re-import keeps a program archived.",
+      "ProgramRepository.restore gains unarchive, which clears archived_at in the restore's transaction and advances updated_at."
+    ]
+  }
+}
