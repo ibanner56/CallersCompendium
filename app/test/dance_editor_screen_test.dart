@@ -2439,7 +2439,8 @@ void main() {
       await _expandMoreDetails(tester);
 
       final year = find.byKey(const ValueKey('composed-on-year'));
-      await tester.enterText(year, '19');
+      // Not yet a valid year, so the field holds it as text only.
+      await tester.enterText(year, '0');
       await tester.pumpAndSettle();
 
       await tester.ensureVisible(find.byKey(const ValueKey('form-field')));
@@ -2448,7 +2449,7 @@ void main() {
       await tester.tap(find.text('English (ECD)').last);
       await tester.pumpAndSettle();
 
-      expect(tester.widget<TextField>(year).controller?.text, '19');
+      expect(tester.widget<TextField>(year).controller?.text, '0');
     });
 
     testWidgets('switching an English dance to contra saves it proper, and '
