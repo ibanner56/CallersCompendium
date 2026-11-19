@@ -1,3 +1,4 @@
+import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/src/editor/pending_move_text_controller.dart';
 import 'package:compendium_app/src/widgets/move_autocomplete.dart';
 import 'package:compendium_core/compendium_core.dart';
@@ -20,12 +21,15 @@ Future<void> _pump(
   List<MoveOption> compoundOptions = const [],
   bool includeModifier = false,
   bool includeAliases = true,
+  Taxonomy? taxonomy,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(
         body: MoveAutocomplete(
-          taxonomy: contraTaxonomy,
+          taxonomy: taxonomy ?? contraTaxonomy,
           dialect: dialect,
           initialText: '',
           fieldKey: 'move',
@@ -42,6 +46,41 @@ Future<void> _pump(
 }
 
 void main() {
+  group('moves of several dance forms (ADR-006)', () {
+    testWidgets('an ECD dance offers its own circle, not contra\'s', (
+      tester,
+    ) async {
+      await _pump(tester, taxonomy: shippedTaxonomies.forForm(DanceForm.ecd));
+      await tester.enterText(
+        find.byKey(const ValueKey('move-input')),
+        'circle',
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('move-option-ecd_circle')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('move-option-circle')), findsNothing);
+    });
+
+    testWidgets('a search over every dance offers both, the other form named', (
+      tester,
+    ) async {
+      await _pump(tester, taxonomy: shippedTaxonomies.anyForm);
+      await tester.enterText(
+        find.byKey(const ValueKey('move-input')),
+        'circle',
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('move-option-circle')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('move-option-ecd_circle')),
+        findsOneWidget,
+      );
+      expect(find.text('circle · English (ECD)'), findsOneWidget);
+    });
+  });
+
   testWidgets('matches and displays a dialect move substitution', (
     tester,
   ) async {

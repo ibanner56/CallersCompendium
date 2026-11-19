@@ -1,7 +1,9 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../editor/pending_move_text_controller.dart';
+import '../search/facet_labels.dart' show danceFormLabel;
 import 'responsive_autocomplete.dart';
 
 /// The kind of entry selected from a [MoveAutocomplete]: a taxonomy move or
@@ -323,6 +325,7 @@ class _MoveAutocompleteState extends State<MoveAutocomplete> {
     if (q.isEmpty) return const [];
     final dialect = widget.dialect ?? Dialect.canonical;
     final renderer = FigureRenderer(widget.taxonomy);
+    final ownFormNames = _ownFormNames;
     // Match on canonical name, id, keywords, AND the dialect display term so a
     // user can type a custom substitution (e.g. "buzz" for swing).
     bool matches(
@@ -368,6 +371,7 @@ class _MoveAutocompleteState extends State<MoveAutocomplete> {
         ),
       for (final m in widget.taxonomy.moves.values)
         if ((widget.includeCustomMove || m.id != customMove) &&
+            !_shadowedByOwnForm(m, ownFormNames) &&
             matches(
               m.id,
               m.displayName,
@@ -376,7 +380,11 @@ class _MoveAutocompleteState extends State<MoveAutocomplete> {
             ))
           MoveOption(
             id: m.id,
-            displayName: renderer.displayMoveName(m.id, dialect),
+            displayName: _withOtherFormLabel(
+              m,
+              renderer.displayMoveName(m.id, dialect),
+              ownFormNames,
+            ),
           ),
       // An alias listed as a move (`long lines`, a move until taxonomy v39)
       // is offered wherever moves are, with them, aliases or not.
@@ -413,6 +421,45 @@ class _MoveAutocompleteState extends State<MoveAutocomplete> {
       }
     }
     return options;
+  }
+
+  /// The names of the moves of the taxonomy's own form, when it lays that
+  /// form over another (an ECD dance's taxonomy is ECD's over contra's).
+  Set<String> get _ownFormNames => {
+    for (final m in widget.taxonomy.moves.values)
+      if (shippedTaxonomies.formOfMoveId(m.id) == widget.taxonomy.form)
+        m.displayName,
+  };
+
+  /// Whether [move] is another form's move that the dance's own form names
+  /// alike (contra's `circle` in an ECD dance, beside ECD's): the own form's
+  /// is offered, so the two are never offered under one name. ADR-006 §12.2
+  /// S1, offering only the dance's own figures, is the editor's later work.
+  ///
+  /// A taxonomy of the base form that lays every form together (search
+  /// over all dances) hides neither: [_withOtherFormLabel] tells them apart.
+  bool _shadowedByOwnForm(MoveDef move, Set<String> ownFormNames) =>
+      widget.taxonomy.form != shippedTaxonomies.base.form &&
+      _namedLikeOwnForm(move, ownFormNames);
+
+  bool _namedLikeOwnForm(MoveDef move, Set<String> ownFormNames) =>
+      shippedTaxonomies.formOfMoveId(move.id) != widget.taxonomy.form &&
+      ownFormNames.contains(move.displayName);
+
+  /// [label], the label of [move], followed by its form's name when [move]
+  /// is another form's move named like one of the taxonomy's own: "circle"
+  /// and "circle · English (ECD)" in a search over every dance.
+  String _withOtherFormLabel(
+    MoveDef move,
+    String label,
+    Set<String> ownFormNames,
+  ) {
+    if (!_namedLikeOwnForm(move, ownFormNames)) return label;
+    final form = danceFormLabel(
+      AppLocalizations.of(context),
+      shippedTaxonomies.formOfMoveId(move.id),
+    );
+    return '$label · $form';
   }
 
   /// Whether [option] is named [q]: its label, or for a move or alias, its

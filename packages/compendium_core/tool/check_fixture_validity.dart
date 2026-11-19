@@ -1,5 +1,6 @@
-/// Ratchet: every figure fixture in the test suites must be valid under
-/// `contraTaxonomy`, or say why it is not.
+/// Ratchet: every figure fixture in the test suites must be valid under the
+/// shipped taxonomies (`shippedTaxonomies.anyForm`: contra's, and each other
+/// form's `ecd_`-prefixed moves), or say why it is not.
 ///
 /// Run from the repository root:
 ///
@@ -23,7 +24,7 @@
 /// `packages/*/test` and requires each to be exactly one of:
 ///
 /// 1. **fully literal** — validated here and now, against the real
-///    `contraTaxonomy.validateFigure`;
+///    `shippedTaxonomies.anyForm.validateFigure`;
 /// 2. **deliberately invalid** — carrying an `// invalid-fixture: <reason>`
 ///    marker, on the fixture, its statement, or an enclosing
 ///    `test(`/`testWidgets(`/`group(`;
@@ -337,7 +338,7 @@ class FixtureVisitor extends RecursiveAstVisitor<void> {
       );
       return;
     }
-    final issues = contraTaxonomy
+    final issues = shippedTaxonomies.anyForm
         .validateFigure(figure)
         .where((i) => i.severity == ValidationSeverity.error);
     for (final issue in issues) {
@@ -378,6 +379,17 @@ class FixtureVisitor extends RecursiveAstVisitor<void> {
     return _Parsed.literal(move, params);
   }
 
+  (bool, Object?) _listLiteral(List<CollectionElement> elements) {
+    final values = <Object?>[];
+    for (final element in elements) {
+      if (element is! Expression) return (false, null);
+      final literal = _literalValue(element);
+      if (!literal.$1) return (false, null);
+      values.add(literal.$2);
+    }
+    return (true, values);
+  }
+
   /// `(true, value)` when [expression] is a Dart literal we can evaluate
   /// statically; `(false, null)` otherwise.
   (bool, Object?) _literalValue(Expression expression) => switch (expression) {
@@ -385,6 +397,8 @@ class FixtureVisitor extends RecursiveAstVisitor<void> {
     IntegerLiteral(:final value) => (true, value),
     DoubleLiteral(:final value) => (true, value),
     BooleanLiteral(:final value) => (true, value),
+    // A list of literals, such as an ECD `who` (`['twos', 'threes']`).
+    ListLiteral(:final elements) => _listLiteral(elements),
     _ => (false, null),
   };
 }
@@ -508,7 +522,7 @@ int run(List<String> args, {StringSink? out, StringSink? err}) {
     }
     err.writeln(
       '::error::${result.violations.length} figure fixture violation(s). '
-      'A fixture must be valid under contraTaxonomy, routed through '
+      'A fixture must be valid under the shipped taxonomies, routed through '
       'testFigure(), or marked `$markerPrefix <reason>`.',
     );
     return 1;

@@ -10,6 +10,13 @@ enum ParamKind {
   /// A pairing of dancers valid for a paired move (subset of dancerSet).
   dancerPair,
 
+  /// An ordered list of dancer tokens, such as `["twos", "threes"]` for "2s
+  /// and 3s circle left": ECD's `who` (ADR-006 §5.2). The list holds at
+  /// least one token, each from [ParamSpec.choices] (default
+  /// [ParamVocab.dancerSets]), none twice, and a token in
+  /// [ParamVocab.soloDancerTokens] only on its own.
+  dancerList,
+
   /// `right` / `left` hand.
   handedness,
 
@@ -151,6 +158,11 @@ abstract final class ParamVocab {
     'fourthPartners',
     'fifthPartners',
   ];
+
+  /// The tokens a [ParamKind.dancerList] holds only on its own: `everyone`
+  /// and the [unspecified] sentinel can't be combined with another selector
+  /// (ADR-006 §5.2, Q1b).
+  static const Set<String> soloDancerTokens = {'everyone', unspecified};
 
   /// All dancer tokens (pair/group + single-dancer identities). The default
   /// domain for [ParamKind.dancerSet] / [ParamKind.dancerPair].
@@ -408,6 +420,8 @@ class ParamSpec {
       case ParamKind.dancerPair:
         return value is String &&
             (choices ?? ParamVocab.dancerSets).contains(value);
+      case ParamKind.dancerList:
+        return isValidDancerList(value, choices ?? ParamVocab.dancerSets);
       case ParamKind.handedness:
       case ParamKind.shoulder:
         // `choices` is optional here too (issue #726): when a spec narrows
@@ -463,4 +477,18 @@ class ParamSpec {
         return value is bool;
     }
   }
+}
+
+/// Whether [value] is a valid [ParamKind.dancerList] over [domain]: a
+/// non-empty list of tokens from [domain], none repeated, with a token of
+/// [ParamVocab.soloDancerTokens] only as the list's one entry (ADR-006 §5.2).
+bool isValidDancerList(Object? value, List<String> domain) {
+  if (value is! List || value.isEmpty) return false;
+  final seen = <String>{};
+  for (final token in value) {
+    if (token is! String || !domain.contains(token) || !seen.add(token)) {
+      return false;
+    }
+  }
+  return value.length == 1 || !value.any(ParamVocab.soloDancerTokens.contains);
 }

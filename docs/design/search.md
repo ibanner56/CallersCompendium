@@ -791,7 +791,11 @@ are ([dialect.md](dialect.md) "Canonicalization on input"):
     form as typed, ORed, so a dialect that calls the balance the ring
     "balance" still finds a plain balance by "balance";
   - taxonomy move names and keywords map to their display names
-    (`canonicalizeMoveSearchText`), as before.
+    (`canonicalizeMoveSearchText`), as before. Where the search taxonomy
+    lays several dance forms together, the moves of its own form win a name
+    or keyword that another form also uses: a search over every dance reads
+    "hey" as contra does, and an ECD dance's taxonomy reads it as ECD does
+    (ADR-006).
 
   A term of several words — a role ("Lady Birds"), a move ("do si do") or a
   dialect's move name — stays one word, so its spaces must still match.

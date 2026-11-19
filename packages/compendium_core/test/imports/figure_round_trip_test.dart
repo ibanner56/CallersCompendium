@@ -68,7 +68,8 @@ List<Object?> _domain(ParamSpec spec) => switch (spec.kind) {
   ParamKind.places ||
   ParamKind.number ||
   ParamKind.beats ||
-  ParamKind.text => const [],
+  ParamKind.text ||
+  ParamKind.dancerList => const [],
 };
 
 /// A figure's line in the known-failures list: the dialect, the move, the
