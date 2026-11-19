@@ -685,6 +685,60 @@ void main() {
       expect(decoded.revisedOn, isNull);
     });
 
+    test('ECD fields round-trip: meter, key, improper and interpretation '
+        '(ADR-006 §12.1 F2, F3; §9.2 point 7)', () {
+      final snapshot = EditorSnapshot(
+        title: 'Test',
+        hook: '',
+        notes: '',
+        phrase: '',
+        formationDetail: '',
+        meter: '3/2',
+        musicalKey: 'G minor',
+        form: DanceForm.ecd,
+        formationShape: FormationShape.dupleMinor,
+        improper: true,
+        progression: Progression.single,
+        status: DanceStatus.active,
+        interpretedOn: PartialDate(1975),
+        authorIds: const ['playford'],
+        interpreterIds: const ['pat', 'other'],
+        tagIds: const [],
+        tunes: const [],
+        links: const [],
+        sourceCitations: const [],
+        customValues: const {},
+        figureDrafts: const [],
+      );
+
+      final decoded = decodeDraft(encodeDraft(snapshot));
+      expect(decoded.meter, '3/2');
+      expect(decoded.musicalKey, 'G minor');
+      expect(decoded.improper, isTrue);
+      expect(decoded.interpretedOn, PartialDate(1975));
+      expect(decoded.interpreterIds, ['pat', 'other']);
+      expect(decoded.authorIds, ['playford']);
+    });
+
+    test('ECD fields are omitted when unset and decode to their defaults', () {
+      final encoded = encodeDraft(_minimalSnapshot());
+      for (final key in [
+        'meter',
+        'musicalKey',
+        'improper',
+        'interpretedOn',
+        'interpreterIds',
+      ]) {
+        expect(encoded, isNot(contains('"$key"')), reason: key);
+      }
+      final decoded = decodeDraft(encoded);
+      expect(decoded.meter, '');
+      expect(decoded.musicalKey, '');
+      expect(decoded.improper, isFalse);
+      expect(decoded.interpretedOn, isNull);
+      expect(decoded.interpreterIds, isEmpty);
+    });
+
     test('rating round-trips', () {
       final snapshot = EditorSnapshot(
         title: 'Test',

@@ -4076,6 +4076,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get danceEditorMusicalKeyLabel => 'Key';
 
   @override
+  String get danceEditorMeterHint => 'e.g. 3/2';
+
+  @override
+  String get danceEditorMusicalKeyHint => 'e.g. G minor';
+
+  @override
   String get commonMixedLevel => 'Mixed level';
 
   @override
@@ -8489,6 +8495,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Dancers change partners each time through';
 
   @override
+  String get danceEditorImproperLabel => 'Starts improper';
+
+  @override
+  String get danceEditorImproperSubtitle =>
+      'Leave unchecked for a dance that starts proper.';
+
+  @override
   String get danceEditorComposedLabel => 'Composed';
 
   @override
@@ -8500,6 +8513,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get danceEditorInterpretedOnLabel => 'Interpreted in';
+
+  @override
+  String get danceEditorInterpretedOnHelper =>
+      'When the dance was interpreted (year, or add month/day)';
 
   @override
   String get danceEditorRevisedLabel => 'Revised';

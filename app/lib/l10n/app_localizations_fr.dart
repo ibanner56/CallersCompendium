@@ -4166,6 +4166,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get danceEditorMusicalKeyLabel => 'Tonalité';
 
   @override
+  String get danceEditorMeterHint => 'ex. 3/2';
+
+  @override
+  String get danceEditorMusicalKeyHint => 'ex. sol mineur';
+
+  @override
   String get commonMixedLevel => 'Niveau mixte';
 
   @override
@@ -8640,6 +8646,13 @@ class AppLocalizationsFr extends AppLocalizations {
       'Les danseurs changent de partenaire à chaque passage';
 
   @override
+  String get danceEditorImproperLabel => 'Commence improper';
+
+  @override
+  String get danceEditorImproperSubtitle =>
+      'Laissez décoché pour une danse qui commence proper.';
+
+  @override
   String get danceEditorComposedLabel => 'Composée';
 
   @override
@@ -8651,6 +8664,10 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get danceEditorInterpretedOnLabel => 'Interprétée';
+
+  @override
+  String get danceEditorInterpretedOnHelper =>
+      'Quand la danse a été interprétée (année, ou ajoutez mois/jour)';
 
   @override
   String get danceEditorRevisedLabel => 'Révisée';

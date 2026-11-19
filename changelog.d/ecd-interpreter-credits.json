@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "added": [
-      "A dance can now record who interpreted it from its original publication, and when, beside its authors and composed date. Interpreters come from the same people list as authors, and backups, share files and Device Sync carry them. Entering them in the dance editor comes in a later release. An older version of the app can't restore a backup that holds them."
+      "A dance can now record who interpreted it from its original publication, and when, beside its authors and composed date. Interpreters come from the same people list as authors, and backups, share files and Device Sync carry them. An older version of the app can't restore a backup that holds them."
     ]
   },
   "core": {

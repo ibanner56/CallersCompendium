@@ -56,6 +56,8 @@ class DanceEditorController extends ChangeNotifier {
        walkthroughController = _lingo(dialects),
        phraseController = _lingo(dialects),
        formationDetailController = _lingo(dialects),
+       meterController = _lingo(dialects),
+       musicalKeyController = _lingo(dialects),
        tuneController = _lingo(dialects),
        _draftKey = danceId == null
            ? danceEditorDraftKey('$kNewDanceDraftIdPrefix${uuidV4()}')
@@ -229,6 +231,11 @@ class DanceEditorController extends ChangeNotifier {
   final LingoTextEditingController walkthroughController;
   final LingoTextEditingController phraseController;
   final LingoTextEditingController formationDetailController;
+
+  /// Editors for the tune's written meter and key ([Dance.meter],
+  /// [Dance.musicalKey]): free text, ADR-006 §12.1 F3.
+  final LingoTextEditingController meterController;
+  final LingoTextEditingController musicalKeyController;
   final LingoTextEditingController tuneController;
 
   /// The user's Move defaults (DD.3), by move id, which a typed line's rows
@@ -250,6 +257,8 @@ class DanceEditorController extends ChangeNotifier {
     walkthroughController,
     phraseController,
     formationDetailController,
+    meterController,
+    musicalKeyController,
     tuneController,
     ...customTextControllers.values,
   ];
@@ -266,6 +275,8 @@ class DanceEditorController extends ChangeNotifier {
   int? _rating;
   PartialDate? _composedOn;
   PartialDate? _revisedOn;
+  bool _improper = false;
+  PartialDate? _interpretedOn;
 
   DanceForm get form => _form;
 
@@ -296,8 +307,38 @@ class DanceEditorController extends ChangeNotifier {
   PartialDate? get composedOn => _composedOn;
   PartialDate? get revisedOn => _revisedOn;
 
+  /// Whether the dance starts improper ([Formation.improper]). Offered, and
+  /// saved, only for a form that records it apart from its shape
+  /// ([formHasImproperFlag]): ECD (ADR-006 §12.1, F2).
+  bool get improper => _improper;
+
+  /// Whether this dance's form records proper or improper with a checkbox.
+  bool get offersImproper => formHasImproperFlag(_form);
+
+  /// When the dance was interpreted ([Dance.interpretedOn]).
+  PartialDate? get interpretedOn => _interpretedOn;
+
+  /// Keys for the Composed and Interpreted in fields, which move between
+  /// More details and the top of the form when the form changes
+  /// ([showsCreditsUpFront]): a global key carries a half-entered date (a
+  /// month picked before its year) across the move instead of losing it.
+  final GlobalKey composedOnFieldKey = GlobalKey(debugLabel: 'composed-on');
+  final GlobalKey interpretedOnFieldKey = GlobalKey(
+    debugLabel: 'interpreted-on',
+  );
+
+  /// Whether the interpretation credits (Interpreted by, Interpreted in) and
+  /// the Composed date are shown up front, beside the authors, rather than
+  /// in More details: for ECD, where most dances credit both an original and
+  /// an interpreter (ADR-006 §9.2, point 7).
+  bool get showsCreditsUpFront => _form == DanceForm.ecd;
+
   // ---- Multi-value draft lists ----
   final List<String> authorIds = [];
+
+  /// Ordered ids of the people who interpreted the dance
+  /// ([Dance.interpreterIds]), from the same people list as [authorIds].
+  final List<String> interpreterIds = [];
   final List<String> tagIds = [];
   final Map<String, Tag> stagedTags = {};
   final List<String> tunes = [];
@@ -770,6 +811,9 @@ class DanceEditorController extends ChangeNotifier {
       walkthroughController.text = dance.walkthrough;
       phraseController.text = dance.phraseStructure.raw;
       formationDetailController.text = dance.formation.detail ?? '';
+      meterController.text = dance.meter;
+      musicalKeyController.text = dance.musicalKey;
+      _improper = dance.formation.improper;
       _form = dance.form;
       _followForm();
       _formationShape = dance.formation.shape;
@@ -787,7 +831,9 @@ class DanceEditorController extends ChangeNotifier {
       _rating = dance.rating;
       _composedOn = dance.composedOn;
       _revisedOn = dance.revisedOn;
+      _interpretedOn = dance.interpretedOn;
       authorIds.addAll(dance.authorIds);
+      interpreterIds.addAll(dance.interpreterIds);
       tagIds.addAll(dance.tagIds);
       switch (dance.tunesSource) {
         case DecodedTunes(:final tunes):
@@ -980,8 +1026,9 @@ class DanceEditorController extends ChangeNotifier {
     _pendingDraft = null;
   }
 
-  /// [draft]'s authors and tags as they stand now, for a draft restored in a
-  /// later session: each id through the merge aliases to the author or tag it
+  /// [draft]'s authors, interpreters and tags as they stand now, for a draft
+  /// restored in a later session: each id through the merge aliases to the
+  /// person or tag it
   /// became, in the order one merge leaves a stored dance
   /// ([mergedReferenceOrder]), and those no longer live dropped; a tag staged
   /// in the draft stays. Several merges made at different times can come back
@@ -1021,10 +1068,19 @@ class DanceEditorController extends ChangeNotifier {
       return out;
     }
 
+    Future<bool> personIsLive(String id) async =>
+        await _repos.choreographers.getById(id) != null;
     final authors = await live(
       draft.authorIds,
       SyncRecordKind.choreographer,
-      (id) async => await _repos.choreographers.getById(id) != null,
+      personIsLive,
+    );
+    // Interpreters come from the same people list, and a merge or delete
+    // rewrites their credits as it does an author's.
+    final interpreters = await live(
+      draft.interpreterIds,
+      SyncRecordKind.choreographer,
+      personIsLive,
     );
     // A staged tag exists only in the draft until Save creates it.
     final staged = {for (final tag in draft.stagedTags) tag.id};
@@ -1035,10 +1091,15 @@ class DanceEditorController extends ChangeNotifier {
           staged.contains(id) || await _repos.tags.getById(id) != null,
     );
     if (listEquals(authors, draft.authorIds) &&
+        listEquals(interpreters, draft.interpreterIds) &&
         listEquals(tags, draft.tagIds)) {
       return draft;
     }
-    return draft.copyWith(authorIds: authors, tagIds: tags);
+    return draft.copyWith(
+      authorIds: authors,
+      interpreterIds: interpreters,
+      tagIds: tags,
+    );
   }
 
   /// Applies a restored draft snapshot and resets the undo stack so the restored
@@ -1156,8 +1217,11 @@ class DanceEditorController extends ChangeNotifier {
     walkthrough: walkthroughController.text,
     phrase: phraseController.text,
     formationDetail: formationDetailController.text,
+    meter: meterController.text,
+    musicalKey: musicalKeyController.text,
     form: _form,
     formationShape: _formationShape,
+    improper: _improper,
     progression: _progression,
     status: _status,
     level: _level,
@@ -1166,7 +1230,9 @@ class DanceEditorController extends ChangeNotifier {
     rating: _rating,
     composedOn: _composedOn,
     revisedOn: _revisedOn,
+    interpretedOn: _interpretedOn,
     authorIds: List.unmodifiable(authorIds),
+    interpreterIds: List.unmodifiable(interpreterIds),
     tagIds: List.unmodifiable(tagIds),
     tunes: List.unmodifiable(tunes),
     links: List.unmodifiable(
@@ -1233,10 +1299,15 @@ class DanceEditorController extends ChangeNotifier {
     if (formationDetailController.text != s.formationDetail) {
       formationDetailController.text = s.formationDetail;
     }
+    if (meterController.text != s.meter) meterController.text = s.meter;
+    if (musicalKeyController.text != s.musicalKey) {
+      musicalKeyController.text = s.musicalKey;
+    }
 
     // Enum fields.
     _form = s.form;
     _formationShape = s.formationShape;
+    _improper = s.improper;
     _progression = s.progression;
     _status = s.status;
     _level = s.level;
@@ -1245,11 +1316,15 @@ class DanceEditorController extends ChangeNotifier {
     _rating = s.rating;
     _composedOn = s.composedOn;
     _revisedOn = s.revisedOn;
+    _interpretedOn = s.interpretedOn;
 
     // Multi-value lists.
     authorIds
       ..clear()
       ..addAll(s.authorIds);
+    interpreterIds
+      ..clear()
+      ..addAll(s.interpreterIds);
     tagIds
       ..clear()
       ..addAll(s.tagIds);
@@ -1541,10 +1616,12 @@ class DanceEditorController extends ChangeNotifier {
     final formation = Formation(
       _formationShape,
       detail: formationDetail.isEmpty ? null : formationDetail,
-      // The editor has no proper/improper checkbox yet (ADR-006 W5), so an
-      // existing dance keeps the flag it has rather than losing it on save.
-      improper: _original?.formation.improper ?? false,
+      // A form without the checkbox stores proper: `Dance` clears the flag
+      // for it anyway, and the draft keeps it, so switching back restores it.
+      improper: offersImproper && _improper,
     );
+    final meter = meterController.text.trim();
+    final musicalKey = musicalKeyController.text.trim();
     final linkList = [for (final l in links) ?l.toLink()];
     final citationList = [for (final c in sourceCitations) c.toCitation()];
     final customFields = collectCustomFields();
@@ -1553,6 +1630,11 @@ class DanceEditorController extends ChangeNotifier {
       return original.copyWith(
         title: titleController.text.trim(),
         authorIds: List.of(authorIds),
+        interpreterIds: List.of(interpreterIds),
+        interpretedOn: _interpretedOn,
+        clearInterpretedOn: _interpretedOn == null,
+        meter: meter,
+        musicalKey: musicalKey,
         form: _form,
         formation: formation,
         progression: _progression,
@@ -1584,6 +1666,10 @@ class DanceEditorController extends ChangeNotifier {
       id: uuidV4(),
       title: titleController.text.trim(),
       authorIds: List.of(authorIds),
+      interpreterIds: List.of(interpreterIds),
+      interpretedOn: _interpretedOn,
+      meter: meter,
+      musicalKey: musicalKey,
       form: _form,
       formation: formation,
       progression: _progression,
@@ -1616,6 +1702,20 @@ class DanceEditorController extends ChangeNotifier {
   void setForm(DanceForm value) {
     _form = value;
     _followForm();
+    pushUndoNow();
+    scheduleAutosave();
+    _notify();
+  }
+
+  void setImproper(bool value) {
+    _improper = value;
+    pushUndoNow();
+    scheduleAutosave();
+    _notify();
+  }
+
+  void setInterpretedOn(PartialDate? value) {
+    _interpretedOn = value;
     pushUndoNow();
     scheduleAutosave();
     _notify();
@@ -1699,11 +1799,12 @@ class DanceEditorController extends ChangeNotifier {
   }
 
   /// Credits [to] wherever the draft, or any step of its undo history,
-  /// credits one of [from]: the authors a merge combined into [to]. The order
-  /// comes out as the merge leaves the stored dance (`rewriteLocalReferences`,
-  /// one merged-away author at a time in id order): a list already crediting
-  /// [to] keeps [to] where it is and drops the merged-away credit; otherwise
-  /// the first merged-away credit takes [to]'s name in its position.
+  /// credits one of [from]: the people a merge combined into [to], as authors
+  /// or as interpreters. The order comes out as the merge leaves the stored
+  /// dance (`rewriteLocalReferences`, one merged-away person at a time in id
+  /// order): a list already crediting [to] keeps [to] where it is and drops
+  /// the merged-away credit; otherwise the first merged-away credit takes
+  /// [to]'s name in its position.
   ///
   /// Not an edit of the draft, so it pushes no undo step: the merge has its
   /// own Undo, and undoing the draft must not bring back a merged-away id.
@@ -1719,33 +1820,28 @@ class DanceEditorController extends ChangeNotifier {
 
     final history = Map<EditorSnapshot, EditorSnapshot>.identity();
     _undoStack.mapAll((snapshot) {
-      final mapped = snapshot.copyWith(authorIds: replaced(snapshot.authorIds));
+      final mapped = snapshot.copyWith(
+        authorIds: replaced(snapshot.authorIds),
+        interpreterIds: replaced(snapshot.interpreterIds),
+      );
       history[mapped] = snapshot;
       return mapped;
     });
-    // The editor has no interpreter field yet (ADR-006 W5): a save carries
-    // the loaded dance's interpreters, so they follow the merge too, or the
-    // save would write the merged-away id back over the survivor.
-    final original = _original;
-    final interpretersBefore = original?.interpreterIds;
-    if (original != null) {
-      _original = original.copyWith(
-        interpreterIds: replaced(original.interpreterIds),
-      );
-    }
-    final before = List<String>.of(authorIds);
-    final next = replaced(authorIds);
     final replacement = AuthorReplacement._(
-      before,
-      next,
+      (List.of(authorIds), replaced(authorIds)),
+      (List.of(interpreterIds), replaced(interpreterIds)),
       history,
-      interpretersBefore,
-      _original?.interpreterIds,
     );
-    if (listEquals(next, authorIds)) return replacement;
+    final changed =
+        !listEquals(replacement._authors.$2, authorIds) ||
+        !listEquals(replacement._interpreters.$2, interpreterIds);
+    if (!changed) return replacement;
     authorIds
       ..clear()
-      ..addAll(next);
+      ..addAll(replacement._authors.$2);
+    interpreterIds
+      ..clear()
+      ..addAll(replacement._interpreters.$2);
     // The merge rewrote the stored dance the same way, so this alone is no
     // unsaved edit. A draft already holding one is re-saved, so a restored
     // draft does not bring the merged-away id back.
@@ -1754,28 +1850,39 @@ class DanceEditorController extends ChangeNotifier {
     return replacement;
   }
 
-  /// Undoes [replacement], for the Undo of the merge that made it: the draft's
-  /// authors come back while they still read as the merge left them, and so
-  /// does each undo step [replaceAuthors] rewrote. An edit made since is
-  /// newer, and stays.
+  /// Undoes [replacement], for the Undo of the merge that made it: the
+  /// draft's authors and interpreters each come back while they still read as
+  /// the merge left them, and so does each undo step [replaceAuthors]
+  /// rewrote. An edit made since is newer, and stays.
   void restoreAuthors(AuthorReplacement replacement) {
     _undoStack.mapAll((snapshot) => replacement._history[snapshot] ?? snapshot);
-    final original = _original;
-    if (original != null &&
-        replacement._interpretersBefore != null &&
-        listEquals(original.interpreterIds, replacement._interpretersAfter)) {
-      _original = original.copyWith(
-        interpreterIds: replacement._interpretersBefore,
-      );
+    bool restore(List<String> draft, (List<String>, List<String>) change) {
+      final (before, after) = change;
+      if (!listEquals(draft, after) || listEquals(draft, before)) return false;
+      draft
+        ..clear()
+        ..addAll(before);
+      return true;
     }
-    if (!listEquals(authorIds, replacement._after) ||
-        listEquals(authorIds, replacement._before)) {
-      return;
-    }
-    authorIds
-      ..clear()
-      ..addAll(replacement._before);
+
+    final authorsBack = restore(authorIds, replacement._authors);
+    final interpretersBack = restore(interpreterIds, replacement._interpreters);
+    if (!authorsBack && !interpretersBack) return;
     if (_dirty) scheduleAutosave();
+    _notify();
+  }
+
+  void addInterpreter(String id) {
+    interpreterIds.add(id);
+    pushUndoNow();
+    scheduleAutosave();
+    _notify();
+  }
+
+  void removeInterpreter(String id) {
+    interpreterIds.remove(id);
+    pushUndoNow();
+    scheduleAutosave();
     _notify();
   }
 
@@ -2372,6 +2479,8 @@ class DanceEditorController extends ChangeNotifier {
     walkthroughController.dispose();
     phraseController.dispose();
     formationDetailController.dispose();
+    meterController.dispose();
+    musicalKeyController.dispose();
     tuneController.dispose();
     for (final c in customTextControllers.values) {
       c.dispose();
@@ -2391,21 +2500,13 @@ class DanceEditorController extends ChangeNotifier {
 /// What [DanceEditorController.replaceAuthors] changed, for
 /// [DanceEditorController.restoreAuthors]. Opaque.
 final class AuthorReplacement {
-  AuthorReplacement._(
-    this._before,
-    this._after,
-    this._history,
-    this._interpretersBefore,
-    this._interpretersAfter,
-  );
+  AuthorReplacement._(this._authors, this._interpreters, this._history);
 
-  final List<String> _before;
-  final List<String> _after;
+  /// The draft's authors before and after the merge.
+  final (List<String>, List<String>) _authors;
 
-  /// The loaded dance's interpreters before and after the merge, for an
-  /// existing dance; `null` for a new one.
-  final List<String>? _interpretersBefore;
-  final List<String>? _interpretersAfter;
+  /// The draft's interpreters before and after the merge.
+  final (List<String>, List<String>) _interpreters;
 
   /// Each rewritten undo step, by identity, to the step it replaced.
   final Map<EditorSnapshot, EditorSnapshot> _history;

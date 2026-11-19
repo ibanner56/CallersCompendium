@@ -371,7 +371,7 @@ class _MoveAutocompleteState extends State<MoveAutocomplete> {
         ),
       for (final m in widget.taxonomy.moves.values)
         if ((widget.includeCustomMove || m.id != customMove) &&
-            !_shadowedByOwnForm(m, ownFormNames) &&
+            _offeredInForm(m.id) &&
             matches(
               m.id,
               m.displayName,
@@ -391,6 +391,7 @@ class _MoveAutocompleteState extends State<MoveAutocomplete> {
       if (!widget.includeAliases)
         for (final a in widget.taxonomy.aliases.values)
           if (a.listedAsMove &&
+              _offeredInForm(a.id) &&
               matches(
                 a.id,
                 a.displayName,
@@ -413,6 +414,7 @@ class _MoveAutocompleteState extends State<MoveAutocomplete> {
           if (!o.isUsers) _labelKey(o.displayName),
       };
       for (final a in widget.taxonomy.aliases.values) {
+        if (!_offeredInForm(a.id)) continue;
         final label = renderer.displayMoveName(a.id, dialect);
         if (matches(a.id, a.displayName, label, a.searchKeywords) &&
             labels.add(_labelKey(label))) {
@@ -431,16 +433,21 @@ class _MoveAutocompleteState extends State<MoveAutocomplete> {
         m.displayName,
   };
 
-  /// Whether [move] is another form's move that the dance's own form names
-  /// alike (contra's `circle` in an ECD dance, beside ECD's): the own form's
-  /// is offered, so the two are never offered under one name. ADR-006 §12.2
-  /// S1, offering only the dance's own figures, is the editor's later work.
+  /// Whether the move or alias [id] is offered: in a taxonomy that lays a
+  /// form's own figures over the base's (an ECD dance's), only that form's
+  /// own, so the editor offers only the figures of the dance's form
+  /// (ADR-006 §12.2, S1). A base move the dance already holds still shows,
+  /// and saves, as it is; it just is not offered for a new figure. The
+  /// custom figure, a base move every form uses, is always offered where
+  /// [MoveAutocomplete.includeCustomMove] asks for it.
   ///
   /// A taxonomy of the base form that lays every form together (search
-  /// over all dances) hides neither: [_withOtherFormLabel] tells them apart.
-  bool _shadowedByOwnForm(MoveDef move, Set<String> ownFormNames) =>
-      widget.taxonomy.form != shippedTaxonomies.base.form &&
-      _namedLikeOwnForm(move, ownFormNames);
+  /// over all dances) offers everything: [_withOtherFormLabel] tells moves
+  /// named alike apart.
+  bool _offeredInForm(String id) =>
+      widget.taxonomy.form == shippedTaxonomies.base.form ||
+      id == customMove ||
+      shippedTaxonomies.formOfMoveId(id) == widget.taxonomy.form;
 
   bool _namedLikeOwnForm(MoveDef move, Set<String> ownFormNames) =>
       shippedTaxonomies.formOfMoveId(move.id) != widget.taxonomy.form &&
