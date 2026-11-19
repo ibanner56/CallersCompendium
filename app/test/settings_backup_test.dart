@@ -1321,6 +1321,12 @@ void main() {
       200,
       scrollable: find.byType(Scrollable).last,
     );
+    // scrollUntilVisible stops once any of the control shows; it can be left
+    // on the viewport's edge, where its centre does not take a tap.
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('backup-reminder-cadence')),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('backup-reminder-cadence')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Weekly').last);
