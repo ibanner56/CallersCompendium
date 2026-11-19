@@ -1314,6 +1314,10 @@ void main() {
     final repos = openTestRepositories();
     await _pumpDetail(tester, repos, 'nope');
     expect(find.text('Dance not found.'), findsOneWidget);
+    // Nowhere to go back to (the wide Collection pane is like this): the
+    // message stands alone, with no disabled button implying a retry.
+    expect(find.byType(FilledButton), findsNothing);
+    expect(find.byKey(const ValueKey('load-error-back')), findsNothing);
   });
 
   testWidgets('a pushed missing dance offers Back, and Back leaves', (

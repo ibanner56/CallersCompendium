@@ -999,18 +999,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                           message: l10n.danceLoadError,
                           onRetry: _retryLoad,
                         )
-                      : LoadErrorView(
-                          icon: LoadErrorView.errorGlyph(context),
-                          message: l10n.danceNotFound,
-                          // Gone, so retrying would find nothing: the way
-                          // forward is out of the pane.
-                          onRetry: null,
-                          onBack:
-                              widget.onClose ??
-                              (Navigator.of(context).canPop()
-                                  ? () => Navigator.of(context).maybePop()
-                                  : null),
-                        ))
+                      : _buildNotFound(l10n))
                 : SelectableContent(child: _buildBody(detail)),
             // Edit mirrors the program preview's builder affordance: a bottom-right
             // extended FAB rather than an AppBar action, so opening the editor is
@@ -1070,6 +1059,28 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  /// The body for a dance that is gone. Retrying would find nothing, so the
+  /// way forward is out of the pane: Back, when this screen can leave (a close
+  /// callback, or a route above it). The wide Collection pane can do neither,
+  /// since the list beside it is the way to another dance, and there the plain
+  /// message stands rather than a button that would do nothing.
+  Widget _buildNotFound(AppLocalizations l10n) {
+    final onBack =
+        widget.onClose ??
+        (Navigator.of(context).canPop()
+            ? () => Navigator.of(context).maybePop()
+            : null);
+    if (onBack == null) {
+      return Center(child: Text(l10n.danceNotFound));
+    }
+    return LoadErrorView(
+      icon: LoadErrorView.errorGlyph(context),
+      message: l10n.danceNotFound,
+      onRetry: null,
+      onBack: onBack,
     );
   }
 
