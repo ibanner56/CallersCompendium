@@ -418,7 +418,8 @@ class FigureDraft {
 
   /// A new container of [kind] holding [first] and [second]. A meanwhile's or
   /// modifier's shared count follows its children until the user types one
-  /// ([syncContainerBeats]); a sequence's count is always its children's sum.
+  /// ([syncContainerBeats]); a new sequence's count is its children's sum,
+  /// until an English sequence states a span ([setSequenceSpan]).
   static FigureDraft group(String kind, FigureDraft first, FigureDraft second) {
     final group = FigureDraft()..setContainer(kind, [first, second]);
     if (kind != sequenceMove) {
@@ -538,8 +539,8 @@ class FigureDraft {
   /// since the other figures say how the core is danced, or while the core
   /// has none yet the longest side's; a meanwhile group's longest side's,
   /// since its sides are danced at once. 0 for an ordinary row, for a
-  /// sequence (whose count is always its steps' sum, [beats]), or for a group
-  /// none of whose sides has a count yet.
+  /// sequence (whose count is its steps' sum or its stated span, [beats]), or
+  /// for a group none of whose sides has a count yet.
   int get sidesBeats {
     final sides = meanwhileSides ?? modifierFigures;
     if (sides == null || sides.isEmpty) return 0;
