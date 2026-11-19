@@ -136,22 +136,23 @@ void main() {
   });
 
   testWidgets(
-    'wide split-pane list and summary FABs coexist and survive a route '
-    'transition without a duplicate hero-tag crash',
+    'wide split pane: the list\'s New program and the summary\'s Edit survive '
+    'a route transition without a duplicate hero-tag crash',
     (tester) async {
       final repos = openTestRepositories();
       await repos.programs.create(_program(id: 'p1', title: 'Barn Dance'));
 
       await _pumpWide(tester, repos);
 
-      // Select the program so the summary pane (and its "Open builder" FAB)
-      // renders alongside the list pane's "New program" FAB.
+      // Select the program so the summary pane (and its Edit action) renders
+      // alongside the list pane's floating "New program".
       await tester.tap(find.text('Barn Dance'));
       await tester.pumpAndSettle();
 
-      // Both default-styled FABs are present in the same subtree. Before the
-      // fix they shared the default Hero tag, which crashed on the next route
-      // transition with "multiple heroes that share the same tag".
+      // Edit used to float too, and two floating buttons with the default
+      // Hero tag crashed the next route transition with "multiple heroes that
+      // share the same tag". Edit is now a summary action, and the route
+      // transition must still run clean.
       expect(find.byKey(const ValueKey('new-program')), findsOneWidget);
       expect(find.byKey(const ValueKey('open-builder')), findsOneWidget);
 

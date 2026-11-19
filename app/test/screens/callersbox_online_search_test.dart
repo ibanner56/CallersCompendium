@@ -401,7 +401,7 @@ void main() {
     await tester.tap(find.byType(OnlineResultTile));
     await tester.pumpAndSettle();
 
-    // The pushed preview route shows the Import FAB (and no Edit FAB).
+    // The pushed preview route shows Import (and no Edit).
     expect(find.byKey(const ValueKey('import-dance')), findsOneWidget);
     expect(find.byKey(const ValueKey('edit-dance')), findsNothing);
 
@@ -413,7 +413,7 @@ void main() {
     expect(saved.map((d) => d.title), contains('Money Musk'));
 
     // After import the user lands on the persisted dance as a normal detail
-    // view (Edit FAB), not the preview (Import FAB).
+    // view (Edit), not the preview (Import).
     expect(find.byKey(const ValueKey('edit-dance')), findsOneWidget);
     expect(find.byKey(const ValueKey('import-dance')), findsNothing);
   });
