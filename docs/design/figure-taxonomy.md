@@ -2231,7 +2231,7 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
       synced compound whose template holds an unstated circle or star reports
       an invalid template, and a compound argument of `unspecified` does not
       expand.
-- **v40 (`cast` and the `hand_cast` alias, issue #770):** the largest family
+- v40 (`cast` and the `hand_cast` alias, issue #770): the largest family
   of Caller's Box lines the taxonomy could not hold. Of the 2,066 lines
   mentioning a cast in the 1,563 public dances whose figures mention one
   (fetched 2026-11-19; `docs/research/callersbox.md`), 2,060 were `custom`;
