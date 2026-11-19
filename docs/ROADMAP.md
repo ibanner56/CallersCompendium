@@ -134,7 +134,7 @@ implementation notes and deviations against each item — is in
 
 ## Later milestones
 
-- ECD and Squares support — the ECD figure grammar is proposed in [ADR-006](adr/006-english-country-dance-canonical-grammar.md)
+- ECD and Squares support — the ECD figure grammar is accepted in [ADR-006](adr/006-english-country-dance-canonical-grammar.md) (November 2026); implementation has not started
 - ~~Optional device-to-device sync, beyond Apple-native AirDrop support.~~ —
   **Cut**: [ADR-004](adr/004-device-sync-and-athenaeum.md) rules out local
   network discovery. Device-local data (venue addresses and contacts) moves by
