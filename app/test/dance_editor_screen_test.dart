@@ -2465,6 +2465,52 @@ void main() {
       expect(saved.phraseStructure.raw, '8*8*1');
     });
 
+    testWidgets('"last used" starts a new dance as the last new dance\'s type, '
+        'and only a new dance sets it', (tester) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kDefaultDanceFormKey, kDefaultDanceFormLastUsed);
+      await repos.settings.set(kLastUsedDanceFormKey, DanceForm.ecd.name);
+      await repos.dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Existing',
+          form: DanceForm.square,
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+      );
+
+      // Saving an existing dance leaves the last used type alone.
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+      expect(await repos.settings.get(kLastUsedDanceFormKey), 'ecd');
+
+      await _pumpEditor(tester, repos);
+      expect(_dropdownValue<DanceForm>(tester), DanceForm.ecd);
+    });
+
+    testWidgets('saving a new dance records its type as last used', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kDefaultDanceFormKey, DanceForm.square.name);
+      await repos.settings.set(kLastUsedDanceFormKey, DanceForm.ecd.name);
+      await _pumpEditor(tester, repos);
+      await tester.enterText(
+        find.byKey(const ValueKey('title-field')),
+        'Next Dance',
+      );
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      final saved = (await repos.dances.listAll()).singleWhere(
+        (d) => d.title == 'Next Dance',
+      );
+      expect(saved.form, DanceForm.square);
+      expect(await repos.settings.get(kLastUsedDanceFormKey), 'square');
+    });
+
     testWidgets('a restored draft overrides the seeded defaults', (
       tester,
     ) async {

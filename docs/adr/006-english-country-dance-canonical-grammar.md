@@ -1154,11 +1154,11 @@ document still had to make a call to apply an answer, it says so.
    role terms as a choice for display? Answer: "Don't. show. gendered.
    role. terms. They're discouraged, explicitly." They are never shown: not
    in stored data, not as a dialect's role terms or as a choice offered,
-   and not in this document (§3, §4). The app doesn't do this yet: a
-   custom dialect can still take gendered role terms, and a discouraged
-   term is shown as typed ([dialect.md](../design/dialect.md) and the user
-   guide on dialects). Changing that, for contra as well as ECD, is
-   implementation work, and those documents change with it.
+   and not in this document (§3, §4). A custom dialect no longer takes
+   gendered role terms, for contra or ECD, and one saved earlier is
+   repaired on read ([dialect.md](../design/dialect.md)). Still open: with
+   **Auto-convert all discouraged terms** turned off, a discouraged term in
+   free text is shown as typed.
 8. **Pothooks** (Q10d). Is it another name for chevron, or a separate
    figure? Answer: "yeah probably". It is an alias of `chevron` (§7.5),
    and can be split out if testers show it is a different figure.

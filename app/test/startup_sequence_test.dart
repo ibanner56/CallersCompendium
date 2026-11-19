@@ -2745,7 +2745,7 @@ void main() {
 
       expect(find.byType(AppShell), findsOneWidget);
       final context = tester.element(find.byType(AppShell));
-      expect(ActiveDialectScope.of(context), Dialect.larksRobins);
+      expect(ActiveDialectScope.of(context), DialectsByForm.defaults);
       // Not silent: the dialect load can also write, so the failure is logged.
       expect(sink.sources, contains('startup.dialect_library_load'));
     },

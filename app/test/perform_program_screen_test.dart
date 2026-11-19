@@ -3144,6 +3144,39 @@ void main() {
       expect(controller.activeName, before);
     });
 
+    testWidgets('each dance looks the program dialect up in its own form', (
+      tester,
+    ) async {
+      final controller = await library();
+      await controller.upsert(
+        Dialect(name: 'Contra words', roles: const {'role2': RoleTerm('wren')}),
+      );
+      final data = await _dataWith([
+        _dance(id: 'd1', title: 'First Dance'),
+        _dance(id: 'd2', title: 'English Dance').copyWith(form: DanceForm.ecd),
+      ]);
+      await _pumpProgram(
+        tester,
+        data: data,
+        program: _program([
+          _slot(id: 's1', position: 0, danceId: 'd1'),
+          _slot(id: 's2', position: 1, danceId: 'd2'),
+        ]).copyWith(dialectName: 'Contra words'),
+        activeDialect: Dialect.leadsFollows,
+        dialectLibrary: controller,
+      );
+
+      expect(find.text('wrens chain'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('perform-next')));
+      await tester.pumpAndSettle();
+      // English country dance has no dialect of that name, so the dance
+      // reads in that form's active dialect.
+      expect(find.text('English Dance'), findsOneWidget);
+      expect(find.text('follows chain'), findsOneWidget);
+      expect(find.text('wrens chain'), findsNothing);
+    });
+
     testWidgets('the jump list and the adjust sheet use the program dialect '
         'too', (tester) async {
       // A free-text slot is labelled through the dialect (discouraged terms
