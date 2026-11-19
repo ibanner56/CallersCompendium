@@ -149,8 +149,13 @@ const List<String> citedIdLookupIndexSql = [
 ];
 
 /// Lookup index over `dance_interpreters.choreographer_id` (schema v42), for
-/// the same two "who cites this choreographer" queries as
-/// [citedIdLookupIndexSql]'s `dance_authors` index.
+/// the "who credits this person as interpreter" lookups:
+/// `CompendiumSyncStorage._hasCitation`, the `ChoreographerRepository.delete`
+/// guard, `ReferenceEditRepository`'s live-dance counts and merge joins, and
+/// `rewriteLocalReferences`. Unlike the `dance_authors` index in
+/// [citedIdLookupIndexSql], it does not serve
+/// `DanceRepository.danceIdsDerivingFrom`, which never reads this table: no
+/// derived row holds interpreters.
 const String danceInterpretersChoreographerIdIndexSql =
     'CREATE INDEX IF NOT EXISTS dance_interpreters_choreographer_id '
     'ON dance_interpreters(choreographer_id)';
