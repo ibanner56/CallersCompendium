@@ -54,7 +54,8 @@ searchKeywords: [allemande, almond]
   contra's taxonomy directly, until they gain a form of their own.
 - **English Country Dance has its own taxonomy** (`ecdTaxonomy`,
   `ecd_taxonomy.dart`): the 52 movements of ADR-006 §7, each stored under an
-  `ecd_` ID, and one alias (`ecd_swat_the_flea`). Its `who` is a
+  `ecd_` ID, and two aliases (`ecd_swat_the_flea`, and `ecd_hand_cast`,
+  which is listed as a move of its own). Its `who` is a
   [`dancerList`](#parameter-types), and every value a source can leave out
   defaults to `unspecified` (ADR-006 §5.3); the editor's suggestions
   (`everyone`, a set to the right, a right turn single, forward) are
@@ -2315,8 +2316,8 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
 marker for the English Country Dance taxonomy, logged here.
 
 - v1: ADR-006 §7's registry: 52 movements under `ecd_` IDs, the
-    `ecd_swat_the_flea` alias, `ParamKind.dancerList` for `who`, and the
-    §6.3 template notation. Migration: no stored figure changes. A dance
+    `ecd_swat_the_flea` and `ecd_hand_cast` aliases, `ParamKind.dancerList`
+    for `who`, and the §6.3 template notation. Migration: no stored figure changes. A dance
     that already held `ecd_` IDs (from a newer peer or an archive) was
     indexed while they were unknown, so a one-time canonical/FTS rebuild runs,
     guarded by `ecdTaxonomyCanonicalRebuildDoneKey` and listed in
@@ -2334,8 +2335,10 @@ marker for the English Country Dance taxonomy, logged here.
     the shoulder turned over, not a side of the set; `places` is new
     (`unspecified` by default, "cast off" is `down` with 1); `whom` holds
     "cast around"; `destination` adds `top` and `bottom` for cast alone. An
-    unstated direction reads "cast back". `ecd_gate` gains "hand cast" as a
-    search keyword. v1 had not shipped in a release tag, so it was amended in
+    unstated direction reads "cast back", and a stated shoulder is always
+    shown; no shoulder is assumed from a role. `ecd_hand_cast` is a new alias
+    of `ecd_gate` that pins nothing, with `listedAsMove`, as contra's
+    `hand_cast` is. v1 had not shipped in a release tag, so it was amended in
     place rather than bumped (CONTRIBUTING.md "Versioned formats").
 
 ## Open questions (to resolve during implementation, with user input)

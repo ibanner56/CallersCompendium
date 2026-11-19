@@ -378,8 +378,6 @@ final Taxonomy ecdTaxonomy = Taxonomy(
       renderTemplate:
           '{who} {move} [{whom}] [with {pair}] [{direction}] [{travel}] '
           '[to face {endFacing}] [, {destination}]',
-      // A hand cast is a gate (the maintainer's decision of 2026-11-19).
-      searchKeywords: const ['hand cast'],
     ),
     MoveDef(
       id: '${_p}orbit',
@@ -1040,6 +1038,16 @@ final Taxonomy ecdTaxonomy = Taxonomy(
       targetMove: '${_p}box_the_gnat',
       pinnedParams: {'hand': 'left'},
       inversePairId: '${_p}box_the_gnat',
+    ),
+    // A hand cast is a gate, pinning nothing (the maintainer's decision of
+    // 2026-11-19, §9.4), as contra's `hand_cast` is. Listed as a move of its
+    // own, so search can name it and a dialect's name for gate never renames
+    // it.
+    MoveAlias(
+      id: '${_p}hand_cast',
+      displayName: 'hand cast',
+      targetMove: '${_p}gate',
+      listedAsMove: true,
     ),
   ],
 );

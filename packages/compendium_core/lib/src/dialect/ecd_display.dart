@@ -57,6 +57,9 @@ String ecdDestinationPhrase(Object? value) => switch (value) {
   'partnersPlace' => "to partner's place",
   'neighborsPlace' => "to neighbor's place",
   'diagonalsPlace' => "to diagonal's place",
+  // A cast's ends of the set (§9.4), worded as contra's cast words them.
+  'top' => 'to the top',
+  'bottom' => 'to the bottom',
   final String place when place != ParamVocab.unspecified =>
     'to ${_words(place)}',
   _ => '',

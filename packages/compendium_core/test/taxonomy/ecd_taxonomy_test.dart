@@ -54,7 +54,7 @@ void main() {
       expect(ecdTaxonomy.moves.keys.toSet(), {
         for (final id in _adrMovements) 'ecd_$id',
       });
-      expect(ecdTaxonomy.aliases.keys, ['ecd_swat_the_flea']);
+      expect(ecdTaxonomy.aliases.keys, ['ecd_swat_the_flea', 'ecd_hand_cast']);
       expect(ecdTaxonomy.form, DanceForm.ecd);
     });
 
@@ -619,6 +619,24 @@ void main() {
       );
     });
 
+    test('a shoulder is always shown, whoever casts', () {
+      // Never hidden as a role's usual shoulder, unlike a chain's hand.
+      expect(
+        cast({
+          'who': ['role2s'],
+          'direction': 'right',
+        }),
+        'role2s cast back right',
+      );
+      expect(
+        cast({
+          'who': ['role1s'],
+          'direction': 'left',
+        }),
+        'role1s cast back left',
+      );
+    });
+
     test('a shoulder reads back left or back right', () {
       expect(
         cast({
@@ -663,7 +681,7 @@ void main() {
           'direction': 'down',
           'destination': 'bottom',
         }),
-        'ones cast down to bottom',
+        'ones cast down to the bottom',
       );
       expect(
         cast({
@@ -708,10 +726,22 @@ void main() {
       );
     });
 
-    test('a hand cast is found as a gate', () {
+    test('a hand cast is a listed alias of gate that pins nothing', () {
+      final alias = ecdTaxonomy.aliases['ecd_hand_cast']!;
+      expect(alias.targetMove, 'ecd_gate');
+      expect(alias.pinnedParams, isEmpty);
+      expect(alias.listedAsMove, isTrue);
+      expect(ecdTaxonomy.resolve('ecd_hand_cast')?.id, 'ecd_gate');
       expect(
-        ecdTaxonomy.moves['ecd_gate']!.searchKeywords,
-        contains('hand cast'),
+        _show(
+          testFigure(
+            move: 'ecd_hand_cast',
+            params: {
+              'who': ['ones'],
+            },
+          ),
+        ),
+        'ones hand cast',
       );
       expect(
         ecdTaxonomy.moves['ecd_cast']!.searchKeywords,

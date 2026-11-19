@@ -2255,14 +2255,17 @@ dance.
   reads), a cast's shoulder beside `up` or `down`, a bare `improper`
   (`ending improper` reads), and a subject before a poussette, whose `who` is
   the dancers who push (`half poussette, 2s push` reads; "all" adds nothing).
-- **Cast** reads the shape ADR-006 §9.4 gives it: `up`, `down` or a bare
-  `left`/`right` (the shoulder turned over) is its `direction`, and `back`
+- **Cast** reads the shape ADR-006 §9.4 gives it: `up`, `down`, a bare
+  `left`/`right` (the shoulder turned over) or `clockwise` (right) /
+  `counterclockwise` (left) is its `direction`; no shoulder is assumed from
+  the dancers' role (`robins cast back` states none); and `back`
   states nothing (`cast back left` is `left`), so a displayed cast reads
   back in. `N places` is its `places`, and `to the bottom`/`to top` its
   `destination`; any other movement still reads `to top` as dancers (`set to
   top`). `cast off` is down one place unless the line states a count (`cast
   off two places`) or where it ends (`cast off to the bottom`). A bare `cast
   around`, with no dancers, has no parameter to hold it and stays custom.
+  `hand cast` is a gate, stored under its own alias `ecd_hand_cast`.
 - **Rings.** A circle's or star's fraction ("half way") is a number of places
   from the size of the ring (§7.3): a size the line states (`circle six left
   half way`), the couples the subject names, or the dance's formation

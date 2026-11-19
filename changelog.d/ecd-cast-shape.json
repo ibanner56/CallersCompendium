@@ -1,0 +1,11 @@
+{
+  "id": "ecd-cast-shape",
+  "user_visible": false,
+  "core": {
+    "changed": [
+      "ecd_cast takes the parameter shape of contra's cast (#770, ADR-006 §9.4), amending unreleased ECD taxonomy v1: direction is left/right (the shoulder turned over)/up/down, places is new, where is removed, and destination adds top and bottom. An unstated direction reads \"cast back\", and a stated shoulder is always shown.",
+      "Add the ecd_hand_cast alias of ecd_gate, pinning nothing and listed as a move of its own.",
+      "The ECD line reader reads casts in the new shape (cast off is down one place unless the line states a count or an end; clockwise is the right shoulder) and reads \"hand cast\" as ecd_hand_cast. It never assumes a shoulder from a role."
+    ]
+  }
+}

@@ -585,6 +585,7 @@ final List<_VerbPhrase> _verbPhrases = [
   _v('box the gnat', 'box_the_gnat'),
   _v('swat the flea', 'swat_the_flea'),
   _v('gate', 'gate'),
+  _v('hand cast', 'hand_cast'),
   _v('orbit', 'orbit'),
   _v('mad robin', 'mad_robin'),
   _v('balance', 'balance'),
@@ -781,6 +782,23 @@ Object? _shoulder(
 
 Object? _where(_Bag bag, List<String> allowed) => _oneOf(bag, 'where', allowed);
 
+/// A gate's params, for `gate` and its other name, `hand cast`. Dancers named
+/// straight after the movement: no preposition reads as its `whom`.
+Map<String, Object?>? _gateParams(_Bag b, _Context c) {
+  final gated = _objectOrWhom(
+    b.take<List<String>>('object'),
+    _whomVia(b, const <String>{}),
+  );
+  return _params({
+    'who': b.take<List<String>>('who'),
+    'whom': gated,
+    'direction': b.take<String>('spin'),
+    'travel': _travel(b),
+    'endFacing': b.take<String>('endFacing'),
+    'destination': _dest(b),
+  });
+}
+
 /// The dancers a step names after a preposition, when the movement reads
 /// that preposition as its `whom` ([via]); [_fail] for any other preposition,
 /// since each movement shows `whom` with its own word ("around", "through",
@@ -934,22 +952,9 @@ final Map<String, _MoveRule> _rules = {
       'destination': _dest(b),
     }),
   ),
-  'gate': _MoveRule('ecd_gate', (b, c) {
-    // Dancers named straight after the movement: no preposition reads as its
-    // `whom`.
-    final gated = _objectOrWhom(
-      b.take<List<String>>('object'),
-      _whomVia(b, const <String>{}),
-    );
-    return _params({
-      'who': b.take<List<String>>('who'),
-      'whom': gated,
-      'direction': b.take<String>('spin'),
-      'travel': _travel(b),
-      'endFacing': b.take<String>('endFacing'),
-      'destination': _dest(b),
-    });
-  }),
+  'gate': _MoveRule('ecd_gate', _gateParams),
+  // A gate by its other name, stored under its own ID (ADR-006 §9.4).
+  'hand_cast': _MoveRule('ecd_hand_cast', _gateParams),
   'orbit': _MoveRule(
     'ecd_orbit',
     (b, c) => _params({
@@ -1303,7 +1308,16 @@ final Map<String, _MoveRule> _rules = {
   'cast': _MoveRule('ecd_cast', (b, c) {
     final who = _whoOf(b, objectIsWho: false);
     final where = _where(b, const ['off', 'up', 'down', 'back']);
-    final shoulder = _sideAs(b, 'direction', toTheAllowed: false);
+    // `clockwise` is over the right shoulder, `counterclockwise` the left
+    // (the maintainer's mapping). A role never implies one (§9.4).
+    final side = _sideAs(b, 'direction', toTheAllowed: false);
+    final spin = switch (b.take<String>('spin')) {
+      null => null,
+      'clockwise' => 'right',
+      'counterclockwise' => 'left',
+      _ => _fail,
+    };
+    final shoulder = side != null && spin != null ? _fail : side ?? spin;
     final count = b.take<int>('placeCount');
     final direction = where == null || where == 'back'
         ? shoulder

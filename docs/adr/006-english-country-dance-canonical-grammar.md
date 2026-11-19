@@ -34,7 +34,10 @@ in §9.4, and the sections they changed are:
   side of the set. It gains `places` ("cast down one place"), and its
   `destination` can be the top or bottom of the set. "Cast around 2s" is
   `whom`, and "cast off" is down one place.
-- **A hand cast is a `gate`**, and can be found by that name (§7.2).
+- **A shoulder is always shown and never assumed** from the dancers' role
+  (§7.5).
+- **A hand cast is a `gate`**: `hand_cast` is an alias of `gate` that pins
+  nothing and is listed as a movement of its own (§7.2).
 
 ### What changed when one caller's notes were checked (19 November 2026)
 
@@ -765,7 +768,7 @@ already means the dancers end where the line began. It doesn't take
 | `diagonal's place` | Where the dancer on that dancer's diagonal was when the line began | "to diagonal's place" |
 | `all improper` | Everyone ends improper: on the opposite side of the set from their proper side | "ending improper" |
 | `all proper` | Everyone ends on their proper side | "ending proper" |
-| `top`, `bottom` | The top or bottom of the set; `cast` only (§9.4) | "to the bottom" |
+| `top`, `bottom` | The top or bottom of the set; `cast` only (§9.4) | "to the top", "to the bottom" |
 
 - **Numbered places depend on the formation.** The editor offers only the
   places a formation has: two in a duple minor, three in a triple minor or
@@ -814,7 +817,7 @@ transcriptions (§3). Each count is of captions, not of performances.
 | `swing` | `who`, `endFacing` | *as contra* | Rare in ECD, included for coverage. Unlike contra's `swing`, it has no `prefix`: "balance and swing" is a sequence or two lines (§5.4). |
 | `box_the_gnat` | `who`, `hand`, `balance` | *as contra*: `{who} box the gnat` | Identical to contra `box_the_gnat`, including its `balance` flag (§5.4), apart from the optional `destination` (§6.4). Occurs as a figure in its own right (*Honeysuckle Cottage*). |
 | `swat_the_flea` | as `box_the_gnat`, with `hand` fixed to `left` | *as contra*: `{who} swat the flea` | Identical to contra apart from the optional `destination`. A separately named entry stored as `box_the_gnat` with the hand fixed, so the two names never merge. |
-| `gate` | `who`, `whom`, `pair`, `direction`, `travel`, `endFacing` | *as contra* | Not a turn: one dancer pivots while the other travels around (§4). A "hand cast" is a gate, and can be found by that name (the maintainer's decision, §9.4). |
+| `gate` | `who`, `whom`, `pair`, `direction`, `travel`, `endFacing` | *as contra* | Not a turn: one dancer pivots while the other travels around (§4). A "hand cast" is a gate: `hand_cast` is an alias of `gate` that pins nothing, listed as a movement of its own so search can name it and a dialect's name for gate never renames it (the maintainer's decision, §9.4). |
 | `orbit` | `who`, `whom`, `direction`, `travel` | `{who} orbit {direction} {travel} [around {whom}]` | Evidence: 3 captions in *The Shrewsbury Lasses* ("orbit outside, same direction, ending improper"). "Ending improper" is `destination = allImproper` (§6.4). |
 | `mad_robin` | `who`, `whom`, `travel`, `direction` | *as contra* | |
 
@@ -865,7 +868,7 @@ transcriptions (§3). Each count is of captions, not of performances.
 | `pull_by` | `who`, `whom`, `hand`, `where` | `{who} [{hand} hand] pull by [{whom}] [{where}]` | Added from a caller's notes (§9.3): "Partner R hand pull by" occurs 10 times. Contra's `pull_by` is a model, but the ECD movement is defined independently (§5.1). The parameters are this ADR's. |
 | `contra_corners` | `who` | `{who} contra corners` | Its own movement, by the maintainer's answer (§9.3), rather than a titled container of the turns it is made of. `who` names the dancers who turn their corners, usually the 1s. The parameters are this ADR's. Evidence: 3 uses in a caller's notes ("Contra corners: 1s R hand, turn first corners L hand"). |
 | `lead` | `who`, `where`, `whom`, `destination` | `{who} lead {where} [through {whom}] [to {destination}]` | Defined on acceptance (Q7). `where` covers "up", "down", "out", "to the middle" and "back". `whom` is the route ("lead through 2s"). Evidence (counted together with cast, because the two often share a caption): 16 captions in 11 dances. They consistently state who, where and a destination ("to progressed place", "home", "to 2nd place", "to the ends of a line of four"). |
-| `cast` | `who`, `direction`, `places`, `whom`, `destination` | `{who} cast {back \| back {direction} \| {direction}} [{places}] [around {whom}] [to {destination}]` | Defined on acceptance (Q7), and given the parameters of contra's planned `cast` (#770) by the maintainer's decision of 19 November 2026 (§9.4). `direction` is `left`, `right`, `up`, `down` or `unspecified`. `left` and `right` are the shoulder the dancer turns over, not a side of the set: a cast clockwise is over the right shoulder, counterclockwise over the left. An unstated direction reads "cast back"; `left` and `right` read "cast back left" and "cast back right"; `up` and `down` read "cast up" and "cast down". `places` counts places moved ("cast down one place" is `down` with `places = 1`). "Cast off" is `down` with `places = 1` unless a number is stated, and "cast off" stays a name it can be found by. "Cast around 2s" is `whom`. `destination` also takes `top` and `bottom` ("cast down to bottom"), which no other ECD movement takes. "Long corners cast" is `who = longCorners`. A cast while another group leads is a `meanwhile` only when the source says so with "as" or "while". Actions joined only by a comma are separate figures in order (§5.6, Q7). Evidence: the same captions as `lead`. One couple casting while another leads occurs in 9 captions in 7 dances: five join the two with "as", four with a comma. |
+| `cast` | `who`, `direction`, `places`, `whom`, `destination` | `{who} cast {back \| back {direction} \| {direction}} [{places}] [around {whom}] [to {destination}]` | Defined on acceptance (Q7), and given the parameters of contra's planned `cast` (#770) by the maintainer's decision of 19 November 2026 (§9.4). `direction` is `left`, `right`, `up`, `down` or `unspecified`. `left` and `right` are the shoulder the dancer turns over, not a side of the set: a cast clockwise is over the right shoulder, counterclockwise over the left. An unstated direction reads "cast back"; `left` and `right` read "cast back left" and "cast back right", always, even when the shoulder is the one a role usually turns over; `up` and `down` read "cast up" and "cast down". No shoulder is assumed from the dancers' role (§9.4). `places` counts places moved ("cast down one place" is `down` with `places = 1`). "Cast off" is `down` with `places = 1` unless a number is stated, and "cast off" stays a name it can be found by. "Cast around 2s" is `whom`. `destination` also takes `top` and `bottom` ("cast down to bottom"), which no other ECD movement takes. "Long corners cast" is `who = longCorners`. A cast while another group leads is a `meanwhile` only when the source says so with "as" or "while". Actions joined only by a comma are separate figures in order (§5.6, Q7). Evidence: the same captions as `lead`. One couple casting while another leads occurs in 9 captions in 7 dances: five join the two with "as", four with a comma. |
 | `galop` | `who`, `where`, `goBack` | `{who} galop {where} [and back]` | A movement, not a travelling style (Q10b, the maintainer's answer). The parameters are this ADR's. |
 | `chevron` | `who`, `shoulder`, `whom`, `castShoulder` | `chevron: {who} cross passing {shoulder} shoulder and back into {whom}'s places, as {whom} cast over the {castShoulder} shoulder into {who}'s places` | The maintainer's definition (Q10d), from FODA2 in the Compendium Analect archive: "One pair of dancers crosses passing by a specified shoulder, then backs up into the other pair's place while that pair casts over their left or right shoulder into the crossing pair's place." `who` is the crossing pair, `whom` the casting pair, and `castShoulder` the casting pair's shoulder. The parameter names are this ADR's. "Pothooks" is an alias. The draft wrote "Chevron/Pothooks", and the maintainer's answer was that it is "probably" another name for chevron (§9.1), so it can be split out if testers show otherwise. |
 | `bend_line` | `who` | `bending the line` | The modifier in a `modifier` container, as in "up a double and back, *bending the line*" (Q10c). It is not used as a line on its own. |
@@ -1332,9 +1335,17 @@ shape from the start, so that re-reading a contra-imported English dance
    rather than to every movement's `destination`, is this document's call.
 5. **Hand cast** is a `gate`. The maintainer's reason: The Caller's Box
    glossary calls a hand cast "a cast off figure done with hands… very
-   similar to a gate", and its Gate entry says the reverse. It is a name
-   `gate` can be found by, not a movement or alias of its own; that choice
-   is this document's.
+   similar to a gate", and its Gate entry says the reverse. As in contra,
+   `hand_cast` is an alias of `gate` that pins nothing and is listed as a
+   movement of its own, so search can name it and a dialect's name for gate
+   never renames it.
+6. **The shoulder is always shown.** "Cast back left" and "cast back right"
+   are shown even when they match a role's usual shoulder ("role2s cast
+   back right"), unlike a chain's role-implied hand, which goes unsaid.
+7. **No shoulder is assumed from a role.** In contra, the assumption that
+   role2s cast back over the right shoulder and role1s over the left is
+   limited to The Caller's Box import. ECD's line reader and editor assume
+   nothing: an unstated shoulder stays unstated.
 
 The taxonomy had not been released, so its version 1 was amended in place
 ([figure-taxonomy.md](../design/figure-taxonomy.md#ecd-taxonomy-versions)).

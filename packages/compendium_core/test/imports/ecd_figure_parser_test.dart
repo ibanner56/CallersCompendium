@@ -669,6 +669,24 @@ void main() {
         'destination': 'bottom',
       });
       expect(cast('cast to top'), {'destination': 'top'});
+      // A way round is the shoulder: clockwise over the right.
+      expect(cast('1s cast clockwise'), {
+        'who': ['ones'],
+        'direction': 'right',
+      });
+      expect(cast('1s cast counterclockwise around 2s'), {
+        'who': ['ones'],
+        'direction': 'left',
+        'whom': 'twos',
+      });
+      // A role never implies a shoulder (§9.4).
+      expect(cast('robins cast back'), {
+        'who': ['role2s'],
+      });
+      expect(cast('1s cast to the top'), {
+        'who': ['ones'],
+        'destination': 'top',
+      });
       // A cast off that says where it ends states no count.
       expect(cast('1s cast off to the bottom'), {
         'who': ['ones'],
@@ -706,12 +724,23 @@ void main() {
         '1s cast to the left',
         '1s cast down right',
         '1s cast back down',
+        '1s cast left clockwise',
         '1s cast around',
         '1s cast to the bottom to 2nd place',
         '1s lead down to the bottom',
       ]) {
         expect(_one(line).isCustom, isTrue, reason: line);
       }
+    });
+
+    test('a hand cast is a gate by its own name (ADR-006 §9.4)', () {
+      final f = _one('1s hand cast 2s');
+      expect(f.move, 'ecd_hand_cast');
+      expect(f.params, {
+        'who': ['ones'],
+        'whom': 'twos',
+      });
+      expect(_one('hand cast').move, 'ecd_hand_cast');
     });
 
     test('a stated ring size with no fraction to hold it is not read', () {
