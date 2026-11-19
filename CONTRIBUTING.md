@@ -122,10 +122,13 @@ shipped: amend it all the same, and redeploy the server before any client
 emits the amended form, as for any manifest change. Ask the maintainer what is
 deployed if you can't tell.
 
-When you amend vNext rather than bump, the CI version gates
-(`check_schema_migration.py`, `check_version_history.py`) do not notice,
-because the constant does not move. Amending vNext's ledger entry and tests is
-on you. Anything run from source at vNext before your change (a dev database,
+A second bump is gated: `check_version_bump_policy.py` fails a PR that raises
+one of these three constants while `main` already carries a value above the
+latest release tag's, and names the constant. It compares tags only, never
+what is deployed. When you amend vNext rather than bump, none of the CI version
+gates (`check_schema_migration.py`, `check_version_history.py`,
+`check_version_bump_policy.py`) notices, because the constant does not move.
+Amending vNext's ledger entry and tests is on you. Anything run from source at vNext before your change (a dev database,
 a dev sync store) does not see it again. Recreate it rather than bumping.
 
 ### Database schema migrations

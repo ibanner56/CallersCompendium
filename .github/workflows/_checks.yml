@@ -226,6 +226,10 @@ jobs:
       # introduced. See tools/ci/check_version_history.py.
       - name: Test the version-history gate
         run: python3 tools/ci/test_check_version_history.py
+      # PR-only in ci.yml as well (it needs the base ref and the release tags).
+      # See tools/ci/check_version_bump_policy.py.
+      - name: Test the version-bump policy gate
+        run: python3 tools/ci/test_check_version_bump_policy.py
       - name: Test the CHANGELOG promotion gate
         run: python3 tools/ci/test_check_changelog_promoted.py
       # The structure gate itself runs in changelog-structure.yml, because
