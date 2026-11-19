@@ -833,8 +833,17 @@ figure to see:
   own, such as how you call it or what to watch for. Clear the text to remove
   them.
 
+Choose **Contra** or **English (ECD)** at the top of the Glossary to see
+that type's figures. It opens on the type a new dance starts as (the
+**Type** default for new dances, which can be **Last used**). English figures don't have
+definitions yet. Your own figures and terms are listed under the type they
+were made for, and a square dance's under Contra, whose figures square dances
+use for now. Copying an English figure as one of your own makes it an English
+figure.
+
 Names, definitions and examples follow your active
-[dialect](dialects.md), so role words read the way you call them. The built-in
+[dialect](dialects.md) for the type shown, so role words read the way you call
+them. The built-in
 figures come with the app, and turning the Glossary off only removes it from
 the navigation; your notes are kept, and come back when you turn it on again.
 The built-in definitions and descriptions are in English whatever language the
