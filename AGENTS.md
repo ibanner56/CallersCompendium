@@ -54,6 +54,14 @@ unresolved threads (with `totalCount`, so truncation is visible), CI status on
 the current head, and that the PR closes exactly the issues you named. Details
 and failure modes: [docs/dev/agents/merging.md](docs/dev/agents/merging.md).
 
+## A UI change ships with a screenshot
+
+A PR that changes anything a user can see carries before/after screenshots (or a
+recording, for motion) in its body before review — see
+[CONTRIBUTING.md](CONTRIBUTING.md#screenshots-for-ui-changes). No device? A golden
+from `fvm flutter test --update-goldens` is acceptable if it covers the whole
+surface that changed; say so.
+
 ## Documentation is part of the change
 
 Documentation drift is this repository's most persistent defect class, across
