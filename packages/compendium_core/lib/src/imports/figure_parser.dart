@@ -1904,7 +1904,9 @@ int _castClauseEnd(List<String> w, int from) {
 /// numbered codes upper-cased as the source writes them (`P2`, `N3`), anything
 /// else as read.
 String _castNoteDancer(String word) =>
-    RegExp(r'^[pns]\d$').hasMatch(word) ? word.toUpperCase() : word;
+    _castNumberedDancer.hasMatch(word) ? word.toUpperCase() : word;
+
+final RegExp _castNumberedDancer = RegExp(r'^[pns]\d$');
 
 // `star through`: mirrors california_twirl — who only, no `balance` param,
 // and it does NOT take part in the balance cross-line merge (v12 dropped it

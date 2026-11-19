@@ -1089,7 +1089,7 @@ FigureMatch? _tcbCast(String scrubbed) {
   final text = past == null
       ? scrubbed
       : '${scrubbed.substring(0, past.start)} ${scrubbed.substring(past.end)}'
-            .replaceAll(RegExp(r'\s+'), ' ')
+            .replaceAll(_castWhitespaceRe, ' ')
             .trim();
   FigureMatch? inner;
   for (final pre in tcbFigureFrontEnd.preRecognizers) {
@@ -1146,6 +1146,8 @@ final RegExp _castWordRe = RegExp(
 );
 
 final RegExp _castBackRe = RegExp(r'\bcast\s+back\b', caseSensitive: false);
+
+final RegExp _castWhitespaceRe = RegExp(r'\s+');
 
 /// `(past …)`. Bounded like [_annotationRe], so a pathological parenthetical
 /// simply does not match.
