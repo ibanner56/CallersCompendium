@@ -281,8 +281,9 @@ double themeCardWidth(
   const gap = 12.0;
   if (available >= 2 * fixed + gap) return fixed;
   final half = ((available - gap) / 2).floorToDouble();
-  if (allowTwoColumns && textScale <= 1.3 && half >= _minTwoColumnCardWidth)
+  if (allowTwoColumns && textScale <= 1.3 && half >= _minTwoColumnCardWidth) {
     return half;
+  }
   return available;
 }
 
