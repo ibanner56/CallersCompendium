@@ -280,6 +280,21 @@ void main() {
       expect(figures[5].params['direction'], 'left');
     });
 
+    test(
+      'a (cw) or (ccw) on a cast is its shoulder, not an assumed one',
+      () async {
+        final figures = await imported([
+          '(2) Men cast back (cw) || Women go forward',
+          '(2) Women cast back (ccw)',
+        ]);
+        expect(figures[0].subFigures.first.params['direction'], 'right');
+        expect(figures[1].params['direction'], 'left');
+        // A second rotation, or one the line contradicts, stays custom.
+        expect(tcb('Men cast back (cw) (ccw)').isCustom, isTrue);
+        expect(tcb('Men cast counterclockwise (cw)').isCustom, isTrue);
+      },
+    );
+
     test('outside the import, an unstated shoulder stays unstated', () {
       // The maintainer limited the assumption to the Caller's Box adapter:
       // the front end alone, a re-check of stored lines (the fan-out across

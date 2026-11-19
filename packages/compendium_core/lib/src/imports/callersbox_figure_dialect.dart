@@ -1074,18 +1074,27 @@ final RegExp _promenadeMajorSetTail = RegExp(
 /// `[with N2]` beside it is noted exactly as on any other cast. The remainder
 /// no longer carries the run, and this entry is skipped, so it cannot recurse.
 ///
-/// Returns null (the normal path) for a line with no `(past …)`, and for one
-/// whose remainder is not a cast.
+/// It also reads a `(cw)`/`(ccw)` annotation on a cast as its shoulder (right
+/// and left, as "cast clockwise" and "cast counterclockwise" are), so a stated
+/// rotation is never overridden by the adapter's assumed one: `Men cast back
+/// (cw) || Women go forward`.
+///
+/// Returns null (the normal path) for a line with neither, and for one whose
+/// remainder is not a cast.
 FigureMatch? _tcbCast(String scrubbed) {
   if (!_castWordRe.hasMatch(scrubbed)) return null;
   final runs = _castPastRe.allMatches(scrubbed).take(2).toList();
-  if (runs.isEmpty) return null;
-  final past = runs.first;
+  final spins = _castSpinRe.allMatches(scrubbed).take(2).toList();
+  if (runs.isEmpty && spins.isEmpty) return null;
 
-  final text =
-      '${scrubbed.substring(0, past.start)} ${scrubbed.substring(past.end)}'
-          .replaceAll(_castWhitespaceRe, ' ')
-          .trim();
+  // Remove the runs this reads, back to front so earlier offsets hold.
+  final removed = [...runs.take(1), ...spins.take(1)]
+    ..sort((a, b) => b.start.compareTo(a.start));
+  var text = scrubbed;
+  for (final run in removed) {
+    text = '${text.substring(0, run.start)} ${text.substring(run.end)}';
+  }
+  text = text.replaceAll(_castWhitespaceRe, ' ').trim();
   FigureMatch? inner;
   for (final pre in tcbFigureFrontEnd.preRecognizers) {
     if (identical(pre, _tcbCast)) continue;
@@ -1100,22 +1109,49 @@ FigureMatch? _tcbCast(String scrubbed) {
   if (inner.forceCustom) return inner;
   if (inner.moveId != 'cast') return null;
 
-  final body = past.group(1)!.trim();
-  final items = body.split(';').map((item) => item.trim()).toList();
-  final stated = inner.params['places'];
-  if (runs.length > 1 ||
-      items.length > 10 ||
-      !items.every(_castPastItemRe.hasMatch) ||
-      (stated is int && stated != items.length)) {
-    return const FigureMatch.customFallback();
+  final params = <String, Object?>{...inner.params};
+  var note = inner.note;
+  if (spins.isNotEmpty) {
+    // `(cw)` is the right shoulder and `(ccw)` the left, as "cast clockwise"
+    // and "cast counterclockwise" are. A second one, or one that disagrees
+    // with a direction the line states, keeps the line custom.
+    final spin = spins.first.group(1)!.toLowerCase();
+    final shoulder = spin == 'cw' || spin == 'clockwise' ? 'right' : 'left';
+    final stated = params['direction'];
+    if (spins.length > 1 ||
+        (stated != null &&
+            stated != ParamVocab.unspecified &&
+            stated != shoulder)) {
+      return const FigureMatch.customFallback();
+    }
+    params['direction'] = shoulder;
+  }
+  if (runs.isNotEmpty) {
+    final body = runs.first.group(1)!.trim();
+    final items = body.split(';').map((item) => item.trim()).toList();
+    final stated = params['places'];
+    if (runs.length > 1 ||
+        items.length > 10 ||
+        !items.every(_castPastItemRe.hasMatch) ||
+        (stated is int && stated != items.length)) {
+      return const FigureMatch.customFallback();
+    }
+    params['places'] = items.length;
+    note = combineFigureNotes(note, 'past $body');
   }
   return FigureMatch(
     'cast',
-    params: {...inner.params, 'places': items.length},
-    note: combineFigureNotes(inner.note, 'past $body'),
+    params: params,
+    note: note,
     assumedSubject: inner.assumedSubject,
   );
 }
+
+/// A cast's `(cw)`/`(ccw)` annotation (also spelled out): its shoulder.
+final RegExp _castSpinRe = RegExp(
+  r'\(\s*(cw|ccw|clockwise|counterclockwise)\s*\)',
+  caseSensitive: false,
+);
 
 /// The word `cast`, but not `hand cast` (the `hand_cast` alias of gate).
 final RegExp _castWordRe = RegExp(
