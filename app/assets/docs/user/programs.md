@@ -123,7 +123,8 @@ If it can't reach the archives (you're offline, or the connection hangs), it
 title as not found; try again once you're online.
 
 The dances it imports are added to your collection straight away, so the
-preview can link them. If you leave the screen without pressing **Import**, they
+preview can link them. If you go back with a title or a list pasted in, the app asks
+before discarding it. If you leave the screen without pressing **Import**, they
 are removed again, and so is anything it was still looking up.
 
 ### Import a program from ContraDB
@@ -138,6 +139,9 @@ flow:
   choose **Fetch program**.
 - **Search by name** — type part of a program's name and pick it from the
   results.
+
+If you go back with a link, a search or a fetched program on screen (including
+a link opened from elsewhere), the app asks before discarding it.
 
 When you search, the app marks programs you've likely already brought in, so
 repeat imports are easy to spot:
