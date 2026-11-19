@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/src/data/confirm_before_delete_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/venue_manager_screen.dart';
 
@@ -64,23 +65,26 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('venue-manager-delete-v1')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('venue-delete-confirm')));
-    await tester.pumpAndSettle();
 
-    // Friendly, non-crashing message; the venue is still present.
+    // Friendly, non-crashing message; the venue is still present, and no
+    // Undo is offered for a delete that did not happen.
     expect(find.byKey(const ValueKey('venue-delete-blocked')), findsOneWidget);
+    expect(find.byKey(const ValueKey('venue-delete-undo')), findsNothing);
     expect(await repos.venues.getById('v1'), isNotNull);
   });
 
-  testWidgets('deletes an unlinked venue', (tester) async {
+  testWidgets('deletes an unlinked venue at once, with Undo', (tester) async {
     final repos = openTestRepositories();
     await repos.venues.upsert(Venue(id: 'v1', name: 'Grange Hall'));
     await _pump(tester, repos);
 
     await tester.tap(find.byKey(const ValueKey('venue-manager-delete-v1')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('venue-delete-confirm')));
-    await tester.pumpAndSettle();
+
+    // No dialog: "Confirm before delete" is off by default, and Undo covers it.
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(find.text('"Grange Hall" deleted.'), findsOneWidget);
+    expect(find.byKey(const ValueKey('venue-delete-undo')), findsOneWidget);
 
     expect(await repos.venues.getById('v1'), isNull);
     expect(find.byKey(const ValueKey('venue-manager-empty')), findsOneWidget);
@@ -143,5 +147,52 @@ void main() {
 
     expect(find.text('Link earlier programs?'), findsNothing);
     expect(await repos.venues.listAll(), hasLength(1));
+  });
+
+  testWidgets('Undo brings a deleted venue back', (tester) async {
+    final repos = openTestRepositories();
+    await repos.venues.upsert(Venue(id: 'v1', name: 'Grange Hall'));
+    await _pump(tester, repos);
+
+    await tester.tap(find.byKey(const ValueKey('venue-manager-delete-v1')));
+    await tester.pumpAndSettle();
+    expect(await repos.venues.getById('v1'), isNull);
+
+    await tester.tap(find.byKey(const ValueKey('venue-delete-undo')));
+    await tester.pumpAndSettle();
+
+    expect((await repos.venues.getById('v1'))?.name, 'Grange Hall');
+    expect(find.byKey(const ValueKey('venue-manager-tile-v1')), findsOneWidget);
+  });
+
+  testWidgets('asks first when "Confirm before delete" is on', (tester) async {
+    final repos = openTestRepositories();
+    await repos.venues.upsert(Venue(id: 'v1', name: 'Grange Hall'));
+    final confirm = ValueNotifier<bool>(true);
+    addTearDown(confirm.dispose);
+    await tester.binding.setSurfaceSize(const Size(900, 1600));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        builder: (context, child) => ConfirmBeforeDeleteScope(
+          notifier: confirm,
+          child: RepositoriesScope(repositories: repos, child: child!),
+        ),
+        home: const VenueManagerScreen(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('venue-manager-delete-v1')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('confirm-delete-dialog')), findsOneWidget);
+    expect(await repos.venues.getById('v1'), isNotNull);
+
+    await tester.tap(find.byKey(const ValueKey('confirm-delete-confirm')));
+    await tester.pumpAndSettle();
+    expect(await repos.venues.getById('v1'), isNull);
+    expect(find.byKey(const ValueKey('venue-delete-undo')), findsOneWidget);
   });
 }

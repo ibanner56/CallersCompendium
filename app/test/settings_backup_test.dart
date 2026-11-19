@@ -236,14 +236,17 @@ void main() {
       repos,
       dateFormat: const DateFormatSetting(DateFormatPref.dmy),
     );
-    expect(
-      find.text(
-        AppLocalizationsEn().backupLastBackupDate(
-          DateFormat('dd/MM/yyyy').format(at.toLocal()),
-        ),
+    final lastBackup = find.text(
+      AppLocalizationsEn().backupLastBackupDate(
+        DateFormat('dd/MM/yyyy').format(at.toLocal()),
       ),
-      findsOneWidget,
     );
+    await tester.scrollUntilVisible(
+      lastBackup,
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
+    expect(lastBackup, findsOneWidget);
   });
 
   testWidgets(
@@ -1313,6 +1316,11 @@ void main() {
     final repos = openTestRepositories();
     await _pumpGeneral(tester, repos, onRestored: () async {});
 
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('backup-reminder-cadence')),
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
     await tester.tap(find.byKey(const ValueKey('backup-reminder-cadence')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Weekly').last);

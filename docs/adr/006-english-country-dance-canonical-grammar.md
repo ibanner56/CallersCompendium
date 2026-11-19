@@ -1,24 +1,46 @@
 # ADR-006: English Country Dance canonical figure grammar
 
-- **Status**: Proposed (30 September 2026). Revised 18 November 2026 after
-  the first round of review. Circulated for review by ECDDB contributors and
-  other ECD callers, dancers and archivists before anything is implemented.
+- **Status**: Accepted (19 November 2026). Proposed 30 September 2026, and
+  revised 18 November 2026 after the first round of review. The maintainer
+  answered the open questions on 19 November 2026 (§9) and made the
+  implementation decisions in §12. A few points still wait on the
+  maintainer; they are listed in §9.1.
 - **Roadmap item**: "ECD and Squares support" (Later milestones in
   [ROADMAP.md](../ROADMAP.md))
 - **Deciders**: Maintainers, with community review
 
-**What we're asking reviewers for:** corrections, missing vocabulary,
-community practice, and answers to the
-[open questions](#9-open-questions-for-reviewers).
-
-This ADR is longer than most because it doubles as a review document for
-readers outside this repository. In the template's terms: §1.1 and §2–§3
-are the *context* (§1.1 states the requirements), §5–§7 the proposed
-*decision*, §3 and §5 the *rationale*, and §9–§10 the open *consequences*
-and *revisit triggers*. Once accepted, the resulting ECD taxonomy follows the versioning
+**Feedback is still welcome.** Outside reviewers will mostly respond after
+trying the implementation hands-on. Corrections, missing vocabulary and
+community practice can change the taxonomy later through the versioning
 process in [figure-taxonomy.md](../design/figure-taxonomy.md).
 
-### What changed in this revision
+This ADR is longer than most because it began as a review document for
+readers outside this repository. In the template's terms: §1.1 and §2–§3
+are the *context* (§1.1 states the requirements), §5–§7 and §12 the
+*decision*, §3 and §5 the *rationale*, and §9–§10 the *consequences* and
+*revisit triggers*.
+
+### What changed on acceptance (19 November 2026)
+
+The maintainer answered every open question and made the implementation
+decisions in §12. Each answer is recorded in §9, with the maintainer's own
+notes quoted. The sections those answers changed are:
+
+- **Turns are three movements again** (Q12): `hand_turn` (one hand),
+  `two_hand_turn` and `arm_turn` (§4, §7.2). This reverses the merge made in
+  the 18 November revision.
+- **An unstated `who` is `everyone`** (Q1, §5.2, §5.3).
+- **Defined, where the draft left them open** (§7): `lead`, `cast`,
+  `change_places`, `grand_chain`, `galop`, `bend_line`, `chevron`,
+  `mirror_hey`, and the hey family as separate movements (Q4). `set_and_link`
+  is defined in part (Q9). `line` is not a movement (Q10).
+- **The star takes no grip** (Q13e), and **the turns, `cross` and
+  `fall_back` gain parameters** (Q13d).
+- **New selectors**: `ends`, `middles`, `leftFile` and `rightFile` (Q2, Q14).
+- **Stored values are camelCase**, as contra's are (§6.1, §12).
+- **The dance record, settings and screens** are decided in §12.
+
+### What changed in the 18 November revision
 
 The first round of review asked for stated requirements, a definition of
 "movement" and of "figure", and pointed out that *The Farmer's Joy* lost the
@@ -31,9 +53,9 @@ request that made it.
 - **Requirements are stated** (§1.1). Complete coverage of every dance is not
   one. Losing or changing anything the source states is ruled out.
 - **"Movement" is defined** (§4) as a pattern of travel. Hand, arm and
-  two-hand turns are now one movement, `hand_turn`, and their familiar names
-  are aliases (§7.2). Gate, swing and shoulder round stay separate, and §4
-  says why.
+  two-hand turns became one movement, `hand_turn`, with their familiar names
+  as aliases. Acceptance reversed that merge (Q12). Gate, swing and shoulder
+  round stay separate, and §4 says why.
 - **"Figure", "step" and "line" are defined** (§4). "Set and turn single" is
   one line: a `sequence` of two steps (§5.4, §5.6). The draft stored it as
   two lines.
@@ -66,11 +88,12 @@ request that made it.
 6. [Shared parameter vocabulary](#6-shared-parameter-vocabulary)
 7. [The figure registry](#7-the-figure-registry)
 8. [Worked examples](#8-worked-examples)
-9. [Open questions for reviewers](#9-open-questions-for-reviewers)
+9. [Answers to the open questions](#9-answers-to-the-open-questions)
 10. [Out of scope](#10-out-of-scope)
 11. [How to respond](#11-how-to-respond)
-12. [Appendix A: how the contra grammar renders shared figures](#appendix-a-how-the-contra-grammar-renders-shared-figures)
-13. [Appendix B: sources](#appendix-b-sources)
+12. [Implementation decisions](#12-implementation-decisions)
+13. [Appendix A: how the contra grammar renders shared figures](#appendix-a-how-the-contra-grammar-renders-shared-figures)
+14. [Appendix B: sources](#appendix-b-sources)
 
 ---
 
@@ -79,27 +102,18 @@ request that made it.
 Caller's Compendium is an app for callers to store, search, edit and print
 dances. For contra dance it already stores each figure as structured data
 ("who does what, with which hand, how far") rather than free text. We would
-like to do the same for English Country Dance, and we want the vocabulary to
-be right before any of it is built.
+like to do the same for English Country Dance, and this document set out
+the vocabulary before any of it was built.
 
-This document proposes a small set of named movements, each described by a
-fixed list of named parameters. For example, a right-hand turn once around
-by partners is stored as the movement `hand_turn` with `who = partners`,
-`hand = right`, `travel = 1`. It is not stored as a separate "right-hand turn
-partners" entry. A two-hand turn (both hands) and an arm turn (an arm hold)
-are the same movement with different values, and can still be entered,
-searched and shown by their own names.
+It defines a small set of named movements, each described by a fixed list
+of named parameters. For example, a right-hand turn once around by partners
+is stored as the movement `hand_turn` with `who = partners`, `hand = right`,
+`travel = 1`. It is not stored as a separate "right-hand turn partners"
+entry. Two-hand turns and arm turns are movements of their own (Q12).
 
-The registry (§7) has **44 movements**:
-
-- **35 are defined**, each with parameters and a draft display. Some still
-  have specific review points.
-- **9 are open**, because we lack the evidence or the community knowledge
-  to define them well: `hey`, `grand_chain`, `change_places`, `lead`,
-  `cast`, `galop`, `line`, `bend_line` and `set_and_link`.
-
-The open movements and the questions in §9 are where ECDDB contributors can
-help most.
+The registry (§7) has **49 movements**, each with parameters and a draft
+display. Points still waiting on the maintainer are listed in §9.1, and
+marked ⚠ in the registry. Movements left out on purpose are listed in §10.
 
 ### 1.1 Requirements
 
@@ -112,7 +126,7 @@ ADR's.
 | | Requirement |
 | --- | --- |
 | **R1. Structure as much as possible, never fail to store.** | A line the grammar can't express is stored as free text (a *custom* figure, as in the contra grammar), and a dance can mix structured and free-text lines. Representing every dance completely is **not** a requirement: several well-known ECD dances are made of movements no shared taxonomy will cover. Failing to structure a line is not failing to store it, but every line should be structured where it can be. |
-| **R2. Never lose or change what the source states.** | A stored figure may drop wording that carries no information and restore it when displayed ("back to place" is stored as `destination = place`). It may never say something different from the source. If structuring a line would lose a stated detail, the detail goes in a note on the structured figure, or the line stays free text. What the source leaves out is stored as `unspecified` (§5.3). |
+| **R2. Never lose or change what the source states.** | A stored figure may drop wording that carries no information and restore it when displayed ("back to place" is stored as `destination = place`). It may never say something different from the source. If structuring a line would lose a stated detail, the detail goes in a note on the structured figure, or the line stays free text. What the source leaves out is stored as `unspecified` (§5.3). On acceptance the maintainer made one exception: an unstated `who` is stored as `everyone` (Q1). Whether R2 should be reworded to match is in §9.1. |
 | **R3. Search.** | Dances can be found by a movement with any of its parameter values, by an alias ("arm right" finds turns stored with an arm hold), and by ordered runs of figures ("X then Y"). |
 | **R4. Render as calling language, in any dialect.** | Every stored line reads back as a line a caller could say aloud, keeping its stated meaning ("Right hands across and back by the left"). The app's full [dialect system](../design/dialect.md) applies, as it does for contra: spelling, role and dancer terms, and per-movement display formulas, including the conditional `[if … then … else …]` groups. |
 | **R5. Import without inventing, aimed at ECDDB.** | The main import target is ECDDB, integrated as the app integrates The Caller's Box: not every dance will have published figures. Aligning on a shared taxonomy should keep the adapter small. Heywood's catalogue and the UpaDouble videos inform the vocabulary (§3), but are not import sources (§2). A line an importer can't resolve keeps its source text. |
@@ -286,22 +300,26 @@ released. They have not been re-derived for this document.
 | **Line** | A figure at the top level of a dance: one row of the dance as displayed. "Set and turn single" is one line made of two steps. |
 | **Dance** | An ordered list of lines, with phrase and bar information held separately. |
 | **Container** | A structural figure that groups other figures: `meanwhile`, `modifier` or `sequence` (§5.6). |
-| **Alias** | Source wording that maps to a movement, sometimes fixing a parameter. "RH turn" maps to `hand_turn` with `hand=right`. "Two-hand turn" maps to `hand_turn` with `hand=both`. An alias whose fixed parameters set it apart is shown and searchable under its own name, as "two-hand turn" is. Aliases that fix the same values, such as "RH turn" and "turn by the right", can't be told apart once stored, so how such a figure reads is a dialect choice. |
+| **Alias** | Source wording that maps to a movement, sometimes fixing a parameter. "RH turn" maps to `hand_turn` with `hand=right`. "Arm left" maps to `arm_turn` with `hand=left`. An alias whose fixed parameters set it apart is shown and searchable under its own name, as "swat the flea" is (§7.2). Aliases that fix the same values, such as "RH turn" and "turn by the right", can't be told apart once stored, so how such a figure reads is a dialect choice. |
 | **Discouraged term** | A word the app recognizes in imported or typed text but never offers, such as "gypsy". The [dialect system](../design/dialect.md) stores it as its canonical meaning and flags it in the editor. |
 | **Selector** | A token naming dancers: `partners`, `neighbors`, `ones`, `firstCorners`, `role1s`, ... |
 | **Role-neutral** | Stored dances use `role1`/`role2`. Men/women, larks/robins, gents/ladies, or positional terms are applied only when the dance is displayed. |
 | **Unspecified** | "The source did not say." A real stored value, different from any concrete default. |
 | **Destination** | Where dancers end, when the source or the person entering the dance states it (§6.4). |
-| **Defined** / **Open** | A defined movement has parameters and a draft display. An open movement doesn't yet, and is listed in §7.6. |
+| **Defined** / **Open** | A defined movement has parameters and a draft display. Before acceptance, an open movement had neither and was listed in §7.6. Acceptance settled all of them: each was defined or split, except `line`, which was found not to be a movement (§7.6). `set_and_link` still has open points (§9.1). |
 
 **How the definition of movement plays out.** Its test is whether dancers
 travel in the same pattern, differing in one variation at a time, not
-whether two names exist. Merging the turns and keeping shoulder round
-separate are the maintainer's decisions; the reasoning below is this ADR's.
+whether two names exist. Keeping shoulder round separate is the
+maintainer's decision; the reasoning below is this ADR's.
 
-- **Merged.** A right-hand turn, a two-hand turn and an arm turn all have
-  two dancers turning around a shared center while connected. They differ
-  only in hand and hold, so they are one movement, `hand_turn`.
+- **Turns: the maintainer's exception.** A right-hand turn, a two-hand turn
+  and an arm turn all have two dancers turning around a shared center while
+  connected, and differ only in hand and hold. By the test above they would
+  be one movement, and the 18 November revision merged them as `hand_turn`.
+  On acceptance the maintainer split them back into three movements:
+  `hand_turn` (one hand), `two_hand_turn` and `arm_turn` (Q12, §7.2). The
+  answer gives no reason, so this document doesn't supply one.
 - **Separate: gate.** One dancer pivots in place while the other travels
   around them, moving the pair to a new facing. The path is different, not
   just the hold.
@@ -357,8 +375,15 @@ In ECD, `who` is always stored as a **list** of selector tokens, even when it
 names one group: `["ones"]`, or `["twos", "threes"]` in a triple-minor or
 longways-set figure such as "2s and 3s circle left". The transcriptions use
 such combinations often: "1s+2s", "2s+3s", "1s+3s", "middle two couples".
-The order is kept as entered. How to store a figure whose source never says
-*who* dances is an open question (Q1).
+The order is kept as entered.
+
+When the source never says *who* dances, `who` is stored as
+`["everyone"]` (Q1, the maintainer's answer). `everyone` can't be combined
+with another selector: the editor refuses `["everyone", "ones"]`, and an
+importer keeps such a line as source text (Q1). A line whose `who` is
+`["everyone"]` is displayed without a subject, whether or not the source
+said "all". That display rule is this ADR's proposal: R2 allows dropping
+wording that carries no information.
 
 The contra transcriptions (§3) show what happens without a list: groups such
 as "ones and threes" end up in notes, and the figure claims more dancers
@@ -374,7 +399,9 @@ Two different things can look alike in a source:
   (§5.4, §6.4).
 - **Details the source leaves out.** If a source omits a hand, shoulder, side
   or direction, the stored value is `unspecified`. The grammar never fills in
-  a "usual" value and presents it as something the source said.
+  a "usual" value and presents it as something the source said. The one
+  exception is `who`: the maintainer decided that a line naming no dancers
+  is danced by everyone (Q1, §5.2).
 
 When someone is *writing* a dance by hand, the editor may *suggest* the usual
 choice (right, for `set` and `turn single`). An imported dance whose source
@@ -414,17 +441,17 @@ Y") does not yet look inside a sequence that is one side of a `meanwhile`
 
 Neither form is a combined movement. Values are not copied from one step to
 the next unless the source states them. "Back by the left" does not imply
-the same grip or number of places as the first star. But "back" itself is
+the same number of places as the first star. But "back" itself is
 stated, so the returning step carries `destination = place` (§8.1).
 
 There are two kinds of exception:
 
 - **`set_and_link`** is one movement, distinct from a bare `set`, because
-  the combined figure is a named unit of its own. Its definition is open
-  (§7.6). A link danced on its own is recorded as "trade places, turning
-  single", with the note "as in set and link" (the maintainer's wording).
-  Storing that as a `modifier` of a change of places and a turn single is
-  this ADR's proposal, and depends on `change_places` being defined (Q6).
+  the combined figure is a named unit of its own (§7.1). A link danced on
+  its own is recorded as "trade places, turning single", with the note "as
+  in set and link" (the maintainer's wording). It is stored as a `modifier`
+  whose core is `change_places` (§7.5) and whose modifier is `turn_single`.
+  The modifier form is this ADR's proposal.
 - **A preceding balance** is recorded as a `balance` flag on
   `box_the_gnat` and on the two wave formations, matching the contra
   taxonomy. Contra also folds a preceding balance into `swing` (its `prefix`
@@ -446,8 +473,10 @@ other points below are this ADR's proposal.
   which records
   the number of phrases, bars per phrase and beats per bar for each part of
   the tune: for example `4*8*3` for four 8-bar phrases in triple time. A
-  tune whose meter changes is several components joined with `+`. Whether a
-  figure can last half a bar in triple time is Q16.
+  tune whose meter changes is several components joined with `+`, and so
+  is a dance in several parts (§12, F4). A figure can last half a bar only
+  where half a bar is a whole number of beats, so not in triple time (Q16).
+  The written meter and key are kept in their own fields (§12, F3).
 - **Bar ranges are derived.** "Bars 1–4" and phrase labels (A1, B2) come from
   the order and length of the lines, as section labels do for contra. They
   are not stored.
@@ -523,27 +552,34 @@ movements*. They are not deleted from any source.
 | `who2` | A second, independently named group | |
 | `pair` | The relationship a figure is danced with, when distinct from `who`/`whom` | |
 | `where` | The spatial path | `up`, `down`, `across`, `along`, `diagonally`, `in`, `out`, `forward`, `back`, `left`, `right` |
-| `direction` | A side or rotation specific to the movement | `left`/`right` (set), `clockwise`/`counterclockwise` (poussette) |
-| `hand` | The hand used | `right`, `left`, `both`, `unspecified` |
-| `grip` | How dancers hold on, where a movement allows more than one hold | `hand`/`arm` (hand turn), `handsAcross` (star), `unspecified` |
+| `direction` | A side or rotation specific to the movement | `left`/`right` (set, cast), `clockwise`/`counterclockwise` (poussette, two-hand turn) |
+| `hand` | The hand used | `right`, `left`, `none` (change places only), `unspecified` |
 | `shoulder` | The shoulder passed | `right`, `left`, `unspecified` |
 | `travel` | The amount of turn, in full turns | `0.5`, `1`, `1.5` |
-| `fraction` | A fractional extent of a figure | `quarter`, `half`, `three-quarter`, `whole` |
+| `fraction` | A fractional extent of a figure | `quarter`, `half`, `threeQuarter`, `full` |
 | `places` | Places moved around a ring or star | a positive whole number, or `unspecified` |
 | `changes` | Changes in a hey, chain or rights-and-lefts | a positive whole number |
 | `endFacing` | Which way dancers face at the end | `up`, `down`, `in`, `out` |
 | `singleFile` | Single-file variant (yes/no) | |
-| `destination` | Where dancers end, when **stated** (§6.4) | `place`, `second place`, `original places`, `progressed place`, `all improper` |
+| `destination` | Where dancers end, when **stated** (§6.4) | `place`, `secondPlace`, `originalPlaces`, `progressedPlace`, `allImproper` |
 | `goBack` | The movement returns the way it came ("and back") (yes/no) | |
-| `distance` | A named distance travelled | `double`, `unspecified` |
+| `distance` | A named distance travelled | `double`, `single`, `unspecified` |
 | `formation` | The grouping a movement is danced in, where it varies | `linesOfThree`, `linesOfFour` |
 | `step` | Prescribed footwork | `slipping`, `skipping`, `unspecified` |
 | `style` | A named manner of performing a movement (siding only) | `straight`, `swirly`, `unspecified` |
+| `tandem` | The tandem variant (yes/no; set and link) | |
+| `switchPush` | The pushers change partway through (yes/no; poussette) | |
+| `castShoulder` | The shoulder a casting pair turns over (chevron) | `left`, `right`, `unspecified` |
 
 We avoid generic catch-all names (`target`, `extent`, `spin`, `turn`) where
-one of the names above already fits. The name `grip` is this ADR's choice:
-the star already had a `grip`, and using the same name for a hand turn's
-hold keeps one concept under one name.
+one of the names above already fits. The draft had a `grip` parameter for
+the star and the hand turn. Acceptance removed it: turns by the arm are now
+`arm_turn` (Q12), and ECD stars are always hands across (Q13e).
+
+**Stored spelling.** Stored values are camelCase, matching contra's
+(`threeQuarter`, `full`, `secondPlace`, `originalPlaces`, `allImproper`).
+The maintainer decided this on acceptance (§12, F1). Some tables in this
+document write values as words, such as "second place", for readability.
 
 ### 6.2 Selectors (values for `who` / `whom`)
 
@@ -553,7 +589,18 @@ hold keeps one concept under one name.
 `prevPartners`, `nextPartners`, `thirdPartners`, `fourthPartners`,
 `fifthPartners`, `firstCorners`, `secondCorners`, `corners`, `longCorners`,
 `firstDiagonals`, `secondDiagonals`, `diagonal`, `actives`, `couples`,
-`sideCouples`, `centers`, `top`, `bottom`, `unspecified`.
+`sideCouples`, `centers`, `top`, `bottom`, `ends`, `middles`, `leftFile`,
+`rightFile`, `unspecified`.
+
+`ends` and `middles` name positions in the set ("at the ends", "middles")
+(Q14). `leftFile` and `rightFile` were added by the maintainer's note on Q2:
+"Also include leftFile and rightFile (similar to your wall/music sides but
+more explicit)". What exactly they name, and from which way of facing, is
+still open (§9.1).
+
+Since Q1, `who` never stores `unspecified`: an unstated `who` is
+`["everyone"]`. `unspecified` stays a valid value of `whom`. That reading is
+this ADR's.
 
 For a single named dancer: `onesRole1`, `onesRole2`, `twosRole1`,
 `twosRole2`, `threesRole1`, `threesRole2`, `foursRole1`, `foursRole2`. The
@@ -562,18 +609,15 @@ contra taxonomy added the third and fourth couples' dancers in v39.
 `firstCorners`/`secondCorners` are treated as **lasting relationships**
 established at the start of the dance. `firstDiagonals`/`secondDiagonals`
 describe **whoever is currently** on that diagonal, which changes as dancers
-move. We know some communities use "corner" and "diagonal" interchangeably
-(Q2).
+move. Some communities use "corner" and "diagonal" interchangeably, but the
+two stay distinct here (Q2).
 
-The transcriptions also use actor phrases this list cannot express yet:
-
-- positions in the set: "at the ends", "middles", "top couple", "couple
-  below";
-- relative references: "others";
-- descriptive references: "opposite-sex neighbor", "new partner".
+Phrases that depend on the previous figure stay as source text (Q14):
+"couple below", "others", "opposite-role neighbor" and "new partner". "Top
+couple" is the existing `top`.
 
 Single dancers are named in three-couple dances as well as duple ones
-("M1", "W2"). See Q14.
+("M1", "W2"). Tokens stop at the fourth couple for now (Q14).
 
 ### 6.3 Display notation
 
@@ -638,19 +682,22 @@ already means the dancers end where the line began. It doesn't take
 
 - **Numbered places depend on the formation.** The editor offers only the
   places a formation has: two in a duple minor, three in a triple minor or
-  three-couple set, four in a four-couple set, and up to six where the set
-  size is not fixed. Sixth is the limit for now. Longer sets may extend it.
+  three-couple longways set, four to six in four- to six-couple longways
+  sets (§12, F2), and up to six where the set size is not fixed. Sixth is
+  the limit for now. Longer sets may extend it.
 - **"Back to" is display.** `place` is one value, whichever words the
   source used for it.
-- **The list may grow.** Reviewers are welcome to name endpoints it is
-  missing.
+- **The list may grow.** It ships as it is, and values are added as
+  testers find gaps (Q3). Adding a value doesn't break stored dances.
 
 ## 7. The figure registry
 
-Each defined movement below has parameters and a draft display. "Defined"
-means the design is specific enough to review. It does **not** mean the
-entry has been accepted. Entries marked ⚠ contain a point we specifically
-want reviewers to check. Movements in which dancers travel also accept
+Each movement below has parameters and a draft display, and was accepted on
+19 November 2026 with the changes that the answers in §9 made. ⚠ marks a
+review point that is still open (§9.1). Notes say which answer settled a
+point the draft had put to reviewers.
+Display wording can still change through the dialect system (R4) without a
+change to the stored form. Movements in which dancers travel also accept
 `destination` (§6.4).
 
 "Evidence" figures in the notes count captions in the 15 complete
@@ -663,20 +710,23 @@ transcriptions (§3). Each count is of captions, not of performances.
 | `set` | `who`, `whom`, `where`, `direction` | `{who} set [{direction}] [{where}] [to {whom}]` | `direction` is left/right, rendered only when not right. `whom` is used when dancers set to someone other than each other ("set to partner"). `where` is the line the dancers face along. Evidence: 13 captions in 7 dances. Only *The Shrewsbury Lasses* states a direction ("set right and honor, set left and honor to W2"), and it names a single dancer as `whom`. A set happens in place and takes no `destination` (§6.4). Setting while travelling ("fall back setting") is a `modifier` whose core is the travelling figure (§5.6). ⚠ Is "set forward" a `where`, or a different figure? |
 | `honor` | `who`, `whom` | `{who} step and honor {whom}` | "Honour"/"Honor" is a display dialect, not two entries. |
 | `clap` | none | `clap` | |
+| `set_and_link` | `who`, `tandem` | `{who} [tandem] set and link` | One named movement, distinct from a bare `set` (§5.4). Everyone sets and everyone links: in the maintainer's words, "it's not a matter of who sets and who links though - everyone does both" (Q9). `tandem` is a yes/no flag for "tandem set and link". The `who` and `tandem` parameters are this ADR's: the maintainer chose "Other" rather than the option that listed them. ⚠ Whether set and link takes `who` at all, whether `tandem` is wanted, and whether it records which way dancers face are still open (§9.1). |
 
 ### 7.2 Turns
 
 | Movement | Parameters | Draft display | Notes |
 | --- | --- | --- | --- |
-| `turn_single` | `who`, `shoulder`, `destination` | `{who} turn single [{shoulder}] [{to \| back to} {destination}]` | Renders "back to" when `destination = place`, otherwise "to". Evidence: 13 captions in 7 dances. 5 state a side, always as "turn single left/right", never as a shoulder. 2 state a destination. ⚠ Is `shoulder` the right name for the side (Q13)? |
+| `turn_single` | `who`, `shoulder`, `destination` | `{who} turn single [{shoulder}] [{to \| back to} {destination}]` | Renders "back to" when `destination = place`, otherwise "to". Evidence: 13 captions in 7 dances. 5 state a side, always as "turn single left/right", never as a shoulder. 2 state a destination. The side stays a `shoulder` parameter (Q13c, the maintainer's answer), so "turn single left" is stored as `shoulder = left`. |
 | `turn_alone` | `who`, `custom` | *as contra*: `{who} turn alone` | Identical to contra `turn_alone` apart from the optional `destination` ("turn alone back to place", §6.4). A separate movement from `turn_single`, not an alias of it. `custom` is contra's free-text note. |
-| `hand_turn` | `who`, `hand`, `grip`, `travel`, `direction` | `{who} {hand}-hand turn {travel}`; aliases display as `{who} two-hand turn [{direction}] {travel}` and `{who} arm {hand} [{travel}]` | One movement for every turn of two dancers connected by hand or arm (§4). `hand` is `right`, `left` or `both`. `grip` is `hand` or `arm`, and `arm` can't be combined with `both`. `direction` is the rotation, used only with both hands, where the hand doesn't imply it (for sources such as Heywood's "two-hand turn anticlockwise"). Aliases, which can all be entered and searched: "right-hand turn", "turn by the right" (`hand=right`); "two-hand turn" (`hand=both`); "arm right", "arm left" (`grip=arm`). "Two-hand turn" and "arm right/left" are shown under their own names. The one-hand aliases fix the same values, so which of them a line shows is a dialect choice (§4). The parameters are modelled on contra `allemande` and `two_hand_turn`, but "allemande" is **not** an ECD alias. Evidence: one-hand turns, 6 captions in 3 dances, 2 with an extent ("right turn half"). Two-hand turns, 21 captions in 12 dances: 12 state an extent (9 half, 3 once and a half), 2 an ending facing ("and face down", "open to face new neighbors"), and none a rotation. No arm-turn caption states an extent other than once around. ⚠ How should `direction` be worded, and should the movement take `endFacing` (Q13)? |
+| `hand_turn` | `who`, `hand`, `travel`, `endFacing` | `{who} {hand}-hand turn {travel}` | A turn of two dancers joined by one hand. `hand` is `right`, `left` or `unspecified`. Aliases, which can all be entered and searched: "right-hand turn", "turn by the right", "RH turn" (`hand=right`), and the same for the left. They fix the same values, so which of them a line shows is a dialect choice (§4). Two-hand and arm turns are separate movements (Q12). The parameters are modelled on contra `allemande`, but "allemande" is **not** an ECD alias. `endFacing` was added on acceptance (Q13d). Evidence: 6 captions in 3 dances, 2 with an extent ("right turn half"). |
+| `two_hand_turn` | `who`, `travel`, `direction`, `endFacing` | `{who} two-hand turn [{direction}] {travel}` | Split from `hand_turn` on acceptance (Q12). `direction` is the rotation, worded clockwise or counter-clockwise; "anticlockwise" is a spelling the dialect can choose (Q13f). It is for sources such as Heywood's "two-hand turn anticlockwise". `endFacing` was added on acceptance (Q13d). Contra's `two_hand_turn` is a model, but the ECD movement is defined independently (§5.1). Evidence: 21 captions in 12 dances. 12 state an extent (9 half, 3 once and a half), 2 an ending facing ("and face down", "open to face new neighbors"), and none a rotation. |
+| `arm_turn` | `who`, `hand`, `travel`, `endFacing` | `{who} arm {hand} [{travel}]` | Split from `hand_turn` on acceptance (Q12). `hand` is `right`, `left` or `unspecified`. Aliases: "arm right", "arm left". Q13d added `endFacing` to `hand_turn` while it still covered arm turns, so this ADR gives it to all three turns. Evidence: no arm-turn caption states an extent other than once around. |
 | `shoulder_round` | `who`, `shoulder`, `travel` | *as contra* | Not a turn (§4). Alias: "gyre". "Gypsy" is **not** an alias. It is a discouraged term: the app recognizes it in imported or typed text, stores it as shoulder round, and flags it in the editor, but never offers it. Siding is a separate movement (§7.5). |
 | `swing` | `who`, `endFacing` | *as contra* | Rare in ECD, included for coverage. Unlike contra's `swing`, it has no `prefix`: "balance and swing" is a sequence or two lines (§5.4). |
 | `box_the_gnat` | `who`, `hand`, `balance` | *as contra*: `{who} box the gnat` | Identical to contra `box_the_gnat`, including its `balance` flag (§5.4), apart from the optional `destination` (§6.4). Occurs as a figure in its own right (*Honeysuckle Cottage*). |
 | `swat_the_flea` | as `box_the_gnat`, with `hand` fixed to `left` | *as contra*: `{who} swat the flea` | Identical to contra apart from the optional `destination`. A separately named entry stored as `box_the_gnat` with the hand fixed, so the two names never merge. |
 | `gate` | `who`, `whom`, `pair`, `direction`, `travel`, `endFacing` | *as contra* | Not a turn: one dancer pivots while the other travels around (§4). |
-| `orbit` | `who`, `whom`, `direction`, `travel` | `{who} orbit {direction} {travel} [around {whom}]` | Evidence: 3 captions in *The Shrewsbury Lasses* ("orbit outside, same direction, ending improper"). "Ending improper" is `destination = all improper` (§6.4). |
+| `orbit` | `who`, `whom`, `direction`, `travel` | `{who} orbit {direction} {travel} [around {whom}]` | Evidence: 3 captions in *The Shrewsbury Lasses* ("orbit outside, same direction, ending improper"). "Ending improper" is `destination = allImproper` (§6.4). |
 | `mad_robin` | `who`, `whom`, `travel`, `direction` | *as contra* | |
 
 ### 7.3 Rings, stars and balances
@@ -686,9 +736,9 @@ transcriptions (§3). Each count is of captions, not of performances.
 | `balance` | `who`, `where`, `hand` | *as contra* | Captions include "partner right hand balance" and "balance forward and back". |
 | `balance_ring` | none | `balance the ring` | |
 | `circle` | `who`, `direction`, `places`, `singleFile`, `step` | *as contra*; with `step`, the step word replaces "circle" ("slip left 3 places"); with `who`, prefixed "{who}, ..." | `who` is offered only outside duple minor ("2s and 3s circle left"). Evidence: 10 captions in 7 dances. 6 give the extent as "half" or "half way", not a number of places. One states a side ("circle six left"). Single-file circles are called clockwise/counter-clockwise. "Half" and "half way" are stored as `places`, derived from the size of the ring: half the number of dancers in it. The ring is normally set by the formation: two places in a duple minor (four dancers), three in a triple minor (six dancers). When `who` names only some of the couples, the ring is those couples: "1s+2s circle half" in a triple minor is two places. An unstated extent is `places = unspecified`. |
-| `star` | `who`, `hand`, `places`, `grip` | *as contra*, with a "{who}, ..." prefix when `who` is set; "and back by the {hand}" when it is the last step of a sequence and has `destination = place` | ECD's usual star is hands across, not contra's wrist grip. Evidence: all 3 transcribed stars say "hands across". One gives the extent as "once around", not places. An unstated extent is `places = unspecified`. ⚠ Should an unspecified grip *display* as hands across? Should `star` take a turn amount? |
+| `star` | `who`, `hand`, `places` | `[{who}, ] {hand} hands across [{places}]`; "and back by the {hand}" when it is the last step of a sequence and has `destination = place` | ECD stars are hands across, so the star takes no grip (Q13e). In the maintainer's words: "Pretty sure ECD only uses hands-across, so don't specify a grip for now and we'll add one if we need to later." The display always says "hands across"; that wording is this ADR's. The extent is `places` only (Q13b): "once around" is stored as the number of places in the ring, worked out as for `circle`. An unstated extent is `places = unspecified`. Evidence: all 3 transcribed stars say "hands across", and one gives the extent as "once around". |
 | `form_short_wave` | `axis`, `balance`, `center`, `centerHand`, `sides` | *as contra* | `balance` is a yes/no flag ("wave and balance"). |
-| `form_long_wave` | `who`, `whom`, `whomHand`, `balance` | *as contra* | ⚠ Tidal-wave topology is unresolved (§10). |
+| `form_long_wave` | `who`, `whom`, `whomHand`, `balance` | *as contra* | Long and short waves follow contra (Q10d). Tidal waves stay out of scope (§10). |
 
 ### 7.4 Heys, chains and rights-and-lefts
 
@@ -699,44 +749,53 @@ transcriptions (§3). Each count is of captions, not of performances.
 | `chain` | `who`, `hand`, `where`, `open` | `{who} {hand}-hand [open] chain [{where}]` | Always shows the hand. `open` is a yes/no flag. |
 | `figure_eight` | `who`, `whom`, `where`, `fraction`, `lead`, `double` | *as contra `figure_8`*; renders "double figure eight" when `double` is set | `double` means both couples move. Contra's `figure_8` gained the same flag in v39. `whom` names the couple danced around, which is ambiguous in non-duple dances. Evidence: "1s half figure 8 up through 2s", "Middles half figure 8 through nearest end". |
 | `dolphin_hey` | `who`, `whom`, `shoulder`, `where`, `fraction`, `endFacing` | `{fraction} dolphin hey {where}: {who} pass {whom} {shoulder} shoulder to start, end facing {endFacing}` | |
+| `hey_for_three` | `who`, `whom`, `shoulder`, `where`, `fraction` | `[{fraction}] hey for three [{where}], {who} pass {whom} {shoulder} shoulder to start` | Heys are separate movements by the number of dancers (Q4, the maintainer's answer). `who` starts the hey by passing `whom` first. `where` is the path (`along`, `across`, `diagonally`). Heys danced at the same time by different groups are a `meanwhile`, and parallel or end heys are stored that way, or as source text where that would lose a stated detail. Those storage rules are this ADR's. Contra's `hey_for_three` (v39) is a starting point, but the ECD movement is defined independently. Evidence: "1s left shoulder heys with end couples". |
+| `hey_for_four` | as `hey_for_three` | `[{fraction}] hey for four [{where}], {who} pass {whom} {shoulder} shoulder to start` | As `hey_for_three`, for four dancers (Q4). |
+| `tandem_reel` | `who`, `whom`, `shoulder`, `where` | `{who} [{where}] tandem reel` | Alias: "Shetland reel". A reel is its own movement (Q4). The name and parameters are this ADR's. Evidence: "a Shetland (tandem) reel for three couples". |
+| `mirror_hey` | `who`, `whom`, `fraction` | `[{fraction}] mirror hey, {who} splitting {whom} to start` | The maintainer's definition (Q10d): "Mirror heys have one couple splitting another to start, almost always along the set. We could probably go with always along the set for now and adjust later if we need to." So it has no `where`, and is always along the set. `who` is the couple that splits and `whom` the couple split. The parameters, and the alias "Grimstock hey", are this ADR's. |
+| `grand_chain` | `who`, `whom`, `changes`, `hand` | `[{who} dance] {changes} changes of a grand chain[, {whom} pull by {hand} to start]` | A movement of its own, distinct from rights and lefts (Q5). *The American Husband* names grand chain, ladies' chain and rights and lefts as distinct figures within one dance. Evidence: 2 captions in 2 dances, both counted in changes ("six changes of a grand chain", "three changes of a grand chain"), and one states a hand. |
 
 ### 7.5 Crossing, passing and travelling
 
 | Movement | Parameters | Draft display | Notes |
 | --- | --- | --- | --- |
-| `cross` | `who`, `shoulder`, `where` | `{who} cross [diagonally] passing {shoulder} shoulder [{where}]` | Roughly the union of contra *pass through* and *pass by*. Evidence: 10 captions in 7 dances ("Women cross", "Partners cross", "cross in middle left shoulder"). One gives an ending facing ("cross with partner and face right"). |
+| `cross` | `who`, `shoulder`, `where`, `endFacing` | `{who} cross [diagonally] passing {shoulder} shoulder [{where}] [and face {endFacing}]` | Roughly the union of contra *pass through* and *pass by*. `endFacing` was added on acceptance (Q13d). "Change places" is a separate movement (Q6). Evidence: 10 captions in 7 dances ("Women cross", "Partners cross", "cross in middle left shoulder"). One gives an ending facing ("cross with partner and face right"). |
 | `right_left_through` | `who`, `whom`, `where`, `withHands` | `[{who} dance a] right and left through [{where}], {with \| without} hands, {others} courtesy turning {whom}` | ⚠ In a three-couple selection, "the others" is not always a single pair. |
-| `fall_back` | `who`, `where` | `[{who}] fall back [{where}]` | `where` defaults to `across` and is then not shown. `who` defaults to everyone. Evidence: 4 captions in 4 dances, all "fall back with neighbor", one "a double". "Fall back setting" is a `modifier`: `fall_back` as the core, `set` as the modifier (§6.4). ⚠ This suggests a `whom`, and perhaps the `distance` that `forward_and_back` has. |
-| `forward_and_back` | `who`, `where`, `formation`, `distance`, `goBack` | `[{who}] [{formation}] {where} [a {distance}] [and back]` | Aliases: "up a double", "down a double" (`distance = double`), "forward and back", "lines forward and back". `where` is `up`, `down` or `forward`. `distance` is shown only when stated, so "Lines of three forward and back" doesn't gain "a double". `goBack` records "and back": the return is the same movement reversed, with nothing of its own to state, so it is a flag rather than a second step (§5.4), and it replaces `destination = place` (§6.4). A bare "Forward" is `goBack = no`. `formation` names the grouping ("lines of three"). Contra's nearest move, also `forward_and_back` since contra taxonomy v39, has `formation` and `goBack` (Appendix A). Evidence: 6 captions in 4 dances ("Up a double, and back", "Down a double, and back", "All up a double, and back", "Lines of three forward and back", "Line of four up a double and back, bending the line", "Forward"). The last-but-one is a `modifier` with a bend of the line (§7.6). ⚠ Promoted from open in this revision; its shape is this ADR's proposal. Does `distance` need values other than `double`, such as a single? How does it relate to `line` and `fall_back` (Q10)? |
+| `fall_back` | `who`, `whom`, `where`, `distance` | `[{who}] fall back [with {whom}] [{where}] [a {distance}]` | `where` defaults to `across` and is then not shown. An unstated `who` is `everyone` (Q1). `whom` and `distance` were added on acceptance (Q13d). Evidence: 4 captions in 4 dances, all "fall back with neighbor", one "a double". "Fall back setting" is a `modifier`: `fall_back` as the core, `set` as the modifier (§6.4). |
+| `forward_and_back` | `who`, `where`, `formation`, `distance`, `goBack` | `[{who}] [{formation}] {where} [a {distance}] [and back]` | Aliases: "up a double", "down a double" (`distance = double`), "forward and back", "lines forward and back". `where` is `up`, `down` or `forward`. `distance` is `double`, `single` or `unspecified` (Q10a). It is shown only when stated, so "Lines of three forward and back" doesn't gain "a double". ⚠ The maintainer noted that "double is the default"; whether that is stored or only suggested is still open (§9.1). `goBack` records "and back": the return is the same movement reversed, with nothing of its own to state, so it is a flag rather than a second step (§5.4), and it replaces `destination = place` (§6.4). A bare "Forward" is `goBack = no`. `formation` names the grouping ("lines of three"). "Line" is not a movement: it is this `formation` (Q10c). A bend of the line is a `modifier` with `bend_line` (§7.5). Contra's nearest move, also `forward_and_back` since contra taxonomy v39, has `formation` and `goBack` (Appendix A). Evidence: 6 captions in 4 dances ("Up a double, and back", "Down a double, and back", "All up a double, and back", "Lines of three forward and back", "Line of four up a double and back, bending the line", "Forward"). |
 | `back_to_back` | `who`, `shoulder`, `travel`, `where` | `{who} {shoulder}-shoulder back-to-back [{where}] {travel}` | Like contra dosido, but always named by shoulder, plus `where` (across/along). Evidence: 3 captions, none stating a shoulder. |
-| `siding` | `who`, `shoulder`, `where`, `style` | `{who} {shoulder}-shoulder [{style}] siding [{where}]` (draft) | The parameters of `back_to_back` except `travel`, plus `style` (`straight` or `swirly`). An unstated style is `unspecified`. Captioned "Left Siding" (*Alexander's Birth Day*), and "Right/Left shoulder siding" in later passes of the *Double Jubilee* video. |
+| `siding` | `who`, `shoulder`, `where`, `style` | `{who} {shoulder}-shoulder [{style}] siding [{where}]` | The parameters of `back_to_back` except `travel`, plus `style` (`straight` or `swirly`, Q13a). "Sharp siding" is an alias for `style = straight` and "Playford siding" for `style = swirly` (Q13a). That pairing was this ADR's understanding when it was put to the maintainer. An unstated style is `unspecified`. Captioned "Left Siding" (*Alexander's Birth Day*), and "Right/Left shoulder siding" in later passes of the *Double Jubilee* video. |
 | `pass_through` | `who`, `where`, `shoulder` | `[{who}] pass through {shoulder} shoulders {where}` | |
-| `promenade` | `who`, `where`, `direction`, `fraction`, `places`, `singleFile` | `{who} [single file] promenade {fraction \| N places} {direction} {where}` | `fraction` when in couples, `places` when single file. Evidence: "promenade half round the minor set", "promenade across the set back to original places". The second is `destination = original places` (§6.4). |
-| `poussette` | `who`, `whom`, `fraction`, `direction` | *as contra* | ⚠ Contra defaults to half, clockwise. Evidence: 3 captions in 2 dances, all half, all naming who pushes ("women push", "men push first"), none stating a rotation. Heywood's *The Parson's Cap* is the one source we know that states both extent and rotation (half, counter-clockwise). See Q8. |
+| `promenade` | `who`, `where`, `direction`, `fraction`, `places`, `singleFile` | `{who} [single file] promenade {fraction \| N places} {direction} {where}` | `fraction` when in couples, `places` when single file. Evidence: "promenade half round the minor set", "promenade across the set back to original places". The second is `destination = originalPlaces` (§6.4). |
+| `poussette` | `who`, `whom`, `fraction`, `direction`, `switchPush` | *as contra*, adding "first" after the pushers when `switchPush` is set | An unstated extent or rotation stays `unspecified`. Contra's half, clockwise is not assumed (§5.3, Q8). `who` names the dancers who push, or push first. `switchPush` is a yes/no flag: the pushers change partway through, as in a source's "... push first" (Q8). The flag's name is this ADR's. Storage is role-neutral (§4). The maintainer's note on Q8 was "remember we're not using words like "men"" (§9.1). Evidence: 3 captions in 2 dances, all half, all naming who pushes, none stating a rotation. Heywood's *The Parson's Cap* is the one source we know that states both extent and rotation (half, counter-clockwise). |
 | `arch` | `who` | `{who} arch` | "Arch and dive through" is not defined. |
 | `rollaway` | `who`, `whom`, `where`, `halfSashay` | `{who} roll away {whom} {where} [with a half sashay]` | Contra's ID is `roll_away`. `halfSashay` is a yes/no *style*, not "half a rollaway". |
+| `change_places` | `who`, `whom`, `hand`, `where` | `{who} change places [with {whom}] [{hand}]` | A movement of its own, distinct from `cross` (Q6). `hand` is `right`, `left`, `none` ("without hands") or `unspecified`. A link danced on its own is a `modifier` with `change_places` as the core and `turn_single` as the modifier (§5.4). Evidence: "change" is a standalone figure in 4 captions in 3 dances ("Change with partner (all home)", "W1+M2 change", "Men change"). None of those dances also uses "cross". |
+| `lead` | `who`, `where`, `whom`, `destination` | `{who} lead {where} [through {whom}] [to {destination}]` | Defined on acceptance (Q7). `where` covers "up", "down", "out", "to the middle" and "back". `whom` is the route ("lead through 2s"). Evidence (counted together with cast, because the two often share a caption): 16 captions in 11 dances. They consistently state who, where and a destination ("to progressed place", "home", "to 2nd place", "to the ends of a line of four"). |
+| `cast` | `who`, `where`, `direction`, `whom`, `destination` | `{who} cast {where} [{direction}] [around {whom}] [to {destination}]` | Defined on acceptance (Q7). `where` covers "off", "up", "down" and "around". `direction` is the side ("cast left around neighbor"). "Long corners cast" is `who = longCorners`. A cast while another group leads is a `meanwhile` only when the source says so with "as" or "while". Actions joined only by a comma are separate figures in order (§5.6, Q7). Evidence: the same captions as `lead`, plus a side. One couple casting while another leads occurs in 9 captions in 7 dances: five join the two with "as", four with a comma. |
+| `galop` | `who`, `where`, `goBack` | `{who} galop {where} [and back]` | A movement, not a travelling style (Q10b, the maintainer's answer). The parameters are this ADR's. |
+| `chevron` | `who`, `shoulder`, `whom`, `castShoulder` | `chevron: {who} cross passing {shoulder} shoulder and back into {whom}'s places, as {whom} cast over the {castShoulder} shoulder into {who}'s places` | The maintainer's definition (Q10d), from FODA2 in the Compendium Analect archive: "One pair of dancers crosses passing by a specified shoulder, then backs up into the other pair's place while that pair casts over their left or right shoulder into the crossing pair's place." `who` is the crossing pair, `whom` the casting pair, and `castShoulder` the casting pair's shoulder. The parameter names are this ADR's. ⚠ The draft wrote "Chevron/Pothooks"; whether Pothooks is another name for chevron is still open (§9.1). |
+| `bend_line` | `who` | `bending the line` | The modifier in a `modifier` container, as in "up a double and back, *bending the line*" (Q10c). It is not used as a line on its own. |
 
-### 7.6 Open movements
+### 7.6 Movements that were open
 
-These movements are recognized, but their definitions depend on evidence or
-community knowledge we don't yet have. Each is tied to a question in §9.
+The draft left nine movements open. Acceptance settled them all (§9):
 
-| Movement | What is known | Question |
-| --- | --- | --- |
-| `lead` | A distinct movement from `cast`. Evidence (counted together with cast, because the two often share a caption): 16 captions in 11 dances. They consistently state who, where ("up", "down", "to middle", "back") and a destination ("to progressed place", "home", "to 2nd place", "to the ends of a line of four"). Some state a route ("through 2s"). A likely starting set of parameters is `who`, `where`, `destination` (§6.4) and a route ("through {whom}"). | Q7 |
-| `cast` | A distinct movement from `lead`. The captions state the same kinds of information, plus a side ("cast left around neighbor"). One couple casting (or crossing and going below) while another leads the other way occurs in 9 captions in 7 dances. Five join the two with "as", which gives a `meanwhile`. Four use only a comma (§5.6). In the contra books (§3) the same pattern was common and, with no `cast` movement, always ended up as free text. Of the open movements, this one would structure the most lines. | Q7 |
-| `set_and_link` | A single named movement, distinct from a bare `set` (§5.4), including "tandem set and link". Roles, route and display are undefined. | Q9 |
-| `hey` | Covers the number of dancers (3, 4, ...), straight/diagonal/end/parallel paths, and reels. Evidence: "1s left shoulder heys with end couples" (two heys for three danced at once, with a stated shoulder) and "a Shetland (tandem) reel for three couples". Contra's `hey_for_three` (v39: `who`, `whom`, `shoulder`) is a possible starting point. | Q4 |
-| `grand_chain` | Evidence: 2 captions in 2 dances. Both are counted in changes ("six changes of a grand chain", "three changes of a grand chain"), like rights and lefts, and one states a hand. *The American Husband* names grand chain, ladies' chain and rights and lefts as distinct figures within one dance. | Q5 |
-| `change_places` | Evidence: "change" is a standalone figure in 4 captions in 3 dances ("Change with partner (all home)", "W1+M2 change", "Men change"). None of those dances also uses "cross". A link danced on its own ("trade places, turning single") would build on it (§5.4). | Q6 |
-| `galop` | Unclear whether it is a movement or a travelling style that modifies other movements. | Q10 |
-| `line` | A formation, an action, or both. Overlaps `forward_and_back`. | Q10 |
-| `bend_line` | Captioned as a modifier ("up a double and back, *bending the line*"), which fits the `modifier` container (§5.6). It may not need to be a movement at all. | Q10 |
+- `lead`, `cast`, `change_places`, `galop` and `bend_line` are in §7.5;
+- `grand_chain` is in §7.4, and `hey` became `hey_for_three`,
+  `hey_for_four` and `tandem_reel` there, beside the new `mirror_hey` (Q4,
+  Q10d);
+- `set_and_link` is in §7.1, with one point still open (§9.1);
+- `line` is not a movement. It is the `formation` of `forward_and_back`
+  (Q10c).
+
+`chevron` (§7.5) was added on acceptance (Q10d).
 
 ## 8. Worked examples
 
-These encodings illustrate the rules. They were written for this proposal
-and have not been reviewed as transcriptions. Please correct them freely.
+These encodings illustrate the rules, updated for the accepted grammar.
+They were written for this proposal and have not been reviewed as
+transcriptions. Please correct them freely.
 Bar ranges are shown in brackets; they are derived from the order and
 length of the lines, not stored (§5.5).
 
@@ -755,10 +814,10 @@ Proposed storage:
 A1 [1-4]  sequence
             set          who=["firstCorners"]  where=forward  direction=unspecified
             turn_single  who=["firstCorners"]  shoulder=unspecified  destination=place
-   [5-8]  hand_turn      who=["firstCorners"]  hand=both  direction=unspecified  travel=unspecified
+   [5-8]  two_hand_turn  who=["firstCorners"]  direction=unspecified  travel=unspecified
 B2 [1-8]  sequence
-     [1-4]  star  hand=right  grip=handsAcross  places=unspecified
-     [5-8]  star  hand=left   grip=unspecified  places=unspecified  destination=place
+     [1-4]  star  who=["everyone"]  hand=right  places=unspecified
+     [5-8]  star  who=["everyone"]  hand=left   places=unspecified  destination=place
 ```
 
 Displayed (default dialect):
@@ -781,16 +840,16 @@ Points to notice:
 - **"And back" is kept.** The second star carries `destination = place`:
   dancers end where the line began, which is where the first star started
   (§6.4). The display turns it back into "and back by the left". Stating the
-  return doesn't copy the first star's places or grip, which stay
-  `unspecified`. Search still finds both stars, alone or as "star right then
+  return doesn't copy the first star's places, which stay `unspecified`. Search still finds both stars, alone or as "star right then
   star left".
 - **Unspecified values.** The source gives no side for the set, shoulder for
   the turn single, or rotation or amount for the two-hand turn, so all are
   `unspecified`.
-- **Two-hand turn.** It is a `hand_turn` with `hand = both`, shown under its
-  own name (§7.2).
+- **Two-hand turn.** It is a `two_hand_turn` (§7.2, Q12).
+- **No subject on the stars.** The source names no dancers, so `who` is
+  `["everyone"]` (Q1), and the display shows no subject (§5.2).
 - **Lead and cast.** B1 of this dance ("1s lead down, wheel around, cross up
-  and cast down, **as** 2s lead up") depends on `lead` and `cast` (§7.6).
+  and cast down, **as** 2s lead up") uses `lead` and `cast` (§7.5).
   Its "as" makes it a `meanwhile`. One side is a run of four actions, so it
   would be a `sequence` inside the `meanwhile`.
 
@@ -832,10 +891,10 @@ dialect. The rotation is not stated, so it is `unspecified`.
 ```
 
 ```text
-[1-2]  circle       singleFile=true  direction=clockwise         places=2
-[3-4]  turn_single  shoulder=left
-[5-6]  circle       singleFile=true  direction=counterclockwise  places=2  destination=original places
-[7-8]  turn_single  shoulder=right
+[1-2]  circle       who=["everyone"]  singleFile=true  direction=clockwise         places=2
+[3-4]  turn_single  who=["everyone"]  shoulder=left
+[5-6]  circle       who=["everyone"]  singleFile=true  direction=counterclockwise  places=2  destination=originalPlaces
+[7-8]  turn_single  who=["everyone"]  shoulder=right
 ```
 
 Points to notice:
@@ -843,171 +902,288 @@ Points to notice:
 - **`circle` extent.** "Half" becomes `places=2`. *Midwinter Maggot* is a
   duple minor, so the ring has four dancers, and half of it is two places
   (§7.3).
-- **"All home"** is `destination = original places`: where the dancers stood
+- **"All home"** is `destination = originalPlaces`: where the dancers stood
   at the start of this time through (§6.4). It is shown at the end of the
   line (", to original places"), so the circle's display doesn't drop it.
 - **Four lines.** The source gives each action its own bars, so they stay
   adjacent lines rather than a sequence (§5.4).
 - **`turn_single` side.** "Turn single left" is stored as `shoulder=left`,
-  though the source says "left", not "left shoulder" (Q13).
+  though the source says "left", not "left shoulder" (Q13c).
+- **`who`.** No line names its dancers, so each stores `["everyone"]` (Q1).
 
-## 9. Open questions for reviewers
+## 9. Answers to the open questions
 
-These are ordered roughly by how much they block the design. Questions
-Q1–Q3 are about data structure. Q4 onwards need ECD knowledge more than
-software knowledge. Q3 is answered in this revision and kept so that
-earlier references still work.
+The draft put sixteen questions to reviewers. On 19 November 2026 the
+maintainer answered all of them on a decision sheet, choosing among options
+that this ADR's author had drafted, each with a recommendation. The answer
+to each question is recorded below. Where the maintainer chose something
+other than the recommendation, it says so. The maintainer's notes are quoted
+as written, except where a paraphrase is marked. Outside reviewers can still challenge any answer after testing
+the implementation (§11).
 
-**Q1. Who dances, when the source doesn't say?**
-When a line says only "circle left" or "set and turn single", should `who`
-be stored as empty, as `["unspecified"]`, or as `["everyone"]`? Are
-combinations such as `["everyone", "ones"]` ever meaningful, or always a
-mistake?
+**Q1. Who dances, when the source doesn't say?** `who` is stored as
+`["everyone"]` (§5.2), not `["unspecified"]`, which was the recommendation.
+A follow-up (Q1b) settled that `everyone` can't be combined with another
+selector: the editor refuses it, and an importer keeps such a line as
+source text.
 
-**Q2. Positional versus role calling.**
-Many ECD communities call positionally ("the dancer on the left", "wall
-side", "first file") and some prefer that role terms never appear. We do not
-want to impose a mapping from `role1`/`role2` to positions. How do ECDDB and
-the callers you know handle this? Which terms, if any, describe a
-relationship that stays fixed as dancers move (as "corner" usually does)? Do
-"corner" and "diagonal" mean different things in your usage?
+**Q2. Positional versus role calling.** Storage stays role-neutral, with
+`role1` and `role2`. Positional wording comes later through the dialect
+(§10). Corners (a lasting relationship) and diagonals (whoever is there now)
+stay distinct. The maintainer's note added two selectors: "Also include
+leftFile and rightFile (similar to your wall/music sides but more
+explicit)" (§6.2).
 
-**Q3. Stated destinations and ending states.** *Answered in this revision.*
-Every movement in which dancers travel can carry a stated `destination`
-(§6.4), from the source or from the person entering the dance. Casts ("to
-progressed place"), changes and circles ("all home"), orbits ("ending
-improper") and lines ("all progressed and proper") all map to its values.
-The app never works out a destination itself (R9). Still open: which
-endpoints are missing from §6.4?
+**Q3. Stated destinations and ending states.** This was answered in the 18
+November revision. The §6.4 list ships as it is, and values are added as
+testers find gaps.
 
-**Q4. Heys and reels.**
-How should heys for three and for four, straight/diagonal/end/parallel heys,
-reels, Shetland/tandem reels and mirror (Grimstock) heys be organized? Is
-the number of dancers a parameter of one `hey` movement? How should we
-record where a hey starts, who meets whom first, how far it goes, and heys
-danced at the same time by different groups?
+**Q4. Heys and reels.** Heys are separate movements, not one `hey` with a
+dancer count: `hey_for_three`, `hey_for_four` and `tandem_reel` (§7.4). The
+recommendation was one movement. The parameters of each, and how heys at the
+same time are stored, are this ADR's.
 
-**Q5. Grand chain, chain and rights and lefts.**
-Are grand chain and rights and lefts the same figure under different names,
-related figures, or distinct? Does it depend on period or region?
+**Q5. Grand chain, chain and rights and lefts.** `grand_chain` is a movement
+of its own, distinct from `rights_and_lefts` (§7.4).
 
-**Q6. Cross versus change places.**
-Is "change" or "change places" (with or without hands) a separate figure
-from "cross", or the same figure with a `hand` parameter? The transcriptions
-use one word or the other in any given dance, never both.
+**Q6. Cross versus change places.** `change_places` is a movement of its
+own, distinct from `cross` (§7.5).
 
-**Q7. Lead and cast.**
-Lead and cast are two distinct movements. What parameters does each need to
-cover "lead up/down/out", "lead through", "cast off/up/down", "cast around"
-and "long corners cast"? What separates cast from cross and fall back?
-Is `who`, `where`, `destination` and a route a
-sufficient starting set (§7.6)? When one couple casts while another leads
-and the source joins them with only a comma, should we record them as
-happening together?
+**Q7. Lead and cast.** Both are defined now, with the parameters the
+recommendation listed (§7.5). Two actions joined only by a comma are two
+figures in order (§5.6).
 
-**Q8. Poussette.**
-In ECD practice, what extent and rotation should a bare "poussette" imply?
-Should an unstated extent stay unspecified, as §5.3 suggests? Does "men push
-first" mean the pushing role changes partway through?
+**Q8. Poussette.** An unstated extent and rotation stay `unspecified`. `who`
+names the dancers who push, and a flag records that the pushers change
+partway through. This ADR names it `switchPush` (§7.5). The maintainer's
+note: "remember we're not using words like "men"". Whether that also rules
+out gendered role terms as a display choice is still open (§9.1).
 
-**Q9. Set and link.**
-What is the canonical definition of set and link, and its tandem variant?
-Who sets, who links, and where does each dancer end? Please point to
-English-style sources that describe it precisely.
+**Q9. Set and link.** "Other", with the note: "Set and link is an everyone
+figure, maybe it cares about which way you're facing? It's not a matter of
+who sets and who links though - everyone does both." This ADR gives
+`set_and_link` a `who` and a `tandem` flag (§7.1). Whether it should have
+them, and whether it records facing, are still open (§9.1).
 
 **Q10. Other open movements.**
-- *Up a double / forward and back* is now defined as `forward_and_back`
-  (§7.5), with "and back" as a `goBack` flag and "a double" as a stated
-  `distance`. Does that shape match how you write it? Are there distances
-  other than a double? How does it relate to `line` and `fall_back`?
-- `galop`: is it a movement or a travelling style?
-- `line` and `bend_line`: are they formations, actions, or (for
-  `bend_line`) a modifier?
-- Tidal wave versus long and short waves.
-- Single-file promenade versus single-file circle within a minor set.
-- Chevron/Pothooks and mirror heys need their own definitions.
 
-**Q11. Aliases that must not merge.**
-Box the gnat and swat the flea are kept as separate named entries. Which
-other pairs look alike but must stay distinct? Which of these are the same:
-Jersey/Nevada twirl, Gay Gordons/Varsouvienne hold, box circulate,
-"matchboxes", and chassé/slide/sashay/slice? What does Heywood's "Back to
-back for four" mean?
+- *Forward and back:* `distance` is `double`, `single` or `unspecified`.
+  The note: "But double is the default, idk if I've ever seen "up a single"
+  but that doesn't mean it's not something that exists." What "default"
+  means here is still open (§9.1).
+- *Galop* is a movement, not a travelling style (§7.5). The recommendation
+  was a style.
+- *Line* is the `formation` parameter only. *Bend the line* is a movement
+  used as a modifier (§7.5).
+- *Waves, chevrons and mirror heys* are defined now, not deferred, which was
+  the recommendation. The note:
 
-**Q12. What's missing?**
-Which common ECD figures are absent from §7? Which entries are really two
-figures, or should merge with another? In particular: is merging hand,
-two-hand and arm turns into one `hand_turn` (§7.2) right in your practice?
+  > chevron was defined in FODA2, the archive just merged to Analect. One
+  > pair of dancers crosses passing by a specified shoulder, then backs up
+  > into the other pair's place while that pair casts over their left or
+  > right shoulder into the crossing pair's place.
+  >
+  > Mirror heys have one couple splitting another to start, almost always
+  > along the set. We could probably go with always along the set for now
+  > and adjust later if we need to.
+  >
+  > I really have no idea what a tidal wave is, but long and short waves you
+  > can infer from contra.
+
+  So `chevron` and `mirror_hey` are defined (§7.4, §7.5), and long and short
+  waves follow contra (§7.3). Keeping tidal waves out of scope (§10) is this
+  ADR's reading of the note. The draft wrote "Chevron/Pothooks", and whether
+  Pothooks is the same figure is still open (§9.1).
+- *Single-file promenade and single-file circle* stay distinct.
+
+**Q11. Aliases that must not merge.** These stay distinct until testers
+show that two are the same: Jersey and Nevada twirl, Gay Gordons and
+Varsouvienne hold, box circulate, "matchboxes", and chassé, slide, sashay and
+slice. Box the gnat and swat the flea were already separate (§7.2). The
+draft also asked what Heywood's "Back to back for four" means. That was not
+on the decision sheet, so it is still open (§9.1).
+
+**Q12. What's missing?** Hand, two-hand and arm turns are split back into
+three movements: `hand_turn`, `two_hand_turn` and `arm_turn` (§4, §7.2). The
+recommendation was to keep the merge. No missing figures were named.
 
 **Q13. Specific value questions.**
-- Siding's `style` values are `straight` and `swirly`. Are those the words
-  callers would recognize? Is there any other style of siding?
-- Should `star` accept a turn amount ("star once around"), as well as or
-  instead of `places`?
-- Should the turn single's side be called `shoulder` or `direction`, given
-  that sources say "turn single left/right"?
-- Should `hand_turn`, `cross` and `fall_back` gain `endFacing` or `whom`,
-  as their captions suggest?
-- Should the usual ECD star grip be the default *display*, even when the
-  source doesn't state it?
-- How should a two-hand turn's `direction` be worded ("clockwise", "to the
-  left", ...)?
 
-**Q14. Selectors.**
-Which of the actor phrases listed in §6.2 ("at the ends", "middles", "top
-couple", "couple below", "others", "opposite-sex neighbor", "new partner")
-deserve selector tokens? Which are relative to the previous figure and
-should stay as source text? Single-dancer tokens now reach the fourth
-couple. Do longer sets need more?
+- *Siding:* `straight` and `swirly`, with "Sharp siding" and "Playford
+  siding" as aliases (§7.5).
+- *Star extent:* `places` only, with no turn amount (§7.3). The
+  recommendation was to add one.
+- *Turn single side:* `shoulder`, not `direction` (§7.2). The
+  recommendation was `direction`.
+- *New parameters:* `endFacing` on `hand_turn` and `cross`, and `whom` and
+  `distance` on `fall_back` (§7.2, §7.5). When the question was asked,
+  `hand_turn` still covered all three turns, so this ADR gives `endFacing`
+  to `two_hand_turn` and `arm_turn` too.
+- *Star grip:* "Other", with the note: "Pretty sure ECD only uses
+  hands-across, so don't specify a grip for now and we'll add one if we
+  need to later." The star has no grip parameter (§7.3).
+- *Two-hand turn direction:* clockwise and counter-clockwise, with
+  "anticlockwise" as a dialect spelling (§7.2).
 
-**Q15. Extents defined by a goal.**
-Some sources give an extent by its result rather than its size: "almost
-twice", "until the men face out", "a bit more than three quarters". A
-stated endpoint can be a `destination`, but most of these can't. Should a
-movement be able to mark its extent as approximate, or carry an
-end-condition as text, or should these stay as notes?
+**Q14. Selectors.** `ends` and `middles` are added. Phrases that depend on
+the previous figure stay as source text (§6.2). The maintainer's note, in
+paraphrase: such relationships are called same-role or opposite-role, and
+this document should use only those terms. Single-dancer tokens stop at the
+fourth couple for now.
 
-**Q16. Half bars.**
-Do ECD sources time figures in half bars? In duple time half a bar is a whole
-number of beats, but in triple time it is not, and the app stores whole
-beats (§5.5).
+**Q15. Extents defined by a goal.** The movement is structured, and the
+wording is kept as a note on it (R2).
+
+**Q16. Half bars.** Half bars are allowed only where half a bar is a whole
+number of beats. The editor refuses them in triple time, and a note can
+carry finer timing (§5.5).
+
+### 9.1 Still waiting on the maintainer
+
+These points came out of the answers, or were never put as questions. They
+don't block storing what is already decided, but the work that depends on
+each one waits for it.
+
+1. **Dialects across forms.** The answer to S1 (§12) asks for "separate
+   dialects per-form". The answer to S3 chose one dialect with role terms
+   overridden per form. These are different designs.
+2. **Formations.** The answer to F2 (§12) asks for proper and improper to
+   be a separate checkbox, with a new list of shapes. It doesn't say whether
+   contra's existing shapes (such as `dupleImproper` and `becketCw`) change
+   too, or only how ECD dances are stored. The new list also has no Becket
+   or Sicilian circle, which §3 lists among ECD formations. And the
+   numbered places the editor offers (§6.4) are not yet defined for circle
+   and square sets.
+3. **"Double is the default"** (Q10a). Is "a double" stored when the source
+   doesn't say, or only offered first when someone enters a dance by hand?
+   Storing it would be a second exception to §5.3, beside Q1.
+4. **Set and link** (Q9). Does it take `who` at all, given that "everyone
+   does both"? Is a `tandem` flag wanted? Does it record which way dancers
+   face?
+5. **R2 and Q1.** R2 says that what the source leaves out is stored as
+   `unspecified`. The answer to Q1 stores an unstated `who` as `everyone`.
+   Should R2 be reworded to name that exception?
+6. **`leftFile` and `rightFile`** (Q2). What does each name, and left and
+   right as seen facing which way? The answer to Q2 also chose role-neutral
+   storage, while these are positional selectors.
+7. **Gendered role terms** (Q8). The note "remember we're not using words
+   like "men"" clearly applies to stored data and to this document. Does it
+   also rule out "men/women" and "gents/ladies" as role terms a caller can
+   choose for display? §2, §4 and §8.3 still list them as choices.
+8. **Pothooks** (Q10d). Is it another name for chevron, or a separate
+   figure?
+9. **Heywood's "Back to back for four"** (the draft's Q11). What does it
+   mean?
+10. **The new-dance form setting** (S2). Is it kept per device or synced?
+    The glossary's default form follows it (S6).
+11. **Two review points the draft marked but never asked as questions.** Is
+    "set forward" a `where` of `set`, or a different figure (§7.1)? In
+    `right_left_through`, "the others" in a three-couple selection is not
+    always a single pair (§7.5).
 
 ## 10. Out of scope
 
-- **Implementation.** No code, database fields or file formats have been
-  built. Spellings such as `threeQuarter` versus `three_quarter`, or `full`
-  versus `whole`, are not yet fixed.
+- **ECDDB import.** It stays the import target (R5), but is not part of the
+  first implementation round (§12, D1).
 - **Tracking dancer positions** (R9). The app won't work out where dancers
   are, compute a destination, or check that a dance works.
 - **Specialized chain families.** Dixie, teacup, spin chain.
 - **Specialized hey and reel families.** Interlocking, Morris-derived.
 - **Wave topology.** Tidal wave and the ocean-wave/across-the-set
-  distinction.
+  distinction. Long and short waves follow contra (Q10d).
 - **Footwork and gesture labels.** Jump/stamp, rigadoon, rant.
 - **One-off named figures.** Tiroir, Yearn, Weathervane, Celtic knot,
   Lichfield hey, Four Winds, Serpentine (*Beach Spring*). These stay as
   source text, or as a titled container where their steps can be structured
   (§5.6). They are not movements.
-- **Mapping to positional calling** (Q2): we want community input first.
+- **Mapping to positional calling** (Q2). `leftFile` and `rightFile` are
+  stored, but how role terms map to positions waits for community input.
 
 ## 11. How to respond
 
-Any form of feedback helps, and partial answers are very welcome:
+Feedback is welcome at any time, and most will come from hands-on testing.
+Partial answers help:
 
-- Answer any of the questions in §9 by number.
 - Mark up a registry row: "keep", "rename to ...", "merge with ...", "split
   into ...", "needs parameter ...".
 - Send counter-examples: dances whose instructions can't be expressed with
   these parameters, ideally with a link to an **English-style** source
   (ECDDB record, published book, or a video with clear teaching).
 - Correct the worked examples in §8.
-- Where ECDDB's own model already decides something this document leaves
-  open, or decides it differently, please say so. The aim is to align with
-  it (§2).
+- Where ECDDB's own model decides something differently, please say so.
+  The aim is to align with it (§2).
 
 Where you know of style or homonym problems (the same title used by an
 English dance and a contra or other dance), please mention them. That is the
 error we are most likely to make without help.
+
+## 12. Implementation decisions
+
+The maintainer made these decisions on 19 November 2026, on the same
+decision sheet as §9, about how the app stores and shows ECD dances. Some
+draw on the requirements for squares in ADR-007, which is still a proposal,
+so that both forms behave the same way. The goal they serve is the
+maintainer's: the app supports ECD choreography and programming as fully as
+it supports contra, and a caller can program a night that mixes the two, or
+an all-English evening.
+
+### 12.1 Stored data
+
+- **F1. Value spelling.** Stored values are camelCase, as contra's are,
+  with `full` rather than `whole` (§6.1).
+- **F2. Formations.** New shape values are added. The maintainer's note:
+  "Separate proper/improper as a new checkbox, shapes are duple minor,
+  triple minor, three couple longways, four couple longways, five couple
+  longways, six couple longways, circle, and square. Mixer toggle stays."
+  The shape drives the numbered places the editor offers (§6.4). Whether
+  contra's shapes change too is still open (§9.1).
+- **F3. Meter and key.** A dance gains optional meter and key text fields,
+  shown on the dance and the program sheet, and searchable. Phrase
+  structure still records beats per bar (§5.5).
+- **F4. Dances in several parts** use one phrase structure joined with `+`,
+  with section labels derived as they are today. No part grouping is added.
+- **F5. ECD dances already imported** with contra moves are left as they
+  are, and still display through the contra taxonomy (§5.1). A migration
+  that the caller runs for one dance or for all maps contra moves with a
+  clear ECD meaning, re-reads custom lines with the ECD parser, and leaves
+  anything else as it is.
+- **F6. Shared parts.** The ECD work builds the two pieces squares also
+  need: choosing the taxonomy from the dance's form instead of always using
+  contra, and a dance-form selector in the glossary. Both are designed for
+  any number of forms, and ADR-007 builds on them.
+
+### 12.2 Screens and settings
+
+- **S1. Showing figures by form.** "Other", with the note: "As specified in
+  ADR-007, I want users to toggle forms in the glossary to only show the
+  figures in that form, have separate dialects per-form, and only show
+  figures in the new dance form based on what the form of the dance is.
+  There's no reason you can't contextually determine which figures to show
+  or not show in the app." So the glossary has a form selector that shows
+  that form's figures, and the figure editor offers only the figures of the
+  dance's own form. This ADR reads the note as meaning there is no "dance
+  forms I call" setting. Dialects per form are still open (§9.1).
+- **S2. A new dance's form** comes from a setting: "Make this a user
+  setting with each dance form as an option along with "last used"". The
+  recommendation was the last form used on the device, with no setting.
+  Whether the setting syncs is still open (§9.1).
+- **S3. Role terms across forms.** A dialect can override role terms per
+  form, so one program can mix forms with the right words for each. This
+  conflicts with the S1 note (§9.1).
+- **S4. Difficulty levels** share one vocabulary across forms (ADR-005).
+- **S5. Programs** have no form of their own. When a program mixes forms,
+  each dance shows its form, and the dance picker can filter by form.
+- **S6. The glossary's selected form.** Per device, as ADR-007 proposes,
+  with the note: "The Glossary should contain all forms on all devices - if
+  you just mean which one is selected by default, go with the form the user
+  chooses for their new dance default." So every form is available on every
+  device, and the glossary opens on the form the S2 setting gives.
+
+### 12.3 Scope
+
+- **D1. ECDDB import** is a later round, not part of the first
+  implementation (§10). The recommendation was to survey ECDDB first and
+  then build the importer in this round.
 
 ---
 
@@ -1024,7 +1200,7 @@ its notes in §7 say so.
 | `balance` | `who` (neighbors), `hand` (unspecified) | `{who} balance` |
 | `balance_the_ring` | none | `balance the ring` |
 | `allemande` (a model for ECD `hand_turn`) | `who` (neighbors), `hand` (right), `travel` (1.5) | `{who} allemande {hand} {travel}` |
-| `two_hand_turn` (a model for ECD `hand_turn` with both hands) | `who` (partners), `travel` (1) | `{who} two hand turn {travel}` |
+| `two_hand_turn` (a model for ECD `two_hand_turn`) | `who` (partners), `travel` (1) | `{who} two hand turn {travel}` |
 | `shoulder_round` | `who` (neighbors), `shoulder` (right), `travel` (1) | `{who} shoulder round {travel}` |
 | `swing` | `who` (partners), `prefix` (none; or balance, meltdown), `endFacing` (in) | `{who} swing` |
 | `turn_alone` | `who` (everyone), `custom` (free text) | `{who} turn alone` |

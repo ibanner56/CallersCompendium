@@ -2268,9 +2268,9 @@
   "@settingsAboutLicenseHeader": {
     "description": "About section header introducing the app's software license notice."
   },
-  "settingsAboutLicenseBody": "Caller's Compendium is free software, licensed under the GNU Affero General Public License, version 3 (AGPL-3.0). You are free to use, study, share, and modify it under that license. Because the AGPL requires it, the complete corresponding source code is offered to everyone who uses the app.",
+  "settingsAboutLicenseBody": "Caller's Compendium is free software, licensed under the GNU Affero General Public License, version 3 (AGPL-3.0-only). You are free to use, study, share, and modify it under that license. Because the AGPL requires it, the complete corresponding source code is offered to everyone who uses the app.",
   "@settingsAboutLicenseBody": {
-    "description": "Explanatory paragraph about the app's AGPL-3.0 license and the corresponding source-code offer. 'Caller's Compendium', 'GNU Affero General Public License', and 'AGPL-3.0' are proper nouns kept verbatim."
+    "description": "Explanatory paragraph about the app's AGPL-3.0 license and the corresponding source-code offer. 'Caller's Compendium', 'GNU Affero General Public License', and 'AGPL-3.0-only' are proper nouns kept verbatim."
   },
   "settingsAboutViewSourceTitle": "View source on GitHub",
   "@settingsAboutViewSourceTitle": {
@@ -2324,9 +2324,13 @@
   "@settingsAboutViewLicensesSubtitle": {
     "description": "Subtitle for the 'View licenses' tile."
   },
-  "settingsAboutLegalese": "© The Caller's Compendium contributors. Licensed under AGPL-3.0.",
+  "settingsAboutLegalese": "© The Caller's Compendium contributors. Licensed under AGPL-3.0-only.",
   "@settingsAboutLegalese": {
-    "description": "Legal notice shown on the license page. 'The Caller's Compendium' and 'AGPL-3.0' are proper nouns kept verbatim."
+    "description": "Legal notice shown on the license page. 'The Caller's Compendium' and 'AGPL-3.0-only' are proper nouns kept verbatim."
+  },
+  "settingsAboutTagline": "Your caller's box, in the palm of your hand",
+  "@settingsAboutTagline": {
+    "description": "One-line tagline shown under the version on the About brand header, and used as the Linux launcher comment. 'Caller's box' is a colloquial term among dance callers for the bag or case of cards, notes and gear a caller carries; it is not a product name or trademark, so translate the idiom naturally rather than literally."
   },
   "settingsAboutVersion": "Version {version}, \"{codename}\"",
   "@settingsAboutVersion": {
@@ -2342,17 +2346,13 @@
       }
     }
   },
-  "settingsAboutVersionLine": "{appName} · Version {version}, \"{codename}\" · {license}",
+  "settingsAboutVersionLine": "{appName} · \"{codename}\" · {license}",
   "@settingsAboutVersionLine": {
-    "description": "One-line footer at the bottom of the About section combining the app name, version, release codename, and license identifier. The app name, version, codename, and license are proper nouns / identifiers kept verbatim; only the word 'Version' is translatable.",
+    "description": "One-line footer at the bottom of the About section combining the app name, release codename, and license identifier. The version is deliberately not repeated here: it is shown once, in the About header. The app name, codename, and license are proper nouns / identifiers kept verbatim.",
     "placeholders": {
       "appName": {
         "type": "String",
         "example": "Caller's Compendium"
-      },
-      "version": {
-        "type": "String",
-        "example": "1.4.0"
       },
       "codename": {
         "type": "String",
@@ -2360,7 +2360,7 @@
       },
       "license": {
         "type": "String",
-        "example": "AGPL-3.0"
+        "example": "AGPL-3.0-only"
       }
     }
   },
@@ -2595,20 +2595,6 @@
   "settingsDialectDuplicateToCustomize": "Duplicate to customize",
   "@settingsDialectDuplicateToCustomize": {
     "description": "Row menu item on a read-only preset that duplicates it into an editable custom dialect."
-  },
-  "settingsDialectDeleteTitle": "Delete dialect?",
-  "@settingsDialectDeleteTitle": {
-    "description": "Title of the confirm-delete dialog for a custom dialect."
-  },
-  "settingsDialectDeleteConfirmBody": "\"{name}\" will be permanently removed.",
-  "@settingsDialectDeleteConfirmBody": {
-    "description": "Body of the confirm-delete dialog, quoting the dialect name (untrusted user text, rendered as plain text).",
-    "placeholders": {
-      "name": {
-        "type": "String",
-        "example": "My dialect"
-      }
-    }
   },
   "settingsDialectEditConflictSnack": "\"{name}\" was renamed or deleted while you were editing it, so your changes were not saved.",
   "@settingsDialectEditConflictSnack": {
@@ -3079,20 +3065,6 @@
   "settingsAppearanceCustomThemesEmpty": "Copy the current theme and tune any color. Custom themes sync to your other devices when sync is on.",
   "@settingsAppearanceCustomThemesEmpty": {
     "description": "Helper text shown when the user has no saved custom themes yet."
-  },
-  "settingsAppearanceDeleteThemeTitle": "Delete theme?",
-  "@settingsAppearanceDeleteThemeTitle": {
-    "description": "Title of the confirm-delete dialog for a custom theme."
-  },
-  "settingsAppearanceDeleteThemeBody": "\"{name}\" will be permanently removed.",
-  "@settingsAppearanceDeleteThemeBody": {
-    "description": "Body of the confirm-delete dialog for a custom theme.",
-    "placeholders": {
-      "name": {
-        "type": "String",
-        "example": "My theme"
-      }
-    }
   },
   "settingsAppearanceCustomThemeSemantic": "Custom theme {name}",
   "@settingsAppearanceCustomThemeSemantic": {
@@ -4040,18 +4012,6 @@
   "@settingsMatrixColumnsParameterizedDelete": {
     "description": "Tooltip for deleting a parameterized column definition."
   },
-  "settingsMatrixColumnsParameterizedDeleteTitle": "Delete parameterized column?",
-  "@settingsMatrixColumnsParameterizedDeleteTitle": {
-    "description": "Title of the delete-parameterized-column confirmation dialog."
-  },
-  "settingsMatrixColumnsParameterizedDeleteBody": "This removes the column and its matching rules from the matrix. This cannot be undone.",
-  "@settingsMatrixColumnsParameterizedDeleteBody": {
-    "description": "Warning shown before deleting a parameterized column."
-  },
-  "settingsMatrixColumnsParameterizedDeleteConfirm": "Delete column",
-  "@settingsMatrixColumnsParameterizedDeleteConfirm": {
-    "description": "Confirm button for deleting a parameterized column."
-  },
   "settingsMatrixColumnsCompoundAdd": "Add compound column",
   "@settingsMatrixColumnsCompoundAdd": {
     "description": "Button that opens the editor for adding a compound matrix column."
@@ -4103,18 +4063,6 @@
   "settingsMatrixColumnsCompoundDelete": "Delete compound column",
   "@settingsMatrixColumnsCompoundDelete": {
     "description": "Tooltip for deleting a compound column definition."
-  },
-  "settingsMatrixColumnsCompoundDeleteTitle": "Delete compound column?",
-  "@settingsMatrixColumnsCompoundDeleteTitle": {
-    "description": "Title of the delete-compound-column confirmation dialog."
-  },
-  "settingsMatrixColumnsCompoundDeleteBody": "This removes the column and its matching sequence from the matrix. This cannot be undone.",
-  "@settingsMatrixColumnsCompoundDeleteBody": {
-    "description": "Warning shown before deleting a compound column."
-  },
-  "settingsMatrixColumnsCompoundDeleteConfirm": "Delete column",
-  "@settingsMatrixColumnsCompoundDeleteConfirm": {
-    "description": "Confirm button for deleting a compound column."
   },
   "settingsGeneralPerformanceHeader": "Performance",
   "@settingsGeneralPerformanceHeader": {
@@ -4308,9 +4256,31 @@
   "@settingsGeneralConfirmBeforeDeleteTitle": {
     "description": "Title of the General settings toggle that asks before deleting a dance or program."
   },
-  "settingsGeneralConfirmBeforeDeleteSubtitle": "Ask for confirmation before deleting a dance or program. Deletes can still be undone; this just adds an explicit prompt first.",
+  "settingsGeneralConfirmBeforeDeleteSubtitle": "Ask before deleting anything you can undo. Deletes that can't be undone always ask first.",
   "@settingsGeneralConfirmBeforeDeleteSubtitle": {
     "description": "Subtitle explaining the confirm-before-delete toggle."
+  },
+  "settingsGeneralUndoPromptTitle": "Undo prompt",
+  "@settingsGeneralUndoPromptTitle": {
+    "description": "Title of the setting for how long the Undo prompt (the snackbar offering Undo after a delete or change) stays on screen."
+  },
+  "settingsGeneralUndoPromptSubtitle": "How long Undo stays on screen after you delete or change something. It also stays while you point at it or move to it with the keyboard.",
+  "@settingsGeneralUndoPromptSubtitle": {
+    "description": "Subtitle of the Undo prompt duration setting."
+  },
+  "settingsGeneralUndoPromptSeconds": "{seconds, plural, =1{1 second} other{{seconds} seconds}}",
+  "@settingsGeneralUndoPromptSeconds": {
+    "description": "Undo prompt duration dropdown option: a number of seconds.",
+    "placeholders": {
+      "seconds": {
+        "type": "int",
+        "example": "10"
+      }
+    }
+  },
+  "settingsGeneralUndoPromptUntilClosed": "Until I close it",
+  "@settingsGeneralUndoPromptUntilClosed": {
+    "description": "Undo prompt duration dropdown option: the prompt has no time limit and stays until the user closes it or a new prompt replaces it."
   },
   "settingsGeneralDeletedItemsHeader": "Recently deleted",
   "@settingsGeneralDeletedItemsHeader": {
@@ -5169,6 +5139,10 @@
         "example": "Chorus Jig"
       }
     }
+  },
+  "commonCantBeUndone": "This can't be undone.",
+  "@commonCantBeUndone": {
+    "description": "Second paragraph of every confirmation for a delete that cannot be undone (there is no Undo and nothing in Recently deleted). The one wording for irreversibility across the app."
   },
   "importGapMessage": "Couldn't recognize this call — kept exactly as written as an unrecognized figure.",
   "@importGapMessage": {
@@ -10646,6 +10620,10 @@
       }
     }
   },
+  "importReviewEditOverwriteConfirm": "Replace",
+  "@importReviewEditOverwriteConfirm": {
+    "description": "Confirm button of the dialog that asks before Import and edit writes onto an existing dance in the collection. Names the action: the existing dance's content is replaced."
+  },
   "importReviewEditReimportTitle": "Re-import onto the existing dance now?",
   "@importReviewEditReimportTitle": {
     "description": "Title of the confirmation shown when Import and edit is pressed on a row set to Re-import, because the matched dance is updated immediately, outside the batch Undo."
@@ -10928,14 +10906,6 @@
         "type": "int"
       }
     }
-  },
-  "settingsWalkthroughSnippetDeleteTitle": "Delete snippet?",
-  "@settingsWalkthroughSnippetDeleteTitle": {
-    "description": "Title of the confirmation before deleting a saved walkthrough snippet (#411)."
-  },
-  "settingsWalkthroughSnippetDeleteBody": "This removes the saved default for this figure. Dances keep any walkthrough text you already wrote.",
-  "@settingsWalkthroughSnippetDeleteBody": {
-    "description": "Body of the confirmation before deleting a saved walkthrough snippet (#411)."
   },
   "settingsWalkthroughSnippetEditTitle": "Edit snippet",
   "@settingsWalkthroughSnippetEditTitle": {
@@ -12837,19 +12807,6 @@
       }
     }
   },
-  "shorthandMappingsDeleteTitle": "Delete shorthand?",
-  "@shorthandMappingsDeleteTitle": {
-    "description": "Title of the confirm-delete dialog for a figure-shorthand mapping."
-  },
-  "shorthandMappingsDeleteBody": "\"{token}\" will be permanently removed.",
-  "@shorthandMappingsDeleteBody": {
-    "description": "Body of the confirm-delete dialog; {token} is the user's shorthand token, rendered as plain text.",
-    "placeholders": {
-      "token": {
-        "type": "String"
-      }
-    }
-  },
   "shorthandMappingsActionsTooltip": "Shorthand actions",
   "@shorthandMappingsActionsTooltip": {
     "description": "Tooltip for the per-row overflow menu in the shorthand manager."
@@ -13270,19 +13227,6 @@
   "@reparseErrorBody": {
     "description": "Body of the error state when scanning for upgradable figures fails."
   },
-  "customFieldsDeleteTitle": "Delete custom field",
-  "@customFieldsDeleteTitle": {
-    "description": "Title of the confirm-delete dialog for a custom field."
-  },
-  "customFieldsDeleteBody": "Delete \"{label}\"? This cannot be undone.",
-  "@customFieldsDeleteBody": {
-    "description": "Body of the confirm-delete dialog; {label} is the field's display label, rendered as plain text.",
-    "placeholders": {
-      "label": {
-        "type": "String"
-      }
-    }
-  },
   "customFieldsDeleteInUse": "Can't delete \"{label}\": still used by {count, plural, =1{1 dance} other{{count} dances}}. Remove the value from all dances first.",
   "@customFieldsDeleteInUse": {
     "description": "Snackbar when deleting a custom field still set on dances (count known). The raw exception is logged (debugPrint), never shown, so storage internals can't leak to the UI (CWE-209). {label} is plain text.",
@@ -13624,7 +13568,7 @@
   "@recentlyDeletedDeleteTitle": {
     "description": "Title of the confirm permanent-delete dialog."
   },
-  "recentlyDeletedDeleteBody": "\"{title}\" will be deleted immediately and cannot be recovered.",
+  "recentlyDeletedDeleteBody": "\"{title}\" will be deleted now.",
   "@recentlyDeletedDeleteBody": {
     "description": "Body of the confirm permanent-delete dialog; {title} is the item title, plain text.",
     "placeholders": {
@@ -13801,30 +13745,6 @@
       "count": {
         "type": "int",
         "example": "3"
-      }
-    }
-  },
-  "venueManagerDeleteTitle": "Delete venue?",
-  "@venueManagerDeleteTitle": {
-    "description": "Title of the confirmation dialog for permanently deleting a venue."
-  },
-  "venueManagerDeleteBody": "Permanently delete \"{name}\"? This can't be undone.",
-  "@venueManagerDeleteBody": {
-    "description": "Body of the delete-venue confirmation dialog; {name} is the venue's name (plain text, may be user-entered or imported).",
-    "placeholders": {
-      "name": {
-        "type": "String",
-        "example": "Grange Hall"
-      }
-    }
-  },
-  "venueManagerDeletedSnack": "Deleted \"{name}\"",
-  "@venueManagerDeletedSnack": {
-    "description": "Snackbar confirming a venue was deleted; {name} is the venue's name (plain text).",
-    "placeholders": {
-      "name": {
-        "type": "String",
-        "example": "Grange Hall"
       }
     }
   },

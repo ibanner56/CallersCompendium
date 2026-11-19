@@ -1835,7 +1835,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsAboutLicenseBody =>
-      'Caller\'s Compendium is free software, licensed under the GNU Affero General Public License, version 3 (AGPL-3.0). You are free to use, study, share, and modify it under that license. Because the AGPL requires it, the complete corresponding source code is offered to everyone who uses the app.';
+      'Caller\'s Compendium is free software, licensed under the GNU Affero General Public License, version 3 (AGPL-3.0-only). You are free to use, study, share, and modify it under that license. Because the AGPL requires it, the complete corresponding source code is offered to everyone who uses the app.';
 
   @override
   String get settingsAboutViewSourceTitle => 'View source on GitHub';
@@ -1885,7 +1885,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsAboutLegalese =>
-      '© The Caller\'s Compendium contributors. Licensed under AGPL-3.0.';
+      '© The Caller\'s Compendium contributors. Licensed under AGPL-3.0-only.';
+
+  @override
+  String get settingsAboutTagline =>
+      'Your caller\'s box, in the palm of your hand';
 
   @override
   String settingsAboutVersion(String version, String codename) {
@@ -1895,11 +1899,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String settingsAboutVersionLine(
     String appName,
-    String version,
     String codename,
     String license,
   ) {
-    return '$appName · Version $version, \"$codename\" · $license';
+    return '$appName · \"$codename\" · $license';
   }
 
   @override
@@ -2077,14 +2080,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsDialectDuplicateToCustomize => 'Duplicate to customize';
-
-  @override
-  String get settingsDialectDeleteTitle => 'Delete dialect?';
-
-  @override
-  String settingsDialectDeleteConfirmBody(String name) {
-    return '\"$name\" will be permanently removed.';
-  }
 
   @override
   String settingsDialectEditConflictSnack(String name) {
@@ -2460,14 +2455,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsAppearanceCustomThemesEmpty =>
       'Copy the current theme and tune any color. Custom themes sync to your other devices when sync is on.';
-
-  @override
-  String get settingsAppearanceDeleteThemeTitle => 'Delete theme?';
-
-  @override
-  String settingsAppearanceDeleteThemeBody(String name) {
-    return '\"$name\" will be permanently removed.';
-  }
 
   @override
   String settingsAppearanceCustomThemeSemantic(String name) {
@@ -3163,17 +3150,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Delete parameterized column';
 
   @override
-  String get settingsMatrixColumnsParameterizedDeleteTitle =>
-      'Delete parameterized column?';
-
-  @override
-  String get settingsMatrixColumnsParameterizedDeleteBody =>
-      'This removes the column and its matching rules from the matrix. This cannot be undone.';
-
-  @override
-  String get settingsMatrixColumnsParameterizedDeleteConfirm => 'Delete column';
-
-  @override
   String get settingsMatrixColumnsCompoundAdd => 'Add compound column';
 
   @override
@@ -3211,17 +3187,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsMatrixColumnsCompoundDelete => 'Delete compound column';
-
-  @override
-  String get settingsMatrixColumnsCompoundDeleteTitle =>
-      'Delete compound column?';
-
-  @override
-  String get settingsMatrixColumnsCompoundDeleteBody =>
-      'This removes the column and its matching sequence from the matrix. This cannot be undone.';
-
-  @override
-  String get settingsMatrixColumnsCompoundDeleteConfirm => 'Delete column';
 
   @override
   String get settingsGeneralPerformanceHeader => 'Performance';
@@ -3413,7 +3378,28 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsGeneralConfirmBeforeDeleteSubtitle =>
-      'Ask for confirmation before deleting a dance or program. Deletes can still be undone; this just adds an explicit prompt first.';
+      'Ask before deleting anything you can undo. Deletes that can\'t be undone always ask first.';
+
+  @override
+  String get settingsGeneralUndoPromptTitle => 'Undo prompt';
+
+  @override
+  String get settingsGeneralUndoPromptSubtitle =>
+      'How long Undo stays on screen after you delete or change something. It also stays while you point at it or move to it with the keyboard.';
+
+  @override
+  String settingsGeneralUndoPromptSeconds(int seconds) {
+    String _temp0 = intl.Intl.pluralLogic(
+      seconds,
+      locale: localeName,
+      other: '$seconds seconds',
+      one: '1 second',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsGeneralUndoPromptUntilClosed => 'Until I close it';
 
   @override
   String get settingsGeneralDeletedItemsHeader => 'Recently deleted';
@@ -4050,6 +4036,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String commonDeletedSnack(String title) {
     return '\"$title\" deleted.';
   }
+
+  @override
+  String get commonCantBeUndone => 'This can\'t be undone.';
 
   @override
   String get importGapMessage =>
@@ -8169,6 +8158,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get importReviewEditOverwriteConfirm => 'Replace';
+
+  @override
   String get importReviewEditReimportTitle =>
       'Re-import onto the existing dance now?';
 
@@ -8387,13 +8379,6 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
-
-  @override
-  String get settingsWalkthroughSnippetDeleteTitle => 'Delete snippet?';
-
-  @override
-  String get settingsWalkthroughSnippetDeleteBody =>
-      'This removes the saved default for this figure. Dances keep any walkthrough text you already wrote.';
 
   @override
   String get settingsWalkthroughSnippetEditTitle => 'Edit snippet';
@@ -9710,14 +9695,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get shorthandMappingsDeleteTitle => 'Delete shorthand?';
-
-  @override
-  String shorthandMappingsDeleteBody(String token) {
-    return '\"$token\" will be permanently removed.';
-  }
-
-  @override
   String get shorthandMappingsActionsTooltip => 'Shorthand actions';
 
   @override
@@ -10108,14 +10085,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Something went wrong while scanning your collection. Nothing was changed. You can try again.';
 
   @override
-  String get customFieldsDeleteTitle => 'Delete custom field';
-
-  @override
-  String customFieldsDeleteBody(String label) {
-    return 'Delete \"$label\"? This cannot be undone.';
-  }
-
-  @override
   String customFieldsDeleteInUse(String label, int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -10378,7 +10347,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String recentlyDeletedDeleteBody(String title) {
-    return '\"$title\" will be deleted immediately and cannot be recovered.';
+    return '\"$title\" will be deleted now.';
   }
 
   @override
@@ -10510,19 +10479,6 @@ class AppLocalizationsEn extends AppLocalizations {
       one: 'Linked 1 program.',
     );
     return '$_temp0';
-  }
-
-  @override
-  String get venueManagerDeleteTitle => 'Delete venue?';
-
-  @override
-  String venueManagerDeleteBody(String name) {
-    return 'Permanently delete \"$name\"? This can\'t be undone.';
-  }
-
-  @override
-  String venueManagerDeletedSnack(String name) {
-    return 'Deleted \"$name\"';
   }
 
   @override

@@ -39,6 +39,8 @@ import 'package:compendium_core/compendium_core.dart'
         MatrixColumnConfig,
         settingsClassifications,
         shareableTextNormalisationScopeKey;
+import 'package:compendium_app/src/data/undo_prompt_duration_scope.dart'
+    show kUndoPromptSecondsKey, kUndoPromptUntilDismissed;
 import 'package:compendium_app/src/data/soft_delete_retention.dart'
     show kSoftDeleteRetentionKey;
 import 'package:compendium_app/src/data/walkthrough_snippet_library_controller.dart'
@@ -357,6 +359,23 @@ void main() {
       expect(validateBackupSettingValue(kVenueCallCountKey, 11), isFalse);
       expect(validateBackupSettingValue(kVenueCallCountKey, 1.5), isFalse);
       expect(validateBackupSettingValue(kVenueCallCountKey, '3'), isFalse);
+    });
+
+    test('Undo prompt seconds accepts only the offered choices', () {
+      for (final offered in [kUndoPromptUntilDismissed, 6, 10, 20, 30]) {
+        expect(
+          validateBackupSettingValue(kUndoPromptSecondsKey, offered),
+          isTrue,
+          reason: '$offered',
+        );
+      }
+      for (final bad in <Object?>[7, -1, 3600, 10.0, '10', null]) {
+        expect(
+          validateBackupSettingValue(kUndoPromptSecondsKey, bad),
+          isFalse,
+          reason: '$bad',
+        );
+      }
     });
 
     test('map-blob keys accept only maps', () {

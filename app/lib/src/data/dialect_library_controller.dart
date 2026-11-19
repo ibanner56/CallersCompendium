@@ -228,6 +228,36 @@ class DialectLibraryController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Puts [dialect] back at [index] (clamped): Undo of [delete]. When
+  /// [wasActive] and the active pointer is still on the fallback [delete] set,
+  /// it is made active again; a dialect the user chose since stays chosen.
+  /// (Choosing that fallback dialect itself in between cannot be told apart
+  /// from not choosing, so Undo then makes the restored one active.)
+  /// Programs name their dialect, and [delete] leaves them unpinned, so they
+  /// find it again by name.
+  ///
+  /// Throws [ArgumentError] when a dialect of that name exists again (a new
+  /// one took the name meanwhile), rather than shadow or replace it.
+  Future<void> restoreDeleted(
+    Dialect dialect, {
+    required int index,
+    required bool wasActive,
+  }) async {
+    if (isPreset(dialect.name) || customByName(dialect.name) != null) {
+      throw ArgumentError.value(
+        dialect.name,
+        'dialect.name',
+        'a dialect of this name exists again',
+      );
+    }
+    _customDialects.insert(index.clamp(0, _customDialects.length), dialect);
+    final reactivate = wasActive && _activeName == Dialect.larksRobins.name;
+    if (reactivate) _activeName = dialect.name;
+    await _persistDialects();
+    if (reactivate) await _persistActive();
+    notifyListeners();
+  }
+
   /// Drops every dialect's name and wording for the user's figure [id], once
   /// it is deleted (#1023, plan C9): nothing else would ever read them. One
   /// write for the library when any dialect held them, and then the active

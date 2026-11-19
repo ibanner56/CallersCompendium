@@ -996,7 +996,9 @@ void main() {
       final snackBar = tester.widget<SnackBar>(
         find.byKey(const ValueKey('sync-conflict-saved')),
       );
-      expect(snackBar.persist, isFalse);
+      // The prompt runs its own timer (so hover and focus can hold it), so
+      // the scaffold's `persist` no longer says whether it times out; the
+      // pump below does.
       expect(snackBar.behavior, SnackBarBehavior.floating);
 
       await tester.pump(snackBar.duration);

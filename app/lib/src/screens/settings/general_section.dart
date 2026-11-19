@@ -22,6 +22,7 @@ import '../../data/backup_io.dart';
 import '../../data/backup_reminder.dart';
 import '../../data/backup_service.dart';
 import '../../data/confirm_before_delete_scope.dart';
+import '../../data/undo_prompt_duration_scope.dart';
 import '../../data/import_io.dart';
 import '../../data/reduce_motion_scope.dart';
 import '../../data/regional_formats.dart';
@@ -629,6 +630,12 @@ class _GeneralSectionState extends State<GeneralSection> {
     await persistSetting(repos.settings, kConfirmBeforeDeleteKey, value);
   }
 
+  Future<void> _onUndoPromptSecondsChanged(int value) async {
+    UndoPromptDurationScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await persistSetting(repos.settings, kUndoPromptSecondsKey, value);
+  }
+
   @override
   Widget build(BuildContext context) {
     _ensureSoftDeleteRetentionLoaded(context);
@@ -646,6 +653,8 @@ class _GeneralSectionState extends State<GeneralSection> {
       onDecimalTurnsChanged: _onDecimalTurnsChanged,
       confirmBeforeDelete: ConfirmBeforeDeleteScope.of(context),
       onConfirmBeforeDeleteChanged: _onConfirmBeforeDeleteChanged,
+      undoPromptSeconds: UndoPromptDurationScope.secondsOf(context),
+      onUndoPromptSecondsChanged: _onUndoPromptSecondsChanged,
       softDeleteRetentionDays:
           _softDeleteRetentionDays ?? kSoftDeleteRetentionDefaultDays,
       onSoftDeleteRetentionChanged: _onSoftDeleteRetentionChanged,
@@ -680,6 +689,8 @@ class _GeneralView extends StatelessWidget {
     required this.onDecimalTurnsChanged,
     required this.confirmBeforeDelete,
     required this.onConfirmBeforeDeleteChanged,
+    required this.undoPromptSeconds,
+    required this.onUndoPromptSecondsChanged,
     required this.softDeleteRetentionDays,
     required this.onSoftDeleteRetentionChanged,
     required this.backupCadence,
@@ -704,6 +715,11 @@ class _GeneralView extends StatelessWidget {
   final ValueChanged<bool> onDecimalTurnsChanged;
   final bool confirmBeforeDelete;
   final ValueChanged<bool> onConfirmBeforeDeleteChanged;
+
+  /// How long the Undo prompt stays, as the stored seconds
+  /// ([kUndoPromptUntilDismissed] = until closed).
+  final int undoPromptSeconds;
+  final ValueChanged<int> onUndoPromptSecondsChanged;
 
   /// Current soft-delete retention window as the stored `int` day count
   /// (`0` = never auto-purge — see [kSoftDeleteRetentionNever]).
@@ -815,6 +831,30 @@ class _GeneralView extends StatelessWidget {
           title: Text(l10n.settingsGeneralConfirmBeforeDeleteTitle),
           subtitle: Text(l10n.settingsGeneralConfirmBeforeDeleteSubtitle),
           isThreeLine: true,
+        ),
+        SettingsDropdownRow(
+          title: Text(l10n.settingsGeneralUndoPromptTitle),
+          subtitle: Text(l10n.settingsGeneralUndoPromptSubtitle),
+          isThreeLine: true,
+          dropdownBuilder: (expanded) => DropdownButton<int>(
+            isExpanded: expanded,
+            key: const ValueKey('general-undo-prompt-seconds'),
+            value: undoPromptSeconds,
+            onChanged: (value) {
+              if (value != null) onUndoPromptSecondsChanged(value);
+            },
+            items: [
+              for (final seconds in kUndoPromptSecondOptions)
+                DropdownMenuItem(
+                  value: seconds,
+                  child: Text(l10n.settingsGeneralUndoPromptSeconds(seconds)),
+                ),
+              DropdownMenuItem(
+                value: kUndoPromptUntilDismissed,
+                child: Text(l10n.settingsGeneralUndoPromptUntilClosed),
+              ),
+            ],
+          ),
         ),
         SectionHeader(title: l10n.settingsGeneralDeletedItemsHeader),
         SettingsDropdownRow(

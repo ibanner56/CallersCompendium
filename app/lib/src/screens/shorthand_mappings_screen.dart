@@ -9,8 +9,8 @@ import '../data/figure_summary.dart';
 import '../data/repositories_scope.dart';
 import '../data/show_custom_figures_scope.dart';
 import '../editor/figure_draft.dart';
-import '../theme/app_motion.dart';
-import '../theme/destructive_button_style.dart';
+import '../utils/confirm_delete.dart';
+import '../utils/undo_snack_bar.dart';
 import '../widgets/compound_argument_editor.dart';
 import 'compound_shorthand_editor_screen.dart';
 import '../data/shorthand_mappings_controller.dart';
@@ -186,6 +186,8 @@ class ShorthandMappingsScreen extends StatelessWidget {
           for (final u in controller.userFigureShorthands) u.normalizedToken,
         };
 
+  /// Deletes the figure shorthand at [index] at once and offers Undo, asking
+  /// first only when "Confirm before delete" is on (see `confirm_delete.dart`).
   Future<void> _confirmDelete(
     BuildContext context,
     ShorthandMappingsController controller,
@@ -193,32 +195,26 @@ class ShorthandMappingsScreen extends StatelessWidget {
   ) async {
     final mappings = controller.mappings;
     if (index < 0 || index >= mappings.length) return;
-    final token = mappings[index].token;
+    final removed = mappings[index];
+    final token = removed.token;
+    if (!await confirmDeleteIfEnabled(context, itemLabel: token)) return;
+    if (!context.mounted) return;
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.maybeOf(context);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.shorthandMappingsDeleteTitle),
-        content: Text(l10n.shorthandMappingsDeleteBody(token)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(l10n.commonCancel),
-          ),
-          FilledButton(
-            style: destructiveFilledButtonStyle(Theme.of(ctx).colorScheme),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(l10n.commonDelete),
-          ),
-        ],
-      ),
-      animationStyle: AppMotion.styleFor(context),
-    );
-    if (confirmed != true) return;
-    await controller.removeAt(index);
-    messenger?.showSnackBar(
-      SnackBar(content: Text(l10n.commonDeletedSnack(token))),
+    final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
+    // The list may have changed while the confirmation was open.
+    final at = controller.mappings.indexOf(removed);
+    if (at < 0) return;
+    await controller.removeAt(at);
+    if (messenger == null) return;
+    showUndoSnackBar(
+      messenger,
+      actionKey: const ValueKey('shorthand-delete-undo'),
+      message: l10n.commonDeletedSnack(token),
+      undoLabel: l10n.commonUndo,
+      undoFailedMessage: l10n.commonUndoFailed,
+      accessibleNavigation: accessibleNavigation,
+      onUndo: () => controller.restoreAt(at, removed),
     );
   }
 }
@@ -370,45 +366,49 @@ class _CompoundShorthandsSectionState
     }
   }
 
+  /// Deletes a compound shorthand or a shorthand for a figure of your own at
+  /// once and offers Undo, asking first only when "Confirm before delete" is
+  /// on (see `confirm_delete.dart`).
   Future<void> _confirmDelete(
     BuildContext context, {
     int? compoundIndex,
     int? userFigureIndex,
   }) async {
+    final controller = widget.controller;
+    final compound = compoundIndex != null
+        ? controller.compoundShorthands[compoundIndex]
+        : null;
+    final userFigure = compoundIndex == null
+        ? controller.userFigureShorthands[userFigureIndex!]
+        : null;
+    final token = compound?.token ?? userFigure!.token;
+    if (!await confirmDeleteIfEnabled(context, itemLabel: token)) return;
+    if (!context.mounted) return;
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.maybeOf(context);
-    final controller = widget.controller;
-    final token = compoundIndex != null
-        ? controller.compoundShorthands[compoundIndex].token
-        : controller.userFigureShorthands[userFigureIndex!].token;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.shorthandMappingsDeleteTitle),
-        content: Text(l10n.shorthandMappingsDeleteBody(token)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(l10n.commonCancel),
-          ),
-          FilledButton(
-            style: destructiveFilledButtonStyle(Theme.of(ctx).colorScheme),
-            key: const ValueKey('compound-shorthand-delete-confirm'),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(l10n.commonDelete),
-          ),
-        ],
-      ),
-      animationStyle: AppMotion.styleFor(context),
-    );
-    if (confirmed != true) return;
-    if (compoundIndex != null) {
-      await controller.removeCompoundAt(compoundIndex);
+    final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
+    // The lists may have changed while the confirmation was open.
+    final FutureOr<void> Function() undo;
+    if (compound != null) {
+      final at = controller.compoundShorthands.indexOf(compound);
+      if (at < 0) return;
+      await controller.removeCompoundAt(at);
+      undo = () => controller.restoreCompoundAt(at, compound);
     } else {
-      await controller.removeUserFigureAt(userFigureIndex!);
+      final at = controller.userFigureShorthands.indexOf(userFigure!);
+      if (at < 0) return;
+      await controller.removeUserFigureAt(at);
+      undo = () => controller.restoreUserFigureAt(at, userFigure);
     }
-    messenger?.showSnackBar(
-      SnackBar(content: Text(l10n.commonDeletedSnack(token))),
+    if (messenger == null) return;
+    showUndoSnackBar(
+      messenger,
+      actionKey: const ValueKey('compound-shorthand-delete-undo'),
+      message: l10n.commonDeletedSnack(token),
+      undoLabel: l10n.commonUndo,
+      undoFailedMessage: l10n.commonUndoFailed,
+      accessibleNavigation: accessibleNavigation,
+      onUndo: undo,
     );
   }
 

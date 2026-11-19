@@ -2612,10 +2612,10 @@ abstract class AppLocalizations {
   /// **'License'**
   String get settingsAboutLicenseHeader;
 
-  /// Explanatory paragraph about the app's AGPL-3.0 license and the corresponding source-code offer. 'Caller's Compendium', 'GNU Affero General Public License', and 'AGPL-3.0' are proper nouns kept verbatim.
+  /// Explanatory paragraph about the app's AGPL-3.0 license and the corresponding source-code offer. 'Caller's Compendium', 'GNU Affero General Public License', and 'AGPL-3.0-only' are proper nouns kept verbatim.
   ///
   /// In en, this message translates to:
-  /// **'Caller\'s Compendium is free software, licensed under the GNU Affero General Public License, version 3 (AGPL-3.0). You are free to use, study, share, and modify it under that license. Because the AGPL requires it, the complete corresponding source code is offered to everyone who uses the app.'**
+  /// **'Caller\'s Compendium is free software, licensed under the GNU Affero General Public License, version 3 (AGPL-3.0-only). You are free to use, study, share, and modify it under that license. Because the AGPL requires it, the complete corresponding source code is offered to everyone who uses the app.'**
   String get settingsAboutLicenseBody;
 
   /// Title of the tile that opens the app's source-code repository.
@@ -2696,11 +2696,17 @@ abstract class AppLocalizations {
   /// **'Full open-source license texts, including the bundled fonts.'**
   String get settingsAboutViewLicensesSubtitle;
 
-  /// Legal notice shown on the license page. 'The Caller's Compendium' and 'AGPL-3.0' are proper nouns kept verbatim.
+  /// Legal notice shown on the license page. 'The Caller's Compendium' and 'AGPL-3.0-only' are proper nouns kept verbatim.
   ///
   /// In en, this message translates to:
-  /// **'© The Caller\'s Compendium contributors. Licensed under AGPL-3.0.'**
+  /// **'© The Caller\'s Compendium contributors. Licensed under AGPL-3.0-only.'**
   String get settingsAboutLegalese;
+
+  /// One-line tagline shown under the version on the About brand header, and used as the Linux launcher comment. 'Caller's box' is a colloquial term among dance callers for the bag or case of cards, notes and gear a caller carries; it is not a product name or trademark, so translate the idiom naturally rather than literally.
+  ///
+  /// In en, this message translates to:
+  /// **'Your caller\'s box, in the palm of your hand'**
+  String get settingsAboutTagline;
 
   /// Version and release-codename line under the app wordmark in the About header. The codename is a proper noun kept verbatim.
   ///
@@ -2708,13 +2714,12 @@ abstract class AppLocalizations {
   /// **'Version {version}, \"{codename}\"'**
   String settingsAboutVersion(String version, String codename);
 
-  /// One-line footer at the bottom of the About section combining the app name, version, release codename, and license identifier. The app name, version, codename, and license are proper nouns / identifiers kept verbatim; only the word 'Version' is translatable.
+  /// One-line footer at the bottom of the About section combining the app name, release codename, and license identifier. The version is deliberately not repeated here: it is shown once, in the About header. The app name, codename, and license are proper nouns / identifiers kept verbatim.
   ///
   /// In en, this message translates to:
-  /// **'{appName} · Version {version}, \"{codename}\" · {license}'**
+  /// **'{appName} · \"{codename}\" · {license}'**
   String settingsAboutVersionLine(
     String appName,
-    String version,
     String codename,
     String license,
   );
@@ -3012,18 +3017,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Duplicate to customize'**
   String get settingsDialectDuplicateToCustomize;
-
-  /// Title of the confirm-delete dialog for a custom dialect.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete dialect?'**
-  String get settingsDialectDeleteTitle;
-
-  /// Body of the confirm-delete dialog, quoting the dialect name (untrusted user text, rendered as plain text).
-  ///
-  /// In en, this message translates to:
-  /// **'\"{name}\" will be permanently removed.'**
-  String settingsDialectDeleteConfirmBody(String name);
 
   /// Snackbar shown when saving a dialect's edited terms fails because the dialect was renamed or deleted while its editor was open; quotes the dialect's name as the editor opened it (untrusted user text, rendered as plain text).
   ///
@@ -3720,18 +3713,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Copy the current theme and tune any color. Custom themes sync to your other devices when sync is on.'**
   String get settingsAppearanceCustomThemesEmpty;
-
-  /// Title of the confirm-delete dialog for a custom theme.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete theme?'**
-  String get settingsAppearanceDeleteThemeTitle;
-
-  /// Body of the confirm-delete dialog for a custom theme.
-  ///
-  /// In en, this message translates to:
-  /// **'\"{name}\" will be permanently removed.'**
-  String settingsAppearanceDeleteThemeBody(String name);
 
   /// Screen-reader label for a saved custom-theme card.
   ///
@@ -4847,24 +4828,6 @@ abstract class AppLocalizations {
   /// **'Delete parameterized column'**
   String get settingsMatrixColumnsParameterizedDelete;
 
-  /// Title of the delete-parameterized-column confirmation dialog.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete parameterized column?'**
-  String get settingsMatrixColumnsParameterizedDeleteTitle;
-
-  /// Warning shown before deleting a parameterized column.
-  ///
-  /// In en, this message translates to:
-  /// **'This removes the column and its matching rules from the matrix. This cannot be undone.'**
-  String get settingsMatrixColumnsParameterizedDeleteBody;
-
-  /// Confirm button for deleting a parameterized column.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete column'**
-  String get settingsMatrixColumnsParameterizedDeleteConfirm;
-
   /// Button that opens the editor for adding a compound matrix column.
   ///
   /// In en, this message translates to:
@@ -4942,24 +4905,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Delete compound column'**
   String get settingsMatrixColumnsCompoundDelete;
-
-  /// Title of the delete-compound-column confirmation dialog.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete compound column?'**
-  String get settingsMatrixColumnsCompoundDeleteTitle;
-
-  /// Warning shown before deleting a compound column.
-  ///
-  /// In en, this message translates to:
-  /// **'This removes the column and its matching sequence from the matrix. This cannot be undone.'**
-  String get settingsMatrixColumnsCompoundDeleteBody;
-
-  /// Confirm button for deleting a compound column.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete column'**
-  String get settingsMatrixColumnsCompoundDeleteConfirm;
 
   /// General settings section header for performance-mode display preferences.
   ///
@@ -5252,8 +5197,32 @@ abstract class AppLocalizations {
   /// Subtitle explaining the confirm-before-delete toggle.
   ///
   /// In en, this message translates to:
-  /// **'Ask for confirmation before deleting a dance or program. Deletes can still be undone; this just adds an explicit prompt first.'**
+  /// **'Ask before deleting anything you can undo. Deletes that can\'t be undone always ask first.'**
   String get settingsGeneralConfirmBeforeDeleteSubtitle;
+
+  /// Title of the setting for how long the Undo prompt (the snackbar offering Undo after a delete or change) stays on screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo prompt'**
+  String get settingsGeneralUndoPromptTitle;
+
+  /// Subtitle of the Undo prompt duration setting.
+  ///
+  /// In en, this message translates to:
+  /// **'How long Undo stays on screen after you delete or change something. It also stays while you point at it or move to it with the keyboard.'**
+  String get settingsGeneralUndoPromptSubtitle;
+
+  /// Undo prompt duration dropdown option: a number of seconds.
+  ///
+  /// In en, this message translates to:
+  /// **'{seconds, plural, =1{1 second} other{{seconds} seconds}}'**
+  String settingsGeneralUndoPromptSeconds(int seconds);
+
+  /// Undo prompt duration dropdown option: the prompt has no time limit and stays until the user closes it or a new prompt replaces it.
+  ///
+  /// In en, this message translates to:
+  /// **'Until I close it'**
+  String get settingsGeneralUndoPromptUntilClosed;
 
   /// General settings section header for deleted-item retention preferences.
   ///
@@ -6352,6 +6321,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'\"{title}\" deleted.'**
   String commonDeletedSnack(String title);
+
+  /// Second paragraph of every confirmation for a delete that cannot be undone (there is no Undo and nothing in Recently deleted). The one wording for irreversibility across the app.
+  ///
+  /// In en, this message translates to:
+  /// **'This can\'t be undone.'**
+  String get commonCantBeUndone;
 
   /// Explanation shown for a figure that an import parser could not map to a structured move and kept verbatim. Shared by the import-gap badge tooltip, its explanation dialog body, and the figure-row Semantics label.
   ///
@@ -12131,6 +12106,12 @@ abstract class AppLocalizations {
   /// **'Importing to edit replaces \"{title}\" in your collection immediately. The batch Undo will not restore it.'**
   String importReviewEditOverwriteBody(String title);
 
+  /// Confirm button of the dialog that asks before Import and edit writes onto an existing dance in the collection. Names the action: the existing dance's content is replaced.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace'**
+  String get importReviewEditOverwriteConfirm;
+
   /// Title of the confirmation shown when Import and edit is pressed on a row set to Re-import, because the matched dance is updated immediately, outside the batch Undo.
   ///
   /// In en, this message translates to:
@@ -12472,18 +12453,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{1 snippet} other{{count} snippets}}'**
   String settingsWalkthroughSnippetsCount(int count);
-
-  /// Title of the confirmation before deleting a saved walkthrough snippet (#411).
-  ///
-  /// In en, this message translates to:
-  /// **'Delete snippet?'**
-  String get settingsWalkthroughSnippetDeleteTitle;
-
-  /// Body of the confirmation before deleting a saved walkthrough snippet (#411).
-  ///
-  /// In en, this message translates to:
-  /// **'This removes the saved default for this figure. Dances keep any walkthrough text you already wrote.'**
-  String get settingsWalkthroughSnippetDeleteBody;
 
   /// Title of the dialog for editing a saved walkthrough snippet's text (#411).
   ///
@@ -14330,18 +14299,6 @@ abstract class AppLocalizations {
   /// **'You have reached the limit of {max} figure shorthands. Delete one to add another.'**
   String shorthandMappingsLimitReached(int max);
 
-  /// Title of the confirm-delete dialog for a figure-shorthand mapping.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete shorthand?'**
-  String get shorthandMappingsDeleteTitle;
-
-  /// Body of the confirm-delete dialog; {token} is the user's shorthand token, rendered as plain text.
-  ///
-  /// In en, this message translates to:
-  /// **'\"{token}\" will be permanently removed.'**
-  String shorthandMappingsDeleteBody(String token);
-
   /// Tooltip for the per-row overflow menu in the shorthand manager.
   ///
   /// In en, this message translates to:
@@ -14804,18 +14761,6 @@ abstract class AppLocalizations {
   /// **'Something went wrong while scanning your collection. Nothing was changed. You can try again.'**
   String get reparseErrorBody;
 
-  /// Title of the confirm-delete dialog for a custom field.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete custom field'**
-  String get customFieldsDeleteTitle;
-
-  /// Body of the confirm-delete dialog; {label} is the field's display label, rendered as plain text.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete \"{label}\"? This cannot be undone.'**
-  String customFieldsDeleteBody(String label);
-
   /// Snackbar when deleting a custom field still set on dances (count known). The raw exception is logged (debugPrint), never shown, so storage internals can't leak to the UI (CWE-209). {label} is plain text.
   ///
   /// In en, this message translates to:
@@ -15263,7 +15208,7 @@ abstract class AppLocalizations {
   /// Body of the confirm permanent-delete dialog; {title} is the item title, plain text.
   ///
   /// In en, this message translates to:
-  /// **'\"{title}\" will be deleted immediately and cannot be recovered.'**
+  /// **'\"{title}\" will be deleted now.'**
   String recentlyDeletedDeleteBody(String title);
 
   /// Action/tooltip that permanently deletes a recently-deleted item.
@@ -15445,24 +15390,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{Linked 1 program.} other{Linked {count} programs.}}'**
   String venueLinkOfferDone(int count);
-
-  /// Title of the confirmation dialog for permanently deleting a venue.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete venue?'**
-  String get venueManagerDeleteTitle;
-
-  /// Body of the delete-venue confirmation dialog; {name} is the venue's name (plain text, may be user-entered or imported).
-  ///
-  /// In en, this message translates to:
-  /// **'Permanently delete \"{name}\"? This can\'t be undone.'**
-  String venueManagerDeleteBody(String name);
-
-  /// Snackbar confirming a venue was deleted; {name} is the venue's name (plain text).
-  ///
-  /// In en, this message translates to:
-  /// **'Deleted \"{name}\"'**
-  String venueManagerDeletedSnack(String name);
 
   /// Snackbar shown when a venue can't be deleted because a program still links to it; {name} is the venue's name (plain text).
   ///

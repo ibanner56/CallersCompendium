@@ -636,6 +636,9 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
             child: Text(l10n.commonCancel),
           ),
           FilledButton(
+            style: destructiveFilledButtonStyle(
+              Theme.of(dialogContext).colorScheme,
+            ),
             key: const ValueKey('dialect-discouraged-reset-confirm'),
             onPressed: () => Navigator.of(dialogContext).pop(true),
             child: Text(l10n.dialectEditorRestoreDefaults),

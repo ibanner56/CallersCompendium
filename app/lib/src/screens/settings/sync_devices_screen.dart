@@ -204,6 +204,9 @@ class _SyncDevicesScreenState extends State<SyncDevicesScreen> {
             ),
           ),
           FilledButton(
+            style: destructiveFilledButtonStyle(
+              Theme.of(dialogContext).colorScheme,
+            ),
             key: const ValueKey('sync-device-remove-confirm'),
             onPressed: () => Navigator.of(dialogContext).pop(true),
             child: Text(l10n.settingsSyncDeviceRemoveAction),
