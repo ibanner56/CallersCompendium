@@ -1,3 +1,5 @@
+import 'dart:async';
+
 // Part of the Settings screen, split by section (Stage-7 item 7.2).
 import 'package:flutter/material.dart';
 
@@ -477,12 +479,23 @@ class _CustomThemesSection extends StatelessWidget {
     final wasActive = controller.activeId == removed.id;
     // Choosing a built-in theme also leaves no custom theme active, so the
     // controller alone cannot tell it from no choice: Undo makes the theme
-    // active again only while the built-in selection is what it was here.
+    // active again only if the built-in selection has not changed since,
+    // even if it has changed back. The listener goes when the prompt closes.
     final selection = AppThemeScope.notifierOf(context);
-    final selectionAtDelete = selection.value;
-    await controller.delete(removed.id);
-    if (messenger == null) return;
-    showUndoSnackBar(
+    var chosenSince = false;
+    void onChosen() => chosenSince = true;
+    selection.addListener(onChosen);
+    try {
+      await controller.delete(removed.id);
+    } catch (_) {
+      selection.removeListener(onChosen);
+      rethrow;
+    }
+    if (messenger == null) {
+      selection.removeListener(onChosen);
+      return;
+    }
+    final prompt = showUndoSnackBar(
       messenger,
       actionKey: const ValueKey('custom-theme-delete-undo'),
       message: l10n.commonDeletedSnack(removed.name),
@@ -492,9 +505,10 @@ class _CustomThemesSection extends StatelessWidget {
       onUndo: () => controller.restoreDeleted(
         removed,
         index: index,
-        wasActive: wasActive && selection.value == selectionAtDelete,
+        wasActive: wasActive && !chosenSince,
       ),
     );
+    unawaited(prompt.closed.then((_) => selection.removeListener(onChosen)));
   }
 
   @override

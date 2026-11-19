@@ -15,7 +15,8 @@
   },
   "core": {
     "added": [
-      "Classify the `undo_prompt_seconds` setting (how long the Undo prompt stays on screen) as a shareable app-user preference."
+      "Classify the `undo_prompt_seconds` setting (how long the Undo prompt stays on screen) as a shareable app-user preference.",
+      "`CustomFieldDefRepository.restore` takes `onlyIfDeleted`, which refuses, in the same transaction, to revive a definition that is missing or already live."
     ]
   }
 }

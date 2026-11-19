@@ -1358,20 +1358,25 @@ void main() {
       await ctx.customThemes.setActive(created.id);
       await tester.pumpAndSettle();
 
+      final before = ctx.themeNotifier.value;
       await chooseDelete(tester, created.id);
       expect(ctx.customThemes.activeId, isNull);
-      // A built-in theme chosen while the Undo prompt is up (what the
-      // gallery does: selection, then no custom theme active).
-      ctx.themeNotifier.value = AppThemeSelection.highContrast;
-      await ctx.customThemes.setActive(null);
-      await tester.pumpAndSettle();
+      // While the Undo prompt is up, the user picks High contrast in the
+      // gallery and then goes back to the theme they had: a choice all the
+      // same, though the selection ends where it started.
+      for (final pick in [AppThemeSelection.highContrast, before]) {
+        final card = find.byKey(ValueKey('theme-${pick.name}'));
+        await revealInAppearance(tester, card);
+        await tester.tap(card);
+        await tester.pumpAndSettle();
+      }
+      expect(ctx.themeNotifier.value, before);
 
       await tester.tap(find.byKey(const ValueKey('custom-theme-delete-undo')));
       await tester.pumpAndSettle();
 
       expect(ctx.customThemes.byId(created.id), isNotNull);
       expect(ctx.customThemes.activeId, isNull);
-      expect(ctx.themeNotifier.value, AppThemeSelection.highContrast);
     });
 
     testWidgets('Undo makes a deleted active theme active again', (

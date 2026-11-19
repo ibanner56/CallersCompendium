@@ -873,4 +873,45 @@ void _liveKeyCollisionOnCreate() {
       );
     },
   );
+
+  group('restore(onlyIfDeleted: true)', () {
+    final t0 = DateTime.utc(2026, 1, 1);
+    CustomFieldDef def(String id, String label) => CustomFieldDef(
+      id: id,
+      key: 'notes',
+      label: label,
+      type: CustomFieldType.text,
+    );
+
+    test('revives a tombstoned definition', () async {
+      await repo.upsert(def('f1', 'Notes'));
+      await repo.delete('f1', at: t0);
+
+      await repo.restore('f1', at: t0, onlyIfDeleted: true);
+
+      expect((await repo.getById('f1'))?.label, 'Notes');
+    });
+
+    test('refuses a row a new definition has adopted', () async {
+      await repo.upsert(def('f1', 'Notes'));
+      await repo.delete('f1', at: t0);
+      // Same key: the new definition adopts the tombstoned row.
+      await repo.upsert(def('f2', 'Remarks'));
+      final live = await repo.listAll();
+      expect([for (final d in live) d.label], ['Remarks']);
+
+      await expectLater(
+        repo.restore(live.single.id, at: t0, onlyIfDeleted: true),
+        throwsStateError,
+      );
+      expect([for (final d in await repo.listAll()) d.label], ['Remarks']);
+    });
+
+    test('refuses a definition that does not exist', () async {
+      await expectLater(
+        repo.restore('missing', at: t0, onlyIfDeleted: true),
+        throwsStateError,
+      );
+    });
+  });
 }
