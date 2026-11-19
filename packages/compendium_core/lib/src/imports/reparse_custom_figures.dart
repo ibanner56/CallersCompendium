@@ -1,7 +1,9 @@
+import '../model/enums.dart';
 import '../model/figure.dart';
 import '../storage/figure_reparse.dart';
 import '../taxonomy/taxonomy.dart';
 import 'beat_implied_balance.dart';
+import 'ecd_figure_parser.dart';
 import 'figure_front_end_fan_out.dart';
 import 'free_text_entry.dart';
 import '../taxonomy/user_figure_use.dart';
@@ -172,6 +174,22 @@ Figure? _tryUpgrade(Figure figure, Taxonomy? taxonomy) {
   final line = splitForReparse(text, beats);
   if (line == null) return null;
 
+  // An English dance's line is read by the ECD grammar, never into a contra
+  // move (ADR-006 §5.1, W6). It does not see the dance's formation, so a
+  // ring's fraction ("circle half way") stays a note rather than a guessed
+  // count of places.
+  if (taxonomy?.form == DanceForm.ecd) {
+    final read = parseEcdFigureLine(
+      line.text,
+      beats: line.beats,
+      progression: figure.progression,
+    );
+    if (read == null || read.isCustom) return null;
+    return read.copyWith(
+      note: _mergeNotes(figure.note, read.note),
+      walkthroughOverride: figure.walkthroughOverride,
+    );
+  }
   final parsed = parseFigureLineFanOut(
     line.text,
     beats: line.beats,

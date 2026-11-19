@@ -1,12 +1,15 @@
 import '../dialect/canonicalize.dart';
 import '../dialect/dialect.dart';
 import '../dialect/renderer.dart' show FigureRenderer;
+import '../model/enums.dart';
 import '../model/figure.dart';
+import '../model/formation.dart';
 import '../taxonomy/contra_taxonomy.dart';
 import '../taxonomy/taxonomy.dart';
 import '../validation/validation.dart';
 import 'beat_implied_balance.dart';
 import 'callersbox_figure_dialect.dart' show hasTopLevelSeparator;
+import 'ecd_figure_parser.dart';
 import 'contradb_figure_dialect.dart'
     show
         readDisplayedCourtesyTurnWithWhom,
@@ -397,7 +400,9 @@ List<Figure> parseFreeTextFigureEntry(
   Taxonomy? taxonomy,
   ShorthandMappings? shorthands,
   Dialect? dialect,
+  FormationShape? formationShape,
 }) {
+  final ring = ecdRingDancers(formationShape);
   final trimmed = input.trim();
   if (trimmed.isEmpty || trimmed.length > maxFreeTextEntryLength) {
     return const [];
@@ -414,10 +419,11 @@ List<Figure> parseFreeTextFigureEntry(
       shorthands,
       taxonomy,
       dialect,
+      ring,
     );
     if (withShorthands != null) return withShorthands;
   }
-  return _parseLine(trimmed, taxonomy, dialect);
+  return _parseLine(trimmed, taxonomy, dialect, ringDancers: ring);
 }
 
 /// Whether typing [token] as a free-text line already inserts a figure: the
@@ -453,6 +459,7 @@ List<Figure>? _expandShorthandClauses(
   ShorthandMappings shorthands,
   Taxonomy? taxonomy,
   Dialect? dialect,
+  int? ringDancers,
 ) {
   final clauses = splitShorthandClauses(line);
   if (clauses == null) return null;
@@ -477,7 +484,13 @@ List<Figure>? _expandShorthandClauses(
       result.addAll(expansion);
       continue;
     }
-    final parsed = _parseLine(clauses[i], taxonomy, dialect, clause: true);
+    final parsed = _parseLine(
+      clauses[i],
+      taxonomy,
+      dialect,
+      clause: true,
+      ringDancers: ringDancers,
+    );
     if (parsed.isEmpty || parsed.any((f) => f.isCustom)) return null;
     result.addAll(parsed);
   }
@@ -595,9 +608,10 @@ List<Figure> _parseLine(
   Taxonomy? taxonomy,
   Dialect? dialect, {
   bool clause = false,
+  int? ringDancers,
 }) {
   final split = _splitInlineBeats(trimmed);
-  final counted = _parseCountedClauses(trimmed, taxonomy, dialect);
+  final counted = _parseCountedClauses(trimmed, taxonomy, dialect, ringDancers);
   if (counted != null) {
     // A clause that does not structure keeps the line whole, as for any other
     // `;` line, with its text as typed and the line's own edge count (if any)
@@ -608,7 +622,13 @@ List<Figure> _parseLine(
   // number: it is kept whole as a custom.
   final result = split.hasStrayCount
       ? [_typedCustom(trimmed, split.beats)]
-      : _parseSplit(split, taxonomy: taxonomy, dialect: dialect);
+      : _parseSplit(
+          split,
+          taxonomy: taxonomy,
+          dialect: dialect,
+          ringDancers: ringDancers,
+          whole: trimmed,
+        );
   // A count that cannot be beats leaves the figure its default beats and rides
   // on it as a note; a line the parser did not read in full keeps the number in
   // its typed text instead (#1863).
@@ -632,6 +652,8 @@ List<Figure> _parseLine(
   // box the gnat with no count gets 8 beats, the balance and the box (#2121),
   // unless it is one clause of a longer line, which leaves a clause
   // beats-absent.
+  // Both read contra's moves, which an ECD line never holds.
+  if (_isEcd(taxonomy)) return result;
   final balanced = withBeatImpliedBalance(trimmed, result);
   return clause ? balanced : withBalancedBoxBeats(trimmed, balanced);
 }
@@ -657,6 +679,7 @@ List<Figure>? _parseCountedClauses(
   String line,
   Taxonomy? taxonomy,
   Dialect? dialect,
+  int? ringDancers,
 ) {
   if (hasTopLevelSeparator(line, '||')) return null;
   final clauses = splitShorthandClauses(line);
@@ -671,6 +694,7 @@ List<Figure>? _parseCountedClauses(
     _BeatSplit(splits.map((s) => s.text).join('; '), first.beats, first.forms),
     taxonomy: taxonomy,
     dialect: dialect,
+    ringDancers: ringDancers,
   );
   if (figures.isEmpty || figures.any((f) => f.isCustom)) return const [];
   final later = splits.skip(1);
@@ -747,7 +771,17 @@ List<Figure> _parseSplit(
   _BeatSplit split, {
   Taxonomy? taxonomy,
   Dialect? dialect,
+  int? ringDancers,
+  String? whole,
 }) {
+  if (_isEcd(taxonomy)) {
+    return _parseEcdSplit(
+      split,
+      dialect: dialect,
+      ringDancers: ringDancers,
+      whole: whole,
+    );
+  }
   // Fan OUT across the three source front-ends in precedence order
   // (ContraDB > CallersBox/TCB > CallersCompanion) and take the highest-
   // precedence attempt that structures the whole line to non-custom figure(s);
@@ -846,6 +880,80 @@ List<Figure> _parseSplit(
           .firstOrNull;
   return named == null ? raw : [named];
 }
+
+/// Whether [taxonomy] is the one an English Country Dance is read with
+/// (`shippedTaxonomies.forForm(DanceForm.ecd)`, or ECD's own).
+bool _isEcd(Taxonomy? taxonomy) => taxonomy?.form == DanceForm.ecd;
+
+/// A line of an English Country Dance, read by the ECD grammar
+/// ([recognizeEcdLine], ADR-006 W6) instead of the contra front-ends, so it
+/// never becomes a contra move: an unprefixed move in an ECD dance means one
+/// stored before the ECD taxonomy existed (ADR-006 §5.1).
+///
+/// The same order as a contra line: the line as typed, then with the
+/// [dialect]'s role words read, then with the built-in discouraged role terms
+/// read by their meaning. A `;` line is read clause by clause, all or nothing.
+/// [whole] is the line before a leading count was peeled off: `2 changes of
+/// rights and lefts` and `2 hand turn` start with a number that is part of the
+/// figure, so the line is read whole first when its count was a bare leading
+/// number. A line no reading takes is one custom with its text as typed.
+List<Figure> _parseEcdSplit(
+  _BeatSplit split, {
+  Dialect? dialect,
+  int? ringDancers,
+  String? whole,
+}) {
+  List<Figure>? read(String text, int beats) {
+    final clauses = _splitClauses(text);
+    if (clauses.length > _maxShorthandClauses ||
+        clauses.any((c) => c.isEmpty)) {
+      return null;
+    }
+    final figures = <Figure>[];
+    for (var i = 0; i < clauses.length; i++) {
+      final figure = recognizeEcdLine(
+        scrubFigureText(clauses[i]),
+        // A `;` line's count is its first figure's, as for contra.
+        beats: i == 0 ? beats : 0,
+        ringDancers: ringDancers,
+      );
+      if (figure == null) return null;
+      figures.add(figure);
+    }
+    return figures;
+  }
+
+  List<Figure>? readEach(String text, int beats) {
+    for (final candidate in [
+      text,
+      if (dialect != null) canonicalizeText(text, dialect),
+      canonicalizeGlossaryText(text, dialect ?? Dialect.canonical),
+    ]) {
+      final figures = read(candidate, beats);
+      if (figures != null) return figures;
+    }
+    return null;
+  }
+
+  final leading = whole == null ? null : _bareLeadingCount.firstMatch(whole);
+  final leadingCount =
+      leading != null &&
+      split.beats > 0 &&
+      leading.group(2)!.trim() == split.text &&
+      int.tryParse(leading.group(1)!) == split.beats;
+  final figures =
+      (leadingCount ? readEach(whole!, 0) : null) ??
+      readEach(split.text, split.beats);
+  if (figures != null) return figures;
+  final text = scrubFigureText(split.text);
+  if (text.isEmpty) return const [];
+  return [
+    customFigure(text, beats: split.beats, origin: CustomOrigin.importGap),
+  ];
+}
+
+/// A line that starts with a bare number and a space: `2 changes of …`.
+final RegExp _bareLeadingCount = RegExp(r'^(\d+)\s+(.*)$');
 
 final RegExp _whitespaceRun = RegExp(r'\s+');
 

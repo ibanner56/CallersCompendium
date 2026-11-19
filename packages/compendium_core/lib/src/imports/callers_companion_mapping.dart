@@ -16,6 +16,8 @@ import 'author_tokenizer.dart';
 import 'beat_implied_balance.dart';
 import 'callers_companion_comma_split.dart';
 import 'callers_companion_user_fields.dart';
+import 'ecd_figure_parser.dart';
+import 'ecd_formation.dart';
 import 'figure_front_end_fan_out.dart';
 import 'figure_parser.dart';
 import 'figure_text_scrub.dart';
@@ -310,16 +312,27 @@ class CcFigureLineCache {
   final int maxEntries;
   final Map<String, List<Figure>> _figuresByLine = <String, List<Figure>>{};
 
-  /// How many distinct lines are remembered.
-  int get length => _figuresByLine.length;
+  /// An English dance's lines, kept apart: the same text reads differently
+  /// in an English dance (ADR-006 W6).
+  final Map<String, List<Figure>> _ecdFiguresByLine = <String, List<Figure>>{};
+
+  /// How many distinct lines are remembered, of either kind.
+  int get length => _figuresByLine.length + _ecdFiguresByLine.length;
 
   /// The figures [line] parsed to, or null if it has not been remembered.
-  List<Figure>? operator [](String line) => _figuresByLine[line];
+  /// [ecd] selects an English dance's lines.
+  List<Figure>? lookup(String line, {bool ecd = false}) =>
+      (ecd ? _ecdFiguresByLine : _figuresByLine)[line];
 
-  /// Remembers [figures] for [line] unless the cache is full.
-  void remember(String line, List<Figure> figures) {
-    if (_figuresByLine.length >= maxEntries) return;
-    _figuresByLine[line] = List<Figure>.unmodifiable(figures);
+  /// The figures [line] of a contra or square dance parsed to, or null.
+  List<Figure>? operator [](String line) => lookup(line);
+
+  /// Remembers [figures] for [line] unless the cache is full. [ecd] marks an
+  /// English dance's line.
+  void remember(String line, List<Figure> figures, {bool ecd = false}) {
+    if (length >= maxEntries) return;
+    (ecd ? _ecdFiguresByLine : _figuresByLine)[line] =
+        List<Figure>.unmodifiable(figures);
   }
 }
 
@@ -396,10 +409,14 @@ CcDanceMapping mapCallersCompanionDance(
   // Type → DanceForm, best-effort; unknown types are preserved as a note.
   final (form, typeNote) = _mapForm(record.type, issues, typeIsFormation: usr);
 
-  // Formation → FormationShape, preserving unmapped text as detail.
-  final formation = usr
+  // Formation → FormationShape, preserving unmapped text as detail. An
+  // English dance takes the ECD shape its contra shape names (ADR-006 W6).
+  final sourceFormation = usr
       ? _mapFormationColumns(record, issues)
       : _mapFormation(record.formation, issues);
+  final formation = form == DanceForm.ecd
+      ? ecdFormationFromContra(sourceFormation)
+      : sourceFormation;
   // A CC mixer is a Type ("Circle Mixer", "Scatter Mixer") or a square's
   // SubType ("Mixer, H H S S").
   final mixer = usr && _isCcMixer(record);
@@ -505,12 +522,26 @@ CcDanceMapping mapCallersCompanionDance(
     for (final rawLine in section.lines) {
       final line = rawLine.trim();
       if (line.isEmpty) continue;
-      final cached = lineCache?[line];
+      // An English line is read by the ECD grammar, never as a contra move
+      // (ADR-006 §5.1), so its cache entry is kept apart from contra's.
+      final ecd = form == DanceForm.ecd;
+      final cached = lineCache?.lookup(line, ecd: ecd);
       if (cached != null) {
         figures.addAll(cached);
         continue;
       }
       final prefix = splitCcBeatPrefix(line);
+      if (ecd) {
+        final read = _ecdLineFigures(
+          prefix.text,
+          prefix.beats,
+          prefix.parts,
+          ringDancers: ecdRingDancers(formation.shape),
+        );
+        lineCache?.remember(line, read, ecd: true);
+        figures.addAll(read);
+        continue;
+      }
       final first = parseFigureLinesFanOut(prefix.text, beats: prefix.beats);
       final produced =
           _retryHyphenatedHand(prefix.text, prefix.beats, first) ?? first;
@@ -877,6 +908,40 @@ bool callersCompanionDifficultyLabelMatches(
     }.contains(value),
     _ => false,
   };
+}
+
+/// The figures of one body line of an English dance, read by the ECD grammar
+/// ([parseEcdFigureLine]). A compound prefix (`(4,4)`) whose parts match the
+/// steps of the sequence the line reads keeps each part on its step, as
+/// [_allocateCompoundBeats] does for contra's split figures; otherwise the
+/// total is the figure's span. None of contra's other retries apply: they
+/// read contra's grammar.
+List<Figure> _ecdLineFigures(
+  String text,
+  int beats,
+  List<int> parts, {
+  int? ringDancers,
+}) {
+  final figure = parseEcdFigureLine(
+    text,
+    beats: beats,
+    ringDancers: ringDancers,
+  );
+  if (figure == null) return const [];
+  if (parts.length >= 2 &&
+      figure.isSequence &&
+      figure.subFigures.length == parts.length) {
+    final steps = [
+      for (var i = 0; i < parts.length; i++)
+        _withBeats(figure.subFigures[i], parts[i]),
+    ];
+    return [
+      figure.copyWith(
+        params: {...figure.params, 'figures': List<Figure>.unmodifiable(steps)},
+      ),
+    ];
+  }
+  return [figure];
 }
 
 (DanceForm, String?) _mapForm(
