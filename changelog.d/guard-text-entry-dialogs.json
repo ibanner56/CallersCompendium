@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "A stray tap outside, Esc or Back no longer throws away what you typed in the restore-backup dialog, the re-import link box, the keep-both name box in sync review, the batch add tags, add tunes and edit custom field dialogs, the add-an-option box for a choice field, or the colour editor. Each stays open while it holds your typing; its own Cancel still closes it.",
+      "A stray tap outside, Esc or Back no longer throws away what you typed in the restore-backup dialog, the re-import link box, the keep-both name box in sync review, the batch add tags, add tunes and edit custom field dialogs, or the colour editor. Each stays open while it holds your typing; its own Cancel still closes it.",
       "On the sync pairing screen, Back now asks Discard changes? once you have typed a phrase to connect with, changed the phrase offered for a new store, or changed the server address."
     ]
   }
