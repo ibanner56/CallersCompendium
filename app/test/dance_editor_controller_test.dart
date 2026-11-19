@@ -3110,7 +3110,7 @@ void main() {
       final controller = DanceEditorController(
         repositories: repos,
         danceId: 'd1',
-        dialect: Dialect.larksRobins,
+        dialects: DialectsByForm.all(Dialect.larksRobins),
       );
       await controller.load(
         dance: await repos.dances.getById('d1'),
