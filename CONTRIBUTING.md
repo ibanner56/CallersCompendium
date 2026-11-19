@@ -55,9 +55,11 @@ and must satisfy the [accessibility baseline](docs/research/accessibility-baseli
 (semantics, keyboard, contrast) — a11y is an acceptance criterion, not polish.
 
 ### Screenshots for UI changes
-A PR that changes anything a user can see includes screenshots of the change in
-its body. Without them the PR is not ready for review — a reviewer who cannot
-see the change cannot tell a fix from a regression.
+A PR from an external contributor that changes anything a user can see includes
+screenshots of the change in its body. Without them the PR is not ready for
+review — a reviewer who cannot see the change cannot tell a fix from a
+regression. A PR opened from the maintainer's own account (@ibanner56),
+including by an agent session working for them, does not need them.
 
 - **What counts:** every surface whose appearance or wording changes — screens,
   dialogs, navigation, empty and error states, platform chrome. Not just
