@@ -200,6 +200,21 @@ def main() -> int:
     res = ecd_scenario(1, 2)
     check("a bump over the banked v1 fails", res.returncode == 1 and "ecdTaxonomyVersion 1 -> 2" in res.stdout, f"exit={res.returncode} {res.stdout}")
 
+    # A constant absent at the tag AND unreadable at head: the message must name head.
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = Repo(Path(tmp))
+        repo.set_versions(5, 39, 1, ecd=None)
+        repo.commit("release")
+        repo.tag("v1.0.0")
+        repo.set_versions(5, 39, 1, ecd=1)
+        repo.commit("base")
+        (repo.root / ECD.source).write_text("// renamed\n", encoding="utf-8")
+        repo.commit("head")
+        print("renamed at head while absent at the tag:")
+        res = repo.run("HEAD~1", "HEAD")
+        check("exits 2", res.returncode == 2, f"exit={res.returncode} {res.stdout}")
+        check("blames head, not the tag", "at the head (HEAD)" in res.stdout and "at the tag" not in res.stdout, res.stdout)
+
     # ---- the gate must PASS ------------------------------------------------
 
     res = scenario("nothing moved", (5, 39, 1), (5, 39, 1), (5, 39, 1))

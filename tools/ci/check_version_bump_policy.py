@@ -105,12 +105,12 @@ def judge(
         # the unreleased vNext. A rename at head still reads as unreadable below.
         tag = 0
         tag_note = f"absent from {tag_ref}, so unreleased"
-    for what, ref, value in (("tag", tag_ref, tag), ("base", base_ref, base), ("head", head_ref, head)):
+    for what, ref, value in (("base", base_ref, base), ("head", head_ref, head), ("tag", tag_ref, tag)):
         if value is None:
             return UNANSWERABLE, (
                 f"{name}: could not read it at the {what} ({ref}); refusing to "
-                "call that a pass. If the constant or its file was added after "
-                "the release, no tag can answer until the next release."
+                "call that a pass. A constant that was renamed or whose file "
+                "moved must stay readable at base and head."
             )
     assert tag is not None and base is not None and head is not None  # for type checkers
     if base < tag:
