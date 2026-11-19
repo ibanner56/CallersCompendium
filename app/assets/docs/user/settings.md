@@ -656,7 +656,7 @@ never updates itself automatically, and no update is ever downloaded or installe
 without you choosing to.
 
 - **Check for updates** — check right now, any time. It shows the version you're
-  on and whether a newer one is available. If it can't check, for example because
+  on (including a beta suffix, if yours has one) and whether a newer one is available. If it can't check, for example because
   you're offline, it says so in the same line rather than reporting that nothing
   was found; it never interrupts you with an error dialog. If the update service
   has a release in a form this version can't read, the line says a newer version
@@ -1621,11 +1621,11 @@ fails, your data is unchanged but the device has already left the store. Your ot
 
 The **About** section tells you what you're running and where it comes from.
 
-- App name, **Version**, and the app's tagline.
+- App name, **Version** (shown once, including a beta suffix when you have a beta build), and the app's tagline, "Your caller's box, in the palm of your hand".
 - A **User guide** link that opens the built-in offline guides — the same pages
   you're reading now. The guide is written in English only; when the app is set
   to another language, each guide page starts with a one-line notice saying so.
-- License info: the app is free software under **AGPL-3.0**, with **View source on
+- License info: the app is free software under **AGPL-3.0-only**, with **View source on
   GitHub**.
 - Bundled-font credits — Fraunces, Atkinson Hyperlegible, and Roboto, under the
   SIL Open Font License.

@@ -1668,9 +1668,9 @@
   "@settingsAboutLicenseHeader": {
     "x-sourceSha256": "c011d6097bfbc8e936280addcf2e3e7d06ea2223ffd596973191b800a7035c32"
   },
-  "settingsAboutLicenseBody": "Caller's Compendium is vrije software, uitgebracht onder de GNU Affero General Public License, versie 3 (AGPL-3.0). Je mag het gebruiken, bestuderen, delen en aanpassen onder die licentie. Omdat de AGPL dit vereist, wordt de volledige bijbehorende broncode aangeboden aan iedereen die de app gebruikt.",
+  "settingsAboutLicenseBody": "Caller's Compendium is vrije software, uitgebracht onder de GNU Affero General Public License, versie 3 (AGPL-3.0-only). Je mag het gebruiken, bestuderen, delen en aanpassen onder die licentie. Omdat de AGPL dit vereist, wordt de volledige bijbehorende broncode aangeboden aan iedereen die de app gebruikt.",
   "@settingsAboutLicenseBody": {
-    "x-sourceSha256": "7a39f225c21d8d53d985307708e02af9822329f77ab552941fa88ca412e49d5c"
+    "x-sourceSha256": "9fa6164da3b1321e88eef455f315af0b68837a3956b0fb7372dc8425399f0317"
   },
   "settingsAboutViewSourceTitle": "Broncode bekijken op GitHub",
   "@settingsAboutViewSourceTitle": {
@@ -1724,17 +1724,21 @@
   "@settingsAboutViewLicensesSubtitle": {
     "x-sourceSha256": "b51ca014dd24ebee0e49542abb6668cea7a4d4172f685b08cd2466c5c535f59a"
   },
-  "settingsAboutLegalese": "© De bijdragers van Caller's Compendium. Uitgebracht onder AGPL-3.0.",
+  "settingsAboutLegalese": "© De bijdragers van Caller's Compendium. Uitgebracht onder AGPL-3.0-only.",
   "@settingsAboutLegalese": {
-    "x-sourceSha256": "2ec5028215de5e8ca6715ed9932a7d7216128ae74290866e3c75cd90f4f82d53"
+    "x-sourceSha256": "e39c48759865f84cd54c945f5d5dbafde5ef2374714556eb8fd8e4255bf2f01b"
+  },
+  "settingsAboutTagline": "De caller-koffer in de palm van je hand",
+  "@settingsAboutTagline": {
+    "x-sourceSha256": "ab464ac61f0cd45dd2c18f6dcb875ebe5f59de7fd7fbafccdcf9874dc2c4af54"
   },
   "settingsAboutVersion": "Versie {version}, “{codename}”",
   "@settingsAboutVersion": {
     "x-sourceSha256": "d7f0eb30563030d3528997697d6a1e1a7b90be868efb52da1a13b7d1ee7f299a"
   },
-  "settingsAboutVersionLine": "{appName} · Versie {version}, “{codename}” · {license}",
+  "settingsAboutVersionLine": "{appName} · “{codename}” · {license}",
   "@settingsAboutVersionLine": {
-    "x-sourceSha256": "07bec657a3205ab861607172d0d2a1c6b0b861e18a596d00dec835e9cd2511fd"
+    "x-sourceSha256": "060fed61c59a6d71fac50dbd4c83e2af6c684fbc164a2f1ae44638bc1a3d6018"
   },
   "settingsUpdatesHeader": "Updates",
   "@settingsUpdatesHeader": {
