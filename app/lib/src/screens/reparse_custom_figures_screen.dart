@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
+import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
 
 /// Signature for loading the re-parse preview; defaults to
@@ -126,6 +127,7 @@ class _ReparseCustomFiguresScreenState
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (confirmed != true) return;
 

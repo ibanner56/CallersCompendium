@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../theme/app_motion.dart';
 import 'dirty_dialog_guard.dart';
 
 /// A modal dialog for editing a [PublishedSource]'s shared bibliographic
@@ -30,6 +31,7 @@ class PublishedSourceDetailsDialog extends StatefulWidget {
   ) => showDialog<PublishedSource>(
     context: context,
     builder: (_) => PublishedSourceDetailsDialog(source: source),
+    animationStyle: AppMotion.styleFor(context),
   );
 
   @override

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../sync/sync_scope.dart';
+import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
 import '../widgets/confirm_discard_changes.dart';
 import '../widgets/notice_card.dart';
@@ -52,6 +53,7 @@ class VenueEditorSheet extends StatefulWidget {
       // unsaved changes; see the class comment.
       enableDrag: false,
       builder: (_) => VenueEditorSheet(initial: initial, seedName: seedName),
+      sheetAnimationStyle: AppMotion.styleFor(context),
     );
   }
 

@@ -14,6 +14,7 @@ import '../../sync/sync_coordinator.dart' show SyncPassStatus;
 import '../../sync/sync_failure.dart';
 import '../../sync/sync_http_client.dart';
 import '../../sync/sync_scope.dart';
+import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/notice_card.dart';
 import 'sync_failure_labels.dart';
@@ -345,6 +346,7 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
   }
 

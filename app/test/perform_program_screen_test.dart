@@ -1,7 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart' show SemanticsNode;
+import 'package:flutter/rendering.dart' show RenderParagraph, SemanticsNode;
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -2305,6 +2305,103 @@ void main() {
     );
   });
 
+  // The footer used to show two bare "0:04" readouts, and the
+  // program title truncated to "Glen Echo Fr…" on a 390 pt phone.
+  testWidgets('the footer labels which clock is the program and which the '
+      'slot, and the program title wraps instead of truncating', (
+    tester,
+  ) async {
+    final data = await _dataWith([_dance(id: 'd1', title: 'First Dance')]);
+    await _pumpProgram(
+      tester,
+      program: _program([
+        _slot(id: 's1', position: 0, danceId: 'd1'),
+      ], title: 'Glen Echo Friday'),
+      data: data,
+      surfaceSize: const Size(390, 844),
+    );
+
+    expect(tester.takeException(), isNull);
+    expect(_textOf(tester, 'perform-clock-label'), 'Program');
+    expect(_textOf(tester, 'perform-slot-elapsed-label'), 'Slot');
+    // Each label sits just before its own clock.
+    final programLabel = tester.getRect(
+      find.byKey(const ValueKey('perform-clock-label')),
+    );
+    final programClock = tester.getRect(
+      find.byKey(const ValueKey('perform-clock')),
+    );
+    final slotLabel = tester.getRect(
+      find.byKey(const ValueKey('perform-slot-elapsed-label')),
+    );
+    final slotClock = tester.getRect(
+      find.byKey(const ValueKey('perform-slot-elapsed')),
+    );
+    expect(programLabel.right, lessThanOrEqualTo(programClock.left));
+    expect(programClock.right, lessThanOrEqualTo(slotLabel.left));
+    expect(slotLabel.right, lessThanOrEqualTo(slotClock.left));
+
+    final title = tester.renderObject<RenderParagraph>(
+      find.descendant(
+        of: find.byKey(const ValueKey('perform-program-title')),
+        matching: find.byType(RichText),
+      ),
+    );
+    expect(
+      title.didExceedMaxLines,
+      isFalse,
+      reason: 'the whole title is shown, over two lines if need be',
+    );
+    // At this width the title needs both lines: it wrapped, rather than
+    // ellipsizing on one.
+    expect(title.size.height, greaterThan(title.text.style!.fontSize! * 1.5));
+    // The toolbar is tall enough for both lines.
+    final appBar = tester.getRect(find.byType(AppBar));
+    final titleRect = tester.getRect(
+      find.byKey(const ValueKey('perform-program-title')),
+    );
+    expect(appBar.top, lessThanOrEqualTo(titleRect.top));
+    expect(appBar.bottom, greaterThanOrEqualTo(titleRect.bottom));
+  });
+
+  testWidgets('a long timing line on a narrow phone does not shrink the '
+      'slot position above it', (tester) async {
+    final data = await _dataWith([_dance(id: 'd1', title: 'First Dance')]);
+    await _pumpProgram(
+      tester,
+      program: _program([
+        _slot(
+          id: 's1',
+          position: 0,
+          danceId: 'd1',
+          // Planned minutes lengthen the timing line; a zero walkthrough
+          // keeps the dance-start button out, so the position has the whole
+          // centre of the bar to itself.
+          walkthroughMinutes: 0,
+          danceMinutes: 8,
+        ),
+      ]),
+      data: data,
+      surfaceSize: const Size(360, 800),
+    );
+
+    expect(tester.takeException(), isNull);
+    expect(find.byKey(const ValueKey('perform-planned')), findsOneWidget);
+    final position = find.byKey(const ValueKey('perform-position'));
+    // Laid-out height against on-screen height: equal means no FittedBox
+    // scaled the position down to make room for the timing line.
+    expect(
+      tester.getRect(position).height,
+      closeTo(tester.getSize(position).height, 0.01),
+    );
+    // The timing line itself is the one that gives way.
+    final clock = find.byKey(const ValueKey('perform-clock'));
+    expect(
+      tester.getRect(clock).height,
+      lessThan(tester.getSize(clock).height),
+    );
+  });
+
   group('Perform bottom bar and Undo (CS-36)', () {
     Future<List<Program>> pumpPushed(
       WidgetTester tester, {
@@ -2529,13 +2626,18 @@ void main() {
 
           expect(tester.takeException(), isNull);
           final bar = tester.getRect(find.byType(BottomAppBar));
-          // The bar itself grows with the system text size (A11Y-01), up to a
-          // 200 px cap, rather than leaning on the FittedBox below to shrink
-          // the position/timing lines into the fixed 80 px. At these scales
+          // The bar itself grows with the system text size (A11Y-01) rather
+          // than leaning on the FittedBox below to shrink the position/timing
+          // lines into the fixed 80 px — but only up to the chrome cap
+          // (kPerformChromeMaxTextScale), so at 3× it stays
+          // at the 2× height instead of squeezing the card. At these scales
           // the lines are shrunk to fit the bar's *width* either way, so the
           // containment checks below pass with a fixed-height bar; the height
-          // is what pins the fix.
-          expect(bar.height, (80 * scale).clamp(80.0, 200.0));
+          // is what pins both behaviours.
+          final capped = scale < kPerformChromeMaxTextScale
+              ? scale
+              : kPerformChromeMaxTextScale;
+          expect(bar.height, 80 * capped);
           final clock = tester.getRect(
             find.byKey(const ValueKey('perform-clock')),
           );

@@ -9,9 +9,10 @@ import 'regional_formats.dart';
 /// the setting changes. Use [FirstDayOfWeekScope.notifierOf] when you need to
 /// *change* it (e.g. from the Settings screen).
 ///
-/// NOTE: this preference only affects date surfaces the app draws itself;
-/// Flutter's [showDatePicker] derives its first day of week from the locale and
-/// can't be overridden per-call. See `docs/dev/localization.md`.
+/// NOTE: this preference only affects date surfaces the app draws itself. The
+/// date picker ([showAppDatePicker], Flutter's `DatePickerDialog`) takes its
+/// first day of week from the locale, and the app does not override it. See
+/// `docs/dev/localization.md`.
 class FirstDayOfWeekScope
     extends InheritedNotifier<ValueNotifier<FirstDayOfWeekPref>> {
   const FirstDayOfWeekScope({

@@ -1530,7 +1530,11 @@ class _StatusBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: color),
+          Icon(
+            icon,
+            size: 18,
+            color: AppThemeExtension.statusIconColor(color, theme.colorScheme),
+          ),
           const SizedBox(width: AppSpacing.xs),
           Flexible(
             child: Text(

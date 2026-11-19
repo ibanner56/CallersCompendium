@@ -42,12 +42,14 @@ import '../export/share_sanitization.dart';
 import '../search/collection_data.dart';
 import '../search/dance_detail_data.dart';
 import '../search/facet_labels.dart' show formationDisplayLabel;
+import '../theme/app_motion.dart';
 import '../theme/app_shapes.dart';
 import '../theme/app_spacing.dart';
 import '../theme/keyboard_dismiss.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/safe_name.dart';
 import '../utils/undo_snack_bar.dart';
+import '../widgets/app_date_picker.dart';
 import '../widgets/app_shortcuts.dart';
 import '../widgets/collection_picker.dart';
 import '../widgets/confirm_discard_changes.dart';
@@ -471,6 +473,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           ),
         ),
       ),
+      sheetAnimationStyle: AppMotion.styleFor(context),
     );
   }
 
@@ -515,6 +518,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           ),
         ),
       ),
+      sheetAnimationStyle: AppMotion.styleFor(context),
     );
   }
 
@@ -1564,6 +1568,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           ),
         ],
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
     final key = _pendingDraftKey;
     _pendingDraftKey = null;
@@ -2619,6 +2624,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final text = await showDialog<String>(
       context: context,
       builder: (_) => const _FreeTextSlotDialog(),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (text == null || text.isEmpty || !mounted) return;
     setState(() {
@@ -4270,6 +4276,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             ),
           );
         },
+        sheetAnimationStyle: AppMotion.styleFor(context),
       );
     } finally {
       importingDisposed = true;
@@ -4386,6 +4393,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             ),
           );
         },
+        sheetAnimationStyle: AppMotion.styleFor(context),
       );
       return result ?? selectedDanceId;
     } finally {
@@ -4841,12 +4849,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         : DateTime(stored.year, stored.month, stored.day);
     // The date picker follows the platform locale's first day of week; a
     // configurable first-day-of-week preference is a future item (ROADMAP G.8).
-    final picked = await showDatePicker(
+    final picked = await showAppDatePicker(
       context: context,
       initialDate: initial,
       firstDate: DateTime(now.year - 10),
       lastDate: DateTime(now.year + 10),
-      builder: uncappedDialogBuilder,
     );
     if (picked != null) {
       setState(() {

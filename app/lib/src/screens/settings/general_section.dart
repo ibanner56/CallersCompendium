@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart' show ValueListenable, kDebugMode;
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../theme/app_motion.dart';
 import '../../theme/destructive_button_style.dart';
 import 'settings_keys.dart';
 import '../../data/sync_writer_lifecycle_scope.dart';
@@ -286,6 +287,7 @@ class _GeneralSectionState extends State<GeneralSection> {
           idleLabel: idleLabel,
           progressLabel: progressLabel,
         ),
+        animationStyle: AppMotion.styleFor(context),
       ),
     );
     var closed = false;
@@ -320,6 +322,7 @@ class _GeneralSectionState extends State<GeneralSection> {
       final choice = await showDialog<_RestoreChoice>(
         context: context,
         builder: (_) => _RestoreBackupDialog(picker: picker),
+        animationStyle: AppMotion.styleFor(context),
       );
       if (choice == null || choice.json.trim().isEmpty || !mounted) return;
 

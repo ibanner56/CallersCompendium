@@ -16,6 +16,7 @@ import '../../data/verbose_figure_rendering_scope.dart';
 import '../../glossary/custom_figures.dart';
 import '../../glossary/figure_titles.dart';
 import '../../search/facet_labels.dart';
+import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/dirty_dialog_guard.dart';
 import '../../widgets/sync_now_action.dart';
@@ -759,6 +760,7 @@ class _FigureNotesSectionState extends State<FigureNotesSection> {
           }
         },
       ),
+      animationStyle: AppMotion.styleFor(context),
     );
   }
 

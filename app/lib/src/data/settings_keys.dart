@@ -74,6 +74,17 @@ const bool kAutoSizePerformDefault = true;
 /// dance in Perform" preference. Stored as a bool; absent/unset means on.
 const String kShowIndividualPerformTimerKey = 'show_individual_perform_timer';
 
+/// Key used to persist the default-on "confirm before leaving Perform"
+/// preference. Stored as a bool; absent/unset or a non-bool
+/// means on ([kConfirmPerformExitDefault]), so the close control and system
+/// back ask before dropping the caller out of the stage view. Turning it off
+/// makes them leave Perform at once — nothing is lost by leaving, since program
+/// Perform keeps its place and clock either way.
+const String kConfirmPerformExitKey = 'confirm_perform_exit';
+
+/// The value [kConfirmPerformExitKey] takes when unset or not a bool.
+const bool kConfirmPerformExitDefault = true;
+
 /// Key used to persist the default-on "show per-slot caller notes in program
 /// Perform" preference.
 const String kShowProgramSlotCallerNotesKey = 'show_program_slot_caller_notes';

@@ -436,6 +436,54 @@ void main() {
   );
 
   testWidgets(
+    'confirm-before-leaving-Perform toggle defaults on, is accessible, and '
+    'persists',
+    (tester) async {
+      final handle = tester.ensureSemantics();
+      final repos = openTestRepositories();
+
+      await _pumpProgram(tester, repos);
+
+      final toggle = find.byKey(
+        const ValueKey('settings-confirm-perform-exit'),
+      );
+
+      expect(tester.widget<SwitchListTile>(toggle).value, isTrue);
+      expect(find.text('Confirm before leaving Perform'), findsOneWidget);
+      expect(
+        tester.getSemantics(
+          find.descendant(of: toggle, matching: find.byType(Switch)),
+        ),
+        isSemantics(
+          hasToggledState: true,
+          isToggled: true,
+          hasTapAction: true,
+          isEnabled: true,
+        ),
+      );
+
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+      expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
+      expect(await repos.settings.get(kConfirmPerformExitKey), isFalse);
+
+      handle.dispose();
+    },
+  );
+
+  testWidgets('confirm-before-leaving-Perform toggle shows a stored off', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.settings.set(kConfirmPerformExitKey, false);
+
+    await _pumpProgram(tester, repos);
+
+    final toggle = find.byKey(const ValueKey('settings-confirm-perform-exit'));
+    expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
+  });
+
+  testWidgets(
     'program caller notes toggle defaults on, is accessible, and persists',
     (tester) async {
       final handle = tester.ensureSemantics();

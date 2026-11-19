@@ -26,6 +26,7 @@ import '../../search/collection_data.dart';
 import '../../search/facet_labels.dart';
 import '../../search/program_sort.dart';
 import '../../search/program_sort_labels.dart';
+import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/keyboard_dismiss.dart';
 import '../../utils/undo_snack_bar.dart';
@@ -630,6 +631,7 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           ],
         ),
       ),
+      sheetAnimationStyle: AppMotion.styleFor(context),
     );
   }
 
@@ -1359,6 +1361,7 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
     final label = await showDialog<String>(
       context: context,
       builder: (context) => const _AddLevelDialog(),
+      animationStyle: AppMotion.styleFor(context),
     );
     final normalized = label?.trim() ?? '';
     if (!mounted || normalized.isEmpty) return;
@@ -2904,6 +2907,7 @@ class _MoveDefaultsEditor extends StatelessWidget {
           ],
         );
       },
+      animationStyle: AppMotion.styleFor(context),
     );
   }
 }

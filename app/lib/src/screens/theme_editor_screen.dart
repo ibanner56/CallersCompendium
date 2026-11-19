@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/app_theme_labels_l10n.dart';
 import '../data/custom_theme.dart';
+import '../theme/app_motion.dart';
 import '../theme/wcag.dart';
 import '../widgets/color_edit_dialog.dart';
 import '../widgets/notice_card.dart';
@@ -65,6 +66,7 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
       context: context,
       builder: (_) =>
           ColorEditDialog(title: title, initial: _colorOf(role.key)),
+      animationStyle: AppMotion.styleFor(context),
     );
     if (picked != null) {
       setState(() => _setTheme(_theme.withColor(role.key, picked)));

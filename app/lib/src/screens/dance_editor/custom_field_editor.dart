@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/lingo_text_editing_controller.dart';
 import 'choice_option.dart' show AddChoiceResult;
@@ -169,6 +170,7 @@ Future<void> showAddChoiceOptionDialog(
   context: context,
   builder: (dialogContext) =>
       _AddChoiceOptionDialog(label: label, onAddOption: onAddOption),
+  animationStyle: AppMotion.styleFor(context),
 );
 
 /// Modal for adding a new option to a `choice` custom field from the dance

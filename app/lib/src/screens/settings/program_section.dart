@@ -30,8 +30,9 @@ import '../venue_manager_screen.dart';
 
 /// The Program settings section: preferences that shape how programs are built,
 /// checked, and performed — the reusable-venues toggle plus the venue manager,
-/// the programming-matrix collision mode, the Perform auto-size toggle, and the
-/// calling-history rules. Owns the auto-size lazy read and its load-race guard.
+/// the programming-matrix collision mode, the Perform toggles (auto-size,
+/// timer, caller notes, exit confirmation), and the calling-history rules.
+/// Owns the auto-size lazy read and its load-race guard.
 ///
 /// This is the home later phases attach the matrix column editor to (issue
 /// #935). Every moved toggle keeps its original widget key and semantics — only
@@ -52,6 +53,9 @@ class _ProgramSectionState extends State<ProgramSection> {
   bool? _showIndividualPerformTimer;
   bool _showIndividualPerformTimerRequested = false;
   bool _showIndividualPerformTimerUserSet = false;
+  bool? _confirmPerformExit;
+  bool _confirmPerformExitRequested = false;
+  bool _confirmPerformExitUserSet = false;
   bool? _showProgramSlotCallerNotes;
   bool _showProgramSlotCallerNotesRequested = false;
   bool _showProgramSlotCallerNotesUserSet = false;
@@ -116,6 +120,38 @@ class _ProgramSectionState extends State<ProgramSection> {
     });
     final repos = RepositoriesScope.of(context);
     await persistSetting(repos.settings, kShowIndividualPerformTimerKey, value);
+  }
+
+  /// "Confirm before leaving Perform": read lazily like
+  /// the toggles above; a late read never overwrites the user's own flip.
+  void _ensureConfirmPerformExitLoaded(BuildContext context) {
+    if (_confirmPerformExitRequested) return;
+    _confirmPerformExitRequested = true;
+    final repos = RepositoriesScope.of(context);
+    repos.settings
+        .get(kConfirmPerformExitKey)
+        .then((value) {
+          if (!mounted || _confirmPerformExitUserSet) return;
+          setState(
+            () => _confirmPerformExit = value is bool
+                ? value
+                : kConfirmPerformExitDefault,
+          );
+        })
+        .catchError((_) {
+          // diagnostics: silent — use the default-on setting behavior.
+          if (!mounted || _confirmPerformExitUserSet) return;
+          setState(() => _confirmPerformExit = kConfirmPerformExitDefault);
+        });
+  }
+
+  Future<void> _onConfirmPerformExitChanged(bool value) async {
+    setState(() {
+      _confirmPerformExitUserSet = true;
+      _confirmPerformExit = value;
+    });
+    final repos = RepositoriesScope.of(context);
+    await persistSetting(repos.settings, kConfirmPerformExitKey, value);
   }
 
   void _ensureProgramSlotCallerNotesLoaded(BuildContext context) {
@@ -310,6 +346,7 @@ class _ProgramSectionState extends State<ProgramSection> {
   Widget build(BuildContext context) {
     _ensureAutoSizeLoaded(context);
     _ensureIndividualTimerLoaded(context);
+    _ensureConfirmPerformExitLoaded(context);
     _ensureProgramSlotCallerNotesLoaded(context);
     final setListShare = SetListShareOptions.of(context);
     return _ProgramView(
@@ -327,6 +364,8 @@ class _ProgramSectionState extends State<ProgramSection> {
       onAutoSizeChanged: _onAutoSizeChanged,
       showIndividualPerformTimer: _showIndividualPerformTimer ?? true,
       onShowIndividualPerformTimerChanged: _onIndividualTimerChanged,
+      confirmPerformExit: _confirmPerformExit ?? kConfirmPerformExitDefault,
+      onConfirmPerformExitChanged: _onConfirmPerformExitChanged,
       showProgramSlotCallerNotes: _showProgramSlotCallerNotes ?? true,
       onShowProgramSlotCallerNotesChanged: _onProgramSlotCallerNotesChanged,
       autoCommitProgramChanges: ProgramAutoCommitScope.of(context),
@@ -372,6 +411,8 @@ class _ProgramView extends StatelessWidget {
     required this.onAutoSizeChanged,
     required this.showIndividualPerformTimer,
     required this.onShowIndividualPerformTimerChanged,
+    required this.confirmPerformExit,
+    required this.onConfirmPerformExitChanged,
     required this.showProgramSlotCallerNotes,
     required this.onShowProgramSlotCallerNotesChanged,
     required this.autoCommitProgramChanges,
@@ -420,6 +461,10 @@ class _ProgramView extends StatelessWidget {
   final ValueChanged<bool> onAutoSizeChanged;
   final bool showIndividualPerformTimer;
   final ValueChanged<bool> onShowIndividualPerformTimerChanged;
+
+  /// Whether leaving Perform asks first. On by default.
+  final bool confirmPerformExit;
+  final ValueChanged<bool> onConfirmPerformExitChanged;
   final bool showProgramSlotCallerNotes;
   final ValueChanged<bool> onShowProgramSlotCallerNotesChanged;
   final bool autoCommitProgramChanges;
@@ -544,6 +589,13 @@ class _ProgramView extends StatelessWidget {
           subtitle: Text(l10n.settingsShowProgramSlotCallerNotesSubtitle),
           value: showProgramSlotCallerNotes,
           onChanged: onShowProgramSlotCallerNotesChanged,
+        ),
+        SwitchListTile(
+          key: const ValueKey('settings-confirm-perform-exit'),
+          title: Text(l10n.settingsConfirmPerformExitTitle),
+          subtitle: Text(l10n.settingsConfirmPerformExitSubtitle),
+          value: confirmPerformExit,
+          onChanged: onConfirmPerformExitChanged,
         ),
         SectionHeader(title: l10n.settingsGeneralCallingHistoryHeader),
         SwitchListTile(

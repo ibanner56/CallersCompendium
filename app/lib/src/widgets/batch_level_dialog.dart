@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../search/facet_labels.dart';
+import '../theme/app_motion.dart';
 
 /// The level chosen in the batch-level dialog: either a concrete
 /// [DifficultyLevel]
@@ -34,6 +35,7 @@ Future<BatchLevelChoice?> showBatchLevelDialog(
   return showDialog<BatchLevelChoice>(
     context: context,
     builder: (_) => _BatchLevelDialog(levels: levels),
+    animationStyle: AppMotion.styleFor(context),
   );
 }
 

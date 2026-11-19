@@ -3255,7 +3255,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsGeneralAutoSizePerformSubtitle =>
-      'Skalér hvert kort, så den fulde dans eller slot passer på skærmen uden at skulle rulle. Deaktiver for at angive størrelsen selv med A- / A+.';
+      'Skalér hvert kort, så det passer på skærmen, men aldrig mindre end din sædvanlige tekststørrelse: en længere dans eller slot ruller i stedet. Deaktiver for at angive størrelsen selv med A- / A+.';
 
   @override
   String get settingsShowIndividualPerformTimerTitle =>
@@ -3264,6 +3264,14 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get settingsShowIndividualPerformTimerSubtitle =>
       'Vis den forløbne tid, mens du udfører en enkelt dans. Timeren starter, når den vises, og kan sættes på pause.';
+
+  @override
+  String get settingsConfirmPerformExitTitle =>
+      'Bekræft før du forlader Fremfør';
+
+  @override
+  String get settingsConfirmPerformExitSubtitle =>
+      'Spørg, før lukkeknappen eller Tilbage fører dig ud af Fremfør. Slå det fra for at forlade med ét tryk; program-Fremfør husker din plads uanset hvad.';
 
   @override
   String get settingsShowProgramSlotCallerNotesTitle =>
@@ -6192,6 +6200,12 @@ class AppLocalizationsDa extends AppLocalizations {
   String performSlotPosition(int current, int total) {
     return 'Slot $current af $total';
   }
+
+  @override
+  String get performProgramClockLabel => 'Program';
+
+  @override
+  String get performSlotClockLabel => 'Slot';
 
   @override
   String performShowingSlot(String label) {

@@ -16,10 +16,10 @@ import '../data/program_title_date.dart';
 import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
-import '../theme/app_shapes.dart';
 import '../theme/app_theme_extension.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/app_bar_text_action.dart';
+import '../widgets/app_date_picker.dart';
 import '../widgets/confirm_discard_changes.dart';
 
 /// How the user is choosing which ContraDB program to import.
@@ -628,12 +628,11 @@ class _ContraDbProgramImportScreenState
     final initial = stored == null
         ? now
         : DateTime(stored.year, stored.month, stored.day);
-    final picked = await showDatePicker(
+    final picked = await showAppDatePicker(
       context: context,
       initialDate: initial,
       firstDate: DateTime(now.year - 30),
       lastDate: DateTime(now.year + 10),
-      builder: uncappedDialogBuilder,
     );
     if (picked != null) {
       setState(() {

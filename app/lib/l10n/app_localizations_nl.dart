@@ -3282,7 +3282,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsGeneralAutoSizePerformSubtitle =>
-      'Schaal elke kaart zodat de volledige dans of het slot op het scherm past zonder scrollen. Uitschakelen om de grootte zelf in te stellen met A− / A+.';
+      'Schaal elke kaart zodat die op het scherm past, maar nooit kleiner dan je gebruikelijke tekstgrootte: een langere dans of een langer slot scrolt dan. Uitschakelen om de grootte zelf in te stellen met A− / A+.';
 
   @override
   String get settingsShowIndividualPerformTimerTitle =>
@@ -3291,6 +3291,14 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get settingsShowIndividualPerformTimerSubtitle =>
       'Verstreken tijd tonen tijdens het uitvoeren van een enkele dans. De timer start zodra deze wordt weergegeven en kan worden gepauzeerd.';
+
+  @override
+  String get settingsConfirmPerformExitTitle =>
+      'Bevestigen voor Uitvoeren verlaten';
+
+  @override
+  String get settingsConfirmPerformExitSubtitle =>
+      'Vragen voordat de sluitknop of Terug je uit Uitvoeren haalt. Zet dit uit om met één tik te vertrekken; programma-Uitvoeren onthoudt je plek hoe dan ook.';
 
   @override
   String get settingsShowProgramSlotCallerNotesTitle =>
@@ -6231,6 +6239,12 @@ class AppLocalizationsNl extends AppLocalizations {
   String performSlotPosition(int current, int total) {
     return 'Slot $current van $total';
   }
+
+  @override
+  String get performProgramClockLabel => 'Programma';
+
+  @override
+  String get performSlotClockLabel => 'Slot';
 
   @override
   String performShowingSlot(String label) {
