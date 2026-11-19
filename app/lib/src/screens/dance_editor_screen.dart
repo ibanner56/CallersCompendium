@@ -23,6 +23,7 @@ import '../utils/confirm_delete.dart';
 import '../utils/scroll_to_error.dart';
 import '../utils/shortcut_platform.dart';
 import '../utils/undo_snack_bar.dart';
+import '../widgets/app_bar_text_action.dart';
 import '../widgets/app_shortcuts.dart';
 import '../widgets/author_details_flow.dart';
 import '../widgets/confirm_discard_changes.dart';
@@ -51,6 +52,11 @@ import 'settings/settings_keys.dart';
 /// orchestration, save/delete, and the app-bar/undo-redo/save chrome.
 class DanceEditorScreen extends StatefulWidget {
   const DanceEditorScreen({super.key, this.danceId, this.initialTitle});
+
+  /// Window width (logical pixels) below which Save shows as its check icon,
+  /// so Undo, Redo, Delete and Save leave the title some room on a phone.
+  /// Matches `ProgramEditorScreen.compactActionsBreakpoint`.
+  static const double compactActionsBreakpoint = 600;
 
   /// The dance being edited, or `null` to create a new dance.
   final String? danceId;
@@ -1056,32 +1062,27 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
                         icon: const Icon(Icons.delete_outline),
                         onPressed: _deleting ? null : _delete,
                       ),
+                    // Save goes last in the top bar, as in every full-screen
+                    // editor (`docs/design/ux.md`, "Where Save, New and the
+                    // record's name go"): a floating Save covered the form's
+                    // fields. On a phone it is the check icon; a spinner
+                    // stands in for it while a save runs.
+                    AppBarTextAction(
+                      key: const ValueKey('save-dance'),
+                      label: l10n.commonSave,
+                      icon: Icons.check,
+                      maxWidthFraction:
+                          MediaQuery.sizeOf(context).width <
+                              DanceEditorScreen.compactActionsBreakpoint
+                          ? 0
+                          : 0.4,
+                      busy: _saving,
+                      onPressed: _saving ? null : _save,
+                    ),
                   ],
                 ],
               ),
               body: _buildBody(),
-              // Save mirrors the program builder: a bottom-right extended FAB
-              // rather than an AppBar action. The two long editors (dance and
-              // program) float Save; the short ones keep it in the top bar
-              // (`docs/design/ux.md`, "Where Save, New and the record's name
-              // go", D-11). Undo /
-              // redo stay in the AppBar. The `_saving` disabled state and inline
-              // spinner are preserved.
-              floatingActionButton: _controller.loaded
-                  ? FloatingActionButton.extended(
-                      key: const ValueKey('save-dance'),
-                      heroTag: 'save-dance',
-                      onPressed: _saving ? null : _save,
-                      icon: _saving
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.save_outlined),
-                      label: Text(l10n.commonSave),
-                    )
-                  : null,
             ),
           ),
         ),

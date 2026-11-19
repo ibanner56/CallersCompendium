@@ -8020,12 +8020,6 @@ abstract class AppLocalizations {
   /// **'This program no longer exists.'**
   String get programsNoLongerExists;
 
-  /// Fallback title used for an untitled program when opening the Perform view from an unsaved draft.
-  ///
-  /// In en, this message translates to:
-  /// **'Program'**
-  String get programsFallbackTitle;
-
   /// Fallback word used in place of a dance title when the title is unavailable, in add-dance confirmation messages.
   ///
   /// In en, this message translates to:
@@ -16009,11 +16003,17 @@ abstract class AppLocalizations {
   /// **'No custom figures yet'**
   String get customFiguresEmptyTitle;
 
-  /// Tooltip of the Glossary's add button, which opens the editor for a new custom figure.
+  /// Tooltip of the Glossary's add button, which opens the editor for a new custom figure; also the label of the Custom Figures screen's button while that screen is empty.
   ///
   /// In en, this message translates to:
   /// **'Add your own figure'**
   String get glossaryAddCustomFigure;
+
+  /// Label of the floating button on the Custom Figures screen that opens the editor for a new figure of the user's own. Keep it short: it is one line at the bottom of a phone screen, beside a + icon.
+  ///
+  /// In en, this message translates to:
+  /// **'New figure'**
+  String get customFiguresNewFigure;
 
   /// Chip marking one of the user's own figures in the Glossary.
   ///

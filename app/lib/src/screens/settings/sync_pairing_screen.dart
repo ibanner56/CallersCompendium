@@ -16,6 +16,7 @@ import '../../sync/sync_http_client.dart';
 import '../../sync/sync_scope.dart';
 import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
+import '../../widgets/confirm_discard_changes.dart';
 import '../../widgets/notice_card.dart';
 import 'sync_failure_labels.dart';
 
@@ -68,10 +69,15 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
   bool _busy = false;
   SyncPairingProbe? _probe;
 
+  /// The phrase last offered by this screen (generated at open, or by
+  /// Generate another): what the create field holds until the user edits it.
+  late String _generatedPhrase;
+
   @override
   void initState() {
     super.initState();
-    _createController.text = generateSyncId().value;
+    _generatedPhrase = generateSyncId().value;
+    _createController.text = _generatedPhrase;
   }
 
   @override
@@ -87,8 +93,23 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
 
   void _chooseConnect() => setState(() => _mode = SyncPairingMode.connect);
 
-  void _regenerate() =>
-      setState(() => _createController.text = generateSyncId().value);
+  void _regenerate() => setState(() {
+    _generatedPhrase = generateSyncId().value;
+    _createController.text = _generatedPhrase;
+  });
+
+  /// Whether leaving now would drop typed input: a phrase to connect with, a
+  /// create phrase that is no longer the generated one, or an endpoint other
+  /// than the default. Compared as typed. Not guarded while [_busy]: the
+  /// fields are locked and the pairing is already in flight, matching the
+  /// other editors' no-guard-during-save rule.
+  bool get _hasTypedInput =>
+      !_busy &&
+      ((_mode == SyncPairingMode.connect &&
+              _connectController.text.isNotEmpty) ||
+          (_mode == SyncPairingMode.create &&
+              _createController.text != _generatedPhrase) ||
+          (_mode != null && _endpointController.text != kDefaultSyncEndpoint));
 
   /// The phrase being created once it is structurally valid, for the advisory
   /// strength warning. A phrase the user typed may be weak; §8 requires the
@@ -354,12 +375,21 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final controller = SyncScope.of(context);
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.settingsSyncPairingTitle)),
-      body: SafeArea(
-        child: _mode == null
-            ? _buildChoice(l10n)
-            : _buildDetail(context, l10n, controller),
+    return ListenableBuilder(
+      listenable: Listenable.merge([
+        _createController,
+        _connectController,
+        _endpointController,
+      ]),
+      builder: (context, child) =>
+          DiscardChangesGuard(dirty: _hasTypedInput, child: child!),
+      child: Scaffold(
+        appBar: AppBar(title: Text(l10n.settingsSyncPairingTitle)),
+        body: SafeArea(
+          child: _mode == null
+              ? _buildChoice(l10n)
+              : _buildDetail(context, l10n, controller),
+        ),
       ),
     );
   }

@@ -12,7 +12,6 @@ import 'package:pdf/pdf.dart' show PdfPageFormat;
 import 'package:printing/printing.dart' show LayoutCallback;
 
 import 'package:compendium_app/src/data/undo_prompt_duration_scope.dart';
-import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/confirm_before_delete_scope.dart';
 import 'package:compendium_app/src/data/mark_all_sets_status_scope.dart';
@@ -26,16 +25,15 @@ import 'package:compendium_app/src/data/program_auto_commit_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/search/dance_detail_data.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
-import 'package:compendium_app/src/screens/perform_program_screen.dart';
+import 'package:compendium_app/src/widgets/app_bar_text_action.dart';
 import 'package:compendium_app/src/widgets/collection_picker.dart';
 import 'package:compendium_app/src/widgets/online_result_tile.dart';
 import 'package:compendium_app/src/widgets/online_search_toggle.dart';
 import 'package:compendium_app/src/widgets/program_export_menu.dart'
-    show PdfLayouter;
+    show PdfLayouter, ProgramExportMenu;
 import 'package:compendium_app/src/widgets/program_slot_list_editor.dart';
 
 import 'support/test_repositories.dart';
-import 'support/fake_wakelock.dart';
 import 'support/l10n_harness.dart';
 import 'support/pdf_probe.dart';
 
@@ -415,20 +413,6 @@ class _EditorHostState extends State<_EditorHost> {
   Widget build(BuildContext context) =>
       const SizedBox(key: ValueKey('editor-sentinel'));
 }
-
-/// Whether the builder would let Back leave without asking: false while it
-/// holds unsaved edits. The Save button's label no longer says so (#2107), so
-/// tests read the editor's own [PopScope] instead.
-bool _editorCanPop(WidgetTester tester) => tester
-    .widget<PopScope<Object?>>(
-      find
-          .descendant(
-            of: find.byType(ProgramEditorScreen),
-            matching: find.byWidgetPredicate((w) => w is PopScope<Object?>),
-          )
-          .first,
-    )
-    .canPop;
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -933,65 +917,6 @@ void main() {
             .controller!
             .text,
         'lots',
-      );
-    });
-
-    testWidgets('Perform persisting slots retains an invalid pay draft and '
-        'the dirty state', (tester) async {
-      final repos = openTestRepositories();
-      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
-      await repos.programs.create(
-        _program(
-          id: 'p1',
-          title: 'Night',
-          payMinorUnits: 1000,
-          payCurrency: 'USD',
-          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
-        ),
-      );
-      await _pumpBuilder(tester, repos, programId: 'p1');
-
-      await _expandMoreDetails(tester);
-      await tester.enterText(find.byKey(const ValueKey('program-pay')), 'lots');
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('perform-program')));
-      await tester.pumpAndSettle();
-      final perform = tester.widget<PerformProgramScreen>(
-        find.byType(PerformProgramScreen),
-      );
-      final stamp = DateTime.utc(2030, 1, 1);
-      final persisting = perform.onProgramChanged!(
-        perform.program,
-        perform.program.copyWith(
-          slots: [perform.program.slots.single.copyWith(performedAt: stamp)],
-        ),
-      );
-      await tester.pumpAndSettle();
-      await persisting;
-      await tester.pumpAndSettle();
-
-      final saved = await repos.programs.getById('p1');
-      expect(saved!.slots.single.performedAt, stamp);
-      expect(saved.payMinorUnits, 1000);
-      final draft = await repos.settings.get('program_editor_draft:p1');
-      expect(draft, isNotNull, reason: 'raw pay draft must be retained');
-      expect(draft, contains('lots'));
-      Navigator.of(tester.element(find.byType(PerformProgramScreen))).pop();
-      await tester.pumpAndSettle();
-      expect(
-        tester
-            .widget<TextFormField>(find.byKey(const ValueKey('program-pay')))
-            .controller!
-            .text,
-        'lots',
-      );
-      // Still dirty: leaving asks about unsaved changes rather than silently
-      // discarding the typed amount.
-      await tester.tap(find.byKey(const ValueKey('save-program')));
-      await tester.pumpAndSettle();
-      expect(
-        find.text('Enter an amount like 250 or 250.50 in this currency.'),
-        findsOneWidget,
       );
     });
 
@@ -2361,9 +2286,15 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Imported Dance'), findsAtLeastNWidgets(2));
-      await tester.tap(find.byKey(const ValueKey('perform-program')));
-      await tester.pumpAndSettle();
-      expect(find.text('Imported Author'), findsOneWidget);
+      // The author is hydrated into the builder too: its exports credit the
+      // imported author without waiting for the collection to refresh.
+      final export = tester.widget<ProgramExportMenu>(
+        find.byType(ProgramExportMenu),
+      );
+      expect(
+        export.choreographerFor!('imported-author')?.name,
+        'Imported Author',
+      );
     },
   );
 
@@ -2393,7 +2324,7 @@ void main() {
 
       expect(
         tester
-            .widget<FloatingActionButton>(
+            .widget<AppBarTextAction>(
               find.byKey(const ValueKey('save-program')),
             )
             .onPressed,
@@ -2408,11 +2339,7 @@ void main() {
         isNull,
         reason: 'an in-flight import cannot expose a second selection flow',
       );
-      for (final key in [
-        'perform-program',
-        'duplicate-program',
-        'delete-program',
-      ]) {
+      for (final key in ['duplicate-program', 'delete-program']) {
         expect(
           tester.widget<IconButton>(find.byKey(ValueKey(key))).onPressed,
           isNull,
@@ -2429,7 +2356,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(
         tester
-            .widget<FloatingActionButton>(
+            .widget<AppBarTextAction>(
               find.byKey(const ValueKey('save-program')),
             )
             .onPressed,
@@ -2912,29 +2839,6 @@ void main() {
     expect(find.text('Undo'), findsNothing);
     final stored = (await repos.programs.getById('p1'))!;
     expect(stored.slots.map((s) => s.performedAt), [called, null]);
-  });
-
-  testWidgets('entering Perform invalidates the bulk Undo action', (
-    tester,
-  ) async {
-    final repos = openTestRepositories();
-    await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
-    await repos.programs.create(
-      _program(
-        id: 'p1',
-        title: 'Night',
-        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
-      ),
-    );
-    await _pumpBuilder(tester, repos, programId: 'p1', autoCommit: true);
-
-    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('perform-program')));
-    await tester.pumpAndSettle();
-
-    expect(find.byType(PerformProgramScreen), findsOneWidget);
-    expect(find.text('Undo', skipOffstage: false), findsNothing);
   });
 
   testWidgets(
@@ -4452,508 +4356,6 @@ void main() {
     },
   );
 
-  testWidgets(
-    'persists a mark-performed made via the builder-routed Perform path',
-    (tester) async {
-      // Perform enables the wake-lock; install the fake so the platform
-      // channel call doesn't leak an unhandled error into the test.
-      installFakeWakelock();
-      final repos = openTestRepositories();
-      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
-      await repos.programs.create(
-        _program(
-          id: 'p1',
-          title: 'Night',
-          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
-        ),
-      );
-      // Pump the full-screen builder at a NARROW width (800px, below both the
-      // ProgramsShell 900px entry breakpoint and the builder's own 820px
-      // two-pane breakpoint) — the tablet/phone gig form factor this fix
-      // targets, and the layout the narrow entry point routes through.
-      await _pumpBuilder(
-        tester,
-        repos,
-        programId: 'p1',
-        size: const Size(800, 1600),
-      );
-
-      // The pre-persist value the immediate write must change.
-      final before = (await repos.programs.getById('p1'))!.updatedAt;
-
-      // Enter the live Perform view, open the in-event adjust sheet, and mark
-      // the current dance performed — then close the sheet.
-      await tester.tap(find.byKey(const ValueKey('perform-program')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('perform-adjust')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('adjust-mark-performed')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('adjust-done')));
-      await tester.pumpAndSettle();
-
-      // Simulate a background/relaunch: WITHOUT ever tapping Save, re-read the
-      // program straight from the repository. The persistent store survives a
-      // kill; the widget tree does not. The performed stamp must have been
-      // written immediately during Perform.
-      final saved = await repos.programs.getById('p1');
-      expect(saved!.slots.single.performedAt, isNotNull);
-      expect(saved.slots.single.performedAt!.isUtc, isTrue);
-      expect(
-        saved.updatedAt,
-        isNot(before),
-        reason:
-            'the immediate persist changed updatedAt from its pre-persist '
-            'value',
-      );
-    },
-  );
-
-  testWidgets('serializes Perform persistence behind a pending auto-commit', (
-    tester,
-  ) async {
-    installFakeWakelock();
-    final delayed = openTestRepositoriesWithDelayedPrograms();
-    await delayed.repos.dances.create(
-      _dance(id: 'd1', title: 'Chase the Squirrel'),
-    );
-    await delayed.repos.programs.create(
-      _program(
-        id: 'p1',
-        title: 'Night',
-        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
-      ),
-    );
-    final writesBeforeEditor = delayed.programs.writesStarted;
-    await _pumpBuilder(
-      tester,
-      delayed.repos,
-      programId: 'p1',
-      autoCommit: true,
-      size: const Size(800, 1600),
-    );
-
-    delayed.programs.holdNextWrite();
-    await tester.enterText(
-      find.byKey(const ValueKey('program-title')),
-      'Updated metadata',
-    );
-    await tester.pump(const Duration(milliseconds: 600));
-    await delayed.programs.writeStarted;
-
-    await tester.tap(find.byKey(const ValueKey('perform-program')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('perform-adjust')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('adjust-mark-performed')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('adjust-done')));
-    await tester.pump();
-
-    // The Perform update must be queued behind the held metadata update.
-    expect(delayed.programs.writesStarted, writesBeforeEditor + 1);
-    delayed.programs.releaseWrite();
-    await tester.pumpAndSettle();
-
-    final saved = await delayed.repos.programs.getById('p1');
-    expect(saved!.title, 'Updated metadata');
-    expect(saved.slots.single.performedAt, isNotNull);
-  });
-
-  testWidgets(
-    'Undo of a Perform adjustment after leaving Perform is refused once the '
-    'builder has a later slot edit, and the edit is kept (flows-1)',
-    (tester) async {
-      installFakeWakelock();
-      final repos = openTestRepositories();
-      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
-      await repos.programs.create(
-        _program(
-          id: 'p1',
-          title: 'Night',
-          slots: [
-            ProgramSlot(id: 's0', position: 0, danceId: 'd1'),
-            ProgramSlot(id: 's1', position: 1, text: 'Break'),
-          ],
-        ),
-      );
-      await _pumpBuilder(
-        tester,
-        repos,
-        programId: 'p1',
-        size: const Size(800, 1600),
-      );
-
-      await tester.tap(find.byKey(const ValueKey('perform-program')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('perform-adjust')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('adjust-mark-performed')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('adjust-done')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
-      await tester.pumpAndSettle();
-      expect(find.byType(PerformProgramScreen), findsNothing);
-
-      // A slot edit in the builder after leaving Perform.
-      await tester.tap(find.byKey(const ValueKey('slot-1-menu')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Edit slot'));
-      await tester.pumpAndSettle();
-      await tester.enterText(
-        find.byKey(const ValueKey('slot-edit-note')),
-        'Long break',
-      );
-      await tester.tap(find.byKey(const ValueKey('slot-edit-save')));
-      await tester.pumpAndSettle();
-      expect(find.text('Long break'), findsOneWidget);
-
-      final l10n = AppLocalizations.of(
-        tester.element(find.byType(ProgramEditorScreen)),
-      );
-      await tester.tap(find.text(l10n.commonUndo));
-      await tester.pumpAndSettle();
-
-      expect(tester.takeException(), isNull);
-      expect(find.text('Long break'), findsOneWidget);
-      final saved = await repos.programs.getById('p1');
-      expect(saved!.slots.first.performedAt, isNotNull);
-      expect(find.text(l10n.performUndoNoLongerAvailable), findsOneWidget);
-    },
-  );
-
-  testWidgets(
-    'Undo of a Perform adjustment after leaving Perform restores it when the '
-    'builder has no later edit',
-    (tester) async {
-      installFakeWakelock();
-      final repos = openTestRepositories();
-      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
-      await repos.programs.create(
-        _program(
-          id: 'p1',
-          title: 'Night',
-          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
-        ),
-      );
-      await _pumpBuilder(
-        tester,
-        repos,
-        programId: 'p1',
-        size: const Size(800, 1600),
-      );
-
-      await tester.tap(find.byKey(const ValueKey('perform-program')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('perform-adjust')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('adjust-mark-performed')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('adjust-done')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
-      await tester.pumpAndSettle();
-      expect(
-        (await repos.programs.getById('p1'))!.slots.single.performedAt,
-        isNotNull,
-      );
-
-      final l10n = AppLocalizations.of(
-        tester.element(find.byType(ProgramEditorScreen)),
-      );
-      await tester.tap(find.text(l10n.commonUndo));
-      await tester.pumpAndSettle();
-
-      expect(tester.takeException(), isNull);
-      final saved = await repos.programs.getById('p1');
-      expect(saved!.slots.single.performedAt, isNull);
-    },
-  );
-
-  testWidgets(
-    'Undo of a Perform adjustment after leaving Perform keeps unsaved builder '
-    'edits unsaved (GIG-4)',
-    (tester) async {
-      installFakeWakelock();
-      final repos = openTestRepositories();
-      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
-      await repos.programs.create(
-        _program(
-          id: 'p1',
-          title: 'Night',
-          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
-        ),
-      );
-      await _pumpBuilder(
-        tester,
-        repos,
-        programId: 'p1',
-        size: const Size(800, 1600),
-      );
-
-      await tester.enterText(
-        find.byKey(const ValueKey('program-title')),
-        'Renamed',
-      );
-      await tester.tap(find.byKey(const ValueKey('insert-break-slot')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('perform-program')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('perform-adjust')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('adjust-mark-performed')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('adjust-done')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
-      await tester.pumpAndSettle();
-
-      final l10n = AppLocalizations.of(
-        tester.element(find.byType(ProgramEditorScreen)),
-      );
-      await tester.tap(find.text(l10n.commonUndo));
-      await tester.pumpAndSettle();
-
-      final saved = await repos.programs.getById('p1');
-      expect(saved!.title, 'Night');
-      expect(saved.slots.single.performedAt, isNull);
-      expect(
-        _editorCanPop(tester),
-        isFalse,
-        reason: 'the builder still holds unsaved edits',
-      );
-      await tester.tap(find.byKey(const ValueKey('save-program')));
-      await tester.pumpAndSettle();
-      final committed = await repos.programs.getById('p1');
-      expect(committed!.title, 'Renamed');
-      expect(committed.slots, hasLength(2));
-      expect(committed.slots.first.performedAt, isNull);
-    },
-  );
-
-  testWidgets(
-    'a refused post-exit Undo with unsaved builder edits keeps the adjustment '
-    'in the working copy (GIG-4)',
-    (tester) async {
-      installFakeWakelock();
-      final repos = openTestRepositories();
-      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
-      await repos.programs.create(
-        _program(
-          id: 'p1',
-          title: 'Night',
-          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
-        ),
-      );
-      await _pumpBuilder(
-        tester,
-        repos,
-        programId: 'p1',
-        size: const Size(800, 1600),
-      );
-
-      await tester.enterText(
-        find.byKey(const ValueKey('program-title')),
-        'Renamed',
-      );
-      await tester.tap(find.byKey(const ValueKey('perform-program')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('perform-adjust')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('adjust-mark-performed')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('adjust-done')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
-      await tester.pumpAndSettle();
-
-      // A write from elsewhere: the stored program no longer equals what the
-      // adjustment stored, so the Undo is refused.
-      final stored = (await repos.programs.getById('p1'))!;
-      await repos.programs.update(
-        stored.copyWith(
-          notes: 'Synced note',
-          updatedAt: stored.updatedAt.add(const Duration(seconds: 1)),
-        ),
-      );
-      final l10n = AppLocalizations.of(
-        tester.element(find.byType(ProgramEditorScreen)),
-      );
-      await tester.tap(find.text(l10n.commonUndo));
-      await tester.pumpAndSettle();
-      expect(find.text(l10n.performUndoNoLongerAvailable), findsOneWidget);
-
-      await tester.tap(find.byKey(const ValueKey('save-program')));
-      await tester.pumpAndSettle();
-      final committed = await repos.programs.getById('p1');
-      expect(committed!.title, 'Renamed');
-      expect(
-        committed.slots.single.performedAt,
-        isNotNull,
-        reason: 'the refused Undo must leave the working copy as it was',
-      );
-    },
-  );
-
-  testWidgets(
-    'a refused post-exit Undo keeps the adjustment when the builder was '
-    'edited during its write (GIG-4)',
-    (tester) async {
-      installFakeWakelock();
-      final delayed = openTestRepositoriesWithDelayedPrograms();
-      final repos = delayed.repos;
-      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
-      await repos.programs.create(
-        _program(
-          id: 'p1',
-          title: 'Night',
-          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
-        ),
-      );
-      await _pumpBuilder(
-        tester,
-        repos,
-        programId: 'p1',
-        size: const Size(800, 1600),
-      );
-
-      await tester.enterText(
-        find.byKey(const ValueKey('program-title')),
-        'Renamed',
-      );
-      await tester.tap(find.byKey(const ValueKey('perform-program')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('perform-adjust')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('adjust-mark-performed')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('adjust-done')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
-      await tester.pumpAndSettle();
-
-      // A write from elsewhere, so the Undo will be refused.
-      final stored = (await repos.programs.getById('p1'))!;
-      await repos.programs.update(
-        stored.copyWith(
-          notes: 'Synced note',
-          updatedAt: stored.updatedAt.add(const Duration(seconds: 1)),
-        ),
-      );
-      final l10n = AppLocalizations.of(
-        tester.element(find.byType(ProgramEditorScreen)),
-      );
-      delayed.programs.holdNextWrite();
-      await tester.tap(find.text(l10n.commonUndo));
-      await tester.pump();
-      await delayed.programs.writeStarted;
-      // An edit while the Undo's write is in flight.
-      await tester.tap(find.byKey(const ValueKey('insert-break-slot')));
-      await tester.pump();
-      delayed.programs.releaseWrite();
-      await tester.pumpAndSettle();
-      expect(find.text(l10n.performUndoNoLongerAvailable), findsOneWidget);
-
-      await tester.tap(find.byKey(const ValueKey('save-program')));
-      await tester.pumpAndSettle();
-      final committed = await repos.programs.getById('p1');
-      expect(committed!.title, 'Renamed');
-      expect(committed.slots, hasLength(2));
-      expect(
-        committed.slots.first.performedAt,
-        isNotNull,
-        reason: 'the mark the refused Undo kept must not be erased',
-      );
-    },
-  );
-
-  testWidgets(
-    'with auto-save on, a refused post-exit Undo keeps the adjustment when '
-    'the builder was edited during its write (GIG-4)',
-    (tester) async {
-      installFakeWakelock();
-      final delayed = openTestRepositoriesWithDelayedPrograms();
-      final repos = delayed.repos;
-      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
-      await repos.programs.create(
-        _program(
-          id: 'p1',
-          title: 'Night',
-          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
-        ),
-      );
-      await _pumpBuilder(
-        tester,
-        repos,
-        programId: 'p1',
-        autoCommit: true,
-        size: const Size(800, 1600),
-      );
-
-      // An unparseable pay keeps the builder dirty without auto-committing.
-      await _expandMoreDetails(tester);
-      await tester.enterText(find.byKey(const ValueKey('program-pay')), 'x');
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('perform-program')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('perform-adjust')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('adjust-mark-performed')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('adjust-done')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
-      await tester.pumpAndSettle();
-
-      // A write from elsewhere, so the Undo will be refused.
-      final stored = (await repos.programs.getById('p1'))!;
-      await repos.programs.update(
-        stored.copyWith(
-          notes: 'Synced note',
-          updatedAt: stored.updatedAt.add(const Duration(seconds: 1)),
-        ),
-      );
-      final l10n = AppLocalizations.of(
-        tester.element(find.byType(ProgramEditorScreen)),
-      );
-      delayed.programs.holdNextWrite();
-      await tester.tap(find.text(l10n.commonUndo));
-      await tester.pump();
-      await delayed.programs.writeStarted;
-      // An edit while the Undo's write is in flight, which makes the builder
-      // committable, so its auto-commit queues behind the Undo.
-      await tester.enterText(find.byKey(const ValueKey('program-pay')), '20');
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 600));
-      delayed.programs.releaseWrite();
-      await tester.pumpAndSettle();
-      await tester.pump(const Duration(milliseconds: 600));
-      await tester.pumpAndSettle();
-      expect(find.text(l10n.performUndoNoLongerAvailable), findsOneWidget);
-
-      final committed = await repos.programs.getById('p1');
-      expect(committed!.payMinorUnits, 2000, reason: 'the edit auto-committed');
-      expect(
-        committed.slots.first.performedAt,
-        isNotNull,
-        reason: 'the mark the refused Undo kept must not be erased',
-      );
-    },
-  );
-
   testWidgets('blocks clearing a free-text slot to empty', (tester) async {
     final repos = openTestRepositories();
     await repos.programs.create(
@@ -5042,9 +4444,76 @@ void main() {
     // no-`who` swing.
     expect(find.text('partner swing'), findsOneWidget);
     expect(find.text('balance'), findsOneWidget);
-    // The save FAB hides on the read-only Matrix tab.
+    // Save hides on the read-only Matrix tab.
     expect(find.byKey(const ValueKey('save-program')), findsNothing);
   });
+
+  // Perform belongs to the program's summary; the builder is for editing.
+  for (final size in [const Size(1200, 2000), const Size(360, 800)]) {
+    testWidgets('the builder offers no Perform, on the bar or in ⋮ '
+        '(${size.width.toInt()} wide)', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Newly Called'));
+      await repos.programs.create(
+        _program(
+          id: 'p1',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpBuilder(tester, repos, programId: 'p1', size: size);
+      // MediaQuery reads the view's size, not the test surface's.
+      tester.view.physicalSize = size * tester.view.devicePixelRatio;
+      addTearDown(tester.view.resetPhysicalSize);
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('perform-program')), findsNothing);
+      expect(find.byTooltip('Perform this program'), findsNothing);
+      final overflow = find.byKey(const ValueKey('program-actions-overflow'));
+      if (size.width < ProgramEditorScreen.compactActionsBreakpoint) {
+        expect(overflow, findsOneWidget);
+        await tester.tap(overflow);
+        await tester.pumpAndSettle();
+        // The menu is open: its other entries are there, Perform is not.
+        expect(find.byKey(const ValueKey('duplicate-program')), findsOneWidget);
+        expect(find.byKey(const ValueKey('perform-program')), findsNothing);
+        expect(find.text('Perform this program'), findsNothing);
+      }
+    });
+  }
+
+  for (final size in [const Size(1200, 2000), const Size(700, 1200)]) {
+    testWidgets('Save is the top bar\'s last action and nothing floats over '
+        'the slots (${size.width.toInt()} wide)', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Newly Called'));
+      await repos.programs.create(
+        _program(
+          id: 'p1',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpBuilder(tester, repos, programId: 'p1', size: size);
+
+      final save = find.byKey(const ValueKey('save-program'));
+      expect(
+        find.descendant(of: find.byType(AppBar), matching: save),
+        findsOneWidget,
+      );
+      // Last: right of every other action on the bar.
+      final actions = find.descendant(
+        of: find.byType(AppBar),
+        matching: find.byType(IconButton),
+      );
+      for (final action in tester.widgetList(actions)) {
+        expect(
+          tester.getCenter(save).dx,
+          greaterThan(tester.getCenter(find.byWidget(action)).dx),
+        );
+      }
+      expect(find.byType(FloatingActionButton), findsNothing);
+      expect(find.text('Save'), findsOneWidget);
+    });
+  }
 
   testWidgets(
     'Matrix alternate toggle is transient across tabs and responsive layouts',
@@ -6085,32 +5554,15 @@ void main() {
     );
   });
 
-  /// GIG-3 and GIG-4: after a commit the builder must hold the program as
-  /// stored, not the copy it wrote, and a Perform adjustment must persist only
-  /// Perform's own slot change.
-  group('stale program copies (GIG-3, GIG-4)', () {
+  /// GIG-3: after a commit the builder must hold the program as stored, not
+  /// the copy it wrote.
+  group('stale program copies (GIG-3)', () {
     Future<void> setStatusPerformed(WidgetTester tester) async {
       await _expandMoreDetails(tester);
       await tester.ensureVisible(find.byKey(const ValueKey('program-status')));
       await tester.tap(find.byKey(const ValueKey('program-status')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Performed').last);
-      await tester.pumpAndSettle();
-    }
-
-    Future<void> markCurrentPerformed(WidgetTester tester) async {
-      await tester.tap(find.byKey(const ValueKey('perform-adjust')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('adjust-mark-performed')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('adjust-done')));
-      await tester.pumpAndSettle();
-    }
-
-    Future<void> exitPerform(WidgetTester tester) async {
-      await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
       await tester.pumpAndSettle();
     }
 
@@ -6218,150 +5670,6 @@ void main() {
         saved.slots.map((s) => s.performedAt),
         stamped.slots.map((s) => s.performedAt),
       );
-    });
-
-    testWidgets('with auto-save off, Performed then two Perform adjustments '
-        'keeps every performed mark', (tester) async {
-      installFakeWakelock();
-      final repos = await seed();
-      await _pumpBuilder(
-        tester,
-        repos,
-        programId: 'p1',
-        size: const Size(800, 1600),
-      );
-
-      await setStatusPerformed(tester);
-      await tester.tap(find.byKey(const ValueKey('perform-program')));
-      await tester.pumpAndSettle();
-      await markCurrentPerformed(tester);
-      await markCurrentPerformed(tester);
-      await markCurrentPerformed(tester);
-      await exitPerform(tester);
-      await tester.tap(find.byKey(const ValueKey('save-program')));
-      await tester.pumpAndSettle();
-
-      final saved = await repos.programs.getById('p1');
-      expect(saved!.status, ProgramStatus.performed);
-      expect(
-        saved.slots.map((s) => s.performedAt),
-        everyElement(isNotNull),
-        reason: 'no performed mark may be erased by a later write',
-      );
-    });
-
-    testWidgets('a Perform adjustment after an auto-commit stamped the program '
-        'keeps the stamps Perform never saw', (tester) async {
-      installFakeWakelock();
-      final delayed = openTestRepositoriesWithDelayedPrograms();
-      final repos = delayed.repos;
-      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
-      await repos.programs.create(
-        _program(
-          id: 'p1',
-          title: 'Night',
-          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
-        ),
-      );
-      await _pumpBuilder(
-        tester,
-        repos,
-        programId: 'p1',
-        autoCommit: true,
-        size: const Size(800, 1600),
-      );
-
-      // The status commit is held until Perform is open, so the stamps it
-      // makes are not in the copy Perform was given.
-      delayed.programs.holdNextWrite();
-      await setStatusPerformed(tester);
-      await tester.pump(const Duration(milliseconds: 600));
-      await delayed.programs.writeStarted;
-      await tester.tap(find.byKey(const ValueKey('perform-program')));
-      await tester.pumpAndSettle();
-      delayed.programs.releaseWrite();
-      await tester.pumpAndSettle();
-      final stamped = await repos.programs.getById('p1');
-      expect(stamped!.status, ProgramStatus.performed);
-      expect(stamped.slots.single.performedAt, isNotNull);
-
-      await tester.tap(find.byKey(const ValueKey('perform-adjust')));
-      await tester.pumpAndSettle();
-      await tester.enterText(
-        find.byKey(const ValueKey('adjust-note-field')),
-        'Announcements',
-      );
-      await tester.tap(find.byKey(const ValueKey('adjust-add-note')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('adjust-done')));
-      await tester.pumpAndSettle();
-
-      final saved = await repos.programs.getById('p1');
-      expect(saved!.slots, hasLength(2));
-      expect(
-        saved.slots.first.performedAt,
-        stamped.slots.single.performedAt,
-        reason: "Perform's stale copy must not be written over the stamp",
-      );
-    });
-
-    testWidgets('a Perform adjustment persists only its slot change; unsaved '
-        'builder edits stay unsaved', (tester) async {
-      installFakeWakelock();
-      final repos = await seed();
-      await _pumpBuilder(
-        tester,
-        repos,
-        programId: 'p1',
-        size: const Size(800, 1600),
-      );
-
-      await tester.enterText(
-        find.byKey(const ValueKey('program-title')),
-        'Renamed',
-      );
-      await tester.tap(find.byKey(const ValueKey('insert-break-slot')));
-      await tester.pumpAndSettle();
-      await setStatusPerformed(tester);
-      await tester.tap(find.byKey(const ValueKey('perform-program')));
-      await tester.pumpAndSettle();
-      await markCurrentPerformed(tester);
-      await exitPerform(tester);
-
-      final saved = await repos.programs.getById('p1');
-      expect(saved!.title, 'Night');
-      expect(saved.status, ProgramStatus.draft);
-      expect(saved.slots.map((s) => s.id), ['s0', 's1']);
-      expect(saved.slots.first.performedAt, isNotNull);
-      expect(
-        saved.slots.last.performedAt,
-        isNull,
-        reason: 'the unsaved Performed status must not stamp the program',
-      );
-
-      // The builder still holds the unsaved edits, and Back would ask first.
-      expect(
-        tester
-            .widget<TextFormField>(find.byKey(const ValueKey('program-title')))
-            .controller!
-            .text,
-        'Renamed',
-      );
-      expect(
-        _editorCanPop(tester),
-        isFalse,
-        reason: 'the builder still holds unsaved edits',
-      );
-      final draft = await repos.settings.get('program_editor_draft:p1');
-      expect(draft, contains('Renamed'));
-
-      // Saving now commits them together with Perform's mark.
-      await tester.tap(find.byKey(const ValueKey('save-program')));
-      await tester.pumpAndSettle();
-      final committed = await repos.programs.getById('p1');
-      expect(committed!.title, 'Renamed');
-      expect(committed.slots, hasLength(3));
-      expect(committed.slots.first.performedAt, saved.slots.first.performedAt);
     });
   });
 }

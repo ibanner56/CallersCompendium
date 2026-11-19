@@ -853,11 +853,14 @@ it on in version 0.8.0-beta or before and later turned the Glossary off, it was
 grayed out but kept its setting. It now takes effect, and your figures
 show again everywhere Custom Figures shows them. Turn Custom Figures off here
 to hide them. While it is on, the **Your figures** row under the switch opens them: see your figures,
-choose **+** to add one, or select one to **Edit** or **Delete** it. The row
+choose **Add your own figure** to add one (once you have a figure, it is
+**New figure** at the bottom of the screen), or select one to **Edit** or
+**Delete** it. The row
 is grayed out while Custom Figures is off.
 The Glossary lists them too, when it is shown. While it is on:
 
-- Choose **+**, on that screen or in the Glossary, to add a figure of your own: a name and a
+- Choose **New figure** (**Add your own figure** while you have none) on that
+  screen, or **+** in the Glossary, to add a figure of your own: a name and a
   definition (both required), **More details** (optional), other names it can be found by,
   notes, and the **Dance form** it's for.
 - Under **What it is**, choose a **Combination**, which becomes figures that
@@ -1302,6 +1305,11 @@ Sync is off and open while it is on.
   already set up.
 
 The screen tells you which you're doing; it never guesses.
+
+If you press **Back** after typing a phrase to connect with, changing the phrase
+you were offered, or changing the server address, the screen asks **Discard
+changes?** first. Pressing **Back** while the screen is connecting leaves
+without asking.
 
 The **Server** field is pre-filled with the Caller's Compendium sync server,
 `https://athenaeum.callerscompendium.com/`; leave it alone unless you run your

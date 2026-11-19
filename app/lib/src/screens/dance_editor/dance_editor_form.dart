@@ -270,9 +270,9 @@ class DanceEditorForm extends StatelessWidget {
         keyboardDismissBehavior: textEntryKeyboardDismiss(),
         // Section headers carry their own padding; each section's content is
         // wrapped in horizontal AppSpacing.md so headers align with the fields
-        // they label. A trailing gap lets the last section scroll clear of the
-        // Save FAB.
-        padding: const EdgeInsets.only(bottom: AppSpacing.fabClearance),
+        // they label. Nothing floats over the form, so the trailing gap is an
+        // ordinary section gap.
+        padding: const EdgeInsets.only(bottom: AppSpacing.lg),
         children: [
           if (controller.hasInvalidCustomFieldNumber)
             Padding(

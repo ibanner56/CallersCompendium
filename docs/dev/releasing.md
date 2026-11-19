@@ -9,8 +9,8 @@ This is the operator runbook for cutting a desktop release. It documents the
 > the App Privacy / Data safety / content-rating forms — lives in
 > [`store-submission/`](store-submission/README.md).
 
-> **Scope of this wave.** Desktop builds are **free** — no paid accounts. The
-> **Linux** (`tar.gz`/AppImage) artifacts are **UNSIGNED**. Windows
+> **Scope of this wave.** The **Linux** (`tar.gz`/AppImage) artifacts are
+> **UNSIGNED**. Windows
 > (installer/`zip`) artifacts use Azure Trusted Signing when the five
 > `AZURE_*` repository variables are configured; otherwise Windows users bypass
 > the SmartScreen prompt manually ("More info → Run anyway"). **macOS is the
@@ -1296,7 +1296,7 @@ or PRs.
 
 ## Android (signed APK)
 
-Unlike the desktop artifacts (which are **unsigned** this wave), Android's first
+Unlike the Linux desktop artifacts (always **unsigned**), Android's first
 beta ships as a **self-signed** sideload APK. Android refuses to install an
 unsigned APK, so the `release` build type is wired to a real upload keystore via
 the canonical Flutter `key.properties` pattern in `app/android/app/build.gradle.kts`.
@@ -1570,7 +1570,7 @@ in-place update.
 
 ### Sideload install note (for release notes / users)
 
-The Android APK is **self-signed**, *not* "unsigned" like the desktop builds — it
+The Android APK is **self-signed**, *not* "unsigned" like the Linux desktop builds — it
 carries a valid signature, just not one from Google Play. To sideload it a user
 enables **"install unknown apps"** for their browser/file manager, then opens the
 downloaded APK. Verify the download against `SHA256SUMS` as with every artifact.

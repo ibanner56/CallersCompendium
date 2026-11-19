@@ -562,6 +562,15 @@ void main() {
     'phone (360dp) shows a single, unobstructed New FAB and app-bar search',
     (tester) async {
       final repos = openTestRepositories();
+      // A dance of the user's own: the floating New waits for a list.
+      await repos.dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Petronella',
+          createdAt: DateTime.utc(2026, 1, 1),
+          updatedAt: DateTime.utc(2026, 1, 1),
+        ),
+      );
       await _pump(tester, repos, size: const Size(360, 800));
 
       // Only one FAB in the bottom-right slot — the screen's "New dance" FAB.
@@ -588,6 +597,15 @@ void main() {
     tester,
   ) async {
     final repos = openTestRepositories();
+    // The floating New waits for a list.
+    await repos.programs.create(
+      Program(
+        id: 'p1',
+        title: 'Autumn Ball',
+        createdAt: DateTime.utc(2026, 1, 1),
+        updatedAt: DateTime.utc(2026, 1, 1),
+      ),
+    );
     await _pump(tester, repos, size: const Size(360, 800));
 
     await tester.tap(find.text('Programs').last);

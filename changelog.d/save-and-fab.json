@@ -1,0 +1,14 @@
+{
+  "id": "save-and-fab",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "The dance and program editors now have Save at the end of the top bar, as every other editor does, instead of a floating button that covered the form. On a phone it shows as a check mark.",
+      "An empty Collection, Programs list, venues list or custom fields list, and the Collection's first-run card, show their own New button without a second floating one below it; sort controls appear once there is something to sort.",
+      "The Custom Figures and Figure shorthands screens now add a new entry with a floating button at the bottom of the screen, like the other managers, once they have one."
+    ],
+    "removed": [
+      "The program builder's Perform button. Start Perform from the program's summary, where it already was."
+    ]
+  }
+}

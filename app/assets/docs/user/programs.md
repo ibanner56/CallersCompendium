@@ -21,7 +21,7 @@ lay of the land first. To fill your library before you build a program, see
 
 Open **Programs** to see the programs you have built. It starts with a short
 prompt and a **New program** button until you make your first one. Once you
-have programs, a strip across the top shows the current week, with a dot on
+have programs, **New program** floats at the bottom of the list, and a strip across the top shows the current week, with a dot on
 each day that has a program's event date; to choose which day the week starts
 on, see [Settings › Language & region](./settings.md#formats).
 
@@ -30,7 +30,7 @@ status label (**Draft**, **Finalized**, or **Performed**). The dance count is
 the number of dances the evening is planned for, so alternates and breaks are
 not counted; a free-text slot such as a waltz counts, because it stands in for
 a dance. The same count appears in the builder beside **Slots**, in the
-summary's **Set list** heading, and on the **Add to program** sheet. Use the sort button to order the list by **Title**, **Recently
+summary's **Set list** heading, and on the **Add to program** sheet. Once there is a program, use the sort button to order the list by **Title**, **Recently
 updated**, or **Event date**, and the arrow beside it to flip the direction. To choose which sort and
 direction the list opens with, see
 [Settings › Defaults](./settings.md#display-defaults).
@@ -218,7 +218,8 @@ you close them.
 
 ### Save your program
 
-Choose **Save** at the bottom of the **Build** tab to keep your changes. On a
+Choose **Save** at the end of the top bar to keep your changes; it is there
+while you're on the **Build** tab. On a phone it shows as a check mark. On a
 computer, **Ctrl-S** (**Cmd-S** on a Mac) does the same while you're on the
 **Build** tab. A program needs a title before it can be saved. If you leave
 the builder with changes you haven't saved, the app asks **Discard changes?**:
@@ -610,7 +611,8 @@ editor or on a saved program's summary; it offers a one-tap **Undo**. On a
 phone, or wherever the summary pane is narrow, it is in the **More actions** (⋮)
 menu, with **Duplicate** and **Delete**. On a program's own screen these
 actions (and **Export**) are in the top bar, beside the title "Program"; the
-program's name is on its own line below it. Mark all performed skips alternates,
+program's name is on its own line below it, and **Edit program** floats at the
+bottom of the screen. Mark all performed skips alternates,
 and so does setting a program's status to **Performed**: mark the alternates you
 used yourself.
 

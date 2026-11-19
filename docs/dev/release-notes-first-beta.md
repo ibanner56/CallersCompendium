@@ -27,7 +27,8 @@ what works, what to try, and what's rough — honestly.
  - Search/filter with dialect-aware terminology.
 
 3. **Platforms & install** — Which OS artifacts are provided; how to install.
- Explicitly warn about unsigned desktop builds and the OS prompts to expect.
+ Explicitly warn about any unsigned desktop builds (Linux, or a leg whose signing
+ credentials were absent) and the OS prompts to expect.
 
 4. **Known limitations** — Be candid. Anything unsigned, any source not yet
  supported, any feature intentionally out of beta scope, any data caveat.
@@ -40,7 +41,7 @@ what works, what to try, and what's rough — honestly.
  platform, version, steps, and — since imports are central — a sanitized sample
  file if the bug is import-related).
 
-7. **License** — AGPL-3.0, with the source link.
+7. **License** — AGPL-3.0-only, with the source link.
 
 ## Tone rules
 - Written for a caller, not a developer. Avoid phase numbers, PR numbers, internal

@@ -1,8 +1,10 @@
 ; Inno Setup script for the Caller's Compendium Windows installer.
 ;
-; This produces an UNSIGNED installer (this release wave ships no code-signing;
-; see ADR-002 §6). Values that vary per build are passed on the ISCC command
-; line with /D defines; the fallbacks below let the script compile locally for a
+; This script produces an unsigned installer. The release workflow signs the
+; installer and the bundled binaries afterwards when the Azure Trusted Signing
+; variables are configured (see ADR-002 §6 and docs/dev/releasing.md).
+; Values that vary per build are passed on the ISCC command line with /D
+; defines; the fallbacks below let the script compile locally for a
 ; quick smoke test.
 ;
 ;   iscc /DMyAppVersion=0.1.0 ^

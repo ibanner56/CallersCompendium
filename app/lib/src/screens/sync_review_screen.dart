@@ -6,6 +6,7 @@ import '../data/repositories_scope.dart';
 import '../data/sync_writer_lifecycle_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../theme/app_motion.dart';
+import '../widgets/dirty_dialog_guard.dart';
 import '../theme/app_spacing.dart';
 import '../theme/destructive_button_style.dart';
 import 'settings/sync_notice_labels.dart' show syncRecordKindLabel;
@@ -393,40 +394,44 @@ class _DistinctNameDialogState extends State<_DistinctNameDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return AlertDialog(
-      title: Text(l10n.syncReviewKeepBothTitle),
-      content: Form(
-        key: _formKey,
-        child: TextFormField(
-          controller: _controller,
-          autofocus: true,
-          decoration: InputDecoration(labelText: l10n.syncReviewNewNameLabel),
-          validator: (value) {
-            final normalized = value == null ? '' : value.trim();
-            if (normalized.isEmpty) return l10n.syncReviewNameRequired;
-            final current = widget.currentNaturalKey;
-            if (current != null && widget.normalize(normalized) == current) {
-              return l10n.syncReviewNameNotDistinct;
-            }
-            return null;
-          },
+    return DirtyDialogGuard(
+      listenable: _controller,
+      isDirty: () => _controller.text.isNotEmpty,
+      child: AlertDialog(
+        title: Text(l10n.syncReviewKeepBothTitle),
+        content: Form(
+          key: _formKey,
+          child: TextFormField(
+            controller: _controller,
+            autofocus: true,
+            decoration: InputDecoration(labelText: l10n.syncReviewNewNameLabel),
+            validator: (value) {
+              final normalized = value == null ? '' : value.trim();
+              if (normalized.isEmpty) return l10n.syncReviewNameRequired;
+              final current = widget.currentNaturalKey;
+              if (current != null && widget.normalize(normalized) == current) {
+                return l10n.syncReviewNameNotDistinct;
+              }
+              return null;
+            },
+          ),
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            key: const ValueKey('sync-review-keep-both-confirm'),
+            onPressed: () {
+              if (_formKey.currentState!.validate()) {
+                Navigator.of(context).pop(_controller.text);
+              }
+            },
+            child: Text(l10n.syncReviewKeepBothAction),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.commonCancel),
-        ),
-        FilledButton(
-          key: const ValueKey('sync-review-keep-both-confirm'),
-          onPressed: () {
-            if (_formKey.currentState!.validate()) {
-              Navigator.of(context).pop(_controller.text);
-            }
-          },
-          child: Text(l10n.syncReviewKeepBothAction),
-        ),
-      ],
     );
   }
 }

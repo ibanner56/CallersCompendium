@@ -1,6 +1,6 @@
 // This file is a port of parts of `fmptools` (https://github.com/evanmiller/fmptools),
 // which is distributed under the MIT license below. That notice applies to the
-// portions derived from `fmptools`; the rest of Caller's Compendium is AGPL-3.0
+// portions derived from `fmptools`; the rest of Caller's Compendium is AGPL-3.0-only
 // (see the repository's LICENSE). The same text ships in the app under
 // Settings > About > View licenses, and in THIRD_PARTY_NOTICES.md.
 //

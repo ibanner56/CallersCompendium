@@ -449,6 +449,8 @@ Built in #2057.
 
 All three match the recommendations. Builds as the UX6-2 branch, after D2.
 
+**Superseded in part (2026-11-18):** the maintainer later moved Save in the dance and program editors to the top bar, and had the floating New wait while an empty state or first-run card shows its own New button. The current rule is in `docs/design/ux.md`, "Where Save, New and the record's name go".
+
 ### B30 follow-up / PRES-1: stale conflict rows for withdrawn keys (2026-10-30 ~14:25 UTC)
 **Question:** a sync conflict on one of B30's four withdrawn keys queued before the upgrade can fail to resolve until the first full pass. Fix by having `refreshConflictReviews` drop such rows?
 

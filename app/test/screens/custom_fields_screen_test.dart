@@ -9,6 +9,7 @@ import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/custom_fields_screen.dart';
 import 'package:compendium_app/src/screens/settings/settings_keys.dart';
 
+import '../support/fab_clearance.dart';
 import '../support/fail_once_interceptor.dart';
 import '../support/l10n_harness.dart';
 import '../support/test_repositories.dart';
@@ -40,9 +41,15 @@ Future<void> _pumpScreen(
   await tester.pumpAndSettle();
 }
 
-/// Opens the "New field" form from the screen.
+/// Opens the "New field" form from the screen: the empty message's button
+/// while there are no fields, the floating button once there are.
 Future<void> _openNewForm(WidgetTester tester) async {
-  await tester.tap(find.byKey(const ValueKey('add-field')));
+  final fab = find.byKey(const ValueKey('add-field'));
+  await tester.tap(
+    fab.evaluate().isEmpty
+        ? find.byKey(const ValueKey('custom-fields-empty-add'))
+        : fab,
+  );
   await tester.pumpAndSettle();
 }
 
@@ -1019,5 +1026,67 @@ void main() {
       expect(formTitle, findsOneWidget);
       expect(find.text('Key'), findsOneWidget);
     });
+  });
+
+  group('CustomFieldsScreen floating New field', () {
+    CustomFieldDef field(int i) {
+      final n = '$i'.padLeft(2, '0');
+      return CustomFieldDef(
+        id: 'f$n',
+        key: 'field_$n',
+        label: 'Field $n',
+        type: CustomFieldType.text,
+      );
+    }
+
+    testWidgets('waits for a list: the empty message carries New field', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pumpScreen(tester, repos);
+
+      expect(
+        find.byKey(const ValueKey('custom-fields-empty-add')),
+        findsOneWidget,
+      );
+      expect(find.byType(FloatingActionButton), findsNothing);
+    });
+
+    testWidgets('shows once there is a field', (tester) async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.customFieldDefs.upsert(field(0));
+      await _pumpScreen(tester, repos);
+
+      expect(find.byKey(const ValueKey('add-field')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('custom-fields-empty-add')),
+        findsNothing,
+      );
+    });
+
+    for (final c in fabClearanceCases) {
+      testWidgets('never covers the last field (${c.name})', (tester) async {
+        final repos = openTestRepositories();
+        for (var i = 0; i < 30; i++) {
+          // ignore: unused_result
+          await repos.customFieldDefs.upsert(field(i));
+        }
+        await _pumpScreen(tester, repos);
+        await atPhoneSize(
+          tester,
+          width: c.width,
+          scale: c.scale,
+          keyboard: c.keyboard,
+        );
+        await tester.pumpAndSettle();
+
+        await expectFabClearsLastRow(
+          tester,
+          list: find.byType(ListView),
+          lastRow: find.byKey(const ValueKey('field-tile-f29')),
+        );
+      });
+    }
   });
 }
