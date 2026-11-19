@@ -25,8 +25,8 @@ are the *context* (§1.1 states the requirements), §5–§7 and §12 the
 Contra gained a `cast` movement of its own in contra taxonomy v40 (issue
 [#770](https://github.com/ibanner56/CallersCompendium/issues/770)). The
 maintainer decided that ECD's `cast` takes the same parameters from the
-start, so that a contra-imported English dance re-reads one to one (§12, F5). The answers are
-in §9.4, and the sections they changed are:
+start, so that a contra-imported English dance re-reads one to one (§12,
+F5). The answers are in §9.4, and the sections they changed are:
 
 - **`cast` has no `where`** (§7.5). Its `direction` is `left`, `right`, `up`
   or `down`, where `left` and `right` are the shoulder turned over, not a

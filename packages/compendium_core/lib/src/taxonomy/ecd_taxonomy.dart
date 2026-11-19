@@ -967,9 +967,8 @@ final Taxonomy ecdTaxonomy = Taxonomy(
       id: '${_p}cast',
       displayName: 'cast',
       // One parameter shape with contra's `cast` (v40, #770), so a
-      // contra-imported
-      // English dance re-reads one to one (F5): the maintainer's decision of
-      // 2026-11-19 (§7.5, §9.4).
+      // contra-imported English dance re-reads one to one (F5): the
+      // maintainer's decision of 2026-11-19 (§7.5, §9.4).
       params: {
         'who': _who,
         // `left`/`right` is the shoulder turned over, not a side of the set:
@@ -1040,10 +1039,9 @@ final Taxonomy ecdTaxonomy = Taxonomy(
       inversePairId: '${_p}box_the_gnat',
     ),
     // A hand cast is a gate, pinning nothing (the maintainer's decision of
-    // 2026-11-19, §9.4), as contra's `hand_cast` is. Listed
-    // as a move of its
-    // own, so search can name it and a dialect's name for gate never renames
-    // it.
+    // 2026-11-19, §9.4), as contra's `hand_cast` is. Listed as a move of
+    // its own, so search can name it and a dialect's name for gate never
+    // renames it.
     MoveAlias(
       id: '${_p}hand_cast',
       displayName: 'hand cast',
