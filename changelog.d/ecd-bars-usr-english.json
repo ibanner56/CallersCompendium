@@ -9,9 +9,6 @@
     "changed": [
       "An English dance's Bars count by its Meter (two beats a bar in 2/2, 6/8 or 6/4, three in 3/2, 3/4 or 9/4), falling back to the phrase structure when no meter is given.",
       "Re-importing a dance takes its dance form along with its figures, so a Caller's Companion dance first imported as contra and re-imported as English becomes English, and takes the file's meter and key if it had none."
-    ],
-    "fixed": [
-      "Re-check unrecognized figures no longer stops when a dance holds a phrase structure saved before its limits existed."
     ]
   },
   "core": {
