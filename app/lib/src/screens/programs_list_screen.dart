@@ -16,6 +16,7 @@ import '../utils/confirm_delete.dart';
 import '../utils/row_focus.dart';
 import '../utils/shortcut_platform.dart';
 import '../utils/undo_snack_bar.dart';
+import '../widgets/brand_mark.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/program_list_tile.dart';
 import '../widgets/skeleton.dart';
@@ -730,7 +731,10 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     if (programs.isEmpty) {
       return EmptyState(
         key: const ValueKey('empty-state'),
-        icon: EmptyState.glyph(context, Icons.event_note_outlined),
+        icon: BrandMark(
+          size: 64,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
         title: l10n.programsEmptyTitle,
         body: l10n.programsListEmptyBody,
         actions: [

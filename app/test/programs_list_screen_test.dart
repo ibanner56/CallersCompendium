@@ -4,6 +4,7 @@ import 'package:drift/drift.dart'
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/src/widgets/brand_mark.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/app_shell_search_scope.dart';
@@ -186,6 +187,13 @@ void main() {
 
     expect(find.byKey(const ValueKey('empty-state')), findsOneWidget);
     expect(find.text('No programs yet'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('empty-state')),
+        matching: find.byType(BrandMark),
+      ),
+      findsOneWidget,
+    );
     expect(find.byKey(const ValueKey('empty-new-program')), findsOneWidget);
   });
 

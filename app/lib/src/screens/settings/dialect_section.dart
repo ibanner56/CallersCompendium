@@ -8,6 +8,7 @@ import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/destructive_button_style.dart';
 import '../../theme/keyboard_dismiss.dart';
+import '../../widgets/dirty_dialog_guard.dart';
 import '../../widgets/section_header.dart';
 import '../dialect_editor_screen.dart';
 import 'dance_details_section.dart';
@@ -385,26 +386,30 @@ class _DialectNameDialogState extends State<_DialectNameDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return AlertDialog(
-      title: Text(widget.title),
-      content: TextField(
-        key: const ValueKey('dialect-name-field'),
-        controller: _controller,
-        autofocus: true,
-        decoration: InputDecoration(labelText: l10n.settingsDialectNameLabel),
-        onSubmitted: (_) => _submit(),
+    return DirtyDialogGuard(
+      listenable: _controller,
+      isDirty: () => _controller.text != widget.initial,
+      child: AlertDialog(
+        title: Text(widget.title),
+        content: TextField(
+          key: const ValueKey('dialect-name-field'),
+          controller: _controller,
+          autofocus: true,
+          decoration: InputDecoration(labelText: l10n.settingsDialectNameLabel),
+          onSubmitted: (_) => _submit(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            key: const ValueKey('dialect-name-confirm'),
+            onPressed: _submit,
+            child: Text(widget.confirmLabel),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.commonCancel),
-        ),
-        FilledButton(
-          key: const ValueKey('dialect-name-confirm'),
-          onPressed: _submit,
-          child: Text(widget.confirmLabel),
-        ),
-      ],
     );
   }
 }

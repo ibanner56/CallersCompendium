@@ -133,8 +133,9 @@ Field rules:
   `"stable"`), so a mis-published file is detectable.
 - `version` — SemVer; the pure-Dart client compares it against
   `kUpdaterVersion` (`app/lib/src/app_metadata.dart`). Release builds inject the
-  tag's SemVer identity there so a beta compares as `X.Y.Z-beta`, while the
-  visible `kAppVersion` and `app/pubspec.yaml` remain bare `X.Y.Z`.
+  tag's SemVer identity there so a beta compares as `X.Y.Z-beta`, while
+  `kAppVersion` and `app/pubspec.yaml` remain bare `X.Y.Z`. The app shows
+  the injected identity to the user.
 - `codename` — optional display-only release name resolved from the annotated
   tag. Release Flutter builds receive the same value through
   `CALLERS_COMPENDIUM_RELEASE_CODENAME`; local and development builds use the

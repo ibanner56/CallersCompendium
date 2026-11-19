@@ -2612,10 +2612,10 @@ abstract class AppLocalizations {
   /// **'License'**
   String get settingsAboutLicenseHeader;
 
-  /// Explanatory paragraph about the app's AGPL-3.0 license and the corresponding source-code offer. 'Caller's Compendium', 'GNU Affero General Public License', and 'AGPL-3.0' are proper nouns kept verbatim.
+  /// Explanatory paragraph about the app's AGPL-3.0 license and the corresponding source-code offer. 'Caller's Compendium', 'GNU Affero General Public License', and 'AGPL-3.0-only' are proper nouns kept verbatim.
   ///
   /// In en, this message translates to:
-  /// **'Caller\'s Compendium is free software, licensed under the GNU Affero General Public License, version 3 (AGPL-3.0). You are free to use, study, share, and modify it under that license. Because the AGPL requires it, the complete corresponding source code is offered to everyone who uses the app.'**
+  /// **'Caller\'s Compendium is free software, licensed under the GNU Affero General Public License, version 3 (AGPL-3.0-only). You are free to use, study, share, and modify it under that license. Because the AGPL requires it, the complete corresponding source code is offered to everyone who uses the app.'**
   String get settingsAboutLicenseBody;
 
   /// Title of the tile that opens the app's source-code repository.
@@ -2696,11 +2696,17 @@ abstract class AppLocalizations {
   /// **'Full open-source license texts, including the bundled fonts.'**
   String get settingsAboutViewLicensesSubtitle;
 
-  /// Legal notice shown on the license page. 'The Caller's Compendium' and 'AGPL-3.0' are proper nouns kept verbatim.
+  /// Legal notice shown on the license page. 'The Caller's Compendium' and 'AGPL-3.0-only' are proper nouns kept verbatim.
   ///
   /// In en, this message translates to:
-  /// **'© The Caller\'s Compendium contributors. Licensed under AGPL-3.0.'**
+  /// **'© The Caller\'s Compendium contributors. Licensed under AGPL-3.0-only.'**
   String get settingsAboutLegalese;
+
+  /// One-line tagline shown under the version on the About brand header, and used as the Linux launcher comment. 'Caller's box' is a colloquial term among dance callers for the bag or case of cards, notes and gear a caller carries; it is not a product name or trademark, so translate the idiom naturally rather than literally.
+  ///
+  /// In en, this message translates to:
+  /// **'Your caller\'s box, in the palm of your hand'**
+  String get settingsAboutTagline;
 
   /// Version and release-codename line under the app wordmark in the About header. The codename is a proper noun kept verbatim.
   ///
@@ -2708,13 +2714,12 @@ abstract class AppLocalizations {
   /// **'Version {version}, \"{codename}\"'**
   String settingsAboutVersion(String version, String codename);
 
-  /// One-line footer at the bottom of the About section combining the app name, version, release codename, and license identifier. The app name, version, codename, and license are proper nouns / identifiers kept verbatim; only the word 'Version' is translatable.
+  /// One-line footer at the bottom of the About section combining the app name, release codename, and license identifier. The version is deliberately not repeated here: it is shown once, in the About header. The app name, codename, and license are proper nouns / identifiers kept verbatim.
   ///
   /// In en, this message translates to:
-  /// **'{appName} · Version {version}, \"{codename}\" · {license}'**
+  /// **'{appName} · \"{codename}\" · {license}'**
   String settingsAboutVersionLine(
     String appName,
-    String version,
     String codename,
     String license,
   );

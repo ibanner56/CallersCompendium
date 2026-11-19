@@ -1570,6 +1570,31 @@ void main() {
     expect(saved.slots.single.danceId, isNull);
   });
 
+  testWidgets('free-text slot dialog: an outside tap keeps typed text', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.programs.create(_program(id: 'p1', title: 'Night'));
+    await _pumpBuilder(tester, repos, programId: 'p1');
+    const input = ValueKey('free-text-slot-input');
+
+    // Untouched, the barrier still closes it.
+    await tester.tap(find.byKey(const ValueKey('add-free-text-slot')));
+    await tester.pumpAndSettle();
+    await tester.tapAt(const Offset(4, 4));
+    await tester.pumpAndSettle();
+    expect(find.byKey(input), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('add-free-text-slot')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(input), 'Potluck supper');
+    await tester.pump();
+    await tester.tapAt(const Offset(4, 4));
+    await tester.pumpAndSettle();
+    expect(find.byKey(input), findsOneWidget);
+    expect(find.text('Potluck supper'), findsOneWidget);
+  });
+
   testWidgets('one-tap insert break adds a canonical break slot', (
     tester,
   ) async {

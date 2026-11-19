@@ -1,5 +1,6 @@
 /// Static app identity used by the About/Licenses section (settings) and any
-/// other in-app attribution surface.
+/// other in-app attribution surface. Screens that show the version to the user
+/// use [kUpdaterVersion], which carries any beta suffix.
 ///
 /// The version is kept as a plain constant rather than read at runtime via a
 /// plugin (e.g. `package_info_plus`): the app has no existing runtime version
@@ -12,12 +13,7 @@ library;
 /// Human-facing application name.
 const String kAppName = "Caller's Compendium";
 
-/// One-line mission/tagline shown under the app name on the About brand header.
-/// Kept here as the single source of truth so any other surface can reuse it.
-const String kAppTagline =
-    'Your dances, your dialect — in the hall or on the road.';
-
-/// Marketing/display version. Mirror the exact `version:` in `app/pubspec.yaml`.
+/// Marketing version, always bare (no beta suffix). Mirror the exact `version:` in `app/pubspec.yaml`.
 const String kAppVersion = '0.10.0';
 
 /// Human-facing release codename.
