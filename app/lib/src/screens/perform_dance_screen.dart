@@ -25,6 +25,7 @@ import 'settings_screen.dart'
         kAutoSizePerformKey,
         kConfirmPerformExitDefault,
         kShowIndividualPerformTimerKey;
+import '../theme/app_breakpoints.dart';
 
 /// Full-screen, large-print Perform mode for a single [Dance]
 /// (`docs/design/ux.md` §5; ROADMAP 5.1). Entered explicitly from the dance
@@ -449,7 +450,7 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
           // narrow widths (issue #433). LayoutBuilder reflects the actual
           // laid-out width even where MediaQuery does not (e.g. setSurfaceSize
           // in widget tests).
-          wide: constraints.maxWidth >= kPerformActionsCollapseWidth,
+          wide: constraints.maxWidth >= AppBreakpoints.compact,
         ),
       ),
     );

@@ -10,7 +10,15 @@ import 'package:flutter_test/flutter_test.dart';
 /// new job, creeping in. Every screen that floats one also leaves
 /// [AppSpacing.fabClearance] below its content, so the button never covers
 /// the last row.
-final _fab = RegExp(r'\bFloatingActionButton(?:\.\w+)?\(');
+///
+/// Screens float their labelled button through `adaptiveExtendedFab(...)`
+/// (`widgets/adaptive_fab.dart`), so a call to it counts as a floating button
+/// here, with its own icon argument. The helper itself only forwards its
+/// caller's icon and is left out of the scan; its callers are what is checked.
+final _fab = RegExp(
+  r'\b(?:FloatingActionButton(?:\.\w+)?|adaptiveExtendedFab)\(',
+);
+const _fabHelper = 'adaptive_fab.dart';
 final _allowedIcon = RegExp(
   r'\bIcons\.(?:add|edit_outlined|library_add_outlined)\b',
 );
@@ -58,6 +66,7 @@ void main() {
       .listSync(recursive: true)
       .whereType<File>()
       .where((f) => f.path.endsWith('.dart'))
+      .where((f) => !f.path.endsWith(_fabHelper))
       .toList();
 
   test('every floating button creates, edits or imports; none saves', () {
@@ -126,5 +135,15 @@ void main() {
     expect(strayFabsIn('x.dart', edit), isEmpty);
     expect(strayFabsIn('x.dart', import), isEmpty);
     expect(floatsAButton('FloatingActionButtonThemeData()'), isFalse);
+    // A screen's call to the shared helper is a floating button too.
+    const helperSave = '''
+      adaptiveExtendedFab(
+        context,
+        key: const ValueKey('save'),
+        icon: const Icon(Icons.save_outlined),
+        label: l10n.commonSave,
+      )''';
+    expect(strayFabsIn('x.dart', helperSave), ['x.dart:1']);
+    expect(floatsAButton(helperSave), isTrue);
   });
 }

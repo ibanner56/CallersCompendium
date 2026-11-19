@@ -14,6 +14,7 @@ import '../theme/app_spacing.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/undo_snack_bar.dart';
 import 'venue_editor_sheet.dart';
+import '../widgets/adaptive_fab.dart';
 
 /// A full-screen manager to browse, search, create, edit, and delete the
 /// reusable [Venue] records. Reached from Settings ▸ Venues.
@@ -194,11 +195,13 @@ class _VenueManagerScreenState extends State<VenueManagerScreen> {
       // venue button, so it waits until there is a venue.
       floatingActionButton: _loading || _error != null || _venues.isEmpty
           ? null
-          : FloatingActionButton.extended(
+          : adaptiveExtendedFab(
+              context,
               key: const ValueKey('venue-manager-add'),
+              heroTag: 'venue-manager-add',
               onPressed: _create,
               icon: const Icon(Icons.add),
-              label: Text(l10n.venueNew),
+              label: l10n.venueNew,
             ),
       body: Column(
         children: [

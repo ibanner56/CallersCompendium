@@ -5,6 +5,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart' show SystemChannels;
 import 'package:flutter_test/flutter_test.dart';
 
@@ -61,6 +62,7 @@ import '../support/noop_sync_transport.dart';
 import '../support/fail_once_interceptor.dart';
 import '../support/test_repositories.dart';
 import '../support/l10n_harness.dart';
+import 'package:compendium_app/src/theme/app_breakpoints.dart';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -128,6 +130,10 @@ _pumpSettings(
   bool initialTrackHistoryForAllCallers = false,
   Size surfaceSize = const Size(1000, 2600),
   BackupSaver? backupSaver,
+
+  /// The sidebar section to open once pumped (side-by-side layout), such as
+  /// `'appearance'`. Settings opens on General.
+  String? section,
 
   /// Replaces the sync-local repository the controller writes through, so a
   /// test can make the local half of a wipe fail after the server half has
@@ -314,6 +320,10 @@ _pumpSettings(
     ),
   );
   await tester.pumpAndSettle();
+  if (section != null) {
+    await tester.tap(find.byKey(ValueKey('settings-nav-$section')));
+    await tester.pumpAndSettle();
+  }
   return (
     repos: repos,
     syncSettings: syncSettings,
@@ -1141,7 +1151,7 @@ void main() {
     testWidgets('renders a preview card for every theme option', (
       tester,
     ) async {
-      await _pumpSettings(tester);
+      await _pumpSettings(tester, section: 'appearance');
 
       for (final option in AppThemeSelection.values) {
         final card = find.byKey(ValueKey('theme-${option.name}'));
@@ -1220,7 +1230,7 @@ void main() {
     });
 
     testWidgets('wide pane keeps the 220 pt cards', (tester) async {
-      await _pumpSettings(tester);
+      await _pumpSettings(tester, section: 'appearance');
 
       final light = tester.getRect(
         find.byKey(ValueKey('theme-${AppThemeSelection.light.name}')),
@@ -1231,7 +1241,11 @@ void main() {
     testWidgets('the active option shows a non-color-only selected state', (
       tester,
     ) async {
-      await _pumpSettings(tester, initialTheme: AppThemeSelection.dark);
+      await _pumpSettings(
+        tester,
+        section: 'appearance',
+        initialTheme: AppThemeSelection.dark,
+      );
 
       // Selection must not rely on color alone: the active card also renders a
       // check icon and a "Selected" label.
@@ -1266,6 +1280,7 @@ void main() {
     testWidgets('selecting a theme updates the notifier live', (tester) async {
       final ctx = await _pumpSettings(
         tester,
+        section: 'appearance',
         initialTheme: AppThemeSelection.system,
       );
 
@@ -1284,6 +1299,7 @@ void main() {
     ) async {
       final ctx = await _pumpSettings(
         tester,
+        section: 'appearance',
         initialTheme: AppThemeSelection.system,
       );
 
@@ -1377,6 +1393,7 @@ void main() {
     ) async {
       final ctx = await _pumpSettings(
         tester,
+        section: 'appearance',
         initialTheme: AppThemeSelection.system,
       );
 
@@ -1393,7 +1410,7 @@ void main() {
     });
 
     testWidgets('gallery renders labeled group headings', (tester) async {
-      await _pumpSettings(tester);
+      await _pumpSettings(tester, section: 'appearance');
       for (final group in AppThemeGroup.values) {
         expect(
           find.text(group.label),
@@ -1422,7 +1439,7 @@ void main() {
     testWidgets('shows an empty-state hint and a New custom theme button', (
       tester,
     ) async {
-      await _pumpSettings(tester);
+      await _pumpSettings(tester, section: 'appearance');
       await revealInAppearance(
         tester,
         find.byKey(const ValueKey('new-custom-theme')),
@@ -1432,7 +1449,7 @@ void main() {
     });
 
     testWidgets('renders a card for each saved custom theme', (tester) async {
-      final ctx = await _pumpSettings(tester);
+      final ctx = await _pumpSettings(tester, section: 'appearance');
       final created = await ctx.customThemes.duplicate(
         name: 'Test Theme',
         brightness: Brightness.dark,
@@ -1453,6 +1470,7 @@ void main() {
     ) async {
       final ctx = await _pumpSettings(
         tester,
+        section: 'appearance',
         initialTheme: AppThemeSelection.monokai,
       );
       final created = await ctx.customThemes.duplicate(
@@ -1477,7 +1495,7 @@ void main() {
     testWidgets('selecting a built-in theme clears the active custom theme', (
       tester,
     ) async {
-      final ctx = await _pumpSettings(tester);
+      final ctx = await _pumpSettings(tester, section: 'appearance');
       final created = await ctx.customThemes.duplicate(
         name: 'Test Theme',
         brightness: Brightness.dark,
@@ -1509,7 +1527,7 @@ void main() {
 
     testWidgets('deleting a custom theme removes it, says so by name, and '
         'Undo brings it back', (tester) async {
-      final ctx = await _pumpSettings(tester);
+      final ctx = await _pumpSettings(tester, section: 'appearance');
       final created = await ctx.customThemes.duplicate(
         name: 'Doomed Theme',
         brightness: Brightness.dark,
@@ -1534,7 +1552,7 @@ void main() {
     testWidgets('Undo keeps a built-in theme chosen after the delete', (
       tester,
     ) async {
-      final ctx = await _pumpSettings(tester);
+      final ctx = await _pumpSettings(tester, section: 'appearance');
       final created = await ctx.customThemes.duplicate(
         name: 'Doomed Theme',
         brightness: Brightness.dark,
@@ -1567,7 +1585,7 @@ void main() {
     testWidgets('Undo makes a deleted active theme active again', (
       tester,
     ) async {
-      final ctx = await _pumpSettings(tester);
+      final ctx = await _pumpSettings(tester, section: 'appearance');
       final created = await ctx.customThemes.duplicate(
         name: 'Doomed Theme',
         brightness: Brightness.dark,
@@ -1586,7 +1604,11 @@ void main() {
     testWidgets('with Confirm before delete on, Cancel keeps the theme', (
       tester,
     ) async {
-      final ctx = await _pumpSettings(tester, confirmBeforeDelete: true);
+      final ctx = await _pumpSettings(
+        tester,
+        section: 'appearance',
+        confirmBeforeDelete: true,
+      );
       final created = await ctx.customThemes.duplicate(
         name: 'Keeper Theme',
         brightness: Brightness.dark,
@@ -1701,20 +1723,143 @@ void main() {
       );
     });
 
-    testWidgets('appearance is shown by default and dialect is hidden', (
+    testWidgets('General, first in the sidebar, is shown by default', (
       tester,
     ) async {
       await _pumpSettings(tester);
-      // Appearance content: the theme gallery is present.
+      // General is selected in the sidebar and its content is mounted.
       expect(
-        find.byKey(ValueKey('theme-${AppThemeSelection.system.name}')),
+        tester
+            .widget<ListTile>(
+              find.byKey(const ValueKey('settings-nav-general')),
+            )
+            .selected,
+        isTrue,
+      );
+      expect(
+        find.byKey(const ValueKey('general-sort-ignore-articles')),
         findsOneWidget,
       );
-      // Dialect content is not mounted until its section is selected.
+      // No other section is selected, and Appearance's theme gallery is not
+      // mounted until its section is chosen.
+      for (final tile in tester.widgetList<ListTile>(
+        find.byWidgetPredicate(
+          (w) =>
+              w is ListTile &&
+              w.key is ValueKey<String> &&
+              (w.key! as ValueKey<String>).value.startsWith('settings-nav-'),
+        ),
+      )) {
+        expect(
+          tile.selected,
+          tile.key == const ValueKey('settings-nav-general'),
+          reason: '${tile.key}',
+        );
+      }
       expect(
-        find.byKey(ValueKey('dialect-tile-${Dialect.larksRobins.name}')),
+        find.byKey(ValueKey('theme-${AppThemeSelection.system.name}')),
         findsNothing,
       );
+    });
+
+    for (final (width, sideBySide) in [
+      (AppBreakpoints.split - 1, false),
+      (AppBreakpoints.split, true),
+    ]) {
+      testWidgets('shown on its own, ${width.toInt()} px wide, side by side: '
+          '$sideBySide', (tester) async {
+        await _pumpSettings(tester, surfaceSize: Size(width, 1400));
+        expect(
+          find.byKey(const ValueKey('general-sort-ignore-articles')),
+          sideBySide ? findsOneWidget : findsNothing,
+        );
+        expect(
+          find.descendant(
+            of: find.byKey(const ValueKey('settings-nav-general')),
+            matching: find.byIcon(Icons.chevron_right),
+          ),
+          sideBySide ? findsNothing : findsOneWidget,
+        );
+      });
+    }
+
+    for (final scale in [1.0, 2.0]) {
+      testWidgets('no sidebar label breaks inside a word at ${scale}x text', (
+        tester,
+      ) async {
+        tester.platformDispatcher.textScaleFactorTestValue = scale;
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+        await _pumpSettings(tester);
+
+        final tiles = find.byWidgetPredicate(
+          (w) =>
+              w is ListTile &&
+              w.key is ValueKey<String> &&
+              (w.key! as ValueKey<String>).value.startsWith('settings-nav-'),
+        );
+        final sideBySide = find
+            .byKey(const ValueKey('general-sort-ignore-articles'))
+            .evaluate()
+            .isNotEmpty;
+        if (scale == 2.0) {
+          // The longest word cannot fit the widest sidebar: one pane instead.
+          expect(sideBySide, isFalse);
+        }
+        for (final tile in tiles.evaluate()) {
+          final paragraph = tester.renderObject<RenderParagraph>(
+            find.descendant(
+              of: find.byWidget(tile.widget),
+              matching: find.byType(Text),
+            ),
+          );
+          final label = paragraph.text.toPlainText();
+          for (final word in label.split(' ')) {
+            final painter = TextPainter(
+              text: TextSpan(text: word, style: paragraph.text.style),
+              textDirection: TextDirection.ltr,
+              textScaler: paragraph.textScaler,
+            )..layout();
+            expect(
+              paragraph.constraints.maxWidth,
+              greaterThanOrEqualTo(painter.width),
+              reason: '"$word" of "$label" must fit on its line',
+            );
+            painter.dispose();
+          }
+        }
+      });
+    }
+
+    testWidgets('every sidebar label fits on one line', (tester) async {
+      // The test font draws every glyph as wide as the font size, so text is
+      // scaled down until "Language & region" fits within the sidebar's cap;
+      // a fixed 180 px sidebar still wraps it.
+      tester.platformDispatcher.textScaleFactorTestValue = 0.5;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await _pumpSettings(tester);
+
+      double labelHeight(String section) => tester
+          .getSize(
+            find.descendant(
+              of: find.byKey(ValueKey('settings-nav-$section')),
+              matching: find.byType(Text),
+            ),
+          )
+          .height;
+      final oneLine = labelHeight('general');
+      for (final section in [
+        'program',
+        'appearance',
+        'dialect',
+        'regional',
+        'defaults',
+        'updates',
+        'diagnostics',
+        'experimental',
+        'about',
+      ]) {
+        expect(labelHeight(section), oneLine, reason: section);
+      }
     });
 
     testWidgets('selecting Dialect swaps the content pane', (tester) async {
@@ -1769,9 +1914,9 @@ void main() {
     testWidgets('settings sections render via the shared SectionHeader', (
       tester,
     ) async {
-      await _pumpSettings(tester);
+      await _pumpSettings(tester, section: 'appearance');
 
-      // The Appearance section is shown by default; its headers are rendered
+      // The Appearance section's headers are rendered
       // by the shared SectionHeader (extracted from this screen so the dance
       // editor can reuse the identical style).
       expect(find.widgetWithText(SectionHeader, 'Theme'), findsOneWidget);
