@@ -223,7 +223,8 @@ void main() {
       kUndoPromptDefaultSeconds,
     );
 
-    // Exactly the maintainer's choices, in order.
+    // Exactly kUndoPromptSecondOptions' choices and "until closed", in
+    // order, spelled out so a change to the list is a visible test change.
     expect(
       tester
           .widget<DropdownButton<int>>(dropdown)

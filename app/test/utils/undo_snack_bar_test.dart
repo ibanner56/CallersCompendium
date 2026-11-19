@@ -237,8 +237,10 @@ void main() {
       );
       await _showAndAwaitEntrance(tester);
 
-      // 1.8 s after the entrance ended, 2.1 s after it began: a timer that
-      // started with the entrance would have sent it out by now.
+      // 2.1 s after the prompt was shown, and 1.8 s after the frame that saw
+      // its entrance complete (the 250 ms entrance ends inside the 300 ms
+      // pump above): a timer that started when the prompt was first built
+      // would have sent it out by now.
       await tester.pump(const Duration(milliseconds: 1800));
       expect(
         tester.widget<SnackBar>(find.byType(SnackBar)).animation!.status,
