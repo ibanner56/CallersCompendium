@@ -19,7 +19,8 @@
     "changed": [
       "`Dialect.validate` reports `gendered_role_term` for a gendered word in a role term, substitution, move wording or branch entry, and `Dialect.fromJson` replaces a gendered role term with the Larks/Robins term and drops gendered substitutions and wordings.",
       "`syncCollectionEntries` labels a dialect whose name is gendered with `Dialect.customName`.",
-      "`FigureRenderer.moveWordingTemplate` seeds an English Country Dance movement's wording with each switch group (`[{?flag}words]`) written as the condition `[if flag then words]`, so the seed saves and reads as the movement does by default."
+      "`FigureRenderer.moveWordingTemplate` seeds an English Country Dance movement's wording that saves as it stands and reads as the movement does by default: each switch group (`[{?flag}words]`) becomes the condition `[if flag then words]`, and the template's own choices (a run of changes with no count, a hey with no `who`, a forward and back with no direction) become conditions too. A wording of an ECD movement now reads its slots in ECD's words (\"back to place\") and leaves no space before a comma.",
+      "A wording condition on an ECD `who` (a list of dancers) is empty when the list names nobody; it read as filled before."
     ]
   }
 }

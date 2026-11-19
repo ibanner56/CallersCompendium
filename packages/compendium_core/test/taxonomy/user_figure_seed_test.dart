@@ -122,4 +122,14 @@ void main() {
     expect(seed.copiedFrom, 'pull_by');
     expect(seed.param('who')?.defaultValue, 'neighbors');
   });
+
+  test('an ECD movement seeds no wording condition as words', () {
+    final ecd = shippedTaxonomies.forForm(DanceForm.ecd);
+    final shown = <String>[];
+    for (final id in ecd.moves.keys.where((id) => id.startsWith('ecd_'))) {
+      final template = userFigureSeedFromMove(ecd, id)!.template;
+      if (template.contains('[if ')) shown.add('$id: $template');
+    }
+    expect(shown, isEmpty);
+  });
 }

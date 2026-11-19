@@ -705,6 +705,10 @@ bool _isFilled(WordingSubject subject) {
     return value.isNotEmpty && value != ParamVocab.unspecified;
   }
   if (value is bool) return value;
+  // An ECD `who` (ADR-006 §5.2) is a list; one that names nobody is empty.
+  if (value is List) {
+    return value.any((t) => t is String && _isFilled(WordingSubject(null, t)));
+  }
   return true;
 }
 

@@ -660,6 +660,19 @@ class FigureRenderer {
           forCanonical: false,
           includeSilencedDefaults: true,
         );
+        // An ECD slot reads in a wording as it does in the default line
+        // ("back to place", a set's unsaid right).
+        if (isEcdMove(def.id)) {
+          for (final name in [...wordingSlots.keys]) {
+            final words = ecdSlotWords(
+              def.id,
+              name,
+              params,
+              forCanonical: false,
+            );
+            if (words != null) wordingSlots[name] = words;
+          }
+        }
         // `{!name}` slots: recompute with every hiding rule lifted and expose
         // the result under the `!name` key. Slots owned by a display base
         // renderer have no forced form and read as their plain slot.
@@ -730,6 +743,8 @@ class FigureRenderer {
             ? (line.trimLeft().startsWith('single file ')
                   ? line
                   : 'single file $line')
+            : isEcdMove(def.id)
+            ? ecdWordingLine(line)
             : line;
         return figure.assumedSubject
             ? _spliceAssumedSubjectMarker(displayLine)

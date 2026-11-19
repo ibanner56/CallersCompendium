@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import '../dialect/ecd_display.dart';
 import '../dialect/renderer.dart';
 import '../validation/validation.dart';
 import 'param_types.dart';
@@ -111,7 +112,10 @@ UserFigureDefinition? userFigureSeedFromMove(
       FigureRenderer.isValidMoveWordingTemplate(template) &&
       probe.slots.containsAll(userFigureTemplateSlots(template));
   final template = [
-    renderer.moveWordingTemplate(listed ? moveId : def.id),
+    // An ECD movement's wording seed writes its switch groups as conditions,
+    // which a figure of the user's would show as words.
+    if (!isEcdMove(def.id))
+      renderer.moveWordingTemplate(listed ? moveId : def.id),
     def.renderTemplate,
   ].firstWhere(fits, orElse: () => '{$userFigureMoveSlot}')!;
 
