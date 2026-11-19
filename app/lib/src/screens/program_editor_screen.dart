@@ -50,6 +50,7 @@ import '../utils/confirm_delete.dart';
 import '../utils/safe_name.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/app_date_picker.dart';
+import '../widgets/app_bar_text_action.dart';
 import '../widgets/app_shortcuts.dart';
 import '../widgets/collection_picker.dart';
 import '../widgets/confirm_discard_changes.dart';
@@ -646,7 +647,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     super.initState();
     if (widget.isNew) _openDraftKeys.add(_newProgramDraftKey);
     _tabController = TabController(length: 2, vsync: this);
-    // Rebuild so the save FAB can hide on the read-only Matrix tab.
+    // Rebuild so the top bar's Save can hide on the read-only Matrix tab.
     _tabController.addListener(() {
       if (mounted) setState(() {});
     });
@@ -3603,6 +3604,18 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 onPressed: _pickerImporting || _deleting ? null : _delete,
               ),
             ],
+            // Save goes last in the top bar, as in every full-screen editor
+            // (`docs/design/ux.md`, "Where Save, New and the record's name
+            // go"): a floating Save covered the slots. Build tab only, as the
+            // Matrix tab is read-only; Ctrl/Cmd-S follows the same rule.
+            if (_loaded && _loadError == null && _tabController.index == 0)
+              AppBarTextAction(
+                key: const ValueKey('save-program'),
+                label: l10n.commonSave,
+                icon: Icons.check,
+                busy: _saving,
+                onPressed: _saving || _pickerImporting ? null : _save,
+              ),
           ],
         ),
         body: TabBarView(
@@ -3612,16 +3625,6 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
               : null,
           children: [_buildBody(), _buildMatrixTab()],
         ),
-        floatingActionButton:
-            (_loaded && _loadError == null && _tabController.index == 0)
-            ? FloatingActionButton.extended(
-                key: const ValueKey('save-program'),
-                heroTag: 'save-program',
-                onPressed: _saving || _pickerImporting ? null : _save,
-                icon: const Icon(Icons.save_outlined),
-                label: Text(l10n.commonSave),
-              )
-            : null,
       ),
     );
     return Actions(
@@ -3765,7 +3768,6 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                           offstage: _previewPane == _PreviewPane.picker,
                           child: CollectionPicker(
                             key: const ValueKey('inline-picker'),
-                            bottomInset: AppSpacing.fabClearance,
                             data: data,
                             dialect: _dialect,
                             enrichment: _enrichment,
@@ -4077,12 +4079,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       key: _formKey,
       child: ListView(
         keyboardDismissBehavior: textEntryKeyboardDismiss(),
-        // The bottom inset lets the last slot scroll clear of the Save FAB.
+        // Nothing floats over the slots, so the bottom inset is an ordinary
+        // section gap.
         padding: const EdgeInsets.fromLTRB(
           AppSpacing.md,
           AppSpacing.md,
           AppSpacing.md,
-          AppSpacing.fabClearance,
+          AppSpacing.lg,
         ),
         children: [
           _buildMetadataSection(),

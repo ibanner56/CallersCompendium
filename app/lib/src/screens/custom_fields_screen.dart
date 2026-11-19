@@ -321,13 +321,17 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
               ),
       ),
       body: _buildBody(),
-      floatingActionButton: FloatingActionButton.extended(
-        key: const ValueKey('add-field'),
-        heroTag: 'add-field',
-        onPressed: () => _openForm(),
-        icon: const Icon(Icons.add),
-        label: Text(l10n.customFieldsNewField),
-      ),
+      // The floating New is for a list: the empty message carries its own
+      // New field button, so it waits until there is a field.
+      floatingActionButton: _loading || _loadError != null || _defs.isEmpty
+          ? null
+          : FloatingActionButton.extended(
+              key: const ValueKey('add-field'),
+              heroTag: 'add-field',
+              onPressed: () => _openForm(),
+              icon: const Icon(Icons.add),
+              label: Text(l10n.customFieldsNewField),
+            ),
     );
   }
 
@@ -354,7 +358,19 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: Text(l10n.customFieldsEmpty, textAlign: TextAlign.center),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(l10n.customFieldsEmpty, textAlign: TextAlign.center),
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                key: const ValueKey('custom-fields-empty-add'),
+                onPressed: () => _openForm(),
+                icon: const Icon(Icons.add),
+                label: Text(l10n.customFieldsNewField),
+              ),
+            ],
+          ),
         ),
       );
     }

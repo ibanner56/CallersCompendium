@@ -203,12 +203,16 @@ class _VenueManagerScreenState extends State<VenueManagerScreen> {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(title: Text(l10n.venueManagerTitle)),
-      floatingActionButton: FloatingActionButton.extended(
-        key: const ValueKey('venue-manager-add'),
-        onPressed: _create,
-        icon: const Icon(Icons.add),
-        label: Text(l10n.venueNew),
-      ),
+      // The floating New is for a list: the empty state carries its own New
+      // venue button, so it waits until there is a venue.
+      floatingActionButton: _loading || _error != null || _venues.isEmpty
+          ? null
+          : FloatingActionButton.extended(
+              key: const ValueKey('venue-manager-add'),
+              onPressed: _create,
+              icon: const Icon(Icons.add),
+              label: Text(l10n.venueNew),
+            ),
       body: Column(
         children: [
           Padding(
@@ -283,7 +287,7 @@ class _VenueManagerScreenState extends State<VenueManagerScreen> {
       );
     }
     return ListView.builder(
-      // Lets the last venue scroll clear of the "New venue" FAB.
+      // Lets the last venue scroll clear of the floating New venue.
       padding: const EdgeInsets.only(bottom: AppSpacing.fabClearance),
       itemCount: filtered.length,
       itemBuilder: (context, index) {
