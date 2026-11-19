@@ -68,6 +68,11 @@ const List<String> ecdSelectors = [
 /// §6.4), in camelCase (§6.1), then [ParamVocab.unspecified]. A figure that
 /// states none stores none, which reads the same as the sentinel.
 const List<String> ecdDestinations = [
+  ..._statedDestinations,
+  ParamVocab.unspecified,
+];
+
+const List<String> _statedDestinations = [
   'place',
   'firstPlace',
   'secondPlace',
@@ -82,7 +87,6 @@ const List<String> ecdDestinations = [
   'diagonalsPlace',
   'allImproper',
   'allProper',
-  ParamVocab.unspecified,
 ];
 
 const _u = ParamVocab.unspecified;
@@ -137,6 +141,13 @@ const _destination = ParamSpec(
   ParamKind.choice,
   defaultValue: _u,
   choices: ecdDestinations,
+);
+// A cast also ends at the top or the bottom of the set, as contra's `cast`
+// does ("cast down to bottom"): the maintainer's decision of 2026-11-19.
+const _castDestination = ParamSpec(
+  ParamKind.choice,
+  defaultValue: _u,
+  choices: [..._statedDestinations, 'top', 'bottom', _u],
 );
 const _no = ParamSpec(ParamKind.flag, defaultValue: false);
 
@@ -365,6 +376,8 @@ final Taxonomy ecdTaxonomy = Taxonomy(
       renderTemplate:
           '{who} {move} [{whom}] [with {pair}] [{direction}] [{travel}] '
           '[to face {endFacing}] [, {destination}]',
+      // A hand cast is a gate (the maintainer's decision of 2026-11-19).
+      searchKeywords: const ['hand cast'],
     ),
     MoveDef(
       id: '${_p}orbit',
@@ -953,16 +966,24 @@ final Taxonomy ecdTaxonomy = Taxonomy(
     MoveDef(
       id: '${_p}cast',
       displayName: 'cast',
+      // One parameter shape with contra's `cast` (#770), so a contra-imported
+      // English dance re-reads one to one (F5): the maintainer's decision of
+      // 2026-11-19 (§7.5, §9.4).
       params: {
         'who': _who,
-        'where': _where(['off', 'up', 'down', 'around']),
-        'direction': _side,
+        // `left`/`right` is the shoulder turned over, not a side of the set:
+        // clockwise is over the right shoulder, counterclockwise the left.
+        'direction': _where(['left', 'right', 'up', 'down']),
+        // "Cast off" is `down`, one place, unless a number is stated.
+        'places': _places,
         'whom': _whom,
-        'destination': _destination,
+        'destination': _castDestination,
         'beats': _beats(4),
       },
+      // `{direction}` is always worded: "back" when unstated, "back left",
+      // "back right", "up" or "down" (`ecdSlotWords`).
       renderTemplate:
-          '{who} {move} [{where}] [{direction}] [around {whom}] '
+          '{who} {move} {direction} [{places}] [around {whom}] '
           '[{destination}]',
       searchKeywords: const ['cast off', 'cast up', 'cast down'],
     ),

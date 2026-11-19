@@ -2327,6 +2327,16 @@ marker for the English Country Dance taxonomy, logged here.
     `{?flag}` like a `{param}`, and a `dancerList` as its tokens sorted and
     joined by `+`. No contra key changes, so the signature version stays 2,
     and `migrateFigureSnippetSignature` leaves `ecd_` keys as they are.
+    **Amended before release (2026-11-19): cast.** By the maintainer's
+    decision, `ecd_cast` takes contra `cast`'s parameter shape (#770,
+    ADR-006 §9.4): `where` (off/up/down/around) is gone; `direction` is
+    `left`/`right`/`up`/`down`/`unspecified`, where `left` and `right` are
+    the shoulder turned over, not a side of the set; `places` is new
+    (`unspecified` by default, "cast off" is `down` with 1); `whom` holds
+    "cast around"; `destination` adds `top` and `bottom` for cast alone. An
+    unstated direction reads "cast back". `ecd_gate` gains "hand cast" as a
+    search keyword. v1 had not shipped in a release tag, so it was amended in
+    place rather than bumped (CONTRIBUTING.md "Versioned formats").
 
 ## Open questions (to resolve during implementation, with user input)
 

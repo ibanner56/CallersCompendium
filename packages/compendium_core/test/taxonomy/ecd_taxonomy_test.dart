@@ -574,6 +574,134 @@ void main() {
     });
   });
 
+  group('cast (§7.5, §9.4)', () {
+    String cast(Map<String, Object?> params) =>
+        _show(testFigure(move: 'ecd_cast', params: params));
+
+    test('takes contra cast\'s parameter shape', () {
+      final def = ecdTaxonomy.moves['ecd_cast']!;
+      expect(def.params.keys.toSet(), {
+        'who',
+        'direction',
+        'places',
+        'whom',
+        'destination',
+        'beats',
+      });
+      expect(def.params['direction']!.kind, ParamKind.choice);
+      expect(def.params['direction']!.choices, [
+        'left',
+        'right',
+        'up',
+        'down',
+        ParamVocab.unspecified,
+      ]);
+      expect(def.params['places']!.kind, ParamKind.places);
+      expect(def.params['places']!.choices, [ParamVocab.unspecified]);
+      expect(
+        def.params['destination']!.choices,
+        containsAll(['top', 'bottom', 'secondPlace', ParamVocab.unspecified]),
+      );
+      expect(def.params['destination']!.choices!.last, ParamVocab.unspecified);
+      expect(def.params['beats']!.defaultValue, 4);
+      // Only a cast ends at the top or bottom.
+      expect(ecdDestinations, isNot(contains('top')));
+      expect(ecdDestinations, isNot(contains('bottom')));
+    });
+
+    test('reads back when no direction is stated', () {
+      expect(cast({}), 'cast back');
+      expect(
+        cast({
+          'who': ['ones'],
+        }),
+        'ones cast back',
+      );
+    });
+
+    test('a shoulder reads back left or back right', () {
+      expect(
+        cast({
+          'who': ['ones'],
+          'direction': 'left',
+        }),
+        'ones cast back left',
+      );
+      expect(cast({'direction': 'right'}), 'cast back right');
+    });
+
+    test('up and down read on their own, with any places', () {
+      expect(
+        cast({
+          'who': ['ones'],
+          'direction': 'down',
+          'places': 1,
+        }),
+        'ones cast down 1 place',
+      );
+      expect(
+        cast({
+          'who': ['twos'],
+          'direction': 'up',
+          'places': 2,
+        }),
+        'twos cast up 2 places',
+      );
+    });
+
+    test('around whom, and to a destination, including the bottom', () {
+      expect(
+        cast({
+          'who': ['ones'],
+          'whom': 'twos',
+        }),
+        'ones cast back around twos',
+      );
+      expect(
+        cast({
+          'who': ['ones'],
+          'direction': 'down',
+          'destination': 'bottom',
+        }),
+        'ones cast down to bottom',
+      );
+      expect(
+        cast({
+          'who': ['ones'],
+          'direction': 'down',
+          'destination': 'secondPlace',
+        }),
+        'ones cast down to second place',
+      );
+    });
+
+    test('canonical text words the direction as the display does', () {
+      expect(
+        _renderer.renderCanonical(
+          testFigure(
+            move: 'ecd_cast',
+            params: {
+              'who': ['ones'],
+              'direction': 'down',
+            },
+          ),
+        ),
+        'ones cast down',
+      );
+    });
+
+    test('a hand cast is found as a gate', () {
+      expect(
+        ecdTaxonomy.moves['ecd_gate']!.searchKeywords,
+        contains('hand cast'),
+      );
+      expect(
+        ecdTaxonomy.moves['ecd_cast']!.searchKeywords,
+        contains('cast off'),
+      );
+    });
+  });
+
   group('a sequence\'s span (§5.5)', () {
     Figure step({int? beats}) =>
         testFigure(move: 'ecd_set', params: {'beats': ?beats});

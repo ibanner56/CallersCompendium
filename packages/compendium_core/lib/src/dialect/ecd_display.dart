@@ -116,6 +116,15 @@ String? ecdSlotWords(
     case 'move'
         when move == 'turn_single' && params['shoulder'] == 'cloverleaf':
       return 'cloverleaf turn single';
+    // A cast is always worded by its direction (§7.5): "cast back" when the
+    // figure states none, "cast back left" or "cast back right" for the
+    // shoulder turned over, "cast up" or "cast down".
+    case 'direction' when move == 'cast':
+      return switch (value) {
+        'left' || 'right' => 'back $value',
+        'up' || 'down' => '$value',
+        _ => 'back',
+      };
     // A set's side is shown only when it is not right (§7.1).
     case 'direction' when move == 'set' && !forCanonical:
       return value == 'right' ? '' : null;
