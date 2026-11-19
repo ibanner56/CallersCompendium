@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:compendium_app/src/data/undo_prompt_duration_scope.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/callersbox_online.dart';
 import 'package:compendium_app/src/data/import_io.dart';
@@ -309,7 +310,7 @@ void main() {
 
     // Let the first import's snackbar auto-dismiss so the second import's
     // message isn't queued behind it.
-    await tester.pump(const Duration(seconds: 5));
+    await tester.pump(const Duration(seconds: kUndoPromptDefaultSeconds + 1));
     await tester.pumpAndSettle();
 
     // Search + preview the same dance again: it is now recognized as already

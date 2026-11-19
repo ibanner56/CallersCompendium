@@ -129,7 +129,9 @@ void main() {
     expect(find.textContaining('swing'), findsOneWidget);
   });
 
-  testWidgets('deleting a mapping removes it from the store', (tester) async {
+  testWidgets('deleting a mapping removes it from the store, with Undo', (
+    tester,
+  ) async {
     final repos = openTestRepositories();
     final controller = ShorthandMappingsController(repos.settings);
     addTearDown(controller.dispose);
@@ -141,13 +143,16 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Delete'));
     await tester.pumpAndSettle();
-    // Confirm the destructive action.
-    await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
-    await tester.pumpAndSettle();
 
+    // No dialog ("Confirm before delete" is off by default): deleted at once.
+    expect(find.byType(AlertDialog), findsNothing);
     expect(controller.mappings, isEmpty);
     expect(find.byKey(const ValueKey('shorthand-empty')), findsOneWidget);
     expect(find.text('"ns" deleted.'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('shorthand-delete-undo')));
+    await tester.pumpAndSettle();
+    expect([for (final m in controller.mappings) m.token], ['ns']);
   });
 
   testWidgets('New shorthand opens the editor', (tester) async {

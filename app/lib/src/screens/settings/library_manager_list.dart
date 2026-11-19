@@ -7,6 +7,7 @@ import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/keyboard_dismiss.dart';
 import '../../utils/undo_snack_bar.dart';
+import '../../theme/destructive_button_style.dart';
 import '../../widgets/dirty_dialog_guard.dart';
 
 /// One entry of a [LibraryManagerList]: a tag, an author or a source.
@@ -709,6 +710,9 @@ Future<bool> showLibraryMergeConfirm(
           child: Text(l10n.commonCancel),
         ),
         FilledButton(
+          style: destructiveFilledButtonStyle(
+            Theme.of(dialogContext).colorScheme,
+          ),
           key: const ValueKey('library-merge-confirm-merge'),
           onPressed: () => Navigator.of(dialogContext).pop(true),
           child: Text(l10n.libraryManagerMerge),

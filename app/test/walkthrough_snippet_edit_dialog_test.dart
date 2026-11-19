@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
+import 'package:compendium_app/src/data/confirm_before_delete_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/walkthrough_snippet_library_controller.dart';
 import 'package:compendium_app/src/data/walkthrough_snippet_library_scope.dart';
@@ -14,8 +15,11 @@ import 'support/test_repositories.dart';
 const _field = ValueKey('walkthrough-snippet-edit-field');
 
 Future<WalkthroughSnippetLibraryController> _pumpWithSnippet(
-  WidgetTester tester,
-) async {
+  WidgetTester tester, {
+  bool confirmBeforeDelete = false,
+}) async {
+  final confirm = ValueNotifier<bool>(confirmBeforeDelete);
+  addTearDown(confirm.dispose);
   final repos = openTestRepositories();
   final controller = WalkthroughSnippetLibraryController(repos.settings);
   addTearDown(controller.dispose);
@@ -26,13 +30,16 @@ Future<WalkthroughSnippetLibraryController> _pumpWithSnippet(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
-      home: RepositoriesScope(
-        repositories: repos,
-        child: ActiveDialectScope(
-          notifier: dialect,
-          child: WalkthroughSnippetLibraryScope(
-            controller: controller,
-            child: const WalkthroughSnippetsScreen(),
+      home: ConfirmBeforeDeleteScope(
+        notifier: confirm,
+        child: RepositoriesScope(
+          repositories: repos,
+          child: ActiveDialectScope(
+            notifier: dialect,
+            child: WalkthroughSnippetLibraryScope(
+              controller: controller,
+              child: const WalkthroughSnippetsScreen(),
+            ),
           ),
         ),
       ),
@@ -61,27 +68,38 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('deleting a snippet confirms it with a Deleted snackbar', (
+  testWidgets('deleting a snippet says so, and Undo puts it back', (
     tester,
   ) async {
     final controller = await _pumpWithSnippet(tester);
     await tester.tapAt(const Offset(1, 1)); // dismiss the edit dialog
     await tester.pumpAndSettle();
     await tapRowDelete(tester);
-    await tester.tap(
-      find.byKey(const ValueKey('walkthrough-snippet-delete-confirm')),
-    );
     await tester.pumpAndSettle();
+    // No dialog: "Confirm before delete" is off by default.
+    expect(find.byType(AlertDialog), findsNothing);
     expect(controller.library.snippets, isEmpty);
     expect(find.textContaining('deleted.'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey('walkthrough-snippet-delete-undo')),
+    );
+    await tester.pumpAndSettle();
+    expect(controller.library.snippets, {'swing': 'Swing your neighbor'});
   });
 
-  testWidgets('canceling a snippet delete shows no snackbar', (tester) async {
-    final controller = await _pumpWithSnippet(tester);
+  testWidgets('with Confirm before delete on, Cancel keeps the snippet', (
+    tester,
+  ) async {
+    final controller = await _pumpWithSnippet(
+      tester,
+      confirmBeforeDelete: true,
+    );
     await tester.tapAt(const Offset(1, 1));
     await tester.pumpAndSettle();
     await tapRowDelete(tester);
-    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('confirm-delete-cancel')));
     await tester.pumpAndSettle();
     expect(controller.library.snippets, isNotEmpty);
     expect(find.textContaining('deleted.'), findsNothing);
