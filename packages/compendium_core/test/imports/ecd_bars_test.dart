@@ -35,6 +35,9 @@ void main() {
 
     test('a meter in other words is found', () {
       expect(ecdBeatsPerBar('Meter: 9/8'), (beatsPerBar: 3, stated: true));
+      // Named twice, or with a non-meter beside it, it still counts.
+      expect(ecdBeatsPerBar('3/2 (3/2)'), (beatsPerBar: 3, stated: true));
+      expect(ecdBeatsPerBar('3/2, track 3/12'), (beatsPerBar: 3, stated: true));
     });
 
     test('no meter, or one it cannot read, counts 2 and says so', () {
@@ -47,6 +50,7 @@ void main() {
         '13/8',
         '3/12',
         '1/2/2003',
+        '2/4 and 3/4',
       ]) {
         expect(ecdBeatsPerBar(meter), (
           beatsPerBar: 2,
@@ -365,6 +369,51 @@ void main() {
           reason: music,
         );
       }
+    });
+
+    test('bars after a beat prefix with no meter still raise the note', () {
+      final mapping = mapCallersCompanionDance(
+        record(music: 'a good tune', lines: const ['(8) 1-4 circle left']),
+        englishDances: true,
+      );
+      expect(
+        mapping.issues.map((i) => i.code),
+        contains('cc_bars_meter_unstated'),
+      );
+    });
+
+    test('a compound prefix the bars outcount is not spread on the steps', () {
+      final dance = mapCallersCompanionDance(
+        record(
+          music: 'Meter: 3/2',
+          lines: const ['(4,4) 1-4 partners set and turn single'],
+        ),
+        englishDances: true,
+      ).dance;
+      final figure = (dance.figuresSource as DecodedFigures).figures.single;
+      expect(figure.isSequence, isTrue);
+      expect(figure.params['beats'], 12);
+      final steps = [for (final s in figure.subFigures) s.params['beats']];
+      expect(steps, isNot([4, 4]));
+      // And with no bar range the parts stay on their steps.
+      final plain = mapCallersCompanionDance(
+        record(
+          music: 'Meter: 3/2',
+          lines: const ['(4,4) partners set and turn single'],
+        ),
+        englishDances: true,
+      ).dance;
+      expect(
+        [
+          for (final s
+              in (plain.figuresSource as DecodedFigures)
+                  .figures
+                  .single
+                  .subFigures)
+            s.params['beats'],
+        ],
+        [4, 4],
+      );
     });
 
     test('a contra dance keeps its Music as a note only', () {

@@ -10,21 +10,29 @@ import '../model/phrase_structure.dart';
 ///
 /// A simple meter counts its top number (`2/2` is 2, `3/2` and `3/4` are 3,
 /// `4/4` is 4); a compound one counts its dotted beats (`6/8` and `6/4` are 2,
-/// `9/8` is 3, `12/8` is 4). A meter this cannot read, or none, counts 2 beats a bar,
+/// `9/8` is 3, `12/8` is 4). A meter this cannot read, none, or meters of
+/// different bars in one text count 2 beats a bar,
 /// the most common ECD bar, and says so with `stated: false`.
 ({int beatsPerBar, bool stated}) ecdBeatsPerBar(String? meter) {
-  final match = _meter.firstMatch(meter ?? '');
-  final top = int.tryParse(match?.group(1) ?? '');
-  final bottom = int.tryParse(match?.group(2) ?? '');
-  if (top == null || bottom == null || top < 1 || top > 12) {
-    return (beatsPerBar: _defaultBeatsPerBar, stated: false);
-  }
-  if (!_noteValues.contains(bottom)) {
-    return (beatsPerBar: _defaultBeatsPerBar, stated: false);
-  }
+  // A text naming meters of different bars (`2/4 and 3/4`) states none: one
+  // count of bars would mean different lengths in different parts.
+  final counts = {
+    for (final match in _meter.allMatches(meter ?? ''))
+      ?_beatsPerBar(match.group(1)!, match.group(2)!),
+  };
+  return counts.length == 1
+      ? (beatsPerBar: counts.single, stated: true)
+      : (beatsPerBar: _defaultBeatsPerBar, stated: false);
+}
+
+/// The beats in a bar of `top/bottom`, or null when it is no meter.
+int? _beatsPerBar(String topText, String bottomText) {
+  final top = int.parse(topText);
+  final bottom = int.parse(bottomText);
+  if (top < 1 || top > 12 || !_noteValues.contains(bottom)) return null;
   // 6/8, 9/8 and 12/8, and the 6/4 family a Playford tune is often in.
   final compound = bottom >= 4 && top > 3 && top % 3 == 0;
-  return (beatsPerBar: compound ? top ~/ 3 : top, stated: true);
+  return compound ? top ~/ 3 : top;
 }
 
 /// The meter an English dance's bars are counted by: [meter] when it states

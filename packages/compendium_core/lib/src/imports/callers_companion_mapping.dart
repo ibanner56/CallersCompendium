@@ -576,7 +576,10 @@ CcDanceMapping mapCallersCompanionDance(
       final ecd = form == DanceForm.ecd;
       final ring = ecd ? ecdRingDancers(formation.shape) : null;
       final bar = ecd ? barBeats.beatsPerBar : null;
-      if (ecd && !barBeats.stated && splitEcdBarRange(line) != null) {
+      // The bars are counted after a `(8)` prefix, so look past it too.
+      if (ecd &&
+          !barBeats.stated &&
+          splitEcdBarRange(splitCcBeatPrefix(line).text) != null) {
         countedBarsUnstated = true;
       }
       final cached = lineCache?.lookup(
@@ -991,7 +994,8 @@ bool callersCompanionDifficultyLabelMatches(
 
 /// The figures of one body line of an English dance, read by the ECD grammar
 /// ([parseEcdFigureLine]). A compound prefix (`(4,4)`) whose parts match the
-/// steps of the sequence the line reads keeps each part on its step, as
+/// steps of the sequence the line reads, and add up to its count (a bar range
+/// may count it otherwise), keeps each part on its step, as
 /// [_allocateCompoundBeats] does for contra's split figures; otherwise the
 /// total is the figure's span. None of contra's other retries apply: they
 /// read contra's grammar.
@@ -1012,7 +1016,10 @@ List<Figure> _ecdLineFigures(
   if (parts.length >= 2 &&
       figure.isSequence &&
       figure.subFigures.length == parts.length &&
-      parts.every((part) => part >= 0 && part <= 64)) {
+      parts.every((part) => part >= 0 && part <= 64) &&
+      // A bar range counts the line over the prefix (the bars are the
+      // count), and parts that no longer add up to it would contradict it.
+      parts.fold(0, (sum, part) => sum + part) == figure.params['beats']) {
     final steps = [
       for (var i = 0; i < parts.length; i++)
         _withBeats(figure.subFigures[i], parts[i]),

@@ -283,6 +283,37 @@ void main() {
       expect(result.formation, const Formation(FormationShape.dupleMinor));
     });
 
+    test(
+      'fills an empty meter and key with the figures, and keeps a set one',
+      () {
+        final englishWithMusic = english(
+          ecdFigures,
+        ).copyWith(meter: '3/2', musicalKey: 'G');
+        final filled = withReimportedChoreography(
+          existing,
+          englishWithMusic,
+          updatedAt: DateTime.utc(2026, 2),
+        );
+        expect(filled.meter, '3/2');
+        expect(filled.musicalKey, 'G');
+
+        final kept = withReimportedChoreography(
+          existing.copyWith(meter: '6/8', musicalKey: 'Dm'),
+          englishWithMusic,
+          updatedAt: DateTime.utc(2026, 2),
+        );
+        expect(kept.meter, '6/8');
+        expect(kept.musicalKey, 'Dm');
+
+        final noFigures = withReimportedChoreography(
+          existing,
+          english(DecodedFigures(const [])).copyWith(meter: '3/2'),
+          updatedAt: DateTime.utc(2026, 2),
+        );
+        expect(noFigures.meter, '');
+      },
+    );
+
     test('stays, with its formation, when no figures are taken', () {
       final result = withReimportedChoreography(
         existing,

@@ -293,6 +293,11 @@ too. Without this, a `.USR` dance imported as contra and re-imported as English
 would hold ECD figures under a contra form. (Implementer's call for ADR-006 W6
 part 3; the alternative, refusing a re-import whose form differs, would leave
 the person no way to correct a wrong answer to the English question.)
+When the incoming figures are taken, an empty meter or key is filled from
+the incoming dance, because English figures are counted in bars of the meter;
+a set one stays (implementer's call, keeping INTAKE-7's "never overwritten").
+A re-import from a contra-only source (The Caller's Box, ContraDB) onto an
+English dance makes it contra by the same rule.
 
 This applies to every source that reaches the pipeline: `.ccshare` and other
 Compendium archives, published collections, Caller's Companion `.USR`, ContraDB
@@ -2298,8 +2303,9 @@ ECD dance.
   `A1&2 1-4`, which is dropped) is the line's count: its bars times the beats
   in a bar of the dance's meter (`ecdBeatsPerBar`). A simple meter counts its
   top number (`3/2` is 3), a compound one its dotted beats (`6/8` and `6/4`
-  are 2, `9/8` and `9/4` are 3); no meter, or one it cannot read (`3/12`,
-  a date), counts 2 and says it was not stated. Where the dance's phrase structure gives one beats per bar, that is
+  are 2, `9/8` and `9/4` are 3); no meter, one it cannot read (`3/12`,
+  a date), or meters of different bars in one text (`2/4 and 3/4`) count 2
+  and say it was not stated. Where the dance's phrase structure gives one beats per bar, that is
   the fallback for an unstated meter (`ecdMeterForBars`: `4*8*3` reads as
   `3/4`, a `4*8*6` one as `6/2`), as for the editor's bar timing (`BarTimingScope.beatsPerBarFor`,
   which takes the meter first too). A range that runs backwards, spans more than 32 bars, would come to
@@ -2309,6 +2315,8 @@ ECD dance.
   line's stored count) and over a count the figure takes by default; a line
   whose rest also states a count in beats (`1-4 (6) …`, `… 6 beats`,
   `ecdRestStatesBeats`) is kept as text, so that count stays in its words. A
+  Caller's Companion compound prefix (`(4,4)`) is spread on a sequence's steps
+  only when its parts add up to the bars' count. A
   section label may be `A1`, `a1`, `A1:` or `A1&A2`; brackets must pair. A
   line kept as text keeps the range in its words and the
   count. The meter comes from the editor in free-text entry and from the

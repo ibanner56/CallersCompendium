@@ -3520,7 +3520,9 @@ class DanceRepository {
         figures,
         taxonomy: _parseTaxonomy(row.readWithConverter(_db.dances.form)!),
         meter: row.read(_db.dances.meter),
-        phraseStructure: PhraseStructure.parse(
+        // As the row mapper reads it: a value stored before the bounds
+        // existed loads as standard, so the dry run matches the apply.
+        phraseStructure: PhraseStructure.parseOrStandard(
           row.read(_db.dances.phraseStructure) ?? '',
         ),
       );

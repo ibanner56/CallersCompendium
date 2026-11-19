@@ -432,7 +432,9 @@ across as an English country dance; choose **No** and each dance comes across by
 its Type, as above. Closing the question reads nothing, and choosing the file
 again asks again. Re-importing a dance you first brought in with the other
 answer takes the form along with the figures, so a contra dance re-imported
-as English becomes English.
+as English becomes English and takes the file's meter and key if it had none
+(see
+[Re-import an archive dance to pick up a correction](#re-import-an-archive-dance-to-pick-up-a-correction)).
 
 An English dance takes its meter and key from the dance's Music field ("Key:
 G, Meter: 3/2" gives the meter 3/2 and the key G). A line that starts with a
@@ -816,6 +818,11 @@ doubt which one it will touch. Choose it and the incoming version's **figures,
 formation, and progression** replace those of the dance you already have instead
 of adding a second copy, which is how you pick up a correction an archive has
 made since you first imported.
+
+The figures bring their dance form with them: figures from a contra source make
+the dance a contra dance, and English figures make it English. When the dance
+has no meter or key yet, the incoming ones fill them, since English figures are
+counted in bars of the meter; a meter or key you already set stays.
 
 Everything else on the dance is yours and stays as it is: its title, authors,
 calling notes, walkthrough, status, rating, tags, links, tunes, custom fields and

@@ -82,6 +82,44 @@ void main() {
     expect(phrases, unorderedEquals(['', '4*8*3']));
   });
 
+  test('a phrase structure stored out of bounds reads as the apply reads it, '
+      'and does not stop the preview', () async {
+    final db = openTestDatabase();
+    addTearDown(db.close);
+    final repo = DanceRepository(db, contraTaxonomy);
+    await repo.create(
+      sampleDance(
+        id: 'old',
+        figures: [
+          customFigure('set', beats: 4, origin: CustomOrigin.importGap),
+        ],
+      ).copyWith(form: DanceForm.ecd),
+    );
+    // Written before the bounds existed: the row mapper loads it as standard.
+    await db.customStatement(
+      "UPDATE dances SET phrase_structure = '4*8*2000' WHERE id = 'old'",
+    );
+    final phrases = <String?>[];
+    FigureReparseOutcome reparse(
+      List<Figure> figures, {
+      Taxonomy? taxonomy,
+      String? meter,
+      PhraseStructure? phraseStructure,
+    }) {
+      phrases.add(phraseStructure?.raw);
+      return FigureReparseOutcome(figures: figures, upgradedCount: 0);
+    }
+
+    await repo.previewImportGapReparse(reparse: reparse);
+    await repo.reparseImportGapFiguresForMany(
+      ['old'],
+      reparse: reparse,
+      now: now,
+    );
+    expect(phrases, hasLength(2));
+    expect(phrases.first, phrases.last);
+  });
+
   test('without taxonomyForForm every dance re-parses with the repository\'s '
       'taxonomy', () async {
     final db = openTestDatabase();
