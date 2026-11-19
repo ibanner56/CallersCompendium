@@ -45,7 +45,10 @@ Future<ValueNotifier<bool>> _pumpAppearance(
         locale: locale,
         localizationsDelegates: testLocalizationsDelegates,
         supportedLocales: testSupportedLocales,
-        home: AppThemeScope(
+        // Above the navigator, so a section pushed as its own page (the
+        // one-pane layout, which a long label in another language can force)
+        // sees the same scopes.
+        builder: (context, child) => AppThemeScope(
           notifier: theme,
           child: CustomThemesScope(
             controller: customThemes,
@@ -53,11 +56,12 @@ Future<ValueNotifier<bool>> _pumpAppearance(
               notifier: dialect,
               child: SetListColorCodingScope(
                 notifier: colorCoding,
-                child: const SettingsScreen(),
+                child: child!,
               ),
             ),
           ),
         ),
+        home: const SettingsScreen(),
       ),
     ),
   );

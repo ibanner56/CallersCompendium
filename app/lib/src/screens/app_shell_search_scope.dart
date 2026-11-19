@@ -1,27 +1,28 @@
 import 'package:flutter/material.dart';
 
-/// Exposes the app shell's global-search callback to nested screens so they can
-/// surface a 1-tap search affordance in their app bars.
+/// Exposes the app shell's programs-only search to the Programs list so it can
+/// show a one-tap search action in its app bar.
 ///
-/// It is intentionally provided **only in the narrow (phone) layout**, where
-/// the bottom-right FAB slot is reserved for each screen's "New" FAB.extended.
-/// In the wide layout search lives in the [NavigationRail], so no scope is
-/// inserted and [of] returns `null` — nested list screens then omit their
-/// in-app-bar search action to avoid duplicating the rail affordance.
+/// It is provided **only in the narrow (phone) layout**, below the width at
+/// which the navigation rail appears. In the wide layout search lives in the
+/// rail, so no scope is inserted and [of] returns `null`, and the Programs list
+/// omits its app-bar search rather than duplicate the rail's.
+///
+/// The Collection takes nothing from this scope: its own search field is its
+/// search on every width.
 ///
 /// Kept in its own file (rather than in `app_shell.dart`) so the list screens
 /// can depend on it without importing the shell, avoiding a circular import
-/// chain (`app_shell.dart → collection_shell.dart → dance_list_screen.dart`).
+/// chain (`app_shell.dart → programs_shell.dart → programs_list_screen.dart`).
 class AppShellSearchScope extends InheritedWidget {
   const AppShellSearchScope({
-    required this.openSearch,
+    required this.searchPrograms,
     required super.child,
     super.key,
   });
 
-  /// Opens the global command palette. Mirrors the Ctrl/Cmd-K shortcut and the
-  /// wide layout's rail search button.
-  final Future<void> Function() openSearch;
+  /// Opens the search palette listing programs only.
+  final Future<void> Function() searchPrograms;
 
   /// Returns the nearest scope, or `null` when search is not surfaced in the
   /// app bar (i.e. the wide layout, where the rail owns search).
@@ -30,5 +31,5 @@ class AppShellSearchScope extends InheritedWidget {
 
   @override
   bool updateShouldNotify(AppShellSearchScope oldWidget) =>
-      openSearch != oldWidget.openSearch;
+      searchPrograms != oldWidget.searchPrograms;
 }
