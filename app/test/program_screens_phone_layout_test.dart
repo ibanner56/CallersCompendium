@@ -12,8 +12,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/show_performed_toggles_scope.dart';
+import 'package:compendium_app/src/screens/perform_program_screen.dart';
+import 'package:compendium_app/src/screens/program_summary_screen.dart';
 import 'package:compendium_app/src/screens/programs_shell.dart';
 
+import 'support/fab_clearance.dart';
 import 'support/l10n_harness.dart';
 import 'support/test_repositories.dart';
 
@@ -178,15 +181,26 @@ void main() {
   });
 
   group('builder at 360dp', () {
-    testWidgets('the app bar keeps Perform and Export, and folds Mark all '
-        'performed, Duplicate and Delete into ⋮', (tester) async {
+    testWidgets('the app bar keeps Export and Save, folds Mark all performed, '
+        'Duplicate and Delete into ⋮, and offers no Perform', (tester) async {
       final repos = await _seed();
       await _openSummaryOnPhone(tester, repos);
       await _openBuilderFromSummary(tester);
 
       expect(tester.takeException(), isNull);
-      expect(_key('perform-program'), findsOneWidget);
       expect(_key('program-export-menu'), findsOneWidget);
+      // Save is on the bar, as its icon: the word leaves the title no room.
+      final save = _key('save-program');
+      expect(
+        find.descendant(of: find.byType(AppBar), matching: save),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: save, matching: find.byIcon(Icons.check)),
+        findsOneWidget,
+      );
+      expect(find.byType(FloatingActionButton), findsNothing);
+      expect(_key('perform-program'), findsNothing);
       expect(_key('mark-all-performed'), findsNothing);
       expect(_key('duplicate-program'), findsNothing);
       expect(_key('delete-program'), findsNothing);
@@ -198,6 +212,8 @@ void main() {
 
       await tester.tap(_key('program-actions-overflow'));
       await tester.pumpAndSettle();
+      // Perform belongs to the summary, not the builder.
+      expect(_key('perform-program'), findsNothing);
       expect(_key('mark-all-performed'), findsOneWidget);
       expect(_key('duplicate-program'), findsOneWidget);
       expect(_key('delete-program'), findsOneWidget);
@@ -256,5 +272,66 @@ void main() {
       expect(tester.getSize(_key('slot-s0-title')).width, greaterThan(150));
       expect(tester.getSize(_key('slot-s1-title')).width, greaterThan(70));
     });
+  });
+
+  testWidgets('opening Perform from the summary withdraws Mark all '
+      'performed\'s Undo', (tester) async {
+    final repos = await _seed();
+    await _openSummaryOnPhone(tester, repos);
+    await tester.tap(_key('summary-actions-overflow'));
+    await tester.pumpAndSettle();
+    await tester.tap(_key('mark-all-performed'));
+    await tester.pumpAndSettle();
+    expect(find.byType(SnackBarAction), findsOneWidget);
+
+    // The Undo lives in the app-wide messenger, so without withdrawing it, it
+    // would sit over Perform and could take back marks Perform has built on.
+    await tester.tap(_key('summary-perform'));
+    await tester.pumpAndSettle();
+    expect(find.byType(PerformProgramScreen), findsOneWidget);
+    expect(find.byType(SnackBarAction), findsNothing);
+  });
+
+  group('the summary\'s floating Edit program', () {
+    for (final c in fabClearanceCases) {
+      testWidgets('never covers the last slot (${c.name})', (tester) async {
+        final repos = openTestRepositories();
+        for (var i = 0; i < 20; i++) {
+          await repos.dances.create(_dance(id: 'd$i', title: 'Dance $i'));
+        }
+        await repos.programs.create(
+          Program(
+            id: 'p1',
+            title: 'Barn Dance at the Grange Hall',
+            status: ProgramStatus.draft,
+            slots: [
+              for (var i = 0; i < 20; i++)
+                ProgramSlot(id: 's$i', position: i, danceId: 'd$i'),
+            ],
+            createdAt: _now,
+            updatedAt: _now,
+          ),
+        );
+        await _openSummaryOnPhone(tester, repos, size: Size(c.width, 844));
+        await atPhoneSize(
+          tester,
+          width: c.width,
+          scale: c.scale,
+          keyboard: c.keyboard,
+        );
+        await tester.pumpAndSettle();
+
+        await expectFabClearsLastRow(
+          tester,
+          list: find
+              .descendant(
+                of: find.byType(ProgramSummaryScreen),
+                matching: find.byType(ListView),
+              )
+              .first,
+          lastRow: find.byKey(const ValueKey('summary-slot-s19')),
+        );
+      });
+    }
   });
 }

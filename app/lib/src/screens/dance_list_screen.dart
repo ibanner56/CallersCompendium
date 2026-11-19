@@ -2320,7 +2320,10 @@ class _DanceListScreenState extends State<DanceListScreen>
     return Scaffold(
       appBar: _selectionMode ? _buildSelectionAppBar() : _buildDefaultAppBar(),
       body: _buildBody(),
-      floatingActionButton: _data == null || _selectionMode
+      // The floating New is for a list. The empty state and the first-run card
+      // carry their own New dance button, so it waits until they are gone.
+      floatingActionButton:
+          _data == null || _selectionMode || _showsStartActions(_data!)
           ? null
           : FloatingActionButton.extended(
               key: const ValueKey('new-dance'),
@@ -2360,6 +2363,7 @@ class _DanceListScreenState extends State<DanceListScreen>
     required bool hasSearch,
     required bool hasSync,
     required bool hasTags,
+    required bool hasDances,
   }) {
     final theme = Theme.of(context);
     final titleStyle =
@@ -2380,8 +2384,12 @@ class _DanceListScreenState extends State<DanceListScreen>
     // rest moves into the ⋮ menu.
     final wanted = <_CollectionBarGlyph>[
       if (widget.onImport != null) _CollectionBarGlyph.importDances,
-      _CollectionBarGlyph.sort,
-      _CollectionBarGlyph.sortDirection,
+      // Nothing to sort in an empty Collection (online results keep the
+      // source's own order), so sorting waits for a dance.
+      if (hasDances) ...[
+        _CollectionBarGlyph.sort,
+        _CollectionBarGlyph.sortDirection,
+      ],
       if (hasTags) _CollectionBarGlyph.groupBy,
     ];
     return wanted.take(slots < 0 ? 0 : slots).toSet();
@@ -2392,6 +2400,7 @@ class _DanceListScreenState extends State<DanceListScreen>
     final openSearch = AppShellSearchScope.of(context)?.openSearch;
     final sync = SyncScope.maybeOf(context);
     final hasTags = _data?.tags.isNotEmpty ?? false;
+    final hasDances = _data?.dancesById.isNotEmpty ?? false;
     final onBar = _glyphsThatFit(
       context,
       l10n,
@@ -2399,6 +2408,7 @@ class _DanceListScreenState extends State<DanceListScreen>
       hasSearch: openSearch != null,
       hasSync: sync != null && sync.enabled && sync.paired,
       hasTags: hasTags,
+      hasDances: hasDances,
     );
     return AppBar(
       title: Text(l10n.collectionScreenTitle),
@@ -2438,7 +2448,7 @@ class _DanceListScreenState extends State<DanceListScreen>
               direction: _sortDir,
               onPressed: _toggleSortDirection,
             ),
-          _buildMoreActions(l10n, onBar),
+          _buildMoreActions(l10n, onBar, hasDances: hasDances),
         ],
       ],
     );
@@ -2471,11 +2481,13 @@ class _DanceListScreenState extends State<DanceListScreen>
 
   /// The ⋮ menu: always holds Select dances, Manage custom fields and Recently
   /// deleted, plus whichever of the [_CollectionBarGlyph]s did not fit on the
-  /// bar ([onBar] is what did).
+  /// bar ([onBar] is what did). Sorting is left out while [hasDances] is false,
+  /// as on the bar.
   Widget _buildMoreActions(
     AppLocalizations l10n,
-    Set<_CollectionBarGlyph> onBar,
-  ) {
+    Set<_CollectionBarGlyph> onBar, {
+    required bool hasDances,
+  }) {
     final tags = _data?.tags ?? const <Tag>[];
     return PopupMenuButton<Object>(
       key: const ValueKey('collection-more-actions'),
@@ -2523,7 +2535,7 @@ class _DanceListScreenState extends State<DanceListScreen>
           value: _CollectionCompactAction.recentlyDeleted,
           child: Text(l10n.collectionRecentlyDeletedTooltip),
         ),
-        if (!onBar.contains(_CollectionBarGlyph.sort)) ...[
+        if (hasDances && !onBar.contains(_CollectionBarGlyph.sort)) ...[
           const PopupMenuDivider(),
           PopupMenuItem<Object>(
             enabled: false,
@@ -2537,7 +2549,7 @@ class _DanceListScreenState extends State<DanceListScreen>
               child: Text(collectionSortLabel(l10n, option)),
             ),
         ],
-        if (!onBar.contains(_CollectionBarGlyph.sortDirection))
+        if (hasDances && !onBar.contains(_CollectionBarGlyph.sortDirection))
           PopupMenuItem<Object>(
             value: _CollectionCompactAction.sortDirection,
             child: Text(
@@ -3049,7 +3061,7 @@ class _DanceListScreenState extends State<DanceListScreen>
                     _buildImportCardSliver(),
                   _buildResultsSliver(),
                 ],
-                // Lets the last row scroll clear of the "New dance" FAB.
+                // Lets the last row scroll clear of the floating New dance.
                 const SliverToBoxAdapter(
                   child: SizedBox(height: AppSpacing.fabClearance),
                 ),
@@ -3067,6 +3079,14 @@ class _DanceListScreenState extends State<DanceListScreen>
   bool _onlyTheSampleDance(CollectionData data) =>
       data.dancesById.length == 1 &&
       data.dancesById.containsKey(kBabyRoseSeedDanceId);
+
+  /// Whether the body shows [_startActions]: the empty Collection, or the
+  /// first-run card above the sample dance. The same conditions as the body's
+  /// own choice in [_buildBody].
+  bool _showsStartActions(CollectionData data) =>
+      !_onlineEnabled &&
+      (data.dancesById.isEmpty ||
+          (_onlyTheSampleDance(data) && !_hasActiveQuery));
 
   /// Import and New dance, the two ways to start filling the Collection; shared
   /// by the empty state and the sample-only card.

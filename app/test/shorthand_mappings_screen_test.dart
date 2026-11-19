@@ -7,6 +7,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/fab_clearance.dart';
 import 'support/l10n_harness.dart';
 import 'support/test_repositories.dart';
 
@@ -167,5 +168,74 @@ void main() {
 
     expect(find.byType(ShorthandMappingEditorScreen), findsOneWidget);
     expect(find.byKey(const ValueKey('shorthand-token-field')), findsOneWidget);
+  });
+
+  group('New shorthand', () {
+    Future<ShorthandMappingsController> withMappings(
+      WidgetTester tester,
+      int count,
+    ) async {
+      final repos = openTestRepositories();
+      final controller = ShorthandMappingsController(repos.settings);
+      addTearDown(controller.dispose);
+      if (count > 0) {
+        await repos.settings.set(
+          kShorthandMappingsKey,
+          ShorthandMappings([
+            for (var i = 0; i < count; i++)
+              ShorthandMapping(
+                token:
+                    'q${String.fromCharCode(97 + i ~/ 26)}'
+                    '${String.fromCharCode(97 + i % 26)}',
+                figures: [Figure(move: 'petronella')],
+              ),
+          ]).toJson(),
+        );
+      }
+      await controller.load();
+      return controller;
+    }
+
+    testWidgets('sits with the empty message until there is a shorthand', (
+      tester,
+    ) async {
+      await _pumpManager(tester, await withMappings(tester, 0));
+
+      final button = find.byKey(const ValueKey('new-shorthand'));
+      expect(button, findsOneWidget);
+      expect(tester.widget(button), isNot(isA<FloatingActionButton>()));
+      expect(find.byType(FloatingActionButton), findsNothing);
+    });
+
+    testWidgets('floats once there is a shorthand, and only there', (
+      tester,
+    ) async {
+      await _pumpManager(tester, await withMappings(tester, 1));
+
+      final button = find.byKey(const ValueKey('new-shorthand'));
+      expect(button, findsOneWidget);
+      expect(tester.widget(button), isA<FloatingActionButton>());
+    });
+
+    for (final c in fabClearanceCases) {
+      testWidgets('never covers the last shorthand (${c.name})', (
+        tester,
+      ) async {
+        await _pumpManager(tester, await withMappings(tester, 30));
+        await atPhoneSize(
+          tester,
+          width: c.width,
+          scale: c.scale,
+          keyboard: c.keyboard,
+        );
+        await tester.pumpAndSettle();
+
+        await expectFabClearsLastRow(
+          tester,
+          list: find.byType(ListView),
+          lastRow: find.byKey(const ValueKey('shorthand-tile-qbd')),
+        );
+      });
+    }
   });
 }

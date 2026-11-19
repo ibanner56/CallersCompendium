@@ -9,6 +9,7 @@ import '../data/figure_summary.dart';
 import '../data/repositories_scope.dart';
 import '../data/show_custom_figures_scope.dart';
 import '../editor/figure_draft.dart';
+import '../theme/app_spacing.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/compound_argument_editor.dart';
@@ -37,9 +38,26 @@ class ShorthandMappingsScreen extends StatelessWidget {
     final renderer = FigureRenderer(contraTaxonomy);
     final mappings = controller.mappings;
     final l10n = AppLocalizations.of(context);
+    final newShorthand = mappings.isEmpty
+        ? null
+        : FloatingActionButton.extended(
+            key: const ValueKey('new-shorthand'),
+            heroTag: 'new-shorthand',
+            onPressed: () => _createNew(context, controller),
+            icon: const Icon(Icons.add),
+            label: Text(l10n.shorthandMappingsNew),
+          );
     return Scaffold(
       appBar: AppBar(title: Text(l10n.shorthandMappingsTitle)),
+      // A full-screen manager creates with the floating button once it has a
+      // list; until then the button sits with the empty message. The compound
+      // shorthands below are a section of their own and keep theirs inline.
+      floatingActionButton: newShorthand,
       body: ListView(
+        // Lets the last row scroll clear of the floating button.
+        padding: EdgeInsets.only(
+          bottom: newShorthand == null ? 0 : AppSpacing.fabClearance,
+        ),
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -48,28 +66,28 @@ class ShorthandMappingsScreen extends StatelessWidget {
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: OutlinedButton.icon(
-                key: const ValueKey('new-shorthand'),
-                onPressed: () => _createNew(context, controller),
-                icon: const Icon(Icons.add),
-                label: Text(l10n.shorthandMappingsNew),
+          if (mappings.isEmpty) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton.icon(
+                  key: const ValueKey('new-shorthand'),
+                  onPressed: () => _createNew(context, controller),
+                  icon: const Icon(Icons.add),
+                  label: Text(l10n.shorthandMappingsNew),
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 8),
-          if (mappings.isEmpty)
+            const SizedBox(height: 8),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
               child: Text(
                 l10n.shorthandMappingsEmpty,
                 key: const ValueKey('shorthand-empty'),
               ),
-            )
-          else
+            ),
+          ] else
             for (var i = 0; i < mappings.length; i++)
               _ShorthandRow(
                 key: ValueKey('shorthand-tile-${mappings[i].normalizedToken}'),

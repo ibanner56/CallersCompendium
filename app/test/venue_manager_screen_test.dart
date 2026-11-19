@@ -6,6 +6,7 @@ import 'package:compendium_app/src/data/confirm_before_delete_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/venue_manager_screen.dart';
 
+import 'support/fab_clearance.dart';
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
 
@@ -147,6 +148,54 @@ void main() {
 
     expect(find.text('Link earlier programs?'), findsNothing);
     expect(await repos.venues.listAll(), hasLength(1));
+  });
+
+  group('the floating New venue', () {
+    testWidgets('waits for a list: the empty state carries New venue', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pump(tester, repos);
+
+      expect(
+        find.byKey(const ValueKey('venue-manager-empty-add')),
+        findsOneWidget,
+      );
+      expect(find.byType(FloatingActionButton), findsNothing);
+    });
+
+    testWidgets('shows once there is a venue', (tester) async {
+      final repos = openTestRepositories();
+      await repos.venues.upsert(Venue(id: 'v1', name: 'Grange Hall'));
+      await _pump(tester, repos);
+
+      expect(find.byKey(const ValueKey('venue-manager-add')), findsOneWidget);
+      expect(find.byType(FloatingActionButton), findsOneWidget);
+    });
+
+    for (final c in fabClearanceCases) {
+      testWidgets('never covers the last venue (${c.name})', (tester) async {
+        final repos = openTestRepositories();
+        for (var i = 0; i < 30; i++) {
+          final n = '$i'.padLeft(2, '0');
+          await repos.venues.upsert(Venue(id: 'v$n', name: 'Hall $n'));
+        }
+        await _pump(tester, repos);
+        await atPhoneSize(
+          tester,
+          width: c.width,
+          scale: c.scale,
+          keyboard: c.keyboard,
+        );
+        await tester.pumpAndSettle();
+
+        await expectFabClearsLastRow(
+          tester,
+          list: find.byType(ListView),
+          lastRow: find.byKey(const ValueKey('venue-manager-tile-v29')),
+        );
+      });
+    }
   });
 
   testWidgets('Undo brings a deleted venue back', (tester) async {

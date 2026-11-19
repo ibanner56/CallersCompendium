@@ -43,8 +43,8 @@ dances visible.*
 
 ![The Collection screen with a figure search for "petronella", three formations chosen in the Filters panel, and one of the four matching dances open beside the list](images/collection-search-filters.png)
 
-To change the order, open the **Sort** control at the top of the list. You can
-sort by:
+To change the order, open the **Sort** control at the top of the list. It
+appears once your collection has a dance. You can sort by:
 
 - **Title** — alphabetical, ignoring a leading "The," "A," or "An," so *The
   Nice Combination* sorts under **N**, where you would look for it. Accents
@@ -510,7 +510,9 @@ On a narrow screen, the less-used actions are in the **More actions** menu.
 ## Add a dance
 
 To put in a dance by hand, choose **New dance** (or press **Ctrl-N**, **Cmd-N**
-on macOS). This opens the editor, where the
+on macOS). It floats at the bottom of the list; while the Collection is empty,
+or holds only the sample dance with no search or filter set, it is a button on
+the page instead. This opens the editor, where the
 **title** is the only required field. Figure entry is keyboard-first: start
 typing a move and accept a match from the type-ahead, with a running beat count
 keeping you honest as you go. If a move is unusual and nothing matches, type it

@@ -6,10 +6,11 @@ import '../diagnostics/error_log.dart';
 /// returns the result. Positions are left for the caller to renumber.
 ///
 /// Perform edits a copy of the program it was opened with, which can differ
-/// from the stored program: the builder may hold unsaved edits, and a commit
-/// may have stamped slots since (GIG-3, GIG-4). Writing Perform's whole slot
-/// list would commit the first and erase the second, so only what Perform
-/// changed is carried over, matched by slot id:
+/// from the stored program: a commit or a change from elsewhere may have
+/// stamped or changed slots since (GIG-3, GIG-6). Writing Perform's whole slot
+/// list would erase those, so only what Perform changed is carried over,
+/// matched by slot id. The builder applies a commit that a newer edit
+/// overtook to its working slots the same way. The rules:
 ///
 /// - a field Perform changed on a slot takes Perform's value; every other
 ///   field keeps the value in [onto];
@@ -19,8 +20,8 @@ import '../diagnostics/error_log.dart';
 ///   first when there is none, and a slot that is not an alternate is placed
 ///   after that predecessor's alternates the edit never saw, so they stay in
 ///   its group;
-/// - a slot [onto] does not hold (an unsaved builder slot) is not added, even
-///   when Perform changed or moved it;
+/// - a slot [onto] does not hold is not added, even when Perform changed or
+///   moved it;
 /// - a slot Perform added that [onto] already holds is not added again.
 List<ProgramSlot> rebaseSlotEdits({
   required List<ProgramSlot> before,

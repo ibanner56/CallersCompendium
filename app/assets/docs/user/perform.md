@@ -26,8 +26,8 @@ takes it over the whole display (see [Set the stage](#set-the-stage)).
 - To call a **single dance**, open it from your
   [collection](./collection.md#what-you-can-do-with-a-dance) and choose
   **Perform this dance**.
-- To call a **whole evening**, choose **Perform this program** in the program
-  editor or on the program's summary.
+- To call a **whole evening**, choose **Perform this program** on the
+  program's summary. The program builder is for editing and has no Perform.
 
 When you exit, the app takes you back to wherever you came from.
 
@@ -246,10 +246,7 @@ An inserted dance and an ad-hoc note both land right after the current slot, so
 "play this next" is one action away. Your changes are kept however you close
 the sheet — **Done**, swiping it down, tapping outside it, or **Back** — so a
 hurried swipe never throws away a reorder or a performed mark. Every change offers **Undo**, and a change
-to a saved program is saved right away. Only the change you made in Perform is
-saved: if you opened Perform from the builder with unsaved edits, those edits
-stay unsaved in the builder, for you to save or discard when you return (unless
-**Auto-save program changes** is on, which saves them as it always does). The
+to a saved program is saved right away. The
 Undo is still offered for a moment after you leave Perform (for as long as you
 need with a screen reader), but only while the program is as the change left
 it. So if the program has been changed since, for example edited in the
@@ -262,11 +259,7 @@ somewhere else while Perform is open — most often when
 — your next change is saved on top of that edit rather than replacing it.
 Perform then switches to the newer program and says so: *This program had
 changed elsewhere since Perform opened. Perform now shows the latest version,
-with your change.* Undo still takes back only your own change. If you opened Perform from the
-builder with unsaved edits, the builder takes the newer program too: each
-detail you have not edited, such as the title or the band, takes the version
-from elsewhere, so saving later does not put the old one back, and each detail
-you have edited keeps your edit. If you have set calling history to count
+with your change.* Undo still takes back only your own change. If you have set calling history to count
 only slots marked performed, this is where you mark them — see
 [Programs & matrix](./programs.md#track-what-you-have-called).
 

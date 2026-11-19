@@ -26,9 +26,11 @@ import 'package:compendium_app/src/screens/dance_list_screen.dart';
 import 'package:compendium_app/src/screens/published_collection_catalog_screen.dart';
 import 'package:compendium_app/src/search/collection_query.dart';
 import 'package:compendium_app/src/widgets/brand_mark.dart';
+import 'package:compendium_app/src/widgets/collection_search_controls.dart';
 import 'package:compendium_app/src/widgets/dance_list_tile.dart';
 import 'package:compendium_app/src/widgets/skeleton.dart';
 
+import 'support/fab_clearance.dart';
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
 import 'support/panel_chip.dart';
@@ -371,6 +373,108 @@ void main() {
     // network; let it lapse before the test ends.
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(minutes: 2));
+  });
+
+  group('the floating New dance', () {
+    /// Whether any sort control is offered, on the bar or in ⋮.
+    Future<bool> offersSorting(WidgetTester tester) async {
+      final onBar =
+          find.byType(CollectionSortMenuButton).evaluate().isNotEmpty ||
+          find
+              .byKey(const ValueKey('collection-sort-direction'))
+              .evaluate()
+              .isNotEmpty;
+      await tester.tap(find.byKey(const ValueKey('collection-more-actions')));
+      await tester.pumpAndSettle();
+      final inMenu =
+          find.textContaining('Sort by').evaluate().isNotEmpty ||
+          find.textContaining('(tap for ').evaluate().isNotEmpty;
+      await tester.tapAt(Offset.zero);
+      await tester.pumpAndSettle();
+      return onBar || inMenu;
+    }
+
+    for (final width in [1200.0, 390.0]) {
+      testWidgets('an empty Collection floats nothing and offers no sorting '
+          '(${width.toInt()} wide)', (tester) async {
+        final repos = openTestRepositories();
+        await _pumpScreen(tester, repos);
+        await tester.binding.setSurfaceSize(Size(width, 844));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const ValueKey('collection-empty-new-dance')),
+          findsOneWidget,
+        );
+        expect(find.byType(FloatingActionButton), findsNothing);
+        expect(await offersSorting(tester), isFalse);
+      });
+    }
+
+    testWidgets('the first-run card carries New dance, so nothing floats', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(id: kBabyRoseSeedDanceId, title: 'The Baby Rose'),
+      );
+      await _pumpScreen(tester, repos);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('collection-import-card')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('collection-empty-new-dance')),
+        findsOneWidget,
+      );
+      expect(find.byType(FloatingActionButton), findsNothing);
+    });
+
+    for (final width in [1200.0, 390.0]) {
+      testWidgets('a dance of your own brings New and sorting '
+          '(${width.toInt()} wide)', (tester) async {
+        final repos = openTestRepositories();
+        await repos.dances.create(
+          _dance(id: 'd1', title: 'Chase the Squirrel'),
+        );
+        await _pumpScreen(tester, repos);
+        await tester.binding.setSurfaceSize(Size(width, 844));
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(const ValueKey('new-dance')), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('collection-empty-new-dance')),
+          findsNothing,
+        );
+        expect(await offersSorting(tester), isTrue);
+      });
+    }
+
+    for (final c in fabClearanceCases) {
+      testWidgets('never covers the last dance (${c.name})', (tester) async {
+        final repos = openTestRepositories();
+        for (var i = 0; i < 30; i++) {
+          final n = '$i'.padLeft(2, '0');
+          await repos.dances.create(_dance(id: 'd$n', title: 'Dance $n'));
+        }
+        await _pumpScreen(tester, repos);
+        await atPhoneSize(
+          tester,
+          width: c.width,
+          scale: c.scale,
+          keyboard: c.keyboard,
+        );
+        await tester.pumpAndSettle();
+
+        await expectFabClearsLastRow(
+          tester,
+          list: find.byType(CustomScrollView),
+          lastRow: find.widgetWithText(DanceListTile, 'Dance 29'),
+        );
+      });
+    }
   });
 
   testWidgets('the import card goes once another dance is present', (

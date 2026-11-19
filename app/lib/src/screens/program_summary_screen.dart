@@ -713,9 +713,9 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     widget.onDeleted();
   }
 
-  /// Launches the large-print Perform view for the current saved program,
-  /// mirroring [ProgramEditorScreen]'s perform launch. No-op when there is
-  /// nothing to perform or the reference data has not finished loading.
+  /// Launches the large-print Perform view for the current saved program: the
+  /// app's only way into program Perform. No-op when there is nothing to
+  /// perform or the reference data has not finished loading.
   Future<void> _performProgram() async {
     final program = _program;
     final data = _collectionData;
@@ -1087,11 +1087,10 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     );
   }
 
-  /// "Perform this program" action shown in the summary's top action Row,
-  /// mirroring the program builder's `perform-program` AppBar action. Disabled
+  /// "Perform this program" action shown in the summary's top action Row, the
+  /// way into Perform for a saved program (the builder has none). Disabled
   /// (with an explanatory tooltip) when the program has no slots or the
-  /// reference data has not loaded yet, mirroring the editor's `_slots.isEmpty`
-  /// guard — never a dead button. The disabled state is exposed to assistive
+  /// reference data has not loaded yet — never a dead button. The disabled state is exposed to assistive
   /// technology via the button's own disabled semantics, not colour alone.
   Widget _buildPerformAction(Program program) {
     final l10n = AppLocalizations.of(context);

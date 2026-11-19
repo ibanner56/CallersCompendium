@@ -303,7 +303,10 @@ void main() {
             locale: locale,
             repos: repos,
           );
-          await tester.tap(find.byKey(const ValueKey('add-field')));
+          // No fields yet, so New field is the empty message's button.
+          await tester.tap(
+            find.byKey(const ValueKey('custom-fields-empty-add')),
+          );
           await tester.pumpAndSettle();
           _expectNoOverflow(tester);
           expect(find.byKey(const ValueKey('cf-type')), findsOneWidget);

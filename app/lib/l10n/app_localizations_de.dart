@@ -5314,9 +5314,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get programsNoLongerExists => 'Dieses Programm existiert nicht mehr.';
 
   @override
-  String get programsFallbackTitle => 'Programm';
-
-  @override
   String get programsUntitledDanceFallback => 'Tanz';
 
   @override
@@ -11027,6 +11024,9 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get glossaryAddCustomFigure => 'Eigene Figur hinzufügen';
+
+  @override
+  String get customFiguresNewFigure => 'Neue Figur';
 
   @override
   String get glossaryCustomMarker => 'Eigene';

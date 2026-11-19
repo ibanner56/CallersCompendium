@@ -6753,10 +6753,6 @@
   "@programsNoLongerExists": {
     "description": "Error shown in the program editor when the program was deleted and can no longer be loaded."
   },
-  "programsFallbackTitle": "Program",
-  "@programsFallbackTitle": {
-    "description": "Fallback title used for an untitled program when opening the Perform view from an unsaved draft."
-  },
   "programsUntitledDanceFallback": "dance",
   "@programsUntitledDanceFallback": {
     "description": "Fallback word used in place of a dance title when the title is unavailable, in add-dance confirmation messages."
@@ -14293,7 +14289,11 @@
   },
   "glossaryAddCustomFigure": "Add your own figure",
   "@glossaryAddCustomFigure": {
-    "description": "Tooltip of the Glossary's add button, which opens the editor for a new custom figure."
+    "description": "Tooltip of the Glossary's add button, which opens the editor for a new custom figure; also the label of the Custom Figures screen's button while that screen is empty."
+  },
+  "customFiguresNewFigure": "New figure",
+  "@customFiguresNewFigure": {
+    "description": "Label of the floating button on the Custom Figures screen that opens the editor for a new figure of the user's own. Keep it short: it is one line at the bottom of a phone screen, beside a + icon."
   },
   "glossaryCustomMarker": "Custom",
   "@glossaryCustomMarker": {

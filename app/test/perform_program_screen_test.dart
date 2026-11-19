@@ -14,7 +14,7 @@ import 'package:compendium_app/src/data/perform_text_scale.dart';
 import 'package:compendium_app/src/screens/perform_card.dart';
 import 'package:compendium_app/src/screens/perform_program_screen.dart';
 import 'package:compendium_app/src/screens/perform_walkthrough_overlay.dart';
-import 'package:compendium_app/src/screens/program_editor_screen.dart';
+import 'package:compendium_app/src/screens/program_summary_screen.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart'
     show
         kAutoSizePerformKey,
@@ -976,13 +976,13 @@ void main() {
     },
   );
 
-  testWidgets('entry from program editor opens the program Perform view', (
+  testWidgets('entry from the program summary opens the program Perform view', (
     tester,
   ) async {
     await tester.binding.setSurfaceSize(const Size(1200, 2000));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final repos = openTestRepositories();
-    await repos.dances.create(_dance(id: 'd1', title: 'Editor Dance'));
+    await repos.dances.create(_dance(id: 'd1', title: 'Summary Dance'));
     await repos.programs.create(
       _program([_slot(id: 's1', position: 0, danceId: 'd1')]),
     );
@@ -997,23 +997,23 @@ void main() {
           repositories: repos,
           child: ActiveDialectScope(notifier: notifier, child: child!),
         ),
-        home: const ProgramEditorScreen(programId: 'p1'),
+        home: const ProgramSummaryScreen(programId: 'p1'),
       ),
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('perform-program')));
+    await tester.tap(find.byKey(const ValueKey('summary-perform')));
     await tester.pumpAndSettle();
 
     expect(find.byType(PerformProgramScreen), findsOneWidget);
-    expect(find.text('Editor Dance'), findsOneWidget);
+    expect(find.text('Summary Dance'), findsOneWidget);
   });
 
-  testWidgets('exit control returns to the editor', (tester) async {
+  testWidgets('exit control returns to the summary', (tester) async {
     await tester.binding.setSurfaceSize(const Size(1200, 2000));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final repos = openTestRepositories();
-    await repos.dances.create(_dance(id: 'd1', title: 'Editor Dance'));
+    await repos.dances.create(_dance(id: 'd1', title: 'Summary Dance'));
     await repos.programs.create(
       _program([_slot(id: 's1', position: 0, danceId: 'd1')]),
     );
@@ -1028,12 +1028,12 @@ void main() {
           repositories: repos,
           child: ActiveDialectScope(notifier: notifier, child: child!),
         ),
-        home: const ProgramEditorScreen(programId: 'p1'),
+        home: const ProgramSummaryScreen(programId: 'p1'),
       ),
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('perform-program')));
+    await tester.tap(find.byKey(const ValueKey('summary-perform')));
     await tester.pumpAndSettle();
     expect(find.byType(PerformProgramScreen), findsOneWidget);
 
@@ -1046,7 +1046,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(PerformProgramScreen), findsNothing);
-    expect(find.byType(ProgramEditorScreen), findsOneWidget);
+    expect(find.byType(ProgramSummaryScreen), findsOneWidget);
   });
 
   testWidgets('a stray single tap on the exit control does not leave Perform', (
@@ -1055,7 +1055,7 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(1200, 2000));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final repos = openTestRepositories();
-    await repos.dances.create(_dance(id: 'd1', title: 'Editor Dance'));
+    await repos.dances.create(_dance(id: 'd1', title: 'Summary Dance'));
     await repos.dances.create(_dance(id: 'd2', title: 'Second Dance'));
     await repos.programs.create(
       _program([
@@ -1074,12 +1074,12 @@ void main() {
           repositories: repos,
           child: ActiveDialectScope(notifier: notifier, child: child!),
         ),
-        home: const ProgramEditorScreen(programId: 'p1'),
+        home: const ProgramSummaryScreen(programId: 'p1'),
       ),
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('perform-program')));
+    await tester.tap(find.byKey(const ValueKey('summary-perform')));
     await tester.pumpAndSettle();
     expect(find.byType(PerformProgramScreen), findsOneWidget);
 
@@ -1102,7 +1102,7 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(1200, 2000));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final repos = openTestRepositories();
-    await repos.dances.create(_dance(id: 'd1', title: 'Editor Dance'));
+    await repos.dances.create(_dance(id: 'd1', title: 'Summary Dance'));
     await repos.programs.create(
       _program([_slot(id: 's1', position: 0, danceId: 'd1')]),
     );
@@ -1117,12 +1117,12 @@ void main() {
           repositories: repos,
           child: ActiveDialectScope(notifier: notifier, child: child!),
         ),
-        home: const ProgramEditorScreen(programId: 'p1'),
+        home: const ProgramSummaryScreen(programId: 'p1'),
       ),
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('perform-program')));
+    await tester.tap(find.byKey(const ValueKey('summary-perform')));
     await tester.pumpAndSettle();
     expect(find.byType(PerformProgramScreen), findsOneWidget);
 
@@ -1134,12 +1134,12 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('perform-exit-dialog')), findsOneWidget);
 
-    // Confirming pops exactly one screen — back to the editor, not past it
+    // Confirming pops exactly one screen — back to the summary, not past it
     // into some other route a stacked second dialog might reach.
     await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
     await tester.pumpAndSettle();
     expect(find.byType(PerformProgramScreen), findsNothing);
-    expect(find.byType(ProgramEditorScreen), findsOneWidget);
+    expect(find.byType(ProgramSummaryScreen), findsOneWidget);
   });
 
   testWidgets('re-entry resumes at the last slot with the clock preserved', (
@@ -1169,12 +1169,12 @@ void main() {
           repositories: repos,
           child: ActiveDialectScope(notifier: notifier, child: child!),
         ),
-        home: const ProgramEditorScreen(programId: 'p1'),
+        home: const ProgramSummaryScreen(programId: 'p1'),
       ),
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('perform-program')));
+    await tester.tap(find.byKey(const ValueKey('summary-perform')));
     await tester.pumpAndSettle();
     expect(find.byType(PerformProgramScreen), findsOneWidget);
 
@@ -1186,7 +1186,7 @@ void main() {
     final clockBefore = _seconds(_textOf(tester, 'perform-clock'));
     expect(clockBefore, greaterThanOrEqualTo(7));
 
-    // Guarded exit back to the editor.
+    // Guarded exit back to the summary.
     await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
@@ -1194,7 +1194,7 @@ void main() {
     expect(find.byType(PerformProgramScreen), findsNothing);
 
     // Re-enter: back at slot 2 with the clock preserved, not reset to slot 1.
-    await tester.tap(find.byKey(const ValueKey('perform-program')));
+    await tester.tap(find.byKey(const ValueKey('summary-perform')));
     await tester.pumpAndSettle();
     expect(find.byType(PerformProgramScreen), findsOneWidget);
     expect(_textOf(tester, 'perform-position'), 'Slot 2 of 3');
@@ -1229,12 +1229,12 @@ void main() {
             repositories: repos,
             child: ActiveDialectScope(notifier: notifier, child: child!),
           ),
-          home: const ProgramEditorScreen(programId: 'p1'),
+          home: const ProgramSummaryScreen(programId: 'p1'),
         ),
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const ValueKey('perform-program')));
+      await tester.tap(find.byKey(const ValueKey('summary-perform')));
       await tester.pumpAndSettle();
 
       // Move to slot 2 so the resumed group is not the default slot 1, accrue
@@ -1266,7 +1266,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(PerformProgramScreen), findsNothing);
 
-      await tester.tap(find.byKey(const ValueKey('perform-program')));
+      await tester.tap(find.byKey(const ValueKey('summary-perform')));
       await tester.pumpAndSettle();
       expect(find.byType(PerformProgramScreen), findsOneWidget);
 
@@ -1290,32 +1290,6 @@ void main() {
       expect(_textOf(tester, 'perform-clock'), clockBefore);
     },
   );
-
-  testWidgets('the perform-program affordance is hidden for an empty program', (
-    tester,
-  ) async {
-    await tester.binding.setSurfaceSize(const Size(1200, 2000));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    final repos = openTestRepositories();
-    await repos.programs.create(_program(const []));
-    final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
-    addTearDown(notifier.dispose);
-
-    await tester.pumpWidget(
-      MaterialApp(
-        localizationsDelegates: testLocalizationsDelegates,
-        supportedLocales: testSupportedLocales,
-        builder: (context, child) => RepositoriesScope(
-          repositories: repos,
-          child: ActiveDialectScope(notifier: notifier, child: child!),
-        ),
-        home: const ProgramEditorScreen(programId: 'p1'),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const ValueKey('perform-program')), findsNothing);
-  });
 
   testWidgets('opens in the dark-stage high-contrast theme by default', (
     tester,
@@ -2937,11 +2911,11 @@ void main() {
               repositories: repos,
               child: ActiveDialectScope(notifier: notifier, child: child!),
             ),
-            home: const ProgramEditorScreen(programId: 'p1'),
+            home: const ProgramSummaryScreen(programId: 'p1'),
           ),
         );
         await tester.pumpAndSettle();
-        await tester.tap(find.byKey(const ValueKey('perform-program')));
+        await tester.tap(find.byKey(const ValueKey('summary-perform')));
         await tester.pumpAndSettle();
 
         // Swap to the alternate, then mark it.
@@ -2957,7 +2931,7 @@ void main() {
         await tester.pumpAndSettle();
 
         // Re-entry shows the primary: the alternate's mark must not follow.
-        await tester.tap(find.byKey(const ValueKey('perform-program')));
+        await tester.tap(find.byKey(const ValueKey('summary-perform')));
         await tester.pumpAndSettle();
         expect(find.text('Primary Dance'), findsWidgets);
         expect(tester.widget<IconButton>(danceStart).isSelected, isFalse);
@@ -3060,7 +3034,7 @@ void main() {
       });
     }
 
-    testWidgets('re-entry through the editor launcher keeps the mark', (
+    testWidgets('re-entry through the summary launcher keeps the mark', (
       tester,
     ) async {
       await tester.binding.setSurfaceSize(const Size(1200, 2000));
@@ -3088,11 +3062,11 @@ void main() {
             repositories: repos,
             child: ActiveDialectScope(notifier: notifier, child: child!),
           ),
-          home: const ProgramEditorScreen(programId: 'p1'),
+          home: const ProgramSummaryScreen(programId: 'p1'),
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('perform-program')));
+      await tester.tap(find.byKey(const ValueKey('summary-perform')));
       await tester.pumpAndSettle();
 
       await tester.pump(const Duration(seconds: 20));
@@ -3109,7 +3083,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(PerformProgramScreen), findsNothing);
 
-      await tester.tap(find.byKey(const ValueKey('perform-program')));
+      await tester.tap(find.byKey(const ValueKey('summary-perform')));
       await tester.pumpAndSettle();
       expect(tester.widget<IconButton>(danceStart).isSelected, isTrue);
       expect(_textOf(tester, 'perform-walkthrough-actual'), before);

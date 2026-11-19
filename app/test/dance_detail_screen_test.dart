@@ -39,6 +39,8 @@ import 'package:compendium_app/src/widgets/program_status_chip.dart';
 import 'support/fake_url_launcher.dart';
 import 'support/pdf_probe.dart';
 import 'support/test_repositories.dart';
+import 'support/fab_clearance.dart';
+import 'support/real_fonts.dart';
 import 'support/l10n_harness.dart';
 import 'figures_support.dart';
 
@@ -3416,6 +3418,45 @@ void main() {
       expect(find.textContaining("can't be read"), findsNothing);
       expect(find.byType(FigureTable), findsOneWidget);
     });
+  });
+  group('the floating Edit', () {
+    // Not the 320 dp case: there, at 2× text, a row on this page overflows by
+    // a few pixels on `main` too, a large-text bug of its own. This group is
+    // about the floating button's clearance.
+    for (final c in fabClearanceCases.where((c) => c.width >= 390)) {
+      testWidgets('never covers the end of the page (${c.name})', (
+        tester,
+      ) async {
+        // Real glyph widths: under the full-em test font, large text overflows
+        // rows that fit with the bundled fonts.
+        await loadBundledFonts();
+        final repos = openTestRepositories();
+        await repos.dances.create(
+          _dance(
+            id: 'd1',
+            title: 'Long Dance',
+            figures: [for (var i = 0; i < 16; i++) Figure(move: 'swing')],
+          ),
+        );
+        await _pumpDetail(tester, repos, 'd1', surfaceSize: Size(c.width, 844));
+        await atPhoneSize(
+          tester,
+          width: c.width,
+          scale: c.scale,
+          keyboard: c.keyboard,
+        );
+        await tester.pumpAndSettle();
+
+        // The calling history is the page's last section.
+        await expectFabClearsLastRow(
+          tester,
+          list: find.byType(ListView).first,
+          lastRow: find.byWidgetPredicate(
+            (w) => w.runtimeType.toString() == 'CallingHistorySection',
+          ),
+        );
+      });
+    }
   });
 }
 
