@@ -890,24 +890,6 @@ FigureMatch? _formALongWaveInPlace(String text) {
   );
 }
 
-/// The gate in the app's display wording (#2121), in the order the renderer
-/// writes its slots: a subject, `mirror`, `gate`, up to two objects,
-/// `clockwise` or `counterclockwise`, a turn, ", WHOM forward", and "to face
-/// FACING". Every slot but `gate` is optional, as the display leaves an
-/// unstated one out, and only the whole line is read. The display spells `counterclockwise` as one word, which
-/// ContraDB's `_spinDir` does not read, so it is read here.
-///
-/// The subject is `who` or `pair`, which the display words alike. A line that
-/// states a rotation (mirror, a spin or a turn) is The Caller's Box shape, whose
-/// subject is the pair you gate with, as the shared grammar reads it; any
-/// other is ContraDB's shape, whose subject is `who`. A "WHOM forward" clause
-/// is written only when the subject is the pair. Of the objects, the display
-/// writes the pair before `whom`; a lone object is read as `whom`, as
-/// ContraDB's `<who> gate <whom>` is.
-///
-/// A line with nothing beyond a subject, and a Caller's Box shape that leaves
-/// out the direction or the turn, are left to the readers that already decide
-/// them.
 /// The app's display of a `hand_cast` (taxonomy v40, #770), an alias of
 /// `gate` shown through the gate's wording under its own name ("neighbor hand
 /// cast ½ to face up the hall"): read as the same line with `gate` in its
@@ -930,6 +912,24 @@ FigureMatch? _handCastDisplay(String text) {
 
 final RegExp _handCastPhrase = RegExp(r'\bhand\s+cast\b', caseSensitive: false);
 
+/// The gate in the app's display wording (#2121), in the order the renderer
+/// writes its slots: a subject, `mirror`, `gate`, up to two objects,
+/// `clockwise` or `counterclockwise`, a turn, ", WHOM forward", and "to face
+/// FACING". Every slot but `gate` is optional, as the display leaves an
+/// unstated one out, and only the whole line is read. The display spells `counterclockwise` as one word, which
+/// ContraDB's `_spinDir` does not read, so it is read here.
+///
+/// The subject is `who` or `pair`, which the display words alike. A line that
+/// states a rotation (mirror, a spin or a turn) is The Caller's Box shape, whose
+/// subject is the pair you gate with, as the shared grammar reads it; any
+/// other is ContraDB's shape, whose subject is `who`. A "WHOM forward" clause
+/// is written only when the subject is the pair. Of the objects, the display
+/// writes the pair before `whom`; a lone object is read as `whom`, as
+/// ContraDB's `<who> gate <whom>` is.
+///
+/// A line with nothing beyond a subject, and a Caller's Box shape that leaves
+/// out the direction or the turn, are left to the readers that already decide
+/// them.
 FigureMatch? _gateDisplay(String text) {
   final s = _Scan(text);
   final subject = _displaySubject(s);
