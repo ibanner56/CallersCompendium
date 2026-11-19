@@ -1,3 +1,8 @@
+// The setUpAll build below compiles the tool ahead of time; it takes the
+// longest from a cold cache.
+@Timeout(Duration(minutes: 5))
+library;
+
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
@@ -14,15 +19,37 @@ void main() {
   final serverDirectory = File('tool/load_test.dart').existsSync()
       ? '.'
       : 'server';
+  late Directory build;
+  late String executable;
   late Directory scratch;
+
+  // Built once into its own bundle rather than started with `dart run` per
+  // test. `dart run` reruns the build hooks, which replace the workspace's
+  // shared `.dart_tool/lib/sqlite3.dll`; on Windows that fails while this
+  // test runner, whose other suites use SQLite, has the library loaded.
+  setUpAll(() async {
+    build = Directory.systemTemp.createTempSync('load-test-build-');
+    final result = await Process.run(Platform.resolvedExecutable, [
+      'build',
+      'cli',
+      '--target=tool/load_test.dart',
+      '--output=${build.path}',
+    ], workingDirectory: serverDirectory);
+    expect(result.exitCode, 0, reason: '${result.stdout}${result.stderr}');
+    executable = p.join(
+      build.path,
+      'bundle',
+      'bin',
+      Platform.isWindows ? 'load_test.exe' : 'load_test',
+    );
+  });
+  tearDownAll(() => build.deleteSync(recursive: true));
 
   setUp(() => scratch = Directory.systemTemp.createTempSync('load-test-dir-'));
   tearDown(() => scratch.deleteSync(recursive: true));
 
   Future<ProcessResult> loadTest(String dataDirectory) =>
-      Process.run(Platform.resolvedExecutable, [
-        'run',
-        'tool/load_test.dart',
+      Process.run(executable, [
         '--duration=1',
         '--concurrency=1',
         '--scenario=store-get',
