@@ -1,9 +1,12 @@
 import 'package:compendium_core/compendium_core.dart' show foldForSearch;
 
-/// The words a query is split into: runs of letters and digits, so
-/// punctuation and spacing never have to match ("rosé-pine" searches for
-/// "rosé" and "pine"; "synthwave '84" for "synthwave" and "84").
-final RegExp _separators = RegExp(r'[^\p{L}\p{N}]+', unicode: true);
+/// The words a query is split into: runs of letters, digits and combining
+/// marks, so punctuation and spacing never have to match ("rosé-pine"
+/// searches for "rosé" and "pine"; "synthwave '84" for "synthwave" and "84").
+/// Marks stay inside a word because the fold decomposes some letters and keeps
+/// their marks: a Japanese voiced kana such as グ folds to ク + U+3099, and
+/// splitting there would search for ク.
+final RegExp _separators = RegExp(r'[^\p{L}\p{M}\p{N}]+', unicode: true);
 
 /// What one theme on the Theme screen can be found by.
 ///

@@ -56,6 +56,26 @@ void main() {
       );
     });
 
+    test(
+      'a voiced kana stays one letter: its mark does not split the word',
+      () {
+        // NFD splits グ into ク + U+3099; the mark must not act as a separator,
+        // or グ would search for ク and find クール (cool).
+        expect(
+          ThemeSearchEntry(names: const [], terms: ['クール']).matches('グ'),
+          isFalse,
+        );
+        expect(
+          ThemeSearchEntry(names: const [], terms: ['ダーク']).matches('ダ'),
+          isTrue,
+        );
+        expect(
+          ThemeSearchEntry(names: const [], terms: ['ターコイズ']).matches('ダ'),
+          isFalse,
+        );
+      },
+    );
+
     test('a query with no words matches everything', () {
       expect(entry.matches(''), isTrue);
       expect(entry.matches(' , '), isTrue);

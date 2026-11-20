@@ -49,8 +49,8 @@ class _ThemeScreenState extends State<ThemeScreen> {
   final ScrollController _listController = ScrollController();
   String _query = '';
 
-  /// The custom theme just made with "Custom theme", and the key its card
-  /// carries until it has been scrolled into view (see [_reveal]).
+  /// The custom theme last made with "Custom theme", and the key its card
+  /// carries so [_reveal] can find it (kept until another theme is made).
   String? _revealId;
   final GlobalKey _revealKey = GlobalKey();
 
