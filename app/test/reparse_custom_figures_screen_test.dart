@@ -266,7 +266,7 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.text('Could not upgrade figures. Please try again.'),
+      find.text('Couldn\'t upgrade the figures. Try again.'),
       findsOneWidget,
     );
     final button = tester.widget<FilledButton>(

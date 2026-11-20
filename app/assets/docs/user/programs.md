@@ -23,7 +23,7 @@ Open **Programs** to see the programs you have built. It starts with a short
 prompt and a **New program** button until you make your first one. Once you
 have programs, **New program** floats at the bottom of the list, and a strip across the top shows the current week, with a dot on
 each day that has a program's event date; to choose which day the week starts
-on, see [Settings › Language & region](./settings.md#formats).
+on, see [Settings ▸ Language & region](./settings.md#formats).
 
 Each program in the list shows its title, event date, venue, dance count, and a
 status label (**Draft**, **Finalized**, or **Performed**); on the program's own
@@ -34,10 +34,10 @@ a dance. The same count appears in the builder beside **Slots**, in the
 summary's **Set list** heading, and on the **Add to program** sheet. Once there is a program, use the sort button to order the list by **Title**, **Recently
 updated**, or **Event date**, and the arrow beside it to flip the direction. To choose which sort and
 direction the list opens with, see
-[Settings › Defaults](./settings.md#display-defaults).
+[Settings ▸ Defaults](./settings.md#display-defaults).
 
 - **Start one** with **New program**. If you have set up a **Starting program**
-  template in [Settings › Defaults](./settings.md#program-defaults), the new
+  template in [Settings ▸ Defaults](./settings.md#program-defaults), the new
   program begins with the template's dances and notes in order (any dance you
   have since deleted is left out). The template applies only here — not to
   imported or duplicated programs, or to **Create a new program with this
@@ -97,7 +97,7 @@ direction the list opens with, see
   Deleting a program also takes it out of the
   [calling history](#track-what-you-have-called) of every dance in it, and
   restoring it puts it back. With **Confirm before delete** on in
-  [Settings › General › Accessibility](./settings.md#accessibility), the
+  [Settings ▸ General ▸ Accessibility](./settings.md#accessibility), the
   prompt says how many dances lose the program from their history, counted
   under your current calling-history settings. The
   warning appears only if you turned that setting on, and swiping a row to
@@ -248,7 +248,7 @@ computer, **Ctrl-S** (**Cmd-S** on a Mac) does the same while you're on the
 the builder with changes you haven't saved, the app asks **Discard changes?**:
 **Keep editing** takes you back, and **Discard** leaves without them. To have
 changes saved as you work instead, turn on **Auto-save program changes** in
-[Settings › Program › Programs](./settings.md#programs).
+[Settings ▸ Program ▸ Programs](./settings.md#programs).
 
 ### Unsaved drafts
 
@@ -328,7 +328,7 @@ family (contras, triplets, mixers, circles, squares), and a formation you have
 given your own color shows that color instead, unless the dance is marked as a
 mixer, which keeps the mixer color. The formation is always written on the row
 too. To turn the tints off, see
-[Settings › Appearance › Set lists](./settings.md#set-lists); to choose your own
+[Settings ▸ Appearance ▸ Set lists](./settings.md#set-lists); to choose your own
 colors, see [Formation colors](./settings.md#formation-colors).
 
 ### When a dance in a program is deleted
@@ -382,7 +382,7 @@ A program carries the details of its event:
   program file you share leaves it out.
 
 The **venue** can be a simple free-text label, or — when you turn on **Use
-reusable venue records** in [Settings › Program › Venues](./settings.md#venues) —
+reusable venue records** in [Settings ▸ Program ▸ Venues](./settings.md#venues) —
 a saved [venue](./glossary.md#venue) record you can reuse across programs, with
 its own address, contacts, and schedule that you edit in one place. A program
 linked to a saved venue shows and exports that record's details; otherwise the
@@ -390,10 +390,10 @@ free-text label is used. Switching modes never loses what you typed. Older
 programs with a typed venue can be linked to a matching record, so calling
 history counts them as one hall: the app offers this (**Link earlier
 programs?**) when you turn the setting on or add the venue; see
-[Settings › Program › Venues](./settings.md#venues).
+[Settings ▸ Program ▸ Venues](./settings.md#venues).
 
 If you often play the same role, set a default caller or band in
-[Settings › Defaults](./settings.md#program-defaults) and new programs will
+[Settings ▸ Defaults](./settings.md#program-defaults) and new programs will
 prefill them. You can always change these per program.
 
 ## Check your evening with the matrix
@@ -455,7 +455,7 @@ Here is how to read it:
 
   To flag any repeat that lands in the same **named phrase** (A1, A2, B1, B2…),
   even when the beats themselves don't overlap, turn off **Flag exact beat
-  overlap only** in [Settings › Program](./settings.md#programs).
+  overlap only** in [Settings ▸ Program](./settings.md#programs).
 - **Show phrase labels** with the text-fields button above the matrix (it shows
   shapes while labels are off, and text fields with a highlight while they are
   on). This
@@ -484,7 +484,7 @@ Here is how to read it:
   program's **Hide alternates in set list** option, which is saved and controls
   set-list output.
 - **Reorder, rename, or remove columns for good** in
-  **Settings › Program › Matrix columns**. Unlike the eye icon above, changes
+  **Settings ▸ Program ▸ Matrix columns**. Unlike the eye icon above, changes
   there are saved and apply to **every** program, on screen and in the printed
   PDF: drag a column to a new position, give it a name that suits your callers,
   or remove one you never use. Removed columns can be brought back at any time,
@@ -531,7 +531,7 @@ A few practical notes:
 
 The built-in columns split moves in a fixed way. To track a narrower version of
 a move — say, only partner swings, or only balance and swings — choose **Add
-parameterized column** in **Settings › Program › Matrix columns**. Pick one move
+parameterized column** in **Settings ▸ Program ▸ Matrix columns**. Pick one move
 and, optionally, exact values for its details, such as who swings or the lead-in.
 A figure matches when its details have those values, counting the move's usual
 defaults for anything the dance doesn't spell out. The column appears only when
@@ -551,7 +551,7 @@ only some, it stays.
 ### Compound columns
 
 To spot a particular run of figures — say, **circle left → swing → circle
-left** — choose **Add compound column** in **Settings › Program › Matrix
+left** — choose **Add compound column** in **Settings ▸ Program ▸ Matrix
 columns** and list at least two moves in order, with exact details if you like.
 The column is marked for a dance only when those figures come back to back, in
 that order, in the dance as written. A gap or another figure in between means no
@@ -582,7 +582,7 @@ menu:
 
 A set list is titles, event details, and slot notes by default, with each
 dance's author shown next to its title if you have authors turned on.
-Settings › Defaults lets you choose other dance fields too, but they only
+Settings ▸ Defaults lets you choose other dance fields too, but they only
 appear on the richer per-dance card, not the numbered set-list line itself —
 see
 [Choose which dance fields appear](./sharing.md#choose-which-dance-fields-appear).
@@ -613,7 +613,7 @@ There are two ways to think about "called," and a setting lets you choose:
 - **Any program that contains the dance** counts (the default), or
 - **only slots you marked performed** count — turn on **Require "mark
   performed" for calling history** in
-  [Settings › Program › Calling history](./settings.md#calling-history).
+  [Settings ▸ Program ▸ Calling history](./settings.md#calling-history).
 
 An [alternate](./glossary.md#alt) counts only once you mark that slot
 performed, whichever way you choose. Listing a dance as a fallback is not
@@ -633,7 +633,7 @@ performed** from its **…** menu in the editor, or mark it from
 clearing from the summary shows an **Undo**, which only applies while the
 program is otherwise unchanged. If you'd rather not see the circles, turn off
 **Show mark-performed toggles** in
-[Settings › Program › Calling history](./settings.md#calling-history); rows then
+[Settings ▸ Program ▸ Calling history](./settings.md#calling-history); rows then
 just show a check on dances already marked. To mark
 every unperformed dance at once, use **Mark all performed** in the program
 editor or on a saved program's summary; it offers a one-tap **Undo**. On a
@@ -651,7 +651,7 @@ Programs list. Its **Undo** puts the marks and the status back together, unless
 you changed the status yourself in the meantime. Clearing a mark later doesn't
 change the status. To keep the status separate, turn off **Mark all performed
 sets the status** in
-[Settings › Program › Calling history](./settings.md#calling-history).
+[Settings ▸ Program ▸ Calling history](./settings.md#calling-history).
 
 Calling history dates each call by the program's **event date**, however late
 you mark it. Mark Saturday's dances on Monday morning and the history still says

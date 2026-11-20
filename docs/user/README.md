@@ -41,7 +41,7 @@ Everything else can wait until you need it.
 | Find one dance in a big collection | [Collection & search — Search across your dances](collection.md#search-across-your-dances) |
 | Narrow a list by level, formation, or tag | [Collection & search — Narrow things down with filters](collection.md#narrow-things-down-with-filters) |
 | Tag, rate, or delete many dances at once | [Collection & search — Change many dances at once](collection.md#change-many-dances-at-once) |
-| Rename or merge tags, authors, or sources | [Settings — Library](settings.md#library) |
+| Rename or merge tags, authors, or sources | [Settings — Dances](settings.md#dances) |
 | Write a new dance, or fix one that came in wrong | [Write & edit dances](authoring.md) |
 | Record how a dance is taught | [Write & edit dances — Walkthrough](authoring.md#walkthrough) |
 | Build a set list for an event | [Programs & matrix](programs.md) |

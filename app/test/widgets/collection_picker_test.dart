@@ -2209,7 +2209,10 @@ void main() {
     await _openOnlineResult(tester, repos, service, (_) {});
 
     expect(find.byType(OnlineResultTile), findsOneWidget);
-    expect(find.text('Couldn\'t import that dance.'), findsOneWidget);
+    expect(
+      find.text('Couldn\'t import that dance. Try again.'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('overlay hydration failure still adds the imported dance', (

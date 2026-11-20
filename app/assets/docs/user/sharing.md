@@ -27,7 +27,7 @@ the dance's **More actions** menu.) There are five actions:
 | **Export dance as JSON** | Builds the same file as **Share dance file**, named `.json` instead, then offers **Save**, **Copy raw JSON**, **Share**, or **Cancel** |
 | **Export / print PDF** | Builds a PDF and opens your system's print dialog |
 
-With **Print calling cards** turned on in Settings › Experimental › Calling
+With **Print calling cards** turned on in Settings ▸ Experimental ▸ Calling
 cards, there is a sixth: **Print calling card**, which prints the dance on a small card — see
 [Print calling cards](#print-calling-cards).
 
@@ -134,7 +134,7 @@ Open a program and choose **Export**. Five actions:
 | **Export as JSON file** | Opens a choice to **Save**, **Copy raw JSON**, **Share**, or **Cancel**. The same package is named `.json` for a recipient who doesn't have the app, or when you want to read the file yourself |
 | **Export / print PDF** | Builds a PDF set list and opens your system's print dialog |
 
-With **Print calling cards** turned on in Settings › Experimental › Calling
+With **Print calling cards** turned on in Settings ▸ Experimental ▸ Calling
 cards, there is a sixth: **Print calling cards**, one small card for each of the program's dances — see
 [Print calling cards](#print-calling-cards).
 
@@ -169,7 +169,7 @@ If something goes wrong the app says so plainly — "Couldn't share this set lis
 
 ### Choose which dance fields appear
 
-Settings › Defaults has a checklist for every non-figures dance field a dance
+Settings ▸ Defaults has a checklist for every non-figures dance field a dance
 card can show: author, formation, level, mixer, status, phrase, calling
 notes, walkthrough, suggested tunes, hook, and published sources. Everything
 except suggested tunes, the hook and published sources is on by default,
@@ -254,7 +254,7 @@ import added. But a shared file carries no address (see
 venue is a hall you already have in your own records, or that venues from two
 different callers are the same place. In those cases you get a separate,
 name-only venue record. Nothing is lost or overwritten, and you can tidy the
-extras in [**Settings › Program › Venues › Manage venues**](./settings.md#venues).
+extras in [**Settings ▸ Program ▸ Venues ▸ Manage venues**](./settings.md#venues).
 
 ### The same thing, as a plain `.json` file
 
@@ -282,7 +282,7 @@ checks the file and tells you if it isn't a share file), and on Windows the
 installer registers it, so double-clicking one opens import review. On Linux it
 opens the same way once the file type is set up, which the downloads don't do
 for you (see [Installing on Linux](./installation.md#install-on-linux)). On any
-device the recipient can bring it in with **Settings › General › Import…**. A device without the app may not know what to
+device the recipient can bring it in with **Settings ▸ General ▸ Import…**. A device without the app may not know what to
 do with it at all. A `.json` file is a plain document anywhere, so reach for this
 one when you are:
 
@@ -296,12 +296,12 @@ choosing one over the other.
 ## Print calling cards
 
 A calling card is one dance on a small card, such as a 3 × 5 index card, to hold
-while you call. Turn on **Print calling cards** in Settings › Experimental ›
+while you call. Turn on **Print calling cards** in Settings ▸ Experimental ▸
 Calling cards first; that is also where you choose the card size and lay out what goes on it (see
 [Calling cards](./settings.md#calling-cards)).
 
-- **One dance:** open it and choose **Export** › **Print calling card**.
-- **A whole program:** open it and choose **Export** › **Print calling cards**.
+- **One dance:** open it and choose **Export** ▸ **Print calling card**.
+- **A whole program:** open it and choose **Export** ▸ **Print calling cards**.
   You get one card per dance, in program order, each alternate after the dance
   it stands in for. For a layout that prints the `number`, each card carries
   the number the dance has in the set list, and an alternate is marked
@@ -342,7 +342,7 @@ set-list PDF:
 
 | Mark | Meaning |
 |---|---|
-| `‼` | Shares beats with an adjacent dance (or same phrase as adjacent dance, if you've turned off **Flag exact beat overlap only** in **Settings › Program › Programs**) |
+| `‼` | Shares beats with an adjacent dance (or same phrase as adjacent dance, if you've turned off **Flag exact beat overlap only** in **Settings ▸ Program ▸ Programs**) |
 | `★` | Introduced here |
 | `▸` | Dance's first figure |
 | `✓` | Present |
@@ -423,7 +423,7 @@ contact people in the first place.
 
 The app's diagnostics log is separate from exports. It never leaves your device
 unless you export it yourself, and an exported log has your content removed
-unless you choose otherwise. [Settings › Diagnostics](./settings.md#diagnostics)
+unless you choose otherwise. [Settings ▸ Diagnostics](./settings.md#diagnostics)
 explains what the log contains and what **Include full detail** changes.
 
 ## Exports versus backups
@@ -435,7 +435,7 @@ They are different tools for different jobs:
 | **Covers** | One dance, or one program | Everything: dances, programs, venues, authors, dialects, themes, custom fields, and settings |
 | **Meant for** | Handing to another person | Keeping safe, or moving to your own new device |
 | **Privacy** | Private contact details stripped or opt-in; your pay, dialect and star ratings left out | Complete — it is your own data, unredacted |
-| **Where** | The **Export** menu on a dance or program | **Settings › General › Export a backup** |
+| **Where** | The **Export** menu on a dance or program | **Settings ▸ General ▸ Export a backup** |
 
 The **Include in sharing** setting on a custom field applies to share/export
 files sent to other people. Your own backup remains complete, including fields

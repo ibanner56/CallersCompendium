@@ -88,7 +88,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get menuUserGuide => 'ユーザーガイド';
 
   @override
-  String get appBootstrapPreparing => 'コレクションを準備しています';
+  String get appBootstrapPreparing => 'ライブラリを準備しています';
 
   @override
   String get appBootstrapRebuildingIndex => '検索インデックスを再構築しています';
@@ -99,7 +99,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get appBootstrapError => 'コレクションを準備できませんでした。';
+  String get appBootstrapError => 'ライブラリを準備できませんでした。もう一度お試しください。';
 
   @override
   String get appBootstrapCopyDetails => '詳細をコピー';
@@ -183,7 +183,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get migrationSnapshotCauseUnwritableBackupsDir =>
-      '自動バックアップフォルダに書き込めませんでした。';
+      '自動バックアップのフォルダーに書き込めませんでした。';
 
   @override
   String get migrationSnapshotCauseDatabaseInUse =>
@@ -220,6 +220,14 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String migrationBelowFloorGetBridge(String bridgeTag) {
+    return '$bridgeTagを入手';
+  }
+
+  @override
+  String get migrationBelowFloorStartFresh => '代わりに新しく始める';
+
+  @override
   String get migrationBelowFloorBackUpAndReset => 'バックアップしてリセット';
 
   @override
@@ -230,7 +238,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get migrationBelowFloorBackupFailedBody =>
-      'バックアップの書き込みに失敗したため、データはリセットされていません。';
+      'バックアップを書き込めなかったため、データはリセットされていません。空き容量を確保してから、もう一度お試しください。';
 
   @override
   String get migrationBelowFloorResetConfirmTitle => 'アプリのデータをリセットしますか？';
@@ -261,7 +269,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get migrationBelowFloorWipeFailedBody =>
-      'データベースファイルを削除できませんでした。データは変更されていません。ファイルを使用している可能性のある他のアプリを閉じてから、再度お試しください。';
+      'データベースファイルを削除できませんでした。データは変更されていません。ファイルを使っている可能性のある他のアプリを閉じてから、もう一度お試しください。';
 
   @override
   String get confirmDeleteTitle => '削除しますか？';
@@ -358,7 +366,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsDeveloperResetConfirmBody =>
-      'このデバイス上のすべてのダンス、プログラム、コレクション、設定、メモが完全に削除され、アプリはインストール直後の状態で再起動します。この操作は元に戻せません。';
+      'このデバイス上のライブラリ全体（すべてのダンス、プログラム、設定、メモ）が完全に削除され、アプリはインストール直後の状態で再起動します。この操作は元に戻せません。';
 
   @override
   String get settingsDeveloperResetConfirmSyncNote =>
@@ -397,7 +405,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get glossarySelectPrompt => 'フィギュアを選択すると定義が表示されます。';
 
   @override
-  String get glossaryCopyAsOwnFigure => '自分のフィギュアとしてコピー';
+  String get glossaryCopyAsOwnFigure => 'カスタムフィギュアにコピー';
 
   @override
   String glossaryCustomCopiedFrom(String name) {
@@ -433,7 +441,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get importCcTermsSkip => 'スキップ';
+  String get importCcTermsSkip => '今はしない';
 
   @override
   String importCcTermsConfirm(int count) {
@@ -896,7 +904,7 @@ class AppLocalizationsJa extends AppLocalizations {
       'ストアに接続するには、そのストアを使うすべてのデバイスの最新の一覧が必要です。他のデバイスでアプリを開いて同期させてから、もう一度お試しください。もう使わないデバイスがある場合は、「他のデバイス」で削除してください。';
 
   @override
-  String get settingsSyncFailureInternal => '同期中にアプリ内部で問題が発生しました。';
+  String get settingsSyncFailureInternal => 'アプリ内部の問題により、同期が停止しました。';
 
   @override
   String get settingsSyncFailureInternalAdvice =>
@@ -917,7 +925,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String settingsSyncFailureStatusCode(int code) {
-    return 'サーバーは HTTP ステータス $code で応答しました。';
+    return 'サーバーのステータスコード: $code。';
   }
 
   @override
@@ -1036,7 +1044,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get syncConflictApply => '選択したものを残す';
 
   @override
-  String get syncConflictDecideLater => '後で決める';
+  String get syncConflictDecideLater => 'キャンセル';
 
   @override
   String get syncConflictShowDifferences => '違いを表示';
@@ -1262,7 +1270,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get syncSettingDefaultProgramSortDirection => 'プログラムの並び替え方向（既定）';
 
   @override
-  String get syncSettingPerformStageTheme => 'パフォームのステージテーマ';
+  String get syncSettingPerformStageTheme => 'パフォームモードのステージテーマ';
 
   @override
   String settingsSyncConflictsSubtitle(int count) {
@@ -1275,7 +1283,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get settingsSyncConflictsCheckFailed => '競合を確認できませんでした。';
+  String get settingsSyncConflictsCheckFailed => '競合を確認できませんでした。もう一度お試しください。';
 
   @override
   String commonSyncNowConflictsTooltip(int count) {
@@ -1627,7 +1635,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsSyncPairingBackupOfferAccept => '今すぐバックアップ';
 
   @override
-  String get settingsSyncPairingBackupOfferSkip => 'スキップ';
+  String get settingsSyncPairingBackupOfferSkip => '今はしない';
 
   @override
   String get settingsSyncPairingContinue => '続ける';
@@ -1774,11 +1782,11 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsAboutFontFrauncesSubtitle =>
-      'SIL Open Font License 1.1 · © The Fraunces Project Authors — 見出し表示用';
+      'SIL Open Font License 1.1 · © The Fraunces Project Authors — 見出しと表示用';
 
   @override
   String get settingsAboutFontAtkinsonSubtitle =>
-      'SIL Open Font License 1.1 · © Braille Institute of America, Inc. — 本文・UI・パフォーム用';
+      'SIL Open Font License 1.1 · © Braille Institute of America, Inc. — 本文・UI・パフォームモード用';
 
   @override
   String get settingsAboutFontRobotoSubtitle =>
@@ -1796,7 +1804,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsAboutDanceDataBody =>
-      'ダンスデータはThe Caller\'s Box（Chris Page & Michael Dyck）を参照しており、同コレクションはCreative Commons Attribution-NonCommercial（CC BY-NC）ライセンスのもとで公開されています。感謝を込めて。';
+      'ダンスデータはThe Caller\'s Box（Chris Page & Michael Dyck）を参照しており、同サイトのコレクションはCreative Commons Attribution-NonCommercial（CC BY-NC）ライセンスのもとで公開されています。感謝を込めて。';
 
   @override
   String get settingsAboutLicensesHeader => 'ライセンス一覧';
@@ -1950,7 +1958,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsUpdatesDownloadTitle => 'アップデートをダウンロードしてインストール';
 
   @override
-  String get settingsUpdatesDownloadError => 'アップデートをダウンロードできませんでした。';
+  String get settingsUpdatesDownloadError =>
+      'アップデートをダウンロードできませんでした。もう一度お試しください。';
 
   @override
   String settingsUpdatesDownloadSubtitle(String version) {
@@ -2401,9 +2410,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsDefaultsStartingProgramMoveDown => '下へ移動';
 
   @override
-  String settingsDefaultsStartingProgramUnavailableDance(String id) {
-    return '利用できないダンス（$id）';
-  }
+  String get settingsDefaultsStartingProgramUnavailableDance =>
+      'このダンスは利用できなくなりました';
 
   @override
   String get settingsDefaultsDifficultyLevelEmpty => '難易度には名前が必要です。';
@@ -2639,11 +2647,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsDefaultsMoveDefaultsTitle => 'ムーブのデフォルト設定';
 
   @override
-  String get settingsDefaultsUserFiguresTitle => '自分のフィギュアの既定値';
+  String get settingsDefaultsUserFiguresTitle => 'カスタムフィギュアの既定値';
 
   @override
   String get settingsDefaultsUserFiguresSubtitle =>
-      '新しいフィギュアはそれぞれ独自の既定値（開始時の値とビート数）を持ちます。変更するにはフィギュアを選んでください。';
+      '自分のフィギュアにはそれぞれ独自の既定値（初期値と拍数）があります。変更するには、フィギュアを選んでください。';
 
   @override
   String get settingsDefaultsMoveDefaultsSubtitle =>
@@ -2656,7 +2664,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsDefaultsRemoveMoveTooltip => '削除';
 
   @override
-  String get settingsDefaultsMoveGone => 'このムーブはタクソノミーに存在しなくなりました。';
+  String get settingsDefaultsMoveGone => 'このムーブは利用できなくなりました。';
 
   @override
   String get settingsDefaultsMoveNoParams => 'このムーブにはデフォルト設定できるパラメーターがありません。';
@@ -2702,7 +2710,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsTagColoursSaveError => 'その色を保存できませんでした。もう一度お試しください。';
 
   @override
-  String get settingsTagColoursLoadError => 'タグを読み込めませんでした。';
+  String get settingsTagColoursLoadError =>
+      'タグを読み込めませんでした。何も変更されていません。もう一度お試しください。';
 
   @override
   String get tagManagerTitle => 'タグ';
@@ -2764,7 +2773,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get authorManagerEmptyBody => 'ダンスにクレジットした作者はここに表示されます。';
 
   @override
-  String get authorManagerLoadError => '作者を読み込めませんでした。';
+  String get authorManagerLoadError => '作者を読み込めませんでした。何も変更されていません。もう一度お試しください。';
 
   @override
   String authorManagerMergedSeveralSnack(int count, String into) {
@@ -2787,7 +2796,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get sourceManagerEmptyBody => 'ダンスで引用した書籍やウェブサイトはここに表示されます。';
 
   @override
-  String get sourceManagerLoadError => 'ソースを読み込めませんでした。';
+  String get sourceManagerLoadError => '出典を読み込めませんでした。何も変更されていません。もう一度お試しください。';
 
   @override
   String get libraryManagerClearSearch => '検索をクリア';
@@ -2870,7 +2879,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get libraryManagerEditFailed => '変更を保存できませんでした。もう一度お試しください。';
+  String get libraryManagerEditFailed => 'その変更を保存できませんでした。もう一度お試しください。';
 
   @override
   String get libraryManagerEditDetails => '詳細を編集…';
@@ -2905,7 +2914,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get settingsGeneralLibraryHeader => 'ライブラリ';
+  String get settingsGeneralLibraryHeader => 'ダンス';
 
   @override
   String get settingsGeneralSortIgnoreArticlesTitle => '並び替え時に先頭の冠詞を無視する';
@@ -3077,7 +3086,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsMatrixColumnsCompoundDelete => '複合列を削除';
 
   @override
-  String get settingsGeneralPerformanceHeader => 'パフォーマンス';
+  String get settingsGeneralPerformanceHeader => 'パフォームモード';
 
   @override
   String get settingsGeneralAutoSizePerformTitle => 'パフォームカードのサイズを自動調整';
@@ -3087,26 +3096,26 @@ class AppLocalizationsJa extends AppLocalizations {
       '各カードを画面に収まるように調整しますが、通常の文字サイズより小さくはしません。長いダンスやスロットはスクロールで表示します。A- / A+で自分でサイズを設定する場合はオフにしてください。';
 
   @override
-  String get settingsShowIndividualPerformTimerTitle => '個別のパフォームでタイマーを表示';
+  String get settingsShowIndividualPerformTimerTitle => '1曲をパフォームするときにタイマーを表示';
 
   @override
   String get settingsShowIndividualPerformTimerSubtitle =>
       '1曲だけをパフォームしている間の経過時間を表示します。タイマーが表示されると開始し、一時停止できます。';
 
   @override
-  String get settingsConfirmPerformExitTitle => 'パフォームを終了する前に確認する';
+  String get settingsConfirmPerformExitTitle => 'パフォームモードを終了する前に確認する';
 
   @override
   String get settingsConfirmPerformExitSubtitle =>
-      '閉じるボタンや戻る操作でパフォームを終了する前に確認します。オフにすると1回のタップで終了します。プログラムのパフォームでは、どちらの場合も現在の位置が保持されます。';
+      '閉じるボタンや戻る操作でパフォームモードを終了する前に確認します。オフにすると1回のタップで終了します。プログラムのパフォームモードでは、どちらの場合も現在の位置が保持されます。';
 
   @override
   String get settingsShowProgramSlotCallerNotesTitle =>
-      'プログラムのパフォームでコーラーのメモを表示';
+      'プログラムのパフォーム時にコーラーのメモを表示';
 
   @override
   String get settingsShowProgramSlotCallerNotesSubtitle =>
-      'プログラムのパフォームで、空でないスロットごとのコーラーメモをダンス名の上に表示します。';
+      'プログラムをパフォームするとき、空でないスロットごとのコーラーメモをダンス名の上に表示します。';
 
   @override
   String get settingsGeneralCallingHistoryHeader => 'コーリング履歴';
@@ -3317,13 +3326,14 @@ class AppLocalizationsJa extends AppLocalizations {
   String get syncReviewIntro => '別のデバイスからの変更を適用する前に、これらの項目について判断が必要です。';
 
   @override
-  String get syncReviewLoadFailed => '同期の判断を読み込めませんでした。';
+  String get syncReviewLoadFailed => '同期の判断事項を読み込めませんでした。もう一度お試しください。';
 
   @override
   String get syncReviewResolved => '同期の判断を適用しました。';
 
   @override
-  String get syncReviewActionFailed => '同期の判断を適用できませんでした。再試行できるよう項目を保持しました。';
+  String get syncReviewActionFailed =>
+      'その同期の判断を適用できませんでした。項目は残っているので、もう一度お試しください。';
 
   @override
   String get syncReviewKindChoreographer => '作者';
@@ -3388,7 +3398,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get syncReviewMergeDiscardsContactsBody =>
-      '保持されるレコードは 1 件だけです。もう一方のメールアドレス、場所、故人マークはこのデバイスにのみ保存されているため、統合後は復元できません。';
+      '残るレコードは1件だけです。もう一方のメールアドレス、場所、故人マークはこのデバイスにのみ保存されており、失われます。この操作は元に戻せません。';
 
   @override
   String get syncReviewCounterpartDeleted =>
@@ -3448,7 +3458,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsGeneralReparseCustomFiguresSubtitle =>
-      'インポート時に認識できず、そのまま保持されたフィギュアを持つインポート済みのダンスを再確認します。アプリが認識できるようになっていれば、その場でアップグレードされます — タグ、評価、ノートは保持されます。変更前にプレビューして確認できます。';
+      '取り込み時に認識できなかったため、未認識のフィギュアのまま保存されたダンスを再確認します。アプリが認識できるようになっていれば、そのまま更新されます。タグ、評価、メモは保持されます。変更前にプレビューで確認できます。';
 
   @override
   String get settingsGeneralReparseCustomFiguresAction => '再確認…';
@@ -3470,11 +3480,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get backupExported => 'バックアップをエクスポートしました。';
 
   @override
-  String get backupExportFailed => 'バックアップをエクスポートできませんでした。';
+  String get backupExportFailed =>
+      'バックアップをエクスポートできませんでした。データは変更されていません。もう一度お試しください。';
 
   @override
   String get backupRestoreIntegrityFailed =>
-      'このバックアップは整合性チェックに失敗しました。破損しているか、エクスポート後に変更された可能性があります。復元はキャンセルされ、データは変更されていません。';
+      'このバックアップは安全性チェックに失敗しました。破損しているか、エクスポート後に変更された可能性があります。復元は中止され、データは変更されていません。';
 
   @override
   String get backupRestoreIncompatibleVersion =>
@@ -3497,14 +3508,14 @@ class AppLocalizationsJa extends AppLocalizations {
   String get backupRestored => 'バックアップを復元しました。';
 
   @override
-  String get backupRestoreFailed => 'バックアップを復元できませんでした。';
+  String get backupRestoreFailed => 'バックアップを復元できませんでした。もう一度お試しください。';
 
   @override
   String get backupRestoreSettingsFailed =>
-      'ダンスとプログラムは復元されましたが、保存された設定の適用に失敗しました。復元された内容は無事です。設定の適用を再試行できます。';
+      'ダンスとプログラムは復元されましたが、保存された設定の適用に失敗しました。復元された内容は安全です。もう一度適用を試すことができます。';
 
   @override
-  String get backupRestoreSettingsRetryAction => '設定を再試行';
+  String get backupRestoreSettingsRetryAction => '再試行';
 
   @override
   String get backupRestoreSettingsRetried => '設定を適用しました。';
@@ -3514,7 +3525,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get backupExportSubtitle =>
-      'コレクション、プログラム、カスタムフィールド、ダイアレクト、テーマ、設定をすべてJSON形式の1つのファイルに保存します。安全に保管したり、別のデバイスに移動したりできます。';
+      'ライブラリ全体を1つのJSONファイルに保存します。安全に保管したり、別のデバイスに移したりできます。ダンス、プログラム、カスタムフィールド、ダイアレクト、テーマ、設定が含まれます。';
 
   @override
   String get backupExportAction => 'エクスポート';
@@ -3524,7 +3535,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get backupRestoreSubtitle =>
-      'アプリの現在の内容をすべてバックアップファイルの内容に置き換えます。この操作は元に戻せません。';
+      'アプリ内の現在の内容をすべて、バックアップファイルの内容に置き換えます。この操作は元に戻せません。';
 
   @override
   String get backupRestoreAction => '復元';
@@ -3555,7 +3566,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get backupReminderBannerText =>
-      'バックアップの期限が過ぎています。コレクションを守るため、今すぐエクスポートしてください。';
+      'バックアップの期限が過ぎています。ライブラリを守るため、今すぐエクスポートしてください。';
 
   @override
   String get backupReminderBannerExport => 'バックアップをエクスポート';
@@ -3565,7 +3576,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get backupRestoreDialogBody =>
-      '復元すると、アプリの現在の内容（コレクション、プログラム、ダイアレクト、テーマ、設定）がすべてバックアップの内容に置き換えられます。この操作は元に戻せません。';
+      '復元すると、アプリ内の現在のコレクション、プログラム、ダイアレクト、テーマ、設定がすべて、バックアップの内容に置き換わります。この操作は元に戻せません。';
 
   @override
   String get backupRestoreDialogSyncNote =>
@@ -3575,7 +3586,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get backupChooseFileAction => 'ファイルを選択…';
 
   @override
-  String get backupChooseFileFailed => 'そのファイルを読み込めませんでした。';
+  String get backupChooseFileFailed =>
+      'そのファイルを読み取れませんでした。もう一度選ぶか、別のファイルを選んでください。';
 
   @override
   String get backupPasteJsonLabel => 'またはバックアップJSONを貼り付け';
@@ -3613,7 +3625,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String backupExportTooLarge(String sizeMb, String limitMb) {
-    return 'コレクションが大きすぎて1つのバックアップとして書き出せません（$sizeMb MB、上限 $limitMb MB）。何も保存されておらず、データは変更されていません。';
+    return 'ライブラリが大きすぎて1つのバックアップとしてエクスポートできないため（$sizeMb MB、上限 $limitMb MB）、何も保存されていません。データは変更されていません。';
   }
 
   @override
@@ -3637,7 +3649,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get diagnosticsScrubbedExportUnavailable =>
-      '安全（スクラブ済み）エクスポートを準備できなかったため、何も保存されませんでした。もう一度お試しいただくか、意図的に詳細情報を含めてご利用ください。';
+      '安全な（情報を除去した）エクスポートを準備できなかったため、何も保存されていません。もう一度お試しいただくか、意図的に詳細版を使用してください。';
 
   @override
   String get diagnosticsLogExported => '診断ログをエクスポートしました。';
@@ -3646,17 +3658,17 @@ class AppLocalizationsJa extends AppLocalizations {
   String get diagnosticsExportCancelled => 'エクスポートをキャンセルしました。';
 
   @override
-  String get diagnosticsExportFailed => '診断ログをエクスポートできませんでした。';
+  String get diagnosticsExportFailed => '診断ログをエクスポートできませんでした。もう一度お試しください。';
 
   @override
-  String get diagnosticsClearFailed => '診断ログを消去できませんでした。';
+  String get diagnosticsClearFailed => '診断ログを消去できませんでした。もう一度お試しください。';
 
   @override
   String get diagnosticsClearLogTitle => '診断ログを削除しますか？';
 
   @override
   String get diagnosticsClearLogBody =>
-      'このデバイスのローカルクラッシュログを完全に削除します。この操作は元に戻せません。';
+      'このデバイスのローカルのクラッシュログが完全に削除されます。この操作は元に戻せません。';
 
   @override
   String get diagnosticsClearAction => '削除';
@@ -3714,11 +3726,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get diagnosticsClearLogRowSubtitle => 'このデバイスからローカルクラッシュログを削除します。';
 
   @override
-  String get crashFallbackTitle => 'ここで問題が発生しました';
+  String get crashFallbackTitle => 'アプリのこの部分を表示できませんでした';
 
   @override
   String get crashFallbackBody =>
-      'アプリのこの部分で予期しないエラーが発生し、表示できませんでした。詳細はデバイスを離れないローカル診断ログ（設定 ▸ 診断）に保存されました。';
+      '予期しないエラーが発生しました。詳細はデバイスの外に出ないローカル診断ログ（設定 ▸ 診断）に保存されました。前の画面に戻って、もう一度お試しください。';
 
   @override
   String get crashFallbackCopied => 'コピーしました';
@@ -3748,10 +3760,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get commonUndo => '元に戻す';
 
   @override
-  String get commonUndoFailed => '元に戻せませんでした。結果を確認して、もう一度お試しください。';
-
-  @override
-  String get commonRetry => '再試行';
+  String get commonUndoFailed => '元に戻せませんでした。結果を確認してから、もう一度お試しください。';
 
   @override
   String get commonDelete => '削除';
@@ -4104,7 +4113,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get collectionClearSearchTooltip => '検索とフィルターをクリア';
 
   @override
-  String get collectionLoadError => 'コレクションを読み込めませんでした。';
+  String get collectionLoadError =>
+      'コレクションを読み込めませんでした。何も変更されていません。もう一度お試しください。';
 
   @override
   String collectionDuplicatedSnack(String title) {
@@ -4166,7 +4176,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get collectionSearchError => '検索の実行中に問題が発生しました。';
+  String get collectionSearchError => '検索を実行できませんでした。何も変更されていません。もう一度お試しください。';
 
   @override
   String get collectionNoResults => '検索に一致するダンスがありません。';
@@ -4476,8 +4486,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get collectionFacetNone => 'このコレクションにはまだ利用可能なフィルターがありません。';
 
   @override
-  String get collectionFacetAllHidden =>
-      'すべてのフィルターが非表示です。設定 → デフォルト で再び表示できます。';
+  String get collectionFacetAllHidden => 'すべてのフィルターが非表示です。設定 ▸ 既定値で再表示できます。';
 
   @override
   String get collectionFacetClear => 'フィルターをクリア';
@@ -4852,7 +4861,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceNotFound => 'ダンスが見つかりませんでした。';
 
   @override
-  String get danceLoadError => 'このダンスを読み込めませんでした。';
+  String get danceLoadError => 'このダンスを読み込めませんでした。何も変更されていません。もう一度お試しください。';
 
   @override
   String get danceEditFab => '編集';
@@ -4890,7 +4899,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get danceEditorFiguresUnreadable =>
-      '保存されたフィギュアは読み取れないため、ここには表示されません。ご自身でフィギュアを追加しない限り、そのまま保持されます。';
+      '保存されているフィギュアを読み取れないため、ここには表示されません。自分でフィギュアを追加しない限り、そのまま保持されます。';
 
   @override
   String get danceEditorTunesUnreadable =>
@@ -4921,7 +4930,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceCallingHistoryEmpty => 'まだプログラムに含まれていません。';
 
   @override
-  String get danceCallingHistoryError => 'コール履歴を読み込めませんでした。';
+  String get danceCallingHistoryError =>
+      'コーリング履歴を読み込めませんでした。何も変更されていません。もう一度お試しください。';
 
   @override
   String danceVenueCallCount(int count, String venue) {
@@ -5182,13 +5192,15 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get programsSaveError => 'プログラムを保存できませんでした。';
+  String get programsSaveError =>
+      'プログラムを保存できませんでした。変更内容はここに残っています。もう一度お試しください。';
 
   @override
-  String get programsUndoPerformedError => 'マークを取り消せませんでした。実行済みのマークは保存されたままです。';
+  String get programsUndoPerformedError => '元に戻せませんでした。実施済みマークは保存されたままです。';
 
   @override
-  String get programsUndoRefreshError => '取り消しは保存されましたが、エディターを更新できませんでした。';
+  String get programsUndoRefreshError =>
+      '元に戻す操作は保存されましたが、エディターを更新できませんでした。プログラムを開き直すと反映されます。';
 
   @override
   String programsDuplicatedSnack(String title) {
@@ -5286,7 +5298,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programsLoading => 'プログラムを読み込み中';
 
   @override
-  String get programsLoadError => 'プログラムを読み込めませんでした。';
+  String get programsLoadError => 'プログラムを読み込めませんでした。何も変更されていません。もう一度お試しください。';
 
   @override
   String get programsDeletedDanceFallback => '（削除済みダンス）';
@@ -5304,6 +5316,10 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get programsSlotsLabel => 'スロット';
+
+  @override
+  String get programsSlotsHelper =>
+      'スロットは、セットリストの1つの枠です。ダンス、メモ、休憩のいずれかを入れられます。';
 
   @override
   String get programsAddDanceButton => 'ダンスを追加';
@@ -5430,7 +5446,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get programsDialectHelper =>
-      'このプログラムのパフォーム画面でのみ使用されます。エディター、概要、エクスポートではアプリのダイアレクトが使われます。';
+      'このプログラムのパフォームモードでのみ使用されます。エディター、概要、エクスポートではアプリのダイアレクトが使われます。';
 
   @override
   String programsWarningCount(int count) {
@@ -5478,7 +5494,8 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get programsListLoadError => 'プログラムを読み込めませんでした。';
+  String get programsListLoadError =>
+      'プログラムを読み込めませんでした。何も変更されていません。もう一度お試しください。';
 
   @override
   String get programsListEmptyBody =>
@@ -5640,7 +5657,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get programsSummaryUndoPerformedToggleError =>
-      '実施済みマークの変更を取り消せませんでした。';
+      '実施済みマークの変更を取り消せませんでした。もう一度お試しください。';
 
   @override
   String get programsPerformedCleared => '実施済みマークをクリアしました。';
@@ -6110,7 +6127,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get performProgramChangedElsewhere =>
-      'パフォームを開いた後に、このプログラムが別の場所で変更されていました。パフォームには、あなたの変更を含む最新の版が表示されています。';
+      'パフォームモードを開いてから、このプログラムが別の場所で変更されました。パフォームモードには、あなたの変更を含む最新の内容が表示されています。';
 
   @override
   String get performProgramAdjustedSnack => 'プログラムを調整しました。';
@@ -6346,16 +6363,18 @@ class AppLocalizationsJa extends AppLocalizations {
   String get exportDanceCopied => 'ダンスをクリップボードにコピーしました。';
 
   @override
-  String get exportShareDanceError => 'このダンスを共有できませんでした';
+  String get exportShareDanceError =>
+      'このダンスを共有できませんでした。ダンスは変更されていません。もう一度お試しください。';
 
   @override
-  String get exportDanceError => 'このダンスをエクスポートできませんでした';
+  String get exportDanceError =>
+      'このダンスをエクスポートできませんでした。ダンスは変更されていません。もう一度お試しください。';
 
   @override
   String get exportShareSetListText => 'セットリストを共有（テキスト）';
 
   @override
-  String get exportShareProgramBundle => '共有（プログラム＋ダンス）';
+  String get exportShareProgramBundle => 'プログラムとダンスを共有';
 
   @override
   String get exportSaveProgramBundle => 'プログラムファイルを保存…';
@@ -6407,22 +6426,23 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get exportJsonSaveError => 'このJSONファイルを保存できませんでした。';
+  String get exportJsonSaveError => 'このJSONファイルを保存できませんでした。もう一度お試しください。';
 
   @override
-  String get exportJsonCopyError => 'このJSONをコピーできませんでした。';
+  String get exportJsonCopyError => 'このJSONをコピーできませんでした。もう一度お試しください。';
 
   @override
-  String get exportJsonShareError => 'このJSONファイルを共有できませんでした。';
+  String get exportJsonShareError => 'このJSONファイルを共有できませんでした。もう一度お試しください。';
 
   @override
-  String get exportShareSetListError => 'このセットリストを共有できませんでした';
+  String get exportShareSetListError => 'このセットリストを共有できませんでした。もう一度お試しください。';
 
   @override
-  String get exportShareProgramError => 'このプログラムを共有できませんでした';
+  String get exportShareProgramError =>
+      'このプログラムを共有できませんでした。プログラムは変更されていません。もう一度お試しください。';
 
   @override
-  String get exportSetListError => 'このセットリストをエクスポートできませんでした';
+  String get exportSetListError => 'このセットリストをエクスポートできませんでした。もう一度お試しください。';
 
   @override
   String get exportIncludeFiguresTitle => 'フィギュアを含めますか？';
@@ -6680,11 +6700,11 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String onlineLoadError(String source) {
-    return '$sourceからそのダンスを読み込めませんでした。';
+    return '$sourceからそのダンスを読み込めませんでした。もう一度お試しください。';
   }
 
   @override
-  String get onlineImportError => 'そのダンスをインポートできませんでした。';
+  String get onlineImportError => 'そのダンスを取り込めませんでした。もう一度お試しください。';
 
   @override
   String onlineSearchFailed(String source) {
@@ -6789,7 +6809,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importProgramTitleLabel => 'プログラムタイトル';
 
   @override
-  String get importProgramCreateError => 'インポートしたプログラムを保存できませんでした。';
+  String get importProgramCreateError => '取り込んだプログラムを保存できませんでした。もう一度お試しください。';
 
   @override
   String importProgramCommitted(
@@ -6839,7 +6859,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importContraDbSearchHint => 'プログラム名の一部を入力';
 
   @override
-  String get importContraDbListError => 'ContraDBのプログラムリストを読み込めませんでした。';
+  String get importContraDbListError =>
+      'ContraDBのプログラム一覧を読み込めませんでした。何も取り込まれていません。もう一度お試しください。';
 
   @override
   String get importContraDbSearchPrompt => 'プログラム名の一部を入力してContraDBを検索してください。';
@@ -6870,7 +6891,8 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get importContraDbFetchGenericError => 'そのプログラムを取得できませんでした。';
+  String get importContraDbFetchGenericError =>
+      'そのプログラムを取得できませんでした。もう一度お試しください。';
 
   @override
   String get importContraDbPastePrompt =>
@@ -6880,7 +6902,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importContraDbEmptyProgram => 'そのプログラムページにダンスやノートが見つかりませんでした。';
 
   @override
-  String get importContraDbResolveError => 'ContraDBプログラムをインポートできませんでした。';
+  String get importContraDbResolveError =>
+      'ContraDBのプログラムを取り込めませんでした。もう一度お試しください。';
 
   @override
   String importContraDbProgramProgress(int done, int total) {
@@ -6936,7 +6959,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importTitleListTitle => 'タイトルリストからインポート';
 
   @override
-  String get importCollectionLoadError => 'コレクションを読み込めませんでした。';
+  String get importCollectionLoadError =>
+      'コレクションを読み込めませんでした。何も変更されていません。もう一度お試しください。';
 
   @override
   String get importTitleListDancesLabel => 'ダンスのタイトル（1行に1つ）';
@@ -6968,7 +6992,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importPlaintextUnmatched => '一致なし — ノートとして追加';
 
   @override
-  String get importPlaintextSearchError => 'オンライン検索に失敗しました。';
+  String get importPlaintextSearchError => 'オンラインで検索できませんでした。もう一度お試しください。';
 
   @override
   String importPlaintextSlotCount(int count) {
@@ -7271,7 +7295,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get archiveIntakeRejectedTooLarge => 'そのファイルはインポートするには大きすぎます。';
 
   @override
-  String get archiveIntakeRejectedUnreadable => '共有ファイルを読み取れませんでした。';
+  String get archiveIntakeRejectedUnreadable =>
+      '共有されたファイルを読み取れませんでした。もう一度お試しいただくか、送信者に共有し直してもらってください。';
 
   @override
   String get archiveIntakeRejectedEmpty => 'そのファイルは空です。';
@@ -7285,13 +7310,14 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get archiveIntakeRejectedBackup =>
-      'そのファイルは共有ファイルではなくバックアップです。このデバイスに取り込むには、設定 › 一般 を開き、「バックアップから復元」を選んでください。';
+      'そのファイルは共有ファイルではなくバックアップです。このデバイスに取り込むには、設定 ▸ 一般を開き、「バックアップから復元」を選んでください。';
 
   @override
   String get importErrorInsecureScheme => 'インポートには安全なhttps:// URLを使用する必要があります。';
 
   @override
-  String get importErrorBlockedHost => 'そのURLはインポートできないネットワークの場所を指しています。';
+  String get importErrorBlockedHost =>
+      'そのURLは、アプリが取り込めないネットワーク上の場所を指しています。URLを確認してから、もう一度お試しください。';
 
   @override
   String get importErrorInvalidUrl => '有効なhttp(s) URLのように見えません。';
@@ -7506,7 +7532,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get importIssueArchiveCustomFieldKeyConflictGeneric =>
-      'このファイルのカスタムフィールドは、キーがすでに使われているため使用できませんでした。その値は代わりに番号付きのキーのフィールドに入ります。';
+      'このファイル内のカスタムフィールドは、キーがすでに使われているためそのキーを使えず、代わりに番号付きのキーのフィールドに値が入ります。';
 
   @override
   String get importIssueUsrFileTruncated =>
@@ -7683,7 +7709,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get importRecordErrorNotUsrDatabase =>
-      'Caller\'s Companion のライブラリファイル（.USR）ではありません。Caller\'s Companion のデータフォルダ内にある .USR ファイルを探してください。';
+      'これはCaller\'s Companionのデータファイル（.USR）ではありません。Caller\'s Companionのデータフォルダー内にある.USRファイルを探してください。';
 
   @override
   String get importRecordErrorFileTooLarge =>
@@ -7713,9 +7739,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importReviewChooseUsr => '.USRファイルを選択…';
 
   @override
-  String importReviewFileReady(int bytes) {
-    return 'ファイルの準備ができました（$bytesバイト）。';
-  }
+  String get importReviewFileReady => 'ファイルの準備ができました。';
 
   @override
   String get importReviewGenericSubtitle =>
@@ -7766,7 +7790,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get importReviewPlanFailedBody =>
-      'このインポートの読み込み中に問題が発生しました。もう一度お試しください。それでも解決しない場合は、ファイルが破損している可能性があります。';
+      'この取り込みを読み取れませんでした。何も追加されていません。もう一度お試しください。繰り返し起こる場合は、ファイルが破損している可能性があります。';
 
   @override
   String get importReviewNoDancesTitle => 'ダンスが見つかりませんでした';
@@ -7996,7 +8020,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importReviewUndone => 'インポートを元に戻しました。';
 
   @override
-  String get importReviewEditError => '編集用にそのダンスをインポートできませんでした。';
+  String get importReviewEditError => '編集するためにそのダンスを取り込めませんでした。もう一度お試しください。';
 
   @override
   String get importReviewEditOverwriteTitle => '既存のダンスを今すぐ置き換えますか？';
@@ -8023,7 +8047,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get importReviewImportError => 'インポートを完了できませんでした。';
+  String get importReviewImportError => '取り込みを完了できませんでした。もう一度お試しください。';
 
   @override
   String get importFileNotText =>
@@ -8079,7 +8103,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorDetailsSection => '詳細';
 
   @override
-  String get danceEditorTitleRequiredLabel => 'タイトル *';
+  String get danceEditorTitleRequiredLabel => 'タイトル';
 
   @override
   String get danceEditorTitleRequired => 'タイトルが必要です';
@@ -8125,6 +8149,10 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get danceEditorHookHint => '「なぜこれをコールするか」の1行説明';
+
+  @override
+  String get danceEditorHookHelper =>
+      'このダンスをコールする理由を1行で。コーリングカードや共有する内容に表示されることがあります。';
 
   @override
   String get danceEditorWalkthroughLabel => 'ウォークスルー';
@@ -8568,7 +8596,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorCiteSourceHint => 'ソースを引用: 追加または作成するには入力…';
 
   @override
-  String get danceEditorSaveError => 'ダンスを保存できませんでした。';
+  String get danceEditorSaveError =>
+      'ダンスを保存できませんでした。変更内容はここに残っています。もう一度お試しください。';
 
   @override
   String danceEditorChoreographerDuplicate(String name) {
@@ -8656,7 +8685,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorDeleteDanceTooltip => 'ダンスを削除';
 
   @override
-  String get danceEditorLoadError => 'ダンスを読み込めませんでした。';
+  String get danceEditorLoadError => 'ダンスを読み込めませんでした。何も変更されていません。もう一度お試しください。';
 
   @override
   String get danceEditorChoreographerDetailsTitle => '作者の詳細';
@@ -8666,7 +8695,7 @@ class AppLocalizationsJa extends AppLocalizations {
       'これらの詳細は、この作者のすべてのダンスで共有されます。メール、場所、故人の印はプライベートです — このデバイスにのみ保存され、共有またはエクスポートされることはありません。';
 
   @override
-  String get danceEditorNameRequiredLabel => '名前 *';
+  String get danceEditorNameRequiredLabel => '名前';
 
   @override
   String get danceEditorNameRequired => '名前が必要です';
@@ -8868,7 +8897,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get danceEditorCompoundUnavailable =>
-      'この自分のフィギュアは展開できません。削除または変更されたか、これらの値を受け付けません。保存すると、名前・拍数・メモ・プログレッションだけが残ります。';
+      '自分のフィギュアを展開できません。削除または変更されたか、これらの値を受け付けません。保存すると、名前、拍数、メモ、プログレッションのマークだけが保持されます。';
 
   @override
   String get danceEditorIncompleteFigure => '未完成のため、保存しても含まれません。';
@@ -9158,7 +9187,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String danceEditorUnrecognizedMoveReadOnly(String move) {
-    return '認識されないムーブ「$move」— このバージョンのタクソノミーにありません。データを保持するために読み取り専用で表示されています。ムーブが認識されるようになると再び通常通り編集できます。並べ替えや削除はできます。';
+    return '認識できないムーブ「$move」: このバージョンのアプリはこれを知りません。データを保持するため読み取り専用で表示しており、ムーブが認識されるようになれば通常どおり編集できます。並べ替えや削除は引き続きできます。';
   }
 
   @override
@@ -9284,10 +9313,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get updateBannerDownloadFailed => 'アップデートをダウンロードできませんでした。';
+  String get updateBannerDownloadFailed => 'アップデートをダウンロードできませんでした。もう一度お試しください。';
 
   @override
-  String get updateDownloadFailureDestination => 'アップデートのダウンロード先を選択できませんでした。';
+  String get updateDownloadFailureDestination =>
+      'アップデートのダウンロード先を選べませんでした。もう一度お試しいただくか、「リリースを見る」をご利用ください。';
 
   @override
   String get updateDownloadFailureDestinationOccupied =>
@@ -9295,7 +9325,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get updateDownloadFailureIncomplete =>
-      'ダウンロードが不完全だったため、削除されました。もう一度お試しいただくか、「リリースを見る」をご利用ください。';
+      'ダウンロードを完了できず、不完全なファイルは削除されました。もう一度お試しいただくか、「リリースを見る」をご利用ください。';
 
   @override
   String get updateDownloadFailureRefusedHost =>
@@ -9307,15 +9337,15 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get updateDownloadFailureServerError =>
-      'アップデートサーバーからファイルを取得できませんでした。しばらくしてからもう一度お試しいただくか、「リリースを見る」をご利用ください。';
+      'アップデートサーバーがファイルを提供できませんでした。しばらくしてからもう一度お試しいただくか、「リリースを見る」をご利用ください。';
 
   @override
   String get updateDownloadFailureDiskFull =>
-      'アップデートを保存するためのディスクの空き容量が足りません。空き容量を確保してもう一度お試しいただくか、「リリースを見る」をご利用ください。';
+      'アップデートを保存するための空きディスク容量が足りません。空き容量を確保してからもう一度お試しいただくか、「リリースを見る」をご利用ください。';
 
   @override
   String get updateDownloadFailureUnwritable =>
-      'ダウンロード先に書き込めないため、アップデートを保存できませんでした。アクセス権を確認してもう一度お試しいただくか、「リリースを見る」をご利用ください。';
+      'ダウンロード先に書き込めないため、アップデートを保存できませんでした。権限を確認してからもう一度お試しいただくか、「リリースを見る」をご利用ください。';
 
   @override
   String get updateDownloadFailureChecksumMismatch =>
@@ -9323,19 +9353,19 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get updateDownloadFailureHandoffFailed =>
-      'アップデートはダウンロードおよび検証されましたが、自動的に開けませんでした。「リリースを見る」からインストールを完了してください。';
+      'アップデートはダウンロードされ検証されましたが、自動的に開けませんでした。「リリースを見る」からインストールを完了してください。';
 
   @override
   String get updateDownloadFailureInstallFailed =>
-      'アップデートのインストール中に問題が発生しました。もう一度お試しいただくか、「リリースを見る」から手動でダウンロードしてください。';
+      'アップデートをインストールできませんでした。もう一度お試しいただくか、「リリースを見る」から手動でダウンロードしてください。';
 
   @override
   String get startupIntegrityCheckIncomplete =>
-      'データベースの整合性チェックを完了できなかったため、今回の起動ではデータを検証できませんでした。問題が続く場合は、バックアップからの復元をご検討ください。技術的な詳細は 設定 ▸ 診断 に保存されました。';
+      '今回はデータの確認を完了できず、検証できませんでした。問題が続く場合は、バックアップからの復元をご検討ください。技術的な詳細は設定 ▸ 診断に保存されました。';
 
   @override
   String get startupIntegrityCheckFailed =>
-      'データベースの整合性チェックに失敗しました。ローカルのデータが破損している可能性があります。バックアップからの復元をご検討ください。';
+      'データが安全性チェックに失敗し、破損している可能性があります。バックアップからの復元をご検討ください。';
 
   @override
   String get startupEcdConvertTitle => 'ECDダンスを変換しますか？';
@@ -9401,7 +9431,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get retirementBannerGetUpdate => 'アップデートを入手';
 
   @override
-  String get retirementBannerLater => '後で';
+  String get retirementBannerLater => '閉じる';
 
   @override
   String installLocationBannerMessage(String appName) {
@@ -9552,7 +9582,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get userGuideLoadError => 'ユーザーガイドを読み込めませんでした。';
+  String get userGuideLoadError => 'ユーザーガイドを読み込めませんでした。もう一度お試しください。';
 
   @override
   String get userGuideOpenOnline => 'ガイドをオンラインで開く';
@@ -9588,7 +9618,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get shorthandsCompoundTitle => '自分のフィギュア用のショートハンド';
 
   @override
-  String get shorthandsUserFigureSyncLabel => '自分の新しいフィギュア用のショートハンド';
+  String get shorthandsUserFigureSyncLabel => '新しいフィギュア用のショートハンド';
 
   @override
   String get shorthandsCompoundIntro =>
@@ -9610,7 +9640,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get shorthandsUserFigureShadowedByCompound =>
-      '使用されていません。自分の組み合わせのショートハンドに同じテキストがあります。';
+      '使われません: 組み合わせ用のショートハンドが同じテキストです。';
 
   @override
   String get compoundShorthandEditorFigureLabel => '自分のフィギュア';
@@ -9620,7 +9650,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get compoundShorthandEditorNoCompounds =>
-      '自分のフィギュアがまだありません。まず用語集で追加してください。';
+      'カスタムフィギュアがまだありません。先に用語集で追加してください。';
 
   @override
   String get compoundShorthandEditorInvalidValues =>
@@ -9698,7 +9728,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get importShorthandSeedSkip => 'スキップ';
+  String get importShorthandSeedSkip => '今はしない';
 
   @override
   String importShorthandSeedConfirm(int count) {
@@ -9745,7 +9775,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importUserFiguresUseTheirs => '相手のものを使う';
 
   @override
-  String get importUserFiguresSkip => 'スキップ';
+  String get importUserFiguresSkip => '今はしない';
 
   @override
   String importUserFiguresConfirm(int count) {
@@ -9944,8 +9974,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get reparseErrorTitle => 'フィギュアを確認できませんでした';
 
   @override
-  String get reparseErrorBody =>
-      'コレクションのスキャン中に問題が発生しました。何も変更されていません。もう一度お試しください。';
+  String get reparseErrorBody => 'コレクションをスキャンできませんでした。何も変更されていません。もう一度お試しください。';
 
   @override
   String get ecdMigrationScreenTitle => 'イングリッシュダンスを変換';
@@ -10067,7 +10096,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get customFieldsNewField => '新しいフィールド';
 
   @override
-  String get customFieldsLoadError => 'カスタムフィールドを読み込めませんでした。';
+  String get customFieldsLoadError =>
+      'カスタムフィールドを読み込めませんでした。何も変更されていません。もう一度お試しください。';
 
   @override
   String get customFieldsEmptyTitle => 'カスタムフィールドはまだありません';
@@ -10108,13 +10138,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get customFieldsEditorEditTitle => 'カスタムフィールドを編集';
 
   @override
-  String get customFieldsLabelLabel => 'ラベル *';
+  String get customFieldsLabelLabel => 'ラベル';
 
   @override
   String get customFieldsLabelRequired => 'ラベルが必要です';
 
   @override
-  String get customFieldsKeyLabel => 'キー *';
+  String get customFieldsKeyLabel => 'キー';
 
   @override
   String get customFieldsKeyHelper =>
@@ -10129,6 +10159,10 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get customFieldsKeyInvalid =>
       'キーは文字またはアンダースコアで始まり、文字、数字、アンダースコアのみを含む必要があります';
+
+  @override
+  String get customFieldsSaveFailed =>
+      'フィールドを保存できませんでした。キーと選択肢を確認してから、もう一度お試しください。';
 
   @override
   String get customFieldsTypeFieldLabel => 'タイプ';
@@ -10150,7 +10184,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get customFieldsSearchableSubtitleYesNo => 'このフィールドを「フィルター」パネルに表示します';
 
   @override
-  String get customFieldsChoicesLabel => '選択肢 *';
+  String get customFieldsChoicesLabel => '選択肢';
 
   @override
   String get customFieldsChoiceInUseTooltip => '使用中 — 削除できません';
@@ -10367,7 +10401,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get venueNew => '新しい会場';
 
   @override
-  String get venueLoadError => '会場を読み込めませんでした。';
+  String get venueLoadError => '会場を読み込めませんでした。何も変更されていません。もう一度お試しください。';
 
   @override
   String get venueManagerTitle => '会場';
@@ -10443,7 +10477,7 @@ class AppLocalizationsJa extends AppLocalizations {
       'この会場の下にある住所と連絡先の項目はこのデバイスにのみ残ります — デバイス同期はそれらを他のデバイスに伝えないため、他のデバイスでは空欄になることがあります。メモ欄は同期されるので、連絡先情報をこのデバイスだけに留めたい場合はメモに書かないようにしてください。';
 
   @override
-  String get venueEditorNameLabel => '名前 *';
+  String get venueEditorNameLabel => '名前';
 
   @override
   String get venueEditorNameRequired => '名前が必要です';
@@ -10571,7 +10605,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceReimportInvalidJson => 'ダンスをちょうど1つ含む有効なファイルを選択してください。';
 
   @override
-  String get danceReimportSourceFailed => 'そのソースからダンスを読み込めませんでした。もう一度お試しください。';
+  String get danceReimportSourceFailed =>
+      'その出典からダンスを読み込めませんでした。ダンスは変更されていません。もう一度お試しください。';
 
   @override
   String get danceReimported => '振り付けを更新しました。';
@@ -10601,11 +10636,11 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get publishedCollectionsUnverified =>
-      '公開コレクションを検証できなかったため、何も読み込まれませんでした。この問題が続く場合は、アプリを更新してください。';
+      '公開コレクションを検証できなかったため、何も読み込まれていません。繰り返し起こる場合は、アプリをアップデートしてください。';
 
   @override
   String get publishedCollectionsOffline =>
-      '公開コレクションに接続できませんでした。接続を確認してもう一度お試しください。';
+      '公開コレクションに接続できませんでした。接続を確認してから、もう一度お試しください。';
 
   @override
   String get publishedCollectionsNeedsNewerApp =>
@@ -10769,7 +10804,7 @@ class AppLocalizationsJa extends AppLocalizations {
       '自分のフィギュアを追加・編集でき、ダンスの編集時にも選べます。用語集は不要です。オフにすると非表示になりますが、削除はされません。';
 
   @override
-  String get settingsExperimentalCustomFiguresManageTitle => '自分のフィギュア';
+  String get settingsExperimentalCustomFiguresManageTitle => 'カスタムフィギュア';
 
   @override
   String get settingsExperimentalCustomFiguresManageSubtitle =>
@@ -10779,7 +10814,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get customFiguresTitle => 'カスタムフィギュア';
 
   @override
-  String get customFiguresEmpty => '自分のフィギュアはまだありません。「+」を選んで追加してください。';
+  String get customFiguresEmpty => 'カスタムフィギュアはまだありません。+ を選んで追加してください。';
 
   @override
   String get customFiguresEmptyTitle => 'カスタムフィギュアはまだありません';
@@ -10788,7 +10823,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get glossaryAddCustomFigure => '自分のフィギュアを追加';
 
   @override
-  String get customFiguresNewFigure => '新しいフィギュア';
+  String get customFiguresNewFigure => '自分のフィギュアを追加';
 
   @override
   String get glossaryCustomMarker => 'カスタム';
@@ -10857,7 +10892,7 @@ class AppLocalizationsJa extends AppLocalizations {
       '用語集のサイズが上限に達したため、保存できませんでした。ほかのフィギュアやメモを削除するか短くして空きを作り、もう一度お試しください。';
 
   @override
-  String get compoundEditorTitleNew => '新しいフィギュア';
+  String get compoundEditorTitleNew => '自分のフィギュアを追加';
 
   @override
   String get compoundEditorTitleEdit => 'フィギュアを編集';
@@ -11171,7 +11206,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get danceEditorUserFigureUnavailable =>
-      'このフィギュアは使用できないため、この行は現在の文言のままになります。';
+      '自分のフィギュアが利用できないため、この行は現在の表記のままになります。';
 
   @override
   String get compoundEditorDiscardBody => 'このフィギュアに未保存の変更があります。';
@@ -11611,7 +11646,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get callingCardEditorPreviewError => 'プレビューを表示できませんでした。';
+  String get callingCardEditorPreviewError => 'プレビューを描画できませんでした。もう一度お試しください。';
 
   @override
   String callingCardEditorPreviewShrunk(int percent) {
@@ -11669,7 +11704,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get callingCardHelpFields =>
-      'ブロックはダンスにある情報だけを印刷し、「設定 › デフォルト › 共有するダンス項目」でオンになっている項目だけを印刷します。印刷する内容がない段は場所を取りません。カードに収まりきらないときは、すべてが同じ割合で縮小され、最小で半分の大きさになります。';
+      'ブロックには、ダンスにある内容のうち、設定 ▸ 既定値 ▸ 共有するダンスの項目でオンにした項目だけが印刷されます。印刷する内容のない行は場所を取りません。カードがいっぱいのときは、カード上のすべてが均等に縮小され、最小で半分のサイズになります。';
 
   @override
   String get callingCardHelpTapToInsert => '名前をタップすると、レイアウトに追加されます。';

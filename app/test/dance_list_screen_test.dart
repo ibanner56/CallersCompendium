@@ -3124,7 +3124,7 @@ void main() {
     await _search(tester, 'chase');
 
     expect(
-      find.text('Something went wrong running the search.'),
+      find.text('Couldn\'t run the search. Nothing was changed. Try again.'),
       findsOneWidget,
     );
     // The stale count is cleared so the live region matches the error state.
@@ -3145,14 +3145,17 @@ void main() {
 
     expect(dances.fired, isTrue, reason: 'the injected failure must fire');
     expect(
-      find.text('Something went wrong running the search.'),
+      find.text('Couldn\'t run the search. Nothing was changed. Try again.'),
       findsOneWidget,
     );
 
     await tester.tap(find.byKey(const ValueKey('load-error-retry')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Something went wrong running the search.'), findsNothing);
+    expect(
+      find.text('Couldn\'t run the search. Nothing was changed. Try again.'),
+      findsNothing,
+    );
     expect(find.byType(DanceListTile), findsOneWidget);
   });
 
@@ -3169,7 +3172,10 @@ void main() {
     // queries now match nothing gracefully instead of surfacing an error.
     await _search(tester, '"');
 
-    expect(find.text('Something went wrong running the search.'), findsNothing);
+    expect(
+      find.text('Couldn\'t run the search. Nothing was changed. Try again.'),
+      findsNothing,
+    );
     expect(find.text('No dances match your search.'), findsOneWidget);
     expect(find.text('0 dances'), findsOneWidget);
   });

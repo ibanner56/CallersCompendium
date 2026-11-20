@@ -81,7 +81,7 @@ on. Because your library lives with you, *you* keep the safety copy; see
 ### What does it cost? Is it really open source?
 
 It's free and open source, licensed under **AGPL-3.0-only**. You'll find the version,
-license, and a link to the source under **Settings › About**.
+license, and a link to the source under **Settings ▸ About**.
 
 ### Which devices does it run on?
 
@@ -105,17 +105,17 @@ new one. It's a clean round trip — see
 ### How do I change the role names (Larks/Robins, Leads/Follows, and so on)?
 
 That's what a [dialect](./glossary.md#dialect) is for. Pick or build one under
-**Settings › Dialect**, and the app shows your words everywhere. See
+**Settings ▸ Dialect**, and the app shows your words everywhere. See
 [Dialect](./dialects.md).
 
 ### How do I fix a misspelled tag, author, or source everywhere at once?
 
 Rename it once and every dance that uses it follows. Tags, authors, and sources
-each have a manager under **Settings › General › Library**. If two entries are
+each have a manager under **Settings ▸ General ▸ Dances**. If two entries are
 really the same — say an import spelled an author two ways — choose **Merge
 into…** on one of them, and every dance that used either ends up with the one
 you keep. A rename or merge offers **Undo**. See
-[Settings](./settings.md#library) and, for tags,
+[Settings](./settings.md#dances) and, for tags,
 [Collection & search](./collection.md#group-by-category-a-dances-vibe).
 
 ### How do I make the text bigger for calling on stage?
@@ -138,7 +138,7 @@ computer where the app was installed with the installer, the recipient can
 intent), which takes them to the import review screen already loaded with it. On
 Linux that works once the file type is set up (see
 [Installing](./installation.md#install-on-linux)). Anywhere, they can import it
-from **Settings › General** by choosing **Import…**.
+from **Settings ▸ General** by choosing **Import…**.
 Either way nothing lands in their collection until they confirm. This is separate
 from a full backup. See [Share, print & export](./sharing.md).
 
@@ -159,7 +159,7 @@ Play on Android), the store updates the app for you and the app never offers an
 update. (With **Check automatically** on, it still warns you if your version is
 reaching its end of support.)
 
-Otherwise the app can check for a newer version itself. Open **Settings ›
+Otherwise the app can check for a newer version itself. Open **Settings ▸
 Updates** and choose **Check for updates** any time. On desktop it can download
 and install the update for you, except on a portable copy (the Windows zip or the
 Linux tar.gz), where it sends you to the release to download the new archive. On
@@ -171,11 +171,11 @@ channel** switch too — otherwise the check won't find them. See
 
 ## Troubleshooting
 
-### The app shows "Could not prepare the collection."
+### The app shows "Couldn't prepare your library."
 
-The app couldn't open or get your collection ready at startup. Try, in order:
+The app couldn't open or get your library ready at startup. Try, in order:
 
-1. **Fix the likely cause, then choose Retry.** Retry reopens the database from
+1. **Fix the likely cause, then choose Try again.** Try again reopens the database from
    scratch, so it works without relaunching the app once the cause is gone —
    for example, free some disk space, or make sure the folder holding the
    database (see [Where is my data stored?](#where-is-my-data-stored)) exists and
@@ -191,12 +191,12 @@ The app couldn't open or get your collection ready at startup. Try, in order:
      your library. Type `%APPDATA%` into the File Explorer address bar and
      open the `org.callerscompendium` folder from there.
    - **macOS:** `~/Library/Containers/org.callerscompendium.compendiumApp/Data/Library/Application Support/org.callerscompendium.compendiumApp/diagnostics/crash.log`.
-     In Finder, choose **Go › Go to Folder…** and paste the folder path.
+     In Finder, choose **Go ▸ Go to Folder…** and paste the folder path.
    - **Linux:** `~/.local/share/org.callerscompendium.compendiumApp/diagnostics/crash.log`
      (or under `$XDG_DATA_HOME` if you have set it).
    - **Android and iOS:** the log sits in the app's private storage, which you
      can't browse. Once the app opens again, use
-     **Settings › Diagnostics** to export it. If the app won't open, **Copy
+     **Settings ▸ Diagnostics** to export it. If the app won't open, **Copy
      details** is what you can send.
 
    A scrubbed export of this log keeps the short, fixed descriptions of
@@ -204,10 +204,13 @@ The app couldn't open or get your collection ready at startup. Try, in order:
    "timed out" or "HTTP 404"); the text of any other error message is left
    out.
 
-Four startup screens have no Retry: newer data, data too old to open, a backup
+Four startup screens have no Try again: newer data, data too old to open, a backup
 that couldn't be made, and data that couldn't be moved. They offer **Copy
-details** and a link to the Releases page. Fix the cause, then close and
-reopen the app; there is no button to check again.
+details** and, except on the data-too-old screen, a link to the Releases page.
+The data-too-old screen instead leads with a **Get** button for the release
+that can update your data, with the two reset options below it under **Start
+fresh instead**. Fix the cause, then close and reopen the app; there is no
+button to check again.
 
 On Linux the database lives in the app's support folder whether or not your
 machine has a `Documents` folder (for example, one without `xdg-user-dirs`); see
@@ -225,17 +228,17 @@ A few things to check:
   exactly like the words you searched for.
 - **Confirm the import finished.** Imports *add* dances to your collection; if you
   didn't confirm the review step, nothing was added. Run it again from
-  **Settings › General › Import…** — see [Imports & migration](./imports.md).
+  **Settings ▸ General ▸ Import…** — see [Imports & migration](./imports.md).
 - **Sort by recently added.** Change the [collection](./glossary.md#collection)
   sort order to bring your newest dances to the top.
 
 ### I deleted a dance by accident — can I get it back?
 
 Usually, yes. Deleted dances are kept for a while before they're removed
-— by default **30 days** (adjustable under **Settings › General › Keep recently
+— by default **30 days** (adjustable under **Settings ▸ General ▸ Keep recently
 deleted items for**). You can restore them within that window; see
 [Collection & search](./collection.md). To avoid slips in the first place, turn on
-**Confirm before delete** under **Settings › General**.
+**Confirm before delete** under **Settings ▸ General**.
 
 If a dance had already been shared to your other devices, a small record of the
 deletion is kept after that window instead of being removed outright. It holds
@@ -246,12 +249,12 @@ here rather than never received — without it, they would send it back.
 
 That's almost always your [dialect](./glossary.md#dialect) at work — it rewords
 role names and phrasing to match your style. You can switch how a dance reads
-while it's open, or change your active dialect under **Settings › Dialect**. See
+while it's open, or change your active dialect under **Settings ▸ Dialect**. See
 [Dialect](./dialects.md).
 
 ### On-screen movement is distracting or uncomfortable.
 
-Turn on **Reduce motion** under **Settings › General** to dampen non-essential
+Turn on **Reduce motion** under **Settings ▸ General** to dampen non-essential
 animation. More comfort options are covered in [Accessibility](./accessibility.md).
 
 ### I want to start over, or something looks wrong after an update.

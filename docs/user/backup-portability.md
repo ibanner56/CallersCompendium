@@ -45,7 +45,7 @@ of your choosing. When it's done, you'll see a **Backup exported.**
 confirmation. If you close the sheet without choosing a destination, nothing is
 saved, no confirmation appears, and the overdue-backup reminder stays.
 
-The app won't write a backup larger than it can restore. If your collection is
+The app won't write a backup larger than it can restore. If your library is
 too large to export as a single backup, it says so, shows the size and the
 limit, and saves nothing — your data is unchanged.
 
@@ -196,7 +196,7 @@ to your records, so the next sync doesn't remove them from your other devices.
 > **If your settings don't come back, your dances still did.** Occasionally a
 > restore succeeds for your content but fails while re-applying your saved
 > settings. The app says so plainly — *your dances and programs were restored,
-> but applying your saved settings failed* — and offers **Retry settings**.
+> but applying your saved settings failed* — and offers **Try again**.
 > Choose it and the app tries again, confirming with **Settings applied.** If
 > the restore also skipped one of your own figures or notes it couldn't use,
 > such as a figure whose name is too long, it tells you how many problems it

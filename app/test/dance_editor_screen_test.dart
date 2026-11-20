@@ -1146,7 +1146,12 @@ void main() {
       expect(settings.draftRemoveCalls, 3);
       // The dance committed exactly once and the save is not reported failed.
       expect(await repos.dances.listAll(), hasLength(1));
-      expect(find.text("Couldn't save the dance."), findsNothing);
+      expect(
+        find.text(
+          "Couldn't save the dance. Your changes are still here. Try again.",
+        ),
+        findsNothing,
+      );
       // The editor closed back to the launching route, so there is no editor
       // left on which to press Save again and mint a second dance.
       expect(find.byKey(const ValueKey('open-editor')), findsOneWidget);
@@ -1181,7 +1186,12 @@ void main() {
       expect(settings.draftRemoveCalls, 2);
       expect(await newDanceDraft(repos), isNull);
       expect(await repos.dances.listAll(), hasLength(1));
-      expect(find.text("Couldn't save the dance."), findsNothing);
+      expect(
+        find.text(
+          "Couldn't save the dance. Your changes are still here. Try again.",
+        ),
+        findsNothing,
+      );
       expect(find.byKey(const ValueKey('open-editor')), findsOneWidget);
     },
   );
@@ -4192,7 +4202,10 @@ void main() {
         isTrue,
         reason: 'the injected failure must actually have fired',
       );
-      expect(find.text('Could not load the dance.'), findsOneWidget);
+      expect(
+        find.text('Couldn\'t load the dance. Nothing was changed. Try again.'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('Retry reloads the editor from scratch', (tester) async {
@@ -4218,13 +4231,19 @@ void main() {
       await _pumpEditor(tester, repos, danceId: 'd1');
       await tester.pumpAndSettle();
       expect(failer.fired, isTrue, reason: 'the injected failure must fire');
-      expect(find.text('Could not load the dance.'), findsOneWidget);
+      expect(
+        find.text('Couldn\'t load the dance. Nothing was changed. Try again.'),
+        findsOneWidget,
+      );
       expect(find.byType(TextFormField), findsNothing);
 
       await tester.tap(find.byKey(const ValueKey('load-error-retry')));
       await tester.pumpAndSettle();
 
-      expect(find.text('Could not load the dance.'), findsNothing);
+      expect(
+        find.text('Couldn\'t load the dance. Nothing was changed. Try again.'),
+        findsNothing,
+      );
       expect(
         find.widgetWithText(TextFormField, 'Chase the Squirrel'),
         findsOneWidget,
@@ -4255,12 +4274,18 @@ void main() {
       await repos.tags.upsert(Tag(id: 't1', name: 'chestnut'));
       await tester.pumpAndSettle();
       expect(failer.fired, isTrue, reason: 'the injected failure must fire');
-      expect(find.text('Could not load the dance.'), findsOneWidget);
+      expect(
+        find.text('Couldn\'t load the dance. Nothing was changed. Try again.'),
+        findsOneWidget,
+      );
 
       await tester.tap(find.byKey(const ValueKey('load-error-retry')));
       await tester.pumpAndSettle();
 
-      expect(find.text('Could not load the dance.'), findsNothing);
+      expect(
+        find.text('Couldn\'t load the dance. Nothing was changed. Try again.'),
+        findsNothing,
+      );
       expect(find.text('Typed Title'), findsOneWidget);
     });
 
@@ -4286,7 +4311,10 @@ void main() {
         isTrue,
         reason: 'the injected failure must actually have fired',
       );
-      expect(find.text('Could not load the dance.'), findsOneWidget);
+      expect(
+        find.text('Couldn\'t load the dance. Nothing was changed. Try again.'),
+        findsOneWidget,
+      );
 
       // A new write triggers reference-data stream re-emission, which
       // now succeeds because failer only failed one select.
@@ -4297,7 +4325,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.text('Could not load the dance.'),
+        find.text('Couldn\'t load the dance. Nothing was changed. Try again.'),
         findsNothing,
         reason: 'successful stream emission must clear _loadError',
       );

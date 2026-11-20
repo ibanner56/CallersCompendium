@@ -553,9 +553,17 @@ class _CustomFieldFormState extends State<_CustomFieldForm> {
       Navigator.of(context).pop(def);
     } on ArgumentError catch (e, stackTrace) {
       logCaughtError(e, stackTrace, source: 'custom_fields_screen._save');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.message.toString())));
+      if (!mounted) return;
+      // The model's message is developer English. The form validators catch
+      // an empty key and an empty choice list first, so this is the
+      // backstop: show the field's own localized error, or a generic one.
+      if (e.name == 'choices') {
+        setState(() => _choicesError = l10n.customFieldsValidatorMinChoice);
+      } else {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.customFieldsSaveFailed)));
+      }
     }
   }
 

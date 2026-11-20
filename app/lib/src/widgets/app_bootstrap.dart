@@ -352,7 +352,28 @@ class _BelowFloorRecoveryScreenState extends State<_BelowFloorRecoveryScreen> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
-              FilledButton(
+              // Recovering the data is the primary action; the two resets
+              // abandon it, so they are outlined and sit under their own label.
+              FilledButton.icon(
+                key: const ValueKey('bootstrap-get-bridge'),
+                onPressed: () => launchExternalUrl(
+                  context,
+                  '$kReleasesPageUrl/tag/${widget.error.bridgeTag}',
+                ),
+                icon: const Icon(Icons.open_in_new),
+                label: Text(
+                  databaseBelowFloorGetBridge(l10n, widget.error.bridgeTag),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                databaseBelowFloorStartFresh(l10n),
+                style: Theme.of(context).textTheme.titleSmall,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton(
+                key: const ValueKey('bootstrap-back-up-and-reset'),
                 onPressed: _inFlight
                     ? null
                     : () => _run(widget.onBackUpAndReset),
@@ -360,11 +381,12 @@ class _BelowFloorRecoveryScreenState extends State<_BelowFloorRecoveryScreen> {
               ),
               const SizedBox(height: 8),
               OutlinedButton(
+                key: const ValueKey('bootstrap-reset-only'),
                 onPressed: _inFlight ? null : () => _run(widget.onResetOnly),
                 child: Text(databaseBelowFloorResetOnly(l10n)),
               ),
               const SizedBox(height: 16),
-              _TerminalHelpActions(
+              _CopyDetailsButton(
                 details: _terminalDetails('DatabaseBelowFloorError', [
                   'fileVersion: ${widget.error.fileVersion}',
                   'minSupportedVersion: ${widget.error.minSupportedVersion}',
@@ -422,7 +444,10 @@ class _BootstrapErrorScreen extends StatelessWidget {
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 const SizedBox(height: 16),
-                FilledButton(onPressed: onRetry, child: Text(l10n.commonRetry)),
+                FilledButton(
+                  onPressed: onRetry,
+                  child: Text(l10n.commonTryAgain),
+                ),
                 const SizedBox(height: 8),
                 _CopyDetailsButton(
                   details: _terminalDetails(errorType, const [], stackTrace),

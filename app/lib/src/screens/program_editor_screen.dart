@@ -3879,6 +3879,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
               ),
             ],
           ),
+          const SizedBox(height: 4),
+          Text(
+            l10n.programsSlotsHelper,
+            key: const ValueKey('program-slots-helper'),
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,

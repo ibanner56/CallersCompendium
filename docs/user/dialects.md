@@ -64,7 +64,7 @@ follow on their own:
 
 *The dance card in the active dialect, with the **Canonical** switch that shows
 shared canonical wording without changing the saved dance. The switch appears
-when **Canonical figure text** is on in Settings › Dialect.*
+when **Canonical figure text** is on in Settings ▸ Dialect.*
 
 ## The dialects that come built in
 
@@ -90,7 +90,7 @@ reads in the dialect of its own type. So you can call contra in Larks/Robins and
 English country dances in Leads/Follows, and a mixed program shows each dance in
 the right words. The three built-in dialects are offered for every type.
 
-At the top of **Settings › Dialect**, choose **Contra**, **English (ECD)**, or
+At the top of **Settings ▸ Dialect**, choose **Contra**, **English (ECD)**, or
 **Square** to see and change that type's dialects. Everything else in this guide
 works the same way for each type.
 
@@ -113,7 +113,7 @@ active one selected.*
 ## Make your own dialect
 
 When none of the built-in dialects match your community, make your own. From
-**Settings › Dialect**:
+**Settings ▸ Dialect**:
 
 - Choose **New dialect** to start from a clean slate. The app asks for a name,
   then opens the dialect's editor.
@@ -312,7 +312,7 @@ exactly as written. Editing your discouraged-terms list doesn't change which
 words are converted.
 
 This conversion is on by default. To see the words exactly as they were saved,
-turn off **Auto-convert all discouraged terms** in **Settings › Dialect › Dance
+turn off **Auto-convert all discouraged terms** in **Settings ▸ Dialect ▸ Dance
 details & shorthands**. Either way, it only changes what you see: your saved
 dances, notes, search, shared files, and backups are never altered.
 
@@ -388,7 +388,7 @@ own phrasing.
 On the dance card, the **Canonical** switch (read out by screen readers as
 **Show canonical terms**) flips the current view between your dialect and the
 shared canonical wording. It appears only after you turn on **Canonical figure
-text** in **Settings › Dialect › Dance details & shorthands**; while that setting
+text** in **Settings ▸ Dialect ▸ Dance details & shorthands**; while that setting
 is off, dance details stay in your active dialect. The switch changes only what
 is on screen right then — it doesn't change your active dialect or touch the
 saved dance. When your active dialect is already **Canonical**, the switch isn't
@@ -405,12 +405,12 @@ calling view.
 
 These settings decide what you see before you touch anything:
 
-- **Your active dialect** for each type of dance (in **Settings › Dialect**) is
+- **Your active dialect** for each type of dance (in **Settings ▸ Dialect**) is
   the wording every screen uses by default for dances of that type — except [Perform mode](./glossary.md#perform-mode) for a
   program that has its own dialect (see
   [Give a program its own dialect](#give-a-program-its-own-dialect)).
 
-The rest are in **Settings › Dialect › Dance details & shorthands**:
+The rest are in **Settings ▸ Dialect ▸ Dance details & shorthands**:
 
 - **Canonical figure text** controls whether dance details can show canonical
   wording at all. It is off by default.
@@ -438,7 +438,7 @@ dance card or in Perform and choose **Leads/Follows**. Every dance now reads in
 that community's words. Afterwards, switch back — none of your dances changed.
 
 **Your community's own words.** Your dancers use role names that aren't built in.
-Make a custom dialect once (**Settings › Dialect › New dialect**), enter your role
+Make a custom dialect once (**Settings ▸ Dialect ▸ New dialect**), enter your role
 names and any moves you say differently, and set it active. From then on the whole
 app speaks your language.
 

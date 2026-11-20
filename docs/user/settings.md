@@ -45,7 +45,7 @@ section and it opens as its own page, then you step back to switch sections. The
 
 The **General** section gathers everyday behavior into small groups.
 
-### Library
+### Dances
 
 - **Ignore leading articles when sorting** (on by default) — alphabetizes titles
   by their first meaningful word. With this on, "The Nice Combination" files under
@@ -273,7 +273,7 @@ one off.
 They don't change what is shared when you share the whole program as a
 `.ccshare` or JSON file: that file always carries the full program.
 
-### Performance
+### Perform mode
 
 - **Auto-size Perform cards** (on) — scales each card so it fits the screen in
   [Perform mode](./glossary.md#perform-mode), but never below your usual text
@@ -282,14 +282,14 @@ They don't change what is shared when you share the whole program as a
   [Perform mode](./perform.md) for more. Like the stage theme and the text size
   you pick in Perform, this setting belongs to this device: it is not synced to
   your other devices, but a backup includes it.
-- **Show timer for individual Perform** (on) — shows an elapsed timer and
+- **Show timer when performing one dance** (on) — shows an elapsed timer and
   pause/resume control while performing a single dance. Turn it off when you
-  want individual Perform to stay timer-free.
-- **Show caller notes in program Perform** (on) — shows each non-empty
+  want Perform mode for a single dance to stay timer-free.
+- **Show caller notes when performing a program** (on) — shows each non-empty
   per-slot caller note above the dance title while performing a program. Turn it
   off when you want the program card to show only the dance's own details.
-- **Confirm before leaving Perform** (on) — makes the close button and Back ask
-  *Exit Perform?* before taking you out of Perform, so a stray tap can't drop
+- **Confirm before leaving Perform mode** (on) — makes the close button and Back ask
+  *Exit Perform?* before taking you out of Perform mode, so a stray tap can't drop
   you out mid-dance. Turn it off to leave in one tap; a program's place and
   clock are kept either way. See [Leaving Perform](./perform.md#leaving-perform).
 
@@ -433,7 +433,7 @@ There's a **High contrast** theme for maximum legibility — see the
   every other tag looks exactly as it does now. The tag's name is always shown
   beside the color, so tags stay readable without relying on color, and the
   app picks a black or white label automatically so your color stays legible in
-  every theme. This opens the Tags manager (also under **General → Library →
+  every theme. This opens the Tags manager (also under **General ▸ Dances ▸
   Tags**): choose **Color…** in a tag's menu to pick one, or **Remove color**.
 
 ## Dialect
@@ -616,7 +616,7 @@ Select **Import defaults** to open this group.
   have. A program in a Caller's Companion file, a shared file, or a published
   collection is still imported, but only its dances receive the tags. You can choose up to 50 tags. The choice is remembered by tag name, so it
   survives a sync or a merge restore. Renaming or merging a tag in the
-  [Tags manager](#library) updates the choice to the new name, and deleting one
+  [Tags manager](#dances) updates the choice to the new name, and deleting one
   there removes it from the choice, on every device you sync. A tag deleted
   some other way, such as on a device running an older version of the app,
   stays in the choice until you change it, and imports simply skip it. Dances you create in the editor are not tagged either.
@@ -668,7 +668,7 @@ open this group. You can override any of them per dance, and
   it with **Free-text entry**. These override that move's built-in defaults, but
   not a value you type in the line (`half hey`), and you can still change any
   parameter afterwards. While
-  Custom Figures is on, **Your figures' defaults** lists each of your new
+  Custom Figures is on, **Custom Figures defaults** lists each of your
   figures that can be used (not one marked **Needs repair**): a figure keeps its own defaults, the values it starts with and its
   beats, so choosing one opens it to change them.
 - **Aggressively recompute figure beats** (off by default) — when on, changing a
@@ -721,7 +721,7 @@ Occasionally a version of the app reaches the end of its support, for example
 when a later release changes something older versions can't keep up with. If an
 update check finds that your version has an end-of-support date, a banner tells
 you the date you need to update by. On that date and afterward it says that
-support has ended. **Get update** opens the newer release. **Later** hides the banner until you
+support has ended. **Get update** opens the newer release. **Dismiss** hides the banner until you
 next open the app. It comes back after that, because you can't skip an end of
 support the way you can skip one update. The notice is also shown at the top of
 the **Updates** section. The app remembers it, so it still appears when you're
@@ -753,7 +753,7 @@ If the download fails, the message says why: your connection, an error from the
 update server, a full disk, or a folder the app cannot write to. Free some space
 (on macOS, you can also choose another location), then try again. **View release** is always there as
 a manual fallback. A failure during the transfer or while saving the file is also recorded in
-**Settings** → **Diagnostics**, without file paths.
+**Settings** ▸ **Diagnostics**, without file paths.
 
 Your privacy is built in: an update check downloads a small version file over a
 secure connection and nothing else. No information about you, your device, or how
@@ -868,9 +868,9 @@ hidden you can still turn it on, and use your figures everywhere. If you turned
 it on in version 0.8.0-beta or before and later turned the Glossary off, it was
 grayed out but kept its setting. It now takes effect, and your figures
 show again everywhere Custom Figures shows them. Turn Custom Figures off here
-to hide them. While it is on, the **Your figures** row under the switch opens them: see your figures,
-choose **Add your own figure** to add one (once you have a figure, it is
-**New figure** at the bottom of the screen), or select one to **Edit** or
+to hide them. While it is on, the **Custom Figures** row under the switch opens them: see your figures,
+choose **Add your figure** to add one (once you have a figure, the same button
+sits at the bottom of the screen), or select one to **Edit** or
 **Delete** it. The row
 is grayed out while Custom Figures is off.
 The Glossary lists them too, when it is shown. While it is on:
@@ -1100,7 +1100,7 @@ one of its parts. A layout you have written yourself keeps its figures
 as they were until you add `highlight`.
 
 A block prints only what the dance has, and only the fields turned on under
-**Defaults** › [**Shared dance fields**](./sharing.md#choose-which-dance-fields-appear)
+**Defaults** ▸ [**Shared dance fields**](./sharing.md#choose-which-dance-fields-appear)
 — turning a field off there keeps it off your cards too. A row with nothing to
 print takes no space, so a dance with no level simply has no level.
 
@@ -1561,7 +1561,7 @@ comparison shows:
 Nothing is selected for you. Pick the version you want for each item, then
 choose **Keep selected**; with several items, **Keep all
 from this device** or **Keep all from the other device** fills in every choice
-at once, and you still confirm. **Decide later** closes the list and changes
+at once, and you still confirm. **Cancel** closes the list and changes
 nothing.
 
 The version you keep becomes the newest edit, so your other devices take it

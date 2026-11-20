@@ -72,7 +72,7 @@ class LoadErrorView extends StatelessWidget {
                   FilledButton(
                     key: const ValueKey('load-error-retry'),
                     onPressed: onRetry,
-                    child: Text(l10n.commonRetry),
+                    child: Text(l10n.commonTryAgain),
                   ),
                 if (onBack != null)
                   OutlinedButton(

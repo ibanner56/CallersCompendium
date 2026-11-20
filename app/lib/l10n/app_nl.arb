@@ -100,9 +100,9 @@
   "@menuUserGuide": {
     "x-sourceSha256": "d131ef7f9b5e2b457faba856dcc5f90438b46b97df6a849234432e76c63f6cbd"
   },
-  "appBootstrapPreparing": "Je collectie voorbereiden",
+  "appBootstrapPreparing": "Je bibliotheek voorbereiden",
   "@appBootstrapPreparing": {
-    "x-sourceSha256": "9f6e6d8bd8f24a7c01c10965ed98f264cab12cb4e549ac0f826057e89a60b242"
+    "x-sourceSha256": "7ea72de5e664aedd9f27778e1ec612252784becad45a584e4f077ca9c178ecb6"
   },
   "appBootstrapRebuildingIndex": "Zoekindex opnieuw opbouwen",
   "@appBootstrapRebuildingIndex": {
@@ -112,9 +112,9 @@
   "@appBootstrapRebuildingIndexProgress": {
     "x-sourceSha256": "c968fc141c700b4058cd33c7c3be6f95e1a3e2fbee09c7f474df40e5f76dfdb5"
   },
-  "appBootstrapError": "De collectie kon niet worden voorbereid.",
+  "appBootstrapError": "Je bibliotheek kon niet worden voorbereid. Probeer het opnieuw.",
   "@appBootstrapError": {
-    "x-sourceSha256": "4c6db492b2ae5913888a1822b01dfe0ea7da9c0d85da2cb746e260b410f159c4"
+    "x-sourceSha256": "fbbba3940a77e862d62408e0de427d91a8454c1e145ab9e87fc45cc02c1c22c5"
   },
   "appBootstrapCopyDetails": "Details kopiëren",
   "@appBootstrapCopyDetails": {
@@ -184,9 +184,9 @@
   "@migrationSnapshotCauseDiskFull": {
     "x-sourceSha256": "f394e48dfbe694411ce195c5c4831f61e20377776ea4366d7085de189bb16450"
   },
-  "migrationSnapshotCauseUnwritableBackupsDir": "Naar de automatische back-upmap kon niet worden geschreven.",
+  "migrationSnapshotCauseUnwritableBackupsDir": "Naar de map voor automatische back-ups kon niet worden geschreven.",
   "@migrationSnapshotCauseUnwritableBackupsDir": {
-    "x-sourceSha256": "11d37c8a9cf6e85eea185322cc5783fca284153fe736b0dbd270a11a574af838"
+    "x-sourceSha256": "1a9791192b76565cdbf800ff97804cc3ba03fc0ea144b18953e9e882eab8ffaa"
   },
   "migrationSnapshotCauseDatabaseInUse": "Een andere app heeft je bibliotheek geopend, dus een back-up die nu wordt gemaakt, zou je laatste wijzigingen missen. Sluit elke andere app die je bibliotheek geopend heeft en probeer het dan opnieuw.",
   "@migrationSnapshotCauseDatabaseInUse": {
@@ -224,6 +224,14 @@
   "@migrationBelowFloorBody": {
     "x-sourceSha256": "6855c6b21e03dea3850d71a05c79c42f710923c44dfb9f02f392e81939616c9d"
   },
+  "migrationBelowFloorGetBridge": "{bridgeTag} ophalen",
+  "@migrationBelowFloorGetBridge": {
+    "x-sourceSha256": "a22c9000eea678b7fc49084f79848b61cbd29e56b4908a01711a9b155f33cdee"
+  },
+  "migrationBelowFloorStartFresh": "Begin opnieuw",
+  "@migrationBelowFloorStartFresh": {
+    "x-sourceSha256": "5d81e15c0ff0695da33a1a0a2b53dbf17120c8298d9c581e8a02a2d24e36a8fd"
+  },
   "migrationBelowFloorBackUpAndReset": "Back-up maken + Resetten",
   "@migrationBelowFloorBackUpAndReset": {
     "x-sourceSha256": "6f36ad4849a58dd294bbc8578bdefacc0ad81dd6e4dd47a16580f7af377f2efb"
@@ -236,9 +244,9 @@
   "@migrationBelowFloorBackupFailedTitle": {
     "x-sourceSha256": "0e7112ced3c8c26b820c1a4d6731347f00e83bd9977d233a992dbb1642f242db"
   },
-  "migrationBelowFloorBackupFailedBody": "De back-up kon niet worden geschreven, dus je gegevens zijn niet gereset.",
+  "migrationBelowFloorBackupFailedBody": "De back-up kon niet worden geschreven, dus je gegevens zijn niet gereset. Maak ruimte vrij en probeer het opnieuw.",
   "@migrationBelowFloorBackupFailedBody": {
-    "x-sourceSha256": "19fd41178f9afad78d5436bb0d7b0c3ec89b8c542716b85ed5146d59430f6163"
+    "x-sourceSha256": "9b16588cbff8d107a90f9d0e1840b99791bdd5b8b5201e02d239d50243c0d926"
   },
   "migrationBelowFloorResetConfirmTitle": "App-gegevens resetten?",
   "@migrationBelowFloorResetConfirmTitle": {
@@ -260,9 +268,9 @@
   "@migrationBelowFloorDiagnosticLogSavedAt": {
     "x-sourceSha256": "ff12ee22e8b9016fb625838ef77a76dff5bb1b44b3e885ee846d9b8eaf05e546"
   },
-  "migrationBelowFloorResetOnlyConfirmBody": "Er wordt geen back-up gemaakt. Door opnieuw in te stellen worden al je huidige gegevens definitief verwijderd en vervangen door een nieuwe, lege database. Dit kan niet ongedaan worden gemaakt.",
+  "migrationBelowFloorResetOnlyConfirmBody": "Er wordt geen back-up gemaakt. Door te resetten worden al je huidige gegevens definitief verwijderd en vervangen door een nieuwe, lege database. Dit kan niet ongedaan worden gemaakt.",
   "@migrationBelowFloorResetOnlyConfirmBody": {
-    "x-sourceSha256": "765d0957cb9f7816f642055133c2e516673526434c90223938fa4f508a2cd4d6"
+    "x-sourceSha256": "02a5919a3ff9b86f0a7e8044eb0e089001a25ee51083575a401d2ea8982c292b"
   },
   "migrationBelowFloorWipeFailedTitle": "Opnieuw instellen mislukt",
   "@migrationBelowFloorWipeFailedTitle": {
@@ -270,7 +278,7 @@
   },
   "migrationBelowFloorWipeFailedBody": "Het databasebestand kon niet worden verwijderd. Je gegevens zijn niet gewijzigd. Sluit andere apps die het bestand mogelijk gebruiken en probeer het opnieuw.",
   "@migrationBelowFloorWipeFailedBody": {
-    "x-sourceSha256": "ad49e50e590d0b61c06e1d5c466ab48d4c9222a3ad4a831d19b994fb0da76c33"
+    "x-sourceSha256": "bf017c46f1be2f3967f09134992161ecd99299254173abc1e3d8317ca665a8bf"
   },
   "confirmDeleteTitle": "Verwijderen?",
   "@confirmDeleteTitle": {
@@ -364,9 +372,9 @@
   "@settingsDeveloperResetConfirmTitle": {
     "x-sourceSha256": "1826f2e842c2e72608eef7bb7a85b321f814e6b472dae52a1e0a419f146d0ac9"
   },
-  "settingsDeveloperResetConfirmBody": "Hiermee worden alle dansen, programma’s, collecties, instellingen en notities op dit apparaat definitief verwijderd en start de app opnieuw alsof hij net is geïnstalleerd. Dit kan niet ongedaan worden gemaakt.",
+  "settingsDeveloperResetConfirmBody": "Hiermee wordt je hele bibliotheek op dit apparaat definitief verwijderd (elke dans, elk programma, elke instelling en notitie) en start de app opnieuw alsof hij net is geïnstalleerd. Dit kan niet ongedaan worden gemaakt.",
   "@settingsDeveloperResetConfirmBody": {
-    "x-sourceSha256": "da2ae15b97a677308efd19bac5f7e6be2611c4e355217bd9aa97d745e95369c9"
+    "x-sourceSha256": "de137e164887f772374693090f1d53098c3a8c0a3ba07ed62b87c851f938ab32"
   },
   "settingsDeveloperResetConfirmSyncNote": "Dit apparaat is verbonden met een synchronisatieopslag. Het verwijdert zichzelf eerst uit de opslag, zodat het niet als verweesd apparaat achterblijft. Alles wat het nog niet naar je andere apparaten heeft gesynchroniseerd, gaat verloren.",
   "@settingsDeveloperResetConfirmSyncNote": {
@@ -408,9 +416,9 @@
   "@glossarySelectPrompt": {
     "x-sourceSha256": "d97b02adc2d0a840ea30bc0fb3695c2814ff88387e9e4738d206dea39297e7a8"
   },
-  "glossaryCopyAsOwnFigure": "Kopiëren als eigen figuur",
+  "glossaryCopyAsOwnFigure": "Kopiëren naar Eigen figuren",
   "@glossaryCopyAsOwnFigure": {
-    "x-sourceSha256": "d170840f3d04c7409227975189b1f4e23dd1b46fe1df60ac31e621403fdc9876"
+    "x-sourceSha256": "0cebd48951e5941d6613248dd753bd7d2bedd14eed6e08d2790e1fbbf5afef11"
   },
   "glossaryCustomCopiedFrom": "Gekopieerd van {name}",
   "@glossaryCustomCopiedFrom": {
@@ -448,9 +456,9 @@
   "@importCcTermsEditLabel": {
     "x-sourceSha256": "2313fe21ea84567f451e913cae39bd4ef9775a83458b23f3f440c2108e5363a1"
   },
-  "importCcTermsSkip": "Overslaan",
+  "importCcTermsSkip": "Niet nu",
   "@importCcTermsSkip": {
-    "x-sourceSha256": "28d03596d24eeb4eab2d6fe21ca1cb95be7cb1fa6f92933db05e2cc4f4cdfa06"
+    "x-sourceSha256": "a0e63d7c7125d29af84d6919af5550529be77c327324940c98c4b2cb13a99c8c"
   },
   "importCcTermsConfirm": "{count, plural, =0{Termen toevoegen} =1{1 term toevoegen} other{{count} termen toevoegen}}",
   "@importCcTermsConfirm": {
@@ -824,9 +832,9 @@
   "@settingsSyncFailurePeerUnavailableAdvice": {
     "x-sourceSha256": "68d34d85a75b3b0d989123c0c9c38d0948e5bca6b0be66bff443752f489d904a"
   },
-  "settingsSyncFailureInternal": "Er ging iets mis in de app tijdens het synchroniseren.",
+  "settingsSyncFailureInternal": "Synchroniseren is gestopt door een probleem in de app.",
   "@settingsSyncFailureInternal": {
-    "x-sourceSha256": "2f7c0cd517e44bc340727aac932a0a74ed7996a5529cb78f9c6655f730a24ee4"
+    "x-sourceSha256": "c87c87fc945acccb38f830ae061dc4584f6c740138c3e9474a677943ea55d7ea"
   },
   "settingsSyncFailureInternalAdvice": "Dit is geen probleem met je verbinding of de server. Probeer het opnieuw. Blijft het gebeuren, exporteer dan het log via Instellingen ▸ Diagnostics en voeg het toe wanneer je het probleem meldt.",
   "@settingsSyncFailureInternalAdvice": {
@@ -836,9 +844,9 @@
   "@settingsSyncFailureStep": {
     "x-sourceSha256": "4575bcef920388d21598add9216203979f69d89156d31d48e93db37a15726059"
   },
-  "settingsSyncFailureStatusCode": "De server antwoordde met HTTP-status {code}.",
+  "settingsSyncFailureStatusCode": "Statuscode van de server: {code}.",
   "@settingsSyncFailureStatusCode": {
-    "x-sourceSha256": "e145850e452c3d909edf069be12cbbe898ffc96f24c7d22d9ab4641d7866cb9b"
+    "x-sourceSha256": "e3d8df4a056a99f0c9e4f7931ccf1c81c8aa24d0978cfdd46301a71568f6342f"
   },
   "settingsSyncFailureDetails": "Details: {details}",
   "@settingsSyncFailureDetails": {
@@ -940,9 +948,9 @@
   "@syncConflictApply": {
     "x-sourceSha256": "41ee079dc6efd0bab1a19db4dd86b886f15e395320b8298bbdda231344eebc96"
   },
-  "syncConflictDecideLater": "Later beslissen",
+  "syncConflictDecideLater": "Annuleren",
   "@syncConflictDecideLater": {
-    "x-sourceSha256": "892c45a22edb0db9ba0cd725f06f38d7860c7867e1615ec6826f1f5bcbf057c8"
+    "x-sourceSha256": "19766ed6ccb2f4a32778eed80d1928d2c87a18d7c275ccb163ec6709d3eb2e27"
   },
   "syncConflictShowDifferences": "Verschillen tonen",
   "@syncConflictShowDifferences": {
@@ -1154,15 +1162,15 @@
   },
   "syncSettingPerformStageTheme": "Podiumthema in Uitvoeren",
   "@syncSettingPerformStageTheme": {
-    "x-sourceSha256": "54bfa2402ef66801c0f8fc5f7696b44b2a5569d030a58591c70043e990dcc45b"
+    "x-sourceSha256": "371117cd13c35ddd31a24739c2e760f8c29c8dc91e5ae7142e7f4c080614c927"
   },
   "settingsSyncConflictsSubtitle": "{count, plural, =1{1 item is op twee apparaten gewijzigd en wacht op je keuze.} other{{count} items zijn op twee apparaten gewijzigd en wachten op je keuze.}}",
   "@settingsSyncConflictsSubtitle": {
     "x-sourceSha256": "fda77cdb41bdca627b9072e4fd6eb1104fd8e1fdeb8b45a41a83a14cd07b6d01"
   },
-  "settingsSyncConflictsCheckFailed": "Conflicten konden niet worden gecontroleerd.",
+  "settingsSyncConflictsCheckFailed": "Kon niet controleren op conflicten. Probeer het opnieuw.",
   "@settingsSyncConflictsCheckFailed": {
-    "x-sourceSha256": "4a3d8f191e2d1cd1d26cbecb325f05d583eb8a8a6b792cf925156fc7d790a20b"
+    "x-sourceSha256": "4363c47bc4f05b1ff89993a92a0dc34fa5df1d6e380aec2daa4119bacb18f49e"
   },
   "commonSyncNowConflictsTooltip": "{count, plural, =1{Nu synchroniseren (1 item wacht op je keuze)} other{Nu synchroniseren ({count} items wachten op je keuze)}}",
   "@commonSyncNowConflictsTooltip": {
@@ -1336,9 +1344,9 @@
   "@settingsSyncWipeConfirmTitle": {
     "x-sourceSha256": "77701b6008c7d87383a3c1c7c4316c52219e81baddc39c3438c1879315408645"
   },
-  "settingsSyncWipeConfirmBody": "Alles wat de opslag bevat wordt van de server verwijderd, voor alle apparaten tegelijk, en dit kan niet ongedaan worden gemaakt. Je bibliotheek blijft op dit apparaat en op elk van je andere apparaten staan — maar alles wat alleen via synchronisatie op een ander apparaat terecht was gekomen, komt hier niet aan. Dit apparaat wordt losgekoppeld en vergeet zijn synchronisatiezin; je andere apparaten zullen bij de volgende synchronisatie merken dat de opslag weg is en aanbieden een nieuwe zin in te stellen. Gebruik dit als je het adres van deze opslag niet meer wilt gebruiken: het is het enige dat meteen weghaalt wat de opslag bevat. Om te blijven synchroniseren stel je op elk apparaat een nieuwe zin in — opnieuw verbinden met de oude zet weer een nieuwe opslag op hetzelfde adres.",
+  "settingsSyncWipeConfirmBody": "Alles wat de opslag bevat, wordt van de server verwijderd, voor alle apparaten tegelijk. Dit kan niet ongedaan worden gemaakt. Je bibliotheek blijft op dit apparaat en op elk van je andere apparaten staan, maar wat alleen via synchronisatie op een ander apparaat terecht was gekomen, komt hier niet aan. Dit apparaat wordt losgekoppeld en vergeet zijn synchronisatiezin; je andere apparaten merken bij de volgende synchronisatie dat de opslag weg is en bieden aan een nieuwe zin in te stellen. Gebruik dit als je het adres van deze opslag niet meer wilt gebruiken: het is het enige wat bewaarde gegevens meteen verwijdert. Wil je blijven synchroniseren, stel dan op elk apparaat een nieuwe zin in: opnieuw verbinden met de oude zin zet een nieuwe opslag terug op hetzelfde adres.",
   "@settingsSyncWipeConfirmBody": {
-    "x-sourceSha256": "921009f64e9ea349743941accd380cb8adfcc095e26e0ac5f57e2cf615e84e55"
+    "x-sourceSha256": "a741edfd654b0bd5eae7404cdef5c1da7aee731b34a3432dc1ec5537cbb277f5"
   },
   "settingsSyncWipeConfirmAction": "Opslag verwijderen",
   "@settingsSyncWipeConfirmAction": {
@@ -1516,9 +1524,9 @@
   "@settingsSyncPairingBackupOfferAccept": {
     "x-sourceSha256": "02a2840b598b6b1c12d103f05f593fb633510c11b148ea6d1de57438ceca89e3"
   },
-  "settingsSyncPairingBackupOfferSkip": "Overslaan",
+  "settingsSyncPairingBackupOfferSkip": "Niet nu",
   "@settingsSyncPairingBackupOfferSkip": {
-    "x-sourceSha256": "28d03596d24eeb4eab2d6fe21ca1cb95be7cb1fa6f92933db05e2cc4f4cdfa06"
+    "x-sourceSha256": "a0e63d7c7125d29af84d6919af5550529be77c327324940c98c4b2cb13a99c8c"
   },
   "settingsSyncPairingContinue": "Doorgaan",
   "@settingsSyncPairingContinue": {
@@ -1694,11 +1702,11 @@
   },
   "settingsAboutFontFrauncesSubtitle": "SIL Open Font License 1.1 · © The Fraunces Project Authors — display & koppen",
   "@settingsAboutFontFrauncesSubtitle": {
-    "x-sourceSha256": "60b0e33cfbf40ae60c2005f57ef86b5fd783bd345f25cb343d3121b095bf287b"
+    "x-sourceSha256": "23d69a64bb033c398b2af31f2a3aa573f5ee8b198be6f4bed8ffbaacbcb0d444"
   },
-  "settingsAboutFontAtkinsonSubtitle": "SIL Open Font License 1.1 · © Braille Institute of America, Inc. — tekst, UI & uitvoeren",
+  "settingsAboutFontAtkinsonSubtitle": "SIL Open Font License 1.1 · © Braille Institute of America, Inc. — tekst, UI & Uitvoeren",
   "@settingsAboutFontAtkinsonSubtitle": {
-    "x-sourceSha256": "5c998022d9935cbd07e67ce0663148b170d957342d098995d75477f821b39746"
+    "x-sourceSha256": "8fb391fb2c18087a31339aae85bcb4760b093cf27bfbd25b41f304e3edcf57c7"
   },
   "settingsAboutFontRobotoSubtitle": "SIL Open Font License 1.1 · © The Roboto Project Authors — reservelettertype",
   "@settingsAboutFontRobotoSubtitle": {
@@ -1716,9 +1724,9 @@
   "@settingsAboutDanceDataHeader": {
     "x-sourceSha256": "550d26d0d8e9f152a86efc5f6269c3012f0bfbef890751fcd2937c2a1ea66709"
   },
-  "settingsAboutDanceDataBody": "Dansgegevens zijn afkomstig van The Caller's Box (Chris Page & Michael Dyck), waarvan de collectie is gepubliceerd onder de Creative Commons Attribution-NonCommercial-licentie (CC BY-NC), met dankbaarheid.",
+  "settingsAboutDanceDataBody": "Dansgegevens zijn afkomstig van The Caller's Box (Chris Page & Michael Dyck), waarvan de collectie is gepubliceerd onder de Creative Commons Attribution-NonCommercial-licentie (CC BY-NC), met dankbaarheid.",
   "@settingsAboutDanceDataBody": {
-    "x-sourceSha256": "c524b0a09ce49af55c9015afb568a8d87d833f7b12aa4753e2710913c4ee8a2c"
+    "x-sourceSha256": "854ff63fb852f42f1c632b093ec8fd0d3bc123a117ad4c744c4736fcc73809e1"
   },
   "settingsAboutLicensesHeader": "Licenties",
   "@settingsAboutLicensesHeader": {
@@ -1880,9 +1888,9 @@
   "@settingsUpdatesDownloadTitle": {
     "x-sourceSha256": "46bd75a84bf0657814b6e6812de9cce6446dfa4a736892b587440a4ba1d69882"
   },
-  "settingsUpdatesDownloadError": "De update kon niet worden gedownload.",
+  "settingsUpdatesDownloadError": "De update kon niet worden gedownload. Probeer het opnieuw.",
   "@settingsUpdatesDownloadError": {
-    "x-sourceSha256": "4d6fd789fd1fe3406fb4b41914626e95cfc936b8e899a835c9d0721339a6ff67"
+    "x-sourceSha256": "8c4a4eacdffcab95da8ac591d55b103191fd8d5db41f7de76a357494e741e509"
   },
   "settingsUpdatesDownloadSubtitle": "Download versie {version}, verifieer het en open je installer. De app vervangt zichzelf nooit ter plekke.",
   "@settingsUpdatesDownloadSubtitle": {
@@ -2460,9 +2468,9 @@
   "@settingsDefaultsStartingProgramMoveDown": {
     "x-sourceSha256": "40bb50da160cdc21d6029a927b68f92b07fd450688e609826cbc70d202db96da"
   },
-  "settingsDefaultsStartingProgramUnavailableDance": "Niet-beschikbare dans ({id})",
+  "settingsDefaultsStartingProgramUnavailableDance": "Deze dans is niet meer beschikbaar",
   "@settingsDefaultsStartingProgramUnavailableDance": {
-    "x-sourceSha256": "122b8b4b37adce5ff3e76dd2a1ae9e43e0654d93954e1b9d698af939d849fcd7"
+    "x-sourceSha256": "0a7b13854c4e1a687cedd04599934273238c5f9a799fc1749fa1f709495c64f8"
   },
   "settingsDefaultsDifficultyLevelEmpty": "Een moeilijkheidsniveau heeft een naam nodig.",
   "@settingsDefaultsDifficultyLevelEmpty": {
@@ -2728,13 +2736,13 @@
   "@settingsDefaultsMoveDefaultsTitle": {
     "x-sourceSha256": "4d4f2c71c774263fca7f0a1afc94205e923e171d1e05e05354ebfb9a9bc954bf"
   },
-  "settingsDefaultsUserFiguresTitle": "Standaarden van je figuren",
+  "settingsDefaultsUserFiguresTitle": "Standaarden voor Eigen figuren",
   "@settingsDefaultsUserFiguresTitle": {
-    "x-sourceSha256": "7a5620524eb36c2842c797c0ef3a21a9e023f4529ee7592b615f199808b2c560"
+    "x-sourceSha256": "d597875ce67b203f910d59637d95f094ddcb8a0dedda628791deb8ab570dbd0b"
   },
-  "settingsDefaultsUserFiguresSubtitle": "Elk van je nieuwe figuren heeft zijn eigen standaarden: de waarden waarmee hij begint en zijn tellen. Kies er een om ze te wijzigen.",
+  "settingsDefaultsUserFiguresSubtitle": "Elke figuur van jou heeft zijn eigen standaarden: de waarden waarmee hij begint en zijn tellen. Kies er een om ze te wijzigen.",
   "@settingsDefaultsUserFiguresSubtitle": {
-    "x-sourceSha256": "cd250d812df72953f432f85e544a5337cc20ae01885e63913dca1dfa998267ac"
+    "x-sourceSha256": "6853e95f54ece28e4809273bcf102442a37a821b7397d27bdaa2cff3f1d48be3"
   },
   "settingsDefaultsMoveDefaultsSubtitle": "Voorkeursparameterwaarden die worden toegepast wanneer je een move invoegt bij het invoeren van een dans. Deze overschrijven de ingebouwde standaarden van die move; je kunt achteraf elk parameter van de figuur nog aanpassen. Niet-ingestelde moves en parameters gebruiken de ingebouwde standaarden.",
   "@settingsDefaultsMoveDefaultsSubtitle": {
@@ -2748,9 +2756,9 @@
   "@settingsDefaultsRemoveMoveTooltip": {
     "x-sourceSha256": "c3812fc4acb861d5182fc2b8155f327f736fbe5e5eb86a7bd7afcb6dc5497282"
   },
-  "settingsDefaultsMoveGone": "Deze move bevindt zich niet meer in de taxonomie.",
+  "settingsDefaultsMoveGone": "Deze move is niet meer beschikbaar.",
   "@settingsDefaultsMoveGone": {
-    "x-sourceSha256": "838de576a0f0d1f58623cc01ca7f0a779826c451f20e18867aff4b833cfaff43"
+    "x-sourceSha256": "8e2dedb60b670bd25719453512063d921dc3d8f42e8d1b7ce0d725020cdadf11"
   },
   "settingsDefaultsMoveNoParams": "Deze move heeft geen parameters om in te stellen.",
   "@settingsDefaultsMoveNoParams": {
@@ -2800,13 +2808,13 @@
   "@settingsTagColoursEmptyBody": {
     "x-sourceSha256": "07ebb2bde2097613e4b8b97adf2fecc82040b392cc84919411f05e231260aaec"
   },
-  "settingsTagColoursSaveError": "Kon die kleur niet opslaan. Probeer het opnieuw.",
+  "settingsTagColoursSaveError": "Die kleur kon niet worden opgeslagen. Probeer het opnieuw.",
   "@settingsTagColoursSaveError": {
-    "x-sourceSha256": "e31f616b8e9d181279b8dc77f2db90ddf80b726e1ab66e3a1e38f8a5b58a6ba5"
+    "x-sourceSha256": "87ba6ca70be979c5b9cfa96e030c67687961c5e3cdbbaae2191a7afb6bd9b362"
   },
-  "settingsTagColoursLoadError": "Kon je tags niet laden.",
+  "settingsTagColoursLoadError": "Je tags konden niet worden geladen. Er is niets gewijzigd. Probeer het opnieuw.",
   "@settingsTagColoursLoadError": {
-    "x-sourceSha256": "ef22e123e47d8e10a6a827e3024ae46618929552e50f6ab19d4dfcfb3fa4d38f"
+    "x-sourceSha256": "9e3e3e03269724880592fbb84ea05c8cdcaf1fabcb44da4b930cecea9065f04f"
   },
   "tagManagerTitle": "Tags",
   "@tagManagerTitle": {
@@ -2868,9 +2876,9 @@
   "@authorManagerEmptyBody": {
     "x-sourceSha256": "b34329476d24280955fe67598c1330188254c9fc523dcabc2453d2ac7ce26408"
   },
-  "authorManagerLoadError": "Kon je auteurs niet laden.",
+  "authorManagerLoadError": "Je auteurs konden niet worden geladen. Er is niets gewijzigd. Probeer het opnieuw.",
   "@authorManagerLoadError": {
-    "x-sourceSha256": "1e98ba428f3769746bb32817bcde3de923f11bae8285366daa0d6ab340ceb1d6"
+    "x-sourceSha256": "d4a6b554a2a1628d13299c7280307762fe058d94e73e96b9ff0085fbcc174c71"
   },
   "authorManagerMergedSeveralSnack": "{count} auteurs samengevoegd tot “{into}”",
   "@authorManagerMergedSeveralSnack": {
@@ -2896,9 +2904,9 @@
   "@sourceManagerEmptyBody": {
     "x-sourceSha256": "328d237e03df4619b321362a36c2cfecff063eef096fa50d41e791f8203b9943"
   },
-  "sourceManagerLoadError": "Kon je bronnen niet laden.",
+  "sourceManagerLoadError": "Je bronnen konden niet worden geladen. Er is niets gewijzigd. Probeer het opnieuw.",
   "@sourceManagerLoadError": {
-    "x-sourceSha256": "6939e6571d35bdefa461f9a6b6e94502e9680892f13eafb46f394b4b44a71ad2"
+    "x-sourceSha256": "800797f3530a67ce1deac618391e54cd86fb846fdc195d091cf32dbfe317735c"
   },
   "libraryManagerClearSearch": "Zoekopdracht wissen",
   "@libraryManagerClearSearch": {
@@ -2974,7 +2982,7 @@
   },
   "libraryManagerEditFailed": "Die wijziging kon niet worden opgeslagen. Probeer het opnieuw.",
   "@libraryManagerEditFailed": {
-    "x-sourceSha256": "d0440ada226841be70d9333c8710023d216ebd66b239e9cd73235b473bb44de4"
+    "x-sourceSha256": "bce4f85b665232da6c57e498bf84c49c6f7bf59021a7d4e9cdbf65ed91a5cd60"
   },
   "libraryManagerEditDetails": "Details bewerken…",
   "@libraryManagerEditDetails": {
@@ -3004,9 +3012,9 @@
   "@libraryManagerMergeDroppedLine": {
     "x-sourceSha256": "d3ba5ccd5a5fb39ef6e9fff0582fbef871d2952d1fa9e1e2b454753407c5e043"
   },
-  "settingsGeneralLibraryHeader": "Bibliotheek",
+  "settingsGeneralLibraryHeader": "Dansen",
   "@settingsGeneralLibraryHeader": {
-    "x-sourceSha256": "dc20b3d5d2cddf82fad332821ca5e9a4efdcede4a273aa193d2b495bdcc92825"
+    "x-sourceSha256": "385106af18473b6f221f7d151b432b6814427ffcf87c5ea1cbaa20adb4963d23"
   },
   "settingsGeneralSortIgnoreArticlesTitle": "Lidwoorden aan het begin negeren bij sorteren",
   "@settingsGeneralSortIgnoreArticlesTitle": {
@@ -3220,9 +3228,9 @@
   "@settingsMatrixColumnsCompoundDelete": {
     "x-sourceSha256": "5b58577782347f9594b07fb21cbdc6e9e8bb760cfb40940c20b31c86df9cfb11"
   },
-  "settingsGeneralPerformanceHeader": "Uitvoering",
+  "settingsGeneralPerformanceHeader": "Uitvoeren",
   "@settingsGeneralPerformanceHeader": {
-    "x-sourceSha256": "442aded87a55aa8c8f7d5ff0c30228150d4b1cb8756e4be138d615ca4708fc26"
+    "x-sourceSha256": "9cc445842ef5efe59cb573fddbebf749a7cf65f712e9003c32f1b9fa7714e755"
   },
   "settingsGeneralAutoSizePerformTitle": "Uitvoerkaarten automatisch schalen",
   "@settingsGeneralAutoSizePerformTitle": {
@@ -3232,9 +3240,9 @@
   "@settingsGeneralAutoSizePerformSubtitle": {
     "x-sourceSha256": "374076544dee2c6b2dd1d60aa28c5ffa118b3d3d09d76c614a6649fa0cf89970"
   },
-  "settingsShowIndividualPerformTimerTitle": "Timer voor individuele Perform tonen",
+  "settingsShowIndividualPerformTimerTitle": "Timer tonen bij het uitvoeren van één dans",
   "@settingsShowIndividualPerformTimerTitle": {
-    "x-sourceSha256": "e9260de6229a91b26d5792f5b6bb8ea2d5332f23a8943c2e3c6157f2e2e58ef0"
+    "x-sourceSha256": "db8ce7d40d2984da90d9f787414aab63db6b2e2bcef167b6775bafe6ff09678b"
   },
   "settingsShowIndividualPerformTimerSubtitle": "Verstreken tijd tonen tijdens het uitvoeren van een enkele dans. De timer start zodra deze wordt weergegeven en kan worden gepauzeerd.",
   "@settingsShowIndividualPerformTimerSubtitle": {
@@ -3242,19 +3250,19 @@
   },
   "settingsConfirmPerformExitTitle": "Bevestigen voor Uitvoeren verlaten",
   "@settingsConfirmPerformExitTitle": {
-    "x-sourceSha256": "51ffa9c62cf3c22d19a567ff271ae0a951733c579d3f370c4e9187bc1ccfd553"
+    "x-sourceSha256": "dd55a064b6c2d36dda0c6b127960fc0cc77dea42a68d56c226642b72f3f87546"
   },
-  "settingsConfirmPerformExitSubtitle": "Vragen voordat de sluitknop of Terug je uit Uitvoeren haalt. Zet dit uit om met één tik te vertrekken; programma-Uitvoeren onthoudt je plek hoe dan ook.",
+  "settingsConfirmPerformExitSubtitle": "Vragen voordat de sluitknop of Terug je uit Uitvoeren haalt. Zet dit uit om met één tik te vertrekken; Uitvoeren voor een programma onthoudt je plek in beide gevallen.",
   "@settingsConfirmPerformExitSubtitle": {
-    "x-sourceSha256": "f026552392de593fd9a91c80a6eca88d57fa984ead2bf47f6f57d40afe17e90f"
+    "x-sourceSha256": "0f27a7a06bb52d7aa2277ff3e8eef107574ab8acfa4e4500775c3fc66b74201b"
   },
-  "settingsShowProgramSlotCallerNotesTitle": "Callernotities in programma-Perform tonen",
+  "settingsShowProgramSlotCallerNotesTitle": "Callernotities tonen bij het uitvoeren van een programma",
   "@settingsShowProgramSlotCallerNotesTitle": {
-    "x-sourceSha256": "b4907be54d3c1a8b08fb8a4f29d9209dac0d2a4bd0d4ae4b6f70de7ca34c577f"
+    "x-sourceSha256": "9772a5705de8fe02664aeb2faeb944f5f18bd277da2f287906b71f6200cefe69"
   },
-  "settingsShowProgramSlotCallerNotesSubtitle": "Niet-lege callernotities per slot boven de danstitel in programma-Perform tonen.",
+  "settingsShowProgramSlotCallerNotesSubtitle": "Toon niet-lege callernotities per slot boven de danstitel wanneer je een programma uitvoert.",
   "@settingsShowProgramSlotCallerNotesSubtitle": {
-    "x-sourceSha256": "3643d4c4bffc8af03f4f7feb2363c0cf70bacf9663bb4c84a84f2eed5fb51b1c"
+    "x-sourceSha256": "d3d7906907ed4a49509bad69a58ec24c1e2e2eacadece45075e7131c881e964a"
   },
   "settingsGeneralCallingHistoryHeader": "Callerhistorie",
   "@settingsGeneralCallingHistoryHeader": {
@@ -3476,17 +3484,17 @@
   "@syncReviewIntro": {
     "x-sourceSha256": "a2adac756b32d3c7da3cff1ff3d817b312c2ae2f2f9329160217e6d92263227f"
   },
-  "syncReviewLoadFailed": "Synchronisatiebeslissingen konden niet worden geladen.",
+  "syncReviewLoadFailed": "De synchronisatiekeuzes konden niet worden geladen. Probeer het opnieuw.",
   "@syncReviewLoadFailed": {
-    "x-sourceSha256": "65076ae7ea797def156751ec03321d8121fa0c46bbdcb85b3628048b6b691d05"
+    "x-sourceSha256": "66833d54c5191e35a467fdd0ab383b32d1d679821b4bee748f681866075e4543"
   },
   "syncReviewResolved": "Synchronisatiebeslissing toegepast.",
   "@syncReviewResolved": {
     "x-sourceSha256": "2c569f48af76d70d3237d846ef6e83a5a81680803d4231e8181a73c0ad22a749"
   },
-  "syncReviewActionFailed": "Deze synchronisatiebeslissing kon niet worden toegepast. Het item is bewaard voor een nieuwe poging.",
+  "syncReviewActionFailed": "Die synchronisatiekeuze kon niet worden toegepast. Het item is bewaard, dus je kunt het opnieuw proberen.",
   "@syncReviewActionFailed": {
-    "x-sourceSha256": "3269895158663634cd088a78965e620e9c739924805f54f19d846b70da1e5159"
+    "x-sourceSha256": "9686e47b62a6a4ef65cd4472a99a635d4b8f497a097bd9544ceb68ff5194b13a"
   },
   "syncReviewKindChoreographer": "Auteur",
   "@syncReviewKindChoreographer": {
@@ -3524,9 +3532,9 @@
   "@syncReviewKindSetting": {
     "x-sourceSha256": "818cd8d91aea3a1689455f009f49e87fe7fa647fa2c4b9f09072dd1c33d52ca5"
   },
-  "syncReviewKindGlossaryEntry": "Je eigen figuur",
+  "syncReviewKindGlossaryEntry": "Je figuur",
   "@syncReviewKindGlossaryEntry": {
-    "x-sourceSha256": "d89a8f32c2f5099f6e866919bcc348bfc5afa253b8fda66039ae398dcc55d1d5"
+    "x-sourceSha256": "6af67418286324f390ac3a5859240761a8b839514d0f5e667ab73f2a3ebce834"
   },
   "syncReviewKindFigureNote": "Je notities bij een figuur",
   "@syncReviewKindFigureNote": {
@@ -3560,9 +3568,9 @@
   "@syncReviewMergeDiscardsContactsTitle": {
     "x-sourceSha256": "75a9575dc13a9c9d3d4a73dac90fa4c522c5f7a66538d7a931f7714b4aba179b"
   },
-  "syncReviewMergeDiscardsContactsBody": "Er wordt maar één record bewaard. Het e-mailadres, de locatie en de markering voor overleden van het andere staan alleen op dit apparaat en kunnen daarna niet meer worden hersteld.",
+  "syncReviewMergeDiscardsContactsBody": "Er blijft maar één record bewaard. Het e-mailadres, de locatie en de overleden-markering van het andere record staan alleen op dit apparaat en gaan verloren. Dit kan niet ongedaan worden gemaakt.",
   "@syncReviewMergeDiscardsContactsBody": {
-    "x-sourceSha256": "7b068cebe8dd826e8dde8a7b1a8c46e72d8429c856f46f1a151710f42e87550c"
+    "x-sourceSha256": "06ee9ce99d3730bb22c62dadee3392abe1ae13ea664a6f8e8b9b9ad83e970f11"
   },
   "syncReviewCounterpartDeleted": "Het andere record is verwijderd, dus deze twee kunnen niet worden samengevoegd. Gebruik 'Beide behouden' om het een andere naam te geven.",
   "@syncReviewCounterpartDeleted": {
@@ -3632,9 +3640,9 @@
   "@settingsGeneralReparseCustomFiguresTitle": {
     "x-sourceSha256": "09986bfa1a3b540109bfbffa20fb6b90fe81a71981346b4804a92291624bb393"
   },
-  "settingsGeneralReparseCustomFiguresSubtitle": "Controleer geïmporteerde dansen opnieuw waarvan de figuren als niet-herkende figuren zijn bewaard omdat ze niet herkend konden worden bij het importeren. Kan de app ze nu herkennen, dan worden ze ter plekke bijgewerkt — je tags, beoordelingen en notities blijven bewaard. Je bekijkt een voorbeeld en bevestigt voordat er iets wijzigt.",
+  "settingsGeneralReparseCustomFiguresSubtitle": "Controleer geïmporteerde dansen opnieuw waarvan de figuren alleen als onherkende figuren zijn bewaard omdat ze bij het importeren niet herkend werden. Kan de app ze nu wel herkennen, dan worden ze ter plekke bijgewerkt; je tags, beoordelingen en notities blijven behouden. Je ziet eerst een voorbeeld en bevestigt voordat er iets verandert.",
   "@settingsGeneralReparseCustomFiguresSubtitle": {
-    "x-sourceSha256": "868f92b7dcf43307b28b838c2219d775ab813baa1d91d03e332ada9f8767bcca"
+    "x-sourceSha256": "2431d953f04c9e4836fd9528a8905c53e18d0765bb0adede302bc19a81de32a9"
   },
   "settingsGeneralReparseCustomFiguresAction": "Opnieuw controleren…",
   "@settingsGeneralReparseCustomFiguresAction": {
@@ -3660,13 +3668,13 @@
   "@backupExported": {
     "x-sourceSha256": "8c344657a5c0cfb87c40d6744e92a77b5eef75d00274bda55c7bc8eac8c3e53c"
   },
-  "backupExportFailed": "Back-up kon niet worden geëxporteerd.",
+  "backupExportFailed": "Er kon geen back-up worden geëxporteerd. Je gegevens zijn ongewijzigd. Probeer het opnieuw.",
   "@backupExportFailed": {
-    "x-sourceSha256": "e4ab19490b2765f7b7b21f1e580e5f5a7510685702f0d16fbadb0fdbb7af5062"
+    "x-sourceSha256": "77f255286ddb2b3b572a06654d1380f2d8beded799bfacce5e418c22bb23ab35"
   },
-  "backupRestoreIntegrityFailed": "Deze back-up is niet door de integriteitscontrole gekomen, dus mogelijk is deze beschadigd of na het exporteren gewijzigd. Het herstel is geannuleerd en je gegevens zijn ongewijzigd.",
+  "backupRestoreIntegrityFailed": "Deze back-up is niet door de veiligheidscontrole gekomen, dus hij is mogelijk beschadigd of na het exporteren gewijzigd. Het herstellen is geannuleerd en je gegevens zijn ongewijzigd.",
   "@backupRestoreIntegrityFailed": {
-    "x-sourceSha256": "1edbca633ae4f0f7fe8f507bbb47dcd61bdf416b32a98753c81310f86a3d70a3"
+    "x-sourceSha256": "d703f8d4fb16f7ada0434c839ecee87ed7c822484198760a766705996941022d"
   },
   "backupRestoreIncompatibleVersion": "Deze back-up bevat items die deze versie van de app niet kan lezen (mogelijk van een nieuwere versie), dus het herstel is geannuleerd. Je gegevens zijn ongewijzigd.",
   "@backupRestoreIncompatibleVersion": {
@@ -3688,17 +3696,17 @@
   "@backupRestored": {
     "x-sourceSha256": "40383528e1b1ee32fcfe833921c4fe7e010762a1628901658710f272a0b15e7e"
   },
-  "backupRestoreFailed": "De back-up kon niet worden hersteld.",
+  "backupRestoreFailed": "De back-up kon niet worden hersteld. Probeer het opnieuw.",
   "@backupRestoreFailed": {
-    "x-sourceSha256": "32ecd5089489c784c72abd2aa25783e9787cf344b7ba98f97dae254f9ef250ae"
+    "x-sourceSha256": "5e6ce844a9bcd105a5f921edc09bdc9aa05e89f90dbb31d960508ea9e585df3f"
   },
-  "backupRestoreSettingsFailed": "Je dansen en programma’s zijn hersteld, maar het toepassen van je opgeslagen instellingen is mislukt. Je herstelde inhoud is veilig — je kunt opnieuw proberen de instellingen toe te passen.",
+  "backupRestoreSettingsFailed": "Je dansen en programma’s zijn hersteld, maar het toepassen van je opgeslagen instellingen is mislukt. Je herstelde inhoud is veilig; je kunt opnieuw proberen ze toe te passen.",
   "@backupRestoreSettingsFailed": {
-    "x-sourceSha256": "f54911884b4a34d72f05af5f54690242ea03b5f9e6209000874603ac329f3a9f"
+    "x-sourceSha256": "9c8e43b70b0d8de5ab14f69af8327fa8f3e3b44ee9ba22588872c70bdbb1dd93"
   },
-  "backupRestoreSettingsRetryAction": "Opnieuw toepassen",
+  "backupRestoreSettingsRetryAction": "Opnieuw proberen",
   "@backupRestoreSettingsRetryAction": {
-    "x-sourceSha256": "151f3f61c099f1e389a4fb2faef5c1c579561880b6f436fcc62ae85c0beddd53"
+    "x-sourceSha256": "d8b8392e2c542950ca64867168e4ef87d4ad606882d5898f826b51c6d553988f"
   },
   "backupRestoreSettingsRetried": "Instellingen toegepast.",
   "@backupRestoreSettingsRetried": {
@@ -3708,9 +3716,9 @@
   "@backupExportTitle": {
     "x-sourceSha256": "ebeeb052d46e5af724db84aff99c4580f66032c89ad995b2cde60c85d7307359"
   },
-  "backupExportSubtitle": "Sla je volledige collectie, programma's, aangepaste velden, dialecten, thema's en instellingen op in één JSON-bestand dat je veilig kunt bewaren of naar een ander apparaat kunt overzetten.",
+  "backupExportSubtitle": "Sla je hele bibliotheek op in één JSON-bestand dat je veilig kunt bewaren of naar een ander apparaat kunt verplaatsen. Het bevat je dansen, programma’s, eigen velden, dialecten, thema’s en instellingen.",
   "@backupExportSubtitle": {
-    "x-sourceSha256": "8bad76d665bedeb879c1fd0091bfe307704ab2c2cf41c3b4f023b74b6d4ea1be"
+    "x-sourceSha256": "388034acb60a133b636de440c94125b571006f0329da82c064bb515397a6a6ec"
   },
   "backupExportAction": "Exporteren",
   "@backupExportAction": {
@@ -3720,9 +3728,9 @@
   "@backupRestoreTitle": {
     "x-sourceSha256": "3e44e67b6a4eb8b230a8127b610f26f0752552ec3b72ec3191df6acbf00ed422"
   },
-  "backupRestoreSubtitle": "Vervang alles wat momenteel in de app staat door de inhoud van een back-upbestand. Dit kan niet ongedaan worden gemaakt.",
+  "backupRestoreSubtitle": "Vervang alles wat nu in de app staat door de inhoud van een back-upbestand. Dit kan niet ongedaan worden gemaakt.",
   "@backupRestoreSubtitle": {
-    "x-sourceSha256": "34fa054c4025a7dcc0435d27fa815cbbff48a07c3213eacf30c3b57dd1ceddbe"
+    "x-sourceSha256": "4df3be24d9ba61faac855dc876c3b3241b60cac75485dac44476028ad3e1aa18"
   },
   "backupRestoreAction": "Herstellen",
   "@backupRestoreAction": {
@@ -3756,9 +3764,9 @@
   "@backupOverdueHint": {
     "x-sourceSha256": "4ad654a10e666f795dc18c962c83cf76605c5ed9239968decc5b91107cb976e8"
   },
-  "backupReminderBannerText": "Je back-up is te oud. Exporteer er nu een om je collectie veilig te houden.",
+  "backupReminderBannerText": "Je back-up is verlopen. Exporteer er nu een om je bibliotheek veilig te houden.",
   "@backupReminderBannerText": {
-    "x-sourceSha256": "3f308d39a35ee1c3e19650a4ef61f6d17518668fe67b3a51c20697698b55c23c"
+    "x-sourceSha256": "f0318443aaa000807a34f04289a8fd523ac85c50f4b8e31147017278c1855cf7"
   },
   "backupReminderBannerExport": "Back-up exporteren",
   "@backupReminderBannerExport": {
@@ -3768,9 +3776,9 @@
   "@backupReminderBannerNotNow": {
     "x-sourceSha256": "a0e63d7c7125d29af84d6919af5550529be77c327324940c98c4b2cb13a99c8c"
   },
-  "backupRestoreDialogBody": "Herstellen vervangt alles in de app — je collectie, programma’s, dialecten, thema’s en instellingen — met de inhoud van de back-up. Dit kan niet ongedaan worden gemaakt.",
+  "backupRestoreDialogBody": "Bij het herstellen wordt alles wat nu in de app staat, zoals je dansen, programma’s, dialecten, thema’s en instellingen, vervangen door de inhoud van de back-up. Dit kan niet ongedaan worden gemaakt.",
   "@backupRestoreDialogBody": {
-    "x-sourceSha256": "ff51802a21a8219092f0aaebcde7ad04aebb7aa77bf34404915dc4e39b24b83e"
+    "x-sourceSha256": "81f0d533aa26652bb9a779bfdfaaf16fdd7996387d70a516ee3537b847546bf9"
   },
   "backupRestoreDialogSyncNote": "Dit apparaat is verbonden met apparaatsynchronisatie. Alles wat apparaatsynchronisatie meeneemt en na het maken van deze back-up is gewijzigd op een apparaat waarmee je synchroniseert, komt bij de volgende synchronisatie terug van dat apparaat, ook wijzigingen die hier zijn gemaakt en al zijn gesynchroniseerd. Al het andere krijgt de versie uit de back-up.",
   "@backupRestoreDialogSyncNote": {
@@ -3780,9 +3788,9 @@
   "@backupChooseFileAction": {
     "x-sourceSha256": "5c6623857cc7b764cdf1eecad5b2f0f54184bebca4aa2d7f3bbdcedf6a8929d1"
   },
-  "backupChooseFileFailed": "Dat bestand kon niet worden gelezen.",
+  "backupChooseFileFailed": "Dat bestand kon niet worden gelezen. Kies het opnieuw of kies een ander bestand.",
   "@backupChooseFileFailed": {
-    "x-sourceSha256": "800f84ec1a61e01c5a4477e3c3850128f0d522d38c2982d8c3a94ed491632ed3"
+    "x-sourceSha256": "5e3351d548df9212e77a882a27acec9fa487022cb00e6c8dc0b3f3840e1b6d80"
   },
   "backupPasteJsonLabel": "Of plak back-up JSON",
   "@backupPasteJsonLabel": {
@@ -3808,9 +3816,9 @@
   "@backupFileTooLarge": {
     "x-sourceSha256": "ab07d740afd2da7fb4666cc1582d933fbb9b7ac576af1f96ac6a309360aca0e3"
   },
-  "backupExportTooLarge": "Je collectie is te groot om als één back-up te exporteren ({sizeMb} MB; limiet {limitMb} MB), dus er is niets opgeslagen. Je gegevens zijn ongewijzigd.",
+  "backupExportTooLarge": "Je bibliotheek is te groot om als één back-up te exporteren ({sizeMb} MB; limiet {limitMb} MB), dus er is niets opgeslagen. Je gegevens zijn ongewijzigd.",
   "@backupExportTooLarge": {
-    "x-sourceSha256": "1416959a2f449b0558cc843bfa3dbd39209ae1069307cb905582625594368e3e"
+    "x-sourceSha256": "31c69deb5ba84f6b87c6bd895c4a9d4c66dc970186c6bb60fb63092fddd55ff1"
   },
   "backupExportDiskFull": "Er is niet genoeg vrije ruimte om deze back-up te vervangen ({neededMb} MB nodig; {freeMb} MB vrij), dus er is niets opgeslagen. Je eerdere back-up is ongewijzigd.",
   "@backupExportDiskFull": {
@@ -3832,9 +3840,9 @@
   "@diagnosticsNoDiagnosticsToExport": {
     "x-sourceSha256": "4b2ec04b33c101f9ffc8f0247367de28a965422b6994d570658ca550707892bb"
   },
-  "diagnosticsScrubbedExportUnavailable": "Er kon geen veilige (geredigeerde) export worden voorbereid, dus er is niets opgeslagen. Probeer het opnieuw of gebruik volledige details met opzet.",
+  "diagnosticsScrubbedExportUnavailable": "Er kon geen veilige (opgeschoonde) export worden gemaakt, dus er is niets opgeslagen. Probeer het opnieuw, of kies bewust de volledige details.",
   "@diagnosticsScrubbedExportUnavailable": {
-    "x-sourceSha256": "106e95be57b0e940c9363ed6e2801098248bc47ff36212dbe42dd4ae8937572b"
+    "x-sourceSha256": "110738ff7f76053085f340ad6d7ef6991f9fed9ab19ed798a18650e5b4917e30"
   },
   "diagnosticsLogExported": "Diagnosticslog geëxporteerd.",
   "@diagnosticsLogExported": {
@@ -3844,21 +3852,21 @@
   "@diagnosticsExportCancelled": {
     "x-sourceSha256": "6ee4d68824a26fb057b2faa0efab2990a5c451d0c2b8363c0e6471e02f2b9f79"
   },
-  "diagnosticsExportFailed": "Het diagnosticslog kon niet worden geëxporteerd.",
+  "diagnosticsExportFailed": "Het diagnoselog kon niet worden geëxporteerd. Probeer het opnieuw.",
   "@diagnosticsExportFailed": {
-    "x-sourceSha256": "7a4bc94bc88c3750a70e7afa82ad0573ef674a2baad7c1f34ec0418a39347620"
+    "x-sourceSha256": "a2209ae8c46883c49d847f78621a8cd0fa07169ba679f7d56548c324b5bcfb8d"
   },
-  "diagnosticsClearFailed": "Het diagnosticslog kon niet worden gewist.",
+  "diagnosticsClearFailed": "Het diagnoselog kon niet worden gewist. Probeer het opnieuw.",
   "@diagnosticsClearFailed": {
-    "x-sourceSha256": "cc2c2837d7238d553ce1796ff0ac52bcca737f7db1c41f875084ac25749d7fff"
+    "x-sourceSha256": "ee96882b6db57f525f6ce71c72cb5205dfee3b8740247978184d3c764a894a8a"
   },
   "diagnosticsClearLogTitle": "Diagnosticslog wissen?",
   "@diagnosticsClearLogTitle": {
     "x-sourceSha256": "0a9b465b72b0b9539a23e5e44494ee4b1769ffb663ed14bbb6cb92bfdc28374a"
   },
-  "diagnosticsClearLogBody": "Dit verwijdert het lokale crashlog permanent van dit apparaat. Dit kan niet ongedaan worden gemaakt.",
+  "diagnosticsClearLogBody": "Hiermee wordt het lokale crashlog definitief van dit apparaat verwijderd. Dit kan niet ongedaan worden gemaakt.",
   "@diagnosticsClearLogBody": {
-    "x-sourceSha256": "2153e11c5ef43648908a74db37a5d38a08a9c51ee035733695ccc35f697c8194"
+    "x-sourceSha256": "c3c2dd0e3776ecaf3e3e3d5b51c52b44e6a7f68c5eb62a4630e02a964699ca3e"
   },
   "diagnosticsClearAction": "Wissen",
   "@diagnosticsClearAction": {
@@ -3928,13 +3936,13 @@
   "@diagnosticsClearLogRowSubtitle": {
     "x-sourceSha256": "00d902a08c2844dcdd6d225c3d113462c5fdb88e2d522baff3d027820ed916e1"
   },
-  "crashFallbackTitle": "Er is hier iets misgegaan",
+  "crashFallbackTitle": "Dit onderdeel van de app kon niet worden getoond",
   "@crashFallbackTitle": {
-    "x-sourceSha256": "f50cc0209cfd0a6cf57b948a4820f4367c4be1799303ae3415187ce9a246f8d9"
+    "x-sourceSha256": "8f57c66fd319b8791131188ba4d99ec2acfbfa4c163fa2619b636df3550dd244"
   },
-  "crashFallbackBody": "Dit deel van de app heeft een onverwachte fout ondervonden en kon niet worden weergegeven. De details zijn opgeslagen in een lokaal diagnosticslog (Instellingen ▸ Diagnostics) dat je apparaat nooit verlaat.",
+  "crashFallbackBody": "Er is een onverwachte fout opgetreden. De details zijn bewaard in een lokaal diagnoselog (Instellingen ▸ Diagnostics) dat je apparaat nooit verlaat. Ga terug en probeer het opnieuw.",
   "@crashFallbackBody": {
-    "x-sourceSha256": "a50566a5a48bce88b20359d2dfd22ab16e48ca69577e1540df5b58e81b1a51e7"
+    "x-sourceSha256": "6c53dc029662a2083a380bae756921ec803ab1c8acd83229f996605feaad01f9"
   },
   "crashFallbackCopied": "Gekopieerd",
   "@crashFallbackCopied": {
@@ -3974,11 +3982,7 @@
   },
   "commonUndoFailed": "Dat kon niet ongedaan worden gemaakt. Controleer het resultaat en probeer het opnieuw.",
   "@commonUndoFailed": {
-    "x-sourceSha256": "1f6c81c3140b07b5541f4c7aa6a357ec81bbc356d01d49332f189ad2d3da1f06"
-  },
-  "commonRetry": "Opnieuw proberen",
-  "@commonRetry": {
-    "x-sourceSha256": "942087cc2d41e01304b7195558d093d10c72af8e838c7556d6a02d471ee71852"
+    "x-sourceSha256": "e10956ec63c225f047950779827cff618012f8b9487508a0fcbf01222bfb6c8a"
   },
   "commonDelete": "Verwijderen",
   "@commonDelete": {
@@ -4392,9 +4396,9 @@
   "@collectionClearSearchTooltip": {
     "x-sourceSha256": "c44ecec3b41f0261b31ad86d3b6079ec5128b52ce80c0e61a33317a2b84d3c1b"
   },
-  "collectionLoadError": "De collectie kon niet worden geladen.",
+  "collectionLoadError": "De collectie kon niet worden geladen. Er is niets gewijzigd. Probeer het opnieuw.",
   "@collectionLoadError": {
-    "x-sourceSha256": "8ea6007fda6035e53f6baf7e065dac032465f26f32223023f3125264735780b4"
+    "x-sourceSha256": "36fb6943463856cee1753f90cc8ca606dd6c50d215d48fb0d39e92ade345d5e0"
   },
   "collectionDuplicatedSnack": "Gedupliceerd als “{title}”.",
   "@collectionDuplicatedSnack": {
@@ -4452,9 +4456,9 @@
   "@collectionDanceCount": {
     "x-sourceSha256": "494f9853fc3774e0f786711a47fd9eadd58c8bb7368cc1b789ad71cb16de9db3"
   },
-  "collectionSearchError": "Er is iets misgegaan bij het uitvoeren van de zoekopdracht.",
+  "collectionSearchError": "De zoekopdracht kon niet worden uitgevoerd. Er is niets gewijzigd. Probeer het opnieuw.",
   "@collectionSearchError": {
-    "x-sourceSha256": "07648e2be781886b35c3279d8111d033c9a05ce20dbba7d200ed5bd500b08ed9"
+    "x-sourceSha256": "1399b15e3a7aa1feb3aa0456a1ac71be613a75b142b0ab85e2e46ee8ff09a703"
   },
   "collectionNoResults": "Geen dansen komen overeen met je zoekopdracht.",
   "@collectionNoResults": {
@@ -4700,9 +4704,9 @@
   "@collectionFacetNone": {
     "x-sourceSha256": "20083f4ddf1392f3feff034e97d0c12b9c3ec1f201189b481ada3a638b1c54be"
   },
-  "collectionFacetAllHidden": "Alle filters zijn verborgen. Je kunt ze weer tonen via Instellingen → Standaardwaarden.",
+  "collectionFacetAllHidden": "Alle filters zijn verborgen. Je kunt ze weer tonen via Instellingen ▸ Standaarden.",
   "@collectionFacetAllHidden": {
-    "x-sourceSha256": "94933ebf3218eff33ad3a278381498d141ddf221fb31a1edb7478cfa430a33ec"
+    "x-sourceSha256": "eec14e1a8c3ccd1c9f04b0b59373b768c4f5b28191e1c5d5263cc0e71bc07202"
   },
   "collectionFacetClear": "Filters wissen",
   "@collectionFacetClear": {
@@ -4972,9 +4976,9 @@
   "@collectionCreateTagButton": {
     "x-sourceSha256": "7af189a2b3f0301757248acea86d89ab39ef285715f6abdef3bd6e06f9e7b94d"
   },
-  "collectionBatchApplyError": "Batchwijzigingen konden niet worden toegepast. Probeer het opnieuw.",
+  "collectionBatchApplyError": "De batchwijzigingen konden niet worden toegepast. Probeer het opnieuw.",
   "@collectionBatchApplyError": {
-    "x-sourceSha256": "bc31eff46d597169250638475f89c56fb1af5876a1d1e906931db235fda0e7f0"
+    "x-sourceSha256": "0971727aecd8a2eb59883f2538bb4348a7007fc460656fd3a3d0e91a15b462d1"
   },
   "collectionBatchTagAddConfirm": "Toevoegen",
   "@collectionBatchTagAddConfirm": {
@@ -5120,9 +5124,9 @@
   "@danceNotFound": {
     "x-sourceSha256": "1b47619207fe31d79756e61a38e5461c7f399df14567e6d72556dab910ae2883"
   },
-  "danceLoadError": "Deze dans kon niet worden geladen.",
+  "danceLoadError": "Deze dans kon niet worden geladen. Er is niets gewijzigd. Probeer het opnieuw.",
   "@danceLoadError": {
-    "x-sourceSha256": "4e8d6f4f8ae4f08224ef7f01eb361aa01c04be7811c7281b51049ee62d971ff7"
+    "x-sourceSha256": "4a6f1dac24ade84404077f9d09ea0d80cfc6b810a4406d8448b7565e722ab74b"
   },
   "danceEditFab": "Bewerken",
   "@danceEditFab": {
@@ -5168,9 +5172,9 @@
   "@danceUnreadableReassurance": {
     "x-sourceSha256": "cc561b1dbafd47b48f5f84c5a5711eeab5355a78f6bf31d1514cd112e1deffcf"
   },
-  "danceEditorFiguresUnreadable": "De opgeslagen figuren kunnen niet worden gelezen en worden hier daarom niet getoond. Ze blijven zoals ze zijn, tenzij je eigen figuren toevoegt.",
+  "danceEditorFiguresUnreadable": "De opgeslagen figuren kunnen niet worden gelezen, dus ze worden hier niet getoond. Ze blijven zoals ze zijn, tenzij je zelf figuren toevoegt.",
   "@danceEditorFiguresUnreadable": {
-    "x-sourceSha256": "a81f140b2f51d3f1eda203d481208fc976b04dab074009a771f64b0b092ecb56"
+    "x-sourceSha256": "e8dddb14ee11c8246a8088dd6914537488abf0d5385c579f9afaffc0332ee375"
   },
   "danceEditorTunesUnreadable": "De opgeslagen deuntjes kunnen niet worden gelezen en worden hier daarom niet getoond. Ze blijven zoals ze zijn, tenzij je eigen deuntjes toevoegt.",
   "@danceEditorTunesUnreadable": {
@@ -5208,9 +5212,9 @@
   "@danceCallingHistoryEmpty": {
     "x-sourceSha256": "05283fd1209490c845bc66f2df15365833619fea0568f7aed1fb95e7de1d67b0"
   },
-  "danceCallingHistoryError": "Kan de callgeschiedenis niet laden.",
+  "danceCallingHistoryError": "De callinggeschiedenis kon niet worden geladen. Er is niets gewijzigd. Probeer het opnieuw.",
   "@danceCallingHistoryError": {
-    "x-sourceSha256": "5b904ba8025bb80c5193a39f3c7f73cde1abae09c07a25f743e7206318a76e08"
+    "x-sourceSha256": "6fd4c38aaf09f9e6346e81d53d4316cccd03bc7f638fc3b71133b1bd900d7947"
   },
   "danceVenueCallCount": "{count, plural, =1{1 keer gecalld bij {venue}} other{{count} keer gecalld bij {venue}}}",
   "@danceVenueCallCount": {
@@ -5436,17 +5440,17 @@
   "@programsSavedSnack": {
     "x-sourceSha256": "85c0b6df8f1e4d9391ec79a51940c1a00a83a46320b7799ffc412d8d0e9615bb"
   },
-  "programsSaveError": "Het programma kon niet worden opgeslagen.",
+  "programsSaveError": "Het programma kon niet worden opgeslagen. Je wijzigingen staan er nog. Probeer het opnieuw.",
   "@programsSaveError": {
-    "x-sourceSha256": "d7e01bbd514104d066f03048e26a473d8dc2fa0a33a8adeba5030ce82b89d863"
+    "x-sourceSha256": "d3419c6f1ec5a9d71448d674073cdc6da428366c99a70ca918e50fc39af4a8cc"
   },
-  "programsUndoPerformedError": "De markeringen konden niet ongedaan worden gemaakt; de uitgevoerde markeringen blijven opgeslagen.",
+  "programsUndoPerformedError": "Dat kon niet ongedaan worden gemaakt. De uitgevoerd-markeringen zijn nog opgeslagen.",
   "@programsUndoPerformedError": {
-    "x-sourceSha256": "fbfde0b54bb73c9f0d1ddc9adbfd71d55cd0c8c3b218a2d419349ad85f5c9aa0"
+    "x-sourceSha256": "94de3c6bcc86eea62fe6eed107d01ea1e74094022f084ef8cfda4420947e08e0"
   },
-  "programsUndoRefreshError": "Het ongedaan maken is opgeslagen, maar de editor kon niet worden vernieuwd.",
+  "programsUndoRefreshError": "Ongedaan maken is opgeslagen, maar de editor kon niet worden vernieuwd. Open het programma opnieuw om het te zien.",
   "@programsUndoRefreshError": {
-    "x-sourceSha256": "ced29e7536a3e95e14bc1ac15990a9c3a9b1a30edac94908f149bb7a89b32e90"
+    "x-sourceSha256": "8344326d6a45cd7cf076d1cb71636a01d9ad9e06adce1c00f04c5264cd17b729"
   },
   "programsDuplicatedSnack": "Gedupliceerd als “{title}”.",
   "@programsDuplicatedSnack": {
@@ -5560,9 +5564,9 @@
   "@programsLoading": {
     "x-sourceSha256": "c43b9e60766a57000facf85595209bd297260494bdc42058d775afae2d9a2935"
   },
-  "programsLoadError": "Het programma kon niet worden geladen.",
+  "programsLoadError": "Het programma kon niet worden geladen. Er is niets gewijzigd. Probeer het opnieuw.",
   "@programsLoadError": {
-    "x-sourceSha256": "375163d0cc5ac0ea4a23072a0bfd9685e3290852bca342db23b7748bf705a426"
+    "x-sourceSha256": "4d2ddb362aef662580306423eff49b826dd37976f965de6744df9dc79e8ef8c5"
   },
   "programsDeletedDanceFallback": "(verwijderde dans)",
   "@programsDeletedDanceFallback": {
@@ -5583,6 +5587,10 @@
   "programsSlotsLabel": "Slots",
   "@programsSlotsLabel": {
     "x-sourceSha256": "4fd72c06bcff79710b0a5bd292b1f6408ec8cfa357e08566b663e4f14cbfc7f0"
+  },
+  "programsSlotsHelper": "Elk slot is één plek in je setlijst: een dans, een notitie of een pauze.",
+  "@programsSlotsHelper": {
+    "x-sourceSha256": "50b32d2e3c87ce90281b3b101b7b3798c9c79e267fbfef2f2837e296fa433f74"
   },
   "programsAddDanceButton": "Dans toevoegen",
   "@programsAddDanceButton": {
@@ -5745,10 +5753,10 @@
     },
     "x-sourceSha256": "da395d8f45efc28a2cf1da9c04d45e23d72965116f73d1eb8637e291a1a9bbe3"
   },
-  "programsDialectHelper": "Alleen in de Uitvoeren-weergave van dit programma. Editor, samenvatting en exports blijven het app-dialect gebruiken.",
+  "programsDialectHelper": "Alleen in Uitvoeren van dit programma. Editor, samenvatting en exports blijven het app-dialect gebruiken.",
   "@programsDialectHelper": {
     "description": "Helper text under the program dialect field: where the dialect applies.",
-    "x-sourceSha256": "053dc45b3b342b8f0263f73b3afd2df5a98b4ec74a5d6bb0c24eabf088484d14"
+    "x-sourceSha256": "6fbb6e1c0ad1bfc6fe359ec31e2e33a162ea584cba751c917c105d4903950aa7"
   },
   "programsWarningCount": "{count, plural, =1{1 waarschuwing} other{{count} waarschuwingen}}",
   "@programsWarningCount": {
@@ -5798,9 +5806,9 @@
   "@programsSortByTooltip": {
     "x-sourceSha256": "a19ccdb38aeaaac5207d8eede448fdefca05976f272a7109640231a5c3d9e9c3"
   },
-  "programsListLoadError": "Je programma's konden niet worden geladen.",
+  "programsListLoadError": "Je programma's konden niet worden geladen. Er is niets gewijzigd. Probeer het opnieuw.",
   "@programsListLoadError": {
-    "x-sourceSha256": "5537b40fba56165d156a8506242478802074d0e9de033b6a867a3f2dc12ebfa1"
+    "x-sourceSha256": "d91384fddc90ed5456a9dd63e365a1af966b1592be2c6de1597992164501d6ea"
   },
   "programsListEmptyBody": "Bouw hier setlijsten voor je events. Maak je eerste programma aan om te beginnen.",
   "@programsListEmptyBody": {
@@ -5938,13 +5946,13 @@
   "@programsSummaryClearedPerformedSnack": {
     "x-sourceSha256": "4a1c9091241cd97c3c635df20a7a0654c8769f6d4c3d907fb514eef030c03d7b"
   },
-  "programsSummaryPerformedToggleError": "De uitvoermarkering kon niet worden bijgewerkt. Probeer het opnieuw.",
+  "programsSummaryPerformedToggleError": "De uitgevoerd-markering kon niet worden bijgewerkt. Probeer het opnieuw.",
   "@programsSummaryPerformedToggleError": {
-    "x-sourceSha256": "969da3e91556de1a52f769c9b94424289f1d043d28b1442618e22190e605b976"
+    "x-sourceSha256": "17e8be8946c9afe2adf6b7445daa72ac91ef375df402a7b2fbd6abf6e7e28f08"
   },
-  "programsSummaryUndoPerformedToggleError": "Die wijziging van de uitvoermarkering kon niet ongedaan worden gemaakt.",
+  "programsSummaryUndoPerformedToggleError": "Die wijziging van de uitgevoerd-markering kon niet ongedaan worden gemaakt. Probeer het opnieuw.",
   "@programsSummaryUndoPerformedToggleError": {
-    "x-sourceSha256": "19f90c6c6bb2ee6a81e819456d81b93b0f83e95956ea4cbb3eb1b8399c9d9b18"
+    "x-sourceSha256": "9b8632b5826a3d9bae9b607b6396c18b8a45c7f550331f9d98d2f779c0cfe77f"
   },
   "programsPerformedCleared": "Uitvoermarkering gewist.",
   "@programsPerformedCleared": {
@@ -6364,7 +6372,7 @@
   },
   "performProgramChangedElsewhere": "Dit programma was elders gewijzigd sinds Uitvoeren werd geopend. Uitvoeren toont nu de nieuwste versie, met jouw wijziging.",
   "@performProgramChangedElsewhere": {
-    "x-sourceSha256": "616c3dbe3deede99d9d6a64423eaa11100c10df1383c1c1430edbe78fe933e93"
+    "x-sourceSha256": "541e28e0e23fb9807ea7a3d1d5a8c29e1d94fef31ed61b5bf5a36c297a02a92c"
   },
   "performProgramAdjustedSnack": "Programma aangepast.",
   "@performProgramAdjustedSnack": {
@@ -6558,21 +6566,21 @@
   "@exportDanceCopied": {
     "x-sourceSha256": "c2e22462b71cf1800c2bbb5e9e7ee963bfbe32a54d984956369eb528d74b4edd"
   },
-  "exportShareDanceError": "Deze dans kon niet worden gedeeld",
+  "exportShareDanceError": "Deze dans kon niet worden gedeeld. Je dans is ongewijzigd. Probeer het opnieuw.",
   "@exportShareDanceError": {
-    "x-sourceSha256": "554f3dc43433ef39433df04d2c6bce6cdd093433178944bd7129a101c7f76fe7"
+    "x-sourceSha256": "c3ee2ceeaf9d2ef6ff8d1d27efc8bbe9a993f3b6914bb9dcd84f1f2ef17923c9"
   },
-  "exportDanceError": "Deze dans kon niet worden geëxporteerd",
+  "exportDanceError": "Deze dans kon niet worden geëxporteerd. Je dans is ongewijzigd. Probeer het opnieuw.",
   "@exportDanceError": {
-    "x-sourceSha256": "c230c8a8d217b7de42cc40a295351a086dea2151203bdd0b0c18db0a16d99c6b"
+    "x-sourceSha256": "706901fe2993827573d4ff2df1bb62f4c2c2743c703223d20ada8b5dd1509e34"
   },
   "exportShareSetListText": "Setlijst delen (tekst)",
   "@exportShareSetListText": {
     "x-sourceSha256": "7c66ed824696ee49470da33bc4913bca4fcda5d4e86964756ff0aa8dfee03693"
   },
-  "exportShareProgramBundle": "Delen (programma + dansen)",
+  "exportShareProgramBundle": "Programma en dansen delen",
   "@exportShareProgramBundle": {
-    "x-sourceSha256": "aa291fc9f8e91d5ec3a4403f0ad10989880d96eca5c8d274776ec8ef6e699516"
+    "x-sourceSha256": "ac3fc12f358c8d2f43758ea7d0e61c4ba2a4af3103575c0e43bb43b2dbaf643d"
   },
   "exportSaveProgramBundle": "Programmabestand opslaan…",
   "@exportSaveProgramBundle": {
@@ -6634,29 +6642,29 @@
   "@exportJsonSavedTo": {
     "x-sourceSha256": "9690800e4667ee82849220789d0aec9e12689716721d794acc087d5e47e45987"
   },
-  "exportJsonSaveError": "Dit JSON-bestand kon niet worden opgeslagen.",
+  "exportJsonSaveError": "Dit JSON-bestand kon niet worden opgeslagen. Probeer het opnieuw.",
   "@exportJsonSaveError": {
-    "x-sourceSha256": "cd336815e788ba6ab889976444cec7a6843ba0f3be2c3457e64534311ec1eec5"
+    "x-sourceSha256": "8bf1718b27f938073fa8bbc69df8bf9e660cc4f8ce2aba31a1a43a2cabb8c49b"
   },
-  "exportJsonCopyError": "Deze JSON kon niet worden gekopieerd.",
+  "exportJsonCopyError": "Deze JSON kon niet worden gekopieerd. Probeer het opnieuw.",
   "@exportJsonCopyError": {
-    "x-sourceSha256": "159ab339dfb1438dbe333d8dcc696d0419c15b5ec9927adc1979470fc77c45dc"
+    "x-sourceSha256": "4415cccd6ece1d2d08eee62ef54382eaedebdb7d7c9ab3859f0ce0b86813b528"
   },
-  "exportJsonShareError": "Dit JSON-bestand kon niet worden gedeeld.",
+  "exportJsonShareError": "Dit JSON-bestand kon niet worden gedeeld. Probeer het opnieuw.",
   "@exportJsonShareError": {
-    "x-sourceSha256": "e2711d9c115c07956febe653b88e38d1f556475549b928245ac1d3c16668abb9"
+    "x-sourceSha256": "935f55b0c7f635e54c6a621ac63bef600bd08857a82c9199b2548fc59d41cb37"
   },
-  "exportShareSetListError": "Deze setlijst kon niet worden gedeeld",
+  "exportShareSetListError": "Deze setlijst kon niet worden gedeeld. Probeer het opnieuw.",
   "@exportShareSetListError": {
-    "x-sourceSha256": "eca98fb71a1d0f8be402ff1f37e099cb659c71b411cba34baef5d6285c233297"
+    "x-sourceSha256": "20216256aa9c9c57021275c35f21dc9b607105b837e1da353f7b5b7593ba9118"
   },
-  "exportShareProgramError": "Dit programma kon niet worden gedeeld",
+  "exportShareProgramError": "Dit programma kon niet worden gedeeld. Je programma is ongewijzigd. Probeer het opnieuw.",
   "@exportShareProgramError": {
-    "x-sourceSha256": "34413b5f0ebd6fa85c6679168b5e877d2ee4a10a096be36ca6c584e0cc14063d"
+    "x-sourceSha256": "4f651652242177fc84fa1e5153dea1716b9b76750a2a8b46b64cc8ec1507ccf8"
   },
-  "exportSetListError": "Deze setlijst kon niet worden geëxporteerd",
+  "exportSetListError": "Deze setlijst kon niet worden geëxporteerd. Probeer het opnieuw.",
   "@exportSetListError": {
-    "x-sourceSha256": "a777a06ed5294337e13c13d50ca5b60d1020c5a91205311231ac5fc1d9dff519"
+    "x-sourceSha256": "0b3c9650e03a105617e7c07ca40e8f6bbb6789342c59c89457ebbe09889f48e0"
   },
   "exportIncludeFiguresTitle": "Figuren opnemen?",
   "@exportIncludeFiguresTitle": {
@@ -6926,17 +6934,17 @@
   "@onlineNoResults": {
     "x-sourceSha256": "dbd10ef3ae537da49bacbaa1d51ba7efabf6ed872599da3fb36c0c7f4648362a"
   },
-  "onlineLoadError": "Die dans kon niet worden geladen van {source}.",
+  "onlineLoadError": "Die dans kon niet van {source} worden geladen. Probeer het opnieuw.",
   "@onlineLoadError": {
-    "x-sourceSha256": "c7c1d37fecd59ac10f90d8bd08b5c3506b29fb9adba030fcd7092a244ad13285"
+    "x-sourceSha256": "ffef2b06fe9f011b63ffd099b52458482aeaaf86d82ab723b0b5d5778c6c143c"
   },
-  "onlineImportError": "Die dans kon niet worden geïmporteerd.",
+  "onlineImportError": "Die dans kon niet worden geïmporteerd. Probeer het opnieuw.",
   "@onlineImportError": {
-    "x-sourceSha256": "bcc2523777aaf178e70b14525b86cc0ac9102d498020fb9a84c8b5b4ca24ffec"
+    "x-sourceSha256": "750b6b78c64eb4057a05f830fd22412eadf5fb4ec227fcd54aa021ccefd09ebf"
   },
-  "onlineSearchFailed": "Kon {source} niet doorzoeken. Probeer het opnieuw.",
+  "onlineSearchFailed": "Zoeken in {source} is niet gelukt. Probeer het opnieuw.",
   "@onlineSearchFailed": {
-    "x-sourceSha256": "dbf3534988b8711299d32c8485a397efc25cf2fb75628087cb66c179e2aa4b68"
+    "x-sourceSha256": "8b7ce4c16c8c9297404bbc844a73764d301532856991ff4b3ac3d25dc6ab6051"
   },
   "onlineImportCreated": "“{title}” geïmporteerd.",
   "@onlineImportCreated": {
@@ -7042,9 +7050,9 @@
   "@importProgramTitleLabel": {
     "x-sourceSha256": "a46214cd9d88cbb4e98ad9a2e2a378caf9ed21b600c11b10d38ae6ceef49ab6c"
   },
-  "importProgramCreateError": "Het geïmporteerde programma kon niet worden opgeslagen.",
+  "importProgramCreateError": "Het geïmporteerde programma kon niet worden opgeslagen. Probeer het opnieuw.",
   "@importProgramCreateError": {
-    "x-sourceSha256": "be713e8bf097fe80b8f80dd1d1384ea01412f2147230fcbbb85933ff957e3423"
+    "x-sourceSha256": "2db69890bb968cc25ba47a694ad7d00d805ff5d229d7d8378a9641d962722ffe"
   },
   "importProgramCommitted": "“{title}” geïmporteerd — {slots, plural, =1{1 slot} other{{slots} slots}} ({linked} gekoppeld, {notes, plural, =1{1 notitie} other{{notes} notities}}).",
   "@importProgramCommitted": {
@@ -7086,9 +7094,9 @@
   "@importContraDbSearchHint": {
     "x-sourceSha256": "d5079048ba6902037b18bcc35e68c53e63513475b87228fdf327650c90a52f54"
   },
-  "importContraDbListError": "De ContraDB-programmalijst kon niet worden geladen.",
+  "importContraDbListError": "De ContraDB-programmalijst kon niet worden geladen. Er is niets geïmporteerd. Probeer het opnieuw.",
   "@importContraDbListError": {
-    "x-sourceSha256": "d3f56726ada7682b433b01f348e63ea26f8b977ad5689607e58bf0c1c68ceebe"
+    "x-sourceSha256": "54932b4b3ad317856cf05986fa7a5c43ae26aeb5645676d116d3eb437703dd0d"
   },
   "importContraDbSearchPrompt": "Typ een deel van een programmanaam om in ContraDB te zoeken.",
   "@importContraDbSearchPrompt": {
@@ -7122,9 +7130,9 @@
   "@importContraDbFetchError": {
     "x-sourceSha256": "388d8ba730d505f45be4384607c40b48b21cf91b661c4be982a8ac71d3208cc5"
   },
-  "importContraDbFetchGenericError": "Dat programma kon niet worden opgehaald.",
+  "importContraDbFetchGenericError": "Dat programma kon niet worden opgehaald. Probeer het opnieuw.",
   "@importContraDbFetchGenericError": {
-    "x-sourceSha256": "a5ee9f74acca047ca7c0a0be583d5c90c9701c10ceb3ceb8b81054c95ef5360e"
+    "x-sourceSha256": "b7c0a887c3c73ad674cfa9bca5800a152d5939acd0530ad2730bee49f96915ce"
   },
   "importContraDbPastePrompt": "Plak hierboven een ContraDB-programma-URL en tik op “Programma ophalen”.",
   "@importContraDbPastePrompt": {
@@ -7134,9 +7142,9 @@
   "@importContraDbEmptyProgram": {
     "x-sourceSha256": "bbbbe3dff74c28ccede5c11caaa2745e860f3c0f44f0cf9ff372254ef39e5f53"
   },
-  "importContraDbResolveError": "Het ContraDB-programma kon niet worden geïmporteerd.",
+  "importContraDbResolveError": "Het ContraDB-programma kon niet worden geïmporteerd. Probeer het opnieuw.",
   "@importContraDbResolveError": {
-    "x-sourceSha256": "62c90ed70c6cec758aafc15d73c546f9ccdf6fc712b8b7067cb451004c81bd97"
+    "x-sourceSha256": "7c01f2a61571d5a236e9ea3913b3e8403050748f4f3fbaf0aa08a1268940fdcd"
   },
   "importContraDbProgramProgress": "Dans {done} van {total} importeren…",
   "@importContraDbProgramProgress": {
@@ -7182,9 +7190,9 @@
   "@importTitleListTitle": {
     "x-sourceSha256": "91e600cec80dafa0b7abe6d76f7f26fbb22a0055d9134ce3e5fb9206cf476a71"
   },
-  "importCollectionLoadError": "Je collectie kon niet worden geladen.",
+  "importCollectionLoadError": "Je collectie kon niet worden geladen. Er is niets gewijzigd. Probeer het opnieuw.",
   "@importCollectionLoadError": {
-    "x-sourceSha256": "e878f005e0e8a99e4dab50ebf20a4eb11b98439c03085cda5cb8174b2957b5d0"
+    "x-sourceSha256": "986d3dadc54bcf0c94b958a79da26504359d478c785028e5c1bfad759416d4c8"
   },
   "importTitleListDancesLabel": "Danstitels (één per regel)",
   "@importTitleListDancesLabel": {
@@ -7222,9 +7230,9 @@
   "@importPlaintextUnmatched": {
     "x-sourceSha256": "c75529d1966c53eff681e20bff89285e46d5a95113b5386ba9b0d0933f354fd3"
   },
-  "importPlaintextSearchError": "Kon niet online zoeken.",
+  "importPlaintextSearchError": "Online zoeken is niet gelukt. Probeer het opnieuw.",
   "@importPlaintextSearchError": {
-    "x-sourceSha256": "846135a18d9158388aa1e402333b0d017fd769c0c1168273e3046c66c4b980b1"
+    "x-sourceSha256": "4065a25a0005fde71be5a269921a3b0de9413c328a2a3b19e3e02399f63bb85f"
   },
   "importPlaintextSlotCount": "{count, plural, =1{1 slot} other{{count} slots}}",
   "@importPlaintextSlotCount": {
@@ -7446,9 +7454,9 @@
   "@archiveIntakeRejectedTooLarge": {
     "x-sourceSha256": "27561070b4835d4de2dfe26ee4858606712273f436ef4b0c2150ac2dd103d283"
   },
-  "archiveIntakeRejectedUnreadable": "Kon het gedeelde bestand niet lezen.",
+  "archiveIntakeRejectedUnreadable": "Het gedeelde bestand kon niet worden gelezen. Probeer het opnieuw, of vraag de afzender het opnieuw te delen.",
   "@archiveIntakeRejectedUnreadable": {
-    "x-sourceSha256": "85e9bf3419c2a530382daf76aa3c14e7e44543c61fbb00462234b100a3baf0d8"
+    "x-sourceSha256": "feff12888b548f01b1b5b59e2613774826728e5c22453b8c12d53fb8553d2e67"
   },
   "archiveIntakeRejectedEmpty": "Dat bestand is leeg.",
   "@archiveIntakeRejectedEmpty": {
@@ -7462,17 +7470,17 @@
   "@archiveIntakeRejectedNoContent": {
     "x-sourceSha256": "c432135d1a1811b4f51d8ad2f995526eff018b8005496c8d5fb7a2c57faa411b"
   },
-  "archiveIntakeRejectedBackup": "Dat bestand is een back-up, geen deelbestand. Om het op dit apparaat te zetten, ga je naar Instellingen › Algemeen en kies je ‘Herstellen vanuit een back-up’.",
+  "archiveIntakeRejectedBackup": "Dat bestand is een back-up, geen deelbestand. Om het op dit apparaat te zetten, ga je naar Instellingen ▸ Algemeen en kies je Herstellen vanuit een back-up.",
   "@archiveIntakeRejectedBackup": {
-    "x-sourceSha256": "97d1949c7f180d673f52eb4a415af1cd20bd8c1c19b503754ace4b84b4514a8e"
+    "x-sourceSha256": "0d7bc0f42d7695adf334fc8ad493453fd1c325ab09e4a77016dcb57552e6dd27"
   },
   "importErrorInsecureScheme": "Imports moeten een beveiligde https://-URL gebruiken.",
   "@importErrorInsecureScheme": {
     "x-sourceSha256": "a6de3bdb67e3560da4e8ccca52d2dd3fca8b45a6158820d2429e3de6e9b36849"
   },
-  "importErrorBlockedHost": "Die URL verwijst naar een netwerklocatie waarvan niet kan worden geïmporteerd.",
+  "importErrorBlockedHost": "Die URL verwijst naar een netwerklocatie waaruit de app niet kan importeren. Controleer de URL en probeer het opnieuw.",
   "@importErrorBlockedHost": {
-    "x-sourceSha256": "5a1ab97bb5bab720819d180dd3504e958320ffee86976e30102d458bf9ece128"
+    "x-sourceSha256": "1cd37ccec61dae95c4f82995926633c9be06bd99865e8ddc1505d88078f0ca29"
   },
   "importErrorInvalidUrl": "Dat ziet er niet uit als een geldige http(s)-URL.",
   "@importErrorInvalidUrl": {
@@ -7686,9 +7694,9 @@
   "@importIssueArchiveCustomFieldKeyConflict": {
     "x-sourceSha256": "9564f8cbbc1191daf14b62e22227265143784d621e03cbc394125584cf11b1fc"
   },
-  "importIssueArchiveCustomFieldKeyConflictGeneric": "Een aangepast veld in dit bestand kon zijn sleutel niet gebruiken, omdat die al in gebruik is, dus de waarden ervan komen in plaats daarvan in een veld met een genummerde sleutel.",
+  "importIssueArchiveCustomFieldKeyConflictGeneric": "Een eigen veld in dit bestand kon zijn sleutel niet gebruiken, omdat die al in gebruik is, dus de waarden komen in een veld met een genummerde sleutel.",
   "@importIssueArchiveCustomFieldKeyConflictGeneric": {
-    "x-sourceSha256": "3de2eecff77eb62db3dd735f85a9151293ca4ec9f3f9ed18154b9c3e3986142a"
+    "x-sourceSha256": "22d76a7fcbfaf3bb7cad78c10331273e36d9607c7f5e31ddb5993ec97dbf6ef4"
   },
   "importIssueUsrFileTruncated": "Dit bestand lijkt onvolledig – slechts een deel kon worden gelezen. Kopieer het opnieuw van het origineel en importeer het nogmaals.",
   "@importIssueUsrFileTruncated": {
@@ -7866,9 +7874,9 @@
   "@importRecordErrorNotContraDbDance": {
     "x-sourceSha256": "cd1146fd8ebf89b31b249c722894dae4f34c98bace1f556215f989bb14740539"
   },
-  "importRecordErrorNotUsrDatabase": "Dit is geen Caller's Companion-bibliotheekbestand (.USR). Zoek in Caller's Companion het .USR-bestand in de gegevensmap.",
+  "importRecordErrorNotUsrDatabase": "Dit is geen Caller's Companion-gegevensbestand (.USR). Zoek in Caller's Companion het .USR-bestand in de gegevensmap.",
   "@importRecordErrorNotUsrDatabase": {
-    "x-sourceSha256": "367e55689a35b7545bc44a12edfa651512a8d4b7fb94a007e2d8bbbf0c96175b"
+    "x-sourceSha256": "d4272b4389663e1af9b75ebbbb40f07bb22d6bee653a3b8e6a1c8043351dd256"
   },
   "importRecordErrorFileTooLarge": "Dit bestand is te groot om te importeren. Kies een kleiner bestand of splits het in delen.",
   "@importRecordErrorFileTooLarge": {
@@ -7902,9 +7910,9 @@
   "@importReviewChooseUsr": {
     "x-sourceSha256": "2bae3b7c6b8f6d179dcc3a27d7c40e9f4041c8d0dcc992bdbec620dc342642a7"
   },
-  "importReviewFileReady": "Bestand klaar ({bytes} bytes).",
+  "importReviewFileReady": "Bestand klaar.",
   "@importReviewFileReady": {
-    "x-sourceSha256": "ba4a4795a7571bb979fcf5c7f66c81ecaee0bc2694f4c76ad5690db15ae8b554"
+    "x-sourceSha256": "3b785af06b03677999e52f1303cf130749e038d707c0a5e707dbb42384623d97"
   },
   "importReviewGenericSubtitle": "Kies een bestand, plak de inhoud of haal het op via een URL. Er wordt niets aan je collectie toegevoegd totdat je controleert en bevestigt.",
   "@importReviewGenericSubtitle": {
@@ -7954,9 +7962,9 @@
   "@importReviewCouldNotRead": {
     "x-sourceSha256": "b81447962e16b8fd7ca12c4f1879d6f9486e25d61f56ff0574da84e1409b603a"
   },
-  "importReviewPlanFailedBody": "Er ging iets mis bij het lezen van deze import. Probeer het opnieuw; als het blijft gebeuren, is het bestand mogelijk beschadigd.",
+  "importReviewPlanFailedBody": "Deze import kon niet worden gelezen. Er is niets toegevoegd. Probeer het opnieuw; blijft het gebeuren, dan is het bestand mogelijk beschadigd.",
   "@importReviewPlanFailedBody": {
-    "x-sourceSha256": "2968cbc6fd8c52529a2fd7ebb1beffdd7464ad9d17070a5386ee22befd1a79a0"
+    "x-sourceSha256": "c807940c9fc6bf4ee7b213cb06b6c07df9315ada81f6275d6b2fb37e178227d9"
   },
   "importReviewNoDancesTitle": "Geen dansen gevonden",
   "@importReviewNoDancesTitle": {
@@ -8134,9 +8142,9 @@
   "@importReviewUndone": {
     "x-sourceSha256": "0f526ab50a3ca2a66650ef99fd743de2dbf64d38d995f4c521cde940c3abc4da"
   },
-  "importReviewEditError": "Die dans kon niet worden geïmporteerd om te bewerken.",
+  "importReviewEditError": "Die dans kon niet worden geïmporteerd om te bewerken. Probeer het opnieuw.",
   "@importReviewEditError": {
-    "x-sourceSha256": "efa938acdf31d4dcd903bb981c6319d8b7a56f59d2922faf6078d2826413c32f"
+    "x-sourceSha256": "7e1d4579e7a51a4ee4e115621ccd1456c04f4eb568dd4caf23ad9a1fb3b22375"
   },
   "importReviewEditOverwriteTitle": "Bestaande dans nu vervangen?",
   "@importReviewEditOverwriteTitle": {
@@ -8162,9 +8170,9 @@
   "@importReviewEditReimportTitleAndCreditBody": {
     "x-sourceSha256": "62a5cb4886e354759fc6422859381272be05217b50b9c73e838470f91d3e3ee3"
   },
-  "importReviewImportError": "De import kon niet worden voltooid.",
+  "importReviewImportError": "De import kon niet worden voltooid. Probeer het opnieuw.",
   "@importReviewImportError": {
-    "x-sourceSha256": "468698ddc233d06e939d5d5ca36ce259909e31cd8374a8de9b8c449a63eb6d54"
+    "x-sourceSha256": "0d41952f2a27c3dc76ea5ec54b3540f02abf5c1d32a288428628f2a8d6f88e98"
   },
   "importFileNotText": "Dat bestand kon niet worden gelezen: het is geen deelbestand en ook geen tekst die de app kan lezen. Als een andere app het als tekst heeft opgeslagen, sla het daar opnieuw op als UTF-8 en probeer het nog eens.",
   "@importFileNotText": {
@@ -8210,9 +8218,9 @@
   "@danceEditorDetailsSection": {
     "x-sourceSha256": "45989de49fb7f66dfe17a8fc26f3a02c7abcd74f7e8e6cf9f39fa0e3775780df"
   },
-  "danceEditorTitleRequiredLabel": "Titel *",
+  "danceEditorTitleRequiredLabel": "Titel",
   "@danceEditorTitleRequiredLabel": {
-    "x-sourceSha256": "4bf07d033e69aa4a877da3fc0a1dcd65fc786f8063cf884abb12970a9aa5b48b"
+    "x-sourceSha256": "7e8cd2056da73a7fefb6cd91f4e5d199d08d9058c517b9a2476b1b520324d674"
   },
   "danceEditorTitleRequired": "Titel is vereist",
   "@danceEditorTitleRequired": {
@@ -8269,6 +8277,10 @@
   "danceEditorHookHint": "Één zin “waarom deze dans callen”",
   "@danceEditorHookHint": {
     "x-sourceSha256": "9ec0f63c05da0d610b7fa421036366aa0fa9ed9548f0b548d4868e4ed5b1de3b"
+  },
+  "danceEditorHookHelper": "Waarom je deze dans zou callen, in één regel. Dit kan op callingkaarten en in wat je deelt verschijnen.",
+  "@danceEditorHookHelper": {
+    "x-sourceSha256": "509f0b93edaed19c9c8aa51a9f67c10afcf6719adff4f1a6c07937ed4d3bdff7"
   },
   "danceEditorWalkthroughLabel": "Doorloop",
   "@danceEditorWalkthroughLabel": {
@@ -8766,9 +8778,9 @@
   "@danceEditorCiteSourceHint": {
     "x-sourceSha256": "71cabada51cb3dafe00cdeccd9da0cb6754a366894d23ec3ba1b35002091fb7b"
   },
-  "danceEditorSaveError": "De dans kon niet worden opgeslagen.",
+  "danceEditorSaveError": "De dans kon niet worden opgeslagen. Je wijzigingen staan er nog. Probeer het opnieuw.",
   "@danceEditorSaveError": {
-    "x-sourceSha256": "0c06409f17b9d47e1b55340c2d49986fadd3909dbd75d02584af750ab88b46af"
+    "x-sourceSha256": "c85617953b7ade9403bc95dbcb3d7da174ad9abb67a7d57e756d1fe48d676f6e"
   },
   "danceEditorChoreographerDuplicate": "Een auteur met de naam “{name}” bestaat al. De naam is niet gewijzigd.",
   "@danceEditorChoreographerDuplicate": {
@@ -8854,9 +8866,9 @@
   "@danceEditorDeleteDanceTooltip": {
     "x-sourceSha256": "344854c7a92e0bbff8683823d6ec1ea3a031550a4d5e8a24996a67f76f6459dd"
   },
-  "danceEditorLoadError": "De dans kon niet worden geladen.",
+  "danceEditorLoadError": "De dans kon niet worden geladen. Er is niets gewijzigd. Probeer het opnieuw.",
   "@danceEditorLoadError": {
-    "x-sourceSha256": "509fe3661d05c24d66b935dcab410804443c03952d32273ea7dc217e1512a02d"
+    "x-sourceSha256": "e3b8922142b0898b5ae60e3764b2f7c548620074faa73eaa9a5fe16f398ad4af"
   },
   "danceEditorChoreographerDetailsTitle": "Auteurdetails",
   "@danceEditorChoreographerDetailsTitle": {
@@ -8866,9 +8878,9 @@
   "@danceEditorChoreographerDetailsIntro": {
     "x-sourceSha256": "2f019ad38a0c76ed265a40383c91046bfac31624abeaa26d381d7c6617613e69"
   },
-  "danceEditorNameRequiredLabel": "Naam *",
+  "danceEditorNameRequiredLabel": "Naam",
   "@danceEditorNameRequiredLabel": {
-    "x-sourceSha256": "862fead051bea9adb92ca8cf3072881ddb026425b8f47b4acf86644b83cd940e"
+    "x-sourceSha256": "dcd1d5223f73b3a965c07e3ff5dbee3eedcfedb806686a05b9b3868a2c3d6d50"
   },
   "danceEditorNameRequired": "Naam is vereist",
   "@danceEditorNameRequired": {
@@ -9034,17 +9046,17 @@
   "@danceEditorCompoundSummary": {
     "x-sourceSha256": "7f476fe79cafd92164769794845898ea0d554e4a05b2c9f9c5bf5c5ef7e5ec7a"
   },
-  "danceEditorCompoundSemantic": "{summary}, eigen figuur{unavailable, select, yes{, kan niet worden uitgevouwen} other{}}",
+  "danceEditorCompoundSemantic": "{summary}, je figuur{unavailable, select, yes{, kan niet worden uitgevouwen} other{}}",
   "@danceEditorCompoundSemantic": {
-    "x-sourceSha256": "d04eb81bad5803bb1ed81eb9e75652aa7f2f8fd2fe282bc5d93eb028378a4aae"
+    "x-sourceSha256": "24498eb89526ea5fa53aab4ce10493fcb73caadfba10f08eb270271d88f317be"
   },
   "danceEditorCompoundExpandsTo": "Wordt bij het opslaan van de dans {count, plural, =1{1 figuur} other{{count} figuren}} ({beats, plural, =1{1 beat} other{{beats} beats}}).",
   "@danceEditorCompoundExpandsTo": {
     "x-sourceSha256": "e1e59e23f7602c299e99da09509da61d362a2d51216e964a0fdf7f0d85a6732d"
   },
-  "danceEditorCompoundUnavailable": "Deze eigen figuur kan niet worden uitgevouwen: hij is verwijderd of gewijzigd, of accepteert deze waarden niet. Bij het opslaan blijven alleen de naam, de beats, de notitie en de progressie bewaard.",
+  "danceEditorCompoundUnavailable": "Je figuur kan niet worden uitgevouwen: hij is verwijderd of gewijzigd, of accepteert deze waarden niet. Bij opslaan blijven alleen zijn naam, tellen, notitie en progressiemarkering behouden.",
   "@danceEditorCompoundUnavailable": {
-    "x-sourceSha256": "ed634f3cb27197c9dbd7a4c570a64adccedace935c49e3fbf8cbb4c54e532732"
+    "x-sourceSha256": "1c42e99de5ef1838372e95398420f28515dd41cf7138b120ca47710bfd206570"
   },
   "danceEditorIncompleteFigure": "Niet compleet, dus Opslaan laat hem weg.",
   "@danceEditorIncompleteFigure": {
@@ -9250,9 +9262,9 @@
   "@danceEditorModifierChildrenCapReached": {
     "x-sourceSha256": "d657262be366dec047ac516293020642046665ec8d8b0dd625af800d795b2eb4"
   },
-  "danceEditorUnrecognizedMoveReadOnly": "Niet-herkende move “{move}” — niet in de taxonomie van deze versie. Alleen-lezen weergegeven zodat de gegevens bewaard blijven; de move kan weer normaal worden bewerkt als hij herkend wordt. Je kunt hem nog steeds herordenen of verwijderen.",
+  "danceEditorUnrecognizedMoveReadOnly": "Onbekende move \"{move}\": deze versie van de app kent hem niet. Hij wordt alleen-lezen getoond zodat de gegevens behouden blijven, en hij is weer gewoon te bewerken als de move bekend wordt. Je kunt hem nog wel verplaatsen of verwijderen.",
   "@danceEditorUnrecognizedMoveReadOnly": {
-    "x-sourceSha256": "ea59592f268ee79d773aa1eb2d7ccb6b00dcc918387a6c547677dbba792da372"
+    "x-sourceSha256": "dfc71bc639cd4d1e37544cae500689b3c787782a3014db6bcda8702ae00d4e3c"
   },
   "danceEditorFewerOptions": "Minder opties",
   "@danceEditorFewerOptions": {
@@ -9374,61 +9386,61 @@
   "@updateBannerMacosReady": {
     "x-sourceSha256": "a5b1111927fe6cc042bcad3244ba61ac54b0c94693eeb52be1fbaaf0083a0557"
   },
-  "updateBannerDownloadFailed": "De update kon niet worden gedownload.",
+  "updateBannerDownloadFailed": "De update kon niet worden gedownload. Probeer het opnieuw.",
   "@updateBannerDownloadFailed": {
-    "x-sourceSha256": "4d6fd789fd1fe3406fb4b41914626e95cfc936b8e899a835c9d0721339a6ff67"
+    "x-sourceSha256": "8c4a4eacdffcab95da8ac591d55b103191fd8d5db41f7de76a357494e741e509"
   },
-  "updateDownloadFailureDestination": "Er kon geen locatie worden gekozen om de update naartoe te downloaden.",
+  "updateDownloadFailureDestination": "Er kon geen plek voor het downloaden van de update worden gekozen. Probeer het opnieuw, of gebruik \"Release bekijken\".",
   "@updateDownloadFailureDestination": {
-    "x-sourceSha256": "623af0043c02285ccf6b203be680ed0926d08b1223e7edd0d02c7fd15ee31c82"
+    "x-sourceSha256": "f5bc011f822ce2823e471fbcbf4ce2297e07e7d330fe84bc64c47b47fb135580"
   },
   "updateDownloadFailureDestinationOccupied": "Er staat al iets op die locatie. Kies een andere naam of map, of gebruik „Release bekijken”.",
   "@updateDownloadFailureDestinationOccupied": {
     "x-sourceSha256": "6e229e0b5a454738aa5ed4b7c9be061458a5b9cc33a75efcd7151e50c8c8c82e"
   },
-  "updateDownloadFailureIncomplete": "De download was onvolledig en is verwijderd. Probeer het opnieuw of gebruik „Release bekijken”.",
+  "updateDownloadFailureIncomplete": "De download kon niet worden voltooid en het onvolledige bestand is verwijderd. Probeer het opnieuw, of gebruik \"Release bekijken\".",
   "@updateDownloadFailureIncomplete": {
-    "x-sourceSha256": "0cd1b8b90a1aa7b567458a9eaaf5edcea68b720fdae43c7d57e5820c64a9c1b7"
+    "x-sourceSha256": "4ba5a8ccec8caaf779d2008d9e510347d592364f28bdc1d1bb7732cdb4359d59"
   },
   "updateDownloadFailureRefusedHost": "De update-download is geweigerd omdat die naar een onverwachte locatie verwees. Gebruik „Release bekijken” om de update handmatig te downloaden.",
   "@updateDownloadFailureRefusedHost": {
     "x-sourceSha256": "af76ad7165b28b47a2ef175e7d69052fe819a2a89e1277e072d98f49a4ed5b86"
   },
-  "updateDownloadFailureUnreachable": "De update kon niet worden gedownload. Controleer je verbinding en probeer het opnieuw, of gebruik „Release bekijken”.",
+  "updateDownloadFailureUnreachable": "De update kon niet worden gedownload. Controleer je verbinding en probeer het opnieuw, of gebruik \"Release bekijken\".",
   "@updateDownloadFailureUnreachable": {
-    "x-sourceSha256": "1c201c02be93aad9d8d0ed525a227d4c119bb8e54e3bd4aa9667cbe9f91398ac"
+    "x-sourceSha256": "4f68126a3a7419230d23f5ade3b29a7fedd25a83b8f1943f1905992d98a9eb2f"
   },
-  "updateDownloadFailureServerError": "De updateserver kon het bestand niet leveren. Probeer het later opnieuw, of gebruik „Release bekijken”.",
+  "updateDownloadFailureServerError": "De updateserver kon het bestand niet leveren. Probeer het later opnieuw, of gebruik \"Release bekijken\".",
   "@updateDownloadFailureServerError": {
-    "x-sourceSha256": "4338a8e9d36a12cf4d4ae938595585ad4c51a44c0fae849c83d24cb455b553e3"
+    "x-sourceSha256": "bf2655285499f14f2afd8e06b520873ae09075f7c94524d64bf719c6a60c1948"
   },
-  "updateDownloadFailureDiskFull": "Er is niet genoeg vrije schijfruimte om de update op te slaan. Maak ruimte vrij en probeer het opnieuw, of gebruik „Release bekijken”.",
+  "updateDownloadFailureDiskFull": "Er is te weinig vrije schijfruimte om de update op te slaan. Maak ruimte vrij en probeer het opnieuw, of gebruik \"Release bekijken\".",
   "@updateDownloadFailureDiskFull": {
-    "x-sourceSha256": "5d4f7d6e3ab2a579945c55b6926d2f050473c47771901c487de5d3267ed87332"
+    "x-sourceSha256": "ca5c18961b548e80238646d03eaa4579035c81ec42536c24bc395f8c78013046"
   },
-  "updateDownloadFailureUnwritable": "De update kon niet worden opgeslagen omdat de downloadlocatie niet beschrijfbaar is. Controleer de rechten en probeer het opnieuw, of gebruik „Release bekijken”.",
+  "updateDownloadFailureUnwritable": "De update kon niet worden opgeslagen omdat er niet naar de downloadlocatie kan worden geschreven. Controleer de rechten en probeer het opnieuw, of gebruik \"Release bekijken\".",
   "@updateDownloadFailureUnwritable": {
-    "x-sourceSha256": "69d9b3ec764ae6d45e0a00b084db3375138a8f12a58130d9903fdc98f8f32289"
+    "x-sourceSha256": "a48ae1266e6918458ff228ad25ea7864f6b84520431cb76955002cafb469cd69"
   },
   "updateDownloadFailureChecksumMismatch": "De gedownloade update is niet door de beveiligingscontrole gekomen en is verwijderd. Probeer het opnieuw of gebruik „Release bekijken” om de update handmatig te downloaden.",
   "@updateDownloadFailureChecksumMismatch": {
     "x-sourceSha256": "fd5ee9a51a1cfa972b2e7d7d4639983d9c280f09e012ad3228186c819fa08e8f"
   },
-  "updateDownloadFailureHandoffFailed": "De update is gedownload en geverifieerd, maar kon niet automatisch worden geopend. Gebruik „Release bekijken” om de installatie af te ronden.",
+  "updateDownloadFailureHandoffFailed": "De update is gedownload en gecontroleerd, maar kon niet automatisch worden geopend. Gebruik \"Release bekijken\" om de installatie af te ronden.",
   "@updateDownloadFailureHandoffFailed": {
-    "x-sourceSha256": "3ca6db08898958453a1a0124dc22644c699a7251c23e23a9a1e1bbb072f7c6d1"
+    "x-sourceSha256": "f9e0b96a1d911e027670458e8a71d4fb6b7ba7c6bcdd204dc13e686ed58e0522"
   },
-  "updateDownloadFailureInstallFailed": "Er ging iets mis bij het installeren van de update. Probeer het opnieuw of gebruik „Release bekijken” om de update handmatig te downloaden.",
+  "updateDownloadFailureInstallFailed": "De update kon niet worden geïnstalleerd. Probeer het opnieuw, of gebruik \"Release bekijken\" om hem handmatig te downloaden.",
   "@updateDownloadFailureInstallFailed": {
-    "x-sourceSha256": "b95dca2ecff93664f435e74d15b4f9b7c12962cca856705ef0e4de8dea74a784"
+    "x-sourceSha256": "e763083584c27f401192a60fcdf53cce046f1a833b75d0a06b978d1e99166986"
   },
-  "startupIntegrityCheckIncomplete": "Een integriteitscontrole van de database kon niet worden voltooid, dus je gegevens konden bij deze start niet worden geverifieerd. Overweeg een back-up terug te zetten als de problemen aanhouden. Technische details zijn opgeslagen onder Instellingen ▸ Diagnostics.",
+  "startupIntegrityCheckIncomplete": "Je gegevens konden deze keer niet volledig worden gecontroleerd, dus ze konden niet worden geverifieerd. Blijven er problemen, overweeg dan te herstellen vanuit een back-up. Technische details zijn bewaard in Instellingen ▸ Diagnostics.",
   "@startupIntegrityCheckIncomplete": {
-    "x-sourceSha256": "9912a361a8512d14be066ed22c09788206c5f18f71dc09d204b2daea8de91933"
+    "x-sourceSha256": "cd838b973c4f414475b5a98a84ce399e4064b23d2b24cdd934d55e876990bec4"
   },
-  "startupIntegrityCheckFailed": "Een integriteitscontrole van de database is mislukt. Je lokale gegevens zijn mogelijk beschadigd – overweeg een back-up terug te zetten.",
+  "startupIntegrityCheckFailed": "Je gegevens zijn niet door de veiligheidscontrole gekomen en zijn mogelijk beschadigd. Overweeg te herstellen vanuit een back-up.",
   "@startupIntegrityCheckFailed": {
-    "x-sourceSha256": "8b901f979230909e2a5810b35058754d460e861cf2e53c4478b8e4b239acd1e9"
+    "x-sourceSha256": "cd54759134ccc4756ec50758494e3eb1f7fae37834df268000223ccacb2d2fd6"
   },
   "startupEcdConvertTitle": "ECD-dansen converteren?",
   "@startupEcdConvertTitle": {
@@ -9482,9 +9494,9 @@
   "@retirementBannerGetUpdate": {
     "x-sourceSha256": "d164c847efdf4db63556a6e0a99523b7b66f83db21bda3716547563a27965dab"
   },
-  "retirementBannerLater": "Later",
+  "retirementBannerLater": "Sluiten",
   "@retirementBannerLater": {
-    "x-sourceSha256": "73b6e48a1b552d112502d37a7b7870436efc5ea1de0bca58ccf12d6ae15d3a0c"
+    "x-sourceSha256": "48845bff334a50a59aaecf499f28a7a24c3b4b891b8b18a9f1169ad8e8a6b261"
   },
   "installLocationBannerMessage": "{appName} is mogelijk niet geïnstalleerd. De app draait vanaf de gedownloade schijfkopie of het archief, of vanaf een tijdelijke alleen-lezen locatie die macOS ervoor heeft aangemaakt. Stop de app, sleep hem in de Finder naar de map Apps of kopieer hem daarheen en open hem daarna vanaf daar. Staat de app al in de map Apps, dan kun je deze melding sluiten.",
   "@installLocationBannerMessage": {
@@ -9622,9 +9634,9 @@
   "@userGuideMissing": {
     "x-sourceSha256": "affe8bb4219a9de38344addc1fadd159030165a9602ee879caa9ed6a599085d8"
   },
-  "userGuideLoadError": "De gebruikersgids kon niet worden geladen.",
+  "userGuideLoadError": "De gebruikersgids kon niet worden geladen. Probeer het opnieuw.",
   "@userGuideLoadError": {
-    "x-sourceSha256": "79712d860fd8ad4bded43784c61fade0724c9f79d7ad2c4d857e7eabd160a07d"
+    "x-sourceSha256": "131970c9bb127c82963dd85ece80903400e666d6006152944443f6cb864bb5eb"
   },
   "userGuideOpenOnline": "De gids online openen",
   "@userGuideOpenOnline": {
@@ -9666,9 +9678,9 @@
   "@shorthandsCompoundTitle": {
     "x-sourceSha256": "b37015f6e5621c3bf45810cce907194e87f5b4a9814b5c5695f960f484aa5949"
   },
-  "shorthandsUserFigureSyncLabel": "Afkortingen voor je nieuwe figuren",
+  "shorthandsUserFigureSyncLabel": "Afkortingen voor nieuwe figuren",
   "@shorthandsUserFigureSyncLabel": {
-    "x-sourceSha256": "ddb5a743e550727efdac098dc9b2ded70df5cf8685acefa501184ffefbd78757"
+    "x-sourceSha256": "0d3bbcab1f6e886cc37a28859a00354f3bbc29474f53b2d49120becbf6b6b5fe"
   },
   "shorthandsCompoundIntro": "Als vrije tekstinvoer aan staat, voegt het typen van een van deze afkortingen als hele regel tijdens het bewerken van een dans een van je eigen figuren toe, met de waarden die hier zijn gekozen.",
   "@shorthandsCompoundIntro": {
@@ -9690,9 +9702,9 @@
   "@shorthandsCompoundShadowed": {
     "x-sourceSha256": "75111a930cc8890e0f1378c778ee2c93d1ec4cd35897e8d496d60f0cc46d60b6"
   },
-  "shorthandsUserFigureShadowedByCompound": "Niet gebruikt: een afkorting voor een van je combinaties heeft dezelfde tekst.",
+  "shorthandsUserFigureShadowedByCompound": "Niet gebruikt: een afkorting voor een combinatie heeft dezelfde tekst.",
   "@shorthandsUserFigureShadowedByCompound": {
-    "x-sourceSha256": "49e899d6d9121b9290be30aa5be38ae4e2ae72f70fba7591164c43af0ca8e2d7"
+    "x-sourceSha256": "2800771b9e2e957b9c86738d631cc0790cfddf7bf20ebf0d095673aa5753f37a"
   },
   "compoundShorthandEditorFigureLabel": "Je figuur",
   "@compoundShorthandEditorFigureLabel": {
@@ -9702,9 +9714,9 @@
   "@compoundShorthandEditorNoFigure": {
     "x-sourceSha256": "1cc30345f89f7d60df026db7a7d9058a654a1cae56aada728df7863bf573fd28"
   },
-  "compoundShorthandEditorNoCompounds": "Je hebt nog geen eigen figuren. Voeg er eerst een toe in de woordenlijst.",
+  "compoundShorthandEditorNoCompounds": "Je hebt nog geen eigen figuren. Voeg er eerst een toe in de Woordenlijst.",
   "@compoundShorthandEditorNoCompounds": {
-    "x-sourceSha256": "62a41226cac8234479053580ceee7bf7ee3b36e0d5bf8a2b97d1b8e5c0945a61"
+    "x-sourceSha256": "205d57ba9e87603e143ab97d50acc6e54b75bb7dc4b804ff0827af5006e6b922"
   },
   "compoundShorthandEditorInvalidValues": "Deze waarden passen niet bij deze figuur. Kies andere.",
   "@compoundShorthandEditorInvalidValues": {
@@ -9786,9 +9798,9 @@
   "@importShorthandSeedConflictNote": {
     "x-sourceSha256": "5d691515f5819d5c2fa5c170b4186fd8efa8a5b6ab094d4915b07926aa7d6e41"
   },
-  "importShorthandSeedSkip": "Overslaan",
+  "importShorthandSeedSkip": "Niet nu",
   "@importShorthandSeedSkip": {
-    "x-sourceSha256": "28d03596d24eeb4eab2d6fe21ca1cb95be7cb1fa6f92933db05e2cc4f4cdfa06"
+    "x-sourceSha256": "a0e63d7c7125d29af84d6919af5550529be77c327324940c98c4b2cb13a99c8c"
   },
   "importShorthandSeedConfirm": "{count, plural, =0{Afkortingen aanmaken} =1{1 afkorting aanmaken} other{{count} afkortingen aanmaken}}",
   "@importShorthandSeedConfirm": {
@@ -9834,17 +9846,17 @@
   "@importUserFiguresUseTheirs": {
     "x-sourceSha256": "352c427214d201c262fdab4e83afb826b3b9d1ff0dcaf79d0f2a13b92398a108"
   },
-  "importUserFiguresSkip": "Overslaan",
+  "importUserFiguresSkip": "Niet nu",
   "@importUserFiguresSkip": {
-    "x-sourceSha256": "28d03596d24eeb4eab2d6fe21ca1cb95be7cb1fa6f92933db05e2cc4f4cdfa06"
+    "x-sourceSha256": "a0e63d7c7125d29af84d6919af5550529be77c327324940c98c4b2cb13a99c8c"
   },
   "importUserFiguresConfirm": "{count, plural, =0{Klaar} =1{1 wijziging toepassen} other{{count} wijzigingen toepassen}}",
   "@importUserFiguresConfirm": {
     "x-sourceSha256": "4db8fd825e193f10caf5fed91a2fc807ae9c5bb1faa3d21ea564c14be4c32171"
   },
-  "importUserFiguresFailed": "{count, plural, =1{1 figuur kon niet in je woordenlijst worden opgeslagen.} other{{count} figuren konden niet in je woordenlijst worden opgeslagen.}}",
+  "importUserFiguresFailed": "{count, plural, =1{1 figuur kon niet in je Woordenlijst worden opgeslagen.} other{{count} figuren konden niet in je Woordenlijst worden opgeslagen.}}",
   "@importUserFiguresFailed": {
-    "x-sourceSha256": "2d71cfdcf6f48de0f523b8ad22eb8118a542279a5bcdb558f27a7436c1b775f5"
+    "x-sourceSha256": "22e2e0776e691f202e12413984c593a93aab633789c1c71617a802521d0f556c"
   },
   "importShorthandSeedComplete": "{count, plural, =1{1 afkorting aangemaakt} other{{count} afkortingen aangemaakt}}",
   "@importShorthandSeedComplete": {
@@ -9922,9 +9934,9 @@
   "@reparseConfirmUpgrade": {
     "x-sourceSha256": "7ec0261b8e8aa3e0b1affde5f18ca1930ae73d81a5303d667aae9ffd2803cbc7"
   },
-  "reparseFailed": "Figuren konden niet worden geüpgraded. Probeer het opnieuw.",
+  "reparseFailed": "De figuren konden niet worden bijgewerkt. Probeer het opnieuw.",
   "@reparseFailed": {
-    "x-sourceSha256": "f4d9b7b18ce94af1d627c799534e018a2070cc6aa4516b7f4154b67d6981046a"
+    "x-sourceSha256": "2321c932a9e8c5714b319e73b4cf2291fc5fe232a95bddd25ae5f79734c4da10"
   },
   "reparseNothingUpgradedSnack": "Niets te upgraden.",
   "@reparseNothingUpgradedSnack": {
@@ -9960,11 +9972,11 @@
   },
   "reparseErrorTitle": "Je figuren konden niet worden gecontroleerd",
   "@reparseErrorTitle": {
-    "x-sourceSha256": "ee1b57a8ab497a9ce1421dde9ea32e209d5487c782c67093f95ac5c3765efe24"
+    "x-sourceSha256": "4263fe6d9fa2a8f9f74eb9aa6f3ac6da61865eea30a74ec060b2c77a264c8f68"
   },
-  "reparseErrorBody": "Er ging iets mis tijdens het scannen van je collectie. Er is niets gewijzigd. Je kunt het opnieuw proberen.",
+  "reparseErrorBody": "Je collectie kon niet worden gescand. Er is niets gewijzigd. Probeer het opnieuw.",
   "@reparseErrorBody": {
-    "x-sourceSha256": "58f0ccd25734c5c644ebc925bc1e88cf98be542eb894f5e7c529377380b94acd"
+    "x-sourceSha256": "ae2fcb3b40723d503b721db7200bb77e181fe84e6984e715397886ddfbe725a4"
   },
   "ecdMigrationScreenTitle": "Engelse dansen omzetten",
   "@ecdMigrationScreenTitle": {
@@ -10012,7 +10024,7 @@
   },
   "ecdMigrationFailed": "De dansen konden niet worden omgezet. Er is niets gewijzigd. Probeer het opnieuw.",
   "@ecdMigrationFailed": {
-    "x-sourceSha256": "2b57f3969cad7e30b3b0ee1f143d1baa513fb5d2df1877119cb56c6a39adc556"
+    "x-sourceSha256": "c643cad7db69d3a4a5d7ac7f6f08556d3881bd3101b69ca7185850ec263c4b38"
   },
   "ecdMigrationEmptyTitle": "Niets om om te zetten",
   "@ecdMigrationEmptyTitle": {
@@ -10024,7 +10036,7 @@
   },
   "ecdMigrationErrorTitle": "Je Engelse dansen konden niet worden gecontroleerd",
   "@ecdMigrationErrorTitle": {
-    "x-sourceSha256": "a5463d18d95a7b1f629edcf1c73792d077681156c7326da88199e723fc4a4ee5"
+    "x-sourceSha256": "1a7715832f03dbfc860a97d03640b9113b20255c907b08dfffdd938636d60169"
   },
   "customFieldsDeleteInUse": "“{label}” kan niet worden verwijderd: nog in gebruik door {count, plural, =1{1 dans} other{{count} dansen}}. Verwijder de waarde eerst van alle dansen.",
   "@customFieldsDeleteInUse": {
@@ -10050,9 +10062,9 @@
   "@customFieldsNewField": {
     "x-sourceSha256": "a3469d5b141ca7d76ba6d7ef2d14f1d9fc2cf67b9cc7e4e892f7d94706d42606"
   },
-  "customFieldsLoadError": "Aangepaste velden konden niet worden geladen.",
+  "customFieldsLoadError": "Eigen velden konden niet worden geladen. Er is niets gewijzigd. Probeer het opnieuw.",
   "@customFieldsLoadError": {
-    "x-sourceSha256": "9392bd4d3cf2aaea10cdc1cd1d4c68cf98ee6e03c52fd75e05d67a348ab138f6"
+    "x-sourceSha256": "964046bd4b86e8be2deaa6be635a20d4a100aa8ea1f46f7382f5352e2fa07700"
   },
   "customFieldsEmptyTitle": "Nog geen aangepaste velden",
   "@customFieldsEmptyTitle": {
@@ -10102,17 +10114,17 @@
   "@customFieldsEditorEditTitle": {
     "x-sourceSha256": "67e2b7bfc1b499cb99d02e7506feb51c17d48ecf03512d7aecf52b0ad364440a"
   },
-  "customFieldsLabelLabel": "Label *",
+  "customFieldsLabelLabel": "Label",
   "@customFieldsLabelLabel": {
-    "x-sourceSha256": "e1d3f5751834b241acc1ae460c9f8264eeeefca40c7ee9ced69f6e4fa1fc3823"
+    "x-sourceSha256": "0e66373f45dcf3dd656151e519f7ee5e3d558d9c22cb87df339bbdd2b6c6a3c1"
   },
   "customFieldsLabelRequired": "Label is vereist",
   "@customFieldsLabelRequired": {
     "x-sourceSha256": "27107c05c535d647a2449c8ef02c7ac0231b54d5f3106e7b659b970f42fd3c65"
   },
-  "customFieldsKeyLabel": "Sleutel *",
+  "customFieldsKeyLabel": "Sleutel",
   "@customFieldsKeyLabel": {
-    "x-sourceSha256": "20b3e01cf54f06d35aeeca9b51b47452e2a4eb436cab16259e25d692b3a43a40"
+    "x-sourceSha256": "99a52df3ff3d499488e2fa28150c4106a2cb5e928891a830a9aa3922b2d32160"
   },
   "customFieldsKeyHelper": "Een korte id voor dit veld. Alleen letters, cijfers en underscores; moet beginnen met een letter of underscore. Kan niet meer worden gewijzigd zodra het veld bij dansen wordt gebruikt.",
   "@customFieldsKeyHelper": {
@@ -10129,6 +10141,10 @@
   "customFieldsKeyInvalid": "Sleutel moet beginnen met een letter of underscore en alleen letters, cijfers en underscores bevatten",
   "@customFieldsKeyInvalid": {
     "x-sourceSha256": "3464c7be866c227f8bac7c072f7cb57f2aee4abac9ee69301d461128b5d21b1c"
+  },
+  "customFieldsSaveFailed": "Het veld kon niet worden opgeslagen. Controleer de sleutel en keuzes en probeer het opnieuw.",
+  "@customFieldsSaveFailed": {
+    "x-sourceSha256": "0730de4d2ae1407a0efcb6e59d5314d80564b2f7aeba5ca858223adbf2584105"
   },
   "customFieldsTypeFieldLabel": "Type",
   "@customFieldsTypeFieldLabel": {
@@ -10154,9 +10170,9 @@
   "@customFieldsSearchableSubtitleYesNo": {
     "x-sourceSha256": "b6cbc3e64325fe848e181ad80b67bb44885158e8e622916a949d0aede4691a7a"
   },
-  "customFieldsChoicesLabel": "Keuzes *",
+  "customFieldsChoicesLabel": "Keuzes",
   "@customFieldsChoicesLabel": {
-    "x-sourceSha256": "e0e36cdeaa8a4744b85bf38c63f2765665e08b916924bcf575e37773f90487bc"
+    "x-sourceSha256": "2f75b64ac9163e816311e5c21589498f54c449f2da1d1436cb9ab2f10c160af5"
   },
   "customFieldsChoiceInUseTooltip": "In gebruik — kan niet worden verwijderd",
   "@customFieldsChoiceInUseTooltip": {
@@ -10398,9 +10414,9 @@
   "@venueNew": {
     "x-sourceSha256": "c3b96d5287dcafb942ac2de48181d871525650eb605203262344194bdcd1954c"
   },
-  "venueLoadError": "Locaties konden niet worden geladen.",
+  "venueLoadError": "Locaties konden niet worden geladen. Er is niets gewijzigd. Probeer het opnieuw.",
   "@venueLoadError": {
-    "x-sourceSha256": "a4ebf8284c0575777a9242bebb177a45ed2a3290d3dde63820767a7b512a98fc"
+    "x-sourceSha256": "d8612e40a3011a7910b21c30616a71b07d727b08d861592c464160c460089a6e"
   },
   "venueManagerTitle": "Locaties",
   "@venueManagerTitle": {
@@ -10470,9 +10486,9 @@
   "@venueEditorPartialSyncHint": {
     "x-sourceSha256": "d52232511ecaada9223a7115219345b13a4fe2c368b92b48330d533d3f3efba0"
   },
-  "venueEditorNameLabel": "Naam *",
+  "venueEditorNameLabel": "Naam",
   "@venueEditorNameLabel": {
-    "x-sourceSha256": "862fead051bea9adb92ca8cf3072881ddb026425b8f47b4acf86644b83cd940e"
+    "x-sourceSha256": "dcd1d5223f73b3a965c07e3ff5dbee3eedcfedb806686a05b9b3868a2c3d6d50"
   },
   "venueEditorNameRequired": "Naam is vereist",
   "@venueEditorNameRequired": {
@@ -10634,9 +10650,9 @@
   "@danceReimportInvalidJson": {
     "x-sourceSha256": "e860ca218ed99bfa69e97648c237c49b5c6b94f45d3b9a84da29b0e76e5ab268"
   },
-  "danceReimportSourceFailed": "Kan geen dans uit die bron laden. Probeer het opnieuw.",
+  "danceReimportSourceFailed": "Er kon geen dans van die bron worden geladen. Je dans is niet gewijzigd. Probeer het opnieuw.",
   "@danceReimportSourceFailed": {
-    "x-sourceSha256": "371510b49b6ef1c1c2341ee4602ccf8152406a01ce800aee553bb4e964997bcc"
+    "x-sourceSha256": "f8f79fe2bfedba0d85ba260f945b6d6de428aeea69dd663d9ea70c4723f71223"
   },
   "danceReimported": "Choreografie bijgewerkt.",
   "@danceReimported": {
@@ -10670,13 +10686,13 @@
   "@publishedCollectionsUnavailable": {
     "x-sourceSha256": "286ca7d1f2dfaf05d973b18f9d8167ca700dd94c02afc27cd91e74f85abbd35f"
   },
-  "publishedCollectionsUnverified": "Gepubliceerde collecties konden niet worden geverifieerd, dus er is niets geladen. Werk de app bij als dit blijft gebeuren.",
+  "publishedCollectionsUnverified": "De gepubliceerde collecties konden niet worden geverifieerd, dus er is niets geladen. Blijft dit gebeuren, werk dan de app bij.",
   "@publishedCollectionsUnverified": {
-    "x-sourceSha256": "0fd4b1c6ff67d093225db9044263a0966296ef759e8fae1cc0db6e0bde414593"
+    "x-sourceSha256": "ce244498f03226fb185766add0a62149da90a49f3b4cfeb8ba7b6f97e34a1a0d"
   },
-  "publishedCollectionsOffline": "Gepubliceerde collecties konden niet worden bereikt. Controleer je verbinding en probeer het opnieuw.",
+  "publishedCollectionsOffline": "De gepubliceerde collecties zijn niet bereikbaar. Controleer je verbinding en probeer het opnieuw.",
   "@publishedCollectionsOffline": {
-    "x-sourceSha256": "9d5685db1bd84a665edf1099bdca7fbbe48285bd68a1426598c99ee55c348fa5"
+    "x-sourceSha256": "554007e915d2e8f1977dc371673250a0244333a60ecadc0afe059a5546f9901d"
   },
   "publishedCollectionsNeedsNewerApp": "Deze gepubliceerde collecties hebben een nieuwere appversie nodig. Werk de app bij om ze te zien.",
   "@publishedCollectionsNeedsNewerApp": {
@@ -10838,10 +10854,10 @@
   "@settingsExperimentalShowCustomFiguresSubtitle": {
     "x-sourceSha256": "5ce2c57ca69de578c904a491d2536e64b58451a23db4430c7b18e72b81aee958"
   },
-  "settingsExperimentalCustomFiguresManageTitle": "Je figuren",
+  "settingsExperimentalCustomFiguresManageTitle": "Eigen figuren",
   "@settingsExperimentalCustomFiguresManageTitle": {
     "description": "Title of the row in the Experimental settings that opens the Custom Figures screen, where the user's own figures are added and edited.",
-    "x-sourceSha256": "b58d48fd3e37bbdfd6207536063ccea18768a760eaeb9deba03c202b9f0d2ddb"
+    "x-sourceSha256": "5678ffb9929561067862bd046b5b3a21f57923e2403c78826dece4b932e87462"
   },
   "settingsExperimentalCustomFiguresManageSubtitle": "Voeg je eigen figuren toe, bewerk of verwijder ze.",
   "@settingsExperimentalCustomFiguresManageSubtitle": {
@@ -10856,7 +10872,7 @@
   "customFiguresEmpty": "Je hebt nog geen eigen figuren gemaakt. Kies + om er een toe te voegen.",
   "@customFiguresEmpty": {
     "description": "Shown on the Custom Figures screen when the user has no figures of their own yet.",
-    "x-sourceSha256": "9cb149deb9a7c7ffd120fcd93aa1aac7504a56dc0d1098a31066cf66adc0cce1"
+    "x-sourceSha256": "b524bf98c06a51a372364d7fbe331966b1fdc1a6cf51af02337abe046c79b321"
   },
   "customFiguresEmptyTitle": "Nog geen eigen figuren",
   "@customFiguresEmptyTitle": {
@@ -10864,11 +10880,11 @@
   },
   "glossaryAddCustomFigure": "Eigen figuur toevoegen",
   "@glossaryAddCustomFigure": {
-    "x-sourceSha256": "33ad8774d841771938cf8bc5e3d181ad4c97607dc8ced2808127cca8410e91c5"
+    "x-sourceSha256": "b86b6c5731ef808a6f6c91b5379c3360ecf9f3faf0eae4b5497e006329f5cd3e"
   },
-  "customFiguresNewFigure": "Nieuwe figuur",
+  "customFiguresNewFigure": "Eigen figuur toevoegen",
   "@customFiguresNewFigure": {
-    "x-sourceSha256": "3bd330f1f22470db1387c962d78ceea1c7f302fd57729577ba2ee6cb9e9d3326"
+    "x-sourceSha256": "b86b6c5731ef808a6f6c91b5379c3360ecf9f3faf0eae4b5497e006329f5cd3e"
   },
   "glossaryCustomMarker": "Eigen",
   "@glossaryCustomMarker": {
@@ -10944,11 +10960,11 @@
   },
   "glossaryOverBudget": "Je woordenlijst heeft de maximale grootte bereikt, dus dit kon niet worden opgeslagen. Maak ruimte door andere figuren of notities te verwijderen of in te korten en probeer het opnieuw.",
   "@glossaryOverBudget": {
-    "x-sourceSha256": "ac1dcf961ced36258bd915f92ee594566bac7f0f85110bf1e48fa9494aca677a"
+    "x-sourceSha256": "ebb7a7dac6208da35e65e0d3f682fa4127165141eab28e23c9d33e10648ec9e4"
   },
-  "compoundEditorTitleNew": "Nieuwe figuur",
+  "compoundEditorTitleNew": "Eigen figuur toevoegen",
   "@compoundEditorTitleNew": {
-    "x-sourceSha256": "3bd330f1f22470db1387c962d78ceea1c7f302fd57729577ba2ee6cb9e9d3326"
+    "x-sourceSha256": "b86b6c5731ef808a6f6c91b5379c3360ecf9f3faf0eae4b5497e006329f5cd3e"
   },
   "compoundEditorTitleEdit": "Figuur bewerken",
   "@compoundEditorTitleEdit": {
@@ -11278,9 +11294,9 @@
   "@glossaryCustomDeleteUses": {
     "x-sourceSha256": "c26dae9673781a119531b3beaa3e8435e9dc2cce5a817010d981d67553f28cbc"
   },
-  "danceEditorUserFigureUnavailable": "Je figuur is niet beschikbaar, dus deze rij houdt de formulering die hij heeft.",
+  "danceEditorUserFigureUnavailable": "Je figuur is niet beschikbaar, dus deze rij behoudt zijn huidige tekst.",
   "@danceEditorUserFigureUnavailable": {
-    "x-sourceSha256": "c8035e4817705db8f29ea82ffd748127a3039e6de626a6e2a90dea9e1ca8345b"
+    "x-sourceSha256": "77fc9722e81f5db7c7b480be07324df110ad9bf46ff6474e571055c3d4d43e03"
   },
   "compoundEditorDiscardBody": "Je hebt niet-opgeslagen wijzigingen in deze figuur.",
   "@compoundEditorDiscardBody": {
@@ -11662,9 +11678,9 @@
   "@callingCardEditorPreviewCaption": {
     "x-sourceSha256": "40134c56f8e0720038cee8181ad11ee68f86d52c7ff6b7235f7d04cfb050e30e"
   },
-  "callingCardEditorPreviewError": "Het voorbeeld kon niet worden getekend.",
+  "callingCardEditorPreviewError": "Het voorbeeld kon niet worden getekend. Probeer het opnieuw.",
   "@callingCardEditorPreviewError": {
-    "x-sourceSha256": "c6a4540584074c857b121c1f5d8249c0112e616b6bbf22e4e57f0840fff65fc9"
+    "x-sourceSha256": "c677a20dc284ccf6811920684da79523e6307cea229dbde0edaf10d6db92b5a2"
   },
   "callingCardEditorPreviewShrunk": "De tekst wordt verkleind tot {percent}% om op deze kaart te passen.",
   "@callingCardEditorPreviewShrunk": {
@@ -11714,9 +11730,9 @@
   "@callingCardHelpIntro": {
     "x-sourceSha256": "1fc414b6856b8f60298e2c8fcdbd13b7778331ea234dc45a73e4de36ea3e55c6"
   },
-  "callingCardHelpFields": "Een blok drukt alleen af wat de dans heeft, en alleen velden die aanstaan onder Instellingen › Standaardwaarden › Gedeelde dansvelden. Een rij zonder iets om af te drukken neemt geen ruimte in. Als een kaart te vol is, wordt alles erop gelijkmatig verkleind tot het past, tot halve grootte.",
+  "callingCardHelpFields": "Een blok drukt alleen af wat de dans heeft, en alleen velden die zijn aangezet onder Instellingen ▸ Standaarden ▸ Gedeelde dansvelden. Een rij zonder iets om af te drukken neemt geen ruimte in. Is een kaart te vol, dan wordt alles erop gelijkmatig verkleind om te passen, tot op de helft van de grootte.",
   "@callingCardHelpFields": {
-    "x-sourceSha256": "b284fb19a00074faa966d7bc361cfe6cc9b48f03915178541e0b989af2ce6f63"
+    "x-sourceSha256": "63cc511ff3e285824ccb5c7ff0216bd10ee525209f417611a4b6749efe14bc4f"
   },
   "callingCardHelpTapToInsert": "Tik op een naam om die aan je opmaak toe te voegen.",
   "@callingCardHelpTapToInsert": {
