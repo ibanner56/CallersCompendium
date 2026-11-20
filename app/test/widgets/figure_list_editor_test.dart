@@ -3759,6 +3759,32 @@ void main() {
     expect(find.byKey(const ValueKey('figure-0-move-input')), findsNothing);
   });
 
+  testWidgets('Escape in a parameter dropdown closes its menu, then the '
+      'editor', (tester) async {
+    final drafts = <FigureDraft>[
+      FigureDraft(move: 'swing', params: {'who': 'partners'}),
+    ];
+    await _pump(tester, drafts);
+    await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
+    await tester.pumpAndSettle();
+    final who = find.byKey(const ValueKey('figure-0-who'));
+    await tester.tap(who);
+    await tester.pumpAndSettle();
+    expect(find.byType(MenuItemButton), findsWidgets);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(find.byType(MenuItemButton), findsNothing);
+    expect(who, findsOneWidget, reason: 'the first Esc only closes the menu');
+
+    // With the menu closed, Esc is the figure editor's, as from its other
+    // controls: it collapses.
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('figure-0-move-input')), findsNothing);
+    expect(who, findsNothing);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.linux));
+
   testWidgets('Ctrl+Enter commits and opens the next figure', (tester) async {
     final drafts = <FigureDraft>[FigureDraft(), FigureDraft()];
     await _pump(tester, drafts);

@@ -69,7 +69,7 @@ class ComponentThemes {
   // High contrast where the component is a container or control boundary.
   // Sheets and the menus themed here (popup, anchored and M3 dropdown menus)
   // sit on distinct surface tiers, and High contrast outlines them, as it
-  // does cards and dialogs. Legacy DropdownButton menus take no theme border.
+  // does cards and dialogs. Plain DropdownButton menus take no theme border.
   final BottomSheetThemeData bottomSheet;
   final PopupMenuThemeData popupMenu;
   final MenuThemeData menu;
@@ -179,7 +179,14 @@ class ComponentThemes {
         ),
       ),
       menu: MenuThemeData(style: menuStyle),
-      dropdownMenu: DropdownMenuThemeData(menuStyle: menuStyle),
+      // The closed field reads as the app's filled text field, and its value at
+      // the weight typed text uses; Material's own default is an outlined
+      // field.
+      dropdownMenu: DropdownMenuThemeData(
+        menuStyle: menuStyle,
+        inputDecorationTheme: input,
+        textStyle: AppTypography.textTheme.bodyLarge,
+      ),
       appBar: AppBarTheme(
         // Leading titles on every platform.
         centerTitle: false,

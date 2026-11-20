@@ -130,19 +130,27 @@ class _VenueManagerScreenState extends State<VenueManagerScreen> {
   }
 
   Future<void> _create() async {
-    final created = await VenueEditorSheet.show(context);
+    final repos = _repos;
+    // The sheet writes before it closes, and stays open if the write fails.
+    final created = await VenueEditorSheet.show(
+      context,
+      save: (venue) => repos.venues.upsert(venue, localUserEdit: true),
+    );
     if (created == null || !mounted) return;
-    await _repos.venues.upsert(created, localUserEdit: true);
     // No reload: the upsert writes `venues`, which this screen watches.
     if (!mounted) return;
     await offerToLinkTypedVenues(context, venues: [created]);
   }
 
   Future<void> _edit(Venue venue) async {
-    final updated = await VenueEditorSheet.show(context, initial: venue);
-    if (updated == null || !mounted) return;
-    await _repos.venues.upsert(updated, localUserEdit: true);
+    final repos = _repos;
+    // The sheet writes before it closes, and stays open if the write fails.
     // No reload: the upsert writes `venues`, which this screen watches.
+    await VenueEditorSheet.show(
+      context,
+      initial: venue,
+      save: (edited) => repos.venues.upsert(edited, localUserEdit: true),
+    );
   }
 
   /// Deletes [venue] at once and offers Undo, asking first only when

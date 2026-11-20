@@ -216,6 +216,110 @@ void main() {
       expect(find.byType(DanceEditorScreen), findsNothing);
     });
 
+    testWidgets('Esc in a dropdown field closes its menu, then leaves the '
+        'page', (tester) async {
+      await _pump(tester, size: _wide);
+      await tester.tap(find.byKey(const ValueKey('new-dance')));
+      await tester.pumpAndSettle();
+      final field = find.byKey(const ValueKey('progression-field'));
+      await tester.ensureVisible(field);
+      await tester.pumpAndSettle();
+      await tester.tap(field);
+      await tester.pumpAndSettle();
+      final menu = find.byType(MenuItemButton);
+      expect(menu, findsWidgets);
+
+      await _press(tester, LogicalKeyboardKey.escape);
+
+      expect(menu, findsNothing);
+      expect(find.byType(DanceEditorScreen), findsOneWidget);
+
+      // The menu is closed and the field still has the focus: Esc now goes
+      // back, as it would from any other control.
+      final focused = FocusManager.instance.primaryFocus?.context;
+      expect(focused, isNotNull);
+      expect(
+        find.descendant(of: field, matching: find.byWidget(focused!.widget)),
+        findsOneWidget,
+      );
+      await _press(tester, LogicalKeyboardKey.escape);
+
+      expect(find.byType(DanceEditorScreen), findsNothing);
+    }, variant: TargetPlatformVariant.only(TargetPlatform.linux));
+
+    testWidgets('Ctrl-W in a dropdown field leaves the page', (tester) async {
+      await _pump(tester, size: _wide);
+      await tester.tap(find.byKey(const ValueKey('new-dance')));
+      await tester.pumpAndSettle();
+      final field = find.byKey(const ValueKey('progression-field'));
+      await tester.ensureVisible(field);
+      await tester.pumpAndSettle();
+      await tester.tap(field);
+      await tester.pumpAndSettle();
+      // Close the menu with a pick; the field keeps the focus.
+      await tester.tap(find.byType(MenuItemButton).first);
+      await tester.pumpAndSettle();
+      expect(find.byType(MenuItemButton), findsNothing);
+
+      await _press(
+        tester,
+        LogicalKeyboardKey.keyW,
+        modifier: LogicalKeyboardKey.controlLeft,
+      );
+
+      // A pick is a change, so the editor asks before it goes.
+      expect(find.byKey(const ValueKey('discard-cancel')), findsOneWidget);
+    }, variant: TargetPlatformVariant.only(TargetPlatform.linux));
+
+    testWidgets('Close from the menu bar, with a dropdown field focused, '
+        'leaves the page', (tester) async {
+      await _pump(tester, size: _wide);
+      await tester.tap(find.byKey(const ValueKey('new-dance')));
+      await tester.pumpAndSettle();
+      final field = find.byKey(const ValueKey('progression-field'));
+      await tester.ensureVisible(field);
+      await tester.pumpAndSettle();
+      await tester.tap(field);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(MenuItemButton).first);
+      await tester.pumpAndSettle();
+
+      // What the menu bar's Close sends, from wherever the focus is.
+      final focused = FocusManager.instance.primaryFocus!.context!;
+      expect(
+        find.descendant(of: field, matching: find.byWidget(focused.widget)),
+        findsOneWidget,
+        reason: 'the field keeps the focus after a pick',
+      );
+      Actions.invoke(focused, const GoBackIntent());
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('discard-cancel')), findsOneWidget);
+    }, variant: TargetPlatformVariant.only(TargetPlatform.linux));
+
+    testWidgets('Ctrl-W with a dropdown\'s menu open closes only the menu', (
+      tester,
+    ) async {
+      await _pump(tester, size: _wide);
+      await tester.tap(find.byKey(const ValueKey('new-dance')));
+      await tester.pumpAndSettle();
+      final field = find.byKey(const ValueKey('progression-field'));
+      await tester.ensureVisible(field);
+      await tester.pumpAndSettle();
+      await tester.tap(field);
+      await tester.pumpAndSettle();
+      expect(find.byType(MenuItemButton), findsWidgets);
+
+      await _press(
+        tester,
+        LogicalKeyboardKey.keyW,
+        modifier: LogicalKeyboardKey.controlLeft,
+      );
+
+      expect(find.byType(MenuItemButton), findsNothing);
+      expect(find.byType(DanceEditorScreen), findsOneWidget);
+    }, variant: TargetPlatformVariant.only(TargetPlatform.linux));
+
     testWidgets('Esc closes an autocomplete\'s options before the page', (
       tester,
     ) async {

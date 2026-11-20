@@ -15930,6 +15930,12 @@ abstract class AppLocalizations {
   /// **'Edit venue'**
   String get venueEditTitle;
 
+  /// Shown in the venue editor sheet when saving the venue fails. The sheet stays open with every field as the user left it.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the venue. Your changes are still here. Try again.'**
+  String get venueEditorSaveError;
+
   /// Explanatory note at the top of the venue editor sheet: a venue record is shared across programs.
   ///
   /// In en, this message translates to:

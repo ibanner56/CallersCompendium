@@ -33,6 +33,7 @@ import 'package:compendium_app/src/widgets/program_export_menu.dart'
     show PdfLayouter, ProgramExportMenu;
 import 'package:compendium_app/src/widgets/program_slot_list_editor.dart';
 
+import 'support/dropdown.dart';
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
 import 'support/pdf_probe.dart';
@@ -714,14 +715,19 @@ void main() {
           reason: name,
         );
       }
+      // The picker offers valid input only: typing narrows the list, and a
+      // name that matches no dialect is not taken as one.
+      final field = find.byKey(const ValueKey('program-dialect'));
+      await tester.enterText(field, 'No such dialect');
+      await tester.pumpAndSettle();
       expect(
-        find.descendant(
-          of: find.byKey(const ValueKey('program-dialect')),
-          matching: find.byType(EditableText),
-        ),
+        find.byKey(const ValueKey('program-dialect-option:Mine')),
         findsNothing,
-        reason: 'the picker offers valid input only; no free text',
       );
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+      expect(dropdownShown(tester, field), 'Use app dialect');
+      await openPicker(tester);
       await tester.tap(
         find.byKey(const ValueKey('program-dialect-option:Mine')).last,
       );
@@ -833,10 +839,9 @@ void main() {
         find.byKey(const ValueKey('program-pay')),
         '250.5',
       );
-      await tester.tap(find.byKey(const ValueKey('program-pay-currency:USD')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('EUR').last);
-      await tester.pumpAndSettle();
+      final currency = find.byKey(const ValueKey('program-pay-currency'));
+      expect(dropdownShown(tester, currency), 'USD');
+      await pickDropdownEntry(tester, currency, 'EUR');
       await saveAndRead(tester);
 
       final saved = await repos.programs.getById('p1');
@@ -855,8 +860,11 @@ void main() {
         '250.50',
       );
       expect(
-        find.byKey(const ValueKey('program-pay-currency:EUR')),
-        findsOneWidget,
+        dropdownShown(
+          tester,
+          find.byKey(const ValueKey('program-pay-currency')),
+        ),
+        'EUR',
       );
     });
 

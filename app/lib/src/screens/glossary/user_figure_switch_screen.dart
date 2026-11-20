@@ -6,6 +6,7 @@ import '../../data/active_dialect_scope.dart';
 import '../../search/facet_labels.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/app_bar_text_action.dart';
+import '../../widgets/app_dropdown_field.dart';
 import 'custom_figure_detail.dart' show compoundParamKindLabel;
 
 /// Maps one of the user's own figures onto the shipped figure [target] that
@@ -154,16 +155,15 @@ class _UserFigureSwitchScreenState extends State<UserFigureSwitchScreen> {
         continue;
       }
       children.add(
-        DropdownButtonFormField<String>(
+        AppDropdownField<String?>(
           key: ValueKey('user-figure-switch-param-${param.key}'),
-          initialValue: _params[param.key],
-          isExpanded: true,
+          value: _params[param.key],
           decoration: InputDecoration(
             labelText: l10n.userFigureSwitchParam(paramName),
           ),
-          items: [
+          entries: [
             for (final key in targets)
-              DropdownMenuItem(value: key, child: Text(targetLabel(key))),
+              AppDropdownEntry<String?>(value: key, label: targetLabel(key)),
           ],
           onChanged: (key) {
             if (key != null) setState(() => _setParam(param, key));
@@ -181,32 +181,29 @@ class _UserFigureSwitchScreenState extends State<UserFigureSwitchScreen> {
               start: AppSpacing.lg,
               top: AppSpacing.sm,
             ),
-            child: DropdownButtonFormField<String>(
+            child: AppDropdownField<String?>(
               // Keyed by the target too: a new target starts the menu over.
               key: ValueKey(
                 'user-figure-switch-choice-${param.key}-${choice.id}-$mappedTo',
               ),
-              initialValue: _choices[param.key]?[choice.id],
-              isExpanded: true,
+              value: _choices[param.key]?[choice.id],
               decoration: InputDecoration(
                 labelText: l10n.userFigureSwitchChoice(
                   _renderer.renderFreeText(choice.label, dialect),
                 ),
               ),
-              items: [
+              entries: [
                 for (final value in values)
-                  DropdownMenuItem(
+                  AppDropdownEntry<String?>(
                     value: value,
-                    child: Text(
-                      valueSpec == null
-                          ? value
-                          : figureParamChoiceLabel(
-                              l10n,
-                              valueSpec,
-                              dialect,
-                              value,
-                            ),
-                    ),
+                    label: valueSpec == null
+                        ? value
+                        : figureParamChoiceLabel(
+                            l10n,
+                            valueSpec,
+                            dialect,
+                            value,
+                          ),
                   ),
               ],
               onChanged: (value) {

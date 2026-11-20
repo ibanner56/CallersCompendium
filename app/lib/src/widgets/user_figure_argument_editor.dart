@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../theme/touch_density.dart';
+import 'app_dropdown_field.dart';
 import '../search/facet_labels.dart';
 import 'figure_param_editors.dart';
 
@@ -70,26 +71,27 @@ class UserFigureArgumentEditor extends StatelessWidget {
     switch (param.kind) {
       case ParamKind.choice:
         final ids = {for (final c in param.choices) c.id};
-        return DropdownButtonFormField<String?>(
+        return AppDropdownField<String?>(
           key: ValueKey(_key),
           // A choice since removed shows as nothing chosen, not as another.
-          initialValue: ids.contains(value) ? value as String? : null,
-          isExpanded: true,
+          value: ids.contains(value) ? value as String? : null,
+          // Choices the user wrote: a list that grows.
+          filterable: true,
           decoration: InputDecoration(
             labelText: fieldLabel,
             border: const OutlineInputBorder(),
             isDense: denseControls(context),
           ),
-          items: [
+          entries: [
             if (allowNone)
-              DropdownMenuItem<String?>(
+              AppDropdownEntry<String?>(
                 value: null,
-                child: Text(noneLabel ?? l10n.userFigureEditorNoDefault),
+                label: noneLabel ?? l10n.userFigureEditorNoDefault,
               ),
             for (final choice in param.choices)
-              DropdownMenuItem<String?>(
+              AppDropdownEntry<String?>(
                 value: choice.id,
-                child: Text(_renderer.renderFreeText(choice.label, dialect)),
+                label: _renderer.renderFreeText(choice.label, dialect),
               ),
           ],
           onChanged: onChanged,
@@ -104,25 +106,23 @@ class UserFigureArgumentEditor extends StatelessWidget {
       case _ when allowNone:
         final domain = paramDomain(ParamSpec(param.kind, defaultValue: null));
         final values = [...?domain];
-        return DropdownButtonFormField<Object?>(
+        return AppDropdownField<Object?>(
           key: ValueKey(_key),
-          initialValue: values.contains(value) ? value : null,
-          isExpanded: true,
+          value: values.contains(value) ? value : null,
+          // Numbers and beats run to dozens of entries: typing one is quicker.
+          filterable: values.length + 1 >= appDropdownFilterFrom,
           decoration: InputDecoration(
             labelText: fieldLabel,
             border: const OutlineInputBorder(),
             isDense: denseControls(context),
           ),
-          items: [
-            DropdownMenuItem<Object?>(
+          entries: [
+            AppDropdownEntry<Object?>(
               value: null,
-              child: Text(noneLabel ?? l10n.userFigureEditorNoDefault),
+              label: noneLabel ?? l10n.userFigureEditorNoDefault,
             ),
             for (final v in values)
-              DropdownMenuItem<Object?>(
-                value: v,
-                child: Text(_valueLabel(l10n, v)),
-              ),
+              AppDropdownEntry<Object?>(value: v, label: _valueLabel(l10n, v)),
           ],
           onChanged: onChanged,
         );

@@ -24,6 +24,7 @@ import 'lingo_discouraged_hint.dart';
 import 'links_editor.dart';
 import '../../widgets/lingo_text_editing_controller.dart';
 import 'name_picker.dart';
+import '../../widgets/app_dropdown_field.dart';
 import 'source_citations_editor.dart';
 import '../../theme/app_shapes.dart';
 
@@ -347,48 +348,36 @@ class DanceEditorForm extends StatelessWidget {
                   ..._creditFields(context),
                 ],
                 const SizedBox(height: AppSpacing.md),
-                DropdownButtonFormField<DanceForm>(
-                  // Field values read at the same weight as typed text; the dropdown's
-                  // default is the bolder titleMedium.
-                  style: Theme.of(context).textTheme.bodyLarge,
+                AppDropdownField<DanceForm>(
                   key: const ValueKey('form-field'),
-                  isExpanded: true,
                   decoration: InputDecoration(
                     labelText: l10n.danceEditorFormLabel,
                   ),
-                  initialValue: controller.form,
-                  items: [
+                  value: controller.form,
+                  entries: [
                     for (final form in DanceForm.values)
-                      DropdownMenuItem(
+                      AppDropdownEntry(
                         value: form,
-                        child: Text(danceFormLabel(l10n, form)),
+                        label: danceFormLabel(l10n, form),
                       ),
                   ],
-                  onChanged: (value) {
-                    if (value != null) controller.setForm(value);
-                  },
+                  onChanged: controller.setForm,
                 ),
                 const SizedBox(height: AppSpacing.md),
-                DropdownButtonFormField<FormationShape>(
-                  // Field values read at the same weight as typed text; the dropdown's
-                  // default is the bolder titleMedium.
-                  style: Theme.of(context).textTheme.bodyLarge,
+                AppDropdownField<FormationShape>(
                   key: const ValueKey('formation-field'),
-                  isExpanded: true,
                   decoration: InputDecoration(
                     labelText: l10n.danceEditorFormationLabel,
                   ),
-                  initialValue: controller.formationShape,
-                  items: [
+                  value: controller.formationShape,
+                  entries: [
                     for (final shape in controller.offeredFormationShapes)
-                      DropdownMenuItem(
+                      AppDropdownEntry(
                         value: shape,
-                        child: Text(formationShapeLabel(l10n, shape)),
+                        label: formationShapeLabel(l10n, shape),
                       ),
                   ],
-                  onChanged: (value) {
-                    if (value != null) controller.setFormationShape(value);
-                  },
+                  onChanged: controller.setFormationShape,
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 TextFormField(

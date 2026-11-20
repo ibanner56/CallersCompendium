@@ -10491,6 +10491,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get venueEditTitle => '会場を編集';
 
   @override
+  String get venueEditorSaveError =>
+      '会場を保存できませんでした。変更内容はここに残っています。もう一度お試しください。';
+
+  @override
   String get venueEditorSharedNote =>
       '会場はここで開催されるすべてのプログラムで共有されます。住所、連絡先、スケジュールを編集するとすべてに反映されます。';
 

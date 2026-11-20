@@ -11069,6 +11069,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get venueEditTitle => 'Modifier le lieu';
 
   @override
+  String get venueEditorSaveError =>
+      'Impossible d’enregistrer le lieu. Vos modifications sont toujours là. Réessayez.';
+
+  @override
   String get venueEditorSharedNote =>
       'Un lieu est partagé entre tous les programmes qui y ont lieu ; les modifications de son adresse, contacts ou calendrier apparaissent sur tous.';
 

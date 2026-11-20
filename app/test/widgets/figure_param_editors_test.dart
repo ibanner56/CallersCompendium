@@ -1270,10 +1270,10 @@ void main() {
     });
 
     testWidgets('Clear also updates what the field DISPLAYS', (tester) async {
-      // Raised in review on PR #764: the concern was that
-      // `DropdownButtonFormField` ignores a later `initialValue` and leaves the
-      // field stuck on the cleared selection, since Clear updates the model
-      // from OUTSIDE the dropdown and the field's key is stable.
+      // Raised in review on PR #764: the concern was that the dropdown ignores
+      // a later value and leaves the field stuck on the cleared selection,
+      // since Clear updates the model from OUTSIDE the dropdown and the
+      // field's key is stable.
       //
       // The test above cannot answer that — `_pumpEditor` records `onChanged`
       // without feeding the new value back, so the editor is never rebuilt and
@@ -1281,11 +1281,11 @@ void main() {
       // the diagnosis, so this drives a host that re-seeds from the model the
       // way `figure_list_editor` does.
       //
-      // Measured result: the display DOES follow, because
-      // `_DropdownButtonFormFieldState.didUpdateWidget` calls `setValue` when
-      // `initialValue` changes (Flutter 3.44.6, `material/dropdown.dart`). It is
-      // plain `FormField` that does not — it syncs only `forceErrorText` — which
-      // is the likely source of the confusion. No value-based key is needed.
+      // Measured result: the display DOES follow, because the field's
+      // `didUpdateWidget` calls `setValue` when its value changes
+      // (`AppDropdownField`). It is plain `FormField` that does not — it syncs
+      // only `forceErrorText` — which is the likely source of the confusion.
+      // No value-based key is needed.
       Object? current = 'role1s';
       await tester.pumpWidget(
         StatefulBuilder(
