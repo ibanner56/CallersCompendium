@@ -436,6 +436,17 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: python3 tools/ci/report_missing_core_changelog.py "$BASE_SHA" "$HEAD_SHA"
+      # A changed figure definition with a same-named figure in another dance
+      # form's taxonomy (contra `box_the_gnat`, ECD `ecd_box_the_gnat`): the
+      # namesake may need the same change, or may legitimately differ, so this is
+      # a prompt to check and never a failure (maintainer's request, #2230). The
+      # forms come from taxonomy_registry.dart. See tools/ci/report_figure_namesakes.py.
+      - name: Report namesakes of changed figure definitions (advisory)
+        continue-on-error: true
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: python3 tools/ci/report_figure_namesakes.py "$BASE_SHA" "$HEAD_SHA"
 
   # A PR that changes the Claude review workflow changes nothing else (unless
   # its whole change bumps the action's pin, which claude.yml may then match):
