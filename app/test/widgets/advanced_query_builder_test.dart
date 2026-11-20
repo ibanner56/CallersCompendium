@@ -115,6 +115,27 @@ void main() {
   // "Has tag" row (#1412)
   // -------------------------------------------------------------------------
 
+  group('a chosen figure of another form keeps its form\'s name', () {
+    // As the suggestion that set it read (ADR-006): in a search over every
+    // dance, contra's and ECD's "hand cast" and "circle" are told apart.
+    for (final (move, label) in [
+      ('ecd_hand_cast', 'hand cast · English (ECD)'),
+      ('ecd_circle', 'circle · English (ECD)'),
+      ('hand_cast', 'hand cast'),
+      ('circle', 'circle'),
+    ]) {
+      testWidgets('$move reads "$label"', (tester) async {
+        await _pump(
+          tester,
+          root: BuilderGroup(children: [BuilderFigure(move: move)]),
+          taxonomy: shippedTaxonomies.anyForm,
+          dialect: Dialect.canonical,
+        );
+        expect(find.text(label), findsOneWidget);
+      });
+    }
+  });
+
   group('long lines, listed as a move (taxonomy v39)', () {
     testWidgets('offers no formation to narrow it by', (tester) async {
       await _pump(

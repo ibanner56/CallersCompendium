@@ -325,7 +325,7 @@ class _MoveAutocompleteState extends State<MoveAutocomplete> {
     if (q.isEmpty) return const [];
     final dialect = widget.dialect ?? Dialect.canonical;
     final renderer = FigureRenderer(widget.taxonomy);
-    final ownFormNames = _ownFormNames;
+    final ownFormNames = ownFormMoveNames(widget.taxonomy);
     // Match on canonical name, id, keywords, AND the dialect display term so a
     // user can type a custom substitution (e.g. "buzz" for swing).
     bool matches(
@@ -382,7 +382,6 @@ class _MoveAutocompleteState extends State<MoveAutocomplete> {
             id: m.id,
             displayName: _withOtherFormLabel(
               m.id,
-              m.displayName,
               renderer.displayMoveName(m.id, dialect),
               ownFormNames,
             ),
@@ -405,7 +404,6 @@ class _MoveAutocompleteState extends State<MoveAutocomplete> {
               // moves are: contra's and ECD's "hand cast".
               displayName: _withOtherFormLabel(
                 a.id,
-                a.displayName,
                 renderer.displayMoveName(a.id, dialect),
                 ownFormNames,
               ),
@@ -425,7 +423,7 @@ class _MoveAutocompleteState extends State<MoveAutocomplete> {
         if (!_offeredInForm(a.id)) continue;
         final name = renderer.displayMoveName(a.id, dialect);
         final label = a.listedAsMove
-            ? _withOtherFormLabel(a.id, a.displayName, name, ownFormNames)
+            ? _withOtherFormLabel(a.id, name, ownFormNames)
             : name;
         if (matches(a.id, a.displayName, name, a.searchKeywords) &&
             labels.add(_labelKey(label))) {
@@ -435,19 +433,6 @@ class _MoveAutocompleteState extends State<MoveAutocomplete> {
     }
     return options;
   }
-
-  /// The names of the moves of the taxonomy's own form, and of its aliases
-  /// listed as moves, when it lays that form over another (an ECD dance's
-  /// taxonomy is ECD's over contra's).
-  Set<String> get _ownFormNames => {
-    for (final m in widget.taxonomy.moves.values)
-      if (shippedTaxonomies.formOfMoveId(m.id) == widget.taxonomy.form)
-        m.displayName,
-    for (final a in widget.taxonomy.aliases.values)
-      if (a.listedAsMove &&
-          shippedTaxonomies.formOfMoveId(a.id) == widget.taxonomy.form)
-        a.displayName,
-  };
 
   /// Whether the move or alias [id] is offered: in a taxonomy that lays a
   /// form's own figures over the base's (an ECD dance's), only that form's
@@ -465,31 +450,17 @@ class _MoveAutocompleteState extends State<MoveAutocomplete> {
       id == customMove ||
       shippedTaxonomies.formOfMoveId(id) == widget.taxonomy.form;
 
-  bool _namedLikeOwnForm(
-    String id,
-    String displayName,
-    Set<String> ownFormNames,
-  ) =>
-      shippedTaxonomies.formOfMoveId(id) != widget.taxonomy.form &&
-      ownFormNames.contains(displayName);
-
-  /// [label], the label of move or listed alias [id] named [displayName],
-  /// followed by its form's name when it is another form's, named like one
-  /// of the taxonomy's own: "circle" and "circle · English (ECD)" in a
-  /// search over every dance.
   String _withOtherFormLabel(
     String id,
-    String displayName,
     String label,
     Set<String> ownFormNames,
-  ) {
-    if (!_namedLikeOwnForm(id, displayName, ownFormNames)) return label;
-    final form = danceFormLabel(
-      AppLocalizations.of(context),
-      shippedTaxonomies.formOfMoveId(id),
-    );
-    return '$label · $form';
-  }
+  ) => moveLabelWithForm(
+    context,
+    widget.taxonomy,
+    id,
+    label,
+    ownFormNames: ownFormNames,
+  );
 
   /// Whether [option] is named [q]: its label, or for a move or alias, its
   /// own name or its id with spaces.
@@ -588,4 +559,41 @@ class _MoveAutocompleteState extends State<MoveAutocomplete> {
       },
     );
   }
+}
+
+/// The names of [taxonomy]'s own form's moves, and of its aliases listed as
+/// moves, when it lays that form over another (an ECD dance's taxonomy is
+/// ECD's over contra's) or every form together (search over all dances,
+/// whose own form is contra's).
+Set<String> ownFormMoveNames(Taxonomy taxonomy) => {
+  for (final m in taxonomy.moves.values)
+    if (shippedTaxonomies.formOfMoveId(m.id) == taxonomy.form) m.displayName,
+  for (final a in taxonomy.aliases.values)
+    if (a.listedAsMove && shippedTaxonomies.formOfMoveId(a.id) == taxonomy.form)
+      a.displayName,
+};
+
+/// [label], the label of move or listed alias [id] in [taxonomy], followed
+/// by its form's name when it is another form's, named like one of
+/// [taxonomy]'s own: "circle" and "circle · English (ECD)" in a search over
+/// every dance. Used by the suggestions and by whatever shows a chosen move
+/// again (a "Has figure" row, a By phrase chip), so the two read alike.
+/// [ownFormNames] is [ownFormMoveNames] of [taxonomy], passed when a caller
+/// labels many moves at once.
+String moveLabelWithForm(
+  BuildContext context,
+  Taxonomy taxonomy,
+  String id,
+  String label, {
+  Set<String>? ownFormNames,
+}) {
+  final form = shippedTaxonomies.formOfMoveId(id);
+  if (form == taxonomy.form) return label;
+  final name =
+      taxonomy.moves[id]?.displayName ?? taxonomy.aliases[id]?.displayName;
+  if (name == null ||
+      !(ownFormNames ?? ownFormMoveNames(taxonomy)).contains(name)) {
+    return label;
+  }
+  return '$label · ${danceFormLabel(AppLocalizations.of(context), form)}';
 }

@@ -113,6 +113,10 @@ jobs:
         run: python3 tools/ci/test_report_comment_weight.py
       - name: Report comment weight (informational)
         run: python3 tools/ci/report_comment_weight.py --top 10
+      # PR-only in ci.yml (the `advisories` job needs the base ref); only its own
+      # logic is exercised here. See tools/ci/report_missing_core_changelog.py.
+      - name: Test the core-changelog advisory report
+        run: python3 tools/ci/test_report_missing_core_changelog.py
       # Ratchet: no `debugPrint` may reach a release build unguarded. Debug
       # output here carries file paths, import URLs and user dance content, so
       # an unguarded call is an information leak — issue #617, cleaned up in

@@ -206,6 +206,10 @@ Documentation drift is this repo's most persistent defect class.
   - Neither is owed by a pure refactor, a test-only change, or a docs-only
     change. Say which of those applies rather than staying silent, so the
     omission reads as considered rather than forgotten.
+  - The `Advisory reports` CI job prints a `Core changelog advisory` when
+    `packages/compendium_core/lib/**` changed and no fragment in the PR has a
+    `core` record (`tools/ci/report_missing_core_changelog.py`). It enforces
+    nothing and never fails; treat it as a prompt to check, not a verdict.
 - Within one `##` section, a category (`### Added`, `### Fixed`, …) must appear
   **once**. Appending a second `### Fixed` renders as two lists and hides the
   first. `tools/ci/check_changelog_structure.py` gates this and the ordering of
