@@ -3179,7 +3179,12 @@ void main() {
     await tester.pump(const Duration(milliseconds: 600));
     await tester.pump();
 
-    expect(find.text('Could not save the program.'), findsOneWidget);
+    expect(
+      find.text(
+        'Couldn\'t save the program. Your changes are still here. Try again.',
+      ),
+      findsOneWidget,
+    );
     expect(find.byType(SnackBarAction), findsOneWidget);
     tester
         .state<ScaffoldMessengerState>(find.byType(ScaffoldMessenger))
@@ -3211,7 +3216,12 @@ void main() {
     failing.programs.failWrites = true;
     await tester.tap(find.byKey(const ValueKey('save-program')));
     await tester.pumpAndSettle();
-    expect(find.text('Could not save the program.'), findsOneWidget);
+    expect(
+      find.text(
+        'Couldn\'t save the program. Your changes are still here. Try again.',
+      ),
+      findsOneWidget,
+    );
     expect(find.byType(SnackBarAction), findsNothing);
   });
 
@@ -3296,7 +3306,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(SnackBarAction), findsOneWidget);
-    expect(find.text('Could not save the program.'), findsOneWidget);
+    expect(
+      find.text(
+        'Couldn\'t save the program. Your changes are still here. Try again.',
+      ),
+      findsOneWidget,
+    );
     failing.programs.failWrites = false;
     await tester.tap(find.byType(SnackBarAction));
     await tester.pumpAndSettle();
@@ -3437,49 +3452,48 @@ void main() {
     expect(saved.slots.single.performedAt, isNull);
   });
 
-  testWidgets(
-    'persisted Undo reports refresh failure after rollback succeeds',
-    (tester) async {
-      final delayed = openTestRepositoriesWithDelayedPrograms();
-      await delayed.repos.dances.create(
-        _dance(id: 'd1', title: 'Newly Called'),
-      );
-      await delayed.repos.programs.create(
-        _program(
-          id: 'p1',
-          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
-        ),
-      );
-      await _pumpBuilder(
-        tester,
-        delayed.repos,
-        programId: 'p1',
-        autoCommit: true,
-      );
+  testWidgets('persisted Undo reports refresh failure after rollback succeeds', (
+    tester,
+  ) async {
+    final delayed = openTestRepositoriesWithDelayedPrograms();
+    await delayed.repos.dances.create(_dance(id: 'd1', title: 'Newly Called'));
+    await delayed.repos.programs.create(
+      _program(
+        id: 'p1',
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(
+      tester,
+      delayed.repos,
+      programId: 'p1',
+      autoCommit: true,
+    );
 
-      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
-      await tester.pump(const Duration(milliseconds: 600));
-      await tester.pumpAndSettle();
-      delayed.programs.failNextRead = true;
-      await tester.tap(find.byType(SnackBarAction));
-      await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+    delayed.programs.failNextRead = true;
+    await tester.tap(find.byType(SnackBarAction));
+    await tester.pumpAndSettle();
 
-      expect(
-        (await delayed.repos.programs.getById('p1'))!.slots.single.performedAt,
-        isNull,
-        reason: 'The conditional rollback committed before the refresh failed',
-      );
-      expect(
-        find.text('Undo was saved, but the editor could not refresh.'),
-        findsOneWidget,
-      );
-      expect(find.byType(SnackBarAction), findsNothing);
-      expect(find.byKey(const ValueKey('save-program')), findsNothing);
-      expect(find.byKey(const ValueKey('mark-all-performed')), findsNothing);
-      expect(find.byKey(const ValueKey('duplicate-program')), findsNothing);
-      expect(find.byKey(const ValueKey('delete-program')), findsNothing);
-    },
-  );
+    expect(
+      (await delayed.repos.programs.getById('p1'))!.slots.single.performedAt,
+      isNull,
+      reason: 'The conditional rollback committed before the refresh failed',
+    );
+    expect(
+      find.text(
+        'Undo was saved, but the editor couldn\'t refresh. Reopen the program to see it.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.byType(SnackBarAction), findsNothing);
+    expect(find.byKey(const ValueKey('save-program')), findsNothing);
+    expect(find.byKey(const ValueKey('mark-all-performed')), findsNothing);
+    expect(find.byKey(const ValueKey('duplicate-program')), findsNothing);
+    expect(find.byKey(const ValueKey('delete-program')), findsNothing);
+  });
 
   testWidgets('Undo uses conditional rollback after a later auto-commit', (
     tester,
@@ -3601,6 +3615,23 @@ void main() {
     },
   );
 
+  testWidgets('the Slots heading is explained by a line of helper text', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.programs.create(_program(id: 'p1', slots: const []));
+
+    await _pumpBuilder(tester, repos, programId: 'p1');
+
+    expect(
+      find.text(
+        'Each slot is one place in your set list: a dance, a note or a break.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('program-slots-helper')), findsOneWidget);
+  });
+
   testWidgets('a failed program read offers Retry, and Retry loads it', (
     tester,
   ) async {
@@ -3610,13 +3641,19 @@ void main() {
 
     await _pumpBuilder(tester, delayed.repos, programId: 'p1');
 
-    expect(find.text('Could not load the program.'), findsOneWidget);
+    expect(
+      find.text('Couldn\'t load the program. Nothing was changed. Try again.'),
+      findsOneWidget,
+    );
     expect(find.byKey(const ValueKey('save-program')), findsNothing);
 
     await tester.tap(find.byKey(const ValueKey('load-error-retry')).first);
     await tester.pumpAndSettle();
 
-    expect(find.text('Could not load the program.'), findsNothing);
+    expect(
+      find.text('Couldn\'t load the program. Nothing was changed. Try again.'),
+      findsNothing,
+    );
     expect(find.byKey(const ValueKey('save-program')), findsOneWidget);
   });
 
@@ -3660,7 +3697,13 @@ void main() {
       await tester.tap(find.byType(SnackBarAction));
       await tester.pumpAndSettle();
 
-      expect(find.text('Could not load the program.'), findsOneWidget);
+      expect(
+        find.text(
+          'Couldn\'t reload the program after that undo. Go back and reopen '
+          'it to see its current state.',
+        ),
+        findsOneWidget,
+      );
       expect(find.byKey(const ValueKey('save-program')), findsNothing);
       expect(find.byKey(const ValueKey('mark-all-performed')), findsNothing);
       expect(find.byKey(const ValueKey('duplicate-program')), findsNothing);
@@ -3699,7 +3742,7 @@ void main() {
       await tester.tap(find.byType(SnackBarAction));
       await tester.pumpAndSettle();
       expect(
-        find.text('Could not undo marking; performed marks remain saved.'),
+        find.text('Couldn\'t undo that. The performed marks are still saved.'),
         findsOneWidget,
       );
       expect(find.byType(SnackBarAction), findsNothing);
@@ -4994,7 +5037,10 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('program-matrix-export-pdf')));
     await tester.pumpAndSettle();
 
-    expect(find.text("Couldn't export this set list"), findsOneWidget);
+    expect(
+      find.text("Couldn't export this set list. Try again."),
+      findsOneWidget,
+    );
     expect(sink.sources, ['program_editor_screen._exportMatrixPdf']);
   });
 

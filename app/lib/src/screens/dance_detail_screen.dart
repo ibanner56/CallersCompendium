@@ -402,7 +402,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       },
       // A stream error means the record could not be re-read — a failing query,
       // a database closed under us. Rendered as its own "couldn't load" body
-      // with Retry, apart from the not-found body: telling the caller their
+      // with Try again, apart from the not-found body: telling the caller their
       // dance is gone when it merely failed to read would be wrong. It is
       // still logged, so "the dance won't open" reaches the diagnostic log
       // (issue #963).

@@ -24,7 +24,7 @@ void main() {
         // Mirror the sandboxed-macOS failure: the provider hands back a
         // directory path that does not exist on disk. Writing straight into it
         // (without creating it) throws PathNotFoundException, which surfaced as
-        // "Couldn't share this program".
+        // "Couldn't share this program. Your program is unchanged. Try again.".
         final missing = Directory('${root.path}/nested/does-not-exist');
         expect(missing.existsSync(), isFalse);
 

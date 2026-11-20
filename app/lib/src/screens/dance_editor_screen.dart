@@ -376,7 +376,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   }
 
   /// Whether a [_load] is still running. [_retryLoad] does nothing while it is,
-  /// and the Retry button is disabled, so two loads never fill one controller.
+  /// and the Try again button is disabled, so two loads never fill one controller.
   bool _loadInFlight = false;
 
   Future<void> _load() async {

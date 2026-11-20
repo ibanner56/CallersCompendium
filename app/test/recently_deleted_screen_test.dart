@@ -386,7 +386,7 @@ void main() {
     expect(find.byKey(const ValueKey('empty-state')), findsNothing);
     expect(find.textContaining('No recently deleted'), findsNothing);
 
-    await tester.tap(find.text('Retry'));
+    await tester.tap(find.text('Try again'));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('load-error')), findsNothing);

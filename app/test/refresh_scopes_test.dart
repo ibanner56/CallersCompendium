@@ -553,7 +553,7 @@ void main() {
     final snackBar = tester.widget<SnackBar>(find.byType(SnackBar));
     expect((snackBar.content as Text).data, contains('undo'));
     expect(
-      find.text('Could not undo marking; performed marks remain saved.'),
+      find.text('Couldn\'t undo that. The performed marks are still saved.'),
       findsOneWidget,
     );
     expect(find.byType(SnackBarAction), findsNothing);

@@ -280,7 +280,12 @@ void main() {
       }
 
       expect(find.text('Backup exported.'), findsNothing);
-      expect(find.text("Couldn't export a backup."), findsNothing);
+      expect(
+        find.text(
+          "Couldn't export a backup. Your data is unchanged. Try again.",
+        ),
+        findsNothing,
+      );
       expect(find.byKey(const ValueKey('export-progress')), findsNothing);
       expect(await repos.settings.get(kLastBackupAtKey), isNull);
     },
@@ -309,7 +314,12 @@ void main() {
 
       expect(saverCalled, isTrue);
       expect(find.text('Backup exported.'), findsNothing);
-      expect(find.text("Couldn't export a backup."), findsNothing);
+      expect(
+        find.text(
+          "Couldn't export a backup. Your data is unchanged. Try again.",
+        ),
+        findsNothing,
+      );
       expect(await repos.settings.get(kLastBackupAtKey), isNull);
     },
   );
@@ -549,7 +559,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Refused with the integrity message; live data intact; no refresh.
-      expect(find.textContaining('integrity check'), findsOneWidget);
+      expect(find.textContaining('safety check'), findsOneWidget);
       expect(find.text('Backup restored.'), findsNothing);
       expect(refreshed, isFalse);
       expect(lifecycle, ['before', 'after']);
@@ -1144,7 +1154,7 @@ void main() {
         find.textContaining('applying your saved settings failed'),
         findsOneWidget,
       );
-      expect(find.text('Retry settings'), findsOneWidget);
+      expect(find.text('Try again'), findsOneWidget);
       expect(find.text('Backup restored.'), findsNothing);
       expect(find.text('Settings applied.'), findsNothing);
       expect(await target.repos.settings.get(kSoftDeleteRetentionKey), isNull);
@@ -1160,7 +1170,7 @@ void main() {
       // The store recovers; tapping Retry re-applies ONLY settings and now
       // reports the success (and refreshes again).
       target.settings.failWrites = false;
-      await tester.tap(find.text('Retry settings'));
+      await tester.tap(find.text('Try again'));
       await tester.pumpAndSettle();
 
       expect(find.text('Settings applied.'), findsOneWidget);
@@ -1225,10 +1235,10 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('restore-confirm')));
     await tester.pumpAndSettle();
-    expect(find.text('Retry settings'), findsOneWidget);
+    expect(find.text('Try again'), findsOneWidget);
 
     target.settings.failWrites = false;
-    await tester.tap(find.text('Retry settings'));
+    await tester.tap(find.text('Try again'));
     await tester.pumpAndSettle();
 
     expect(await target.repos.settings.get(kSoftDeleteRetentionKey), 30);
@@ -1274,7 +1284,10 @@ void main() {
 
     expect(lifecycle, ['before', 'after']);
     expect(refreshed, isFalse);
-    expect(find.text("Couldn't restore the backup."), findsOneWidget);
+    expect(
+      find.text("Couldn't restore the backup. Try again."),
+      findsOneWidget,
+    );
     expect((await repos.dances.listAll()).map((dance) => dance.id), ['stale']);
   });
 

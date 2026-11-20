@@ -148,7 +148,10 @@ void main() {
           saveInvoker: (json, name) async => throw StateError('boom'),
         ),
       );
-      expect(find.text("Couldn't save this JSON file."), findsOneWidget);
+      expect(
+        find.text("Couldn't save this JSON file. Try again."),
+        findsOneWidget,
+      );
     });
 
     testWidgets('copy', (tester) async {
@@ -159,7 +162,7 @@ void main() {
           clipboardWriter: (json) async => throw StateError('boom'),
         ),
       );
-      expect(find.text("Couldn't copy this JSON."), findsOneWidget);
+      expect(find.text("Couldn't copy this JSON. Try again."), findsOneWidget);
     });
 
     testWidgets('share', (tester) async {
@@ -171,7 +174,10 @@ void main() {
           shareInvoker: (params) async => throw StateError('boom'),
         ),
       );
-      expect(find.text("Couldn't share this JSON file."), findsOneWidget);
+      expect(
+        find.text("Couldn't share this JSON file. Try again."),
+        findsOneWidget,
+      );
     });
   });
 }

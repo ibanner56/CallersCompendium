@@ -256,10 +256,10 @@ abstract class AppLocalizations {
   /// **'User Guide'**
   String get menuUserGuide;
 
-  /// Accessibility label on the startup loading spinner shown while the collection database is being prepared.
+  /// Accessibility label on the startup loading spinner shown while the library database is being prepared.
   ///
   /// In en, this message translates to:
-  /// **'Preparing your collection'**
+  /// **'Preparing your library'**
   String get appBootstrapPreparing;
 
   /// Accessibility label on the startup progress indicator shown while the search index is being rebuilt after a migration.
@@ -274,10 +274,10 @@ abstract class AppLocalizations {
   /// **'Rebuilding search index… {percent}%'**
   String appBootstrapRebuildingIndexProgress(int percent);
 
-  /// Error message shown on the startup screen when preparing the collection fails; accompanied by a Retry button.
+  /// Error message shown on the startup screen when preparing the library fails; accompanied by a Try again button.
   ///
   /// In en, this message translates to:
-  /// **'Could not prepare the collection.'**
+  /// **'Couldn\'t prepare your library. Try again.'**
   String get appBootstrapError;
 
   /// Button on the startup error screen that copies the error type, its stack trace (scrubbed of file paths) and, on the terminal startup screens, their typed details such as version numbers (never the error message) to the clipboard.
@@ -298,7 +298,7 @@ abstract class AppLocalizations {
   /// **'Details were also written to the diagnostics log in the app\'s support folder.'**
   String get appBootstrapLogHint;
 
-  /// Button on the terminal startup screens (newer data, too-old data, backup could not be made, data could not be moved) that opens the project's GitHub Releases page in the browser, where newer builds and the migration-bridge build can be downloaded.
+  /// Button on the terminal startup screens (newer data, backup could not be made, data could not be moved) that opens the project's GitHub Releases page in the browser, where newer builds and the migration-bridge build can be downloaded.
   ///
   /// In en, this message translates to:
   /// **'Open the Releases page'**
@@ -310,31 +310,31 @@ abstract class AppLocalizations {
   /// **'Your data uses storage format {fileVersion}. This version of the app reads up to format {appVersion}.'**
   String migrationDowngradeVersions(int fileVersion, int appVersion);
 
-  /// Terminal startup-screen message shown when the on-disk data was written by a newer app version than the one running (no downgrade path). No Retry is offered; the app has to be updated and reopened.
+  /// Terminal startup-screen message shown when the on-disk data was written by a newer app version than the one running (no downgrade path). No Try again is offered; the app has to be updated and reopened.
   ///
   /// In en, this message translates to:
   /// **'This data was created by a newer version of Caller\'s Compendium. Update the app, then reopen it.'**
   String get migrationDowngradeMessage;
 
-  /// Terminal startup-screen message shown when the one-time move of the database out of the old folder found data files in both the new location and an old location. Nothing is deleted. No Retry is offered.
+  /// Terminal startup-screen message shown when the one-time move of the database out of the old folder found data files in both the new location and an old location. Nothing is deleted. No Try again is offered.
   ///
   /// In en, this message translates to:
   /// **'Caller\'s Compendium didn\'t start because it found saved data files in the new location and also in a folder an earlier version used. Nothing was changed or deleted. Keep the copy you want, move the other one out of the way, then reopen the app. The FAQ entry \"Where is my data stored?\" lists the locations.'**
   String get migrationRelocationBothExist;
 
-  /// Terminal startup-screen message shown when the one-time move of the database found saved data in more than one old location (Windows: Documents and the Roaming fallback) and none in the new location. Nothing is deleted. No Retry is offered.
+  /// Terminal startup-screen message shown when the one-time move of the database found saved data in more than one old location (Windows: Documents and the Roaming fallback) and none in the new location. Nothing is deleted. No Try again is offered.
   ///
   /// In en, this message translates to:
   /// **'Caller\'s Compendium didn\'t start because it found saved data in more than one folder used by earlier versions. Nothing was changed or deleted. Keep the copy you want, move the others out of the way, then reopen the app. The FAQ entry \"Where is my data stored?\" lists the locations.'**
   String get migrationRelocationMultipleLegacy;
 
-  /// Terminal startup-screen message shown when the one-time move of the database out of the Documents folder failed (disk full, unwritable folder, locked file). Nothing is deleted. No Retry is offered.
+  /// Terminal startup-screen message shown when the one-time move of the database out of the Documents folder failed (disk full, unwritable folder, locked file). Nothing is deleted. No Try again is offered.
   ///
   /// In en, this message translates to:
   /// **'Caller\'s Compendium didn\'t start because it couldn\'t finish moving your saved data to its new location. Nothing was deleted. Free up space, close other programs that may be using it, or check the folder permissions, then reopen the app to try again.'**
   String get migrationRelocationFailed;
 
-  /// Terminal startup-screen message shown when there is no database in the new location yet and the Documents folder (where earlier versions kept the database) cannot be reached, so the app cannot tell whether a library is waiting there. Nothing is created. No Retry is offered.
+  /// Terminal startup-screen message shown when there is no database in the new location yet and the Documents folder (where earlier versions kept the database) cannot be reached, so the app cannot tell whether a library is waiting there. Nothing is created. No Try again is offered.
   ///
   /// In en, this message translates to:
   /// **'Caller\'s Compendium didn\'t start because it couldn\'t reach your Documents folder, where earlier versions kept your saved data. Nothing was changed or created. If Documents is on another drive or a network folder, reconnect it, then reopen the app. If you have no Documents folder, create an empty one, then reopen the app. The FAQ entry \"Where is my data stored?\" has more.'**
@@ -389,7 +389,7 @@ abstract class AppLocalizations {
   /// Plain-language sentence naming the likely cause of a failed pre-migration backup: the backups folder is not writable. Embedded into the snapshot-failure copy.
   ///
   /// In en, this message translates to:
-  /// **'The automatic backups folder could not be written to.'**
+  /// **'Couldn\'t write to the automatic backups folder.'**
   String get migrationSnapshotCauseUnwritableBackupsDir;
 
   /// Plain-language sentences naming the cause of a failed automatic backup and its remedy: another program (for example a database viewer) has the app's data file open and is reading it, so a copy would be missing recent changes. Appended to the 'backup failed' message of the reset flow. Must tell the user to close the other program, not to free space. Say "app", not "program": in this app a program is a dance set list.
@@ -404,7 +404,7 @@ abstract class AppLocalizations {
   /// **'Before making changes to your saved data, Caller\'s Compendium makes an automatic backup so the changes can be undone if something goes wrong. Another app has your library open right now, so a backup made now would miss your latest changes.\n\nIf you continue without a backup and the changes are interrupted, some of your dances or programs could be lost. You can quit, close any other app that has your library open, and reopen Caller\'s Compendium to try again.'**
   String get migrationSnapshotInUseConsentBody;
 
-  /// Terminal startup-screen message shown when the automatic backup taken before a schema upgrade or a one-time data repair failed because another program has the app's data file open, and the user declined to proceed without one. No Retry is offered: the user reopens the app. Say "app", not "program": in this app a program is a dance set list.
+  /// Terminal startup-screen message shown when the automatic backup taken before a schema upgrade or a one-time data repair failed because another program has the app's data file open, and the user declined to proceed without one. No Try again is offered: the user reopens the app. Say "app", not "program": in this app a program is a dance set list.
   ///
   /// In en, this message translates to:
   /// **'Caller\'s Compendium didn\'t start because another app has your library open, so the automatic backup made before changing your saved data would miss your latest changes. Close any other app that has your library open, then reopen Caller\'s Compendium — or reopen it and choose to continue without a backup.'**
@@ -434,7 +434,7 @@ abstract class AppLocalizations {
   /// **'Proceed without a backup'**
   String get migrationSnapshotConsentProceed;
 
-  /// Headline on the below-floor recovery screen shown when the on-disk database was written by a build older than the minimum supported schema version. Terminal, no Retry.
+  /// Headline on the below-floor recovery screen shown when the on-disk database was written by a build older than the minimum supported schema version. Terminal, no Try again.
   ///
   /// In en, this message translates to:
   /// **'This data is from a version too old to open'**
@@ -445,6 +445,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your data can be recovered. Install {bridgeTag}, open the app once to let it update your data, then install this version again.\n\nIf you prefer to start fresh, use the options below — your current data will be lost.'**
   String migrationBelowFloorBody(String bridgeTag);
+
+  /// Primary button on the below-floor recovery screen that opens the release page for the version that can update the old data. {bridgeTag} is that release's tag.
+  ///
+  /// In en, this message translates to:
+  /// **'Get {bridgeTag}'**
+  String migrationBelowFloorGetBridge(String bridgeTag);
+
+  /// Label above the two reset buttons on the below-floor recovery screen, which abandon the old data instead of recovering it.
+  ///
+  /// In en, this message translates to:
+  /// **'Start fresh instead'**
+  String get migrationBelowFloorStartFresh;
 
   /// Button label on the below-floor recovery screen that first writes a backup of the current database, then resets it to a fresh state. The reset is only performed if the backup succeeds.
   ///
@@ -467,7 +479,7 @@ abstract class AppLocalizations {
   /// Body of the dialog shown when the pre-reset backup fails on the below-floor recovery screen. The reset is NOT performed.
   ///
   /// In en, this message translates to:
-  /// **'The backup could not be written, so your data has not been reset.'**
+  /// **'Couldn\'t write the backup, so your data hasn\'t been reset. Free up some space, then try again.'**
   String get migrationBelowFloorBackupFailedBody;
 
   /// Title of the confirmation dialog shown before a reset action on the below-floor recovery screen (both Back up + reset and Reset only). Used after a successful backup to ask the user to confirm the wipe.
@@ -503,7 +515,7 @@ abstract class AppLocalizations {
   /// Body of the confirmation dialog shown before a Reset only action on the below-floor recovery screen. No backup is made. Must make the irreversibility and data loss explicit.
   ///
   /// In en, this message translates to:
-  /// **'No backup will be made. Resetting will permanently delete all your current data and replace it with a fresh, empty database. This cannot be undone.'**
+  /// **'No backup will be made. Resetting will permanently delete all your current data and replace it with a fresh, empty database. This can\'t be undone.'**
   String get migrationBelowFloorResetOnlyConfirmBody;
 
   /// Title of the error dialog shown when the database file could not be deleted during a reset on the below-floor recovery screen. The database is intact.
@@ -515,7 +527,7 @@ abstract class AppLocalizations {
   /// Body of the error dialog shown when the database file could not be deleted. Instructs the user to close any apps locking the file and retry.
   ///
   /// In en, this message translates to:
-  /// **'The database file could not be deleted. Your data has not been changed. Try closing other apps that may be using the file, then try again.'**
+  /// **'Couldn\'t delete the database file. Your data hasn\'t been changed. Try closing other apps that may be using the file, then try again.'**
   String get migrationBelowFloorWipeFailedBody;
 
   /// Title of the optional confirm-before-delete dialog (shown only when the 'Confirm before delete' setting is on).
@@ -659,7 +671,7 @@ abstract class AppLocalizations {
   /// Body of the reset database confirmation dialog.
   ///
   /// In en, this message translates to:
-  /// **'This permanently deletes every dance, program, collection, setting and note on this device and restarts the app as if it had just been installed. It cannot be undone.'**
+  /// **'This permanently deletes your whole library on this device (every dance, program, setting and note) and restarts the app as if it had just been installed. This can\'t be undone.'**
   String get settingsDeveloperResetConfirmBody;
 
   /// Extra paragraph in the reset confirmation shown only while the device is connected to a sync store.
@@ -689,7 +701,7 @@ abstract class AppLocalizations {
   /// Snackbar shown when the reset did not delete the database (it threw, or the wipe failed). A connected device has already left its sync store by then.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t reset the database, so your data is unchanged. If this device was connected to a sync store, it has already left it.'**
+  /// **'Couldn\'t reset the database. If this device was connected to a sync store, it has already left it.'**
   String get settingsDeveloperResetFailed;
 
   /// Placeholder text explaining that the Experimental settings section will contain features still in development.
@@ -725,7 +737,7 @@ abstract class AppLocalizations {
   /// Button on a built-in figure's Glossary page that opens the editor on a new figure of the user's own, copied from it (#1023). The built-in figure is not changed.
   ///
   /// In en, this message translates to:
-  /// **'Copy as your own figure'**
+  /// **'Copy to Custom Figures'**
   String get glossaryCopyAsOwnFigure;
 
   /// Shown on one of the user's own figures that was copied from a built-in figure; {name} is that figure's name. The copy is independent of it.
@@ -1349,7 +1361,7 @@ abstract class AppLocalizations {
   /// Device Sync failure reason, one sentence, shown under "Last sync failed." on the status surface and in pairing, device-list and toolbar errors. Used when a failure inside the app rather than on the network. 'Diagnostics' is the exact title of the settingsDiagnosticsTitle section.
   ///
   /// In en, this message translates to:
-  /// **'Something went wrong inside the app while syncing.'**
+  /// **'Syncing stopped because of a problem inside the app.'**
   String get settingsSyncFailureInternal;
 
   /// What the user can do about settingsSyncFailureInternal, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions ("above", "below").
@@ -1367,7 +1379,7 @@ abstract class AppLocalizations {
   /// Part of the technical details line under a Device Sync failure: the HTTP status code the server answered with, for the user to quote when reporting the problem.
   ///
   /// In en, this message translates to:
-  /// **'The server answered with HTTP status {code}.'**
+  /// **'Server status code: {code}.'**
   String settingsSyncFailureStatusCode(int code);
 
   /// Technical details line under a Device Sync failure. {details} is settingsSyncFailureStep and/or settingsSyncFailureStatusCode joined by a space.
@@ -1523,7 +1535,7 @@ abstract class AppLocalizations {
   /// Closes the conflict choice without changing anything; the items stay listed until decided.
   ///
   /// In en, this message translates to:
-  /// **'Decide later'**
+  /// **'Cancel'**
   String get syncConflictDecideLater;
 
   /// Button on one item in the conflict choice that opens the full comparison of its versions. Shown when several items are listed; a single item shows the comparison directly.
@@ -1841,7 +1853,7 @@ abstract class AppLocalizations {
   /// Name of the setting that turns on the dark stage theme in Perform, as a Device Sync conflict names it. It stays on each device now; a conflict over it can only be one queued by an older version of the app.
   ///
   /// In en, this message translates to:
-  /// **'Stage theme in Perform'**
+  /// **'Stage theme in Perform mode'**
   String get syncSettingPerformStageTheme;
 
   /// Subtitle of the Device Sync entry that opens the conflict choice; shown only while at least one item is waiting.
@@ -1850,10 +1862,10 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{1 item was changed on two devices and needs your choice.} other{{count} items were changed on two devices and need your choice.}}'**
   String settingsSyncConflictsSubtitle(int count);
 
-  /// Title of the Device Sync row shown when counting unresolved sync conflicts failed. Shown with a Retry button, so a failed check is not mistaken for there being no conflicts.
+  /// Title of the Device Sync row shown when counting unresolved sync conflicts failed. Shown with a Try again button, so a failed check is not mistaken for there being no conflicts.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t check for conflicts.'**
+  /// **'Couldn\'t check for conflicts. Try again.'**
   String get settingsSyncConflictsCheckFailed;
 
   /// Tooltip of the toolbar Sync now button while items await a conflict choice; the button also shows the count as a badge.
@@ -2117,7 +2129,7 @@ abstract class AppLocalizations {
   /// Body of the Device Sync wipe confirmation: irreversible, affects every device, keeps local libraries, detaches this device, and is the only thing that removes the store's contents at once (spec §5.3). Moving every device to a new phrase is the complementary step (spec §6.14 item 2): neither is presented as the whole answer. The phrase is the store's address, not a password or credential: do not use 'leaked', 'stolen', 'compromised' or account vocabulary.
   ///
   /// In en, this message translates to:
-  /// **'Everything the store holds is deleted from the server, for every device at once, and this can\'t be undone. Your library stays on this device and on each of your other devices — but anything that had only ever reached another device through syncing will not arrive here. This device disconnects and forgets its sync phrase; your other devices will find the store gone the next time they sync, and will offer to set up a new phrase. Use this when you want to stop using this store\'s address: it is the only thing that removes what the store holds straight away. To keep syncing, set up a new phrase on each device — reconnecting with the old one puts a new store back at the same address.'**
+  /// **'Everything the store holds is deleted from the server, for every device at once. This can\'t be undone. Your library stays on this device and on each of your other devices — but anything that had only ever reached another device through syncing will not arrive here. This device disconnects and forgets its sync phrase; your other devices will find the store gone the next time they sync, and will offer to set up a new phrase. Use this when you want to stop using this store\'s address: it is the only thing that removes what the store holds straight away. To keep syncing, set up a new phrase on each device — reconnecting with the old one puts a new store back at the same address.'**
   String get settingsSyncWipeConfirmBody;
 
   /// Confirm button of the Device Sync wipe dialog.
@@ -2387,7 +2399,7 @@ abstract class AppLocalizations {
   /// Button that declines the pairing backup offer and continues.
   ///
   /// In en, this message translates to:
-  /// **'Skip'**
+  /// **'Not now'**
   String get settingsSyncPairingBackupOfferSkip;
 
   /// Button that proceeds from the pairing disclosures/backup step to the create-or-connect network request.
@@ -2624,7 +2636,7 @@ abstract class AppLocalizations {
   /// **'License'**
   String get settingsAboutLicenseHeader;
 
-  /// Explanatory paragraph about the app's AGPL-3.0 license and the corresponding source-code offer. 'Caller's Compendium', 'GNU Affero General Public License', and 'AGPL-3.0-only' are proper nouns kept verbatim.
+  /// Explanatory paragraph about the app's AGPL-3.0-only license and the corresponding source-code offer. 'Caller's Compendium', 'GNU Affero General Public License', and 'AGPL-3.0-only' are proper nouns kept verbatim.
   ///
   /// In en, this message translates to:
   /// **'Caller\'s Compendium is free software, licensed under the GNU Affero General Public License, version 3 (AGPL-3.0-only). You are free to use, study, share, and modify it under that license. Because the AGPL requires it, the complete corresponding source code is offered to everyone who uses the app.'**
@@ -2651,13 +2663,13 @@ abstract class AppLocalizations {
   /// Attribution subtitle for the Fraunces typeface: its license, copyright, and role in the app. License name and copyright are proper nouns kept verbatim.
   ///
   /// In en, this message translates to:
-  /// **'SIL Open Font License 1.1 · © The Fraunces Project Authors — display & headings'**
+  /// **'SIL Open Font License 1.1 · © The Fraunces Project Authors — display and headings'**
   String get settingsAboutFontFrauncesSubtitle;
 
   /// Attribution subtitle for the Atkinson Hyperlegible typeface: its license, copyright, and role in the app. License name and copyright are proper nouns kept verbatim.
   ///
   /// In en, this message translates to:
-  /// **'SIL Open Font License 1.1 · © Braille Institute of America, Inc. — body, UI & Perform'**
+  /// **'SIL Open Font License 1.1 · © Braille Institute of America, Inc. — body, UI and Perform mode'**
   String get settingsAboutFontAtkinsonSubtitle;
 
   /// Attribution subtitle for the Roboto typeface: its license, copyright, and role in the app. License name and copyright are proper nouns kept verbatim.
@@ -2687,7 +2699,7 @@ abstract class AppLocalizations {
   /// Paragraph crediting The Caller's Box dance-data source. 'The Caller's Box', the author names, and 'CC BY-NC' are proper nouns kept verbatim.
   ///
   /// In en, this message translates to:
-  /// **'Dance data draws on The Caller\'s Box (Chris Page & Michael Dyck), whose collection is published under the Creative Commons Attribution-NonCommercial license (CC BY-NC), with gratitude.'**
+  /// **'Dance data draws on The Caller\'s Box (Chris Page and Michael Dyck), whose collection is published under the Creative Commons Attribution-NonCommercial license (CC BY-NC), with gratitude.'**
   String get settingsAboutDanceDataBody;
 
   /// About section header for the full open-source license texts entry.
@@ -2937,7 +2949,7 @@ abstract class AppLocalizations {
   /// Fallback error message when an assisted download fails without a more specific reason. The raw error is logged, not shown (CWE-209).
   ///
   /// In en, this message translates to:
-  /// **'The update could not be downloaded.'**
+  /// **'Couldn\'t download the update. Try again.'**
   String get settingsUpdatesDownloadError;
 
   /// Subtitle of the idle assisted-download tile describing the download → verify → install flow.
@@ -3804,11 +3816,11 @@ abstract class AppLocalizations {
   /// **'Move down'**
   String get settingsDefaultsStartingProgramMoveDown;
 
-  /// Fallback label for a starting-program dance reference no longer in the collection.
+  /// Fallback label for a starting-program dance reference that is no longer in the collection.
   ///
   /// In en, this message translates to:
-  /// **'Unavailable dance ({id})'**
-  String settingsDefaultsStartingProgramUnavailableDance(String id);
+  /// **'This dance is no longer available'**
+  String get settingsDefaultsStartingProgramUnavailableDance;
 
   /// Snackbar in Settings > Defaults > Difficulty levels when a level's name is cleared or left blank. The raw exception is logged, never shown (CWE-209).
   ///
@@ -4209,13 +4221,13 @@ abstract class AppLocalizations {
   /// Heading, under Move defaults in Settings, of the list of the user's own new figures (#1023), each linking to the figure where its defaults are set.
   ///
   /// In en, this message translates to:
-  /// **'Your figures\' defaults'**
+  /// **'Custom Figures defaults'**
   String get settingsDefaultsUserFiguresTitle;
 
   /// Explains the list of the user's own new figures under Move defaults (#1023): a figure's defaults are part of the figure, so choosing one opens it to edit them.
   ///
   /// In en, this message translates to:
-  /// **'Each of your new figures keeps its own defaults: the values it starts with and its beats. Choose one to change them.'**
+  /// **'Each of your figures keeps its own defaults: the values it starts with and its beats. Choose one to change them.'**
   String get settingsDefaultsUserFiguresSubtitle;
 
   /// Explanation for per-move default parameter overrides.
@@ -4239,7 +4251,7 @@ abstract class AppLocalizations {
   /// Shown on a move-default card when the move no longer exists in the taxonomy.
   ///
   /// In en, this message translates to:
-  /// **'This move is no longer in the taxonomy.'**
+  /// **'This move is no longer available.'**
   String get settingsDefaultsMoveGone;
 
   /// Shown on a move-default card when the move has no parameters to override.
@@ -4317,13 +4329,13 @@ abstract class AppLocalizations {
   /// Snack-bar message shown when saving or clearing a tag color fails.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t save that color. Please try again.'**
+  /// **'Couldn\'t save that color. Try again.'**
   String get settingsTagColoursSaveError;
 
   /// Shown on the tag-color screen when the tag list fails to load.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t load your tags.'**
+  /// **'Couldn\'t load your tags. Nothing was changed. Try again.'**
   String get settingsTagColoursLoadError;
 
   /// App-bar title of the Tags manager, where tags are renamed, merged, colored and deleted.
@@ -4419,7 +4431,7 @@ abstract class AppLocalizations {
   /// Shown in the Authors manager when the author list fails to load.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t load your authors.'**
+  /// **'Couldn\'t load your authors. Nothing was changed. Try again.'**
   String get authorManagerLoadError;
 
   /// Snackbar after a rename merged three or more authors into one (case variants of the same name), with an Undo action. The count includes the author merged into.
@@ -4461,7 +4473,7 @@ abstract class AppLocalizations {
   /// Shown in the Sources manager when the source list fails to load.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t load your sources.'**
+  /// **'Couldn\'t load your sources. Nothing was changed. Try again.'**
   String get sourceManagerLoadError;
 
   /// Tooltip of the button that clears the search field in the Tags, Authors and Sources managers.
@@ -4579,7 +4591,7 @@ abstract class AppLocalizations {
   /// Snackbar when a rename, merge or delete in the Tags, Authors or Sources manager fails.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t save that change. Please try again.'**
+  /// **'Couldn\'t save that change. Try again.'**
   String get libraryManagerEditFailed;
 
   /// Authors and Sources manager action: opens the entry's details (website, notes and so on) for editing.
@@ -4624,10 +4636,10 @@ abstract class AppLocalizations {
   /// **'{field}: {value}'**
   String libraryManagerMergeDroppedLine(String field, String value);
 
-  /// General settings section header for collection-library preferences.
+  /// General settings section header over the dance list and labeling preferences: title sorting, figure capitalization, tags, authors and sources.
   ///
   /// In en, this message translates to:
-  /// **'Library'**
+  /// **'Dances'**
   String get settingsGeneralLibraryHeader;
 
   /// Title of the General settings toggle that sorts dance titles while ignoring leading articles such as 'the', 'a', and 'an'.
@@ -4948,10 +4960,10 @@ abstract class AppLocalizations {
   /// **'Delete compound column'**
   String get settingsMatrixColumnsCompoundDelete;
 
-  /// General settings section header for performance-mode display preferences.
+  /// Settings ▸ Program section header over the Perform mode preferences (auto-size cards).
   ///
   /// In en, this message translates to:
-  /// **'Performance'**
+  /// **'Perform mode'**
   String get settingsGeneralPerformanceHeader;
 
   /// Title of the General settings toggle that automatically sizes Perform screen cards.
@@ -4969,7 +4981,7 @@ abstract class AppLocalizations {
   /// Title of the Program settings toggle that shows an elapsed timer while performing a single dance outside a program.
   ///
   /// In en, this message translates to:
-  /// **'Show timer for individual Perform'**
+  /// **'Show timer when performing one dance'**
   String get settingsShowIndividualPerformTimerTitle;
 
   /// Subtitle explaining the default-on individual Perform elapsed-timer toggle.
@@ -4981,25 +4993,25 @@ abstract class AppLocalizations {
   /// Title of the Program settings toggle that makes the Perform close button and system Back ask before leaving Perform.
   ///
   /// In en, this message translates to:
-  /// **'Confirm before leaving Perform'**
+  /// **'Confirm before leaving Perform mode'**
   String get settingsConfirmPerformExitTitle;
 
   /// Subtitle of the Program settings toggle that makes leaving Perform ask for confirmation.
   ///
   /// In en, this message translates to:
-  /// **'Ask before the close button or Back takes you out of Perform. Turn this off to leave in one tap; program Perform keeps your place either way.'**
+  /// **'Ask before the close button or Back takes you out of Perform mode. Turn this off to leave in one tap; Perform mode for a program keeps your place either way.'**
   String get settingsConfirmPerformExitSubtitle;
 
   /// Title of the default-on Program settings toggle that shows non-empty per-slot caller notes above dance titles in program Perform.
   ///
   /// In en, this message translates to:
-  /// **'Show caller notes in program Perform'**
+  /// **'Show caller notes when performing a program'**
   String get settingsShowProgramSlotCallerNotesTitle;
 
   /// Subtitle explaining the program Perform caller-note display toggle.
   ///
   /// In en, this message translates to:
-  /// **'Show non-empty per-slot caller notes above the dance title in program Perform.'**
+  /// **'Show non-empty per-slot caller notes above the dance title when you perform a program.'**
   String get settingsShowProgramSlotCallerNotesSubtitle;
 
   /// General settings section header for calling-history preferences.
@@ -5335,7 +5347,7 @@ abstract class AppLocalizations {
   /// Error state shown when loading the persisted sync decision queue fails.
   ///
   /// In en, this message translates to:
-  /// **'Sync decisions could not be loaded.'**
+  /// **'Couldn\'t load the sync decisions. Try again.'**
   String get syncReviewLoadFailed;
 
   /// Snackbar shown after a sync decision is applied successfully.
@@ -5347,7 +5359,7 @@ abstract class AppLocalizations {
   /// Generic snackbar shown when a sync decision fails for an unexpected reason.
   ///
   /// In en, this message translates to:
-  /// **'That sync decision could not be applied. The item was kept for another attempt.'**
+  /// **'Couldn\'t apply that sync decision. The item was kept, so you can try again.'**
   String get syncReviewActionFailed;
 
   /// Kind label for a choreographer sync decision.
@@ -5407,7 +5419,7 @@ abstract class AppLocalizations {
   /// Kind label for a sync decision about one of the user's own figures: a compound figure they defined in the Glossary.
   ///
   /// In en, this message translates to:
-  /// **'Your own figure'**
+  /// **'Your figure'**
   String get syncReviewKindGlossaryEntry;
 
   /// Kind label for a sync decision about the user's notes on one built-in Glossary figure.
@@ -5461,7 +5473,7 @@ abstract class AppLocalizations {
   /// Confirmation dialog body warning that merging two choreographers discards the losing record's device-local contact details.
   ///
   /// In en, this message translates to:
-  /// **'Only one record will be kept. The email address, location, and deceased marker on the other one are stored only on this device, so they cannot be recovered afterwards.'**
+  /// **'Only one record will be kept. The email address, location, and deceased marker on the other one are stored only on this device and will be lost. This can\'t be undone.'**
   String get syncReviewMergeDiscardsContactsBody;
 
   /// Failure message shown when a step-1 rename collision is merged while the record holding the colliding name is a tombstone; keep both remains available.
@@ -5569,7 +5581,7 @@ abstract class AppLocalizations {
   /// Subtitle explaining the re-check custom figures action.
   ///
   /// In en, this message translates to:
-  /// **'Re-check imported dances whose figures were kept as unrecognized figures only because they could not be recognized at import time. If the app can now recognize them, they are upgraded in place — your tags, ratings, and notes are preserved. You preview and confirm before anything changes.'**
+  /// **'Re-check imported dances whose figures were kept as unrecognized figures only because they couldn\'t be recognized at import time. If the app can now recognize them, they are upgraded in place — your tags, ratings, and notes are preserved. You preview and confirm before anything changes.'**
   String get settingsGeneralReparseCustomFiguresSubtitle;
 
   /// Button label that opens the re-check custom figures flow; the ellipsis indicates more review follows.
@@ -5611,13 +5623,13 @@ abstract class AppLocalizations {
   /// Snackbar shown when backup export fails. The raw exception is logged separately, not shown in the UI.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t export a backup.'**
+  /// **'Couldn\'t export a backup. Your data is unchanged. Try again.'**
   String get backupExportFailed;
 
   /// Snackbar shown when a backup is refused because its SHA-256 integrity checksum did not verify (issue #536): the file is corrupt or was altered after export, so the restore does not run and data is unchanged.
   ///
   /// In en, this message translates to:
-  /// **'This backup failed its integrity check, so it may be corrupt or was changed after it was exported. The restore was canceled and your data is unchanged.'**
+  /// **'This backup failed its safety check, so it may be damaged or was changed after it was exported. The restore was canceled and your data is unchanged.'**
   String get backupRestoreIntegrityFailed;
 
   /// Snackbar shown when a valid backup contains data too new for this app version, so restore is refused without changing local data.
@@ -5653,19 +5665,19 @@ abstract class AppLocalizations {
   /// Snackbar shown when backup restore fails unexpectedly. The raw exception is logged separately, not shown in the UI.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t restore the backup.'**
+  /// **'Couldn\'t restore the backup. Try again.'**
   String get backupRestoreFailed;
 
   /// Snackbar shown when a backup restore committed the core content (dances/programs) successfully but the separate settings-apply step failed (issue #608). Reassures the user their restored content is intact and points to the retry action. Never contains raw error text.
   ///
   /// In en, this message translates to:
-  /// **'Your dances and programs were restored, but applying your saved settings failed. Your restored content is safe — you can retry applying settings.'**
+  /// **'Your dances and programs were restored, but applying your saved settings failed. Your restored content is safe — you can try applying them again.'**
   String get backupRestoreSettingsFailed;
 
   /// Action button on the settings-restore-failed snackbar that re-applies only the settings portion of the backup. Keep short (a SnackBar action label).
   ///
   /// In en, this message translates to:
-  /// **'Retry settings'**
+  /// **'Try again'**
   String get backupRestoreSettingsRetryAction;
 
   /// Snackbar confirming a successful retry of the settings-apply step after an earlier settings-restore failure.
@@ -5683,7 +5695,7 @@ abstract class AppLocalizations {
   /// Subtitle for the General settings row that exports a complete app backup.
   ///
   /// In en, this message translates to:
-  /// **'Save your entire collection, programs, custom fields, dialects, themes, and settings to a single JSON file you can keep safe or move to another device.'**
+  /// **'Save your entire library to a single JSON file you can keep safe or move to another device. It holds your dances, programs, custom fields, dialects, themes and settings.'**
   String get backupExportSubtitle;
 
   /// Button label that starts exporting a backup. Distinct from exportTooltip, which is a tooltip elsewhere.
@@ -5701,7 +5713,7 @@ abstract class AppLocalizations {
   /// Subtitle for the General settings row that restores from a backup file.
   ///
   /// In en, this message translates to:
-  /// **'Replace everything currently in the app with the contents of a backup file. This cannot be undone.'**
+  /// **'Replace everything currently in the app with the contents of a backup file. This can\'t be undone.'**
   String get backupRestoreSubtitle;
 
   /// Button label that starts the restore-from-backup flow.
@@ -5755,7 +5767,7 @@ abstract class AppLocalizations {
   /// Text of the once-per-launch banner on the main screen shown when the user's chosen backup reminder cadence says a backup is overdue.
   ///
   /// In en, this message translates to:
-  /// **'Your backup is overdue. Export one now to keep your collection safe.'**
+  /// **'Your backup is overdue. Export one now to keep your library safe.'**
   String get backupReminderBannerText;
 
   /// Banner action that exports a backup immediately, from the overdue-backup reminder banner.
@@ -5773,7 +5785,7 @@ abstract class AppLocalizations {
   /// Warning text in the restore-from-backup dialog explaining that restore destructively replaces current app data.
   ///
   /// In en, this message translates to:
-  /// **'Restoring replaces everything currently in the app — your collection, programs, dialects, themes, and settings — with the backup\'s contents. This cannot be undone.'**
+  /// **'Restoring replaces everything currently in the app — your collection, programs, dialects, themes, and settings — with the backup\'s contents. This can\'t be undone.'**
   String get backupRestoreDialogBody;
 
   /// Shown in the restore-from-backup dialog only while this device is paired with a Device Sync store. Restored records are stamped at the backup's creation time, so anything changed since on a synced device wins at the next sync and comes back here.
@@ -5791,7 +5803,7 @@ abstract class AppLocalizations {
   /// Snackbar shown in the restore-from-backup dialog when the chosen file could not be read for a reason other than being too large or not a valid backup.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t read that file.'**
+  /// **'Couldn\'t read that file. Choose it again, or pick another file.'**
   String get backupChooseFileFailed;
 
   /// Text field label in the restore-from-backup dialog for pasting raw backup JSON.
@@ -5833,7 +5845,7 @@ abstract class AppLocalizations {
   /// Snackbar shown when exporting a backup is refused because the encoded backup would exceed the size limit that restore can read; nothing is saved. 'MB' is the megabyte unit.
   ///
   /// In en, this message translates to:
-  /// **'Your collection is too large to export as a single backup ({sizeMb} MB; limit {limitMb} MB), so nothing was saved. Your data is unchanged.'**
+  /// **'Your library is too large to export as a single backup ({sizeMb} MB; limit {limitMb} MB), so nothing was saved. Your data is unchanged.'**
   String backupExportTooLarge(String sizeMb, String limitMb);
 
   /// Snackbar shown on macOS when saving a backup over an existing backup file is refused because the disk does not have room for the new one; the existing file is left as it was. 'MB' is the megabyte unit.
@@ -5869,7 +5881,7 @@ abstract class AppLocalizations {
   /// Snackbar shown when a scrubbed diagnostics export cannot safely gather redaction terms, so no file is saved.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t prepare a safe (scrubbed) export, so nothing was saved. Please try again, or use full detail deliberately.'**
+  /// **'Couldn\'t prepare a safe (scrubbed) export, so nothing was saved. Try again, or use full detail deliberately.'**
   String get diagnosticsScrubbedExportUnavailable;
 
   /// Snackbar confirming the diagnostics log was exported.
@@ -5887,13 +5899,13 @@ abstract class AppLocalizations {
   /// Snackbar shown when diagnostics log export fails. Details are not shown in the UI.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t export the diagnostics log.'**
+  /// **'Couldn\'t export the diagnostics log. Try again.'**
   String get diagnosticsExportFailed;
 
   /// Snackbar shown when clearing the local diagnostics log fails (for example, the file is held open by another program). Details are not shown in the UI.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t clear the diagnostics log.'**
+  /// **'Couldn\'t clear the diagnostics log. Try again.'**
   String get diagnosticsClearFailed;
 
   /// Title of the confirmation dialog for clearing the local diagnostics log.
@@ -5905,7 +5917,7 @@ abstract class AppLocalizations {
   /// Body of the confirmation dialog for clearing the local diagnostics log.
   ///
   /// In en, this message translates to:
-  /// **'This permanently deletes the local crash log from this device. This cannot be undone.'**
+  /// **'This permanently deletes the local crash log from this device. This can\'t be undone.'**
   String get diagnosticsClearLogBody;
 
   /// Button label that confirms clearing the local diagnostics log.
@@ -6013,13 +6025,13 @@ abstract class AppLocalizations {
   /// Title shown in the friendly crash fallback widget when a subtree fails to build.
   ///
   /// In en, this message translates to:
-  /// **'Something went wrong here'**
+  /// **'Couldn\'t show this part of the app'**
   String get crashFallbackTitle;
 
   /// Body text in the friendly crash fallback widget explaining that details were saved locally only.
   ///
   /// In en, this message translates to:
-  /// **'This part of the app hit an unexpected error and couldn\'t be shown. The details were saved to a local diagnostics log (Settings ▸ Diagnostics) that never leaves your device.'**
+  /// **'This part of the app hit an unexpected error. The details were saved to a local diagnostics log (Settings ▸ Diagnostics) that never leaves your device. Go back and try again.'**
   String get crashFallbackBody;
 
   /// Button label in the crash fallback widget after copying error details to the clipboard.
@@ -6079,14 +6091,8 @@ abstract class AppLocalizations {
   /// Snackbar shown when tapping Undo fails (for example, a full disk or a locked database), so the action may not have been reversed. Shared by every Undo prompt; screens whose Undo has a more specific failure (e.g. bulk performed marks) use their own string.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t undo that. Please check the result and try again.'**
+  /// **'Couldn\'t undo that. Check the result, then try again.'**
   String get commonUndoFailed;
-
-  /// Button that re-attempts a failed load.
-  ///
-  /// In en, this message translates to:
-  /// **'Retry'**
-  String get commonRetry;
 
   /// Generic destructive action label for removing a single item (row menu, swipe action).
   ///
@@ -6713,7 +6719,7 @@ abstract class AppLocalizations {
   /// Message shown when the collection fails to load.
   ///
   /// In en, this message translates to:
-  /// **'Could not load the collection.'**
+  /// **'Couldn\'t load the collection. Nothing was changed. Try again.'**
   String get collectionLoadError;
 
   /// Snackbar confirming a dance was duplicated, quoting the copy's title.
@@ -6803,7 +6809,7 @@ abstract class AppLocalizations {
   /// Message shown when the local search fails.
   ///
   /// In en, this message translates to:
-  /// **'Something went wrong running the search.'**
+  /// **'Couldn\'t run the search. Nothing was changed. Try again.'**
   String get collectionSearchError;
 
   /// Empty-state message when the local search returns no dances.
@@ -7175,7 +7181,7 @@ abstract class AppLocalizations {
   /// Message shown in the filters panel when the collection has filters but the user has hidden every one of them in Settings (#1419). Distinct from collectionFacetNone, which means there is nothing to filter by.
   ///
   /// In en, this message translates to:
-  /// **'All filters are hidden. You can show them again in Settings → Defaults.'**
+  /// **'All filters are hidden. You can show them again in Settings ▸ Defaults.'**
   String get collectionFacetAllHidden;
 
   /// Button that clears all active facet filters.
@@ -7583,7 +7589,7 @@ abstract class AppLocalizations {
   /// Snackbar shown when applying a batch operation (tags, level, rating, tunes, custom field) fails.
   ///
   /// In en, this message translates to:
-  /// **'Could not apply batch changes. Try again.'**
+  /// **'Couldn\'t apply the batch changes. Try again.'**
   String get collectionBatchApplyError;
 
   /// Confirm button of the batch add-tags dialog.
@@ -7802,10 +7808,10 @@ abstract class AppLocalizations {
   /// **'Dance not found.'**
   String get danceNotFound;
 
-  /// Message shown on the dance detail screen when reading the dance failed, as opposed to the dance not existing (danceNotFound). Shown with a Retry button.
+  /// Message shown on the dance detail screen when reading the dance failed, as opposed to the dance not existing (danceNotFound). Shown with a Try again button.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t load this dance.'**
+  /// **'Couldn\'t load this dance. Nothing was changed. Try again.'**
   String get danceLoadError;
 
   /// Label of the floating action button that opens the dance editor.
@@ -7877,7 +7883,7 @@ abstract class AppLocalizations {
   /// Shown in the dance editor above the figure list when the opened dance's stored figures could not be decoded (#1347). The final clause is literally the save rule: the editor preserves the stored text while the author has entered no figures, and replaces it once they have.
   ///
   /// In en, this message translates to:
-  /// **'The saved figures can\'t be read, so they are not shown here. They are kept as they are unless you add figures of your own.'**
+  /// **'The saved figures can\'t be read, so they are not shown here. They are kept as they are unless you add figures yourself.'**
   String get danceEditorFiguresUnreadable;
 
   /// Shown in the dance editor above the tunes field when the opened dance's stored tunes could not be decoded (#1347). Same save rule as @danceEditorFiguresUnreadable.
@@ -7937,7 +7943,7 @@ abstract class AppLocalizations {
   /// Shown in the calling-history section when its query fails, instead of the empty state — which would otherwise claim the dance has never been called.
   ///
   /// In en, this message translates to:
-  /// **'Could not load the calling history.'**
+  /// **'Couldn\'t load the calling history. Nothing was changed. Try again.'**
   String get danceCallingHistoryError;
 
   /// Repeated-venue calling-history summary item.
@@ -8287,19 +8293,19 @@ abstract class AppLocalizations {
   /// Snackbar shown when saving the program fails.
   ///
   /// In en, this message translates to:
-  /// **'Could not save the program.'**
+  /// **'Couldn\'t save the program. Your changes are still here. Try again.'**
   String get programsSaveError;
 
   /// Snackbar shown when undoing a bulk performed marking fails; the performed marks remain saved.
   ///
   /// In en, this message translates to:
-  /// **'Could not undo marking; performed marks remain saved.'**
+  /// **'Couldn\'t undo that. The performed marks are still saved.'**
   String get programsUndoPerformedError;
 
   /// Snackbar shown when bulk performed Undo is saved but the editor cannot refresh afterward.
   ///
   /// In en, this message translates to:
-  /// **'Undo was saved, but the editor could not refresh.'**
+  /// **'Undo was saved, but the editor couldn\'t refresh. Reopen the program to see it.'**
   String get programsUndoRefreshError;
 
   /// Snackbar confirming a program was duplicated, quoting the copy's title.
@@ -8473,8 +8479,14 @@ abstract class AppLocalizations {
   /// Message shown in the program editor when the program fails to load.
   ///
   /// In en, this message translates to:
-  /// **'Could not load the program.'**
+  /// **'Couldn\'t load the program. Nothing was changed. Try again.'**
   String get programsLoadError;
+
+  /// Shown on the program editor when an Undo could not be recovered or the program could not be reloaded afterwards. It makes no claim about what was saved, and offers no retry; the user goes back.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t reload the program after that undo. Go back and reopen it to see its current state.'**
+  String get programsUndoRecoveryFailed;
 
   /// Marks a program slot whose dance is in Recently deleted: shown after the dance's title in Perform, the program builder, its matrix and the program summary, and on its own when the dance can no longer be found.
   ///
@@ -8505,6 +8517,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Slots'**
   String get programsSlotsLabel;
+
+  /// One-line helper under the Slots heading in the program editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Each slot is one place in your set list: a dance, a note or a break.'**
+  String get programsSlotsHelper;
 
   /// Button that opens the dance picker to add a dance slot to the program.
   ///
@@ -8737,7 +8755,7 @@ abstract class AppLocalizations {
   /// Helper text under the program dialect field: where the dialect applies.
   ///
   /// In en, this message translates to:
-  /// **'Used only in this program\'s Perform view. The editor, summary and exports keep the app dialect.'**
+  /// **'Used only in this program\'s Perform mode. The editor, summary and exports keep the app dialect.'**
   String get programsDialectHelper;
 
   /// Count of non-blocking validation warnings shown on the program editor's warnings card.
@@ -8815,7 +8833,7 @@ abstract class AppLocalizations {
   /// Error message shown when the Programs list fails to load.
   ///
   /// In en, this message translates to:
-  /// **'Could not load your programs.'**
+  /// **'Couldn\'t load your programs. Nothing was changed. Try again.'**
   String get programsListLoadError;
 
   /// Body of the empty state on the Programs list, shown when the user has no programs.
@@ -9025,13 +9043,13 @@ abstract class AppLocalizations {
   /// Snackbar shown when a program-view dance row's mark-performed toggle could not be saved.
   ///
   /// In en, this message translates to:
-  /// **'Could not update the performed mark. Please try again.'**
+  /// **'Couldn\'t update the performed mark. Try again.'**
   String get programsSummaryPerformedToggleError;
 
   /// Snackbar shown when undoing a single dance row's performed mark fails, for instance because the program was edited in the meantime.
   ///
   /// In en, this message translates to:
-  /// **'Could not undo that change to the performed mark.'**
+  /// **'Couldn\'t undo that change to the performed mark. Try again.'**
   String get programsSummaryUndoPerformedToggleError;
 
   /// Accessibility announcement after a slot's performed mark is cleared.
@@ -9677,7 +9695,7 @@ abstract class AppLocalizations {
   /// Snackbar shown in Perform when saving a live program adjustment found that the program had been changed elsewhere (for example by Device Sync) since Perform opened it. The adjustment was saved on top of that change instead of overwriting it, and Perform now shows the updated program.
   ///
   /// In en, this message translates to:
-  /// **'This program had changed elsewhere since Perform opened. Perform now shows the latest version, with your change.'**
+  /// **'This program had changed elsewhere since Perform mode opened. Perform mode now shows the latest version, with your change.'**
   String get performProgramChangedElsewhere;
 
   /// Snackbar message shown after applying a live program adjustment.
@@ -9940,7 +9958,7 @@ abstract class AppLocalizations {
   /// **'Change'**
   String get commonChange;
 
-  /// Generic button to retry an action after an error (distinct from commonRetry 'Retry').
+  /// Button label that repeats a failed action.
   ///
   /// In en, this message translates to:
   /// **'Try again'**
@@ -9997,13 +10015,13 @@ abstract class AppLocalizations {
   /// Snackbar shown when sharing a dance fails.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t share this dance'**
+  /// **'Couldn\'t share this dance. Your dance is unchanged. Try again.'**
   String get exportShareDanceError;
 
   /// Snackbar shown when exporting/printing a dance PDF fails.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t export this dance'**
+  /// **'Couldn\'t export this dance. Your dance is unchanged. Try again.'**
   String get exportDanceError;
 
   /// Program export-menu item: share the set list as plain text.
@@ -10015,7 +10033,7 @@ abstract class AppLocalizations {
   /// Program export-menu item: share a bundle file containing the program and its dances.
   ///
   /// In en, this message translates to:
-  /// **'Share (program + dances)'**
+  /// **'Share program and dances'**
   String get exportShareProgramBundle;
 
   /// Program export-menu item shown instead of 'Share (program + dances)' on Linux, where the OS share sheet cannot carry files: save a bundle file containing the program and its dances through the system Save As dialog.
@@ -10111,37 +10129,37 @@ abstract class AppLocalizations {
   /// Snackbar shown when saving a JSON export fails.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t save this JSON file.'**
+  /// **'Couldn\'t save this JSON file. Try again.'**
   String get exportJsonSaveError;
 
   /// Snackbar shown when copying a JSON export fails.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t copy this JSON.'**
+  /// **'Couldn\'t copy this JSON. Try again.'**
   String get exportJsonCopyError;
 
   /// Snackbar shown when sharing a JSON export fails.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t share this JSON file.'**
+  /// **'Couldn\'t share this JSON file. Try again.'**
   String get exportJsonShareError;
 
   /// Snackbar shown when sharing a set list fails.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t share this set list'**
+  /// **'Couldn\'t share this set list. Try again.'**
   String get exportShareSetListError;
 
   /// Snackbar shown when sharing a program bundle fails.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t share this program'**
+  /// **'Couldn\'t share this program. Your program is unchanged. Try again.'**
   String get exportShareProgramError;
 
   /// Snackbar shown when exporting/printing a set list PDF fails.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t export this set list'**
+  /// **'Couldn\'t export this set list. Try again.'**
   String get exportSetListError;
 
   /// Title of the dialog that asks whether to include full dance-card figures in a set-list text share, copy, or PDF export (issue #853).
@@ -10549,19 +10567,19 @@ abstract class AppLocalizations {
   /// Snackbar/inline error shown when loading a dance preview from an online source fails.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t load that dance from {source}.'**
+  /// **'Couldn\'t load that dance from {source}. Try again.'**
   String onlineLoadError(String source);
 
   /// Snackbar shown when directly importing an online dance fails.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t import that dance.'**
+  /// **'Couldn\'t import that dance. Try again.'**
   String get onlineImportError;
 
   /// Inline error shown when an online search fails unexpectedly. {source} is the online source's proper name (e.g. “The Caller's Box” / “ContraDB”), not translated.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t search {source}. Please try again.'**
+  /// **'Couldn\'t search {source}. Try again.'**
   String onlineSearchFailed(String source);
 
   /// Snackbar confirming an online dance was imported. The title is an untrusted external value rendered as plain text.
@@ -10723,7 +10741,7 @@ abstract class AppLocalizations {
   /// Snackbar shown when writing an imported program to the collection fails. The raw exception is logged (debugPrint), never shown, so storage internals/paths can't leak to the UI (CWE-209).
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t save the imported program.'**
+  /// **'Couldn\'t save the imported program. Try again.'**
   String get importProgramCreateError;
 
   /// Snackbar summarising a committed program import. The title is an untrusted external value rendered as plain text.
@@ -10789,7 +10807,7 @@ abstract class AppLocalizations {
   /// Error shown when the ContraDB program index fails to load.
   ///
   /// In en, this message translates to:
-  /// **'Could not load the ContraDB program list.'**
+  /// **'Couldn\'t load the ContraDB program list. Nothing was imported. Try again.'**
   String get importContraDbListError;
 
   /// Prompt shown in the ContraDB search results area before the user has typed a query.
@@ -10843,7 +10861,7 @@ abstract class AppLocalizations {
   /// Error shown when fetching a ContraDB program fails with an unexpected (non-curated) exception. The raw exception is logged (debugPrint), never shown, to avoid leaking internals (CWE-209).
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t fetch that program.'**
+  /// **'Couldn\'t fetch that program. Try again.'**
   String get importContraDbFetchGenericError;
 
   /// Prompt shown in the preview area before a ContraDB program has been fetched.
@@ -10861,7 +10879,7 @@ abstract class AppLocalizations {
   /// Snackbar shown when resolving a ContraDB program's activities before commit fails. The raw exception is logged (debugPrint), never shown, so no internals leak to the UI (CWE-209).
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t import the ContraDB program.'**
+  /// **'Couldn\'t import the ContraDB program. Try again.'**
   String get importContraDbResolveError;
 
   /// Progress line while a ContraDB program's dances are imported one at a time, beside a Cancel button.
@@ -10933,7 +10951,7 @@ abstract class AppLocalizations {
   /// Error shown when the local collection fails to load in the title-list import screen.
   ///
   /// In en, this message translates to:
-  /// **'Could not load your collection.'**
+  /// **'Couldn\'t load your collection. Nothing was changed. Try again.'**
   String get importCollectionLoadError;
 
   /// Label for the multi-line field where the user pastes dance titles.
@@ -10993,7 +11011,7 @@ abstract class AppLocalizations {
   /// Snackbar shown when resolving unmatched title-list lines online fails. Deliberately does not name a source (issue #943: the resolver tries The Caller's Box then ContraDB). The raw exception is logged (debugPrint), never shown, so no internals leak to the UI (CWE-209).
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t search online.'**
+  /// **'Couldn\'t search online. Try again.'**
   String get importPlaintextSearchError;
 
   /// Count of slots in the title-list import preview.
@@ -11329,7 +11347,7 @@ abstract class AppLocalizations {
   /// Rejection shown when a shared archive file could not be read from disk at all. Generic; never echoes the path or the underlying OS error.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t read the shared file.'**
+  /// **'Couldn\'t read the shared file. Try again, or ask the sender to share it again.'**
   String get archiveIntakeRejectedUnreadable;
 
   /// Rejection shown when a shared archive file contained no bytes.
@@ -11353,7 +11371,7 @@ abstract class AppLocalizations {
   /// Snackbar shown when a full backup file is opened with the app (Open with, AirDrop, or a tap in Files) instead of being restored. Names the Settings path to Restore from a backup.
   ///
   /// In en, this message translates to:
-  /// **'That file is a backup, not a share file. To bring it into this device, go to Settings › General and choose Restore from a backup.'**
+  /// **'That file is a backup, not a share file. To bring it into this device, go to Settings ▸ General and choose Restore from a backup.'**
   String get archiveIntakeRejectedBackup;
 
   /// Error shown when an import URL does not use the https scheme.
@@ -11365,7 +11383,7 @@ abstract class AppLocalizations {
   /// Error shown when an import URL resolves to a blocked or private network location (SSRF guard). Never echoes the URL.
   ///
   /// In en, this message translates to:
-  /// **'That URL points to a network location that cannot be imported from.'**
+  /// **'That URL points to a network location the app can\'t import from. Check the URL and try again.'**
   String get importErrorBlockedHost;
 
   /// Error shown when the entered import URL is not a valid http/https URL.
@@ -11689,7 +11707,7 @@ abstract class AppLocalizations {
   /// Import review warning for a shared file (INTAKE-2), used when the key is held by another field of the same file or by a field the user deleted, so no field is named and no difference is claimed (the file's text is never shown). The values go into a field under a numbered key.
   ///
   /// In en, this message translates to:
-  /// **'A custom field in this file could not use its key, which is already taken, so its values go into a field with a numbered key instead.'**
+  /// **'A custom field in this file couldn\'t use its key, which is already taken, so its values go into a field with a numbered key instead.'**
   String get importIssueArchiveCustomFieldKeyConflictGeneric;
 
   /// Import review warning: a Caller's Companion .USR file ends early (an incomplete copy), so some dances were never read. Tells the user to recopy the original. Shown once for the whole file.
@@ -11959,7 +11977,7 @@ abstract class AppLocalizations {
   /// Import review: the file is not a readable Caller's Companion .USR database (ImportErrorCode.notUsrDatabase). Typed; raw error detail is not shown (CWE-209).
   ///
   /// In en, this message translates to:
-  /// **'This isn\'t a Caller\'s Companion library file (.USR). In Caller\'s Companion, find the .USR file in its data folder.'**
+  /// **'This isn\'t a Caller\'s Companion data file (.USR). In Caller\'s Companion, find the .USR file in its data folder.'**
   String get importRecordErrorNotUsrDatabase;
 
   /// Import review: the file exceeds the import size or structure limits (ImportErrorCode.fileTooLarge). Typed; raw error detail is not shown (CWE-209).
@@ -12001,7 +12019,7 @@ abstract class AppLocalizations {
   /// Explanatory text for the Caller's Companion .USR file import.
   ///
   /// In en, this message translates to:
-  /// **'Choose the Caller\'s Companion .USR file to migrate its dances and program history. Nothing is added to your collection until you review and confirm.'**
+  /// **'Choose the Caller\'s Companion .USR file to migrate its dances and program history. Nothing is added to your library until you review and confirm.'**
   String get importReviewUsrSubtitle;
 
   /// Button to pick a Caller's Companion .USR file.
@@ -12010,11 +12028,11 @@ abstract class AppLocalizations {
   /// **'Choose .USR file…'**
   String get importReviewChooseUsr;
 
-  /// Confirmation that a binary import file was picked, showing its size.
+  /// Confirmation that a binary import file was picked.
   ///
   /// In en, this message translates to:
-  /// **'File ready ({bytes} bytes).'**
-  String importReviewFileReady(int bytes);
+  /// **'File ready.'**
+  String get importReviewFileReady;
 
   /// Explanatory text for a text/URL import source.
   ///
@@ -12091,7 +12109,7 @@ abstract class AppLocalizations {
   /// Body text shown when planning the import threw an unexpected error. Generic; the error text is never shown (CWE-209).
   ///
   /// In en, this message translates to:
-  /// **'Something went wrong reading this import. Try again; if it keeps happening, the file may be damaged.'**
+  /// **'Couldn\'t read this import. Nothing was added. Try again; if it keeps happening, the file may be damaged.'**
   String get importReviewPlanFailedBody;
 
   /// Title shown when the import payload parsed but contained no dances.
@@ -12361,7 +12379,7 @@ abstract class AppLocalizations {
   /// Snackbar shown when committing a single record so it can be edited fails.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t import that dance to edit.'**
+  /// **'Couldn\'t import that dance to edit. Try again.'**
   String get importReviewEditError;
 
   /// Title of the confirmation shown when Import and edit is pressed on a row set to Same dance (replace), because the matched dance is replaced immediately. A row set to Re-import uses importReviewEditReimportTitle.
@@ -12403,7 +12421,7 @@ abstract class AppLocalizations {
   /// Snackbar shown when an import commit (or commit-for-edit) throws. The raw exception is logged (debugPrint), never shown, so storage internals/paths can't leak to the UI (CWE-209).
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t complete the import.'**
+  /// **'Couldn\'t complete the import. Try again.'**
   String get importReviewImportError;
 
   /// Snackbar on the import screen when the chosen file can't be read as UTF-8 text: a binary file that isn't a share file, or text saved in another encoding. Nothing was imported.
@@ -12475,7 +12493,7 @@ abstract class AppLocalizations {
   /// Required dance/source title field label; the asterisk marks the field as required.
   ///
   /// In en, this message translates to:
-  /// **'Title *'**
+  /// **'Title'**
   String get danceEditorTitleRequiredLabel;
 
   /// Validation error shown when a required title field is blank.
@@ -12561,6 +12579,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'One-line \"why call this\"'**
   String get danceEditorHookHint;
+
+  /// Helper text under the Hook field in the dance editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Why you would call this dance, in one line. It can appear on calling cards and in what you share.'**
+  String get danceEditorHookHelper;
 
   /// Text field label for the dedicated per-dance walkthrough (step-by-step description), distinct from the shorter calling notes.
   ///
@@ -13318,7 +13342,7 @@ abstract class AppLocalizations {
   /// Clean snackbar shown when saving a dance fails; the raw exception is logged instead of shown (CWE-209).
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t save the dance.'**
+  /// **'Couldn\'t save the dance. Your changes are still here. Try again.'**
   String get danceEditorSaveError;
 
   /// Snackbar shown when renaming a choreographer to a name another choreographer already holds. The edit is refused rather than silently dropped (sync-spec 4.1, issue #1348); the raw exception is logged, never shown (CWE-209). {name} is untrusted user-entered text, rendered as plain text.
@@ -13450,7 +13474,7 @@ abstract class AppLocalizations {
   /// Message shown when the dance editor fails to load a dance.
   ///
   /// In en, this message translates to:
-  /// **'Could not load the dance.'**
+  /// **'Couldn\'t load the dance. Nothing was changed. Try again.'**
   String get danceEditorLoadError;
 
   /// Dialog title for editing shared choreographer/contact details.
@@ -13468,7 +13492,7 @@ abstract class AppLocalizations {
   /// Required name field label; the asterisk marks the field as required.
   ///
   /// In en, this message translates to:
-  /// **'Name *'**
+  /// **'Name'**
   String get danceEditorNameRequiredLabel;
 
   /// Validation error shown when a required name field is blank.
@@ -13720,7 +13744,7 @@ abstract class AppLocalizations {
   /// Screen-reader phrase for a figure row that is one of the user's own custom figures. unavailable is 'yes' when it can no longer be expanded.
   ///
   /// In en, this message translates to:
-  /// **'{summary}, your own figure{unavailable, select, yes{, can\'t be expanded} other{}}'**
+  /// **'{summary}, your figure{unavailable, select, yes{, can\'t be expanded} other{}}'**
   String danceEditorCompoundSemantic(String summary, String unavailable);
 
   /// Under a custom figure being edited in a dance: how many figures, and how many beats, it is replaced by when the dance is saved.
@@ -13732,7 +13756,7 @@ abstract class AppLocalizations {
   /// Shown on a dance's figure row that is one of the user's own custom figures when it can no longer be expanded into figures; the dance then saves it as a custom figure whose text is the name.
   ///
   /// In en, this message translates to:
-  /// **'This figure of yours can\'t be expanded: it has been deleted or changed, or doesn\'t accept these values. Saving keeps only its name, beats, note and progression mark.'**
+  /// **'Your figure can\'t be expanded: it has been deleted or changed, or doesn\'t accept these values. Saving keeps only its name, beats, note and progression mark.'**
   String get danceEditorCompoundUnavailable;
 
   /// Shown on a dance's figure row (AUTH-2) that saving would leave out because it is not complete: a group (meanwhile, modifier or sequence) with fewer than two of its figures filled in, a modifier group with no Core, a group holding such a group, or a row with no move that holds something other than a note. Matches the Warnings entry validationIncompleteFigure. 'Save' is the editor's Save button (commonSave).
@@ -14055,7 +14079,7 @@ abstract class AppLocalizations {
   /// Read-only explanation for a figure whose move id is not in the active taxonomy.
   ///
   /// In en, this message translates to:
-  /// **'Unrecognized move \"{move}\" — not in this version\'s taxonomy. Shown read-only so its data is preserved; it will edit normally again if the move becomes known. You can still reorder or delete it.'**
+  /// **'Unrecognized move \"{move}\": this version of the app doesn\'t know it. It is shown read-only so its data is preserved, and it will edit normally again if the move becomes known. You can still reorder or delete it.'**
   String danceEditorUnrecognizedMoveReadOnly(String move);
 
   /// Button label that collapses additional figure parameter editors.
@@ -14241,13 +14265,13 @@ abstract class AppLocalizations {
   /// Fallback update-banner error shown when the assisted download fails and no specific message is available.
   ///
   /// In en, this message translates to:
-  /// **'The update could not be downloaded.'**
+  /// **'Couldn\'t download the update. Try again.'**
   String get updateBannerDownloadFailed;
 
   /// Assisted-download error (desktop update banner and Settings ▸ Updates) shown when no folder could be prepared to receive the update file, or (on Windows and Linux) when something already occupied the app-chosen download path.
   ///
   /// In en, this message translates to:
-  /// **'Could not choose a place to download the update.'**
+  /// **'Couldn\'t choose a place to download the update. Try again, or use \"View release\".'**
   String get updateDownloadFailureDestination;
 
   /// macOS assisted-download error shown when the place chosen in the Save panel holds a folder, a symbolic link, or a file that could not be removed, so the update was not saved there. The user can start the download again and pick another name or folder. "View release" must match the translation of updateBannerViewRelease.
@@ -14259,7 +14283,7 @@ abstract class AppLocalizations {
   /// Assisted-download error shown when the downloaded file's size did not match the update manifest, so it was deleted. "View release" must match the translation of updateBannerViewRelease, the button that opens the release page for a manual download.
   ///
   /// In en, this message translates to:
-  /// **'The download was incomplete and was deleted. Please try again, or use \"View release\".'**
+  /// **'Couldn\'t finish the download, and the incomplete file was deleted. Try again, or use \"View release\".'**
   String get updateDownloadFailureIncomplete;
 
   /// Assisted-download error shown when the download URL was refused because its host is not on the allowed list. "View release" must match the translation of updateBannerViewRelease.
@@ -14271,25 +14295,25 @@ abstract class AppLocalizations {
   /// Assisted-download error shown when the download failed for a network or other transport reason. "View release" must match the translation of updateBannerViewRelease.
   ///
   /// In en, this message translates to:
-  /// **'The update could not be downloaded. Check your connection and try again, or use \"View release\".'**
+  /// **'Couldn\'t download the update. Check your connection and try again, or use \"View release\".'**
   String get updateDownloadFailureUnreachable;
 
   /// Update download error shown when the server answered with an error status (for example 404 or 5xx).
   ///
   /// In en, this message translates to:
-  /// **'The update server could not provide the file. Try again later, or use \"View release\".'**
+  /// **'The update server couldn\'t provide the file. Try again later, or use \"View release\".'**
   String get updateDownloadFailureServerError;
 
   /// Update download error shown when writing the downloaded file failed because the disk is full.
   ///
   /// In en, this message translates to:
-  /// **'There is not enough free disk space to save the update. Free up some space and try again, or use \"View release\".'**
+  /// **'There isn\'t enough free disk space to save the update. Free up some space and try again, or use \"View release\".'**
   String get updateDownloadFailureDiskFull;
 
   /// Update download error shown when the downloaded file could not be created or written because of permissions.
   ///
   /// In en, this message translates to:
-  /// **'The update could not be saved because the download location is not writable. Check its permissions and try again, or use \"View release\".'**
+  /// **'Couldn\'t save the update because the download location isn\'t writable. Check its permissions and try again, or use \"View release\".'**
   String get updateDownloadFailureUnwritable;
 
   /// Assisted-download error shown when the downloaded file did not match the manifest's checksum, so the file was deleted. Keep the wording plain; do not name the hash algorithm. "View release" must match the translation of updateBannerViewRelease.
@@ -14301,25 +14325,25 @@ abstract class AppLocalizations {
   /// Assisted-download error shown when the verified installer or disk image could not be handed to the operating system. "View release" must match the translation of updateBannerViewRelease.
   ///
   /// In en, this message translates to:
-  /// **'The update was downloaded and verified, but could not be opened automatically. Use \"View release\" to finish installing.'**
+  /// **'The update was downloaded and verified, but couldn\'t be opened automatically. Use \"View release\" to finish installing.'**
   String get updateDownloadFailureHandoffFailed;
 
   /// Assisted-download error shown when an unexpected error interrupted the install step. "View release" must match the translation of updateBannerViewRelease.
   ///
   /// In en, this message translates to:
-  /// **'Something went wrong while installing the update. Try again, or use \"View release\" to download it manually.'**
+  /// **'Couldn\'t install the update. Try again, or use \"View release\" to download it manually.'**
   String get updateDownloadFailureInstallFailed;
 
   /// Dismissible banner shown once at launch when the database integrity check itself threw an error, so the data's health is unknown. "Settings ▸ Diagnostics" must match the translated navigation labels.
   ///
   /// In en, this message translates to:
-  /// **'A database integrity check failed to complete, so your data could not be verified this launch. If problems persist, consider restoring from a backup. Technical details were saved to Settings ▸ Diagnostics.'**
+  /// **'Couldn\'t finish checking your data this time, so it couldn\'t be verified. If problems continue, consider restoring from a backup. Technical details were saved to Settings ▸ Diagnostics.'**
   String get startupIntegrityCheckIncomplete;
 
   /// Dismissible banner shown once at launch when the database integrity check ran and reported a problem. The app still opens; the failure is advisory.
   ///
   /// In en, this message translates to:
-  /// **'A database integrity check failed. Your local data may be corrupt — consider restoring from a backup.'**
+  /// **'Your data failed its safety check and may be damaged. Consider restoring from a backup.'**
   String get startupIntegrityCheckFailed;
 
   /// Title of the on-launch dialog offering to convert non-English dances tagged "ECD" to the English Country Dance form. "ECD" is the same abbreviation used in commonDanceFormEcd and stays as-is.
@@ -14403,7 +14427,7 @@ abstract class AppLocalizations {
   /// End-of-support banner action that hides the banner until the app is next launched.
   ///
   /// In en, this message translates to:
-  /// **'Later'**
+  /// **'Dismiss'**
   String get retirementBannerLater;
 
   /// macOS-only app-wide banner shown when the app's bundle is on a read-only volume: opened from inside the mounted .dmg, or from the temporary read-only location Gatekeeper makes for a quarantined app ('app translocation'), which is suspected (not reproduced) to happen to an app that is already in Applications too. Because of that second case the text must say the app 'may' not be installed rather than assert it, must not promise that moving it fixes the notice, and tells an already-installed user they can dismiss it. 'Applications' is the macOS folder name; use the localized Finder name. 'Finder' is the macOS file manager and keeps its name.
@@ -14613,7 +14637,7 @@ abstract class AppLocalizations {
   /// Message shown when the bundled user-guide content fails to load.
   ///
   /// In en, this message translates to:
-  /// **'The user guide could not be loaded.'**
+  /// **'Couldn\'t load the user guide. Try again.'**
   String get userGuideLoadError;
 
   /// Action that opens the user guide on the web when local content is unavailable.
@@ -14679,7 +14703,7 @@ abstract class AppLocalizations {
   /// The name of the setting holding the shorthands for the user's own new figures (#1023), in sync notices and the sync conflict view. A new figure is one with its own wording, as opposed to a combination of built-in figures.
   ///
   /// In en, this message translates to:
-  /// **'Shorthands for your new figures'**
+  /// **'Shorthands for new figures'**
   String get shorthandsUserFigureSyncLabel;
 
   /// Explains the compound shorthands section.
@@ -14715,7 +14739,7 @@ abstract class AppLocalizations {
   /// Shown under a shorthand for one of the user's new figures (#1023) whose token a shorthand for one of their combinations also has (possible when two devices each add one before syncing); the combination's shorthand is used. A combination is a user's figure made of built-in figures.
   ///
   /// In en, this message translates to:
-  /// **'Not used: a shorthand for one of your combinations has the same text.'**
+  /// **'Not used: a shorthand for a combination has the same text.'**
   String get shorthandsUserFigureShadowedByCompound;
 
   /// Label of the field choosing which of the user's own figures a compound shorthand stands for.
@@ -14733,7 +14757,7 @@ abstract class AppLocalizations {
   /// Shown in the compound shorthand editor when the user has no usable custom figures.
   ///
   /// In en, this message translates to:
-  /// **'You have no figures of your own yet. Add one in the Glossary first.'**
+  /// **'You have no custom figures yet. Add one in the Glossary first.'**
   String get compoundShorthandEditorNoCompounds;
 
   /// Error when saving a compound shorthand whose values the chosen figure does not accept.
@@ -14943,7 +14967,7 @@ abstract class AppLocalizations {
   /// Line in the import result after the shared-figures step when some figures could not be stored (for example, the Glossary is full); {count} is how many.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =1{1 figure could not be saved to your Glossary.} other{{count} figures could not be saved to your Glossary.}}'**
+  /// **'{count, plural, =1{Couldn\'t save 1 figure to your Glossary.} other{Couldn\'t save {count} figures to your Glossary.}}'**
   String importUserFiguresFailed(int count);
 
   /// Snackbar shown after shorthands are seeded; {count} is how many were added.
@@ -15063,7 +15087,7 @@ abstract class AppLocalizations {
   /// Snackbar shown when the custom-figure upgrade fails.
   ///
   /// In en, this message translates to:
-  /// **'Could not upgrade figures. Please try again.'**
+  /// **'Couldn\'t upgrade the figures. Try again.'**
   String get reparseFailed;
 
   /// Snackbar shown when an upgrade run changed nothing.
@@ -15117,13 +15141,13 @@ abstract class AppLocalizations {
   /// Title of the error state when scanning for upgradable figures fails.
   ///
   /// In en, this message translates to:
-  /// **'Could not check your figures'**
+  /// **'Couldn\'t check your figures'**
   String get reparseErrorTitle;
 
   /// Body of the error state when scanning for upgradable figures fails.
   ///
   /// In en, this message translates to:
-  /// **'Something went wrong while scanning your collection. Nothing was changed. You can try again.'**
+  /// **'Couldn\'t scan your collection. Nothing was changed. Try again.'**
   String get reparseErrorBody;
 
   /// App-bar title of the English-dance conversion screen.
@@ -15195,7 +15219,7 @@ abstract class AppLocalizations {
   /// Snackbar shown when the English-dance conversion fails.
   ///
   /// In en, this message translates to:
-  /// **'Could not convert the dances. Nothing was changed. Please try again.'**
+  /// **'Couldn\'t convert the dances. Nothing was changed. Try again.'**
   String get ecdMigrationFailed;
 
   /// Empty-state title when no English dance needs converting.
@@ -15213,7 +15237,7 @@ abstract class AppLocalizations {
   /// Error-state title when scanning English dances fails.
   ///
   /// In en, this message translates to:
-  /// **'Could not check your English dances'**
+  /// **'Couldn\'t check your English dances'**
   String get ecdMigrationErrorTitle;
 
   /// Snackbar when deleting a custom field still set on dances (count known). The raw exception is logged (debugPrint), never shown, so storage internals can't leak to the UI (CWE-209). {label} is plain text.
@@ -15255,7 +15279,7 @@ abstract class AppLocalizations {
   /// Error shown when the custom-field definitions fail to load.
   ///
   /// In en, this message translates to:
-  /// **'Could not load custom fields.'**
+  /// **'Couldn\'t load custom fields. Nothing was changed. Try again.'**
   String get customFieldsLoadError;
 
   /// Heading of the empty state on the custom fields list.
@@ -15333,7 +15357,7 @@ abstract class AppLocalizations {
   /// Label for the custom-field display-label input (required).
   ///
   /// In en, this message translates to:
-  /// **'Label *'**
+  /// **'Label'**
   String get customFieldsLabelLabel;
 
   /// Validation error when the custom-field label is empty.
@@ -15345,7 +15369,7 @@ abstract class AppLocalizations {
   /// Label for the custom-field machine-key input (required).
   ///
   /// In en, this message translates to:
-  /// **'Key *'**
+  /// **'Key'**
   String get customFieldsKeyLabel;
 
   /// Helper text under the Key field of a custom field: what the key is (a short, permanent ID) and which characters it may use.
@@ -15371,6 +15395,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Key must start with a letter or underscore and contain only letters, digits, and underscores'**
   String get customFieldsKeyInvalid;
+
+  /// Snackbar shown if the custom field editor is asked to save a definition the model rejects. Normally the form validators catch this first. The sheet stays open.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the field. Check its key and choices, then try again.'**
+  String get customFieldsSaveFailed;
 
   /// Label for the custom-field type picker.
   ///
@@ -15411,7 +15441,7 @@ abstract class AppLocalizations {
   /// Section label for the list of choices on a choice-type field (required).
   ///
   /// In en, this message translates to:
-  /// **'Choices *'**
+  /// **'Choices'**
   String get customFieldsChoicesLabel;
 
   /// Tooltip/message for a choice value that is in use and can't be removed.
@@ -15654,10 +15684,10 @@ abstract class AppLocalizations {
   /// **'Recently deleted'**
   String get recentlyDeletedTitle;
 
-  /// Shown on the recently-deleted screen when loading the deleted dances or programs fails, above a Retry button. Reassures the user that a failed load does not mean their deleted items are gone.
+  /// Shown on the recently-deleted screen when loading the deleted dances or programs fails, above a Try again button. Reassures the user that a failed load does not mean their deleted items are gone.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t load your recently deleted items. Nothing has been removed.'**
+  /// **'Couldn\'t load your recently deleted items. Nothing has been removed. Try again.'**
   String get recentlyDeletedLoadError;
 
   /// Title of the confirm permanent-delete dialog.
@@ -15777,7 +15807,7 @@ abstract class AppLocalizations {
   /// Error shown when the reusable venue records fail to load (venue manager and venue picker).
   ///
   /// In en, this message translates to:
-  /// **'Could not load venues.'**
+  /// **'Couldn\'t load venues. Nothing was changed. Try again.'**
   String get venueLoadError;
 
   /// App bar title of the venue manager screen (Settings ▸ Venues).
@@ -15885,7 +15915,7 @@ abstract class AppLocalizations {
   /// Required venue name field label; the asterisk marks the field as required.
   ///
   /// In en, this message translates to:
-  /// **'Name *'**
+  /// **'Name'**
   String get venueEditorNameLabel;
 
   /// Validation error shown when the venue name field is blank.
@@ -16131,8 +16161,14 @@ abstract class AppLocalizations {
   /// Error shown when a re-import source cannot be loaded.
   ///
   /// In en, this message translates to:
-  /// **'Could not load a dance from that source. Please try again.'**
+  /// **'Couldn\'t load a dance from that source. Your dance wasn\'t changed. Try again.'**
   String get danceReimportSourceFailed;
+
+  /// Snackbar when applying a re-import to a dance fails; the write is one transaction, so the dance is unchanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t update the dance from that source. Your dance wasn\'t changed. Try again.'**
+  String get danceReimportApplyFailed;
 
   /// Confirmation shown after saved dance choreography is re-imported.
   ///
@@ -16185,13 +16221,13 @@ abstract class AppLocalizations {
   /// Error shown when the signed published-collection catalog's signature does not match any key this app trusts. After a signing-key change, updating the app is the fix; it could also mean the catalog was tampered with, or that a network (for example a captive portal) replaced the signature file, so the wording does not claim any one cause.
   ///
   /// In en, this message translates to:
-  /// **'Published collections could not be verified, so nothing was loaded. If this keeps happening, update the app.'**
+  /// **'Couldn\'t verify the published collections, so nothing was loaded. If this keeps happening, update the app.'**
   String get publishedCollectionsUnverified;
 
   /// Error shown when the signed published-collection catalog or an archive could not be fetched because the network is unreachable.
   ///
   /// In en, this message translates to:
-  /// **'Published collections could not be reached. Check your connection and try again.'**
+  /// **'Couldn\'t reach the published collections. Check your connection and try again.'**
   String get publishedCollectionsOffline;
 
   /// Error shown when the published-collection catalog uses a format newer than this app can read.
@@ -16443,7 +16479,7 @@ abstract class AppLocalizations {
   /// Title of the row in the Experimental settings that opens the Custom Figures screen, where the user's own figures are added and edited.
   ///
   /// In en, this message translates to:
-  /// **'Your figures'**
+  /// **'Custom Figures'**
   String get settingsExperimentalCustomFiguresManageTitle;
 
   /// Subtitle of the row that opens the Custom Figures screen.
@@ -16461,7 +16497,7 @@ abstract class AppLocalizations {
   /// Shown on the Custom Figures screen when the user has no figures of their own yet.
   ///
   /// In en, this message translates to:
-  /// **'You haven\'t made any figures of your own yet. Choose + to add one.'**
+  /// **'You haven\'t made any custom figures yet. Choose + to add one.'**
   String get customFiguresEmpty;
 
   /// Title of the empty Custom figures list.
@@ -16473,13 +16509,13 @@ abstract class AppLocalizations {
   /// Tooltip of the Glossary's add button, which opens the editor for a new custom figure; also the label of the Custom Figures screen's button while that screen is empty.
   ///
   /// In en, this message translates to:
-  /// **'Add your own figure'**
+  /// **'Add your figure'**
   String get glossaryAddCustomFigure;
 
   /// Label of the floating button on the Custom Figures screen that opens the editor for a new figure of the user's own. Keep it short: it is one line at the bottom of a phone screen, beside a + icon.
   ///
   /// In en, this message translates to:
-  /// **'New figure'**
+  /// **'Add your figure'**
   String get customFiguresNewFigure;
 
   /// Chip marking one of the user's own figures in the Glossary.
@@ -16593,13 +16629,13 @@ abstract class AppLocalizations {
   /// Shown when saving one of the user's own figures, or their notes on a built-in figure, is refused because the whole Glossary (all their figures and notes together) is at its size limit. The text of the item being saved is not the problem.
   ///
   /// In en, this message translates to:
-  /// **'Your Glossary has reached its size limit, so this could not be saved. Make room by deleting or shortening other figures or notes, then try again.'**
+  /// **'Your Glossary has reached its size limit, so this couldn\'t be saved. Make room by deleting or shortening other figures or notes, then try again.'**
   String get glossaryOverBudget;
 
   /// Title of the editor for a new custom figure.
   ///
   /// In en, this message translates to:
-  /// **'New figure'**
+  /// **'Add your figure'**
   String get compoundEditorTitleNew;
 
   /// Title of the editor for an existing custom figure.
@@ -17097,7 +17133,7 @@ abstract class AppLocalizations {
   /// Shown on a dance editor row that uses one of the user's own figures when the figure is deleted or can no longer be read.
   ///
   /// In en, this message translates to:
-  /// **'This figure of yours isn\'t available, so this row keeps the wording it has.'**
+  /// **'Your figure isn\'t available, so this row keeps the wording it has.'**
   String get danceEditorUserFigureUnavailable;
 
   /// Body of the dialog confirming that unsaved changes to a custom figure are discarded.
@@ -17710,7 +17746,7 @@ abstract class AppLocalizations {
   /// Shown in place of the calling-card preview when it could not be rendered.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t draw the preview.'**
+  /// **'Couldn\'t draw the preview. Try again.'**
   String get callingCardEditorPreviewError;
 
   /// Under the calling-card preview: the card's content was scaled down to fit.
@@ -17788,7 +17824,7 @@ abstract class AppLocalizations {
   /// Help: what gates a block, and what happens when a card is too full.
   ///
   /// In en, this message translates to:
-  /// **'A block prints only what the dance has, and only fields turned on under Settings › Defaults › Shared dance fields. A row with nothing to print takes no space. When a card is too full, everything on it shrinks evenly to fit, down to half size.'**
+  /// **'A block prints only what the dance has, and only fields turned on under Settings ▸ Defaults ▸ Shared dance fields. A row with nothing to print takes no space. When a card is too full, everything on it shrinks evenly to fit, down to half size.'**
   String get callingCardHelpFields;
 
   /// Help: the block and option names below can be tapped to insert them.
