@@ -40,6 +40,10 @@ import 'user_figure_definition.dart';
 /// ([MoveAlias.listedAsMove]: long lines) is copied as itself: from its own
 /// wording, without the parameters it pins, copied from its own id.
 ///
+/// An English movement's list of dancers ([ParamKind.dancerList]) is
+/// copied as a set of dancers ([ParamKind.dancerSet]) with no default: the
+/// kind the editor offers for a figure of the user's.
+///
 /// The result always validates ([validateUserFigure] reports no error), so
 /// the editor can open on it.
 UserFigureDefinition? userFigureSeedFromMove(
@@ -191,6 +195,14 @@ UserFigureParam _seedParam(
         label: paramLabel?.call(key) ?? key,
         defaultValue: spec.defaultValue is bool ? spec.defaultValue : null,
       );
+    case ParamKind.dancerList:
+      // An English movement's dancers (several groups in order) are offered
+      // as one group of dancers, the kind a figure of the user's can declare,
+      // with no default (ADR-006 W5). A figure of the user's offers contra's
+      // dancer groups for it, as for any group of dancers: a declared
+      // parameter stores no list of groups of its own, so English-only groups
+      // such as `ends` or `top` can't be chosen in a copy yet.
+      return UserFigureParam(key: key, kind: ParamKind.dancerSet);
     default:
       final candidate = UserFigureParam(
         key: key,
