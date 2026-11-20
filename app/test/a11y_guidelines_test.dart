@@ -116,8 +116,9 @@ Future<AppData> _seed() async {
       rating: 4,
       tagIds: const ['t1'],
       figures: [
-        for (final who in ['role1s', 'role2s', 'neighbors'])
-          Figure(move: 'chain', params: {'who': who, 'beats': 16}),
+        Figure(move: 'chain', params: {'who': 'role1s', 'beats': 16}),
+        Figure(move: 'chain', params: {'who': 'role2s', 'beats': 16}),
+        Figure(move: 'chain', params: {'who': 'role1s', 'beats': 8}),
       ],
       status: DanceStatus.active,
       createdAt: stamp,
