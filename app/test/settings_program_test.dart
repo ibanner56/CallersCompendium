@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_app/src/widgets/app_dropdown_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -20,6 +21,7 @@ import 'package:compendium_app/src/data/venue_entity_mode_scope.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
 import 'package:compendium_app/src/screens/settings/matrix_column_editor_screen.dart';
 
+import 'support/finders.dart';
 import 'support/test_repositories.dart';
 import 'support/tracking_settings.dart';
 import 'support/l10n_harness.dart';
@@ -163,7 +165,7 @@ void main() {
       await tester.scrollUntilVisible(
         find.byKey(ValueKey(key)),
         200,
-        scrollable: find.byType(Scrollable).last,
+        scrollable: verticalScrollable(),
       );
       await tester.pumpAndSettle();
       // A dropdown inside a ListTile's trailing slot cannot wrap.
@@ -208,7 +210,7 @@ void main() {
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('general-track-history-for-all-callers')),
       200,
-      scrollable: find.byType(Scrollable).last,
+      scrollable: verticalScrollable(),
     );
     expect(
       find.byKey(const ValueKey('general-require-performed-for-history')),
@@ -233,7 +235,7 @@ void main() {
     await tester.scrollUntilVisible(
       tile,
       200,
-      scrollable: find.byType(Scrollable).last,
+      scrollable: verticalScrollable(),
     );
     expect(tester.widget<SwitchListTile>(tile).value, isTrue);
     expect(find.text('Show mark-performed toggles'), findsOneWidget);
@@ -269,7 +271,7 @@ void main() {
       await tester.scrollUntilVisible(
         tile,
         200,
-        scrollable: find.byType(Scrollable).last,
+        scrollable: verticalScrollable(),
       );
       await tester.ensureVisible(tile);
       await tester.pumpAndSettle();
@@ -298,7 +300,7 @@ void main() {
     await tester.scrollUntilVisible(
       tile,
       200,
-      scrollable: find.byType(Scrollable).last,
+      scrollable: verticalScrollable(),
     );
     expect(tester.widget<SwitchListTile>(tile).value, isTrue);
     expect(find.text('Mark all performed sets the status'), findsOneWidget);
@@ -338,7 +340,7 @@ void main() {
       await tester.scrollUntilVisible(
         tile,
         200,
-        scrollable: find.byType(Scrollable).last,
+        scrollable: verticalScrollable(),
       );
       expect(tester.widget<SwitchListTile>(tile).value, isTrue);
       expect(find.text(label), findsOneWidget);
@@ -562,11 +564,11 @@ void main() {
     await tester.scrollUntilVisible(
       dropdown,
       200,
-      scrollable: find.byType(Scrollable).last,
+      scrollable: verticalScrollable(),
     );
     expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
     expect(
-      tester.widget<DropdownButton<int>>(dropdown).value,
+      tester.widget<AppDropdownField<int>>(dropdown).initialValue,
       kVenueCallCountDefault,
     );
 
@@ -575,13 +577,13 @@ void main() {
     venueCalls.value = 8;
     await tester.pumpAndSettle();
 
-    expect(tester.widget<DropdownButton<int>>(dropdown).value, 8);
+    expect(tester.widget<AppDropdownField<int>>(dropdown).initialValue, 8);
     // The list builds lazily and the tracking rows below the dropdown lengthen
     // it, so bring the toggle back into view before reading it.
     await tester.scrollUntilVisible(
       toggle,
       -200,
-      scrollable: find.byType(Scrollable).last,
+      scrollable: verticalScrollable(),
     );
     expect(tester.widget<SwitchListTile>(toggle).value, isTrue);
   });
@@ -621,7 +623,7 @@ void main() {
     await tester.scrollUntilVisible(
       toggle,
       200,
-      scrollable: find.byType(Scrollable).last,
+      scrollable: verticalScrollable(),
     );
     await tester.pumpAndSettle();
     expect(tester.widget<SwitchListTile>(toggle).value, isFalse);

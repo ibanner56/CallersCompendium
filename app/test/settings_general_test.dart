@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_app/src/widgets/app_dropdown_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -10,6 +11,7 @@ import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/soft_delete_retention.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
 
+import 'support/finders.dart';
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
 import 'support/screen_size.dart';
@@ -89,7 +91,7 @@ void main() {
       await tester.scrollUntilVisible(
         find.byKey(ValueKey(key)),
         200,
-        scrollable: find.byType(Scrollable).last,
+        scrollable: verticalScrollable(),
       );
       await tester.pumpAndSettle();
       // A dropdown inside a ListTile's trailing slot cannot wrap.
@@ -120,7 +122,7 @@ void main() {
     );
     expect(dropdown, findsOneWidget);
     expect(
-      tester.widget<DropdownButton<int>>(dropdown).value,
+      tester.widget<AppDropdownField<int>>(dropdown).initialValue,
       kSoftDeleteRetentionDefaultDays,
       reason: 'retention defaults to 30 days when unset (ROADMAP G.4)',
     );
@@ -143,10 +145,10 @@ void main() {
 
     expect(
       tester
-          .widget<DropdownButton<int>>(
+          .widget<AppDropdownField<int>>(
             find.byKey(const ValueKey('general-soft-delete-retention')),
           )
-          .value,
+          .initialValue,
       kSoftDeleteRetentionNever,
     );
     expect(
@@ -167,10 +169,10 @@ void main() {
 
     expect(
       tester
-          .widget<DropdownButton<int>>(
+          .widget<AppDropdownField<int>>(
             find.byKey(const ValueKey('general-soft-delete-retention')),
           )
-          .value,
+          .initialValue,
       90,
     );
   });

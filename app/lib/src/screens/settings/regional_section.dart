@@ -12,6 +12,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/section_header.dart';
 import '../../widgets/settings_dropdown_row.dart';
+import '../../widgets/app_dropdown_field.dart';
 
 /// The Language & region settings section (ROADMAP G.8): the app-language
 /// selector, the date-format preference, and the first-day-of-week preference.
@@ -220,21 +221,18 @@ class _RegionalView extends StatelessWidget {
           title: Text(l10n.settingsAppLanguageTitle),
           subtitle: Text(l10n.settingsAppLanguageSubtitle),
           isThreeLine: true,
-          dropdownBuilder: (expanded) => DropdownButton<Locale?>(
-            isExpanded: expanded,
+          dropdownBuilder: (expanded) => AppDropdownField<Locale?>(
+            compact: true,
+            fillWidth: expanded,
             key: const ValueKey('regional-language'),
+            // Null is System default, an entry like any other.
             value: locale,
-            // A null value (System default) is not matched to the null-valued
-            // menu item by DropdownButton — it renders the hint instead — so the
-            // hint carries the localized "System default" label for the closed
-            // button on first load and after choosing System default.
-            hint: Text(l10n.commonSystemDefault),
             onChanged: onLocaleChanged,
-            items: [
+            entries: [
               for (final option in localeOptions)
-                DropdownMenuItem<Locale?>(
+                AppDropdownEntry<Locale?>(
                   value: option,
-                  child: Text(_languageLabel(l10n, option)),
+                  label: _languageLabel(l10n, option),
                 ),
             ],
           ),
@@ -244,18 +242,17 @@ class _RegionalView extends StatelessWidget {
           title: Text(l10n.settingsDateFormatTitle),
           subtitle: Text(l10n.settingsDateFormatSubtitle(example)),
           isThreeLine: true,
-          dropdownBuilder: (expanded) => DropdownButton<DateFormatPref>(
-            isExpanded: expanded,
+          dropdownBuilder: (expanded) => AppDropdownField<DateFormatPref>(
+            compact: true,
+            fillWidth: expanded,
             key: const ValueKey('regional-date-format'),
             value: dateFormat.pref,
-            onChanged: (value) {
-              if (value != null) onDateFormatPrefChanged(value);
-            },
-            items: [
+            onChanged: onDateFormatPrefChanged,
+            entries: [
               for (final pref in DateFormatPref.values)
-                DropdownMenuItem(
+                AppDropdownEntry(
                   value: pref,
-                  child: Text(_dateFormatLabel(l10n, pref)),
+                  label: _dateFormatLabel(l10n, pref),
                 ),
             ],
           ),
@@ -309,18 +306,17 @@ class _RegionalView extends StatelessWidget {
           title: Text(l10n.settingsFirstDayOfWeekTitle),
           subtitle: Text(l10n.settingsFirstDayOfWeekSubtitle),
           isThreeLine: true,
-          dropdownBuilder: (expanded) => DropdownButton<FirstDayOfWeekPref>(
-            isExpanded: expanded,
+          dropdownBuilder: (expanded) => AppDropdownField<FirstDayOfWeekPref>(
+            compact: true,
+            fillWidth: expanded,
             key: const ValueKey('regional-first-day-of-week-dropdown'),
             value: firstDayOfWeek,
-            onChanged: (value) {
-              if (value != null) onFirstDayOfWeekPrefChanged(value);
-            },
-            items: [
+            onChanged: onFirstDayOfWeekPrefChanged,
+            entries: [
               for (final pref in FirstDayOfWeekPref.values)
-                DropdownMenuItem(
+                AppDropdownEntry(
                   value: pref,
-                  child: Text(_firstDayOfWeekLabel(l10n, pref)),
+                  label: _firstDayOfWeekLabel(l10n, pref),
                 ),
             ],
           ),

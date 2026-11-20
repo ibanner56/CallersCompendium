@@ -48,6 +48,7 @@ import '../ecd_migration_screen.dart';
 import '../reparse_custom_figures_screen.dart';
 import '../reference_manager_screen.dart';
 import '../tag_manager_screen.dart';
+import '../../widgets/app_dropdown_field.dart';
 
 /// The General settings section: app-wide toggles, soft-delete retention,
 /// backup/restore, and the import launcher. Owns its async loads + load-race
@@ -848,22 +849,21 @@ class _GeneralView extends StatelessWidget {
           title: Text(l10n.settingsGeneralUndoPromptTitle),
           subtitle: Text(l10n.settingsGeneralUndoPromptSubtitle),
           isThreeLine: true,
-          dropdownBuilder: (expanded) => DropdownButton<int>(
-            isExpanded: expanded,
+          dropdownBuilder: (expanded) => AppDropdownField<int>(
             key: const ValueKey('general-undo-prompt-seconds'),
+            compact: true,
+            fillWidth: expanded,
             value: undoPromptSeconds,
-            onChanged: (value) {
-              if (value != null) onUndoPromptSecondsChanged(value);
-            },
-            items: [
+            onChanged: onUndoPromptSecondsChanged,
+            entries: [
               for (final seconds in kUndoPromptSecondOptions)
-                DropdownMenuItem(
+                AppDropdownEntry(
                   value: seconds,
-                  child: Text(l10n.settingsGeneralUndoPromptSeconds(seconds)),
+                  label: l10n.settingsGeneralUndoPromptSeconds(seconds),
                 ),
-              DropdownMenuItem(
+              AppDropdownEntry(
                 value: kUndoPromptUntilDismissed,
-                child: Text(l10n.settingsGeneralUndoPromptUntilClosed),
+                label: l10n.settingsGeneralUndoPromptUntilClosed,
               ),
             ],
           ),
@@ -873,24 +873,21 @@ class _GeneralView extends StatelessWidget {
           title: Text(l10n.settingsGeneralSoftDeleteRetentionTitle),
           subtitle: Text(l10n.settingsGeneralSoftDeleteRetentionSubtitle),
           isThreeLine: true,
-          dropdownBuilder: (expanded) => DropdownButton<int>(
-            isExpanded: expanded,
+          dropdownBuilder: (expanded) => AppDropdownField<int>(
             key: const ValueKey('general-soft-delete-retention'),
+            compact: true,
+            fillWidth: expanded,
             value: softDeleteRetentionDays,
-            onChanged: (value) {
-              if (value != null) onSoftDeleteRetentionChanged(value);
-            },
-            items: [
+            onChanged: onSoftDeleteRetentionChanged,
+            entries: [
               for (final days in kSoftDeleteRetentionDayOptions)
-                DropdownMenuItem(
+                AppDropdownEntry(
                   value: days,
-                  child: Text(
-                    l10n.settingsGeneralSoftDeleteRetentionDays(days),
-                  ),
+                  label: l10n.settingsGeneralSoftDeleteRetentionDays(days),
                 ),
-              DropdownMenuItem(
+              AppDropdownEntry(
                 value: kSoftDeleteRetentionNever,
-                child: Text(l10n.settingsGeneralSoftDeleteRetentionNever),
+                label: l10n.settingsGeneralSoftDeleteRetentionNever,
               ),
             ],
           ),
@@ -983,25 +980,24 @@ class _GeneralView extends StatelessWidget {
       SettingsDropdownRow(
         title: Text(l10n.backupReminderTitle),
         subtitle: Text(lastBackupLabel),
-        dropdownBuilder: (expanded) => DropdownButton<BackupReminderCadence>(
-          isExpanded: expanded,
+        dropdownBuilder: (expanded) => AppDropdownField<BackupReminderCadence>(
+          compact: true,
+          fillWidth: expanded,
           key: const ValueKey('backup-reminder-cadence'),
           value: backupCadence,
-          onChanged: (value) {
-            if (value != null) onBackupCadenceChanged(value);
-          },
-          items: [
-            DropdownMenuItem(
+          onChanged: onBackupCadenceChanged,
+          entries: [
+            AppDropdownEntry(
               value: BackupReminderCadence.off,
-              child: Text(l10n.backupReminderOff),
+              label: l10n.backupReminderOff,
             ),
-            DropdownMenuItem(
+            AppDropdownEntry(
               value: BackupReminderCadence.weekly,
-              child: Text(l10n.backupReminderWeekly),
+              label: l10n.backupReminderWeekly,
             ),
-            DropdownMenuItem(
+            AppDropdownEntry(
               value: BackupReminderCadence.monthly,
-              child: Text(l10n.backupReminderMonthly),
+              label: l10n.backupReminderMonthly,
             ),
           ],
         ),

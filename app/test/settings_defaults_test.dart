@@ -1,3 +1,5 @@
+import 'support/dropdown.dart';
+import 'support/finders.dart';
 import 'support/announcements.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -5,6 +7,7 @@ import 'dart:convert';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:drift/native.dart';
+import 'package:compendium_app/src/widgets/app_dropdown_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -360,7 +363,7 @@ void main() {
       await tester.scrollUntilVisible(
         find.byKey(ValueKey(key)),
         200,
-        scrollable: find.byType(Scrollable).last,
+        scrollable: verticalScrollable(),
       );
       await tester.pumpAndSettle();
       // A dropdown inside a ListTile's trailing slot cannot wrap.
@@ -384,7 +387,7 @@ void main() {
       await tester.scrollUntilVisible(
         find.byKey(ValueKey(key)),
         200,
-        scrollable: find.byType(Scrollable).last,
+        scrollable: verticalScrollable(),
       );
       await tester.pumpAndSettle();
       for (final text in ['Ascending', 'Descending']) {
@@ -407,7 +410,7 @@ void main() {
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('defaults-authoring-group')),
       200,
-      scrollable: find.byType(Scrollable).last,
+      scrollable: verticalScrollable(),
     );
     await tester.tap(find.byKey(const ValueKey('defaults-authoring-group')));
     await tester.pumpAndSettle();
@@ -1044,10 +1047,10 @@ void main() {
 
     expect(
       tester
-          .widget<DropdownButton<SortDefaultSetting<CollectionSort>>>(
+          .widget<AppDropdownField<SortDefaultSetting<CollectionSort>>>(
             find.byKey(const ValueKey('defaults-collection-sort')),
           )
-          .value,
+          .initialValue,
       const SortDefaultSetting.concrete(CollectionSort.title),
     );
     expect(
@@ -1062,16 +1065,16 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('defaults-collection-sort')));
     await tester.pumpAndSettle();
-    // Pick "Author" from the opened dropdown menu (last matches the menu item).
-    await tester.tap(find.text('Author').last);
+    // Pick "Author" from the opened dropdown menu.
+    await tester.tap(dropdownEntry('Author'));
     await tester.pumpAndSettle();
 
     expect(
       tester
-          .widget<DropdownButton<SortDefaultSetting<CollectionSort>>>(
+          .widget<AppDropdownField<SortDefaultSetting<CollectionSort>>>(
             find.byKey(const ValueKey('defaults-collection-sort')),
           )
-          .value,
+          .initialValue,
       const SortDefaultSetting.concrete(CollectionSort.author),
     );
     expect(
@@ -1091,10 +1094,10 @@ void main() {
 
     expect(
       tester
-          .widget<DropdownButton<SortDefaultSetting<CollectionSort>>>(
+          .widget<AppDropdownField<SortDefaultSetting<CollectionSort>>>(
             find.byKey(const ValueKey('defaults-collection-sort')),
           )
-          .value,
+          .initialValue,
       const SortDefaultSetting.concrete(CollectionSort.lastCalled),
     );
   });
@@ -1111,10 +1114,10 @@ void main() {
 
     expect(
       tester
-          .widget<DropdownButton<SortDefaultSetting<CollectionSort>>>(
+          .widget<AppDropdownField<SortDefaultSetting<CollectionSort>>>(
             find.byKey(const ValueKey('defaults-collection-sort')),
           )
-          .value,
+          .initialValue,
       const SortDefaultSetting.concrete(CollectionSort.author),
     );
     expect(
@@ -1132,10 +1135,10 @@ void main() {
 
       expect(
         tester
-            .widget<DropdownButton<SortDefaultSetting<ProgramSort>>>(
+            .widget<AppDropdownField<SortDefaultSetting<ProgramSort>>>(
               find.byKey(const ValueKey('defaults-program-sort')),
             )
-            .value,
+            .initialValue,
         const SortDefaultSetting.concrete(ProgramSort.title),
       );
     });
@@ -1151,10 +1154,10 @@ void main() {
 
       expect(
         tester
-            .widget<DropdownButton<SortDefaultSetting<ProgramSort>>>(
+            .widget<AppDropdownField<SortDefaultSetting<ProgramSort>>>(
               find.byKey(const ValueKey('defaults-program-sort')),
             )
-            .value,
+            .initialValue,
         const SortDefaultSetting.concrete(ProgramSort.eventDate),
       );
       expect(
@@ -1174,10 +1177,10 @@ void main() {
 
       expect(
         tester
-            .widget<DropdownButton<SortDefaultSetting<ProgramSort>>>(
+            .widget<AppDropdownField<SortDefaultSetting<ProgramSort>>>(
               find.byKey(const ValueKey('defaults-program-sort')),
             )
-            .value,
+            .initialValue,
         const SortDefaultSetting.concrete(ProgramSort.recentlyUpdated),
       );
     });
@@ -1368,7 +1371,8 @@ void main() {
           );
           await tester.pumpAndSettle();
 
-          // The dropdown reports a tap on the already-selected item too.
+          // Re-picking the selected item keeps the direction (the dropdown
+          // does not report it, and the handler would ignore it if it did).
           await tester.tap(find.byKey(ValueKey(list.sortKey)));
           await tester.pumpAndSettle();
           await tester.tap(find.text('Title').last);
@@ -1458,10 +1462,10 @@ void main() {
 
         expect(
           tester
-              .widget<DropdownButton<SortDefaultSetting<CollectionSort>>>(
+              .widget<AppDropdownField<SortDefaultSetting<CollectionSort>>>(
                 find.byKey(const ValueKey('defaults-collection-sort')),
               )
-              .value,
+              .initialValue,
           const SortDefaultSetting.lastUsed(CollectionSort.title),
         );
         expect(
@@ -1485,10 +1489,10 @@ void main() {
 
         expect(
           tester
-              .widget<DropdownButton<SortDefaultSetting<ProgramSort>>>(
+              .widget<AppDropdownField<SortDefaultSetting<ProgramSort>>>(
                 find.byKey(const ValueKey('defaults-program-sort')),
               )
-              .value,
+              .initialValue,
           const SortDefaultSetting.lastUsed(ProgramSort.title),
         );
         expect(
@@ -1513,18 +1517,18 @@ void main() {
 
         expect(
           tester
-              .widget<DropdownButton<SortDefaultSetting<CollectionSort>>>(
+              .widget<AppDropdownField<SortDefaultSetting<CollectionSort>>>(
                 find.byKey(const ValueKey('defaults-collection-sort')),
               )
-              .value,
+              .initialValue,
           const SortDefaultSetting.lastUsed(CollectionSort.title),
         );
         expect(
           tester
-              .widget<DropdownButton<SortDefaultSetting<ProgramSort>>>(
+              .widget<AppDropdownField<SortDefaultSetting<ProgramSort>>>(
                 find.byKey(const ValueKey('defaults-program-sort')),
               )
-              .value,
+              .initialValue,
           const SortDefaultSetting.lastUsed(ProgramSort.title),
         );
       },
@@ -1652,26 +1656,26 @@ void main() {
 
     expect(
       tester
-          .widget<DropdownButton<String>>(
+          .widget<AppDropdownField<String>>(
             find.byKey(const ValueKey('defaults-dance-form')),
           )
-          .value,
+          .initialValue,
       DanceForm.contra.name,
     );
     expect(
       tester
-          .widget<DropdownButton<FormationShape>>(
+          .widget<AppDropdownField<FormationShape>>(
             find.byKey(const ValueKey('defaults-dance-formation')),
           )
-          .value,
+          .initialValue,
       FormationShape.dupleImproper,
     );
     expect(
       tester
-          .widget<DropdownButton<Progression>>(
+          .widget<AppDropdownField<Progression>>(
             find.byKey(const ValueKey('defaults-dance-progression')),
           )
-          .value,
+          .initialValue,
       Progression.single,
     );
     expect(
@@ -1753,26 +1757,26 @@ void main() {
 
     expect(
       tester
-          .widget<DropdownButton<String>>(
+          .widget<AppDropdownField<String>>(
             find.byKey(const ValueKey('defaults-dance-form')),
           )
-          .value,
+          .initialValue,
       DanceForm.ecd.name,
     );
     expect(
       tester
-          .widget<DropdownButton<FormationShape>>(
+          .widget<AppDropdownField<FormationShape>>(
             find.byKey(const ValueKey('defaults-dance-formation')),
           )
-          .value,
+          .initialValue,
       FormationShape.longways,
     );
     expect(
       tester
-          .widget<DropdownButton<Progression>>(
+          .widget<AppDropdownField<Progression>>(
             find.byKey(const ValueKey('defaults-dance-progression')),
           )
-          .value,
+          .initialValue,
       Progression.none,
     );
     expect(
@@ -2976,15 +2980,15 @@ void main() {
                 find.byKey(const ValueKey('defaults-collection-sort')),
               );
               await tester.pumpAndSettle();
-              await tester.tap(find.text('Author').last);
+              await tester.tap(dropdownEntry('Author'));
               await tester.pumpAndSettle();
             },
             expectEdited: (tester) => expect(
               tester
-                  .widget<DropdownButton<SortDefaultSetting<CollectionSort>>>(
+                  .widget<AppDropdownField<SortDefaultSetting<CollectionSort>>>(
                     find.byKey(const ValueKey('defaults-collection-sort')),
                   )
-                  .value,
+                  .initialValue,
               const SortDefaultSetting.concrete(CollectionSort.author),
             ),
           ),
@@ -3002,10 +3006,10 @@ void main() {
             },
             expectEdited: (tester) => expect(
               tester
-                  .widget<DropdownButton<SortDefaultSetting<ProgramSort>>>(
+                  .widget<AppDropdownField<SortDefaultSetting<ProgramSort>>>(
                     find.byKey(const ValueKey('defaults-program-sort')),
                   )
-                  .value,
+                  .initialValue,
               const SortDefaultSetting.concrete(ProgramSort.eventDate),
             ),
           ),
@@ -3066,10 +3070,10 @@ void main() {
             },
             expectEdited: (tester) => expect(
               tester
-                  .widget<DropdownButton<String>>(
+                  .widget<AppDropdownField<String>>(
                     find.byKey(const ValueKey('defaults-dance-form')),
                   )
-                  .value,
+                  .initialValue,
               DanceForm.square.name,
             ),
           ),
@@ -3091,10 +3095,10 @@ void main() {
             },
             expectEdited: (tester) => expect(
               tester
-                  .widget<DropdownButton<FormationShape>>(
+                  .widget<AppDropdownField<FormationShape>>(
                     find.byKey(const ValueKey('defaults-dance-formation')),
                   )
-                  .value,
+                  .initialValue,
               FormationShape.becketCw,
             ),
           ),
@@ -3116,10 +3120,10 @@ void main() {
             },
             expectEdited: (tester) => expect(
               tester
-                  .widget<DropdownButton<Progression>>(
+                  .widget<AppDropdownField<Progression>>(
                     find.byKey(const ValueKey('defaults-dance-progression')),
                   )
-                  .value,
+                  .initialValue,
               Progression.double,
             ),
           ),
@@ -3326,43 +3330,43 @@ void main() {
 
       expect(
         tester
-            .widget<DropdownButton<SortDefaultSetting<CollectionSort>>>(
+            .widget<AppDropdownField<SortDefaultSetting<CollectionSort>>>(
               find.byKey(const ValueKey('defaults-collection-sort')),
             )
-            .value,
+            .initialValue,
         const SortDefaultSetting.concrete(CollectionSort.title),
       );
       expect(
         tester
-            .widget<DropdownButton<SortDefaultSetting<ProgramSort>>>(
+            .widget<AppDropdownField<SortDefaultSetting<ProgramSort>>>(
               find.byKey(const ValueKey('defaults-program-sort')),
             )
-            .value,
+            .initialValue,
         const SortDefaultSetting.concrete(ProgramSort.title),
       );
       await _scrollTo(tester, const ValueKey('defaults-dance-form'));
       expect(
         tester
-            .widget<DropdownButton<String>>(
+            .widget<AppDropdownField<String>>(
               find.byKey(const ValueKey('defaults-dance-form')),
             )
-            .value,
+            .initialValue,
         DanceForm.contra.name,
       );
       expect(
         tester
-            .widget<DropdownButton<FormationShape>>(
+            .widget<AppDropdownField<FormationShape>>(
               find.byKey(const ValueKey('defaults-dance-formation')),
             )
-            .value,
+            .initialValue,
         FormationShape.dupleImproper,
       );
       expect(
         tester
-            .widget<DropdownButton<Progression>>(
+            .widget<AppDropdownField<Progression>>(
               find.byKey(const ValueKey('defaults-dance-progression')),
             )
-            .value,
+            .initialValue,
         Progression.single,
       );
       // The pre-seeded templates survive a failed read.

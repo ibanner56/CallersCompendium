@@ -32,6 +32,8 @@ Future<void> _pump(
   AutovalidateMode? autovalidateMode,
   double textScale = 1,
   List<AppDropdownEntry<String?>> entries = _entries,
+  bool compact = false,
+  bool clearsAfterPick = false,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
@@ -54,7 +56,12 @@ Future<void> _pump(
                   value: value,
                   entries: entries,
                   filterable: filterable,
-                  decoration: const InputDecoration(labelText: 'Pick'),
+                  compact: compact,
+                  fillWidth: !compact,
+                  clearsAfterPick: clearsAfterPick,
+                  decoration: compact
+                      ? const InputDecoration(hintText: 'Pick')
+                      : const InputDecoration(labelText: 'Pick'),
                   validator: validator,
                   onSaved: onSaved,
                   autovalidateMode: autovalidateMode,
@@ -611,68 +618,225 @@ void main() {
       expect(picked, 'b');
     }, variant: TargetPlatformVariant.desktop());
 
-    testWidgets('Tab reaches the field, the arrows and Enter pick, Esc '
-        'closes without a pick', (tester) async {
-      String? picked = 'a';
-      await _pump(tester, value: 'a', onChanged: (v) => picked = v);
+    for (final compact in [false, true]) {
+      testWidgets(
+        'Tab reaches the ${compact ? 'compact ' : ''}field, the arrows '
+        'and Enter pick, Esc closes without a pick',
+        (tester) async {
+          String? picked = 'a';
+          await _pump(
+            tester,
+            value: 'a',
+            compact: compact,
+            onChanged: (v) => picked = v,
+          );
 
-      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
-      await tester.pumpAndSettle();
-      final field = find.descendant(
-        of: find.byKey(_fieldKey),
-        matching: find.byType(EditableText),
+          await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+          await tester.pumpAndSettle();
+          final field = find.descendant(
+            of: find.byKey(_fieldKey),
+            matching: find.byType(EditableText),
+          );
+          expect(
+            tester.widget<EditableText>(field).focusNode.hasFocus,
+            isTrue,
+            reason: 'the first Tab stop is the field itself',
+          );
+
+          // Enter opens; Down highlights an entry, which the field shows; Esc
+          // closes and the field shows the current choice again.
+          await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+          await tester.pumpAndSettle();
+          expect(find.text('Bravo'), findsOneWidget);
+          await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+          await tester.pumpAndSettle();
+          expect(_shown(tester), isNot('Alpha'), reason: 'a highlight shows');
+          await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+          await tester.pumpAndSettle();
+          expect(find.text('Bravo'), findsNothing);
+          expect(picked, 'a');
+          expect(_shown(tester), 'Alpha');
+
+          // Enter opens; the arrows move the highlight, which the field shows;
+          // Enter picks the highlighted entry.
+          await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+          await tester.pumpAndSettle();
+          for (
+            var i = 0;
+            i < _entries.length && _shown(tester) != 'Bravo';
+            i++
+          ) {
+            await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+            await tester.pumpAndSettle();
+          }
+          expect(_shown(tester), 'Bravo');
+          await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+          await tester.pumpAndSettle();
+          expect(find.text('Charlie'), findsNothing, reason: 'the menu closed');
+          expect(picked, 'b');
+          expect(_shown(tester), 'Bravo');
+
+          // The next Tab leaves the field for the next control, not the arrow.
+          await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+          await tester.pumpAndSettle();
+          expect(
+            tester
+                .widget<EditableText>(
+                  find.descendant(
+                    of: find.byKey(const ValueKey('after')),
+                    matching: find.byType(EditableText),
+                  ),
+                )
+                .focusNode
+                .hasFocus,
+            isTrue,
+          );
+        },
+        variant: TargetPlatformVariant.desktop(),
       );
+    }
+  });
+
+  group('a compact field, a list row\'s trailing control', () {
+    testWidgets('has no fill or box, only an underline, and keeps a 48 dp '
+        'touch target', (tester) async {
+      await _pump(tester, value: 'a', compact: true, onChanged: (_) {});
+      final decorator = tester.widget<InputDecorator>(
+        find.descendant(
+          of: find.byKey(_fieldKey),
+          matching: find.byType(InputDecorator),
+        ),
+      );
+      expect(decorator.decoration.filled, isFalse);
+      expect(decorator.decoration.enabledBorder, isA<UnderlineInputBorder>());
+      expect(decorator.decoration.border, isA<UnderlineInputBorder>());
       expect(
-        tester.widget<EditableText>(field).focusNode.hasFocus,
-        isTrue,
-        reason: 'the first Tab stop is the field itself',
+        tester.getSize(find.byKey(_fieldKey)).height,
+        greaterThanOrEqualTo(44),
       );
+    });
 
-      // Enter opens; Down highlights an entry, which the field shows; Esc
-      // closes and the field shows the current choice again.
-      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-      await tester.pumpAndSettle();
-      expect(find.text('Bravo'), findsOneWidget);
-      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-      await tester.pumpAndSettle();
-      expect(_shown(tester), isNot('Alpha'), reason: 'a highlight shows');
-      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
-      await tester.pumpAndSettle();
-      expect(find.text('Bravo'), findsNothing);
-      expect(picked, 'a');
-      expect(_shown(tester), 'Alpha');
-
-      // Enter opens; the arrows move the highlight, which the field shows;
-      // Enter picks the highlighted entry.
-      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-      await tester.pumpAndSettle();
-      for (var i = 0; i < _entries.length && _shown(tester) != 'Bravo'; i++) {
-        await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-        await tester.pumpAndSettle();
+    testWidgets('is as wide as its widest entry, never cuts a value off, and '
+        'starts its value where the field starts', (tester) async {
+      await loadBundledFonts();
+      for (final scale in [1.0, 2.0]) {
+        // Enabled entries only, so the widest entry the field is sized by is
+        // one of those measured.
+        final entries = _entries.where((e) => e.enabled).toList();
+        for (final entry in entries) {
+          await _pump(
+            tester,
+            value: entry.value,
+            entries: entries,
+            compact: true,
+            textScale: scale,
+            onChanged: (_) {},
+          );
+          expect(_shown(tester), entry.label);
+          expectClosedValueFits(tester, find.byKey(_fieldKey));
+        }
       }
-      expect(_shown(tester), 'Bravo');
-      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-      await tester.pumpAndSettle();
-      expect(find.text('Charlie'), findsNothing, reason: 'the menu closed');
-      expect(picked, 'b');
-      expect(_shown(tester), 'Bravo');
-
-      // The next Tab leaves the field for the next control, not the arrow.
-      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
-      await tester.pumpAndSettle();
-      expect(
-        tester
-            .widget<EditableText>(
-              find.descendant(
-                of: find.byKey(const ValueKey('after')),
-                matching: find.byType(EditableText),
-              ),
-            )
-            .focusNode
-            .hasFocus,
-        isTrue,
+      final editable = tester.widget<EditableText>(
+        find.descendant(
+          of: find.byKey(_fieldKey),
+          matching: find.byType(EditableText),
+        ),
       );
-    }, variant: TargetPlatformVariant.desktop());
+      expect(editable.textAlign, TextAlign.start);
+      // Narrower than the page: sized to its entries, not filling the row.
+      expect(tester.getSize(find.byKey(_fieldKey)).width, lessThan(400));
+    });
+
+    testWidgets('right to left, too, never cuts its widest value off', (
+      tester,
+    ) async {
+      await loadBundledFonts();
+      final entries = _entries.where((e) => e.enabled).toList();
+      for (final entry in entries) {
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.light,
+            home: Directionality(
+              textDirection: TextDirection.rtl,
+              child: Scaffold(
+                body: Center(
+                  child: AppDropdownField<String?>(
+                    key: _fieldKey,
+                    compact: true,
+                    fillWidth: false,
+                    value: entry.value,
+                    entries: entries,
+                    onChanged: (_) {},
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(_shown(tester), entry.label);
+        expectClosedValueFits(tester, find.byKey(_fieldKey));
+      }
+    });
+
+    for (final density in [VisualDensity.standard, VisualDensity.compact]) {
+      testWidgets('is 48 dp tall at 1x text at $density', (tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.light.copyWith(visualDensity: density),
+            home: Scaffold(
+              body: Center(
+                child: AppDropdownField<String?>(
+                  key: _fieldKey,
+                  compact: true,
+                  fillWidth: false,
+                  value: 'a',
+                  entries: _entries,
+                  onChanged: (_) {},
+                ),
+              ),
+            ),
+          ),
+        );
+        expect(tester.getSize(find.byKey(_fieldKey)).height, 48);
+      });
+    }
+
+    testWidgets('announces its value', (tester) async {
+      final handle = tester.ensureSemantics();
+      await _pump(tester, value: 'b', compact: true, onChanged: (_) {});
+      expect(
+        tester.getSemantics(
+          find.descendant(
+            of: find.byKey(_fieldKey),
+            matching: find.byType(TextField),
+          ),
+        ),
+        isSemantics(value: 'Bravo'),
+      );
+      handle.dispose();
+    });
+  });
+
+  testWidgets('with clearsAfterPick, a pick is reported and the field goes '
+      'back to its hint', (tester) async {
+    final picks = <String?>[];
+    await _pump(
+      tester,
+      value: null,
+      entries: _entries.skip(1).toList(),
+      compact: true,
+      clearsAfterPick: true,
+      onChanged: picks.add,
+    );
+    expect(_shown(tester), '');
+    await pickDropdownEntry(tester, find.byKey(_fieldKey), 'Alpha');
+    expect(picks, ['a']);
+    expect(_shown(tester), '', reason: 'back to the hint');
+    // The same entry again is a second action, not "no change".
+    await pickDropdownEntry(tester, find.byKey(_fieldKey), 'Alpha');
+    expect(picks, ['a', 'a']);
+    expect(_shown(tester), '');
   });
 
   testWidgets('at 2x text on a phone, the field stays one line and the open '

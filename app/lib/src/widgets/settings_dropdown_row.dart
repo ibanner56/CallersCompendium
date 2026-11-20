@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_spacing.dart';
+import 'app_dropdown_field.dart';
 
-/// A Settings row whose control is a [DropdownButton].
+/// A Settings row whose control is a compact [AppDropdownField].
 ///
 /// `ListTile.trailing` is never wrapped and gives its child no bounded width, so
 /// an intrinsically wide dropdown steals the title's width at larger text sizes
@@ -12,8 +13,9 @@ import '../theme/app_spacing.dart';
 /// its own line below the label.
 ///
 /// [dropdownBuilder] receives `expanded`, which the caller must forward to
-/// `DropdownButton.isExpanded`; every other property of the dropdown (key,
-/// value, items, onChanged) stays with the caller.
+/// [AppDropdownField.fillWidth] (with [AppDropdownField.compact] set); every
+/// other property of the dropdown (key, value, entries, onChanged) stays with
+/// the caller.
 class SettingsDropdownRow extends StatelessWidget {
   const SettingsDropdownRow({
     required this.title,
@@ -31,6 +33,12 @@ class SettingsDropdownRow extends StatelessWidget {
   /// dropdown stays inline there and rows only stack once text is enlarged or
   /// the surface is narrower than a phone.
   static const double inlineWidthPerTextScale = 360;
+
+  /// Above this text scale the dropdown always has its own line, however wide
+  /// the surface: a list tile's trailing slot is at most 56 dp tall (48 dp at
+  /// a desktop's compact density), and one line of the dropdown's value is
+  /// 48 dp at twice the default size, so it outgrows the slot beyond that.
+  static const double maxInlineTextScale = 2;
 
   final Widget title;
   final Widget? subtitle;
@@ -50,8 +58,9 @@ class SettingsDropdownRow extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final inline =
+            scale <= maxInlineTextScale &&
             constraints.maxWidth >=
-            inlineWidthPerTextScale * (scale < 1 ? 1 : scale);
+                inlineWidthPerTextScale * (scale < 1 ? 1 : scale);
         if (inline) {
           return ListTile(
             key: tileKey,

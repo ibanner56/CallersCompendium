@@ -64,10 +64,8 @@ Open **Settings ▸ Appearance ▸ Theme** to choose how the app looks. You'll f
   separation between text and background. Cards, dialogs, popup menus, bottom
   sheets, suggestion lists, the date and time pickers and buttons (icon buttons
   included) also get a visible outline, so you can see their edges without
-  relying on shading. So do the lists that open from the drop-down fields in
-  editors, dialogs and the **Collection**'s search. The small drop-downs that
-  sit at the end of a row in **Settings** (and a few like them elsewhere) are
-  not outlined yet.
+  relying on shading. So do the lists that open from every drop-down, the
+  small ones at the end of a row in **Settings** included.
 
 There are additional palettes and custom themes to explore as well, but those four
 are the ones most people reach for first — see
@@ -216,13 +214,14 @@ one, and **Esc** closes the menu and returns focus to the **⋮** button.
 first choice: **Enter** picks **Add figure**, and the arrow keys reach **Add
 meanwhile**, **Add modifier** and **Add sequence**.
 
-**Drop-down fields.** Tab to a drop-down field in an editor, a dialog or the
-**Collection**'s search and press **Enter** to open its list, the **up** and
+**Drop-down fields.** Tab to a drop-down field (in an editor, a dialog, the
+**Collection**'s search or **Settings**) and press **Enter** to open its list, the **up** and
 **down** arrow keys to move through it, **Enter** to choose, and **Esc** to
 close it without changing anything. A field with a long list (a dozen entries or
 more, such as months, days, numbers and currencies), or one that grows with your
 own data (your dialects, tags, difficulty levels, custom fields and their
-options, every figure in the glossary), also lets you type: start typing and the
+options, every figure in the glossary, the moves a dialect can rename), also
+lets you type: start typing and the
 list narrows to the entries that match. Only choosing an entry changes the
 field; text you typed without choosing is put back when you move on. On a phone
 or tablet those fields bring up the on-screen keyboard when you tap them; the

@@ -10,6 +10,7 @@ import '../../widgets/collapsible_section.dart';
 import '../../widgets/settings_dropdown_row.dart';
 import 'calling_card_labels.dart';
 import 'calling_card_layout_editor_screen.dart';
+import '../../widgets/app_dropdown_field.dart';
 
 /// The size dropdown's value for "enter your own width and height".
 const String _customSizeId = 'custom';
@@ -136,9 +137,10 @@ class _CallingCardSectionState extends State<CallingCardSection> {
           SettingsDropdownRow(
             title: Text(l10n.settingsCallingCardsSizeTitle),
             subtitle: Text(callingCardSizeLabel(l10n, settings.size)),
-            dropdownBuilder: (expanded) => DropdownButton<String>(
+            dropdownBuilder: (expanded) => AppDropdownField<String?>(
               key: const ValueKey('calling-card-size'),
-              isExpanded: expanded,
+              compact: true,
+              fillWidth: expanded,
               value: custom ? _customSizeId : preset,
               onChanged: (id) {
                 if (id == null) return;
@@ -158,15 +160,15 @@ class _CallingCardSectionState extends State<CallingCardSection> {
                   ),
                 );
               },
-              items: [
+              entries: [
                 for (final id in kCallingCardSizePresets.keys)
-                  DropdownMenuItem(
+                  AppDropdownEntry(
                     value: id,
-                    child: Text(callingCardPresetLabel(l10n, id)),
+                    label: callingCardPresetLabel(l10n, id),
                   ),
-                DropdownMenuItem(
+                AppDropdownEntry(
                   value: _customSizeId,
-                  child: Text(l10n.settingsCallingCardsSizeCustom),
+                  label: l10n.settingsCallingCardsSizeCustom,
                 ),
               ],
             ),
@@ -250,22 +252,22 @@ class _CallingCardSectionState extends State<CallingCardSection> {
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
-              DropdownButton<CallingCardUnit>(
+              AppDropdownField<CallingCardUnit>(
                 key: const ValueKey('calling-card-unit'),
+                compact: true,
+                fillWidth: false,
                 value: settings.size.unit,
                 onChanged: (unit) {
-                  if (unit != null) {
-                    setState(() => _onUnitChanged(l10n, settings, unit));
-                  }
+                  setState(() => _onUnitChanged(l10n, settings, unit));
                 },
-                items: [
-                  DropdownMenuItem(
+                entries: [
+                  AppDropdownEntry(
                     value: CallingCardUnit.inch,
-                    child: Text(l10n.settingsCallingCardsUnitInches),
+                    label: l10n.settingsCallingCardsUnitInches,
                   ),
-                  DropdownMenuItem(
+                  AppDropdownEntry(
                     value: CallingCardUnit.millimetre,
-                    child: Text(l10n.settingsCallingCardsUnitMillimetres),
+                    label: l10n.settingsCallingCardsUnitMillimetres,
                   ),
                 ],
               ),

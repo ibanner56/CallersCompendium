@@ -23,6 +23,7 @@ import 'package:compendium_app/src/widgets/collection_picker.dart';
 import 'package:compendium_app/src/widgets/dance_list_tile.dart';
 import 'package:compendium_app/src/widgets/online_result_tile.dart';
 
+import '../support/finders.dart';
 import '../support/dropdown.dart';
 import '../support/test_repositories.dart';
 import '../support/l10n_harness.dart';
@@ -1072,7 +1073,7 @@ void main() {
     await _tapVisible(tester, find.text('Add'));
     await _tapVisible(tester, find.text('Has figure'));
 
-    final moveField = find.byType(TextField).last;
+    final moveField = hasFigureMoveField();
     await tester.ensureVisible(moveField);
     await tester.enterText(moveField, 'petro');
     await tester.pumpAndSettle();
@@ -1228,7 +1229,7 @@ void main() {
     );
     await _tapVisible(tester, find.text('Add'));
     await _tapVisible(tester, find.text('Has figure'));
-    final moveField = find.byType(TextField).last;
+    final moveField = hasFigureMoveField();
     await tester.ensureVisible(moveField);
     await tester.enterText(moveField, 'petro');
     await tester.pumpAndSettle();

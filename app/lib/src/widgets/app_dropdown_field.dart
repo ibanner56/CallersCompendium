@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
@@ -59,6 +61,18 @@ class AppDropdownEntry<T> {
 /// Esc closes an open menu; with the menu closed, the go-back keys (Esc,
 /// Ctrl/Cmd-W) reach whatever is around the field, as from any other control:
 /// an inline editor that closes on Esc, or the app's go-back.
+///
+/// Set [compact] for a list row's own control (a Settings row's trailing
+/// control, a match picker inside a sentence): no filled box, only the value,
+/// an arrow and a thin underline, 48 dp tall as a row's control is, while the
+/// open menu is the same outlined menu as every other field's.
+///
+/// With [fillWidth] off the field is as wide as its widest entry (or hint, or
+/// label) needs at the current text size, measured with the text style the
+/// closed field draws with, so the value is never cut off. Where its parent
+/// bounds the width (a Wrap or a Column) and that is narrower, it takes the
+/// whole width; a parent that does not bound it (a Row's fixed child) gets
+/// the measured width.
 class AppDropdownField<T> extends FormField<T> {
   AppDropdownField({
     super.key,
@@ -68,6 +82,9 @@ class AppDropdownField<T> extends FormField<T> {
     this.decoration = const InputDecoration(),
     this.filterable = false,
     this.fillWidth = true,
+    this.compact = false,
+    this.clearsAfterPick = false,
+    this.widthFits = const [],
     super.validator,
     super.onSaved,
     super.autovalidateMode,
@@ -89,14 +106,51 @@ class AppDropdownField<T> extends FormField<T> {
   final bool filterable;
 
   /// Whether the field fills the width it is given, as a text field does.
-  /// When false it is as wide as its longest entry, for a short list beside a
-  /// field that should take the rest of the row: the closed field cannot
+  /// When false it is as wide as its longest entry needs, but no wider than
+  /// its parent allows: for a short list beside a field that should take the
+  /// rest of the row, or a row's trailing control. The closed field cannot
   /// ellipsize, so a fixed narrow width would cut its value off.
   final bool fillWidth;
+
+  /// Whether the field is a list row's own control rather than a form field:
+  /// no fill and no box, the value in the weight a row's control uses, and a
+  /// compact arrow. It is 48 dp tall at every density, and as tall as one
+  /// line of its value once the text is large enough that the line is taller.
+  final bool compact;
+
+  /// Whether a pick is an action, not a choice: [onChanged] runs and the field
+  /// goes back to showing [value] (usually nothing, with a hint such as
+  /// "Add…"), so the next pick starts from the same place.
+  final bool clearsAfterPick;
+
+  /// Further text a field that does not [fillWidth] makes room for, in its
+  /// hint style: a hint shown only at times, so the field keeps one width
+  /// whether it shows a value or the hint.
+  final List<String> widthFits;
 
   @override
   FormFieldState<T> createState() => _AppDropdownFieldState<T>();
 }
+
+/// [DropdownMenu]'s padding on each side of its arrow button.
+const double _arrowPadding = 4;
+
+/// A compact field's arrow, as wide as a plain dropdown's.
+const double _compactArrow = 24;
+
+/// A compact field's room before its value.
+const double _compactStartPadding = 8;
+
+/// The widest horizontal padding Material gives a text field with none set.
+const double _defaultHorizontalPadding = 16;
+
+/// The gap a text field leaves between its text and a suffix icon, in place
+/// of its end padding.
+const double _suffixGap = 4;
+
+/// Room the text field keeps beside its text for the caret (its width and its
+/// gap), plus a pixel against rounding.
+const double _caretRoom = 4;
 
 class _AppDropdownFieldState<T> extends FormFieldState<T> {
   final TextEditingController _text = TextEditingController();
@@ -388,6 +442,11 @@ class _AppDropdownFieldState<T> extends FormFieldState<T> {
       return;
     }
     final picked = widget.entries[index].value;
+    if (widget.clearsAfterPick) {
+      _showCurrent();
+      widget.onChanged?.call(picked);
+      return;
+    }
     if (picked == value) {
       _showCurrent();
       return;
@@ -425,6 +484,117 @@ class _AppDropdownFieldState<T> extends FormFieldState<T> {
     return decoration;
   }
 
+  /// The closed field's width that shows its widest entry, hint or label in
+  /// full: the text at the current text size, plus the field's padding, the
+  /// arrow, any leading icon and the caret's room.
+  double _contentWidth(
+    TextStyle? style,
+    InputDecorationThemeData decorationTheme, {
+    required double arrowWidth,
+  }) {
+    final scaler = MediaQuery.textScalerOf(context);
+    final direction = Directionality.of(context);
+    var widest = 0.0;
+    void measure(String? text, TextStyle? textStyle, {double factor = 1}) {
+      if (text == null || text.isEmpty) return;
+      final painter = TextPainter(
+        text: TextSpan(text: text, style: textStyle),
+        textDirection: direction,
+        textScaler: scaler,
+        maxLines: 1,
+      )..layout();
+      widest = math.max(widest, painter.width * factor);
+      painter.dispose();
+    }
+
+    for (final entry in widget.entries) {
+      measure(entry.label, style);
+    }
+    final decoration = widget.decoration;
+    measure(decoration.hintText, style?.merge(decoration.hintStyle));
+    for (final text in widget.widthFits) {
+      measure(text, style?.merge(decoration.hintStyle));
+    }
+    // A floating label is drawn at three quarters of the field's text size.
+    measure(decoration.labelText, style, factor: 0.75);
+    final padding =
+        (decoration.contentPadding ?? decorationTheme.contentPadding)?.resolve(
+          Directionality.of(context),
+        ) ??
+        const EdgeInsets.symmetric(horizontal: _defaultHorizontalPadding);
+    final leading = widget.entries.any((e) => e.leadingIcon != null)
+        ? kMinInteractiveDimension
+        : 0.0;
+    // A suffix replaces the end padding with a fixed gap; count whichever is
+    // wider.
+    final ltr = Directionality.of(context) == TextDirection.ltr;
+    final (start, end) = ltr
+        ? (padding.left, padding.right)
+        : (padding.right, padding.left);
+    final horizontal = start + math.max(end, _suffixGap);
+    return (widest + horizontal + arrowWidth + leading + _caretRoom)
+        .ceilToDouble();
+  }
+
+  /// The closed field of a [AppDropdownField.compact] field: no fill or box,
+  /// only an underline in the theme's divider (heavier in High contrast), and
+  /// the theme's focus ring colour under a focused field.
+  static InputDecorationThemeData _compactDecorationTheme(
+    ThemeData theme,
+    TextStyle? style,
+    TextScaler scaler,
+  ) {
+    final line = BorderSide(
+      color: theme.dividerTheme.color ?? theme.colorScheme.outlineVariant,
+      width: theme.dividerTheme.thickness ?? 1,
+    );
+    final focus =
+        theme.inputDecorationTheme.focusedBorder?.borderSide ??
+        BorderSide(color: theme.colorScheme.primary, width: 2);
+    final error = BorderSide(color: theme.colorScheme.error, width: line.width);
+    final fontSize = style?.fontSize ?? 16;
+    final lineHeight = scaler.scale(fontSize) * (style?.height ?? 1.5);
+    // The decorator adds the density's height adjustment (8 dp less at a
+    // desktop's compact density) to whatever the padding gives.
+    final density = theme.visualDensity.baseSizeAdjustment.dy;
+    final vertical = math.max(
+      0.0,
+      (kMinInteractiveDimension - lineHeight - density) / 2,
+    );
+    return InputDecorationThemeData(
+      filled: false,
+      isDense: true,
+      // Padding that makes the field 48 dp tall, a row control's height, at
+      // any density; once a line of large text is taller than that, the
+      // field is one line tall and no more (a list tile's trailing slot is at
+      // most 56 dp tall, 48 dp at a desktop's compact density).
+      contentPadding: EdgeInsetsDirectional.fromSTEB(
+        _compactStartPadding,
+        vertical,
+        0,
+        vertical,
+      ),
+      // [DropdownMenu] hands these to its arrow button as well as to the
+      // decorator, so they are the arrow's own size, not its slot's.
+      suffixIconConstraints: const BoxConstraints(
+        minWidth: _compactArrow,
+        minHeight: _compactArrow,
+      ),
+      border: UnderlineInputBorder(borderSide: line),
+      enabledBorder: UnderlineInputBorder(borderSide: line),
+      focusedBorder: UnderlineInputBorder(borderSide: focus),
+      errorBorder: UnderlineInputBorder(borderSide: error),
+      focusedErrorBorder: UnderlineInputBorder(
+        borderSide: focus.copyWith(color: theme.colorScheme.error),
+      ),
+      disabledBorder: UnderlineInputBorder(
+        borderSide: line.copyWith(
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.12),
+        ),
+      ),
+    );
+  }
+
   static bool _fieldTakesFocus(BuildContext context) =>
       switch (Theme.of(context).platform) {
         TargetPlatform.android ||
@@ -445,20 +615,31 @@ class _AppDropdownFieldState<T> extends FormFieldState<T> {
     // With a node of its own, [DropdownMenu] asks the node, not
     // `requestFocusOnTap`, whether a tap focuses the field.
     _fieldFocus.canRequestFocus = filterable || _fieldTakesFocus(context);
+    final theme = Theme.of(context);
+    final compact = widget.compact;
+    final textStyle = compact
+        ? theme.textTheme.titleMedium
+        : theme.dropdownMenuTheme.textStyle ?? theme.textTheme.bodyLarge;
+    final decorationTheme = compact
+        ? _compactDecorationTheme(
+            theme,
+            textStyle,
+            MediaQuery.textScalerOf(context),
+          )
+        : null;
+    final denseArrow =
+        (widget.decoration.isDense ?? false) &&
+        theme.visualDensity.vertical < 0;
     Widget field = DropdownMenu<int>(
-      // A field sized to its widest entry measures the entries once; measure
-      // again when their labels change (another language, say).
-      key: widget.fillWidth
-          ? null
-          : ValueKey(Object.hashAll(widget.entries.map((e) => e.label))),
       controller: _text,
       menuController: _menu,
       focusNode: _fieldFocus,
       enabled: widget.enabled,
       initialSelection: selected < 0 ? null : selected,
-      // Fill the slot, as the text fields beside it do, unless asked to size
-      // to the widest entry.
-      expandedInsets: widget.fillWidth ? EdgeInsets.zero : null,
+      // Fill the slot: the text fields' slot, or the width set below.
+      expandedInsets: EdgeInsets.zero,
+      textStyle: compact ? textStyle : null,
+      inputDecorationTheme: decorationTheme,
       decorationBuilder: _decorate,
       trailingIconFocusNode: _arrowFocus,
       onSelected: _onSelected,
@@ -474,8 +655,38 @@ class _AppDropdownFieldState<T> extends FormFieldState<T> {
       requestFocusOnTap: filterable || _fieldTakesFocus(context),
       dropdownMenuEntries: _entriesForMenu(),
     );
-    if ((widget.decoration.isDense ?? false) &&
-        Theme.of(context).visualDensity.vertical < 0) {
+    if (!widget.fillWidth) {
+      // As wide as the widest entry needs, but no wider than the slot (a box
+      // wider than its constraints is clamped to them). Measured here rather
+      // than left to [DropdownMenu]: its own measure reads the entries in the
+      // menu's smaller label style, so a long value would not fit the field
+      // it measured.
+      field = SizedBox(
+        width: _contentWidth(
+          textStyle,
+          decorationTheme ?? theme.inputDecorationTheme,
+          arrowWidth: compact
+              ? _compactArrow + 2 * _arrowPadding
+              : (denseArrow ? 32 : kMinInteractiveDimension) +
+                    2 * _arrowPadding,
+        ),
+        child: field,
+      );
+    }
+    if (compact) {
+      // The arrow is a row control's arrow, not a full-size button: the whole
+      // field is the tap target, 48 dp tall as a row's control is.
+      field = IconButtonTheme(
+        data: IconButtonThemeData(
+          style: IconButton.styleFrom(
+            padding: EdgeInsets.zero,
+            minimumSize: const Size.square(_compactArrow),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+        ),
+        child: field,
+      );
+    } else if (denseArrow) {
       // A dense field stays dense at a compact (pointer) density: the menu's
       // arrow button would otherwise hold it at a full-size button's height.
       // At a touch density the arrow keeps its full-size target.
