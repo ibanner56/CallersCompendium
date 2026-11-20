@@ -52,6 +52,15 @@ import 'support/real_fonts.dart';
 /// A desktop window: the checklist's keyboard gate is a desktop gate.
 const _desktop = Size(1100, 800);
 
+/// A window tall enough that the whole of a long form is built at once, so
+/// nothing is lazy: every control is on screen to be judged, and Tab's wrap is
+/// a return to the very first stop.
+const _tallDesktop = Size(1100, 6000);
+
+/// The size of the window the current test runs in. Set at the start of each
+/// test (they run one at a time).
+Size _window = _desktop;
+
 /// A repeat is a trap, not the page wrapping round, when its loop is fewer than
 /// this many stops, or fewer than this many were walked at all (a control that
 /// swallows Tab on the first press repeats at once).
@@ -89,7 +98,7 @@ class _Stop {
   /// by the same area share, so neither does this check count them as stops.
   bool get isWholeWindow =>
       rect.width * rect.height >
-      _desktop.width * _desktop.height * FocusRingLayer.maxAreaShare;
+      _window.width * _window.height * FocusRingLayer.maxAreaShare;
 }
 
 Future<AppData> _seed() async {
@@ -197,7 +206,7 @@ List<_Tappable> _tappables(WidgetTester tester) {
         data.flagsCollection.isEnabled != ui.Tristate.isFalse &&
         rect.width > 0 &&
         rect.height > 0 &&
-        rect.overlaps(Offset.zero & _desktop)) {
+        rect.overlaps(Offset.zero & _window)) {
       final f = data.flagsCollection;
       final label = data.label.isNotEmpty
           ? data.label.replaceAll('\n', ' ')
@@ -277,9 +286,13 @@ typedef _Walk = ({
   List<String>? trap,
 });
 
-/// Tab from a fresh start until a stop repeats, which is the page wrapping round
-/// unless its loop is only a few stops, which is a trap. `null` means no repeat
-/// within [_maxStops], that is, an unbounded traversal.
+/// Tab from a fresh start until a stop repeats. `null` means no repeat within
+/// [_maxStops], that is, an unbounded traversal.
+///
+/// With [strict] (the whole form is built, so nothing is lazy) the repeat must be
+/// the first stop: anything else is a loop Tab could not get out of, whatever its
+/// size. Otherwise it is the page wrapping round unless its loop is only a few
+/// stops, which is a trap.
 ///
 /// On a lazy list the controls scrolled far above are no longer built when Tab
 /// wraps, so it lands on the first control still built, not on the first stop;
@@ -289,7 +302,7 @@ typedef _Walk = ({
 /// from step to step. Each step therefore asks which of the tappables on screen
 /// *now* the stop reaches, and a tappable counts as unreached only if it was on
 /// screen at some step and no step reached it.
-Future<_Walk?> _walk(WidgetTester tester) async {
+Future<_Walk?> _walk(WidgetTester tester, {required bool strict}) async {
   FocusManager.instance.primaryFocus?.unfocus();
   await tester.pump();
   final stops = <_Stop>[];
@@ -308,7 +321,9 @@ Future<_Walk?> _walk(WidgetTester tester) async {
           for (final e in seen.entries)
             if (!reached.contains(e.key)) e.value,
         ],
-        trap: loop >= _minLoop && stops.length >= _minLoop
+        trap:
+            (strict ? repeat == 0 : loop >= _minLoop) &&
+                stops.length >= _minLoop
             ? null
             : [
                 if (stops.length < _minLoop)
@@ -344,14 +359,41 @@ bool _sameBounds(Rect ring, Rect stop) =>
     (ring.width - stop.width).abs() < 1 &&
     (ring.height - stop.height).abs() < 1;
 
-/// Pumps the full app, runs [navigate] to reach a screen, then walks it.
+/// Registers a screen's walk. A [long] screen (a form that runs past the window)
+/// is walked twice: in the ordinary window, where its lazy list scrolls under
+/// Tab as a person would see it, and in a window tall enough to build all of it
+/// (see [_tallDesktop]), where nothing is lazy and so the trap and reachability
+/// checks can be exact.
 void _screen(
   String name,
   Future<void> Function(WidgetTester tester) navigate, {
   required Finder landedOn,
   List<String> mustStopAt = const [],
+  bool long = false,
+}) {
+  _walkScreen(name, navigate, landedOn, mustStopAt, tall: false);
+  if (long) {
+    _walkScreen(
+      '$name, whole form built',
+      navigate,
+      landedOn,
+      mustStopAt,
+      tall: true,
+    );
+  }
+}
+
+/// Pumps the full app, runs [navigate] to reach a screen, then walks it.
+void _walkScreen(
+  String name,
+  Future<void> Function(WidgetTester tester) navigate,
+  Finder landedOn,
+  List<String> mustStopAt, {
+  required bool tall,
 }) {
   testWidgets(name, (tester) async {
+    _window = tall ? _tallDesktop : _desktop;
+    addTearDown(() => _window = _desktop);
     await loadBundledFonts();
     installFakeWakelock();
     addTearDown(() {
@@ -360,7 +402,7 @@ void _screen(
     });
     final appData = await _seed();
     tester.view.devicePixelRatio = 1;
-    tester.view.physicalSize = _desktop;
+    tester.view.physicalSize = _window;
     final semantics = tester.ensureSemantics();
     try {
       await tester.pumpWidget(
@@ -374,9 +416,27 @@ void _screen(
       await navigate(tester);
       expect(tester.takeException(), isNull, reason: 'navigating to $name');
       expect(landedOn, findsWidgets, reason: 'did not reach $name');
+      if (tall) {
+        // Guards against a window that is not tall enough: any vertical
+        // scrolling left means part of a form is still lazy and the exact
+        // checks would lie.
+        final scrolling = [
+          for (final state in tester.stateList<ScrollableState>(
+            find.byType(Scrollable),
+          ))
+            if (state.position.axis == Axis.vertical &&
+                state.position.maxScrollExtent > 1)
+              state.position.maxScrollExtent,
+        ];
+        expect(
+          scrolling,
+          isEmpty,
+          reason: '$name: still scrolls in a ${_tallDesktop.height} px window',
+        );
+      }
 
       // 1. No trap.
-      final walk = await _walk(tester);
+      final walk = await _walk(tester, strict: tall);
       expect(
         walk,
         isNotNull,
@@ -446,7 +506,7 @@ void _screen(
           for (final stop in real)
             if (stop.rect.width < _minStop ||
                 stop.rect.height < _minStop ||
-                !(Offset.zero & _desktop).contains(stop.rect.center))
+                !(Offset.zero & _window).contains(stop.rect.center))
               '${stop.rect} ${stop.describe}',
         ],
         isEmpty,
@@ -513,14 +573,24 @@ void main() {
 
   _screen('Collection', (_) async {}, landedOn: find.text('Petronella'));
 
-  _screen('Dance detail', (tester) async {
-    await tester.tap(find.text('Petronella'));
-    await tester.pumpAndSettle();
-  }, landedOn: find.byType(DanceDetailScreen));
+  _screen(
+    'Dance detail',
+    (tester) async {
+      await tester.tap(find.text('Petronella'));
+      await tester.pumpAndSettle();
+    },
+    landedOn: find.byType(DanceDetailScreen),
+    long: true,
+  );
 
-  _screen('Dance editor', (tester) async {
-    await _tapKey(tester, 'new-dance');
-  }, landedOn: find.byType(DanceEditorScreen));
+  _screen(
+    'Dance editor',
+    (tester) async {
+      await _tapKey(tester, 'new-dance');
+    },
+    landedOn: find.byType(DanceEditorScreen),
+    long: true,
+  );
 
   // The editors' "More details" section keeps its fields built while collapsed,
   // so it is walked open as well: its fields must join the focus order then, and
@@ -534,6 +604,7 @@ void main() {
     },
     landedOn: find.byType(DanceEditorScreen),
     mustStopAt: ['status-field', 'mixed-level-field'],
+    long: true,
   );
 
   _screen('Programs list', (tester) async {
@@ -548,10 +619,15 @@ void main() {
     landedOn: find.byKey(const ValueKey('summary-perform')),
   );
 
-  _screen('Program builder', (tester) async {
-    await _openProgramSummary(tester);
-    await _tapKey(tester, 'open-builder');
-  }, landedOn: find.byType(ProgramEditorScreen));
+  _screen(
+    'Program builder',
+    (tester) async {
+      await _openProgramSummary(tester);
+      await _tapKey(tester, 'open-builder');
+    },
+    landedOn: find.byType(ProgramEditorScreen),
+    long: true,
+  );
 
   _screen(
     'Program builder, More details open',
@@ -566,6 +642,7 @@ void main() {
     },
     landedOn: find.byType(ProgramEditorScreen),
     mustStopAt: ['program-band'],
+    long: true,
   );
 
   _screen('Perform', (tester) async {
@@ -574,8 +651,13 @@ void main() {
   }, landedOn: find.byType(PerformProgramScreen));
 
   // On a desktop window Settings is a sidebar beside the section's content.
-  _screen('Settings', (tester) async {
-    await tester.tap(find.text('Settings').last);
-    await tester.pumpAndSettle();
-  }, landedOn: find.byKey(const ValueKey('settings-nav-general')));
+  _screen(
+    'Settings',
+    (tester) async {
+      await tester.tap(find.text('Settings').last);
+      await tester.pumpAndSettle();
+    },
+    landedOn: find.byKey(const ValueKey('settings-nav-general')),
+    long: true,
+  );
 }
