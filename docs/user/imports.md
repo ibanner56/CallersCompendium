@@ -189,7 +189,7 @@ older than the one you already imported cannot be imported from the catalog.
 
 Importing a newer version of a collection you already have offers
 **Re-import onto** for its dances, which updates only their figures, formation
-and progression, as for any other source (see
+and progression (with the dance form, meter and key they need), as for any other source (see
 [Re-import an archive dance to pick up a correction](#re-import-an-archive-dance-to-pick-up-a-correction)).
 A corrected title or credit in the new version reaches a dance you already have
 only if you tick **Also update title and credit** on its row; a corrected note
@@ -427,9 +427,9 @@ say Improper comes across proper.
 
 Many Caller's Companion libraries of English dances type them all "Contra",
 so before reading a `.USR` file the app asks once: **Are these English country
-dances?** Choose **Yes, English** and every dance in the file but a square comes
-across as an English country dance; choose **No** and each dance comes across by
-its Type, as above. Closing the question reads nothing, and choosing the file
+dances?** Choose **Yes, English dances** and every dance in the file but a
+square comes across as an English country dance; choose **No, read their
+types** and each dance comes across by its Type, as above. Closing the question reads nothing, and choosing the file
 again asks again. Re-importing a dance you first brought in with the other
 answer takes the form along with the figures, so a contra dance re-imported
 as English becomes English and takes the file's meter and key if it had none
@@ -475,7 +475,7 @@ the custom fields settings before you share. Dances you imported in an earlier v
 values as lines in their calling notes.
 
 Re-importing a dance takes only its figures, formation and progression from
-the file (see
+the file, with the dance form, meter and key they need (see
 [Re-import an archive dance to pick up a correction](#re-import-an-archive-dance-to-pick-up-a-correction)),
 so it never changes the dance's custom-field values. A column you changed or
 emptied in Caller's Companion since is not applied; change it in the app.
@@ -713,7 +713,7 @@ source you pick:
    a particular dance.
 3. **Decide dance by dance** — each dance can be brought in as **new**, updated
    as a **re-import** of one you imported before (which refreshes only its
-   figures, formation and progression), **linked** to an existing dance, kept as a separate **duplicate**, or **skipped**. Anything the app is
+   figures, formation and progression, with the dance form, meter and key they need), **linked** to an existing dance, kept as a separate **duplicate**, or **skipped**. Anything the app is
    unsure about defaults to **skip**, so it never guesses its way into your
    library.
    If something is wrong with the **whole file** — an incomplete `.USR`, or a

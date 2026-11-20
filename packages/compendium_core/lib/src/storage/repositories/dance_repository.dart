@@ -3616,6 +3616,8 @@ class DanceRepository {
                 _db.dances.formationDetail,
                 _db.dances.formationImproper,
                 _db.dances.figuresJson,
+                _db.dances.meter,
+                _db.dances.phraseStructure,
               ])
               ..where(
                 _db.dances.deletedAt.isNull() &
@@ -3637,6 +3639,10 @@ class DanceRepository {
           row.readWithConverter(_db.dances.formationShape)!,
           detail: row.read(_db.dances.formationDetail),
           improper: row.read(_db.dances.formationImproper)!,
+        ),
+        meter: row.read(_db.dances.meter),
+        phraseStructure: PhraseStructure.parseOrStandard(
+          row.read(_db.dances.phraseStructure) ?? '',
         ),
       );
       if (!result.changed) continue;
@@ -3684,7 +3690,12 @@ class DanceRepository {
           UnreadableFigures() => null,
         };
         if (figures == null) return null;
-        final result = migrate(figures, dance.formation);
+        final result = migrate(
+          figures,
+          dance.formation,
+          meter: dance.meter,
+          phraseStructure: dance.phraseStructure,
+        );
         if (!result.changed) return null;
         return dance.copyWith(
           figures: result.figures,

@@ -67,6 +67,13 @@ class EcdDanceMigrationResult {
 
 /// The ECD migration of one dance's [figures] and [formation]
 /// (`migrateEcdDance` from the imports layer in the app). Injected, as
-/// [FigureReparser] is, so `storage/` does not import `imports/`.
+/// [FigureReparser] is, so `storage/` does not import `imports/`. The
+/// dance's [meter] and [phraseStructure] count a re-read line's bar range, as
+/// for [FigureReparser].
 typedef EcdDanceMigrator =
-    EcdDanceMigrationResult Function(List<Figure> figures, Formation formation);
+    EcdDanceMigrationResult Function(
+      List<Figure> figures,
+      Formation formation, {
+      String? meter,
+      PhraseStructure? phraseStructure,
+    });

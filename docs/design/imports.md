@@ -2407,8 +2407,9 @@ migration that turns them into ECD figures. Nothing runs it on its own.
      figure, so containers never nest. The figure keeps its
      note, mark and overrides, and its contra count as below;
   3. import-gap custom lines are re-read with the ECD grammar
-     (`reparseImportGapFigures` with ECD's taxonomy); user-entered customs are
-     left alone, as in Re-check;
+     (`reparseImportGapFigures` with ECD's taxonomy, and the dance's meter and
+     phrase structure, so a bar range counts as in Re-check); user-entered
+     customs are left alone, as in Re-check;
   4. the shape becomes `ecdFormationFromContra`'s.
 - In a twin (step 1), only values the contra figure **stores** are carried, never a contra default,
   so the migrated figure states nothing the dance did not (R2). A `who` the

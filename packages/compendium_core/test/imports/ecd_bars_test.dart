@@ -163,6 +163,8 @@ void main() {
         '1-4 (6) circle left',
         '1-4 circle left 6 beats',
         '1-4 circle left [6]',
+        '1-4 partners set and turn single (4,4)',
+        '1-4 partners set and turn single (4+4)',
       ]) {
         final figure = parseEcdFigureLine(line, meter: '2/2')!;
         expect(figure.isCustom, isTrue, reason: line);

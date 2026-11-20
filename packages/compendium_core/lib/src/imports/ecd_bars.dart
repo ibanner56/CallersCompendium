@@ -109,13 +109,14 @@ final RegExp _barRange = RegExp(
 }
 
 /// Whether [rest], a line after its bar range, also states a count in beats:
-/// bracketed (`(8)`, `[8]`) or with `beats` (`8 beats`). The bars are the
+/// bracketed (`(8)`, `[8]`, a compound `(4,4)` or `(4+4)`) or with `beats`
+/// (`8 beats`). The bars are the
 /// count, so such a line is kept whole as text, its words unchanged, with the
 /// bars' count (Hudson: "the meter is the rule").
 bool ecdRestStatesBeats(String rest) => _statedBeats.hasMatch(rest);
 
 final RegExp _statedBeats = RegExp(
-  r'[(\[]\s*\d+\s*(?:beats?\s*)?[)\]]|\b\d+\s*beats?\b',
+  r'[(\[]\s*\d+(?:\s*[,+]\s*\d+)*\s*(?:beats?\s*)?[)\]]|\b\d+\s*beats?\b',
   caseSensitive: false,
 );
 
