@@ -4,6 +4,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/program_forms.dart';
 import '../data/user_figures_scope.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
@@ -1099,6 +1100,12 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           _buildProminentPerform(program),
         ],
         const SizedBox(height: 16),
+        if (programFormsLabel(l10n, programSlotForms(program.slots, _dances))
+            case final formsLabel?)
+          KeyedSubtree(
+            key: const ValueKey('program-summary-forms'),
+            child: _summaryRow(Icons.category_outlined, formsLabel),
+          ),
         if (dateLabel != null) _summaryRow(Icons.event_outlined, dateLabel),
         if (resolveVenueLabel(program, _venuesById) case final venueLabel?)
           _summaryRow(Icons.place_outlined, venueLabel),

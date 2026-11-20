@@ -4,6 +4,7 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/program_forms.dart';
 import '../data/reduce_motion_scope.dart';
 import '../data/repositories_scope.dart';
 import '../data/sort_ignore_articles_scope.dart';
@@ -25,6 +26,7 @@ class CommandResult {
     required this.title,
     this.subtitle,
     this.icon = Icons.tag,
+    this.forms,
   });
 
   final CommandResultKind kind;
@@ -32,6 +34,11 @@ class CommandResult {
   final String title;
   final String? subtitle;
   final IconData icon;
+
+  /// A program's dance forms as a label ([programFormsLabel]), which a search
+  /// also matches: "english" lists the programs of English dances. Null for
+  /// a dance, and for a program with no dances.
+  final String? forms;
 }
 
 /// Requests the global search palette. Bound to Ctrl-K / Cmd-K by
@@ -131,8 +138,10 @@ class _CommandPaletteState extends State<CommandPalette> {
         ? null
         : repos.dances.listIdsTitlesAndForms();
     final programsFuture = repos.programs.listIdsAndTitles();
+    final formsFuture = repos.programs.formsByProgram();
     final dances = await dancesFuture ?? const [];
     final programs = await programsFuture;
+    final formsById = await formsFuture;
     if (!mounted) return;
     final l10n = AppLocalizations.of(context);
     final all = <CommandResult>[
@@ -145,19 +154,35 @@ class _CommandPaletteState extends State<CommandPalette> {
           icon: danceFormIcon(d.form),
         ),
       for (final p in programs)
-        CommandResult(
-          kind: CommandResultKind.program,
-          id: p.id,
-          title: p.title,
-          subtitle: l10n.commandPaletteProgramSubtitle,
-          icon: Icons.event_note_outlined,
-        ),
+        if (programFormsLabel(l10n, formsById[p.id]) case final forms)
+          CommandResult(
+            kind: CommandResultKind.program,
+            id: p.id,
+            title: p.title,
+            subtitle: forms == null
+                ? l10n.commandPaletteProgramSubtitle
+                : '${l10n.commandPaletteProgramSubtitle} · $forms',
+            icon: Icons.event_note_outlined,
+            forms: forms,
+          ),
     ];
     setState(() {
       _all = all;
       _loading = false;
       _applyFilter(_query.value);
     });
+  }
+
+  /// Whether every word of [raw] starts a word of [forms] (a program's
+  /// forms label), ignoring case and accents: "eng" and "contra english"
+  /// match "Contra · English"; an empty query matches no forms.
+  static bool _matchesForms(String? forms, String raw) {
+    if (forms == null) return false;
+    final words = foldForTitleMatch(raw).split(RegExp(r'\s+'))
+      ..removeWhere((w) => w.isEmpty);
+    if (words.isEmpty) return false;
+    final labelWords = foldForTitleMatch(forms).split(RegExp(r'[\s·]+'));
+    return words.every((w) => labelWords.any((l) => l.startsWith(w)));
   }
 
   void _applyFilter(String raw) {
@@ -170,11 +195,10 @@ class _CommandPaletteState extends State<CommandPalette> {
         <({int rank, String key, int index, CommandResult result})>[];
     for (var i = 0; i < _all.length; i++) {
       final r = _all[i];
-      final rank = rankTitleMatch(
-        r.title,
-        raw,
-        ignoreLeadingArticles: ignoreArticles,
-      );
+      final rank =
+          rankTitleMatch(r.title, raw, ignoreLeadingArticles: ignoreArticles) ??
+          // A program's forms match after every title match.
+          (_matchesForms(r.forms, raw) ? TitleMatchRank.substring : null);
       if (rank == null) continue;
       final folded = foldForTitleMatch(r.title);
       ranked.add((

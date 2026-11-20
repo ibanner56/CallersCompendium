@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/program_forms.dart';
 import '../data/display_defaults.dart';
 import '../data/repositories_scope.dart';
 import '../data/sort_ignore_articles_scope.dart';
@@ -138,6 +139,13 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
 
   List<Program>? _programs;
   Map<String, Venue> _venuesById = const {};
+
+  /// The forms of each program's dances ([ProgramRepository.formsByProgram]).
+  Map<String, Set<DanceForm>> _formsById = const {};
+
+  /// The type filter: only programs whose dances are of exactly these forms
+  /// ([sameForms]). Null shows every program. Not saved.
+  Set<DanceForm>? _formFilter;
   Object? _loadError;
   ProgramSort _sort = ProgramSort.title;
   SortDirection _sortDir = ProgramSort.title.defaultDirection;
@@ -190,8 +198,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   /// before the conversion those writes were invisible until the app restarted.
   /// A broadcast fixed the sites anyone remembered; the stream fixes the ones
   /// nobody did.
-  StreamSubscription<({List<Program> programs, Map<String, Venue> venuesById})>?
-  _programsSub;
+  StreamSubscription<_ProgramsSnapshot>? _programsSub;
 
   /// Whether the user has explicitly chosen a sort this session (issue #895).
   /// Once set, the saved default no longer seeds `_sort` — protecting an
@@ -277,15 +284,18 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   /// opts into `venues`, so a rename re-emits and this re-reads. It stays a
   /// separate query rather than part of `listAll`, because a program's venue is
   /// a label resolved beside the row, not a column of it.
-  Future<({List<Program> programs, Map<String, Venue> venuesById})> _withVenues(
-    List<Program> programs,
-  ) async {
+  Future<_ProgramsSnapshot> _withVenues(List<Program> programs) async {
     final hasLinkedVenue = programs.any((p) => p.venueId != null);
+    // Read with each list emit, so it follows a slot change. A dance whose
+    // form changes is shown in its new form once the list next re-emits;
+    // this list does not watch every dance for that.
+    final forms = await _repos.programs.formsByProgram();
     return (
       programs: programs,
       venuesById: hasLinkedVenue
           ? {for (final v in await _repos.venues.listAll()) v.id: v}
           : const <String, Venue>{},
+      formsById: forms,
     );
   }
 
@@ -393,13 +403,12 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     super.dispose();
   }
 
-  void _onPrograms(
-    ({List<Program> programs, Map<String, Venue> venuesById}) snapshot,
-  ) {
+  void _onPrograms(_ProgramsSnapshot snapshot) {
     if (!mounted) return;
     setState(() {
       _programs = snapshot.programs;
       _venuesById = snapshot.venuesById;
+      _formsById = snapshot.formsById;
       _loadError = null;
     });
     _closeHiddenSelection();
@@ -441,10 +450,77 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
 
   /// The programs this list shows: all of them with "Show archived" on, else
   /// the ones not archived.
-  List<Program> get _visiblePrograms => [
-    for (final program in _programs ?? const <Program>[])
-      if (_showArchived || !program.isArchived) program,
-  ];
+  List<Program> get _visiblePrograms {
+    final filter = _activeFormFilter;
+    return [
+      for (final program in _unfilteredPrograms)
+        if (filter == null || sameForms(_formsById[program.id], filter))
+          program,
+    ];
+  }
+
+  /// The programs shown before the type filter: all, or the unarchived.
+  Iterable<Program> get _unfilteredPrograms => (_programs ?? const <Program>[])
+      .where((p) => _showArchived || !p.isArchived);
+
+  /// [_formFilter] while some shown program still matches it; null once none
+  /// does (its last program changed, or was archived or deleted), so the
+  /// filter can never hide every program.
+  Set<DanceForm>? get _activeFormFilter {
+    final filter = _formFilter;
+    if (filter == null) return null;
+    return _unfilteredPrograms.any((p) => sameForms(_formsById[p.id], filter))
+        ? filter
+        : null;
+  }
+
+  /// The type filter's chips: each distinct set of forms among the programs
+  /// shown with no type filter, in the order of their labels. Empty unless
+  /// there are two to choose between.
+  List<Set<DanceForm>> _formChoices(AppLocalizations l10n) {
+    final choices = <String, Set<DanceForm>>{};
+    for (final program in _unfilteredPrograms) {
+      final forms = _formsById[program.id];
+      final label = programFormsLabel(l10n, forms);
+      if (label != null) choices[label] = forms!;
+    }
+    if (choices.length < 2) return const [];
+    final labels = choices.keys.toList()..sort();
+    return [for (final label in labels) choices[label]!];
+  }
+
+  Widget _formFilterRow(AppLocalizations l10n, List<Set<DanceForm>> choices) =>
+      Padding(
+        key: const ValueKey('programs-form-filter'),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.md,
+          AppSpacing.xs,
+          AppSpacing.md,
+          0,
+        ),
+        child: Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: Wrap(
+            spacing: AppSpacing.xs,
+            runSpacing: AppSpacing.xxs,
+            children: [
+              for (final forms in choices)
+                FilterChip(
+                  key: ValueKey(
+                    'programs-form-${[for (final f in DanceForm.values)
+                      if (forms.contains(f)) f.name].join('+')}',
+                  ),
+                  label: Text(programFormsLabel(l10n, forms)!),
+                  selected:
+                      _activeFormFilter != null &&
+                      sameForms(forms, _activeFormFilter!),
+                  onSelected: (selected) =>
+                      setState(() => _formFilter = selected ? forms : null),
+                ),
+            ],
+          ),
+        ),
+      );
 
   List<Program> _sortedPrograms({required bool ignoreLeadingArticles}) {
     final programs = _visiblePrograms;
@@ -925,6 +1001,8 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
           ),
           child: WeekdayHeaderStrip(markedDates: _programEventDates(sorted)),
         ),
+        if (_formChoices(l10n) case final choices when choices.isNotEmpty)
+          _formFilterRow(l10n, choices),
         Padding(
           padding: const EdgeInsets.fromLTRB(
             AppSpacing.md,
@@ -981,6 +1059,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
                 child: ProgramListTile(
                   program: program,
                   venuesById: _venuesById,
+                  forms: _formsById[program.id],
                   selected:
                       widget.onSelectProgram != null &&
                       widget.selectedProgramId == program.id,
@@ -1021,3 +1100,11 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     );
   }
 }
+
+/// One emit of the programs list: the programs, the venues their rows name,
+/// and the forms of each one's dances.
+typedef _ProgramsSnapshot = ({
+  List<Program> programs,
+  Map<String, Venue> venuesById,
+  Map<String, Set<DanceForm>> formsById,
+});
