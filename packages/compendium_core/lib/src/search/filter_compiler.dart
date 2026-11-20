@@ -786,12 +786,27 @@ class FilterCompiler {
         : '%${escapeLikePattern(word)}%';
   }
 
-  /// [column] folded by [searchFoldSqlFunction], with its word starts marked
+  /// [column] folded by [_folded], with its word starts marked
   /// ([_wordStarts]) when [prefix].
   static String _foldedValue(String column, bool prefix) {
-    final folded = '$searchFoldSqlFunction($column)';
+    final folded = '(${_folded(column)})';
     return prefix ? _wordStarts(folded) : folded;
   }
+
+  /// [column] folded as [foldForSearch] folds it, for a `LIKE`.
+  ///
+  /// An ASCII value (as many bytes as characters) is left as stored: `LIKE`
+  /// already ignores ASCII case, and the pattern is folded. Only any other
+  /// value calls [searchFoldSqlFunction], a Dart callback per row: called for
+  /// every row, it took an All fields search over 20,000 dances that all have
+  /// a meter from 8.9 ms to 36 ms (`benchmark/search_benchmark.dart`).
+  static String _folded(String column) =>
+      'CASE WHEN ${_isAscii(column)} THEN $column '
+      'ELSE $searchFoldSqlFunction($column) END';
+
+  /// Whether [column] holds only ASCII: as many bytes as characters.
+  static String _isAscii(String column) =>
+      'length($column) = length(CAST($column AS BLOB))';
 
   /// A whole-value match of [column] (the meter or the key) against [value],
   /// with both sides trimmed and folded ([searchFoldSqlFunction]). A blank
@@ -804,7 +819,12 @@ class FilterCompiler {
     final folded = foldForSearch(value.trim());
     if (folded.isEmpty) return '0';
     binds.add(folded);
-    return "($column <> '' AND $searchFoldSqlFunction(trim($column)) = ?)";
+    // `=` is case-sensitive, so an ASCII value is lowered here, and trimmed
+    // of the ASCII whitespace Dart's `trim` removes (tab to carriage return,
+    // and space), as the Meter and Key facets trim what they offer.
+    return "($column <> '' AND (CASE WHEN ${_isAscii(column)} "
+        'THEN lower(trim($column, char(9, 10, 11, 12, 13, 32))) '
+        'ELSE $searchFoldSqlFunction($column) END) = ?)';
   }
 
   String _customField(CustomFieldFilter f, List<Object?> binds) {

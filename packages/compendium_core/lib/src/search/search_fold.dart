@@ -1,8 +1,11 @@
 import 'title_sort_key.dart';
 
 /// The SQL function that folds a value for an accent-insensitive search:
-/// `cc_fold(text)` is [foldForSearch] of `text` (lowercased, accents
-/// removed), or NULL for a NULL or non-text argument.
+/// `cc_fold(text)` is [foldForSearch] of `text` with its surrounding
+/// whitespace trimmed (lowercased, accents removed), or NULL for a NULL or
+/// non-text argument. The search calls it only for a value that is not all
+/// ASCII, and folds an ASCII value with SQLite's own `LIKE`, `lower` and
+/// `trim`.
 ///
 /// `applyCompendiumSqliteSetup` registers it on every connection. An All
 /// fields or Author search compiles to it (the meter, key and interpreter

@@ -829,21 +829,29 @@ are ([dialect.md](dialect.md) "Canonicalization on input"):
 - **Meter, key and interpreters (ADR-006 F3, §9.2).** In All fields each word
   also matches the dance's `meter`, its `musical_key` and the names of its
   live interpreters (`dance_interpreters` joined to `choreographers` with
-  `deleted_at IS NULL`), in a dance of any form. They are read with `LIKE`
-  from those rows rather than from the text index (`_musicAndInterpreterMatch`),
-  as two `id IN` subqueries beside the index branches, so they need no index
-  column, no rebuild, and follow a rename at once. Measured with
-  `benchmark/search_benchmark.dart` (20,000 dances, none with a meter), a bare
-  search's median rose from 0.47 ms to 2.5 ms, well inside the 50 ms target.
+  `deleted_at IS NULL`), in a dance of any form. They are read with a folded
+  `LIKE` (below) from those rows rather than from the text index
+  (`_musicAndInterpreterMatch`), as two `id IN` subqueries beside the index
+  branches, so they need no index column, no rebuild, and follow a rename at
+  once. Measured with `benchmark/search_benchmark.dart` (20,000 dances, every
+  one with a meter and a key, one in twenty with a key outside ASCII; median
+  of 25 runs on one machine), All fields `swing` took 3.1 ms before the
+  accent folding and 8.9 ms with it. Calling `cc_fold` on every row instead
+  took 36 ms, and testing each value with `GLOB` and lowering and trimming it
+  in SQL took 14.5 ms. All are inside the 50 ms target.
   A word of one or two characters must start a word of the value, where a word
   starts after a space, `/`, `-` or `(` ("D" finds "D minor", "8", "6/" and
   "/8" find "6/8"; a separator the word starts or ends with is dropped), close to what the prefix index does (it splits on every
   punctuation mark); a longer one may sit anywhere. A word with no letter or
-  digit matches none of them. Both sides are folded by the `cc_fold` SQL
-  function (`searchFoldSqlFunction`, registered per connection by
-  `applyCompendiumSqliteSetup`: lowercased, combining marks removed, as
-  `foldForTitleMatch` does), so "emile" finds "Émile" and the reverse, as the
-  text index's `remove_diacritics` does. A connection opened without that
+  digit matches none of them. Both sides are folded (`_folded`), so "emile"
+  finds "Émile" and the reverse, as the text index's `remove_diacritics`
+  does: the pattern in Dart (`foldForSearch`: lowercased, combining marks
+  removed, as `foldForTitleMatch` does), and the value in SQL. An ASCII value
+  (`length(x) = length(CAST(x AS BLOB))`) is left to `LIKE`, which ignores
+  ASCII case; any other value goes through the `cc_fold` SQL function
+  (`searchFoldSqlFunction`, registered per connection by
+  `applyCompendiumSqliteSetup`), a Dart callback, so it is called only for
+  the rows that need it. A connection opened without that
   setup fails these searches with "no such function". The Author scope reads
   the interpreters' names the same way (`_interpreterMatch`) beside the
   `authors` column, so it finds a dance by who wrote it or who interpreted it

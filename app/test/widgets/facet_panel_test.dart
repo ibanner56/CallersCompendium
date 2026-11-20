@@ -618,6 +618,20 @@ void main() {
     expect(facets.meters, isEmpty);
   });
 
+  testWidgets('a pick stays selected when the offered spelling changes', (
+    tester,
+  ) async {
+    final facets = FacetSelections()..musicalKeys.add('D minor');
+    await _pump(tester, facets, musicalKeys: ['d minor'], onChanged: () {});
+    final chip = find.byKey(const ValueKey('musical-key-d minor'));
+    expect(tester.widget<FilterChip>(chip).selected, isTrue);
+    // One chip, not one per spelling.
+    expect(find.byKey(const ValueKey('musical-key-D minor')), findsNothing);
+    await tester.tap(chip);
+    await tester.pump();
+    expect(facets.musicalKeys, isEmpty);
+  });
+
   testWidgets('a picked meter the collection no longer has stays a chip', (
     tester,
   ) async {

@@ -64,7 +64,7 @@ void applyCompendiumSqliteSetup(CommonDatabase database) {
     deterministic: true,
     function: (arguments) {
       final text = arguments[0];
-      return text is String ? foldForSearch(text) : null;
+      return text is String ? foldForSearch(text.trim()) : null;
     },
   );
 }

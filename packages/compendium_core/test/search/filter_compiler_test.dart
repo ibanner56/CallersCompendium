@@ -12,14 +12,26 @@ List<String> _music(String word, {bool prefix = false}) {
 
 /// The SQL an All fields word of three or more characters adds for the
 /// meter, the key and the interpreters' names.
-const _musicSql =
+/// [column] folded as the compiler folds a meter, key or name for a `LIKE`:
+/// left as stored when it is ASCII, `cc_fold` for anything else.
+String _f(String column) =>
+    '(CASE WHEN length($column) = length(CAST($column AS BLOB)) '
+    'THEN $column ELSE cc_fold($column) END)';
+
+/// [column] folded for a whole-value `=` match.
+String _eq(String column) =>
+    '(CASE WHEN length($column) = length(CAST($column AS BLOB)) '
+    'THEN lower(trim($column, char(9, 10, 11, 12, 13, 32))) '
+    'ELSE cc_fold($column) END)';
+
+final _musicSql =
     "(id IN (SELECT id FROM dances WHERE (meter <> '' OR musical_key <> '') "
-    "AND (cc_fold(meter) LIKE ? ESCAPE '\\' "
-    "OR cc_fold(musical_key) LIKE ? ESCAPE '\\')) "
+    "AND (${_f('meter')} LIKE ? ESCAPE '\\' "
+    "OR ${_f('musical_key')} LIKE ? ESCAPE '\\')) "
     'OR id IN (SELECT di.dance_id FROM dance_interpreters di '
     'JOIN choreographers c ON c.id = di.choreographer_id '
     'WHERE c.deleted_at IS NULL '
-    "AND cc_fold(c.name) LIKE ? ESCAPE '\\'))";
+    "AND ${_f('c.name')} LIKE ? ESCAPE '\\'))";
 
 void main() {
   final compiler = FilterCompiler();
@@ -35,12 +47,12 @@ void main() {
   group('Meter and Key leaves (ADR-006 F3)', () {
     test('compile to a folded whole-value match', () {
       final meter = compiler.compile(const MeterFilter(' Ré 6/8 '));
-      expect(meter.sql, contains("(meter <> '' AND cc_fold(trim(meter)) = ?)"));
+      expect(meter.sql, contains("(meter <> '' AND ${_eq('meter')} = ?)"));
       expect(meter.binds, ['re 6/8']);
       final key = compiler.compile(const MusicalKeyFilter('D minor'));
       expect(
         key.sql,
-        contains("(musical_key <> '' AND cc_fold(trim(musical_key)) = ?)"),
+        contains("(musical_key <> '' AND ${_eq('musical_key')} = ?)"),
       );
       expect(key.binds, ['d minor']);
     });
@@ -859,7 +871,7 @@ void main() {
 
     test('each word is its own canonical-or-raw match, ANDed', () {
       final c = compiler.compile(const FullTextFilter('Kaynor petronella'));
-      const word =
+      final word =
           '(id IN (SELECT dance_id FROM dance_substring_fts '
           'WHERE dance_substring_fts MATCH ?) '
           'OR id IN (SELECT dance_id FROM dance_substring_fts '
@@ -984,10 +996,10 @@ void main() {
         contains(
           '((id IN (SELECT dance_id FROM dance_substring_fts '
           'WHERE authors MATCH ?) OR $interpreters'
-          "AND cc_fold(c.name) LIKE ? ESCAPE '\\')) AND "
+          "AND ${_f('c.name')} LIKE ? ESCAPE '\\')) AND "
           '(id IN (SELECT dance_id FROM dance_fts WHERE authors MATCH ?) OR '
           "${interpreters}AND (' ' || replace(replace(replace("
-          "cc_fold(c.name), '/', ' '), '-', ' '), '(', ' ')) "
+          "${_f('c.name')}, '/', ' '), '-', ' '), '(', ' ')) "
           "LIKE ? ESCAPE '\\')))",
         ),
       );

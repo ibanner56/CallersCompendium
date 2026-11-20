@@ -3765,6 +3765,22 @@ FROM seq
         expect(await dances.search(const MusicalKeyFilter('D')), isEmpty);
         // A dance with no meter is never matched, whatever is asked.
         expect(await dances.search(const MeterFilter('')), isEmpty);
+        // Whitespace other than a space is trimmed as the chip trims it.
+        await dances.create(
+          _dance(
+            id: 'tabbed',
+            title: 'Tabbed',
+            form: DanceForm.ecd,
+          ).copyWith(meter: '9/8\t', musicalKey: '\u00a0E minor'),
+        );
+        expect(await dances.search(const MeterFilter('9/8')), ['tabbed']);
+        expect(await dances.search(const MusicalKeyFilter('e minor')), [
+          'tabbed',
+        ]);
+        expect(await dances.search(const FullTextFilter('9/8')), [
+          'tabbed',
+          'two-meters',
+        ]);
       });
 
       test('relevance finds a key and ranks it after scored matches', () async {

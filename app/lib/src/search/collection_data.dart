@@ -572,7 +572,8 @@ class CollectionData {
 
 /// [values] trimmed, without blanks, one per folded value ([foldForSearch]:
 /// case and accents ignored, the first spelling met kept), sorted by that
-/// folded value. The Meter and Key facets offer these, and match each one the
+/// folded value with its runs of digits compared as numbers, so 2/2 comes
+/// before 12/8. The Meter and Key facets offer these, and match each one the
 /// same folded way ([MeterFilter], [MusicalKeyFilter]).
 List<String> distinctFolded(Iterable<String> values) {
   final byFold = <String, String>{};
@@ -580,8 +581,26 @@ List<String> distinctFolded(Iterable<String> values) {
     final value = v.trim();
     if (value.isNotEmpty) byFold.putIfAbsent(foldForSearch(value), () => value);
   }
-  final folds = byFold.keys.toList()..sort();
+  final folds = byFold.keys.toList()..sort(_compareNatural);
   return [for (final f in folds) byFold[f]!];
+}
+
+final RegExp _digitsOrNot = RegExp(r'\d+|\D+');
+
+/// Compares [a] and [b] with each run of digits read as a number.
+int _compareNatural(String a, String b) {
+  final x = _digitsOrNot.allMatches(a).map((m) => m[0]!).toList();
+  final y = _digitsOrNot.allMatches(b).map((m) => m[0]!).toList();
+  for (var i = 0; i < x.length && i < y.length; i++) {
+    final nx = int.tryParse(x[i]);
+    final ny = int.tryParse(y[i]);
+    final c = nx != null && ny != null
+        ? nx.compareTo(ny)
+        : x[i].compareTo(y[i]);
+    if (c != 0) return c;
+  }
+  final byLength = x.length.compareTo(y.length);
+  return byLength != 0 ? byLength : a.compareTo(b);
 }
 
 /// The phrase labels the "By phrase" search offers for [dances]: the standard

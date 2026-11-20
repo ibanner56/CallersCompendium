@@ -365,12 +365,22 @@ class FacetPanel extends StatelessWidget {
       required Set<String> picked,
       required IconData icon,
     }) {
+      // Picks are compared folded, as they match: a pick stays selected when
+      // the collection's spelling of it changes ("D minor" to "d minor").
+      final pickedFolds = {for (final v in picked) foldForSearch(v)};
       final offeredFolds = {for (final v in offered) foldForSearch(v)};
       final values = [
         ...offered,
         for (final v in picked)
           if (!offeredFolds.contains(foldForSearch(v))) v,
       ];
+      void pick(String value, bool selected) {
+        final fold = foldForSearch(value);
+        picked.removeWhere((v) => foldForSearch(v) == fold);
+        if (selected) picked.add(value);
+        onChanged();
+      }
+
       if (values.isEmpty || !shown(id)) return;
       sections.add(
         _FacetSection(
@@ -384,8 +394,8 @@ class FacetPanel extends StatelessWidget {
                 key: '$id-$v',
                 label: v,
                 icon: icon,
-                selected: picked.contains(v),
-                onSelected: (sel) => toggle(picked, v, sel),
+                selected: pickedFolds.contains(foldForSearch(v)),
+                onSelected: (sel) => pick(v, sel),
               ),
           ],
         ),
