@@ -2762,23 +2762,23 @@
   },
   "appThemeLabelSystem": "System",
   "@appThemeLabelSystem": {
-    "description": "Name of the built-in \"System\" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated."
+    "description": "Name of the built-in \"System\" theme, shown on its card in the theme gallery on the Theme screen (Settings > Appearance > Theme) and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated."
   },
   "appThemeLabelLight": "Light",
   "@appThemeLabelLight": {
-    "description": "Name of the built-in \"Light\" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated."
+    "description": "Name of the built-in \"Light\" theme, shown on its card in the theme gallery on the Theme screen (Settings > Appearance > Theme) and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated."
   },
   "appThemeLabelDark": "Dark",
   "@appThemeLabelDark": {
-    "description": "Name of the built-in \"Dark\" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated."
+    "description": "Name of the built-in \"Dark\" theme, shown on its card in the theme gallery on the Theme screen (Settings > Appearance > Theme) and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated."
   },
   "appThemeLabelSoftDark": "Soft dark",
   "@appThemeLabelSoftDark": {
-    "description": "Name of the built-in \"Soft dark\" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated."
+    "description": "Name of the built-in \"Soft dark\" theme, shown on its card in the theme gallery on the Theme screen (Settings > Appearance > Theme) and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated."
   },
   "appThemeLabelHighContrast": "High contrast",
   "@appThemeLabelHighContrast": {
-    "description": "Name of the built-in \"High contrast\" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated."
+    "description": "Name of the built-in \"High contrast\" theme, shown on its card in the theme gallery on the Theme screen (Settings > Appearance > Theme) and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated."
   },
   "appThemeDescriptionSystem": "Match the device light/dark setting",
   "@appThemeDescriptionSystem": {

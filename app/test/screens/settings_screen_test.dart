@@ -1439,9 +1439,9 @@ void main() {
   });
 
   group('SettingsScreen — custom themes', () {
-    // The Appearance list scrolls (the theme gallery grew), so the custom
-    // themes section can sit below the fold. Scroll the content list — located
-    // via the always-built gallery — until [target] is on screen.
+    // The Theme screen's list scrolls, so the custom themes can sit below the
+    // fold. Scroll the list — located via the always-built System card — until
+    // [target] is on screen.
     Future<void> revealInAppearance(WidgetTester tester, Finder target) async {
       final scrollable = find
           .ancestor(
@@ -1983,7 +1983,7 @@ void main() {
         find.byKey(const ValueKey('general-sort-ignore-articles')),
         findsOneWidget,
       );
-      // No other section is selected, and Appearance's theme gallery is not
+      // No other section is selected, and Appearance's Theme row is not
       // mounted until its section is chosen.
       for (final tile in tester.widgetList<ListTile>(
         find.byWidgetPredicate(
@@ -1999,10 +1999,7 @@ void main() {
           reason: '${tile.key}',
         );
       }
-      expect(
-        find.byKey(ValueKey('theme-${AppThemeSelection.system.name}')),
-        findsNothing,
-      );
+      expect(find.byKey(const ValueKey('appearance-theme')), findsNothing);
     });
 
     for (final (width, sideBySide) in [
@@ -2110,15 +2107,12 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('settings-nav-dialect')));
       await tester.pumpAndSettle();
 
-      // Now dialect tiles are shown and the theme gallery is gone.
+      // Now dialect tiles are shown and Appearance's Theme row is gone.
       expect(
         find.byKey(ValueKey('dialect-tile-${Dialect.larksRobins.name}')),
         findsOneWidget,
       );
-      expect(
-        find.byKey(ValueKey('theme-${AppThemeSelection.system.name}')),
-        findsNothing,
-      );
+      expect(find.byKey(const ValueKey('appearance-theme')), findsNothing);
     });
 
     testWidgets('narrow layout pushes a detail page that updates live', (

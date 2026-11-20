@@ -68,8 +68,8 @@ Future<ValueNotifier<bool>> _pumpAppearance(
   await tester.pumpAndSettle();
   await tester.tap(find.byKey(const ValueKey('settings-nav-appearance')));
   await tester.pumpAndSettle();
-  // The toggle sits below the theme gallery in a lazily-built ListView; scroll
-  // it into view so it is built and hit-testable.
+  // The toggle sits below the Theme row and other entries in a lazily-built
+  // ListView; scroll it into view so it is built and hit-testable.
   await tester.scrollUntilVisible(
     find.byKey(const ValueKey('appearance-set-list-color-coding')),
     240,

@@ -3246,31 +3246,31 @@ abstract class AppLocalizations {
   /// **'automatic, auto, device, follow'**
   String get appThemeKeywordAutomatic;
 
-  /// Name of the built-in "System" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
+  /// Name of the built-in "System" theme, shown on its card in the theme gallery on the Theme screen (Settings > Appearance > Theme) and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
   ///
   /// In en, this message translates to:
   /// **'System'**
   String get appThemeLabelSystem;
 
-  /// Name of the built-in "Light" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
+  /// Name of the built-in "Light" theme, shown on its card in the theme gallery on the Theme screen (Settings > Appearance > Theme) and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
   ///
   /// In en, this message translates to:
   /// **'Light'**
   String get appThemeLabelLight;
 
-  /// Name of the built-in "Dark" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
+  /// Name of the built-in "Dark" theme, shown on its card in the theme gallery on the Theme screen (Settings > Appearance > Theme) and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
   ///
   /// In en, this message translates to:
   /// **'Dark'**
   String get appThemeLabelDark;
 
-  /// Name of the built-in "Soft dark" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
+  /// Name of the built-in "Soft dark" theme, shown on its card in the theme gallery on the Theme screen (Settings > Appearance > Theme) and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
   ///
   /// In en, this message translates to:
   /// **'Soft dark'**
   String get appThemeLabelSoftDark;
 
-  /// Name of the built-in "High contrast" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
+  /// Name of the built-in "High contrast" theme, shown on its card in the theme gallery on the Theme screen (Settings > Appearance > Theme) and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
   ///
   /// In en, this message translates to:
   /// **'High contrast'**
